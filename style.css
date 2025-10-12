@@ -279,11 +279,20 @@ body.dark-mode #cargo-itinerary-container .table thead th {
    Barra Lateral Plegable
    ========================================================================== */
 .app-body { position: relative; }
-.sidebar { position: fixed; left: 0; top: 0; bottom: 0; transform: translateX(0); transition: transform 0.4s ease; }
-.main-content { margin-left: var(--sidebar-width); transition: margin-left 0.4s ease, width 0.4s ease; width: calc(100% - var(--sidebar-width)); }
+.sidebar { position: fixed; left: 0; top: 0; bottom: 0; transform: translateX(0); transition: transform 0.3s ease; }
+.main-content { margin-left: var(--sidebar-width); transition: margin-left 0.3s ease, width 0.3s ease; width: calc(100% - var(--sidebar-width)); }
 .sidebar-toggler-btn { color: var(--text-color); border: none; font-size: 1.2rem; }
 body.sidebar-collapsed .sidebar { transform: translateX(calc(-1 * var(--sidebar-width))); }
 body.sidebar-collapsed .main-content { margin-left: 0; width: 100%; }
+
+/* Mobile sidebar behavior */
+@media (max-width: 991.98px) {
+   .sidebar { transform: translateX(-100%); width: var(--sidebar-width); box-shadow: 4px 0 12px rgba(0,0,0,0.2); }
+   .sidebar.visible { transform: translateX(0); }
+   .main-content { margin-left: 0; width: 100%; }
+   .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); opacity: 0; visibility: hidden; transition: opacity .2s ease, visibility .2s ease; z-index: 1040; }
+   .sidebar-overlay.active { opacity: 1; visibility: visible; }
+}
 
 /* ==========================================================================
    Animaciones Generales
@@ -511,3 +520,8 @@ body.dark-mode #manifest-records-table tbody tr:hover { background: rgba(255,255
   #ops-sections-filters, #ops-years-filters { width:100%; }
   #ops-sections-filters .form-check, #ops-years-filters .form-check { margin-right: 8px; 
   }}
+
+/* Summary collapse button spacing on mobile */
+@media (max-width: 991.98px) {
+   #summary-collapse { margin-top: .5rem; }
+}

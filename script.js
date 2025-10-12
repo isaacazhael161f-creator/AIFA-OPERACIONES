@@ -384,6 +384,15 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.menu-item').forEach(i=>i.classList.remove('active'));
             menuItem.classList.add('active');
         }
+    } else {
+        // Default section: Operaciones Totales
+        try {
+            const menuItem = Array.from(document.querySelectorAll('.menu-item')).find(mi => mi.dataset && mi.dataset.section === 'operaciones-totales');
+            if (menuItem) {
+                showSection('operaciones-totales', menuItem);
+                try{ updateOpsSummary(); renderOperacionesTotales(); }catch(_){ }
+            }
+        } catch(_) {}
     }
 });
 
@@ -513,8 +522,10 @@ function toggleSidebar() {
     if (isMobile) {
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebar-overlay');
-        sidebar.classList.toggle('visible');
-        overlay.classList.toggle('active');
+        if (!sidebar || !overlay) return;
+        const willShow = !sidebar.classList.contains('visible');
+        sidebar.classList.toggle('visible', willShow);
+        overlay.classList.toggle('active', willShow);
     } else {
         const isCollapsed = document.body.classList.toggle('sidebar-collapsed');
         localStorage.setItem('sidebarState', isCollapsed ? 'collapsed' : 'expanded');
@@ -1036,6 +1047,15 @@ function handleNavigation(e) {
     }
     if (section) {
         showSection(section, a);
+        // ensure sidebar closes on mobile after selecting
+        try {
+            const isMobile = window.innerWidth <= 991.98;
+            if (isMobile) {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebar-overlay');
+                if (sidebar && overlay) { sidebar.classList.remove('visible'); overlay.classList.remove('active'); }
+            }
+        } catch(_) {}
         // Hooks ligeros al entrar a ciertas vistas
         if (section === 'operaciones-totales') { try { updateOpsSummary(); renderOperacionesTotales(); } catch(_) {} }
         else { try { stopOpsAnim(); } catch(_) {} }
@@ -1057,6 +1077,21 @@ function updateDate() {
         el.textContent = txt;
     } catch (e) { /* ignore */ }
 }
+
+// Close sidebar when tapping overlay on mobile
+document.addEventListener('DOMContentLoaded', function(){
+    try {
+        const overlay = document.getElementById('sidebar-overlay');
+        const sidebar = document.getElementById('sidebar');
+        if (overlay && sidebar && !overlay._wired){
+            overlay._wired = 1;
+            overlay.addEventListener('click', function(){
+                sidebar.classList.remove('visible');
+                overlay.classList.remove('active');
+            });
+        }
+    } catch(_) {}
+});
 
 // Resumen y gráficas de Operaciones Totales (restauración completa con filtros, animaciones y colores)
 const opsCharts = {};
