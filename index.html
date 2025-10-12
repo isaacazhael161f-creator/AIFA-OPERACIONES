@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Operaciones AIFA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;700&family=Roboto+Condensed:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div id="login-screen" class="login-screen">
+        <div class="login-overlay"></div>
+        <div class="login-container">
+            <div class="login-header">
+                <img src="images/emblema-aviacion.png" alt="Emblema de la Aviación" class="login-logo" />
+                <h1 id="login-title" class="h3">OPERACIONES-AIFA</h1>
+                <p class="text-muted">Ingrese sus credenciales para continuar</p>
+            </div>
+            <form id="login-form" class="login-form">
+                <div class="form-floating mb-3">
+                    <input type="text" class="form-control" id="username" name="username" required placeholder="Ingrese su usuario" autocomplete="username">
+                    <label for="username">Usuario</label>
+                </div>
+                <div class="form-floating mb-3">
+                    <input type="password" class="form-control" id="password" name="password" required placeholder="Ingrese su contraseña" autocomplete="current-password">
+                    <label for="password">Contraseña</label>
+                </div>
+                <button type="submit" id="login-button" class="btn btn-primary w-100 py-2">
+                    <span class="btn-text">Iniciar Sesión</span>
+                    <span class="spinner-plane" aria-hidden="true"></span>
+                </button>
+                <div id="login-error" class="text-danger mt-2"></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="main-app" class="main-app hidden">
+        <header class="header p-3">
+            <div id="flying-plane">
+                <div class="contrail"></div>
+            </div>
+            <div class="container-fluid">
+                <div class="header-content d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <button class="btn sidebar-toggler-btn" type="button" id="sidebar-toggler">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <img src="images/aifa-logo.jpg" alt="Logo AIFA" class="aifa-logo" />
+                    </div>
+                    <div class="text-center header-center-content">
+                        <div class="d-flex align-items-center justify-content-center gap-3">
+                            <img src="images/nlu-operacion.png" alt="Logo de Operación NLU" class="header-logo" />
+                            <h1 class="main-title">AEROPUERTO INTERNACIONAL FELIPE ÁNGELES</h1>
+                            <img src="images/emblema-aviacion.png" alt="Logo de Aviación" class="header-logo" />
+                        </div>
+                        <div id="current-user" class="current-user-display fw-bold mt-2"></div>
+                    </div>
+                    <div class="d-flex align-items-center gap-3 header-right-content">
+                        <div class="clocks-wrapper d-flex gap-2 align-items-center">
+                            <div class="formal-clock-container">
+                                <div class="clock-label">HORA LOCAL</div>
+                                <div class="formal-clock" id="formal-clock">00:00:00</div>
+                            </div>
+                            <div class="utc-clock-container">
+                                <div class="clock-label">HORA UTC</div>
+                                <div class="utc-clock" id="utc-clock">00:00:00</div>
+                            </div>
+                        </div>
+                        <img src="images/gobierno-mexico.png" alt="Logo del Gobierno de México" class="gob-logo" />
+                        <button id="theme-toggler" class="btn theme-toggle-btn" title="Cambiar tema">
+                            <i class="fas fa-moon"></i>
+                        </button>
+                        <a href="#" class="btn btn-outline-danger d-lg-none logout-button-mobile" data-action="logout" title="Cerrar Sesión">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <div class="date-bar text-center p-2">
+            <p id="current-date" class="m-0 fw-bold"></p>
+        </div>
+
+        <div class="app-body">
+            <aside class="sidebar d-flex flex-column p-2" id="sidebar">
+                <nav class="nav flex-column" id="sidebar-nav">
+                    <a class="menu-item active" href="#" data-section="inicio"><i class="fas fa-home"></i><span>Inicio</span></a>
+                    <a class="menu-item" href="#" data-section="itinerario"><i class="fas fa-calendar-alt"></i><span>Itinerario</span></a>
+                    <a class="menu-item" href="#" data-section="frecuencias-semana"><i class="fas fa-chart-bar"></i><span>Frecuencias (Semana)</span></a>
+                    <a class="menu-item" href="#" data-section="parte-operaciones"><i class="fas fa-file-invoice"></i><span>Parte de Operaciones</span></a>
+                    <a class="menu-item" href="#" data-section="puntualidad-agosto">
+                        <span class="icon-clock-check" aria-hidden="true">
+                            <i class="fas fa-clock"></i>
+                            <i class="fas fa-check check" aria-hidden="true"></i>
+                        </span>
+                        <span>Puntualidad</span>
+                    </a>
+                    <a class="menu-item" href="#" data-section="demoras"><i class="fas fa-clock"></i><span>Demoras</span></a>
+                    <a class="menu-item" href="#" data-section="operaciones-totales"><i class="fas fa-clipboard-check"></i><span>Operaciones Totales</span></a>
+                    <a class="menu-item" href="#" data-section="manifiestos"><i class="fas fa-file-signature"></i><span>Manifiestos</span></a>
+                    <a class="menu-item" id="itinerario-mensual-menu" href="#" data-section="itinerario-mensual"><i class="fas fa-table"></i><span>Itinerario Mensual (Octubre)</span></a>
+                    <a class="menu-item" href="#" data-section="comparativa"><i class="fas fa-chart-line"></i><span>Comparativa</span></a>
+                    <a class="menu-item logout-item" href="#" data-action="logout"><i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span></a>
+                </nav>
+            </aside>
+            <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+            <main class="main-content flex-grow-1 p-3 p-md-4">
+
+                <div id="inicio-section" class="content-section active">
+                    <div class="card">
+                        <div class="card-header">
+                            <ul class="nav nav-tabs card-header-tabs" id="inicioTab" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="interactivo-inicio-tab" data-bs-toggle="tab" data-bs-target="#interactivo-inicio-pane" type="button" role="tab" aria-controls="interactivo-inicio-pane" aria-selected="true"><i class="fas fa-table me-2"></i>Vista Interactiva</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="pdf-inicio-tab" data-bs-toggle="tab" data-bs-target="#pdf-inicio-pane" type="button" role="tab" aria-controls="pdf-inicio-pane" aria-selected="false"><i class="fas fa-file-pdf me-2"></i>Documento PDF Original</button>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="card-body">
+                            <div class="tab-content" id="inicioTabContent">
+                                <div class="tab-pane fade show active" id="interactivo-inicio-pane" role="tabpanel" aria-labelledby="interactivo-inicio-tab" tabindex="0">
+                                    <div class="row">
+                                        <div class="col-12 col-lg-4 mb-4 mb-lg-0">
+                                            <h4 class="mb-3"><i class="fas fa-list-ul me-2"></i>Resumen por Aerolínea</h4>
+                                            <div id="summary-table-container" class="table-container-tech"></div>
+                                        </div>
+                                        <div class="col-12 col-lg-8">
+                                            <div id="filter-controls" class="filter-container mb-4">
+                                                <div class="filter-header">
+                                                    <i class="fas fa-filter me-2"></i>
+                                                    <h5 class="mb-0">Filtros de Búsqueda</h5>
+                                                </div>
+                                                <div class="filters-bar">
+                                                    <div class="chip">
+                                                        <label><i class="fas fa-plane me-1"></i>Aerolínea</label>
+                                                        <select id="airline-filter" class="form-select">
+                                                            <option value="all" selected>Todas las Aerolíneas</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="chip">
+                                                        <label><i class="fas fa-suitcase me-1"></i>Banda</label>
+                                                        <input type="text" id="claim-filter" class="form-control" placeholder="Número/Nombre de banda...">
+                                                    </div>
+                                                    <div class="chip">
+                                                        <label><i class="fas fa-map-pin me-1"></i>Posición</label>
+                                                        <select id="position-filter" class="form-select">
+                                                            <option value="all" selected>Todas las posiciones</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="chip" style="min-width:260px;">
+                                                        <label><i class="fas fa-search me-1"></i>Buscar</label>
+                                                        <input type="text" id="global-search" class="form-control" placeholder="Aerolínea, origen, destino, vuelo...">
+                                                    </div>
+                                                    <div class="chip">
+                                                        <label><i class="fas fa-calendar-day me-1"></i>Fecha</label>
+                                                        <input type="date" id="date-filter" class="form-control">
+                                                    </div>
+                                                    <div class="chip">
+                                                        <label><i class="fas fa-clock me-1"></i>Hora</label>
+                                                        <select id="hour-filter" class="form-select">
+                                                            <option value="all" selected>Todas</option>
+                                                            <option value="00">00</option>
+                                                            <option value="01">01</option>
+                                                            <option value="02">02</option>
+                                                            <option value="03">03</option>
+                                                            <option value="04">04</option>
+                                                            <option value="05">05</option>
+                                                            <option value="06">06</option>
+                                                            <option value="07">07</option>
+                                                            <option value="08">08</option>
+                                                            <option value="09">09</option>
+                                                            <option value="10">10</option>
+                                                            <option value="11">11</option>
+                                                            <option value="12">12</option>
+                                                            <option value="13">13</option>
+                                                            <option value="14">14</option>
+                                                            <option value="15">15</option>
+                                                            <option value="16">16</option>
+                                                            <option value="17">17</option>
+                                                            <option value="18">18</option>
+                                                            <option value="19">19</option>
+                                                            <option value="20">20</option>
+                                                            <option value="21">21</option>
+                                                            <option value="22">22</option>
+                                                            <option value="23">23</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="chip">
+                                                        <label><i class="fas fa-exchange-alt me-1"></i>Tipo de hora</label>
+                                                        <select id="hour-type-filter" class="form-select">
+                                                            <option value="both" selected>Ambas</option>
+                                                            <option value="arr">Llegada</option>
+                                                            <option value="dep">Salida</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="filters-actions">
+                                                        <button id="clear-filters" class="btn btn-outline-secondary btn-sm">Limpiar</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <h4 class="mb-3"><i class="fas fa-plane-departure me-2"></i>Itinerario de Pasajeros</h4>
+                                            <div class="itinerary-horizontal">
+                                                <div class="h-scroll-controls d-flex justify-content-between mb-2">
+                                                    <button class="btn btn-sm btn-outline-secondary scroll-left" data-target="passenger-itinerary-scroll"><i class="fas fa-chevron-left"></i></button>
+                                                    <input type="range" class="form-range scroll-range flex-grow-1 mx-2" data-target="passenger-itinerary-scroll">
+                                                    <button class="btn btn-sm btn-outline-secondary scroll-right" data-target="passenger-itinerary-scroll"><i class="fas fa-chevron-right"></i></button>
+                                                </div>
+                                                <div class="h-scroll-area" id="passenger-itinerary-scroll">
+                                                    <div id="passenger-itinerary-container" class="table-container-tech mb-4"></div>
+                                                </div>
+                                            </div>
+
+                                            <h4 class="mb-3 mt-4"><i class="fas fa-truck-ramp-box me-2"></i>Itinerario de Carga</h4>
+                                            <div class="itinerary-horizontal">
+                                                <div class="h-scroll-controls d-flex justify-content-between mb-2">
+                                                    <button class="btn btn-sm btn-outline-secondary scroll-left" data-target="cargo-itinerary-scroll"><i class="fas fa-chevron-left"></i></button>
+                                                    <input type="range" class="form-range scroll-range flex-grow-1 mx-2" data-target="cargo-itinerary-scroll">
+                                                    <button class="btn btn-sm btn-outline-secondary scroll-right" data-target="cargo-itinerary-scroll"><i class="fas fa-chevron-right"></i></button>
+                                                </div>
+                                                <div class="h-scroll-area" id="cargo-itinerary-scroll">
+                                                    <div id="cargo-itinerary-container" class="table-container-tech"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="pdf-inicio-pane" role="tabpanel" aria-labelledby="pdf-inicio-tab" tabindex="0">
+                                    <div class="pdf-container">
+                                        <iframe src="pdfs/Itinerario.pdf" width="100%" height="700px" class="border-0"></iframe>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="itinerario-section" class="content-section">
+                    <div class="card">
+                        <div class="card-header flex-column flex-md-row d-flex justify-content-between align-items-center">
+                            <h2 class="mb-3 mb-md-0">ITINERARIO DETALLADO</h2>
+                            <div class="d-flex gap-2">
+                                <a href="pdfs/itinerario_completo.pdf" class="btn btn-danger download-btn" download><i class="fas fa-file-pdf me-2"></i><span class="btn-text">Descargar PDF</span></a>
+                                <a href="excel/itinerario_completo.xlsx" class="btn btn-success download-btn" download><i class="fas fa-file-excel me-2"></i><span class="btn-text">Descargar Excel</span></a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Controles de fecha (vuelos del día) -->
+                            <div class="d-flex flex-wrap align-items-center justify-content-end gap-2 mb-2" id="itinerary-day-controls">
+                                <button class="btn btn-sm btn-outline-secondary" id="it-day-prev" title="Día anterior"><i class="fas fa-chevron-left"></i></button>
+                                <input type="date" id="it-day-input" class="form-control form-control-sm" />
+                                <button class="btn btn-sm btn-outline-secondary" id="it-day-next" title="Día siguiente"><i class="fas fa-chevron-right"></i></button>
+                                <button class="btn btn-sm btn-outline-primary" id="it-day-today" title="Hoy"><i class="fas fa-calendar-day me-1"></i>Hoy</button>
+                            </div>
+
+                            <ul class="nav nav-tabs" id="itineraryTab" role="tablist">
+                                <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#pasajeros-grafica-pane">1. Gráfica (Pasajeros)</button></li>
+                                <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#carga-grafica-pane">2. Gráfica (Carga)</button></li>
+                                <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#pasajeros-calor-pane">3. Mapa de Calor (Pasajeros)</button></li>
+                                <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#carga-calor-pane">4. Mapa de Calor (Carga)</button></li>
+                            </ul>
+                            <div class="tab-content pt-3" id="itineraryTabContent">
+                                <!-- Pasajeros: Llegadas/Salidas del día -->
+                                <div class="tab-pane fade show active" id="pasajeros-grafica-pane">
+                                    <div class="row g-3">
+                                        <div class="col-lg-6">
+                                            <h6 class="text-muted mb-2"><i class="fas fa-person-walking me-1"></i>Llegadas (Pasajeros) por hora</h6>
+                                            <div class="chart-container" style="height:360px"><canvas id="paxArrivalsChart"></canvas></div>
+                                        </div>
+                                        <div class="col-lg-6">
+                                            <h6 class="text-muted mb-2"><i class="fas fa-person-walking-luggage me-1"></i>Salidas (Pasajeros) por hora</h6>
+                                            <div class="chart-container" style="height:360px"><canvas id="paxDeparturesChart"></canvas></div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <i class="fas fa-star text-warning"></i>
+                                            <strong>Top horas (Pasajeros)</strong>
+                                            <span class="ms-auto small text-muted">Mostrar</span>
+                                            <select id="pax-topN" class="form-select form-select-sm" style="width:auto;">
+                                                <option value="3">Top 3</option>
+                                                <option value="5" selected>Top 5</option>
+                                                <option value="10">Top 10</option>
+                                            </select>
+                                        </div>
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <div class="card"><div class="card-body">
+                                                    <h6 class="text-muted">Llegadas</h6>
+                                                    <ol id="pax-top-arr" class="m-0"></ol>
+                                                </div></div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="card"><div class="card-body">
+                                                    <h6 class="text-muted">Salidas</h6>
+                                                    <ol id="pax-top-dep" class="m-0"></ol>
+                                                </div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Carga: Llegadas/Salidas del día -->
+                                <div class="tab-pane fade" id="carga-grafica-pane">
+                                    <div class="row g-3">
+                                        <div class="col-lg-6">
+                                            <h6 class="text-muted mb-2"><i class="fas fa-box-open me-1"></i>Llegadas (Carga) por hora</h6>
+                                            <div class="chart-container" style="height:360px"><canvas id="cargoArrivalsChart"></canvas></div>
+                                        </div>
+                                        <div class="col-lg-6">
+                                            <h6 class="text-muted mb-2"><i class="fas fa-truck-ramp-box me-1"></i>Salidas (Carga) por hora</h6>
+                                            <div class="chart-container" style="height:360px"><canvas id="cargoDeparturesChart"></canvas></div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <i class="fas fa-star text-warning"></i>
+                                            <strong>Top horas (Carga)</strong>
+                                            <span class="ms-auto small text-muted">Mostrar</span>
+                                            <select id="cargo-topN" class="form-select form-select-sm" style="width:auto;">
+                                                <option value="3">Top 3</option>
+                                                <option value="5" selected>Top 5</option>
+                                                <option value="10">Top 10</option>
+                                            </select>
+                                        </div>
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <div class="card"><div class="card-body">
+                                                    <h6 class="text-muted">Llegadas</h6>
+                                                    <ol id="cargo-top-arr" class="m-0"></ol>
+                                                </div></div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="card"><div class="card-body">
+                                                    <h6 class="text-muted">Salidas</h6>
+                                                    <ol id="cargo-top-dep" class="m-0"></ol>
+                                                </div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Mapas de calor del día (24h) -->
+                                <div class="tab-pane fade" id="pasajeros-calor-pane">
+                                    <h6 class="text-muted mb-2"><i class="fas fa-fire me-1"></i>Mapa de calor (Pasajeros)</h6>
+                                    <div class="pdf-container"><iframe src="pdfs/mapa_calor_pasajeros.pdf" width="100%" height="380px" class="border-0"></iframe></div>
+                                </div>
+                                <div class="tab-pane fade" id="carga-calor-pane">
+                                    <h6 class="text-muted mb-2"><i class="fas fa-fire me-1"></i>Mapa de calor (Carga)</h6>
+                                    <div class="pdf-container"><iframe src="pdfs/mapa_calor_carga.pdf" width="100%" height="380px" class="border-0"></iframe></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="parte-operaciones-section" class="content-section">
+                    <div class="card">
+                        <div class="card-header flex-column flex-md-row d-flex justify-content-between align-items-center">
+                            <h2 class="mb-3 mb-md-0">Resumen de operaciones (30 de septiembre de 2025)</h2>
+                            <div class="d-flex gap-2">
+                                <a href="pdfs/parte_operaciones_completo.pdf" class="btn btn-danger download-btn" download><i class="fas fa-file-pdf me-2"></i><span class="btn-text">Descargar PDF</span></a>
+                                <a href="excel/parte_operaciones_completo.xlsx" class="btn btn-success download-btn" download><i class="fas fa-file-excel me-2"></i><span class="btn-text">Descargar Excel</span></a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <ul class="nav nav-tabs" id="operationsTab" role="tablist">
+                                <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#resumen1-pane">Resumen 1</button></li>
+                                <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#resumen2-pane">Resumen 2</button></li>
+                            </ul>
+                            <div class="tab-content pt-3" id="operationsTabContent">
+                                <div class="tab-pane fade show active" id="resumen1-pane">
+                                    <div class="pdf-container"><iframe src="pdfs/resumen_1.pdf" width="100%" height="700px" class="border-0"></iframe></div>
+                                </div>
+                                <div class="tab-pane fade" id="resumen2-pane">
+                                    <div class="pdf-container"><iframe src="pdfs/resumen_2.pdf" width="100%" height="700px" class="border-0"></iframe></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="demoras-section" class="content-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="mb-0" id="demoras-title">Análisis de Demoras</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-4">
+                                <h3 class="h5 text-center mb-3">Demoras en vuelos de salida</h3>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered text-center">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Causa</th>
+                                                <th>Demoras</th>
+                                                <th>Porcentaje</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="demoras-tbody"></tbody>
+                                        <tfoot id="demoras-tfoot"></tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="chart-container" style="height: 380px;"><canvas id="delaysPieChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="operaciones-totales-section" class="content-section">
+                    <div class="card border-0">
+                        <div class="card-header bg-transparent d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
+                            <h2 class="mb-2 mb-md-0">Operaciones Totales (Visualización)</h2>
+                            <div class="update-note d-flex align-items-center"><i class="fas fa-calendar-check me-2"></i><small>Actualizado al <strong>30 septiembre 2025</strong></small></div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Toolbar compacta -->
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#opsFiltersModal"><i class="fas fa-sliders-h me-1"></i>Configurar vista</button>
+                                    <button class="btn btn-outline-primary btn-sm" id="ops-export-all-btn" title="Descargar todas las gráficas en PDF"><i class="fas fa-file-pdf me-1"></i>Descargar todas</button>
+                                </div>
+                                <div id="ops-summary" class="d-flex flex-wrap align-items-center gap-2 small text-muted"></div>
+                            </div>
+
+                            <!-- Modal de Filtros de Operaciones Totales -->
+                            <div class="modal fade" id="opsFiltersModal" tabindex="-1" aria-labelledby="opsFiltersModalLabel" aria-hidden="true">
+                              <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                <div class="modal-content">
+                                  <div class="modal-header">
+                                    <h5 class="modal-title" id="opsFiltersModalLabel"><i class="fas fa-sliders-h me-2"></i>Configurar visualización</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                  </div>
+                                  <div class="modal-body">
+                                    <div class="mb-3">
+                                        <h6 class="text-muted">Visual</h6>
+                                        <div class="d-flex flex-wrap align-items-center gap-3">
+                                            <div class="form-check form-switch m-0" title="Activa los filtros por meses del año 2025">
+                                                <input class="form-check-input" type="checkbox" id="toggle-monthly-2025">
+                                                <label class="form-check-label small" for="toggle-monthly-2025">Mensual 2025</label>
+                                                <span class="badge bg-info text-dark ms-2 d-none" id="years-disabled-hint">Años inactivos</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <h6 class="text-muted">Vistas rápidas</h6>
+                                        <div class="d-flex flex-wrap align-items-center gap-2">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" id="preset-ops"><i class="fas fa-tachometer-alt me-1"></i>Operaciones</button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" id="preset-full"><i class="fas fa-layer-group me-1"></i>Completa</button>
+                                        </div>
+                                    </div>
+                                    <div class="row g-3">
+                                        <div class="col-12 col-lg-6">
+                                            <h6 class="text-muted">Secciones</h6>
+                                            <div class="d-flex flex-wrap gap-3" id="ops-sections-filters">
+                                                <div class="form-check m-0">
+                                                    <input class="form-check-input" type="checkbox" id="filter-section-comercial" checked>
+                                                    <label class="form-check-label" for="filter-section-comercial">Comercial</label>
+                                                </div>
+                                                <div class="form-check m-0">
+                                                    <input class="form-check-input" type="checkbox" id="filter-section-carga" checked>
+                                                    <label class="form-check-label" for="filter-section-carga">Carga</label>
+                                                </div>
+                                                <div class="form-check m-0">
+                                                    <input class="form-check-input" type="checkbox" id="filter-section-general" checked>
+                                                    <label class="form-check-label" for="filter-section-general">General</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-lg-6">
+                                            <h6 class="text-muted">Años <small class="text-muted">(se desactivan en modo mensual)</small></h6>
+                                            <div class="d-flex flex-wrap gap-3" id="ops-years-filters">
+                                                <div class="form-check m-0">
+                                                    <input class="form-check-input" type="checkbox" id="filter-year-2022" data-year="2022" checked>
+                                                    <label class="form-check-label" for="filter-year-2022">2022</label>
+                                                </div>
+                                                <div class="form-check m-0">
+                                                    <input class="form-check-input" type="checkbox" id="filter-year-2023" data-year="2023" checked>
+                                                    <label class="form-check-label" for="filter-year-2023">2023</label>
+                                                </div>
+                                                <div class="form-check m-0">
+                                                    <input class="form-check-input" type="checkbox" id="filter-year-2024" data-year="2024" checked>
+                                                    <label class="form-check-label" for="filter-year-2024">2024</label>
+                                                </div>
+                                                <div class="form-check m-0">
+                                                    <input class="form-check-input" type="checkbox" id="filter-year-2025" data-year="2025" checked>
+                                                    <label class="form-check-label" for="filter-year-2025">2025</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-4" id="ops-months-2025" style="display:none;">
+                                        <h6 class="text-muted">Meses 2025</h6>
+                                        <div class="d-flex flex-wrap align-items-center gap-2">
+                                            <div class="months-chips d-flex flex-wrap gap-1">
+                                                <label class="chip"><input type="checkbox" data-month="01" checked> Ene</label>
+                                                <label class="chip"><input type="checkbox" data-month="02" checked> Feb</label>
+                                                <label class="chip"><input type="checkbox" data-month="03" checked> Mar</label>
+                                                <label class="chip"><input type="checkbox" data-month="04" checked> Abr</label>
+                                                <label class="chip"><input type="checkbox" data-month="05" checked> May</label>
+                                                <label class="chip"><input type="checkbox" data-month="06" checked> Jun</label>
+                                                <label class="chip"><input type="checkbox" data-month="07" checked> Jul</label>
+                                                <label class="chip"><input type="checkbox" data-month="08" checked> Ago</label>
+                                                <label class="chip"><input type="checkbox" data-month="09" checked> Sep</label>
+                                                <label class="chip"><input type="checkbox" data-month="10" checked> Oct</label>
+                                                <label class="chip"><input type="checkbox" data-month="11" checked> Nov</label>
+                                                <label class="chip"><input type="checkbox" data-month="12" checked> Dic</label>
+                                            </div>
+                                            <div class="ms-auto d-flex gap-2">
+                                                <button class="btn btn-sm btn-outline-secondary" id="months-select-all">Todos</button>
+                                                <button class="btn btn-sm btn-outline-secondary" id="months-select-none">Ninguno</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                  </div>
+                                  <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Aplicar</button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <h5 class="text-uppercase text-muted fw-bold mb-3"><span class="section-icon icon-commercial">✈</span>Aviación Comercial</h5>
+                            <div class="row g-3 mb-4" id="commercial-group">
+                                <div class="col-lg-6">
+                                    <div class="chart-container" style="height:420px"><canvas id="commercialOpsChart"></canvas></div>
+                                </div>
+                                <div class="col-lg-6">
+                                    <div class="chart-container" style="height:420px"><canvas id="commercialPaxChart"></canvas></div>
+                                </div>
+                            </div>
+                            <h5 class="text-uppercase text-muted fw-bold mb-3 mt-4"><span class="section-icon icon-cargo">⛟</span>Operaciones de Carga</h5>
+                            <div class="row g-3 mb-4" id="cargo-group">
+                                <div class="col-lg-6">
+                                    <div class="chart-container" style="height:420px"><canvas id="cargoOpsChart"></canvas></div>
+                                </div>
+                                <div class="col-lg-6">
+                                    <div class="chart-container" style="height:420px"><canvas id="cargoTonsChart"></canvas></div>
+                                </div>
+                            </div>
+                            <h5 class="text-uppercase text-muted fw-bold mb-3 mt-4"><span class="section-icon icon-general">🛩</span>Aviación General</h5>
+                            <div class="row g-3 mb-4" id="general-group">
+                                <div class="col-lg-6">
+                                    <div class="chart-container" style="height:420px"><canvas id="generalOpsChart"></canvas></div>
+                                </div>
+                                <div class="col-lg-6">
+                                    <div class="chart-container" style="height:420px"><canvas id="generalPaxChart"></canvas></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Frecuencias de la semana (solo PDF que proporcionará el usuario) -->
+                <div id="frecuencias-semana-section" class="content-section">
+                    <div class="card border-0">
+                        <div class="card-header bg-transparent d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
+                            <h2 class="mb-2 mb-md-0">Frecuencias de la semana</h2>
+                            <div class="small text-muted">Documento oficial (PDF)</div>
+                        </div>
+                        <div class="card-body pdf-container">
+                            <div id="frecuencias-viewer" class="pdf-singlepage-viewer" data-src="pdfs/frecuencias_semanales.pdf" style="position:relative; width:100%; max-width:100%;">
+                                <canvas style="width:100%; height:auto; display:block;"></canvas>
+                                <div class="links-layer" style="position:absolute; left:0; top:0; pointer-events:none;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="itinerario-mensual-section" class="content-section">
+                    <div class="card">
+                        <div class="card-header text-center">
+                            <h2 class="mb-0">ITINERARIO MENSUAL (OCTUBRE) </h2>
+                        </div>
+                        <div class="card-body pdf-container"><iframe src="pdfs/itinerario_mensual.pdf" width="100%" height="800px" class="border-0"></iframe></div>
+                    </div>
+                </div>
+                <div id="puntualidad-agosto-section" class="content-section">
+                    <div class="card">
+                        <div class="card-header d-flex align-items-center justify-content-center"><i class="fas fa-clock-check fa-2x text-primary me-3"></i>
+                            <h2 class="mb-0">PUNTUALIDAD AEROLINEAS - SEPTIEMBRE</h2>
+                        </div>
+                        <div class="card-body pdf-container">
+                            <div class="pdf-singlepage-viewer v-scroll" data-src="pdfs/puntualidad_agosto.pdf" style="position:relative; width:100%; max-width:100%;">
+                                <canvas style="width:100%; height:auto; display:block;"></canvas>
+                                <div class="links-layer" style="position:absolute; left:0; top:0; pointer-events:none;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="comparativa-section" class="content-section">
+                    <div class="card border-0">
+                        <div class="card-header bg-transparent">
+                            <h2 class="mb-0">Análisis Comparativo</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="pdf-preview-container shadow-sm">
+                                <iframe id="pdf-preview-2" src="pdfs/operatividad_aerolineas.pdf"></iframe>
+                            </div>
+                            <button class="btn btn-outline-primary w-100 mt-2" data-fullscreen-target="#pdf-preview-2"><i class="fas fa-expand me-2"></i>Ver en Pantalla Completa</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Manifiestos -->
+                <div id="manifiestos-section" class="content-section">
+                    <div class="card border-0">
+                        <div class="card-header bg-transparent d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
+                            <h2 class="mb-2 mb-md-0">Manifiestos</h2>
+                            
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-12 col-lg-5">
+                                    <div class="mb-2 d-flex gap-2 flex-wrap">
+                                        <input type="file" id="manifest-upload" accept="image/*" class="form-control form-control-sm" style="max-width:320px;">
+                                        <button id="manifest-load-example" class="btn btn-outline-secondary btn-sm"><i class="fas fa-image me-1"></i>Cargar ejemplo</button>
+                                        <button id="manifest-run-ocr" class="btn btn-primary btn-sm" disabled><i class="fas fa-wand-magic-sparkles me-1"></i>Escanear (OCR)</button>
+                                    </div>
+                                    <div class="border rounded p-2 bg-light" id="manifest-preview-container">
+                                        <img id="manifest-preview" alt="Previsualización del manifiesto" style="max-width:100%; display:none;" />
+                                        <div id="manifest-preview-placeholder" class="text-muted small">Seleccione una imagen de manifiesto para previsualizarla aquí.</div>
+                                    </div>
+                                    <div id="manifest-ocr-status" class="mt-2 small text-muted"></div>
+                                </div>
+                                <div class="col-12 col-lg-7">
+                                    <h5 class="mb-2">Datos del Manifiesto</h5>
+                                    <form id="manifest-form" class="row g-2">
+                                        <div class="col-12">
+                                            <label class="form-label me-3">Tipo de Manifiesto</label>
+                                            <div class="btn-group" role="group" aria-label="Tipo de Manifiesto">
+                                                <input type="radio" class="btn-check" name="mf-dir" id="mf-dir-arr" autocomplete="off" checked>
+                                                <label class="btn btn-outline-secondary" for="mf-dir-arr"><i class="fas fa-plane-arrival me-1"></i>Llegada</label>
+                                                <input type="radio" class="btn-check" name="mf-dir" id="mf-dir-dep" autocomplete="off">
+                                                <label class="btn btn-outline-secondary" for="mf-dir-dep"><i class="fas fa-plane-departure me-1"></i>Salida</label>
+                                            </div>
+                                        </div>
+                                            <!-- Encabezado del documento -->
+                                            <div class="col-12">
+                                                <div class="d-flex flex-wrap align-items-end gap-3">
+                                                    <div class="flex-grow-1">
+                                                        <label class="form-label">Título</label>
+                                                        <input type="text" class="form-control" id="mf-title" value="MANIFIESTO DE LLEGADA" readonly>
+                                                    </div>
+                                                    <div>
+                                                        <label class="form-label">Fecha del Documento</label>
+                                                        <input type="date" class="form-control" id="mf-doc-date" />
+                                                    </div>
+                                                    <div>
+                                                        <label class="form-label">Folio</label>
+                                                        <input type="text" class="form-control" id="mf-folio" />
+                                                    </div>
+                                                </div>
+                                                <hr />
+                                            </div>
+                                        <!-- Sección 1: Datos generales (en orden solicitado) -->
+                                        <div class="col-12">
+                                            <h6 class="mb-2"><i class="fas fa-list me-1"></i>Datos generales</h6>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <label class="form-label">Transportista (OACI - 3 letras)</label>
+                                            <input type="text" class="form-control" id="mf-carrier-3l" maxlength="3" placeholder="Ej. AMX" style="text-transform:uppercase" list="airlines-icao-list" pattern="[A-Za-z]{3}" autocomplete="off" />
+                                            <datalist id="airlines-icao-list"></datalist>
+                                            <div class="form-text">Usa el código OACI (ICAO) de 3 letras. Ejemplos: AMX (Aeroméxico), CLX (Cargolux), THY (Turkish).</div>
+                                        </div>
+                                        <div class="col-12 col-md-9">
+                                            <label class="form-label">Nombre o razón social del transportista / operador aéreo</label>
+                                            <input type="text" class="form-control" id="mf-operator-name" />
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label">Transportista / Operador (Nombre comercial)</label>
+                                            <input type="text" class="form-control" id="mf-airline" />
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <label class="form-label">Matrícula</label>
+                                            <input type="text" class="form-control" id="mf-tail" list="aircraft-reg-list" placeholder="Ej. N851GT / XAABC" style="text-transform:uppercase" autocomplete="off" />
+                                            <datalist id="aircraft-reg-list"></datalist>
+                                            <div class="form-text">Selecciona una matrícula del catálogo o escríbela manualmente.</div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <label class="form-label">Vuelo</label>
+                                            <input type="text" class="form-control" id="mf-flight" />
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <label class="form-label">Equipo</label>
+                                            <input type="text" class="form-control" id="mf-aircraft" list="aircraft-type-icao-list" placeholder="Ej. B77F / A21N / E195" style="text-transform:uppercase" pattern="[A-Za-z0-9]{2,5}" autocomplete="off" />
+                                            <datalist id="aircraft-type-icao-list"></datalist>
+                                            <div class="form-text">Usa el código OACI del tipo de aeronave (ej. B77F, A21N). Puedes editarlo manualmente.</div>
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label">Piloto al Mando</label>
+                                            <input type="text" class="form-control" id="mf-pilot" />
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <label class="form-label">No. de Licencia</label>
+                                            <input type="text" class="form-control" id="mf-pilot-license" />
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <label class="form-label">No. de Tripulación</label>
+                                            <input type="number" min="0" class="form-control" id="mf-crew-total" />
+                                        </div>
+                                        
+                                        
+                                        
+                                        
+                                        <div class="col-6 col-md-4">
+                                            <label class="form-label">Tripulación Cabina (Cockpit)</label>
+                                            <input type="number" class="form-control" id="mf-crew-cockpit" />
+                                        </div>
+                                        <div class="col-6 col-md-4">
+                                            <label class="form-label">Tripulación Cabina de Pasajeros</label>
+                                            <input type="number" class="form-control" id="mf-crew-cabin" />
+                                        </div>
+                                        <div class="col-12">
+                                            <hr />
+                                        </div>
+                                        <!-- Sección 2: Movimiento de operaciones (Salida) -->
+                                        <div class="col-12" data-dir="departure-only">
+                                            <h6 class="mb-2"><i class="fas fa-route me-1"></i>Movimiento de operaciones</h6>
+                                            <div class="row g-2">
+                                                <!-- 1) Origen de vuelo (nombre completo; H = Hangar, P = Pernocta) -->
+                                                <div class="col-12 col-md-6">
+                                                    <label class="form-label">Origen de vuelo - Nombre completo del aeropuerto</label>
+                                                    <input type="text" class="form-control" id="mf-origin-name" list="airports-name-list" placeholder="Nombre completo del aeropuerto" />
+                                                    <small class="text-muted">Si es Hangar, agregue "H". Si es Pernocta, agregue "P".</small>
+                                                </div>
+                                                <!-- 2) Código de 3 letras del origen -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Código de 3 letras (origen)</label>
+                                                    <input type="text" class="form-control" id="mf-origin-code" maxlength="3" style="text-transform:uppercase" list="airports-iata-list" placeholder="IATA (3 letras)" />
+                                                </div>
+                                                <!-- 3) Hora de slot asignado -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Hora de slot asignado</label>
+                                                    <input type="time" class="form-control" id="mf-slot-assigned" />
+                                                </div>
+                                                <!-- 4) Hora de slot coordinado -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Hora de slot coordinado</label>
+                                                    <input type="time" class="form-control" id="mf-slot-coordinated" />
+                                                </div>
+                                                <!-- 5) Próxima escala - nombre completo -->
+                                                <div class="col-12 col-md-6">
+                                                    <label class="form-label">Próxima escala - Nombre completo del aeropuerto</label>
+                                                    <input type="text" class="form-control" id="mf-next-stop" list="airports-name-list" placeholder="Nombre completo del aeropuerto" />
+                                                </div>
+                                                <!-- 6) Código de 3 letras de la próxima escala -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Código de 3 letras (próxima escala)</label>
+                                                    <input type="text" class="form-control" id="mf-next-stop-code" maxlength="3" style="text-transform:uppercase" list="airports-iata-list" placeholder="IATA (3 letras)" />
+                                                </div>
+                                                <!-- 7) Hora de término de pernocta -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Hora de término de pernocta</label>
+                                                    <input type="time" class="form-control" id="mf-termino-pernocta" />
+                                                </div>
+                                                <!-- 8) Destino del vuelo - nombre completo -->
+                                                <div class="col-12 col-md-6">
+                                                    <label class="form-label">Destino del vuelo - Nombre completo del aeropuerto</label>
+                                                    <input type="text" class="form-control" id="mf-final-dest" list="airports-name-list" placeholder="Nombre completo del aeropuerto" />
+                                                </div>
+                                                <!-- 9) Código de 3 letras (destino) -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Código de 3 letras (destino)</label>
+                                                    <input type="text" class="form-control" id="mf-final-dest-code" maxlength="3" style="text-transform:uppercase" list="airports-iata-list" placeholder="IATA (3 letras)" />
+                                                </div>
+                                                <!-- 10) Hora de inicio de maniobras de embarque -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Hora de inicio de maniobras de embarque</label>
+                                                    <input type="time" class="form-control" id="mf-inicio-embarque" />
+                                                </div>
+                                                <!-- 11) Hora de salida de la posición -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Hora de salida de la posición</label>
+                                                    <input type="time" class="form-control" id="mf-salida-posicion" />
+                                                </div>
+                                            </div>
+                                            <hr />
+                                        </div>
+                                        <!-- Sección 2 (Llegada): Movimiento de operaciones -->
+                                        <div class="col-12" data-dir="arrival-only">
+                                            <h6 class="mb-2"><i class="fas fa-route me-1"></i>Movimiento de operaciones</h6>
+                                            <div class="row g-2">
+                                                <!-- 1) Procedencia del vuelo (nombre completo) -->
+                                                <div class="col-12 col-md-6">
+                                                    <label class="form-label">Procedencia del vuelo - Nombre completo del aeropuerto</label>
+                                                    <input type="text" class="form-control" id="mf-arr-origin-name" list="airports-name-list" placeholder="Nombre completo del aeropuerto" />
+                                                </div>
+                                                <!-- 2) Código de 3 letras (procedencia) -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Código de 3 letras (procedencia)</label>
+                                                    <input type="text" class="form-control" id="mf-arr-origin-code" maxlength="3" style="text-transform:uppercase" list="airports-iata-list" placeholder="IATA (3 letras)" />
+                                                </div>
+                                                <!-- 3) Hora de slot asignado (arribo) -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Hora de slot asignado</label>
+                                                    <input type="time" class="form-control" id="mf-arr-slot-assigned" />
+                                                </div>
+                                                <!-- 4) Hora de slot coordinado (arribo) -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Hora de slot coordinado</label>
+                                                    <input type="time" class="form-control" id="mf-arr-slot-coordinated" />
+                                                </div>
+                                                <!-- 5) Última escala - nombre completo del aeropuerto -->
+                                                <div class="col-12 col-md-6">
+                                                    <label class="form-label">Escala Anterior - Nombre completo del aeropuerto</label>
+                                                    <input type="text" class="form-control" id="mf-arr-last-stop" list="airports-name-list" placeholder="Nombre completo del aeropuerto" />
+                                                </div>
+                                                <!-- 6) Código de 3 letras (última escala) -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Código de 3 letras (escala anterior)</label>
+                            <input type="text" class="form-control" id="mf-arr-last-stop-code" maxlength="3" style="text-transform:uppercase" list="airports-iata-list" placeholder="IATA (3 letras)" />
+                                            
+                        <datalist id="airports-iata-list"></datalist>
+                        <datalist id="airports-name-list"></datalist>
+                                                </div>
+                                                <!-- 7) Hora de arribo a la posición -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Hora de entrada a la posición</label>
+                                                    <input type="time" class="form-control" id="mf-arr-arribo-posicion" />
+                                                </div>
+                                                <!-- 8) Hora de inicio de maniobras de desembarque -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Hora de termino de maniobras de desembarque</label>
+                                                    <input type="time" class="form-control" id="mf-arr-inicio-desembarque" />
+                                                </div>
+                                                <!-- 9) Hora de inicio de pernocta -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Hora de inicio de pernocta</label>
+                                                    <input type="time" class="form-control" id="mf-arr-inicio-pernocta" />
+                                                </div>
+                                            </div>
+                                            <hr />
+                                        </div>
+                                        <!-- Causas de demora -->
+                                        <div class="col-12">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <h6 class="mb-2"><i class="fas fa-clock me-1"></i>Causas de demora</h6>
+                                                <div class="d-flex gap-2">
+                                                    <button type="button" id="add-demora-row" class="btn btn-sm btn-outline-secondary"><i class="fas fa-plus me-1"></i>Agregar</button>
+                                                    <button type="button" id="clear-demoras" class="btn btn-sm btn-outline-secondary"><i class="fas fa-trash me-1"></i>Limpiar</button>
+                                                </div>
+                                            </div>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm align-middle" id="tabla-demoras">
+                                                    <thead>
+                                                        <tr>
+                                                            <th style="width:120px;">Código</th>
+                                                            <th style="width:120px;">Minutos</th>
+                                                            <th>Descripción</th>
+                                                            <th style="width:60px;"></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody></tbody>
+                                                    <tfoot>
+                                                        <tr class="table-light">
+                                                            <th>Total</th>
+                                                            <th><input type="text" class="form-control form-control-sm" id="total-demora-minutos" readonly></th>
+                                                            <th></th>
+                                                            <th></th>
+                                                        </tr>
+                                                    </tfoot>
+                                                </table>
+                                            </div>
+                                            <hr />
+                                        </div>
+                                        <!-- División: Pasajeros por categoría (después de Demoras) -->
+                                        <div class="col-12">
+                                            <h6 class="mb-2"><i class="fas fa-people-group me-1"></i>Pasajeros por categoría</h6>
+                                            <div class="row g-2">
+                                                <div class="col-6 col-md-3"><label class="form-label">Pagan TUA</label><input type="number" min="0" class="form-control" id="pax-tua"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label">Diplomáticos</label><input type="number" min="0" class="form-control" id="pax-diplomaticos"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label">En comisión</label><input type="number" min="0" class="form-control" id="pax-comision"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label">Infantes</label><input type="number" min="0" class="form-control" id="pax-infantes"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label">Tránsitos</label><input type="number" min="0" class="form-control" id="pax-transitos"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label">Conexiones</label><input type="number" min="0" class="form-control" id="pax-conexiones"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label">Otros exentos</label><input type="number" min="0" class="form-control" id="pax-exentos"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label">Total</label><input type="number" min="0" class="form-control" id="pax-total" readonly></div>
+                                            </div>
+                                            <div class="row g-2 mt-1">
+                                                <div class="col-12 col-md-6"><div class="form-text">Nacionales</div></div>
+                                                <div class="col-12 col-md-6"><div class="form-text">Internacionales</div></div>
+                                            </div>
+                                            <hr />
+                                        </div>
+                                        <!-- Sección 2 (Llegada): Movimiento de operaciones -->
+                                        <div class="col-12" data-dir="arrival-only">
+                                            <h6 class="mb-2"><i class="fas fa-route me-1"></i>Movimiento de operaciones</h6>
+                                            <div class="row g-2">
+                                                <!-- 1) Procedencia del vuelo (nombre completo) -->
+                                                <div class="col-12 col-md-6">
+                                                    <label class="form-label">Procedencia del vuelo - Nombre completo del aeropuerto</label>
+                                                    <input type="text" class="form-control" id="mf-arr-origin-name" />
+                                                </div>
+                                                <!-- 2) Código de 3 letras (procedencia) -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Código de 3 letras (procedencia)</label>
+                                                    <input type="text" class="form-control" id="mf-arr-origin-code" maxlength="3" style="text-transform:uppercase" />
+                                                </div>
+                                                <!-- 3) Hora de slot asignado (arribo) -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Hora de slot asignado</label>
+                                                    <input type="time" class="form-control" id="mf-arr-slot-assigned" />
+                                                </div>
+                                                <!-- 4) Hora de slot coordinado (arribo) -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Hora de slot coordinado</label>
+                                                    <input type="time" class="form-control" id="mf-arr-slot-coordinated" />
+                                                </div>
+                                                <!-- 5) Escala Anterior - nombre completo del aeropuerto -->
+                                                <div class="col-12 col-md-6">
+                                                    <label class="form-label">Escala Anterior - Nombre completo del aeropuerto</label>
+                                                    <input type="text" class="form-control" id="mf-arr-last-stop" />
+                                                </div>
+                                                <!-- 6) Código de 3 letras (Escala Anterior) -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Código de 3 letras (Escala anterior)</label>
+                                                    <input type="text" class="form-control" id="mf-arr-last-stop-code" maxlength="3" style="text-transform:uppercase" />
+                                                </div>
+                                                <!-- 7) Hora de arribo a la posición -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Hora de entrada a la posición</label>
+                                                    <input type="time" class="form-control" id="mf-arr-arribo-posicion" />
+                                                </div>
+                                                <!-- 8) Hora de inicio de maniobras de desembarque -->
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label">Hora de término de maniobras de desembarque</label>
+                                                    <input type="time" class="form-control" id="mf-arr-inicio-desembarque" />
+                                                </div>
+                                            </div>
+                                            <hr />
+                                        </div>
+                                        <!-- Embarque por estación -->
+                                        <div class="col-12">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <h6 class="mb-2"><i class="fas fa-people-carry-box me-1"></i>Tabla de embarque por estación</h6>
+                                                <div class="d-flex gap-2">
+                                                    <button type="button" id="add-embarque-row" class="btn btn-sm btn-outline-secondary"><i class="fas fa-plus me-1"></i>Agregar estación</button>
+                                                    <button type="button" id="clear-embarque" class="btn btn-sm btn-outline-secondary"><i class="fas fa-trash me-1"></i>Limpiar</button>
+                                                </div>
+                                            </div>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm align-middle" id="tabla-embarque">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Estación</th>
+                                                            <th style="width:140px;">Pax Nacional</th>
+                                                            <th style="width:160px;">Pax Internacional</th>
+                                                            <th style="width:140px;">Equipaje (kg)</th>
+                                                            <th style="width:140px;">Carga (kg)</th>
+                                                            <th style="width:140px;">Correo (kg)</th>
+                                                            <th style="width:60px;"></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody></tbody>
+                                                    <tfoot>
+                                                        <tr class="table-light">
+                                                            <th>Totales</th>
+                                                            <th><input type="number" class="form-control form-control-sm" id="total-pax-nacional" readonly></th>
+                                                            <th><input type="number" class="form-control form-control-sm" id="total-pax-internacional" readonly></th>
+                                                            <th><input type="text" class="form-control form-control-sm" id="total-equipaje" readonly></th>
+                                                            <th><input type="text" class="form-control form-control-sm" id="total-carga" readonly></th>
+                                                            <th><input type="text" class="form-control form-control-sm" id="total-correo" readonly></th>
+                                                            <th></th>
+                                                        </tr>
+                                                    </tfoot>
+                                                </table>
+                                            </div>
+                                            <hr />
+                                        </div>
+                                        <div class="col-6 col-md-4">
+                                            <label class="form-label">Equipaje (kg)</label>
+                                            <input type="number" step="0.01" class="form-control" id="mf-baggage-kg" />
+                                        </div>
+                                        <div class="col-6 col-md-4">
+                                            <label class="form-label">Equipaje Piezas</label>
+                                            <input type="number" class="form-control" id="mf-baggage-pcs" />
+                                        </div>
+                                        <div class="col-6 col-md-4">
+                                            <label class="form-label">Carga (kg)</label>
+                                            <input type="number" step="0.01" class="form-control" id="mf-cargo" />
+                                        </div>
+                                        <div class="col-6 col-md-4">
+                                            <label class="form-label">Carga Piezas</label>
+                                            <input type="number" class="form-control" id="mf-cargo-pieces" />
+                                        </div>
+                                        <div class="col-6 col-md-4">
+                                            <label class="form-label">Volumen (m³)</label>
+                                            <input type="number" step="0.01" class="form-control" id="mf-cargo-volume" />
+                                        </div>
+                                        <div class="col-6 col-md-4">
+                                            <label class="form-label">Correo (kg)</label>
+                                            <input type="number" step="0.01" class="form-control" id="mf-mail" />
+                                        </div>
+                                        <div class="col-6 col-md-4">
+                                            <label class="form-label">Correo Piezas</label>
+                                            <input type="number" class="form-control" id="mf-mail-pieces" />
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="checkbox" id="mf-dangerous-goods">
+                                                <label class="form-check-label" for="mf-dangerous-goods">Mercancías Peligrosas</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="checkbox" id="mf-live-animals">
+                                                <label class="form-check-label" for="mf-live-animals">Animales Vivos</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="checkbox" id="mf-human-remains">
+                                                <label class="form-check-label" for="mf-human-remains">Restos Humanos</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <hr />
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label">Agente / Responsable</label>
+                                            <input type="text" class="form-control" id="mf-agent" />
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label">Nombre y Firma</label>
+                                            <input type="text" class="form-control" id="mf-signature" />
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="row g-2">
+                                                <div class="col-12">
+                                                    <label class="form-label">Observaciones</label>
+                                                    <textarea class="form-control" id="mf-notes" rows="2"></textarea>
+                                                </div>
+                                                <div class="col-12 col-md-6">
+                                                    <label class="form-label">Carga en tránsito (destino/procedencia)</label>
+                                                    <input type="text" class="form-control" id="mf-obs-transito" />
+                                                </div>
+                                                <div class="col-12 col-md-6">
+                                                    <label class="form-label">PAX DNI</label>
+                                                    <input type="text" class="form-control" id="mf-pax-dni" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <hr />
+                                        </div>
+                                        <!-- Firmas y sellos -->
+                                        <div class="col-12">
+                                            <h6 class="mb-2"><i class="fas fa-signature me-1"></i>Firmas y sellos</h6>
+                                            <div class="row g-2">
+                                                <div class="col-12 col-md-4">
+                                                    <label class="form-label">Operador (Nombre y Firma)</label>
+                                                    <input type="text" class="form-control" id="mf-sign-operator" />
+                                                </div>
+                                                <div class="col-12 col-md-4">
+                                                    <label class="form-label">Coordinador de Rampa (Nombre y Firma)</label>
+                                                    <input type="text" class="form-control" id="mf-sign-coordinator" />
+                                                </div>
+                                                <div class="col-12 col-md-4">
+                                                    <label class="form-label">Administrador AIFA - Recibido por</label>
+                                                    <input type="text" class="form-control" id="mf-sign-admin" />
+                                                </div>
+                                                <div class="col-12 col-md-3">
+                                                    <label class="form-label">Fecha de Recepción</label>
+                                                    <input type="date" class="form-control" id="mf-sign-admin-date" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 d-flex gap-2 mt-2">
+                                            <button type="button" class="btn btn-success" id="manifest-save"><i class="fas fa-save me-1"></i>Guardar</button>
+                                            <button type="button" class="btn btn-outline-secondary" id="manifest-clear"><i class="fas fa-eraser me-1"></i>Limpiar</button>
+                                            <button type="button" class="btn btn-outline-primary ms-auto" id="manifest-export-json"><i class="fas fa-download me-1"></i>Exportar JSON</button>
+                                        </div>
+                                    </form>
+                                    <hr />
+                                    <h5 class="mb-2">Registros Guardados</h5>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-hover align-middle" id="manifest-records-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Tipo</th>
+                                                    <th>Aerolínea</th>
+                                                    <th>Vuelo</th>
+                                                    <th>Matrícula</th>
+                                                    <th>Fecha</th>
+                                                    <th>Hora</th>
+                                                    <th>Origen/Destino</th>
+                                                    <th>Pax</th>
+                                                    <th>Carga/Correo</th>
+                                                    <th>Imagen</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <div id="pdf-lightbox" class="pdf-lightbox hidden">
+        <button id="lightbox-close" class="lightbox-close">&times;</button>
+        <div id="lightbox-content" class="lightbox-content"></div>
+    </div>
+
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 2050">
+        <div id="action-toast" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">Filtros limpiados</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    <!-- Fallbacks y manejador de errores de imágenes (se define antes de script.js) -->
+    <script>
+        (function () {
+            // Fallback para renderDemoras si no existe
+            if (typeof window.renderDemoras !== 'function') {
+                window.renderDemoras = function (data) {
+                    console.warn('renderDemoras() fallback ejecutado.');
+                    try {
+                        const tbody = document.getElementById('demoras-tbody');
+                        const tfoot = document.getElementById('demoras-tfoot');
+                        if (!tbody) return;
+
+                        tbody.innerHTML = '';
+                        let total = 0;
+
+                        if (Array.isArray(data)) {
+                            data.forEach(row => {
+                                const tr = document.createElement('tr');
+                                tr.innerHTML = `
+                                    <td>${row?.causa ?? '—'}</td>
+                                    <td>${row?.demoras ?? 0}</td>
+                                    <td>${row?.porcentaje ?? 0}%</td>`;
+                                tbody.appendChild(tr);
+                                total += Number(row?.demoras ?? 0);
+                            });
+                        }
+
+                        if (tfoot) {
+                            tfoot.innerHTML = `<tr class="table-light"><th>Total</th><th>${total}</th><th></th></tr>`;
+                        }
+
+                        // Crea una gráfica simple si hay datos y canvas disponible
+                        const ctx = document.getElementById('delaysChart')?.getContext?.('2d');
+                        if (ctx && window.Chart && !window._delaysChart) {
+                            const labels = (data || []).map(r => r?.causa ?? '');
+                            const values = (data || []).map(r => Number(r?.demoras ?? 0));
+                            window._delaysChart = new Chart(ctx, {
+                                type: 'bar',
+                                data: {
+                                    labels,
+                                    datasets: [{
+                                        label: 'Demoras',
+                                        data: values,
+                                        backgroundColor: '#0d6efd77',
+                                        borderColor: '#0d6efd'
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: { legend: { display: false } }
+                                }
+                            });
+                        }
+                    } catch (err) {
+                        console.error('Fallback renderDemoras error:', err);
+                    }
+                };
+            }
+
+            // Fallback para computeDailyStats si no existe
+            if (typeof window.computeDailyStats !== 'function') {
+                window.computeDailyStats = function (itinerary) {
+                    console.warn('computeDailyStats() fallback ejecutado.');
+                    // Devuelve estructura mínima para no romper la UI; reemplace con lógica real en script.js
+                    return {
+                        comercial: { ayer: 0, hoy: 0, trend: '=' },
+                        carga: { ayer: 0, hoy: 0, trend: '=' },
+                        general: { ayer: 0, hoy: 0, trend: '=' }
+                    };
+                };
+            }
+
+            // Reemplazo global de imágenes que fallen (ej. logos de aerolíneas faltantes)
+            document.addEventListener('error', function (e) {
+                const t = e.target;
+                if (t && t.tagName === 'IMG') {
+                    // Deja que las imágenes de aerolíneas usen su propio fallback (handleLogoError)
+                    if (t.classList && t.classList.contains('airline-logo')) return;
+                    // Evita loops infinitos
+                    if (t.dataset.fallbackApplied === '1') return;
+                    t.dataset.fallbackApplied = '1';
+                    console.warn('Reemplazando imagen no encontrada:', t.src);
+                    // Placeholder remoto; cambie por una imagen local cuando la tenga (p.ej. images/default-airline-logo.png)
+                    t.src = 'https://via.placeholder.co/120x40?text=Sin+Logo';
+                }
+            }, true);
+
+            // Fallback de inicio de sesión (solo si script.js no lo maneja)
+            document.addEventListener('DOMContentLoaded', function () {
+                try {
+                    const params = new URLSearchParams(location.search);
+                    const u = params.get('username');
+                    const p = params.get('password');
+
+                    const form = document.getElementById('login-form');
+                    const uInp = document.getElementById('username');
+                    const pInp = document.getElementById('password');
+
+                    // Autocompletar desde querystring si viene en la URL
+                    if (u && uInp) uInp.value = u;
+                    if (p && pInp) pInp.value = p;
+
+                    // Espera breve: si script.js ya inició la app, no hace nada.
+                    setTimeout(() => {
+                        const mainApp = document.getElementById('main-app');
+                        const loginScreen = document.getElementById('login-screen');
+                        if (!form || !mainApp || !loginScreen) return;
+
+                        // Si la app sigue oculta, conectamos el fallback mínimamente invasivo
+                        if (mainApp.classList.contains('hidden') && !form.dataset.fallbackAttached) {
+                            form.dataset.fallbackAttached = '1';
+                            form.addEventListener('submit', (e) => {
+                                e.preventDefault();
+                                const username = (uInp?.value || '').trim();
+                                const password = (pInp?.value || '').trim();
+                                if (!username || !password) return; // requiere ambos campos
+
+                                // Marca usuario visible
+                                const currentUser = document.getElementById('current-user');
+                                if (currentUser) currentUser.textContent = username;
+
+                                // Persiste sesión básica
+                                try { sessionStorage.setItem('aifa.user', username); } catch (_) {}
+
+                                // Muestra la app
+                                loginScreen.classList.add('hidden');
+                                mainApp.classList.remove('hidden');
+                            });
+
+                            // Si hubo credenciales por URL, auto-enviar
+                            if (u && p) {
+                                if (typeof form.requestSubmit === 'function') form.requestSubmit();
+                                else form.submit();
+                            }
+                        }
+                    }, 800);
+                } catch (err) {
+                    console.warn('Login fallback error:', err);
+                }
+            });
+        })();
+    </script>
+
+    
+    <!-- Modular JS (non-invasive): delegates to existing functions in script.js -->
+    <script src="js/core.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/inicio.js"></script>
+    <script src="js/itinerario.js"></script>
+    <script src="js/demoras.js"></script>
+    <script src="js/operaciones.js"></script>
+    <script src="js/frecuencias.js"></script>
+    <script src="js/manifiestos.js"></script>
+    <script src="script.js"></script>
+    <!-- Loader Global -->
+    <div id="global-loader" class="global-loader hidden" role="alert" aria-live="assertive" aria-busy="true">
+        <div class="loader-content">
+            <div class="plane-orbit">
+                <span class="orbit-ring"></span>
+                <span class="plane-icon">✈</span>
+                <img src="images/logo_aifa.jpg" alt="AIFA" class="loader-aifa-logo" />
+            </div>
+            <div class="loader-text" id="global-loader-text">Cargando...</div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,513 @@
+/* ==========================================================================
+   Variables de Tema y Estilos Base
+   ========================================================================== */
+:root {
+    --sidebar-width: 240px;
+    --font-family-base: 'Roboto', sans-serif;
+    --font-family-mono: 'Roboto Mono', monospace;
+    --primary-color: #003366;
+    --primary-color-dark: #002244;
+    --primary-color-light: #d6e4f0;
+    --header-bg: #ffffff;
+    --sidebar-bg: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-color-dark) 100%);
+    --body-bg: #f4f7fc;
+    --card-bg: #ffffff;
+    --text-color: #343a40;
+    --text-muted-color: #6c757d;
+    --border-color: #dee2e6;
+    --shadow-color: rgba(0, 0, 0, 0.05);
+    --tech-table-bg: rgba(255, 255, 255, 0.7);
+}
+
+body.dark-mode {
+    --primary-color: #4dabf7;
+    --primary-color-dark: #1e88e5;
+    --primary-color-light: #2c3e50;
+    --header-bg: #1e2a38;
+    --sidebar-bg: linear-gradient(180deg, #1e2a38 0%, #151d27 100%);
+    --body-bg: #151d27;
+    --card-bg: #1e2a38;
+    --text-color: #e8eaed;
+    --text-muted-color: #9aa0a6;
+    --border-color: #3c4043;
+    --shadow-color: rgba(0, 0, 0, 0.2);
+    --tech-table-bg: rgba(30, 42, 56, 0.7);
+}
+
+body {
+    font-family: var(--font-family-base);
+    background-color: var(--body-bg);
+    color: var(--text-color);
+    overflow-x: hidden;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* ==========================================================================
+   Login
+   ========================================================================== */
+.login-screen { background-image: url('images/pistas_aifa.jpg'); background-size: cover; background-position: center; display: flex; justify-content: center; align-items: center; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; }
+.login-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 20, 0.6); }
+.login-container { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); border-radius: 15px; padding: 2.5rem; width: 90%; max-width: 450px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); text-align: center; z-index: 1; border: 1px solid rgba(255, 255, 255, 0.2); }
+.login-hero { position: relative; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 16px rgba(0,0,0,0.25); }
+.login-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0)); pointer-events: none; }
+.login-hero-img { display: block; width: 100%; height: 140px; object-fit: cover; }
+.login-logo { width: 90px; height: 90px; object-fit: contain; margin-bottom: 1rem; border-radius: 50%; border: 4px solid #003366; padding: 5px; background: #f8f9fa; }
+#login-title { font-family: var(--font-family-mono); font-weight: bold; color: #002244; border-right: 3px solid #002244; white-space: nowrap; overflow: hidden; display: inline-block; margin: 0 auto 0.5rem; letter-spacing: .1em; animation: typing 3s steps(15, end), blink-caret .75s step-end infinite; }
+@keyframes typing { from { width: 0 } to { width: 100% } }
+@keyframes blink-caret { from, to { border-color: transparent } 50% { border-color: #002244; } }
+#login-button { transition: background-color 0.3s, transform 0.2s; }
+#login-button:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0, 51, 102, 0.3); }
+#login-button .spinner { display: none; width: 1.2rem; height: 1.2rem; border: 2px solid #fff; border-bottom-color: transparent; border-radius: 50%; animation: rotation 1s linear infinite; margin: 0 auto; }
+#login-button.loading .spinner { display: block; }
+#login-button.loading .btn-text { display: none; }
+/* Nuevo spinner tipo avión orbitando */
+#login-button .spinner-plane { display:none; position:relative; width:46px; height:46px; }
+#login-button.loading .spinner-plane { display:inline-block; }
+#login-button .spinner-plane::before { content:""; position:absolute; inset:4px; border:3px solid rgba(255,255,255,0.35); border-top-color:transparent; border-radius:50%; animation: rotation 1.1s linear infinite; }
+#login-button .spinner-plane::after { content:"✈"; position:absolute; left:50%; top:50%; transform-origin: -6px center; animation: planeSpin 1.1s linear infinite; font-size:18px; color:#fff; }
+@keyframes planeSpin { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+@keyframes rotation { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* ==========================================================================
+   Animación de Avión CSS con Estela
+   ========================================================================== */
+#flying-plane { position: absolute; top: 50%; left: -100px; z-index: 1; animation: fly-arc 30s linear infinite; pointer-events: none; opacity: 0.6; width: 25px; height: 8px; background: var(--text-muted-color); border-radius: 40%; }
+#flying-plane::before, #flying-plane::after { content: ''; position: absolute; background: var(--text-muted-color); }
+#flying-plane::before { width: 8px; height: 22px; left: 7px; top: -9px; transform: skew(-30deg, -10deg); border-radius: 3px; }
+#flying-plane::after { width: 5px; height: 10px; left: -2px; top: -1px; transform: skew(40deg, 20deg); border-radius: 1px; }
+.contrail { position: absolute; width: 150px; height: 2px; background: linear-gradient(to left, transparent, var(--text-muted-color)); top: 50%; right: 100%; transform: translateY(-50%); opacity: 0.8; }
+@keyframes fly-arc { 0% { transform: translate(0, 0) rotate(15deg); } 30% { transform: translate(35vw, -80px) rotate(-10deg); } 70% { transform: translate(75vw, -80px) rotate(-10deg); } 100% { transform: translate(110vw, 20px) rotate(15deg); } }
+
+.header { position: relative; overflow: hidden; }
+.header-content { position: relative; z-index: 2; }
+
+/* ==========================================================================
+   Tablas de Inicio "Glassmorphism"
+   ========================================================================== */
+.table-container-tech { background-color: var(--tech-table-bg); backdrop-filter: blur(10px); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; box-shadow: 0 4px 15px var(--shadow-color); overflow: hidden; }
+.table-container-tech .table-responsive { max-height: 350px; overflow-y: auto; }
+/* Vertical scroll within the table on mobile: allow pan-y and set a reasonable max-height */
+.vertical-scroll { max-height: 60vh; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+.vertical-scroll table { margin: 0; }
+.table-container-tech table { --bs-table-color: var(--text-color); --bs-table-bg: transparent; --bs-table-border-color: var(--border-color); --bs-table-hover-color: var(--text-color); --bs-table-hover-bg: var(--body-bg); }
+
+/* Horizontal itinerary scrolling wrapper */
+.itinerary-horizontal {
+   width: 100%;
+}
+.h-scroll-area {
+   overflow-x: auto;
+   -webkit-overflow-scrolling: touch;
+}
+
+.h-scroll-area {
+   width: 100%;
+   white-space: nowrap; /* prevent inline children from wrapping */
+}
+
+/* Enable horizontal pan gestures on touch devices */
+.h-scroll-area {
+   touch-action: pan-x;
+   -ms-touch-action: pan-x;
+}
+
+/* Optional class to force a wider table when automatic measurement isn't enough */
+.force-wide { min-width: 1200px !important; }
+.h-scroll-area > .table-container-tech {
+   /* Make the inner table container size itself to its content so the h-scroll-area
+      can detect overflow and enable horizontal scrolling. */
+   display: inline-block;
+   vertical-align: top;
+   min-width: max-content;
+}
+
+/* Controls shown only on small screens */
+.h-scroll-controls .scroll-range {
+   height: 28px;
+}
+.h-scroll-controls .btn {
+   width: 36px;
+   height: 36px;
+   padding: 6px 8px;
+}
+
+/* Hide native scrollbar in WebKit for a cleaner UI while preserving scrolling */
+.h-scroll-area::-webkit-scrollbar {
+   height: 8px;
+}
+.h-scroll-area::-webkit-scrollbar-thumb {
+   background: rgba(0,0,0,0.2);
+   border-radius: 4px;
+}
+
+/* Ensure table inside can be wider than container */
+.table-container-tech table {
+   width: max-content;
+}
+
+.table-container-tech table { display: inline-table; }
+
+/* Ensure origin and destino columns are wide enough to show values */
+.table-container-tech table td:nth-child(5), .table-container-tech table th:nth-child(5),
+.table-container-tech table td:nth-child(10), .table-container-tech table th:nth-child(10),
+.table-container-tech table td:nth-child(11), .table-container-tech table th:nth-child(11) {
+   min-width: 140px;
+   white-space: nowrap;
+}
+
+/* Keep tables as wide as their content so horizontal scrolling works on all viewports.
+   Ensure origin/destination columns are wide enough to show values and force horizontal overflow when needed. */
+.table-container-tech table td:nth-child(5), .table-container-tech table th:nth-child(5),
+.table-container-tech table td:last-child, .table-container-tech table th:last-child {
+   min-width: 160px;
+   white-space: nowrap;
+}
+.table-container-tech thead th { background-color: rgba(0,0,0,0.05); border-bottom: 2px solid var(--primary-color) !important; text-transform: uppercase; font-size: 0.8rem; font-weight: 500; }
+body.dark-mode .table-container-tech thead th { background: linear-gradient(to bottom, rgba(255,255,255,0.1), rgba(0,0,0,0.1)); }
+.table-container-tech tbody tr { transition: background-color 0.2s, transform 0.2s, border-left-color 0.2s; border-left: 4px solid var(--airline-color, transparent); }
+.table-container-tech tbody tr:hover { transform: translateY(-2px) scale(1.01); box-shadow: 0 4px 10px rgba(0,0,0,0.1); background-color: var(--body-bg); }
+.table-container-tech .airline-dot { width: 8px; height: 8px; vertical-align: middle; border-radius: 50%; margin-right: 8px; display: inline-block;}
+
+/* ===================== Responsive "recortada" para móviles ===================== */
+@media (max-width: 576px) {
+   /* Oculta columnas menos críticas y compacta tablas de itinerario */
+   #passenger-itinerary-container table thead th:nth-child(2),
+   #passenger-itinerary-container table tbody td:nth-child(2), /* Vuelo Lleg. */
+   #passenger-itinerary-container table thead th:nth-child(3),
+   #passenger-itinerary-container table tbody td:nth-child(3), /* Fecha Lleg. */
+   #passenger-itinerary-container table thead th:nth-child(8),
+   #passenger-itinerary-container table tbody td:nth-child(8), /* Vuelo Sal. */
+   #passenger-itinerary-container table thead th:nth-child(9),
+   #passenger-itinerary-container table tbody td:nth-child(9), /* Fecha Sal. */
+   #cargo-itinerary-container table thead th:nth-child(2),
+   #cargo-itinerary-container table tbody td:nth-child(2), /* Vuelo Lleg. */
+   #cargo-itinerary-container table thead th:nth-child(3),
+   #cargo-itinerary-container table tbody td:nth-child(3), /* Fecha Lleg. */
+   #cargo-itinerary-container table thead th:nth-child(7),
+   #cargo-itinerary-container table tbody td:nth-child(7), /* Vuelo Sal. */
+   #cargo-itinerary-container table thead th:nth-child(8),
+   #cargo-itinerary-container table tbody td:nth-child(8)  /* Fecha Sal. */
+   { display: none; }
+
+   /* Reduce altura de fila y tamaño de logo en móviles para mejor densidad */
+   :root { --fids-row-height: 68px; }
+   .airline-logo.lg { width: 56px; height: 56px; }
+   .airline-logo.xl { width: 72px; height: 72px; }
+   .table-container-tech thead th { font-size: 0.8rem; }
+
+   /* Controles de scroll más compactos */
+   .h-scroll-controls .btn { width: 32px; height: 32px; }
+}
+
+/* Airline logo inline in cells/cards */
+.airline-cell { display: inline-flex; align-items: center; gap: 8px; }
+/* Tamaños de logo: pensado para simular pantallas de aeropuerto */
+.airline-logo { width: 36px; height: 36px; object-fit: contain; background: transparent; }
+.airline-logo.sm { width: 30px; height: 30px; }
+.airline-logo.md { width: 44px; height: 44px; }
+.airline-logo.lg { width: 64px; height: 64px; }
+.airline-logo.xl { width: 80px; height: 80px; }
+.table-container-tech td:first-child .airline-logo { filter: none; }
+/* En modo oscuro algunos logos claros se ven lavados; aumentamos contraste y leve sombra */
+body.dark-mode .table-container-tech td:first-child .airline-logo { filter: brightness(0.98) contrast(1.08) saturate(1.02) drop-shadow(0 0 2px rgba(0,0,0,0.35)); }
+
+/* En celdas: si hay logo, el nombre puede omitirse vía JS; aquí aseguramos buen alineado */
+.table-container-tech td:first-child .airline-cell { min-height: 72px; }
+
+/* Modo pantalla de aeropuerto (FIDS-like) */
+/* FIDS-like global styling (siempre activo) */
+:root {
+   --fids-row-height: 84px;
+   /* Colores sutiles para franjas de filas en modo claro */
+   --fids-row-odd-bg: rgba(0, 0, 0, 0.06);
+   --fids-row-even-bg: rgba(0, 0, 0, 0.025);
+}
+.table-container-tech table { font-size: 1.1rem; letter-spacing: 0.4px; }
+.table-container-tech tbody tr { height: var(--fids-row-height); }
+.table-container-tech td:first-child .airline-cell { min-height: var(--fids-row-height); }
+.airline-logo.lg { width: 72px; height: 72px; }
+.airline-logo.xl { width: 92px; height: 92px; }
+.table-container-tech thead th { font-size: 0.9rem; letter-spacing: 0.6px; }
+.table-container-tech tbody tr:hover { transform: none; box-shadow: none; }
+/* Centrar todo el contenido en tablas de itinerario/resumen */
+.table-container-tech table th,
+.table-container-tech table td { text-align: center; vertical-align: middle; }
+.table-container-tech table td .airline-cell { justify-content: center; }
+/* Franjas por fila (una fuerte, otra suave) */
+.table-container-tech tbody tr:nth-child(odd) { background-color: var(--fids-row-odd-bg); }
+.table-container-tech tbody tr:nth-child(even) { background-color: var(--fids-row-even-bg); }
+/* Conservar franja al hacer hover */
+.table-container-tech tbody tr:nth-child(odd):hover { background-color: var(--fids-row-odd-bg); }
+.table-container-tech tbody tr:nth-child(even):hover { background-color: var(--fids-row-even-bg); }
+/* Ajuste de contraste en modo oscuro */
+body.dark-mode { --fids-row-odd-bg: rgba(255, 255, 255, 0.06); --fids-row-even-bg: rgba(255, 255, 255, 0.035); }
+
+/* ================== Itinerario (Inicio) — Encabezados estilo FIDS en azul ================== */
+#passenger-itinerary-container .table thead th,
+#cargo-itinerary-container .table thead th {
+   background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-color-dark) 100%) !important;
+   color: #fff !important;
+   text-transform: uppercase;
+   font-weight: 700;
+   letter-spacing: .7px;
+   border-bottom: 2px solid var(--primary-color-dark) !important;
+}
+body.dark-mode #passenger-itinerary-container .table thead th,
+body.dark-mode #cargo-itinerary-container .table thead th {
+   background: linear-gradient(180deg, #2a5fa3 0%, #0d2d56 100%) !important; /* tonos azules adaptados para contraste en oscuro */
+   border-bottom-color: #0d2d56 !important;
+}
+
+/* Mejor legibilidad numérica (alineación de dígitos) y tamaño */
+#passenger-itinerary-container .table,
+#cargo-itinerary-container .table {
+   font-variant-numeric: tabular-nums; /* dígitos de ancho fijo */
+   font-family: 'Roboto Condensed', var(--font-family-base), system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+#passenger-itinerary-container .table td,
+#cargo-itinerary-container .table td {
+   font-weight: 500;
+}
+
+/* Ocultar nombre y punto de color cuando el logo esté disponible (JS añade clases) */
+.airline-cell.has-logo .airline-name { display: none; }
+.airline-header.airline-has-logo .airline-name { display: none; }
+/* También ocultar el punto de color en el encabezado cuando hay logo */
+.airline-header.airline-has-logo .airline-dot { display: none; }
+
+/* ==========================================================================
+   Barra Lateral Plegable
+   ========================================================================== */
+.app-body { position: relative; }
+.sidebar { position: fixed; left: 0; top: 0; bottom: 0; transform: translateX(0); transition: transform 0.4s ease; }
+.main-content { margin-left: var(--sidebar-width); transition: margin-left 0.4s ease, width 0.4s ease; width: calc(100% - var(--sidebar-width)); }
+.sidebar-toggler-btn { color: var(--text-color); border: none; font-size: 1.2rem; }
+body.sidebar-collapsed .sidebar { transform: translateX(calc(-1 * var(--sidebar-width))); }
+body.sidebar-collapsed .main-content { margin-left: 0; width: 100%; }
+
+/* ==========================================================================
+   Animaciones Generales
+   ========================================================================== */
+.animated-row { opacity: 0; transform-origin: top; transform: rotateX(-90deg); animation: flipIn 0.8s ease-out forwards; animation-delay: var(--delay); }
+@keyframes flipIn { to { opacity: 1; transform: rotateX(0deg); } }
+.fade-in-row { opacity: 0; animation: fadeInUp 0.8s ease-out forwards; animation-delay: var(--delay); }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ==========================================================================
+   Resto de Estilos
+   ========================================================================== */
+body.dark-mode .card h1, body.dark-mode .card h2, body.dark-mode .card h3, body.dark-mode .card h4, body.dark-mode .card h5, body.dark-mode .h5 { color: var(--text-color); }
+.hidden { display: none !important; }
+.aifa-logo { width: 140px; }
+.header-logo { height: 45px; }
+.main-title { font-size: 1.4rem; font-weight: 500; color: var(--text-color); }
+.current-user-display { color: var(--primary-color); }
+.gob-logo { height: 35px; }
+.formal-clock-container { text-align: center; background-color: var(--body-bg); padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color); }
+.clock-label { font-size: 0.7rem; font-weight: 600; color: var(--text-muted-color); text-transform: uppercase; }
+.formal-clock { font-family: 'Courier New', monospace; font-weight: 700; font-size: 1.05rem; color: var(--primary-color); }
+/* UTC clock styling - same size as local clock */
+.utc-clock { font-family: 'Courier New', monospace; font-weight: 700; font-size: 1.05rem; color: var(--primary-color); }
+.utc-clock-container .clock-label { font-size: 0.65rem; }
+
+/* Clocks wrapper adjustments - make both clocks visually identical */
+.clocks-wrapper .formal-clock-container, .clocks-wrapper .utc-clock-container { background: transparent; padding: 0.18rem 0.45rem; border-radius: 0.4rem; }
+.formal-clock, .utc-clock { padding: 0.18rem 0.6rem; border-radius: 6px; background: rgba(255,255,255,0.92); color: #002244; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+
+body.dark-mode .formal-clock, body.dark-mode .utc-clock { background: rgba(255,255,255,0.04); color: #e8eaed; box-shadow: none; }
+
+/* Improve contrast in dark mode across the app for text-heavy areas */
+body.dark-mode { color: #e8eaed; }
+body.dark-mode .card, body.dark-mode .filter-container { background-color: #1e2a38; border-color: rgba(255,255,255,0.06); }
+body.dark-mode .menu-item { color: rgba(255,255,255,0.95); }
+body.dark-mode .menu-item:hover { background-color: rgba(255,255,255,0.05); }
+body.dark-mode .table-container-tech { background-color: rgba(255,255,255,0.04); }
+
+.update-note { font-size: 0.9rem; color: var(--text-muted-color); display: inline-flex; align-items: center; gap: 0.5rem; }
+.update-note i { color: var(--primary-color); }
+body.dark-mode .update-note { color: #c9d6e6; }
+.date-bar { background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); }
+.theme-toggle-btn { color: var(--text-color); }
+.sidebar { background: var(--sidebar-bg); color: white; width: var(--sidebar-width); flex-shrink: 0; z-index: 1050; }
+.menu-item { display: flex; align-items: center; padding: 0.85rem 1.5rem; color: rgba(255, 255, 255, 0.8); text-decoration: none; transition: all 0.2s ease; border-left: 4px solid transparent; }
+.menu-item:hover { background-color: rgba(255, 255, 255, 0.1); color: white; }
+.menu-item.active { background-color: var(--primary-color-light); color: var(--primary-color-dark); font-weight: 700; border-left-color: var(--primary-color); }
+body.dark-mode .menu-item.active { background-color: var(--primary-color-light); color: white; border-left-color: var(--primary-color); }
+.menu-item i { margin-right: 12px; width: 20px; text-align: center; }
+/* Composite icon for punctuality: clock with a small check overlay */
+.icon-clock-check { position: relative; display: inline-block; width: 20px; height: 20px; margin-right: 12px; color: rgba(255,255,255,0.9); }
+.icon-clock-check i { position: absolute; left: 0; top: 0; width: 100%; height: 100%; line-height: 20px; text-align: center; }
+.icon-clock-check i.check { font-size: 0.65rem; color: #fff; background: #198754; border-radius: 50%; width: 12px; height: 12px; display: inline-flex; align-items: center; justify-content: center; right: -2px; top: 8px; position: absolute; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+body.dark-mode .icon-clock-check { color: #e8eaed; }
+.logout-item { margin-top: auto; border-top: 1px solid rgba(255, 255, 255, 0.2); }
+.filter-container { background-color: var(--body-bg); border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1rem; box-shadow: var(--shadow-color) 0px 2px 8px 0px; }
+.filter-header { display: flex; align-items: center; color: var(--primary-color); margin-bottom: 0.75rem; }
+.pdf-preview-container { position: relative; width: 100%; height: 550px; border: 1px solid var(--border-color); border-radius: .375rem; overflow: hidden; }
+.pdf-preview-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+.content-section { display: none; animation: fadeIn 0.5s; }
+.content-section.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+.card { background-color: var(--card-bg); border: 1px solid var(--border-color); transition: background-color 0.3s, border-color 0.3s; }
+.card-header, .card-body, .card-footer { background-color: transparent; border-color: var(--border-color); }
+.nav-tabs .nav-link { color: var(--text-muted-color); }
+.nav-tabs .nav-link.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+.table-stylish thead { background-color: var(--primary-color); color: white; font-weight: 500; text-transform: uppercase; font-size: 0.8rem; }
+.table-stylish-footer { background-color: var(--primary-color-light); font-weight: bold; color: var(--primary-color-dark); border-top: 2px solid var(--primary-color); }
+body.dark-mode .table-stylish-footer { color: var(--text-color); }
+.table-dark { --bs-table-bg: var(--primary-color); }
+.table-total-row { background-color: var(--primary-color-light); font-weight: bold; }
+.pdf-container { position: relative; }
+.pdf-container iframe { background: #fff; }
+/* Limit vertical PDF viewers to viewport height with scroll */
+.pdf-singlepage-viewer.v-scroll {
+   max-height: 80vh;
+   overflow-y: auto;
+}
+/* Improve contrast for PDF/iframe containers in dark mode so text inside PDFs is easier to read against a white backdrop */
+body.dark-mode .pdf-container, body.dark-mode .pdf-preview-container {
+   background: #fff;
+   border: 1px solid var(--border-color);
+   border-radius: .375rem;
+   padding: 6px;
+}
+body.dark-mode .pdf-container iframe, body.dark-mode .pdf-preview-container iframe {
+   background: #fff;
+}
+/* Chart containers - consistent height and spacing to avoid overlapping visuals */
+.chart-container { height: 300px; position: relative; }
+.card .chart-container canvas { width: 100% !important; height: 100% !important; }
+
+/* Eliminado fondo detrás de logos; se regresa al estilo original sin realce de color */
+
+/* Iconos de sección para Operaciones Totales */
+.section-icon { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; margin-right:8px; font-size:1.05rem; font-weight:600; box-shadow:0 2px 6px rgba(0,0,0,0.15); letter-spacing:-1px; }
+.icon-commercial { background: linear-gradient(135deg,#1e88e5,#0d47a1); color:#fff; }
+.icon-cargo { background: linear-gradient(135deg,#fb8c00,#ef6c00); color:#fff; }
+.icon-general { background: linear-gradient(135deg,#2e7d32,#1b5e20); color:#fff; }
+body.dark-mode .section-icon { box-shadow:0 2px 8px rgba(0,0,0,0.4); }
+
+/* Loader global de avión orbitando */
+.global-loader { position:fixed; inset:0; background:radial-gradient(circle at 30% 30%, rgba(0,0,0,0.65), rgba(0,0,0,0.8)); backdrop-filter: blur(4px); display:flex; align-items:center; justify-content:center; z-index:4000; transition: opacity .35s, visibility .35s; }
+.global-loader.hidden { opacity:0; visibility:hidden; pointer-events:none; }
+.global-loader .loader-content { text-align:center; color:#fff; font-family: var(--font-family-base); }
+.plane-orbit { position:relative; width:200px; height:200px; margin:0 auto 1rem; }
+.plane-orbit .orbit-ring { position:absolute; inset:0; border:4px solid rgba(255,255,255,0.15); border-top-color: var(--primary-color); border-right-color: rgba(255,255,255,0.28); border-bottom-color: var(--primary-color-dark); border-left-color: rgba(255,255,255,0.05); border-radius:50%; animation: ringSpin 14s linear infinite; box-shadow:0 0 14px rgba(255,255,255,0.15), 0 0 28px rgba(0,136,255,0.25) inset; backdrop-filter: blur(2px); }
+.plane-orbit .plane-icon { position:absolute; left:50%; top:50%; font-size:42px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.55)) drop-shadow(0 0 6px rgba(255,255,255,0.35)); animation: planeOrbit 5s linear infinite; }
+/* AIFA logo dentro del loader */
+.plane-orbit .loader-aifa-logo {
+   position: absolute;
+   left: 50%;
+   top: 50%;
+   transform: translate(-50%, -50%);
+   width: 110px;
+   height: 110px;
+   object-fit: cover;
+   border-radius: 50%;
+      border: 2px solid var(--primary-color);
+   /* quitar borde; conservar glow suave */
+   box-shadow: 0 10px 22px rgba(0,0,0,0.35), 0 0 28px rgba(13,45,86,0.42);
+}
+@keyframes planeOrbit {
+  0%   { transform: translate(-50%, -50%) rotate(0deg)   translateX(86px) rotate(90deg)  rotate(0deg); }
+  12.5%{ transform: translate(-50%, -50%) rotate(45deg)  translateX(86px) rotate(90deg)  rotate(-10deg); }
+  25%  { transform: translate(-50%, -50%) rotate(90deg)  translateX(86px) rotate(90deg)  rotate(-16deg); }
+  37.5%{ transform: translate(-50%, -50%) rotate(135deg) translateX(86px) rotate(90deg)  rotate(-8deg); }
+  50%  { transform: translate(-50%, -50%) rotate(180deg) translateX(86px) rotate(90deg)  rotate(0deg); }
+  62.5%{ transform: translate(-50%, -50%) rotate(225deg) translateX(86px) rotate(90deg)  rotate(8deg); }
+  75%  { transform: translate(-50%, -50%) rotate(270deg) translateX(86px) rotate(90deg)  rotate(16deg); }
+  87.5%{ transform: translate(-50%, -50%) rotate(315deg) translateX(86px) rotate(90deg)  rotate(10deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg) translateX(86px) rotate(90deg)  rotate(0deg); }
+}
+@keyframes ringSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.loader-text { font-weight:600; letter-spacing:.5px; font-size:1rem; animation: fadeInUp .6s ease; }
+.global-loader .loader-content::after { content:''; display:block; margin:10px auto 0; width:60px; height:8px; background:radial-gradient(circle at 30% 30%, rgba(255,255,255,0.6), rgba(255,255,255,0)); border-radius:50%; filter:blur(4px); animation: pulseShadow 1.8s ease-in-out infinite; }
+@keyframes pulseShadow { 0%,100% { transform: scale(0.9); opacity:0.5; } 50% { transform: scale(1.05); opacity:0.9; } }
+body.dark-mode .global-loader { background:rgba(0,0,0,0.7); }
+
+/* Extra dark mode contrast */
+body.dark-mode #summary-table-container .card { background:#24303c; border:1px solid #314151; }
+body.dark-mode #summary-table-container .card-body strong { color:#f1f5f9; }
+body.dark-mode #summary-table-container small.text-muted { color:#b3c0cc !important; }
+body.dark-mode .filter-container { background:#243447; border-color:#2f3b4a; }
+body.dark-mode .filter-container .form-control,
+body.dark-mode .filter-container .form-select { background:#1b2733; color:#e8eaed; border-color:#3c4a57; }
+body.dark-mode .filter-container .form-control::placeholder { color:#6f8394; }
+body.dark-mode .filter-container .form-control:focus,
+body.dark-mode .filter-container .form-select:focus { border-color:#4dabf7; box-shadow:0 0 0 2px rgba(77,171,247,0.25); }
+body.dark-mode #ops-sections-filters label,
+body.dark-mode #ops-years-filters label { color:#dbe5ee; }
+body.dark-mode .form-check-input { background:#1e2a38; border-color:#3c4a57; }
+body.dark-mode .form-check-input:checked { background-color:#4dabf7; border-color:#4dabf7; }
+/* Loader compacto en móviles */
+@media (max-width: 576px) {
+  .plane-orbit { transform: scale(0.6); transform-origin: center; }
+  .global-loader .loader-text { font-size: 0.9rem; }
+}
+
+/* Chips para meses 2025 */
+#ops-months-2025 .chip {
+   display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border:1px solid var(--border-color); border-radius:999px; cursor:pointer; user-select:none; background: var(--card-bg);
+}
+#ops-months-2025 .chip input { accent-color: var(--primary-color); }
+body.dark-mode #ops-months-2025 .chip { background:#233142; border-color:#2f3b4a; }
+
+/* Barras de filtros mejoradas */
+.filters-bar { display:flex; flex-wrap:wrap; gap:.5rem 1rem; align-items:center; }
+.filters-bar .chip { display:inline-flex; align-items:center; gap:.5rem; padding:.35rem .6rem; border-radius:999px; background: var(--card-bg); border:1px solid var(--border-color); }
+.filters-bar .chip label { margin:0; font-weight:600; font-size:.85rem; color: var(--text-muted-color); }
+.filters-bar .chip .form-select, .filters-bar .chip input[type="text"], .filters-bar .chip .form-check-input { background: transparent; border:none; box-shadow:none; min-height: 32px; }
+body.dark-mode .filters-bar .chip { background:#233142; }
+.filters-actions { margin-left:auto; display:flex; gap:.5rem; }
+
+/* Secciones/Años como chips */
+#ops-sections-filters .form-check, #ops-years-filters .form-check { background: var(--card-bg); padding:.2rem .6rem; border-radius:999px; border:1px solid var(--border-color); }
+body.dark-mode #ops-sections-filters .form-check, body.dark-mode #ops-years-filters .form-check { background:#233142; }
+
+/* Cards de estadísticas diarias */
+#daily-stats-row .stat-card { background: var(--card-bg); }
+body.dark-mode #daily-stats-row .stat-card { background:#233142; }
+
+/* Compacta filtros y charts en móviles en la sección Operaciones Totales */
+@media (max-width: 768px) {
+   #operaciones-totales-section .chart-container { height: 260px; }
+   #operaciones-totales-section .update-note { width: 100%; }
+}
+
+/* Mejora de contraste adicional en modo oscuro para tipografías y controles */
+body.dark-mode h1, body.dark-mode h2, body.dark-mode h3, body.dark-mode h4, body.dark-mode h5, body.dark-mode h6 { color:#f1f5f9; }
+body.dark-mode .text-muted { color:#b0bac6 !important; }
+body.dark-mode .nav-tabs .nav-link { color:#b8c4d1; }
+body.dark-mode .nav-tabs .nav-link.active { color:#fff; border-bottom-color:#4dabf7; }
+body.dark-mode .btn-outline-secondary { color:#dbe5ee; border-color:#3c4a57; }
+body.dark-mode .btn-outline-secondary:hover { background:#2a3643; color:#fff; }
+body.dark-mode .download-btn { color:#fff; }
+body.dark-mode .table thead th { color:#e8eaed; }
+
+/* Manifiestos */
+#manifest-preview-container { background: #f8f9fa; min-height: 260px; display: flex; align-items: center; justify-content: center; border:1px dashed var(--border-color); }
+body.dark-mode #manifest-preview-container { background: #1b2733; }
+#manifest-records-table tbody tr { cursor: pointer; }
+#manifest-records-table tbody tr:hover { background: rgba(0,0,0,0.04); }
+body.dark-mode #manifest-records-table tbody tr:hover { background: rgba(255,255,255,0.06); }
+
+/* Manifiestos: layout y legibilidad */
+#manifiestos-section .form-label { font-weight: 600; }
+#manifiestos-section .btn-group .btn { min-width: 120px; }
+#manifiestos-section .card-body hr { margin: .8rem 0; }
+#manifiestos-section .form-text { font-size: .75rem; }
+#manifiestos-section .table-sm th, #manifiestos-section .table-sm td { vertical-align: middle; }
+#manifiestos-section .table-sm input.form-control-sm { min-height: 32px; }
+#manifiestos-section .table { font-variant-numeric: tabular-nums; }
+#manifiestos-section .d-flex.gap-2 > .btn { white-space: nowrap; }
+@media (max-width: 768px) {
+   #manifiestos-section .btn-group .btn { min-width: auto; }
+}
+
+/* Toolbar export button spacing */
+#ops-export-all-btn { white-space: nowrap; }
+
+/* Filtros responsive apretados en móviles */
+@media (max-width: 768px) {
+  #ops-sections-filters, #ops-years-filters { width:100%; }
+  #ops-sections-filters .form-check, #ops-years-filters .form-check { margin-right: 8px; 
+  }}
