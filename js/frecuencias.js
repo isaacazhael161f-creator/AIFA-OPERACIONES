@@ -3,7 +3,12 @@
   // Any element with class .pdf-singlepage-viewer[data-src] will be initialized
 
   const viewers = new Map(); // container -> state
-  function getDPR(){ return Math.max(1, window.devicePixelRatio || 1); }
+  function getDPR(){
+    const isPhone = (window.innerWidth || 0) <= 576;
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    // Clamp DPR on phones to reduce canvas cost (keeps text readable and scroll suave)
+    return isPhone ? Math.min(1.5, dpr) : dpr;
+  }
 
   // Lazy-load PDF.js from CDN if not present
   function ensurePdfJs(){

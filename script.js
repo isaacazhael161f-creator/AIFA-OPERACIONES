@@ -371,6 +371,19 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(updateDate, 60000);
     checkSession();
 
+    // Performance tweaks for mobile
+    try {
+        const isPhone = window.innerWidth <= 576;
+        if (isPhone && window.Chart && Chart.defaults) {
+            // Reduce or disable animations on small screens for smoother UX
+            Chart.defaults.animation = false;
+            Chart.defaults.animations = {};
+            Chart.defaults.transitions.active.animation = false;
+            Chart.defaults.transitions.show.animation = false;
+            Chart.defaults.transitions.hide.animation = false;
+        }
+    } catch(_) {}
+
     // Respect URL hash to open a specific section (e.g. #manifiestos)
     if (location.hash && location.hash.length > 1) {
         const sectionId = location.hash.replace('#', '');
@@ -1105,6 +1118,8 @@ const opsUIState = {
 // Animación segura para íconos viajeros en Operaciones Totales
 if (!window._opsAnim) window._opsAnim = { rafId: 0, running: false };
 function startOpsAnim() {
+    // Avoid running RAF-based animation on small phones
+    if (window.innerWidth <= 576) { window._opsAnim.running = false; return; }
     if (window._opsAnim.running) return;
     window._opsAnim.running = true;
     const tick = () => {

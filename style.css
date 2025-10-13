@@ -81,6 +81,9 @@ body {
 .header { position: relative; overflow: hidden; }
 .header-content { position: relative; z-index: 2; }
 
+/* Ocultar avión animado en móviles para no tapar título */
+@media (max-width: 576px) { #flying-plane { display: none; } }
+
 /* ==========================================================================
    Tablas de Inicio "Glassmorphism"
    ========================================================================== */
@@ -171,23 +174,11 @@ body.dark-mode .table-container-tech thead th { background: linear-gradient(to b
 /* ===================== Responsive "recortada" para móviles ===================== */
 @media (max-width: 576px) {
    /* Oculta columnas menos críticas y compacta tablas de itinerario */
-   #passenger-itinerary-container table thead th:nth-child(2),
-   #passenger-itinerary-container table tbody td:nth-child(2), /* Vuelo Lleg. */
-   #passenger-itinerary-container table thead th:nth-child(3),
-   #passenger-itinerary-container table tbody td:nth-child(3), /* Fecha Lleg. */
-   #passenger-itinerary-container table thead th:nth-child(8),
-   #passenger-itinerary-container table tbody td:nth-child(8), /* Vuelo Sal. */
-   #passenger-itinerary-container table thead th:nth-child(9),
-   #passenger-itinerary-container table tbody td:nth-child(9), /* Fecha Sal. */
-   #cargo-itinerary-container table thead th:nth-child(2),
-   #cargo-itinerary-container table tbody td:nth-child(2), /* Vuelo Lleg. */
-   #cargo-itinerary-container table thead th:nth-child(3),
-   #cargo-itinerary-container table tbody td:nth-child(3), /* Fecha Lleg. */
-   #cargo-itinerary-container table thead th:nth-child(7),
-   #cargo-itinerary-container table tbody td:nth-child(7), /* Vuelo Sal. */
-   #cargo-itinerary-container table thead th:nth-child(8),
-   #cargo-itinerary-container table tbody td:nth-child(8)  /* Fecha Sal. */
-   { display: none; }
+   /* Ya no ocultamos columnas en móvil; dejamos todo accesible con scroll horizontal */
+   #passenger-itinerary-container table thead th,
+   #passenger-itinerary-container table tbody td,
+   #cargo-itinerary-container table thead th,
+   #cargo-itinerary-container table tbody td { display: table-cell !important; }
 
    /* Reduce altura de fila y tamaño de logo en móviles para mejor densidad */
    :root { --fids-row-height: 68px; }
@@ -563,4 +554,23 @@ body.dark-mode #manifest-records-table tbody tr:hover { background: rgba(255,255
 /* Summary collapse button spacing on mobile */
 @media (max-width: 991.98px) {
    #summary-collapse { margin-top: .5rem; }
+}
+
+/* Header responsivo: logos y título visibles en móviles */
+@media (max-width: 576px) {
+   .header .header-content { flex-direction: column; align-items: center; gap: .4rem; }
+   .aifa-logo { width: 110px; height: auto; }
+   .header-logo { height: 28px; }
+   .gob-logo { display: none; }
+   .main-title { font-size: 1rem; line-height: 1.2; text-align: center; max-width: 85vw; }
+   .header-center-content > .d-flex { flex-wrap: wrap; gap: .35rem; }
+   .clocks-wrapper { gap: 6px; }
+   .utc-clock-container { display: none; }
+   .formal-clock, .utc-clock { font-size: .95rem; padding: .1rem .5rem; }
+}
+
+/* Reducir animaciones y sombras costosas en móviles para mayor fluidez */
+@media (max-width: 576px) {
+   .animated-row, .fade-in-row { animation: none !important; opacity: 1 !important; transform: none !important; }
+   .table-container-tech, .card, .pdf-preview-container { box-shadow: none; }
 }
