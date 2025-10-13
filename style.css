@@ -380,6 +380,31 @@ body.dark-mode .pdf-container iframe, body.dark-mode .pdf-preview-container ifra
 .chart-container { height: 300px; position: relative; }
 .card .chart-container canvas { width: 100% !important; height: 100% !important; }
 
+/* Gráficas Itinerario Diario: en móviles, poner ambas en una fila horizontal scrolleable */
+@media (max-width: 576px) {
+   .chart-row-mobile-scroll {
+      display: block;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      white-space: nowrap;
+      padding-bottom: 6px;
+   }
+   .chart-row-mobile-scroll > [class^="col-"],
+   .chart-row-mobile-scroll > [class*=" col-"] {
+      display: inline-block;
+      vertical-align: top;
+      /* cada tarjeta más ancha que la pantalla para que se lean bien las horas */
+      width: 88vw;
+      margin-right: 12px;
+      white-space: normal; /* permitir saltos dentro de cada tarjeta */
+   }
+   /* Altura un poco mayor para que labels no se encimen */
+   #pasajeros-grafica-pane .chart-container,
+   #carga-grafica-pane .chart-container { height: 340px; }
+   /* Evitar recorte del eje X */
+   .chart-container { padding-bottom: 8px; }
+}
+
 /* Eliminado fondo detrás de logos; se regresa al estilo original sin realce de color */
 
 /* Iconos de sección para Operaciones Totales */

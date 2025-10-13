@@ -462,6 +462,8 @@ function wireItineraryExports(){
             const { jsPDF } = window.jspdf;
             const root = document.getElementById(containerId);
             if (!root) return;
+            // Esperar a que se hayan renderizado las tablas
+            await new Promise(r => setTimeout(r, 60));
             // Clonar el bloque visible para evitar cortes por overflow y fijar ancho
             const clone = root.cloneNode(true);
             clone.style.maxHeight = 'unset';
@@ -481,7 +483,7 @@ function wireItineraryExports(){
             holder.appendChild(clone);
             document.body.appendChild(holder);
             const dpr = Math.min(2.5, window.devicePixelRatio || 1);
-            const canvas = await html2canvas(clone, { scale: dpr, backgroundColor: clone.style.background || '#ffffff', useCORS: true, logging: false, windowWidth: clone.scrollWidth });
+            const canvas = await html2canvas(clone, { scale: dpr, backgroundColor: clone.style.background || '#ffffff', useCORS: true, logging: false, windowWidth: Math.max(clone.scrollWidth, clone.clientWidth) });
             document.body.removeChild(holder);
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
@@ -519,7 +521,16 @@ function wireItineraryExports(){
                 if (remaining > 1) { pdf.addPage(); y = margin; x = margin; }
             }
             pdf.save(fileName || 'tabla.pdf');
-        } catch (e) { console.warn('PDF export failed:', e); }
+        } catch (e) {
+            console.warn('PDF export failed:', e);
+            try {
+                const toastEl = document.getElementById('action-toast');
+                if (toastEl && typeof bootstrap !== 'undefined' && bootstrap.Toast) {
+                    toastEl.querySelector('.toast-body').textContent = 'No se pudo generar el PDF. Intenta de nuevo.';
+                    const t = new bootstrap.Toast(toastEl); t.show();
+                }
+            } catch(_){}
+        }
     };
     if (btnPdfP && !btnPdfP._wired) { btnPdfP._wired = 1; btnPdfP.addEventListener('click', ()=> captureToPDF('passenger-itinerary-scroll', 'itinerario_pasajeros.pdf')); }
     if (btnPdfC && !btnPdfC._wired) { btnPdfC._wired = 1; btnPdfC.addEventListener('click', ()=> captureToPDF('cargo-itinerary-scroll', 'itinerario_carga.pdf')); }
