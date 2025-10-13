@@ -81,8 +81,8 @@ body {
 .header { position: relative; overflow: hidden; }
 .header-content { position: relative; z-index: 2; }
 
-/* Ocultar avión animado en móviles para no tapar título */
-@media (max-width: 576px) { #flying-plane { display: none; } }
+/* Mostrar avión animado también en móviles (preferencia del usuario) */
+/* Nota: si llega a tapar el título en pantallas muy chicas, se podría reducir su opacidad o tamaño via otra regla. */
 
 /* ==========================================================================
    Tablas de Inicio "Glassmorphism"
@@ -452,10 +452,10 @@ body.dark-mode .form-check-input:checked { background-color:#4dabf7; border-colo
 body.dark-mode #ops-months-2025 .chip { background:#233142; border-color:#2f3b4a; }
 
 /* Barras de filtros mejoradas */
-.filters-bar { display:flex; flex-wrap:wrap; gap:.5rem 1rem; align-items:center; }
-.filters-bar .chip { display:inline-flex; align-items:center; gap:.5rem; padding:.35rem .6rem; border-radius:999px; background: var(--card-bg); border:1px solid var(--border-color); }
-.filters-bar .chip label { margin:0; font-weight:600; font-size:.85rem; color: var(--text-muted-color); }
-.filters-bar .chip .form-select, .filters-bar .chip input[type="text"], .filters-bar .chip .form-check-input { background: transparent; border:none; box-shadow:none; min-height: 32px; }
+.filters-bar { display:flex; flex-wrap:wrap; gap:.4rem .8rem; align-items:center; }
+.filters-bar .chip { display:inline-flex; align-items:center; gap:.4rem; padding:.25rem .5rem; border-radius:999px; background: var(--card-bg); border:1px solid var(--border-color); }
+.filters-bar .chip label { margin:0; font-weight:600; font-size:.8rem; color: var(--text-muted-color); }
+.filters-bar .chip .form-select, .filters-bar .chip input[type="text"], .filters-bar .chip .form-check-input { background: transparent; border:none; box-shadow:none; min-height: 28px; font-size: .85rem; padding-top: 2px; padding-bottom: 2px; }
 body.dark-mode .filters-bar .chip { background:#233142; }
 .filters-actions { margin-left:auto; display:flex; gap:.5rem; }
 
@@ -517,24 +517,32 @@ body.dark-mode #manifest-records-table tbody tr:hover { background: rgba(255,255
    #interactivo-inicio-pane .filters-bar {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: .5rem .6rem;
+      gap: .4rem .5rem;
    }
    #interactivo-inicio-pane .filters-bar .chip {
       width: 100%;
-      min-width: 0 !important; /* anula el min-width inline del chip de búsqueda */
+      min-width: 0 !important; /* override any inline min-width */
       justify-content: space-between;
    }
    #interactivo-inicio-pane .filters-bar .form-select,
    #interactivo-inicio-pane .filters-bar .form-control {
       width: 100%;
+      font-size: .85rem;
+      min-height: 30px;
+      padding-top: 2px;
+      padding-bottom: 2px;
    }
-   #interactivo-inicio-pane .filters-actions {
-      grid-column: 1 / -1;
-      justify-content: stretch;
-   }
-   #interactivo-inicio-pane .filters-actions #clear-filters {
-      width: 100%;
-   }
+   #interactivo-inicio-pane .filters-bar .chip label { font-size: .78rem; }
+   #interactivo-inicio-pane .filters-actions { grid-column: 1 / -1; justify-content: stretch; }
+   #interactivo-inicio-pane .filters-actions #clear-filters { width: 100%; }
+}
+
+/* Tablet: 3 columnas para filtros y tipografía algo más compacta */
+@media (min-width: 577px) and (max-width: 991.98px) {
+   #interactivo-inicio-pane .filters-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem .75rem; }
+   #interactivo-inicio-pane .filters-bar .chip { width: 100%; min-width: 0 !important; }
+   #interactivo-inicio-pane .filters-bar .form-select,
+   #interactivo-inicio-pane .filters-bar .form-control { width: 100%; font-size: .9rem; min-height: 32px; }
 }
 
 /* Limitar altura de iframes PDF a 80vh en móvil */

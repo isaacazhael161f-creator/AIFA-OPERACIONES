@@ -4,10 +4,9 @@
 
   const viewers = new Map(); // container -> state
   function getDPR(){
-    const isPhone = (window.innerWidth || 0) <= 576;
+    // Render at full device pixel ratio for crisp text on all devices
     const dpr = Math.max(1, window.devicePixelRatio || 1);
-    // Clamp DPR on phones to reduce canvas cost (keeps text readable and scroll suave)
-    return isPhone ? Math.min(1.5, dpr) : dpr;
+    return dpr;
   }
 
   // Lazy-load PDF.js from CDN if not present

@@ -371,16 +371,12 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(updateDate, 60000);
     checkSession();
 
-    // Performance tweaks for mobile
+    // Animations enabled across devices (user preference)
     try {
-        const isPhone = window.innerWidth <= 576;
-        if (isPhone && window.Chart && Chart.defaults) {
-            // Reduce or disable animations on small screens for smoother UX
-            Chart.defaults.animation = false;
-            Chart.defaults.animations = {};
-            Chart.defaults.transitions.active.animation = false;
-            Chart.defaults.transitions.show.animation = false;
-            Chart.defaults.transitions.hide.animation = false;
+        if (window.Chart && Chart.defaults) {
+            Chart.defaults.animation = { duration: 600 };
+            Chart.defaults.animations = Chart.defaults.animations || {};
+            Chart.defaults.transitions = Chart.defaults.transitions || {};
         }
     } catch(_) {}
 
@@ -633,6 +629,26 @@ function applyFilters() {
             return (ymdArr === selYMD) || (ymdDep === selYMD);
         };
         filteredData = filteredData.filter(matchDate);
+    }
+    // If date filter yields no data, auto-relax it to ensure content is shown (mobile first-load fix)
+    if (selectedDate && filteredData.length === 0) {
+        // Find the date with most flights in allFlightsData
+        const freq = new Map();
+        const inc = (d)=>{ if (!d) return; const k = String(d).trim(); if (!k) return; freq.set(k, (freq.get(k)||0)+1); };
+        for (const f of (allFlightsData||[])) { inc(f.fecha_llegada); inc(f.fecha_salida); }
+        let bestDMY=null, bestN=-1; for (const [dmy,n] of freq) { if (n>bestN) { bestN=n; bestDMY=dmy; } }
+        const dateElFix = document.getElementById('date-filter');
+        if (bestDMY) {
+            const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(bestDMY);
+            if (m) {
+                const ymd = `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+                if (dateElFix) dateElFix.value = ymd;
+                return applyFilters();
+            }
+        }
+        // No best date: clear date filter and re-apply
+        if (dateElFix) dateElFix.value = '';
+        return applyFilters();
     }
     // Prefer categorization via 'categoria' field when available
     let passengerFlights = filteredData.filter(f => (f.categoria && f.categoria.toLowerCase() === 'pasajeros') || passengerAirlines.includes(f.aerolinea));
@@ -1060,14 +1076,13 @@ function handleNavigation(e) {
     }
     if (section) {
         showSection(section, a);
-        // ensure sidebar closes on mobile after selecting
+        // ensure sidebar closes after selecting on any device and collapse on desktop
         try {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar && overlay) { sidebar.classList.remove('visible'); overlay.classList.remove('active'); }
             const isMobile = window.innerWidth <= 991.98;
-            if (isMobile) {
-                const sidebar = document.getElementById('sidebar');
-                const overlay = document.getElementById('sidebar-overlay');
-                if (sidebar && overlay) { sidebar.classList.remove('visible'); overlay.classList.remove('active'); }
-            }
+            if (!isMobile) { document.body.classList.add('sidebar-collapsed'); try { localStorage.setItem('sidebarState','collapsed'); } catch(_) {} }
         } catch(_) {}
         // Hooks ligeros al entrar a ciertas vistas
         if (section === 'operaciones-totales') { try { updateOpsSummary(); renderOperacionesTotales(); } catch(_) {} }
@@ -1118,8 +1133,7 @@ const opsUIState = {
 // Animación segura para íconos viajeros en Operaciones Totales
 if (!window._opsAnim) window._opsAnim = { rafId: 0, running: false };
 function startOpsAnim() {
-    // Avoid running RAF-based animation on small phones
-    if (window.innerWidth <= 576) { window._opsAnim.running = false; return; }
+    // Allow animation on all devices
     if (window._opsAnim.running) return;
     window._opsAnim.running = true;
     const tick = () => {
