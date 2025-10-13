@@ -521,6 +521,45 @@ body.dark-mode #manifest-records-table tbody tr:hover { background: rgba(255,255
   #ops-sections-filters .form-check, #ops-years-filters .form-check { margin-right: 8px; 
   }}
 
+/* Compactar filtros de Inicio en 2 columnas (móvil) */
+@media (max-width: 576px) {
+   #interactivo-inicio-pane .filters-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .5rem .6rem;
+   }
+   #interactivo-inicio-pane .filters-bar .chip {
+      width: 100%;
+      min-width: 0 !important; /* anula el min-width inline del chip de búsqueda */
+      justify-content: space-between;
+   }
+   #interactivo-inicio-pane .filters-bar .form-select,
+   #interactivo-inicio-pane .filters-bar .form-control {
+      width: 100%;
+   }
+   #interactivo-inicio-pane .filters-actions {
+      grid-column: 1 / -1;
+      justify-content: stretch;
+   }
+   #interactivo-inicio-pane .filters-actions #clear-filters {
+      width: 100%;
+   }
+}
+
+/* Limitar altura de iframes PDF a 80vh en móvil */
+@media (max-width: 576px) {
+   .pdf-container iframe,
+   .pdf-preview-container iframe {
+      height: 80vh !important;
+      max-height: 80vh;
+   }
+   /* También aplicar a viewers de una sola página por canvas */
+   .pdf-singlepage-viewer {
+      max-height: 80vh;
+      overflow-y: auto;
+   }
+}
+
 /* Summary collapse button spacing on mobile */
 @media (max-width: 991.98px) {
    #summary-collapse { margin-top: .5rem; }
