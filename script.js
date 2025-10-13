@@ -420,7 +420,9 @@ function setupEventListeners() {
     const hourTypeSelect = document.getElementById('hour-type-filter'); if (hourTypeSelect) hourTypeSelect.addEventListener('change', (window.AIFA?.throttle||((f)=>f))(applyFilters, 120));
     // date filter (Inicio)
     const dateFilter = document.getElementById('date-filter'); if (dateFilter) dateFilter.addEventListener('change', (window.AIFA?.throttle||((f)=>f))(applyFilters, 120));
-    document.getElementById('theme-toggler').addEventListener('click', toggleTheme);
+    // Botón de tema eliminado: no enlazar listener si no existe
+    const themeBtnEl = document.getElementById('theme-toggler');
+    if (themeBtnEl) themeBtnEl.addEventListener('click', toggleTheme);
     const clearBtn = document.getElementById('clear-filters'); if (clearBtn) clearBtn.addEventListener('click', clearFilters);
     document.getElementById('sidebar-toggler').addEventListener('click', toggleSidebar);
     // Exportar todas las gráficas (Operaciones Totales)
