@@ -108,7 +108,8 @@ const dashboardData = {
         "Emily Beltrán": { password: "Emily67", canViewItinerarioMensual: true },
         "Director General": { password: "Dirección71", canViewItinerarioMensual: true },
         "Director de Operaciones": { password: "DirecciónNLU", canViewItinerarioMensual: true },
-        "Jefe Mateos": { password: "2025M", canViewItinerarioMensual: true }
+        "Jefe Mateos": { password: "2025M", canViewItinerarioMensual: true },
+        "Usuario1": { password: "AIFAOps", canViewItinerarioMensual: true }
     },
     pdfSections: { "itinerario-mensual": { title: "Itinerario Mensual (Octubre)", url: "pdfs/itinerario_mensual.pdf" } }
 };
@@ -502,22 +503,15 @@ function updateClock() {
         }
 }
 function initializeTheme() {
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    if (savedTheme === 'dark') { document.body.classList.add('dark-mode'); updateThemeIcon(true); }
+    // Forzar tema claro permanentemente
+    document.body.classList.remove('dark-mode');
+    try { localStorage.setItem('theme', 'light'); } catch(_) {}
 }
 function toggleTheme() {
-    const isDarkMode = document.body.classList.toggle('dark-mode');
-    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-    updateThemeIcon(isDarkMode);
-    renderDemoras();
-    renderOperacionesTotales();
-    try { renderFrecuenciasSemana(); } catch(_) {}
-    try { renderDailyPeaks(); } catch(_) {}
-    
+    // No-op: tema fijo claro
 }
 function updateThemeIcon(isDarkMode) {
-    const themeToggler = document.getElementById('theme-toggler');
-    themeToggler.innerHTML = isDarkMode ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+    // No-op: sin botón de tema
 }
 function initializeSidebarState() {
     const isMobile = window.innerWidth <= 991.98;

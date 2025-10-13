@@ -82,7 +82,10 @@ body {
 .header-content { position: relative; z-index: 2; }
 
 /* Mostrar avión animado también en móviles (preferencia del usuario) */
-/* Nota: si llega a tapar el título en pantallas muy chicas, se podría reducir su opacidad o tamaño via otra regla. */
+/* Ajuste XS: más chico y ligeramente más transparente para no tapar título */
+@media (max-width: 400px) {
+   #flying-plane { width: 18px; height: 6px; opacity: 0.5; }
+}
 
 /* ==========================================================================
    Tablas de Inicio "Glassmorphism"
