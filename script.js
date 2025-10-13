@@ -5,7 +5,7 @@
  */
 const staticData = {
     operacionesTotales: {
-        comercial: [ { periodo: '2022', operaciones: 8996, pasajeros: 912415 }, { periodo: '2023', operaciones: 23211, pasajeros: 2631261 }, { periodo: '2024', operaciones: 51734, pasajeros: 6318454 }, { periodo: '2025', operaciones: 39774, pasajeros: 4396262 } ],
+        comercial: [ { periodo: '2022', operaciones: 8996, pasajeros: 912415 }, { periodo: '2023', operaciones: 23211, pasajeros: 2631261 }, { periodo: '2024', operaciones: 51734, pasajeros: 6318454 }, { periodo: '2025', operaciones: 39774, pasajeros: 5155316 } ],
         carga: [ { periodo: '2022', operaciones: 8, toneladas: 5.19 }, { periodo: '2023', operaciones: 5578, toneladas: 186319.83 }, { periodo: '2024', operaciones: 13219, toneladas: 447341.17 }, { periodo: '2025', operaciones: 74052, toneladas: 284946 } ],
         general: [ { periodo: '2022', operaciones: 458, pasajeros: 1385 }, { periodo: '2023', operaciones: 2212, pasajeros: 8160 }, { periodo: '2024', operaciones: 2777, pasajeros: 29637 }, { periodo: '2025', operaciones: 2111, pasajeros: 16443 } ]
     },
@@ -58,7 +58,7 @@ const staticData = {
             { mes: '06', label: 'Junio', toneladas: 37.708 },
             { mes: '07', label: 'Julio', toneladas: 35.649 },
             { mes: '08', label: 'Agosto', toneladas: 35.737 },
-            { mes: '09', label: 'Septiembre', toneladas: null },
+            { mes: '09', label: 'Septiembre', toneladas: 23.78 },
             { mes: '10', label: 'Octubre', toneladas: null },
             { mes: '11', label: 'Noviembre', toneladas: null },
             { mes: '12', label: 'Diciembre', toneladas: null }
@@ -74,7 +74,7 @@ const staticData = {
                 { mes: '06', label: 'Junio', operaciones: 209 },
                 { mes: '07', label: 'Julio', operaciones: 234 },
                 { mes: '08', label: 'Agosto', operaciones: 282 },
-                { mes: '09', label: 'Septiembre', operaciones: null },
+                { mes: '09', label: 'Septiembre', operaciones: 146 },
                 { mes: '10', label: 'Octubre', operaciones: null },
                 { mes: '11', label: 'Noviembre', operaciones: null },
                 { mes: '12', label: 'Diciembre', operaciones: null }
@@ -368,6 +368,9 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
     updateClock();
     updateDate();
+    
+    // Detectar errores en gráficas después de la inicialización
+    setTimeout(detectChartErrors, 1000);
     setInterval(updateClock, 1000);
     setInterval(updateDate, 60000);
     checkSession();
@@ -559,6 +562,84 @@ function setupEventListeners() {
     // Exportar todas las gráficas (Operaciones Totales)
     const opsExportAllBtn = document.getElementById('ops-export-all-btn');
     if (opsExportAllBtn) opsExportAllBtn.addEventListener('click', exportAllChartsPDF);
+    
+    // Botón de reinicialización de gráficas global
+    const chartsResetBtn = document.getElementById('charts-reset-btn');
+    if (chartsResetBtn) {
+        chartsResetBtn.addEventListener('click', resetAllCharts);
+        
+        // Hacer el botón siempre visible para pruebas (opcional)
+        chartsResetBtn.style.display = 'inline-block';
+    }
+    
+    // Botones específicos de reinicialización por sección
+    const resetOperacionesBtn = document.getElementById('reset-operaciones-btn');
+    if (resetOperacionesBtn) resetOperacionesBtn.addEventListener('click', resetOperacionesCharts);
+    
+    const resetItinerarioBtn = document.getElementById('reset-itinerario-btn');
+    if (resetItinerarioBtn) resetItinerarioBtn.addEventListener('click', resetItinerarioCharts);
+    
+    const resetDemorasBtn = document.getElementById('reset-demoras-btn');
+    if (resetDemorasBtn) resetDemorasBtn.addEventListener('click', resetDemorasCharts);
+    
+    // Atajos de teclado para reinicializar gráficas
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.shiftKey) {
+            const activeSection = document.querySelector('.content-section.active');
+            const sectionId = activeSection ? activeSection.id.replace('-section', '') : '';
+            
+            if (e.key === 'R') {
+                e.preventDefault();
+                console.log('🔄 Reinicialización forzada por atajo de teclado');
+                resetAllCharts();
+            } else if (e.key === 'O' && sectionId === 'operaciones-totales') {
+                e.preventDefault();
+                console.log('🔄 Reinicialización de Operaciones por atajo (Ctrl+Shift+O)');
+                resetOperacionesCharts();
+            } else if (e.key === 'I' && sectionId === 'itinerario') {
+                e.preventDefault();
+                console.log('🔄 Reinicialización de Itinerario por atajo (Ctrl+Shift+I)');
+                resetItinerarioCharts();
+            } else if (e.key === 'D' && sectionId === 'demoras') {
+                e.preventDefault();
+                console.log('🔄 Reinicialización de Demoras por atajo (Ctrl+Shift+D)');
+                resetDemorasCharts();
+            }
+        }
+    });
+
+// Función de diagnóstico global (para usar en consola)
+window.diagnoseCharts = function() {
+    console.log('🔍 === DIAGNÓSTICO DE GRÁFICAS ===');
+    
+    const activeSection = document.querySelector('.content-section.active');
+    console.log('Sección activa:', activeSection?.id || 'ninguna');
+    
+    console.log('📊 Gráficas de Operaciones Totales:');
+    console.log('opsCharts:', Object.keys(opsCharts));
+    
+    console.log('📈 Instancias de Chart.js:');
+    if (window.Chart && window.Chart.instances) {
+        console.log('Chart instances:', Object.keys(window.Chart.instances));
+    }
+    
+    console.log('🎯 Canvas elements:');
+    const canvases = ['commercial-ops-chart', 'commercial-pax-chart', 'cargo-ops-chart', 'cargo-tons-chart', 'general-ops-chart', 'general-pax-chart', 'paxArrivalsChart', 'paxDeparturesChart', 'cargoArrivalsChart', 'cargoDeparturesChart', 'delaysPieChart'];
+    canvases.forEach(id => {
+        const canvas = document.getElementById(id);
+        const chart = canvas ? Chart.getChart(canvas) : null;
+        console.log(`${id}: canvas=${!!canvas}, chart=${!!chart}`);
+    });
+    
+    console.log('🔧 Funciones globales:');
+    console.log('renderOperacionesTotales:', typeof window.renderOperacionesTotales);
+    console.log('renderItineraryCharts:', typeof window.renderItineraryCharts);
+    console.log('renderDemoras:', typeof window.renderDemoras);
+    console.log('destroyItinerarioCharts:', typeof window.destroyItinerarioCharts);
+    
+    console.log('=== FIN DIAGNÓSTICO ===');
+};
+    
     setupBodyEventListeners();
     setupLightboxListeners();
     // Inicializar UI de Manifiestos (desacoplado al módulo)
@@ -583,6 +664,241 @@ function animateLoginTitle() {
         // Mantener el título solicitado
         titleElement.textContent = "OPERACIONES AIFA";
 }
+
+// Funciones específicas para reinicializar gráficas por sección
+function resetOperacionesCharts() {
+    console.log('🔄 Reinicializando gráficas de Operaciones Totales...');
+    
+    const btn = document.getElementById('reset-operaciones-btn');
+    const originalHTML = btn ? btn.innerHTML : '';
+    
+    try {
+        // Mostrar indicador de carga
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Reiniciando...';
+            btn.disabled = true;
+        }
+        
+        // Destruir gráficas existentes
+        destroyOpsCharts();
+        
+        // Limpiar canvas específicos
+        const canvasIds = [
+            'commercial-ops-chart', 'commercial-pax-chart',
+            'cargo-ops-chart', 'cargo-tons-chart',
+            'general-ops-chart', 'general-pax-chart'
+        ];
+        
+        canvasIds.forEach(id => {
+            const canvas = document.getElementById(id);
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+            }
+        });
+        
+        // Recrear después de un breve delay
+        setTimeout(() => {
+            try {
+                renderOperacionesTotales();
+                updateOpsSummary();
+                console.log('✅ Gráficas de Operaciones Totales reinicializadas');
+                showNotification('Gráficas de Operaciones reinicializadas', 'success');
+            } catch (error) {
+                console.error('❌ Error al recrear gráficas de operaciones:', error);
+                showNotification('Error al recrear gráficas: ' + error.message, 'error');
+            } finally {
+                if (btn) {
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                }
+            }
+        }, 200);
+        
+    } catch (error) {
+        console.error('❌ Error crítico en resetOperacionesCharts:', error);
+        if (btn) {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        }
+    }
+}
+
+function resetItinerarioCharts() {
+    console.log('🔄 Reinicializando gráficas de Itinerario...');
+    
+    const btn = document.getElementById('reset-itinerario-btn');
+    const originalHTML = btn ? btn.innerHTML : '';
+    
+    try {
+        // Mostrar indicador de carga
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Reiniciando...';
+            btn.disabled = true;
+        }
+        
+        // Destruir gráficas de itinerario
+        if (window.destroyItinerarioCharts && typeof window.destroyItinerarioCharts === 'function') {
+            window.destroyItinerarioCharts();
+        }
+        
+        // Limpiar canvas específicos del itinerario
+        const canvasIds = ['paxArrivalsChart', 'paxDeparturesChart', 'cargoArrivalsChart', 'cargoDeparturesChart'];
+        canvasIds.forEach(id => {
+            const canvas = document.getElementById(id);
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+            }
+        });
+        
+        // Recrear después de un breve delay
+        setTimeout(() => {
+            try {
+                if (window.renderItineraryCharts && typeof window.renderItineraryCharts === 'function') {
+                    window.renderItineraryCharts();
+                    console.log('✅ Gráficas de Itinerario reinicializadas');
+                    showNotification('Gráficas de Itinerario reinicializadas', 'success');
+                } else {
+                    throw new Error('Función renderItineraryCharts no disponible');
+                }
+            } catch (error) {
+                console.error('❌ Error al recrear gráficas de itinerario:', error);
+                showNotification('Error al recrear gráficas: ' + error.message, 'error');
+            } finally {
+                if (btn) {
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                }
+            }
+        }, 200);
+        
+    } catch (error) {
+        console.error('❌ Error crítico en resetItinerarioCharts:', error);
+        if (btn) {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        }
+    }
+}
+
+function resetDemorasCharts() {
+    console.log('🔄 Reinicializando gráfica de Demoras...');
+    
+    const btn = document.getElementById('reset-demoras-btn');
+    const originalHTML = btn ? btn.innerHTML : '';
+    
+    try {
+        // Mostrar indicador de carga
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Reiniciando...';
+            btn.disabled = true;
+        }
+        
+        // Destruir gráfica de demoras existente
+        if (window.opsCharts && window.opsCharts.delaysPieChart) {
+            try { 
+                window.opsCharts.delaysPieChart.destroy(); 
+                delete window.opsCharts.delaysPieChart;
+            } catch(_) {}
+        }
+        
+        // Limpiar canvas de demoras
+        const canvas = document.getElementById('delaysPieChart');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        
+        // Recrear después de un breve delay
+        setTimeout(() => {
+            try {
+                if (window.renderDemoras && typeof window.renderDemoras === 'function') {
+                    window.renderDemoras();
+                    console.log('✅ Gráfica de Demoras reinicializada');
+                    showNotification('Gráfica de Demoras reinicializada', 'success');
+                } else {
+                    throw new Error('Función renderDemoras no disponible');
+                }
+            } catch (error) {
+                console.error('❌ Error al recrear gráfica de demoras:', error);
+                showNotification('Error al recrear gráfica: ' + error.message, 'error');
+            } finally {
+                if (btn) {
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                }
+            }
+        }, 200);
+        
+    } catch (error) {
+        console.error('❌ Error crítico en resetDemorasCharts:', error);
+        if (btn) {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        }
+    }
+}
+
+// Función de diagnóstico global (para usar en consola)
+window.diagnoseCharts = function() {
+    console.log('🔍 === DIAGNÓSTICO DE GRÁFICAS ===');
+    
+    const activeSection = document.querySelector('.content-section.active');
+    console.log('Sección activa:', activeSection?.id || 'ninguna');
+    
+    console.log('📊 Gráficas de Operaciones Totales:');
+    console.log('opsCharts:', Object.keys(opsCharts));
+    
+    console.log('📈 Instancias de Chart.js:');
+    if (window.Chart && window.Chart.instances) {
+        console.log('Chart instances:', Object.keys(window.Chart.instances));
+    }
+    
+    console.log('🎯 Canvas elements:');
+    const canvases = ['commercial-ops-chart', 'commercial-pax-chart', 'cargo-ops-chart', 'cargo-tons-chart', 'general-ops-chart', 'general-pax-chart', 'paxArrivalsChart', 'paxDeparturesChart', 'cargoArrivalsChart', 'cargoDeparturesChart', 'delaysPieChart'];
+    canvases.forEach(id => {
+        const canvas = document.getElementById(id);
+        const chart = canvas ? Chart.getChart(canvas) : null;
+        console.log(`${id}: canvas=${!!canvas}, chart=${!!chart}`);
+    });
+    
+    console.log('🔧 Funciones globales:');
+    console.log('renderOperacionesTotales:', typeof window.renderOperacionesTotales);
+    console.log('renderItineraryCharts:', typeof window.renderItineraryCharts);
+    console.log('renderDemoras:', typeof window.renderDemoras);
+    console.log('destroyItinerarioCharts:', typeof window.destroyItinerarioCharts);
+    
+    console.log('=== FIN DIAGNÓSTICO ===');
+};
+
+// Exponer funciones específicas globalmente
+window.resetOperacionesCharts = resetOperacionesCharts;
+window.resetItinerarioCharts = resetItinerarioCharts;
+window.resetDemorasCharts = resetDemorasCharts;
+
+// Función de ayuda para mostrar atajos de teclado
+window.showChartShortcuts = function() {
+    console.log('⌨️ ATAJOS DE TECLADO PARA GRÁFICAS:');
+    console.log('Ctrl+Shift+R: Reinicializar TODAS las gráficas');
+    console.log('Ctrl+Shift+O: Reinicializar gráficas de Operaciones (en sección activa)');
+    console.log('Ctrl+Shift+I: Reinicializar gráficas de Itinerario (en sección activa)');
+    console.log('Ctrl+Shift+D: Reinicializar gráfica de Demoras (en sección activa)');
+    console.log('');
+    console.log('🔧 FUNCIONES DISPONIBLES EN CONSOLA:');
+    console.log('diagnoseCharts() - Diagnóstico completo del estado de gráficas');
+    console.log('resetOperacionesCharts() - Reinicializar solo Operaciones');
+    console.log('resetItinerarioCharts() - Reinicializar solo Itinerario');
+    console.log('resetDemorasCharts() - Reinicializar solo Demoras');
+    console.log('showChartShortcuts() - Mostrar esta ayuda');
+};
+
 function animateCounter(elementId, endValue, duration = 2500, isDecimal = false) {
     const element = document.getElementById(elementId);
     if (!element) return;
@@ -1212,10 +1528,30 @@ function handleNavigation(e) {
             if (!isMobile) { document.body.classList.add('sidebar-collapsed'); try { localStorage.setItem('sidebarState','collapsed'); } catch(_) {} }
         } catch(_) {}
         // Hooks ligeros al entrar a ciertas vistas
-        if (section === 'operaciones-totales') { try { updateOpsSummary(); renderOperacionesTotales(); } catch(_) {} }
+        if (section === 'operaciones-totales') { 
+            try { 
+                updateOpsSummary(); 
+                renderOperacionesTotales(); 
+                // Detectar errores en gráficas después de un momento
+                setTimeout(detectChartErrors, 500);
+            } catch(_) {} 
+        }
         else { try { stopOpsAnim(); } catch(_) {} }
-        if (section === 'itinerario') { try { /* charts se renderizan en el módulo */ } catch(_) {} }
-        if (section === 'demoras') { try { setTimeout(()=>renderDemoras(), 50); } catch(_) {} }
+        if (section === 'itinerario') { 
+            try { 
+                /* charts se renderizan en el módulo */ 
+                // Detectar errores en gráficas después de un momento
+                setTimeout(detectChartErrors, 500);
+            } catch(_) {} 
+        }
+        if (section === 'demoras') { 
+            try { 
+                setTimeout(()=>{
+                    renderDemoras();
+                    setTimeout(detectChartErrors, 500);
+                }, 50); 
+            } catch(_) {} 
+        }
     }
 }
 
@@ -1285,6 +1621,316 @@ function stopOpsAnim() {
 function destroyOpsCharts() {
     Object.keys(opsCharts).forEach(k => { try { opsCharts[k].destroy(); } catch(_) {} delete opsCharts[k]; });
     stopOpsAnim();
+}
+
+// Función global para reinicializar todas las gráficas cuando fallan
+function resetAllCharts() {
+    const btn = document.getElementById('charts-reset-btn');
+    let originalHTML = '';
+    
+    try {
+        console.log('🔄 REINICIALIZACIÓN COMPLETA DE GRÁFICAS...');
+        
+        // Mostrar indicador de carga
+        if (btn) {
+            originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i><span class="d-none d-md-inline">Reiniciando...</span>';
+            btn.disabled = true;
+        }
+        
+        // FASE 1: DESTRUCCIÓN COMPLETA
+        console.log('🗑️ FASE 1: Destrucción completa de gráficas...');
+        
+        // Destruir gráficas de Operaciones Totales
+        destroyOpsCharts();
+        
+        // Destruir gráficas de Itinerario
+        if (window.destroyItinerarioCharts && typeof window.destroyItinerarioCharts === 'function') {
+            window.destroyItinerarioCharts();
+        }
+        
+        // Destruir todas las instancias de Chart.js globalmente
+        if (window.Chart && Chart.instances) {
+            Object.values(Chart.instances).forEach(chart => {
+                if (chart && typeof chart.destroy === 'function') {
+                    try { chart.destroy(); } catch(_) {}
+                }
+            });
+        }
+        
+        // Limpiar completamente window.opsCharts
+        if (window.opsCharts) {
+            Object.keys(window.opsCharts).forEach(key => {
+                try { 
+                    if (window.opsCharts[key] && typeof window.opsCharts[key].destroy === 'function') {
+                        window.opsCharts[key].destroy(); 
+                    }
+                    delete window.opsCharts[key];
+                } catch(_) {}
+            });
+        }
+        
+        // Limpiar animaciones pendientes
+        stopOpsAnim();
+        
+        // FASE 2: LIMPIEZA DE CANVAS
+        console.log('🧹 FASE 2: Limpieza de canvas...');
+        const canvasIds = [
+            'commercial-ops-chart', 'commercial-pax-chart',
+            'cargo-ops-chart', 'cargo-tons-chart', 
+            'general-ops-chart', 'general-pax-chart',
+            'paxArrivalsChart', 'paxDeparturesChart', 
+            'cargoArrivalsChart', 'cargoDeparturesChart',
+            'delaysPieChart'
+        ];
+        
+        canvasIds.forEach(id => {
+            const canvas = document.getElementById(id);
+            if (canvas) {
+                // Limpiar completamente el canvas
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Resetear dimensiones del canvas
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+                
+                // Remover cualquier referencia de Chart.js
+                if (canvas.chart) {
+                    delete canvas.chart;
+                }
+            }
+        });
+        
+        // FASE 3: RECREACIÓN COMPLETA
+        console.log('🏗️ FASE 3: Esperando para recreación completa...');
+        
+        setTimeout(() => {
+            try {
+                const activeSection = document.querySelector('.content-section.active');
+                console.log('Sección activa detectada:', activeSection?.id);
+                
+                if (!activeSection) {
+                    throw new Error('No se detectó sección activa');
+                }
+                
+                const sectionId = activeSection.id.replace('-section', '');
+                console.log(`🔨 Recreando gráficas para sección: ${sectionId}`);
+                
+                // Recrear según la sección activa
+                if (sectionId === 'operaciones-totales') {
+                    console.log('📊 Recreando Operaciones Totales...');
+                    
+                    // Forzar re-carga completa de datos y gráficas
+                    try {
+                        updateOpsSummary();
+                    } catch (e) {
+                        console.warn('Error en updateOpsSummary:', e);
+                    }
+                    
+                    try {
+                        renderOperacionesTotales();
+                    } catch (e) {
+                        console.error('Error en renderOperacionesTotales:', e);
+                        throw e;
+                    }
+                    
+                } else if (sectionId === 'itinerario') {
+                    console.log('📈 Recreando Itinerario...');
+                    
+                    if (window.renderItineraryCharts && typeof window.renderItineraryCharts === 'function') {
+                        try {
+                            // Forzar re-carga de datos del itinerario
+                            window.renderItineraryCharts();
+                        } catch (e) {
+                            console.error('Error en renderItineraryCharts:', e);
+                            throw e;
+                        }
+                    } else {
+                        throw new Error('Función renderItineraryCharts no disponible');
+                    }
+                    
+                } else if (sectionId === 'demoras') {
+                    console.log('🕒 Recreando Demoras...');
+                    
+                    if (window.renderDemoras && typeof window.renderDemoras === 'function') {
+                        try {
+                            window.renderDemoras();
+                        } catch (e) {
+                            console.error('Error en renderDemoras:', e);
+                            throw e;
+                        }
+                    } else {
+                        throw new Error('Función renderDemoras no disponible');
+                    }
+                } else {
+                    console.log(`ℹ️ Sección ${sectionId} no requiere gráficas especiales`);
+                }
+                
+                // FASE 4: VERIFICACIÓN FINAL
+                setTimeout(() => {
+                    console.log('🔍 FASE 4: Verificación final...');
+                    
+                    // Verificar que las gráficas se crearon correctamente
+                    const success = verifyChartsCreated(sectionId);
+                    
+                    if (success) {
+                        console.log('✅ REINICIALIZACIÓN COMPLETA EXITOSA');
+                        showNotification('Gráficas completamente reinicializadas', 'success');
+                    } else {
+                        console.warn('⚠️ Algunas gráficas no se crearon correctamente');
+                        showNotification('Reinicialización parcial - algunas gráficas pueden tener problemas', 'warning');
+                    }
+                    
+                    detectChartErrors();
+                }, 800);
+                
+            } catch (error) {
+                console.error('❌ ERROR EN RECREACIÓN:', error);
+                showNotification('Error al recrear gráficas: ' + error.message, 'error');
+            } finally {
+                // Restaurar botón después de todo el proceso
+                setTimeout(() => {
+                    if (btn && originalHTML) {
+                        btn.innerHTML = originalHTML;
+                        btn.disabled = false;
+                    }
+                }, 1000);
+            }
+        }, 500); // Aumentado el tiempo de espera
+        
+    } catch (error) {
+        console.error('❌ ERROR CRÍTICO EN REINICIALIZACIÓN:', error);
+        showNotification('Error crítico: ' + error.message, 'error');
+        
+        // Restaurar botón en caso de error inmediato
+        if (btn && originalHTML) {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        }
+    }
+}
+
+// Función para mostrar notificaciones
+function showNotification(message, type = 'info') {
+    // Crear elemento de notificación
+    const alertType = type === 'success' ? 'success' : type === 'error' ? 'danger' : type === 'warning' ? 'warning' : 'info';
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${alertType} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 350px;';
+    
+    const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+    
+    notification.innerHTML = `
+        <i class="fas fa-${icon} me-2"></i>${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (notification && notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+// Detectar errores en gráficas y mostrar botón de reset automáticamente
+function detectChartErrors() {
+    const btn = document.getElementById('charts-reset-btn');
+    if (!btn) return;
+    
+    try {
+        const activeSection = document.querySelector('.content-section.active');
+        if (!activeSection) {
+            btn.style.display = 'none';
+            return;
+        }
+        
+        const sectionId = activeSection.id.replace('-section', '');
+        let hasErrors = false;
+        let errorInfo = '';
+        
+        console.log(`🔍 Detectando errores en sección: ${sectionId}`);
+        
+        if (sectionId === 'operaciones-totales') {
+            const expectedCanvases = [
+                'commercial-ops-chart', 'commercial-pax-chart',
+                'cargo-ops-chart', 'cargo-tons-chart',
+                'general-ops-chart', 'general-pax-chart'
+            ];
+            
+            const missingCharts = [];
+            expectedCanvases.forEach(canvasId => {
+                const canvas = document.getElementById(canvasId);
+                if (!canvas) {
+                    missingCharts.push(`Canvas ${canvasId} no encontrado`);
+                    hasErrors = true;
+                } else if (!opsCharts[canvasId.replace('-chart', 'Chart')]) {
+                    missingCharts.push(`Gráfica ${canvasId} no inicializada`);
+                    hasErrors = true;
+                }
+            });
+            
+            if (missingCharts.length > 0) {
+                errorInfo = `Operaciones: ${missingCharts.length} gráficas con problemas`;
+            }
+            
+        } else if (sectionId === 'itinerario') {
+            const expectedCanvases = [
+                'paxArrivalsChart', 'paxDeparturesChart', 
+                'cargoArrivalsChart', 'cargoDeparturesChart'
+            ];
+            
+            const missingCharts = [];
+            expectedCanvases.forEach(canvasId => {
+                const canvas = document.getElementById(canvasId);
+                if (!canvas) {
+                    missingCharts.push(`Canvas ${canvasId} no encontrado`);
+                    hasErrors = true;
+                } else {
+                    // Verificar si Chart.js está asociado al canvas
+                    const chartInstance = Chart.getChart(canvas);
+                    if (!chartInstance) {
+                        missingCharts.push(`Gráfica ${canvasId} no inicializada`);
+                        hasErrors = true;
+                    }
+                }
+            });
+            
+            if (missingCharts.length > 0) {
+                errorInfo = `Itinerario: ${missingCharts.length} gráficas con problemas`;
+            }
+            
+        } else if (sectionId === 'demoras') {
+            const canvas = document.getElementById('delaysPieChart');
+            if (!canvas) {
+                hasErrors = true;
+                errorInfo = 'Demoras: Canvas no encontrado';
+            } else if (!window.opsCharts?.delaysPieChart) {
+                hasErrors = true;
+                errorInfo = 'Demoras: Gráfica no inicializada';
+            }
+        }
+        
+        // Mostrar/ocultar botón según el estado
+        if (hasErrors) {
+            btn.style.display = 'inline-block';
+            btn.title = `Reinicializar gráficas - ${errorInfo}`;
+            console.warn(`⚠️ ${errorInfo}`);
+        } else {
+            btn.style.display = 'none';
+            console.log(`✅ Todas las gráficas de ${sectionId} están funcionando`);
+        }
+        
+    } catch (error) {
+        console.error('Error en detectChartErrors:', error);
+        // En caso de error, mostrar el botón por seguridad
+        btn.style.display = 'inline-block';
+        btn.title = 'Reinicializar gráficas - Error de detección';
+    }
 }
 function renderOperacionesTotales() {
     try {
@@ -1693,7 +2339,13 @@ function renderOperacionesTotales() {
     // Actualizar resumen en función del modo/filtros
         try { updateOpsSummary(); } catch(_) {}
     } catch (e) { console.warn('renderOperacionesTotales error:', e); }
+    
+    // Detectar errores después de renderizar
+    setTimeout(detectChartErrors, 300);
 }
+
+// Exponer función globalmente para reinicialización
+window.renderOperacionesTotales = renderOperacionesTotales;
 
 function updateOpsSummary() {
     try {
@@ -1733,6 +2385,65 @@ function updateOpsSummary() {
                 <span>· Pax Gen: <strong>${gPax.toLocaleString('es-MX')}</strong></span>`;
         }
     } catch (e) { /* ignore */ }
+}
+
+// Exponer función globalmente para reinicialización
+window.updateOpsSummary = updateOpsSummary;
+
+// Función para verificar que las gráficas se crearon correctamente
+function verifyChartsCreated(sectionId) {
+    console.log(`🔍 Verificando gráficas de sección: ${sectionId}`);
+    
+    if (sectionId === 'operaciones-totales') {
+        const expectedCharts = [
+            'commercialOpsChart', 'commercialPaxChart',
+            'cargoOpsChart', 'cargoTonsChart',
+            'generalOpsChart', 'generalPaxChart'
+        ];
+        
+        let createdCount = 0;
+        expectedCharts.forEach(chartKey => {
+            if (opsCharts[chartKey] && opsCharts[chartKey].data) {
+                createdCount++;
+                console.log(`✅ ${chartKey} creado correctamente`);
+            } else {
+                console.warn(`❌ ${chartKey} NO se creó`);
+            }
+        });
+        
+        return createdCount === expectedCharts.length;
+        
+    } else if (sectionId === 'itinerario') {
+        const expectedCanvases = [
+            'paxArrivalsChart', 'paxDeparturesChart',
+            'cargoArrivalsChart', 'cargoDeparturesChart'
+        ];
+        
+        let createdCount = 0;
+        expectedCanvases.forEach(canvasId => {
+            const canvas = document.getElementById(canvasId);
+            const chart = canvas ? Chart.getChart(canvas) : null;
+            if (chart && chart.data) {
+                createdCount++;
+                console.log(`✅ ${canvasId} creado correctamente`);
+            } else {
+                console.warn(`❌ ${canvasId} NO se creó`);
+            }
+        });
+        
+        return createdCount === expectedCanvases.length;
+        
+    } else if (sectionId === 'demoras') {
+        const hasChart = window.opsCharts && window.opsCharts.delaysPieChart;
+        if (hasChart) {
+            console.log(`✅ delaysPieChart creado correctamente`);
+        } else {
+            console.warn(`❌ delaysPieChart NO se creó`);
+        }
+        return hasChart;
+    }
+    
+    return true; // Para otras secciones sin gráficas específicas
 }
 
 // Demoras: renderizar tabla y gráfica simple

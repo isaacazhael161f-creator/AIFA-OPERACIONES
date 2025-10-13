@@ -7,6 +7,40 @@
   let itData = null;
   let selectedDate = null; // 'yyyy-mm-dd'
   let lastAgg = null;
+  
+  // Exponer función para destruir gráficas desde el exterior
+  window.destroyItinerarioCharts = function() {
+    console.log('🗑️ Destruyendo gráficas de itinerario...');
+    Object.keys(charts).forEach(k => { 
+      try { 
+        if (charts[k] && typeof charts[k].destroy === 'function') {
+          console.log(`Destruyendo gráfica: ${k}`);
+          charts[k].destroy(); 
+        }
+        delete charts[k];
+      } catch(e) { 
+        console.warn(`Error destruyendo gráfica ${k}:`, e); 
+      } 
+    });
+    
+    // También limpiar por ID de canvas
+    const canvasIds = ['paxArrivalsChart', 'paxDeparturesChart', 'cargoArrivalsChart', 'cargoDeparturesChart'];
+    canvasIds.forEach(id => {
+      const canvas = document.getElementById(id);
+      if (canvas) {
+        const existingChart = Chart.getChart(canvas);
+        if (existingChart) {
+          console.log(`Destruyendo gráfica por canvas ID: ${id}`);
+          existingChart.destroy();
+        }
+      }
+    });
+    
+    console.log('✅ Gráficas de itinerario destruidas');
+  };
+  
+  // Exponer función para re-renderizar desde el exterior
+  window.renderItineraryCharts = renderItineraryCharts;
   const passengerAirlines = new Set(['aeromexico','volaris','viva aerobus','mexicana','aerus','arajet','americanairlines','latam','avianca','copa','airfrance','klm','iberia']);
   const cargoAirlines = new Set(['atlas air','aero union','aerounion','masair','mas','estafeta','dhl','cargolux','cathay pacific','ups','turkish','amerijet','air canada cargo','kalitta','ethiopian']);
   function toYMD(d){ return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-'); }

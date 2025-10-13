@@ -52,7 +52,7 @@
                         <button class="btn sidebar-toggler-btn" type="button" id="sidebar-toggler">
                             <i class="fas fa-bars"></i>
                         </button>
-                        <img src="images/aifa-logo.jpg" alt="Logo AIFA" class="aifa-logo" />
+                        <img src="images/aifa-logo.png" alt="Logo AIFA" class="aifa-logo" />
                     </div>
                     <div class="text-center header-center-content">
                         <div class="d-flex align-items-center justify-content-center gap-3">
@@ -73,6 +73,9 @@
                                 <div class="utc-clock" id="utc-clock">00:00:00</div>
                             </div>
                         </div>
+                        <button id="charts-reset-btn" class="btn btn-outline-warning btn-sm me-2" title="Reinicializar todas las gráficas en caso de error">
+                            <i class="fas fa-sync-alt me-1"></i><span class="d-none d-md-inline">Reiniciar Gráficas</span>
+                        </button>
                         <img src="images/gobierno-mexico.png" alt="Logo del Gobierno de México" class="gob-logo" />
                         <!-- Tema fijo claro: se elimina el botón de cambio de tema -->
                         <a href="#" class="btn btn-outline-danger d-lg-none logout-button-mobile" data-action="logout" title="Cerrar Sesión">
@@ -217,7 +220,6 @@
                                                 <h4 class="mb-0"><i class="fas fa-plane-departure me-2"></i>Itinerario de Pasajeros</h4>
                                                 <div class="btn-group" role="group">
                                                     <button id="export-pax-full" class="btn btn-sm btn-outline-primary" title="Descargar CSV (toda la tabla)"><i class="fas fa-file-csv me-1"></i>CSV</button>
-                                                    <button id="export-pax-pdf" class="btn btn-sm btn-outline-danger" title="Descargar PDF (como se ve)"><i class="fas fa-file-pdf me-1"></i>PDF</button>
                                                 </div>
                                             </div>
                                             <div class="itinerary-horizontal mb-4">
@@ -235,7 +237,6 @@
                                                 <h4 class="mb-0"><i class="fas fa-truck-ramp-box me-2"></i>Itinerario de Carga</h4>
                                                 <div class="btn-group" role="group">
                                                     <button id="export-cargo-full" class="btn btn-sm btn-outline-primary" title="Descargar CSV (toda la tabla)"><i class="fas fa-file-csv me-1"></i>CSV</button>
-                                                    <button id="export-cargo-pdf" class="btn btn-sm btn-outline-danger" title="Descargar PDF (como se ve)"><i class="fas fa-file-pdf me-1"></i>PDF</button>
                                                 </div>
                                             </div>
                                             <div class="itinerary-horizontal">
@@ -266,7 +267,9 @@
                         <div class="card-header flex-column flex-md-row d-flex justify-content-between align-items-center">
                             <h2 class="mb-3 mb-md-0">ITINERARIO DETALLADO</h2>
                             <div class="d-flex gap-2">
-                                <a href="pdfs/itinerario_completo.pdf" class="btn btn-danger download-btn" download><i class="fas fa-file-pdf me-2"></i><span class="btn-text">Descargar PDF</span></a>
+                                <button id="reset-itinerario-btn" class="btn btn-outline-warning btn-sm" title="Reinicializar gráficas de itinerario (Ctrl+Shift+I)">
+                                    <i class="fas fa-sync-alt me-1"></i>Reiniciar Gráficas
+                                </button>
                                 <a href="excel/itinerario_completo.xlsx" class="btn btn-success download-btn" download><i class="fas fa-file-excel me-2"></i><span class="btn-text">Descargar Excel</span></a>
                             </div>
                         </div>
@@ -282,8 +285,6 @@
                             <ul class="nav nav-tabs" id="itineraryTab" role="tablist">
                                 <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#pasajeros-grafica-pane">1. Gráfica (Pasajeros)</button></li>
                                 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#carga-grafica-pane">2. Gráfica (Carga)</button></li>
-                                <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#pasajeros-calor-pane">3. Mapa de Calor (Pasajeros)</button></li>
-                                <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#carga-calor-pane">4. Mapa de Calor (Carga)</button></li>
                             </ul>
                             <div class="tab-content pt-3" id="itineraryTabContent">
                                 <!-- Pasajeros: Llegadas/Salidas del día -->
@@ -364,15 +365,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <!-- Mapas de calor del día (24h) -->
-                                <div class="tab-pane fade" id="pasajeros-calor-pane">
-                                    <h6 class="text-muted mb-2"><i class="fas fa-fire me-1"></i>Mapa de calor (Pasajeros)</h6>
-                                    <div class="pdf-container"><iframe src="pdfs/mapa_calor_pasajeros.pdf" width="100%" height="380px" class="border-0"></iframe></div>
-                                </div>
-                                <div class="tab-pane fade" id="carga-calor-pane">
-                                    <h6 class="text-muted mb-2"><i class="fas fa-fire me-1"></i>Mapa de calor (Carga)</h6>
-                                    <div class="pdf-container"><iframe src="pdfs/mapa_calor_carga.pdf" width="100%" height="380px" class="border-0"></iframe></div>
-                                </div>
+                                
                             </div>
                         </div>
                     </div>
@@ -381,7 +374,7 @@
                 <div id="parte-operaciones-section" class="content-section">
                     <div class="card">
                         <div class="card-header flex-column flex-md-row d-flex justify-content-between align-items-center">
-                            <h2 class="mb-3 mb-md-0">Resumen de operaciones (30 de septiembre de 2025)</h2>
+                            <h2 class="mb-3 mb-md-0">Resumen de operaciones (11 de octubre de 2025)</h2>
                             <div class="d-flex gap-2">
                                 <a href="pdfs/parte_operaciones_completo.pdf" class="btn btn-danger download-btn" download><i class="fas fa-file-pdf me-2"></i><span class="btn-text">Descargar PDF</span></a>
                                 <a href="excel/parte_operaciones_completo.xlsx" class="btn btn-success download-btn" download><i class="fas fa-file-excel me-2"></i><span class="btn-text">Descargar Excel</span></a>
@@ -406,8 +399,11 @@
 
                 <div id="demoras-section" class="content-section">
                     <div class="card">
-                        <div class="card-header">
+                        <div class="card-header d-flex justify-content-between align-items-center">
                             <h2 class="mb-0" id="demoras-title">Análisis de Demoras</h2>
+                            <button id="reset-demoras-btn" class="btn btn-outline-warning btn-sm" title="Reinicializar gráfica de demoras (Ctrl+Shift+D)">
+                                <i class="fas fa-sync-alt me-1"></i>Reiniciar Gráfica
+                            </button>
                         </div>
                         <div class="card-body">
                             <div class="mb-4">
@@ -434,8 +430,13 @@
                 <div id="operaciones-totales-section" class="content-section active">
                     <div class="card border-0">
                         <div class="card-header bg-transparent d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
-                            <h2 class="mb-2 mb-md-0">Operaciones Totales (Visualización)</h2>
-                            <div class="update-note d-flex align-items-center"><i class="fas fa-calendar-check me-2"></i><small>Actualizado al <strong>30 septiembre 2025</strong></small></div>
+                            <div class="d-flex flex-column">
+                                <h2 class="mb-2 mb-md-0">Operaciones Totales (Visualización)</h2>
+                                <div class="update-note d-flex align-items-center"><i class="fas fa-calendar-check me-2"></i><small>Actualizado al <strong>30 septiembre 2025</strong></small></div>
+                            </div>
+                            <button id="reset-operaciones-btn" class="btn btn-outline-warning btn-sm mt-2 mt-md-0" title="Reinicializar gráficas de operaciones (Ctrl+Shift+O)">
+                                <i class="fas fa-sync-alt me-1"></i>Reiniciar Gráficas
+                            </button>
                         </div>
                         <div class="card-body">
                             <!-- Toolbar compacta -->
@@ -580,7 +581,7 @@
                 <div id="frecuencias-semana-section" class="content-section">
                     <div class="card border-0">
                         <div class="card-header bg-transparent d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
-                            <h2 class="mb-2 mb-md-0">Frecuencias de la semana</h2>
+                            <h2 class="mb-2 mb-md-0">Frecuencias de la semana del 13 al 19 de octubre</h2>
                             <div class="small text-muted">Documento oficial (PDF)</div>
                         </div>
                         <div class="card-body pdf-container">

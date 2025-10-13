@@ -15,6 +15,20 @@
         ]
     };
 
+  // Función para destruir gráficas de demoras
+  window.destroyDemorasCharts = function() {
+    console.log('🗑️ Destruyendo gráficas de demoras...');
+    if (window.opsCharts && window.opsCharts.delaysPieChart) {
+      try {
+        window.opsCharts.delaysPieChart.destroy();
+        delete window.opsCharts.delaysPieChart;
+        console.log('✅ Gráfica de demoras destruida');
+      } catch(e) {
+        console.warn('Error destruyendo gráfica de demoras:', e);
+      }
+    }
+  };
+
   // Define global renderDemoras so other code can call it
   window.renderDemoras = function renderDemoras(data) {
     try {
