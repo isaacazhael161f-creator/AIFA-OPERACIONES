@@ -215,7 +215,10 @@
                                             </div>
                                             <div class="d-flex align-items-center justify-content-between mb-2">
                                                 <h4 class="mb-0"><i class="fas fa-plane-departure me-2"></i>Itinerario de Pasajeros</h4>
-                                                <button id="export-pax-full" class="btn btn-sm btn-outline-primary" title="Descargar CSV (toda la tabla)"><i class="fas fa-download me-1"></i>Descargar CSV</button>
+                                                <div class="btn-group" role="group">
+                                                    <button id="export-pax-full" class="btn btn-sm btn-outline-primary" title="Descargar CSV (toda la tabla)"><i class="fas fa-file-csv me-1"></i>CSV</button>
+                                                    <button id="export-pax-pdf" class="btn btn-sm btn-outline-danger" title="Descargar PDF (como se ve)"><i class="fas fa-file-pdf me-1"></i>PDF</button>
+                                                </div>
                                             </div>
                                             <div class="itinerary-horizontal mb-4">
                                                 <div class="d-flex justify-content-between align-items-center mb-2 h-scroll-controls">
@@ -230,7 +233,10 @@
 
                                             <div class="d-flex align-items-center justify-content-between mb-2 mt-4">
                                                 <h4 class="mb-0"><i class="fas fa-truck-ramp-box me-2"></i>Itinerario de Carga</h4>
-                                                <button id="export-cargo-full" class="btn btn-sm btn-outline-primary" title="Descargar CSV (toda la tabla)"><i class="fas fa-download me-1"></i>Descargar CSV</button>
+                                                <div class="btn-group" role="group">
+                                                    <button id="export-cargo-full" class="btn btn-sm btn-outline-primary" title="Descargar CSV (toda la tabla)"><i class="fas fa-file-csv me-1"></i>CSV</button>
+                                                    <button id="export-cargo-pdf" class="btn btn-sm btn-outline-danger" title="Descargar PDF (como se ve)"><i class="fas fa-file-pdf me-1"></i>PDF</button>
+                                                </div>
                                             </div>
                                             <div class="itinerary-horizontal">
                                                 <div class="d-flex justify-content-between align-items-center mb-2 h-scroll-controls">
@@ -1136,6 +1142,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 

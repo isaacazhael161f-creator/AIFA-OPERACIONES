@@ -443,6 +443,8 @@ function downloadCSV(name, content){
 function wireItineraryExports(){
     const btnP = document.getElementById('export-pax-full');
     const btnC = document.getElementById('export-cargo-full');
+    const btnPdfP = document.getElementById('export-pax-pdf');
+    const btnPdfC = document.getElementById('export-cargo-pdf');
     if (btnP && !btnP._wired){ btnP._wired = 1; btnP.addEventListener('click', ()=>{
         const rows = (allFlightsData||[]).filter(f=> (String(f.categoria||'').toLowerCase()==='pasajeros') || passengerAirlines.includes(f.aerolinea));
         const csv = flightsToCSV(rows, 'pax');
@@ -453,6 +455,74 @@ function wireItineraryExports(){
         const csv = flightsToCSV(rows, 'cargo');
         downloadCSV('itinerario_carga.csv', csv);
     }); }
+    // PDF (como se ve en pantalla)
+    const captureToPDF = async (containerId, fileName) => {
+        try {
+            if (!window.jspdf || !window.jspdf.jsPDF || !window.html2canvas) { console.warn('jsPDF/html2canvas no disponible'); return; }
+            const { jsPDF } = window.jspdf;
+            const root = document.getElementById(containerId);
+            if (!root) return;
+            // Clonar el bloque visible para evitar cortes por overflow y fijar ancho
+            const clone = root.cloneNode(true);
+            clone.style.maxHeight = 'unset';
+            clone.style.overflow = 'visible';
+            clone.style.boxShadow = 'none';
+            clone.style.border = 'none';
+            clone.style.background = getComputedStyle(document.body).backgroundColor || '#fff';
+            // Asegurar que la tabla ocupe el ancho completo del clon
+            const table = clone.querySelector('table');
+            if (table) { table.style.width = '100%'; table.style.minWidth = 'auto'; }
+            // Insertar fuera de pantalla para medir correctamente
+            const holder = document.createElement('div');
+            holder.style.position = 'fixed';
+            holder.style.left = '-99999px';
+            holder.style.top = '0';
+            holder.style.zIndex = '-1';
+            holder.appendChild(clone);
+            document.body.appendChild(holder);
+            const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+            const canvas = await html2canvas(clone, { scale: dpr, backgroundColor: clone.style.background || '#ffffff', useCORS: true, logging: false, windowWidth: clone.scrollWidth });
+            document.body.removeChild(holder);
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pageW = pdf.internal.pageSize.getWidth();
+            const pageH = pdf.internal.pageSize.getHeight();
+            const margin = 10;
+            // Escalar imagen al ancho de página
+            const imgW = pageW - margin*2;
+            const imgH = canvas.height * (imgW / canvas.width);
+            let y = margin;
+            let x = margin;
+            let remaining = imgH;
+            let imgY = 0; // offset dentro de la imagen
+            // Añadir título
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(12);
+            const title = (fileName || '').replace(/\.pdf$/i,'');
+            pdf.text(title, margin, y);
+            y += 6;
+            // Si la imagen es más alta que la página, partirla en slices verticales
+            const sliceH = pageH - y - margin;
+            const ratio = canvas.width / imgW; // pixeles por mm
+            while (remaining > 0) {
+                const hThis = Math.min(sliceH, remaining);
+                // Extraer porción del canvas a un subcanvas para no dibujar fuera
+                const sub = document.createElement('canvas');
+                sub.width = canvas.width;
+                sub.height = Math.round(hThis * ratio);
+                const sctx = sub.getContext('2d');
+                sctx.drawImage(canvas, 0, Math.round(imgY * ratio), canvas.width, sub.height, 0, 0, sub.width, sub.height);
+                const subImg = sub.toDataURL('image/png');
+                pdf.addImage(subImg, 'PNG', x, y, imgW, hThis);
+                remaining -= hThis;
+                imgY += hThis;
+                if (remaining > 1) { pdf.addPage(); y = margin; x = margin; }
+            }
+            pdf.save(fileName || 'tabla.pdf');
+        } catch (e) { console.warn('PDF export failed:', e); }
+    };
+    if (btnPdfP && !btnPdfP._wired) { btnPdfP._wired = 1; btnPdfP.addEventListener('click', ()=> captureToPDF('passenger-itinerary-scroll', 'itinerario_pasajeros.pdf')); }
+    if (btnPdfC && !btnPdfC._wired) { btnPdfC._wired = 1; btnPdfC.addEventListener('click', ()=> captureToPDF('cargo-itinerary-scroll', 'itinerario_carga.pdf')); }
 }
 document.addEventListener('DOMContentLoaded', wireItineraryExports);
 
