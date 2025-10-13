@@ -406,6 +406,56 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// ===================== CSV Export: Itinerario Completo (sin filtros) =====================
+function flightsToCSV(rows, type){
+    const headers = type === 'pax'
+        ? ['Aerolínea','Vuelo Lleg.','Fecha Lleg.','Hora Lleg.','Origen','Banda','Posición','Vuelo Sal.','Fecha Sal.','Hora Sal.','Destino']
+        : ['Aerolínea','Vuelo Lleg.','Fecha Lleg.','Hora Lleg.','Origen','Posición','Vuelo Sal.','Fecha Sal.','Hora Sal.','Destino'];
+    const esc = (v) => {
+        const s = (v==null?'':String(v));
+        if (/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+        return s;
+    };
+    const lines = [headers.join(',')];
+    for (const f of rows){
+        if (type === 'pax') {
+            lines.push([
+                f.aerolinea||'', f.vuelo_llegada||'', f.fecha_llegada||'', f.hora_llegada||'', f.origen||'', f.banda_reclamo||'', f.posicion||'', f.vuelo_salida||'', f.fecha_salida||'', f.hora_salida||'', f.destino||''
+            ].map(esc).join(','));
+        } else {
+            lines.push([
+                f.aerolinea||'', f.vuelo_llegada||'', f.fecha_llegada||'', f.hora_llegada||'', f.origen||'', f.posicion||'', f.vuelo_salida||'', f.fecha_salida||'', f.hora_salida||'', f.destino||''
+            ].map(esc).join(','));
+        }
+    }
+    return lines.join('\n');
+}
+function downloadCSV(name, content){
+    try {
+        // Prepend UTF-8 BOM for better compatibility with Excel on Windows
+        const blob = new Blob(["\uFEFF" + content], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = name; document.body.appendChild(a); a.click();
+        setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
+    } catch(_) {}
+}
+function wireItineraryExports(){
+    const btnP = document.getElementById('export-pax-full');
+    const btnC = document.getElementById('export-cargo-full');
+    if (btnP && !btnP._wired){ btnP._wired = 1; btnP.addEventListener('click', ()=>{
+        const rows = (allFlightsData||[]).filter(f=> (String(f.categoria||'').toLowerCase()==='pasajeros') || passengerAirlines.includes(f.aerolinea));
+        const csv = flightsToCSV(rows, 'pax');
+        downloadCSV('itinerario_pasajeros.csv', csv);
+    }); }
+    if (btnC && !btnC._wired){ btnC._wired = 1; btnC.addEventListener('click', ()=>{
+        const rows = (allFlightsData||[]).filter(f=> (String(f.categoria||'').toLowerCase()==='carga') || cargoAirlines.includes(f.aerolinea));
+        const csv = flightsToCSV(rows, 'cargo');
+        downloadCSV('itinerario_carga.csv', csv);
+    }); }
+}
+document.addEventListener('DOMContentLoaded', wireItineraryExports);
+
 function setupEventListeners() {
     document.getElementById('login-form').addEventListener('submit', handleLogin);
     document.getElementById('sidebar-nav').addEventListener('click', handleNavigation);

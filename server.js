@@ -19,7 +19,8 @@ app.use((req, res, next) => {
 // Serve all static files from the repository root
 app.use(express.static(ROOT, { index: 'index.html' }));
 
-app.get('*', (req, res) => {
+// Fallback for SPA routes: use a generic middleware (avoids path-to-regexp issues on Express 5)
+app.use((req, res) => {
   res.sendFile(path.join(ROOT, 'index.html'));
 });
 
