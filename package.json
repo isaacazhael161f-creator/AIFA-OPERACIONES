@@ -4,6 +4,8 @@
   "description": "Dashboard y herramientas de operaciones AIFA",
   "main": "script.js",
   "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
