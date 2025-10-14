@@ -132,6 +132,8 @@ const airlineLogoFileMap = {
     'aerus': ['logo_aerus.png'],
     'aeurus': ['logo_aerus.png'],
     'arajet': ['logo_arajet.png','logo_arajet.jpg'],
+    // Air China (archivo no sigue prefijo logo_)
+    'air china': ['logo_air_china.png'],
     // Carga y otras
     'masair': ['logo_mas.png','logo_masair.png'],
     'amerijet international': ['logo_amerijet_international.png'],
@@ -150,7 +152,11 @@ const airlineLogoFileMap = {
     'ups': ['logo_united_parcel_service.png'],
     'ifl group': ['lofo_ifl_group.png'],
     'china southern': ['logo_china_southern.png'],
-    'china southerrn': ['logo_china_southern.png']
+    'china southerrn': ['logo_china_southern.png'],
+    // TSM Airline (archivo real: logo_tsm_airlines.png)
+    'tsm': ['logo_tsm_airlines.png'],
+    'tsm airline': ['logo_tsm_airlines.png'],
+    'tsm airlines': ['logo_tsm_airlines.png']
 };
 // Compat: entradas antiguas -> slug "base" sin extensión
 const airlineLogoSlugMap = {
@@ -189,7 +195,12 @@ const airlineLogoSlugMap = {
     'cargojet': 'logo_cargojet',
     'air canada': 'logo_air_canada',
     'air canada cargo': 'logo_air_canada',
-    'cargolux': 'logo_cargolux'
+    'cargolux': 'logo_cargolux',
+    // Compat adicionales
+    'air china': 'air_china',
+    'tsm': 'logo_tsm_airlines',
+    'tsm airline': 'logo_tsm_airlines',
+    'tsm airlines': 'logo_tsm_airlines'
 };
 
 // Algunas marcas tienen logos con proporciones que se perciben más pequeños; dales un boost
