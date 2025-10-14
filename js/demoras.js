@@ -133,6 +133,7 @@
       const values = Array.from(document.querySelectorAll('#demoras-tbody tr')).map(tr => parseFloat(tr.children[1]?.textContent||'0')||0);
       const baseColors = ['#0d6efd','#6610f2','#6f42c1','#d63384','#dc3545','#fd7e14','#ffc107','#198754','#20c997','#0dcaf0'];
       drawPie(pie, labels, values, baseColors, 'Demoras en vuelos de salida');
+      window._delaysPieDrawn = true;
     }
     } catch (e) { console.warn('renderDemoras error:', e); }
   };

@@ -209,6 +209,8 @@
     renderHeatmap1D('heatmapPaxDay', paxSum);
     renderHeatmap1D('heatmapCargoDay', carSum);
     renderTopHoursLists(agg);
+    // Marcar banderas de renderizado exitoso para diagnóstico externo
+    window._itineraryChartsOk = true;
   }
   function bindDayControls(){ const input = document.getElementById('it-day-input'); const prev  = document.getElementById('it-day-prev'); const next  = document.getElementById('it-day-next'); const today = document.getElementById('it-day-today'); if (input){ input.addEventListener('change', () => { if (!input.value) return; selectedDate = input.value; renderItineraryCharts(); }); } function shift(days){ const d = input && input.value ? new Date(input.value) : new Date(selectedDate || Date.now()); d.setDate(d.getDate() + days); selectedDate = toYMD(d); if (input) input.value = selectedDate; renderItineraryCharts(); } if (prev) prev.addEventListener('click', ()=> shift(-1)); if (next) next.addEventListener('click', ()=> shift(+1)); if (today) today.addEventListener('click', ()=> { selectedDate = toYMD(new Date()); if (input) input.value = selectedDate; renderItineraryCharts(); }); }
   document.addEventListener('DOMContentLoaded', async () => { bindDayControls(); const paxTop = document.getElementById('pax-topN'); if (paxTop) paxTop.addEventListener('change', ()=> { if (lastAgg) renderTopHoursLists(lastAgg); }); const carTop = document.getElementById('cargo-topN'); if (carTop) carTop.addEventListener('change', ()=> { if (lastAgg) renderTopHoursLists(lastAgg); }); const sec = document.getElementById('itinerario-section'); if (sec && sec.classList.contains('active')) renderItineraryCharts(); });

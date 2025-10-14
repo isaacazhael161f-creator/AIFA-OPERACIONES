@@ -2023,15 +2023,13 @@ function detectChartErrors() {
                 if (!canvas) {
                     missingCharts.push(`Canvas ${canvasId} no encontrado`);
                     hasErrors = true;
-                } else {
-                    // Verificar si Chart.js está asociado al canvas
-                    const chartInstance = Chart.getChart(canvas);
-                    if (!chartInstance) {
-                        missingCharts.push(`Gráfica ${canvasId} no inicializada`);
-                        hasErrors = true;
-                    }
                 }
             });
+            // Para Itinerario usamos renderizado por canvas personalizado; usamos una bandera global
+            if (!window._itineraryChartsOk) {
+                hasErrors = true;
+                missingCharts.push('Gráficas de itinerario no dibujadas');
+            }
             
             if (missingCharts.length > 0) {
                 errorInfo = `Itinerario: ${missingCharts.length} gráficas con problemas`;
@@ -2042,9 +2040,9 @@ function detectChartErrors() {
             if (!canvas) {
                 hasErrors = true;
                 errorInfo = 'Demoras: Canvas no encontrado';
-            } else if (!window.opsCharts?.delaysPieChart) {
+            } else if (!window._delaysPieDrawn) {
                 hasErrors = true;
-                errorInfo = 'Demoras: Gráfica no inicializada';
+                errorInfo = 'Demoras: Gráfica no dibujada';
             }
         }
         
