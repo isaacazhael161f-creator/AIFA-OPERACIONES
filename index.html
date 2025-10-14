@@ -166,6 +166,18 @@
                                                         </select>
                                                     </div>
                                                     <div class="chip">
+                                                        <label><i class="fas fa-plane-arrival me-1"></i>Origen</label>
+                                                        <select id="origin-filter" class="form-select">
+                                                            <option value="all" selected>Todos los orígenes</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="chip">
+                                                        <label><i class="fas fa-plane-departure me-1"></i>Destino</label>
+                                                        <select id="destination-filter" class="form-select">
+                                                            <option value="all" selected>Todos los destinos</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="chip">
                                                         <label><i class="fas fa-search me-1"></i>Buscar</label>
                                                         <input type="text" id="global-search" class="form-control" placeholder="Aerolínea, origen, destino, vuelo...">
                                                     </div>
@@ -265,7 +277,7 @@
                 <div id="itinerario-section" class="content-section">
                     <div class="card">
                         <div class="card-header flex-column flex-md-row d-flex justify-content-between align-items-center">
-                            <h2 class="mb-3 mb-md-0">ITINERARIO DETALLADO</h2>
+                            <h2 class="mb-3 mb-md-0">ITINERARIO DETALLADO <small id="it-stats-badge" class="text-muted ms-2" style="font-size:0.8rem"></small></h2>
                             <div class="d-flex gap-2">
                                 <button id="reset-itinerario-btn" class="btn btn-outline-warning btn-sm" title="Reinicializar gráficas de itinerario (Ctrl+Shift+I)">
                                     <i class="fas fa-sync-alt me-1"></i>Reiniciar Gráficas
@@ -1141,7 +1153,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>

@@ -560,6 +560,8 @@ function setupEventListeners() {
     const globalSearch = document.getElementById('global-search'); if (globalSearch) globalSearch.addEventListener('input', (window.AIFA?.debounce||((f)=>f))(applyFilters, 200));
     // position select (populated from JSON)
     const posSelect = document.getElementById('position-filter'); if (posSelect) posSelect.addEventListener('change', (window.AIFA?.throttle||((f)=>f))(applyFilters, 120));
+    const originSelect = document.getElementById('origin-filter'); if (originSelect) originSelect.addEventListener('change', (window.AIFA?.throttle||((f)=>f))(applyFilters, 120));
+    const destinationSelect = document.getElementById('destination-filter'); if (destinationSelect) destinationSelect.addEventListener('change', (window.AIFA?.throttle||((f)=>f))(applyFilters, 120));
     // hour filters (Inicio)
     const hourSelect = document.getElementById('hour-filter'); if (hourSelect) hourSelect.addEventListener('change', (window.AIFA?.throttle||((f)=>f))(applyFilters, 120));
     const hourTypeSelect = document.getElementById('hour-type-filter'); if (hourTypeSelect) hourTypeSelect.addEventListener('change', (window.AIFA?.throttle||((f)=>f))(applyFilters, 120));
@@ -1020,6 +1022,8 @@ async function loadItineraryData() {
     displaySummaryTable(allFlightsData);
     populateAirlineFilter();
     populatePositionFilter();
+    populateOriginFilter();
+    populateDestinationFilter();
     applyFilters(); 
     // actualizar estadísticas diarias una vez cargado el itinerario
     computeDailyStats();
@@ -1047,6 +1051,9 @@ function applyFilters() {
     const hourType = hourTypeEl ? hourTypeEl.value : 'both';         // 'both' | 'arr' | 'dep'
     // position is now a select populated from JSON
     const posFilterVal = document.getElementById('position-filter') ? document.getElementById('position-filter').value : 'all';
+    // origin/destination filters (new selects)
+    const originFilterVal = document.getElementById('origin-filter') ? document.getElementById('origin-filter').value : 'all';
+    const destinationFilterVal = document.getElementById('destination-filter') ? document.getElementById('destination-filter').value : 'all';
     // helpers for robust parsing
     const toYMD = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const parseDMY = (s) => {
@@ -1114,21 +1121,21 @@ function applyFilters() {
         passengerFlights = passengerFlights.filter(f => (f.posicion || '').toString().toLowerCase() === posLower);
         cargoFlights = cargoFlights.filter(f => (f.posicion || '').toString().toLowerCase() === posLower);
     }
-    // hour filter: filter by hora_llegada and/or hora_salida according to hourType
-    if (selectedHour && selectedHour !== 'all') {
-        const hhNum = parseInt(selectedHour, 10);
-        const matchHour = (f) => {
-            const hl = getHourInt(f.hora_llegada);
-            const hs = getHourInt(f.hora_salida);
-            if (hourType === 'arr') return hl === hhNum;
-            if (hourType === 'dep') return hs === hhNum;
-            return (hl === hhNum) || (hs === hhNum);
-        };
-        passengerFlights = passengerFlights.filter(matchHour);
-        cargoFlights = cargoFlights.filter(matchHour);
+    // origin filter (exact match, case-insensitive, trimming)
+    if (originFilterVal && originFilterVal !== 'all') {
+        const o = originFilterVal.toString().trim().toLowerCase();
+        const matchOrigin = (f) => (f.origen || '').toString().trim().toLowerCase() === o;
+        passengerFlights = passengerFlights.filter(matchOrigin);
+        cargoFlights = cargoFlights.filter(matchOrigin);
     }
-    // global text search across common fields
-    // If global search has content, use it to search across airline, origen, destino, vuelo, banda
+    // destination filter
+    if (destinationFilterVal && destinationFilterVal !== 'all') {
+        const d = destinationFilterVal.toString().trim().toLowerCase();
+        const matchDest = (f) => (f.destino || '').toString().trim().toLowerCase() === d;
+        passengerFlights = passengerFlights.filter(matchDest);
+        cargoFlights = cargoFlights.filter(matchDest);
+    }
+    // Global text search across common fields (moved before hour filter)
     if (globalSearchValue !== '') {
         const term = globalSearchValue;
         const matchFn = (f) => {
@@ -1137,6 +1144,40 @@ function applyFilters() {
         passengerFlights = passengerFlights.filter(matchFn);
         cargoFlights = cargoFlights.filter(matchFn);
     }
+    // Snapshot del subconjunto antes del filtro por hora (para sincronizar gráficas)
+    try {
+        window.currentItineraryPreHour = {
+            pax: [...(passengerFlights||[])],
+            cargo: [...(cargoFlights||[])],
+            combined: [...(passengerFlights||[]), ...(cargoFlights||[])]
+        };
+    } catch(_) {}
+    // hour filter: ensure hour is associated to the same date side that matched
+    if (selectedHour && selectedHour !== 'all') {
+        const hhNum = parseInt(selectedHour, 10);
+        const selYMD = selectedDate || '';
+        const matchHour = (f) => {
+            const hl = getHourInt(f.hora_llegada);
+            const hs = getHourInt(f.hora_salida);
+            // derive dates in yyyy-mm-dd for each side
+            const toYMD = (s) => {
+                const m = /^([0-9]{1,2})\/(\d{1,2})\/(\d{4})$/.exec((s||'').toString().trim());
+                if (!m) return null;
+                return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+            };
+            const ymdArr = toYMD(f.fecha_llegada);
+            const ymdDep = toYMD(f.fecha_salida);
+            if (hourType === 'arr') return (hl === hhNum) && (!selYMD || ymdArr === selYMD);
+            if (hourType === 'dep') return (hs === hhNum) && (!selYMD || ymdDep === selYMD);
+            // both: accept either side but bind hour to the same side date when date is selected
+            const okArr = (hl === hhNum) && (!selYMD || ymdArr === selYMD);
+            const okDep = (hs === hhNum) && (!selYMD || ymdDep === selYMD);
+            return okArr || okDep;
+        };
+        passengerFlights = passengerFlights.filter(matchHour);
+        cargoFlights = cargoFlights.filter(matchHour);
+    }
+    // (global search ya aplicado antes del filtro por hora)
     // Mostrar/ocultar tablas según categoría si hay filtro de aerolínea específico
     const passContainer = document.getElementById('passenger-itinerary-container');
     const cargoContainer = document.getElementById('cargo-itinerary-container');
@@ -1186,8 +1227,29 @@ function applyFilters() {
 
     displayPassengerTable(passengerFlights);
     displayCargoTable(cargoFlights);
-    // update summary based on currently visible (filtered) data
-    displaySummaryTable(filteredData);
+    // update summary based on currently visible (fully filtered) data
+    displaySummaryTable([...(passengerFlights||[]), ...(cargoFlights||[])]);
+    // Expose the filtered subset to sync charts in 'Gráficas Itinerario'
+    try {
+        window.currentItineraryFilterState = {
+            selectedDate,
+            hourType: hourType || 'both',
+            selectedHour: selectedHour || 'all',
+            origin: originFilterVal || 'all',
+            destination: destinationFilterVal || 'all'
+        };
+        window.currentItineraryFiltered = {
+            flightsPax: passengerFlights,
+            flightsCargo: cargoFlights,
+            flightsCombined: [...(passengerFlights||[]), ...(cargoFlights||[])]
+        };
+        const sync = (window.syncItineraryFiltersToCharts !== false); // default true
+        const itSec = document.getElementById('itinerario-section');
+        if (sync && itSec && itSec.classList.contains('active') && typeof window.renderItineraryCharts === 'function') {
+            clearTimeout(window._itSyncTimer);
+            window._itSyncTimer = setTimeout(() => { try { window.renderItineraryCharts(); } catch(_) {} }, 80);
+        }
+    } catch(_) {}
     console.log(`[perf] filtros itinerario: ${(performance.now()-t0).toFixed(1)}ms · pax=${passengerFlights.length} carga=${cargoFlights.length}`);
     // Nota: el resumen diario por aerolínea fue removido del UI; no renderizamos conteos aquí.
     // Si se requiere reinstalar, reimplementar renderItinerarioSummary y descomentar la línea siguiente:
@@ -1218,9 +1280,32 @@ function populatePositionFilter(flights = []) {
     unique.map(v => `<option value="${v}">${v}</option>`).join('');
 }
 
+// Nuevos: llenar selects de Origen/Destino
+function populateOriginFilter(flights = []) {
+    const sel = document.getElementById('origin-filter');
+    if (!sel) return;
+    const data = Array.isArray(flights) && flights.length ? flights : allFlightsData;
+    const vals = data.map(f => (f.origen||'').toString().trim()).filter(Boolean);
+    const unique = Array.from(new Set(vals)).sort((a,b)=>a.localeCompare(b,'es',{sensitivity:'base'}));
+    sel.innerHTML = '<option value="all" selected>Todos los orígenes</option>' +
+        unique.map(v => `<option value="${v}">${v}</option>`).join('');
+}
+
+function populateDestinationFilter(flights = []) {
+    const sel = document.getElementById('destination-filter');
+    if (!sel) return;
+    const data = Array.isArray(flights) && flights.length ? flights : allFlightsData;
+    const vals = data.map(f => (f.destino||'').toString().trim()).filter(Boolean);
+    const unique = Array.from(new Set(vals)).sort((a,b)=>a.localeCompare(b,'es',{sensitivity:'base'}));
+    sel.innerHTML = '<option value="all" selected>Todos los destinos</option>' +
+        unique.map(v => `<option value="${v}">${v}</option>`).join('');
+}
+
 function clearFilters() {
     const airline = document.getElementById('airline-filter'); if (airline) airline.value = 'all';
     const pos = document.getElementById('position-filter'); if (pos) pos.value = 'all';
+    const ori = document.getElementById('origin-filter'); if (ori) ori.value = 'all';
+    const des = document.getElementById('destination-filter'); if (des) des.value = 'all';
     const claim = document.getElementById('claim-filter'); if (claim) claim.value = '';
     const date = document.getElementById('date-filter'); if (date) date.value = '';
     const hourSel = document.getElementById('hour-filter'); if (hourSel) hourSel.value = 'all';
@@ -1550,8 +1635,9 @@ function handleNavigation(e) {
         else { try { stopOpsAnim(); } catch(_) {} }
         if (section === 'itinerario') { 
             try { 
-                /* charts se renderizan en el módulo */ 
-                // Detectar errores en gráficas después de un momento
+                if (typeof window.renderItineraryCharts === 'function') {
+                    setTimeout(() => window.renderItineraryCharts(), 50);
+                }
                 setTimeout(detectChartErrors, 500);
             } catch(_) {} 
         }
@@ -1597,6 +1683,42 @@ document.addEventListener('DOMContentLoaded', function(){
 
 // Resumen y gráficas de Operaciones Totales (restauración completa con filtros, animaciones y colores)
 const opsCharts = {};
+function drawLineChart(canvasId, labels, values, opts){
+    const c = document.getElementById(canvasId); if (!c) return;
+    const dpr=window.devicePixelRatio||1; const w=c.clientWidth||640, h=c.clientHeight||380;
+    c.width=Math.max(1,Math.floor(w*dpr)); c.height=Math.max(1,Math.floor(h*dpr));
+    const g=c.getContext('2d'); if (!g) return; g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,w,h);
+    const title = opts?.title || ''; const color = opts?.color || '#1e88e5'; const fillColor = opts?.fillColor || 'rgba(30,136,229,0.15)'; const xTitle = opts?.xTitle || ''; const yTitle = opts?.yTitle || '';
+    const margin = { top: 48, right: 16, bottom: 32, left: 44 };
+    const innerW = Math.max(1,w-margin.left-margin.right), innerH = Math.max(1,h-margin.top-margin.bottom);
+    const x0 = margin.left, y0=h-margin.bottom;
+    // Título
+    if (title){ g.fillStyle='#495057'; g.font='600 14px Roboto, Arial'; g.textAlign='left'; g.textBaseline='top'; g.fillText(title, margin.left, 10); }
+    // Escalas
+    const maxV = Math.max(0, ...values); const nice = (function(m){ if(m<=5) return 5; if(m<=10) return 10; if(m<=20) return 20; if(m<=50) return 50; if(m<=100) return 100; const p=Math.pow(10, Math.floor(Math.log10(m))); return Math.ceil(m/p)*p; })(maxV);
+    // Ejes y grid
+    g.strokeStyle='rgba(0,0,0,0.2)'; g.lineWidth=1; g.beginPath(); g.moveTo(x0,y0); g.lineTo(x0+innerW,y0); g.moveTo(x0,y0); g.lineTo(x0,y0-innerH); g.stroke();
+    // Grid Y
+    g.font='10px Roboto, Arial'; g.textAlign='right'; g.textBaseline='middle'; g.fillStyle='#6c757d';
+    const tickCount=4; const step=nice/tickCount;
+    for(let i=0;i<=tickCount;i++){ const v=i*step; const y=y0-(v/nice)*innerH; g.strokeStyle='rgba(0,0,0,0.06)'; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+innerW,y); g.stroke(); g.fillText(String(Math.round(v)), x0-6, y); }
+    // Eje X labels
+    g.textAlign='center'; g.textBaseline='top';
+    const n=labels.length; const stepX = innerW/(Math.max(1,n-1));
+    const labelEvery = n>12 ? Math.ceil(n/12) : 1;
+    for(let i=0;i<n;i+=labelEvery){ const x = x0 + i*stepX; g.fillStyle='#6c757d'; g.fillText(labels[i], x, y0+6); }
+    // Serie
+    const points = values.map((v,i)=>({ x: x0 + i*stepX, y: y0 - ( (v/nice)*innerH ) }));
+    // Área
+    g.beginPath(); g.moveTo(points[0]?.x||x0, y0); points.forEach(p=> g.lineTo(p.x,p.y)); g.lineTo(points[points.length-1]?.x||x0, y0); g.closePath(); g.fillStyle=fillColor; g.fill();
+    // Línea
+    g.beginPath(); points.forEach((p,i)=>{ if(i===0) g.moveTo(p.x,p.y); else g.lineTo(p.x,p.y); }); g.strokeStyle=color; g.lineWidth=2; g.stroke();
+    // Puntos
+    g.fillStyle=color; points.forEach(p=>{ g.beginPath(); g.arc(p.x,p.y,2.5,0,Math.PI*2); g.fill(); });
+    // Títulos de ejes
+    if (yTitle){ g.save(); g.translate(12, margin.top + innerH/2); g.rotate(-Math.PI/2); g.textAlign='center'; g.textBaseline='middle'; g.fillStyle='#495057'; g.font='600 12px Roboto, Arial'; g.fillText(yTitle, 0, 0); g.restore(); }
+    if (xTitle){ g.fillStyle='#495057'; g.font='600 12px Roboto, Arial'; g.textAlign='center'; g.textBaseline='top'; g.fillText(xTitle, x0 + innerW/2, h-16); }
+}
 const opsUIState = {
     monthly2025: false,
     sections: { comercial: true, carga: true, general: true },
@@ -2225,8 +2347,8 @@ function renderOperacionesTotales() {
                                     }
                                 }
                             },
-                            // Desactivamos el plugin nativo; usamos nuestro badge rectangular
-                            datalabels: { display: false },
+                            // Desactivamos completamente chartjs-plugin-datalabels
+                            datalabels: false,
                             travelerPlugin: traveler || {},
                             dataBubble: { show: true, borderColor: border, fillColor: border, textColor: '#ffffff', format: fmtType, onlyMax: false, offsetY: 40, small: smallMode, minGapX: smallMode ? 34 : 16 }
                         },

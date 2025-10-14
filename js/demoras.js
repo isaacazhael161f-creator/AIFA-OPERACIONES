@@ -15,19 +15,92 @@
         ]
     };
 
-  // Función para destruir gráficas de demoras
+  // Función para destruir/limpiar la gráfica de demoras (canvas)
   window.destroyDemorasCharts = function() {
-    console.log('🗑️ Destruyendo gráficas de demoras...');
-    if (window.opsCharts && window.opsCharts.delaysPieChart) {
-      try {
-        window.opsCharts.delaysPieChart.destroy();
-        delete window.opsCharts.delaysPieChart;
-        console.log('✅ Gráfica de demoras destruida');
-      } catch(e) {
-        console.warn('Error destruyendo gráfica de demoras:', e);
+    console.log('🗑️ Limpiando gráfica de demoras (canvas)...');
+    try {
+      const c = document.getElementById('delaysPieChart');
+      if (c) {
+        const dpr = window.devicePixelRatio || 1;
+        const w = c.clientWidth || 400;
+        const h = c.clientHeight || 300;
+        c.width = Math.max(1, Math.floor(w * dpr));
+        c.height = Math.max(1, Math.floor(h * dpr));
+        const g = c.getContext('2d');
+        if (g) { g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,w,h); }
       }
-    }
+    } catch(e) { console.warn('Error limpiando canvas demoras:', e); }
   };
+
+  function drawPie(canvas, labels, values, colors, title){
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth || 480;
+    const h = canvas.clientHeight || 360;
+    canvas.width = Math.max(1, Math.floor(w * dpr));
+    canvas.height = Math.max(1, Math.floor(h * dpr));
+    const g = canvas.getContext('2d');
+    if (!g) return;
+    g.setTransform(dpr,0,0,dpr,0,0);
+    g.clearRect(0,0,w,h);
+
+    const total = (values||[]).reduce((a,b)=> a + (Number(b)||0), 0);
+    const cx = Math.floor(w*0.42), cy = Math.floor(h*0.55);
+    const r = Math.max(40, Math.min(w,h)*0.32);
+
+    // Título
+    if (title) {
+      g.fillStyle = '#495057';
+      g.font = '600 14px Roboto, Arial';
+      g.textAlign = 'left';
+      g.textBaseline = 'top';
+      g.fillText(title, 8, 8);
+    }
+
+    let start = -Math.PI/2; // iniciar arriba
+    for (let i=0;i<labels.length;i++){
+      const v = Number(values[i]||0);
+      const frac = total>0 ? v/total : 0;
+      const end = start + frac * Math.PI*2;
+      g.beginPath();
+      g.moveTo(cx, cy);
+      g.fillStyle = colors[i % colors.length];
+      g.arc(cx, cy, r, start, end);
+      g.closePath();
+      g.fill();
+      // borde blanco fino
+      g.strokeStyle = '#ffffff'; g.lineWidth = 1; g.stroke();
+      // etiqueta si el sector es suficientemente grande
+      if (frac >= 0.08) {
+        const mid = (start + end)/2;
+        const lx = cx + (r*0.62) * Math.cos(mid);
+        const ly = cy + (r*0.62) * Math.sin(mid);
+        const pct = Math.round(frac*100) + '%';
+        g.fillStyle = '#ffffff';
+        g.font = '600 12px Roboto, Arial';
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        g.fillText(pct, lx, ly);
+      }
+      start = end;
+    }
+
+    // Leyenda simple a la derecha
+    const legendX = Math.floor(w*0.78);
+    let legendY = Math.floor(h*0.25);
+    g.font = '12px Roboto, Arial';
+    for (let i=0;i<labels.length;i++){
+      g.fillStyle = colors[i % colors.length];
+      g.fillRect(legendX, legendY, 14, 14);
+      g.fillStyle = '#343a40';
+      g.textAlign = 'left'; g.textBaseline = 'middle';
+      const name = String(labels[i]||'');
+      const val = Number(values[i]||0);
+      const pct = total>0 ? Math.round((val/total)*100) : 0;
+      g.fillText(`${name} (${val}, ${pct}%)`, legendX+18, legendY+8);
+      legendY += 20;
+    }
+  }
 
   // Define global renderDemoras so other code can call it
   window.renderDemoras = function renderDemoras(data) {
@@ -53,22 +126,14 @@
             }
         });
         if (tfoot) tfoot.innerHTML = `<tr class="table-light"><th>Total</th><th>${total}</th><th>100%</th></tr>`;
-        // Pastel
-        const pie = document.getElementById('delaysPieChart');
-        if (pie && window.Chart) {
-            window.opsCharts = window.opsCharts || {};
-            if (window.opsCharts.delaysPieChart) { try { window.opsCharts.delaysPieChart.destroy(); } catch(_) {} }
-            const labels = Array.from(document.querySelectorAll('#demoras-tbody tr')).map(tr => tr.children[0]?.textContent || '');
-            const values = Array.from(document.querySelectorAll('#demoras-tbody tr')).map(tr => parseFloat(tr.children[1]?.textContent||'0')||0);
-            const baseColors = ['#0d6efd','#6610f2','#6f42c1','#d63384','#dc3545','#fd7e14','#ffc107','#198754','#20c997','#0dcaf0'];
-            window.opsCharts.delaysPieChart = new Chart(pie, {
-                type: 'pie',
-                data: { labels, datasets: [{ data: values, backgroundColor: labels.map((_,i)=> baseColors[i % baseColors.length]) }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }, datalabels: { color:'#fff', font:{weight:'600'}, formatter: (value, ctx) => { const sum=(ctx.chart.data.datasets[0].data||[]).reduce((a,b)=> a+(Number(b)||0),0); const pct=sum?(value/sum)*100:0; return pct>=7? pct.toFixed(0)+'%':''; } } } },
-                plugins: [ChartDataLabels]
-            });
-            try { setTimeout(()=> window.opsCharts.delaysPieChart?.resize(), 100); } catch(_) {}
-        }
+    // Pastel (canvas)
+    const pie = document.getElementById('delaysPieChart');
+    if (pie) {
+      const labels = Array.from(document.querySelectorAll('#demoras-tbody tr')).map(tr => tr.children[0]?.textContent || '');
+      const values = Array.from(document.querySelectorAll('#demoras-tbody tr')).map(tr => parseFloat(tr.children[1]?.textContent||'0')||0);
+      const baseColors = ['#0d6efd','#6610f2','#6f42c1','#d63384','#dc3545','#fd7e14','#ffc107','#198754','#20c997','#0dcaf0'];
+      drawPie(pie, labels, values, baseColors, 'Demoras en vuelos de salida');
+    }
     } catch (e) { console.warn('renderDemoras error:', e); }
   };
 
