@@ -423,8 +423,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // ===================== CSV Export: Itinerario Completo (sin filtros) =====================
 function flightsToCSV(rows, type){
     const headers = type === 'pax'
-        ? ['Aerolínea','Vuelo Lleg.','Fecha Lleg.','Hora Lleg.','Origen','Banda','Posición','Vuelo Sal.','Fecha Sal.','Hora Sal.','Destino']
-        : ['Aerolínea','Vuelo Lleg.','Fecha Lleg.','Hora Lleg.','Origen','Posición','Vuelo Sal.','Fecha Sal.','Hora Sal.','Destino'];
+        ? ['Aerolínea','Aeronave','Vuelo Lleg.','Fecha Lleg.','Hora Lleg.','Origen','Banda','Posición','Vuelo Sal.','Fecha Sal.','Hora Sal.','Destino']
+        : ['Aerolínea','Aeronave','Vuelo Lleg.','Fecha Lleg.','Hora Lleg.','Origen','Posición','Vuelo Sal.','Fecha Sal.','Hora Sal.','Destino'];
     const esc = (v) => {
         const s = (v==null?'':String(v));
         if (/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
@@ -434,11 +434,11 @@ function flightsToCSV(rows, type){
     for (const f of rows){
         if (type === 'pax') {
             lines.push([
-                f.aerolinea||'', f.vuelo_llegada||'', f.fecha_llegada||'', f.hora_llegada||'', f.origen||'', f.banda_reclamo||'', f.posicion||'', f.vuelo_salida||'', f.fecha_salida||'', f.hora_salida||'', f.destino||''
+                f.aerolinea||'', f.aeronave||'', f.vuelo_llegada||'', f.fecha_llegada||'', f.hora_llegada||'', f.origen||'', f.banda_reclamo||'', f.posicion||'', f.vuelo_salida||'', f.fecha_salida||'', f.hora_salida||'', f.destino||''
             ].map(esc).join(','));
         } else {
             lines.push([
-                f.aerolinea||'', f.vuelo_llegada||'', f.fecha_llegada||'', f.hora_llegada||'', f.origen||'', f.posicion||'', f.vuelo_salida||'', f.fecha_salida||'', f.hora_salida||'', f.destino||''
+                f.aerolinea||'', f.aeronave||'', f.vuelo_llegada||'', f.fecha_llegada||'', f.hora_llegada||'', f.origen||'', f.posicion||'', f.vuelo_salida||'', f.fecha_salida||'', f.hora_salida||'', f.destino||''
             ].map(esc).join(','));
         }
     }
@@ -1437,7 +1437,7 @@ function displayPassengerTable(flights) {
     const container = document.getElementById('passenger-itinerary-container');
     if (!container) return;
     if (flights.length === 0) { container.innerHTML = `<div class="alert alert-info bg-transparent text-body">No se encontraron vuelos de pasajeros.</div>`; return; }
-    let tableHtml = `<table class="table table-hover"><thead><tr><th>Aerolínea</th><th>Vuelo Lleg.</th><th>Fecha Lleg.</th><th>Hora Lleg.</th><th>Origen</th><th>Banda</th><th>Posición</th><th>Vuelo Sal.</th><th>Fecha Sal.</th><th>Hora Sal.</th><th>Destino</th></tr></thead><tbody>`;
+    let tableHtml = `<table class="table table-hover"><thead><tr><th>Aerolínea</th><th>Aeronave</th><th>Vuelo Lleg.</th><th>Fecha Lleg.</th><th>Hora Lleg.</th><th class="col-origen">Origen</th><th>Banda</th><th>Posición</th><th>Vuelo Sal.</th><th>Fecha Sal.</th><th>Hora Sal.</th><th class="col-destino">Destino</th></tr></thead><tbody>`;
     flights.forEach((flight, index) => {
         const airlineName = flight.aerolinea || '-';
     const cands = getAirlineLogoCandidates(airlineName);
@@ -1448,16 +1448,17 @@ function displayPassengerTable(flights) {
         const rowColor = (airlineColors[flight.aerolinea] || '#ccc');
         tableHtml += `<tr class="animated-row" style="--delay: ${index * 0.08}s; --airline-color: ${rowColor};">
             <td><div class="airline-cell">${logoHtml}<span class="airline-name">${airlineName}</span></div></td>
+            <td>${flight.aeronave || '-'}</td>
             <td>${flight.vuelo_llegada || '-'}</td>
             <td>${flight.fecha_llegada || '-'}</td>
             <td>${flight.hora_llegada || '-'}</td>
-            <td>${flight.origen || '-'}</td>
+            <td class="col-origen">${flight.origen || '-'}</td>
             <td class="text-center">${flight.banda_reclamo || '-'}</td>
             <td>${flight.posicion || '-'}</td>
             <td>${flight.vuelo_salida || '-'}</td>
             <td>${flight.fecha_salida || '-'}</td>
             <td>${flight.hora_salida || '-'}</td>
-            <td>${flight.destino || '-'}</td>
+            <td class="col-destino">${flight.destino || '-'}</td>
         </tr>`;
     });
     tableHtml += `</tbody></table>`;
@@ -1500,7 +1501,7 @@ function displayCargoTable(flights) {
     const container = document.getElementById('cargo-itinerary-container');
     if (!container) return;
     if (flights.length === 0) { container.innerHTML = `<div class="alert alert-info bg-transparent text-body">No se encontraron vuelos de carga.</div>`; return; }
-    let tableHtml = `<table class="table table-hover"><thead><tr><th>Aerolínea</th><th>Vuelo Lleg.</th><th>Fecha Lleg.</th><th>Hora Lleg.</th><th>Origen</th><th>Posición</th><th>Vuelo Sal.</th><th>Fecha Sal.</th><th>Hora Sal.</th><th>Destino</th></tr></thead><tbody>`;
+    let tableHtml = `<table class="table table-hover"><thead><tr><th>Aerolínea</th><th>Aeronave</th><th>Vuelo Lleg.</th><th>Fecha Lleg.</th><th>Hora Lleg.</th><th class="col-origen">Origen</th><th>Posición</th><th>Vuelo Sal.</th><th>Fecha Sal.</th><th>Hora Sal.</th><th class="col-destino">Destino</th></tr></thead><tbody>`;
     flights.forEach((flight, index) => {
         const airlineName = flight.aerolinea || '-';
     const cands = getAirlineLogoCandidates(airlineName);
@@ -1511,15 +1512,16 @@ function displayCargoTable(flights) {
         const rowColor = (airlineColors[flight.aerolinea] || '#ccc');
         tableHtml += `<tr class="animated-row" style="--delay: ${index * 0.08}s; --airline-color: ${rowColor};">
             <td><div class="airline-cell">${logoHtml}<span class="airline-name">${airlineName}</span></div></td>
+            <td>${flight.aeronave || '-'}</td>
             <td>${flight.vuelo_llegada || '-'}</td>
             <td>${flight.fecha_llegada || '-'}</td>
             <td>${flight.hora_llegada || '-'}</td>
-            <td>${flight.origen || '-'}</td>
+            <td class="col-origen">${flight.origen || '-'}</td>
             <td>${flight.posicion || '-'}</td>
             <td>${flight.vuelo_salida || '-'}</td>
             <td>${flight.fecha_salida || '-'}</td>
             <td>${flight.hora_salida || '-'}</td>
-            <td>${flight.destino || '-'}</td>
+            <td class="col-destino">${flight.destino || '-'}</td>
         </tr>`;
     });
     tableHtml += `</tbody></table>`;

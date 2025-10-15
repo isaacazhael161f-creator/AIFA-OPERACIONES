@@ -84,7 +84,11 @@ body {
 /* Mostrar avión animado también en móviles (preferencia del usuario) */
 /* Ajuste XS: más chico y ligeramente más transparente para no tapar título */
 @media (max-width: 400px) {
-   #flying-plane { width: 18px; height: 6px; opacity: 0.5; }
+   .header .header-content { flex-direction: column; align-items: center; gap: .35rem; }
+   /* Acomodo vertical para evitar encimado entre logos */
+   .header .d-flex.align-items-center:first-child { order: 1; }
+   .header .header-center-content { order: 2; width: 100%; }
+   .header .header-right-content { order: 3; }
 }
 
 /* ==========================================================================
@@ -92,6 +96,11 @@ body {
    ========================================================================== */
 .table-container-tech { background-color: var(--tech-table-bg); backdrop-filter: blur(10px); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; box-shadow: 0 4px 15px var(--shadow-color); overflow: hidden; }
 .table-container-tech .table-responsive { max-height: 350px; overflow-y: auto; }
+
+/* Evitar colisión visual entre cluster derecho y centro en tablets chicas */
+@media (max-width: 991.98px) {
+   .header-right-content { max-width: 100%; flex-wrap: wrap; justify-content: center; }
+}
 /* Vertical scroll within the table on mobile: allow pan-y and set a reasonable max-height */
 .vertical-scroll { max-height: 60vh; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
 .vertical-scroll table { margin: 0; }
@@ -154,12 +163,10 @@ body {
 .table-container-tech table { display: inline-table; }
 
 /* Ensure origin and destino columns are wide enough to show values */
-.table-container-tech table td:nth-child(5), .table-container-tech table th:nth-child(5),
-.table-container-tech table td:nth-child(10), .table-container-tech table th:nth-child(10),
-.table-container-tech table td:nth-child(11), .table-container-tech table th:nth-child(11) {
-   min-width: 140px;
-   white-space: nowrap;
-}
+/* Usamos clases semánticas para columnas anchas */
+.table-container-tech table td.col-origen, .table-container-tech table th.col-origen,
+.table-container-tech table td.col-destino, .table-container-tech table th.col-destino { min-width: 160px; white-space: nowrap; }
+.table-container-tech table td:nth-child(2), .table-container-tech table th:nth-child(2) { min-width: 90px; } /* Aeronave */
 
 /* Keep tables as wide as their content so horizontal scrolling works on all viewports.
    Ensure origin/destination columns are wide enough to show values and force horizontal overflow when needed. */
@@ -301,12 +308,12 @@ body.sidebar-collapsed .main-content { margin-left: 0; width: 100%; }
    ========================================================================== */
 body.dark-mode .card h1, body.dark-mode .card h2, body.dark-mode .card h3, body.dark-mode .card h4, body.dark-mode .card h5, body.dark-mode .h5 { color: var(--text-color); }
 .hidden { display: none !important; }
-.aifa-logo { width: 140px; height:auto; max-width:100%; }
+.aifa-logo { width: 120px; height:auto; max-width:100%; }
 @media (max-width: 768px) {
-   .aifa-logo { width: 110px; }
+   .aifa-logo { width: 95px; }
 }
 @media (max-width: 576px) {
-   .aifa-logo { width: 82px; }
+   .aifa-logo { width: 70px; }
 }
 .header-logo { height: 45px; }
 .main-title { font-size: 1.4rem; font-weight: 500; color: var(--text-color); }
@@ -386,8 +393,19 @@ body.dark-mode .pdf-container iframe, body.dark-mode .pdf-preview-container ifra
 .chart-container { height: 300px; position: relative; }
 .card .chart-container canvas { width: 100% !important; height: 100% !important; }
 
+/* Itinerary charts: dedicated horizontal scroll wrapper */
+.itinerary-charts-scroll {
+   overflow-x: auto;
+   -webkit-overflow-scrolling: touch;
+   touch-action: pan-x;
+   white-space: nowrap;
+}
+/* En escritorio no forzamos ancho extra; solo en móvil (ver más abajo) */
+
 /* Gráficas Itinerario Diario: en móviles, poner ambas en una fila horizontal scrolleable */
 @media (max-width: 576px) {
+   /* Forzar que la fila de gráficas sea más ancha que la pantalla para habilitar scroll */
+   .itinerary-charts-scroll > .row { min-width: 120%; display: inline-block; white-space: normal; }
    .chart-row-mobile-scroll {
       display: block;
       overflow-x: auto;
@@ -601,7 +619,7 @@ body.dark-mode #manifest-records-table tbody tr:hover { background: rgba(255,255
 /* Header responsivo: logos y título visibles en móviles */
 @media (max-width: 576px) {
    .header .header-content { flex-direction: column; align-items: center; gap: .4rem; }
-   .aifa-logo { width: 110px; height: auto; }
+   .aifa-logo { width: 70px; height: auto; }
    .header-logo { height: 28px; }
    .gob-logo { display: none; }
    .main-title { font-size: 1rem; line-height: 1.2; text-align: center; max-width: 85vw; }
