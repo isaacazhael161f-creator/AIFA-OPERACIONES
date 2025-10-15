@@ -621,27 +621,16 @@ function setupEventListeners() {
         }
     });
 
-    // Logout en botón de encabezado (móvil)
+    // Logout en botón de encabezado (móvil) y delegación global por data-action="logout"
     const mobileLogoutBtn = document.querySelector('.logout-button-mobile');
     if (mobileLogoutBtn && !mobileLogoutBtn._wired) {
         mobileLogoutBtn._wired = 1;
-        mobileLogoutBtn.addEventListener('click', function(e){
-            e.preventDefault();
-            try { sessionStorage.removeItem('currentUser'); } catch(_) {}
-            const mainApp = document.getElementById('main-app');
-            const login = document.getElementById('login-screen');
-            if (mainApp) mainApp.classList.add('hidden');
-            if (login) login.classList.remove('hidden');
-            const userEl = document.getElementById('current-user'); if (userEl) userEl.textContent = '';
-            // cerrar sidebar/overlay si estuvieran abiertos
-            try {
-                const sidebar = document.getElementById('sidebar');
-                const overlay = document.getElementById('sidebar-overlay');
-                if (sidebar) sidebar.classList.remove('visible');
-                if (overlay) overlay.classList.remove('active');
-            } catch(_) {}
-        });
+        mobileLogoutBtn.addEventListener('click', function(e){ e.preventDefault(); performLogout(); });
     }
+    document.addEventListener('click', function(e){
+        const a = e.target && e.target.closest && e.target.closest('[data-action="logout"]');
+        if (a) { e.preventDefault(); performLogout(); }
+    });
 
 // Función de diagnóstico global (para usar en consola)
 window.diagnoseCharts = function() {
@@ -1632,15 +1621,7 @@ function handleNavigation(e) {
     e.preventDefault();
     const action = a.dataset.action;
     const section = a.dataset.section;
-    if (action === 'logout') {
-        try { sessionStorage.removeItem('currentUser'); } catch(_) {}
-        const mainApp = document.getElementById('main-app');
-        const login = document.getElementById('login-screen');
-        if (mainApp) mainApp.classList.add('hidden');
-        if (login) login.classList.remove('hidden');
-        const userEl = document.getElementById('current-user'); if (userEl) userEl.textContent = '';
-        return;
-    }
+    if (action === 'logout') { performLogout(); return; }
     if (section) {
         showSection(section, a);
         // ensure sidebar closes after selecting on any device and collapse on desktop
@@ -1678,6 +1659,24 @@ function handleNavigation(e) {
             } catch(_) {} 
         }
     }
+}
+
+// Logout centralizado
+function performLogout(){
+    try { sessionStorage.removeItem('currentUser'); } catch(_) {}
+    try { sessionStorage.removeItem('aifa.user'); } catch(_) {}
+    const mainApp = document.getElementById('main-app');
+    const login = document.getElementById('login-screen');
+    if (mainApp) mainApp.classList.add('hidden');
+    if (login) login.classList.remove('hidden');
+    const userEl = document.getElementById('current-user'); if (userEl) userEl.textContent = '';
+    // cerrar sidebar/overlay si estuvieran abiertos
+    try {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        if (sidebar) sidebar.classList.remove('visible');
+        if (overlay) overlay.classList.remove('active');
+    } catch(_) {}
 }
 
 // Fecha en la barra superior
