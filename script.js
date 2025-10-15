@@ -621,6 +621,28 @@ function setupEventListeners() {
         }
     });
 
+    // Logout en botón de encabezado (móvil)
+    const mobileLogoutBtn = document.querySelector('.logout-button-mobile');
+    if (mobileLogoutBtn && !mobileLogoutBtn._wired) {
+        mobileLogoutBtn._wired = 1;
+        mobileLogoutBtn.addEventListener('click', function(e){
+            e.preventDefault();
+            try { sessionStorage.removeItem('currentUser'); } catch(_) {}
+            const mainApp = document.getElementById('main-app');
+            const login = document.getElementById('login-screen');
+            if (mainApp) mainApp.classList.add('hidden');
+            if (login) login.classList.remove('hidden');
+            const userEl = document.getElementById('current-user'); if (userEl) userEl.textContent = '';
+            // cerrar sidebar/overlay si estuvieran abiertos
+            try {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebar-overlay');
+                if (sidebar) sidebar.classList.remove('visible');
+                if (overlay) overlay.classList.remove('active');
+            } catch(_) {}
+        });
+    }
+
 // Función de diagnóstico global (para usar en consola)
 window.diagnoseCharts = function() {
     console.log('🔍 === DIAGNÓSTICO DE GRÁFICAS ===');
