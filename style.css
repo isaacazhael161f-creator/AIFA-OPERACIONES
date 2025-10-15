@@ -309,8 +309,9 @@ body.sidebar-collapsed .main-content { margin-left: 0; width: 100%; }
 body.dark-mode .card h1, body.dark-mode .card h2, body.dark-mode .card h3, body.dark-mode .card h4, body.dark-mode .card h5, body.dark-mode .h5 { color: var(--text-color); }
 .hidden { display: none !important; }
 .aifa-logo { width: 120px; height:auto; max-width:100%; }
-@media (max-width: 768px) {
-   .aifa-logo { width: 95px; }
+@media (min-width: 577px) and (max-width: 991.98px) {
+   /* Tablets: logo más pequeño para evitar saturación del encabezado */
+   .aifa-logo { width: 90px; }
 }
 @media (max-width: 576px) {
    .aifa-logo { width: 70px; }
@@ -597,18 +598,16 @@ body.dark-mode #manifest-records-table tbody tr:hover { background: rgba(255,255
    #interactivo-inicio-pane .filters-bar .form-control { width: 100%; font-size: .9rem; min-height: 32px; }
 }
 
-/* Limitar altura de iframes PDF a 80vh en móvil */
+/* Ajustes de iframes PDF para móvil/tablet: igualar a escritorio con uso de viewport height */
 @media (max-width: 576px) {
+   .pdf-container, .pdf-preview-container { border: none; border-radius: 0; }
    .pdf-container iframe,
-   .pdf-preview-container iframe {
-      height: 80vh !important;
-      max-height: 80vh;
-   }
-   /* También aplicar a viewers de una sola página por canvas */
-   .pdf-singlepage-viewer {
-      max-height: 80vh;
-      overflow-y: auto;
-   }
+   .pdf-preview-container iframe { height: 88vh !important; max-height: 88vh; }
+   .pdf-singlepage-viewer { max-height: 88vh; overflow-y: auto; }
+}
+@media (min-width: 577px) and (max-width: 991.98px) {
+   .pdf-container iframe,
+   .pdf-preview-container iframe { height: 82vh !important; max-height: 82vh; }
 }
 
 /* Summary collapse button spacing on mobile */

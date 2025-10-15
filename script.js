@@ -1495,6 +1495,8 @@ function displayPassengerTable(flights) {
             setTimeout(() => { try { updateScrollControlsFor('passenger-itinerary-scroll'); } catch(e) {} }, 80);
         }
     } catch(e) { /* ignore */ }
+    // Habilitar arrastre horizontal sobre la propia tabla
+    try { enableTwoAxisTableScroll('passenger-itinerary-scroll', 'passenger-itinerary-container'); } catch(_) {}
 }
 function displayCargoTable(flights) {
     const t0 = performance.now();
@@ -1553,6 +1555,8 @@ function displayCargoTable(flights) {
             setTimeout(() => { try { updateScrollControlsFor('cargo-itinerary-scroll'); } catch(e) {} }, 80);
         }
     } catch(e) { /* ignore */ }
+    // Habilitar arrastre horizontal sobre la propia tabla
+    try { enableTwoAxisTableScroll('cargo-itinerary-scroll', 'cargo-itinerary-container'); } catch(_) {}
 }
 
 // FIX: Loader global
@@ -2693,6 +2697,51 @@ function setupBodyEventListeners() {
             try { updateScrollControlsFor(area.id); } catch(_) {}
         });
     } catch (e) { /* ignore */ }
+}
+
+// Permitir que el arrastre horizontal sobre la tabla (área de scroll vertical) mueva el scroll horizontal exterior
+function enableTwoAxisTableScroll(hAreaId, tableContainerId) {
+    try {
+        const hArea = document.getElementById(hAreaId);
+        const container = document.getElementById(tableContainerId);
+        if (!hArea || !container) return;
+        const vScroll = container.querySelector('.vertical-scroll');
+        if (!vScroll || vScroll._twoAxisWired) return;
+        vScroll._twoAxisWired = true;
+
+        let startX = 0, startY = 0, lastX = 0, deciding = true, horiz = false;
+
+        const onStart = (ev) => {
+            try {
+                const t = ev.touches && ev.touches[0] ? ev.touches[0] : ev;
+                startX = lastX = t.clientX; startY = t.clientY; deciding = true; horiz = false;
+            } catch(_) {}
+        };
+        const onMove = (ev) => {
+            try {
+                const t = ev.touches && ev.touches[0] ? ev.touches[0] : ev;
+                const dx = t.clientX - lastX;
+                const dy = t.clientY - startY; // respecto al inicio para decidir dirección
+                if (deciding) {
+                    if (Math.abs(dx) > Math.abs(dy) + 4) { horiz = true; deciding = false; }
+                    else if (Math.abs(dy) > Math.abs(dx) + 4) { horiz = false; deciding = false; }
+                }
+                if (horiz) {
+                    // mover scroll horizontal exterior y evitar scroll vertical cuando estamos en modo horizontal
+                    ev.preventDefault();
+                    hArea.scrollLeft -= dx;
+                    lastX = t.clientX;
+                    try { updateScrollControlsFor(hAreaId); } catch(_) {}
+                }
+            } catch(_) {}
+        };
+        const onEnd = () => { deciding = true; horiz = false; };
+
+        vScroll.addEventListener('touchstart', onStart, { passive: true });
+        vScroll.addEventListener('touchmove', onMove, { passive: false });
+        vScroll.addEventListener('touchend', onEnd, { passive: true });
+        vScroll.addEventListener('touchcancel', onEnd, { passive: true });
+    } catch(_) {}
 }
 
 // Exportar todas las gráficas en un solo PDF (implementación básica)
