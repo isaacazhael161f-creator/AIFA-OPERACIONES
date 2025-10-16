@@ -5,9 +5,9 @@
  */
 const staticData = {
     operacionesTotales: {
-        comercial: [ { periodo: '2022', operaciones: 8996, pasajeros: 912415 }, { periodo: '2023', operaciones: 23211, pasajeros: 2631261 }, { periodo: '2024', operaciones: 51734, pasajeros: 6318454 }, { periodo: '2025', operaciones: 39774, pasajeros: 5155316 } ],
-        carga: [ { periodo: '2022', operaciones: 8, toneladas: 5.19 }, { periodo: '2023', operaciones: 5578, toneladas: 186.31 }, { periodo: '2024', operaciones: 13219, toneladas: 447.34 }, { periodo: '2025', operaciones: 7962, toneladas: 300.169 } ],
-        general: [ { periodo: '2022', operaciones: 458, pasajeros: 1385 }, { periodo: '2023', operaciones: 2212, pasajeros: 8160 }, { periodo: '2024', operaciones: 2777, pasajeros: 29637 }, { periodo: '2025', operaciones: 2111, pasajeros: 16443 } ]
+        comercial: [ { periodo: '2022', operaciones: 8996, pasajeros: 912415 }, { periodo: '2023', operaciones: 23211, pasajeros: 2631261 }, { periodo: '2024', operaciones: 51734, pasajeros: 6318454 }, { periodo: '2025', operaciones: 39142, pasajeros: 5155316 } ],
+        carga: [ { periodo: '2022', operaciones: 8, toneladas: 5.19 }, { periodo: '2023', operaciones: 5578, toneladas: 186.31 }, { periodo: '2024', operaciones: 13219, toneladas: 447.34 }, { periodo: '2025', operaciones: 8616, toneladas: 292.696 } ],
+        general: [ { periodo: '2022', operaciones: 458, pasajeros: 1385 }, { periodo: '2023', operaciones: 2212, pasajeros: 8160 }, { periodo: '2024', operaciones: 2777, pasajeros: 29637 }, { periodo: '2025', operaciones: 2214, pasajeros: 17391 } ]
     },
     // Datos mensuales 2025 (hasta septiembre): Comercial y Carga
     mensual2025: {
@@ -58,7 +58,7 @@ const staticData = {
             { mes: '06', label: 'Junio', toneladas: 37.708 },
             { mes: '07', label: 'Julio', toneladas: 35.649 },
             { mes: '08', label: 'Agosto', toneladas: 35.737 },
-            { mes: '09', label: 'Septiembre', toneladas: 23.78 },
+            { mes: '09', label: 'Septiembre', toneladas: 31.076 },
             { mes: '10', label: 'Octubre', toneladas: null },
             { mes: '11', label: 'Noviembre', toneladas: null },
             { mes: '12', label: 'Diciembre', toneladas: null }
@@ -74,7 +74,7 @@ const staticData = {
                 { mes: '06', label: 'Junio', operaciones: 209 },
                 { mes: '07', label: 'Julio', operaciones: 234 },
                 { mes: '08', label: 'Agosto', operaciones: 282 },
-                { mes: '09', label: 'Septiembre', operaciones: 146 },
+                { mes: '09', label: 'Septiembre', operaciones: 249 },
                 { mes: '10', label: 'Octubre', operaciones: null },
                 { mes: '11', label: 'Noviembre', operaciones: null },
                 { mes: '12', label: 'Diciembre', operaciones: null }
@@ -88,7 +88,7 @@ const staticData = {
                 { mes: '06', label: 'Junio', pasajeros: 3177 },
                 { mes: '07', label: 'Julio', pasajeros: 1515 },
                 { mes: '08', label: 'Agosto', pasajeros: 3033 },
-                { mes: '09', label: 'Septiembre', pasajeros: null },
+                { mes: '09', label: 'Septiembre', pasajeros: 948 },
                 { mes: '10', label: 'Octubre', pasajeros: null },
                 { mes: '11', label: 'Noviembre', pasajeros: null },
                 { mes: '12', label: 'Diciembre', pasajeros: null }
@@ -2190,6 +2190,12 @@ function renderOperacionesTotales() {
                         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                         let lastShownX = -Infinity;
                         let lastPlacedBelow = false;
+                        const placed = [];
+                        const offsetUp = Number(opts.offsetY || 40);
+                        const defaultOffsetBelow = small ? 30 : 26;
+                        const offsetBelow = Number(opts.offsetBelow || defaultOffsetBelow);
+
+                        const intersects = (a, b) => !(a.x + a.w < b.x || b.x + b.w < a.x || a.y + a.h < b.y || b.y + b.h < a.y);
 
                         for (let i=0;i<points.length;i++){
                             if (onlyMax && i!==maxIdx) continue;
@@ -2214,7 +2220,7 @@ function renderOperacionesTotales() {
                             const w = Math.ceil(maxLineW) + padX*2;
                             const lineH = 12 + 2; // font size + spacing
                             const h = (small ? 6 : 8) + lineH*2; // dos líneas con padding
-                            let x = p.x; let y = p.y - (opts.offsetY || 0); // por defecto arriba del punto
+                            let x = p.x; let y = p.y - offsetUp; // por defecto arriba del punto
                             let rx = Math.round(x - w/2), ry = Math.round(y - h/2);
                             // Decidir ubicación arriba/abajo: evita encimado alternando cuando están muy cerca
                             let placeBelow = false;
@@ -2223,16 +2229,46 @@ function renderOperacionesTotales() {
                             } else if (minGapX > 0 && (p.x - lastShownX) < minGapX) {
                                 placeBelow = !lastPlacedBelow; // alternar
                             }
-                            if (placeBelow) {
-                                const below = (opts.offsetBelow || 26);
-                                y = p.y + below;
-                                rx = Math.round(x - w/2);
-                                ry = Math.round(y - h/2);
-                            }
+                            if (placeBelow) { y = p.y + offsetBelow; rx = Math.round(x - w/2); ry = Math.round(y - h/2); }
                             // Limitar horizontalmente dentro del área del gráfico
                             if (area) {
                                 if (rx < area.left + 2) rx = Math.round(area.left + 2);
                                 if (rx + w > area.right - 2) rx = Math.round(area.right - 2 - w);
+                            }
+
+                            // Evitar encimado mediante detección de colisiones con otras etiquetas colocadas
+                            let rect = { x: rx, y: ry, w, h };
+                            let tries = 0;
+                            while (placed.some(r => intersects(r, rect)) && tries < 4) {
+                                tries++;
+                                if (tries === 1) {
+                                    // primer intento: alternar arriba/abajo
+                                    placeBelow = !placeBelow;
+                                    y = placeBelow ? (p.y + offsetBelow) : (p.y - offsetUp);
+                                } else if (tries === 2) {
+                                    // segundo: pequeño empuje vertical adicional
+                                    const bump = small ? 10 : 12;
+                                    y += placeBelow ? bump : -bump;
+                                } else if (tries === 3) {
+                                    // tercero: pequeño corrimiento horizontal hacia la izquierda
+                                    x -= Math.min(12, Math.max(0, x - (area ? area.left + 10 : 10)));
+                                } else {
+                                    // cuarto: corrimiento horizontal hacia la derecha si es posible
+                                    x += 12;
+                                }
+                                rx = Math.round(x - w/2);
+                                ry = Math.round(y - h/2);
+                                if (area) {
+                                    if (rx < area.left + 2) rx = Math.round(area.left + 2);
+                                    if (rx + w > area.right - 2) rx = Math.round(area.right - 2 - w);
+                                    if (ry < area.top + 2) ry = Math.round(area.top + 2);
+                                    if (ry + h > area.bottom - 2) ry = Math.round(area.bottom - 2 - h);
+                                }
+                                rect = { x: rx, y: ry, w, h };
+                            }
+                            if (tries >= 4 && placed.some(r => intersects(r, rect))) {
+                                // si no se pudo evitar encimado, omitir etiqueta para preservar claridad
+                                continue;
                             }
                             // sombra sutil
                             ctx.save();
@@ -2275,6 +2311,7 @@ function renderOperacionesTotales() {
                             ctx.fillText(line2, cx, cy + 9);
                             lastShownX = cx;
                             lastPlacedBelow = placeBelow;
+                            placed.push(rect);
                         }
                         ctx.restore();
                     } catch(_){ /* noop */ }
