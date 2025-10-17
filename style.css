@@ -95,7 +95,7 @@ body {
    Tablas de Inicio "Glassmorphism"
    ========================================================================== */
 .table-container-tech { background-color: var(--tech-table-bg); backdrop-filter: blur(10px); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; box-shadow: 0 4px 15px var(--shadow-color); overflow: hidden; }
-.table-container-tech .table-responsive { max-height: 350px; overflow-y: auto; }
+.table-container-tech .table-responsive { /* no vertical scroll for fauna table */ }
 
 /* Evitar colisión visual entre cluster derecho y centro en tablets chicas */
 @media (max-width: 991.98px) {
@@ -155,7 +155,26 @@ body {
    border-radius: 4px;
 }
 /* Make horizontal scroll functional on any element using this helper */
-.h-scroll-area { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; touch-action: pan-x; }
+.h-scroll-area {
+   overflow-x: auto;
+   -webkit-overflow-scrolling: touch;
+   overscroll-behavior-x: contain;
+   touch-action: pan-x;
+   scrollbar-width: thin;
+}
+/* For all browsers/devices: ensure horizontal scroll area only intercepts horizontal pan, not vertical */
+#fauna-section .h-scroll-area {
+   touch-action: pan-x;
+   -ms-touch-action: pan-x;
+   overscroll-behavior-x: contain;
+   -webkit-overflow-scrolling: touch;
+}
+@media (pointer: coarse) {
+   #fauna-section .h-scroll-area {
+      scroll-snap-type: x mandatory;
+      scroll-padding: 0 16px;
+   }
+}
 
 /* Ensure table inside can be wider than container */
 .table-container-tech table {
