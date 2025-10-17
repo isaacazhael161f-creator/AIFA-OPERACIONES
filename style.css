@@ -154,6 +154,8 @@ body {
    background: rgba(0,0,0,0.2);
    border-radius: 4px;
 }
+/* Make horizontal scroll functional on any element using this helper */
+.h-scroll-area { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; touch-action: pan-x; }
 
 /* Ensure table inside can be wider than container */
 .table-container-tech table {
@@ -168,6 +170,13 @@ body {
 .fauna-table th, .fauna-table td { white-space: nowrap; }
 .fauna-table tbody { display: table-row-group; }
 .fauna-table thead { display: table-header-group; }
+/* On mobile/tablet, ensure the table is wider than the viewport to allow horizontal scrolling */
+@media (max-width: 991.98px) {
+   #fauna-section #fauna-table-container,
+   #fauna-section .table-container-tech,
+   #fauna-section .h-scroll-area { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+   #fauna-section .fauna-table { min-width: 720px; }
+}
 
 /* Ensure origin and destino columns are wide enough to show values */
 /* Usamos clases semánticas para columnas anchas */
