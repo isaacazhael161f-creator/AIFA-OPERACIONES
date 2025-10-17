@@ -102,6 +102,7 @@ const staticData = {
 };
 const dashboardData = {
     users: {
+        // NOTA: las contraseñas en texto plano no se usan para validar; se migran a hash en tiempo de ejecución y se descartan
         "David Pacheco": { password: "2468", canViewItinerarioMensual: true },
         "Isaac López": { password: "18052003", canViewItinerarioMensual: false },
         "Mauro Hernández": { password: "Mauro123", canViewItinerarioMensual: true },
@@ -114,6 +115,26 @@ const dashboardData = {
     pdfSections: { "itinerario-mensual": { title: "Itinerario Mensual (Octubre)", url: "pdfs/itinerario_mensual.pdf" } }
 };
 let allFlightsData = [];
+// Hashes de contraseñas (generados en cliente al inicio y luego se descartan passwords en claro)
+const AUTH_HASHES = Object.create(null);
+const SECRET_PW_SALT = 'aifa.ops.local.pw.v1';
+
+async function initAuthHashes(){
+    try {
+        const entries = Object.entries(dashboardData.users || {});
+        for (const [name, info] of entries){
+            if (!info) continue;
+            const pw = typeof info.password === 'string' ? info.password : '';
+            const norm = (name||'').toString().trim().toLowerCase();
+            if (pw) {
+                const h = await sha256(pw + '|' + norm + '|' + SECRET_PW_SALT);
+                AUTH_HASHES[name] = h;
+            }
+            // eliminar password en claro para evitar abusos posteriores
+            try { delete info.password; } catch(_) { info.password = undefined; }
+        }
+    } catch(_){ /* noop */ }
+}
 let passengerAirlines = ["Viva", "Volaris", "Aeromexico", "Mexicana de Aviación", "Aeurus", "Arajet"];
 let cargoAirlines = ["MasAir", "China Southerrn", "Lufthansa", "Kalitta Air", "Aerounión", "Emirates Airlines", "Atlas Air", "Silk Way West Airlines", "Cathay Pacific", "United Parcel Service", "Turkish Airlines", "Cargojet Airways", "Air Canada", "Cargolux"];
 const airlineColors = { "Viva": "#00b200", "Volaris": "#6f2da8", "Aeromexico": "#00008b", "Mexicana de Aviación": "#a52a2a", "Aerus": "#ff4500", "Arajet": "#00ced1", "MasAir": "#4682b4", "China Southerrn": "#c71585", "Lufthansa": "#ffcc00", "Kalitta Air": "#dc143c", "Aerounión": "#2e8b57", "Emirates Airlines": "#d4af37", "Atlas Air": "#808080", "Silk Way West Airlines": "#f4a460", "Cathay Pacific": "#006400", "United Parcel Service": "#5f4b32", "Turkish Airlines": "#e81123", "Cargojet Airways": "#f0e68c", "Air Canada": "#f00", "Cargolux": "#00a0e2" };
@@ -125,10 +146,11 @@ const airlineLogoFileMap = {
     // Pasajeros
     'viva aerobus': ['logo_viva.png'],
     'volaris': ['logo_volaris.png'],
-    'aeromexico': ['logo_aeromexico.jpg','logo_aeromexico.png'],
-    'aeroméxico': ['logo_aeromexico.jpg','logo_aeromexico.png'],
-    'mexicana de aviacion': ['logo_mexicana_de_aviacion.png','logo_mexicana.png'],
-    'mexicana de aviación': ['logo_mexicana_de_aviacion.png','logo_mexicana.png'],
+    // usar primero archivos que EXISTEN en /images/airlines para evitar 404
+    'aeromexico': ['logo_aeromexico.png','logo_aeromexico.jpg'],
+    'aeroméxico': ['logo_aeromexico.png','logo_aeromexico.jpg'],
+    'mexicana de aviacion': ['logo_mexicana.png','logo_mexicana_de_aviacion.png'],
+    'mexicana de aviación': ['logo_mexicana.png','logo_mexicana_de_aviacion.png'],
     'aerus': ['logo_aerus.png'],
     'aeurus': ['logo_aerus.png'],
     'arajet': ['logo_arajet.png','logo_arajet.jpg'],
@@ -153,6 +175,12 @@ const airlineLogoFileMap = {
     'ifl group': ['lofo_ifl_group.png'],
     'china southern': ['logo_china_southern.png'],
     'china southerrn': ['logo_china_southern.png'],
+    // Ajustes específicos por archivos presentes
+    'air canada': ['logo_air_canada_.png'],
+    'air france': ['logo_air_france_.png'],
+    'aerounion': ['loho_aero_union.png'],
+    'aerounión': ['loho_aero_union.png'],
+    'dhl guatemala': ['logo_dhl_guatemala_.png'],
     // TSM Airline (archivo real: logo_tsm_airlines.png)
     'tsm': ['logo_tsm_airlines.png'],
     'tsm airline': ['logo_tsm_airlines.png'],
@@ -239,10 +267,7 @@ function getAirlineLogoCandidates(airline){
         candidates.push(`images/airlines/${base}.png`);
         candidates.push(`images/airlines/${base}.jpg`);
         candidates.push(`images/airlines/${base}.svg`);
-        // Variantes comunes: con subrayado final (air_canada_, air_france_)
-        candidates.push(`images/airlines/${base}_.png`);
-        candidates.push(`images/airlines/${base}_.jpg`);
-        // Variaciones conocidas
+        // Variaciones conocidas (solo archivos que existen en repo)
         if (base.includes('aerounion')) candidates.push('images/airlines/loho_aero_union.png');
         if (base.includes('masair')) candidates.push('images/airlines/logo_mas.png');
         if (base.includes('silk_way_west') && !base.includes('silkway')) candidates.push('images/airlines/logo_silk_way_west_airlines.png');
@@ -250,6 +275,8 @@ function getAirlineLogoCandidates(airline){
         if (base.includes('air_france')) candidates.push('images/airlines/logo_air_france_.png');
         if (base.includes('ifl_group')) candidates.push('images/airlines/lofo_ifl_group.png');
     }
+    // Fallback local definitivo
+    candidates.push('images/airlines/default-airline-logo.svg');
     // quitar duplicados conservando orden
     return [...new Set(candidates)];
 }
@@ -940,28 +967,98 @@ function animateCounter(elementId, endValue, duration = 2500, isDecimal = false)
     };
     window.requestAnimationFrame(step);
 }
-function handleLogin(e) {
+// --- Seguridad de login en cliente (mejor esfuerzo, no sustituye backend) ---
+const LOGIN_LOCK_KEY = 'aifa.lock.count';
+const LOGIN_LOCK_TS  = 'aifa.lock.until';
+const SESSION_TOKEN  = 'aifa.session.token';
+const SESSION_USER   = 'currentUser';
+const SECRET_SALT    = 'aifa.ops.local.salt.v1'; // cambia en prod
+
+async function sha256(str){
+    const enc = new TextEncoder().encode(str);
+    const buf = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function makeToken(username){
+    const ts = Date.now().toString();
+    const sign = await sha256(username + '|' + ts + '|' + SECRET_SALT);
+    return `${username}.${ts}.${sign}`;
+}
+
+async function verifyToken(token){
+    if (!token) return false;
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
+    const [u, ts, sig] = parts;
+    const expect = await sha256(u + '|' + ts + '|' + SECRET_SALT);
+    // expira en 12h
+    const expired = (Date.now() - Number(ts)) > (12*60*60*1000);
+    return (!expired && sig === expect);
+}
+
+function getLockInfo(){
+    const count = parseInt(localStorage.getItem(LOGIN_LOCK_KEY)||'0',10) || 0;
+    const until = parseInt(localStorage.getItem(LOGIN_LOCK_TS)||'0',10) || 0;
+    return { count, until };
+}
+function setLockInfo(count, until){
+    localStorage.setItem(LOGIN_LOCK_KEY, String(count));
+    localStorage.setItem(LOGIN_LOCK_TS, String(until));
+}
+
+async function handleLogin(e) {
     e.preventDefault();
     const loginButton = document.getElementById('login-button');
+    const errorDiv = document.getElementById('login-error');
+    errorDiv.textContent = '';
     loginButton.classList.add('loading');
     showGlobalLoader('Verificando credenciales...');
-    setTimeout(() => {
+
+    try{
+        const { count, until } = getLockInfo();
+        const now = Date.now();
+        if (until && now < until) {
+            const secs = Math.ceil((until-now)/1000);
+            throw new Error(`Demasiados intentos. Intenta en ${secs}s`);
+        }
+
         const usernameInput = (document.getElementById('username').value || '').toString();
         const password = document.getElementById('password').value;
-        const errorDiv = document.getElementById('login-error');
-        // Buscar usuario por nombre normalizado (insensible a mayúsculas/espacios)
         const normalized = usernameInput.trim().toLowerCase();
         const matchedKey = Object.keys(dashboardData.users).find(k => (k || '').toString().trim().toLowerCase() === normalized);
         const user = matchedKey ? dashboardData.users[matchedKey] : undefined;
-        if (user && user.password === password) {
-            sessionStorage.setItem('currentUser', matchedKey);
-            showMainApp();
-        } else {
-            errorDiv.textContent = 'Usuario o contraseña incorrectos';
-            loginButton.classList.remove('loading');
+
+        // Comparar hash de la contraseña ingresada contra el hash inicializado
+        let passOk = false;
+        if (matchedKey) {
+            const inputHash = await sha256(password + '|' + normalized + '|' + SECRET_PW_SALT);
+            const storedHash = AUTH_HASHES[matchedKey];
+            passOk = !!(storedHash && storedHash === inputHash);
         }
+        if (!passOk) {
+            // incrementar lock con backoff exponencial
+            const nextCount = Math.min(8, (count||0)+1);
+            const waitMs = Math.min(300000, Math.pow(2, nextCount) * 1000); // hasta 5 min
+            setLockInfo(nextCount, Date.now() + waitMs);
+            throw new Error('Usuario o contraseña incorrectos');
+        }
+
+        // Éxito: limpiar lockout y emitir token firmado
+        setLockInfo(0, 0);
+        const token = await makeToken(matchedKey);
+        sessionStorage.setItem(SESSION_USER, matchedKey);
+        sessionStorage.setItem(SESSION_TOKEN, token);
+        showMainApp();
+    } catch(err){
+        const msg = (err && err.message) ? err.message : 'Error de autenticación';
+        const errorDiv = document.getElementById('login-error');
+        if (errorDiv) errorDiv.textContent = msg;
+        const loginButton = document.getElementById('login-button');
+        if (loginButton) loginButton.classList.remove('loading');
+    } finally {
         hideGlobalLoader();
-    }, 700);
+    }
 }
 function updateClock() {
     const clockElement = document.getElementById('formal-clock');
@@ -2374,6 +2471,7 @@ function renderOperacionesTotales() {
                 const w = (canvas && canvas.clientWidth) ? canvas.clientWidth : (canvas && canvas.width ? canvas.width : (window.innerWidth||1200));
                 const isMobile = w < 576;
                 const isTablet = !isMobile && w < 992;
+                const isYearAxis = Array.isArray(labels) && labels.length>0 && labels.every(l => /^\d{4}$/.test(String(l)));
                 const steps = Math.max(1, (labels && labels.length ? labels.length - 1 : 1));
                 const approxStep = Math.max(1, (w - 60)) / steps;
                 const dynMinGapX = Math.max(isMobile ? approxStep * 0.7 : (isTablet ? approxStep * 0.55 : approxStep * 0.45), smallMode ? 28 : 16);
@@ -2382,10 +2480,46 @@ function renderOperacionesTotales() {
                 const xTickFont = isMobile ? 10 : (isTablet ? 11 : 12);
                 const yTickFont = isMobile ? 10 : (isTablet ? 11 : 12);
                 const maxTicks = isMobile ? 6 : (isTablet ? 8 : 12);
-                const padTop = isMobile ? 48 : (isTablet ? 56 : 64);
+                let padTop = isMobile ? 48 : (isTablet ? 56 : 64);
                 const padRight = isMobile ? 12 : 14;
-                const padBottom = isMobile ? 16 : 20;
+                // Dar un poco más de margen inferior en móviles para no recortar etiquetas
+                let padBottom = isMobile ? 24 : 20;
                 const padLeft = isMobile ? 8 : 10;
+
+                // En ejes de años queremos asegurar visibilidad de TODAS las etiquetas y sus datalabels
+                if (isYearAxis) {
+                    padTop += isMobile ? 16 : 12;     // más espacio arriba para burbujas
+                    padBottom += isMobile ? 10 : 6;  // y algo más abajo para evitar recortes
+                }
+
+                // Opciones específicas para las burbujas en ejes de años (4-5 puntos)
+                const bubbleOpts = {
+                    show: true,
+                    borderColor: border,
+                    fillColor: border,
+                    textColor: '#ffffff',
+                    format: fmtType,
+                    // En ejes anuales mostramos todo: sin gap mínimo para no omitir 2023
+                    minGapX: isYearAxis ? 0 : Math.floor(dynMinGapX),
+                    // Burbuja compacta para reducir colisiones en pantallas pequeñas
+                    small: isYearAxis ? true : smallMode,
+                    // Offsets afinados para móvil
+                    offsetY: isYearAxis ? (isMobile ? 44 : 40) : dynOffsetY,
+                    offsetBelow: isYearAxis ? (isMobile ? 28 : 26) : dynOffsetBelow,
+                    onlyMax: false
+                };
+
+                // Plugin ligero para dar un extra de alto a la escala X en ejes anuales y evitar cortes
+                const YearAxisFitPlugin = isYearAxis ? {
+                    id: 'yearAxisFit',
+                    afterFit(scale) {
+                        try {
+                            if (scale && scale.isHorizontal && scale.isHorizontal()) {
+                                scale.height += isMobile ? 10 : 6;
+                            }
+                        } catch(_) {}
+                    }
+                } : null;
                 return {
                     type: 'line',
                     data: { labels, datasets: [{
@@ -2440,14 +2574,29 @@ function renderOperacionesTotales() {
                             // Desactivamos completamente chartjs-plugin-datalabels
                             datalabels: false,
                             travelerPlugin: traveler || {},
-                            dataBubble: { show: true, borderColor: border, fillColor: border, textColor: '#ffffff', format: fmtType, onlyMax: false, offsetY: dynOffsetY, offsetBelow: dynOffsetBelow, small: smallMode, minGapX: Math.floor(dynMinGapX) }
+                            dataBubble: bubbleOpts
                         },
                         scales: {
-                            x: { grid: { display: false }, ticks: { color: theme.ticks, maxTicksLimit: maxTicks, autoSkip: true, font: { size: xTickFont } }, title: { display: true, text: xTitle, color: theme.labels, font: { weight: '600' } } },
+                            x: {
+                                grid: { display: false },
+                                offset: false,
+                                ticks: {
+                                    color: theme.ticks,
+                                    // Para ejes con años (2022, 2023, ...), no omitir etiquetas en móvil
+                                    autoSkip: !isYearAxis,
+                                    maxTicksLimit: isYearAxis ? (labels?.length || maxTicks) : maxTicks,
+                                    autoSkipPadding: isYearAxis ? 0 : undefined,
+                                    source: 'labels',
+                                    font: { size: xTickFont },
+                                    minRotation: 0,
+                                    maxRotation: isYearAxis ? 0 : (isMobile ? 30 : 0)
+                                },
+                                title: { display: true, text: xTitle, color: theme.labels, font: { weight: '600' } }
+                            },
                             y: { beginAtZero: true, suggestedMax: Math.ceil(maxVal * 1.15), grid: { color: theme.grid }, ticks: { color: theme.ticks, font: { size: yTickFont } }, title: { display: true, text: label, color: theme.labels, font: { weight: '600' } } }
                         }
                     },
-                    plugins: [PeakGlowPlugin, TravelerPlugin, DataBubblePlugin]
+                    plugins: [PeakGlowPlugin, TravelerPlugin, DataBubblePlugin].concat(YearAxisFitPlugin ? [YearAxisFitPlugin] : [])
                 };
             }
 
@@ -2859,24 +3008,41 @@ async function exportAllChartsPDF() {
 function showMainApp() {
     const login = document.getElementById('login-screen');
     const main = document.getElementById('main-app');
-    if (login) login.classList.add('hidden');
-    if (main) main.classList.remove('hidden');
-    // Usuario actual
-    const name = sessionStorage.getItem('currentUser') || '';
-    const userEl = document.getElementById('current-user'); if (userEl) userEl.textContent = name;
-    // Permisos: Itinerario mensual
-    const menu = document.getElementById('itinerario-mensual-menu');
-    if (menu) {
-        const u = dashboardData.users[name];
-        const can = !!(u && u.canViewItinerarioMensual);
-        menu.style.display = can ? '' : 'none';
-    }
+    // Validar sesión firmada
+    const token = sessionStorage.getItem(SESSION_TOKEN);
+    const name = sessionStorage.getItem(SESSION_USER) || '';
+    // Si no hay token válido, volver a login
+    verifyToken(token).then(valid => {
+        if (!valid) {
+            try { sessionStorage.removeItem(SESSION_USER); sessionStorage.removeItem(SESSION_TOKEN); } catch(_) {}
+            if (main) main.classList.add('hidden');
+            if (login) login.classList.remove('hidden');
+            return;
+        }
+        if (login) login.classList.add('hidden');
+        if (main) main.classList.remove('hidden');
+        // Usuario actual
+        const userEl = document.getElementById('current-user'); if (userEl) userEl.textContent = name;
+        // Permisos: Itinerario mensual
+        const menu = document.getElementById('itinerario-mensual-menu');
+        if (menu) {
+            const u = dashboardData.users[name];
+            const can = !!(u && u.canViewItinerarioMensual);
+            menu.style.display = can ? '' : 'none';
+        }
+    }).catch(()=>{
+        if (main) main.classList.add('hidden');
+        if (login) login.classList.remove('hidden');
+    });
 }
 
 function checkSession() {
     try {
-        const name = sessionStorage.getItem('currentUser');
-        if (name) showMainApp();
+        const token = sessionStorage.getItem(SESSION_TOKEN);
+        const name = sessionStorage.getItem(SESSION_USER);
+        if (!token || !name) return;
+        // Validar token antes de mostrar
+        verifyToken(token).then(valid => { if (valid) showMainApp(); }).catch(()=>{});
     } catch (e) { /* ignore */ }
 }
 
@@ -2905,6 +3071,8 @@ function initPeakDateControls() {}
 // ================== Operaciones Totales: wiring de filtros del modal ==================
 document.addEventListener('DOMContentLoaded', () => {
     try {
+        // Inicializar hashes de autenticación lo antes posible
+        initAuthHashes();
         const toggleMonthly = document.getElementById('toggle-monthly-2025');
         const yearsHint = document.getElementById('years-disabled-hint');
         const monthsPanel = document.getElementById('ops-months-2025');

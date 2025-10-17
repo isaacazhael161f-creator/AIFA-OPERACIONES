@@ -1360,64 +1360,13 @@
                     if (t.dataset.fallbackApplied === '1') return;
                     t.dataset.fallbackApplied = '1';
                     console.warn('Reemplazando imagen no encontrada:', t.src);
-                    // Placeholder remoto; cambie por una imagen local cuando la tenga (p.ej. images/default-airline-logo.png)
-                    t.src = 'https://via.placeholder.co/120x40?text=Sin+Logo';
+                    // Usar fallback local consistente (evita dominios externos)
+                    t.src = 'images/airlines/default-airline-logo.svg';
                 }
             }, true);
 
-            // Fallback de inicio de sesión (solo si script.js no lo maneja)
-            document.addEventListener('DOMContentLoaded', function () {
-                try {
-                    const params = new URLSearchParams(location.search);
-                    const u = params.get('username');
-                    const p = params.get('password');
-
-                    const form = document.getElementById('login-form');
-                    const uInp = document.getElementById('username');
-                    const pInp = document.getElementById('password');
-
-                    // Autocompletar desde querystring si viene en la URL
-                    if (u && uInp) uInp.value = u;
-                    if (p && pInp) pInp.value = p;
-
-                    // Espera breve: si script.js ya inició la app, no hace nada.
-                    setTimeout(() => {
-                        const mainApp = document.getElementById('main-app');
-                        const loginScreen = document.getElementById('login-screen');
-                        if (!form || !mainApp || !loginScreen) return;
-
-                        // Si la app sigue oculta, conectamos el fallback mínimamente invasivo
-                        if (mainApp.classList.contains('hidden') && !form.dataset.fallbackAttached) {
-                            form.dataset.fallbackAttached = '1';
-                            form.addEventListener('submit', (e) => {
-                                e.preventDefault();
-                                const username = (uInp?.value || '').trim();
-                                const password = (pInp?.value || '').trim();
-                                if (!username || !password) return; // requiere ambos campos
-
-                                // Marca usuario visible
-                                const currentUser = document.getElementById('current-user');
-                                if (currentUser) currentUser.textContent = username;
-
-                                // Persiste sesión básica
-                                try { sessionStorage.setItem('aifa.user', username); } catch (_) {}
-
-                                // Muestra la app
-                                loginScreen.classList.add('hidden');
-                                mainApp.classList.remove('hidden');
-                            });
-
-                            // Si hubo credenciales por URL, auto-enviar
-                            if (u && p) {
-                                if (typeof form.requestSubmit === 'function') form.requestSubmit();
-                                else form.submit();
-                            }
-                        }
-                    }, 800);
-                } catch (err) {
-                    console.warn('Login fallback error:', err);
-                }
-            });
+            // Fallback de inicio de sesión: DESHABILITADO por seguridad (no se permite auto-login ni bypass del manejador principal)
+            // Este bloque se dejó intencionalmente vacío.
         })();
     </script>
 
@@ -1433,7 +1382,95 @@
     <script src="js/manifiestos.js"></script>
     <script src="js/fauna.js"></script>
     
-    <script src="script.js"></script>
+        <script src="script.js"></script>
+        <script>
+            // Modo DEV: bloquear por completo el registro de Service Workers en localhost/127.0.0.1 o con bandera noSW
+            (function noSWDevGuard(){
+                try {
+                    const params = new URLSearchParams(location.search);
+                    const flag = params.get('noSW') === '1' || localStorage.getItem('aifa.noSW') === '1';
+                    const isLocalHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) || location.protocol === 'file:';
+                    const devNoSW = flag || isLocalHost;
+                    if (!devNoSW) { window.__NO_SW__ = false; return; }
+                    window.__NO_SW__ = true;
+                    if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
+                        const sw = navigator.serviceWorker;
+                        const originalRegister = sw.register.bind(sw);
+                        sw.register = async function(){
+                            console.warn('[noSW] Registro de Service Worker bloqueado en modo dev');
+                            throw new Error('Dev mode: Service Worker disabled');
+                        };
+                        // Opcional: informar si algún script intenta registrar
+                        console.info('[noSW] Modo DEV activo: Service Worker deshabilitado (host local o flag noSW)');
+                    }
+                } catch(e) { /* noop */ }
+            })();
+        </script>
+        <script>
+            // Limpieza agresiva de Service Workers previos y caches.
+            // Si se detecta alguno, se hace reload UNA sola vez para que dejen de interceptar inmediatamente.
+            (async function cleanupSW(){
+                try {
+                    const params = new URLSearchParams(location.search);
+                    const flag = params.get('noSW') === '1' || localStorage.getItem('aifa.noSW') === '1';
+                    const isLocalHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) || location.protocol === 'file:';
+                    const devNoSW = flag || isLocalHost;
+                    if (!devNoSW) return; // Solo en modo DEV
+                    const FLAG = 'aifa.sw.cleaned.once';
+                    const already = sessionStorage.getItem(FLAG) === '1';
+                    if ('serviceWorker' in navigator) {
+                        const regs = await navigator.serviceWorker.getRegistrations().catch(()=>[]);
+                        if (Array.isArray(regs) && regs.length) {
+                            await Promise.all(regs.map(r=>r.unregister().catch(()=>{})));
+                            if (window.caches && caches.keys) {
+                                try { const keys = await caches.keys(); await Promise.all(keys.map(k => caches.delete(k))); } catch(_) {}
+                            }
+                            if (!already) {
+                                sessionStorage.setItem(FLAG, '1');
+                                // Forzar un refresco inmediato para que el SW deje de interceptar en esta sesión
+                                location.reload();
+                                return;
+                            }
+                        }
+                    }
+                    // Reset de bandera cuando ya no hay SWs activos
+                    if (already && (!('serviceWorker' in navigator))) {
+                        sessionStorage.removeItem(FLAG);
+                    }
+                } catch(_) {}
+            })();
+
+            // Evitar errores de PDFs cuando no hay conexión: quitar src hasta que haya red
+            (function managePDFs(){
+                function applyOnlineState(){
+                    const frames = document.querySelectorAll('iframe[src$=\".pdf\"]');
+                    if (!navigator.onLine) {
+                        frames.forEach(f => {
+                            if (!f.dataset.src) f.dataset.src = f.getAttribute('src') || '';
+                            f.removeAttribute('src');
+                            // Mostrar un placeholder breve
+                            if (!f._ph) {
+                                const ph = document.createElement('div');
+                                ph.className = 'text-muted small';
+                                ph.textContent = 'PDF no disponible sin conexión';
+                                f.parentElement && f.parentElement.appendChild(ph);
+                                f._ph = ph;
+                            }
+                        });
+                    } else {
+                        frames.forEach(f => {
+                            if (f.dataset.src && !f.getAttribute('src')) {
+                                f.setAttribute('src', f.dataset.src);
+                            }
+                            if (f._ph) { try { f._ph.remove(); } catch(_) {} f._ph = null; }
+                        });
+                    }
+                }
+                window.addEventListener('online', applyOnlineState);
+                window.addEventListener('offline', applyOnlineState);
+                applyOnlineState();
+            })();
+        </script>
     <!-- Loader Global -->
     <div id="global-loader" class="global-loader hidden" role="alert" aria-live="assertive" aria-busy="true">
         <div class="loader-content">

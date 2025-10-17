@@ -74,7 +74,9 @@
     g.clearRect(0,0,w,h);
 
     // Márgenes y estilos
-    const margin = { top: 28, right: 12, bottom: 28, left: 34 };
+  // Más margen inferior en móvil para permitir todas las etiquetas
+  const isMobile = (w < 576);
+  const margin = { top: 28, right: 12, bottom: isMobile ? 44 : 28, left: 34 };
     const innerW = Math.max(1, w - margin.left - margin.right);
     const innerH = Math.max(1, h - margin.top - margin.bottom);
 
@@ -135,14 +137,24 @@
       g.fill();
     }
 
-    // Etiquetas X cada 2 horas
+    // Etiquetas X: en móvil todas las horas con ligera rotación; en desktop cada 2 horas
     g.fillStyle = '#6c757d';
     g.font = '10px Roboto, Arial';
     g.textAlign = 'center';
     g.textBaseline = 'top';
-    for (let i=0; i<n; i+=2){
+    const step = isMobile ? 1 : 2;
+    for (let i=0; i<n; i+=step){
       const x = x0 + i * (innerW / n) + (innerW / n)/2;
-      g.fillText(labels[i], x, y0 + 4);
+      if (isMobile) {
+        g.save();
+        // rotación suave para evitar encimado
+        g.translate(x, y0 + 4);
+        g.rotate(-Math.PI/6); // ~ -30°
+        g.fillText(labels[i], 0, 0);
+        g.restore();
+      } else {
+        g.fillText(labels[i], x, y0 + 4);
+      }
     }
   }
 
