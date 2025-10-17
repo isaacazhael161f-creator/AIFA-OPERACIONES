@@ -681,16 +681,7 @@ body.dark-mode #manifest-records-table tbody tr:hover { background: rgba(255,255
 
 /* Tabla de Fauna: asegurar scroll horizontal suave y encabezados pegajosos visibles */
 #fauna-section .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-#fauna-section #fauna-table-container { overflow-y: auto; max-height: 60vh; overscroll-behavior: contain; scrollbar-gutter: stable; }
-@media (max-width: 576px) {
-   #fauna-section #fauna-table-container { max-height: 50vh; }
-}
-@media (min-width: 577px) and (max-width: 991.98px) {
-   #fauna-section #fauna-table-container { max-height: 60vh; }
-}
-@media (min-width: 992px) {
-   #fauna-section #fauna-table-container { max-height: 70vh; }
-}
+/* Dejamos el scroll vertical al documento completo (no caja interna) */
 #fauna-section .fauna-table thead th { position: sticky; top: 0; z-index: 5; }
 #fauna-section .fauna-table { font-variant-numeric: tabular-nums; }
 
