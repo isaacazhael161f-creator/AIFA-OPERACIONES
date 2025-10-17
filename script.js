@@ -107,7 +107,7 @@ const dashboardData = {
         "Mauro Hernández": { password: "Mauro123", canViewItinerarioMensual: true },
         "Emily Beltrán": { password: "Emily67", canViewItinerarioMensual: true },
         "Director General": { password: "Dirección71", canViewItinerarioMensual: true },
-        "Director de Operaciones": { password: "DirecciónNLU", canViewItinerarioMensual: true },
+        "Director de Operación": { password: "OperacionesNLU", canViewItinerarioMensual: true },
         "Jefe Mateos": { password: "2025M", canViewItinerarioMensual: true },
         "Usuario1": { password: "AIFAOps", canViewItinerarioMensual: true }
     },
@@ -1658,6 +1658,18 @@ function handleNavigation(e) {
                 }, 50); 
             } catch(_) {} 
         }
+        if (section === 'fauna') {
+            try {
+                // Give the layout a moment before rendering charts
+                setTimeout(() => {
+                    if (typeof window.dispatchEvent === 'function') {
+                        // Let fauna.js listen for this to re-render if needed
+                        const ev = new Event('fauna:visible');
+                        window.dispatchEvent(ev);
+                    }
+                }, 60);
+            } catch(_) {}
+        }
     }
 }
 
@@ -2358,6 +2370,22 @@ function renderOperacionesTotales() {
                 const finalTitle = titleText || `${emoji} ${label}`;
                 const anim = Object.assign({ duration: 2600, easing: 'easeInOutCubic', stagger: 50 }, animProfile||{});
                 const smallMode = labels && labels.length > 8; // mensual normalmente
+                // Responsivo por ancho del lienzo para móvil/tablet
+                const w = (canvas && canvas.clientWidth) ? canvas.clientWidth : (canvas && canvas.width ? canvas.width : (window.innerWidth||1200));
+                const isMobile = w < 576;
+                const isTablet = !isMobile && w < 992;
+                const steps = Math.max(1, (labels && labels.length ? labels.length - 1 : 1));
+                const approxStep = Math.max(1, (w - 60)) / steps;
+                const dynMinGapX = Math.max(isMobile ? approxStep * 0.7 : (isTablet ? approxStep * 0.55 : approxStep * 0.45), smallMode ? 28 : 16);
+                const dynOffsetY = isMobile ? 28 : (isTablet ? 34 : 40);
+                const dynOffsetBelow = isMobile ? 22 : 26;
+                const xTickFont = isMobile ? 10 : (isTablet ? 11 : 12);
+                const yTickFont = isMobile ? 10 : (isTablet ? 11 : 12);
+                const maxTicks = isMobile ? 6 : (isTablet ? 8 : 12);
+                const padTop = isMobile ? 48 : (isTablet ? 56 : 64);
+                const padRight = isMobile ? 12 : 14;
+                const padBottom = isMobile ? 16 : 20;
+                const padLeft = isMobile ? 8 : 10;
                 return {
                     type: 'line',
                     data: { labels, datasets: [{
@@ -2378,7 +2406,7 @@ function renderOperacionesTotales() {
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        layout: { padding: { top: 64, right: 14, bottom: 20, left: 10 } },
+                        layout: { padding: { top: padTop, right: padRight, bottom: padBottom, left: padLeft } },
                         animation: {
                             duration: anim.duration,
                             easing: anim.easing,
@@ -2412,11 +2440,11 @@ function renderOperacionesTotales() {
                             // Desactivamos completamente chartjs-plugin-datalabels
                             datalabels: false,
                             travelerPlugin: traveler || {},
-                            dataBubble: { show: true, borderColor: border, fillColor: border, textColor: '#ffffff', format: fmtType, onlyMax: false, offsetY: 40, small: smallMode, minGapX: smallMode ? 34 : 16 }
+                            dataBubble: { show: true, borderColor: border, fillColor: border, textColor: '#ffffff', format: fmtType, onlyMax: false, offsetY: dynOffsetY, offsetBelow: dynOffsetBelow, small: smallMode, minGapX: Math.floor(dynMinGapX) }
                         },
                         scales: {
-                            x: { grid: { display: false }, ticks: { color: theme.ticks }, title: { display: true, text: xTitle, color: theme.labels, font: { weight: '600' } } },
-                            y: { beginAtZero: true, suggestedMax: Math.ceil(maxVal * 1.15), grid: { color: theme.grid }, ticks: { color: theme.ticks }, title: { display: true, text: label, color: theme.labels, font: { weight: '600' } } }
+                            x: { grid: { display: false }, ticks: { color: theme.ticks, maxTicksLimit: maxTicks, autoSkip: true, font: { size: xTickFont } }, title: { display: true, text: xTitle, color: theme.labels, font: { weight: '600' } } },
+                            y: { beginAtZero: true, suggestedMax: Math.ceil(maxVal * 1.15), grid: { color: theme.grid }, ticks: { color: theme.ticks, font: { size: yTickFont } }, title: { display: true, text: label, color: theme.labels, font: { weight: '600' } } }
                         }
                     },
                     plugins: [PeakGlowPlugin, TravelerPlugin, DataBubblePlugin]

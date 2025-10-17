@@ -107,6 +107,7 @@
                     <a class="menu-item" id="itinerario-mensual-menu" href="#" data-section="itinerario-mensual"><i class="fas fa-table"></i><span>Itinerario Mensual (Octubre)</span></a>
                     <a class="menu-item" href="#" data-section="comparativa"><i class="fas fa-chart-line"></i><span>Comparativa</span></a>
                     <a class="menu-item" href="#" data-section="manifiestos"><i class="fas fa-file-signature"></i><span>Manifiestos</span></a>
+                    <a class="menu-item" href="#" data-section="fauna"><i class="fas fa-dove"></i><span>Fauna</span></a>
                     
                     <a class="menu-item logout-item" href="#" data-action="logout"><i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span></a>
                 </nav>
@@ -386,7 +387,7 @@
                 <div id="parte-operaciones-section" class="content-section">
                     <div class="card">
                         <div class="card-header flex-column flex-md-row d-flex justify-content-between align-items-center">
-                            <h2 class="mb-3 mb-md-0">Resumen de operaciones (15 de octubre de 2025)</h2>
+                            <h2 class="mb-3 mb-md-0">Resumen de operaciones (16 de octubre de 2025)</h2>
                             <div class="d-flex gap-2">
                                 <a href="pdfs/parte_operaciones_completo.pdf" class="btn btn-danger download-btn" download><i class="fas fa-file-pdf me-2"></i><span class="btn-text">Descargar PDF</span></a>
                                 <a href="excel/parte_operaciones_completo.xlsx" class="btn btn-success download-btn" download><i class="fas fa-file-excel me-2"></i><span class="btn-text">Descargar Excel</span></a>
@@ -405,6 +406,102 @@
                                     <div class="pdf-container"><iframe src="pdfs/resumen_2.pdf" width="100%" height="700px" class="border-0"></iframe></div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fauna Section -->
+                <div id="fauna-section" class="content-section">
+                    <div class="text-center mb-3"><h2 class="fw-bold"><i class="fas fa-dove me-2"></i>Registros de Impactos con Fauna 2025</h2></div>
+                    <div class="card">
+                        <div class="card-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
+                            <div class="d-flex flex-wrap align-items-center gap-2 fauna-filters filters-bar">
+                                <div class="chip">
+                                    <label class="me-1"><i class="fas fa-calendar-alt me-1"></i>Fecha</label>
+                                    <input type="date" id="fauna-date-from" class="form-control form-control-sm" />
+                                    <span class="mx-1">a</span>
+                                    <input type="date" id="fauna-date-to" class="form-control form-control-sm" />
+                                </div>
+                                <div class="chip">
+                                    <label class="me-1"><i class="fas fa-calendar me-1"></i>Mes</label>
+                                    <select id="fauna-month" class="form-select form-select-sm">
+                                        <option value="all" selected>Todos</option>
+                                        <option value="01">Enero</option>
+                                        <option value="02">Febrero</option>
+                                        <option value="03">Marzo</option>
+                                        <option value="04">Abril</option>
+                                        <option value="05">Mayo</option>
+                                        <option value="06">Junio</option>
+                                        <option value="07">Julio</option>
+                                        <option value="08">Agosto</option>
+                                        <option value="09">Septiembre</option>
+                                        <option value="10">Octubre</option>
+                                        <option value="11">Noviembre</option>
+                                        <option value="12">Diciembre</option>
+                                    </select>
+                                </div>
+                                <div class="chip">
+                                    <label class="me-1"><i class="fas fa-paw me-1"></i>Especie</label>
+                                    <select id="fauna-species" class="form-select form-select-sm"><option value="all" selected>Todas</option></select>
+                                </div>
+                                <div class="chip">
+                                    <label class="me-1"><i class="fas fa-arrows-to-dot me-1"></i>Tamaño</label>
+                                    <select id="fauna-size" class="form-select form-select-sm"><option value="all" selected>Todos</option></select>
+                                </div>
+                                <div class="chip">
+                                    <label class="me-1"><i class="fas fa-plane-departure me-1"></i>Fase</label>
+                                    <select id="fauna-phase" class="form-select form-select-sm"><option value="all" selected>Todas</option></select>
+                                </div>
+                                <div class="chip chip-actions">
+                                    <label class="me-1"><i class="fas fa-broom me-1"></i>Acciones</label>
+                                    <button id="fauna-clear" class="btn btn-outline-secondary btn-sm">Limpiar</button>
+                                    <button id="fauna-export-csv" class="btn btn-outline-primary btn-sm"><i class="fas fa-file-csv me-1"></i>CSV</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex flex-wrap gap-3 mb-3">
+                                <span class="badge bg-primary" id="fauna-total-badge">Total: 0</span>
+                                <span class="badge bg-info text-dark" id="fauna-period-badge">Periodo: Todos</span>
+                            </div>
+                            <!-- Top horas críticas arriba -->
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fas fa-bolt text-warning"></i>
+                                    <strong>Top horas críticas</strong>
+                                    <span class="small text-muted">(con filtros aplicados)</span>
+                                </div>
+                                <div id="fauna-top-hours" class="mt-2 d-flex flex-wrap gap-2"></div>
+                            </div>
+                            <!-- Resumen despegues vs aterrizajes -->
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fas fa-plane me-1 text-primary"></i>
+                                    <strong>Resumen por fase de operación</strong>
+                                </div>
+                                <div id="fauna-phase-summary" class="mt-2 d-flex flex-wrap gap-2"></div>
+                            </div>
+                            <!-- Resumen visual: gráficas -->
+                            <div class="row g-3 mb-3">
+                                <div class="col-lg-6">
+                                    <h6 class="text-muted mb-2"><i class="fas fa-chart-column me-1"></i>Eventos por mes</h6>
+                                    <div class="chart-container" style="height:360px"><canvas id="fauna-by-month"></canvas></div>
+                                </div>
+                                <div class="col-lg-6">
+                                    <h6 class="text-muted mb-2"><i class="fas fa-paw me-1"></i>Eventos por especie</h6>
+                                    <div class="chart-container" style="height:360px"><canvas id="fauna-by-species"></canvas></div>
+                                </div>
+                                <div class="col-12">
+                                    <h6 class="text-muted mb-2"><i class="fas fa-grip-vertical me-1"></i>Matriz Mes × Condiciones (Heatmap)</h6>
+                                    <div class="chart-container heatmap-container" style="height:420px"><div id="fauna-heatmap" style="width:100%; height:100%"></div></div>
+                                </div>
+                                <div class="col-12">
+                                    <h6 class="text-muted mb-2"><i class="fas fa-clock me-1"></i>Distribución por hora del día</h6>
+                                    <div class="chart-container" style="height:360px"><canvas id="fauna-by-hour"></canvas></div>
+                                </div>
+                            </div>
+                            <!-- Tabla completa sin paginación -->
+                            <div class="table-responsive" id="fauna-table-container"></div>
                         </div>
                     </div>
                 </div>
@@ -1153,6 +1250,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
@@ -1333,6 +1431,7 @@
     <script src="js/operaciones.js"></script>
     <script src="js/frecuencias.js"></script>
     <script src="js/manifiestos.js"></script>
+    <script src="js/fauna.js"></script>
     
     <script src="script.js"></script>
     <!-- Loader Global -->

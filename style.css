@@ -162,6 +162,13 @@ body {
 
 .table-container-tech table { display: inline-table; }
 
+/* Fauna table specific improvements */
+.fauna-table { width: max-content; border-collapse: separate; border-spacing: 0; }
+.fauna-table thead th { position: sticky; top: 0; z-index: 2; background: rgba(0,0,0,0.05); backdrop-filter: blur(2px); }
+.fauna-table th, .fauna-table td { white-space: nowrap; }
+.fauna-table tbody { display: table-row-group; }
+.fauna-table thead { display: table-header-group; }
+
 /* Ensure origin and destino columns are wide enough to show values */
 /* Usamos clases semánticas para columnas anchas */
 .table-container-tech table td.col-origen, .table-container-tech table th.col-origen,
@@ -393,6 +400,7 @@ body.dark-mode .pdf-container iframe, body.dark-mode .pdf-preview-container ifra
 /* Chart containers - consistent height and spacing to avoid overlapping visuals */
 .chart-container { height: 300px; position: relative; }
 .card .chart-container canvas { width: 100% !important; height: 100% !important; }
+.card .chart-container > div { width: 100% !important; height: 100% !important; }
 
 /* Itinerary charts: dedicated horizontal scroll wrapper */
 .itinerary-charts-scroll {
@@ -632,4 +640,40 @@ body.dark-mode #manifest-records-table tbody tr:hover { background: rgba(255,255
 @media (max-width: 576px) {
    .animated-row, .fade-in-row { animation: none !important; opacity: 1 !important; transform: none !important; }
    .table-container-tech, .card, .pdf-preview-container { box-shadow: none; }
+}
+
+/* ===================== Fauna: Responsive ===================== */
+/* Compactar filtros de Fauna como los de Inicio */
+@media (max-width: 576px) {
+   #fauna-section .fauna-filters { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem .5rem; }
+   #fauna-section .fauna-filters .chip { width: 100%; min-width: 0 !important; justify-content: space-between; }
+   #fauna-section .fauna-filters .chip-actions { grid-column: 1 / -1; justify-content: flex-end; gap: .5rem; }
+   #fauna-section .fauna-filters .form-select,
+   #fauna-section .fauna-filters .form-control { width: 100%; font-size: .85rem; min-height: 30px; padding-top: 2px; padding-bottom: 2px; }
+   #fauna-section .fauna-filters label { font-size: .78rem; }
+}
+@media (min-width: 577px) and (max-width: 991.98px) {
+   #fauna-section .fauna-filters { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem .75rem; }
+   #fauna-section .fauna-filters .chip { width: 100%; min-width: 0 !important; }
+}
+
+/* Gráficas de Fauna: alturas menores en móviles/tablets para evitar scroll excesivo */
+@media (max-width: 576px) {
+   #fauna-section .chart-container { height: 280px !important; }
+   #fauna-section .heatmap-container { height: 320px !important; }
+}
+@media (min-width: 577px) and (max-width: 991.98px) {
+   #fauna-section .chart-container { height: 300px !important; }
+   #fauna-section .heatmap-container { height: 360px !important; }
+}
+
+/* Tabla de Fauna: asegurar scroll horizontal suave y encabezados pegajosos visibles */
+#fauna-section .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+#fauna-section .fauna-table thead th { position: sticky; top: 0; z-index: 5; }
+#fauna-section .fauna-table { font-variant-numeric: tabular-nums; }
+
+/* Etiquetas de badges y títulos compactos en móvil */
+@media (max-width: 576px) {
+   #fauna-section h6.text-muted { font-size: .95rem; }
+   #fauna-section .badge { font-size: .8rem; }
 }
