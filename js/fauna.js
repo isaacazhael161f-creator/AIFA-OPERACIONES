@@ -296,11 +296,49 @@
     const isSmall = window.matchMedia && window.matchMedia('(max-width: 576px)').matches;
     const option = {
       tooltip: { position: 'top' },
-      grid: { left: isSmall ? 80 : 100, right: 16, top: 12, bottom: isSmall ? 70 : 60, containLabel: true },
-      xAxis: { type: 'category', data: displayMonths, splitArea: { show: true }, axisLabel: { color: '#334155', rotate: months.length>8 ? 30 : 0 } },
-      yAxis: { type: 'category', data: weathers, splitArea: { show: true }, axisLabel: { color: '#334155' } },
-      visualMap: { min: 0, max: Math.max(1, ...data.map(d=>d[2])), calculable: true, orient: 'horizontal', left: 'center', bottom: 0 },
-      series: [{ name: 'Eventos', type: 'heatmap', data, label: { show: true }, emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.4)' } } }]
+      grid: { left: isSmall ? 76 : 100, right: 16, top: 8, bottom: isSmall ? 58 : 50, containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: displayMonths,
+        splitArea: { show: true },
+        axisLabel: {
+          color: '#334155',
+          rotate: months.length > (isSmall ? 6 : 8) ? 45 : 0,
+          fontSize: isSmall ? 10 : 12
+        }
+      },
+      yAxis: {
+        type: 'category',
+        data: weathers,
+        splitArea: { show: true },
+        axisLabel: {
+          color: '#334155',
+          fontSize: isSmall ? 10 : 12,
+          formatter: function(value){
+            const s = String(value || '');
+            const max = isSmall ? 12 : 18;
+            return s.length > max ? s.slice(0, max-1) + '…' : s;
+          }
+        }
+      },
+      visualMap: {
+        min: 0,
+        max: Math.max(1, ...data.map(d=>d[2])),
+        calculable: true,
+        orient: 'horizontal',
+        left: 'center',
+        bottom: 2,
+        textStyle: { fontSize: isSmall ? 10 : 12 }
+      },
+      series: [{
+        name: 'Eventos', type: 'heatmap', data,
+        label: { show: !isSmall, color: '#222', fontSize: 10 },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.25)' } }
+      }],
+      dataZoom: (isSmall && months.length > 6) ? [
+        { type: 'inside', xAxisIndex: 0, filterMode: 'none' },
+        { type: 'slider', xAxisIndex: 0, height: 12, bottom: 0 }
+      ] : []
     };
     chart.setOption(option, true);
     return chart;

@@ -661,6 +661,9 @@ body.dark-mode #manifest-records-table tbody tr:hover { background: rgba(255,255
 @media (max-width: 576px) {
    #fauna-section .chart-container { height: 280px !important; }
    #fauna-section .heatmap-container { height: 320px !important; }
+   /* Permitir scroll horizontal si los labels son largos o hay muchos meses */
+   #fauna-section .heatmap-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+   #fauna-section #fauna-heatmap { min-width: 520px; }
 }
 @media (min-width: 577px) and (max-width: 991.98px) {
    #fauna-section .chart-container { height: 300px !important; }
