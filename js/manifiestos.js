@@ -385,18 +385,10 @@
             const url = URL.createObjectURL(pdfFile);
             if (prevImg){ prevImg.src = url; prevImg.classList.remove('d-none'); }
             if (prevCanvas){ prevCanvas.classList.add('d-none'); }
-            if (prevTextLayer){ prevTextLayer.classList.remove('d-none'); prevTextLayer.style.display=''; prevTextLayer.textContent = 'Extrayendo texto (para copiar)...'; }
+            // Para imágenes: no ejecutar OCR ni mostrar texto reconocido en la capa
+            if (prevTextLayer){ prevTextLayer.textContent=''; prevTextLayer.classList.add('d-none'); }
             if (placeholder) placeholder.classList.add('d-none');
             try { window.manifestApplyZoom(); } catch(_){ }
-            // Disparar OCR ligero para habilitar copia de texto en imágenes
-            (async ()=>{
-              try {
-                await ensureTesseract();
-                const dataUrl = await fileToDataURL(pdfFile);
-                const { data } = await Tesseract.recognize(dataUrl, 'spa+eng', { logger: ()=>{} });
-                if (prevTextLayer){ prevTextLayer.textContent = (data && data.text) ? data.text : ''; }
-              } catch(_){ if (prevTextLayer){ prevTextLayer.textContent = ''; } }
-            })();
           }
         } catch(_){ }
       });
@@ -623,7 +615,8 @@
           try {
             const isArr = !!(dirArr && dirArr.checked);
             if (!isArr){
-              ['mf-slot-coordinated','mf-termino-pernocta'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.value='N/A'; } });
+              // No colocar 'N/A' en inputs de tipo tiempo; dejarlos vacíos
+              ['mf-slot-coordinated','mf-termino-pernocta'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.value=''; el.setCustomValidity(''); } });
             }
           } catch(_){ }
           setProgress(95, 'Casi listo...');
@@ -757,7 +750,7 @@
             try {
               const isArr = !!(dirArr && dirArr.checked);
               if (!isArr){
-                ['mf-slot-coordinated','mf-termino-pernocta'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.value='N/A'; } });
+                ['mf-slot-coordinated','mf-termino-pernocta'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.value=''; el.setCustomValidity(''); } });
               }
             } catch(_){ }
             setProgress(100, 'OCR alternativo completado'); syncProgressFinish();
@@ -1091,10 +1084,9 @@
         // Reglas específicas de valores para salidas
         try {
           if (!isArrival){
-            // Establecer N/A en campos indicados
-            const na = 'N/A';
-            const slotCoord = document.getElementById('mf-slot-coordinated'); if (slotCoord) slotCoord.value = na;
-            const terminoPernocta = document.getElementById('mf-termino-pernocta'); if (terminoPernocta) terminoPernocta.value = na;
+            // No usar 'N/A' en inputs de tiempo; dejarlos vacíos
+            const slotCoord = document.getElementById('mf-slot-coordinated'); if (slotCoord) { slotCoord.value = ''; slotCoord.setCustomValidity(''); }
+            const terminoPernocta = document.getElementById('mf-termino-pernocta'); if (terminoPernocta) { terminoPernocta.value = ''; terminoPernocta.setCustomValidity(''); }
           }
         } catch(_){ }
       }
@@ -1501,6 +1493,31 @@
   // Enforce 24h and departure-specific formatting on manual edits
   // No custom input normalization needed for mf-slot-assigned now that it's a native time input
   // Keeping this space for future input-specific hooks if required.
+  // Strict 24h validation for all time inputs
+  (function wireStrictTimeValidation(){
+    if (window._mfStrictTimeWired) return; window._mfStrictTimeWired = true;
+    function normTime(s){
+      try {
+        let v = (s||'').toString().trim(); if (!v) return '';
+        v = v.replace(/[hH\.]/g, ':');
+        if (/^\d{3,4}$/.test(v)){
+          const hh = v.length===3 ? ('0'+v[0]) : v.slice(0,2);
+          const mm = v.slice(-2); v = hh+':'+mm;
+        }
+        const m = /^(\d{1,2}):(\d{2})$/.exec(v); if (!m) return '';
+        const H = parseInt(m[1],10), M = parseInt(m[2],10);
+        if (!(H>=0 && H<=23 && M>=0 && M<=59)) return '';
+        return String(H).padStart(2,'0')+':'+String(M).padStart(2,'0');
+      } catch(_) { return ''; }
+    }
+    function validateEl(el){ if (!el) return; const n = normTime(el.value); if (!el.value) { el.setCustomValidity(''); return; } if (!n){ el.setCustomValidity('Hora inválida (00:00–23:59)'); } else { el.setCustomValidity(''); if (el.value !== n) el.value = n; } }
+    document.addEventListener('input', (e)=>{ const t=e.target; if (t && t.matches && t.matches('input[type="time"]')) validateEl(t); });
+    document.addEventListener('change', (e)=>{ const t=e.target; if (t && t.matches && t.matches('input[type="time"]')) validateEl(t); });
+    // One-time sweep on load
+    try { document.querySelectorAll('input[type="time"]').forEach(validateEl); } catch(_){ }
+    // Expose normalizer for internal use
+    window._mfNormTime = normTime;
+  })();
   
   // V2: Event-delegation based setup that guarantees the buttons work even if previous wiring failed
   window.setupManifestsUI_v2 = function setupManifestsUI_v2(){
@@ -1920,16 +1937,11 @@
             if (img){ img.src = url; img.classList.remove('d-none'); }
             if (canvas) canvas.classList.add('d-none');
             const textLayer = document.getElementById('manifest-text-layer');
-              if (textLayer){ textLayer.classList.remove('d-none'); textLayer.style.display=''; textLayer.textContent = 'Extrayendo texto (para copiar)...'; }
+              // No realizar OCR para imágenes de previsualización; ocultar text layer
+              if (textLayer){ textLayer.textContent=''; textLayer.classList.add('d-none'); }
             if (placeholder) placeholder.classList.add('d-none');
             try { window.manifestApplyZoom(); } catch(_){ }
-            // OCR ligero para habilitar copia de texto en imágenes (V2)
-            try {
-              await ensureTesseractLite();
-              const r = await new Promise((res)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.readAsDataURL(file); });
-              const { data } = await Tesseract.recognize(r, 'spa+eng', { logger: ()=>{} });
-              if (textLayer){ textLayer.textContent = (data && data.text) ? data.text : ''; }
-            } catch(_){ if (textLayer){ textLayer.textContent=''; } }
+            // OCR deshabilitado para imágenes de previsualización
           }
         } catch(_){ }
       }
@@ -1998,9 +2010,10 @@
                       if (/^\d{3,4}$/.test(v)){
                         const hh = v.length===3 ? ('0'+v[0]) : v.slice(0,2);
                         const mm = v.slice(-2);
-                        v = hh.padStart(2,'0') + ':' + mm;
+                        v = String(hh).padStart(2,'0') + ':' + mm;
                       }
-                      return v;
+                      const n = (window._mfNormTime? window._mfNormTime(v) : v);
+                      return n || '';
                     }
                   }
                 }
@@ -2015,9 +2028,10 @@
             if (/^\d{3,4}$/.test(v)){
               const hh = v.length===3 ? ('0'+v[0]) : v.slice(0,2);
               const mm = v.slice(-2);
-              v = hh.padStart(2,'0') + ':' + mm;
+              v = String(hh).padStart(2,'0') + ':' + mm;
             }
-            setVal(id, v);
+            const n = (window._mfNormTime? window._mfNormTime(v) : v);
+            if (n) setVal(id, n);
           };
           const chooseValidIATA = (code)=>{ const c=(code||'').toUpperCase(); return iataSet.size ? (iataSet.has(c)?c:'') : c; };
           let origen = chooseValidIATA(findNearLabelIATACode(['ORIGEN','PROCEDENCIA','FROM'], text));
@@ -2043,12 +2057,12 @@
             // tiempos salida (prefer 'HORA DE SLOT ASIGNADO' if present)
             const vSlotDep = extractTimeAfterLabel(/\bHORA\s+DE\s+SLOT\s+ASIGNADO\b/i, 3) || extractTimeAfterLabel(/\bSLOT\s+ASIGNADO\b/i, 1);
             if (vSlotDep) setVal('mf-slot-assigned', vSlotDep); else setTimeIf('mf-slot-assigned', ['SLOT ASIGNADO']);
-            // Coordinado en salidas: N/A
-            try { const el = document.getElementById('mf-slot-coordinated'); if (el) el.value = 'N/A'; } catch(_){ }
+            // Coordinado en salidas: dejar vacío
+            try { const el = document.getElementById('mf-slot-coordinated'); if (el) { el.value = ''; el.setCustomValidity(''); } } catch(_){ }
             setTimeIf('mf-inicio-embarque', ['INICIO MANIOBRAS DE EMBARQUE','INICIO DE EMBARQUE']);
             setTimeIf('mf-salida-posicion', ['SALIDA DE LA POSICION','SALIDA POSICION']);
-            // Término de pernocta en salidas: N/A
-            try { const el = document.getElementById('mf-termino-pernocta'); if (el) el.value = 'N/A'; } catch(_){ }
+            // Término de pernocta en salidas: dejar vacío
+            try { const el = document.getElementById('mf-termino-pernocta'); if (el) { el.value = ''; el.setCustomValidity(''); } } catch(_){ }
           }
 
           // 5) Pax total
@@ -2165,7 +2179,7 @@
           try {
             const isArr = !!(document.getElementById('mf-dir-arr')?.checked);
             if (!isArr){
-              const naIds = ['mf-slot-coordinated','mf-termino-pernocta']; naIds.forEach(id=>{ const el=document.getElementById(id); if(el) el.value='N/A'; });
+              const naIds = ['mf-slot-coordinated','mf-termino-pernocta']; naIds.forEach(id=>{ const el=document.getElementById(id); if(el){ el.value=''; el.setCustomValidity(''); } });
             }
           } catch(_){ }
           setProgress(95, 'Casi listo...');
