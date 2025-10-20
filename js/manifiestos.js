@@ -1,35 +1,819 @@
 ;(function(){
-  const sec = document.getElementById('manifiestos-section');
-  if (!sec) return;
+
+  // Global zoom and plane-progress helpers (shared by V1 and V2)
+  window.__manifestZoom = window.__manifestZoom || 1.0;
+  window.manifestApplyZoom = function(){
+    try {
+      const z = window.__manifestZoom;
+      const canvas = document.getElementById('manifest-preview-canvas');
+      const textLayer = document.getElementById('manifest-text-layer');
+      const img = document.getElementById('manifest-preview');
+      const label = document.getElementById('manifest-zoom-label');
+      if (label) label.textContent = Math.round(z*100)+'%';
+      const apply = (el)=>{ if (!el) return; el.style.transformOrigin='top left'; el.style.transform = 'scale('+z+')'; };
+      apply(canvas); apply(textLayer); apply(img);
+    } catch(_){}
+  };
+  window.manifestSetZoom = function(z){
+    const nz = Math.max(0.5, Math.min(3.0, Number(z)||1));
+    window.__manifestZoom = nz; window.manifestApplyZoom();
+  };
+  function planeProgressSet(p, text){
+    try {
+      const cont = document.getElementById('manifest-plane-progress');
+      const fill = document.getElementById('manifest-plane-fill');
+      const plane = document.getElementById('manifest-plane-icon');
+      const label = document.getElementById('manifest-plane-label');
+      if (!cont || !fill || !plane) return; 
+      cont.classList.remove('d-none');
+      const pct = Math.max(0, Math.min(100, Number(p)||0));
+      fill.style.width = pct+'%';
+      plane.style.left = pct+'%';
+      if (label) label.textContent = (Math.round(pct)) + '%'+ (text? ' · '+text : '');
+    } catch(_){}
+  }
+  function planeProgressHide(){
+    try {
+      const cont = document.getElementById('manifest-plane-progress');
+      const fill = document.getElementById('manifest-plane-fill');
+      const plane = document.getElementById('manifest-plane-icon');
+      const label = document.getElementById('manifest-plane-label');
+      if (fill) fill.style.width = '0%';
+      if (plane) plane.style.left = '0%';
+      if (label) label.textContent = '';
+      if (cont) cont.classList.add('d-none');
+    } catch(_){}
+  }
 
   // Move the full setup into this module
   window.setupManifestsUI = function setupManifestsUI(){
     try {
-      const up = document.getElementById('manifest-upload');
-      const prevImg = document.getElementById('manifest-preview');
-      const placeholder = document.getElementById('manifest-preview-placeholder');
-      const runBtn = document.getElementById('manifest-run-ocr');
-      const loadEx = document.getElementById('manifest-load-example');
-      const tableBody = document.querySelector('#manifest-records-table tbody');
-      const saveBtn = document.getElementById('manifest-save');
-      const clearBtn = document.getElementById('manifest-clear');
-      const exportBtn = document.getElementById('manifest-export-json');
-      const dirArr = document.getElementById('mf-dir-arr');
-      const dirDep = document.getElementById('mf-dir-dep');
+  const sec = document.getElementById('manifiestos-section');
+  if (!sec) return; // sección no presente aún
+  const up = document.getElementById('manifest-upload');
+  const prevImg = document.getElementById('manifest-preview');
+  const prevCanvas = document.getElementById('manifest-preview-canvas');
+  const prevTextLayer = document.getElementById('manifest-text-layer');
+  const zoomInBtn = document.getElementById('manifest-zoom-in');
+  const zoomOutBtn = document.getElementById('manifest-zoom-out');
+  const zoomLabel = document.getElementById('manifest-zoom-label');
+  const toggleTextBtn = document.getElementById('manifest-toggle-text');
+  if (zoomInBtn && !zoomInBtn._wired){ zoomInBtn._wired=1; zoomInBtn.addEventListener('click', ()=> window.manifestSetZoom(window.__manifestZoom + 0.1)); }
+  if (zoomOutBtn && !zoomOutBtn._wired){ zoomOutBtn._wired=1; zoomOutBtn.addEventListener('click', ()=> window.manifestSetZoom(window.__manifestZoom - 0.1)); }
+  if (toggleTextBtn && !toggleTextBtn._wired){ toggleTextBtn._wired=1; toggleTextBtn.addEventListener('click', ()=>{ if (!prevTextLayer) return; const hidden = prevTextLayer.style.display==='none' || prevTextLayer.classList.contains('d-none'); if (hidden){ prevTextLayer.classList.remove('d-none'); prevTextLayer.style.display=''; } else { prevTextLayer.classList.add('d-none'); prevTextLayer.style.display='none'; } }); }
+  // Wheel zoom on preview container
+  try {
+    const cont = document.getElementById('manifest-preview-container');
+  if (cont && !cont._wiredWheel){ cont._wiredWheel=1; cont.addEventListener('wheel', (e)=>{ if (e.ctrlKey || e.altKey){ e.preventDefault(); const dir = e.deltaY<0?1:-1; window.manifestSetZoom(window.__manifestZoom + dir*0.05); } }, { passive:false }); }
+  } catch(_){ }
+  const placeholder = document.getElementById('manifest-preview-placeholder');
+  const runBtn = document.getElementById('manifest-run-ocr');
+  const loadEx = document.getElementById('manifest-load-example');
+  const tableBody = document.querySelector('#manifest-records-table tbody');
+  const saveBtn = document.getElementById('manifest-save');
+  const clearBtn = document.getElementById('manifest-clear');
+  const exportBtn = document.getElementById('manifest-export-json');
+  const dirArr = document.getElementById('mf-dir-arr');
+  const dirDep = document.getElementById('mf-dir-dep');
+  const pdfStatus = document.getElementById('manifest-pdf-status');
+  const altScanBtn = document.getElementById('manifest-scan-ocr');
+  const ocrPagesSel = document.getElementById('manifest-ocr-pages');
+  const ocrDebug = document.getElementById('manifest-ocr-debug');
+    if (pdfStatus && !pdfStatus._init){ pdfStatus._init = 1; pdfStatus.textContent = 'Listo para escanear: seleccione archivo y presione un botón.'; }
+      // Si la página se abre bajo file://, deshabilitar funciones que usan fetch/XHR
+      try {
+        if (location && location.protocol === 'file:') {
+          const scanBtn = document.getElementById('manifest-scan-pdf');
+          if (scanBtn) scanBtn.disabled = true;
+          if (up) up.disabled = true;
+          if (pdfStatus) pdfStatus.classList.add('text-danger');
+          if (pdfStatus) pdfStatus.textContent = 'Este módulo requiere abrirse desde http(s). Usa Live Server o un servidor local (http://localhost:....).';
+          // Continuar el setup, pero evitar ejecuciones que hagan fetch más adelante
+        }
+      } catch(_){}
+      function dmyToISO(s){
+        try {
+          const m = /^(\d{1,2})\s*[\/\-.]\s*(\d{1,2})\s*[\/\-.]\s*(\d{2}|\d{4})$/.exec((s||'').trim());
+          if (!m) return '';
+          let dd = m[1], mm = m[2], yy = m[3];
+          let year = parseInt(yy, 10);
+          if (yy.length === 2){ year = (year <= 49) ? (2000 + year) : (1900 + year); }
+          // zero-pad
+          const z2 = (n)=> n.length===1? ('0'+n): n;
+          return `${year}-${z2(mm)}-${z2(dd)}`;
+        } catch(_) { return ''; }
+      }
+
+      async function extractPdfText(file) {
+        if (!window.pdfjsLib) {
+          pdfStatus.textContent = 'Cargando PDF.js...';
+          // Preferir CDN estable; si falla, intentar vendor local
+          let loaded = false;
+          try {
+            await new Promise((resolve, reject) => {
+              const s = document.createElement('script');
+              s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+              s.crossOrigin = 'anonymous';
+              s.onload = resolve; s.onerror = reject; document.head.appendChild(s);
+            });
+            window['pdfjsLib'].GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            loaded = true;
+          } catch(_) {}
+          if (!loaded) {
+            await new Promise((resolve, reject) => {
+              const s = document.createElement('script'); s.src = 'vendor/pdfjs/pdf.min.js'; s.onload = resolve; s.onerror = reject; document.head.appendChild(s);
+            }).catch(()=>{});
+            try { window['pdfjsLib'].GlobalWorkerOptions.workerSrc = 'vendor/pdfjs/pdf.worker.min.js'; } catch(_) {}
+          }
+          if (!window.pdfjsLib) {
+            pdfStatus.textContent = 'Error: No se pudo cargar PDF.js desde CDN ni vendor/.';
+            alert('Error crítico: PDF.js no está disponible. El escaneo de PDF no funcionará.');
+            throw new Error('PDF.js no disponible');
+          }
+        }
+        pdfStatus.textContent = 'Extrayendo texto del PDF...';
+        const reader = new FileReader();
+        reader.readAsArrayBuffer(file);
+        return new Promise((resolve, reject) => {
+          reader.onload = async function(e) {
+            try {
+              const pdf = await window.pdfjsLib.getDocument(new Uint8Array(e.target.result)).promise;
+              let fullText = '';
+              for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                fullText += content.items.map(item => item.str).join(' ') + '\n';
+                try {
+                  // Progress from 40% to 65% while extracting pages
+                  const pct = 40 + Math.round((i/pdf.numPages) * 25);
+                  (window._manifestProgressHook||function(){ })(pct, `Extrayendo texto (${i}/${pdf.numPages})...`);
+                } catch(_){ }
+              }
+              pdfStatus.textContent = 'Texto extraído.';
+              resolve(fullText);
+            } catch (err) {
+              pdfStatus.textContent = 'Error al extraer texto del PDF.';
+              reject(err);
+            }
+          };
+          reader.onerror = reject;
+        });
+      }
+      async function renderPdfPreviewFirstPage(file){
+        try {
+          await ensurePdfJsFromCDN();
+          const ab = await file.arrayBuffer();
+          const pdf = await window.pdfjsLib.getDocument(new Uint8Array(ab)).promise;
+          const page = await pdf.getPage(1);
+          const containerWidth = (prevCanvas && prevCanvas.parentElement) ? prevCanvas.parentElement.clientWidth : 1000;
+          const viewport = page.getViewport({ scale: 1 });
+          // Render larger: target near-container-width with a higher cap
+          const scale = Math.min(2.0, Math.max(0.9, containerWidth / viewport.width));
+          const vp = page.getViewport({ scale });
+          if (prevCanvas){
+            prevCanvas.width = vp.width; prevCanvas.height = vp.height;
+            const ctx = prevCanvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport: vp }).promise;
+            prevCanvas.classList.remove('d-none');
+            // Build a simple text layer with selectable spans
+            if (prevTextLayer){
+              prevTextLayer.innerHTML = '';
+              prevTextLayer.style.width = vp.width+'px';
+              prevTextLayer.style.height = vp.height+'px';
+              const content = await page.getTextContent();
+              const items = content.items || [];
+              for (const it of items){
+                const span = document.createElement('span');
+                span.textContent = it.str;
+                span.style.position = 'absolute';
+                const tx = window.pdfjsLib.Util.transform(vp.transform, it.transform);
+                const x = tx[4];
+                const y = tx[5];
+                const fontSize = Math.hypot(tx[0], tx[1]);
+                span.style.left = x + 'px';
+                // PDF coordinates: y origin bottom; approximate baseline to top-left
+                span.style.top = (vp.height - y) + 'px';
+                span.style.fontSize = fontSize + 'px';
+                span.style.whiteSpace = 'pre';
+                prevTextLayer.appendChild(span);
+              }
+              prevTextLayer.classList.remove('d-none');
+            }
+            window.manifestApplyZoom(); // apply current zoom transforms
+          }
+          if (prevImg) prevImg.classList.add('d-none');
+          if (placeholder) placeholder.classList.add('d-none');
+        } catch(e){ console.warn('No se pudo renderizar vista previa PDF:', e); }
+      }
+      async function ensureTesseract(){
+        if (window.Tesseract) return;
+        await new Promise((resolve, reject)=>{
+          const s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js';
+          s.crossOrigin = 'anonymous'; s.onload = resolve; s.onerror = reject; document.head.appendChild(s);
+        });
+      }
+      async function ocrPdfWithTesseract(file, maxPages = 2){
+        if (!window.Tesseract) throw new Error('Tesseract no disponible');
+        pdfStatus.textContent = 'Renderizando páginas para OCR...';
+        const ab = await file.arrayBuffer();
+        const pdf = await window.pdfjsLib.getDocument(new Uint8Array(ab)).promise;
+        let out = '';
+        const pages = Math.min(maxPages, pdf.numPages);
+        for (let p=1; p<=pages; p++){
+          setProgress(60 + Math.round((p-1)*20/pages), `OCR en página ${p}/${pages}...`);
+          const page = await pdf.getPage(p);
+          const viewport = page.getViewport({ scale: 2 });
+          const canvas = document.createElement('canvas');
+          canvas.width = viewport.width; canvas.height = viewport.height;
+          const ctx = canvas.getContext('2d');
+          await page.render({ canvasContext: ctx, viewport }).promise;
+          const dataUrl = canvas.toDataURL('image/png');
+          const { data } = await Tesseract.recognize(dataUrl, 'spa+eng', { logger: ()=>{} });
+          out += (data && data.text) ? (data.text + '\n') : '';
+        }
+        return out.trim();
+      }
+      // Load master catalogs for validation
+  let masterAirlines = [], masterAirports = [], masterAircraft = [];
+  // Índice rápido: matrícula normalizada -> canónica (del catálogo)
+  let masterRegIndex = new Map();
+      // Normaliza matrícula (mayúsculas, sin guiones ni espacios, sólo A-Z0-9)
+      function normalizeReg(s){ return (s||'').toString().toUpperCase().replace(/[^A-Z0-9]/g,''); }
+      // Variantes tolerantes a confusiones comunes de OCR
+      function regVariants(s){
+        const base = normalizeReg(s);
+        const out = new Set([base]);
+        const pairs = [['O','0'],['I','1'],['S','5'],['B','8'],['Z','2']];
+        for (const [A,B] of pairs){
+          if (base.includes(A)) out.add(base.replace(new RegExp(A,'g'), B));
+          if (base.includes(B)) out.add(base.replace(new RegExp(B,'g'), A));
+        }
+        return Array.from(out);
+      }
+      // Variantes de visualización (añade forma con guion según prefijo)
+      function regDisplayVariants(reg){
+        const R = (reg||'').toUpperCase();
+        const res = new Set([R]);
+        const addHyphen = (prefix)=>{ if (R.startsWith(prefix) && R.length > prefix.length){ res.add(prefix + '-' + R.slice(prefix.length)); } };
+        ['XA','XB','XC','HP','LV','CC','PR','CP','OB','TG','YV','EI','EC','LX','9H','4K','A7','TC','SU','OE','OY','SE','LN','TF','SX','YL','UR','YU','ZS','VT','VH','JA','HL','PK','PR','PT','HK','HS','RP','RP-C'].forEach(addHyphen);
+        // Generic fallback: also consider a hyphen after first two characters for display purposes
+        if (R.length > 4) res.add(R.slice(0,2) + '-' + R.slice(2));
+        return Array.from(res);
+      }
+      function resolveCatalogRegClassic(cand){
+        if (!cand) return '';
+        const variants = regVariants(cand);
+        for (const v of variants){
+          const hit = masterAircraft.find(ac => normalizeReg(ac.Registration) === v);
+          if (hit) return hit.Registration; // canónica
+        }
+        return '';
+      }
+      // Normaliza matrícula (mayúsculas, sin guiones ni espacios, sólo A-Z0-9)
+      function normalizeReg(s){ return (s||'').toString().toUpperCase().replace(/[^A-Z0-9]/g,''); }
+      // Genera variantes tolerantes a confusiones de OCR (aplica cada par globalmente)
+      function regVariants(s){
+        const base = normalizeReg(s);
+        const out = new Set([base]);
+        const pairs = [['O','0'],['I','1'],['S','5'],['B','8'],['Z','2']];
+        for (const [A,B] of pairs){
+          if (base.includes(A)) out.add(base.replace(new RegExp(A,'g'), B));
+          if (base.includes(B)) out.add(base.replace(new RegExp(B,'g'), A));
+        }
+        return Array.from(out);
+      }
+      // Busca en catálogo de aeronaves (masterAircraft) una matrícula canónica que coincida con el candidato (normalizado/variantes)
+      function resolveCatalogRegClassic(cand){
+        if (!cand) return '';
+        const variants = regVariants(cand);
+        for (const v of variants){
+          const hit = masterAircraft.find(ac => normalizeReg(ac.Registration) === v);
+          if (hit) return hit.Registration; // devolver canónica (como viene en CSV)
+        }
+        return '';
+      }
+  async function loadMasterCatalogs() {
+        const csvToArr = (csv) => {
+          const [header, ...lines] = csv.split(/\r?\n/).filter(Boolean);
+          const keys = header.split(',');
+          return lines.map(line => {
+            const vals = line.split(',');
+            const obj = {};
+            keys.forEach((k,i)=>obj[k.trim()]=vals[i]?vals[i].trim():"");
+            return obj;
+          });
+        };
+        try {
+          const a = await fetch('data/master/airlines.csv', { cache: 'no-store' });
+          masterAirlines = csvToArr(await a.text());
+        } catch(e){ masterAirlines = []; }
+        try {
+          const ap = await fetch('data/master/airports.csv', { cache: 'no-store' });
+          masterAirports = csvToArr(await ap.text());
+        } catch(e){ masterAirports = []; }
+        try {
+          const ac = await fetch('data/master/aircraft.csv', { cache: 'no-store' });
+          masterAircraft = csvToArr(await ac.text());
+          // Construir índice normalizado -> canónica
+          masterRegIndex.clear();
+          for (const row of masterAircraft){
+            const canon = (row && row.Registration || '').toUpperCase().trim();
+            if (!canon) continue;
+            const key = normalizeReg(canon);
+            if (key) masterRegIndex.set(key, canon);
+          }
+        } catch(e){ masterAircraft = []; masterRegIndex.clear(); }
+        if ((!masterAirlines.length || !masterAirports.length || !masterAircraft.length) && pdfStatus){
+          pdfStatus.classList.add('text-warning');
+          pdfStatus.textContent = (pdfStatus.textContent? pdfStatus.textContent + ' ' : '') + 'No se pudieron cargar todos los catálogos. Se continuará con validaciones básicas.';
+        }
+      }
+      loadMasterCatalogs();
+
+      // Utilidades para selección de variante mostrada
+      function includesIgnoreCase(haystack, needle){
+        try { return (haystack||'').toUpperCase().includes((needle||'').toUpperCase()); } catch(_){ return false; }
+      }
+      function pickPreferredVariant(canonical, text, optionsUpper){
+        const variants = regDisplayVariants(canonical);
+        // Preferir una variante que aparezca en el texto y exista en las opciones (si hay opciones)
+        for (const v of variants){
+          if (includesIgnoreCase(text, v) && (!optionsUpper || optionsUpper.length===0 || optionsUpper.includes(v.toUpperCase()))) return v;
+        }
+        return canonical;
+      }
+      function findCatalogRegInTextExhaustive(text){
+        // Búsqueda exhaustiva: quitar separadores del texto y buscar cualquier matrícula normalizada del catálogo como subcadena
+        try {
+          const U = (text||'').toUpperCase().replace(/[^A-Z0-9]/g, '');
+          if (!U || !masterRegIndex || masterRegIndex.size===0) return '';
+          for (const [norm, canon] of masterRegIndex.entries()){
+            if (norm && U.includes(norm)) return canon;
+          }
+        } catch(_){ }
+        return '';
+      }
+
+      function findValidAirline(val) {
+        val = (val||"").toUpperCase();
+        return masterAirlines.find(a => a.IATA === val || a.ICAO === val || a.Name.toUpperCase() === val);
+      }
+      function findValidAirport(val) {
+        val = (val||"").toUpperCase();
+        return masterAirports.find(a => a.IATA === val || a.ICAO === val || a.Name.toUpperCase() === val || a.City?.toUpperCase() === val);
+      }
+      function findValidAircraft(val) {
+        val = (val||"").toUpperCase();
+        return masterAircraft.find(ac => ac.Registration === val);
+      }
+
+      let pdfFile = null; // puede ser PDF o imagen
+      up.addEventListener('change', function(e) {
+        const f = up.files && up.files[0];
+        if (!f) { pdfFile = null; pdfStatus.textContent = 'No se seleccionó archivo.'; return; }
+        const isPdfMime = (f.type||'').toLowerCase() === 'application/pdf';
+        const isPdfName = /\.pdf$/i.test(f.name||'');
+        const isImage = /^image\//i.test(f.type||'') || /\.(png|jpg|jpeg|webp)$/i.test(f.name||'');
+        pdfFile = (isPdfMime || isPdfName || isImage) ? f : null;
+        pdfStatus.textContent = pdfFile ? `Archivo listo: ${f.name}` : 'Seleccione un PDF o imagen válido.';
+        // Render previsualización
+        try {
+          if (pdfFile && (isPdfMime || isPdfName)){
+            renderPdfPreviewFirstPage(pdfFile);
+          } else if (pdfFile && isImage){
+            const url = URL.createObjectURL(pdfFile);
+            if (prevImg){ prevImg.src = url; prevImg.classList.remove('d-none'); }
+            if (prevCanvas){ prevCanvas.classList.add('d-none'); }
+            if (prevTextLayer){ prevTextLayer.classList.remove('d-none'); prevTextLayer.style.display=''; prevTextLayer.textContent = 'Extrayendo texto (para copiar)...'; }
+            if (placeholder) placeholder.classList.add('d-none');
+            try { window.manifestApplyZoom(); } catch(_){ }
+            // Disparar OCR ligero para habilitar copia de texto en imágenes
+            (async ()=>{
+              try {
+                await ensureTesseract();
+                const dataUrl = await fileToDataURL(pdfFile);
+                const { data } = await Tesseract.recognize(dataUrl, 'spa+eng', { logger: ()=>{} });
+                if (prevTextLayer){ prevTextLayer.textContent = (data && data.text) ? data.text : ''; }
+              } catch(_){ if (prevTextLayer){ prevTextLayer.textContent = ''; } }
+            })();
+          }
+        } catch(_){ }
+      });
+
+  const progressBarContainer = document.getElementById('manifest-progress-bar-container');
+  const progressBar = document.getElementById('manifest-progress-bar');
+      let _pbCurrent = 0, _pbTarget = 0; // hard target from setProgress
+      let _pbEffTarget = 0;             // effective target that can creep forward
+      let _pbRAF = null, _pbLastTs = 0, _pbLabel = '';
+      let _pbLastUpdate = 0;            // last time setProgress was called
+      function _animProgress(ts){
+        if (_pbRAF === null) return;
+        if (!_pbLastTs) _pbLastTs = ts;
+        const dt = Math.max(0, (ts - _pbLastTs) / 1000);
+        _pbLastTs = ts;
+        // Allow effective target to creep forward after mid-point to avoid perceived stall
+        const creepRate = 6; // % per second advancing the target slowly
+        const creepEnabled = _pbTarget >= 50 && _pbTarget < 100;
+        if (creepEnabled){
+          // Do not surpass the hard target to avoid long waits at ~99%
+          const cap = Math.max(0, _pbTarget - 0.8); // keep a small margin below hard target
+          _pbEffTarget = Math.min(cap, Math.max(_pbEffTarget, _pbTarget*0.9) + creepRate * dt);
+        } else {
+          _pbEffTarget = Math.max(_pbEffTarget, _pbTarget);
+        }
+        // Cap visual speed: slower before 95%, a bit faster near completion
+        const maxSpeed = (_pbEffTarget >= 95 ? 35 : 22); // percent per second
+        if (_pbCurrent < _pbEffTarget){
+          _pbCurrent = Math.min(_pbEffTarget, _pbCurrent + maxSpeed * dt);
+        }
+        // Update legacy (hidden) and new plane bar with the smooth value
+        if (progressBar){
+          progressBar.style.width = _pbCurrent + '%';
+          progressBar.setAttribute('aria-valuenow', String(Math.round(_pbCurrent)));
+          const txt = _pbLabel || progressBar.getAttribute('data-text') || '';
+          progressBar.textContent = (Math.round(_pbCurrent) + '%') + (txt ? (' - ' + txt) : '');
+        }
+        try { planeProgressSet(_pbCurrent, _pbLabel); } catch(_){ }
+        if (_pbCurrent >= 100 && _pbTarget >= 100){
+          cancelAnimationFrame(_pbRAF); _pbRAF = null; _pbLastTs = 0;
+          return;
+        }
+        _pbRAF = requestAnimationFrame(_animProgress);
+      }
+      function setProgress(percent, text){
+        const p = Math.max(0, Math.min(100, Number(percent)||0));
+        if (progressBarContainer) progressBarContainer.style.display = 'none'; // hide legacy bar
+        if (typeof text === 'string'){
+          _pbLabel = text;
+          if (progressBar) progressBar.setAttribute('data-text', text);
+        }
+        _pbTarget = Math.max(_pbTarget, p); // monotónico ascendente
+        _pbEffTarget = Math.max(_pbEffTarget, _pbTarget);
+        if (p >= 100){ _pbEffTarget = 100; }
+        _pbLastUpdate = performance.now();
+        if (_pbRAF === null){ _pbRAF = requestAnimationFrame(_animProgress); }
+      }
+      // When processing completes, force a short, deterministic finish (<= 600ms)
+      function syncProgressFinish(){
+        try {
+          const now = performance.now();
+          const age = now - _pbLastUpdate;
+          // if no updates in the last ~300ms but the pipeline says done, ramp to 100 quickly
+          if (age > 300){ _pbTarget = 100; _pbEffTarget = 100; }
+        } catch(_){ }
+      }
+  // expose a simple hook used by extractPdfText to report page progress
+  window._manifestProgressHook = (p,t)=>{ try { setProgress(p,t); } catch(_){ } };
+      function hideProgress(){
+        if (_pbRAF){ cancelAnimationFrame(_pbRAF); _pbRAF = null; }
+        _pbCurrent = 0; _pbTarget = 0; _pbEffTarget = 0; _pbLastTs = 0; _pbLabel = '';
+        if (progressBarContainer) progressBarContainer.style.display = 'none';
+        try { planeProgressHide(); } catch(_){ }
+        if (progressBar){ progressBar.style.width = '0%'; progressBar.removeAttribute('data-text'); progressBar.textContent = ''; }
+      }
+
+      const scanPdfBtn = document.getElementById('manifest-scan-pdf');
+      if (scanPdfBtn && !scanPdfBtn._wired) {
+        scanPdfBtn._wired = 1;
+        scanPdfBtn.addEventListener('click', async function() {
+        if (!pdfFile) {
+          pdfStatus.textContent = 'Seleccione un PDF antes de escanear.';
+          hideProgress();
+          return;
+        }
+        const isPdf = /\.pdf$/i.test(pdfFile.name||'') || ((pdfFile.type||'').toLowerCase()==='application/pdf');
+        if (!isPdf) { pdfStatus.textContent = 'El archivo no es PDF. Use "Escaneo alternativo (OCR)".'; hideProgress(); return; }
+  setProgress(5, 'Preparando...');
+  setProgress(12, 'Escaneando PDF...');
+        pdfStatus.textContent = '';
+        // Espera a que los catálogos estén cargados
+        if (!masterAirlines.length || !masterAirports.length || !masterAircraft.length) {
+          setProgress(20, 'Cargando catálogos...');
+          pdfStatus.textContent = 'Cargando catálogos, espere...';
+          await loadMasterCatalogs();
+        }
+        try {
+          setProgress(28, 'Cargando motor PDF...');
+          setProgress(35, 'Extrayendo texto del PDF...');
+          let text = '';
+          try { text = await extractPdfText(pdfFile); } catch(_) { text = ''; }
+          if (!text || text.replace(/\s+/g,'').length < 30){
+            setProgress(50, 'Texto limitado; intentando OCR...');
+            try {
+              await ensureTesseract();
+              const ocrText = await ocrPdfWithTesseract(pdfFile, 2);
+              if (ocrText && ocrText.length > (text||'').length) text = ocrText;
+            } catch(_) {}
+          }
+          if (ocrDebug) ocrDebug.value = text || '';
+          setProgress(65, 'Procesando campos...');
+          // Title
+          const title = findNearLabelValue(['MANIFIESTO'], /MANIFIESTO.*/i, text);
+          setVal('mf-title', title);
+          // Vuelo
+          let vuelo = findNearLabelValue(['VUELO'], /[A-Z0-9]{3,6}/, text);
+          let airlineMatch = findValidAirline(vuelo?.slice(0,2));
+          setVal('mf-flight', airlineMatch ? vuelo : '');
+          // Fecha (DD/MM/YY o DD/MM/YYYY, soporta -, . y espacios)
+          let fecha = findNearLabelValue(['FECHA','FECHA DEL DOCUMENTO','FECHA DOC','FECHA DOCUMENTO'], /\b\d{1,2}\s*[\/\-.]\s*\d{1,2}\s*[\/\-.]\s*(\d{2}|\d{4})\b/, text);
+          let iso = dmyToISO(fecha);
+          if (!iso){
+            // Fallback: primera fecha válida en todo el texto
+            const m = (text||'').match(/\b(\d{1,2})\s*[\/\-.]\s*(\d{1,2})\s*[\/\-.]\s*(\d{2}|\d{4})\b/);
+            if (m) iso = dmyToISO(m[0]);
+          }
+          if (iso) { const el = document.getElementById('mf-doc-date'); if (el) el.value = iso; }
+          // Origen
+          let origen = findNearLabelIATACode(['ORIGEN'], text);
+          let origenMatch = findValidAirport(origen);
+          setVal('mf-origin-code', origenMatch ? origenMatch.IATA : '');
+          // Destino
+          let destino = findNearLabelIATACode(['DESTINO'], text);
+          let destinoMatch = findValidAirport(destino);
+          setVal('mf-final-dest-code', destinoMatch ? destinoMatch.IATA : '');
+          // Pasajeros
+          let pax = findNearLabelValue(['PASAJEROS','PAX'], /\d{1,4}/, text);
+          setVal('pax-total', pax || '');
+          // Tripulación total (número)
+          try {
+            const crew = findNearLabelValue(['TRIPULACION','TRIPULACIÓN','CREW'], /\b\d{1,3}\b/, text);
+            if (crew) setVal('mf-crew-total', crew);
+          } catch(_){}
+          // Piloto al mando
+          try {
+            const nameRx = /\b[A-ZÁÉÍÓÚÑ](?:\.|\s)\s?[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ]+\b/;
+            const pilot = findNearLabelValue(['PILOTO AL MANDO','PILOTO','CAPITAN','CAPITÁN'], nameRx, text);
+            if (pilot) setVal('mf-pilot', pilot);
+          } catch(_){}
+          // No. de licencia (cerca de No. LIC, búsqueda exhaustiva multi-línea)
+          try {
+            const lines = (text||'').split(/\r?\n/);
+            const labelRx = /\bNO\.?\s*LIC(?:\.|ENCIA)?\b/i;
+            let found = '';
+            for (let i=0;i<lines.length;i++){
+              if (labelRx.test(lines[i])){
+                const scanSeg = [];
+                for (let k=1;k<=3;k++){ if (lines[i+k]) scanSeg.push(lines[i+k]); }
+                const joined = scanSeg.join(' ').replace(/\s+/g,' ').trim();
+                // Capturar la primera secuencia alfanumérica larga (ej. TPI200105061)
+                const m = joined.match(/[A-Z]{1,6}\d{5,}|\d{7,}/i);
+                if (m){ found = m[0].toUpperCase(); break; }
+              }
+            }
+            if (!found){
+              // Fallback: buscar en todo el texto después de la etiqueta
+              const all = (text||'');
+              const m2 = all.match(/NO\.?\s*LIC(?:\.|ENCIA)?[\s:]*([A-Z]{1,6}\d{5,}|\d{7,})/i);
+              if (m2) found = (m2[1]||'').toUpperCase();
+            }
+            if (found) setVal('mf-pilot-license', found);
+          } catch(_){}
+          // Equipo (tipo aeronave) por extracción directa de texto cerca de etiqueta
+          try {
+            const typeICAO = extractAircraftTypeICAOFromText(text);
+            if (typeICAO && typeIcaoSet && typeIcaoSet.has(typeICAO)) setVal('mf-aircraft', typeICAO);
+          } catch(_){}
+          // Aeronave (matrícula)
+          const regLabels = ['MATRICULA','MATRÍCULA','REGISTRO','REGISTRATION'];
+          let reg = findNearLabelValue(regLabels, /\b[A-Z0-9-]{3,10}\b/, text) || '';
+          if (isLabelWord(reg, regLabels)) reg = '';
+          const dlReg = document.getElementById('aircraft-reg-list');
+          const opts = dlReg ? Array.from(dlReg.querySelectorAll('option')).map(o=> (o.getAttribute('value')||'').toUpperCase()) : [];
+          let up = (reg||'').toUpperCase();
+          let canon = resolveCatalogRegClassic(up);
+          // Si el texto cercado solo devolvió la palabra EQUIPO o no hay match en catálogo, intentar búsqueda global por patrones de matrícula
+          if ((!canon || up === 'EQUIPO') && text){
+            const tailPatterns = [
+                /\bX[A-C]-?[A-Z0-9]{3,6}\b/gi, /\bN\d{1,5}[A-Z]{0,3}\b/gi, /\bH[KP]-?[0-9A-Z]{3,8}\b/gi, /\bLV-?[A-Z0-9]{3,5}\b/gi,
+                /\bCC-?[A-Z0-9]{3,5}\b/gi, /\bPR-?[A-Z0-9]{3,5}\b/gi, /\bCP-?[0-9A-Z]{3,6}\b/gi, /\bYV-?[0-9A-Z]{3,6}\b/gi,
+                /\bOB-?[0-9A-Z]{3,6}\b/gi, /\bTG-?[0-9A-Z]{3,6}\b/gi, /\bTC-?[A-Z0-9]{3,6}\b/gi, /\bEI-?[A-Z]{3,5}\b/gi,
+                /\bEC-?[A-Z]{3,5}\b/gi, /\bLX-?[A-Z0-9]{3,5}\b/gi, /\b9H-?[A-Z0-9]{3,6}\b/gi, /\b4K-?[A-Z0-9]{3,6}\b/gi,
+                /\bA7-?[A-Z0-9]{3,6}\b/gi, /\bXA[A-Z0-9]{0,}\b/gi
+              ];
+            let mReg = '';
+            for (const rx of tailPatterns){ const m = text.match(rx); if (m && m.length){ mReg = m[0].toUpperCase().replace(/\s+/g,''); break; } }
+            if (mReg){ up = mReg; canon = resolveCatalogRegClassic(mReg); }
+            // Fallback exhaustivo por catálogo (normalizado)
+            if (!canon){ const ex = findCatalogRegInTextExhaustive(text); if (ex){ canon = ex; up = ex; } }
+          }
+          if (canon){
+            const preferred = pickPreferredVariant(canon, text, opts);
+            if (!isLabelWord(preferred, regLabels)) {
+              // Validar contra catálogo normalizado
+              const key = normalizeReg(preferred);
+              if (!masterRegIndex.size || masterRegIndex.has(key)) {
+                setVal('mf-tail', preferred);
+              }
+            }
+            const el = document.getElementById('mf-tail'); if (el) el.dispatchEvent(new Event('change', { bubbles: true }));
+          } else if (up && opts.includes(up)) {
+            if (!isLabelWord(up, regLabels)) {
+              const key = normalizeReg(up);
+              if (!masterRegIndex.size || masterRegIndex.has(key)) {
+                setVal('mf-tail', up);
+              }
+            }
+            const el = document.getElementById('mf-tail'); if (el) el.dispatchEvent(new Event('change', { bubbles: true }));
+          } else {
+            setVal('mf-tail', '');
+          }
+          // Equipo: no se fija aquí; se resolverá al cambiar Matrícula (handler de tail)
+          // Post-procesado de horas (Salida): N/A donde aplica
+          try {
+            const isArr = !!(dirArr && dirArr.checked);
+            if (!isArr){
+              ['mf-slot-coordinated','mf-termino-pernocta'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.value='N/A'; } });
+            }
+          } catch(_){ }
+          setProgress(95, 'Casi listo...');
+          setProgress(100, 'Escaneo completado'); syncProgressFinish();
+          pdfStatus.textContent = 'Escaneo completado. Campos rellenados y validados.';
+          setTimeout(hideProgress, 2000);
+        } catch (err) {
+          setProgress(100, 'Error al procesar PDF');
+          pdfStatus.textContent = 'No se pudo procesar el PDF.';
+          setTimeout(hideProgress, 2000);
+        }
+        });
+      }
+
+      // Escaneo alternativo: OCR puro (PDF o imagen)
+      if (altScanBtn && !altScanBtn._wired) {
+        altScanBtn._wired = 1;
+        altScanBtn.addEventListener('click', async function(){
+          try {
+            if (!pdfFile) { pdfStatus.textContent = 'Seleccione un PDF o imagen antes de escanear.'; return; }
+            await ensureTesseract();
+            setProgress(10, 'Preparando OCR alternativo...'); pdfStatus.textContent = '';
+            let text = '';
+            const maxPages = parseInt((ocrPagesSel && ocrPagesSel.value) || '2', 10) || 2;
+            const isPdf = /\.pdf$/i.test(pdfFile.name||'') || ((pdfFile.type||'').toLowerCase()==='application/pdf');
+            if (isPdf) {
+              await ensurePdfJsFromCDN();
+              text = await ocrPdfWithTesseract(pdfFile, maxPages);
+            } else {
+              // Imagen directa
+              setProgress(40, 'OCR en imagen...');
+              const dataUrl = await fileToDataURL(pdfFile);
+              const { data } = await Tesseract.recognize(dataUrl, 'spa+eng', { logger: ()=>{} });
+              text = (data && data.text) ? data.text : '';
+            }
+            if (ocrDebug) ocrDebug.value = text || '';
+            setProgress(70, 'Procesando campos...');
+            // Reutilizar el mismo pipeline de parseo
+            const title = findNearLabelValue(['MANIFIESTO'], /MANIFIESTO.*/i, text);
+            setVal('mf-title', title);
+            let vuelo = findNearLabelValue(['VUELO'], /[A-Z0-9]{3,6}/, text);
+            let airlineMatch = findValidAirline(vuelo?.slice(0,2));
+            setVal('mf-flight', airlineMatch ? vuelo : '');
+            let fecha = findNearLabelValue(['FECHA','FECHA DEL DOCUMENTO','FECHA DOC','FECHA DOCUMENTO'], /\b\d{1,2}\s*[\/\-.]\s*\d{1,2}\s*[\/\-.]\s*(\d{2}|\d{4})\b/, text);
+            let iso = dmyToISO(fecha);
+            if (!iso){ const m = (text||'').match(/\b(\d{1,2})\s*[\/\-.]\s*(\d{1,2})\s*[\/\-.]\s*(\d{2}|\d{4})\b/); if (m) iso = dmyToISO(m[0]); }
+            if (iso) { const el = document.getElementById('mf-doc-date'); if (el) el.value = iso; }
+            let origen = findNearLabelIATACode(['ORIGEN','PROCEDENCIA'], text);
+            let origenMatch = findValidAirport(origen);
+            setVal('mf-origin-code', origenMatch ? origenMatch.IATA : '');
+            let destino = findNearLabelIATACode(['DESTINO'], text);
+            let destinoMatch = findValidAirport(destino);
+            setVal('mf-final-dest-code', destinoMatch ? destinoMatch.IATA : '');
+            let pax = findNearLabelValue(['PASAJEROS','PAX'], /\d{1,4}/, text);
+            setVal('pax-total', pax || '');
+            // Tripulación total (número)
+            try {
+              const crew = findNearLabelValue(['TRIPULACION','TRIPULACIÓN','CREW'], /\b\d{1,3}\b/, text);
+              if (crew) setVal('mf-crew-total', crew);
+            } catch(_){}
+            // Piloto al mando
+            try {
+              const nameRx = /\b[A-ZÁÉÍÓÚÑ](?:\.|\s)\s?[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ]+\b/;
+              const pilot = findNearLabelValue(['PILOTO AL MANDO','PILOTO','CAPITAN','CAPITÁN'], nameRx, text);
+              if (pilot) setVal('mf-pilot', pilot);
+            } catch(_){}
+            // No. de licencia (exhaustivo multi-línea)
+            try {
+              const lines = (text||'').split(/\r?\n/);
+              const labelRx = /\bNO\.?\s*LIC(?:\.|ENCIA)?\b/i;
+              let found = '';
+              for (let i=0;i<lines.length;i++){
+                if (labelRx.test(lines[i])){
+                  const scanSeg = [];
+                  for (let k=1;k<=3;k++){ if (lines[i+k]) scanSeg.push(lines[i+k]); }
+                  const joined = scanSeg.join(' ').replace(/\s+/g,' ').trim();
+                  const m = joined.match(/[A-Z]{1,6}\d{5,}|\d{7,}/i);
+                  if (m){ found = m[0].toUpperCase(); break; }
+                }
+              }
+              if (!found){
+                const all = (text||'');
+                const m2 = all.match(/NO\.?\s*LIC(?:\.|ENCIA)?[\s:]*([A-Z]{1,6}\d{5,}|\d{7,})/i);
+                if (m2) found = (m2[1]||'').toUpperCase();
+              }
+              if (found) setVal('mf-pilot-license', found);
+            } catch(_){}
+            // Equipo (tipo aeronave) por extracción directa de texto cerca de etiqueta
+            try {
+              const typeICAO = extractAircraftTypeICAOFromText(text);
+              if (typeICAO && typeIcaoSet && typeIcaoSet.has(typeICAO)) setVal('mf-aircraft', typeICAO);
+            } catch(_){}
+            const regLabels2 = ['MATRICULA','MATRÍCULA','REGISTRO','REGISTRATION','MATRÍCULA','MATRICULA'];
+            let reg = findNearLabelValue(regLabels2, /\b[A-Z0-9-]{3,10}\b/, text) || '';
+            if (isLabelWord(reg, regLabels2)) reg = '';
+            const dlReg = document.getElementById('aircraft-reg-list');
+            const opts = dlReg ? Array.from(dlReg.querySelectorAll('option')).map(o=> (o.getAttribute('value')||'').toUpperCase()) : [];
+            let up = (reg||'').toUpperCase();
+            let canon = resolveCatalogRegClassic(up);
+            if ((!canon || up === 'EQUIPO') && text){
+              const tailPatterns = [
+                /\bX[A-C]-?[A-Z0-9]{3,6}\b/gi, /\bN\d{1,5}[A-Z]{0,3}\b/gi, /\bH[KP]-?[0-9A-Z]{3,8}\b/gi, /\bLV-?[A-Z0-9]{3,5}\b/gi,
+                /\bCC-?[A-Z0-9]{3,5}\b/gi, /\bPR-?[A-Z0-9]{3,5}\b/gi, /\bCP-?[0-9A-Z]{3,6}\b/gi, /\bYV-?[0-9A-Z]{3,6}\b/gi,
+                /\bOB-?[0-9A-Z]{3,6}\b/gi, /\bTG-?[0-9A-Z]{3,6}\b/gi, /\bTC-?[A-Z0-9]{3,6}\b/gi, /\bEI-?[A-Z]{3,5}\b/gi,
+                /\bEC-?[A-Z]{3,5}\b/gi, /\bLX-?[A-Z0-9]{3,5}\b/gi, /\b9H-?[A-Z0-9]{3,6}\b/gi, /\b4K-?[A-Z0-9]{3,6}\b/gi,
+                /\bA7-?[A-Z0-9]{3,6}\b/gi, /\bXA[A-Z0-9]{0,}\b/gi
+              ];
+              let mReg = '';
+              for (const rx of tailPatterns){ const m = text.match(rx); if (m && m.length){ mReg = m[0].toUpperCase().replace(/\s+/g,''); break; } }
+              if (mReg){ up = mReg; canon = resolveCatalogRegClassic(mReg); }
+              if (!canon){ const ex = findCatalogRegInTextExhaustive(text); if (ex){ canon = ex; up = ex; } }
+            }
+            if (canon){
+              const preferred = pickPreferredVariant(canon, text, opts);
+              if (!isLabelWord(preferred, regLabels2)){
+                const key = normalizeReg(preferred);
+                if (!masterRegIndex.size || masterRegIndex.has(key)) setVal('mf-tail', preferred);
+              }
+              const el = document.getElementById('mf-tail'); if (el) el.dispatchEvent(new Event('change', { bubbles: true }));
+            } else if (up && opts.includes(up)) {
+              if (!isLabelWord(up, regLabels2)){
+                const key = normalizeReg(up);
+                if (!masterRegIndex.size || masterRegIndex.has(key)) setVal('mf-tail', up);
+              }
+              const el = document.getElementById('mf-tail'); if (el) el.dispatchEvent(new Event('change', { bubbles: true }));
+            } else {
+              setVal('mf-tail', '');
+            }
+            // Equipo: no se fija aquí; el handler de tail lo resuelve
+            // Post-procesado de horas (Salida): N/A donde aplica
+            try {
+              const isArr = !!(dirArr && dirArr.checked);
+              if (!isArr){
+                ['mf-slot-coordinated','mf-termino-pernocta'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.value='N/A'; } });
+              }
+            } catch(_){ }
+            setProgress(100, 'OCR alternativo completado'); syncProgressFinish();
+            pdfStatus.textContent = 'Escaneo alternativo completado.';
+            setTimeout(hideProgress, 2000);
+          } catch (e){
+            setProgress(100, 'Error en OCR alternativo');
+            pdfStatus.textContent = 'No se pudo completar el OCR alternativo.';
+            setTimeout(hideProgress, 2000);
+          }
+        });
+  }
+
+      async function ensurePdfJsFromCDN(){
+        if (window.pdfjsLib) return;
+        await new Promise((resolve, reject)=>{
+          const s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+          s.crossOrigin = 'anonymous'; s.onload = resolve; s.onerror = reject; document.head.appendChild(s);
+        });
+        try { window['pdfjsLib'].GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch(_) {}
+      }
+
+      function fileToDataURL(file){
+        return new Promise((resolve, reject)=>{
+          const r = new FileReader(); r.onload = ()=> resolve(r.result); r.onerror = reject; r.readAsDataURL(file);
+        });
+      }
       let currentImageURL = '';
       let airlinesCatalog = [];
       let iataToIcao = new Map();
       let icaoSet = new Set();
-      let aircraftByReg = new Map();
-      let typeByCode = new Map();
+  let aircraftByReg = new Map();
+  let typeByCode = new Map();
+  let typeIcaoSet = new Set();
+  let icaoToTypeName = new Map();
       let airportByIATA = new Map();
       let airportByName = new Map();
       let iataSet = new Set();
 
       function setVal(id, v){ const el = document.getElementById(id); if (el) el.value = v; }
+      function isLabelWord(s, labels){
+        const u = (s||'').toString().trim().toUpperCase();
+        if (!u) return false;
+        return labels.some(lbl => u === String(lbl||'').toUpperCase());
+      }
+      function setTailWarning(msg){
+        const w = document.getElementById('mf-tail-warning');
+        if (!w) return;
+        if (msg){ w.textContent = msg; w.classList.remove('d-none'); }
+        else { w.textContent = ''; w.classList.add('d-none'); }
+      }
       function hasWordFactory(text){ const U=(text||'').toUpperCase(); return (w)=> U.includes(String(w||'').toUpperCase()); }
       function tokenizeUpper(text){ return (text||'').toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean); }
-      const timeRx = /\b(?:([01]?\d|2[0-3])[:hH\.]\s?([0-5]\d))(?:\s?(?:hrs|hr|h))?\b/;
+  // Time patterns: HH:MM, HH.MM, HHhMM, H:MM, and compact HHMM (24h)
+  const timeRx = /\b(?:([01]?\d|2[0-3])[:hH\.]\s?([0-5]\d)|([01]?\d|2[0-3])([0-5]\d))\b(?:\s?(?:hrs|hr|h))?/;
       function findNearLabelValue(labels, valueRegex, text){
         try{
           const lines = (text||'').split(/\r?\n/);
@@ -42,6 +826,43 @@
           }
         }catch(_){ }
         return '';
+      }
+      function normalizeTextSimple1(s){ return (s||'').toString().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim(); }
+      function matchAirlineByName1(text){
+        try {
+          const T = normalizeTextSimple1(text);
+          let best = null; let bestLen = 0;
+          for (const a of (airlinesCatalog||[])){
+            const name = (a && a.Name) ? a.Name : '';
+            if (!name) continue;
+            const N = normalizeTextSimple1(name);
+            if (!N) continue;
+            if (T.includes(N) && N.length > bestLen){ best = a; bestLen = N.length; }
+          }
+          return best; // { IATA, ICAO, Name } o null
+        } catch(_) { return null; }
+      }
+      function resolveCarrierICAO1(text, opts={}){
+        const cand = [];
+        const add = (code, score, why)=>{ if (!code || !/^[A-Z]{3}$/.test(code)) return; if (!icaoSet || !icaoSet.has(code)) return; cand.push({ code, score, why }); };
+        try {
+          const flight = (opts.flight||'').toString();
+          if (flight){
+            const cleaned = flight.replace(/\s|-/g,'').toUpperCase();
+            const pref3 = cleaned.slice(0,3); const pref2 = cleaned.slice(0,2);
+            if (pref3 && icaoSet.has(pref3)) add(pref3, 90, 'flight-icao');
+            if (pref2 && iataToIcao.has(pref2)) add(iataToIcao.get(pref2)||'', 80, 'flight-iata');
+          }
+          const labHit = findNearLabelValue(['TRANSPORTISTA','OPERADOR','OPERADOR AEREO','OPERADOR AÉREO','CARRIER','AIRLINE'], /\b[A-Z]{3}\b/, text);
+          if (labHit){ const code = (labHit||'').toUpperCase(); add(code, 85, 'label'); }
+          const tokens = tokenizeUpper(text);
+          for (const t of tokens){ if (t.length===3 && /^[A-Z]{3}$/.test(t) && icaoSet.has(t)) add(t, 35, 'token'); }
+          const byName = matchAirlineByName1(text); if (byName && byName.ICAO) add(byName.ICAO, 75, 'name');
+          const ownerIATA = (opts.ownerIATA||'').toString().toUpperCase(); if (ownerIATA && iataToIcao.has(ownerIATA)) add(iataToIcao.get(ownerIATA)||'', 100, 'owner');
+        } catch(_){}
+        if (!cand.length) return null;
+        cand.sort((a,b)=> b.score - a.score);
+        return cand[0];
       }
       function findNearLabelIATACode(labels, text){
         const rxIATA = /\b[A-Z]{3}\b/g;
@@ -116,7 +937,7 @@
           const resA = await fetch('data/master/aircraft.csv', { cache:'no-store' });
           const textA = await resA.text();
           const linesA = textA.split(/\r?\n/).filter(l=>l.trim());
-          const regOptions = [];
+          const regOptions = new Set();
           for (let i=1;i<linesA.length;i++){
             const row = linesA[i];
             const parts = row.split(',');
@@ -124,10 +945,13 @@
             const reg = (parts[0]||'').trim().toUpperCase();
             const type = (parts[1]||'').trim().toUpperCase();
             const ownerIATA = (parts[2]||'').trim().toUpperCase();
-            if (reg) { aircraftByReg.set(reg, { type, ownerIATA }); regOptions.push(`<option value="${reg}"></option>`); }
+            if (reg) {
+              aircraftByReg.set(reg, { type, ownerIATA });
+              for (const v of regDisplayVariants(reg)) regOptions.add(v);
+            }
           }
           const dlReg = document.getElementById('aircraft-reg-list');
-          if (dlReg) dlReg.innerHTML = regOptions.join('');
+          if (dlReg) dlReg.innerHTML = Array.from(regOptions).sort().map(v=>`<option value="${v}"></option>`).join('');
         } catch(e){ console.warn('No se pudo cargar aircraft.csv', e); }
         try {
           const resT = await fetch('data/master/aircraft type.csv', { cache:'no-store' });
@@ -142,11 +966,56 @@
             const icao = (parts[1]||'').trim().toUpperCase();
             const name = (parts[2]||'').trim();
             if (codeIATA) { typeByCode.set(codeIATA, { ICAO: icao, Name: name }); }
-            if (icao) typeOptions.push(`<option value="${icao}">${name?name:''}</option>`);
+            if (icao) { typeOptions.push(`<option value="${icao}">${name?name:''}</option>`); typeIcaoSet.add(icao); if (name) icaoToTypeName.set(icao, name); }
           }
           const dlType = document.getElementById('aircraft-type-icao-list');
           if (dlType) dlType.innerHTML = typeOptions.join('');
         } catch(e){ console.warn('No se pudo cargar aircraft type.csv', e); }
+      }
+      function extractAircraftTypeICAOFromText(text){
+        try {
+          const U = (text||'').toUpperCase();
+          const lines = (text||'').split(/\r?\n/);
+          const labels = ['EQUIPO','TIPO','TIPO DE AERONAVE','AIRCRAFT TYPE'];
+          const cand = new Map();
+          const add = (code, score)=>{ const c=(code||'').toUpperCase().replace(/[^A-Z0-9]/g,''); if (!c) return; cand.set(c, Math.max(cand.get(c)||0, score)); };
+          const pushNear = (s, base)=>{
+            const toks = (s||'').toUpperCase().match(/[A-Z0-9-]{2,9}/g) || [];
+            for (const t of toks){
+              const clean = t.replace(/-/g,'');
+              if (/^[A-Z0-9]{3,4}$/.test(clean) && typeIcaoSet.has(clean)) add(clean, base);
+              if (/^[A-Z0-9]{2,3}$/.test(clean) && typeByCode.has(clean)){
+                const ic = (typeByCode.get(clean)?.ICAO)||''; if (ic) add(ic, base-5);
+              }
+              if (/^B737[0-9]$/.test(clean)) add('B73'+clean.slice(-1), base-10);
+              if (/^A32[0-1][0-9]$/.test(clean)) add('A32'+clean.slice(-1), base-10);
+            }
+            // Family/variant regexes (composite tokens like A330-300 P2F)
+            const S = (s||'').toUpperCase();
+            if (/\bA330\s*[- ]?\s*300\b/.test(S) || /\bA333\b/.test(S)) add('A333', base+2);
+            if (/\bA330\s*[- ]?\s*200\b/.test(S) || /\bA332\b/.test(S)) add('A332', base+2);
+            // Minor bump if P2F appears with A330
+            if (/\bA330\b/.test(S) && /\bP2F\b/.test(S)){
+              if (/\b300\b/.test(S)) add('A333', base+3);
+              if (/\b200\b/.test(S)) add('A332', base+3);
+            }
+          };
+          for (let i=0;i<lines.length;i++){
+            const u = (lines[i]||'').toUpperCase();
+            if (labels.some(l=> u.includes(l))){
+              pushNear(lines[i], 90);
+              if (lines[i+1]) pushNear(lines[i+1], 85);
+              if (lines[i+2]) pushNear(lines[i+2], 75);
+            }
+          }
+          const global = U.match(/[A-Z0-9]{3,4}/g)||[];
+          for (const g of global){ if (typeIcaoSet.has(g)) add(g, 50); }
+          // Global composite patterns
+          if (/\bA330\s*[- ]?\s*300\b/.test(U)) add('A333', 55);
+          if (/\bA330\s*[- ]?\s*200\b/.test(U)) add('A332', 55);
+          if (!cand.size) return '';
+          return Array.from(cand.entries()).sort((a,b)=> b[1]-a[1])[0][0] || '';
+        } catch(_) { return ''; }
       }
       async function loadAirportsCatalog(){
         try {
@@ -157,7 +1026,7 @@
             const cols = []; let cur=''; let inQuotes=false;
             for (let i=0;i<line.length;i++){
               const ch=line[i];
-              if (ch==='"'){
+              if (canon){
                 if (inQuotes && line[i+1]==='"'){ cur+='"'; i++; }
                 else inQuotes = !inQuotes;
               } else if (ch===',' && !inQuotes){ cols.push(cur); cur=''; }
@@ -167,6 +1036,7 @@
           }
           const optsIATA = [], optsName = [];
           for (let i=1;i<lines.length;i++){
+                setTailWarning('');
             const parts = parseCSVLine(lines[i]);
             if (parts.length < 3) continue;
             const IATA = (parts[0]||'').trim().toUpperCase();
@@ -175,8 +1045,10 @@
             airportByIATA.set(IATA, Name);
             airportByName.set(Name.toLowerCase(), IATA);
             iataSet.add(IATA);
+                setTailWarning('');
             optsIATA.push(`<option value="${IATA}">${Name}</option>`);
             optsName.push(`<option value="${Name}">${IATA}</option>`);
+                setTailWarning('No se encontró una matrícula válida en el documento. Verifique o seleccione del catálogo.');
           }
           const dlIATA = document.getElementById('airports-iata-list');
           const dlName = document.getElementById('airports-name-list');
@@ -215,6 +1087,16 @@
           .forEach(el => { if (el) el.required = false; });
         const title = document.getElementById('mf-title');
         if (title) title.value = isArrival ? 'MANIFIESTO DE LLEGADA' : 'MANIFIESTO DE SALIDA';
+
+        // Reglas específicas de valores para salidas
+        try {
+          if (!isArrival){
+            // Establecer N/A en campos indicados
+            const na = 'N/A';
+            const slotCoord = document.getElementById('mf-slot-coordinated'); if (slotCoord) slotCoord.value = na;
+            const terminoPernocta = document.getElementById('mf-termino-pernocta'); if (terminoPernocta) terminoPernocta.value = na;
+          }
+        } catch(_){ }
       }
       if (dirArr && !dirArr._wired) { dirArr._wired = 1; dirArr.addEventListener('change', applyManifestDirection); }
       if (dirDep && !dirDep._wired) { dirDep._wired = 1; dirDep.addEventListener('change', applyManifestDirection); }
@@ -224,7 +1106,7 @@
       loadAircraftCatalog();
       loadAirportsCatalog();
 
-      function setPreview(src){ if (prevImg){ prevImg.src = src; prevImg.style.display = 'block'; } if (placeholder) placeholder.style.display = 'none'; if (runBtn) runBtn.disabled = false; currentImageURL = src; }
+  function setPreview(src){ if (prevImg){ prevImg.src = src; prevImg.classList.remove('d-none'); } if (prevCanvas){ prevCanvas.classList.add('d-none'); } if (placeholder) placeholder.classList.add('d-none'); if (runBtn) runBtn.disabled = false; currentImageURL = src; }
       if (up && !up._wired) { up._wired = 1; up.addEventListener('change', async (e)=>{
         const f = e.target.files && e.target.files[0]; if (!f) return;
         const url = URL.createObjectURL(f);
@@ -252,34 +1134,26 @@
             else if (isDepartureDoc && dirDep) { dirDep.checked = true; dirDep.dispatchEvent(new Event('change', { bubbles: true })); }
             const currentIsArrival = dirArr && dirArr.checked;
             try {
-              let carrierICAO = '';
-              const foundICAO = upperTokens.find(t => t.length === 3 && /^[A-Z]{3}$/.test(t) && icaoSet.has(t));
-              if (foundICAO) carrierICAO = foundICAO;
               let flightStr = findNearLabelValue(['vuelo','n° vuelo','no. vuelo','flight','flt'], /[A-Z]{2,3}\s?-?\s?\d{2,5}[A-Z]?/i, text);
               if (!flightStr){ const m = text.match(/\b[A-Z]{2,3}\s?-?\s?\d{2,5}[A-Z]?\b/); if (m) flightStr = m[0]; }
-              if (flightStr){
-                const cleaned = flightStr.replace(/\s|-/g,'');
-                const pref3 = cleaned.slice(0,3).toUpperCase();
-                const pref2 = cleaned.slice(0,2).toUpperCase();
-                if (!carrierICAO && icaoSet.has(pref3)) carrierICAO = pref3;
-                if (!carrierICAO && iataToIcao.has(pref2)) carrierICAO = iataToIcao.get(pref2) || '';
-                setVal('mf-flight', flightStr.trim());
+              if (flightStr) setVal('mf-flight', flightStr.trim());
+              const best = resolveCarrierICAO1(text, { flight: flightStr });
+              if (best && best.code){
+                setVal('mf-carrier-3l', best.code);
+                const rec = (airlinesCatalog||[]).find(a=> a.ICAO === best.code);
+                if (rec){
+                  const op = document.getElementById('mf-operator-name'); if (op && !op.value) op.value = rec.Name;
+                  const an = document.getElementById('mf-airline'); if (an && !an.value) an.value = rec.Name;
+                }
               }
-              if (carrierICAO) setVal('mf-carrier-3l', carrierICAO);
             } catch(_){ }
             try {
               const tailPatterns = [
-                /\bX[A-C]-?[A-Z0-9]{3,5}\b/gi,
-                /\bN\d{1,5}[A-Z]{0,2}\b/gi,
-                /\bH[KP]-?\d{3,5}\b/gi,
-                /\bLV-?[A-Z0-9]{3,4}\b/gi,
-                /\bCC-?[A-Z0-9]{3,4}\b/gi,
-                /\bPR-?[A-Z0-9]{3,4}\b/gi,
-                /\bCP-?\d{3,5}\b/gi,
-                /\bYV-?\d{3,5}\b/gi,
-                /\bOB-?\d{3,5}\b/gi,
-                /\bTG-?\d{3,5}\b/gi,
-                /\bXA[A-Z0-9]{0,}\b/gi
+                /\bX[A-C]-?[A-Z0-9]{3,6}\b/gi, /\bN\d{1,5}[A-Z]{0,3}\b/gi, /\bH[KP]-?[0-9A-Z]{3,8}\b/gi, /\bLV-?[A-Z0-9]{3,5}\b/gi,
+                /\bCC-?[A-Z0-9]{3,5}\b/gi, /\bPR-?[A-Z0-9]{3,5}\b/gi, /\bCP-?[0-9A-Z]{3,6}\b/gi, /\bYV-?[0-9A-Z]{3,6}\b/gi,
+                /\bOB-?[0-9A-Z]{3,6}\b/gi, /\bTG-?[0-9A-Z]{3,6}\b/gi, /\bTC-?[A-Z0-9]{3,6}\b/gi, /\bEI-?[A-Z]{3,5}\b/gi,
+                /\bEC-?[A-Z]{3,5}\b/gi, /\bLX-?[A-Z0-9]{3,5}\b/gi, /\b9H-?[A-Z0-9]{3,6}\b/gi, /\b4K-?[A-Z0-9]{3,6}\b/gi,
+                /\bA7-?[A-Z0-9]{3,6}\b/gi, /\bXA[A-Z0-9]{0,}\b/gi
               ];
               let foundTail = '';
               for (const rx of tailPatterns){ const m = text.match(rx); if (m && m.length){ foundTail = m[0].toUpperCase().replace(/\s+/g,''); break; } }
@@ -324,15 +1198,57 @@
                   if (name) setVal('mf-final-dest', name);
                 }
               }
-              const setTimeIf = (id, labels) => { const v = findNearLabelValue(labels, timeRx, text); if (v) setVal(id, v); };
+              // Dedicated extractor: scan the same and next lines after specific label(s) for a 24h time
+              const extractTimeAfterLabel = (labelRx, maxAhead=3)=>{
+                try {
+                  const lines = (text||'').split(/\r?\n/);
+                  for (let i=0;i<lines.length;i++){
+                    if (labelRx.test(lines[i])){
+                      for (let k=0;k<=maxAhead;k++){
+                        const s = lines[i+k]||'';
+                        const m = s.match(timeRx);
+                        if (m){
+                          let v = m[0];
+                          v = v.replace(/[hH\.]/, ':');
+                          if (/^\d{3,4}$/.test(v)){
+                            const hh = v.length===3 ? ('0'+v[0]) : v.slice(0,2);
+                            const mm = v.slice(-2);
+                            v = hh.padStart(2,'0') + ':' + mm;
+                          }
+                          return v;
+                        }
+                      }
+                    }
+                  }
+                } catch(_){ }
+                return '';
+              };
+              const setTimeIf = (id, labels) => {
+                let v = findNearLabelValue(labels, timeRx, text);
+                if (v){
+                  // Normalize to HH:MM if needed
+                  v = v.replace(/[hH\.]/, ':');
+                  if (/^\d{3,4}$/.test(v)){
+                    // digits-only, e.g., 945 or 0945
+                    const hh = v.length===3 ? ('0'+v[0]) : v.slice(0,2);
+                    const mm = v.slice(-2);
+                    v = hh.padStart(2,'0') + ':' + mm;
+                  }
+                  setVal(id, v);
+                }
+              };
               if (currentIsArrival){
-                setTimeIf('mf-arr-slot-assigned', ['slot asignado']);
+                // Prefer label-focused extraction for "HORA DE SLOT ASIGNADO"
+                const vSlotArr = extractTimeAfterLabel(/\bHORA\s+DE\s+SLOT\s+ASIGNADO\b/i, 3) || extractTimeAfterLabel(/\bSLOT\s+ASIGNADO\b/i, 1);
+                if (vSlotArr) setVal('mf-arr-slot-assigned', vSlotArr); else setTimeIf('mf-arr-slot-assigned', ['slot asignado']);
                 setTimeIf('mf-arr-slot-coordinated', ['slot coordinado']);
                 setTimeIf('mf-arr-arribo-posicion', ['entrada a la posicion','arribo a la posicion','arribo posicion']);
                 setTimeIf('mf-arr-inicio-desembarque', ['termino maniobras de desembarque','inicio de desembarque','inicio desembarque']);
                 setTimeIf('mf-arr-inicio-pernocta', ['inicio de pernocta','inicio pernocta']);
               } else {
-                setTimeIf('mf-slot-assigned', ['slot asignado']);
+                // Prefer label-focused extraction for "HORA DE SLOT ASIGNADO"
+                const vSlotDep = extractTimeAfterLabel(/\bHORA\s+DE\s+SLOT\s+ASIGNADO\b/i, 3) || extractTimeAfterLabel(/\bSLOT\s+ASIGNADO\b/i, 1);
+                if (vSlotDep) setVal('mf-slot-assigned', vSlotDep); else setTimeIf('mf-slot-assigned', ['slot asignado']);
                 setTimeIf('mf-slot-coordinated', ['slot coordinado']);
                 setTimeIf('mf-inicio-embarque', ['inicio de maniobras de embarque','inicio de embarque']);
                 setTimeIf('mf-salida-posicion', ['salida de la posicion','salida posicion']);
@@ -354,31 +1270,45 @@
           if (carrier.value !== code) carrier.value = code;
           if (code.length !== 3) return;
           const rec = airlinesCatalog.find(a=> a.ICAO === code);
-          if (rec){
+            if (canon){
             if (opName && !opName.value) opName.value = rec.Name;
             if (airlineName && !airlineName.value) airlineName.value = rec.Name;
           }
         };
         carrier.addEventListener('input', ()=> setFromICAO(carrier.value));
         carrier.addEventListener('change', ()=> setFromICAO(carrier.value));
+              setTailWarning('');
         carrier.addEventListener('blur', ()=> setFromICAO(carrier.value));
       })();
 
-      (function wireTailAutofill(){
+  (function wireTailAutofill(){
         const tail = document.getElementById('mf-tail');
         if (!tail || tail._wired) return; tail._wired = 1;
+              setTailWarning('');
         const equipo = document.getElementById('mf-aircraft');
         const carrier = document.getElementById('mf-carrier-3l');
+              setTailWarning('No se encontró una matrícula válida en el documento. Verifique o seleccione del catálogo.');
         const setFromTail = (val)=>{
-          const reg = (val||'').toString().trim().toUpperCase();
-          if (!reg) return;
+          let raw = (val||'').toString();
+          if (!raw) return;
+          const variants = regVariants(raw);
+          let canon = '';
+          for (const v of variants){ if (aircraftByReg.has(v)){ canon = v; break; } }
+          const reg = canon || normalizeReg(raw);
+          if (canon && tail.value !== canon) tail.value = canon; // estandariza al valor del catálogo
           const rec = aircraftByReg.get(reg);
           if (!rec) return;
+          // Equipo debe venir del aircraft.csv (columna "Aircraft Type") asociado a la Registration,
+          // preferentemente mostrado como ICAO code si existe en 'aircraft type.csv'.
           const t = typeByCode.get(rec.type);
           if (t){
             const preferred = t.ICAO || t.Name || rec.type;
-            if (equipo && (!equipo.value || equipo.value === rec.type)) { equipo.value = preferred; }
-          } else { if (equipo && !equipo.value) equipo.value = rec.type; }
+            // Si ya hay un ICAO válido escrito por el extractor, no sobrescribir
+            const alreadyValid = equipo && /^[A-Z0-9]{3,4}$/.test((equipo.value||'').toUpperCase()) && typeIcaoSet.has((equipo.value||'').toUpperCase());
+            if (equipo && !alreadyValid) equipo.value = preferred;
+          } else {
+            if (equipo && !equipo.value) equipo.value = rec.type; // fallback
+          }
           if (carrier && !carrier.value && rec.ownerIATA){
             const cand = airlinesCatalog.find(a => (a.IATA||'').toUpperCase() === rec.ownerIATA);
             if (cand && cand.ICAO && /^[A-Z]{3}$/.test(cand.ICAO)) carrier.value = cand.ICAO;
@@ -405,6 +1335,8 @@
           }
           if (!codeEl._wired){
             codeEl._wired = 1;
+              // Si es válida según catálogo, limpiar advertencia
+              try { const w = document.getElementById('mf-tail-warning'); if (w) { w.textContent = ''; w.classList.add('d-none'); } } catch(_){ }
             codeEl.addEventListener('input', ()=>{
               const c = (codeEl.value||'').trim().toUpperCase();
               codeEl.value = c.replace(/[^A-Z]/g,'').slice(0,3);
@@ -437,12 +1369,18 @@
       function readForm(){
         const g = id => document.getElementById(id)?.value || '';
         const direction = (dirArr && dirArr.checked) ? 'Llegada' : 'Salida';
+        // Captura imagen de previsualización si hay canvas o img
+        let previewImage = '';
+        try {
+          if (prevCanvas && !prevCanvas.classList.contains('d-none')){ previewImage = prevCanvas.toDataURL('image/png'); }
+          else if (prevImg && !prevImg.classList.contains('d-none')){ previewImage = prevImg.src || ''; }
+        } catch(_){ }
         return {
           direction,
           title: g('mf-title'), docDate: g('mf-doc-date'), folio: g('mf-folio'),
           carrier3L: g('mf-carrier-3l'), operatorName: g('mf-operator-name'), airline: g('mf-airline'), flight: g('mf-flight'),
           tail: g('mf-tail'), aircraft: g('mf-aircraft'), originName: g('mf-origin-name'), originCode: g('mf-origin-code'),
-          crewCockpit: g('mf-crew-cockpit'), crewCabin: g('mf-crew-cabin'), crewTotal: g('mf-crew-total'),
+          crewTotal: g('mf-crew-total'),
           baggageKg: g('mf-baggage-kg'), baggagePieces: g('mf-baggage-pcs'), cargoKg: g('mf-cargo'), cargoPieces: g('mf-cargo-pieces'), cargoVol: g('mf-cargo-volume'),
           mailKg: g('mf-mail'), mailPieces: g('mf-mail-pieces'),
           dangerousGoods: !!document.getElementById('mf-dangerous-goods')?.checked,
@@ -457,7 +1395,7 @@
           paxTUA: g('pax-tua'), paxDiplomaticos: g('pax-diplomaticos'), paxComision: g('pax-comision'), paxInfantes: g('pax-infantes'), paxTransitos: g('pax-transitos'), paxConexiones: g('pax-conexiones'), paxExentos: g('pax-exentos'), paxTotal: g('pax-total'),
           obsTransito: g('mf-obs-transito'), paxDNI: g('mf-pax-dni'),
           signOperator: g('mf-sign-operator'), signCoordinator: g('mf-sign-coordinator'), signAdmin: g('mf-sign-admin'), signAdminDate: g('mf-sign-admin-date'),
-          image: (prevImg && prevImg.src) || ''
+          image: previewImage
         };
       }
       function loadRecords(){ try { return JSON.parse(localStorage.getItem('aifa.manifests')||'[]'); } catch(_) { return []; } }
@@ -471,7 +1409,7 @@
           <td></td>
           <td></td>
           <td>${(r.originCode||'')}/${r.finalDest||''}</td>
-          <td>${r.pax||''}</td>
+          <td>${r.paxTotal||''}</td>
           <td>${r.cargoKg||''}/${r.mailKg||''}</td>
           <td>${r.image?'<img src="'+r.image+'" style="height:30px">':''}</td>
         </tr>`).join(''); }
@@ -560,4 +1498,723 @@
   function init(){ try { window.setupManifestsUI?.(); } catch(_){} }
   document.addEventListener('DOMContentLoaded', init);
   document.addEventListener('click', (e)=>{ if (e.target.closest('[data-section="manifiestos"]')) setTimeout(init, 50); });
+  // Enforce 24h and departure-specific formatting on manual edits
+  // No custom input normalization needed for mf-slot-assigned now that it's a native time input
+  // Keeping this space for future input-specific hooks if required.
+  
+  // V2: Event-delegation based setup that guarantees the buttons work even if previous wiring failed
+  window.setupManifestsUI_v2 = function setupManifestsUI_v2(){
+    try {
+      const sec = document.getElementById('manifiestos-section'); if (!sec) return;
+      if (window._manifV2Wired) return; window._manifV2Wired = true;
+      const status = document.getElementById('manifest-pdf-status');
+      const upload = document.getElementById('manifest-upload');
+      const progressBarContainer = document.getElementById('manifest-progress-bar-container');
+      const progressBar = document.getElementById('manifest-progress-bar');
+  let _v2Cur=0,_v2Tar=0,_v2EffTar=0,_v2RAF=null,_v2LastTs=0,_v2Label='';
+  const _v2Anim=(ts)=>{
+    if(_v2RAF===null) return;
+    if(!_v2LastTs) _v2LastTs = ts;
+    const dt = Math.max(0, (ts - _v2LastTs)/1000);
+    _v2LastTs = ts;
+    // Effective target creep to avoid stall near mid-progress
+    const creepRate = 6; // % per second
+    const creepEnabled = _v2Tar >= 50 && _v2Tar < 100;
+    if (creepEnabled){
+      const cap = Math.max(0, _v2Tar - 0.8);
+      _v2EffTar = Math.min(cap, Math.max(_v2EffTar, _v2Tar*0.9) + creepRate*dt);
+    } else { _v2EffTar = Math.max(_v2EffTar, _v2Tar); }
+    const maxSpeed = (_v2EffTar >= 95 ? 35 : 22);
+    if (_v2Cur < _v2EffTar){ _v2Cur = Math.min(_v2EffTar, _v2Cur + maxSpeed*dt); }
+    if(progressBar){
+      progressBar.style.width=_v2Cur+'%';
+      progressBar.setAttribute('aria-valuenow', String(Math.round(_v2Cur)));
+      const txt=_v2Label || progressBar.getAttribute('data-text')||'';
+      progressBar.textContent=(Math.round(_v2Cur)+'%')+(txt?(' - '+txt):'');
+    }
+    try { planeProgressSet(_v2Cur, _v2Label); } catch(_){ }
+    if(_v2Cur>=100 && _v2Tar>=100){ cancelAnimationFrame(_v2RAF); _v2RAF=null; _v2LastTs=0; return; }
+    _v2RAF = requestAnimationFrame(_v2Anim);
+  };
+  const setProgress = (p, t)=>{ if (progressBarContainer) progressBarContainer.classList.add('d-none'); if (typeof t==='string'){ _v2Label=t; if (progressBar) progressBar.setAttribute('data-text', t); } _v2Tar=Math.max(_v2Tar, Math.max(0,Math.min(100, Number(p)||0))); _v2EffTar = Math.max(_v2EffTar, _v2Tar); if(p>=100){ _v2EffTar = 100; } if(_v2RAF===null){ _v2RAF=requestAnimationFrame(_v2Anim); } };
+  const hideProgress = ()=>{ if(_v2RAF){ cancelAnimationFrame(_v2RAF); _v2RAF=null; } _v2Cur=0; _v2Tar=0; _v2EffTar=0; _v2LastTs=0; _v2Label=''; if (progressBarContainer&&progressBar){ progressBarContainer.classList.add('d-none'); progressBar.style.width='0%'; progressBar.removeAttribute('data-text'); progressBar.textContent=''; } try { planeProgressHide(); } catch(_){ } };
+
+      // Local helpers (decoupled from V1) to avoid ReferenceErrors
+      function setVal(id, v){ const el = document.getElementById(id); if (el) el.value = v; }
+      const normalizeReg = (s)=> (s||'').toString().toUpperCase().replace(/[^A-Z0-9]/g,'');
+      const regVariants = (s)=>{
+        const base = normalizeReg(s); const out = new Set([base]);
+        const pairs = [['O','0'],['I','1'],['S','5'],['B','8'],['Z','2']];
+        for (const [A,B] of pairs){
+          if (base.includes(A)) out.add(base.replace(new RegExp(A,'g'), B));
+          if (base.includes(B)) out.add(base.replace(new RegExp(B,'g'), A));
+        }
+        return Array.from(out);
+      };
+      function findNearLabelValue(labels, valueRegex, text){
+        try{
+          const lines = (text||'').split(/\r?\n/);
+          for (let i=0;i<lines.length;i++){
+            const u = lines[i].toUpperCase();
+            if (labels.some(lbl => u.includes(String(lbl||'').toUpperCase()))){
+              const m0 = lines[i].match(valueRegex); if (m0) return m0[0];
+              const n = lines[i+1]||''; const m1 = n.match(valueRegex); if (m1) return m1[0];
+            }
+          }
+        }catch(_){ }
+        return '';
+      }
+
+      // Master catalogs (V2 local cache)
+      let airlinesCatalog = [];
+      let iataToIcao = new Map();
+      let icaoSet = new Set();
+  let aircraftByReg = new Map(); // reg -> { type(IATA), ownerIATA }
+  let typeByCode = new Map();    // IATA -> { ICAO, Name }
+  let typeIcaoSetV2 = new Set(); // ICAO set for validation
+      let airportByIATA = new Map(); // IATA -> Name
+      let airportByName = new Map(); // name lower -> IATA
+      let iataSet = new Set();
+
+      async function loadAirlinesCatalog(){
+        try {
+          const res = await fetch('data/master/airlines.csv', { cache:'no-store' });
+          const text = await res.text();
+          const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
+          const out = [];
+          for (let i=1;i<lines.length;i++){
+            const parts = lines[i].split(',');
+            if (parts.length < 3) continue;
+            const IATA = (parts[0]||'').trim().toUpperCase();
+            const ICAO = (parts[1]||'').trim().toUpperCase();
+            const Name = parts.slice(2).join(',').trim().replace(/^"|"$/g,'');
+            if (ICAO && /^[A-Z]{3}$/.test(ICAO)){
+              out.push({ IATA, ICAO, Name });
+              icaoSet.add(ICAO);
+              if (IATA && /^[A-Z0-9]{2}$/.test(IATA)) iataToIcao.set(IATA, ICAO);
+            }
+          }
+          airlinesCatalog = out;
+        } catch(_){ /* ignore */ }
+      }
+      async function loadAircraftCatalog(){
+        try {
+          const resA = await fetch('data/master/aircraft.csv', { cache:'no-store' });
+          const textA = await resA.text();
+          const linesA = textA.split(/\r?\n/).filter(l=>l.trim());
+          for (let i=1;i<linesA.length;i++){
+            const parts = linesA[i].split(',');
+            if (parts.length < 3) continue;
+            // Guardar tanto la forma canónica (como viene) como una clave normalizada para comparaciones exhaustivas
+            const regRaw = (parts[0]||'').trim().toUpperCase(); // Registration tal cual CSV
+            const regKey = normalizeReg(regRaw);
+            const type = (parts[1]||'').trim().toUpperCase(); // IATA type code
+            const ownerIATA = (parts[2]||'').trim().toUpperCase();
+            if (regRaw){
+              aircraftByReg.set(regRaw, { type, ownerIATA, _canon: regRaw });
+              // también registrar por clave normalizada si difiere
+              if (!aircraftByReg.has(regKey)) aircraftByReg.set(regKey, { type, ownerIATA, _canon: regRaw });
+            }
+          }
+        } catch(_){ /* ignore */ }
+        try {
+          const resT = await fetch('data/master/aircraft type.csv', { cache:'no-store' });
+          const textT = await resT.text();
+          const linesT = textT.split(/\r?\n/).filter(l=>l.trim());
+          for (let i=1;i<linesT.length;i++){
+            const parts = linesT[i].split(',');
+            if (parts.length < 2) continue;
+            const codeIATA = (parts[0]||'').trim().toUpperCase();
+            const icao = (parts[1]||'').trim().toUpperCase();
+            const name = (parts[2]||'').trim();
+            if (codeIATA) typeByCode.set(codeIATA, { ICAO: icao, Name: name });
+            if (icao) typeIcaoSetV2.add(icao);
+          }
+        } catch(_){ /* ignore */ }
+      }
+      function extractAircraftTypeICAOFromTextV2(text){
+        try {
+          const U = (text||'').toUpperCase();
+          const lines = (text||'').split(/\r?\n/);
+          const labels = ['EQUIPO','TIPO','TIPO DE AERONAVE','AIRCRAFT TYPE'];
+          const cand = new Map();
+          const add = (code, score)=>{ const c=(code||'').toUpperCase().replace(/[^A-Z0-9]/g,''); if (!c) return; cand.set(c, Math.max(cand.get(c)||0, score)); };
+          const pushNear = (s, base)=>{
+            const toks = (s||'').toUpperCase().match(/[A-Z0-9-]{2,9}/g) || [];
+            for (const t of toks){
+              const clean = t.replace(/-/g,'');
+              if (/^[A-Z0-9]{3,4}$/.test(clean) && typeIcaoSetV2.has(clean)) add(clean, base);
+              if (/^[A-Z0-9]{2,3}$/.test(clean) && typeByCode.has(clean)){
+                const ic = (typeByCode.get(clean)?.ICAO)||''; if (ic) add(ic, base-5);
+              }
+              if (/^B737[0-9]$/.test(clean)) add('B73'+clean.slice(-1), base-10);
+              if (/^A32[0-1][0-9]$/.test(clean)) add('A32'+clean.slice(-1), base-10);
+            }
+            const S = (s||'').toUpperCase();
+            if (/\bA330\s*[- ]?\s*300\b/.test(S) || /\bA333\b/.test(S)) add('A333', base+2);
+            if (/\bA330\s*[- ]?\s*200\b/.test(S) || /\bA332\b/.test(S)) add('A332', base+2);
+            if (/\bA330\b/.test(S) && /\bP2F\b/.test(S)){
+              if (/\b300\b/.test(S)) add('A333', base+3);
+              if (/\b200\b/.test(S)) add('A332', base+3);
+            }
+          };
+          for (let i=0;i<lines.length;i++){
+            const u = (lines[i]||'').toUpperCase();
+            if (labels.some(l=> u.includes(l))){
+              pushNear(lines[i], 90);
+              if (lines[i+1]) pushNear(lines[i+1], 85);
+              if (lines[i+2]) pushNear(lines[i+2], 75);
+            }
+          }
+          const global = U.match(/[A-Z0-9]{3,4}/g)||[];
+          for (const g of global){ if (typeIcaoSetV2.has(g)) add(g, 50); }
+          if (/\bA330\s*[- ]?\s*300\b/.test(U)) add('A333', 55);
+          if (/\bA330\s*[- ]?\s*200\b/.test(U)) add('A332', 55);
+          if (!cand.size) return '';
+          return Array.from(cand.entries()).sort((a,b)=> b[1]-a[1])[0][0] || '';
+        } catch(_) { return ''; }
+      }
+      async function loadAirportsCatalog(){
+        try {
+          const res = await fetch('data/master/airports.csv', { cache:'no-store' });
+          const text = await res.text();
+          const lines = text.split(/\r?\n/).filter(l=>l.trim());
+          function parseCSVLine(line){
+            const cols = []; let cur=''; let inQ=false; for (let i=0;i<line.length;i++){
+              const ch=line[i];
+              if (ch==='"'){ if (inQ && line[i+1]==='"'){ cur+='"'; i++; } else inQ=!inQ; }
+              else if (ch===',' && !inQ){ cols.push(cur); cur=''; }
+              else { cur+=ch; }
+            } cols.push(cur); return cols;
+          }
+          for (let i=1;i<lines.length;i++){
+            const parts = parseCSVLine(lines[i]);
+            if (parts.length < 3) continue;
+            const IATA = (parts[0]||'').trim().toUpperCase();
+            const Name = (parts[2]||'').trim().replace(/^"|"$/g,'');
+            if (!IATA || !Name) continue;
+            airportByIATA.set(IATA, Name);
+            airportByName.set(Name.toLowerCase(), IATA);
+            iataSet.add(IATA);
+          }
+        } catch(_){ /* ignore */ }
+      }
+  // Prepare catalogs and expose a readiness promise to await before parsing
+  let _v2CatalogsReady = (async ()=>{ try { await Promise.all([loadAirlinesCatalog(), loadAircraftCatalog(), loadAirportsCatalog()]); } catch(_){ } })();
+      // UI helper: show/hide matrícula warning (local to V2)
+      function tailWarn(msg){
+        const w = document.getElementById('mf-tail-warning');
+        if (!w) return;
+        if (msg){ w.textContent = msg; w.classList.remove('d-none'); }
+        else { w.textContent = ''; w.classList.add('d-none'); }
+      }
+      function isLabelWordV2(s, labels){ const u=(s||'').toString().trim().toUpperCase(); if (!u) return false; return labels.some(lbl=>u===String(lbl||'').toUpperCase()); }
+      // Fallback exhaustivo: buscar cualquier matrícula del catálogo dentro del texto normalizado
+      function findCatalogRegInTextExhaustiveV2(text){
+        try {
+          const U = (text||'').toString().toUpperCase().replace(/[^A-Z0-9]/g,'');
+          if (!U || !aircraftByReg || aircraftByReg.size===0) return '';
+          let best = '';
+          for (const [key, rec] of aircraftByReg.entries()){
+            const k = (key||'').toString(); if (!k) continue;
+            const nk = k.replace(/[^A-Z0-9]/g,''); if (!nk) continue;
+            if (U.includes(nk)){
+              const canon = rec && (rec._canon || k) || k;
+              // prefer longer match to avoid partials
+              if (!best || nk.length > best.replace(/[^A-Z0-9]/g,'').length) best = canon;
+            }
+          }
+          return best;
+        } catch(_) { return ''; }
+      }
+      function findNearLabelIATACode(labels, text){
+        // Lightweight fallback: look for any ABC pattern near the label (no catalog dependency)
+        const rxIATA = /\b[A-Z]{3}\b/g;
+        try{
+          const lines = (text||'').split(/\r?\n/);
+          for (let i=0;i<lines.length;i++){
+            const u = lines[i].toUpperCase();
+            if (labels.some(lbl => u.includes(String(lbl||'').toUpperCase()))){
+              const search = (s)=>{ const arr = s.match(rxIATA)||[]; return arr.length ? arr[0] : ''; };
+              const hit = search(lines[i]) || search(lines[i+1]||'');
+              if (hit) return hit;
+            }
+          }
+        }catch(_){ }
+        return '';
+      }
+
+      // Heurística robusta para mapear Origen / Próxima escala / Destino en documentos de Salida
+      function extractDepartureRouteFields(text){
+        const Ulines = (text||'').toUpperCase().split(/\r?\n/);
+        const allCodes = [];
+        const labelHit = (u, labels)=> labels.some(l=> u.includes(l));
+        const L_ORI = ['ORIGEN','PROCEDENCIA','FROM'];
+        const L_ESC = ['ESCALA','PROXIMA','PRÓXIMA','LAST STOP'];
+        const L_DES = ['DESTINO','TO'];
+        const rxIATA = /\b[A-Z]{3}\b/g;
+        // Recorre líneas y registra ocurrencias de códigos con contexto de etiqueta
+        for (let i=0;i<Ulines.length;i++){
+          const u = Ulines[i];
+          const codes = u.match(rxIATA)||[];
+          if (!codes.length) continue;
+          const isOri = labelHit(u, L_ORI) || labelHit(Ulines[i-1]||'', L_ORI) || labelHit(Ulines[i+1]||'', L_ORI);
+          const isEsc = labelHit(u, L_ESC) || labelHit(Ulines[i-1]||'', L_ESC) || labelHit(Ulines[i+1]||'', L_ESC);
+          const isDes = labelHit(u, L_DES) || labelHit(Ulines[i-1]||'', L_DES) || labelHit(Ulines[i+1]||'', L_DES);
+          for (const c of codes){ if (iataSet.has(c)) allCodes.push({ code:c, i, isOri, isEsc, isDes }); }
+        }
+        // Scores por etiqueta y proximidad
+        const score = new Map();
+        const firstIdx = new Map();
+        allCodes.forEach(rec=>{
+          if (!score.has(rec.code)) score.set(rec.code, {ori:0,esc:0,des:0});
+          if (!firstIdx.has(rec.code)) firstIdx.set(rec.code, rec.i);
+          const s = score.get(rec.code);
+          if (rec.isOri) s.ori += 3; if (rec.isEsc) s.esc += 3; if (rec.isDes) s.des += 3;
+          // Ligero sesgo por orden de aparición
+          s.ori += 0.02; s.esc += 0.02; s.des += 0.02;
+        });
+        // Fallback: si no hay contextos, tomar los primeros 3 únicos del texto
+        const uniqueInOrder = [];
+        for (const rec of allCodes){ if (!uniqueInOrder.includes(rec.code)) uniqueInOrder.push(rec.code); }
+        function pickBest(kind){
+          let best=''; let bestScore=-1; let bestPos=1e9;
+          for (const [code, sc] of score){ const val = sc[kind]||0; const pos = firstIdx.get(code)||1e9; if (val>bestScore || (val===bestScore && pos<bestPos)){ best=code; bestScore=val; bestPos=pos; } }
+          if (!best && uniqueInOrder.length) best = uniqueInOrder.shift();
+          // Evitar reutilizar el mismo código en las siguientes selecciones
+          score.delete(best); firstIdx.delete(best); return best||'';
+        }
+        const originCode = pickBest('ori');
+        const nextCode = pickBest('esc');
+        const destCode = pickBest('des');
+        const toName = (c)=> airportByIATA.get(c)||'';
+        return {
+          origin: { code: originCode||'', name: originCode? toName(originCode):'' },
+          next: { code: nextCode||'', name: nextCode? toName(nextCode):'' },
+          dest: { code: destCode||'', name: destCode? toName(destCode):'' }
+        };
+      }
+      // Re-habilitar controles bajo cualquier protocolo para propósitos de prueba
+      const scanPdfBtn = document.getElementById('manifest-scan-pdf');
+      const scanOcrBtn = document.getElementById('manifest-scan-ocr');
+      if (upload) upload.disabled = false;
+      if (scanPdfBtn) scanPdfBtn.disabled = false;
+      if (status && !status._initV2){ status._initV2 = 1; status.classList.remove('text-danger'); status.textContent = 'V2 activo: seleccione un archivo y presione Escanear.'; }
+
+      async function ensurePdfJsLite(){
+        if (window.pdfjsLib) return;
+        try {
+          await new Promise((res, rej)=>{ const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; s.crossOrigin='anonymous'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+          window['pdfjsLib'].GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        } catch(_){
+          await new Promise((res, rej)=>{ const s=document.createElement('script'); s.src='vendor/pdfjs/pdf.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+          try { window['pdfjsLib'].GlobalWorkerOptions.workerSrc = 'vendor/pdfjs/pdf.worker.min.js'; } catch(_){ }
+        }
+      }
+
+      async function ensureTesseractLite(){
+        if (window.Tesseract) return;
+        await new Promise((res, rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js'; s.crossOrigin='anonymous'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+      }
+
+      async function extractPdfTextV2(file){
+        try {
+          await ensurePdfJsLite();
+          const ab = await file.arrayBuffer();
+          const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(ab) }).promise;
+          let text='';
+          const pages = Math.min(pdf.numPages, 5);
+          for (let i=1;i<=pages;i++){
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            text += content.items.map(it=>it.str).join(' ') + '\n';
+            try { const pct = 30 + Math.round((i/pages)*25); setProgress(pct, `Extrayendo texto (${i}/${pages})...`); } catch(_){ }
+          }
+          return text.trim();
+        } catch(e){ return ''; }
+      }
+
+      async function ocrPdfOrImageV2(file, maxPages){
+        try { await ensureTesseractLite(); } catch(_){ if (status) status.textContent = 'No se pudo cargar OCR (Tesseract).'; return ''; }
+        const name = (file && file.name)||''; const type = (file && file.type)||'';
+        const isPdf = /\.pdf$/i.test(name) || /application\/pdf/i.test(type);
+        if (!isPdf){
+          // Imagen directa
+          const r = await new Promise((res)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.readAsDataURL(file); });
+          const { data } = await Tesseract.recognize(r, 'spa+eng', { logger: ()=>{} });
+          return (data && data.text) ? data.text : '';
+        }
+        try {
+          await ensurePdfJsLite();
+          const ab = await file.arrayBuffer();
+          const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(ab) }).promise;
+          const pages = Math.min(maxPages||2, pdf.numPages);
+          let out='';
+          for (let i=1;i<=pages;i++){
+            setProgress(50 + Math.round((i-1)*40/pages), `OCR página ${i}/${pages}...`);
+            const page = await pdf.getPage(i);
+            const viewport = page.getViewport({ scale: 2 });
+            const canvas = document.createElement('canvas'); canvas.width = viewport.width; canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d'); await page.render({ canvasContext: ctx, viewport }).promise;
+            const { data } = await Tesseract.recognize(canvas.toDataURL('image/png'), 'spa+eng', { logger: ()=>{} });
+            out += (data && data.text) ? (data.text + '\n') : '';
+          }
+          return out.trim();
+        } catch(e){ return ''; }
+      }
+
+      async function renderPreviewV2(file){
+        try {
+          const name = (file && file.name)||''; const type = (file && file.type)||'';
+          const isPdf = /\.pdf$/i.test(name) || /application\/pdf/i.test(type);
+          const canvas = document.getElementById('manifest-preview-canvas');
+          const img = document.getElementById('manifest-preview');
+          const placeholder = document.getElementById('manifest-preview-placeholder');
+          if (isPdf){
+            try {
+              await ensurePdfJsLite();
+              const ab = await file.arrayBuffer();
+              const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(ab) }).promise;
+              const page = await pdf.getPage(1);
+              const containerWidth = (canvas && canvas.parentElement) ? canvas.parentElement.clientWidth : 1000;
+              const viewport = page.getViewport({ scale: 1 });
+              const scale = Math.min(2.0, Math.max(0.9, containerWidth / viewport.width));
+              const vp = page.getViewport({ scale });
+              if (canvas){
+                canvas.width = vp.width; canvas.height = vp.height;
+                const ctx = canvas.getContext('2d');
+                await page.render({ canvasContext: ctx, viewport: vp }).promise;
+                canvas.classList.remove('d-none');
+              }
+              // Text layer for copy (V2)
+              try {
+                const textLayer = document.getElementById('manifest-text-layer');
+                if (textLayer){
+                  textLayer.innerHTML = '';
+                  textLayer.style.width = vp.width+'px';
+                  textLayer.style.height = vp.height+'px';
+                  const content = await page.getTextContent();
+                  for (const it of (content.items||[])){
+                    const span = document.createElement('span');
+                    span.textContent = it.str;
+                    span.style.position='absolute';
+                    const tx = window.pdfjsLib.Util.transform(vp.transform, it.transform);
+                    const x = tx[4];
+                    const y = tx[5];
+                    const fontSize = Math.hypot(tx[0], tx[1]);
+                    span.style.left = x+'px';
+                    span.style.top = (vp.height - y)+'px';
+                    span.style.fontSize = fontSize+'px';
+                    span.style.whiteSpace='pre';
+                    textLayer.appendChild(span);
+                  }
+                  textLayer.classList.remove('d-none');
+                }
+              } catch(_){ }
+              window.manifestApplyZoom();
+              if (img) img.classList.add('d-none');
+              if (placeholder) placeholder.classList.add('d-none');
+            } catch(e){ if (status) status.textContent = ''; }
+          } else if (/^image\//i.test(type) || /\.(png|jpg|jpeg|webp)$/i.test(name||'')){
+            const url = URL.createObjectURL(file);
+            if (img){ img.src = url; img.classList.remove('d-none'); }
+            if (canvas) canvas.classList.add('d-none');
+            const textLayer = document.getElementById('manifest-text-layer');
+              if (textLayer){ textLayer.classList.remove('d-none'); textLayer.style.display=''; textLayer.textContent = 'Extrayendo texto (para copiar)...'; }
+            if (placeholder) placeholder.classList.add('d-none');
+            try { window.manifestApplyZoom(); } catch(_){ }
+            // OCR ligero para habilitar copia de texto en imágenes (V2)
+            try {
+              await ensureTesseractLite();
+              const r = await new Promise((res)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.readAsDataURL(file); });
+              const { data } = await Tesseract.recognize(r, 'spa+eng', { logger: ()=>{} });
+              if (textLayer){ textLayer.textContent = (data && data.text) ? data.text : ''; }
+            } catch(_){ if (textLayer){ textLayer.textContent=''; } }
+          }
+        } catch(_){ }
+      }
+
+      function fillFieldsFromTextV2(text){
+        try {
+          const ocrDebug = document.getElementById('manifest-ocr-debug'); if (ocrDebug) ocrDebug.value = text||'';
+          const title = findNearLabelValue(['MANIFIESTO'], /MANIFIESTO.*/i, text); setVal('mf-title', title);
+
+          // 1) Inferir dirección
+          const U = (text||'').toUpperCase();
+          const isArrivalDoc = /\bLLEGADA\b|\bARRIVAL\b/.test(U);
+          const isDepartureDoc = /\bSALIDA\b|\bDEPARTURE\b/.test(U);
+          const dirArr = document.getElementById('mf-dir-arr');
+          const dirDep = document.getElementById('mf-dir-dep');
+          if (isArrivalDoc && dirArr){ dirArr.checked = true; dirArr.dispatchEvent(new Event('change', { bubbles:true })); }
+          else if (isDepartureDoc && dirDep){ dirDep.checked = true; dirDep.dispatchEvent(new Event('change', { bubbles:true })); }
+          const currentIsArrival = !!(dirArr && dirArr.checked);
+
+          // 2) Vuelo y transportista (usar catálogos)
+          let vuelo = findNearLabelValue(['VUELO','FLIGHT','FLT'], /[A-Z]{2,3}\s?-?\s?\d{2,5}[A-Z]?/i, text) || '';
+          setVal('mf-flight', vuelo);
+          if (vuelo){
+            const cleaned = vuelo.replace(/\s|-/g,'').toUpperCase();
+            const pref3 = cleaned.slice(0,3);
+            const pref2 = cleaned.slice(0,2);
+            let carrierICAO = '';
+            if (pref3 && icaoSet.has(pref3)) carrierICAO = pref3;
+            else if (pref2 && iataToIcao.has(pref2)) carrierICAO = iataToIcao.get(pref2) || '';
+            if (carrierICAO){
+              setVal('mf-carrier-3l', carrierICAO);
+              const rec = airlinesCatalog.find(a=>a.ICAO===carrierICAO);
+              if (rec){ if (!document.getElementById('mf-operator-name').value) setVal('mf-operator-name', rec.Name); if (!document.getElementById('mf-airline').value) setVal('mf-airline', rec.Name); }
+            }
+          }
+
+          // 3) Fecha (DD/MM/YY o DD/MM/YYYY, soporta -, . y espacios)
+          let fecha = findNearLabelValue(['FECHA','FECHA DEL DOCUMENTO','FECHA DOC','FECHA DOCUMENTO','DATE'], /\b\d{1,2}\s*[\/\-.]\s*\d{1,2}\s*[\/\-.]\s*(\d{2}|\d{4})\b/, text);
+          const isoFromLbl = (function toISO(s){
+            try {
+              const m = /^(\d{1,2})\s*[\/\-.]\s*(\d{1,2})\s*[\/\-.]\s*(\d{2}|\d{4})$/.exec((s||'').trim());
+              if (!m) return '';
+              let dd=m[1], mm=m[2], yy=m[3]; let year=parseInt(yy,10); if (yy.length===2){ year=(year<=49)?(2000+year):(1900+year); }
+              const z2=(n)=>n.length===1?('0'+n):n; return `${year}-${z2(mm)}-${z2(dd)}`;
+            } catch(_){ return ''; }
+          })(fecha);
+          let isoDate = isoFromLbl;
+          if (!isoDate){ const m = (text||'').match(/\b(\d{1,2})\s*[\/\-.]\s*(\d{1,2})\s*[\/\-.]\s*(\d{2}|\d{4})\b/); if (m){ isoDate = (function(){ let dd=m[1],mm=m[2],yy=m[3]; let year=parseInt(yy,10); if (yy.length===2){ year=(year<=49)?(2000+year):(1900+year);} const z2=(n)=>n.length===1?('0'+n):n; return `${year}-${z2(mm)}-${z2(dd)}`; })(); } }
+          if (isoDate) { const el = document.getElementById('mf-doc-date'); if (el) el.value = isoDate; }
+
+          // 4) Aeropuertos y horarios
+          // 24h times: HH:MM, HH.MM, HHhMM, H:MM, compact HHMM
+          const rxTime = /\b(?:([01]?\d|2[0-3])[:hH\.]\s?([0-5]\d)|([01]?\d|2[0-3])([0-5]\d))\b(?:\s?(?:hrs|hr|h))?/;
+          // Dedicated extractor: time after a specific label on same/next few lines
+          const extractTimeAfterLabel = (labelRx, maxAhead=3)=>{
+            try {
+              const lines = (text||'').split(/\r?\n/);
+              for (let i=0;i<lines.length;i++){
+                if (labelRx.test(lines[i])){
+                  for (let k=0;k<=maxAhead;k++){
+                    const s = lines[i+k]||'';
+                    const m = s.match(rxTime);
+                    if (m){
+                      let v = m[0];
+                      v = v.replace(/[hH\.]/, ':');
+                      if (/^\d{3,4}$/.test(v)){
+                        const hh = v.length===3 ? ('0'+v[0]) : v.slice(0,2);
+                        const mm = v.slice(-2);
+                        v = hh.padStart(2,'0') + ':' + mm;
+                      }
+                      return v;
+                    }
+                  }
+                }
+              }
+            } catch(_){ }
+            return '';
+          };
+          const setTimeIf = (id, labels) => {
+            let v = findNearLabelValue(labels, rxTime, text);
+            if (!v) return;
+            v = v.replace(/[hH\.]/, ':');
+            if (/^\d{3,4}$/.test(v)){
+              const hh = v.length===3 ? ('0'+v[0]) : v.slice(0,2);
+              const mm = v.slice(-2);
+              v = hh.padStart(2,'0') + ':' + mm;
+            }
+            setVal(id, v);
+          };
+          const chooseValidIATA = (code)=>{ const c=(code||'').toUpperCase(); return iataSet.size ? (iataSet.has(c)?c:'') : c; };
+          let origen = chooseValidIATA(findNearLabelIATACode(['ORIGEN','PROCEDENCIA','FROM'], text));
+          let destino = chooseValidIATA(findNearLabelIATACode(['DESTINO','TO'], text));
+          let escala = chooseValidIATA(findNearLabelIATACode(['ULTIMA ESCALA','ESCALA ANTERIOR','LAST STOP','ESCALA'], text));
+          if (currentIsArrival){
+            if (origen) { setVal('mf-arr-origin-code', origen); const name = airportByIATA.get(origen); if (name) setVal('mf-arr-origin-name', name); }
+            if (escala) { setVal('mf-arr-last-stop-code', escala); const name = airportByIATA.get(escala); if (name) setVal('mf-arr-last-stop', name); }
+            // tiempos llegada (prefer 'HORA DE SLOT ASIGNADO' if present)
+            const vSlotArr = extractTimeAfterLabel(/\bHORA\s+DE\s+SLOT\s+ASIGNADO\b/i, 3) || extractTimeAfterLabel(/\bSLOT\s+ASIGNADO\b/i, 1);
+            if (vSlotArr) setVal('mf-arr-slot-assigned', vSlotArr); else setTimeIf('mf-arr-slot-assigned', ['SLOT ASIGNADO']);
+            setTimeIf('mf-arr-slot-coordinated', ['SLOT COORDINADO']);
+            setTimeIf('mf-arr-arribo-posicion', ['ENTRADA A LA POSICION','ARRIBO A LA POSICION','ARRIBO POSICION']);
+            setTimeIf('mf-arr-inicio-desembarque', ['TERMINO MANIOBRAS DE DESEMBARQUE','INICIO DESEMBARQUE']);
+            setTimeIf('mf-arr-inicio-pernocta', ['INICIO PERNOCTA']);
+          } else {
+            // Nueva heurística completa para salida
+            const route = extractDepartureRouteFields(text);
+            const setPair = (nameId, codeId, pair)=>{ if (pair.code){ setVal(codeId, pair.code); const nm = airportByIATA.get(pair.code)||pair.name||''; if (nm) setVal(nameId, nm); } };
+            setPair('mf-origin-name','mf-origin-code', route.origin);
+            setPair('mf-next-stop','mf-next-stop-code', route.next);
+            setPair('mf-final-dest','mf-final-dest-code', route.dest);
+            // tiempos salida (prefer 'HORA DE SLOT ASIGNADO' if present)
+            const vSlotDep = extractTimeAfterLabel(/\bHORA\s+DE\s+SLOT\s+ASIGNADO\b/i, 3) || extractTimeAfterLabel(/\bSLOT\s+ASIGNADO\b/i, 1);
+            if (vSlotDep) setVal('mf-slot-assigned', vSlotDep); else setTimeIf('mf-slot-assigned', ['SLOT ASIGNADO']);
+            // Coordinado en salidas: N/A
+            try { const el = document.getElementById('mf-slot-coordinated'); if (el) el.value = 'N/A'; } catch(_){ }
+            setTimeIf('mf-inicio-embarque', ['INICIO MANIOBRAS DE EMBARQUE','INICIO DE EMBARQUE']);
+            setTimeIf('mf-salida-posicion', ['SALIDA DE LA POSICION','SALIDA POSICION']);
+            // Término de pernocta en salidas: N/A
+            try { const el = document.getElementById('mf-termino-pernocta'); if (el) el.value = 'N/A'; } catch(_){ }
+          }
+
+          // 5) Pax total
+          let pax = findNearLabelValue(['PASAJEROS','PAX'], /\b\d{1,4}\b/, text); setVal('pax-total', pax || '');
+          // 5.0) Tripulación total
+          try {
+            const crew = findNearLabelValue(['TRIPULACION','TRIPULACIÓN','CREW'], /\b\d{1,3}\b/, text);
+            if (crew) setVal('mf-crew-total', crew);
+          } catch(_){ }
+
+          // 5.1) Piloto al mando y No. de licencia
+          try {
+            const nameRx = /\b[A-ZÁÉÍÓÚÑ](?:\.|\s)\s?[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ]+\b/;
+            const pilot = findNearLabelValue(['PILOTO AL MANDO','PILOTO','CAPITAN','CAPITÁN'], nameRx, text);
+            if (pilot) setVal('mf-pilot', pilot);
+          } catch(_){ }
+          try {
+            const lines = (text||'').split(/\r?\n/);
+            const labelRx = /\bNO\.?\s*LIC(?:\.|ENCIA)?\b/i;
+            let found = '';
+            for (let i=0;i<lines.length;i++){
+              if (labelRx.test(lines[i])){
+                const scanSeg = [];
+                for (let k=1;k<=3;k++){ if (lines[i+k]) scanSeg.push(lines[i+k]); }
+                const joined = scanSeg.join(' ').replace(/\s+/g,' ').trim();
+                const m = joined.match(/[A-Z]{1,6}\d{5,}|\d{7,}/i);
+                if (m){ found = m[0].toUpperCase(); break; }
+              }
+            }
+            if (!found){
+              const all = (text||'');
+              const m2 = all.match(/NO\.?\s*LIC(?:\.|ENCIA)?[\s:]*([A-Z]{1,6}\d{5,}|\d{7,})/i);
+              if (m2) found = (m2[1]||'').toUpperCase();
+            }
+            if (found) setVal('mf-pilot-license', found);
+          } catch(_){ }
+
+          // 5.1) Equipo (tipo ICAO) directamente desde el documento
+          try {
+            const tICAO = extractAircraftTypeICAOFromTextV2(text);
+            if (tICAO && typeIcaoSetV2 && typeIcaoSetV2.has(tICAO)) setVal('mf-aircraft', tICAO);
+          } catch(_){ }
+
+          // 6) Matrícula -> tipo y aerolínea por catálogos
+          const tailPatterns = [
+            /\bX[A-C]-?[A-Z0-9]{3,6}\b/gi, /\bN\d{1,5}[A-Z]{0,3}\b/gi, /\bH[KP]-?[0-9A-Z]{3,8}\b/gi, /\bLV-?[A-Z0-9]{3,5}\b/gi,
+            /\bCC-?[A-Z0-9]{3,5}\b/gi, /\bPR-?[A-Z0-9]{3,5}\b/gi, /\bCP-?[0-9A-Z]{3,6}\b/gi, /\bYV-?[0-9A-Z]{3,6}\b/gi,
+            /\bOB-?[0-9A-Z]{3,6}\b/gi, /\bTG-?[0-9A-Z]{3,6}\b/gi, /\bTC-?[A-Z0-9]{3,6}\b/gi, /\bEI-?[A-Z]{3,5}\b/gi,
+            /\bEC-?[A-Z]{3,5}\b/gi, /\bLX-?[A-Z0-9]{3,5}\b/gi, /\b9H-?[A-Z0-9]{3,6}\b/gi, /\b4K-?[A-Z0-9]{3,6}\b/gi,
+            /\bA7-?[A-Z0-9]{3,6}\b/gi, /\bXA[A-Z0-9]{0,}\b/gi
+          ];
+          const regLabels = ['MATRICULA','MATRÍCULA','REGISTRO','REGISTRATION','EQUIPO'];
+          let regFound = findNearLabelValue(regLabels, /[A-Z0-9-]{4,8}/, text) || '';
+          if (isLabelWordV2(regFound, regLabels)) regFound = '';
+          if (!regFound){ for (const rx of tailPatterns){ const m = text.match(rx); if (m && m.length){ regFound = m[0]; break; } } }
+          let canonReg = '';
+          if (regFound){
+            const variants = regVariants(regFound);
+            for (const v of variants){ const key = normalizeReg(v); const recTry = aircraftByReg.get(v) || aircraftByReg.get(key); if (recTry){ canonReg = recTry._canon || v; break; } }
+          }
+          if (!canonReg){
+            const ex = findCatalogRegInTextExhaustiveV2(text);
+            if (ex) canonReg = ex;
+          }
+          if (canonReg){
+            setVal('mf-tail', canonReg);
+            tailWarn('');
+          } else {
+            // No setear matrícula si no está en catálogo; mostrar aviso
+            setVal('mf-tail', '');
+            tailWarn('No se encontró una matrícula válida en el documento. Verifique o seleccione del catálogo.');
+          }
+          const rec = canonReg ? (aircraftByReg.get(canonReg) || aircraftByReg.get(normalizeReg(canonReg))) : null;
+          if (rec){
+            // Equipo desde Aircraft Type -> map a ICAO/Name cuando exista
+            const t = typeByCode.get(rec.type);
+            if (t){
+              const alreadyValid = /^[A-Z0-9]{3,4}$/.test((document.getElementById('mf-aircraft')?.value||'').toUpperCase()) && typeIcaoSetV2.has((document.getElementById('mf-aircraft')?.value||'').toUpperCase());
+              if (!alreadyValid) setVal('mf-aircraft', t.ICAO || t.Name || rec.type);
+            } else if (rec.type && !document.getElementById('mf-aircraft').value) setVal('mf-aircraft', rec.type);
+            if (!document.getElementById('mf-carrier-3l').value && rec.ownerIATA){
+              const cand = airlinesCatalog.find(a => (a.IATA||'').toUpperCase() === rec.ownerIATA);
+              if (cand && /^[A-Z]{3}$/.test(cand.ICAO || '')){
+                setVal('mf-carrier-3l', cand.ICAO);
+                if (!document.getElementById('mf-operator-name').value) setVal('mf-operator-name', cand.Name);
+                if (!document.getElementById('mf-airline').value) setVal('mf-airline', cand.Name);
+              }
+            }
+          }
+        } catch(e) {
+          if (status) status.textContent = 'Error al llenar campos: ' + (e?.message||e);
+        }
+      }
+
+      async function handleScanPdf(){
+        try {
+          const file = upload && upload.files && upload.files[0];
+          if (!file){ if (status) status.textContent = 'Seleccione un PDF antes de escanear.'; return; }
+          const name = file.name||''; const type = file.type||'';
+          const isPdf = /\.pdf$/i.test(name) || /application\/pdf/i.test(type);
+          if (!isPdf){ if (status) status.textContent = 'El archivo no es PDF. Use "Escaneo alternativo (OCR)".'; return; }
+          setProgress(5, 'Preparando...'); if (status) status.textContent = '';
+          setProgress(12, 'Leyendo PDF...');
+          // Ensure catalogs are ready to improve matching accuracy
+          try { await _v2CatalogsReady; } catch(_){ }
+          let text = await extractPdfTextV2(file);
+          if (!text || text.replace(/\s+/g,'').length < 30){
+            setProgress(48, 'Texto limitado; intentando OCR...');
+            text = await ocrPdfOrImageV2(file, 2);
+          }
+          setProgress(70, 'Procesando...');
+          fillFieldsFromTextV2(text||'');
+          // Post-procesado de horas para salidas: N/A donde aplica
+          try {
+            const isArr = !!(document.getElementById('mf-dir-arr')?.checked);
+            if (!isArr){
+              const naIds = ['mf-slot-coordinated','mf-termino-pernocta']; naIds.forEach(id=>{ const el=document.getElementById(id); if(el) el.value='N/A'; });
+            }
+          } catch(_){ }
+          setProgress(95, 'Casi listo...');
+          setProgress(100, 'Completado');
+          // Force fast finish to avoid lingering at 99%
+          try { _v2Tar = 100; _v2EffTar = 100; } catch(_){ }
+          setTimeout(hideProgress, 900);
+          if (status) status.textContent = text ? 'Escaneo completado (V2).' : 'No se recuperó texto útil.';
+        } catch(e){ if (status) status.textContent = 'Error en escaneo V2.'; hideProgress(); }
+      }
+
+      async function handleScanOcr(){
+        try {
+          const file = upload && upload.files && upload.files[0];
+          if (!file){ if (status) status.textContent = 'Seleccione un archivo (PDF o imagen) antes de OCR.'; return; }
+          setProgress(15, 'Preparando OCR...'); if (status) status.textContent = '';
+          const pagesSel = document.getElementById('manifest-ocr-pages');
+          const maxPages = parseInt((pagesSel && pagesSel.value)||'2', 10) || 2;
+          // Ensure catalogs are ready to improve matching accuracy
+          try { await _v2CatalogsReady; } catch(_){ }
+          const text = await ocrPdfOrImageV2(file, maxPages);
+          setProgress(85, 'Procesando...');
+          fillFieldsFromTextV2(text||'');
+          setProgress(100, 'Completado');
+          try { _v2Tar = 100; _v2EffTar = 100; } catch(_){ }
+          setTimeout(hideProgress, 900);
+          if (status) status.textContent = text ? 'OCR alternativo completado (V2).' : 'No se detectó texto.';
+        } catch(e){ if (status) status.textContent = 'Error en OCR alternativo V2.'; hideProgress(); }
+      }
+
+      // Event delegation: garantiza funcionamiento aunque no se hayan enlazado listeners directos
+      document.addEventListener('click', function(e){
+        const t = e.target;
+        if (!t) return;
+        if (t.id === 'manifest-scan-pdf' || (t.closest && t.closest('#manifest-scan-pdf'))){ e.preventDefault(); handleScanPdf(); }
+        if (t.id === 'manifest-scan-ocr' || (t.closest && t.closest('#manifest-scan-ocr'))){ e.preventDefault(); handleScanOcr(); }
+      });
+      // Feedback en cambio de archivo
+      document.addEventListener('change', function(e){
+        const t = e.target;
+        if (t && t.id === 'manifest-upload'){
+          const f = t.files && t.files[0]; if (status) status.textContent = f ? `Archivo listo: ${f.name}` : 'No se seleccionó archivo.';
+          if (f) renderPreviewV2(f);
+        }
+      });
+    } catch(_){}
+  };
+
+  // Activar V2 al cargar DOM
+  document.addEventListener('DOMContentLoaded', function(){ try { window.setupManifestsUI_v2?.(); } catch(_){} });
+  // Removed custom time picker for mf-slot-assigned; using native input type=time for consistency
 })();

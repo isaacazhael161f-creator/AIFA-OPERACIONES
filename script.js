@@ -386,12 +386,23 @@ function calculateTotals() {
 
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Guard: running from file:// breaks fetch/XHR due to CORS; show banner and skip network initializers
+    try {
+        if (location.protocol === 'file:') {
+            const banner = document.createElement('div');
+            banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:3000;background:#dc3545;color:#fff;padding:10px 14px;font-weight:500;box-shadow:0 2px 8px rgba(0,0,0,0.2)';
+            banner.innerHTML = 'Esta página se abrió con file:// y los datos no pueden cargarse por CORS. Abre con un servidor local (por ejemplo, http://localhost:3000 con "npm start" o Live Server).';
+            document.body.appendChild(banner);
+        }
+    } catch(_) {}
     initializeTheme();
     initializeSidebarState();
     if (document.getElementById('login-screen') && !document.getElementById('login-screen').classList.contains('hidden')) { animateLoginTitle(); }
-    loadItineraryData();      
-    renderDemoras();          
-    renderOperacionesTotales(); 
+    if (location.protocol !== 'file:') {
+        loadItineraryData();      
+        renderDemoras();          
+        renderOperacionesTotales(); 
+    }
     try{ updateOpsSummary(); }catch(_){ }
     // Si la sección activa no es Operaciones Totales, pausar animación para evitar consumo innecesario
     try {
@@ -399,10 +410,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (active && active.id !== 'operaciones-totales-section') { stopOpsAnim(); }
     } catch(_) {}
     // Inicializa la sección de Frecuencias de la semana
-    try { initFrecuenciasSemana(); } catch(_) {}
+    try { if (location.protocol !== 'file:') initFrecuenciasSemana(); } catch(_) {}
     // Inicializa fecha para picos diarios
     try { initPeakDateControls(); } catch(_) {}
-    createPdfSections();
+    if (location.protocol !== 'file:') createPdfSections();
     setupEventListeners();
     updateClock();
     updateDate();
@@ -411,7 +422,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(detectChartErrors, 1000);
     setInterval(updateClock, 1000);
     setInterval(updateDate, 60000);
-    checkSession();
+    if (location.protocol !== 'file:') checkSession();
 
     // Animations enabled across devices (user preference)
     try {
@@ -3391,10 +3402,12 @@ function setupManifestsUI() {
         // Ejecutar una vez al cargar
         applyManifestDirection();
 
-    // Cargar catálogo al entrar a la sección
-    loadAirlinesCatalog();
-    loadAircraftCatalog();
-    loadAirportsCatalog();
+    // Cargar catálogo al entrar a la sección (solo cuando se sirve por http/https)
+    if (location.protocol !== 'file:') {
+        loadAirlinesCatalog();
+        loadAircraftCatalog();
+        loadAirportsCatalog();
+    }
 
     function setPreview(src){ if (prevImg){ prevImg.src = src; prevImg.style.display = 'block'; } if (placeholder) placeholder.style.display = 'none'; if (runBtn) runBtn.disabled = false; currentImageURL = src; }
         if (up && !up._wired) { up._wired = 1; up.addEventListener('change', async (e)=>{
@@ -3565,7 +3578,7 @@ function setupManifestsUI() {
             carrier.addEventListener('blur', ()=> setFromICAO(carrier.value));
         })();
 
-        // Autofill por Matrícula -> Equipo (y posible transportista via owner IATA)
+        // Autofill por Matrícula -> Equipo (Registration) y posible transportista via owner IATA
         (function wireTailAutofill(){
             const tail = document.getElementById('mf-tail');
             if (!tail || tail._wired) return; tail._wired = 1;
@@ -3576,14 +3589,11 @@ function setupManifestsUI() {
                 if (!reg) return;
                 const rec = aircraftByReg.get(reg);
                 if (!rec) return;
-                // Tenemos IATA code del tipo => buscar ICAO y/o nombre
+                // Equipo desde Aircraft Type -> preferir ICAO de 'aircraft type.csv', luego nombre, luego IATA type
                 const t = typeByCode.get(rec.type);
                 if (t){
-                    // Colocar Equipo como ICAO Code si existe; si no, como nombre
                     const preferred = t.ICAO || t.Name || rec.type;
-                    if (equipo && (!equipo.value || equipo.value === rec.type)) {
-                        equipo.value = preferred;
-                    }
+                    if (equipo) equipo.value = preferred;
                 } else {
                     if (equipo && !equipo.value) equipo.value = rec.type; // fallback
                 }
@@ -3653,8 +3663,6 @@ function setupManifestsUI() {
                 aircraft: g('mf-aircraft'),
                 originName: g('mf-origin-name'),
                 originCode: g('mf-origin-code'),
-                crewCockpit: g('mf-crew-cockpit'),
-                crewCabin: g('mf-crew-cabin'),
                 crewTotal: g('mf-crew-total'),
                 baggageKg: g('mf-baggage-kg'),
                 baggagePieces: g('mf-baggage-pcs'),
@@ -3708,7 +3716,7 @@ function setupManifestsUI() {
                 signCoordinator: g('mf-sign-coordinator'),
                 signAdmin: g('mf-sign-admin'),
                 signAdminDate: g('mf-sign-admin-date'),
-                image: (prevImg && prevImg.src) || ''
+                image: (function(){ try { const cv=document.getElementById('manifest-preview-canvas'); if (cv && !cv.classList.contains('d-none')) return cv.toDataURL('image/png'); const im=document.getElementById('manifest-preview'); return (im && !im.classList.contains('d-none')) ? (im.src||'') : ''; } catch(_){ return ''; } })()
             };
         }
     function loadRecords(){ try { return JSON.parse(localStorage.getItem('aifa.manifests')||'[]'); } catch(_) { return []; } }

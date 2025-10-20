@@ -95,7 +95,7 @@ body {
    Tablas de Inicio "Glassmorphism"
    ========================================================================== */
 .table-container-tech { background-color: var(--tech-table-bg); backdrop-filter: blur(10px); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; box-shadow: 0 4px 15px var(--shadow-color); overflow: hidden; }
-.table-container-tech .table-responsive { /* no vertical scroll for fauna table */ }
+
 
 /* Evitar colisión visual entre cluster derecho y centro en tablets chicas */
 @media (max-width: 991.98px) {
@@ -578,6 +578,19 @@ body.dark-mode #manifest-preview-container { background: #1b2733; }
 #manifest-records-table tbody tr { cursor: pointer; }
 #manifest-records-table tbody tr:hover { background: rgba(0,0,0,0.04); }
 body.dark-mode #manifest-records-table tbody tr:hover { background: rgba(255,255,255,0.06); }
+/* Capa de texto seleccionable sobre el canvas/imagen del PDF (para copiar texto) */
+#manifest-text-layer { color: rgba(20,20,20,0.88); mix-blend-mode: multiply; }
+#manifest-text-layer span { color: inherit; user-select: text; -webkit-user-select: text; }
+body.dark-mode #manifest-text-layer { color: rgba(240,240,240,0.9); mix-blend-mode: normal; }
+/* Progreso tipo avión sobre barra */
+.plane-progress { width: 100%; }
+.plane-progress-track { position: relative; width: 100%; height: 16px; background: linear-gradient(90deg, #e3f2fd, #e8f5e9); border-radius: 12px; overflow: hidden; border: 1px solid #8ec5ff; box-shadow: inset 0 1px 2px rgba(0,0,0,0.08); }
+.plane-progress-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: linear-gradient(90deg, #00bcd4, #2196f3, #0d47a1); transition: width .25s ease; box-shadow: 0 0 10px rgba(33,150,243,0.35); }
+.plane-progress-plane { position: absolute; top: 50%; left: 0%; transform: translate(-50%, -50%); font-size: 22px; filter: drop-shadow(0 1px 1px rgba(0,0,0,.25)) drop-shadow(0 0 6px rgba(33,150,243,0.45)); transition: left .25s ease; }
+.plane-progress-label { text-align: right; margin-top: 6px; font-variant-numeric: tabular-nums; color: var(--primary-color); font-weight: 600; }
+body.dark-mode .plane-progress-track { background: linear-gradient(90deg, #143955, #0f2a3d); border-color: #2b88ff; }
+body.dark-mode .plane-progress-fill { background: linear-gradient(90deg, #00bcd4, #42a5f5, #90caf9); box-shadow: 0 0 14px rgba(66,165,245,0.45); }
+body.dark-mode .plane-progress-label { color: #90caf9; }
 
 /* Manifiestos: layout y legibilidad */
 #manifiestos-section .form-label { font-weight: 600; }
@@ -703,6 +716,38 @@ body.dark-mode #manifest-records-table tbody tr:hover { background: rgba(255,255
 /* Dejamos el scroll vertical al documento completo (no caja interna) */
 #fauna-section .fauna-table thead th { position: sticky; top: 0; z-index: 5; }
 #fauna-section .fauna-table { font-variant-numeric: tabular-nums; }
+
+/* ===================== Fauna: resúmenes más grandes ===================== */
+#fauna-section #fauna-total-badge,
+#fauna-section #fauna-period-badge {
+   font-size: 1rem; /* antes ~.875rem por default */
+   padding: .5rem .75rem;
+   border-radius: 999px;
+}
+#fauna-section .card .d-flex.flex-wrap.gap-3.mb-3 .badge { /* asegurar consistencia si el layout cambia */
+   font-size: 1rem;
+}
+#fauna-top-hours {
+   display: flex; flex-wrap: wrap; gap: .4rem .5rem;
+}
+#fauna-top-hours .badge {
+   font-size: .95rem;
+   padding: .45rem .6rem;
+}
+#fauna-section h6.text-muted { /* títulos como "Top horas críticas" y "Resumen por fase" */
+   font-size: 1.05rem !important;
+}
+#fauna-phase-summary .badge {
+   font-size: 1rem;
+   padding: .5rem .7rem;
+}
+/* Ajustes para pantallas pequeñas: mantenerlos grandes también en móvil */
+@media (max-width: 576px) {
+   #fauna-section #fauna-total-badge,
+   #fauna-section #fauna-period-badge { font-size: 1.05rem; }
+   #fauna-top-hours .badge { font-size: 1rem; }
+   #fauna-phase-summary .badge { font-size: 1.05rem; }
+}
 
 /* Etiquetas de badges y títulos compactos en móvil */
 @media (max-width: 576px) {

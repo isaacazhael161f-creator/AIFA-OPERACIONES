@@ -140,6 +140,7 @@
 
   async function initContainer(container){
     try {
+      if (location.protocol === 'file:') { console.warn('PDF viewer: deshabilitado bajo file://'); return; }
       await ensurePdfJs();
       const src = container.getAttribute('data-src');
       if (!src) return;

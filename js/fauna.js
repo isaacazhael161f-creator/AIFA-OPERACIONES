@@ -31,7 +31,13 @@
   }
 
   function loadFauna(){
-    return fetch('data/fauna.json').then(r => r.json());
+    try {
+      if (location.protocol === 'file:') {
+        console.warn('fauna: saltando carga por file:// (CORS).');
+        return Promise.resolve([]);
+      }
+    } catch(_) {}
+    return fetch('data/fauna.json').then(r => r.json()).catch(()=>[]);
   }
 
   function buildColumns(rows){
