@@ -496,6 +496,15 @@ body.dark-mode .section-icon { box-shadow:0 2px 8px rgba(0,0,0,0.4); }
    /* quitar borde; conservar glow suave */
    box-shadow: 0 10px 22px rgba(0,0,0,0.35), 0 0 28px rgba(13,45,86,0.42);
 }
+
+   /* Loader de sección (Manifiestos) */
+   .section-loader { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.85); backdrop-filter: blur(2px); z-index: 50; transition: opacity .25s ease, visibility .25s ease; }
+   .section-loader.hidden { opacity:0; visibility:hidden; pointer-events:none; }
+   .section-loader .loader-content { color:#222; }
+   .section-loader .loader-text { font-weight:600; color:#333; }
+   /* Escala reducida para el orbitador dentro de contenedor */
+   .section-loader .plane-orbit { width:140px; height:140px; }
+   .section-loader .plane-orbit .plane-icon { font-size:34px; }
 @keyframes planeOrbit {
   0%   { transform: translate(-50%, -50%) rotate(0deg)   translateX(86px) rotate(90deg)  rotate(0deg); }
   12.5%{ transform: translate(-50%, -50%) rotate(45deg)  translateX(86px) rotate(90deg)  rotate(-10deg); }
@@ -754,3 +763,13 @@ body.dark-mode .plane-progress-label { color: #90caf9; }
    #fauna-section h6.text-muted { font-size: .95rem; }
    #fauna-section .badge { font-size: .8rem; }
 }
+
+/* ================================================
+   Time inputs: force 24h UI (hide AM/PM on WebKit)
+   ================================================ */
+/* Prefer a 24-hour UI by hiding the AM/PM subfield in Chromium-based browsers */
+input[type="time"]::-webkit-datetime-edit-ampm-field { display: none; }
+/* Also hide spin buttons for a cleaner, unified look */
+input[type="time"]::-webkit-inner-spin-button { display: none; }
+/* Keep value text aligned and legible */
+input[type="time"] { font-variant-numeric: tabular-nums; }

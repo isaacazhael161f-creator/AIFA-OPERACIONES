@@ -6,6 +6,7 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ROOT = path.join(__dirname);
+const DEV = process.env.NODE_ENV !== 'production';
 
 // Enable CORS for local development (optional but handy)
 app.use(cors());
@@ -15,6 +16,13 @@ app.use((req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
   next();
 });
+
+// During development, block serving files from /www to avoid duplicate HTML/CSS/JS paths
+if (DEV) {
+  app.use('/www', (req, res) => {
+    res.status(410).send('www folder disabled in development. Use root files only.');
+  });
+}
 
 // Serve all static files from the repository root
 app.use(express.static(ROOT, { index: 'index.html' }));

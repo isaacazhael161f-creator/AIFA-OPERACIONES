@@ -387,7 +387,7 @@
                 <div id="parte-operaciones-section" class="content-section">
                     <div class="card">
                         <div class="card-header flex-column flex-md-row d-flex justify-content-between align-items-center">
-                            <h2 class="mb-3 mb-md-0">Resumen de operaciones (19 de octubre de 2025)</h2>
+                            <h2 class="mb-3 mb-md-0">Resumen de operaciones (20 de octubre de 2025)</h2>
                             <div class="d-flex gap-2">
                                 <a href="pdfs/parte_operaciones_completo.pdf" class="btn btn-danger download-btn" download><i class="fas fa-file-pdf me-2"></i><span class="btn-text">Descargar PDF</span></a>
                                 <a href="excel/parte_operaciones_completo.xlsx" class="btn btn-success download-btn" download><i class="fas fa-file-excel me-2"></i><span class="btn-text">Descargar Excel</span></a>
@@ -772,6 +772,17 @@
                                     </div>
                                     
                                     <div class="border rounded p-2 bg-light" id="manifest-preview-container" style="position:relative; overflow:auto;">
+                                        <!-- Loader de sección Manifiestos (tipo login con avión orbitando) -->
+                                        <div id="manifiestos-loader" class="section-loader hidden" role="alert" aria-live="assertive" aria-busy="true">
+                                            <div class="loader-content text-center">
+                                                <div class="plane-orbit">
+                                                    <span class="orbit-ring"></span>
+                                                    <span class="plane-icon">✈</span>
+                                                    <img src="images/logo_aifa.jpg" alt="AIFA" class="loader-aifa-logo" />
+                                                </div>
+                                                <div class="loader-text">Escaneando…</div>
+                                            </div>
+                                        </div>
                                         <div id="manifest-preview-placeholder" class="text-muted small">Seleccione un PDF de manifiesto y presione "Escanear PDF" para procesarlo automáticamente.</div>
                                         <!-- Previsualización: imagen (para JPG/PNG) o canvas (para PDF) -->
                                         <img id="manifest-preview" alt="Previsualización" class="img-fluid d-none" style="position:relative; z-index:0;" />
@@ -884,10 +895,7 @@
                                                         <label class="form-label">Código de 3 letras (origen)</label>
                                                         <input type="text" class="form-control" id="mf-origin-code" maxlength="3" style="text-transform:uppercase" list="airports-iata-list" placeholder="IATA (3 letras)" />
                                                     </div>
-                                                                                                        <div class="mb-2">
-                                                                                                                <label class="form-label">Hora de slot asignado</label>
-                                                                                                                <input type="time" class="form-control" id="mf-slot-assigned" />
-                                                                                                            </div>
+                                                                                                        
                                                 </div>
                                                 <!-- Columna 2: Próxima escala -->
                                                 <div class="col-12 col-md-4">
@@ -899,10 +907,7 @@
                                                         <label class="form-label">Código de 3 letras (próxima escala)</label>
                                                         <input type="text" class="form-control" id="mf-next-stop-code" maxlength="3" style="text-transform:uppercase" list="airports-iata-list" placeholder="IATA (3 letras)" />
                                                     </div>
-                                                    <div class="mb-2">
-                                                        <label class="form-label">Hora de slot coordinado</label>
-                                                        <input type="time" class="form-control" id="mf-slot-coordinated" />
-                                                    </div>
+                                                    
                                                 </div>
                                                 <!-- Columna 3: Destino -->
                                                 <div class="col-12 col-md-4">
@@ -914,19 +919,40 @@
                                                         <label class="form-label">Código de 3 letras (destino)</label>
                                                         <input type="text" class="form-control" id="mf-final-dest-code" maxlength="3" style="text-transform:uppercase" list="airports-iata-list" placeholder="IATA (3 letras)" />
                                                     </div>
-                                                    <div class="mb-2">
-                                                        <label class="form-label">Hora de término de pernocta</label>
-                                                        <input type="time" class="form-control" id="mf-termino-pernocta" />
+                                                    
+                                                </div>
+                                                <!-- Grupo de tiempos (Salida) -->
+                                                <div class="col-12">
+                                                    <div class="p-3 border rounded bg-light-subtle mt-1">
+                                                        <h6 class="mb-2">Tiempos (Salida)</h6>
+                                                        <div class="row g-3">
+                                                            <div class="col-6 col-md-3">
+                                                                <label class="form-label">Hora de slot asignado</label>
+                                                                <input type="text" class="form-control" id="mf-slot-assigned" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
+                                                                <div class="form-text">Hora local</div>
+                                                            </div>
+                                                            <div class="col-6 col-md-3">
+                                                                <label class="form-label">Hora de slot coordinado</label>
+                                                                <input type="text" class="form-control" id="mf-slot-coordinated" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
+                                                                <div class="form-text">Hora local</div>
+                                                            </div>
+                                                            <div class="col-6 col-md-3">
+                                                                <label class="form-label">Hora de término de pernocta</label>
+                                                                <input type="text" class="form-control" id="mf-termino-pernocta" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
+                                                                <div class="form-text">Hora local</div>
+                                                            </div>
+                                                            <div class="col-6 col-md-3">
+                                                                <label class="form-label">Hora de inicio de maniobras de embarque</label>
+                                                                <input type="text" class="form-control" id="mf-inicio-embarque" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
+                                                                <div class="form-text">Hora local</div>
+                                                            </div>
+                                                            <div class="col-6 col-md-3">
+                                                                <label class="form-label">Hora de salida de la posición</label>
+                                                                <input type="text" class="form-control" id="mf-salida-posicion" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
+                                                                <div class="form-text">Hora local</div>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <!-- Última fila: Maniobras y salida de posición -->
-                                                <div class="col-12 col-md-6">
-                                                    <label class="form-label">Hora de inicio de maniobras de embarque</label>
-                                                    <input type="time" class="form-control" id="mf-inicio-embarque" />
-                                                </div>
-                                                <div class="col-12 col-md-6">
-                                                    <label class="form-label">Hora de salida de la posición</label>
-                                                    <input type="time" class="form-control" id="mf-salida-posicion" />
                                                 </div>
                                             </div>
                                             <hr />
@@ -945,16 +971,7 @@
                                                     <label class="form-label">Código de 3 letras (procedencia)</label>
                                                     <input type="text" class="form-control" id="mf-arr-origin-code" maxlength="3" style="text-transform:uppercase" list="airports-iata-list" placeholder="IATA (3 letras)" />
                                                 </div>
-                                                <!-- 3) Hora de slot asignado (arribo) -->
-                                                <div class="col-6 col-md-3">
-                                                    <label class="form-label">Hora de slot asignado</label>
-                                                    <input type="time" class="form-control" id="mf-arr-slot-assigned" />
-                                                </div>
-                                                <!-- 4) Hora de slot coordinado (arribo) -->
-                                                <div class="col-6 col-md-3">
-                                                    <label class="form-label">Hora de slot coordinado</label>
-                                                    <input type="time" class="form-control" id="mf-arr-slot-coordinated" />
-                                                </div>
+                                                
                                                 <!-- 5) Última escala - nombre completo del aeropuerto -->
                                                 <div class="col-12 col-md-6">
                                                     <label class="form-label">Escala Anterior - Nombre completo del aeropuerto</label>
@@ -967,22 +984,47 @@
                                             
                         <datalist id="airports-iata-list"></datalist>
                         <datalist id="airports-name-list"></datalist>
+                        <datalist id="hhmm-24-list">
+                            <!-- 24h options in 5-minute increments for convenience; you can still type any minute -->
+                
+                        </datalist>
                                                 </div>
-                                                <!-- 7) Hora de arribo a la posición -->
-                                                <div class="col-6 col-md-3">
-                                                    <label class="form-label">Hora de entrada a la posición</label>
-                                                    <input type="time" class="form-control" id="mf-arr-arribo-posicion" />
-                                                </div>
-                                                <!-- 8) Hora de inicio de maniobras de desembarque -->
-                                                <div class="col-6 col-md-3">
-                                                    <label class="form-label">Hora de termino de maniobras de desembarque</label>
-                                                    <input type="time" class="form-control" id="mf-arr-inicio-desembarque" />
+                                                
+                                                <!-- Grupo de tiempos (Llegada) -->
+                                                <div class="col-12 mt-1">
+                                                    <div class="p-3 border rounded bg-light-subtle">
+                                                        <h6 class="mb-2">Tiempos (Llegada)</h6>
+                                                        <div class="row g-3">
+                                                            <div class="col-6 col-md-3">
+                                                                <label class="form-label">Hora de slot asignado</label>
+                                                                <input type="text" class="form-control" id="mf-arr-slot-assigned" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
+                                                                <div class="form-text">Hora local</div>
+                                                            </div>
+                                                            <div class="col-6 col-md-3">
+                                                                <label class="form-label">Hora de slot coordinado</label>
+                                                                <input type="text" class="form-control" id="mf-arr-slot-coordinated" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
+                                                                <div class="form-text">Hora local</div>
+                                                            </div>
+                                                            <div class="col-6 col-md-3">
+                                                                <label class="form-label">Hora de entrada a la posición</label>
+                                                                <input type="text" class="form-control" id="mf-arr-arribo-posicion" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
+                                                                <div class="form-text">Hora local</div>
+                                                            </div>
+                                                            <div class="col-6 col-md-3">
+                                                                <label class="form-label">Hora de termino de maniobras de desembarque</label>
+                                                                <input type="text" class="form-control" id="mf-arr-inicio-desembarque" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
+                                                                <div class="form-text">Hora local</div>
+                                                            </div>
+                                                            <div class="col-6 col-md-3">
+                                                                <label class="form-label">Hora de inicio de pernocta</label>
+                                                                <input type="text" class="form-control" id="mf-arr-inicio-pernocta" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
+                                                                <div class="form-text">Hora local</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                                 <!-- 9) Hora de inicio de pernocta -->
-                                                <div class="col-6 col-md-3">
-                                                    <label class="form-label">Hora de inicio de pernocta</label>
-                                                    <input type="time" class="form-control" id="mf-arr-inicio-pernocta" />
-                                                </div>
+                                                
                                             </div>
                                             <hr />
                                         </div>
@@ -1037,53 +1079,7 @@
                                             </div>
                                             <hr />
                                         </div>
-                                        <!-- Sección 2 (Llegada): Movimiento de operaciones -->
-                                        <div class="col-12" data-dir="arrival-only">
-                                            <h6 class="mb-2"><i class="fas fa-route me-1"></i>Movimiento de operaciones</h6>
-                                            <div class="row g-2">
-                                                <!-- 1) Procedencia del vuelo (nombre completo) -->
-                                                <div class="col-12 col-md-6">
-                                                    <label class="form-label">Procedencia del vuelo - Nombre completo del aeropuerto</label>
-                                                    <input type="text" class="form-control" id="mf-arr-origin-name" />
-                                                </div>
-                                                <!-- 2) Código de 3 letras (procedencia) -->
-                                                <div class="col-6 col-md-3">
-                                                    <label class="form-label">Código de 3 letras (procedencia)</label>
-                                                    <input type="text" class="form-control" id="mf-arr-origin-code" maxlength="3" style="text-transform:uppercase" />
-                                                </div>
-                                                <!-- 3) Hora de slot asignado (arribo) -->
-                                                <div class="col-6 col-md-3">
-                                                    <label class="form-label">Hora de slot asignado</label>
-                                                    <input type="time" class="form-control" id="mf-arr-slot-assigned" />
-                                                </div>
-                                                <!-- 4) Hora de slot coordinado (arribo) -->
-                                                <div class="col-6 col-md-3">
-                                                    <label class="form-label">Hora de slot coordinado</label>
-                                                    <input type="time" class="form-control" id="mf-arr-slot-coordinated" />
-                                                </div>
-                                                <!-- 5) Escala Anterior - nombre completo del aeropuerto -->
-                                                <div class="col-12 col-md-6">
-                                                    <label class="form-label">Escala Anterior - Nombre completo del aeropuerto</label>
-                                                    <input type="text" class="form-control" id="mf-arr-last-stop" />
-                                                </div>
-                                                <!-- 6) Código de 3 letras (Escala Anterior) -->
-                                                <div class="col-6 col-md-3">
-                                                    <label class="form-label">Código de 3 letras (Escala anterior)</label>
-                                                    <input type="text" class="form-control" id="mf-arr-last-stop-code" maxlength="3" style="text-transform:uppercase" />
-                                                </div>
-                                                <!-- 7) Hora de arribo a la posición -->
-                                                <div class="col-6 col-md-3">
-                                                    <label class="form-label">Hora de entrada a la posición</label>
-                                                    <input type="time" class="form-control" id="mf-arr-arribo-posicion" />
-                                                </div>
-                                                <!-- 8) Hora de inicio de maniobras de desembarque -->
-                                                <div class="col-6 col-md-3">
-                                                    <label class="form-label">Hora de término de maniobras de desembarque</label>
-                                                    <input type="time" class="form-control" id="mf-arr-inicio-desembarque" />
-                                                </div>
-                                            </div>
-                                            <hr />
-                                        </div>
+                                        
                                         <!-- Embarque por estación -->
                                         <div class="col-12">
                                             <div class="d-flex align-items-center justify-content-between">
@@ -1121,10 +1117,6 @@
                                                 </table>
                                             </div>
                                             <hr />
-                                        </div>
-                                        <div class="col-6 col-md-4">
-                                            <label class="form-label">Equipaje (kg)</label>
-                                            <input type="number" step="0.01" class="form-control" id="mf-baggage-kg" />
                                         </div>
                                         <div class="col-6 col-md-4">
                                             <label class="form-label">Equipaje Piezas</label>

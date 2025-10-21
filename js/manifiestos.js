@@ -18,22 +18,451 @@
     const nz = Math.max(0.5, Math.min(3.0, Number(z)||1));
     window.__manifestZoom = nz; window.manifestApplyZoom();
   };
+  // Global time helpers: normalize time strings and find times near labels
+  (function(){
+    // Accept HH:MM, HH.MM, HH-MM, HH MM, H:MM, compact HHMM; optional suffix like hrs/hr/h
+    const TIME_RX = /\b(?:([01]?\d|2[0-3])[\s:\\.hH\-–—·•]\s?([0-5]\d)|([01]?\d|2[0-3])([0-5]\d))\b(?:\s?(?:hrs?\.?|hr\.?|h\.?))?/i;
+    window._mfTimeRx = TIME_RX;
+    window._mfNormTime = function(v){
+      try {
+        if (!v) return '';
+        const s = String(v).trim();
+        const m = s.match(TIME_RX);
+        if (!m) return '';
+        let hh, mm;
+        if (m[1] != null && m[2] != null){
+          hh = String(m[1]); mm = String(m[2]);
+        } else {
+          const raw = String(m[3]||'') + String(m[4]||'');
+          if (!raw) return '';
+          if (raw.length === 3){ hh = '0' + raw[0]; mm = raw.slice(1); }
+          else { hh = raw.slice(0,2); mm = raw.slice(-2); }
+        }
+        const H = String(hh).padStart(2,'0'); const M = String(mm).padStart(2,'0');
+        const Hi = parseInt(H,10), Mi = parseInt(M,10);
+        if (!(Hi>=0 && Hi<=23 && Mi>=0 && Mi<=59)) return '';
+        return H + ':' + M;
+      } catch(_) { return ''; }
+    };
+    window._mfExtractTimeAfterLabel = function(text, labelRx, opts){
+      try {
+        const maxAhead = Math.max(0, Math.min(12, (opts && opts.maxAhead) || 6));
+        const lines = String(text||'').split(/\r?\n/);
+        for (let i=0;i<lines.length;i++){
+          const line = lines[i]||'';
+          if (labelRx.test(line)){
+            // Prefer time on the same line to the right of the label
+            const idx = line.search(labelRx);
+            const rest = idx>=0 ? line.slice(idx) : line;
+            const mSame = rest.match(TIME_RX);
+            if (mSame){ const t = window._mfNormTime(rest); if (t) return t; }
+            // Otherwise scan the next few lines
+            for (let k=1;k<=maxAhead;k++){
+              const s = lines[i+k]||'';
+              const m = s.match(TIME_RX);
+              if (m){ const t = window._mfNormTime(s); if (t) return t; }
+            }
+            // Optional: look slightly before too (table formats)
+            for (let k=1;k<=Math.min(2,maxAhead);k++){
+              const s = lines[i-k]||'';
+              const m = s.match(TIME_RX);
+              if (m){ const t = window._mfNormTime(s); if (t) return t; }
+            }
+          }
+        }
+      } catch(_){ }
+      return '';
+    };
+
+    // Dedicated robust extractor for the Slot Assigned time; uses fuzzy label patterns and window scans
+    window._mfFindSlotAssignedTime = function(text){
+      try {
+        const T = String(text||'');
+        // Fuzzy patterns (allow spaces between letters and common OCR confusions like 7 for T, 1 for I)
+        const R = {
+          HORA_SLOT_ASIGNADO: /H\s*O\s*R\s*A\s*(?:D\s*E\s*)?S\s*L\s*O\s*[T7]\s*(?:D\s*E\s*)?A\s*S\s*[I1]\s*G\s*N\s*A\s*D\s*O/i,
+          SLOT_ASIGNADO: /S\s*L\s*O\s*[T7]\s*A\s*S\s*[I1]\s*G\s*N\s*A\s*D\s*O/i,
+          HORA_DE_SLOT: /H\s*O\s*R\s*A\s*(?:D\s*E\s*)?S\s*L\s*O\s*[T7]/i,
+          SLOT_ASIG: /S\s*L\s*O\s*[T7]\s*A\s*S\s*[I1]\s*G\b/i
+        };
+        const patterns = [R.HORA_SLOT_ASIGNADO, R.SLOT_ASIGNADO, R.HORA_DE_SLOT, R.SLOT_ASIG];
+        for (const rx of patterns){
+          const m = T.match(rx);
+          if (m && typeof m.index === 'number'){
+            const start = m.index + (m[0]?.length||0);
+            const after = T.slice(start, start+200);
+            const before = T.slice(Math.max(0, m.index-120), m.index);
+            // Try window after label
+            const hitAfter = after.match(TIME_RX);
+            if (hitAfter){ const t = window._mfNormTime(hitAfter[0]); if (t) return t; }
+            // Try same line remainder
+            const lineEnd = T.indexOf('\n', start);
+            if (lineEnd !== -1){
+              const restLine = T.slice(start, lineEnd);
+              const mLine = restLine.match(TIME_RX);
+              if (mLine){ const t = window._mfNormTime(mLine[0]); if (t) return t; }
+            }
+            // Try context before label (tables with value to the left)
+            const hitBefore = before.match(TIME_RX);
+            if (hitBefore){ const t = window._mfNormTime(hitBefore[0]); if (t) return t; }
+          }
+        }
+        // Fallback: any line containing SLOT or ASIG nearby a time
+        const lines = T.split(/\r?\n/);
+        for (const ln of lines){
+          if (/(S\s*L\s*O\s*[T7])|(ASIG)/i.test(ln)){
+            const m = ln.match(TIME_RX); if (m){ const t = window._mfNormTime(m[0]); if (t) return t; }
+          }
+        }
+      } catch(_){ }
+      return '';
+    };
+
+    // Generic fuzzy label builder and finder for other time fields
+    const _stripAcc = (s)=> String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const _charClass = (ch)=>{
+      const c = ch.toUpperCase();
+      if (c==='I') return '[I1]';
+      if (c==='O') return '[O0]';
+      if (c==='T') return '[T7]';
+      if (c==='A') return '[AÁA]';
+      if (c==='E') return '[EÉE]';
+      if (c==='N') return '[NÑN]';
+      // default A-Z or digit
+      if (/^[A-Z0-9]$/.test(c)) return c;
+      return ch; // punctuation or space handled separately
+    };
+    window._mfMakeFuzzyLabelRegex = function(phrase){
+      const base = _stripAcc(String(phrase||'').toUpperCase());
+      let out = '';
+      for (let i=0;i<base.length;i++){
+        const ch = base[i];
+        if (ch===' '){ out += '\\s+'; continue; }
+        if (/[^A-Z0-9]/.test(ch)){ out += '\\s*'; continue; }
+        out += _charClass(ch) + '\\s*';
+      }
+      return new RegExp(out, 'i');
+    };
+    window._mfFindTimeByLabels = function(text, labelPhrases, opts){
+      try {
+        for (const p of (labelPhrases||[])){
+          const rx = (p instanceof RegExp) ? p : window._mfMakeFuzzyLabelRegex(String(p||''));
+          const t = window._mfExtractTimeAfterLabel(text, rx, opts||{ maxAhead: 8 });
+          if (t) return t;
+        }
+        // Fallback: any line containing core keywords from the first label
+        const first = _stripAcc(String((labelPhrases&&labelPhrases[0])||''));
+        const keys = first.split(/\s+/).filter(Boolean).slice(0,3);
+        const Krx = new RegExp(keys.map(k=>k.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&')).join('.*'), 'i');
+        const lines = String(text||'').split(/\r?\n/);
+        for (const ln of lines){ if (Krx.test(_stripAcc(ln))){ const m = ln.match(TIME_RX); if (m){ const t = window._mfNormTime(m[0]); if (t) return t; } } }
+      } catch(_){ }
+      return '';
+    };
+
+    // Lightweight custom 24h time picker (hour/minute selectors) reused by all time fields
+    let _tpEl = null, _tpHour=null, _tpMin=null, _tpApply=null, _tpCancel=null, _tpAnchor=null;
+    function _ensureTimePicker(){
+      if (_tpEl) return _tpEl;
+      const el = document.createElement('div');
+      el.id = 'mf-time-picker';
+      el.style.position = 'absolute';
+      el.style.zIndex = '10000';
+      el.style.background = '#fff';
+      el.style.border = '1px solid rgba(0,0,0,0.15)';
+      el.style.boxShadow = '0 4px 16px rgba(0,0,0,0.15)';
+      el.style.borderRadius = '8px';
+      el.style.padding = '8px';
+      el.style.display = 'none';
+      el.style.minWidth = '220px';
+      el.innerHTML = `
+        <div style="display:flex; gap:8px; align-items:center; justify-content:space-between;">
+          <div style="flex:1;">
+            <label style="font-size:12px; color:#666;">Hora</label>
+            <select id="mf-tp-hour" style="width:100%; padding:6px; border-radius:6px; border:1px solid #ccc;"></select>
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:12px; color:#666;">Minutos</label>
+            <select id="mf-tp-min" style="width:100%; padding:6px; border-radius:6px; border:1px solid #ccc;"></select>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px;">
+          <button id="mf-tp-cancel" type="button" class="btn btn-sm btn-light">Cancelar</button>
+          <button id="mf-tp-apply" type="button" class="btn btn-sm btn-primary">Aplicar</button>
+        </div>`;
+      document.body.appendChild(el);
+      _tpEl = el;
+      _tpHour = el.querySelector('#mf-tp-hour');
+      _tpMin = el.querySelector('#mf-tp-min');
+      _tpApply = el.querySelector('#mf-tp-apply');
+      _tpCancel = el.querySelector('#mf-tp-cancel');
+      // Fill options
+      if (_tpHour && !_tpHour._filled){
+        _tpHour._filled=1; for (let h=0;h<24;h++){ const o=document.createElement('option'); const H=String(h).padStart(2,'0'); o.value=H; o.textContent=H; _tpHour.appendChild(o);} }
+      if (_tpMin && !_tpMin._filled){
+        _tpMin._filled=1; for (let m=0;m<60;m++){ const o=document.createElement('option'); const M=String(m).padStart(2,'0'); o.value=M; o.textContent=M; _tpMin.appendChild(o);} }
+      _tpCancel.addEventListener('click', ()=>{ _tpEl.style.display='none'; _tpAnchor=null; });
+      _tpApply.addEventListener('click', ()=>{
+        try {
+          if (!_tpAnchor) return; const H=_tpHour.value||'00'; const M=_tpMin.value||'00';
+          const v = `${H}:${M}`; const norm = (window._mfNormTime? window._mfNormTime(v): v);
+          _tpAnchor.value = norm || '';
+          // If there is an attached NA checkbox, ensure NA turns off when a time is set
+          const cb = document.getElementById(_tpAnchor.id+'-na'); if (cb){ cb.checked=false; cb.dispatchEvent(new Event('change',{bubbles:true})); }
+        } catch(_){ }
+        _tpEl.style.display='none'; _tpAnchor=null;
+      });
+      document.addEventListener('click', (e)=>{ if(!_tpEl || _tpEl.style.display==='none') return; const t=e.target; if (t===_tpEl || _tpEl.contains(t) || t===_tpAnchor) return; _tpEl.style.display='none'; _tpAnchor=null; });
+      return _tpEl;
+    }
+    function _openTimePickerFor(input){
+      const el = _ensureTimePicker();
+      _tpAnchor = input;
+      // Preselect from current value
+      try{
+        const v = String(input.value||''); const m = v.match(/^(\d{2}):(\d{2})$/); const H=(m?m[1]:'00'), M=(m?m[2]:'00');
+        if (_tpHour) _tpHour.value = H; if (_tpMin) _tpMin.value = M;
+      } catch(_){ }
+      // Position below input
+      const r = input.getBoundingClientRect();
+      el.style.left = Math.max(8, Math.min(window.innerWidth-240, r.left + window.scrollX))+'px';
+      el.style.top = (r.bottom + window.scrollY + 6)+'px';
+      el.style.display = 'block';
+    }
+    window._mfBindTimePickerButtons = function(){
+      try {
+        (window._mfTimeFieldIds||[]).forEach(id=>{
+          const input = document.getElementById(id); if (!input || input._tpWired) return; input._tpWired=1;
+          // Insert a small trigger button after the input
+          const btn = document.createElement('button'); btn.type='button'; btn.className='btn btn-sm btn-outline-secondary ms-2'; btn.title='Elegir hora'; btn.textContent='⏱';
+          if (input.parentElement) input.parentElement.appendChild(btn);
+          btn.addEventListener('click', ()=> _openTimePickerFor(input));
+          // Also open on double-click on the input for convenience
+          input.addEventListener('dblclick', ()=> _openTimePickerFor(input));
+          // Enforce pattern HH:MM on blur via normalization
+          input.addEventListener('blur', ()=>{ const n=(window._mfNormTime? window._mfNormTime(input.value): input.value); if (n) input.value=n; });
+        });
+      } catch(_){ }
+    };
+  })();
+
+  // Generic Catalog Picker with search (for fields like Matrículas, Aerolíneas, Aeropuertos)
+  (function(){
+    let _cpEl=null,_cpSearch=null,_cpList=null,_cpCancel=null,_cpAnchor=null,_cpItems=[],_cpOnPick=null;
+    const _cache = { aircraft:null, airlines:null, airports:null, types:null };
+  function _ensureCatalogPicker(){
+      if (_cpEl) return _cpEl;
+      const el = document.createElement('div');
+      el.id = 'mf-catalog-picker';
+      el.style.position = 'absolute'; el.style.zIndex='10000'; el.style.background='#fff';
+      el.style.border='1px solid rgba(0,0,0,0.15)'; el.style.boxShadow='0 4px 16px rgba(0,0,0,0.15)';
+      el.style.borderRadius='8px'; el.style.padding='8px'; el.style.display='none'; el.style.minWidth='360px';
+      el.innerHTML = `
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+          <input id="mf-cp-search" type="search" placeholder="Buscar..." class="form-control" style="flex:1;">
+          <button id="mf-cp-cancel" type="button" class="btn btn-sm btn-light">Cerrar</button>
+        </div>
+        <div id="mf-cp-list" style="max-height:300px; overflow:auto; border:1px solid #eee; border-radius:6px;"></div>`;
+      document.body.appendChild(el);
+      _cpEl = el; _cpSearch = el.querySelector('#mf-cp-search'); _cpList = el.querySelector('#mf-cp-list'); _cpCancel = el.querySelector('#mf-cp-cancel');
+  _cpCancel.addEventListener('click', ()=>{ _cpEl.style.display='none'; _cpAnchor=null; _cpOnPick=null; });
+      _cpSearch.addEventListener('input', ()=> _refreshList(_cpSearch.value||''));
+      document.addEventListener('click', (e)=>{ if(!_cpEl || _cpEl.style.display==='none') return; const t=e.target; if (t===_cpEl || _cpEl.contains(t) || (_cpAnchor && (t===_cpAnchor || _cpAnchor.contains?.(t)))) return; _cpEl.style.display='none'; _cpAnchor=null; _cpOnPick=null; });
+      return el;
+    }
+    function _sortItems(arr){
+      const items = Array.from(arr||[]);
+      const keyFor = (it)=>{
+        if (!it) return '';
+        if (it.kind === 'aircraft') return String(it.value||it.label||'').toUpperCase(); // matrícula primero
+        if (it.kind === 'airline') return String(it.meta?.name||it.label||it.value||'').toUpperCase(); // nombre de aerolínea
+        if (it.kind === 'airport') return String(it.meta?.name||it.label||it.value||'').toUpperCase(); // nombre del aeropuerto
+        return String(it.label||it.value||'').toUpperCase();
+      };
+      return items.sort((a,b)=> keyFor(a).localeCompare(keyFor(b), 'es', { sensitivity:'base', numeric:true }));
+    }
+    function _refreshList(q){
+      if (!_cpList) return;
+      const Q = (q||'').toString().trim();
+      const QQ = Q.toUpperCase();
+      const items = _sortItems(!QQ ? _cpItems : _cpItems.filter(it=> it._k.includes(QQ)));
+      if (!items.length){ _cpList.innerHTML = '<div class="p-2 text-muted">Sin resultados</div>'; return; }
+      const esc = (s)=> String(s||'').replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+      const escRe = (s)=> s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const hilite = (s)=>{
+        const str = String(s||''); if (!Q) return esc(str);
+        try { return esc(str).replace(new RegExp('('+escRe(Q)+')','ig'), '<mark>$1</mark>'); } catch(_) { return esc(str); }
+      };
+      const renderItem = (it, i)=>{
+        const kind = it.kind||''; const m = it.meta||{};
+        if (kind==='aircraft'){
+          const reg = hilite(it.value||'');
+          const t = hilite(m.type||'');
+          const tn = hilite(m.typeName||'');
+          const own = hilite(m.ownerName||m.ownerIATA||'');
+          return `<button type="button" data-i="${i}" class="cp-item" style="display:block; width:100%; text-align:left; padding:10px 12px; border:0; border-bottom:1px solid #f1f1f1; background:transparent;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="display:inline-block; background:#0d6efd; color:#fff; padding:2px 6px; border-radius:4px; font-weight:600;">${reg}</span>
+              <div style="flex:1; min-width:0;">
+                <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#333;">${t}${tn?` · ${tn}`:''}</div>
+                ${own?`<div style="font-size:12px; color:#6c757d; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${own}</div>`:''}
+              </div>
+            </div>
+          </button>`;
+        }
+        if (kind==='airline'){
+          const name = hilite(m.name||it.value||'');
+          const iata = m.iata? `<span style=\"background:#e9ecef; color:#495057; padding:2px 6px; border-radius:4px; font-weight:600;\">${hilite(m.iata)}</span>` : '';
+          const icao = m.icao? `<span style=\"background:#e9ecef; color:#495057; padding:2px 6px; border-radius:4px; font-weight:600;\">${hilite(m.icao)}</span>` : '';
+          return `<button type="button" data-i="${i}" class="cp-item" style="display:block; width:100%; text-align:left; padding:10px 12px; border:0; border-bottom:1px solid #f1f1f1; background:transparent;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+              <div style="flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#333; font-weight:600;">${name}</div>
+              <div style="display:flex; gap:6px;">${iata}${icao}</div>
+            </div>
+          </button>`;
+        }
+        if (kind==='airport'){
+          const iata = hilite(m.iata||'—');
+          const icao = m.icao? `<span style=\"background:#e9ecef; color:#495057; padding:2px 6px; border-radius:4px; font-weight:600;\">${hilite(m.icao)}</span>` : '';
+          const name = hilite(m.name||it.value||'');
+          const city = m.city||''; const country = m.country||'';
+          const loc = (city||country) ? ` <span style=\"color:#6c757d;\">(${hilite(city)}${city&&country?', ':''}${hilite(country)})</span>` : '';
+          return `<button type="button" data-i="${i}" class="cp-item" style="display:block; width:100%; text-align:left; padding:10px 12px; border:0; border-bottom:1px solid #f1f1f1; background:transparent;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="display:inline-block; background:#0d6efd; color:#fff; padding:2px 6px; border-radius:4px; font-weight:700; min-width:38px; text-align:center;">${iata}</span>
+              <div style="flex:1; min-width:0;">
+                <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#333; font-weight:600;">${name}${loc}</div>
+              </div>
+              ${icao}
+            </div>
+          </button>`;
+        }
+        // Fallback generic
+        return `<button type="button" data-i="${i}" class="cp-item" style="display:block; width:100%; text-align:left; padding:10px 12px; border:0; border-bottom:1px solid #f1f1f1; background:transparent;">${hilite(it.label||it.value||'')}</button>`;
+      };
+      _cpList.innerHTML = items.map((it,i)=> renderItem(it,i)).join('');
+      Array.from(_cpList.querySelectorAll('button[data-i]')).forEach(btn=>{
+        btn.addEventListener('click', ()=>{ try { const it = items[parseInt(btn.getAttribute('data-i'),10)]; if (!it) return; if (_cpAnchor){ _cpAnchor.value = it.value; _cpAnchor.dispatchEvent(new Event('input',{bubbles:true})); _cpAnchor.dispatchEvent(new Event('change',{bubbles:true})); } if (typeof _cpOnPick==='function') _cpOnPick(it, _cpAnchor); } finally { _cpEl.style.display='none'; _cpAnchor=null; _cpOnPick=null; } });
+      });
+    }
+    async function _loadCSV(url){
+      const res = await fetch(url, { cache:'no-store' }); const text = await res.text(); return text;
+    }
+    function _parseCSV(text){
+      const rows=[]; let i=0, s=text||''; let field=''; let row=[]; let inQ=false;
+      while(i<s.length){ const ch=s[i++]; if(inQ){ if(ch==='"'){ if(s[i]==='"'){ field+='"'; i++; } else { inQ=false; } } else { field+=ch; } } else { if(ch==='"'){ inQ=true; } else if(ch===','){ row.push(field); field=''; } else if(ch==='\n'){ row.push(field); rows.push(row); row=[]; field=''; } else if(ch==='\r'){ /* skip */ } else { field+=ch; } } }
+      if (field.length>0 || row.length>0){ row.push(field); rows.push(row); }
+      return rows;
+    }
+    function _rowsToObjects(rows){ if (!rows || !rows.length) return []; const headers = rows[0].map(h=> String(h||'').trim()); return rows.slice(1).map(r=>{ const o={}; headers.forEach((h,idx)=> o[h]= (r[idx]||'').toString().trim()); return o; }); }
+    async function loadAircraftItems(){
+      if (_cache.aircraft) return _cache.aircraft;
+      // Load aircraft and (optionally) airlines for owner names and type names
+      const [tAirc, tAirl, tTypes] = await Promise.all([
+        _loadCSV('data/master/aircraft.csv').catch(()=>''),
+        _loadCSV('data/master/airlines.csv').catch(()=>''),
+        _loadCSV('data/master/aircraft type.csv').catch(()=>''),
+      ]);
+  const mapAirl = new Map(); try { const rows = _rowsToObjects(_parseCSV(tAirl)); rows.forEach(r=>{ const ia=(r.IATA||'').toUpperCase(); const nm=r.Name||''; const ic=(r.ICAO||'').toUpperCase(); if(ia) mapAirl.set(ia, { name:nm, icao:ic }); }); } catch(_){ }
+      const mapTypeName = new Map(); try { const rows = _rowsToObjects(_parseCSV(tTypes)); rows.forEach(r=>{ const code=(r['code']||r['Code']||r['IATA']||r[Object.keys(r)[0]]||'').toUpperCase(); const name = r['Name']||r['name']||r[Object.keys(r)[2]]||''; if (code) mapTypeName.set(code, name); }); } catch(_){ }
+      const rows = _rowsToObjects(_parseCSV(tAirc));
+      const items = rows.map(r=>{
+        const reg = (r['Registration']||'').toUpperCase(); const type = (r['Aircraft Type']||'').toUpperCase(); const owner = (r['Aircraft Owner']||'').toUpperCase();
+        if (!reg) return null;
+        const ownerRec = mapAirl.get(owner) || null; const ownerName = ownerRec?.name || owner || ''; const ownerICAO = ownerRec?.icao || '';
+        const typeName = mapTypeName.get(type)||'';
+        const label = `${reg} — ${type}${typeName?(' · '+typeName):''}${ownerName?(' · '+ownerName):''}`;
+        const _k = (reg+' '+type+' '+typeName+' '+owner+' '+ownerName+' '+ownerICAO).toUpperCase();
+        return { value: reg, label, _k, kind:'aircraft', meta:{ type, typeName, ownerIATA: owner, ownerName, ownerICAO } };
+      }).filter(Boolean);
+      _cache.aircraft = items; return items;
+    }
+    async function loadAirlineItems(){
+      if (_cache.airlines) return _cache.airlines;
+      const t = await _loadCSV('data/master/airlines.csv').catch(()=> '');
+      const rows = _rowsToObjects(_parseCSV(t));
+      const items = rows.map(r=>{ const iata=(r.IATA||'').toUpperCase(); const icao=(r.ICAO||'').toUpperCase(); const name=r.Name||''; if (!name && !icao && !iata) return null; const lab = `${name}${iata?(' — '+iata):''}${icao?(' / '+icao):''}`; const _k = (name+' '+iata+' '+icao).toUpperCase(); return { value: name, label: lab, _k, kind:'airline', meta:{ iata, icao, name } }; }).filter(Boolean);
+      _cache.airlines = items; return items;
+    }
+    async function loadAirportItems(){
+      if (_cache.airports) return _cache.airports;
+      const t = await _loadCSV('data/master/airports.csv').catch(()=> '');
+      const rows = _rowsToObjects(_parseCSV(t));
+      const items = rows.map(r=>{ const iata=(r.IATA||'').toUpperCase(); const icao=(r.ICAO||'').toUpperCase(); const name=r.Name||''; const city=r.City||''; const country=r.Country||''; if (!name && !iata && !icao) return null; const lab = `${iata||'—'} — ${name}${city?(' ('+city+(country?(', '+country):'')+')'):''}${icao?(' · '+icao):''}`; const _k = (iata+' '+icao+' '+name+' '+city+' '+country).toUpperCase(); return { value: iata||name, label: lab, _k, kind:'airport', meta:{ iata, icao, name, city, country } }; }).filter(Boolean);
+      _cache.airports = items; return items;
+    }
+    function _openCatalogPickerFor(input, loadItems, onPick){
+      const el = _ensureCatalogPicker(); _cpAnchor=input; _cpOnPick=onPick; _cpItems=[]; _cpSearch.value=''; _cpList.innerHTML='<div class="p-2 text-muted">Cargando...</div>';
+      const r = input.getBoundingClientRect(); el.style.left = Math.max(8, Math.min(window.innerWidth-380, r.left + window.scrollX))+'px'; el.style.top = (r.bottom + window.scrollY + 6)+'px'; el.style.display='block';
+      Promise.resolve().then(loadItems).then(items=>{
+        _cpItems = _sortItems((items||[]).map(it=> ({...it, _k: (it._k || (it.label+' '+it.value)).toUpperCase()})));
+        _refreshList('');
+      }).catch(()=>{ _cpList.innerHTML='<div class="p-2 text-danger">No se pudo cargar el catálogo</div>'; });
+    }
+    window._mfAttachCatalogButton = function(id, opts){
+      try {
+        const input = document.getElementById(id); if (!input || input._cpWired) return; input._cpWired=1;
+        const btn = document.createElement('button'); btn.type='button'; btn.className='btn btn-sm btn-outline-secondary ms-2'; btn.title='Seleccionar de catálogo'; btn.textContent='🔎';
+        input.insertAdjacentElement('afterend', btn);
+        const loadItems = (opts && opts.load==='aircraft') ? loadAircraftItems : (opts && opts.load==='airlines') ? loadAirlineItems : (opts && opts.load==='airports') ? loadAirportItems : (opts && typeof opts.load==='function') ? opts.load : async()=>[];
+        const onPick = (typeof opts?.onPick==='function') ? opts.onPick : null;
+        btn.addEventListener('click', ()=> _openCatalogPickerFor(input, loadItems, onPick));
+      } catch(_){ }
+    };
+  })();
+  // Lightweight, shared OCR preloader using Tesseract.js scheduler (multi-worker)
+  // Creates a small pool of workers initialized with 'spa+eng' to accelerate first OCR.
+  // Reused by both V1 and V2 flows when available; falls back transparently otherwise.
+  (function(){
+    let _initPromise = null;
+    window._mfOcrScheduler = window._mfOcrScheduler || null;
+    window.ensureOcrScheduler = async function ensureOcrScheduler(){
+      if (window._mfOcrScheduler) return window._mfOcrScheduler;
+      if (_initPromise) return _initPromise;
+      _initPromise = (async ()=>{
+        try {
+          if (!window.Tesseract){
+            await new Promise((res, rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js'; s.crossOrigin='anonymous'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+          }
+          if (!window.Tesseract || !Tesseract.createScheduler || !Tesseract.createWorker) return null;
+          const sched = Tesseract.createScheduler();
+          const cores = (typeof navigator!=='undefined' && navigator.hardwareConcurrency) ? navigator.hardwareConcurrency : 2;
+          const workers = Math.min(4, Math.max(2, Math.floor(cores/2)));
+          for (let i=0;i<workers;i++){
+            const w = await Tesseract.createWorker();
+            await w.loadLanguage('spa+eng');
+            await w.initialize('spa+eng');
+            await sched.addWorker(w);
+          }
+          window._mfOcrScheduler = sched;
+          return sched;
+        } catch(_){ return null; }
+      })();
+      return _initPromise;
+    };
+  })();
   function planeProgressSet(p, text){
     try {
-      const cont = document.getElementById('manifest-plane-progress');
-      const fill = document.getElementById('manifest-plane-fill');
-      const plane = document.getElementById('manifest-plane-icon');
-      const label = document.getElementById('manifest-plane-label');
-      if (!cont || !fill || !plane) return; 
-      cont.classList.remove('d-none');
+      // Usar el loader de sección (overlay tipo login)
+      const overlay = document.getElementById('manifiestos-loader');
+      const labelEl = overlay ? overlay.querySelector('.loader-text') : null;
       const pct = Math.max(0, Math.min(100, Number(p)||0));
-      fill.style.width = pct+'%';
-      plane.style.left = pct+'%';
-      if (label) label.textContent = (Math.round(pct)) + '%'+ (text? ' · '+text : '');
-    } catch(_){}
+      if (overlay) overlay.classList.remove('hidden');
+      // Mensaje fijo solicitado: evitar mostrar "OCR página 1/1" u otros
+      const msg = (pct < 100) ? 'Escaneando…' : 'Completado';
+      if (labelEl) labelEl.textContent = msg;
+      // Mantener la barra antigua ocultada si existe
+      const cont = document.getElementById('manifest-plane-progress');
+      if (cont) cont.classList.add('d-none');
+    } catch(_){ }
   }
   function planeProgressHide(){
     try {
+      const overlay = document.getElementById('manifiestos-loader');
+      if (overlay) overlay.classList.add('hidden');
+      const labelEl = overlay ? overlay.querySelector('.loader-text') : null;
+      if (labelEl) labelEl.textContent = '';
+      // Reset de la barra antigua si existe
       const cont = document.getElementById('manifest-plane-progress');
       const fill = document.getElementById('manifest-plane-fill');
       const plane = document.getElementById('manifest-plane-icon');
@@ -42,7 +471,7 @@
       if (plane) plane.style.left = '0%';
       if (label) label.textContent = '';
       if (cont) cont.classList.add('d-none');
-    } catch(_){}
+    } catch(_){ }
   }
 
   // Move the full setup into this module
@@ -81,6 +510,48 @@
   const ocrDebug = document.getElementById('manifest-ocr-debug');
   const upBtnPdf = document.getElementById('manifest-upload-btn-pdf');
   const upBtnImg = document.getElementById('manifest-upload-btn-img');
+  // Attach NA toggles (V1) and convert to 24h text inputs if forced
+  try {
+    (window._mfTimeFieldIds||[]).forEach(id=> _attachNaToggle(id));
+    if (window._mfForce24hText){ (window._mfTimeFieldIds||[]).forEach(id=> _convertTimeInputToText24h(id)); }
+  } catch(_){ }
+  // Attach catalog picker buttons (Matrículas, Aerolíneas, Aeropuertos)
+  try {
+    // Matrículas (tail): fill aircraft type and airline code/name when available
+    window._mfAttachCatalogButton('mf-tail', { load:'aircraft', onPick:(it)=>{
+      try {
+        const typeName = it?.meta?.typeName || it?.meta?.type || '';
+        const ownerICAO = it?.meta?.ownerICAO || '';
+        const ownerName = it?.meta?.ownerName || '';
+        const elType = document.getElementById('mf-aircraft'); if (elType && typeName) elType.value = typeName;
+        const elCarr = document.getElementById('mf-carrier-3l'); if (elCarr && ownerICAO) elCarr.value = ownerICAO;
+        const elOp = document.getElementById('mf-operator-name'); if (elOp && ownerName) elOp.value = ownerName;
+      } catch(_){ }
+    }});
+  } catch(_){ }
+  try {
+    // Aerolíneas: set name and ICAO
+    window._mfAttachCatalogButton('mf-airline', { load:'airlines', onPick:(it)=>{
+      try { const el = document.getElementById('mf-carrier-3l'); if (el && it?.meta?.icao) el.value = (it.meta.icao||'').toUpperCase(); } catch(_){ }
+    }});
+    window._mfAttachCatalogButton('mf-carrier-3l', { load:'airlines', onPick:(it, input)=>{
+      try { const a = it?.meta; if (!a) return; input.value = (a.icao||'').toUpperCase(); const el = document.getElementById('mf-airline'); if (el && a.name) el.value = a.name; } catch(_){ }
+    }});
+  } catch(_){ }
+  try {
+    // Aeropuertos: code/name pairs
+    const pair = (nameId, codeId)=>{
+      try {
+        window._mfAttachCatalogButton(nameId, { load:'airports', onPick:(it, input)=>{ try { const a=it?.meta; if (!a) return; input.value = a.name||''; const codeEl=document.getElementById(codeId); if (codeEl && a.iata) codeEl.value = a.iata.toUpperCase(); } catch(_){ } }});
+        window._mfAttachCatalogButton(codeId, { load:'airports', onPick:(it, input)=>{ try { const a=it?.meta; if (!a) return; input.value = (a.iata||'').toUpperCase(); const nameEl=document.getElementById(nameId); if (nameEl && a.name) nameEl.value = a.name; } catch(_){ } }});
+      } catch(_){ }
+    };
+    pair('mf-origin-name','mf-origin-code');
+    pair('mf-next-stop','mf-next-stop-code');
+    pair('mf-final-dest','mf-final-dest-code');
+    pair('mf-arr-origin-name','mf-arr-origin-code');
+    pair('mf-arr-last-stop','mf-arr-last-stop-code');
+  } catch(_){ }
     if (pdfStatus && !pdfStatus._init){ pdfStatus._init = 1; pdfStatus.textContent = 'Listo para escanear: seleccione archivo y presione un botón.'; }
       // Si la página se abre bajo file://, deshabilitar funciones que usan fetch/XHR
       try {
@@ -124,6 +595,12 @@
       }
       if (upBtnPdf && !upBtnPdf._wired){ upBtnPdf._wired=1; upBtnPdf.addEventListener('click', (e)=>{ e.preventDefault(); triggerPicker('pdf'); }); }
       if (upBtnImg && !upBtnImg._wired){ upBtnImg._wired=1; upBtnImg.addEventListener('click', (e)=>{ e.preventDefault(); triggerPicker('image'); }); }
+      // Warm up heavy libraries shortly after section init (non-blocking)
+      try {
+        const idle = (fn)=>{ if (window.requestIdleCallback) requestIdleCallback(()=>setTimeout(fn,50)); else setTimeout(fn,300); };
+        idle(async ()=>{ try { await ensurePdfJsFromCDN(); } catch(_){} });
+        idle(async ()=>{ try { await window.ensureOcrScheduler?.(); } catch(_){} });
+      } catch(_){ }
 
       async function extractPdfText(file) {
         if (!window.pdfjsLib) {
@@ -239,10 +716,10 @@
         pdfStatus.textContent = 'Renderizando páginas para OCR...';
         const ab = await file.arrayBuffer();
         const pdf = await window.pdfjsLib.getDocument(new Uint8Array(ab)).promise;
-        let out = '';
         const pages = Math.min(maxPages, pdf.numPages);
+        const jobs = [];
+        let completed = 0;
         for (let p=1; p<=pages; p++){
-          setProgress(60 + Math.round((p-1)*20/pages), `OCR en página ${p}/${pages}...`);
           const page = await pdf.getPage(p);
           const viewport = page.getViewport({ scale: 2 });
           const canvas = document.createElement('canvas');
@@ -250,10 +727,18 @@
           const ctx = canvas.getContext('2d');
           await page.render({ canvasContext: ctx, viewport }).promise;
           const dataUrl = canvas.toDataURL('image/png');
-          const { data } = await Tesseract.recognize(dataUrl, 'spa+eng', { logger: ()=>{} });
-          out += (data && data.text) ? (data.text + '\n') : '';
+          let prom;
+          if (window._mfOcrScheduler){
+            prom = window._mfOcrScheduler.addJob('recognize', dataUrl);
+          } else {
+            prom = Tesseract.recognize(dataUrl, 'spa+eng', { logger: ()=>{} });
+          }
+          prom = Promise.resolve(prom).then((res)=>{ completed++; try { setProgress(60 + Math.round(((completed)/pages)*30), `OCR página ${completed}/${pages}...`); } catch(_){} return res; });
+          jobs.push(prom);
         }
-        return out.trim();
+        const results = await Promise.all(jobs);
+        const texts = results.map(r=> (r && r.data && r.data.text) ? r.data.text : '').join('\n');
+        return texts.trim();
       }
       // Load master catalogs for validation
   let masterAirlines = [], masterAirports = [], masterAircraft = [];
@@ -812,7 +1297,145 @@
       let airportByName = new Map();
       let iataSet = new Set();
 
-      function setVal(id, v){ const el = document.getElementById(id); if (el) el.value = v; }
+      // Register time-field IDs to manage NA toggles and normalization
+      window._mfTimeFieldIds = window._mfTimeFieldIds || new Set([
+        'mf-slot-assigned','mf-slot-coordinated','mf-termino-pernocta','mf-inicio-embarque','mf-salida-posicion',
+        'mf-arr-slot-assigned','mf-arr-slot-coordinated','mf-arr-arribo-posicion','mf-arr-inicio-desembarque','mf-arr-inicio-pernocta'
+      ]);
+      // Prefer 24h text inputs (no AM/PM UI)
+      window._mfForce24hText = true;
+      function _ensureTimeAttrs(id){
+        try { const el = document.getElementById(id); if (!el) return; if (el.type === 'time'){ el.min = '00:00'; el.max = '23:59'; el.step = 60; } } catch(_){ }
+      }
+      function _convertTimeInputToText24h(id){
+        try {
+          const el = document.getElementById(id); if (!el) return;
+          if (el.dataset.time24 === '1') return; // already converted
+          const prev = (window._mfNormTime? window._mfNormTime(el.value): (el.value||''));
+          // Switch to text (manual HH:MM) and allow digit-only typing; we will auto-insert ':'
+          el.type = 'text';
+          el.setAttribute('inputmode', 'numeric');
+          el.setAttribute('placeholder', 'HH:MM');
+          el.setAttribute('maxlength', '5');
+          el.dataset.time24 = '1';
+          if (prev) el.value = prev;
+          const onFmt = ()=>{ try { const n=(window._mfNormTime? window._mfNormTime(el.value): el.value); if (n) el.value=n; } catch(_){} };
+          // Auto-format while typing: accept digits and insert ':' when 3-4 digits present
+          const onType = ()=>{
+            try {
+              let v = String(el.value||'');
+              // If user types letters, allow manual N/A input and don't autoformat
+              if (/[a-zA-Z]/.test(v)){
+                const compact = v.replace(/\s+/g,'').toUpperCase();
+                // Allow progressive typing: N, N/, N/A
+                if (/^N\/?A?$/.test(compact)){
+                  // If fully typed N/A, normalize and sync NA checkbox
+                  if (/^N\/?A$/.test(compact)){
+                    el.value = 'N/A';
+                    const cb = document.getElementById(id+'-na');
+                    if (cb && !cb.checked){ cb.checked = true; cb.dispatchEvent(new Event('change',{bubbles:true})); }
+                  } else {
+                    el.value = v.toUpperCase();
+                  }
+                }
+                return; // don't autoformat letters
+              }
+              // Allow deleting ':' manually; rebuild from digits
+              const digits = v.replace(/\D/g, '').slice(0,4);
+              if (!digits) { el.value = ''; return; }
+              if (digits.length <= 2) { el.value = digits; return; }
+              if (digits.length === 3) {
+                el.value = '0' + digits[0] + ':' + digits.slice(1);
+                return;
+              }
+              // 4 digits
+              el.value = digits.slice(0,2) + ':' + digits.slice(2);
+            } catch(_){}
+          };
+          if (!el._fmtWired){
+            el._fmtWired=1;
+            el.addEventListener('input', onType);
+            el.addEventListener('blur', ()=>{
+              try {
+                const v = String(el.value||'').trim();
+                if (/^N\s*\/?\s*A$/i.test(v)){
+                  el.value = 'N/A';
+                  const cb = document.getElementById(id+'-na');
+                  if (cb && !cb.checked){ cb.checked = true; cb.dispatchEvent(new Event('change',{bubbles:true})); }
+                  return;
+                }
+                onFmt();
+              } catch(_){ }
+            });
+            el.addEventListener('change', ()=>{
+              try {
+                const v = String(el.value||'').trim();
+                if (/^N\s*\/?\s*A$/i.test(v)){
+                  el.value = 'N/A';
+                  const cb = document.getElementById(id+'-na');
+                  if (cb && !cb.checked){ cb.checked = true; cb.dispatchEvent(new Event('change',{bubbles:true})); }
+                  return;
+                }
+                onFmt();
+              } catch(_){ }
+            });
+          }
+        } catch(_){ }
+      }
+      function setVal(id, v){
+        const el = document.getElementById(id);
+        if (!el) return;
+        // If it's a managed time field, handle N/A state and 24h normalization
+        if (window._mfTimeFieldIds && window._mfTimeFieldIds.has(id)){
+          const isNA = (String(v||'').trim().toUpperCase() === 'N/A');
+          _ensureTimeAttrs(id);
+          if (isNA){ el.dataset.na = '1'; el.value = ''; el.disabled = false; } // keep enabled so UX can toggle back
+          else {
+            const norm = (window._mfNormTime? window._mfNormTime(v) : String(v||''));
+            if (norm){ el.dataset.na = ''; el.value = norm; el.disabled = false; }
+            else { el.value = String(v||''); }
+          }
+          return;
+        }
+        el.value = v;
+      }
+      function _attachNaToggle(id){
+        try {
+          const input = document.getElementById(id); if (!input) return; if (input._naWired) return; input._naWired = 1;
+          _ensureTimeAttrs(id);
+          // Create a small NA checkbox; place it immediately after the input
+          const wrap = input.parentElement;
+          const label = document.createElement('label'); label.className = 'form-check-label ms-2 d-inline-flex align-items-center'; label.style.userSelect='none';
+          const cb = document.createElement('input'); cb.type='checkbox'; cb.className='form-check-input me-1'; cb.id = id+'-na'; cb.title='No aplica (N/A)';
+          label.appendChild(cb); label.appendChild(document.createTextNode('N/A'));
+          if (wrap && !wrap.querySelector('#'+cb.id)) {
+            // Insert right after the input, before any help text
+            input.insertAdjacentElement('afterend', label);
+          }
+          const syncFromCb = ()=>{
+            if (cb.checked){
+              input.dataset.na='1';
+              input.value='N/A';
+              input.classList.add('is-na');
+              try { input.classList.remove('is-invalid'); input.setCustomValidity(''); } catch(_){ }
+            } else {
+              input.dataset.na='';
+              input.classList.remove('is-na');
+              if (/^N\s*\/?\s*A$/i.test(input.value||'')) input.value = '';
+            }
+          };
+          const onInput = ()=>{
+            const v = String(input.value||'').trim();
+            const isNA = /^N\s*\/?\s*A$/i.test(v);
+            if (isNA && !cb.checked){ cb.checked = true; syncFromCb(); return; }
+            if (!isNA && v){ if (cb.checked){ cb.checked = false; syncFromCb(); } }
+          };
+          cb.addEventListener('change', syncFromCb);
+          input.addEventListener('input', onInput);
+          // If dataset.na present on load, reflect it
+          if (input.dataset.na==='1'){ cb.checked = true; syncFromCb(); }
+        } catch(_){ }
+      }
       function isLabelWord(s, labels){
         const u = (s||'').toString().trim().toUpperCase();
         if (!u) return false;
@@ -1219,7 +1842,7 @@
                     if (labelRx.test(lines[i])){
                       for (let k=0;k<=maxAhead;k++){
                         const s = lines[i+k]||'';
-                        const m = s.match(timeRx);
+                        const m = s.match(rxTime);
                         if (m){
                           let v = m[0];
                           v = v.replace(/[hH\.]/, ':');
@@ -1251,20 +1874,30 @@
                 }
               };
               if (currentIsArrival){
-                // Prefer label-focused extraction for "HORA DE SLOT ASIGNADO"
-                const vSlotArr = extractTimeAfterLabel(/\bHORA\s+DE\s+SLOT\s+ASIGNADO\b/i, 3) || extractTimeAfterLabel(/\bSLOT\s+ASIGNADO\b/i, 1);
+                // Prefer robust, global helper for "HORA DE SLOT ASIGNADO"
+                const strongArr = (window._mfFindSlotAssignedTime?.(text) || '');
+                const vSlotArr = strongArr || (window._mfExtractTimeAfterLabel?.(text, /\bHORA\s+DE\s+SLOT\s+ASIGNADO\b/i, { maxAhead: 8 })
+                                  || window._mfExtractTimeAfterLabel?.(text, /\bSLOT\s+ASIGNADO\b/i, { maxAhead: 8 }) || '');
                 if (vSlotArr) setVal('mf-arr-slot-assigned', vSlotArr); else setTimeIf('mf-arr-slot-assigned', ['slot asignado']);
                 setTimeIf('mf-arr-slot-coordinated', ['slot coordinado']);
                 setTimeIf('mf-arr-arribo-posicion', ['entrada a la posicion','arribo a la posicion','arribo posicion']);
                 setTimeIf('mf-arr-inicio-desembarque', ['termino maniobras de desembarque','inicio de desembarque','inicio desembarque']);
                 setTimeIf('mf-arr-inicio-pernocta', ['inicio de pernocta','inicio pernocta']);
               } else {
-                // Prefer label-focused extraction for "HORA DE SLOT ASIGNADO"
-                const vSlotDep = extractTimeAfterLabel(/\bHORA\s+DE\s+SLOT\s+ASIGNADO\b/i, 3) || extractTimeAfterLabel(/\bSLOT\s+ASIGNADO\b/i, 1);
+                // Prefer robust, global helper for "HORA DE SLOT ASIGNADO"
+                const strongDep = (window._mfFindSlotAssignedTime?.(text) || '');
+                const vSlotDep = strongDep || (window._mfExtractTimeAfterLabel?.(text, /\bHORA\s+DE\s+SLOT\s+ASIGNADO\b/i, { maxAhead: 8 })
+                                  || window._mfExtractTimeAfterLabel?.(text, /\bSLOT\s+ASIGNADO\b/i, { maxAhead: 8 }) || '');
                 if (vSlotDep) setVal('mf-slot-assigned', vSlotDep); else setTimeIf('mf-slot-assigned', ['slot asignado']);
                 setTimeIf('mf-slot-coordinated', ['slot coordinado']);
-                setTimeIf('mf-inicio-embarque', ['inicio de maniobras de embarque','inicio de embarque']);
-                setTimeIf('mf-salida-posicion', ['salida de la posicion','salida posicion']);
+                try {
+                  const tInicio = window._mfFindTimeByLabels?.(text, ['INICIO MANIOBRAS DE EMBARQUE','INICIO DE MANIOBRAS DE EMBARQUE','INICIO DE EMBARQUE'], { maxAhead: 8 }) || '';
+                  if (tInicio) setVal('mf-inicio-embarque', tInicio); else setTimeIf('mf-inicio-embarque', ['inicio de maniobras de embarque','inicio de embarque']);
+                } catch(_){ setTimeIf('mf-inicio-embarque', ['inicio de maniobras de embarque','inicio de embarque']); }
+                try {
+                  const tSalida = window._mfFindTimeByLabels?.(text, ['SALIDA DE LA POSICION','SALIDA POSICION','SALIDA DE LA POS.'], { maxAhead: 8 }) || '';
+                  if (tSalida) setVal('mf-salida-posicion', tSalida); else setTimeIf('mf-salida-posicion', ['salida de la posicion','salida posicion']);
+                } catch(_){ setTimeIf('mf-salida-posicion', ['salida de la posicion','salida posicion']); }
                 setTimeIf('mf-termino-pernocta', ['termino de pernocta','término de pernocta','fin pernocta']);
               }
             } catch(_){ }
@@ -1379,6 +2012,17 @@
         setOut('total-pax-internacional', totalPaxInternacional);
       }
 
+      function _getTimeOrNA(id){
+        try {
+          const el = document.getElementById(id); if (!el) return '';
+          if (el.dataset.na==='1') return 'N/A';
+          const v = String(el.value||'').trim();
+          if (!v) return '';
+          if (/^N\s*\/?\s*A$/i.test(v)) return 'N/A';
+          const norm = (window._mfNormTime? window._mfNormTime(v): v);
+          return norm || '';
+        } catch(_){ return ''; }
+      }
       function readForm(){
         const g = id => document.getElementById(id)?.value || '';
         const direction = (dirArr && dirArr.checked) ? 'Llegada' : 'Salida';
@@ -1401,10 +2045,10 @@
           humanRemains: !!document.getElementById('mf-human-remains')?.checked,
           pilot: g('mf-pilot'), pilotLicense: g('mf-pilot-license'), agent: g('mf-agent'), signature: g('mf-signature'), notes: g('mf-notes'),
           nextStop: g('mf-next-stop'), nextStopCode: g('mf-next-stop-code'), finalDest: g('mf-final-dest'), finalDestCode: g('mf-final-dest-code'),
-          slotAssigned: g('mf-slot-assigned'), slotCoordinated: g('mf-slot-coordinated'), terminoPernocta: g('mf-termino-pernocta'),
-          inicioEmbarque: g('mf-inicio-embarque'), salidaPosicion: g('mf-salida-posicion'),
-          arrOriginName: g('mf-arr-origin-name'), arrOriginCode: g('mf-arr-origin-code'), arrSlotAssigned: g('mf-arr-slot-assigned'), arrSlotCoordinated: g('mf-arr-slot-coordinated'),
-          arrLastStop: g('mf-arr-last-stop'), arrLastStopCode: g('mf-arr-last-stop-code'), arrArriboPosicion: g('mf-arr-arribo-posicion'), arrInicioDesembarque: g('mf-arr-inicio-desembarque'), arrInicioPernocta: g('mf-arr-inicio-pernocta'),
+          slotAssigned: _getTimeOrNA('mf-slot-assigned'), slotCoordinated: _getTimeOrNA('mf-slot-coordinated'), terminoPernocta: _getTimeOrNA('mf-termino-pernocta'),
+          inicioEmbarque: _getTimeOrNA('mf-inicio-embarque'), salidaPosicion: _getTimeOrNA('mf-salida-posicion'),
+          arrOriginName: g('mf-arr-origin-name'), arrOriginCode: g('mf-arr-origin-code'), arrSlotAssigned: _getTimeOrNA('mf-arr-slot-assigned'), arrSlotCoordinated: _getTimeOrNA('mf-arr-slot-coordinated'),
+          arrLastStop: g('mf-arr-last-stop'), arrLastStopCode: g('mf-arr-last-stop-code'), arrArriboPosicion: _getTimeOrNA('mf-arr-arribo-posicion'), arrInicioDesembarque: _getTimeOrNA('mf-arr-inicio-desembarque'), arrInicioPernocta: _getTimeOrNA('mf-arr-inicio-pernocta'),
           paxTUA: g('pax-tua'), paxDiplomaticos: g('pax-diplomaticos'), paxComision: g('pax-comision'), paxInfantes: g('pax-infantes'), paxTransitos: g('pax-transitos'), paxConexiones: g('pax-conexiones'), paxExentos: g('pax-exentos'), paxTotal: g('pax-total'),
           obsTransito: g('mf-obs-transito'), paxDNI: g('mf-pax-dni'),
           signOperator: g('mf-sign-operator'), signCoordinator: g('mf-sign-coordinator'), signAdmin: g('mf-sign-admin'), signAdminDate: g('mf-sign-admin-date'),
@@ -1520,6 +2164,8 @@
     function normTime(s){
       try {
         let v = (s||'').toString().trim(); if (!v) return '';
+        // Treat 'N/A' as a special valid token (return empty here; validateEl will handle it)
+        if (/^N\s*\/?\s*A$/i.test(v)) return '';
         v = v.replace(/[hH\.]/g, ':');
         if (/^\d{3,4}$/.test(v)){
           const hh = v.length===3 ? ('0'+v[0]) : v.slice(0,2);
@@ -1531,11 +2177,38 @@
         return String(H).padStart(2,'0')+':'+String(M).padStart(2,'0');
       } catch(_) { return ''; }
     }
-    function validateEl(el){ if (!el) return; const n = normTime(el.value); if (!el.value) { el.setCustomValidity(''); return; } if (!n){ el.setCustomValidity('Hora inválida (00:00–23:59)'); } else { el.setCustomValidity(''); if (el.value !== n) el.value = n; } }
-    document.addEventListener('input', (e)=>{ const t=e.target; if (t && t.matches && t.matches('input[type="time"]')) validateEl(t); });
-    document.addEventListener('change', (e)=>{ const t=e.target; if (t && t.matches && t.matches('input[type="time"]')) validateEl(t); });
-    // One-time sweep on load
-    try { document.querySelectorAll('input[type="time"]').forEach(validateEl); } catch(_){ }
+    function ensureFeedback(el){
+      try {
+        const wrap = el.parentElement || el;
+        let fb = wrap.querySelector('.invalid-feedback');
+        if (!fb){ fb = document.createElement('div'); fb.className = 'invalid-feedback'; fb.textContent = 'Formato HH:MM (00:00–23:59) o N/A'; wrap.appendChild(fb); }
+      } catch(_){ }
+    }
+    function validateEl(el){
+      if (!el) return;
+      const raw = String(el.value||'').trim();
+      const n = normTime(raw);
+      if (!raw){ el.setCustomValidity(''); el.classList.remove('is-invalid'); return; }
+      if (/^N\s*\/?\s*A$/i.test(raw)){
+        try { if (el.value !== 'N/A') el.value = 'N/A'; } catch(_){ }
+        el.setCustomValidity('');
+        el.classList.remove('is-invalid');
+        return;
+      }
+      if (!n){
+        el.setCustomValidity('Hora inválida (00:00–23:59)');
+        el.classList.add('is-invalid');
+        ensureFeedback(el);
+      } else {
+        el.setCustomValidity('');
+        el.classList.remove('is-invalid');
+        if (el.value !== n) el.value = n;
+      }
+    }
+  document.addEventListener('input', (e)=>{ const t=e.target; if (!t || !t.matches) return; if (t.matches('input[type="time"], input[data-time24="1"]')) validateEl(t); });
+  document.addEventListener('change', (e)=>{ const t=e.target; if (!t || !t.matches) return; if (t.matches('input[type="time"], input[data-time24="1"]')) validateEl(t); });
+  // One-time sweep on load (both native time and converted 24h text inputs)
+  try { document.querySelectorAll('input[type="time"], input[data-time24="1"]').forEach(validateEl); } catch(_){ }
     // Expose normalizer for internal use
     window._mfNormTime = normTime;
   })();
@@ -1840,6 +2513,31 @@
       if (upload) upload.disabled = false;
       if (scanPdfBtn) scanPdfBtn.disabled = false;
       if (status && !status._initV2){ status._initV2 = 1; status.classList.remove('text-danger'); status.textContent = 'V2 activo: seleccione un archivo y presione Escanear.'; }
+  // Attach NA toggles (V2) and convert to 24h text inputs if forced
+  try {
+    (window._mfTimeFieldIds||[]).forEach(id=> _attachNaToggle(id));
+    if (window._mfForce24hText){ (window._mfTimeFieldIds||[]).forEach(id=> _convertTimeInputToText24h(id)); }
+  } catch(_){ }
+      // V2: warm up PDF.js and OCR scheduler in the background; populate time datalist
+      try {
+        const idle = (fn)=>{ if (window.requestIdleCallback) requestIdleCallback(()=>setTimeout(fn,50)); else setTimeout(fn,300); };
+        idle(async ()=>{ try { await ensurePdfJsLite(); } catch(_){} });
+        idle(async ()=>{ try { await window.ensureOcrScheduler?.(); } catch(_){} });
+        idle(()=>{
+          try {
+            const dl = document.getElementById('hhmm-24-list'); if (!dl || dl._filled) return; dl._filled = 1;
+            const opts = [];
+            for (let h=0; h<24; h++){
+              for (let m=0; m<60; m+=5){
+                const H = String(h).padStart(2,'0'); const M = String(m).padStart(2,'0');
+                const opt = document.createElement('option'); opt.value = `${H}:${M}`; opts.push(opt);
+              }
+            }
+            // Append once
+            const frag = document.createDocumentFragment(); opts.forEach(o=>frag.appendChild(o)); dl.appendChild(frag);
+          } catch(_){ }
+        });
+      } catch(_){ }
 
       async function ensurePdfJsLite(){
         if (window.pdfjsLib) return;
@@ -1881,25 +2579,39 @@
         if (!isPdf){
           // Imagen directa
           const r = await new Promise((res)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.readAsDataURL(file); });
-          const { data } = await Tesseract.recognize(r, 'spa+eng', { logger: ()=>{} });
-          return (data && data.text) ? data.text : '';
+          if (window._mfOcrScheduler){
+            const out = await window._mfOcrScheduler.addJob('recognize', r);
+            return (out && out.data && out.data.text) ? out.data.text : '';
+          } else {
+            const { data } = await Tesseract.recognize(r, 'spa+eng', { logger: ()=>{} });
+            return (data && data.text) ? data.text : '';
+          }
         }
         try {
           await ensurePdfJsLite();
           const ab = await file.arrayBuffer();
           const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(ab) }).promise;
           const pages = Math.min(maxPages||2, pdf.numPages);
-          let out='';
+          const jobs = [];
+          let completed = 0;
           for (let i=1;i<=pages;i++){
-            setProgress(50 + Math.round((i-1)*40/pages), `OCR página ${i}/${pages}...`);
             const page = await pdf.getPage(i);
             const viewport = page.getViewport({ scale: 2 });
             const canvas = document.createElement('canvas'); canvas.width = viewport.width; canvas.height = viewport.height;
             const ctx = canvas.getContext('2d'); await page.render({ canvasContext: ctx, viewport }).promise;
-            const { data } = await Tesseract.recognize(canvas.toDataURL('image/png'), 'spa+eng', { logger: ()=>{} });
-            out += (data && data.text) ? (data.text + '\n') : '';
+            const dataUrl = canvas.toDataURL('image/png');
+            let prom;
+            if (window._mfOcrScheduler){
+              prom = window._mfOcrScheduler.addJob('recognize', dataUrl);
+            } else {
+              prom = Tesseract.recognize(dataUrl, 'spa+eng', { logger: ()=>{} });
+            }
+            prom = Promise.resolve(prom).then((res)=>{ completed++; try { setProgress(50 + Math.round(((completed)/pages)*40), `OCR página ${completed}/${pages}...`); } catch(_){} return res; });
+            jobs.push(prom);
           }
-          return out.trim();
+          const results = await Promise.all(jobs);
+          const text = results.map(r=> (r && r.data && r.data.text) ? r.data.text : '').join('\n');
+          return text.trim();
         } catch(e){ return ''; }
       }
 
@@ -2017,43 +2729,19 @@
 
           // 4) Aeropuertos y horarios
           // 24h times: HH:MM, HH.MM, HHhMM, H:MM, compact HHMM
-          const rxTime = /\b(?:([01]?\d|2[0-3])[:hH\.]\s?([0-5]\d)|([01]?\d|2[0-3])([0-5]\d))\b(?:\s?(?:hrs|hr|h))?/;
+          const rxTime = window._mfTimeRx || /\b(?:([01]?\d|2[0-3])[:hH\.]\s?([0-5]\d)|([01]?\d|2[0-3])([0-5]\d))\b(?:\s?(?:hrs|hr|h))?/;
           // Dedicated extractor: time after a specific label on same/next few lines
           const extractTimeAfterLabel = (labelRx, maxAhead=3)=>{
             try {
-              const lines = (text||'').split(/\r?\n/);
-              for (let i=0;i<lines.length;i++){
-                if (labelRx.test(lines[i])){
-                  for (let k=0;k<=maxAhead;k++){
-                    const s = lines[i+k]||'';
-                    const m = s.match(rxTime);
-                    if (m){
-                      let v = m[0];
-                      v = v.replace(/[hH\.]/, ':');
-                      if (/^\d{3,4}$/.test(v)){
-                        const hh = v.length===3 ? ('0'+v[0]) : v.slice(0,2);
-                        const mm = v.slice(-2);
-                        v = String(hh).padStart(2,'0') + ':' + mm;
-                      }
-                      const n = (window._mfNormTime? window._mfNormTime(v) : v);
-                      return n || '';
-                    }
-                  }
-                }
-              }
+              const hit = window._mfExtractTimeAfterLabel?.(text, labelRx, { maxAhead }) || '';
+              if (hit) return hit;
             } catch(_){ }
             return '';
           };
           const setTimeIf = (id, labels) => {
             let v = findNearLabelValue(labels, rxTime, text);
             if (!v) return;
-            v = v.replace(/[hH\.]/, ':');
-            if (/^\d{3,4}$/.test(v)){
-              const hh = v.length===3 ? ('0'+v[0]) : v.slice(0,2);
-              const mm = v.slice(-2);
-              v = String(hh).padStart(2,'0') + ':' + mm;
-            }
-            const n = (window._mfNormTime? window._mfNormTime(v) : v);
+            const n = (window._mfNormTime? window._mfNormTime(v) : String(v));
             if (n) setVal(id, n);
           };
           const chooseValidIATA = (code)=>{ const c=(code||'').toUpperCase(); return iataSet.size ? (iataSet.has(c)?c:'') : c; };
@@ -2063,8 +2751,9 @@
           if (currentIsArrival){
             if (origen) { setVal('mf-arr-origin-code', origen); const name = airportByIATA.get(origen); if (name) setVal('mf-arr-origin-name', name); }
             if (escala) { setVal('mf-arr-last-stop-code', escala); const name = airportByIATA.get(escala); if (name) setVal('mf-arr-last-stop', name); }
-            // tiempos llegada (prefer 'HORA DE SLOT ASIGNADO' if present)
-            const vSlotArr = extractTimeAfterLabel(/\bHORA\s+DE\s+SLOT\s+ASIGNADO\b/i, 3) || extractTimeAfterLabel(/\bSLOT\s+ASIGNADO\b/i, 1);
+            // tiempos llegada (prefer robust slot-assigned extractor)
+            const strongArr = (window._mfFindSlotAssignedTime?.(text) || '');
+            const vSlotArr = strongArr || extractTimeAfterLabel(/\bHORA\s+DE\s+SLOT\s+ASIGNADO\b/i, 8) || extractTimeAfterLabel(/\bSLOT\s+ASIGNADO\b/i, 8);
             if (vSlotArr) setVal('mf-arr-slot-assigned', vSlotArr); else setTimeIf('mf-arr-slot-assigned', ['SLOT ASIGNADO']);
             setTimeIf('mf-arr-slot-coordinated', ['SLOT COORDINADO']);
             setTimeIf('mf-arr-arribo-posicion', ['ENTRADA A LA POSICION','ARRIBO A LA POSICION','ARRIBO POSICION']);
@@ -2077,13 +2766,23 @@
             setPair('mf-origin-name','mf-origin-code', route.origin);
             setPair('mf-next-stop','mf-next-stop-code', route.next);
             setPair('mf-final-dest','mf-final-dest-code', route.dest);
-            // tiempos salida (prefer 'HORA DE SLOT ASIGNADO' if present)
-            const vSlotDep = extractTimeAfterLabel(/\bHORA\s+DE\s+SLOT\s+ASIGNADO\b/i, 3) || extractTimeAfterLabel(/\bSLOT\s+ASIGNADO\b/i, 1);
+            // tiempos salida (prefer robust slot-assigned extractor)
+            const strongDep = (window._mfFindSlotAssignedTime?.(text) || '');
+            const vSlotDep = strongDep || extractTimeAfterLabel(/\bHORA\s+DE\s+SLOT\s+ASIGNADO\b/i, 8) || extractTimeAfterLabel(/\bSLOT\s+ASIGNADO\b/i, 8);
             if (vSlotDep) setVal('mf-slot-assigned', vSlotDep); else setTimeIf('mf-slot-assigned', ['SLOT ASIGNADO']);
             // Coordinado en salidas: dejar vacío
             try { const el = document.getElementById('mf-slot-coordinated'); if (el) { el.value = ''; el.setCustomValidity(''); } } catch(_){ }
-            setTimeIf('mf-inicio-embarque', ['INICIO MANIOBRAS DE EMBARQUE','INICIO DE EMBARQUE']);
-            setTimeIf('mf-salida-posicion', ['SALIDA DE LA POSICION','SALIDA POSICION']);
+            // Robust detection for departure times
+            (function(){
+              try {
+                const tInicioEmb = window._mfFindTimeByLabels?.(text, ['INICIO MANIOBRAS DE EMBARQUE','INICIO DE MANIOBRAS DE EMBARQUE','INICIO DE EMBARQUE'], { maxAhead: 8 }) || '';
+                if (tInicioEmb) setVal('mf-inicio-embarque', tInicioEmb); else setTimeIf('mf-inicio-embarque', ['INICIO MANIOBRAS DE EMBARQUE','INICIO DE EMBARQUE']);
+              } catch(_){ }
+              try {
+                const tSalidaPos = window._mfFindTimeByLabels?.(text, ['SALIDA DE LA POSICION','SALIDA POSICION','SALIDA DE LA POS.'], { maxAhead: 8 }) || '';
+                if (tSalidaPos) setVal('mf-salida-posicion', tSalidaPos); else setTimeIf('mf-salida-posicion', ['SALIDA DE LA POSICION','SALIDA POSICION']);
+              } catch(_){ }
+            })();
             // Término de pernocta en salidas: dejar vacío
             try { const el = document.getElementById('mf-termino-pernocta'); if (el) { el.value = ''; el.setCustomValidity(''); } } catch(_){ }
           }
