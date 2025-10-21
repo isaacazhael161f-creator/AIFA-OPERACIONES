@@ -746,8 +746,12 @@
                         <div class="card-body">
                             <div class="row g-3">
                                 <div class="col-12 col-lg-5">
-                                    <div class="mb-2 d-flex gap-2 flex-wrap">
-                                        <input type="file" id="manifest-upload" accept="application/pdf,image/*" class="form-control form-control-sm" style="max-width:320px;">
+                                    <div class="mb-2 d-flex gap-2 flex-wrap align-items-center">
+                                        <input type="file" id="manifest-upload" accept=".pdf,application/pdf,image/*" class="form-control form-control-sm" style="max-width:320px;">
+                                        <div class="d-flex gap-2">
+                                            <button id="manifest-upload-btn-pdf" type="button" class="btn btn-outline-secondary btn-sm"><i class="fas fa-file-pdf me-1"></i>Adjuntar PDF</button>
+                                            <button id="manifest-upload-btn-img" type="button" class="btn btn-outline-secondary btn-sm"><i class="fas fa-image me-1"></i>Adjuntar imagen</button>
+                                        </div>
                                         <button id="manifest-scan-pdf" class="btn btn-primary btn-sm ms-2"><i class="fas fa-wand-magic-sparkles me-1"></i>Escanear PDF</button>
                                         <button id="manifest-scan-ocr" class="btn btn-outline-secondary btn-sm"><i class="fas fa-magic me-1"></i>Escaneo alternativo (OCR)</button>
                                         <select id="manifest-ocr-pages" class="form-select form-select-sm" style="width:auto; display:inline-block">
@@ -757,6 +761,7 @@
                                             <option value="5">5 págs</option>
                                         </select>
                                     </div>
+                                    <div class="small text-muted mb-2">En móviles: usa “Adjuntar PDF” para abrir Archivos/Files y seleccionar documentos .pdf; usa “Adjuntar imagen” para abrir Fotos/Cámara.</div>
                                     <!-- Progreso estilo avión (arriba de la previsualización) -->
                                     <div id="manifest-plane-progress" class="plane-progress mb-2 d-none" aria-hidden="false">
                                         <div class="plane-progress-track">

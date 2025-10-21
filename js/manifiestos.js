@@ -79,6 +79,8 @@
   const altScanBtn = document.getElementById('manifest-scan-ocr');
   const ocrPagesSel = document.getElementById('manifest-ocr-pages');
   const ocrDebug = document.getElementById('manifest-ocr-debug');
+  const upBtnPdf = document.getElementById('manifest-upload-btn-pdf');
+  const upBtnImg = document.getElementById('manifest-upload-btn-img');
     if (pdfStatus && !pdfStatus._init){ pdfStatus._init = 1; pdfStatus.textContent = 'Listo para escanear: seleccione archivo y presione un botón.'; }
       // Si la página se abre bajo file://, deshabilitar funciones que usan fetch/XHR
       try {
@@ -103,6 +105,25 @@
           return `${year}-${z2(mm)}-${z2(dd)}`;
         } catch(_) { return ''; }
       }
+      // Helper: trigger file picker with specific type bias
+      function triggerPicker(kind){
+        try {
+          if (!up) return;
+          // Reset the input to allow re-selecting the same file
+          up.value = '';
+          if (kind === 'pdf'){
+            up.setAttribute('accept', '.pdf,application/pdf');
+          } else if (kind === 'image'){
+            up.setAttribute('accept', 'image/*');
+          } else {
+            up.setAttribute('accept', '.pdf,application/pdf,image/*');
+          }
+          // Some mobile browsers decide picker based on accept; programmatic click opens the desired source
+          up.click();
+        } catch(_){ }
+      }
+      if (upBtnPdf && !upBtnPdf._wired){ upBtnPdf._wired=1; upBtnPdf.addEventListener('click', (e)=>{ e.preventDefault(); triggerPicker('pdf'); }); }
+      if (upBtnImg && !upBtnImg._wired){ upBtnImg._wired=1; upBtnImg.addEventListener('click', (e)=>{ e.preventDefault(); triggerPicker('image'); }); }
 
       async function extractPdfText(file) {
         if (!window.pdfjsLib) {
@@ -1526,6 +1547,8 @@
       if (window._manifV2Wired) return; window._manifV2Wired = true;
       const status = document.getElementById('manifest-pdf-status');
       const upload = document.getElementById('manifest-upload');
+  const uploadBtnPdf = document.getElementById('manifest-upload-btn-pdf');
+  const uploadBtnImg = document.getElementById('manifest-upload-btn-img');
       const progressBarContainer = document.getElementById('manifest-progress-bar-container');
       const progressBar = document.getElementById('manifest-progress-bar');
   let _v2Cur=0,_v2Tar=0,_v2EffTar=0,_v2RAF=null,_v2LastTs=0,_v2Label='';
@@ -2216,6 +2239,15 @@
         if (!t) return;
         if (t.id === 'manifest-scan-pdf' || (t.closest && t.closest('#manifest-scan-pdf'))){ e.preventDefault(); handleScanPdf(); }
         if (t.id === 'manifest-scan-ocr' || (t.closest && t.closest('#manifest-scan-ocr'))){ e.preventDefault(); handleScanOcr(); }
+        // Trigger pickers explicitly for mobile UX
+        if (t.id === 'manifest-upload-btn-pdf' || (t.closest && t.closest('#manifest-upload-btn-pdf'))){
+          e.preventDefault();
+          try { if (upload){ upload.value=''; upload.setAttribute('accept','.pdf,application/pdf'); upload.click(); } } catch(_){ }
+        }
+        if (t.id === 'manifest-upload-btn-img' || (t.closest && t.closest('#manifest-upload-btn-img'))){
+          e.preventDefault();
+          try { if (upload){ upload.value=''; upload.setAttribute('accept','image/*'); upload.click(); } } catch(_){ }
+        }
       });
       // Feedback en cambio de archivo
       document.addEventListener('change', function(e){
