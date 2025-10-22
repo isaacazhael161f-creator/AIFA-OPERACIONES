@@ -674,28 +674,10 @@
             await page.render({ canvasContext: ctx, viewport: vp }).promise;
             prevCanvas.classList.remove('d-none');
             // Build a simple text layer with selectable spans
-            if (prevTextLayer){
-              prevTextLayer.innerHTML = '';
-              prevTextLayer.style.width = vp.width+'px';
-              prevTextLayer.style.height = vp.height+'px';
-              const content = await page.getTextContent();
-              const items = content.items || [];
-              for (const it of items){
-                const span = document.createElement('span');
-                span.textContent = it.str;
-                span.style.position = 'absolute';
-                const tx = window.pdfjsLib.Util.transform(vp.transform, it.transform);
-                const x = tx[4];
-                const y = tx[5];
-                const fontSize = Math.hypot(tx[0], tx[1]);
-                span.style.left = x + 'px';
-                // PDF coordinates: y origin bottom; approximate baseline to top-left
-                span.style.top = (vp.height - y) + 'px';
-                span.style.fontSize = fontSize + 'px';
-                span.style.whiteSpace = 'pre';
-                prevTextLayer.appendChild(span);
-              }
-              prevTextLayer.classList.remove('d-none');
+            // Quitar reconocimiento de texto en previsualización: ocultar capa de texto
+            if (prevTextLayer){ 
+              prevTextLayer.innerHTML = ''; 
+              prevTextLayer.classList.add('d-none'); 
             }
             window.manifestApplyZoom(); // apply current zoom transforms
           }
@@ -875,6 +857,29 @@
       }
 
       let pdfFile = null; // puede ser PDF o imagen
+      // Helpers para bloquear dirección (Llegada/Salida) por archivo seleccionado
+      function _lockDirectionChoice(isArrival){
+        try {
+          if (dirArr && dirDep){
+            dirArr.checked = !!isArrival; dirDep.checked = !isArrival;
+            if (isArrival){ dirDep.disabled = true; dirArr.disabled = false; }
+            else { dirArr.disabled = true; dirDep.disabled = false; }
+            window._mfDirectionLocked = true;
+            try {
+              const sel = isArrival ? dirArr : dirDep;
+              sel && sel.dispatchEvent(new Event('change', { bubbles:true }));
+            } catch(_){ }
+            try { applyManifestDirection(); } catch(_){ }
+          }
+        } catch(_){ }
+      }
+      function _unlockDirectionChoice(){
+        try { 
+          if (dirArr) dirArr.disabled = false; 
+          if (dirDep) dirDep.disabled = false; 
+          window._mfDirectionLocked = false; 
+        } catch(_){ }
+      }
       up.addEventListener('change', function(e) {
         const f = up.files && up.files[0];
         if (!f) { pdfFile = null; pdfStatus.textContent = 'No se seleccionó archivo.'; return; }
@@ -883,6 +888,14 @@
         const isImage = /^image\//i.test(f.type||'') || /\.(png|jpg|jpeg|webp)$/i.test(f.name||'');
         pdfFile = (isPdfMime || isPdfName || isImage) ? f : null;
         pdfStatus.textContent = pdfFile ? `Archivo listo: ${f.name}` : 'Seleccione un PDF o imagen válido.';
+        // Elegir y bloquear dirección al seleccionar archivo (siempre preguntar por cada archivo)
+        try {
+          if (pdfFile){
+            window._mfDirectionLocked = false;
+            const resp = window.confirm('¿El documento a escanear es de LLEGADA?\nAceptar = Llegada, Cancelar = Salida');
+            _lockDirectionChoice(!!resp);
+          }
+        } catch(_){ }
         // Render previsualización
         try {
           if (pdfFile && (isPdfMime || isPdfName)){
@@ -983,7 +996,7 @@
         const isPdf = /\.pdf$/i.test(pdfFile.name||'') || ((pdfFile.type||'').toLowerCase()==='application/pdf');
         if (!isPdf) { pdfStatus.textContent = 'El archivo no es PDF. Use "Escaneo alternativo (OCR)".'; hideProgress(); return; }
   setProgress(5, 'Preparando...');
-  setProgress(12, 'Escaneando PDF...');
+  setProgress(12, 'OCR en PDF...');
         pdfStatus.textContent = '';
         // Espera a que los catálogos estén cargados
         if (!masterAirlines.length || !masterAirports.length || !masterAircraft.length) {
@@ -992,17 +1005,20 @@
           await loadMasterCatalogs();
         }
         try {
-          setProgress(28, 'Cargando motor PDF...');
-          setProgress(35, 'Extrayendo texto del PDF...');
+          // Priorizar OCR (mejor desempeño reportado); si falla, retroceder a texto de PDF
           let text = '';
-          try { text = await extractPdfText(pdfFile); } catch(_) { text = ''; }
-          if (!text || text.replace(/\s+/g,'').length < 30){
-            setProgress(50, 'Texto limitado; intentando OCR...');
-            try {
-              await ensureTesseract();
-              const ocrText = await ocrPdfWithTesseract(pdfFile, 2);
-              if (ocrText && ocrText.length > (text||'').length) text = ocrText;
-            } catch(_) {}
+          try {
+            await ensurePdfJsFromCDN();
+            await ensureTesseract();
+            text = await ocrPdfWithTesseract(pdfFile, 2);
+            if (!text || text.replace(/\s+/g,'').length < 30){
+              setProgress(48, 'OCR limitado; extrayendo texto PDF...');
+              try { text = await extractPdfText(pdfFile); } catch(_) { /* keep empty */ }
+            }
+          } catch(_) {
+            // Si OCR falla completamente, intentar extraer texto del PDF como último recurso
+            setProgress(45, 'Cargando motor PDF...');
+            try { text = await extractPdfText(pdfFile); } catch(_) { text = ''; }
           }
           if (ocrDebug) ocrDebug.value = text || '';
           setProgress(65, 'Procesando campos...');
@@ -1044,29 +1060,11 @@
             const pilot = findNearLabelValue(['PILOTO AL MANDO','PILOTO','CAPITAN','CAPITÁN'], nameRx, text);
             if (pilot) setVal('mf-pilot', pilot);
           } catch(_){}
-          // No. de licencia (cerca de No. LIC, búsqueda exhaustiva multi-línea)
+          // No. de licencia: extractor exhaustivo (soporta "No. LIC." y variantes, mismo renglón o siguientes)
           try {
-            const lines = (text||'').split(/\r?\n/);
-            const labelRx = /\bNO\.?\s*LIC(?:\.|ENCIA)?\b/i;
-            let found = '';
-            for (let i=0;i<lines.length;i++){
-              if (labelRx.test(lines[i])){
-                const scanSeg = [];
-                for (let k=1;k<=3;k++){ if (lines[i+k]) scanSeg.push(lines[i+k]); }
-                const joined = scanSeg.join(' ').replace(/\s+/g,' ').trim();
-                // Capturar la primera secuencia alfanumérica larga (ej. TPI200105061)
-                const m = joined.match(/[A-Z]{1,6}\d{5,}|\d{7,}/i);
-                if (m){ found = m[0].toUpperCase(); break; }
-              }
-            }
-            if (!found){
-              // Fallback: buscar en todo el texto después de la etiqueta
-              const all = (text||'');
-              const m2 = all.match(/NO\.?\s*LIC(?:\.|ENCIA)?[\s:]*([A-Z]{1,6}\d{5,}|\d{7,})/i);
-              if (m2) found = (m2[1]||'').toUpperCase();
-            }
+            const found = (window._mfExtractPilotLicenseExhaustive?.(text) || '').toUpperCase();
             if (found) setVal('mf-pilot-license', found);
-          } catch(_){}
+          } catch(_){ }
           // Equipo (tipo aeronave) por extracción directa de texto cerca de etiqueta
           try {
             const typeICAO = extractAircraftTypeICAOFromText(text);
@@ -1155,7 +1153,24 @@
               // Imagen directa
               setProgress(40, 'OCR en imagen...');
               const dataUrl = await fileToDataURL(pdfFile);
-              const { data } = await Tesseract.recognize(dataUrl, 'spa+eng', { logger: ()=>{} });
+              // Preprocesado ligero: escalar a mayor DPI para mejorar OCR en texto en negritas
+              let ocrSrc = dataUrl;
+              try {
+                const img = await new Promise((resolve, reject)=>{ const im = new Image(); im.onload=()=>resolve(im); im.onerror=reject; im.src = dataUrl; });
+                const maxDim = Math.max(img.width||0, img.height||0) || 0;
+                const targetMax = 1600; // escalar hasta ~1600px en su lado mayor para claridad
+                const scale = maxDim ? Math.min(2, Math.max(1, targetMax / maxDim)) : 1;
+                if (scale > 1){
+                  const c = document.createElement('canvas');
+                  c.width = Math.round((img.width||0) * scale);
+                  c.height = Math.round((img.height||0) * scale);
+                  const ctx = c.getContext('2d', { willReadFrequently: false });
+                  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+                  ctx.drawImage(img, 0, 0, c.width, c.height);
+                  ocrSrc = c.toDataURL('image/png');
+                }
+              } catch(_) { /* si falla el preprocesado, seguimos con el dataUrl original */ }
+              const { data } = await Tesseract.recognize(ocrSrc, 'spa+eng', { logger: ()=>{} });
               text = (data && data.text) ? data.text : '';
             }
             if (ocrDebug) ocrDebug.value = text || '';
@@ -1189,23 +1204,49 @@
               const pilot = findNearLabelValue(['PILOTO AL MANDO','PILOTO','CAPITAN','CAPITÁN'], nameRx, text);
               if (pilot) setVal('mf-pilot', pilot);
             } catch(_){}
-            // No. de licencia (exhaustivo multi-línea)
+            // No. de licencia (usa extractor exhaustivo como primario)
             try {
-              const lines = (text||'').split(/\r?\n/);
-              const labelRx = /\bNO\.?\s*LIC(?:\.|ENCIA)?\b/i;
               let found = '';
-              for (let i=0;i<lines.length;i++){
-                if (labelRx.test(lines[i])){
-                  const scanSeg = [];
-                  for (let k=1;k<=3;k++){ if (lines[i+k]) scanSeg.push(lines[i+k]); }
-                  const joined = scanSeg.join(' ').replace(/\s+/g,' ').trim();
-                  const m = joined.match(/[A-Z]{1,6}\d{5,}|\d{7,}/i);
-                  if (m){ found = m[0].toUpperCase(); break; }
+              try {
+                const ex = window._mfExtractPilotLicenseExhaustive?.(text) || '';
+                if (ex) found = ex.toUpperCase();
+              } catch(_) {}
+              // Fallbacks ligeros por si el helper no detecta por algún motivo
+              if (!found){
+                const lines = (text||'').split(/\r?\n/);
+                const labelRx = /\bN(?:O|0)\.?\s*L(?:I|1)C(?:\.|ENCIA)?\b/i;
+                for (let i=0;i<lines.length;i++){
+                  if (labelRx.test(lines[i])){
+                    const scanSeg = [];
+                    for (let k=1;k<=4;k++){ if (lines[i+k]) scanSeg.push(lines[i+k]); }
+                    const joined = scanSeg.join(' ').replace(/\s+/g,' ').trim();
+                    // Permitir números fragmentados por espacios
+                    const onlyDigits = joined.replace(/[^0-9]/g,'');
+                    if (onlyDigits.length>=7){ found = onlyDigits; break; }
+                    const m = joined.match(/[A-Z]{1,6}[-\/]?\d{5,}|\d{7,}/i);
+                    if (m){ found = m[0].toUpperCase(); break; }
+                  }
+                }
+              }
+              // Fallback adicional: si hay línea con 'NO.' (sin LIC), escanear siguientes
+              if (!found){
+                const lines = (text||'').split(/\r?\n/);
+                const rxNO = /\bN(?:O|0|[º°])\.??\b|\bN[UÚ]M\.??\b/i;
+                for (let i=0;i<lines.length;i++){
+                  if (rxNO.test(lines[i])){
+                    const scanSeg = [];
+                    for (let k=0;k<=6;k++){ if (lines[i+k]) scanSeg.push(lines[i+k]); }
+                    const joined = scanSeg.join(' ').replace(/\s+/g,' ').trim();
+                    const onlyDigits = joined.replace(/[^0-9]/g,'');
+                    if (onlyDigits.length>=7){ found = onlyDigits; break; }
+                    const m = joined.match(/[A-Z]{1,6}[-\/]?\d{5,}|\d{7,}/i);
+                    if (m){ found = m[0].toUpperCase(); break; }
+                  }
                 }
               }
               if (!found){
                 const all = (text||'');
-                const m2 = all.match(/NO\.?\s*LIC(?:\.|ENCIA)?[\s:]*([A-Z]{1,6}\d{5,}|\d{7,})/i);
+                const m2 = all.match(/N(?:O|0)\.?\s*L(?:I|1)C(?:\.|ENCIA)?[\s:\-]*([A-Z]{1,6}[-\/]?\d{5,}|\d{7,})/i);
                 if (m2) found = (m2[1]||'').toUpperCase();
               }
               if (found) setVal('mf-pilot-license', found);
@@ -1464,6 +1505,209 @@
         }catch(_){ }
         return '';
       }
+      // Extra robusto: extracción exhaustiva de No. de Licencia incluso si la etiqueta está partida ("No." y "LIC.") y el valor está en la misma línea o siguientes.
+      window._mfExtractPilotLicenseExhaustive = function(text){
+        try {
+          const lines = (text||'').split(/\r?\n/);
+          // Etiquetas tolerantes a OCR: NO puede leerse como N0 (cero); LIC puede leerse como L1C (uno) o con espacios
+          const rxNO = /\bN(?:[O0]|[º°])\.??\b|\bN[UÚ]M\.??\b|\bNO\.??\b/i;    // No. / Nº / N° / N0. / Núm.
+          const rxLIC = /\bL\s*[I1]\s*C(?:\.|\s*[EÉ]\s*N\s*C\s*[I1]\s*A)?\b/i; // LIC. / L I C . / L1C / LICENCIA (tolerante a espacios)
+          const clean = (s)=> (s||'').toUpperCase().replace(/\s+/g,' ').trim();
+          const sliceAfterLastLabel = (s)=>{
+            try {
+              let idxLic = s.search(rxLIC);
+              let idxNo = s.search(rxNO);
+              let idx = Math.max(idxLic, idxNo);
+              return idx>=0 ? s.slice(idx + (s.match(idx===idxLic?rxLIC:rxNO)?.[0]?.length||0)) : s;
+            } catch(_){ return s; }
+          };
+          function findCandidatesInString(s){
+            const U = (s||'').toUpperCase();
+            const tokens = U.replace(/[^A-Z0-9\-\/]/g,' ').split(/\s+/).filter(Boolean);
+            const out = new Set();
+            // 1) dígitos puros contiguos >=7
+            const dHits = U.match(/\b\d{7,}\b/g) || [];
+            dHits.forEach(v=> out.add(v));
+            // 2) letras+digitos (con posible guión o "/")
+            const mixHits = U.match(/\b[A-Z]{1,6}[-\/]?\d{5,}\b/g) || [];
+            mixHits.forEach(v=> out.add(v));
+            // 3) pares separados por espacio: ABC 1234567
+            for (let i=0;i<tokens.length-1;i++){
+              const a=tokens[i], b=tokens[i+1];
+              if (/^[A-Z]{2,6}$/.test(a) && /^\d{5,}$/.test(b)) out.add(a+b);
+            }
+            // 4) dígitos fragmentados por espacios: 2016 355 35 -> 201635535
+            for (let i=0;i<tokens.length;i++){
+              if (/^\d+$/.test(tokens[i])){
+                let j=i; let acc='';
+                while (j<tokens.length && /^\d+$/.test(tokens[j])){ acc += tokens[j]; j++; }
+                if (acc.length>=7) out.add(acc);
+                i = j-1;
+              }
+            }
+            // 5) letras seguidas de múltiples grupos de dígitos: ABC 12 34567 -> ABC1234567
+            for (let i=0;i<tokens.length;i++){
+              if (/^[A-Z]{1,6}$/.test(tokens[i])){
+                let j=i+1; let acc='';
+                while (j<tokens.length && /^\d+$/.test(tokens[j])){ acc += tokens[j]; j++; }
+                if (acc.length>=5){ out.add(tokens[i] + acc); }
+                i = j-1;
+              }
+            }
+            // Preferencias: dígitos más largos primero, luego alfanuméricos
+            const arr = Array.from(out);
+            arr.sort((x,y)=>{
+              const xd=/^\d+$/.test(x), yd=/^\d+$/.test(y);
+              if (xd && yd) return y.length - x.length;
+              if (xd && !yd) return -1;
+              if (!xd && yd) return 1;
+              return y.length - x.length;
+            });
+            return arr;
+          }
+          function scanWindow(fromIdx, toIdx, extraForward=6){
+            const start = Math.max(0, Math.min(fromIdx, toIdx));
+            const end = Math.min(lines.length-1, Math.max(fromIdx, toIdx) + extraForward);
+            let buf = '';
+            for (let i=start;i<=end;i++){ buf += (lines[i]||'') + ' '; }
+            // Dar prioridad a lo que venga después del último label en la línea base
+            const base = lines[Math.max(fromIdx, toIdx)] || '';
+            const tail = sliceAfterLastLabel(base);
+            const c1 = findCandidatesInString(tail);
+            if (c1.length) return c1[0];
+            const c2 = findCandidatesInString(buf);
+            return c2[0]||'';
+          }
+          // 1) Misma línea: NO y LIC presentes -> buscar a la derecha del último label
+          for (let i=0;i<lines.length;i++){
+            const ln = lines[i]||'';
+            if (rxNO.test(ln) && rxLIC.test(ln)){
+              const hit = scanWindow(i,i,4); if (hit) return hit.toUpperCase();
+            }
+          }
+          // 1.a) Solo 'NO.' presente (sin 'LIC'): tomar a la derecha y en siguientes líneas
+          for (let i=0;i<lines.length;i++){
+            const ln = lines[i]||'';
+            if (rxNO.test(ln)){
+              const hitNo = scanWindow(i,i,10);
+              if (hitNo) return hitNo.toUpperCase();
+            }
+          }
+          // 1.b) Solo 'LIC.' o 'LICENCIA' presente (sin 'NO'): tomar a la derecha y en siguientes líneas
+          for (let i=0;i<lines.length;i++){
+            const ln = lines[i]||'';
+            if (rxLIC.test(ln)){
+              // Preferir lo que está a la derecha del label en la misma línea
+              const hitSame = scanWindow(i,i,6);
+              if (hitSame) return hitSame.toUpperCase();
+            }
+          }
+          // 2) Etiquetas partidas en +/-2 líneas; escanear ventana ampliada
+          for (let i=0;i<lines.length;i++){
+            if (rxNO.test(lines[i]||'')){
+              for (let d=1; d<=2; d++){
+                if (rxLIC.test(lines[i+d]||'')){ const hit = scanWindow(i, i+d, 10); if (hit) return hit.toUpperCase(); }
+                if (rxLIC.test(lines[i-d]||'')){ const hit = scanWindow(i, i-d, 10); if (hit) return hit.toUpperCase(); }
+              }
+            }
+            if (rxLIC.test(lines[i]||'')){
+              for (let d=1; d<=2; d++){
+                if (rxNO.test(lines[i+d]||'')){ const hit = scanWindow(i, i+d, 10); if (hit) return hit.toUpperCase(); }
+                if (rxNO.test(lines[i-d]||'')){ const hit = scanWindow(i, i-d, 10); if (hit) return hit.toUpperCase(); }
+              }
+            }
+          }
+          // 3) Fallback global: permitir palabras intermedias entre NO y LIC y capturar luego
+          try {
+            const one = clean(text||'');
+            const m = one.match(/N(?:O|0|[º°])\.??\s*(?:\w+\s*){0,6}L\s*[I1]\s*C(?:\.|\s*[EÉ]\s*N\s*C\s*[I1]\s*A)?\s*[:\-]?\s*([A-Z0-9\-\/ ]{6,})/i);
+            if (m && m[1]){
+              const cands = findCandidatesInString(m[1]);
+              if (cands.length) return cands[0].toUpperCase();
+              return (m[1]||'').toUpperCase().trim();
+            }
+          } catch(_){ }
+          // 3.a) Fallback global: solo 'NO.' y capturar después lo que parezca licencia
+          try {
+            const one = clean(text||'');
+            const m = one.match(/N(?:O|0|[º°])\.??\s*[:\-]?\s*([A-Z0-9\-\/ ]{6,})/i);
+            if (m && m[1]){
+              const cands = findCandidatesInString(m[1]);
+              if (cands.length) return cands[0].toUpperCase();
+              return (m[1]||'').toUpperCase().trim();
+            }
+          } catch(_){ }
+          // 3.b) Fallback global solo 'LIC'/'LICENCIA': capturar número/letras-dígitos después del label
+          try {
+            const one = clean(text||'');
+            const m = one.match(/L\s*[I1]\s*C(?:\.|\s*[EÉ]\s*N\s*C\s*[I1]\s*A)?\s*[:\-]?\s*([A-Z0-9\-\/ ]{6,})/i);
+            if (m && m[1]){
+              const cands = findCandidatesInString(m[1]);
+              if (cands.length) return cands[0].toUpperCase();
+              return (m[1]||'').toUpperCase().trim();
+            }
+          } catch(_){ }
+        } catch(_){ }
+        return '';
+      };
+      // Extra robusto: extractor de nombre completo en MAYÚSCULAS cerca de la etiqueta "PILOTO AL MANDO"
+      // Solo actúa como refuerzo si la lógica previa no llenó el campo.
+      window._mfExtractPilotUpperNearLabel = function(text){
+        try {
+          const lines = (text||'').split(/\r?\n/);
+          // Incluir sinónimos y abreviaturas comunes
+          const labelRx = /(PILOTO\s+AL\s+MANDO|PILOTO\b|CAPIT[ÁA]N\b|CAP\.|CPT\b)/i;
+          // Token de nombre en mayúsculas: permite acentos, apóstrofes, guiones y partículas cortas (DE/DEL/DA/VON/VAN/LA/LOS/LAS/etc.)
+          const nameToken = "(?:[A-ZÁÉÍÓÚÑ](?:[A-ZÁÉÍÓÚÑ'’\-]{1,})|DE|DEL|DA|DO|DOS|DAS|VON|VAN|LA|EL|LOS|LAS)";
+          const nameSeq = new RegExp('^\n?\t?\s*' + nameToken + '(?:\s+' + nameToken + '){1,6}\s*$', '');
+          // Búsqueda de candidatos en un string: devuelve el mejor match por tamaño de nombre
+          const findBestIn = (s)=>{
+            const L = (s||'').toUpperCase().replace(/[:·•\|]/g,' ').replace(/\s+/g,' ').trim();
+            if (!L) return '';
+            // Escanear secuencias de 2 a 7 tokens; priorizar las más largas
+            const toks = L.split(' ');
+            let best=''; let bestScore=0;
+            for (let a=0;a<toks.length;a++){
+              for (let b=a+1;b<=Math.min(toks.length, a+7);b++){
+                const seg = toks.slice(a,b).join(' ').trim();
+                if (!seg) continue;
+                // Rechazar si contiene palabras claramente no-nombre
+                if (/(PILOTO|MANDO|CAPITAN|CAPITÁN|CPT|CAP\.|LIC|FOLIO|VUELO|FECHA|ORIGEN|DESTINO)/i.test(seg)) continue;
+                // Validar con patrón de secuencia de nombres
+                const ok = seg.split(' ').every(tok=> /^(?:[A-ZÁÉÍÓÚÑ]{2,}|[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ'’\-]{1,})$/.test(tok) || /^(DE|DEL|DA|DO|DOS|DAS|VON|VAN|LA|EL|LOS|LAS)$/.test(tok));
+                if (!ok) continue;
+                // Al menos un token de 3+ letras
+                if (!seg.split(' ').some(t=> t.replace(/[^A-ZÁÉÍÓÚÑ]/g,'').length>=3)) continue;
+                const score = seg.length + seg.split(' ').length*2;
+                if (score > bestScore){ best=seg; bestScore=score; }
+              }
+            }
+            return best;
+          };
+          for (let i=0;i<lines.length;i++){
+            const line = lines[i]||'';
+            if (!labelRx.test(line)) continue;
+            // 1) Mismo renglón: a la derecha de la etiqueta
+            try {
+              const m = line.match(labelRx);
+              const rest = m && typeof m.index==='number' ? line.slice(m.index + (m[0]?.length||0)) : '';
+              const hitSame = findBestIn(rest);
+              if (hitSame) return hitSame.trim();
+            } catch(_){ }
+            // 2) Ventana de contexto: 2 líneas arriba hasta 5 abajo
+            let buf = [];
+            for (let k=-2; k<=5; k++){
+              const s = lines[i+k]||'';
+              // Saltar líneas que repiten la etiqueta
+              if (labelRx.test(s)) continue;
+              buf.push(s);
+            }
+            const hitWin = findBestIn(buf.join(' '));
+            if (hitWin) return hitWin.trim();
+          }
+        } catch(_){ }
+        return '';
+      };
       function normalizeTextSimple1(s){ return (s||'').toString().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim(); }
       function matchAirlineByName1(text){
         try {
@@ -1748,7 +1992,7 @@
         const url = URL.createObjectURL(f);
         setPreview(url);
       }); }
-      if (loadEx && !loadEx._wired) { loadEx._wired = 1; loadEx.addEventListener('click', (e)=>{ e.preventDefault(); setPreview('examples/manifiesto1.jpg'); }); }
+  if (loadEx && !loadEx._wired) { loadEx._wired = 1; loadEx.addEventListener('click', (e)=>{ e.preventDefault(); setPreview('examples/manifiesto1.jpg'); }); }
       if (runBtn && !runBtn._wired) {
         runBtn._wired = 1;
         runBtn.addEventListener('click', async ()=>{
@@ -1766,8 +2010,10 @@
             const upperTokens = tokenizeUpper(text);
             const isArrivalDoc = hasWord('LLEGADA') || hasWord('ARRIVAL');
             const isDepartureDoc = hasWord('SALIDA') || hasWord('DEPARTURE');
-            if (isArrivalDoc && dirArr) { dirArr.checked = true; dirArr.dispatchEvent(new Event('change', { bubbles: true })); }
-            else if (isDepartureDoc && dirDep) { dirDep.checked = true; dirDep.dispatchEvent(new Event('change', { bubbles: true })); }
+            if (!window._mfDirectionLocked){
+              if (isArrivalDoc && dirArr) { dirArr.checked = true; dirArr.dispatchEvent(new Event('change', { bubbles: true })); }
+              else if (isDepartureDoc && dirDep) { dirDep.checked = true; dirDep.dispatchEvent(new Event('change', { bubbles: true })); }
+            }
             const currentIsArrival = dirArr && dirArr.checked;
             try {
               let flightStr = findNearLabelValue(['vuelo','n° vuelo','no. vuelo','flight','flt'], /[A-Z]{2,3}\s?-?\s?\d{2,5}[A-Z]?/i, text);
@@ -2081,8 +2327,8 @@
       });
       recalcPaxTotal();
 
-      if (saveBtn && !saveBtn._wired) { saveBtn._wired = 1; saveBtn.addEventListener('click', ()=>{ recalcPaxTotal(); const recs = loadRecords(); recs.unshift(readForm()); saveRecords(recs.slice(0,200)); renderTable(); }); }
-      if (clearBtn && !clearBtn._wired) { clearBtn._wired = 1; clearBtn.addEventListener('click', ()=>{ document.getElementById('manifest-form')?.reset(); applyManifestDirection(); clearDynamicTables(); calculateTotals(); updateDemorasTotal(); }); }
+    if (saveBtn && !saveBtn._wired) { saveBtn._wired = 1; saveBtn.addEventListener('click', ()=>{ recalcPaxTotal(); const recs = loadRecords(); recs.unshift(readForm()); saveRecords(recs.slice(0,200)); renderTable(); }); }
+    if (clearBtn && !clearBtn._wired) { clearBtn._wired = 1; clearBtn.addEventListener('click', ()=>{ document.getElementById('manifest-form')?.reset(); applyManifestDirection(); clearDynamicTables(); calculateTotals(); updateDemorasTotal(); }); }
       if (exportBtn && !exportBtn._wired) { exportBtn._wired = 1; exportBtn.addEventListener('click', ()=>{ const data = JSON.stringify(loadRecords(), null, 2); const blob = new Blob([data], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'manifiestos.json'; a.click(); }); }
       renderTable();
 
@@ -2638,31 +2884,8 @@
                 await page.render({ canvasContext: ctx, viewport: vp }).promise;
                 canvas.classList.remove('d-none');
               }
-              // Text layer for copy (V2)
-              try {
-                const textLayer = document.getElementById('manifest-text-layer');
-                if (textLayer){
-                  textLayer.innerHTML = '';
-                  textLayer.style.width = vp.width+'px';
-                  textLayer.style.height = vp.height+'px';
-                  const content = await page.getTextContent();
-                  for (const it of (content.items||[])){
-                    const span = document.createElement('span');
-                    span.textContent = it.str;
-                    span.style.position='absolute';
-                    const tx = window.pdfjsLib.Util.transform(vp.transform, it.transform);
-                    const x = tx[4];
-                    const y = tx[5];
-                    const fontSize = Math.hypot(tx[0], tx[1]);
-                    span.style.left = x+'px';
-                    span.style.top = (vp.height - y)+'px';
-                    span.style.fontSize = fontSize+'px';
-                    span.style.whiteSpace='pre';
-                    textLayer.appendChild(span);
-                  }
-                  textLayer.classList.remove('d-none');
-                }
-              } catch(_){ }
+              // Quitar reconocimiento de texto en previsualización (V2): ocultar capa de texto
+              try { const textLayer = document.getElementById('manifest-text-layer'); if (textLayer){ textLayer.innerHTML=''; textLayer.classList.add('d-none'); } } catch(_){ }
               window.manifestApplyZoom();
               if (img) img.classList.add('d-none');
               if (placeholder) placeholder.classList.add('d-none');
@@ -2692,8 +2915,10 @@
           const isDepartureDoc = /\bSALIDA\b|\bDEPARTURE\b/.test(U);
           const dirArr = document.getElementById('mf-dir-arr');
           const dirDep = document.getElementById('mf-dir-dep');
-          if (isArrivalDoc && dirArr){ dirArr.checked = true; dirArr.dispatchEvent(new Event('change', { bubbles:true })); }
-          else if (isDepartureDoc && dirDep){ dirDep.checked = true; dirDep.dispatchEvent(new Event('change', { bubbles:true })); }
+          if (!window._mfDirectionLocked){
+            if (isArrivalDoc && dirArr){ dirArr.checked = true; dirArr.dispatchEvent(new Event('change', { bubbles:true })); }
+            else if (isDepartureDoc && dirDep){ dirDep.checked = true; dirDep.dispatchEvent(new Event('change', { bubbles:true })); }
+          }
           const currentIsArrival = !!(dirArr && dirArr.checked);
 
           // 2) Vuelo y transportista (usar catálogos)
@@ -2801,24 +3026,14 @@
             const pilot = findNearLabelValue(['PILOTO AL MANDO','PILOTO','CAPITAN','CAPITÁN'], nameRx, text);
             if (pilot) setVal('mf-pilot', pilot);
           } catch(_){ }
+          // Refuerzo V2: si aún no hay valor, intentar nombre completo en MAYÚSCULAS cercano a la etiqueta
+          try { const cur = document.getElementById('mf-pilot')?.value || ''; if (!cur){ const p2 = window._mfExtractPilotUpperNearLabel?.(text) || ''; if (p2) setVal('mf-pilot', p2); } } catch(_){ }
+          // Refuerzo: si no se obtuvo, intentar nombre completo en MAYÚSCULAS junto a la etiqueta
+          try { const cur = document.getElementById('mf-pilot')?.value || ''; if (!cur){ const p2 = window._mfExtractPilotUpperNearLabel?.(text) || ''; if (p2) setVal('mf-pilot', p2); } } catch(_){ }
+          // Refuerzo: fallback a nombre completo en MAYÚSCULAS si falta
+          try { const cur = document.getElementById('mf-pilot')?.value || ''; if (!cur){ const p2 = window._mfExtractPilotUpperNearLabel?.(text) || ''; if (p2) setVal('mf-pilot', p2); } } catch(_){ }
           try {
-            const lines = (text||'').split(/\r?\n/);
-            const labelRx = /\bNO\.?\s*LIC(?:\.|ENCIA)?\b/i;
-            let found = '';
-            for (let i=0;i<lines.length;i++){
-              if (labelRx.test(lines[i])){
-                const scanSeg = [];
-                for (let k=1;k<=3;k++){ if (lines[i+k]) scanSeg.push(lines[i+k]); }
-                const joined = scanSeg.join(' ').replace(/\s+/g,' ').trim();
-                const m = joined.match(/[A-Z]{1,6}\d{5,}|\d{7,}/i);
-                if (m){ found = m[0].toUpperCase(); break; }
-              }
-            }
-            if (!found){
-              const all = (text||'');
-              const m2 = all.match(/NO\.?\s*LIC(?:\.|ENCIA)?[\s:]*([A-Z]{1,6}\d{5,}|\d{7,})/i);
-              if (m2) found = (m2[1]||'').toUpperCase();
-            }
+            const found = (window._mfExtractPilotLicenseExhaustive?.(text) || '').toUpperCase();
             if (found) setVal('mf-pilot-license', found);
           } catch(_){ }
 
@@ -2887,13 +3102,14 @@
           const isPdf = /\.pdf$/i.test(name) || /application\/pdf/i.test(type);
           if (!isPdf){ if (status) status.textContent = 'El archivo no es PDF. Use "Escaneo alternativo (OCR)".'; return; }
           setProgress(5, 'Preparando...'); if (status) status.textContent = '';
-          setProgress(12, 'Leyendo PDF...');
+          setProgress(12, 'OCR en PDF...');
           // Ensure catalogs are ready to improve matching accuracy
           try { await _v2CatalogsReady; } catch(_){ }
-          let text = await extractPdfTextV2(file);
+          // Priorizar OCR porque reportaste mejor precisión; si falla, retroceder a texto del PDF
+          let text = await ocrPdfOrImageV2(file, 2);
           if (!text || text.replace(/\s+/g,'').length < 30){
-            setProgress(48, 'Texto limitado; intentando OCR...');
-            text = await ocrPdfOrImageV2(file, 2);
+            setProgress(48, 'OCR limitado; extrayendo texto del PDF...');
+            text = await extractPdfTextV2(file);
           }
           setProgress(70, 'Procesando...');
           fillFieldsFromTextV2(text||'');
@@ -2953,6 +3169,21 @@
         const t = e.target;
         if (t && t.id === 'manifest-upload'){
           const f = t.files && t.files[0]; if (status) status.textContent = f ? `Archivo listo: ${f.name}` : 'No se seleccionó archivo.';
+          // Preguntar y bloquear dirección al seleccionar archivo (siempre preguntar por cada archivo)
+          try {
+            if (f){
+              window._mfDirectionLocked = false;
+              const resp = window.confirm('¿El documento a escanear es de LLEGADA?\nAceptar = Llegada, Cancelar = Salida');
+              const dirArr = document.getElementById('mf-dir-arr');
+              const dirDep = document.getElementById('mf-dir-dep');
+              if (dirArr && dirDep){
+                if (resp){ dirArr.checked = true; dirDep.checked = false; dirDep.disabled = true; dirArr.disabled = false; dirArr.dispatchEvent(new Event('change', { bubbles:true })); }
+                else { dirArr.checked = false; dirDep.checked = true; dirArr.disabled = true; dirDep.disabled = false; dirDep.dispatchEvent(new Event('change', { bubbles:true })); }
+                window._mfDirectionLocked = true;
+                try { (window.applyManifestDirection||applyManifestDirection)?.(); } catch(_){ }
+              }
+            }
+          } catch(_){ }
           if (f) renderPreviewV2(f);
         }
       });

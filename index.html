@@ -387,7 +387,7 @@
                 <div id="parte-operaciones-section" class="content-section">
                     <div class="card">
                         <div class="card-header flex-column flex-md-row d-flex justify-content-between align-items-center">
-                            <h2 class="mb-3 mb-md-0">Resumen de operaciones (20 de octubre de 2025)</h2>
+                            <h2 class="mb-3 mb-md-0">Resumen de operaciones (21 de octubre de 2025)</h2>
                             <div class="d-flex gap-2">
                                 <a href="pdfs/parte_operaciones_completo.pdf" class="btn btn-danger download-btn" download><i class="fas fa-file-pdf me-2"></i><span class="btn-text">Descargar PDF</span></a>
                                 <a href="excel/parte_operaciones_completo.xlsx" class="btn btn-success download-btn" download><i class="fas fa-file-excel me-2"></i><span class="btn-text">Descargar Excel</span></a>
@@ -452,6 +452,10 @@
                                     <label class="me-1"><i class="fas fa-plane-departure me-1"></i>Fase</label>
                                     <select id="fauna-phase" class="form-select form-select-sm"><option value="all" selected>Todas</option></select>
                                 </div>
+                                    <div class="chip">
+                                        <label class="me-1"><i class="fas fa-plane me-1"></i>Aerolínea</label>
+                                        <select id="fauna-airline" class="form-select form-select-sm"><option value="all" selected>Todas</option></select>
+                                    </div>
                                 <div class="chip chip-actions">
                                     <label class="me-1"><i class="fas fa-broom me-1"></i>Acciones</label>
                                     <button id="fauna-clear" class="btn btn-outline-secondary btn-sm">Limpiar</button>
@@ -460,9 +464,16 @@
                             </div>
                         </div>
                         <div class="card-body">
-                            <div class="d-flex flex-wrap gap-3 mb-3">
+                            <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
                                 <span class="badge bg-primary" id="fauna-total-badge">Total: 0</span>
                                 <span class="badge bg-info text-dark" id="fauna-period-badge">Periodo: Todos</span>
+                                <button class="btn btn-outline-primary btn-sm" id="fauna-summary-toggle" data-bs-toggle="collapse" data-bs-target="#fauna-summary-collapse" aria-expanded="false" aria-controls="fauna-summary-collapse">
+                                    <i class="fas fa-list-ul me-1"></i>Resumen por Aerolínea
+                                </button>
+                            </div>
+                            <div class="collapse" id="fauna-summary-collapse">
+                                <h6 class="mb-2"><i class="fas fa-plane me-2"></i>Resumen por Aerolínea</h6>
+                                <div id="fauna-summary-container" class="table-container-tech"></div>
                             </div>
                             <!-- Top horas críticas arriba -->
                             <div class="mb-3">
@@ -760,6 +771,7 @@
                                             <option value="3">3 págs</option>
                                             <option value="5">5 págs</option>
                                         </select>
+                                        
                                     </div>
                                     <div class="small text-muted mb-2">En móviles: usa “Adjuntar PDF” para abrir Archivos/Files y seleccionar documentos .pdf; usa “Adjuntar imagen” para abrir Fotos/Cámara.</div>
                                     <!-- Progreso estilo avión (arriba de la previsualización) -->

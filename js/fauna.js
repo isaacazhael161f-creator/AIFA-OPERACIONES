@@ -40,6 +40,31 @@
     return fetch('data/fauna.json').then(r => r.json()).catch(()=>[]);
   }
 
+  // Normalizar claves de fauna.json con guiones bajos y variaciones a formato de UI
+  function normalizeFaunaRow(row){
+    const map = Object.create(null);
+    // Mapeos específicos conocidos
+    const special = {
+      'Fase_de_la_operación': 'Fase de la operación',
+      'Condiciones_meteorológicas': 'Condiciones meteorológicas',
+      'Zona_de_impacto': 'Zona de impacto',
+      'Personal_que_reporta': 'Personal que reporta',
+      'Medidas_proactivas': 'Medidas proactivas',
+      'Resultados_de_las_medidas': 'Resultados de las medidas',
+      'Aerolineas': 'Aerolínea',
+      'Matricula': 'Matrícula'
+    };
+    for (const [k, v] of Object.entries(row || {})){
+      let nk = special[k];
+      if (!nk){
+        // Reemplazar guiones bajos por espacios y capitalizar acentos comunes si aplica
+        nk = k.replace(/_/g, ' ');
+      }
+      map[nk] = v;
+    }
+    return map;
+  }
+
   function buildColumns(rows){
     // Union of keys, preserving first appearance order
     const set = new Set();
@@ -80,7 +105,7 @@
   }
 
   function escapeHtml(str){
-    return str.replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt','"':'&quot;','\'':'&#39;'}[s]));
+    return str.replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[s]));
   }
 
   function applyFilters(){
@@ -90,6 +115,7 @@
     const species = (document.getElementById('fauna-species')?.value || 'all');
     const size = (document.getElementById('fauna-size')?.value || 'all');
     const phase = (document.getElementById('fauna-phase')?.value || 'all');
+    const airline = (document.getElementById('fauna-airline')?.value || 'all');
     let from = fromStr ? new Date(fromStr + 'T00:00:00Z') : null;
     let to = toStr ? new Date(toStr + 'T23:59:59Z') : null;
 
@@ -111,12 +137,16 @@
       if (phase !== 'all') {
         if (String(r['Fase de la operación']||'').trim() !== phase) return false;
       }
+      if (airline !== 'all') {
+        if (String(r['Aerolínea']||'').trim() !== airline) return false;
+      }
       return true;
     });
   state.paging.page = 1; // reset page when filters change
     updateBadges();
     renderTable();
     renderCharts();
+    renderAirlineSummary(state.filtered);
     // Actualizar disponibilidad de meses según filtros actuales (excluyendo el propio mes)
     try {
       const rowsForMonth = state.raw.filter(r => {
@@ -126,6 +156,7 @@
         if (species !== 'all' && String(r['Especie']||'').trim() !== species) return false;
         if (size !== 'all' && String(r['Tamaño']||'').trim() !== size) return false;
         if (phase !== 'all' && String(r['Fase de la operación']||'').trim() !== phase) return false;
+        if (airline !== 'all' && String(r['Aerolínea']||'').trim() !== airline) return false;
         return true;
       });
       updateMonthFilterAvailability(rowsForMonth);
@@ -220,6 +251,8 @@
     }
     // Resumen por fase (Despegue/Aterrizaje)
     renderPhaseSummary(state.filtered);
+    // Resumen por Aerolínea (logos y conteos)
+    renderAirlineSummary(state.filtered);
   }
 
   function ensureEContainer(id){
@@ -398,12 +431,15 @@
     const speciesSel = document.getElementById('fauna-species');
     const sizeSel = document.getElementById('fauna-size');
     const phaseSel = document.getElementById('fauna-phase');
+    const airlineSel = document.getElementById('fauna-airline');
     const species = uniqueSorted(state.raw.map(r => r['Especie']));
     const sizes = uniqueSorted(state.raw.map(r => r['Tamaño']));
     const phases = uniqueSorted(state.raw.map(r => r['Fase de la operación']));
+    const airlines = uniqueSorted(state.raw.map(r => r['Aerolínea']));
     if (speciesSel){ speciesSel.innerHTML = '<option value="all" selected>Todas</option>' + species.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join(''); }
     if (sizeSel){ sizeSel.innerHTML = '<option value="all" selected>Todos</option>' + sizes.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join(''); }
     if (phaseSel){ phaseSel.innerHTML = '<option value="all" selected>Todas</option>' + phases.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join(''); }
+    if (airlineSel){ airlineSel.innerHTML = '<option value="all" selected>Todas</option>' + airlines.map(a=>`<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join(''); }
   }
 
   function bindEvents(){
@@ -413,6 +449,7 @@
     document.getElementById('fauna-species')?.addEventListener('change', applyFilters);
     document.getElementById('fauna-size')?.addEventListener('change', applyFilters);
     document.getElementById('fauna-phase')?.addEventListener('change', applyFilters);
+    document.getElementById('fauna-airline')?.addEventListener('change', applyFilters);
     document.getElementById('fauna-clear')?.addEventListener('click', () => {
       const mf = document.getElementById('fauna-month'); if (mf) mf.value='all';
       const df = document.getElementById('fauna-date-from'); if (df) df.value='';
@@ -420,6 +457,7 @@
       const sp = document.getElementById('fauna-species'); if (sp) sp.value='all';
       const sz = document.getElementById('fauna-size'); if (sz) sz.value='all';
       const ph = document.getElementById('fauna-phase'); if (ph) ph.value='all';
+      const al = document.getElementById('fauna-airline'); if (al) al.value='all';
       applyFilters();
     });
     document.getElementById('fauna-export-csv')?.addEventListener('click', exportCSV);
@@ -443,7 +481,7 @@
   function init(){
     if (!document.getElementById('fauna-section')) return; // section not visible yet
     loadFauna().then(rows => {
-      state.raw = rows || [];
+      state.raw = (rows || []).map(normalizeFaunaRow);
       state.columns = buildColumns(state.raw);
       state.filtered = state.raw.slice();
       populateFilters();
@@ -451,6 +489,7 @@
       updateBadges();
       renderTable();
       renderCharts();
+      renderAirlineSummary(state.filtered);
       bindEvents();
       // Re-render when section becomes visible to avoid zero-size canvas issues
       window.addEventListener('fauna:visible', () => {
@@ -485,5 +524,37 @@
       s = '"' + s.replace(/"/g,'""') + '"';
     }
     return s;
+  }
+
+  // Resumen por Aerolínea (con logos) similar al inicio
+  function renderAirlineSummary(rows){
+    const container = document.getElementById('fauna-summary-container');
+    if (!container) return;
+    const counts = new Map();
+    rows.forEach(r => {
+      const a = String(r['Aerolínea']||'').trim() || 'Sin aerolínea';
+      counts.set(a, (counts.get(a)||0)+1);
+    });
+    const items = Array.from(counts.entries()).sort((a,b)=> b[1]-a[1]);
+    if (!items.length){ container.innerHTML = '<div class="text-muted">Sin datos.</div>'; return; }
+    let html = '<div class="row g-2">';
+    items.forEach(([airline, n]) => {
+      const cands = (window.getAirlineLogoCandidates ? window.getAirlineLogoCandidates(airline) : []);
+      const logoPath = cands && cands.length ? cands[0] : '';
+      const dataCands = (cands||[]).join('|');
+      const sizeClass = (window.getLogoSizeClass ? window.getLogoSizeClass(airline,'summary') : 'lg');
+      const logoHtml = logoPath ? `<img class="airline-logo ${sizeClass} me-2" src="${logoPath}" alt="Logo ${escapeHtml(airline)}" data-cands="${escapeHtml(dataCands)}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">` : '';
+      html += `
+      <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+        <div class="card h-100">
+          <div class="card-body d-flex align-items-center justify-content-between">
+            <div class="airline-header d-flex align-items-center">${logoHtml}<strong class="airline-name">${escapeHtml(airline)}</strong></div>
+            <span class="badge text-bg-primary">${n}</span>
+          </div>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+    container.innerHTML = html;
   }
 })();
