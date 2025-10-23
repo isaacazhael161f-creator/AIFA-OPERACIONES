@@ -158,6 +158,7 @@ const airlineLogoFileMap = {
     'air china': ['logo_air_china.png'],
     // Carga y otras
     'masair': ['logo_mas.png','logo_masair.png'],
+    'mas air': ['logo_mas.png','logo_masair.png'],
     'amerijet international': ['logo_amerijet_international.png'],
     'cargojet': ['logo_cargojet.png'],
     'cargolux': ['logo_cargolux.png'],
@@ -269,7 +270,7 @@ function getAirlineLogoCandidates(airline){
         candidates.push(`images/airlines/${base}.svg`);
         // Variaciones conocidas (solo archivos que existen en repo)
         if (base.includes('aerounion')) candidates.push('images/airlines/loho_aero_union.png');
-        if (base.includes('masair')) candidates.push('images/airlines/logo_mas.png');
+        if (base.includes('masair') || base.includes('mas_air')) candidates.push('images/airlines/logo_mas.png');
         if (base.includes('silk_way_west') && !base.includes('silkway')) candidates.push('images/airlines/logo_silk_way_west_airlines.png');
         if (base.includes('air_canada')) candidates.push('images/airlines/logo_air_canada_.png');
         if (base.includes('air_france')) candidates.push('images/airlines/logo_air_france_.png');
