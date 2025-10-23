@@ -548,7 +548,11 @@
       <div class="col-12 col-sm-6 col-md-4 col-lg-3">
         <div class="card h-100">
           <div class="card-body d-flex align-items-center justify-content-between">
-            <div class="airline-header d-flex align-items-center">${logoHtml}<strong class="airline-name">${escapeHtml(airline)}</strong></div>
+            <div class="airline-header d-flex align-items-center">
+              <a href="#" class="fauna-airline-link d-flex align-items-center text-decoration-none" title="Ver eventos de ${escapeHtml(airline)}" data-airline="${escapeHtml(airline)}">
+                ${logoHtml}<strong class="airline-name ms-1">${escapeHtml(airline)}</strong>
+              </a>
+            </div>
             <span class="badge text-bg-primary">${n}</span>
           </div>
         </div>
@@ -556,5 +560,33 @@
     });
     html += '</div>';
     container.innerHTML = html;
+    // Click -> aplicar filtro por aerolínea y desplazar a la tabla
+    try {
+      container.querySelectorAll('.fauna-airline-link').forEach(a => {
+        a.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          const airline = a.getAttribute('data-airline') || '';
+          viewFaunaForAirline(airline);
+        });
+      });
+    } catch(_) {}
+  }
+
+  // Aplicar filtro por aerolínea en Fauna y desplazar a la tabla
+  function viewFaunaForAirline(airline){
+    try {
+      const sel = document.getElementById('fauna-airline');
+      if (!sel) return;
+      // asegurar opción existente
+      let option = Array.from(sel.options).find(o => (o.value||'') === airline);
+      if (!option && airline) {
+        const opt = document.createElement('option');
+        opt.value = airline; opt.textContent = airline; sel.appendChild(opt);
+      }
+      sel.value = airline || 'all';
+      applyFilters();
+      const tbl = document.getElementById('fauna-table-container');
+      if (tbl) tbl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch(_) {}
   }
 })();
