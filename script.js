@@ -159,6 +159,9 @@ const airlineLogoFileMap = {
     // Carga y otras
     'masair': ['logo_mas.png','logo_masair.png'],
     'mas air': ['logo_mas.png','logo_masair.png'],
+    'omni air': ['logo_omni_air.png'],
+    'omni air international': ['logo_omni_air.png'],
+    'mas air': ['logo_mas.png','logo_masair.png'],
     'amerijet international': ['logo_amerijet_international.png'],
     'cargojet': ['logo_cargojet.png'],
     'cargolux': ['logo_cargolux.png'],
@@ -225,6 +228,8 @@ const airlineLogoSlugMap = {
     'air canada': 'logo_air_canada',
     'air canada cargo': 'logo_air_canada',
     'cargolux': 'logo_cargolux',
+    'omni air': 'logo_omni_air',
+    'omni air international': 'logo_omni_air',
     // Compat adicionales
     'air china': 'air_china',
     'tsm': 'logo_tsm_airlines',
@@ -271,6 +276,7 @@ function getAirlineLogoCandidates(airline){
         // Variaciones conocidas (solo archivos que existen en repo)
         if (base.includes('aerounion')) candidates.push('images/airlines/loho_aero_union.png');
         if (base.includes('masair') || base.includes('mas_air')) candidates.push('images/airlines/logo_mas.png');
+        if (base.includes('omni_air')) candidates.push('images/airlines/logo_omni_air.png');
         if (base.includes('silk_way_west') && !base.includes('silkway')) candidates.push('images/airlines/logo_silk_way_west_airlines.png');
         if (base.includes('air_canada')) candidates.push('images/airlines/logo_air_canada_.png');
         if (base.includes('air_france')) candidates.push('images/airlines/logo_air_france_.png');
