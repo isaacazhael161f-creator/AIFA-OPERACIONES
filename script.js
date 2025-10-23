@@ -159,7 +159,7 @@ const airlineLogoFileMap = {
     // Carga y otras
     'masair': ['logo_mas.png','logo_masair.png'],
     'mas air': ['logo_mas.png','logo_masair.png'],
-    'omni air': ['logo_omni_air.png','logo_omni_air1.png'],
+    'Omni Air': ['logo_omni_air.png','logo_omni_air1.png'],
     'omni air international': ['logo_omni_air.png','logo_omni_air1.png'],
     'omni': ['logo_omni_air.png','logo_omni_air1.png'],
     'mas air': ['logo_mas.png','logo_masair.png'],
@@ -229,7 +229,7 @@ const airlineLogoSlugMap = {
     'air canada': 'logo_air_canada',
     'air canada cargo': 'logo_air_canada',
     'cargolux': 'logo_cargolux',
-    'omni air': 'logo_omni_air',
+    'Omni Air': 'logo_omni_air',
     'omni air international': 'logo_omni_air',
     'omni': 'logo_omni_air',
     // Compat adicionales
@@ -278,7 +278,7 @@ function getAirlineLogoCandidates(airline){
         // Variaciones conocidas (solo archivos que existen en repo)
         if (base.includes('aerounion')) candidates.push('images/airlines/loho_aero_union.png');
         if (base.includes('masair') || base.includes('mas_air')) candidates.push('images/airlines/logo_mas.png');
-        if (base.includes('omni_air')) { 
+        if (base.includes('Omni_Air')) { 
             candidates.push('images/airlines/logo_omni_air.png');
             candidates.push('images/airlines/logo_omni_air1.png');
         }
