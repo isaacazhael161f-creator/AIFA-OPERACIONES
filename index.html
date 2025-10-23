@@ -750,9 +750,11 @@
                 <!-- Manifiestos -->
                 <div id="manifiestos-section" class="content-section">
                     <div class="card border-0">
-                        <div class="card-header bg-transparent d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
-                            <h2 class="mb-2 mb-md-0">Manifiestos</h2>
-                            
+                        <div class="card-header bg-transparent text-center">
+                            <h2 class="mb-1 d-inline-flex align-items-center justify-content-center gap-2">
+                                <span>Manifiestos</span>
+                            </h2>
+                            <div class="small text-muted mt-3">Adjunta un PDF o imagen del manifiesto y presiona “Escanear PDF” u “Escaneo alternativo (OCR)”. En móviles, usa “Adjuntar PDF/imagen”.</div>
                         </div>
                         <div class="card-body">
                             <div class="row g-3">
@@ -812,8 +814,27 @@
                                         </details>
                                 </div>
                                 <div class="col-12 col-lg-7">
-                                    <h5 class="mb-2">Datos del Manifiesto</h5>
-                                    <form id="manifest-form" class="row g-2">
+                                    <div class="mf-sheet mf-ntp">
+                                    <div class="mf-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <img src="images/logo_aifa.jpg" alt="AIFA" class="mf-header-logo" />
+                                            <div>
+                                                <div class="mf-header-title">Manifiesto de Llegada</div>
+                                                <div class="mf-header-subtitle">Aeropuerto Internacional Felipe Ángeles</div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-end gap-2 mf-header-meta">
+                                            <div>
+                                                <label class="form-label small mb-1 text-light-ntp">Fecha del Documento</label>
+                                                <input type="date" class="form-control form-control-sm mf-header-input" id="mf-doc-date" />
+                                            </div>
+                                            <div>
+                                                <label class="form-label small mb-1 text-light-ntp">Folio</label>
+                                                <input type="text" class="form-control form-control-sm mf-header-input" id="mf-folio" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <form id="manifest-form" class="row g-2 mf-body">
                                         <div class="col-12">
                                             <label class="form-label me-3">Tipo de Manifiesto</label>
                                             <div class="btn-group" role="group" aria-label="Tipo de Manifiesto">
@@ -823,20 +844,12 @@
                                                 <label class="btn btn-outline-secondary" for="mf-dir-dep"><i class="fas fa-plane-departure me-1"></i>Salida</label>
                                             </div>
                                         </div>
-                                            <!-- Encabezado del documento -->
+                                            <!-- Encabezado del documento (cuerpo) -->
                                             <div class="col-12">
                                                 <div class="d-flex flex-wrap align-items-end gap-3">
                                                     <div class="flex-grow-1">
                                                         <label class="form-label">Título</label>
                                                         <input type="text" class="form-control" id="mf-title" value="MANIFIESTO DE LLEGADA" readonly>
-                                                    </div>
-                                                    <div>
-                                                        <label class="form-label">Fecha del Documento</label>
-                                                        <input type="date" class="form-control" id="mf-doc-date" />
-                                                    </div>
-                                                    <div>
-                                                        <label class="form-label">Folio</label>
-                                                        <input type="text" class="form-control" id="mf-folio" />
                                                     </div>
                                                 </div>
                                                 <hr />
@@ -844,6 +857,23 @@
                                         <!-- Sección 1: Datos generales (en orden solicitado) -->
                                         <div class="col-12">
                                             <h6 class="mb-2"><i class="fas fa-list me-1"></i>Datos generales</h6>
+                                        </div>
+                                        <!-- Nuevos primeros campos en Datos generales -->
+                                        <div class="col-12 col-md-6 mb-2">
+                                            <label class="form-label" id="mf-airport-main-label">Aeropuerto de Llegada</label>
+                                            <input type="text" class="form-control" id="mf-airport-main" list="airports-name-list" placeholder="Nombre completo del aeropuerto" />
+                                        </div>
+                                        <div class="col-12 col-md-6 mb-2">
+                                            <label class="form-label">Tipo de vuelo</label>
+                                            <select class="form-select" id="mf-flight-type">
+                                                <option value="">Selecciona…</option>
+                                                <option value="Comercial">Comercial</option>
+                                                <option value="Carga">Carga</option>
+                                                <option value="Aviación general">Aviación general</option>
+                                                <option value="Charter">Charter</option>
+                                                <option value="Militar">Militar</option>
+                                                <option value="Otro">Otro</option>
+                                            </select>
                                         </div>
                                         <div class="col-12 col-md-4 mb-2">
                                             <label class="form-label">Transportista (OACI - 3 letras)</label>
@@ -870,6 +900,7 @@
                                             <label class="form-label">Vuelo</label>
                                             <input type="text" class="form-control" id="mf-flight" />
                                         </div>
+                                        
                                         <div class="col-12 col-md-4 mb-2">
                                             <label class="form-label">Equipo</label>
                                             <input type="text" class="form-control" id="mf-aircraft" list="aircraft-type-icao-list" placeholder="Ej. B77F / A21N / E195" style="text-transform:uppercase" pattern="[A-Za-z0-9]{2,5}" autocomplete="off" />
@@ -971,7 +1002,7 @@
                                         </div>
                                         <!-- Sección 2 (Llegada): Movimiento de operaciones -->
                                         <div class="col-12" data-dir="arrival-only">
-                                            <h6 class="mb-2"><i class="fas fa-route me-1"></i>Movimiento de operaciones</h6>
+                                            <h6 class="mb-2 mf-section-title"><i class="fas fa-route me-1"></i>Movimiento de operaciones</h6>
                                             <div class="row g-2">
                                                 <!-- 1) Procedencia del vuelo (nombre completo) -->
                                                 <div class="col-12 col-md-6">
@@ -1004,8 +1035,8 @@
                                                 
                                                 <!-- Grupo de tiempos (Llegada) -->
                                                 <div class="col-12 mt-1">
-                                                    <div class="p-3 border rounded bg-light-subtle">
-                                                        <h6 class="mb-2">Tiempos (Llegada)</h6>
+                                                    <div class="p-3 border rounded bg-light-subtle mf-times">
+                                                        <h6 class="mb-2 mf-section-title">Tiempos (Llegada)</h6>
                                                         <div class="row g-3">
                                                             <div class="col-6 col-md-3">
                                                                 <label class="form-label">Hora de slot asignado</label>
@@ -1043,7 +1074,7 @@
                                         <!-- Causas de demora -->
                                         <div class="col-12">
                                             <div class="d-flex align-items-center justify-content-between">
-                                                <h6 class="mb-2"><i class="fas fa-clock me-1"></i>Causas de demora</h6>
+                                                <h6 class="mb-2 mf-section-title"><i class="fas fa-clock me-1"></i>Causas de demora</h6>
                                                 <div class="d-flex gap-2">
                                                     <button type="button" id="add-demora-row" class="btn btn-sm btn-outline-secondary"><i class="fas fa-plus me-1"></i>Agregar</button>
                                                     <button type="button" id="clear-demoras" class="btn btn-sm btn-outline-secondary"><i class="fas fa-trash me-1"></i>Limpiar</button>
@@ -1074,7 +1105,7 @@
                                         </div>
                                         <!-- División: Pasajeros por categoría (después de Demoras) -->
                                         <div class="col-12">
-                                            <h6 class="mb-2"><i class="fas fa-people-group me-1"></i>Pasajeros por categoría</h6>
+                                            <h6 class="mb-2 mf-section-title"><i class="fas fa-people-group me-1"></i>Pasajeros por categoría</h6>
                                             <div class="row g-2">
                                                 <div class="col-6 col-md-3"><label class="form-label">Pagan TUA</label><input type="number" min="0" class="form-control" id="pax-tua"></div>
                                                 <div class="col-6 col-md-3"><label class="form-label">Diplomáticos</label><input type="number" min="0" class="form-control" id="pax-diplomaticos"></div>
@@ -1095,7 +1126,7 @@
                                         <!-- Embarque por estación -->
                                         <div class="col-12">
                                             <div class="d-flex align-items-center justify-content-between">
-                                                <h6 class="mb-2"><i class="fas fa-people-carry-box me-1"></i>Tabla de embarque por estación</h6>
+                                                <h6 class="mb-2 mf-section-title"><i class="fas fa-people-carry-box me-1"></i>Tabla de embarque por estación</h6>
                                                 <div class="d-flex gap-2">
                                                     <button type="button" id="add-embarque-row" class="btn btn-sm btn-outline-secondary"><i class="fas fa-plus me-1"></i>Agregar estación</button>
                                                     <button type="button" id="clear-embarque" class="btn btn-sm btn-outline-secondary"><i class="fas fa-trash me-1"></i>Limpiar</button>
@@ -1200,7 +1231,7 @@
                                         </div>
                                         <!-- Firmas y sellos -->
                                         <div class="col-12">
-                                            <h6 class="mb-2"><i class="fas fa-signature me-1"></i>Firmas y sellos</h6>
+                                            <h6 class="mb-2 mf-section-title"><i class="fas fa-signature me-1"></i>Firmas y sellos</h6>
                                             <div class="row g-2">
                                                 <div class="col-12 col-md-4">
                                                     <label class="form-label">Operador (Nombre y Firma)</label>
@@ -1226,6 +1257,7 @@
                                             <button type="button" class="btn btn-outline-primary ms-auto" id="manifest-export-json"><i class="fas fa-download me-1"></i>Exportar JSON</button>
                                         </div>
                                     </form>
+                                    </div>
                                     <hr />
                                     <h5 class="mb-2">Registros Guardados</h5>
                                     <div class="table-responsive">

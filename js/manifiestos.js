@@ -537,6 +537,8 @@
     window._mfAttachCatalogButton('mf-carrier-3l', { load:'airlines', onPick:(it, input)=>{
       try { const a = it?.meta; if (!a) return; input.value = (a.icao||'').toUpperCase(); const el = document.getElementById('mf-airline'); if (el && a.name) el.value = a.name; } catch(_){ }
     }});
+    // Aeropuerto principal (Llegada/Salida)
+    window._mfAttachCatalogButton('mf-airport-main', { load:'airports', onPick:(it, input)=>{ try { const a=it?.meta; if (!a) return; input.value = a.name||''; } catch(_){ } }});
   } catch(_){ }
   try {
     // Aeropuertos: code/name pairs
@@ -1038,8 +1040,8 @@
             if (m) iso = dmyToISO(m[0]);
           }
           if (iso) { const el = document.getElementById('mf-doc-date'); if (el) el.value = iso; }
-          // Origen
-          let origen = findNearLabelIATACode(['ORIGEN'], text);
+          // Origen (incluye sinónimo "Procedencia")
+          let origen = findNearLabelIATACode(['ORIGEN','PROCEDENCIA'], text);
           let origenMatch = findValidAirport(origen);
           setVal('mf-origin-code', origenMatch ? origenMatch.IATA : '');
           // Destino
@@ -1968,6 +1970,12 @@
           .forEach(el => { if (el) el.required = false; });
         const title = document.getElementById('mf-title');
         if (title) title.value = isArrival ? 'MANIFIESTO DE LLEGADA' : 'MANIFIESTO DE SALIDA';
+        try {
+          const ht = document.querySelector('.mf-header-title');
+          if (ht) ht.textContent = isArrival ? 'Manifiesto de Llegada' : 'Manifiesto de Salida';
+          const labMain = document.getElementById('mf-airport-main-label');
+          if (labMain) labMain.textContent = isArrival ? 'Aeropuerto de Llegada' : 'Aeropuerto de Salida';
+        } catch(_){ }
 
         // Reglas específicas de valores para salidas
         try {
@@ -2282,6 +2290,7 @@
           direction,
           title: g('mf-title'), docDate: g('mf-doc-date'), folio: g('mf-folio'),
           carrier3L: g('mf-carrier-3l'), operatorName: g('mf-operator-name'), airline: g('mf-airline'), flight: g('mf-flight'),
+          airportMain: g('mf-airport-main'), flightType: g('mf-flight-type'),
           tail: g('mf-tail'), aircraft: g('mf-aircraft'), originName: g('mf-origin-name'), originCode: g('mf-origin-code'),
           crewTotal: g('mf-crew-total'),
           baggageKg: g('mf-baggage-kg'), baggagePieces: g('mf-baggage-pcs'), cargoKg: g('mf-cargo'), cargoPieces: g('mf-cargo-pieces'), cargoVol: g('mf-cargo-volume'),
