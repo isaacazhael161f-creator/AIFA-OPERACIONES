@@ -159,9 +159,9 @@ const airlineLogoFileMap = {
     // Carga y otras
     'masair': ['logo_mas.png','logo_masair.png'],
     'mas air': ['logo_mas.png','logo_masair.png'],
-    'omni air': ['logo_omni_air1.png','logo_omni_air.png'],
-    'omni air international': ['logo_omni_air1.png','logo_omni_air.png'],
-    'omni': ['logo_omni_air1.png','logo_omni_air.png'],
+    'omni air': ['logo_omni_air.png','logo_omni_air1.png'],
+    'omni air international': ['logo_omni_air.png','logo_omni_air1.png'],
+    'omni': ['logo_omni_air.png','logo_omni_air1.png'],
     'mas air': ['logo_mas.png','logo_masair.png'],
     'amerijet international': ['logo_amerijet_international.png'],
     'cargojet': ['logo_cargojet.png'],
@@ -279,8 +279,8 @@ function getAirlineLogoCandidates(airline){
         if (base.includes('aerounion')) candidates.push('images/airlines/loho_aero_union.png');
         if (base.includes('masair') || base.includes('mas_air')) candidates.push('images/airlines/logo_mas.png');
         if (base.includes('omni_air')) { 
-            candidates.push('images/airlines/logo_omni_air1.png');
             candidates.push('images/airlines/logo_omni_air.png');
+            candidates.push('images/airlines/logo_omni_air1.png');
         }
         if (base.includes('silk_way_west') && !base.includes('silkway')) candidates.push('images/airlines/logo_silk_way_west_airlines.png');
         if (base.includes('air_canada')) candidates.push('images/airlines/logo_air_canada_.png');
