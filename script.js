@@ -161,6 +161,7 @@ const airlineLogoFileMap = {
     'mas air': ['logo_mas.png','logo_masair.png'],
     'omni air': ['logo_omni_air.png'],
     'omni air international': ['logo_omni_air.png'],
+    'omni': ['logo_omni_air.png'],
     'mas air': ['logo_mas.png','logo_masair.png'],
     'amerijet international': ['logo_amerijet_international.png'],
     'cargojet': ['logo_cargojet.png'],
@@ -230,6 +231,7 @@ const airlineLogoSlugMap = {
     'cargolux': 'logo_cargolux',
     'omni air': 'logo_omni_air',
     'omni air international': 'logo_omni_air',
+    'omni': 'logo_omni_air',
     // Compat adicionales
     'air china': 'air_china',
     'tsm': 'logo_tsm_airlines',
