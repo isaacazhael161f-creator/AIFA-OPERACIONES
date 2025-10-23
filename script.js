@@ -159,9 +159,9 @@ const airlineLogoFileMap = {
     // Carga y otras
     'masair': ['logo_mas.png','logo_masair.png'],
     'mas air': ['logo_mas.png','logo_masair.png'],
-    'omni air': ['logo_omni_air.png'],
-    'omni air international': ['logo_omni_air.png'],
-    'omni': ['logo_omni_air.png'],
+    'omni air': ['logo_omni_air1.png','logo_omni_air.png'],
+    'omni air international': ['logo_omni_air1.png','logo_omni_air.png'],
+    'omni': ['logo_omni_air1.png','logo_omni_air.png'],
     'mas air': ['logo_mas.png','logo_masair.png'],
     'amerijet international': ['logo_amerijet_international.png'],
     'cargojet': ['logo_cargojet.png'],
@@ -278,7 +278,10 @@ function getAirlineLogoCandidates(airline){
         // Variaciones conocidas (solo archivos que existen en repo)
         if (base.includes('aerounion')) candidates.push('images/airlines/loho_aero_union.png');
         if (base.includes('masair') || base.includes('mas_air')) candidates.push('images/airlines/logo_mas.png');
-        if (base.includes('omni_air')) candidates.push('images/airlines/logo_omni_air.png');
+        if (base.includes('omni_air')) { 
+            candidates.push('images/airlines/logo_omni_air1.png');
+            candidates.push('images/airlines/logo_omni_air.png');
+        }
         if (base.includes('silk_way_west') && !base.includes('silkway')) candidates.push('images/airlines/logo_silk_way_west_airlines.png');
         if (base.includes('air_canada')) candidates.push('images/airlines/logo_air_canada_.png');
         if (base.includes('air_france')) candidates.push('images/airlines/logo_air_france_.png');
@@ -1714,14 +1717,21 @@ function hideGlobalLoader() {
 function showSection(sectionKey, linkEl) {
     try {
         const targetId = `${sectionKey}-section`;
+        const prevActive = document.querySelector('.content-section.active');
         document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
-        const target = document.getElementById(targetId);
+        let target = document.getElementById(targetId);
+        if (!target) {
+            console.warn('Sección no encontrada:', targetId, '- restaurando anterior o usando operaciones-totales');
+            target = prevActive || document.getElementById('operaciones-totales-section');
+        }
         if (target) target.classList.add('active');
         // Marcar menú
         document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
         if (linkEl) linkEl.classList.add('active');
-        // Actualizar hash
-        try { history.replaceState(null, '', `#${sectionKey}`); } catch(_) {}
+        // Actualizar hash solo si la sección existe
+        if (target && target.id) {
+            try { history.replaceState(null, '', `#${target.id.replace('-section','')}`); } catch(_) {}
+        }
         // Cerrar sidebar en móvil
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebar-overlay');

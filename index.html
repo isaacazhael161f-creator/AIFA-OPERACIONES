@@ -114,8 +114,11 @@
             </aside>
             <!-- Overlay para dispositivos móviles: permite cerrar el sidebar al tocar fuera -->
             <div id="sidebar-overlay" class="sidebar-overlay"></div>
-            <div class="sidebar-overlay" id="sidebar-overlay"></div>
             <main class="main-content flex-grow-1 p-3 p-md-4">
+                <div id="file-protocol-warning" class="alert alert-warning alert-dismissible fade show d-none" role="alert">
+                    <strong>Advertencia:</strong> Estás abriendo el archivo directamente (file://). Para evitar errores CORS al cargar CSV/JSON, inicia el servidor local y abre: <a href="http://localhost:3000" target="_blank" rel="noopener">http://localhost:3000</a>.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
 
                 <div id="inicio-section" class="content-section">
                     <div class="card">
@@ -926,7 +929,7 @@
                                         <!-- Sección 2: Movimiento de operaciones (Salida) -->
                                         <div class="col-12" data-dir="departure-only">
                                             <h6 class="mb-2"><i class="fas fa-route me-1"></i>Movimiento de operaciones</h6>
-                                            <div class="row g-3">
+                                            <div class="row g-2">
                                                 <!-- Columna 1: Origen -->
                                                 <div class="col-12 col-md-4">
                                                     <div class="mb-2">
@@ -966,9 +969,9 @@
                                                 </div>
                                                 <!-- Grupo de tiempos (Salida) -->
                                                 <div class="col-12">
-                                                    <div class="p-3 border rounded bg-light-subtle mt-1">
+                                                    <div class="p-3 border rounded bg-light-subtle mf-times">
                                                         <h6 class="mb-2">Tiempos (Salida)</h6>
-                                                        <div class="row g-3">
+                                                        <div class="row g-2">
                                                             <div class="col-6 col-md-3">
                                                                 <label class="form-label">Hora de slot asignado</label>
                                                                 <input type="text" class="form-control" id="mf-slot-assigned" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
@@ -1037,7 +1040,7 @@
                                                 <div class="col-12 mt-1">
                                                     <div class="p-3 border rounded bg-light-subtle mf-times">
                                                         <h6 class="mb-2 mf-section-title">Tiempos (Llegada)</h6>
-                                                        <div class="row g-3">
+                                                        <div class="row g-2">
                                                             <div class="col-6 col-md-3">
                                                                 <label class="form-label">Hora de slot asignado</label>
                                                                 <input type="text" class="form-control" id="mf-arr-slot-assigned" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
@@ -1496,6 +1499,26 @@
                         console.info('[noSW] Modo DEV activo: Service Worker deshabilitado (host local o flag noSW)');
                     }
                 } catch(e) { /* noop */ }
+            })();
+        </script>
+        <script>
+            // Mostrar advertencia si se abre con file:// (CORS bloqueará fetch de CSV/JSON)
+            (function warnIfFileProtocol(){
+                try{
+                    if (location.protocol === 'file:'){
+                        const el = document.getElementById('file-protocol-warning');
+                        if (el) el.classList.remove('d-none');
+                    }
+                }catch(_){}
+            })();
+        </script>
+        <script>
+            // Asegurar que el overlay del sidebar nunca quede activo por error al cargar
+            (function ensureOverlayOff(){
+                try{
+                    const ov = document.getElementById('sidebar-overlay');
+                    if (ov) ov.classList.remove('active');
+                }catch(_){}
             })();
         </script>
         <script>

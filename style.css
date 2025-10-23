@@ -784,6 +784,14 @@ body.dark-mode .mf-section-title::before { background: #4dabf7; }
    #fauna-section .badge { font-size: .8rem; }
 }
 
+/* ===================== Manifiestos: Alineación de campos ===================== */
+.mf-body .form-label{ display:block; min-height:1.35rem; }
+.mf-body .form-text{ display:block; min-height:1rem; }
+.mf-body .row.g-2{ row-gap:.75rem; }
+.mf-body .row.g-3{ row-gap:.75rem; }
+/* Unificar fondo de bloques de tiempos */
+.mf-times{ background: var(--bs-light-bg-subtle, rgba(0,0,0,0.03)); }
+
 /* ================================================
    Time inputs: force 24h UI (hide AM/PM on WebKit)
    ================================================ */
