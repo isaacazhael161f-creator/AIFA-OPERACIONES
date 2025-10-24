@@ -17,6 +17,7 @@
 <body>
 
     <div id="login-screen" class="login-screen">
+        <div id="login-sky" aria-hidden="true"></div>
         <div class="login-overlay"></div>
         <div class="login-container">
             <div class="login-header">
@@ -946,13 +947,34 @@
                                             <label class="form-label">Tipo de vuelo</label>
                                             <select class="form-select" id="mf-flight-type">
                                                 <option value="">Selecciona…</option>
-                                                <option value="Comercial">Comercial</option>
-                                                <option value="Carga">Carga</option>
-                                                <option value="Aviación general">Aviación general</option>
-                                                <option value="Charter">Charter</option>
-                                                <option value="Militar">Militar</option>
-                                                <option value="Otro">Otro</option>
+                                                <option value="A" data-category="Additional flights" data-operation="Cargo,Mail" data-description="Cargo/Mail">A — Cargo/Mail</option>
+                                                <option value="B" data-category="Additional flights" data-operation="Passenger" data-description="Shuttle Mode">B — Shuttle Mode</option>
+                                                <option value="C" data-category="Charter" data-operation="Passenger" data-description="Passenger Only">C — Passenger Only</option>
+                                                <option value="D" data-category="Others" data-operation="Not specific" data-description="General Aviation">D — General Aviation</option>
+                                                <option value="E" data-category="Others" data-operation="Not specific" data-description="Test">E — Test</option>
+                                                <option value="F" data-category="Scheduled" data-operation="Cargo,Mail" data-description="Loose Loaded cargo and/or preloaded devices">F — Loose Loaded cargo and/or preloaded devices</option>
+                                                <option value="G" data-category="Additional flights" data-operation="Passenger" data-description="Normal Service">G — Normal Service</option>
+                                                <option value="H" data-category="Charter" data-operation="Cargo,Mail" data-description="Cargo and /or Mail">H — Cargo and /or Mail</option>
+                                                <option value="I" data-category="Others" data-operation="Not specific" data-description="State/Diplomatic/Air Ambulance">I — State/Diplomatic/Air Ambulance</option>
+                                                <option value="J" data-category="Scheduled" data-operation="Passenger" data-description="Normal Service">J — Normal Service</option>
+                                                <option value="K" data-category="Others" data-operation="Not specific" data-description="Training (School/Crew check)">K — Training (School/Crew check)</option>
+                                                <option value="L" data-category="Charter" data-operation="Cargo,Mail,Passenger" data-description="Passenger/Cargo/Mail">L — Passenger/Cargo/Mail</option>
+                                                <option value="M" data-category="Scheduled" data-operation="Cargo,Mail" data-description="Mail only">M — Mail only</option>
+                                                <option value="N" data-category="Others" data-operation="Not specific" data-description="Business Aviation/Air Taxi">N — Business Aviation/Air Taxi</option>
+                                                <option value="O" data-category="Charter" data-operation="Special handling" data-description="Charter requiring special handling(e.g. Migrants/immigrant Flights)">O — Charter requiring special handling(e.g. Migrants/immigrant Flights)</option>
+                                                <option value="P" data-category="Others" data-operation="Not specific" data-description="Non-revenue(Positioning/Ferry/Delivery/Demo">P — Non-revenue(Positioning/Ferry/Delivery/Demo</option>
+                                                <option value="Q" data-category="Scheduled" data-operation="Passenger,Cargo" data-description="Passenger/Cargo in Cabin (mixed configuration aircraft)">Q — Passenger/Cargo in Cabin (mixed configuration aircraft)</option>
+                                                <option value="R" data-category="Additional flights" data-operation="Passenger,Cargo" data-description="Passenger/Cargo in Cabin (mixed configuration aircraft)">R — Passenger/Cargo in Cabin (mixed configuration aircraft)</option>
+                                                <option value="S" data-category="Scheduled" data-operation="Passenger" data-description="Shuttle Mode">S — Shuttle Mode</option>
+                                                <option value="T" data-category="Others" data-operation="Not specific" data-description="Technical Test">T — Technical Test</option>
+                                                <option value="U" data-category="Scheduled" data-operation="Passenger" data-description="Service operated by Surface Vehicle">U — Service operated by Surface Vehicle</option>
+                                                <option value="V" data-category="Scheduled" data-operation="Cargo,Mail" data-description="Service operated by Surface Vehicle">V — Service operated by Surface Vehicle</option>
+                                                <option value="W" data-category="Others" data-operation="Not specific" data-description="Military">W — Military</option>
+                                                <option value="X" data-category="Others" data-operation="Not specific" data-description="Technical Stop">X — Technical Stop</option>
+                                                <option value="Y" data-category="Others" data-operation="Not specific" data-description="Special internal purposes">Y — Special internal purposes</option>
+                                                <option value="Z" data-category="Others" data-operation="Not specific" data-description="Special internal purposes">Z — Special internal purposes</option>
                                             </select>
+                                            <div id="mf-flight-type-info" class="form-text small text-muted"></div>
                                         </div>
                                         <div class="col-12 col-md-4 mb-2">
                                             <label class="form-label">Transportista (OACI - 3 letras)</label>

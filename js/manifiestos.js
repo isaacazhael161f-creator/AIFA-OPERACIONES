@@ -416,6 +416,12 @@
   (function(){
     let _initPromise = null;
     window._mfOcrScheduler = window._mfOcrScheduler || null;
+    // Explicit Tesseract resource paths to avoid worker importScripts issues behind CDNs
+    const _tessOpts = {
+      workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/worker.min.js',
+      corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@4/tesseract-core.wasm.js',
+      langPath: 'https://tessdata.projectnaptha.com/4.0.0'
+    };
     window.ensureOcrScheduler = async function ensureOcrScheduler(){
       if (window._mfOcrScheduler) return window._mfOcrScheduler;
       if (_initPromise) return _initPromise;
@@ -429,7 +435,7 @@
           const cores = (typeof navigator!=='undefined' && navigator.hardwareConcurrency) ? navigator.hardwareConcurrency : 2;
           const workers = Math.min(4, Math.max(2, Math.floor(cores/2)));
           for (let i=0;i<workers;i++){
-            const w = await Tesseract.createWorker();
+            const w = await Tesseract.createWorker(_tessOpts);
             await w.loadLanguage('spa+eng');
             await w.initialize('spa+eng');
             await sched.addWorker(w);
@@ -510,6 +516,89 @@
   const ocrDebug = document.getElementById('manifest-ocr-debug');
   const upBtnPdf = document.getElementById('manifest-upload-btn-pdf');
   const upBtnImg = document.getElementById('manifest-upload-btn-img');
+  // Demoras: catálogo IATA/Local (delay.csv)
+  let delayAlphaMap = new Map(); // ALPHA (2-3 letras) -> { numeric, alpha, summary, description, category }
+  async function loadDelayCatalog(){
+    try {
+      const res = await fetch('data/master/delay.csv', { cache: 'no-store' });
+      const text = await res.text();
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      if (!lines.length) return;
+      // parser simple con comillas
+      const parseLine = (line)=>{
+        const out=[]; let cur=''; let inQ=false;
+        for (let i=0;i<line.length;i++){
+          const ch=line[i];
+          if (ch==='"'){
+            if (inQ && line[i+1]==='"'){ cur+='"'; i++; }
+            else { inQ=!inQ; }
+          } else if (ch===',' && !inQ){ out.push(cur); cur=''; }
+          else { cur+=ch; }
+        }
+        out.push(cur); return out;
+      };
+      const headers = parseLine(lines[0]).map(h=> String(h||'').trim());
+      const idx = (name)=> headers.findIndex(h=> h.toLowerCase() === name.toLowerCase());
+      const iNum = idx('Numeric code');
+      const iAlpha = idx('Alpha code');
+      const iSummary = idx('Summary');
+      const iDesc = idx('Description');
+      const iCat = idx('Category');
+      for (let i=1;i<lines.length;i++){
+        const cols = parseLine(lines[i]);
+        const alpha = (cols[iAlpha]||'').toString().trim().toUpperCase();
+        const numeric = (cols[iNum]||'').toString().trim();
+        const summary = (cols[iSummary]||'').toString().trim();
+        const description = (cols[iDesc]||'').toString().trim();
+        const category = (cols[iCat]||'').toString().trim();
+        if (!alpha) continue;
+        if (/^[A-Z]{2,3}$/.test(alpha)){
+          delayAlphaMap.set(alpha, { numeric, alpha, summary, description, category });
+        }
+      }
+    } catch(_){ /* ignore */ }
+  }
+  function extractDelayCodesFromText(text){
+    try {
+      const U = (text||'').toString().toUpperCase();
+      const lines = U.split(/\r?\n/);
+      const valid = new Set(Array.from(delayAlphaMap.keys()));
+      const found = [];
+      const push = (code)=>{ if (!code) return; if (!valid.has(code)) return; if (!found.includes(code)) found.push(code); };
+      const nearLabels = [/CAUSAS?\s+DE\s+LA?\s*DEMORA/, /CAUSA\s+DE\s+DEMORA/, /CAUSAS?\s+DEMORA/, /DEMORA\s*:/, /\bCÓDIGO\b/, /\bCODIGO\b/];
+      const rx3 = /\b[A-Z]{3}\b/g; const rx2 = /\b[A-Z]{2}\b/g;
+      for (let i=0;i<lines.length;i++){
+        if (nearLabels.some(rx=> rx.test(lines[i]))){
+          for (let k=-3;k<=6;k++){
+            if (k===0) continue; // saltar la misma línea del label
+            const s = lines[i+k]||''; if (!s) continue;
+            const m3 = s.match(rx3)||[]; m3.forEach(c=> push(c));
+            if (m3.length===0){ const m2 = s.match(rx2)||[]; m2.forEach(c=> push(c)); }
+          }
+        }
+      }
+      // Fallback global (limit 8 hits)
+      if (found.length===0){
+        const mAll = U.match(/\b[A-Z]{2,3}\b/g)||[];
+        for (const t of mAll){ push(t); if (found.length>=8) break; }
+      }
+      return found;
+    } catch(_){ return []; }
+  }
+  function fillOrAddDelayCode(code, desc){
+    try {
+      const cells = Array.from(document.querySelectorAll('.demora-codigo'));
+      const firstEmpty = cells.find(inp=> !String(inp.value||'').trim());
+      if (firstEmpty){
+        firstEmpty.value = code;
+        const row = firstEmpty.closest('tr');
+        const d = row ? row.querySelector('.demora-descripcion') : null;
+        if (d && !d.value) d.value = desc||'';
+      } else {
+        addDemoraRow({ codigo: code, minutos: '', descripcion: desc||'' });
+      }
+    } catch(_){ addDemoraRow({ codigo: code, minutos: '', descripcion: desc||'' }); }
+  }
   // Attach NA toggles (V1) and convert to 24h text inputs if forced
   try {
     (window._mfTimeFieldIds||[]).forEach(id=> _attachNaToggle(id));
@@ -659,6 +748,7 @@
           reader.onerror = reject;
         });
       }
+      let _pdfPreviewRenderTask = null;
       async function renderPdfPreviewFirstPage(file){
         try {
           await ensurePdfJsFromCDN();
@@ -673,7 +763,14 @@
           if (prevCanvas){
             prevCanvas.width = vp.width; prevCanvas.height = vp.height;
             const ctx = prevCanvas.getContext('2d');
-            await page.render({ canvasContext: ctx, viewport: vp }).promise;
+            // Cancel any in-flight render to avoid double-render errors on the same canvas
+            if (_pdfPreviewRenderTask && _pdfPreviewRenderTask.cancel){
+              try { _pdfPreviewRenderTask.cancel(); await _pdfPreviewRenderTask.promise.catch(()=>{}); } catch(_){}
+              _pdfPreviewRenderTask = null;
+            }
+            _pdfPreviewRenderTask = page.render({ canvasContext: ctx, viewport: vp });
+            await _pdfPreviewRenderTask.promise;
+            _pdfPreviewRenderTask = null;
             prevCanvas.classList.remove('d-none');
             // Build a simple text layer with selectable spans
             // Quitar reconocimiento de texto en previsualización: ocultar capa de texto
@@ -715,7 +812,7 @@
           if (window._mfOcrScheduler){
             prom = window._mfOcrScheduler.addJob('recognize', dataUrl);
           } else {
-            prom = Tesseract.recognize(dataUrl, 'spa+eng', { logger: ()=>{} });
+            prom = Tesseract.recognize(dataUrl, 'spa+eng', { ...(_tessOpts||{}), logger: ()=>{} });
           }
           prom = Promise.resolve(prom).then((res)=>{ completed++; try { setProgress(60 + Math.round(((completed)/pages)*30), `OCR página ${completed}/${pages}...`); } catch(_){} return res; });
           jobs.push(prom);
@@ -1172,7 +1269,7 @@
                   ocrSrc = c.toDataURL('image/png');
                 }
               } catch(_) { /* si falla el preprocesado, seguimos con el dataUrl original */ }
-              const { data } = await Tesseract.recognize(ocrSrc, 'spa+eng', { logger: ()=>{} });
+              const { data } = await Tesseract.recognize(ocrSrc, 'spa+eng', { ...(_tessOpts||{}), logger: ()=>{} });
               text = (data && data.text) ? data.text : '';
             }
             if (ocrDebug) ocrDebug.value = text || '';
@@ -1792,6 +1889,7 @@
 
       async function loadAirlinesCatalog(){
         try {
+          if (location && location.protocol === 'file:') return; // skip fetch under file:// to avoid errors
           const res = await fetch('data/master/airlines.csv', { cache:'no-store' });
           const text = await res.text();
           const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
@@ -1817,6 +1915,7 @@
       }
       async function loadAircraftCatalog(){
         try {
+          if (location && location.protocol === 'file:') return; // skip fetch under file:// to avoid errors
           const resA = await fetch('data/master/aircraft.csv', { cache:'no-store' });
           const textA = await resA.text();
           const linesA = textA.split(/\r?\n/).filter(l=>l.trim());
@@ -1902,6 +2001,7 @@
       }
       async function loadAirportsCatalog(){
         try {
+          if (location && location.protocol === 'file:') return; // skip fetch under file:// to avoid errors
           const res = await fetch('data/master/airports.csv', { cache:'no-store' });
           const text = await res.text();
           const lines = text.split(/\r?\n/).filter(l=>l.trim());
@@ -1909,9 +2009,9 @@
             const cols = []; let cur=''; let inQuotes=false;
             for (let i=0;i<line.length;i++){
               const ch=line[i];
-              if (canon){
+              if (ch==='"'){
                 if (inQuotes && line[i+1]==='"'){ cur+='"'; i++; }
-                else inQuotes = !inQuotes;
+                else { inQuotes = !inQuotes; }
               } else if (ch===',' && !inQuotes){ cols.push(cur); cur=''; }
               else { cur+=ch; }
             }
@@ -1919,7 +2019,6 @@
           }
           const optsIATA = [], optsName = [];
           for (let i=1;i<lines.length;i++){
-                setTailWarning('');
             const parts = parseCSVLine(lines[i]);
             if (parts.length < 3) continue;
             const IATA = (parts[0]||'').trim().toUpperCase();
@@ -1928,10 +2027,8 @@
             airportByIATA.set(IATA, Name);
             airportByName.set(Name.toLowerCase(), IATA);
             iataSet.add(IATA);
-                setTailWarning('');
             optsIATA.push(`<option value="${IATA}">${Name}</option>`);
             optsName.push(`<option value="${Name}">${IATA}</option>`);
-                setTailWarning('No se encontró una matrícula válida en el documento. Verifique o seleccione del catálogo.');
           }
           const dlIATA = document.getElementById('airports-iata-list');
           const dlName = document.getElementById('airports-name-list');
@@ -1990,9 +2087,142 @@
       if (dirDep && !dirDep._wired) { dirDep._wired = 1; dirDep.addEventListener('change', applyManifestDirection); }
       applyManifestDirection();
 
-      loadAirlinesCatalog();
-      loadAircraftCatalog();
-      loadAirportsCatalog();
+  loadAirlinesCatalog();
+  loadAircraftCatalog();
+  loadAirportsCatalog();
+  loadDelayCatalog();
+
+      // Catálogo: Tipo de vuelo (flightservicetype.csv)
+      window._initFlightServiceType = function initFlightServiceType(){
+        const sel = document.getElementById('mf-flight-type');
+        const info = document.getElementById('mf-flight-type-info');
+        if (!sel) return;
+        // Si ya hay opciones manuales en el HTML (más de 1 además del placeholder), solo cablear eventos y salir
+        const hasManual = sel.options && sel.options.length > 1;
+        function wireOnly(){
+          if (!sel._wiredFlightType){
+            sel._wiredFlightType = 1;
+            sel.addEventListener('change', ()=>{
+              const v = sel.value;
+              const opt = sel.selectedOptions && sel.selectedOptions[0];
+              if (!v || !opt){ if (info) info.textContent=''; return; }
+              const cat = opt.getAttribute('data-category')||'';
+              const op  = opt.getAttribute('data-operation')||'';
+              const des = opt.getAttribute('data-description')||'';
+              if (info) info.innerHTML = `${cat?`<span class="badge bg-secondary me-1">${cat}</span>`:''}${op}${(op&&des)?' — ':''}${des}`;
+            });
+          }
+          sel.value = '';
+          if (info) info.textContent = '';
+        }
+        if (hasManual){ wireOnly(); return; }
+        // Fallback CSV (para entorno file:// o si falla fetch)
+        const FALLBACK_FST_CSV = `Code,Category,Type of operation,Description
+A,Additional flights,"Cargo,Mail",Cargo/Mail
+B,Additional flights,Passenger,Shuttle Mode
+C,Charter,Passenger,Passenger Only
+D,Others,Not specific,General Aviation
+E,Others,Not specific,Test
+F,Scheduled,"Cargo,Mail",Loose Loaded cargo and/or preloaded devices
+G,Additional flights,Passenger,Normal Service
+H,Charter,"Cargo,Mail",Cargo and /or Mail
+I,Others,Not specific,State/Diplomatic/Air Ambulance
+J,Scheduled,Passenger,Normal Service
+K,Others,Not specific,Training (School/Crew check)
+L,Charter,"Cargo,Mail,Passenger",Passenger/Cargo/Mail
+M,Scheduled,"Cargo,Mail",Mail only
+N,Others,Not specific,Business Aviation/Air Taxi
+O,Charter,Special handling,Charter requiring special handling(e.g. Migrants/immigrant Flights)
+P,Others,Not specific,Non-revenue(Positioning/Ferry/Delivery/Demo
+Q,Scheduled,"Passenger,Cargo",Passenger/Cargo in Cabin (mixed configuration aircraft)
+R,Additional flights,"Passenger,Cargo",Passenger/Cargo in Cabin (mixed configuration aircraft)
+S,Scheduled,Passenger,Shuttle Mode
+T,Others,Not specific,Technical Test
+U,Scheduled,Passenger,Service operated by Surface Vehicle
+V,Scheduled,"Cargo,Mail",Service operated by Surface Vehicle
+W,Others,Not specific,Military
+X,Others,Not specific,Technical Stop
+Y,Others,Not specific,Special internal purposes
+Z,Others,Not specific,Special internal purposes`;
+        function parseCSV(text){
+          const rows=[]; let i=0, s=text||''; let field=''; let row=[]; let inQ=false;
+          while(i<s.length){
+            const ch=s[i++];
+            if(inQ){
+              if(ch==='"'){
+                if(s[i]==='"'){ field+='"'; i++; } else { inQ=false; }
+              } else { field+=ch; }
+            } else {
+              if(ch==='"') inQ=true;
+              else if(ch===','){ row.push(field); field=''; }
+              else if(ch==='\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+              else if(ch==='\r'){ /* ignore */ }
+              else { field+=ch; }
+            }
+          }
+          if (field.length>0 || row.length>0){ row.push(field); rows.push(row); }
+          return rows;
+        }
+        function rowsToObjects(rows){ if(!rows||!rows.length) return []; const headers=rows[0].map(h=>String(h||'').trim()); return rows.slice(1).map(r=>{ const o={}; headers.forEach((h,idx)=> o[h]= (r[idx]||'').toString().trim()); return o; }); }
+        function updateInfo(o){
+          if (!info) return;
+          if (!o){ info.textContent=''; return; }
+          const op = o['Type of operation']||o['Operacion']||'';
+          const desc = o['Description']||'';
+          const cat = o['Category']||'';
+          info.innerHTML = `${cat?`<span class="badge bg-secondary me-1">${cat}</span>`:''}${op || ''}${(op&&desc)?' — ':''}${desc || ''}`;
+        }
+        const fillOptions = (list)=>{
+          // Reset options preserving the placeholder
+          const keepFirst = sel.querySelector('option[value=""]');
+          sel.innerHTML = '';
+          sel.appendChild(keepFirst || new Option('Selecciona…',''));
+          list.forEach(row=>{
+            const code = (row['Code']||'').toUpperCase();
+            if (!code) return;
+            const cat = row['Category']||'';
+            const op = row['Type of operation']||'';
+            const desc = row['Description']||'';
+            const label = `${code} — ${desc || op || cat || ''}`.replace(/\s+—\s*$/,'');
+            const opt = new Option(label, code);
+            opt.dataset.category = cat;
+            opt.dataset.operation = op;
+            opt.dataset.description = desc;
+            sel.appendChild(opt);
+          });
+          // Wire change to show info
+          if (!sel._wiredFlightType){
+            sel._wiredFlightType = 1;
+            sel.addEventListener('change', ()=>{
+              const v = sel.value;
+              const opt = sel.selectedOptions && sel.selectedOptions[0];
+              if (!v || !opt){ updateInfo(null); return; }
+              updateInfo({
+                'Category': opt.dataset.category||'',
+                'Type of operation': opt.dataset.operation||'',
+                'Description': opt.dataset.description||''
+              });
+            });
+          }
+          // Ensure starts blank to force manual selection
+          sel.value = '';
+          updateInfo(null);
+        };
+  fetch('data/master/flightservicetype.csv', { cache: 'no-store' })
+          .then(r=> r.ok ? r.text() : Promise.reject(new Error('HTTP '+r.status)))
+          .then(txt=> rowsToObjects(parseCSV(txt)))
+          .then(list=>{ if (!list || !list.length) throw new Error('Empty CSV'); fillOptions(list); })
+          .catch(()=>{
+            try {
+              // Fallback para file:// o error de red
+              const list = rowsToObjects(parseCSV(FALLBACK_FST_CSV));
+              fillOptions(list);
+              console.warn('Usando catálogo de Tipo de vuelo embebido (fallback). Para datos en vivo, abre el proyecto via http://');
+            } catch(_){ /* mantener select manual con placeholder */ }
+          });
+      };
+      // Ejecutar de inmediato dentro del setup
+      try { window._initFlightServiceType(); } catch(_){ }
 
   function setPreview(src){ if (prevImg){ prevImg.src = src; prevImg.classList.remove('d-none'); } if (prevCanvas){ prevCanvas.classList.add('d-none'); } if (placeholder) placeholder.classList.add('d-none'); if (runBtn) runBtn.disabled = false; currentImageURL = src; }
       if (up && !up._wired) { up._wired = 1; up.addEventListener('change', async (e)=>{
@@ -2011,7 +2241,7 @@
             const processed = preprocessImage(prevImg);
             if (!window.Tesseract) { if (s) s.textContent = 'OCR no disponible (Tesseract.js no cargado).'; return; }
             if (s) s.textContent = 'Reconociendo texto (OCR spa+eng)...';
-            const { data } = await Tesseract.recognize(processed, 'spa+eng', { logger: m => {}, tessedit_pageseg_mode: 6, user_defined_dpi: 300 });
+            const { data } = await Tesseract.recognize(processed, 'spa+eng', { ...(_tessOpts||{}), logger: m => {}, tessedit_pageseg_mode: 6, user_defined_dpi: 300 });
             const text = (data && data.text) ? data.text.trim() : '';
             if (s) s.textContent = text ? ('Texto detectado (resumen):\n' + (text.slice(0,600)) + (text.length>600?'...':'')) : 'No se detectó texto.';
             const hasWord = hasWordFactory(text);
@@ -2153,6 +2383,24 @@
                   if (tSalida) setVal('mf-salida-posicion', tSalida); else setTimeIf('mf-salida-posicion', ['salida de la posicion','salida posicion']);
                 } catch(_){ setTimeIf('mf-salida-posicion', ['salida de la posicion','salida posicion']); }
                 setTimeIf('mf-termino-pernocta', ['termino de pernocta','término de pernocta','fin pernocta']);
+              }
+            } catch(_){ }
+            // Demoras: detectar códigos (2-3 letras) en/tras "Causas de la demora"
+            try {
+              // Asegurar catálogo cargado; si no, cargar rápido (best-effort)
+              if (!delayAlphaMap || delayAlphaMap.size===0){ try { await loadDelayCatalog(); } catch(_){ } }
+              const codes = extractDelayCodesFromText(text);
+              if (codes && codes.length){
+                // Evitar duplicados con lo que ya esté en la tabla
+                const existing = new Set(Array.from(document.querySelectorAll('.demora-codigo')).map(inp=> (inp.value||'').toUpperCase().trim()));
+                codes.forEach(code=>{
+                  if (existing.has(code)) return;
+                  const rec = delayAlphaMap.get(code) || {};
+                  const descTxt = rec.summary || rec.description || '';
+                  fillOrAddDelayCode(code, descTxt);
+                  existing.add(code);
+                });
+                updateDemorasTotal();
               }
             } catch(_){ }
             if (s) s.textContent += '\n\nAutorrelleno aplicado (si hubo coincidencias).';
@@ -2354,13 +2602,22 @@
           <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-demora-row"><i class="fas fa-times"></i></button></td>`;
         demoraTbody.appendChild(tr);
       }
+      function ensureInitialDemoraRows(n=4){
+        try {
+          if (!demoraTbody) return;
+          const cur = demoraTbody.querySelectorAll('tr').length;
+          for (let i=cur; i<n; i++) addDemoraRow();
+        } catch(_){ }
+      }
       function updateDemorasTotal(){
         const total = Array.from(document.querySelectorAll('.demora-minutos')).reduce((acc, inp)=> acc + (parseFloat(inp.value)||0), 0);
         const out = document.getElementById('total-demora-minutos'); if (out) out.value = String(total);
       }
-      function clearDemoras(){ if (demoraTbody) demoraTbody.innerHTML = ''; updateDemorasTotal(); }
+      function clearDemoras(){ if (demoraTbody) { demoraTbody.innerHTML = ''; ensureInitialDemoraRows(4); } updateDemorasTotal(); }
       if (addDemoraBtn && !addDemoraBtn._wired){ addDemoraBtn._wired = 1; addDemoraBtn.addEventListener('click', ()=> addDemoraRow()); }
       if (clearDemorasBtn && !clearDemorasBtn._wired){ clearDemorasBtn._wired = 1; clearDemorasBtn.addEventListener('click', clearDemoras); }
+      // Al iniciar, dejar 4 renglones listos
+      ensureInitialDemoraRows(4);
 
       window._manifListeners = window._manifListeners || { clicks: false, inputs: false };
       if (!window._manifListeners.clicks){
@@ -2410,6 +2667,8 @@
   function init(){ try { window.setupManifestsUI?.(); } catch(_){} }
   document.addEventListener('DOMContentLoaded', init);
   document.addEventListener('click', (e)=>{ if (e.target.closest('[data-section="manifiestos"]')) setTimeout(init, 50); });
+  // Refuerzo: inicializar el catálogo de Tipo de vuelo aunque otros módulos fallen
+  document.addEventListener('DOMContentLoaded', function(){ try { window._initFlightServiceType?.(); } catch(_){ } });
   // Enforce 24h and departure-specific formatting on manual edits
   // No custom input normalization needed for mf-slot-assigned now that it's a native time input
   // Keeping this space for future input-specific hooks if required.
@@ -2546,6 +2805,7 @@
 
       async function loadAirlinesCatalog(){
         try {
+          if (location && location.protocol === 'file:') return; // skip fetch under file://
           const res = await fetch('data/master/airlines.csv', { cache:'no-store' });
           const text = await res.text();
           const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
@@ -2567,6 +2827,7 @@
       }
       async function loadAircraftCatalog(){
         try {
+          if (location && location.protocol === 'file:') return; // skip fetch under file://
           const resA = await fetch('data/master/aircraft.csv', { cache:'no-store' });
           const textA = await resA.text();
           const linesA = textA.split(/\r?\n/).filter(l=>l.trim());
@@ -2586,6 +2847,7 @@
           }
         } catch(_){ /* ignore */ }
         try {
+          if (location && location.protocol === 'file:') return; // skip fetch under file://
           const resT = await fetch('data/master/aircraft type.csv', { cache:'no-store' });
           const textT = await resT.text();
           const linesT = textT.split(/\r?\n/).filter(l=>l.trim());
@@ -2644,6 +2906,7 @@
       }
       async function loadAirportsCatalog(){
         try {
+          if (location && location.protocol === 'file:') return; // skip fetch under file://
           const res = await fetch('data/master/airports.csv', { cache:'no-store' });
           const text = await res.text();
           const lines = text.split(/\r?\n/).filter(l=>l.trim());
@@ -2838,7 +3101,7 @@
             const out = await window._mfOcrScheduler.addJob('recognize', r);
             return (out && out.data && out.data.text) ? out.data.text : '';
           } else {
-            const { data } = await Tesseract.recognize(r, 'spa+eng', { logger: ()=>{} });
+            const { data } = await Tesseract.recognize(r, 'spa+eng', { ...(_tessOpts||{}), logger: ()=>{} });
             return (data && data.text) ? data.text : '';
           }
         }
@@ -2859,7 +3122,7 @@
             if (window._mfOcrScheduler){
               prom = window._mfOcrScheduler.addJob('recognize', dataUrl);
             } else {
-              prom = Tesseract.recognize(dataUrl, 'spa+eng', { logger: ()=>{} });
+              prom = Tesseract.recognize(dataUrl, 'spa+eng', { ...(_tessOpts||{}), logger: ()=>{} });
             }
             prom = Promise.resolve(prom).then((res)=>{ completed++; try { setProgress(50 + Math.round(((completed)/pages)*40), `OCR página ${completed}/${pages}...`); } catch(_){} return res; });
             jobs.push(prom);

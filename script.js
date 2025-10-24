@@ -326,6 +326,17 @@ function handleLogoError(imgEl){
 // Marcar celdas/headers cuando el logo carga correctamente para ocultar texto/color
 function logoLoaded(imgEl){
     try{
+        const src = (imgEl.currentSrc || imgEl.src || '').toLowerCase();
+        const isDefault = /images\/airlines\/default-airline-logo\.svg$/i.test(src);
+        // Si es el placeholder por defecto, ocultarlo y mantener el nombre visible
+        if (isDefault) {
+            imgEl.style.display = 'none';
+            const cell0 = imgEl.closest('.airline-cell');
+            if (cell0) cell0.classList.remove('has-logo');
+            const header0 = imgEl.closest('.airline-header');
+            if (header0) header0.classList.remove('airline-has-logo');
+            return;
+        }
         const cell = imgEl.closest('.airline-cell');
         if (cell) cell.classList.add('has-logo');
         // Marcar el header para ocultar el nombre cuando hay logo, sin aplicar fondos adicionales
@@ -409,7 +420,10 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch(_) {}
     initializeTheme();
     initializeSidebarState();
-    if (document.getElementById('login-screen') && !document.getElementById('login-screen').classList.contains('hidden')) { animateLoginTitle(); }
+    if (document.getElementById('login-screen') && !document.getElementById('login-screen').classList.contains('hidden')) { 
+        animateLoginTitle(); 
+        try { startLoginPlanes(); } catch(_) {}
+    }
     if (location.protocol !== 'file:') {
         loadItineraryData();      
         renderDemoras();          
@@ -737,6 +751,218 @@ function animateLoginTitle() {
     if (!titleElement) return;
         // Mantener el título solicitado
         titleElement.textContent = "OPERACIONES AIFA";
+}
+
+// ===================== Fondo animado del login: aviones volando =====================
+function startLoginPlanes(){
+    try {
+        const sky = document.getElementById('login-sky');
+        const login = document.getElementById('login-screen');
+        if (!sky || !login || login.classList.contains('hidden')) return;
+        // Evitar duplicados
+        if (sky.dataset.wired === '1') return;
+        sky.dataset.wired = '1';
+        // Limpiar por si acaso
+        sky.innerHTML = '';
+        // Logo superior fijo: colócalo dentro del overlay para que sobresalga sobre las nubes
+        try {
+            // Eliminar instancias anteriores para evitar duplicados
+            document.querySelectorAll('.sky-top-logo').forEach(el=>{ try{ el.remove(); }catch(_){} });
+            const overlay = document.querySelector('.login-overlay');
+            const topLogo = document.createElement('img');
+            topLogo.className = 'sky-top-logo';
+            topLogo.src = 'images/aifa-logo.png';
+            topLogo.alt = 'Logo AIFA';
+            (overlay || sky).appendChild(topLogo);
+        } catch(_) {}
+    // Forzar modo noche en el login
+    const mode = 'night';
+    sky.dataset.mode = mode;
+    applyLoginSkyMode();
+    // Asegurar clase aplicada incluso si algún handler externo llama a applyLoginSkyMode()
+    sky.classList.add('night');
+    sky.classList.remove('dusk');
+    createNightElements(sky);
+    // Crear nubes sutiles (ligera reducción para mejorar rendimiento)
+    const cloudCount = 5;
+        for (let i=0;i<cloudCount;i++){
+            const c = document.createElement('div');
+            c.className = 'cloud';
+            const topVh = 5 + Math.random()*70; // 5–75vh
+            const yJitter = (-10 + Math.random()*20) + 'px';
+            const dur = 48 + Math.random()*52; // 48–100s
+            const delay = -Math.random()*dur; // arranque descentralizado
+            c.style.top = topVh + 'vh';
+            c.style.setProperty('--y', yJitter);
+            c.style.setProperty('--dur', dur + 's');
+            c.style.setProperty('--delay', delay + 's');
+            sky.appendChild(c);
+        }
+    // Crear aviones (ligera reducción para mejorar rendimiento en equipos modestos)
+    const planeCount = 8;
+        for (let i=0;i<planeCount;i++){
+            const p = document.createElement('div');
+            p.className = 'plane';
+            const reverse = Math.random() < 0.35; // 35% en sentido inverso
+            if (reverse) p.classList.add('reverse');
+            const topVh = 10 + Math.random()*78; // 10–88vh
+            const scale = 0.85 + Math.random()*0.7; // 0.85–1.55
+            const tilt = (reverse ? -1 : 1) * (6 + Math.random()*8); // 6–14deg
+            const flight = 18 + Math.random()*26; // 18–44s
+            const delay = -Math.random()*flight; // inicio aleatorio
+            p.style.top = topVh + 'vh';
+            p.style.setProperty('--scale', String(scale));
+            p.style.setProperty('--tilt', tilt + 'deg');
+            p.style.setProperty('--flight', flight + 's');
+            p.style.setProperty('--delay', delay + 's');
+            p.style.setProperty('--y', ((-15 + Math.random()*30)|0) + 'px');
+            // Profundidad/parallax
+            const r = Math.random();
+            if (r < 0.25) p.classList.add('far'); else if (r < 0.75) p.classList.add('mid'); else p.classList.add('near');
+            p.style.zIndex = p.classList.contains('near') ? '3' : (p.classList.contains('mid') ? '2' : '1');
+            const icon = document.createElement('span');
+            icon.className = 'icon';
+            icon.innerHTML = '<i class="fas fa-plane"></i>';
+            const trail = document.createElement('span');
+            trail.className = 'trail';
+            // Luces: mantener beacon (rojo superior), strobe (blanco) y landing (frontal)
+            const beacon = document.createElement('span'); beacon.className = 'light beacon';
+            const strobe = document.createElement('span'); strobe.className = 'light strobe';
+            const landing = document.createElement('span'); landing.className = 'light landing';
+            // Añadir las luces al icono (se posicionan por CSS para quedar en puntas de ala)
+            const osc = document.createElement('span');
+            osc.className = 'osc';
+            // variar tiempo de oscilación
+            osc.style.setProperty('--bobTime', (6 + Math.random()*4).toFixed(2) + 's');
+            // Insert lights before appending icon so they layer correctly
+            icon.appendChild(beacon);
+            icon.appendChild(strobe);
+            icon.appendChild(landing);
+            osc.appendChild(icon);
+            osc.appendChild(trail);
+            p.appendChild(osc);
+            sky.appendChild(p);
+        }
+        // Programar chequeo periódico de modo (día/dusk/noche) cada 5 min
+        // Sin temporizador: el login permanece en modo noche
+    } catch(_) {}
+}
+function stopLoginPlanes(){
+    try {
+        const sky = document.getElementById('login-sky');
+        if (!sky) return;
+        // Limpiar intervalos
+        const tid = parseInt(sky.dataset.nightTimer || '0', 10);
+        if (tid) { try { clearInterval(tid); } catch(_) {} }
+        sky.innerHTML = '';
+        sky.dataset.wired = '0';
+    } catch(_) {}
+}
+
+// Día/Noche para el login
+function isNightNow(){ try { const h = new Date().getHours(); return (h >= 19 || h < 6); } catch(_) { return false; } }
+function isDuskNow(){
+    try {
+        const now = new Date();
+        const h = now.getHours();
+        const m = now.getMinutes();
+        const total = h*60 + m; // minutos desde medianoche
+        // Ventana extendida de atardecer: 17:40 (1060) – 19:20 (1160)
+        const duskStart = 17*60 + 40; // 1060
+        const duskEnd   = 19*60 + 20; // 1160
+        const isEvening = (total >= duskStart && total < duskEnd);
+        // Mantener breve amanecer (06:00–07:00)
+        const isMorning = (h === 6);
+        return isEvening || isMorning;
+    } catch(_) { return false; }
+}
+function updateDuskProgressVar(sky){
+    try {
+        if (!sky) sky = document.getElementById('login-sky');
+        if (!sky) return;
+        const now = new Date();
+        const total = now.getHours()*60 + now.getMinutes();
+        const duskStart = 17*60 + 40; // 17:40
+        const duskEnd   = 19*60 + 20; // 19:20
+        let p = 0;
+        if (total <= duskStart) p = 0; else if (total >= duskEnd) p = 1; else p = (total - duskStart) / (duskEnd - duskStart);
+        sky.style.setProperty('--duskP', p.toFixed(3));
+    } catch(_) {}
+}
+function getLoginSkyMode(){ try { if (isNightNow()) return 'night'; if (isDuskNow()) return 'dusk'; return 'day'; } catch(_) { return 'day'; } }
+function applyLoginSkyMode(){
+    try {
+        const sky = document.getElementById('login-sky');
+        if (!sky) return;
+        const forced = sky.dataset.mode || sky.dataset.forceMode || '';
+        const mode = forced || getLoginSkyMode();
+        sky.classList.toggle('night', mode === 'night');
+        sky.classList.toggle('dusk', mode === 'dusk');
+    } catch(_) {}
+}
+function createNightElements(sky){
+    try {
+        // Evitar estrellas duplicadas
+        if (!sky.querySelector('.moon')) {
+            const moon = document.createElement('div'); moon.className = 'moon'; sky.appendChild(moon);
+        }
+        // Generar estrellas si no hay
+        const existingStars = sky.querySelectorAll('.star').length;
+        if (existingStars < 30) {
+            const starCount = 60;
+            for (let i=0;i<starCount;i++){
+                const s = document.createElement('div');
+                s.className = 'star' + (Math.random() < 0.18 ? ' big' : '');
+                s.style.left = Math.round(Math.random()*100) + 'vw';
+                s.style.top = Math.round(Math.random()*100) + 'vh';
+                const tw = (2.4 + Math.random()*2.8).toFixed(2);
+                const td = (-Math.random()*5).toFixed(2);
+                s.style.setProperty('--tw', tw + 's');
+                s.style.setProperty('--td', td + 's');
+                sky.appendChild(s);
+            }
+        }
+        createAirportLights(sky);
+    } catch(_) {}
+}
+function cleanupNightElements(sky){
+    try {
+        sky.querySelectorAll('.star, .moon').forEach(el=>{ try{ el.remove(); }catch(_){} });
+    } catch(_) {}
+}
+function createDuskElements(sky){
+    try {
+        if (!sky.querySelector('.sun')) {
+            const sun = document.createElement('div'); sun.className = 'sun'; sky.appendChild(sun);
+        }
+        createAirportLights(sky);
+    } catch(_) {}
+}
+function cleanupDuskElements(sky){
+    try { sky.querySelectorAll('.sun').forEach(el=>{ try{ el.remove(); }catch(_){} }); } catch(_) {}
+}
+function createAirportLights(sky){
+    try {
+        let strip = sky.querySelector('.airport-lights');
+        if (!strip) { strip = document.createElement('div'); strip.className = 'airport-lights'; sky.appendChild(strip); }
+        // Generar puntitos si hay pocos
+        const need = 48;
+        if (strip.querySelectorAll('.ap-light').length < need) {
+            for (let i=0;i<need;i++){
+                const d = document.createElement('span');
+                d.className = 'ap-light ' + (Math.random() < 0.15 ? 'ap-blue' : (Math.random() < 0.35 ? 'ap-green' : 'ap-yellow'));
+                d.style.left = Math.round(Math.random()*100) + 'vw';
+                d.style.setProperty('--s', (0.7 + Math.random()*0.9).toFixed(2));
+                d.style.setProperty('--d', (-Math.random()*3).toFixed(2) + 's');
+                // Distribuir verticalmente con ligera pendiente
+                const y = 2 + Math.random()*8; d.style.bottom = y + 'vh';
+                strip.appendChild(d);
+            }
+        }
+    } catch(_) {}
+}
+function cleanupAirportLights(sky){
+    try { sky.querySelectorAll('.airport-lights').forEach(el=>{ try{ el.remove(); }catch(_){} }); } catch(_) {}
 }
 
 // Funciones específicas para reinicializar gráficas por sección
@@ -1808,6 +2034,7 @@ function performLogout(){
     const login = document.getElementById('login-screen');
     if (mainApp) mainApp.classList.add('hidden');
     if (login) login.classList.remove('hidden');
+    try { startLoginPlanes(); } catch(_) {}
     const userEl = document.getElementById('current-user'); if (userEl) userEl.textContent = '';
     // cerrar sidebar/overlay si estuvieran abiertos
     try {
@@ -3047,10 +3274,12 @@ function showMainApp() {
             try { sessionStorage.removeItem(SESSION_USER); sessionStorage.removeItem(SESSION_TOKEN); } catch(_) {}
             if (main) main.classList.add('hidden');
             if (login) login.classList.remove('hidden');
+            try { startLoginPlanes(); } catch(_) {}
             return;
         }
         if (login) login.classList.add('hidden');
         if (main) main.classList.remove('hidden');
+        try { stopLoginPlanes(); } catch(_) {}
         // Usuario actual
         const userEl = document.getElementById('current-user'); if (userEl) userEl.textContent = name;
         // Permisos: Itinerario mensual
