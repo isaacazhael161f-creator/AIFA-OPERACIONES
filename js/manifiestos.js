@@ -1906,8 +1906,17 @@
           for (let i=0;i<lines.length;i++){
             const u = lines[i].toUpperCase();
             if (labels.some(lbl => u.includes(String(lbl||'').toUpperCase()))){
-              const search = (s)=>{ const arr = s.match(rxIATA)||[]; return arr.find(c=> iataSet.has(c)); };
-              const hit = search(lines[i]) || search(lines[i+1]||'');
+              const search = (s)=>{ const arr = (s||'').match(rxIATA)||[]; return arr.find(c=> iataSet.has(c)); };
+              // Checar línea anterior, actual y siguientes
+              const hit = search(lines[i-1]) || search(lines[i]) || search(lines[i+1]) || search(lines[i+2]) || '';
+              if (hit) return hit;
+            }
+          }
+          // Pista alternativa: si aparece "CÓDIGO 3 LETRAS", tomar la línea anterior como candidata
+          for (let i=0;i<lines.length;i++){
+            if (/C[ÓO]DIGO\s*3\s*LETRAS/i.test(lines[i])){
+              const m = (lines[i-1]||'').match(rxIATA)||[];
+              const hit = m.find(c=> iataSet.has(c));
               if (hit) return hit;
             }
           }
@@ -3140,20 +3149,28 @@ Z,Others,Not specific,Special internal purposes`;
         } catch(_) { return ''; }
       }
       function findNearLabelIATACode(labels, text){
-        // Lightweight fallback: look for any ABC pattern near the label (no catalog dependency)
-        const rxIATA = /\b[A-Z]{3}\b/g;
-        try{
-          const lines = (text||'').split(/\r?\n/);
-          for (let i=0;i<lines.length;i++){
-            const u = lines[i].toUpperCase();
-            if (labels.some(lbl => u.includes(String(lbl||'').toUpperCase()))){
-              const search = (s)=>{ const arr = s.match(rxIATA)||[]; return arr.length ? arr[0] : ''; };
-              const hit = search(lines[i]) || search(lines[i+1]||'');
-              if (hit) return hit;
-            }
-          }
-        }catch(_){ }
-        return '';
+            // Lightweight fallback: look for any ABC pattern near the label (no catalog dependency)
+            const rxIATA = /\b[A-Z]{3}\b/g;
+            try{
+              const lines = (text||'').split(/\r?\n/);
+              for (let i=0;i<lines.length;i++){
+                const u = lines[i].toUpperCase();
+                if (labels.some(lbl => u.includes(String(lbl||'').toUpperCase()))){
+                  const search = (s)=>{ const arr = (s||'').match(rxIATA)||[]; return arr.length ? arr[0] : ''; };
+                  // Checar línea anterior, actual y siguientes
+                  const hit = search(lines[i-1]) || search(lines[i]) || search(lines[i+1]) || search(lines[i+2]) || '';
+                  if (hit) return hit;
+                }
+              }
+              // Pista alternativa: si aparece "CÓDIGO 3 LETRAS", tomar la línea anterior como candidata
+              for (let i=0;i<lines.length;i++){
+                if (/C[ÓO]DIGO\s*3\s*LETRAS/i.test(lines[i])){
+                  const m = (lines[i-1]||'').match(rxIATA)||[];
+                  if (m.length) return m[0];
+                }
+              }
+            }catch(_){ }
+            return '';
       }
 
       // Heurística robusta para mapear Origen / Próxima escala / Destino en documentos de Salida
@@ -3404,6 +3421,30 @@ Z,Others,Not specific,Special internal purposes`;
           let isoDate = isoFromLbl;
           if (!isoDate){ const m = (text||'').match(/\b(\d{1,2})\s*[\/\-.]\s*(\d{1,2})\s*[\/\-.]\s*(\d{2}|\d{4})\b/); if (m){ isoDate = (function(){ let dd=m[1],mm=m[2],yy=m[3]; let year=parseInt(yy,10); if (yy.length===2){ year=(year<=49)?(2000+year):(1900+year);} const z2=(n)=>n.length===1?('0'+n):n; return `${year}-${z2(mm)}-${z2(dd)}`; })(); } }
           if (isoDate) { const el = document.getElementById('mf-doc-date'); if (el) el.value = isoDate; }
+
+          // 3.1) Aeropuerto de Llegada (código IATA) — justo después de la fecha
+          try {
+            const lines = (text||'').toString().split(/\r?\n/);
+            let code = '';
+            for (let i=0;i<lines.length;i++){
+              if (/AEROPUERTO\s+DE\s+LLEGADA/i.test(lines[i])){
+                // El código suele estar 1 línea ARRIBA, o en la misma/siguientes
+                const candidates = [lines[i-1], lines[i], lines[i+1], lines[i+2]];
+                for (const s of candidates){ const m = (s||'').toUpperCase().match(/\b[A-Z]{3}\b/); if (m && (!code || (window.iataSet && window.iataSet.has(m[0])))){ code = m[0]; break; } }
+              }
+            }
+            // Alternativa: si hay "CÓDIGO 3 LETRAS", tomar la línea anterior
+            if (!code){
+              for (let i=0;i<lines.length;i++){
+                if (/C[ÓO]DIGO\s*3\s*LETRAS/i.test(lines[i])){
+                  const m = (lines[i-1]||'').toUpperCase().match(/\b[A-Z]{3}\b/);
+                  if (m && (!code || (window.iataSet && window.iataSet.has(m[0])))){ code = m[0]; break; }
+                }
+              }
+            }
+            if (!code){ code = findNearLabelIATACode(['AEROPUERTO DE LLEGADA'], text) || ''; }
+            if (code){ setVal('mf-airport-main', code); }
+          } catch(_){ }
 
           // 4) Aeropuertos y horarios
           // 24h times: HH:MM, HH.MM, HHhMM, H:MM, compact HHMM
