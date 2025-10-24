@@ -82,7 +82,14 @@
   linksLayer.style.width = '100%';
   linksLayer.style.height = cssH + 'px';
 
-    await page.render({ canvasContext: ctx, viewport }).promise;
+    // Cancel any in-flight render on this viewer to avoid double-render errors
+    if (state.renderTask && state.renderTask.cancel){
+      try { state.renderTask.cancel(); await state.renderTask.promise.catch(()=>{}); } catch(_){}
+      state.renderTask = null;
+    }
+    state.renderTask = page.render({ canvasContext: ctx, viewport });
+    await state.renderTask.promise;
+    state.renderTask = null;
 
     // Enable internal links only (keep the magic):
     // Parse annotations, create clickable overlays for Link annotations that target a page.

@@ -1,0 +1,353 @@
+[
+  {
+    "categoria": "Pasajeros",
+    "aerolinea": "Mexicana",
+    "a_tiempo": 197,
+    "demora": 12,
+    "cancelado": 0,
+    "total": 209,
+    "puntualidad": "94%"
+  },
+  {
+    "categoria": "Pasajeros",
+    "aerolinea": "Aeroméxico",
+    "a_tiempo": 333,
+    "demora": 26,
+    "cancelado": 0,
+    "total": 359,
+    "puntualidad": "93%"
+  },
+  {
+    "categoria": "Pasajeros",
+    "aerolinea": "Volaris",
+    "a_tiempo": 159,
+    "demora": 21,
+    "cancelado": 0,
+    "total": 180,
+    "puntualidad": "88%"
+  },
+  {
+    "categoria": "Pasajeros",
+    "aerolinea": "Arajet",
+    "a_tiempo": 36,
+    "demora": 6,
+    "cancelado": 0,
+    "total": 42,
+    "puntualidad": "86%"
+  },
+  {
+    "categoria": "Pasajeros",
+    "aerolinea": "Viva",
+    "a_tiempo": 1041,
+    "demora": 181,
+    "cancelado": 9,
+    "total": 1231,
+    "puntualidad": "85%"
+  },
+  {
+    "categoria": "Pasajeros",
+    "aerolinea": "Aerus",
+    "a_tiempo": 51,
+    "demora": 7,
+    "cancelado": 6,
+    "total": 64,
+    "puntualidad": "80%"
+  },
+  {
+    "categoria": "Pasajeros",
+    "aerolinea": "Conviasa",
+    "a_tiempo": 1,
+    "demora": 4,
+    "cancelado": 0,
+    "total": 5,
+    "puntualidad": "20%"
+  },
+  {
+    "categoria": "Pasajeros",
+    "aerolinea": "Copa Airlines",
+    "a_tiempo": 0,
+    "demora": 0,
+    "cancelado": 13,
+    "total": 13,
+    "puntualidad": "0%"
+  },
+  {
+    "categoria": "Pasajeros",
+    "aerolinea": "Total",
+    "a_tiempo": 1818,
+    "demora": 257,
+    "cancelado": 28,
+    "total": 2103,
+    "puntualidad": "86%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Ethiopian Airlines",
+    "a_tiempo": 8,
+    "demora": 0,
+    "cancelado": 0,
+    "total": 8,
+    "puntualidad": "100%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "IFL Group",
+    "a_tiempo": 1,
+    "demora": 0,
+    "cancelado": 0,
+    "total": 1,
+    "puntualidad": "100%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Awesome Cargo",
+    "a_tiempo": 7,
+    "demora": 2,
+    "cancelado": 0,
+    "total": 9,
+    "puntualidad": "78%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Cargojet",
+    "a_tiempo": 27,
+    "demora": 5,
+    "cancelado": 5,
+    "total": 37,
+    "puntualidad": "73%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "UPS",
+    "a_tiempo": 16,
+    "demora": 6,
+    "cancelado": 0,
+    "total": 22,
+    "puntualidad": "73%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Air Canada",
+    "a_tiempo": 16,
+    "demora": 8,
+    "cancelado": 2,
+    "total": 26,
+    "puntualidad": "62%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Atlas Air",
+    "a_tiempo": 26,
+    "demora": 15,
+    "cancelado": 3,
+    "total": 44,
+    "puntualidad": "59%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "DHL Guatemala",
+    "a_tiempo": 10,
+    "demora": 3,
+    "cancelado": 4,
+    "total": 17,
+    "puntualidad": "59%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Cathay Pacific",
+    "a_tiempo": 18,
+    "demora": 15,
+    "cancelado": 2,
+    "total": 35,
+    "puntualidad": "51%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Aerounión",
+    "a_tiempo": 23,
+    "demora": 19,
+    "cancelado": 3,
+    "total": 45,
+    "puntualidad": "51%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Air France",
+    "a_tiempo": 4,
+    "demora": 4,
+    "cancelado": 0,
+    "total": 8,
+    "puntualidad": "50%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Emirates Airlines",
+    "a_tiempo": 8,
+    "demora": 8,
+    "cancelado": 1,
+    "total": 17,
+    "puntualidad": "47%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Mas de Carga",
+    "a_tiempo": 32,
+    "demora": 40,
+    "cancelado": 19,
+    "total": 91,
+    "puntualidad": "35%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Cargolux",
+    "a_tiempo": 11,
+    "demora": 17,
+    "cancelado": 4,
+    "total": 32,
+    "puntualidad": "34%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Estafeta",
+    "a_tiempo": 13,
+    "demora": 23,
+    "cancelado": 3,
+    "total": 39,
+    "puntualidad": "33%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Lufthansa",
+    "a_tiempo": 10,
+    "demora": 17,
+    "cancelado": 3,
+    "total": 30,
+    "puntualidad": "33%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Suparna Arilines",
+    "a_tiempo": 1,
+    "demora": 2,
+    "cancelado": 0,
+    "total": 3,
+    "puntualidad": "33%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Kalitta Air",
+    "a_tiempo": 8,
+    "demora": 16,
+    "cancelado": 6,
+    "total": 30,
+    "puntualidad": "27%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Silk Waywest Airlines",
+    "a_tiempo": 1,
+    "demora": 3,
+    "cancelado": 0,
+    "total": 4,
+    "puntualidad": "25%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Turkish",
+    "a_tiempo": 1,
+    "demora": 3,
+    "cancelado": 1,
+    "total": 5,
+    "puntualidad": "20%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "La Nueva Aerolinea",
+    "a_tiempo": 1,
+    "demora": 4,
+    "cancelado": 3,
+    "total": 8,
+    "puntualidad": "13%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "China Southern",
+    "a_tiempo": 6,
+    "demora": 18,
+    "cancelado": 27,
+    "total": 51,
+    "puntualidad": "12%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Air China",
+    "a_tiempo": 1,
+    "demora": 8,
+    "cancelado": 8,
+    "total": 17,
+    "puntualidad": "6%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "ABX Air",
+    "a_tiempo": 0,
+    "demora": 1,
+    "cancelado": 1,
+    "total": 2,
+    "puntualidad": "0%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "QATAR",
+    "a_tiempo": 0,
+    "demora": 0,
+    "cancelado": 8,
+    "total": 8,
+    "puntualidad": "0%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "TSM",
+    "a_tiempo": 0,
+    "demora": 4,
+    "cancelado": 0,
+    "total": 4,
+    "puntualidad": "0%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Amerijet",
+    "a_tiempo": 0,
+    "demora": 4,
+    "cancelado": 0,
+    "total": 4,
+    "puntualidad": "0%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Kalitta Charters",
+    "a_tiempo": 0,
+    "demora": 1,
+    "cancelado": 0,
+    "total": 1,
+    "puntualidad": "0%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Legend Airways LLC",
+    "a_tiempo": 0,
+    "demora": 1,
+    "cancelado": 0,
+    "total": 1,
+    "puntualidad": "0%"
+  },
+  {
+    "categoria": "Carga",
+    "aerolinea": "Total",
+    "a_tiempo": 249,
+    "demora": 247,
+    "cancelado": 103,
+    "total": 599,
+    "puntualidad": "42%"
+  }
+]

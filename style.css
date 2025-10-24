@@ -801,3 +801,18 @@ input[type="time"]::-webkit-datetime-edit-ampm-field { display: none; }
 input[type="time"]::-webkit-inner-spin-button { display: none; }
 /* Keep value text aligned and legible */
 input[type="time"] { font-variant-numeric: tabular-nums; }
+
+/* ===================== Puntualidad: separadores y acentos visuales ===================== */
+.punc-card .card-header { background: rgba(0,0,0,0.02); border-bottom: 2px solid var(--border-color); font-weight: 700; }
+.punc-passengers .card-header { border-left: 4px solid #0d6efd; }
+.punc-cargo .card-header { border-left: 4px solid #fd7e14; }
+.punc-best-col { border-right: 1px dashed var(--border-color); }
+@media (max-width: 767.98px) {
+   .punc-best-col { border-right: none; border-bottom: 1px dashed var(--border-color); padding-bottom: .5rem; margin-bottom: .5rem; }
+}
+.punc-col-title { display: inline-flex; align-items: center; gap: .4rem; padding: .25rem .45rem; border-left: 4px solid transparent; border-radius: 6px; }
+.punc-col-best { border-left-color: #198754; background: rgba(25,135,84,0.06); }
+.punc-col-worst { border-left-color: #dc3545; background: rgba(220,53,69,0.06); }
+body.dark-mode .punc-card .card-header { background: rgba(255,255,255,0.04); }
+body.dark-mode .punc-col-best { background: rgba(25,135,84,0.12); }
+body.dark-mode .punc-col-worst { background: rgba(220,53,69,0.12); }

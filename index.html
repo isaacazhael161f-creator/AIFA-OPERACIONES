@@ -724,13 +724,89 @@
                 </div>
                 <div id="puntualidad-agosto-section" class="content-section">
                     <div class="card">
-                        <div class="card-header d-flex align-items-center justify-content-center"><i class="fas fa-clock-check fa-2x text-primary me-3"></i>
-                            <h2 class="mb-0">PUNTUALIDAD AEROLINEAS - SEPTIEMBRE</h2>
+                        <div class="card-header d-flex align-items-center justify-content-center">
+                            <i class="fas fa-clock-check fa-2x text-primary me-3"></i>
+                            <h2 class="mb-0">PUNTUALIDAD DE AEROLÍNEAS</h2>
                         </div>
-                        <div class="card-body pdf-container">
-                            <div class="pdf-singlepage-viewer v-scroll" data-src="pdfs/puntualidad_agosto.pdf" style="position:relative; width:100%; max-width:100%;">
-                                <canvas style="width:100%; height:auto; display:block;"></canvas>
-                                <div class="links-layer" style="position:absolute; left:0; top:0; pointer-events:none;"></div>
+                        <div class="card-body">
+                            <ul class="nav nav-tabs" id="puntualidadTab" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="punc-interactivo-tab" data-bs-toggle="tab" data-bs-target="#punc-interactivo-pane" type="button" role="tab" aria-controls="punc-interactivo-pane" aria-selected="true"><i class="fas fa-table me-2"></i>Vista Interactiva</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="punc-pdf-tab" data-bs-toggle="tab" data-bs-target="#punc-pdf-pane" type="button" role="tab" aria-controls="punc-pdf-pane" aria-selected="false"><i class="fas fa-file-pdf me-2"></i>Documento PDF Original</button>
+                                </li>
+                            </ul>
+                            <div class="tab-content pt-3" id="puntualidadTabContent">
+                                <div class="tab-pane fade show active" id="punc-interactivo-pane" role="tabpanel" aria-labelledby="punc-interactivo-tab" tabindex="0">
+                                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="small text-muted">Umbral puntualidad:</span>
+                                            <span class="badge bg-success">≥ 85% Puntual</span>
+                                            <span class="badge bg-danger">&lt; 85% Impuntual</span>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <label for="puntualidad-minflights" class="small text-muted m-0">Mín. vuelos
+                                                <i id="minflights-help" class="fas fa-circle-question ms-1 text-muted" data-bs-toggle="tooltip" data-bs-placement="top" title="Sólo afecta los TOPs: excluye aerolíneas con menos vuelos que este mínimo."></i>
+                                            </label>
+                                            <select id="puntualidad-minflights" class="form-select form-select-sm" style="width:auto;">
+                                                <option value="1">1</option>
+                                                <option value="3">3</option>
+                                                <option value="5" selected>5</option>
+                                                <option value="10">10</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-12 col-lg-6">
+                                            <div class="card h-100 punc-card punc-passengers">
+                                                <div class="card-header d-flex align-items-center gap-2"><i class="fas fa-user-friends text-primary"></i><strong>Pasajeros</strong></div>
+                                                <div class="card-body">
+                                                    <div class="row g-3">
+                                                        <div class="col-12 col-md-6 punc-best-col">
+                                                            <h6 class="text-success mb-2 punc-col-title punc-col-best"><i class="fas fa-trophy me-1"></i>Más puntuales</h6>
+                                                            <ol id="puntualidad-top-pax-best" class="m-0"></ol>
+                                                            <div class="mt-2"><canvas id="punc-pax-best-chart" height="140"></canvas></div>
+                                                        </div>
+                                                        <div class="col-12 col-md-6 punc-worst-col">
+                                                            <h6 class="text-danger mb-2 punc-col-title punc-col-worst"><i class="fas fa-triangle-exclamation me-1"></i>Más impuntuales</h6>
+                                                            <ol id="puntualidad-top-pax-worst" class="m-0"></ol>
+                                                            <div class="mt-2"><canvas id="punc-pax-worst-chart" height="140"></canvas></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-lg-6">
+                                            <div class="card h-100 punc-card punc-cargo">
+                                                <div class="card-header d-flex align-items-center gap-2"><i class="fas fa-box-open text-warning"></i><strong>Carga</strong></div>
+                                                <div class="card-body">
+                                                    <div class="row g-3">
+                                                        <div class="col-12 col-md-6 punc-best-col">
+                                                            <h6 class="text-success mb-2 punc-col-title punc-col-best"><i class="fas fa-trophy me-1"></i>Más puntuales</h6>
+                                                            <ol id="puntualidad-top-cargo-best" class="m-0"></ol>
+                                                            <div class="mt-2"><canvas id="punc-cargo-best-chart" height="140"></canvas></div>
+                                                        </div>
+                                                        <div class="col-12 col-md-6 punc-worst-col">
+                                                            <h6 class="text-danger mb-2 punc-col-title punc-col-worst"><i class="fas fa-triangle-exclamation me-1"></i>Más impuntuales</h6>
+                                                            <ol id="puntualidad-top-cargo-worst" class="m-0"></ol>
+                                                            <div class="mt-2"><canvas id="punc-cargo-worst-chart" height="140"></canvas></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="table-responsive" id="puntualidad-table-container"></div>
+                                </div>
+                                <div class="tab-pane fade" id="punc-pdf-pane" role="tabpanel" aria-labelledby="punc-pdf-tab" tabindex="0">
+                                    <div class="pdf-container">
+                                        <div class="pdf-singlepage-viewer v-scroll" data-src="pdfs/puntualidad_agosto.pdf" style="position:relative; width:100%; max-width:100%;">
+                                            <canvas style="width:100%; height:auto; display:block;"></canvas>
+                                            <div class="links-layer" style="position:absolute; left:0; top:0; pointer-events:none;"></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1107,7 +1183,7 @@
                                             <hr />
                                         </div>
                                         <!-- División: Pasajeros por categoría (después de Demoras) -->
-                                        <div class="col-12">
+                                        <div class="col-12" data-dir="departure-only">
                                             <h6 class="mb-2 mf-section-title"><i class="fas fa-people-group me-1"></i>Pasajeros por categoría</h6>
                                             <div class="row g-2">
                                                 <div class="col-6 col-md-3"><label class="form-label">Pagan TUA</label><input type="number" min="0" class="form-control" id="pax-tua"></div>
@@ -1127,7 +1203,7 @@
                                         </div>
                                         
                                         <!-- Embarque por estación -->
-                                        <div class="col-12">
+                                        <div class="col-12" data-dir="departure-only">
                                             <div class="d-flex align-items-center justify-content-between">
                                                 <h6 class="mb-2 mf-section-title"><i class="fas fa-people-carry-box me-1"></i>Tabla de embarque por estación</h6>
                                                 <div class="d-flex gap-2">
@@ -1164,31 +1240,31 @@
                                             </div>
                                             <hr />
                                         </div>
-                                        <div class="col-6 col-md-4">
+                                        <div class="col-6 col-md-4" data-dir="departure-only">
                                             <label class="form-label">Equipaje Piezas</label>
                                             <input type="number" class="form-control" id="mf-baggage-pcs" />
                                         </div>
-                                        <div class="col-6 col-md-4">
+                                        <div class="col-6 col-md-4" data-dir="departure-only">
                                             <label class="form-label">Carga (kg)</label>
                                             <input type="number" step="0.01" class="form-control" id="mf-cargo" />
                                         </div>
-                                        <div class="col-6 col-md-4">
+                                        <div class="col-6 col-md-4" data-dir="departure-only">
                                             <label class="form-label">Carga Piezas</label>
                                             <input type="number" class="form-control" id="mf-cargo-pieces" />
                                         </div>
-                                        <div class="col-6 col-md-4">
+                                        <div class="col-6 col-md-4" data-dir="departure-only">
                                             <label class="form-label">Volumen (m³)</label>
                                             <input type="number" step="0.01" class="form-control" id="mf-cargo-volume" />
                                         </div>
-                                        <div class="col-6 col-md-4">
+                                        <div class="col-6 col-md-4" data-dir="departure-only">
                                             <label class="form-label">Correo (kg)</label>
                                             <input type="number" step="0.01" class="form-control" id="mf-mail" />
                                         </div>
-                                        <div class="col-6 col-md-4">
+                                        <div class="col-6 col-md-4" data-dir="departure-only">
                                             <label class="form-label">Correo Piezas</label>
                                             <input type="number" class="form-control" id="mf-mail-pieces" />
                                         </div>
-                                        <div class="col-12">
+                                        <div class="col-12" data-dir="departure-only">
                                             <div class="form-check form-check-inline">
                                                 <input class="form-check-input" type="checkbox" id="mf-dangerous-goods">
                                                 <label class="form-check-label" for="mf-dangerous-goods">Mercancías Peligrosas</label>
@@ -1205,15 +1281,15 @@
                                         <div class="col-12">
                                             <hr />
                                         </div>
-                                        <div class="col-12 col-md-6">
+                                        <div class="col-12 col-md-6" data-dir="departure-only">
                                             <label class="form-label">Agente / Responsable</label>
                                             <input type="text" class="form-control" id="mf-agent" />
                                         </div>
-                                        <div class="col-12 col-md-6">
+                                        <div class="col-12 col-md-6" data-dir="departure-only">
                                             <label class="form-label">Nombre y Firma</label>
                                             <input type="text" class="form-control" id="mf-signature" />
                                         </div>
-                                        <div class="col-12">
+                                        <div class="col-12" data-dir="departure-only">
                                             <div class="row g-2">
                                                 <div class="col-12">
                                                     <label class="form-label">Observaciones</label>
@@ -1233,7 +1309,7 @@
                                             <hr />
                                         </div>
                                         <!-- Firmas y sellos -->
-                                        <div class="col-12">
+                                        <div class="col-12" data-dir="departure-only">
                                             <h6 class="mb-2 mf-section-title"><i class="fas fa-signature me-1"></i>Firmas y sellos</h6>
                                             <div class="row g-2">
                                                 <div class="col-12 col-md-4">
@@ -1478,6 +1554,7 @@
     <script src="js/fauna.js"></script>
     
         <script src="script.js"></script>
+        <script src="js/puntualidad.js"></script>
         <script>
             // Modo DEV: bloquear por completo el registro de Service Workers en localhost/127.0.0.1 o con bandera noSW
             (function noSWDevGuard(){
