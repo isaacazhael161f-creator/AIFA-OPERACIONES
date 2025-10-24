@@ -3173,6 +3173,62 @@ Z,Others,Not specific,Special internal purposes`;
             return '';
       }
 
+          // Extrae ORIGEN DEL VUELO: nombre completo y/o código IATA, usando pistas de líneas
+          function extractArrivalOriginFields(text){
+            const out = { name:'', code:'' };
+            try {
+              const lines = (text||'').toString().split(/\r?\n/);
+              const rxIATA = /\b([A-Z]{3})\b/;
+              const isNameLine = (s)=>{
+                if (!s) return false;
+                const t = s.trim(); if (!t) return false;
+                // Evitar que sea solo un código
+                if (/^\s*[A-Z]{3}\s*$/.test(t)) return false;
+                // Debe tener letras y espacios y longitud razonable
+                return /[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(t) && t.length >= 6;
+              };
+              for (let i=0;i<lines.length;i++){
+                if (/ORIGEN\s+DEL\s+VUELO/i.test(lines[i])){
+                  // 1) Nombre: si la siguiente línea pide registrar nombre, tomar la anterior
+                  if (/NOMBRE\s+COMPLETO\s+DEL\s+AEROPUERTO/i.test(lines[i+1]||'') || /REGISTRAR\s+NOMBRE\s+COMPLETO\s+DEL\s+AEROPUERTO/i.test(lines[i+1]||'')){
+                    const cand = (lines[i-1]||'').trim();
+                    if (isNameLine(cand)) out.name = cand;
+                  }
+                  // Si aún no hay nombre, buscar en ventana alrededor
+                  if (!out.name){
+                    const win = [lines[i-2], lines[i-1], lines[i], lines[i+1], lines[i+2]];
+                    for (const s of win){ if (isNameLine(s||'')){ out.name = (s||'').trim(); break; } }
+                  }
+                  // 2) Código: si aparece "CÓDIGO 3 LETRAS", tomar la línea anterior
+                  for (let j=i-2;j<=i+4;j++){
+                    const L = lines[j]||'';
+                    if (/C[ÓO]DIGO\s*3\s*LETRAS/i.test(L)){
+                      const prev = lines[j-1]||''; const m = prev.toUpperCase().match(rxIATA);
+                      if (m){ out.code = m[1]; break; }
+                    }
+                  }
+                  // Si no hay aún código, buscar 3 letras cercanas
+                  if (!out.code){
+                    const win = [lines[i-2], lines[i-1], lines[i], lines[i+1], lines[i+2]];
+                    for (const s of win){ const m = (s||'').toUpperCase().match(rxIATA); if (m){ out.code = m[1]; break; } }
+                  }
+                  break;
+                }
+              }
+              // Cross-fill con catálogos
+              if (out.name && !out.code){
+                const key = out.name.trim().toLowerCase();
+                const c = airportByName.get(key);
+                if (c) out.code = c;
+              }
+              if (out.code && !out.name){
+                const nm = airportByIATA.get(out.code);
+                if (nm) out.name = nm;
+              }
+            } catch(_){ }
+            return out;
+          }
+
       // Heurística robusta para mapear Origen / Próxima escala / Destino en documentos de Salida
       function extractDepartureRouteFields(text){
         const Ulines = (text||'').toUpperCase().split(/\r?\n/);
@@ -3468,7 +3524,18 @@ Z,Others,Not specific,Special internal purposes`;
           let destino = chooseValidIATA(findNearLabelIATACode(['DESTINO','TO'], text));
           let escala = chooseValidIATA(findNearLabelIATACode(['ULTIMA ESCALA','ESCALA ANTERIOR','LAST STOP','ESCALA'], text));
           if (currentIsArrival){
-            if (origen) { setVal('mf-arr-origin-code', origen); const name = airportByIATA.get(origen); if (name) setVal('mf-arr-origin-name', name); }
+            // Intento fuerte: ORIGEN DEL VUELO (nombre + código)
+            try {
+              const got = extractArrivalOriginFields(text);
+              if (got && (got.code || got.name)){
+                if (got.code){ setVal('mf-arr-origin-code', got.code); }
+                if (got.name){ setVal('mf-arr-origin-name', got.name); }
+              } else if (origen) {
+                // Fallback a detección genérica
+                setVal('mf-arr-origin-code', origen);
+                const name = airportByIATA.get(origen); if (name) setVal('mf-arr-origin-name', name);
+              }
+            } catch(_){ if (origen) { setVal('mf-arr-origin-code', origen); const name = airportByIATA.get(origen); if (name) setVal('mf-arr-origin-name', name); } }
             if (escala) { setVal('mf-arr-last-stop-code', escala); const name = airportByIATA.get(escala); if (name) setVal('mf-arr-last-stop', name); }
             // Aeropuerto principal (Llegada): detectar por etiqueta y colocar CÓDIGO IATA de 3 letras
             try {
