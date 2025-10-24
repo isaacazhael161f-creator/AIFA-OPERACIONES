@@ -2307,8 +2307,25 @@ Z,Others,Not specific,Special internal purposes`;
               if (!lastStopCand && airportCodes[1]) lastStopCand = airportCodes[1];
               if (!finalDestCand && airportCodes[2]) finalDestCand = airportCodes[2];
               if (currentIsArrival){
-                if (originCand) setVal('mf-arr-origin-code', originCand);
-                if (lastStopCand) setVal('mf-arr-last-stop-code', lastStopCand);
+                if (originCand) {
+                  setVal('mf-arr-origin-code', originCand);
+                  try { const nm = airportByIATA.get(originCand)||''; if (nm) setVal('mf-arr-origin-name', nm); } catch(_){}
+                }
+                if (lastStopCand) {
+                  setVal('mf-arr-last-stop-code', lastStopCand);
+                  try { const nm = airportByIATA.get(lastStopCand)||''; if (nm) setVal('mf-arr-last-stop', nm); } catch(_){}
+                }
+                // Aeropuerto principal (Llegada): leer código IATA cerca de la etiqueta y mapear a nombre
+                try {
+                  const mainArrCand = findNearLabelIATACode([
+                    'AEROPUERTO DE LLEGADA','AEROPUERTO DESTINO','AEROPUERTO DE ARRIBO','AEROPUERTO DESTINO DEL VUELO'
+                  ], text);
+                  const mainMatch = findValidAirport(mainArrCand);
+                  if (mainMatch && mainMatch.IATA){
+                    const nm = airportByIATA.get(mainMatch.IATA) || mainMatch.Name || '';
+                    if (nm) setVal('mf-airport-main', nm);
+                  }
+                } catch(_){ }
               } else {
                 if (originCand) setVal('mf-origin-code', originCand);
                 if (lastStopCand) setVal('mf-next-stop-code', lastStopCand);
@@ -3248,6 +3265,15 @@ Z,Others,Not specific,Special internal purposes`;
           if (currentIsArrival){
             if (origen) { setVal('mf-arr-origin-code', origen); const name = airportByIATA.get(origen); if (name) setVal('mf-arr-origin-name', name); }
             if (escala) { setVal('mf-arr-last-stop-code', escala); const name = airportByIATA.get(escala); if (name) setVal('mf-arr-last-stop', name); }
+            // Aeropuerto principal (Llegada): detectar por etiqueta y mapear a nombre
+            try {
+              const mainArrCand = findNearLabelIATACode(['AEROPUERTO DE LLEGADA','AEROPUERTO DESTINO','AEROPUERTO DE ARRIBO','AEROPUERTO DESTINO DEL VUELO'], text);
+              const mainMatch = findValidAirport(mainArrCand);
+              if (mainMatch && mainMatch.IATA){
+                const nm = airportByIATA.get(mainMatch.IATA) || mainMatch.Name || '';
+                if (nm) setVal('mf-airport-main', nm);
+              }
+            } catch(_){ }
             // tiempos llegada (prefer robust slot-assigned extractor)
             const strongArr = (window._mfFindSlotAssignedTime?.(text) || '');
             const vSlotArr = strongArr || extractTimeAfterLabel(/\bHORA\s+DE\s+SLOT\s+ASIGNADO\b/i, 8) || extractTimeAfterLabel(/\bSLOT\s+ASIGNADO\b/i, 8);
