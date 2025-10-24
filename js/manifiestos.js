@@ -508,6 +508,7 @@
   const saveBtn = document.getElementById('manifest-save');
   const clearBtn = document.getElementById('manifest-clear');
   const exportBtn = document.getElementById('manifest-export-json');
+  const exportCsvBtn = document.getElementById('manifest-export-csv');
   const dirArr = document.getElementById('mf-dir-arr');
   const dirDep = document.getElementById('mf-dir-dep');
   const pdfStatus = document.getElementById('manifest-pdf-status');
@@ -556,7 +557,55 @@
           delayAlphaMap.set(alpha, { numeric, alpha, summary, description, category });
         }
       }
+
+      // Crear/actualizar datalist con códigos ALPHA para autocompletar
+      try {
+        let dl = document.getElementById('delay-alpha-codes');
+        if (!dl){
+          dl = document.createElement('datalist');
+          dl.id = 'delay-alpha-codes';
+          document.body.appendChild(dl);
+        }
+        const opts = Array.from(delayAlphaMap.entries())
+          .sort(([a],[b])=> a.localeCompare(b))
+          .map(([code, rec])=> `<option value="${code}">${rec.summary||rec.description||''}</option>`)
+          .join('');
+        dl.innerHTML = opts;
+      } catch(_){ }
     } catch(_){ /* ignore */ }
+  }
+
+  // Extrae minutos de demora cerca de la sección CAUSAS DE LA DEMORA y los asocia por línea con códigos reconocidos
+  function extractDelayMinutesFromText(text, codes){
+    try {
+      const U = (text||'').toString().toUpperCase();
+      const lines = U.split(/\r?\n/);
+      const nearLabels = [/CAUSAS?\s+DE\s+LA?\s*DEMORA/, /CAUSA\s+DE\s+DEMORA/, /CAUSAS?\s+DEMORA/, /DEMORA\s*:/, /\bCÓDIGO\b/, /\bCODIGO\b/];
+      const valid = new Set((codes||[]).map(c=> String(c||'').toUpperCase()));
+      const idxs = [];
+      for (let i=0;i<lines.length;i++){ if (nearLabels.some(rx=> rx.test(lines[i]))) idxs.push(i); }
+      const out = new Map();
+      const seen = new Set();
+      const inRangeNums = [];
+      const rxCode = /\b[A-Z]{2,3}\b/g;
+      const rxNum = /\b(\d{1,3})\b/g;
+      const consider = (i,k)=>{ const s = lines[i+k]||''; if (!s) return;
+        const foundCodes = (s.match(rxCode)||[]).filter(c=> valid.has(c));
+        const nums = (s.match(rxNum)||[]).map(n=> parseInt(n,10)).filter(n=> n>=0 && n<=600);
+        if (nums.length) inRangeNums.push(...nums);
+        if (foundCodes.length===1 && nums.length>0){
+          const code = foundCodes[0];
+          const min = nums[nums.length-1]; // tomar el último número de la línea
+          if (!seen.has(code)) { out.set(code, min); seen.add(code); }
+        }
+      };
+      for (const i of idxs){ for (let k=-3;k<=8;k++){ if (k!==0) consider(i,k); } }
+      // Si no logramos asociar por línea, asignar por orden
+      if (out.size===0 && inRangeNums.length>0){
+        for (let i=0;i<codes.length;i++){ if (inRangeNums[i]!=null) out.set(codes[i], inRangeNums[i]); }
+      }
+      return out;
+    } catch(_){ return new Map(); }
   }
   function extractDelayCodesFromText(text){
     try {
@@ -594,6 +643,12 @@
         const row = firstEmpty.closest('tr');
         const d = row ? row.querySelector('.demora-descripcion') : null;
         if (d && !d.value) d.value = desc||'';
+        // Normalizar código y validar contra catálogo
+        if (firstEmpty){
+          firstEmpty.value = (firstEmpty.value||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
+          const isValid = delayAlphaMap.has(firstEmpty.value);
+          if (row){ row.classList.toggle('table-warning', !isValid); }
+        }
       } else {
         addDemoraRow({ codigo: code, minutos: '', descripcion: desc||'' });
       }
@@ -2315,15 +2370,14 @@ Z,Others,Not specific,Special internal purposes`;
                   setVal('mf-arr-last-stop-code', lastStopCand);
                   try { const nm = airportByIATA.get(lastStopCand)||''; if (nm) setVal('mf-arr-last-stop', nm); } catch(_){}
                 }
-                // Aeropuerto principal (Llegada): leer código IATA cerca de la etiqueta y mapear a nombre
+                // Aeropuerto principal (Llegada): leer código IATA cerca de la etiqueta y colocar código IATA (3 letras)
                 try {
                   const mainArrCand = findNearLabelIATACode([
                     'AEROPUERTO DE LLEGADA','AEROPUERTO DESTINO','AEROPUERTO DE ARRIBO','AEROPUERTO DESTINO DEL VUELO'
                   ], text);
                   const mainMatch = findValidAirport(mainArrCand);
                   if (mainMatch && mainMatch.IATA){
-                    const nm = airportByIATA.get(mainMatch.IATA) || mainMatch.Name || '';
-                    if (nm) setVal('mf-airport-main', nm);
+                    setVal('mf-airport-main', mainMatch.IATA);
                   }
                 } catch(_){ }
               } else {
@@ -2402,7 +2456,7 @@ Z,Others,Not specific,Special internal purposes`;
                 setTimeIf('mf-termino-pernocta', ['termino de pernocta','término de pernocta','fin pernocta']);
               }
             } catch(_){ }
-            // Demoras: detectar códigos (2-3 letras) en/tras "Causas de la demora"
+            // Demoras: detectar códigos (2-3 letras) en/tras "Causas de la demora" y minutos cercanos
             try {
               // Asegurar catálogo cargado; si no, cargar rápido (best-effort)
               if (!delayAlphaMap || delayAlphaMap.size===0){ try { await loadDelayCatalog(); } catch(_){ } }
@@ -2417,6 +2471,18 @@ Z,Others,Not specific,Special internal purposes`;
                   fillOrAddDelayCode(code, descTxt);
                   existing.add(code);
                 });
+                // Intentar asignar minutos por código
+                const minsMap = extractDelayMinutesFromText(text, codes);
+                if (minsMap && minsMap.size){
+                  const rows = Array.from(document.querySelectorAll('#tabla-demoras tbody tr'));
+                  for (const [code, mins] of minsMap.entries()){
+                    const row = rows.find(r=> (r.querySelector('.demora-codigo')?.value||'').toUpperCase().trim() === code);
+                    if (row){
+                      const m = row.querySelector('.demora-minutos');
+                      if (m && !m.value && Number.isFinite(mins)) m.value = String(mins);
+                    }
+                  }
+                }
                 updateDemorasTotal();
               }
             } catch(_){ }
@@ -2551,6 +2617,18 @@ Z,Others,Not specific,Special internal purposes`;
           if (prevCanvas && !prevCanvas.classList.contains('d-none')){ previewImage = prevCanvas.toDataURL('image/png'); }
           else if (prevImg && !prevImg.classList.contains('d-none')){ previewImage = prevImg.src || ''; }
         } catch(_){ }
+        // Demoras actuales (tabla)
+        const demoras = (function(){
+          try {
+            const trs = Array.from(document.querySelectorAll('#tabla-demoras tbody tr'));
+            return trs.map(tr=>({
+              codigo: (tr.querySelector('.demora-codigo')?.value||'').toUpperCase().trim(),
+              minutos: tr.querySelector('.demora-minutos')?.value||'',
+              descripcion: tr.querySelector('.demora-descripcion')?.value||''
+            })).filter(d=> d.codigo||d.minutos||d.descripcion);
+          } catch(_){ return []; }
+        })();
+
         return {
           direction,
           title: g('mf-title'), docDate: g('mf-doc-date'), folio: g('mf-folio'),
@@ -2572,6 +2650,7 @@ Z,Others,Not specific,Special internal purposes`;
           paxTUA: g('pax-tua'), paxDiplomaticos: g('pax-diplomaticos'), paxComision: g('pax-comision'), paxInfantes: g('pax-infantes'), paxTransitos: g('pax-transitos'), paxConexiones: g('pax-conexiones'), paxExentos: g('pax-exentos'), paxTotal: g('pax-total'),
           obsTransito: g('mf-obs-transito'), paxDNI: g('mf-pax-dni'),
           signOperator: g('mf-sign-operator'), signCoordinator: g('mf-sign-coordinator'), signAdmin: g('mf-sign-admin'), signAdminDate: g('mf-sign-admin-date'),
+          demoras,
           image: previewImage
         };
       }
@@ -2604,6 +2683,69 @@ Z,Others,Not specific,Special internal purposes`;
     if (saveBtn && !saveBtn._wired) { saveBtn._wired = 1; saveBtn.addEventListener('click', ()=>{ recalcPaxTotal(); const recs = loadRecords(); recs.unshift(readForm()); saveRecords(recs.slice(0,200)); renderTable(); }); }
     if (clearBtn && !clearBtn._wired) { clearBtn._wired = 1; clearBtn.addEventListener('click', ()=>{ document.getElementById('manifest-form')?.reset(); applyManifestDirection(); clearDynamicTables(); calculateTotals(); updateDemorasTotal(); }); }
       if (exportBtn && !exportBtn._wired) { exportBtn._wired = 1; exportBtn.addEventListener('click', ()=>{ const data = JSON.stringify(loadRecords(), null, 2); const blob = new Blob([data], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'manifiestos.json'; a.click(); }); }
+
+      // Exportar CSV (todos los registros guardados) incluyendo demoras aplanadas
+      if (exportCsvBtn && !exportCsvBtn._wired){
+        exportCsvBtn._wired = 1;
+        exportCsvBtn.addEventListener('click', ()=>{
+          try {
+            let rows = loadRecords();
+            // Si no hay registros guardados, exportar el formulario actual como un registro
+            if (!rows || rows.length===0){ rows = [ readForm() ]; }
+            // Asegurar que cada registro tenga demoras si la estructura existe en el formulario actual
+            const getDemorasFromDOM = ()=>{
+              try {
+                const trs = Array.from(document.querySelectorAll('#tabla-demoras tbody tr'));
+                return trs.map(tr=>({
+                  codigo: (tr.querySelector('.demora-codigo')?.value||'').toUpperCase().trim(),
+                  minutos: tr.querySelector('.demora-minutos')?.value||'',
+                  descripcion: tr.querySelector('.demora-descripcion')?.value||''
+                })).filter(d=> d.codigo||d.minutos||d.descripcion);
+              } catch(_){ return []; }
+            };
+            // Si el último registro no tiene demoras pero el DOM sí, guardarlas en una copia del último
+            if (rows.length>0 && (!rows[0].demoras || !Array.isArray(rows[0].demoras))){
+              const ds = getDemorasFromDOM();
+              if (ds.length){ rows[0] = { ...rows[0], demoras: ds }; }
+            }
+            const baseKeys = [
+              'direction','title','docDate','folio','carrier3L','operatorName','airline','flight',
+              'airportMain','flightType','tail','aircraft','originName','originCode',
+              'crewTotal','baggageKg','baggagePieces','cargoKg','cargoPieces','cargoVol','mailKg','mailPieces',
+              'dangerousGoods','liveAnimals','humanRemains','pilot','pilotLicense','agent','signature','notes',
+              'nextStop','nextStopCode','finalDest','finalDestCode','slotAssigned','slotCoordinated','terminoPernocta',
+              'inicioEmbarque','salidaPosicion',
+              'arrOriginName','arrOriginCode','arrSlotAssigned','arrSlotCoordinated','arrLastStop','arrLastStopCode','arrArriboPosicion','arrInicioDesembarque','arrInicioPernocta',
+              'paxTUA','paxDiplomaticos','paxComision','paxInfantes','paxTransitos','paxConexiones','paxExentos','paxTotal',
+              'obsTransito','paxDNI','signOperator','signCoordinator','signAdmin','signAdminDate'
+            ];
+            const maxDemoras = rows.reduce((m,r)=> Math.max(m, Array.isArray(r.demoras)? r.demoras.length:0), 0);
+            const demoraCols = [];
+            for (let i=1;i<=Math.max(3,maxDemoras);i++){
+              demoraCols.push(`Demora${i}_Codigo`,`Demora${i}_Minutos`,`Demora${i}_Descripcion`);
+            }
+            const headers = [...baseKeys, ...demoraCols];
+            const esc = (v)=>{
+              const s = (v==null)? '' : (typeof v==='boolean'? (v?'1':'0'): String(v));
+              if (/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+              return s;
+            };
+            const lines = [headers.join(',')];
+            rows.forEach(r=>{
+              const baseVals = baseKeys.map(k=> esc(r[k]));
+              const ds = Array.isArray(r.demoras)? r.demoras: [];
+              const parts = [];
+              for (let i=0;i<demoraCols.length/3;i++){
+                const d = ds[i]||{};
+                parts.push(esc((d.codigo||'').toUpperCase()), esc(d.minutos||''), esc(d.descripcion||''));
+              }
+              lines.push([...baseVals, ...parts].join(','));
+            });
+            const blob = new Blob([lines.join('\n')], { type:'text/csv;charset=utf-8' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'manifiestos.csv'; a.click();
+          } catch(err){ console.error('CSV export error', err); }
+        });
+      }
       renderTable();
 
       const demoraTbody = document.querySelector('#tabla-demoras tbody');
@@ -2613,13 +2755,26 @@ Z,Others,Not specific,Special internal purposes`;
         if (!demoraTbody) return;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><input type="text" class="form-control form-control-sm demora-codigo" value="${data.codigo||''}"></td>
+          <td><input type="text" class="form-control form-control-sm demora-codigo" list="delay-alpha-codes" placeholder="AA/AB/BC" value="${data.codigo||''}"></td>
           <td><input type="number" min="0" class="form-control form-control-sm demora-minutos" value="${data.minutos||''}"></td>
           <td><input type="text" class="form-control form-control-sm demora-descripcion" value="${data.descripcion||''}"></td>
           <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-demora-row"><i class="fas fa-times"></i></button></td>`;
         demoraTbody.appendChild(tr);
+        // Normalizar/validar código y autocompletar descripción al crear
+        try {
+          const codeInp = tr.querySelector('.demora-codigo');
+          const descInp = tr.querySelector('.demora-descripcion');
+          const norm = ()=>{
+            if (!codeInp) return;
+            codeInp.value = (codeInp.value||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
+            const rec = delayAlphaMap.get(codeInp.value);
+            tr.classList.toggle('table-warning', !rec);
+            if (rec && descInp && !descInp.value){ descInp.value = rec.summary || rec.description || ''; }
+          };
+          if (codeInp && !codeInp._wired){ codeInp._wired = 1; ['input','change','blur'].forEach(ev=> codeInp.addEventListener(ev, norm)); norm(); }
+        } catch(_){ }
       }
-      function ensureInitialDemoraRows(n=4){
+      function ensureInitialDemoraRows(n=3){
         try {
           if (!demoraTbody) return;
           const cur = demoraTbody.querySelectorAll('tr').length;
@@ -2630,11 +2785,11 @@ Z,Others,Not specific,Special internal purposes`;
         const total = Array.from(document.querySelectorAll('.demora-minutos')).reduce((acc, inp)=> acc + (parseFloat(inp.value)||0), 0);
         const out = document.getElementById('total-demora-minutos'); if (out) out.value = String(total);
       }
-      function clearDemoras(){ if (demoraTbody) { demoraTbody.innerHTML = ''; ensureInitialDemoraRows(4); } updateDemorasTotal(); }
+  function clearDemoras(){ if (demoraTbody) { demoraTbody.innerHTML = ''; ensureInitialDemoraRows(3); } updateDemorasTotal(); }
       if (addDemoraBtn && !addDemoraBtn._wired){ addDemoraBtn._wired = 1; addDemoraBtn.addEventListener('click', ()=> addDemoraRow()); }
       if (clearDemorasBtn && !clearDemorasBtn._wired){ clearDemorasBtn._wired = 1; clearDemorasBtn.addEventListener('click', clearDemoras); }
-      // Al iniciar, dejar 4 renglones listos
-      ensureInitialDemoraRows(4);
+  // Al iniciar, dejar 3 renglones listos
+  ensureInitialDemoraRows(3);
 
       window._manifListeners = window._manifListeners || { clicks: false, inputs: false };
       if (!window._manifListeners.clicks){
@@ -2648,6 +2803,15 @@ Z,Others,Not specific,Special internal purposes`;
         window._manifListeners.inputs = true;
         document.addEventListener('input', (e)=>{
           if (e.target && e.target.classList && e.target.classList.contains('demora-minutos')) { updateDemorasTotal(); }
+          if (e.target && e.target.classList && e.target.classList.contains('demora-codigo')){
+            const inp = e.target;
+            const tr = inp.closest('tr');
+            inp.value = (inp.value||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
+            const rec = delayAlphaMap.get(inp.value);
+            if (tr) tr.classList.toggle('table-warning', !rec);
+            const d = tr ? tr.querySelector('.demora-descripcion') : null;
+            if (rec && d && !d.value) d.value = rec.summary || rec.description || '';
+          }
           if (e.target && e.target.closest && e.target.closest('#tabla-embarque')) { calculateTotals(); }
         });
       }
@@ -3265,13 +3429,13 @@ Z,Others,Not specific,Special internal purposes`;
           if (currentIsArrival){
             if (origen) { setVal('mf-arr-origin-code', origen); const name = airportByIATA.get(origen); if (name) setVal('mf-arr-origin-name', name); }
             if (escala) { setVal('mf-arr-last-stop-code', escala); const name = airportByIATA.get(escala); if (name) setVal('mf-arr-last-stop', name); }
-            // Aeropuerto principal (Llegada): detectar por etiqueta y mapear a nombre
+            // Aeropuerto principal (Llegada): detectar por etiqueta y colocar CÓDIGO IATA de 3 letras
             try {
               const mainArrCand = findNearLabelIATACode(['AEROPUERTO DE LLEGADA','AEROPUERTO DESTINO','AEROPUERTO DE ARRIBO','AEROPUERTO DESTINO DEL VUELO'], text);
               const mainMatch = findValidAirport(mainArrCand);
               if (mainMatch && mainMatch.IATA){
-                const nm = airportByIATA.get(mainMatch.IATA) || mainMatch.Name || '';
-                if (nm) setVal('mf-airport-main', nm);
+                // Solicitud: rellenar con el código IATA (3 letras)
+                setVal('mf-airport-main', mainMatch.IATA);
               }
             } catch(_){ }
             // tiempos llegada (prefer robust slot-assigned extractor)
