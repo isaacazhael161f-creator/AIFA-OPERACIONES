@@ -2989,8 +2989,9 @@ Z,Others,Not specific,Special internal purposes`;
   let aircraftByReg = new Map(); // reg -> { type(IATA), ownerIATA }
   let typeByCode = new Map();    // IATA -> { ICAO, Name }
   let typeIcaoSetV2 = new Set(); // ICAO set for validation
-      let airportByIATA = new Map(); // IATA -> Name
-      let airportByName = new Map(); // name lower -> IATA
+  let airportByIATA = new Map(); // IATA -> Name
+  let airportByName = new Map(); // name lower -> IATA
+  let airportNameIndex = []; // [{ name, iata, norm, tokens }]
       let iataSet = new Set();
 
       async function loadAirlinesCatalog(){
@@ -3117,6 +3118,11 @@ Z,Others,Not specific,Special internal purposes`;
             airportByIATA.set(IATA, Name);
             airportByName.set(Name.toLowerCase(), IATA);
             iataSet.add(IATA);
+            try {
+              const norm = (Name||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+              const tokens = norm.split(' ').filter(Boolean);
+              airportNameIndex.push({ name: Name, iata: IATA, norm, tokens });
+            } catch(_){ }
           }
         } catch(_){ /* ignore */ }
       }
@@ -3179,6 +3185,20 @@ Z,Others,Not specific,Special internal purposes`;
             try {
               const lines = (text||'').toString().split(/\r?\n/);
               const rxIATA = /\b([A-Z]{3})\b/;
+              const norm = (s)=> (s||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+              const bestFuzzy = (phrase)=>{
+                const NP = norm(phrase); if (!NP) return null;
+                const pTok = NP.split(' ').filter(Boolean);
+                let best=null, bestScore=0;
+                for (const rec of airportNameIndex){
+                  if (!rec || !rec.norm) continue;
+                  if (NP.includes(rec.norm) || rec.norm.includes(NP)) return rec;
+                  const inter = rec.tokens.filter(t=> pTok.includes(t));
+                  const score = inter.length / Math.max(1, rec.tokens.length);
+                  if (score > bestScore && (inter.length>=2 || score>=0.6)) { best = rec; bestScore = score; }
+                }
+                return best;
+              };
               const isNameLine = (s)=>{
                 if (!s) return false;
                 const t = s.trim(); if (!t) return false;
@@ -3189,15 +3209,21 @@ Z,Others,Not specific,Special internal purposes`;
               };
               for (let i=0;i<lines.length;i++){
                 if (/ORIGEN\s+DEL\s+VUELO/i.test(lines[i])){
+                  // Código: puede venir en la misma línea después del label
+                  try { const mSame = (lines[i]||'').toUpperCase().match(/ORIGEN\s+DEL\s+VUELO.*?\b([A-Z]{3})\b/); if (mSame) out.code = mSame[1]; } catch(_){ }
                   // 1) Nombre: si la siguiente línea pide registrar nombre, tomar la anterior
                   if (/NOMBRE\s+COMPLETO\s+DEL\s+AEROPUERTO/i.test(lines[i+1]||'') || /REGISTRAR\s+NOMBRE\s+COMPLETO\s+DEL\s+AEROPUERTO/i.test(lines[i+1]||'')){
                     const cand = (lines[i-1]||'').trim();
-                    if (isNameLine(cand)) out.name = cand;
+                    if (isNameLine(cand)){
+                      const rec = bestFuzzy(cand);
+                      if (rec){ out.name = rec.name; if (!out.code) out.code = rec.iata; }
+                      else { out.name = cand; }
+                    }
                   }
                   // Si aún no hay nombre, buscar en ventana alrededor
                   if (!out.name){
                     const win = [lines[i-2], lines[i-1], lines[i], lines[i+1], lines[i+2]];
-                    for (const s of win){ if (isNameLine(s||'')){ out.name = (s||'').trim(); break; } }
+                    for (const s of win){ if (isNameLine(s||'')){ const cand=(s||'').trim(); const rec = bestFuzzy(cand); if (rec){ out.name = rec.name; if (!out.code) out.code = rec.iata; } else { out.name = cand; } break; } }
                   }
                   // 2) Código: si aparece "CÓDIGO 3 LETRAS", tomar la línea anterior
                   for (let j=i-2;j<=i+4;j++){
