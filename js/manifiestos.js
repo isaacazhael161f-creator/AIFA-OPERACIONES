@@ -773,6 +773,10 @@
     } catch(_){ /* ignore */ }
   }
 
+  // Redundancy: ensure the delay catalog is loaded as soon as DOM is ready,
+  // so the datalist has options even if other setup fails or the section isn't activated yet.
+  try { document.addEventListener('DOMContentLoaded', function(){ try { loadDelayCatalog(); } catch(_){} }); } catch(_){}
+
   // Extrae minutos de demora cerca de la sección CAUSAS DE LA DEMORA y los asocia por línea con códigos reconocidos
   function extractDelayMinutesFromText(text, codes){
     try {
