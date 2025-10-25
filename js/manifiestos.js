@@ -568,7 +568,13 @@
         }
         const opts = Array.from(delayAlphaMap.entries())
           .sort(([a],[b])=> a.localeCompare(b))
-          .map(([code, rec])=> `<option value="${code}">${rec.summary||rec.description||''}</option>`)
+          .map(([code, rec])=>{
+            const desc = (rec.description||'').trim();
+            const sum = (rec.summary||'').trim();
+            const label = [desc, sum].filter(Boolean).join(' — ');
+            const text = label ? `${code} — ${label}` : code;
+            return `<option value="${code}" label="${label.replace(/"/g,'&quot;')}">${text}</option>`;
+          })
           .join('');
         dl.innerHTML = opts;
       } catch(_){ }
@@ -609,10 +615,34 @@
   }
   function fillOrAddDelayCode(code, desc){
     try {
+      const c = (code||'').toString().toUpperCase();
+      // Preferir nueva UI fija (3 filas)
+      const fixedIds = ['demora1','demora2','demora3'];
+      const getFixed = (id)=> ({
+        codeEl: document.getElementById(id+'-codigo'),
+        minEl: document.getElementById(id+'-tiempo'),
+        descEl: document.getElementById(id+'-descripcion')
+      });
+      const existingFixed = new Set(fixedIds.map(fid=> (getFixed(fid).codeEl?.value||'').toUpperCase().trim()).filter(Boolean));
+      if (!existingFixed.has(c)){
+        const spot = fixedIds.map(getFixed).find(x=> x.codeEl && !String(x.codeEl.value||'').trim());
+          if (spot && spot.codeEl){
+          spot.codeEl.value = c;
+          if (spot.descEl && !spot.descEl.value){
+            const rec = delayAlphaMap.get(c);
+            const dsc = desc || rec?.description || rec?.summary || '';
+            if (dsc) spot.descEl.value = dsc;
+          }
+          // normalizar
+          spot.codeEl.value = (spot.codeEl.value||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
+          return;
+        }
+      }
+      // Fallback: tabla dinámica si existe
       const cells = Array.from(document.querySelectorAll('.demora-codigo'));
       const firstEmpty = cells.find(inp=> !String(inp.value||'').trim());
       if (firstEmpty){
-        firstEmpty.value = code;
+        firstEmpty.value = c;
         const row = firstEmpty.closest('tr');
         const d = row ? row.querySelector('.demora-descripcion') : null;
         if (d && !d.value) d.value = desc||'';
@@ -623,9 +653,48 @@
           if (row){ row.classList.toggle('table-warning', !isValid); }
         }
       } else {
-        addDemoraRow({ codigo: code, minutos: '', descripcion: desc||'' });
+        if (typeof addDemoraRow === 'function') addDemoraRow({ codigo: c, minutos: '', descripcion: desc||'' });
       }
-    } catch(_){ addDemoraRow({ codigo: code, minutos: '', descripcion: desc||'' }); }
+    } catch(_){ if (typeof addDemoraRow === 'function') addDemoraRow({ codigo: code, minutos: '', descripcion: desc||'' }); }
+  }
+  // Helpers para la nueva UI fija (3 filas)
+  function getDelayDescriptionByCode(code){
+    try {
+      const C=(code||'').toString().toUpperCase();
+      const rec = delayAlphaMap.get(C);
+      return (rec && (rec.description||rec.summary)) || '';
+    } catch(_){ return ''; }
+  }
+  function setDemoraRow(index, code, minutes, description){
+    const idx = Number(index);
+    const codeEl = document.getElementById(`demora${idx}-codigo`);
+    const minEl = document.getElementById(`demora${idx}-tiempo`);
+    const descEl = document.getElementById(`demora${idx}-descripcion`);
+    if (!codeEl || !minEl || !descEl) return;
+    if (code != null) codeEl.value = (code||'').toString().toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
+    if (minutes != null && minutes !== '') minEl.value = minutes;
+    const desc = (description && String(description).trim()) || getDelayDescriptionByCode(codeEl.value);
+    if (desc) descEl.value = desc;
+  }
+  function readDemorasFromFixedFields(){
+    const out = [];
+    for (let i=1;i<=3;i++){
+      const code = (document.getElementById(`demora${i}-codigo`)?.value||'').toUpperCase().trim();
+      const minutosRaw = (document.getElementById(`demora${i}-tiempo`)?.value||'').trim();
+      const descripcion = document.getElementById(`demora${i}-descripcion`)?.value||'';
+      if (code || minutosRaw || descripcion){
+        out.push({ codigo: code, minutos: minutosRaw, descripcion });
+      }
+    }
+    return out;
+  }
+  function clearDemorasFixedFields(){
+    for (let i=1;i<=3;i++){
+      const c = document.getElementById(`demora${i}-codigo`);
+      const m = document.getElementById(`demora${i}-tiempo`);
+      const d = document.getElementById(`demora${i}-descripcion`);
+      if (c) c.value=''; if (m) m.value=''; if (d) d.value='';
+    }
   }
   // Attach NA toggles (V1) and convert to 24h text inputs if forced
   try {
@@ -655,7 +724,7 @@
       try { const a = it?.meta; if (!a) return; input.value = (a.icao||'').toUpperCase(); const el = document.getElementById('mf-airline'); if (el && a.name) el.value = a.name; } catch(_){ }
     }});
     // Aeropuerto principal (Llegada/Salida)
-    window._mfAttachCatalogButton('mf-airport-main', { load:'airports', onPick:(it, input)=>{ try { const a=it?.meta; if (!a) return; input.value = a.name||''; } catch(_){ } }});
+  window._mfAttachCatalogButton('mf-airport-main', { load:'airports', onPick:(it, input)=>{ try { const a=it?.meta; if (!a) return; input.value = (a.iata||'').toUpperCase(); } catch(_){ } }});
   } catch(_){ }
   try {
     // Aeropuertos: code/name pairs
@@ -2444,28 +2513,19 @@ Z,Others,Not specific,Special internal purposes`;
               if (!delayAlphaMap || delayAlphaMap.size===0){ try { await loadDelayCatalog(); } catch(_){ } }
               const codes = extractDelayCodesFromText(text);
               if (codes && codes.length){
-                // Evitar duplicados con lo que ya esté en la tabla
-                const existing = new Set(Array.from(document.querySelectorAll('.demora-codigo')).map(inp=> (inp.value||'').toUpperCase().trim()));
-                codes.forEach(code=>{
-                  if (existing.has(code)) return;
+                // Rellenar hasta 3 filas fijas; evitar duplicados existentes
+                const fixedExisting = new Set(['demora1','demora2','demora3'].map(id=> (document.getElementById(id+'-codigo')?.value||'').toUpperCase().trim()).filter(Boolean));
+                const minsMap = extractDelayMinutesFromText(text, codes) || new Map();
+                let i=1;
+                for (const code of codes){
+                  if (i>3) break;
+                  if (fixedExisting.has(code)) continue;
                   const rec = delayAlphaMap.get(code) || {};
                   const descTxt = rec.summary || rec.description || '';
-                  fillOrAddDelayCode(code, descTxt);
-                  existing.add(code);
-                });
-                // Intentar asignar minutos por código
-                const minsMap = extractDelayMinutesFromText(text, codes);
-                if (minsMap && minsMap.size){
-                  const rows = Array.from(document.querySelectorAll('#tabla-demoras tbody tr'));
-                  for (const [code, mins] of minsMap.entries()){
-                    const row = rows.find(r=> (r.querySelector('.demora-codigo')?.value||'').toUpperCase().trim() === code);
-                    if (row){
-                      const m = row.querySelector('.demora-minutos');
-                      if (m && !m.value && Number.isFinite(mins)) m.value = String(mins);
-                    }
-                  }
+                  const mins = minsMap.get(code);
+                  setDemoraRow(i, code, (Number.isFinite(mins)? String(mins): ''), descTxt);
+                  i++;
                 }
-                updateDemorasTotal();
               }
             } catch(_){ }
             if (s) s.textContent += '\n\nAutorrelleno aplicado (si hubo coincidencias).';
@@ -2626,9 +2686,11 @@ Z,Others,Not specific,Special internal purposes`;
           if (prevCanvas && !prevCanvas.classList.contains('d-none')){ previewImage = prevCanvas.toDataURL('image/png'); }
           else if (prevImg && !prevImg.classList.contains('d-none')){ previewImage = prevImg.src || ''; }
         } catch(_){ }
-        // Demoras actuales (tabla)
+        // Demoras actuales: preferir UI de 3 filas fijas; si no hay, caer a tabla
         const demoras = (function(){
           try {
+            const fixed = (typeof readDemorasFromFixedFields==='function') ? readDemorasFromFixedFields() : [];
+            if (fixed && fixed.length) return fixed;
             const trs = Array.from(document.querySelectorAll('#tabla-demoras tbody tr'));
             return trs.map(tr=>({
               codigo: (tr.querySelector('.demora-codigo')?.value||'').toUpperCase().trim(),
@@ -2704,6 +2766,11 @@ Z,Others,Not specific,Special internal purposes`;
             // Asegurar que cada registro tenga demoras si la estructura existe en el formulario actual
             const getDemorasFromDOM = ()=>{
               try {
+                // Preferir 3 filas fijas si existen
+                if (typeof readDemorasFromFixedFields === 'function'){
+                  const fx = readDemorasFromFixedFields();
+                  if (fx && fx.length) return fx;
+                }
                 const trs = Array.from(document.querySelectorAll('#tabla-demoras tbody tr'));
                 return trs.map(tr=>({
                   codigo: (tr.querySelector('.demora-codigo')?.value||'').toUpperCase().trim(),
@@ -2778,7 +2845,7 @@ Z,Others,Not specific,Special internal purposes`;
             codeInp.value = (codeInp.value||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
             const rec = delayAlphaMap.get(codeInp.value);
             tr.classList.toggle('table-warning', !rec);
-            if (rec && descInp && !descInp.value){ descInp.value = rec.summary || rec.description || ''; }
+            if (rec && descInp && !descInp.value){ descInp.value = rec.description || rec.summary || ''; }
           };
           if (codeInp && !codeInp._wired){ codeInp._wired = 1; ['input','change','blur'].forEach(ev=> codeInp.addEventListener(ev, norm)); norm(); }
         } catch(_){ }
@@ -2796,9 +2863,29 @@ Z,Others,Not specific,Special internal purposes`;
       }
   function clearDemoras(){ if (demoraTbody) { demoraTbody.innerHTML = ''; ensureInitialDemoraRows(3); } updateDemorasTotal(); }
       if (addDemoraBtn && !addDemoraBtn._wired){ addDemoraBtn._wired = 1; addDemoraBtn.addEventListener('click', ()=> addDemoraRow()); }
-      if (clearDemorasBtn && !clearDemorasBtn._wired){ clearDemorasBtn._wired = 1; clearDemorasBtn.addEventListener('click', clearDemoras); }
-  // Al iniciar, dejar 3 renglones listos
+      if (clearDemorasBtn && !clearDemorasBtn._wired){ clearDemorasBtn._wired = 1; clearDemorasBtn.addEventListener('click', ()=>{ clearDemoras(); clearDemorasFixedFields?.(); }); }
+  // Tabla dinámica: si existe, dejar 3 renglones listos; además cablear inputs fijos si están presentes
   ensureInitialDemoraRows(3);
+      (function wireFixedDemoraInputs(){
+        for (let i=1;i<=3;i++){
+          const codeEl = document.getElementById(`demora${i}-codigo`);
+          const descEl = document.getElementById(`demora${i}-descripcion`);
+          if (codeEl && !codeEl._wired){
+            codeEl._wired = 1;
+            const norm = ()=>{
+              try {
+                codeEl.value = (codeEl.value||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
+                if (descEl && !descEl.value){
+                  const rec = delayAlphaMap.get(codeEl.value);
+                  if (rec){ descEl.value = rec.description || rec.summary || ''; }
+                }
+              } catch(_){ }
+            };
+            ['input','change','blur'].forEach(ev=> codeEl.addEventListener(ev, norm));
+            norm();
+          }
+        }
+      })();
 
       window._manifListeners = window._manifListeners || { clicks: false, inputs: false };
       if (!window._manifListeners.clicks){
@@ -2819,7 +2906,7 @@ Z,Others,Not specific,Special internal purposes`;
             const rec = delayAlphaMap.get(inp.value);
             if (tr) tr.classList.toggle('table-warning', !rec);
             const d = tr ? tr.querySelector('.demora-descripcion') : null;
-            if (rec && d && !d.value) d.value = rec.summary || rec.description || '';
+            if (rec && d && !d.value) d.value = rec.description || rec.summary || '';
           }
           if (e.target && e.target.closest && e.target.closest('#tabla-embarque')) { calculateTotals(); }
         });
@@ -2850,7 +2937,7 @@ Z,Others,Not specific,Special internal purposes`;
         if (btn) { const tr = btn.closest('tr'); if (tr) tr.remove(); calculateTotals(); }
       });
 
-      function clearDynamicTables(){ clearDemoras(); clearEmbarque(); }
+  function clearDynamicTables(){ try { clearDemoras(); } catch(_){ } try { clearDemorasFixedFields?.(); } catch(_){ } try { clearEmbarque(); } catch(_){ } }
     } catch (e) { /* ignore */ }
   };
 
@@ -3207,10 +3294,18 @@ Z,Others,Not specific,Special internal purposes`;
                 // Debe tener letras y espacios y longitud razonable
                 return /[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(t) && t.length >= 6;
               };
+              const LABELS = [
+                /ORIGEN\s+DEL\s+VUELO/i,
+                /ORIGEN\s+DE\s+VUELO/i,
+                /PROCEDENCIA\s+DEL\s+VUELO/i,
+                /PROCEDENCIA\s+DE\s+VUELO/i,
+                /PROCEDENCIA\b/i,
+                /FROM\b/i
+              ];
               for (let i=0;i<lines.length;i++){
-                if (/ORIGEN\s+DEL\s+VUELO/i.test(lines[i])){
+                if (LABELS.some(rx=> rx.test(lines[i]||''))){
                   // Código: puede venir en la misma línea después del label
-                  try { const mSame = (lines[i]||'').toUpperCase().match(/ORIGEN\s+DEL\s+VUELO.*?\b([A-Z]{3})\b/); if (mSame) out.code = mSame[1]; } catch(_){ }
+                  try { const mSame = (lines[i]||'').toUpperCase().match(/\b([A-Z]{3})\b/); if (mSame) out.code = mSame[1]; } catch(_){ }
                   // 1) Nombre: si la siguiente línea pide registrar nombre, tomar la anterior
                   if (/NOMBRE\s+COMPLETO\s+DEL\s+AEROPUERTO/i.test(lines[i+1]||'') || /REGISTRAR\s+NOMBRE\s+COMPLETO\s+DEL\s+AEROPUERTO/i.test(lines[i+1]||'')){
                     const cand = (lines[i-1]||'').trim();
@@ -3281,7 +3376,13 @@ Z,Others,Not specific,Special internal purposes`;
                 if (/^\s*[A-Z]{3}\s*$/.test(t)) return false;
                 return /[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(t) && t.length >= 6;
               };
-              const LABELS = [/ESCALA\s+ANTERIOR/i, /ÚLTIMA\s+ESCALA/i, /ULTIMA\s+ESCALA/i, /LAST\s+STOP/i];
+              const LABELS = [
+                /ESCALA\s+ANTERIOR(?:\s+DEL\s+VUELO)?/i,
+                /ÚLTIMA\s+ESCALA(?:\s+DEL\s+VUELO)?/i,
+                /ULTIMA\s+ESCALA(?:\s+DEL\s+VUELO)?/i,
+                /ESCALA\s+DEL\s+VUELO/i,
+                /LAST\s+STOP/i
+              ];
               for (let i=0;i<lines.length;i++){
                 if (LABELS.some(rx=> rx.test(lines[i]||''))){
                   // Código en la MISMA línea del label (p.ej. "ESCALA ANTERIOR ABC")
@@ -3637,7 +3738,18 @@ Z,Others,Not specific,Special internal purposes`;
                 const name = airportByIATA.get(origen); if (name) setVal('mf-arr-origin-name', name);
               }
             } catch(_){ if (origen) { setVal('mf-arr-origin-code', origen); const name = airportByIATA.get(origen); if (name) setVal('mf-arr-origin-name', name); } }
-            if (escala) { setVal('mf-arr-last-stop-code', escala); const name = airportByIATA.get(escala); if (name) setVal('mf-arr-last-stop', name); }
+            // Intento fuerte: ESCALA ANTERIOR / ÚLTIMA ESCALA (nombre + código)
+            try {
+              const got2 = extractArrivalLastStopFields(text);
+              if (got2 && (got2.code || got2.name)){
+                if (got2.code){ setVal('mf-arr-last-stop-code', got2.code); }
+                if (got2.name){ setVal('mf-arr-last-stop', got2.name); }
+              } else if (escala) {
+                // Fallback a detección genérica
+                setVal('mf-arr-last-stop-code', escala);
+                const name = airportByIATA.get(escala); if (name) setVal('mf-arr-last-stop', name);
+              }
+            } catch(_){ if (escala) { setVal('mf-arr-last-stop-code', escala); const name = airportByIATA.get(escala); if (name) setVal('mf-arr-last-stop', name); } }
             // Aeropuerto principal (Llegada): detectar por etiqueta y colocar CÓDIGO IATA de 3 letras
             try {
               const mainArrCand = findNearLabelIATACode(['AEROPUERTO DE LLEGADA','AEROPUERTO DESTINO','AEROPUERTO DE ARRIBO','AEROPUERTO DESTINO DEL VUELO'], text);
