@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -1172,38 +1171,55 @@
                                             </div>
                                             <hr />
                                         </div>
-                                        <!-- Causas de demora -->
+                                        
+                                        <!-- Causas de la demora (3 filas fijas) -->
                                         <div class="col-12">
-                                            <div class="d-flex align-items-center justify-content-between">
-                                                <h6 class="mb-2 mf-section-title"><i class="fas fa-clock me-1"></i>Causas de demora</h6>
-                                                <div class="d-flex gap-2">
-                                                    <button type="button" id="add-demora-row" class="btn btn-sm btn-outline-secondary"><i class="fas fa-plus me-1"></i>Agregar</button>
-                                                    <button type="button" id="clear-demoras" class="btn btn-sm btn-outline-secondary"><i class="fas fa-trash me-1"></i>Limpiar</button>
+                                            <h6 class="mb-2 mf-section-title"><i class="fas fa-clock me-1"></i>Causas de la demora</h6>
+                                            <div class="row g-2 align-items-end mb-1">
+                                                <div class="col-12 col-md-3">
+                                                    <label class="form-label">Código de demora</label>
+                                                    <input type="text" class="form-control" id="demora1-codigo" list="delay-alpha-codes" placeholder="AA/AB/BC" maxlength="3">
+                                                </div>
+                                                <div class="col-6 col-md-2">
+                                                    <label class="form-label">Tiempo (min)</label>
+                                                    <input type="number" min="0" class="form-control" id="demora1-tiempo" placeholder="0">
+                                                </div>
+                                                <div class="col-12 col-md-7">
+                                                    <label class="form-label">Descripción</label>
+                                                    <input type="text" class="form-control" id="demora1-descripcion" placeholder="Descripción del código">
                                                 </div>
                                             </div>
-                                            <div class="table-responsive">
-                                                <table class="table table-sm align-middle" id="tabla-demoras">
-                                                    <thead>
-                                                        <tr>
-                                                            <th style="width:120px;">Código</th>
-                                                            <th style="width:120px;">Minutos</th>
-                                                            <th>Descripción</th>
-                                                            <th style="width:60px;"></th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody></tbody>
-                                                    <tfoot>
-                                                        <tr class="table-light">
-                                                            <th>Total</th>
-                                                            <th><input type="text" class="form-control form-control-sm" id="total-demora-minutos" readonly></th>
-                                                            <th></th>
-                                                            <th></th>
-                                                        </tr>
-                                                    </tfoot>
-                                                </table>
+                                            <div class="row g-2 align-items-end mb-1">
+                                                <div class="col-12 col-md-3">
+                                                    <label class="form-label">Código de demora</label>
+                                                    <input type="text" class="form-control" id="demora2-codigo" list="delay-alpha-codes" placeholder="AA/AB/BC" maxlength="3">
+                                                </div>
+                                                <div class="col-6 col-md-2">
+                                                    <label class="form-label">Tiempo (min)</label>
+                                                    <input type="number" min="0" class="form-control" id="demora2-tiempo" placeholder="0">
+                                                </div>
+                                                <div class="col-12 col-md-7">
+                                                    <label class="form-label">Descripción</label>
+                                                    <input type="text" class="form-control" id="demora2-descripcion" placeholder="Descripción del código">
+                                                </div>
+                                            </div>
+                                            <div class="row g-2 align-items-end mb-2">
+                                                <div class="col-12 col-md-3">
+                                                    <label class="form-label">Código de demora</label>
+                                                    <input type="text" class="form-control" id="demora3-codigo" list="delay-alpha-codes" placeholder="AA/AB/BC" maxlength="3">
+                                                </div>
+                                                <div class="col-6 col-md-2">
+                                                    <label class="form-label">Tiempo (min)</label>
+                                                    <input type="number" min="0" class="form-control" id="demora3-tiempo" placeholder="0">
+                                                </div>
+                                                <div class="col-12 col-md-7">
+                                                    <label class="form-label">Descripción</label>
+                                                    <input type="text" class="form-control" id="demora3-descripcion" placeholder="Descripción del código">
+                                                </div>
                                             </div>
                                             <hr />
                                         </div>
+
                                         <!-- División: Pasajeros por categoría (después de Demoras) -->
                                         <div class="col-12" data-dir="departure-only">
                                             <h6 class="mb-2 mf-section-title"><i class="fas fa-people-group me-1"></i>Pasajeros por categoría</h6>
