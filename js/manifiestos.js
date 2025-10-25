@@ -3255,6 +3255,81 @@ Z,Others,Not specific,Special internal purposes`;
             return out;
           }
 
+          // Extrae ESCALA ANTERIOR (Última escala): nombre completo y/o código IATA
+          function extractArrivalLastStopFields(text){
+            const out = { name:'', code:'' };
+            try {
+              const lines = (text||'').toString().split(/\r?\n/);
+              const rxIATA = /\b([A-Z]{3})\b/;
+              const norm = (s)=> (s||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+              const bestFuzzy = (phrase)=>{
+                const NP = norm(phrase); if (!NP) return null;
+                const pTok = NP.split(' ').filter(Boolean);
+                let best=null, bestScore=0;
+                for (const rec of airportNameIndex){
+                  if (!rec || !rec.norm) continue;
+                  if (NP.includes(rec.norm) || rec.norm.includes(NP)) return rec;
+                  const inter = rec.tokens.filter(t=> pTok.includes(t));
+                  const score = inter.length / Math.max(1, rec.tokens.length);
+                  if (score > bestScore && (inter.length>=2 || score>=0.6)) { best = rec; bestScore = score; }
+                }
+                return best;
+              };
+              const isNameLine = (s)=>{
+                if (!s) return false;
+                const t = s.trim(); if (!t) return false;
+                if (/^\s*[A-Z]{3}\s*$/.test(t)) return false;
+                return /[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(t) && t.length >= 6;
+              };
+              const LABELS = [/ESCALA\s+ANTERIOR/i, /ÚLTIMA\s+ESCALA/i, /ULTIMA\s+ESCALA/i, /LAST\s+STOP/i];
+              for (let i=0;i<lines.length;i++){
+                if (LABELS.some(rx=> rx.test(lines[i]||''))){
+                  // Código en la MISMA línea del label (p.ej. "ESCALA ANTERIOR ABC")
+                  try { const mSame = (lines[i]||'').toUpperCase().match(/\b([A-Z]{3})\b/); if (mSame) out.code = mSame[1]; } catch(_){ }
+                  // Nombre: si la siguiente línea pide registrar nombre, tomar la anterior
+                  if (/NOMBRE\s+COMPLETO\s+DEL\s+AEROPUERTO/i.test(lines[i+1]||'') || /REGISTRAR\s+NOMBRE\s+COMPLETO\s+DEL\s+AEROPUERTO/i.test(lines[i+1]||'')){
+                    const cand = (lines[i-1]||'').trim();
+                    if (isNameLine(cand)){
+                      const rec = bestFuzzy(cand);
+                      if (rec){ out.name = rec.name; if (!out.code) out.code = rec.iata; }
+                      else { out.name = cand; }
+                    }
+                  }
+                  // Si aún no hay nombre, buscar en ventana alrededor
+                  if (!out.name){
+                    const win = [lines[i-2], lines[i-1], lines[i], lines[i+1], lines[i+2]];
+                    for (const s of win){ if (isNameLine(s||'')){ const cand=(s||'').trim(); const rec = bestFuzzy(cand); if (rec){ out.name = rec.name; if (!out.code) out.code = rec.iata; } else { out.name = cand; } break; } }
+                  }
+                  // Pista: si aparece "CÓDIGO 3 LETRAS", tomar la línea anterior
+                  for (let j=i-2;j<=i+4;j++){
+                    const L = lines[j]||'';
+                    if (/C[ÓO]DIGO\s*3\s*LETRAS/i.test(L)){
+                      const prev = lines[j-1]||''; const m = prev.toUpperCase().match(rxIATA);
+                      if (m){ out.code = m[1]; break; }
+                    }
+                  }
+                  // Si no hay aún código, buscar 3 letras cercanas
+                  if (!out.code){
+                    const win = [lines[i-2], lines[i-1], lines[i], lines[i+1], lines[i+2]];
+                    for (const s of win){ const m = (s||'').toUpperCase().match(rxIATA); if (m){ out.code = m[1]; break; } }
+                  }
+                  break;
+                }
+              }
+              // Cross-fill con catálogos
+              if (out.name && !out.code){
+                const key = out.name.trim().toLowerCase();
+                const c = airportByName.get(key);
+                if (c) out.code = c;
+              }
+              if (out.code && !out.name){
+                const nm = airportByIATA.get(out.code);
+                if (nm) out.name = nm;
+              }
+            } catch(_){ }
+            return out;
+          }
+
       // Heurística robusta para mapear Origen / Próxima escala / Destino en documentos de Salida
       function extractDepartureRouteFields(text){
         const Ulines = (text||'').toUpperCase().split(/\r?\n/);
