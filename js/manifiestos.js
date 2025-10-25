@@ -607,33 +607,6 @@
       return out;
     } catch(_){ return new Map(); }
   }
-  function extractDelayCodesFromText(text){
-    try {
-      const U = (text||'').toString().toUpperCase();
-      const lines = U.split(/\r?\n/);
-      const valid = new Set(Array.from(delayAlphaMap.keys()));
-      const found = [];
-      const push = (code)=>{ if (!code) return; if (!valid.has(code)) return; if (!found.includes(code)) found.push(code); };
-      const nearLabels = [/CAUSAS?\s+DE\s+LA?\s*DEMORA/, /CAUSA\s+DE\s+DEMORA/, /CAUSAS?\s+DEMORA/, /DEMORA\s*:/, /\bCÓDIGO\b/, /\bCODIGO\b/];
-      const rx3 = /\b[A-Z]{3}\b/g; const rx2 = /\b[A-Z]{2}\b/g;
-      for (let i=0;i<lines.length;i++){
-        if (nearLabels.some(rx=> rx.test(lines[i]))){
-          for (let k=-3;k<=6;k++){
-            if (k===0) continue; // saltar la misma línea del label
-            const s = lines[i+k]||''; if (!s) continue;
-            const m3 = s.match(rx3)||[]; m3.forEach(c=> push(c));
-            if (m3.length===0){ const m2 = s.match(rx2)||[]; m2.forEach(c=> push(c)); }
-          }
-        }
-      }
-      // Fallback global (limit 8 hits)
-      if (found.length===0){
-        const mAll = U.match(/\b[A-Z]{2,3}\b/g)||[];
-        for (const t of mAll){ push(t); if (found.length>=8) break; }
-      }
-      return found;
-    } catch(_){ return []; }
-  }
   function fillOrAddDelayCode(code, desc){
     try {
       const cells = Array.from(document.querySelectorAll('.demora-codigo'));
@@ -2561,28 +2534,48 @@ Z,Others,Not specific,Special internal purposes`;
       })();
 
       (function wireAirportFields(){
+        // Helpers: normalization for names (remove accents/extra spaces)
+        const normName = (s)=> (s||'').toString()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+          .replace(/\s+/g,' ').trim().toLowerCase();
+        // Build normalized map on demand from current catalog
+        let airportByNameNorm = new Map();
+        try {
+          airportByNameNorm.clear();
+          if (airportByIATA && airportByIATA.size){
+            for (const [iata, nm] of airportByIATA.entries()){
+              const key = normName(nm);
+              if (key && !airportByNameNorm.has(key)) airportByNameNorm.set(key, iata);
+            }
+          }
+        } catch(_){ }
+        function lookupIATAByNameAny(name){
+          const exact = airportByName.get((name||'').toString().trim().toLowerCase());
+          if (exact) return exact;
+          const norm = normName(name);
+          return airportByNameNorm.get(norm) || '';
+        }
         function link(nameId, codeId){
           const nameEl = document.getElementById(nameId);
           const codeEl = document.getElementById(codeId);
           if (!nameEl || !codeEl) return;
           if (!nameEl._wired){
             nameEl._wired = 1;
-            nameEl.addEventListener('input', ()=>{
-              const s = (nameEl.value||'').trim().toLowerCase();
-              const iata = airportByName.get(s);
-              if (iata && !codeEl.value) codeEl.value = iata;
-            });
+            const onName = ()=>{
+              const iata = lookupIATAByNameAny(nameEl.value||'');
+              if (iata){ codeEl.value = iata; }
+            };
+            ['input','change','blur'].forEach(ev=> nameEl.addEventListener(ev, onName));
           }
           if (!codeEl._wired){
             codeEl._wired = 1;
-              // Si es válida según catálogo, limpiar advertencia
-              try { const w = document.getElementById('mf-tail-warning'); if (w) { w.textContent = ''; w.classList.add('d-none'); } } catch(_){ }
-            codeEl.addEventListener('input', ()=>{
-              const c = (codeEl.value||'').trim().toUpperCase();
-              codeEl.value = c.replace(/[^A-Z]/g,'').slice(0,3);
-              const name = airportByIATA.get(codeEl.value);
-              if (name && !nameEl.value) nameEl.value = name;
-            });
+            const onCode = ()=>{
+              const c = (codeEl.value||'').toString().toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
+              codeEl.value = c;
+              const name = airportByIATA.get(c) || '';
+              if (name){ nameEl.value = name; }
+            };
+            ['input','change','blur'].forEach(ev=> codeEl.addEventListener(ev, onCode));
           }
         }
         link('mf-origin-name','mf-origin-code');
@@ -2590,6 +2583,13 @@ Z,Others,Not specific,Special internal purposes`;
         link('mf-final-dest','mf-final-dest-code');
         link('mf-arr-origin-name','mf-arr-origin-code');
         link('mf-arr-last-stop','mf-arr-last-stop-code');
+        // Aeropuerto principal (IATA): normalizar y validar
+        (function(){
+          const el = document.getElementById('mf-airport-main');
+          if (!el || el._wired) return; el._wired = 1;
+          const onIATA = ()=>{ el.value = (el.value||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3); };
+          ['input','change','blur'].forEach(ev=> el.addEventListener(ev, onIATA));
+        })();
       })();
 
       function calculateTotals(){
