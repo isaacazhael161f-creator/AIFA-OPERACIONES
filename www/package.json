@@ -1,0 +1,34 @@
+{
+  "name": "aifa-operaciones",
+  "version": "1.0.0",
+  "description": "Dashboard y herramientas de operaciones AIFA",
+  "main": "script.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isaacazhael161f-creator/AIFA-OPERACIONES.git"
+  },
+  "keywords": [
+    "aifa",
+    "operaciones",
+    "dashboard"
+  ],
+  "author": "Isaac Azhael López Cancino",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/isaacazhael161f-creator/AIFA-OPERACIONES/issues"
+  },
+  "homepage": "https://github.com/isaacazhael161f-creator/AIFA-OPERACIONES#readme",
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.18.3"
+  }
+}

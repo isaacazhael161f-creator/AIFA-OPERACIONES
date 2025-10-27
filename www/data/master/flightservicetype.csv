@@ -1,0 +1,27 @@
+﻿Code,Category,Type of operation,Description
+A,Additional flights,"Cargo,Mail",Cargo/Mail
+B,Additional flights,Passenger,Shuttle Mode
+C,Charter,Passenger,Passenger Only
+D,Others,Not specific,General Aviation
+E,Others,Not specific,Test
+F,Scheduled,"Cargo,Mail",Loose Loaded cargo and/or preloaded devices
+G,Additional flights,Passenger,Normal Service
+H,Charter,"Cargo,Mail",Cargo and /or Mail
+I,Others,Not specific,State/Diplomatic/Air Ambulance
+J,Scheduled,Passenger,Normal Service
+K,Others,Not specific,Training (School/Crew check)
+L,Charter,"Cargo,Mail,Passenger",Passenger/Cargo/Mail
+M,Scheduled,"Cargo,Mail",Mail only
+N,Others,Not specific,Business Aviation/Air Taxi
+O,Charter,Special handling,Charter requiring special handling(e.g. Migrants/immigrant Flights)
+P,Others,Not specific,Non-revenue(Positioning/Ferry/Delivery/Demo
+Q,Scheduled,"Passenger,Cargo",Passenger/Cargo in Cabin (mixed configuration aircraft)
+R,Additional flights,"Passenger,Cargo",Passenger/Cargo in Cabin (mixed configuration aircraft)
+S,Scheduled,Passenger,Shuttle Mode
+T,Others,Not specific,Technical Test
+U,Scheduled,Passenger,Service operated by Surface Vehicle
+V,Scheduled,"Cargo,Mail",Service operated by Surface Vehicle
+W,Others,Not specific,Military
+X,Others,Not specific,Technical Stop
+Y,Others,Not specific,Special internal purposes
+Z,Others,Not specific,Special internal purposes
