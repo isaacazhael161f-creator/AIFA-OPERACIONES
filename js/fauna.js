@@ -568,7 +568,7 @@
       const logoPath = cands && cands.length ? cands[0] : '';
       const dataCands = (cands||[]).join('|');
       const sizeClass = (window.getLogoSizeClass ? window.getLogoSizeClass(airline,'summary') : 'lg');
-      const logoHtml = logoPath ? `<img class="airline-logo ${sizeClass} me-2" src="${logoPath}" alt="Logo ${escapeHtml(airline)}" data-cands="${escapeHtml(dataCands)}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">` : '';
+  const logoHtml = logoPath ? `<img class="airline-logo ${sizeClass} me-2" src="${logoPath}" alt="Logo ${escapeHtml(airline)}" data-cands="${escapeHtml(dataCands)}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)" loading="lazy">` : '';
       html += `
       <div class="col-12 col-sm-6 col-md-4 col-lg-3">
         <div class="card h-100">

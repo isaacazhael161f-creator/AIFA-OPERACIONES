@@ -287,8 +287,9 @@ function getAirlineLogoCandidates(airline){
         if (base.includes('air_france')) candidates.push('images/airlines/logo_air_france_.png');
         if (base.includes('ifl_group')) candidates.push('images/airlines/lofo_ifl_group.png');
     }
-    // Fallback local definitivo
-    candidates.push('images/airlines/default-airline-logo.svg');
+    // Nota: No agregamos un archivo local por defecto aquí para evitar más
+    // solicitudes fallidas cuando el host no está accesible; usaremos un
+    // placeholder inline (data:) en el manejador de error.
     // quitar duplicados conservando orden
     return [...new Set(candidates)];
 }
@@ -299,29 +300,17 @@ function getAirlineLogoPath(airline){
 // Fallback para logos: si .png falla probamos .svg una vez; si también falla, ocultamos el <img>
 function handleLogoError(imgEl){
     try{
-        const list = (imgEl.dataset.cands || '').split('|').filter(Boolean);
-        let idx = parseInt(imgEl.dataset.candIdx || '0', 10);
-        if (list.length && idx < list.length - 1){
-            idx += 1;
-            imgEl.dataset.candIdx = String(idx);
-            imgEl.src = list[idx];
-            return;
-        }
-        // última oportunidad: alternar extensión png<->jpg<->svg en el mismo nombre
-        const current = imgEl.getAttribute('src') || '';
-        const nextByExt = current.endsWith('.png') ? current.replace(/\.png$/i, '.jpg')
-                          : current.endsWith('.jpg') ? current.replace(/\.jpg$/i, '.svg')
-                          : null;
-        if (nextByExt) { imgEl.src = nextByExt; return; }
-        // sin recurso: ocultar img y mantener visible el texto/color
-        imgEl.style.display = 'none';
+        // Corta cualquier cadena de reintentos y usa un placeholder inline de inmediato
+        imgEl.onerror = null;
+        const svg = encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40"><rect width="100%" height="100%" fill="#f1f3f5"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#6c757d">Logo</text></svg>');
+        imgEl.src = 'data:image/svg+xml;charset=utf-8,' + svg;
+        imgEl.setAttribute('loading','lazy');
+        // Además, mantenemos visible el nombre de la aerolínea, quitando marcas de "tiene logo"
         const cell = imgEl.closest('.airline-cell');
         if (cell) cell.classList.remove('has-logo');
-        const row = imgEl.closest('tr');
-        if (row) row.style.removeProperty('--airline-color');
         const header = imgEl.closest('.airline-header');
         if (header) header.classList.remove('airline-has-logo');
-    }catch(_){ imgEl.style.display = 'none'; }
+    }catch(_){ try{ imgEl.style.display = 'none'; }catch(e){} }
 }
 // Marcar celdas/headers cuando el logo carga correctamente para ocultar texto/color
 function logoLoaded(imgEl){
@@ -730,8 +719,14 @@ window.diagnoseCharts = function() {
     
     setupBodyEventListeners();
     setupLightboxListeners();
-    // Inicializar UI de Manifiestos (desacoplado al módulo)
-    try { if (typeof window.setupManifestsUI === 'function') window.setupManifestsUI(); } catch(_) {}
+    // Inicializar UI de Manifiestos: preferir V2 si está disponible para evitar doble cableado
+    try {
+        if (typeof window.setupManifestsUI_v2 === 'function') {
+            window.setupManifestsUI_v2();
+        } else if (typeof window.setupManifestsUI === 'function') {
+            window.setupManifestsUI();
+        }
+    } catch(_) {}
     // Frecuencias: navegación de semana
     const prevW = document.getElementById('freq-prev-week'); if (prevW) prevW.addEventListener('click', ()=> changeFreqWeek(-7));
     const nextW = document.getElementById('freq-next-week'); if (nextW) nextW.addEventListener('click', ()=> changeFreqWeek(7));
@@ -1752,7 +1747,7 @@ function displaySummaryTable(flights) {
     const logoPath = cands[0];
     const dataCands = cands.join('|');
     const sizeClass = getLogoSizeClass(airline, 'summary');
-    const logoHtml = logoPath ? `<img class="airline-logo ${sizeClass} me-2" src="${logoPath}" alt="Logo ${airline}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">` : '';
+    const logoHtml = logoPath ? `<img class="airline-logo ${sizeClass} me-2" src="${logoPath}" alt="Logo ${airline}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)" loading="lazy">` : '';
 
         html += `
         <div class="card">
@@ -1801,7 +1796,7 @@ function displayPassengerTable(flights) {
     const logoPath = cands[0];
     const dataCands = cands.join('|');
     const sizeClass = getLogoSizeClass(airlineName, 'table');
-    const logoHtml = logoPath ? `<img class="airline-logo ${sizeClass}" src="${logoPath}" alt="Logo ${airlineName}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">` : '';
+    const logoHtml = logoPath ? `<img class="airline-logo ${sizeClass}" src="${logoPath}" alt="Logo ${airlineName}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)" loading="lazy">` : '';
         const rowColor = (airlineColors[flight.aerolinea] || '#ccc');
         tableHtml += `<tr class="animated-row" style="--delay: ${index * 0.08}s; --airline-color: ${rowColor};">
             <td><div class="airline-cell">${logoHtml}<span class="airline-name">${airlineName}</span></div></td>
@@ -1867,7 +1862,7 @@ function displayCargoTable(flights) {
     const logoPath = cands[0];
     const dataCands = cands.join('|');
     const sizeClass = getLogoSizeClass(airlineName, 'table');
-    const logoHtml = logoPath ? `<img class="airline-logo ${sizeClass}" src="${logoPath}" alt="Logo ${airlineName}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">` : '';
+    const logoHtml = logoPath ? `<img class="airline-logo ${sizeClass}" src="${logoPath}" alt="Logo ${airlineName}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)" loading="lazy">` : '';
         const rowColor = (airlineColors[flight.aerolinea] || '#ccc');
         tableHtml += `<tr class="animated-row" style="--delay: ${index * 0.08}s; --airline-color: ${rowColor};">
             <td><div class="airline-cell">${logoHtml}<span class="airline-name">${airlineName}</span></div></td>
@@ -3403,7 +3398,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Manifiestos: UI mínima (preview de imagen y tabla local)
-function setupManifestsUI() {
+// IMPORTANTE: Esta es una implementación de respaldo.
+// Solo se asigna si js/manifiestos.js NO definió window.setupManifestsUI.
+if (typeof window.setupManifestsUI !== 'function') {
+window.setupManifestsUI = function() {
     try {
         const up = document.getElementById('manifest-upload');
         const prevImg = document.getElementById('manifest-preview');
@@ -4084,5 +4082,6 @@ function setupManifestsUI() {
             clearEmbarque();
         }
     } catch (e) { /* ignore */ }
+};
 }
 

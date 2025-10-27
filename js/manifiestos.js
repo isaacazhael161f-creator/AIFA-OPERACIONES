@@ -2343,13 +2343,14 @@
         const isArrival = dirArr && dirArr.checked;
         document.querySelectorAll('[data-dir="arrival-only"]').forEach(el => { el.style.display = isArrival ? '' : 'none'; });
         document.querySelectorAll('[data-dir=\"departure-only\"]').forEach(el => { el.style.display = isArrival ? 'none' : ''; });
-        const eta = document.getElementById('mf-time-arr');
-        const etd = document.getElementById('mf-time-dep');
+        // Campos comunes y específicos
         const dest = document.getElementById('mf-final-dest');
         const destCode = document.getElementById('mf-final-dest-code');
         const originName = document.getElementById('mf-origin-name');
         const originCode = document.getElementById('mf-origin-code');
         const nextStopCode = document.getElementById('mf-next-stop-code');
+        const airportMain = document.getElementById('mf-airport-main');
+
         const arrOriginName = document.getElementById('mf-arr-origin-name');
         const arrOriginCode = document.getElementById('mf-arr-origin-code');
         const arrSlotAssigned = document.getElementById('mf-arr-slot-assigned');
@@ -2358,15 +2359,25 @@
         const arrLastStopCode = document.getElementById('mf-arr-last-stop-code');
         const arrArriboPos = document.getElementById('mf-arr-arribo-posicion');
         const arrInicioDes = document.getElementById('mf-arr-inicio-desembarque');
-        if (eta) eta.required = !!isArrival;
-        if (originName) originName.required = !isArrival;
-        if (originCode) originCode.required = !isArrival;
-        if (nextStopCode) nextStopCode.required = false;
-        if (etd) etd.required = !isArrival;
-        if (dest) dest.required = !isArrival;
-        if (destCode) destCode.required = !isArrival;
-        [arrOriginName, arrOriginCode, arrSlotAssigned, arrSlotCoordinated, arrLastStop, arrLastStopCode, arrArriboPos, arrInicioDes]
-          .forEach(el => { if (el) el.required = false; });
+        const arrInicioPernocta = document.getElementById('mf-arr-inicio-pernocta');
+
+        // Reglas: En LLEGADA, hacer obligatorios los campos de la sección Llegada; en Salida, quitar obligatoriedad.
+        if (isArrival){
+          if (airportMain) airportMain.required = true;
+          [arrOriginName, arrOriginCode, arrSlotAssigned, arrSlotCoordinated, arrLastStop, arrLastStopCode, arrArriboPos, arrInicioDes, arrInicioPernocta]
+            .forEach(el => { if (el) el.required = true; });
+          // En salida no son obligatorios
+          [originName, originCode, nextStopCode, dest, destCode].forEach(el => { if (el) el.required = false; });
+        } else {
+          if (airportMain) airportMain.required = false;
+          [arrOriginName, arrOriginCode, arrSlotAssigned, arrSlotCoordinated, arrLastStop, arrLastStopCode, arrArriboPos, arrInicioDes, arrInicioPernocta]
+            .forEach(el => { if (el) el.required = false; });
+          // Para salidas, mantener reglas actuales (no imponemos nuevos requeridos aquí)
+          [originName, originCode].forEach(el => { if (el) el && (el.required = true); });
+          [nextStopCode].forEach(el => { if (el) el.required = false; });
+          [dest, destCode].forEach(el => { if (el) el && (el.required = true); });
+        }
+
         const title = document.getElementById('mf-title');
         if (title) title.value = isArrival ? 'MANIFIESTO DE LLEGADA' : 'MANIFIESTO DE SALIDA';
         try {
@@ -2739,7 +2750,7 @@ Z,Others,Not specific,Special internal purposes`;
           if (carrier.value !== code) carrier.value = code;
           if (code.length !== 3) return;
           const rec = airlinesCatalog.find(a=> a.ICAO === code);
-            if (canon){
+            if (rec){
             if (opName && !opName.value) opName.value = rec.Name;
             if (airlineName && !airlineName.value) airlineName.value = rec.Name;
           }
@@ -2903,8 +2914,14 @@ Z,Others,Not specific,Special internal purposes`;
           airportMain: g('mf-airport-main'), flightType: g('mf-flight-type'),
           tail: g('mf-tail'), aircraft: g('mf-aircraft'), originName: g('mf-origin-name'), originCode: g('mf-origin-code'),
           crewTotal: g('mf-crew-total'),
-          baggageKg: g('mf-baggage-kg'), baggagePieces: g('mf-baggage-pcs'), cargoKg: g('mf-cargo'), cargoPieces: g('mf-cargo-pieces'), cargoVol: g('mf-cargo-volume'),
-          mailKg: g('mf-mail'), mailPieces: g('mf-mail-pieces'),
+          // Totales: usar campos dedicados si existen; si no, caer a los totales de la tabla de embarque
+          baggageKg: g('mf-baggage-kg') || g('total-equipaje'),
+          baggagePieces: g('mf-baggage-pcs'),
+          cargoKg: g('mf-cargo') || g('total-carga'),
+          cargoPieces: g('mf-cargo-pieces'),
+          cargoVol: g('mf-cargo-volume'),
+          mailKg: g('mf-mail') || g('total-correo'),
+          mailPieces: g('mf-mail-pieces'),
           dangerousGoods: !!document.getElementById('mf-dangerous-goods')?.checked,
           liveAnimals: !!document.getElementById('mf-live-animals')?.checked,
           humanRemains: !!document.getElementById('mf-human-remains')?.checked,
@@ -2923,19 +2940,28 @@ Z,Others,Not specific,Special internal purposes`;
       }
       function loadRecords(){ try { return JSON.parse(localStorage.getItem('aifa.manifests')||'[]'); } catch(_) { return []; } }
       function saveRecords(arr){ try { localStorage.setItem('aifa.manifests', JSON.stringify(arr)); } catch(_) {} }
-      function renderTable(){ if (!tableBody) return; const rows = loadRecords(); tableBody.innerHTML = rows.map(r => `
-        <tr>
-          <td>${r.direction||''}</td>
-          <td>${(r.carrier3L? (r.carrier3L.toUpperCase()+ ' - ') : '') + (r.airline||r.operatorName||'')}</td>
-          <td>${r.flight||''}</td>
-          <td>${r.tail||''}</td>
-          <td></td>
-          <td></td>
-          <td>${(r.originCode||'')}/${r.finalDest||''}</td>
-          <td>${r.paxTotal||''}</td>
-          <td>${r.cargoKg||''}/${r.mailKg||''}</td>
-          <td>${r.image?'<img src="'+r.image+'" style="height:30px">':''}</td>
-        </tr>`).join(''); }
+      function renderTable(){
+        if (!tableBody) return;
+        const rows = loadRecords();
+        tableBody.innerHTML = rows.map(r => `
+          <tr>
+            <td>${r.direction||''}</td>
+            <td>${(r.carrier3L? (r.carrier3L.toUpperCase()+ ' - ') : '') + (r.airline||r.operatorName||'')}</td>
+            <td>${r.flight||''}</td>
+            <td>${r.tail||''}</td>
+            <td></td>
+            <td></td>
+            <td>${(r.originCode||'')}/${r.finalDest||''}</td>
+            <td>${r.paxTotal||''}</td>
+            <td>${r.cargoKg||''}/${r.mailKg||''}</td>
+            <td>${r.image?'<img src="'+r.image+'" style="height:30px">':''}</td>
+          </tr>`).join('');
+        // Adjuntar el objeto completo al <tr> para que la exportación incluya TODOS los campos
+        try {
+          const trs = Array.from(tableBody.querySelectorAll('tr'));
+          trs.forEach((tr, i)=>{ tr._record = rows[i]; });
+        } catch(_){ }
+      }
 
       function recalcPaxTotal(){
         const ids = ['pax-tua','pax-diplomaticos','pax-comision','pax-infantes','pax-transitos','pax-conexiones','pax-exentos'];
@@ -2947,22 +2973,352 @@ Z,Others,Not specific,Special internal purposes`;
       });
       recalcPaxTotal();
 
-    if (saveBtn && !saveBtn._wired) { saveBtn._wired = 1; saveBtn.addEventListener('click', ()=>{ recalcPaxTotal(); const recs = loadRecords(); recs.unshift(readForm()); saveRecords(recs.slice(0,200)); renderTable(); }); }
-    if (clearBtn && !clearBtn._wired) { clearBtn._wired = 1; clearBtn.addEventListener('click', ()=>{ document.getElementById('manifest-form')?.reset(); applyManifestDirection(); clearDynamicTables(); calculateTotals(); updateDemorasTotal(); }); }
+      // Hacer obligatorios todos los campos visibles excepto los de "Causas de la demora" y checkboxes
+      function isVisible(el){ try { return !!(el && el.offsetParent !== null && !el.hidden); } catch(_) { return false; } }
+      function inDemoras(el){ try { return !!(el.closest && (el.closest('#tabla-demoras') || /^(demora\d+\-(codigo|tiempo|descripcion))$/.test(el.id||''))); } catch(_) { return false; } }
+      function enforceRequiredFields(){
+        try {
+          const form = document.getElementById('manifest-form'); if (!form) return;
+          const controls = form.querySelectorAll('input, select, textarea');
+          controls.forEach(el=>{
+            // Reset primero
+            try { el.required = false; } catch(_){ }
+            // Excluir no visibles, deshabilitados, solo-lectura, checkboxes y demoras
+            if (!isVisible(el)) return;
+            if (el.disabled) return;
+            if (el.readOnly) return;
+            if (el.type === 'checkbox' || el.type === 'button' || el.type === 'file') return;
+            if (inDemoras(el)) return;
+            // Requerir el resto
+            try { el.required = true; } catch(_){ }
+          });
+          // Campos críticos que están fuera del formulario: siempre requeridos
+          try {
+            const hd = document.getElementById('mf-doc-date');
+            const hf = document.getElementById('mf-folio');
+            if (hd) hd.required = true;
+            if (hf) hf.required = true;
+          } catch(_){ }
+        } catch(_){ }
+      }
+      // Exponer para uso desde delegadores globales
+      try {
+        window._mfEnforceRequiredFields = enforceRequiredFields;
+      } catch(_){ }
+      function getControlLabelText(el){
+        // 1) label[for]
+        try { const lab = document.querySelector(`label[for="${el.id}"]`); if (lab && lab.textContent) return lab.textContent.trim(); } catch(_){}
+        // 2) label hermano anterior
+        try { const prev = el.previousElementSibling; if (prev && prev.tagName==='LABEL') return (prev.textContent||'').trim(); } catch(_){}
+        // 3) label dentro del mismo contenedor .col-*
+        try { const col = el.closest('.col-12, .col-md-6, .col-md-3, .col-md-4, .col-md-8'); if (col){ const l2 = col.querySelector('label'); if (l2 && l2.textContent) return l2.textContent.trim(); } } catch(_){}
+        // 4) placeholder o id
+        try { if (el.placeholder) return el.placeholder.trim(); } catch(_){}
+        return el.id || 'Campo';
+      }
+      function getMissingRequiredFields(){
+        const misses = [];
+        try {
+          const form = document.getElementById('manifest-form'); if (!form) return misses;
+          const controls = form.querySelectorAll('input, select, textarea');
+          controls.forEach(el=>{
+            if (!isVisible(el) || el.disabled || el.readOnly) return;
+            if (el.type === 'checkbox' || el.type === 'button' || el.type === 'file') return;
+            if (inDemoras(el)) return;
+            const req = !!el.required;
+            const val = (el.value||'').toString().trim();
+            if (req && !val){ misses.push({ id: el.id, label: getControlLabelText(el) }); }
+          });
+          // Incluir también los campos críticos fuera del formulario
+          try {
+            const addMiss = (id, label)=>{
+              const el = document.getElementById(id);
+              if (!el) return;
+              const val = (el.value||'').toString().trim();
+              if (!val) misses.push({ id, label });
+            };
+            addMiss('mf-doc-date', 'Fecha del Documento');
+            addMiss('mf-folio', 'Folio');
+          } catch(_){ }
+        } catch(_){ }
+        return misses;
+      }
+      try { window._mfGetMissingRequiredFields = getMissingRequiredFields; } catch(_){ }
+      function showMissingLegend(misses){
+        try {
+          if (!Array.isArray(misses) || !misses.length) return;
+          const list = misses.map(m=> ` - ${m.label||m.id}`).join('\n');
+          alert(`Faltan datos por llenar:\n${list}`);
+        } catch(_){ }
+      }
+      try { window._mfShowMissingLegend = showMissingLegend; } catch(_){ }
+      // Aplicar al cambiar dirección y al abrir la sección
+      try {
+        const dirA = document.getElementById('mf-dir-arr');
+        const dirD = document.getElementById('mf-dir-dep');
+        if (dirA && !dirA._reqW){ dirA._reqW = 1; dirA.addEventListener('change', enforceRequiredFields); }
+        if (dirD && !dirD._reqW){ dirD._reqW = 1; dirD.addEventListener('change', enforceRequiredFields); }
+        enforceRequiredFields();
+      } catch(_){ }
+
+      // Validador central para cabeceras críticas (fecha/folio)
+      function _validateCriticalHeaders(){
+        try {
+          const hd = document.getElementById('mf-doc-date');
+          const hf = document.getElementById('mf-folio');
+          const misses = [];
+          if (!hd || !String(hd.value||'').trim()) misses.push({ id:'mf-doc-date', label:'Fecha del Documento' });
+          if (!hf || !String(hf.value||'').trim()) misses.push({ id:'mf-folio', label:'Folio' });
+          // Marcar required para que reportValidity pueda funcionar a nivel de input
+          try { if (hd) hd.required = true; } catch(_){ }
+          try { if (hf) hf.required = true; } catch(_){ }
+          if (misses.length){
+            // Intentar resaltar el primero
+            try { const el0 = document.getElementById(misses[0].id); if (el0 && typeof el0.reportValidity==='function'){ el0.reportValidity(); el0.focus(); } } catch(_){ }
+            showMissingLegend(misses);
+            return { ok:false, misses };
+          }
+          return { ok:true, misses:[] };
+        } catch(_){ return { ok:true, misses:[] }; }
+      }
+
+      // Cómputo central de faltantes (sin efectos colaterales): reutilizado por validadores y UI
+      window._mfComputeMisses = function _mfComputeMisses(){
+        const res = [];
+        try {
+          // Marcar requeridos dinámicos antes de evaluar
+          try { if (typeof window._mfEnforceRequiredFields === 'function') window._mfEnforceRequiredFields(); else enforceRequiredFields(); } catch(_){ }
+          const form = document.getElementById('manifest-form');
+          // 1) Basado en atributos required visibles (excluye demoras/checkbox/file)
+          try {
+            const baseMiss = (typeof window._mfGetMissingRequiredFields === 'function')
+              ? window._mfGetMissingRequiredFields()
+              : (function(){
+                  const out=[]; if (!form) return out;
+                  const ctrls = form.querySelectorAll('input, select, textarea');
+                  ctrls.forEach(el=>{
+                    if (el.disabled || el.readOnly) return;
+                    if (el.type==='checkbox' || el.type==='button' || el.type==='file') return;
+                    const vis = !!(el.offsetParent !== null && !el.hidden);
+                    if (!vis) return;
+                    if (/(^demora\d+\-(codigo|tiempo|descripcion)$)/.test(el.id||'')) return;
+                    if (el.required && !String(el.value||'').trim()) out.push({ id: el.id, label: (document.querySelector(`label[for="${el.id}"]`)?.textContent||el.placeholder||el.id||'Campo').trim() });
+                  });
+                  return out;
+                })();
+            if (Array.isArray(baseMiss)) res.push(...baseMiss);
+          } catch(_){ }
+          // 2) Críticos fuera del form
+          const need = (id, label)=>{ const el=document.getElementById(id); if (!el || !String(el.value||'').trim()) res.push({ id, label }); };
+          need('mf-doc-date','Fecha del Documento');
+          need('mf-folio','Folio');
+          // 3) Paquetes mínimos por dirección (más estrictos)
+          try {
+            const isArrival = !!document.getElementById('mf-dir-arr')?.checked;
+            const common = ['mf-airport-main','mf-carrier-3l','mf-airline','mf-flight','mf-tail','mf-aircraft'];
+            const reqIds = isArrival
+              ? [...common,'mf-arr-origin-name','mf-arr-origin-code','mf-arr-slot-assigned','mf-arr-slot-coordinated','mf-arr-arribo-posicion','mf-arr-inicio-desembarque']
+              : [...common,'mf-origin-name','mf-origin-code','mf-final-dest','mf-final-dest-code','mf-slot-assigned','mf-slot-coordinated'];
+            reqIds.forEach(id=>{ const el=document.getElementById(id); if (!el) return; const v=String(el.value||'').trim(); if (!v){ const lab=(document.querySelector(`label[for="${id}"]`)?.textContent||el.placeholder||id).trim(); res.push({ id, label: lab }); } });
+          } catch(_){ }
+        } catch(_){ }
+        return res;
+      };
+
+      // Validador global y robusto: usa _mfComputeMisses y checkValidity nativo; muestra leyenda cuando falla
+      window._mfValidateAll = function _mfValidateAll(){
+        try {
+          const form = document.getElementById('manifest-form');
+          const misses = (typeof window._mfComputeMisses==='function') ? window._mfComputeMisses() : [];
+          if (misses.length){
+            try { const first = document.getElementById(misses[0].id); if (first){ first.focus(); first.scrollIntoView({ behavior:'smooth', block:'center' }); if (typeof first.reportValidity==='function') first.reportValidity(); } } catch(_){ }
+            try { (window._mfShowMissingLegend||function(x){ alert('Faltan datos por llenar'); })(misses); } catch(_){ }
+            return false;
+          }
+          if (form && typeof form.checkValidity==='function' && !form.checkValidity()){
+            try { form.reportValidity(); } catch(_){ }
+            return false;
+          }
+          return true;
+        } catch(_){ return true; }
+      };
+
+      // UI: desactivar/activar Guardar y Exportar según validez actual (silencioso)
+      function updateActionButtonsState(){
+        try {
+          const save = document.getElementById('manifest-save');
+          const exp = document.getElementById('manifest-export-csv');
+          const add = document.getElementById('manifest-add-to-table');
+          const misses = (typeof window._mfComputeMisses==='function') ? window._mfComputeMisses() : [];
+          const ok = misses.length===0;
+          [save, exp, add].forEach(btn=>{ if (!btn) return; btn.disabled = !ok; btn.classList.toggle('disabled', !ok); btn.setAttribute('aria-disabled', String(!ok)); });
+
+          // Mensaje de ayuda visible para el usuario cuando los botones están bloqueados
+          let hint = document.getElementById('manifest-actions-hint');
+          if (!hint){
+            // Insertar justo debajo del contenedor de botones
+            try {
+              const btnRow = document.querySelector('#manifest-form .col-12.d-flex.gap-2.mt-2');
+              hint = document.createElement('div');
+              hint.id = 'manifest-actions-hint';
+              hint.className = 'form-text text-danger mt-1';
+              if (btnRow && btnRow.parentElement){ btnRow.parentElement.insertBefore(hint, btnRow.nextSibling); }
+            } catch(_){ }
+          }
+          if (hint){
+            if (ok){ hint.textContent = ''; hint.style.display = 'none'; }
+            else {
+              const names = (misses||[]).slice(0,5).map(m=> m.label||m.id).filter(Boolean);
+              const more = misses.length>5 ? ` y ${misses.length-5} más` : '';
+              hint.textContent = `Completa ${names.join(', ')}${more} para habilitar Guardar y Exportar.`;
+              hint.style.display = '';
+            }
+          }
+        } catch(_){ }
+      }
+      try {
+        document.addEventListener('input', (e)=>{ if (e.target && e.target.closest && e.target.closest('#manifest-form')) updateActionButtonsState(); });
+        document.addEventListener('change', (e)=>{ if (e.target && e.target.closest && e.target.closest('#manifest-form')) updateActionButtonsState(); });
+        document.addEventListener('DOMContentLoaded', updateActionButtonsState);
+      } catch(_){ }
+
+    if (saveBtn && !saveBtn._wired) { saveBtn._wired = 1; saveBtn.addEventListener('click', ()=>{
+      // Validación centralizada y robusta
+      try { if (typeof window._mfValidateAll === 'function' && !window._mfValidateAll()) return; } catch(_){ }
+      recalcPaxTotal(); const recs = loadRecords(); recs.unshift(readForm()); saveRecords(recs.slice(0,200)); renderTable();
+      try { updateActionButtonsState(); } catch(_){ }
+    }); }
+    if (clearBtn && !clearBtn._wired) { clearBtn._wired = 1; clearBtn.addEventListener('click', ()=>{ document.getElementById('manifest-form')?.reset(); applyManifestDirection(); clearDynamicTables(); calculateTotals(); updateDemorasTotal(); try { updateActionButtonsState(); } catch(_){ } }); }
       if (exportBtn && !exportBtn._wired) { exportBtn._wired = 1; exportBtn.addEventListener('click', ()=>{ const data = JSON.stringify(loadRecords(), null, 2); const blob = new Blob([data], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'manifiestos.json'; a.click(); }); }
 
-      // Exportar CSV (todos los registros guardados) incluyendo demoras aplanadas
+      // Añadir a tabla (sin guardar en localStorage): agrega una fila resumen al final de la tabla visible
+      (function wireAddToTable(){
+        const addBtn = document.getElementById('manifest-add-to-table');
+        if (!addBtn || addBtn._wired) return; addBtn._wired = 1;
+        function addCurrentToRecordsTable(){
+          try {
+            // Validación centralizada: no permitir añadir a la tabla si faltan campos requeridos
+            try { if (typeof window._mfValidateAll === 'function' && !window._mfValidateAll()) return; } catch(_){ }
+            const tbody = document.querySelector('#manifest-records-table tbody'); if (!tbody) return;
+            const r = readForm();
+            // Derivar fecha y hora sugeridas
+            const fecha = r.docDate || '';
+            const hora = r.direction === 'Llegada'
+              ? (r.arrSlotAssigned || r.arrSlotCoordinated || r.arrArriboPosicion || '')
+              : (r.slotAssigned || r.slotCoordinated || r.salidaPosicion || '');
+            const od = r.direction === 'Llegada'
+              ? `${r.arrOriginCode||r.arrOriginName||''}`
+              : `${r.finalDestCode||r.finalDest||''}`;
+            const airlineCol = `${r.carrier3L? (String(r.carrier3L).toUpperCase()+ ' - ') : ''}${r.airline||r.operatorName||''}`;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${r.direction||''}</td>
+              <td>${airlineCol}</td>
+              <td>${r.flight||''}</td>
+              <td>${r.tail||''}</td>
+              <td>${fecha}</td>
+              <td>${hora}</td>
+              <td>${od}</td>
+              <td>${r.paxTotal||''}</td>
+              <td>${(r.cargoKg||'')}/${(r.mailKg||'')}</td>
+              <td>${r.image?('<img src="'+r.image+'" style="height:30px">') : ''}</td>`;
+            // Adjuntar el objeto completo al <tr> para exportar todos los campos
+            tr._record = r;
+            tbody.appendChild(tr);
+          } catch(err){ console.error('Añadir a tabla (manifiestos) falló:', err); }
+        }
+        addBtn.addEventListener('click', addCurrentToRecordsTable);
+      })();
+
+      // Utilidad global: construye matriz (AOA) con encabezados en español y filas a partir de registros
+      window._mfBuildAoA = function(rows){
+        const baseKeys = [
+          'direction','title','docDate','folio','carrier3L','operatorName','airline','flight',
+          'airportMain','flightType','tail','aircraft','originName','originCode',
+          'crewTotal','baggageKg','baggagePieces','cargoKg','cargoPieces','cargoVol','mailKg','mailPieces',
+          'dangerousGoods','liveAnimals','humanRemains','pilot','pilotLicense','agent','signature','notes',
+          'nextStop','nextStopCode','finalDest','finalDestCode','slotAssigned','slotCoordinated','terminoPernocta',
+          'inicioEmbarque','salidaPosicion',
+          'arrOriginName','arrOriginCode','arrSlotAssigned','arrSlotCoordinated','arrLastStop','arrLastStopCode','arrArriboPosicion','arrInicioDesembarque','arrInicioPernocta',
+          'paxTUA','paxDiplomaticos','paxComision','paxInfantes','paxTransitos','paxConexiones','paxExentos','paxTotal',
+          'obsTransito','paxDNI','signOperator','signCoordinator','signAdmin','signAdminDate'
+        ];
+        const baseLabels = [
+          'Tipo','Título','Fecha del Documento','Folio','Transportista (OACI)','Operador Aéreo (Razón social)','Transportista (Nombre comercial)','Vuelo',
+          'Aeropuerto','Tipo de vuelo','Matrícula','Equipo','Origen (Nombre)','Origen (Código)',
+          'No. de Tripulación','Equipaje (kg)','Equipaje (piezas)','Carga (kg)','Carga (piezas)','Volumen (m³)','Correo (kg)','Correo (piezas)',
+          'Mercancías Peligrosas','Animales Vivos','Restos Humanos','Piloto al Mando','No. de Licencia','Agente / Responsable','Nombre y Firma','Observaciones',
+          'Próxima escala (Nombre)','Próxima escala (Código)','Destino (Nombre)','Destino (Código)','Slot asignado (Salida)','Slot coordinado (Salida)','Término de pernocta (Salida)',
+          'Inicio de embarque','Salida de posición',
+          'Procedencia (Nombre)','Procedencia (Código)','Slot asignado (Llegada)','Slot coordinado (Llegada)','Escala anterior (Nombre)','Escala anterior (Código)','Entrada a la posición','Inicio desembarque','Inicio de pernocta',
+          'Pagan TUA','Diplomáticos','En comisión','Infantes','Tránsitos','Conexiones','Otros exentos','Total Pax',
+          'Carga en tránsito (destino/procedencia)','PAX DNI','Firma Operador','Firma Coordinador de Rampa','Administrador AIFA - Recibido por','Fecha de Recepción'
+        ];
+        const maxDemoras = rows.reduce((m,r)=> Math.max(m, Array.isArray(r.demoras)? r.demoras.length:0), 0);
+        const dCount = Math.max(3, maxDemoras);
+        const demoraKeys = [];
+        const demoraLabels = [];
+        for (let i=1;i<=dCount;i++){
+          demoraKeys.push(`Demora${i}_Codigo`,`Demora${i}_Minutos`,`Demora${i}_Descripcion`);
+          demoraLabels.push(`Demora${i}_Código`,`Demora${i}_Minutos`,`Demora${i}_Descripción`);
+        }
+        const headers = [...baseKeys, ...demoraKeys];
+        const headersEs = [...baseLabels, ...demoraLabels];
+        const aoa = rows.map(r=>{
+          const vals = baseKeys.map(k=>{
+            let v = r[k];
+            if (typeof v === 'boolean') v = v ? 'Sí' : 'No';
+            return v==null? '': v;
+          });
+          const ds = Array.isArray(r.demoras)? r.demoras: [];
+          for (let i=0;i<dCount;i++){
+            const d = ds[i]||{};
+            vals.push((d.codigo||'').toUpperCase(), d.minutos||'', d.descripcion||'');
+          }
+          return vals;
+        });
+        return { headers, headersEs, aoa };
+      };
+
+      // Exportar a Excel (.xlsx) usando SheetJS (XLSX). Si no está disponible, cae a CSV como fallback.
       if (exportCsvBtn && !exportCsvBtn._wired){
         exportCsvBtn._wired = 1;
-        exportCsvBtn.addEventListener('click', ()=>{
+        try { window._mfExportDirect = true; } catch(_){ }
+        exportCsvBtn.addEventListener('click', async ()=>{
           try {
+            // Validación centralizada: bloquear exportación si faltan campos requeridos (excepto demoras)
+            try { if (typeof window._mfValidateAll === 'function' && !window._mfValidateAll()) return; } catch(_){ }
+            // 1) Preferir exportar la tabla visible si tiene filas
+            const table = document.getElementById('manifest-records-table');
+            const trEls = table ? Array.from(table.querySelectorAll('tbody tr')) : [];
+            const tableRecs = trEls.map(tr=> tr && tr._record).filter(Boolean);
+            if (tableRecs.length){
+              const { headers, headersEs, aoa } = (window._mfBuildAoA||function(){ return { headers:[], headersEs:[], aoa:[] }; })(tableRecs);
+              // Excel primero
+              if (window.XLSX && XLSX.utils && typeof XLSX.utils.aoa_to_sheet === 'function'){
+                try {
+                  const ws = XLSX.utils.aoa_to_sheet([headersEs, ...aoa]);
+                  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Manifiestos');
+                  try { const range = XLSX.utils.decode_range(ws['!ref']||'A1'); ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) }; } catch(_){ }
+                  XLSX.writeFile(wb, 'manifiestos.xlsx');
+                  return;
+                } catch(_){ /* fall through */ }
+              }
+              // CSV fallback con todos los campos
+              const esc=(v)=>{ const s=(v==null)?'':(typeof v==='boolean'?(v?'Sí':'No'):String(v)); return /[",\n]/.test(s)? '"'+s.replace(/"/g,'""')+'"': s; };
+              const lines=[headersEs.join(',')]; aoa.forEach(arr=> lines.push(arr.map(esc).join(',')));
+              const blob = new Blob([lines.join('\n')], { type:'text/csv;charset=utf-8' });
+              const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'manifiestos.csv'; a.click();
+              return;
+            }
+
+            // 2) Si no hay tabla, exportar el formulario/guardados (lógica previa)
             let rows = loadRecords();
             // Si no hay registros guardados, exportar el formulario actual como un registro
             if (!rows || rows.length===0){ rows = [ readForm() ]; }
             // Asegurar que cada registro tenga demoras si la estructura existe en el formulario actual
             const getDemorasFromDOM = ()=>{
               try {
-                // Preferir 3 filas fijas si existen
                 if (typeof readDemorasFromFixedFields === 'function'){
                   const fx = readDemorasFromFixedFields();
                   if (fx && fx.length) return fx;
@@ -2975,47 +3331,40 @@ Z,Others,Not specific,Special internal purposes`;
                 })).filter(d=> d.codigo||d.minutos||d.descripcion);
               } catch(_){ return []; }
             };
-            // Si el último registro no tiene demoras pero el DOM sí, guardarlas en una copia del último
             if (rows.length>0 && (!rows[0].demoras || !Array.isArray(rows[0].demoras))){
               const ds = getDemorasFromDOM();
               if (ds.length){ rows[0] = { ...rows[0], demoras: ds }; }
             }
-            const baseKeys = [
-              'direction','title','docDate','folio','carrier3L','operatorName','airline','flight',
-              'airportMain','flightType','tail','aircraft','originName','originCode',
-              'crewTotal','baggageKg','baggagePieces','cargoKg','cargoPieces','cargoVol','mailKg','mailPieces',
-              'dangerousGoods','liveAnimals','humanRemains','pilot','pilotLicense','agent','signature','notes',
-              'nextStop','nextStopCode','finalDest','finalDestCode','slotAssigned','slotCoordinated','terminoPernocta',
-              'inicioEmbarque','salidaPosicion',
-              'arrOriginName','arrOriginCode','arrSlotAssigned','arrSlotCoordinated','arrLastStop','arrLastStopCode','arrArriboPosicion','arrInicioDesembarque','arrInicioPernocta',
-              'paxTUA','paxDiplomaticos','paxComision','paxInfantes','paxTransitos','paxConexiones','paxExentos','paxTotal',
-              'obsTransito','paxDNI','signOperator','signCoordinator','signAdmin','signAdminDate'
-            ];
-            const maxDemoras = rows.reduce((m,r)=> Math.max(m, Array.isArray(r.demoras)? r.demoras.length:0), 0);
-            const demoraCols = [];
-            for (let i=1;i<=Math.max(3,maxDemoras);i++){
-              demoraCols.push(`Demora${i}_Codigo`,`Demora${i}_Minutos`,`Demora${i}_Descripcion`);
+            const build = (window._mfBuildAoA||function(){ return { headers:[], headersEs:[], aoa:[] }; });
+            const { headers, headersEs, aoa } = build(rows);
+
+            // Intentar exportar con SheetJS si está cargado
+            if (window.XLSX && window.XLSX.utils && typeof window.XLSX.utils.aoa_to_sheet === 'function'){
+              try {
+                const ws = XLSX.utils.aoa_to_sheet([headersEs, ...aoa]);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Manifiestos');
+                // Añadir auto-filter y tabla-like range (opcional): establecer rango completo
+                try {
+                  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+                  ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+                } catch(_){ }
+                XLSX.writeFile(wb, 'manifiestos.xlsx');
+                return;
+              } catch(err){ console.warn('SheetJS export failed, falling back to CSV', err); }
             }
-            const headers = [...baseKeys, ...demoraCols];
+
+            // Fallback: generar CSV si SheetJS no está disponible
             const esc = (v)=>{
-              const s = (v==null)? '' : (typeof v==='boolean'? (v?'1':'0'): String(v));
+              const s = (v==null)? '' : (typeof v==='boolean'? (v?'Sí':'No'): String(v));
               if (/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
               return s;
             };
-            const lines = [headers.join(',')];
-            rows.forEach(r=>{
-              const baseVals = baseKeys.map(k=> esc(r[k]));
-              const ds = Array.isArray(r.demoras)? r.demoras: [];
-              const parts = [];
-              for (let i=0;i<demoraCols.length/3;i++){
-                const d = ds[i]||{};
-                parts.push(esc((d.codigo||'').toUpperCase()), esc(d.minutos||''), esc(d.descripcion||''));
-              }
-              lines.push([...baseVals, ...parts].join(','));
-            });
+            const lines = [headersEs.join(',')];
+            aoa.forEach(rowArr=>{ lines.push(rowArr.map(esc).join(',')); });
             const blob = new Blob([lines.join('\n')], { type:'text/csv;charset=utf-8' });
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'manifiestos.csv'; a.click();
-          } catch(err){ console.error('CSV export error', err); }
+          } catch(err){ console.error('Export error', err); }
         });
       }
       renderTable();
@@ -4172,4 +4521,196 @@ Z,Others,Not specific,Special internal purposes`;
   // Activar V2 al cargar DOM
   document.addEventListener('DOMContentLoaded', function(){ try { window.setupManifestsUI_v2?.(); } catch(_){} });
   // Removed custom time picker for mf-slot-assigned; using native input type=time for consistency
+  
+  // Delegador global: garantiza que el botón "Exportar Excel" funcione aunque otro módulo reemplace los listeners
+  (function ensureExportExcelDelegator(){
+    if (window._mfExcelDelegator) return; window._mfExcelDelegator = true;
+    function buildAoALocal(rows){
+      try {
+        const baseKeys = [
+          'direction','title','docDate','folio','carrier3L','operatorName','airline','flight',
+          'airportMain','flightType','tail','aircraft','originName','originCode',
+          'crewTotal','baggageKg','baggagePieces','cargoKg','cargoPieces','cargoVol','mailKg','mailPieces',
+          'dangerousGoods','liveAnimals','humanRemains','pilot','pilotLicense','agent','signature','notes',
+          'nextStop','nextStopCode','finalDest','finalDestCode','slotAssigned','slotCoordinated','terminoPernocta',
+          'inicioEmbarque','salidaPosicion',
+          'arrOriginName','arrOriginCode','arrSlotAssigned','arrSlotCoordinated','arrLastStop','arrLastStopCode','arrArriboPosicion','arrInicioDesembarque','arrInicioPernocta',
+          'paxTUA','paxDiplomaticos','paxComision','paxInfantes','paxTransitos','paxConexiones','paxExentos','paxTotal',
+          'obsTransito','paxDNI','signOperator','signCoordinator','signAdmin','signAdminDate'
+        ];
+        const baseLabels = [
+          'Tipo','Título','Fecha del Documento','Folio','Transportista (OACI)','Operador Aéreo (Razón social)','Transportista (Nombre comercial)','Vuelo',
+          'Aeropuerto','Tipo de vuelo','Matrícula','Equipo','Origen (Nombre)','Origen (Código)',
+          'No. de Tripulación','Equipaje (kg)','Equipaje (piezas)','Carga (kg)','Carga (piezas)','Volumen (m³)','Correo (kg)','Correo (piezas)',
+          'Mercancías Peligrosas','Animales Vivos','Restos Humanos','Piloto al Mando','No. de Licencia','Agente / Responsable','Nombre y Firma','Observaciones',
+          'Próxima escala (Nombre)','Próxima escala (Código)','Destino (Nombre)','Destino (Código)','Slot asignado (Salida)','Slot coordinado (Salida)','Término de pernocta (Salida)',
+          'Inicio de embarque','Salida de posición',
+          'Procedencia (Nombre)','Procedencia (Código)','Slot asignado (Llegada)','Slot coordinado (Llegada)','Escala anterior (Nombre)','Escala anterior (Código)','Entrada a la posición','Inicio desembarque','Inicio de pernocta',
+          'Pagan TUA','Diplomáticos','En comisión','Infantes','Tránsitos','Conexiones','Otros exentos','Total Pax',
+          'Carga en tránsito (destino/procedencia)','PAX DNI','Firma Operador','Firma Coordinador de Rampa','Administrador AIFA - Recibido por','Fecha de Recepción'
+        ];
+        const maxDemoras = (rows||[]).reduce((m,r)=> Math.max(m, Array.isArray(r?.demoras)? r.demoras.length:0), 0);
+        const dCount = Math.max(3, maxDemoras);
+        const demoraKeys = [];
+        const demoraLabels = [];
+        for (let i=1;i<=dCount;i++){ demoraKeys.push(`Demora${i}_Codigo`,`Demora${i}_Minutos`,`Demora${i}_Descripcion`); demoraLabels.push(`Demora${i}_Código`,`Demora${i}_Minutos`,`Demora${i}_Descripción`); }
+        const headers = [...baseKeys, ...demoraKeys];
+        const headersEs = [...baseLabels, ...demoraLabels];
+        const aoa = (rows||[]).map(r=>{
+          const vals = baseKeys.map(k=>{ let v = r?.[k]; if (typeof v === 'boolean') v = v ? 'Sí' : 'No'; return v==null? '': v; });
+          const ds = Array.isArray(r?.demoras)? r.demoras: [];
+          for (let i=0;i<dCount;i++){ const d = ds[i]||{}; vals.push((d.codigo||'').toUpperCase(), d.minutos||'', d.descripcion||''); }
+          return vals;
+        });
+        return { headers, headersEs, aoa };
+      } catch(_){ return { headers:[], headersEs:[], aoa:[] }; }
+    }
+    function readDemorasFixedLight(){
+      const out = [];
+      for (let i=1;i<=3;i++){
+        const code = (document.getElementById(`demora${i}-codigo`)?.value||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
+        const minutos = document.getElementById(`demora${i}-tiempo`)?.value||'';
+        const descripcion = document.getElementById(`demora${i}-descripcion`)?.value||'';
+        if (code || minutos || descripcion) out.push({ codigo: code, minutos, descripcion });
+      }
+      return out;
+    }
+    function readFormLight(){
+      const g = (id)=> document.getElementById(id)?.value || '';
+      const dirArr = document.getElementById('mf-dir-arr');
+      const direction = (dirArr && dirArr.checked) ? 'Llegada' : 'Salida';
+      const demoras = readDemorasFixedLight();
+      return {
+        direction,
+        title: g('mf-title'), docDate: g('mf-doc-date'), folio: g('mf-folio'),
+        carrier3L: g('mf-carrier-3l'), operatorName: g('mf-operator-name'), airline: g('mf-airline'), flight: g('mf-flight'),
+        airportMain: g('mf-airport-main'), flightType: g('mf-flight-type'),
+        tail: g('mf-tail'), aircraft: g('mf-aircraft'), originName: g('mf-origin-name'), originCode: g('mf-origin-code'),
+  crewTotal: g('mf-crew-total'),
+  baggageKg: g('mf-baggage-kg') || g('total-equipaje'),
+  baggagePieces: g('mf-baggage-pcs'),
+  cargoKg: g('mf-cargo') || g('total-carga'),
+  cargoPieces: g('mf-cargo-pieces'),
+  cargoVol: g('mf-cargo-volume'),
+  mailKg: g('mf-mail') || g('total-correo'),
+  mailPieces: g('mf-mail-pieces'),
+        dangerousGoods: !!document.getElementById('mf-dangerous-goods')?.checked,
+        liveAnimals: !!document.getElementById('mf-live-animals')?.checked,
+        humanRemains: !!document.getElementById('mf-human-remains')?.checked,
+        pilot: g('mf-pilot'), pilotLicense: g('mf-pilot-license'), agent: g('mf-agent'), signature: g('mf-signature'), notes: g('mf-notes'),
+        nextStop: g('mf-next-stop'), nextStopCode: g('mf-next-stop-code'), finalDest: g('mf-final-dest'), finalDestCode: g('mf-final-dest-code'),
+        slotAssigned: g('mf-slot-assigned'), slotCoordinated: g('mf-slot-coordinated'), terminoPernocta: g('mf-termino-pernocta'),
+        inicioEmbarque: g('mf-inicio-embarque'), salidaPosicion: g('mf-salida-posicion'),
+        arrOriginName: g('mf-arr-origin-name'), arrOriginCode: g('mf-arr-origin-code'), arrSlotAssigned: g('mf-arr-slot-assigned'), arrSlotCoordinated: g('mf-arr-slot-coordinated'),
+        arrLastStop: g('mf-arr-last-stop'), arrLastStopCode: g('mf-arr-last-stop-code'), arrArriboPosicion: g('mf-arr-arribo-posicion'), arrInicioDesembarque: g('mf-arr-inicio-desembarque'), arrInicioPernocta: g('mf-arr-inicio-pernocta'),
+        paxTUA: g('pax-tua'), paxDiplomaticos: g('pax-diplomaticos'), paxComision: g('pax-comision'), paxInfantes: g('pax-infantes'), paxTransitos: g('pax-transitos'), paxConexiones: g('pax-conexiones'), paxExentos: g('pax-exentos'), paxTotal: g('pax-total'),
+        obsTransito: g('mf-obs-transito'), paxDNI: g('mf-pax-dni'),
+        signOperator: g('mf-sign-operator'), signCoordinator: g('mf-sign-coordinator'), signAdmin: g('mf-sign-admin'), signAdminDate: g('mf-sign-admin-date'),
+        demoras
+      };
+    }
+    function exportCurrentManifestsToExcel(){
+      try {
+        // Validación centralizada y robusta
+        try { if (typeof window._mfValidateAll === 'function' && !window._mfValidateAll()) return; } catch(_){ }
+        // 0) Preferir exportar la tabla visible si ya tiene filas
+        try {
+          const table = document.getElementById('manifest-records-table');
+          const trEls = table ? Array.from(table.querySelectorAll('tbody tr')) : [];
+          const tableRecs = trEls.map(tr=> tr && tr._record).filter(Boolean);
+          if (tableRecs.length){
+            const { headers, headersEs, aoa } = (window._mfBuildAoA||buildAoALocal)(tableRecs);
+            if (window.XLSX && XLSX.utils && typeof XLSX.utils.aoa_to_sheet === 'function'){
+              try { const ws = XLSX.utils.aoa_to_sheet([headersEs, ...aoa]); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Manifiestos'); try { const range = XLSX.utils.decode_range(ws['!ref']||'A1'); ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) }; } catch(_){ } XLSX.writeFile(wb, 'manifiestos.xlsx'); return; } catch(_){ }
+            }
+            const esc=(v)=>{ const s=(v==null)?'':(typeof v==='boolean'?(v?'Sí':'No'):String(v)); return /[",\n]/.test(s)? '"'+s.replace(/"/g,'""')+'"': s; };
+            const lines=[headersEs.join(',')]; aoa.forEach(arr=> lines.push(arr.map(esc).join(',')));
+            const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='manifiestos.csv'; a.click();
+            return;
+          }
+        } catch(_){ }
+        let rows = [];
+        try { rows = JSON.parse(localStorage.getItem('aifa.manifests')||'[]'); } catch(_){ rows = []; }
+        if (!rows || rows.length===0){ rows = [ readFormLight() ]; }
+        if (rows.length>0 && (!rows[0].demoras || !Array.isArray(rows[0].demoras))){
+          const ds = readDemorasFixedLight(); if (ds.length){ rows[0] = { ...rows[0], demoras: ds }; }
+        }
+  const build = (window._mfBuildAoA||buildAoALocal);
+  const { headers, headersEs, aoa } = build(rows);
+        if (window.XLSX && XLSX.utils && typeof XLSX.utils.aoa_to_sheet==='function'){
+          try {
+            const ws = XLSX.utils.aoa_to_sheet([headersEs, ...aoa]);
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Manifiestos');
+            try { const range = XLSX.utils.decode_range(ws['!ref']||'A1'); ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) }; } catch(_){ }
+            XLSX.writeFile(wb, 'manifiestos.xlsx'); return;
+          } catch(err){ console.warn('SheetJS export failed, fallback CSV', err); }
+        }
+        const esc=(v)=>{ const s=(v==null)?'':(typeof v==='boolean'?(v?'Sí':'No'):String(v)); return /[",\n]/.test(s)? '"'+s.replace(/"/g,'""')+'"': s; };
+        const lines=[headersEs.join(',')]; aoa.forEach(arr=>{ lines.push(arr.map(esc).join(',')); });
+        const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='manifiestos.csv'; a.click();
+      } catch(err){ console.error('Export (delegator) error', err); }
+    }
+    document.addEventListener('click', function(e){
+      const btn = e.target && (e.target.id === 'manifest-export-csv' ? e.target : (e.target.closest && e.target.closest('#manifest-export-csv')));
+      if (!btn) return;
+      // Evitar doble descarga si ya existe wiring directo
+      if (window._mfExportDirect) return;
+      e.preventDefault(); exportCurrentManifestsToExcel();
+    });
+  })();
+
+  // Delegador global (captura) para Guardar: bloquea si no es válido, incluso si otros listeners existen
+  (function ensureSaveDelegator(){
+    if (window._mfSaveDelegator) return; window._mfSaveDelegator = true;
+    document.addEventListener('click', function(e){
+      const t = e.target;
+      const btn = t && (t.id === 'manifest-save' ? t : (t.closest && t.closest('#manifest-save')));
+      if (!btn) return;
+      // Validación antes de otros listeners (fase de captura fuera; explicitamente prevenimos si inválido)
+      try {
+        if (typeof window._mfValidateAll === 'function'){
+          const ok = window._mfValidateAll();
+          if (!ok){ e.preventDefault(); e.stopImmediatePropagation(); return false; }
+        }
+      } catch(_){ }
+    }, true); // captura
+  })();
+
+  // Delegador global: garantiza que el botón "Añadir a tabla" funcione aunque el wiring original falle
+  (function ensureAddToTableDelegator(){
+    if (window._mfAddToTableDelegator) return; window._mfAddToTableDelegator = true;
+    function addCurrentToRecordsTableLight(){
+      try {
+        const tbody = document.querySelector('#manifest-records-table tbody'); if (!tbody) return;
+        // Preferir lector ligero para evitar dependencias
+        const r = (typeof readForm === 'function' ? readForm() : (typeof readFormLight === 'function' ? readFormLight() : {}));
+        const fecha = r.docDate || '';
+        const hora = r.direction === 'Llegada'
+          ? (r.arrSlotAssigned || r.arrSlotCoordinated || r.arrArriboPosicion || '')
+          : (r.slotAssigned || r.slotCoordinated || r.salidaPosicion || '');
+        const od = r.direction === 'Llegada'
+          ? `${r.arrOriginCode||r.arrOriginName||''}`
+          : `${r.finalDestCode||r.finalDest||''}`;
+        const airlineCol = `${r.carrier3L? (String(r.carrier3L).toUpperCase()+ ' - ') : ''}${r.airline||r.operatorName||''}`;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${r.direction||''}</td>
+          <td>${airlineCol}</td>
+          <td>${r.flight||''}</td>
+          <td>${r.tail||''}</td>
+          <td>${fecha}</td>
+          <td>${hora}</td>
+          <td>${od}</td>
+          <td>${r.paxTotal||''}</td>
+          <td>${(r.cargoKg||'')}/${(r.mailKg||'')}</td>
+          <td>${r.image?('<img src="'+r.image+'" style="height:30px">') : ''}</td>`;
+        tr._record = r;
+        tbody.appendChild(tr);
+      } catch(err){ console.error('Delegator: añadir a tabla falló:', err); }
+    }
+    document.addEventListener('click', function(e){
+      const btn = e.target && (e.target.id === 'manifest-add-to-table' ? e.target : (e.target.closest && e.target.closest('#manifest-add-to-table')));
+      if (btn){ e.preventDefault(); addCurrentToRecordsTableLight(); }
+    });
+  })();
 })();

@@ -64,3 +64,36 @@ window.AIFA = window.AIFA || {};
   A.on = function(evt, fn){ (listeners[evt] = listeners[evt] || []).push(fn); };
   A.emit = function(evt, payload){ (listeners[evt]||[]).forEach(fn=>{ try{ fn(payload); }catch(e){ console.warn('AIFA.emit handler error', e); } }); };
 })();
+
+  // Online/offline awareness: lightweight banner + helpers
+  ;(function(){
+    try {
+      const A = window.AIFA = window.AIFA || {};
+      A.isOnline = function(){ try { return navigator.onLine !== false; } catch(_) { return true; } };
+      function ensureNetBanner(){
+        let el = document.getElementById('aifa-offline-banner');
+        if (!el){
+          el = document.createElement('div');
+          el.id = 'aifa-offline-banner';
+          Object.assign(el.style, {
+            position:'fixed', right:'12px', bottom:'12px', zIndex:'4000',
+            background:'#dc3545', color:'#fff', padding:'8px 12px', borderRadius:'8px',
+            boxShadow:'0 4px 16px rgba(0,0,0,0.2)', fontSize:'14px', display:'none'
+          });
+          el.textContent = 'Sin conexión: algunos catálogos, PDFs y logos no se cargarán.';
+          document.body.appendChild(el);
+        }
+        return el;
+      }
+      function refreshNetBanner(){
+        try {
+          const el = ensureNetBanner();
+          el.style.display = A.isOnline() ? 'none' : '';
+          if (typeof A.emit === 'function') A.emit('net:status', { online: A.isOnline() });
+        } catch(_){ }
+      }
+      window.addEventListener('online', refreshNetBanner);
+      window.addEventListener('offline', refreshNetBanner);
+      document.addEventListener('DOMContentLoaded', refreshNetBanner);
+    } catch(_){ }
+  })();
