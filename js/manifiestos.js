@@ -416,12 +416,6 @@
   (function(){
     let _initPromise = null;
     window._mfOcrScheduler = window._mfOcrScheduler || null;
-    // Explicit Tesseract resource paths to avoid worker importScripts issues behind CDNs
-    const _tessOpts = {
-      workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/worker.min.js',
-      corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@4/tesseract-core.wasm.js',
-      langPath: 'https://tessdata.projectnaptha.com/4.0.0'
-    };
     window.ensureOcrScheduler = async function ensureOcrScheduler(){
       if (window._mfOcrScheduler) return window._mfOcrScheduler;
       if (_initPromise) return _initPromise;
@@ -435,7 +429,7 @@
           const cores = (typeof navigator!=='undefined' && navigator.hardwareConcurrency) ? navigator.hardwareConcurrency : 2;
           const workers = Math.min(4, Math.max(2, Math.floor(cores/2)));
           for (let i=0;i<workers;i++){
-            const w = await Tesseract.createWorker(_tessOpts);
+            const w = await Tesseract.createWorker();
             await w.loadLanguage('spa+eng');
             await w.initialize('spa+eng');
             await sched.addWorker(w);
@@ -508,7 +502,6 @@
   const saveBtn = document.getElementById('manifest-save');
   const clearBtn = document.getElementById('manifest-clear');
   const exportBtn = document.getElementById('manifest-export-json');
-  const exportCsvBtn = document.getElementById('manifest-export-csv');
   const dirArr = document.getElementById('mf-dir-arr');
   const dirDep = document.getElementById('mf-dir-dep');
   const pdfStatus = document.getElementById('manifest-pdf-status');
@@ -517,381 +510,6 @@
   const ocrDebug = document.getElementById('manifest-ocr-debug');
   const upBtnPdf = document.getElementById('manifest-upload-btn-pdf');
   const upBtnImg = document.getElementById('manifest-upload-btn-img');
-  // Demoras: catálogo IATA/Local (delay.csv)
-  let delayAlphaMap = new Map(); // ALPHA (2-3 letras) -> { numeric, alpha, summary, description, category }
-  async function loadDelayCatalog(){
-    try {
-      let text = '';
-      try {
-        const res = await fetch('data/master/delay.csv', { cache: 'no-store' });
-        text = await res.text();
-      } catch(_){ /* fallthrough to fallback */ }
-      // Fallback CSV (manual) when fetch fails or empty; provided by user
-      if (!text || !text.trim()){
-        text = `Numeric code,Alpha code,Summary,Description,Category
-37,GB,CATERING,Late delivery or loading,Aircraft and Ramp Handling
-38,GU,ULD,Lack of or serviceability,Aircraft and Ramp Handling
-89,,test,,test
-35,GC,AIRCRAFT CLEANING,,Aircraft and Ramp Handling
-36,GF,FUELLING / DEFUELLING,Fuel supplier,Aircraft and Ramp Handling
-0,,AIRLINE INTERNAL CODE,IATA has recommended that these codes are used by individual airlines to develop code definitions that meet their specific requirements.,Others1
-39,GT,TECHNICAL EQUIPMENT,"Lack of or breakdown, lack of staff, e.g. pushback",Aircraft and Ramp Handling
-1,,AIRLINE INTERNAL CODE,IATA has recommended that these codes are used by individual airlines to develop code definitions that meet their specific requirements.,Others
-84,AW,ATFM DUE TO WEATHER AT DESTINATION,,AIR TRAFFIC FLOW MANAGEMENT RESTRICTIONS
-85,AS,MANDATORY SECURITY,,AIRPORT AND GOVERNMENTAL AUTHORITIES
-82,AX,ATFM DUE TO ATC STAFF / EQUIPMENT ENROUTE,"Reduced capacity caused by industrial action or staff shortage, equipment failure, military exercise or extraordinary demand due to capacity reduction in neighbouring area",AIR TRAFFIC FLOW MANAGEMENT RESTRICTIONS
-83,AE,ATFM DUE TO RESTRICTION AT DESTINATION AIRPORT,"Airport and / or runway closed due to obstruction, industrial action, staff shortage, political unrest, noise abatement, night curfew, special flights",AIR TRAFFIC FLOW MANAGEMENT RESTRICTIONS
-88,AD,RESTRICTIONS AT DESTINATION AIRPORT,"Airport and / or runway closed due to obstruction industrial action, staff shortage, political unrest, noise abatement, night curfew, special flights",AIRPORT AND GOVERNMENTAL AUTHORITIES
-89,AM,RESTRICTIONS AT AIRPORT OF DEPARTURE,"Including air traffic services, start-up and pushback, airport and / or runway closed due to obstruction or weather (restriction due to weather in case of ATFM only) industrial action, staff shortage, political unrest, noise abatement, night curfew, special flights",AIRPORT AND GOVERNMENTAL AUTHORITIES
-86,AG,"IMMIGRATION, CUSTOMS, HEALTH",,AIRPORT AND GOVERNMENTAL AUTHORITIES
-87,AF,AIRPORT FACILITIES,"Parking stands, ramp congestion, lighting, buildings, gate limitations etc.",AIRPORT AND GOVERNMENTAL AUTHORITIES
-41,TD,AIRCRAFT DEFECTS,,Technical and Aircraft Equipment
-45,TA,AOG SPARES,To be carried to another station,Technical and Aircraft Equipment
-81,AT,ATFM DUE TO ATC EN-ROUTE DEMAND / CAPACITY,Standard demand / capacity problems,AIR TRAFFIC FLOW MANAGEMENT RESTRICTIONS
-44,TS,SPARES AND MAINTENANCE EQUIPMENT,Lack of or breakdown,Technical and Aircraft Equipment
-43,TN,NON-SCHEDULED MAINTENANCE,Special checks and / or additional works beyond normal maintenance schedule,Technical and Aircraft Equipment
-42,TM,SCHEDULED MAINTENANCE,Late release,Technical and Aircraft Equipment
-24,CI,INADEQUATE PACKING,,Cargo and Mail
-25,CO,OVERSALES,Booking errors,Cargo and Mail
-26,CU,LATE PREPARATION IN WAREHOUSE,,Cargo and Mail
-27,CE,"DOCUMENTATION, PACKING",,Mail Only
-28,CL,LATE POSITIONING,,Mail Only
-29,CA,LATE ACCEPTANCE,,Mail Only
-69,FB,CAPTAIN REQUEST FOR SECURITY CHECK,Extraordinary requests outside mandatory requirements,Flight Operations and Crewing
-68,FA,CABIN CREW ERROR OR SPECIAL REQUEST,Not within operational requirements,Flight Operations and Crewing
-71,WO,DEPARTURE STATION,,Weather
-72,WT,DESTINATION STATION,,Weather
-73,WR,EN-ROUTE OR ALTERNATE,,Weather
-75,WI,DE-ICING OF AIRCRAFT,"Removal of ice and/or snow, frost prevention excluding unserviceability of equipment",Weather
-76,WS,"REMOVAL OF SNOW, ICE, WATER, AND SAND FROM AIRPORT",,Weather
-77,WG,GROUND HANDLING IMPAIRED BY ADVERSE WEATHER CONDITIONS,,Weather
-32,GL,LOADING / UNLOADING,"Bulky, special load, lack of loading staff",Aircraft and Ramp Handling
-31,GD,LATE / INACCURATE AIRCRAFT DOCUMENTATION,"Weight and balance, general declaration, pax manifest, etc.",Aircraft and Ramp Handling
-34,GS,SERVICING EQUIPMENT,"Lack of or breakdown, lack of staff, e.g. steps",Aircraft and Ramp Handling
-33,GE,LOADING EQUIPMENT,"Lack of or breakdown, e.g. container pallet loader, lack of staff",Aircraft and Ramp Handling
-19,PW,REDUCED MOBILITY,Boarding / deboarding of passengers with reduced mobility.,Passenger and Baggage
-17,PC,CATERING ORDER,late or incorrect order given to supplier,Passenger and Baggage
-18,PB,BAGGAGE PROCESSING,Late or incorrectly sorted baggage,Passenger and Baggage
-92,RT,THROUGH CHECK-IN ERROR,Passenger or baggage,Reactionary
-15,PH,BOARDING,"Discrepancies and paging, missing checked-in passenger",Passenger and Baggage
-91,RL,LOAD CONNECTION,Awaiting load from another flight,Reactionary
-16,PS,COMMERCIAL PUBLICITY/ PASSENGER CONVENIENCE,"VIP, press, ground meals and missing personal items",Passenger and Baggage
-13,PE,CHECK-IN ERROR TEST,Passenger and baggage,Passenger and Baggage
-14,PO,OVERSALES,Booking errors,Passenger and Baggage
-96,RO,OPERATIONS CONTROL,"Re-routing, diVERSION,AIRLINDID,HANDLINGCAT, consolidation, aircraft change for reasons other than technical",Reactionary
-95,RC,CREW ROTATION,"Awaiting flight deck, or entire crew, from another flight",Reactionary
-94,RS,CABIN CREW ROTATION,Awaiting cabin crew from another flight,Reactionary
-93,RA,AIRCRAFT ROTATION,Late arrival of aircraft from another flight or previous sector,Reactionary
-99,MX,MISCELLANEOUS,No suitable code; explain reason(s) in plain text,Miscellaneous
-98,MO,INDUSTRIAL ACTION OUTSIDE OWN AIRLINE,Excluding Air Traffic Control Services,Miscellaneous
-97,MI,INDUSTRIAL ACTION WITHIN OWN AIRLINE,,Miscellaneous
-66,FL,LATE CABIN CREW BOARDING OR DEPARTURE PROCEDURES,Other than connection and standby,Flight Operations and Crewing
-67,FC,CABIN CREW SHORTAGE,"Sickness, awaiting standby, flight time limitations, valid visa, health documents, etc.",Flight Operations and Crewing
-64,FS,FLIGHT DECK CREW SHORTAGE,"Sickness, awaiting standby, flight time limitations, valid visa, health documents, etc.",Flight Operations and Crewing
-65,FR,FLIGHT DECK CREW SPECIAL REQUEST,Requests not within operational requirements,Flight Operations and Crewing
-62,FF,OPERATIONAL REQUIREMENTS,"Fuel, load alteration",Flight Operations and Crewing
-63,FT,LATE CREW BOARDING OR DEPARTURE PROCEDURES,Other than connection and standby (flight deck or entire crew),Flight Operations and Crewing
-61,FP,FLIGHT PLAN,"Late completion or change of, flight documentation",Flight Operations and Crewing
-23,CC,LATE ACCEPTANCE,,Cargo and Mail
-22,CP,LATE POSITIONING,,Cargo and Mail
-21,CD,DOCUMENTATION,Errors etc.,Cargo and Mail
-6,OA,NO GATE/STAND AVAILABILITY DUE TO OWN AIRLINE ACTIVITY,,Others
-47,TL,STANDBY AIRCRAFT,Lack of planned stand-by aircraft for technical reasons,Technical and Aircraft Equipment
-46,TC,AIRCRAFT CHANGE,For technical reasons,Technical and Aircraft Equipment
-48,TV,"SCHEDULED CABIN CONFIGURATION/VERSION,AIRLINDID,HANDLINGCAT ADJUSTMENTS",,Technical and Aircraft Equipment
-53,ED,DEPARTURE CONTROL,,EDP/Automated Equipment Failure
-54,EC,CARGO PREPARATION/DOCUMENTATION,,EDP/Automated Equipment Failure
-55,EF,FLIGHT PLANS,,EDP/Automated Equipment Failure
-56,EO,OTHER AUTOMATED SYSTEM,,EDP/Automated Equipment Failure
-51,DF,DAMAGE DURING FLIGHT OPERATIONS,"Bird or lightning strike, turbulence, heavy or overweight landing, collisions during taxiing",Damage to Aircraft
-52,DG,DAMAGE DURING GROUND OPERATIONS,"Collisions (other than taxiing), loading / offloading damage, towing, contamination, extreme weather conditions",Damage to Aircraft
-12,PL,LATE CHECK-IN,Congestion in check-in area,Passenger and Baggage
-11,PD,LATE CHECK-INAAA,Acceptance after deadline,Passenger and Baggage
-101,AAM,AUTORIDAD MIGRATORIA,,AUTORIDES
-106,AAG,GUARDIA NACIONAL,,AUTORIDADES
-108,AAX,OTRAS,,AUTORIDADES
-112,CST,SERVICIO DE RAMPA,RETRASO EN EL SERVICIO DEL TRACTOR DE ARRASTRE POR FALTA O FALLA DEL EQUIPO/ MAL PROCEDIMIENTO,COMPAÑÍA (AEROLÍNEA)
-149,CRF,SISTEMAS ,FALLA DEL SISTEMA DE DOCUMENTACIÓN ,COMPAÑÍA (AEROLÍNEA) 
-154,CVV,SOLICITUD TARDÍA DE SERVICIOS ,,COMPAÑÍA (AEROLÍNEA) 
-157,EWE,METEOROLOGÍA ,VIENTOS EN CONTRA ,EVENTO CIRCUNSTANCIAL 
-160,EWO,METEOROLOGÍA ,EN EL AEROPUERTO DE ORIGEN ,EVENTO CIRCUNSTANCIAL 
-161,EWX,METEOROLOGÍA ,OTRO,EVENTO CIRCUNSTANCIAL 
-162,ESB,PROCEDIMIENTO DE SEGURIDAD ,AMENAZA DE BOMBA ,EVENTO CIRCUNSTANCIAL 
-165,EPD,OCASIONADO POR PAX ,PROCESO DE PASAJERO A BORDO ,EVENTO CIRCUNSTANCIAL 
-169,IGO,GEOMETRÍA DEL AEROPUERTO ,CONGESTIONAMIENTO DEL ÁREA DE MOVIMIENTO ,INFRAESTRUCTURA AEROPORTUARIA 
-179,IML,INFRAESTRUCTURA ,DEMORAS OCASIONADAS POR FALTA O INADECUADA LIMPIEZA DE LAS ÁREAS OPERACIONALES ,INFRAESTRUCTURA AEROPORTUARIA 
-183,ROA,ORIGINADA EN EL AIFA ,,REPERCUSIÓN 
-191,SPD,SERVICIO DE PASILLO ,DEMORA EN LA PRESTACIÓN DEL SERVICIO ,SERVICIOS AEROPORTUARIOS 
-192,SPX,SERVICIO DE PASILLO ,OTRO,SERVICIOS AEROPORTUARIOS 
-193,SAE,SERVICIO DE AEROCARES ,FALLA DE EQUIPO ,SERVICIOS AEROPORTUARIOS 
-194,SAO,SERVICIO DE AEROCARES ,FALTA DEL OPERADOR ,SERVICIOS AEROPORTUARIOS 
-195,SAD,SERVICIO DE AEROCARES ,DEMORA EN LA PRESTACIÓN DEL SERVICIO ,SERVICIOS AEROPORTUARIOS 
-202,SGX,ASIGNACIÓN DE POSICIONES ,OTRO ,SERVICIOS AEROPORTUARIOS 
-204,SVP,SEGURIDAD Y VIGILANCIA ,FALTA O INSUFICIENCIA DE PERSONAL ,SERVICIOS AEROPORTUARIOS 
-105,AAN,SEGURIDAD NACIONAL,,AUTORIDAD
-122,COT,OPERACIONES,TRANSPORTACIÓN DE TRIPULACIÓN,COMPAÑÍA (AEROLÍNEA)
-107,AAF,AUTORIDAD INVESTIGADORA,,AUTORIDADES
-126,CCT,CONTROL OPERACIONAL,OCASIONA ERRÓNEA DE TRIPULACIÓN,COMPAÑÍA (AEROLÍNEA)
-118,CEM,EXPRESS Y CARGA,EMBALAJE ERRÓNEO O INADECUADO.,COMPAÑÍA (AEROLÍNEA) 
-119,CEG,EXPRESS Y CARGA,FALTA DE GUÍAS DE CARGA QUE SE TRANSPORTA ,COMPAÑÍA (AEROLÍNEA) 
-121,CEX,EXPRESS Y CARGA,OTRO,COMPAÑÍA (AEROLÍNEA) 
-128,CCD,CONTROL OPERACIONAL,"DOCUMENTACIÓN DE VUELO, FALTA O CORRECCIÓN DE ESTA (PLAN DE VUELO).",COMPAÑÍA (AEROLÍNEA) 
-129,CCC,CONTROL OPERACIONAL ,CAMBIO DE EQUIPO POR  RAZONES TECNICAS,COMPAÑÍA (AEROLÍNEA) 
-135,CMC,MANTENIMIENTO,CAMBIO DE EQUIPO POR RAZONES DE MANTENIMIENTO ,COMPAÑÍA (AEROLÍNEA) 
-140,CPE,TRIPULACIÓN ,"PETICIÓN ESPECIAL DE LA TRIPULACIÓN  (RECARGA DE COMBUSTIBLE, COMISARIATOS ETC.)",COMPAÑÍA (AEROLÍNEA) 
-151,CFT,COMISARIATO ,PRESENTANDOSE TARDE,COMPAÑÍA (AEROLÍNEA) 
-152,CFF,COMISARIATO,FALTA DE ALIMENTOS ,COMPAÑÍA (AEROLÍNEA) 
-156,EWF,METEOROLOGÍA ,VIENTOS A FAVOR ,EVENTO CIRCUNSTANCIAL 
-158,EWD,METEOROLOGÍA ,EN EL AEROPUERTO DE DESTINO ,EVENTO CIRCUNSTANCIAL 
-159,EWP,METEOROLOGÍA ,CAMBIO DE PISTA ,EVENTO CIRCUNSTANCIAL 
-164,EPC,OCASIONADO POR PAX ,PASAJERO CONFLICTIVO ,EVENTO CIRCUNSTANCIAL 
-171,IGX,GEOMETRÍA DEL AEROPUERTO ,OTRO ,INFRAESTRUCTURA AEROPORTUARIA  
-172,ILP,LIMITACIONES DEL EDIFICIO TERMINAL ,FALTA DE POSICIONES SUFICIENTES PARA ABORDADOR MECÁNICO ,INFRAESTRUCTURA AEROPORTUARIA 
-173,ILF,LIMITACIONES DEL EDIFICIO TERMINAL ,SATURACIÓN DE FILTROS DE SEGURIDAD POR MOTIVOS DE INFRAESTRUCTURA ,INFRAESTRUCTURA AEROPORTUARIA 
-174,ILT,LIMITACIONES DEL EDIFICIO TERMINAL ,POR INFORMACIÓN ERRÓNEA POR EL SISTEMA DE VOCEO Y PANTALLAS DE INFORMACIÓN DE VUELO.,INFRAESTRUCTURA AEROPORTUARIA  
-175,ILV,LIMITACIONES DE EDIFICIO TERMINAL ,INADECUADA SEÑALIZACIÓN VISUAL DE PASAJEROS ,INFRAESTRUCTURA AEROPORTUARIA  
-176,ILX,LIMITACIONES DEL EDIFICIO TERMINAL ,OTRO ,INFRAESTRUCTURA AEROPORTUARIA 
-177,IMO,INFRAESTRUCTURA ,MANTENIMIENTO DE LAS ÁREAS OPERACIONALES ,INFRAESTRUCTURA AEROPORTUARIA 
-178,IME,INFRAESTRUCTURA ,MANTENIMIENTO DEL EDIFICIO TERMINAL ,INFRAESTRUCTURA AEROPORTUARIA 
-182,PAI,INCIDENTE ,,PERCANCES 
-184,ROF,ORIGINADA FUERA DEL AIFA ,"Demora fue debido a salida tardía de aeropuerto de origen.		
-",REPERCUSIÓN 
-186,STA,SERVICIO DE TRANSITO AÉREO ,FALLA ORIGINADA EN EL AIFA,SERVICIOS AEROPORTUARIOS 
-187,STF,SERVICIO DE TRANSITO AÉREO ,FALLA ORIGINADA FUERA DEL AIFA ,SERVICIOS AEROPORTUARIOS 
-189,SPE,SERVICIO DE PASILLO ,FALLA DE EQUIPO ,SERVICIOS AEROPORTUARIOS 
-196,SAX,SERVICIO DE AEROCARES ,OTRO ,SERVICIOS AEROPORTUARIOS 
-203,SVE,SEGURIDAD Y VIGILANCIA ,FALTA O FALLA DE LOS EQUIPOS DE REVISIÓN ,SERVICIOS AEROPORTUARIOS 
-205,SVX,SEGURIDAD Y VIGILANCIA ,OTRO ,SERVICIOS AEROPORTUARIOS 
-103,AAJ,AUTORIDAD JUDICIAL,,AUTORIDADES
-100,AAA,AUTORIDAD AERONAUTICA,,AUTORIDADES
-102,AAD,AUTORIDAD ADUANAL,,AUTORIDADES
-104,AAS,AUTORIDAD SANITARIA,,AUTORIDAD
-109,CSC,SERVICIO DE RAMPA,LENTITUD EN LA CARGA/ DESCARGA DEL AVIÓN POR FALTA O INSUFICIENCIA DEL PERSONAL/ COMPLICACIÓN POR LA CARGA,COMPAÑIA
-110,CSF,SERVICIO DE RAMPA,FALTA O FALLA DEL EQUIPO DE APOYO DE TIERRA,COMPAÑÍA (AEROLÍNEA)
-111,CSL,SERVICIO DE RAMPA,RETRASO DE LA LIMPIEZA DEL AVIÓN,COMPAÑÍA (AEROLÍNEA)
-113,CSA,SERVICIO DE RAMPA,RETRASO DE SERVICIO DE AGUAS NEGRAS Y POTABLE POR FALTA O FALLA DEL EQUIPO/ FALTA DE AGUA POTABLE / ETC,COMPAÑÍA (AEROLÍNEA)
-114,CSE,SERVICIO DE RAMPA,RETRASO EN EL SERVICIO DE ESCALERILLA,COMPAÑÍA (AEROLÍNEA)
-115,CSX,SERVICIO DE RAMPA,OTRO,COMPAÑÍA (AEROLÍNEA)
-123,COM,OPERACIONES,MANIFIESTO DE CARGA Y BALANCE (RETRASO O ERROR EN EL MISMO),COMPAÑÍA (AEROLÍNEA)
-124,COX,OPERACIONES,OTRO,COMPAÑÍA (AEROLÍNEA)
-125,CCA,OPERACIONES,CONVENIENCIA DE LA COMPAÑÍA AÉREA,COMPAÑÍA (AEROLÍNEA)
-127,CCE,CONTROL OPERACIONAL,ASIGNACIÓN ERRÓNEA DE EQUIPO,COMPAÑÍA (AEROLÍNEA)
-116,CEC,EXPRESS Y CARGA,CIERRE TARDE DEL VUELO POR ESPERA DE CARGA MENSAJERÍA O CORREO ,COMPAÑIA (AEROLINEA)
-117,CEE,EXPRESS Y CARGA,"ERRORES DOCUMENTACIÓN,  MATERIAL DOCUMENTADO NO PERMITIDO ETC.",COMPAÑÍA (AEROLÍNEA) 
-120,CES,EXPRESS Y CARGA ,SOBREVENTA DE LOS ESPACIOS DE CARGA ,COMPAÑÍA (AEROLÍNEA) 
-130,CCX,CONTROL OPERACIONAL,OTRO,COMPAÑÍA (AEROLÍNEA) 
-131,CMP,MANTENIMIENTO,MANTENIMIENTO PROGRAMADO (LIBERACIÓN TARDÍA DEL HANGAR),COMPAÑÍA (AEROLÍNEA) 
-132,CMN,MANTENIMIENTO,MANTENIMIENTO NO PROGRAMADO. (CUALQUIER TIPO DE FALLA QUE SE PRESENTE DURANTE LA OPERACIÓN DEL VUELO),COMPAÑÍA (AEROLÍNEA) 
-133,CMR,MANTENIMIENTO,REFACCIONES Y EQUIPO DE MANTENIMIENTO (FALTA O FALLA),COMPAÑÍA (AEROLÍNEA) 
-134,CMA,MANTENIMIENTO ,"FALLA TÉCNICO-ADMINISTRATIVA (FALTA DE BITÁCORA, CERTIFICADO ETC.)",COMPAÑÍA (AEROLÍNEA) 
-136,CMX,MANTENIMIENTO ,OTRO ,COMPAÑÍA (AEROLÍNEA) 
-137,CPR,TRIPULACIÓN ,ESPERANDO TRIPULACIÓN DE RESERVA ,COMPAÑÍA (AEROLÍNEA) 
-138,CPT,TRIPULACIÓN ,TRIPULACIÓN PRESENTÁNDOSE TARDE ,COMPAÑÍA (AEROLÍNEA) 
-139,CPP,TRIPULACIÓN ,CAMBIO DE TRIPULACIÓN (TÉCNICA Y/O SERVICIO),COMPAÑÍA (AEROLÍNEA) 
-141,CPX,TRIPULACIÓN ,OTRO,COMPAÑÍA (AEROLÍNEA) 
-142,CTB,TRAFICO ,"ABORDAJE (PASAJERO MAL ABORDADO, ABORDAJE LENTO, DISCREPANCIA EN NUMERO DE PASAJEROS ETC.)",COMPAÑÍA (AEROLÍNEA) 
-143,CTL,TRAFICO ,LOCALIZACIÓN O ESPERA DE PASAJEROS EN TRANSITO,COMPAÑÍA (AEROLÍNEA) 
-144,CTD,TRAFICO ,"DOCUMENTACIÓN (ERRORES AL DOCUMENTAR, CIERRE TARDE DEL VUELO, ETC.)",COMPAÑÍA (AEROLÍNEA) 
-145,CTE,TRAFICO ,"MANEJO DE EQUIPAJE (BAJANDO EQUIPAJES VOLUMINOSOS, BAJANDO EQUIPAJE DE PASAJERO QUE NO ABORDÓ, ETC) ",COMPAÑÍA (AEROLÍNEA) 
-146,CTP,TRAFICO ,MANEJO DE PASAJERO DISCAPACITADO ,COMPAÑÍA (AEROLÍNEA) 
-147,CTS,TRAFICO ,SOBREVENTA ,COMPAÑÍA (AEROLÍNEA) 
-148,CTX,TRAFICO ,OTRO,COMPAÑÍA (AEROLÍNEA) 
-150,CRX,SISTEMAS ,OTRO,COMPAÑÍA (AEROLÍNEA) 
-153,CFX,COMISARIATO,OTRO,COMPAÑÍA (AEROLÍNEA) 
-155,EWA,METEOROLOGÍA ,EN EL AIFA,EVENTO CIRCUNSTANCIAL 
-163,ESX,PROCEDIMIENTO DE SEGURIDAD ,OTRO ,EVENTO CIRCUNSTANCIAL 
-166,EPE,OCASIONADO POR PAX ,PASAJERO DELICADO POR ENFERMEDAD O DISCAPACIDAD ,EVENTO CIRCUNSTANCIAL 
-167,EPX,OCASIONADO POR PAX ,OTRO ,EVENTO CIRCUNSTANCIAL 
-168,EXX,OTRO NO CODIFICADO ,,EVENTO CIRCUNSTANCIAL 
-170,IGR,GEOMETRÍA DEL AEROPUERTO ,AERONAVE REMOLCADA ,INFRAESTRUCTURA AEROPORTUARIA 
-180,IMX,INFRAESTRUCTURA ,OTRO ,INFRAESTRUCTURA AEROPORTUARIA 
-181,PAC,ACCIDENTE ,,PERCANCES 
-185,R,REPERCUSIÓN ,,REPERCUSIÓN 
-188,STX,SERVICIO DE TRANSITO AÉREO ,OTRO ,SERVICIOS AEROPORTUARIOS 
-190,SPO,SERVICIO DE PASILLO ,FALTA O ERROR DEL OPERADOR ,SERVICIOS AEROPORTUARIOS 
-197,SCE,SERVICIO DE COMBUSTIBLE ,FALLA DEL EQUIPO ,SERVICIOS AEROPORTUARIOS 
-198,SCO,SERVICIO DE COMBUSTIBLE ,FALTA DEL OPERADOR ,SERVICIOS AEROPORTUARIOS 
-199,SCD,SERVICIO DE COMBUSTIBLE ,DEMORA EN LA PRESTACIÓN DEL SERVICIO ,SERVICIOS AEROPORTUARIOS 
-200,SCX,SERVICIO DE COMBUSTIBLE ,OTRO ,SERVICIOS AEROPORTUARIOS  
-201,SGE,ASIGNACIÓN DE POSICIONES ,ERROR EN LA ASIGNACIÓN DE POSICIONES ,SERVICIOS AEROPORTUARIOS`;
-      }
-      const lines = text.split(/\r?\n/).filter(Boolean);
-      if (!lines.length) return;
-      // parser simple con comillas
-      const parseLine = (line)=>{
-        const out=[]; let cur=''; let inQ=false;
-        for (let i=0;i<line.length;i++){
-          const ch=line[i];
-          if (ch==='"'){
-            if (inQ && line[i+1]==='"'){ cur+='"'; i++; }
-            else { inQ=!inQ; }
-          } else if (ch===',' && !inQ){ out.push(cur); cur=''; }
-          else { cur+=ch; }
-        }
-        out.push(cur); return out;
-      };
-      const headers = parseLine(lines[0]).map(h=> String(h||'').trim());
-      const idx = (name)=> headers.findIndex(h=> h.toLowerCase() === name.toLowerCase());
-      const iNum = idx('Numeric code');
-      const iAlpha = idx('Alpha code');
-      const iSummary = idx('Summary');
-      const iDesc = idx('Description');
-      const iCat = idx('Category');
-      for (let i=1;i<lines.length;i++){
-        const cols = parseLine(lines[i]);
-        const alpha = (cols[iAlpha]||'').toString().trim().toUpperCase();
-        const numeric = (cols[iNum]||'').toString().trim();
-        const summary = (cols[iSummary]||'').toString().trim();
-        const description = (cols[iDesc]||'').toString().trim();
-        const category = (cols[iCat]||'').toString().trim();
-        if (!alpha) continue;
-        if (/^[A-Z]{2,3}$/.test(alpha)){
-          delayAlphaMap.set(alpha, { numeric, alpha, summary, description, category });
-        }
-      }
-
-      // Crear/actualizar datalist con códigos ALPHA para autocompletar
-      try {
-        let dl = document.getElementById('delay-alpha-codes');
-        if (!dl){
-          dl = document.createElement('datalist');
-          dl.id = 'delay-alpha-codes';
-          document.body.appendChild(dl);
-        }
-        const opts = Array.from(delayAlphaMap.entries())
-          .sort(([a],[b])=> a.localeCompare(b))
-          .map(([code, rec])=>{
-            const desc = (rec.description||'').trim();
-            const sum = (rec.summary||'').trim();
-            const label = [desc, sum].filter(Boolean).join(' — ');
-            const text = label ? `${code} — ${label}` : code;
-            return `<option value="${code}" label="${label.replace(/"/g,'&quot;')}">${text}</option>`;
-          })
-          .join('');
-        dl.innerHTML = opts;
-      } catch(_){ }
-    } catch(_){ /* ignore */ }
-  }
-
-  // Redundancy: ensure the delay catalog is loaded as soon as DOM is ready,
-  // so the datalist has options even if other setup fails or the section isn't activated yet.
-  try { document.addEventListener('DOMContentLoaded', function(){ try { loadDelayCatalog(); } catch(_){} }); } catch(_){}
-
-  // Extrae minutos de demora cerca de la sección CAUSAS DE LA DEMORA y los asocia por línea con códigos reconocidos
-  function extractDelayMinutesFromText(text, codes){
-    try {
-      const U = (text||'').toString().toUpperCase();
-      const lines = U.split(/\r?\n/);
-      const nearLabels = [/CAUSAS?\s+DE\s+LA?\s*DEMORA/, /CAUSA\s+DE\s+DEMORA/, /CAUSAS?\s+DEMORA/, /DEMORA\s*:/, /\bCÓDIGO\b/, /\bCODIGO\b/];
-      const valid = new Set((codes||[]).map(c=> String(c||'').toUpperCase()));
-      const idxs = [];
-      for (let i=0;i<lines.length;i++){ if (nearLabels.some(rx=> rx.test(lines[i]))) idxs.push(i); }
-      const out = new Map();
-      const seen = new Set();
-      const inRangeNums = [];
-      const rxCode = /\b[A-Z]{2,3}\b/g;
-      const rxNum = /\b(\d{1,3})\b/g;
-      const consider = (i,k)=>{ const s = lines[i+k]||''; if (!s) return;
-        const foundCodes = (s.match(rxCode)||[]).filter(c=> valid.has(c));
-        const nums = (s.match(rxNum)||[]).map(n=> parseInt(n,10)).filter(n=> n>=0 && n<=600);
-        if (nums.length) inRangeNums.push(...nums);
-        if (foundCodes.length===1 && nums.length>0){
-          const code = foundCodes[0];
-          const min = nums[nums.length-1]; // tomar el último número de la línea
-          if (!seen.has(code)) { out.set(code, min); seen.add(code); }
-        }
-      };
-      for (const i of idxs){ for (let k=-3;k<=8;k++){ if (k!==0) consider(i,k); } }
-      // Si no logramos asociar por línea, asignar por orden
-      if (out.size===0 && inRangeNums.length>0){
-        for (let i=0;i<codes.length;i++){ if (inRangeNums[i]!=null) out.set(codes[i], inRangeNums[i]); }
-      }
-      return out;
-    } catch(_){ return new Map(); }
-  }
-  function fillOrAddDelayCode(code, desc){
-    try {
-      const c = (code||'').toString().toUpperCase();
-      // Preferir nueva UI fija (3 filas)
-      const fixedIds = ['demora1','demora2','demora3'];
-      const getFixed = (id)=> ({
-        codeEl: document.getElementById(id+'-codigo'),
-        minEl: document.getElementById(id+'-tiempo'),
-        descEl: document.getElementById(id+'-descripcion')
-      });
-      const existingFixed = new Set(fixedIds.map(fid=> (getFixed(fid).codeEl?.value||'').toUpperCase().trim()).filter(Boolean));
-      if (!existingFixed.has(c)){
-        const spot = fixedIds.map(getFixed).find(x=> x.codeEl && !String(x.codeEl.value||'').trim());
-          if (spot && spot.codeEl){
-          spot.codeEl.value = c;
-          if (spot.descEl && !spot.descEl.value){
-            const rec = delayAlphaMap.get(c);
-            const dsc = desc || rec?.description || rec?.summary || '';
-            if (dsc) spot.descEl.value = dsc;
-          }
-          // normalizar
-          spot.codeEl.value = (spot.codeEl.value||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
-          return;
-        }
-      }
-      // Fallback: tabla dinámica si existe
-      const cells = Array.from(document.querySelectorAll('.demora-codigo'));
-      const firstEmpty = cells.find(inp=> !String(inp.value||'').trim());
-      if (firstEmpty){
-        firstEmpty.value = c;
-        const row = firstEmpty.closest('tr');
-        const d = row ? row.querySelector('.demora-descripcion') : null;
-        if (d && !d.value) d.value = desc||'';
-        // Normalizar código y validar contra catálogo
-        if (firstEmpty){
-          firstEmpty.value = (firstEmpty.value||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
-          const isValid = delayAlphaMap.has(firstEmpty.value);
-          if (row){ row.classList.toggle('table-warning', !isValid); }
-        }
-      } else {
-        if (typeof addDemoraRow === 'function') addDemoraRow({ codigo: c, minutos: '', descripcion: desc||'' });
-      }
-    } catch(_){ if (typeof addDemoraRow === 'function') addDemoraRow({ codigo: code, minutos: '', descripcion: desc||'' }); }
-  }
-  // Helpers para la nueva UI fija (3 filas)
-  function getDelayDescriptionByCode(code){
-    try {
-      const C=(code||'').toString().toUpperCase();
-      const rec = delayAlphaMap.get(C);
-      return (rec && (rec.description||rec.summary)) || '';
-    } catch(_){ return ''; }
-  }
-  function setDemoraRow(index, code, minutes, description){
-    const idx = Number(index);
-    const codeEl = document.getElementById(`demora${idx}-codigo`);
-    const minEl = document.getElementById(`demora${idx}-tiempo`);
-    const descEl = document.getElementById(`demora${idx}-descripcion`);
-    if (!codeEl || !minEl || !descEl) return;
-    if (code != null) codeEl.value = (code||'').toString().toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
-    if (minutes != null && minutes !== '') minEl.value = minutes;
-    const desc = (description && String(description).trim()) || getDelayDescriptionByCode(codeEl.value);
-    if (desc) descEl.value = desc;
-  }
-  function readDemorasFromFixedFields(){
-    const out = [];
-    for (let i=1;i<=3;i++){
-      const code = (document.getElementById(`demora${i}-codigo`)?.value||'').toUpperCase().trim();
-      const minutosRaw = (document.getElementById(`demora${i}-tiempo`)?.value||'').trim();
-      const descripcion = document.getElementById(`demora${i}-descripcion`)?.value||'';
-      if (code || minutosRaw || descripcion){
-        out.push({ codigo: code, minutos: minutosRaw, descripcion });
-      }
-    }
-    return out;
-  }
-  function clearDemorasFixedFields(){
-    for (let i=1;i<=3;i++){
-      const c = document.getElementById(`demora${i}-codigo`);
-      const m = document.getElementById(`demora${i}-tiempo`);
-      const d = document.getElementById(`demora${i}-descripcion`);
-      if (c) c.value=''; if (m) m.value=''; if (d) d.value='';
-    }
-  }
   // Attach NA toggles (V1) and convert to 24h text inputs if forced
   try {
     (window._mfTimeFieldIds||[]).forEach(id=> _attachNaToggle(id));
@@ -920,7 +538,7 @@
       try { const a = it?.meta; if (!a) return; input.value = (a.icao||'').toUpperCase(); const el = document.getElementById('mf-airline'); if (el && a.name) el.value = a.name; } catch(_){ }
     }});
     // Aeropuerto principal (Llegada/Salida)
-  window._mfAttachCatalogButton('mf-airport-main', { load:'airports', onPick:(it, input)=>{ try { const a=it?.meta; if (!a) return; input.value = (a.iata||'').toUpperCase(); } catch(_){ } }});
+    window._mfAttachCatalogButton('mf-airport-main', { load:'airports', onPick:(it, input)=>{ try { const a=it?.meta; if (!a) return; input.value = a.name||''; } catch(_){ } }});
   } catch(_){ }
   try {
     // Aeropuertos: code/name pairs
@@ -1041,7 +659,6 @@
           reader.onerror = reject;
         });
       }
-      let _pdfPreviewRenderTask = null;
       async function renderPdfPreviewFirstPage(file){
         try {
           await ensurePdfJsFromCDN();
@@ -1056,14 +673,7 @@
           if (prevCanvas){
             prevCanvas.width = vp.width; prevCanvas.height = vp.height;
             const ctx = prevCanvas.getContext('2d');
-            // Cancel any in-flight render to avoid double-render errors on the same canvas
-            if (_pdfPreviewRenderTask && _pdfPreviewRenderTask.cancel){
-              try { _pdfPreviewRenderTask.cancel(); await _pdfPreviewRenderTask.promise.catch(()=>{}); } catch(_){}
-              _pdfPreviewRenderTask = null;
-            }
-            _pdfPreviewRenderTask = page.render({ canvasContext: ctx, viewport: vp });
-            await _pdfPreviewRenderTask.promise;
-            _pdfPreviewRenderTask = null;
+            await page.render({ canvasContext: ctx, viewport: vp }).promise;
             prevCanvas.classList.remove('d-none');
             // Build a simple text layer with selectable spans
             // Quitar reconocimiento de texto en previsualización: ocultar capa de texto
@@ -1105,7 +715,7 @@
           if (window._mfOcrScheduler){
             prom = window._mfOcrScheduler.addJob('recognize', dataUrl);
           } else {
-            prom = Tesseract.recognize(dataUrl, 'spa+eng', { ...(_tessOpts||{}), logger: ()=>{} });
+            prom = Tesseract.recognize(dataUrl, 'spa+eng', { logger: ()=>{} });
           }
           prom = Promise.resolve(prom).then((res)=>{ completed++; try { setProgress(60 + Math.round(((completed)/pages)*30), `OCR página ${completed}/${pages}...`); } catch(_){} return res; });
           jobs.push(prom);
@@ -1562,7 +1172,7 @@
                   ocrSrc = c.toDataURL('image/png');
                 }
               } catch(_) { /* si falla el preprocesado, seguimos con el dataUrl original */ }
-              const { data } = await Tesseract.recognize(ocrSrc, 'spa+eng', { ...(_tessOpts||{}), logger: ()=>{} });
+              const { data } = await Tesseract.recognize(ocrSrc, 'spa+eng', { logger: ()=>{} });
               text = (data && data.text) ? data.text : '';
             }
             if (ocrDebug) ocrDebug.value = text || '';
@@ -2144,17 +1754,8 @@
           for (let i=0;i<lines.length;i++){
             const u = lines[i].toUpperCase();
             if (labels.some(lbl => u.includes(String(lbl||'').toUpperCase()))){
-              const search = (s)=>{ const arr = (s||'').match(rxIATA)||[]; return arr.find(c=> iataSet.has(c)); };
-              // Checar línea anterior, actual y siguientes
-              const hit = search(lines[i-1]) || search(lines[i]) || search(lines[i+1]) || search(lines[i+2]) || '';
-              if (hit) return hit;
-            }
-          }
-          // Pista alternativa: si aparece "CÓDIGO 3 LETRAS", tomar la línea anterior como candidata
-          for (let i=0;i<lines.length;i++){
-            if (/C[ÓO]DIGO\s*3\s*LETRAS/i.test(lines[i])){
-              const m = (lines[i-1]||'').match(rxIATA)||[];
-              const hit = m.find(c=> iataSet.has(c));
+              const search = (s)=>{ const arr = s.match(rxIATA)||[]; return arr.find(c=> iataSet.has(c)); };
+              const hit = search(lines[i]) || search(lines[i+1]||'');
               if (hit) return hit;
             }
           }
@@ -2191,7 +1792,6 @@
 
       async function loadAirlinesCatalog(){
         try {
-          if (location && location.protocol === 'file:') return; // skip fetch under file:// to avoid errors
           const res = await fetch('data/master/airlines.csv', { cache:'no-store' });
           const text = await res.text();
           const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
@@ -2217,7 +1817,6 @@
       }
       async function loadAircraftCatalog(){
         try {
-          if (location && location.protocol === 'file:') return; // skip fetch under file:// to avoid errors
           const resA = await fetch('data/master/aircraft.csv', { cache:'no-store' });
           const textA = await resA.text();
           const linesA = textA.split(/\r?\n/).filter(l=>l.trim());
@@ -2303,7 +1902,6 @@
       }
       async function loadAirportsCatalog(){
         try {
-          if (location && location.protocol === 'file:') return; // skip fetch under file:// to avoid errors
           const res = await fetch('data/master/airports.csv', { cache:'no-store' });
           const text = await res.text();
           const lines = text.split(/\r?\n/).filter(l=>l.trim());
@@ -2311,9 +1909,9 @@
             const cols = []; let cur=''; let inQuotes=false;
             for (let i=0;i<line.length;i++){
               const ch=line[i];
-              if (ch==='"'){
+              if (canon){
                 if (inQuotes && line[i+1]==='"'){ cur+='"'; i++; }
-                else { inQuotes = !inQuotes; }
+                else inQuotes = !inQuotes;
               } else if (ch===',' && !inQuotes){ cols.push(cur); cur=''; }
               else { cur+=ch; }
             }
@@ -2321,6 +1919,7 @@
           }
           const optsIATA = [], optsName = [];
           for (let i=1;i<lines.length;i++){
+                setTailWarning('');
             const parts = parseCSVLine(lines[i]);
             if (parts.length < 3) continue;
             const IATA = (parts[0]||'').trim().toUpperCase();
@@ -2329,8 +1928,10 @@
             airportByIATA.set(IATA, Name);
             airportByName.set(Name.toLowerCase(), IATA);
             iataSet.add(IATA);
+                setTailWarning('');
             optsIATA.push(`<option value="${IATA}">${Name}</option>`);
             optsName.push(`<option value="${Name}">${IATA}</option>`);
+                setTailWarning('No se encontró una matrícula válida en el documento. Verifique o seleccione del catálogo.');
           }
           const dlIATA = document.getElementById('airports-iata-list');
           const dlName = document.getElementById('airports-name-list');
@@ -2343,14 +1944,13 @@
         const isArrival = dirArr && dirArr.checked;
         document.querySelectorAll('[data-dir="arrival-only"]').forEach(el => { el.style.display = isArrival ? '' : 'none'; });
         document.querySelectorAll('[data-dir=\"departure-only\"]').forEach(el => { el.style.display = isArrival ? 'none' : ''; });
-        // Campos comunes y específicos
+        const eta = document.getElementById('mf-time-arr');
+        const etd = document.getElementById('mf-time-dep');
         const dest = document.getElementById('mf-final-dest');
         const destCode = document.getElementById('mf-final-dest-code');
         const originName = document.getElementById('mf-origin-name');
         const originCode = document.getElementById('mf-origin-code');
         const nextStopCode = document.getElementById('mf-next-stop-code');
-        const airportMain = document.getElementById('mf-airport-main');
-
         const arrOriginName = document.getElementById('mf-arr-origin-name');
         const arrOriginCode = document.getElementById('mf-arr-origin-code');
         const arrSlotAssigned = document.getElementById('mf-arr-slot-assigned');
@@ -2359,25 +1959,15 @@
         const arrLastStopCode = document.getElementById('mf-arr-last-stop-code');
         const arrArriboPos = document.getElementById('mf-arr-arribo-posicion');
         const arrInicioDes = document.getElementById('mf-arr-inicio-desembarque');
-        const arrInicioPernocta = document.getElementById('mf-arr-inicio-pernocta');
-
-        // Reglas: En LLEGADA, hacer obligatorios los campos de la sección Llegada; en Salida, quitar obligatoriedad.
-        if (isArrival){
-          if (airportMain) airportMain.required = true;
-          [arrOriginName, arrOriginCode, arrSlotAssigned, arrSlotCoordinated, arrLastStop, arrLastStopCode, arrArriboPos, arrInicioDes, arrInicioPernocta]
-            .forEach(el => { if (el) el.required = true; });
-          // En salida no son obligatorios
-          [originName, originCode, nextStopCode, dest, destCode].forEach(el => { if (el) el.required = false; });
-        } else {
-          if (airportMain) airportMain.required = false;
-          [arrOriginName, arrOriginCode, arrSlotAssigned, arrSlotCoordinated, arrLastStop, arrLastStopCode, arrArriboPos, arrInicioDes, arrInicioPernocta]
-            .forEach(el => { if (el) el.required = false; });
-          // Para salidas, mantener reglas actuales (no imponemos nuevos requeridos aquí)
-          [originName, originCode].forEach(el => { if (el) el && (el.required = true); });
-          [nextStopCode].forEach(el => { if (el) el.required = false; });
-          [dest, destCode].forEach(el => { if (el) el && (el.required = true); });
-        }
-
+        if (eta) eta.required = !!isArrival;
+        if (originName) originName.required = !isArrival;
+        if (originCode) originCode.required = !isArrival;
+        if (nextStopCode) nextStopCode.required = false;
+        if (etd) etd.required = !isArrival;
+        if (dest) dest.required = !isArrival;
+        if (destCode) destCode.required = !isArrival;
+        [arrOriginName, arrOriginCode, arrSlotAssigned, arrSlotCoordinated, arrLastStop, arrLastStopCode, arrArriboPos, arrInicioDes]
+          .forEach(el => { if (el) el.required = false; });
         const title = document.getElementById('mf-title');
         if (title) title.value = isArrival ? 'MANIFIESTO DE LLEGADA' : 'MANIFIESTO DE SALIDA';
         try {
@@ -2400,142 +1990,9 @@
       if (dirDep && !dirDep._wired) { dirDep._wired = 1; dirDep.addEventListener('change', applyManifestDirection); }
       applyManifestDirection();
 
-  loadAirlinesCatalog();
-  loadAircraftCatalog();
-  loadAirportsCatalog();
-  loadDelayCatalog();
-
-      // Catálogo: Tipo de vuelo (flightservicetype.csv)
-      window._initFlightServiceType = function initFlightServiceType(){
-        const sel = document.getElementById('mf-flight-type');
-        const info = document.getElementById('mf-flight-type-info');
-        if (!sel) return;
-        // Si ya hay opciones manuales en el HTML (más de 1 además del placeholder), solo cablear eventos y salir
-        const hasManual = sel.options && sel.options.length > 1;
-        function wireOnly(){
-          if (!sel._wiredFlightType){
-            sel._wiredFlightType = 1;
-            sel.addEventListener('change', ()=>{
-              const v = sel.value;
-              const opt = sel.selectedOptions && sel.selectedOptions[0];
-              if (!v || !opt){ if (info) info.textContent=''; return; }
-              const cat = opt.getAttribute('data-category')||'';
-              const op  = opt.getAttribute('data-operation')||'';
-              const des = opt.getAttribute('data-description')||'';
-              if (info) info.innerHTML = `${cat?`<span class="badge bg-secondary me-1">${cat}</span>`:''}${op}${(op&&des)?' — ':''}${des}`;
-            });
-          }
-          sel.value = '';
-          if (info) info.textContent = '';
-        }
-        if (hasManual){ wireOnly(); return; }
-        // Fallback CSV (para entorno file:// o si falla fetch)
-        const FALLBACK_FST_CSV = `Code,Category,Type of operation,Description
-A,Additional flights,"Cargo,Mail",Cargo/Mail
-B,Additional flights,Passenger,Shuttle Mode
-C,Charter,Passenger,Passenger Only
-D,Others,Not specific,General Aviation
-E,Others,Not specific,Test
-F,Scheduled,"Cargo,Mail",Loose Loaded cargo and/or preloaded devices
-G,Additional flights,Passenger,Normal Service
-H,Charter,"Cargo,Mail",Cargo and /or Mail
-I,Others,Not specific,State/Diplomatic/Air Ambulance
-J,Scheduled,Passenger,Normal Service
-K,Others,Not specific,Training (School/Crew check)
-L,Charter,"Cargo,Mail,Passenger",Passenger/Cargo/Mail
-M,Scheduled,"Cargo,Mail",Mail only
-N,Others,Not specific,Business Aviation/Air Taxi
-O,Charter,Special handling,Charter requiring special handling(e.g. Migrants/immigrant Flights)
-P,Others,Not specific,Non-revenue(Positioning/Ferry/Delivery/Demo
-Q,Scheduled,"Passenger,Cargo",Passenger/Cargo in Cabin (mixed configuration aircraft)
-R,Additional flights,"Passenger,Cargo",Passenger/Cargo in Cabin (mixed configuration aircraft)
-S,Scheduled,Passenger,Shuttle Mode
-T,Others,Not specific,Technical Test
-U,Scheduled,Passenger,Service operated by Surface Vehicle
-V,Scheduled,"Cargo,Mail",Service operated by Surface Vehicle
-W,Others,Not specific,Military
-X,Others,Not specific,Technical Stop
-Y,Others,Not specific,Special internal purposes
-Z,Others,Not specific,Special internal purposes`;
-        function parseCSV(text){
-          const rows=[]; let i=0, s=text||''; let field=''; let row=[]; let inQ=false;
-          while(i<s.length){
-            const ch=s[i++];
-            if(inQ){
-              if(ch==='"'){
-                if(s[i]==='"'){ field+='"'; i++; } else { inQ=false; }
-              } else { field+=ch; }
-            } else {
-              if(ch==='"') inQ=true;
-              else if(ch===','){ row.push(field); field=''; }
-              else if(ch==='\n'){ row.push(field); rows.push(row); row=[]; field=''; }
-              else if(ch==='\r'){ /* ignore */ }
-              else { field+=ch; }
-            }
-          }
-          if (field.length>0 || row.length>0){ row.push(field); rows.push(row); }
-          return rows;
-        }
-        function rowsToObjects(rows){ if(!rows||!rows.length) return []; const headers=rows[0].map(h=>String(h||'').trim()); return rows.slice(1).map(r=>{ const o={}; headers.forEach((h,idx)=> o[h]= (r[idx]||'').toString().trim()); return o; }); }
-        function updateInfo(o){
-          if (!info) return;
-          if (!o){ info.textContent=''; return; }
-          const op = o['Type of operation']||o['Operacion']||'';
-          const desc = o['Description']||'';
-          const cat = o['Category']||'';
-          info.innerHTML = `${cat?`<span class="badge bg-secondary me-1">${cat}</span>`:''}${op || ''}${(op&&desc)?' — ':''}${desc || ''}`;
-        }
-        const fillOptions = (list)=>{
-          // Reset options preserving the placeholder
-          const keepFirst = sel.querySelector('option[value=""]');
-          sel.innerHTML = '';
-          sel.appendChild(keepFirst || new Option('Selecciona…',''));
-          list.forEach(row=>{
-            const code = (row['Code']||'').toUpperCase();
-            if (!code) return;
-            const cat = row['Category']||'';
-            const op = row['Type of operation']||'';
-            const desc = row['Description']||'';
-            const label = `${code} — ${desc || op || cat || ''}`.replace(/\s+—\s*$/,'');
-            const opt = new Option(label, code);
-            opt.dataset.category = cat;
-            opt.dataset.operation = op;
-            opt.dataset.description = desc;
-            sel.appendChild(opt);
-          });
-          // Wire change to show info
-          if (!sel._wiredFlightType){
-            sel._wiredFlightType = 1;
-            sel.addEventListener('change', ()=>{
-              const v = sel.value;
-              const opt = sel.selectedOptions && sel.selectedOptions[0];
-              if (!v || !opt){ updateInfo(null); return; }
-              updateInfo({
-                'Category': opt.dataset.category||'',
-                'Type of operation': opt.dataset.operation||'',
-                'Description': opt.dataset.description||''
-              });
-            });
-          }
-          // Ensure starts blank to force manual selection
-          sel.value = '';
-          updateInfo(null);
-        };
-  fetch('data/master/flightservicetype.csv', { cache: 'no-store' })
-          .then(r=> r.ok ? r.text() : Promise.reject(new Error('HTTP '+r.status)))
-          .then(txt=> rowsToObjects(parseCSV(txt)))
-          .then(list=>{ if (!list || !list.length) throw new Error('Empty CSV'); fillOptions(list); })
-          .catch(()=>{
-            try {
-              // Fallback para file:// o error de red
-              const list = rowsToObjects(parseCSV(FALLBACK_FST_CSV));
-              fillOptions(list);
-              console.warn('Usando catálogo de Tipo de vuelo embebido (fallback). Para datos en vivo, abre el proyecto via http://');
-            } catch(_){ /* mantener select manual con placeholder */ }
-          });
-      };
-      // Ejecutar de inmediato dentro del setup
-      try { window._initFlightServiceType(); } catch(_){ }
+      loadAirlinesCatalog();
+      loadAircraftCatalog();
+      loadAirportsCatalog();
 
   function setPreview(src){ if (prevImg){ prevImg.src = src; prevImg.classList.remove('d-none'); } if (prevCanvas){ prevCanvas.classList.add('d-none'); } if (placeholder) placeholder.classList.add('d-none'); if (runBtn) runBtn.disabled = false; currentImageURL = src; }
       if (up && !up._wired) { up._wired = 1; up.addEventListener('change', async (e)=>{
@@ -2554,7 +2011,7 @@ Z,Others,Not specific,Special internal purposes`;
             const processed = preprocessImage(prevImg);
             if (!window.Tesseract) { if (s) s.textContent = 'OCR no disponible (Tesseract.js no cargado).'; return; }
             if (s) s.textContent = 'Reconociendo texto (OCR spa+eng)...';
-            const { data } = await Tesseract.recognize(processed, 'spa+eng', { ...(_tessOpts||{}), logger: m => {}, tessedit_pageseg_mode: 6, user_defined_dpi: 300 });
+            const { data } = await Tesseract.recognize(processed, 'spa+eng', { logger: m => {}, tessedit_pageseg_mode: 6, user_defined_dpi: 300 });
             const text = (data && data.text) ? data.text.trim() : '';
             if (s) s.textContent = text ? ('Texto detectado (resumen):\n' + (text.slice(0,600)) + (text.length>600?'...':'')) : 'No se detectó texto.';
             const hasWord = hasWordFactory(text);
@@ -2620,24 +2077,8 @@ Z,Others,Not specific,Special internal purposes`;
               if (!lastStopCand && airportCodes[1]) lastStopCand = airportCodes[1];
               if (!finalDestCand && airportCodes[2]) finalDestCand = airportCodes[2];
               if (currentIsArrival){
-                if (originCand) {
-                  setVal('mf-arr-origin-code', originCand);
-                  try { const nm = airportByIATA.get(originCand)||''; if (nm) setVal('mf-arr-origin-name', nm); } catch(_){}
-                }
-                if (lastStopCand) {
-                  setVal('mf-arr-last-stop-code', lastStopCand);
-                  try { const nm = airportByIATA.get(lastStopCand)||''; if (nm) setVal('mf-arr-last-stop', nm); } catch(_){}
-                }
-                // Aeropuerto principal (Llegada): leer código IATA cerca de la etiqueta y colocar código IATA (3 letras)
-                try {
-                  const mainArrCand = findNearLabelIATACode([
-                    'AEROPUERTO DE LLEGADA','AEROPUERTO DESTINO','AEROPUERTO DE ARRIBO','AEROPUERTO DESTINO DEL VUELO'
-                  ], text);
-                  const mainMatch = findValidAirport(mainArrCand);
-                  if (mainMatch && mainMatch.IATA){
-                    setVal('mf-airport-main', mainMatch.IATA);
-                  }
-                } catch(_){ }
+                if (originCand) setVal('mf-arr-origin-code', originCand);
+                if (lastStopCand) setVal('mf-arr-last-stop-code', lastStopCand);
               } else {
                 if (originCand) setVal('mf-origin-code', originCand);
                 if (lastStopCand) setVal('mf-next-stop-code', lastStopCand);
@@ -2714,27 +2155,6 @@ Z,Others,Not specific,Special internal purposes`;
                 setTimeIf('mf-termino-pernocta', ['termino de pernocta','término de pernocta','fin pernocta']);
               }
             } catch(_){ }
-            // Demoras: detectar códigos (2-3 letras) en/tras "Causas de la demora" y minutos cercanos
-            try {
-              // Asegurar catálogo cargado; si no, cargar rápido (best-effort)
-              if (!delayAlphaMap || delayAlphaMap.size===0){ try { await loadDelayCatalog(); } catch(_){ } }
-              const codes = extractDelayCodesFromText(text);
-              if (codes && codes.length){
-                // Rellenar hasta 3 filas fijas; evitar duplicados existentes
-                const fixedExisting = new Set(['demora1','demora2','demora3'].map(id=> (document.getElementById(id+'-codigo')?.value||'').toUpperCase().trim()).filter(Boolean));
-                const minsMap = extractDelayMinutesFromText(text, codes) || new Map();
-                let i=1;
-                for (const code of codes){
-                  if (i>3) break;
-                  if (fixedExisting.has(code)) continue;
-                  const rec = delayAlphaMap.get(code) || {};
-                  const descTxt = rec.summary || rec.description || '';
-                  const mins = minsMap.get(code);
-                  setDemoraRow(i, code, (Number.isFinite(mins)? String(mins): ''), descTxt);
-                  i++;
-                }
-              }
-            } catch(_){ }
             if (s) s.textContent += '\n\nAutorrelleno aplicado (si hubo coincidencias).';
           } catch(err){ if (s) s.textContent = 'Error en OCR: ' + (err?.message || err); }
         });
@@ -2750,7 +2170,7 @@ Z,Others,Not specific,Special internal purposes`;
           if (carrier.value !== code) carrier.value = code;
           if (code.length !== 3) return;
           const rec = airlinesCatalog.find(a=> a.ICAO === code);
-            if (rec){
+            if (canon){
             if (opName && !opName.value) opName.value = rec.Name;
             if (airlineName && !airlineName.value) airlineName.value = rec.Name;
           }
@@ -2801,48 +2221,28 @@ Z,Others,Not specific,Special internal purposes`;
       })();
 
       (function wireAirportFields(){
-        // Helpers: normalization for names (remove accents/extra spaces)
-        const normName = (s)=> (s||'').toString()
-          .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-          .replace(/\s+/g,' ').trim().toLowerCase();
-        // Build normalized map on demand from current catalog
-        let airportByNameNorm = new Map();
-        try {
-          airportByNameNorm.clear();
-          if (airportByIATA && airportByIATA.size){
-            for (const [iata, nm] of airportByIATA.entries()){
-              const key = normName(nm);
-              if (key && !airportByNameNorm.has(key)) airportByNameNorm.set(key, iata);
-            }
-          }
-        } catch(_){ }
-        function lookupIATAByNameAny(name){
-          const exact = airportByName.get((name||'').toString().trim().toLowerCase());
-          if (exact) return exact;
-          const norm = normName(name);
-          return airportByNameNorm.get(norm) || '';
-        }
         function link(nameId, codeId){
           const nameEl = document.getElementById(nameId);
           const codeEl = document.getElementById(codeId);
           if (!nameEl || !codeEl) return;
           if (!nameEl._wired){
             nameEl._wired = 1;
-            const onName = ()=>{
-              const iata = lookupIATAByNameAny(nameEl.value||'');
-              if (iata){ codeEl.value = iata; }
-            };
-            ['input','change','blur'].forEach(ev=> nameEl.addEventListener(ev, onName));
+            nameEl.addEventListener('input', ()=>{
+              const s = (nameEl.value||'').trim().toLowerCase();
+              const iata = airportByName.get(s);
+              if (iata && !codeEl.value) codeEl.value = iata;
+            });
           }
           if (!codeEl._wired){
             codeEl._wired = 1;
-            const onCode = ()=>{
-              const c = (codeEl.value||'').toString().toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
-              codeEl.value = c;
-              const name = airportByIATA.get(c) || '';
-              if (name){ nameEl.value = name; }
-            };
-            ['input','change','blur'].forEach(ev=> codeEl.addEventListener(ev, onCode));
+              // Si es válida según catálogo, limpiar advertencia
+              try { const w = document.getElementById('mf-tail-warning'); if (w) { w.textContent = ''; w.classList.add('d-none'); } } catch(_){ }
+            codeEl.addEventListener('input', ()=>{
+              const c = (codeEl.value||'').trim().toUpperCase();
+              codeEl.value = c.replace(/[^A-Z]/g,'').slice(0,3);
+              const name = airportByIATA.get(codeEl.value);
+              if (name && !nameEl.value) nameEl.value = name;
+            });
           }
         }
         link('mf-origin-name','mf-origin-code');
@@ -2850,13 +2250,6 @@ Z,Others,Not specific,Special internal purposes`;
         link('mf-final-dest','mf-final-dest-code');
         link('mf-arr-origin-name','mf-arr-origin-code');
         link('mf-arr-last-stop','mf-arr-last-stop-code');
-        // Aeropuerto principal (IATA): normalizar y validar
-        (function(){
-          const el = document.getElementById('mf-airport-main');
-          if (!el || el._wired) return; el._wired = 1;
-          const onIATA = ()=>{ el.value = (el.value||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3); };
-          ['input','change','blur'].forEach(ev=> el.addEventListener(ev, onIATA));
-        })();
       })();
 
       function calculateTotals(){
@@ -2893,20 +2286,6 @@ Z,Others,Not specific,Special internal purposes`;
           if (prevCanvas && !prevCanvas.classList.contains('d-none')){ previewImage = prevCanvas.toDataURL('image/png'); }
           else if (prevImg && !prevImg.classList.contains('d-none')){ previewImage = prevImg.src || ''; }
         } catch(_){ }
-        // Demoras actuales: preferir UI de 3 filas fijas; si no hay, caer a tabla
-        const demoras = (function(){
-          try {
-            const fixed = (typeof readDemorasFromFixedFields==='function') ? readDemorasFromFixedFields() : [];
-            if (fixed && fixed.length) return fixed;
-            const trs = Array.from(document.querySelectorAll('#tabla-demoras tbody tr'));
-            return trs.map(tr=>({
-              codigo: (tr.querySelector('.demora-codigo')?.value||'').toUpperCase().trim(),
-              minutos: tr.querySelector('.demora-minutos')?.value||'',
-              descripcion: tr.querySelector('.demora-descripcion')?.value||''
-            })).filter(d=> d.codigo||d.minutos||d.descripcion);
-          } catch(_){ return []; }
-        })();
-
         return {
           direction,
           title: g('mf-title'), docDate: g('mf-doc-date'), folio: g('mf-folio'),
@@ -2914,14 +2293,8 @@ Z,Others,Not specific,Special internal purposes`;
           airportMain: g('mf-airport-main'), flightType: g('mf-flight-type'),
           tail: g('mf-tail'), aircraft: g('mf-aircraft'), originName: g('mf-origin-name'), originCode: g('mf-origin-code'),
           crewTotal: g('mf-crew-total'),
-          // Totales: usar campos dedicados si existen; si no, caer a los totales de la tabla de embarque
-          baggageKg: g('mf-baggage-kg') || g('total-equipaje'),
-          baggagePieces: g('mf-baggage-pcs'),
-          cargoKg: g('mf-cargo') || g('total-carga'),
-          cargoPieces: g('mf-cargo-pieces'),
-          cargoVol: g('mf-cargo-volume'),
-          mailKg: g('mf-mail') || g('total-correo'),
-          mailPieces: g('mf-mail-pieces'),
+          baggageKg: g('mf-baggage-kg'), baggagePieces: g('mf-baggage-pcs'), cargoKg: g('mf-cargo'), cargoPieces: g('mf-cargo-pieces'), cargoVol: g('mf-cargo-volume'),
+          mailKg: g('mf-mail'), mailPieces: g('mf-mail-pieces'),
           dangerousGoods: !!document.getElementById('mf-dangerous-goods')?.checked,
           liveAnimals: !!document.getElementById('mf-live-animals')?.checked,
           humanRemains: !!document.getElementById('mf-human-remains')?.checked,
@@ -2934,34 +2307,24 @@ Z,Others,Not specific,Special internal purposes`;
           paxTUA: g('pax-tua'), paxDiplomaticos: g('pax-diplomaticos'), paxComision: g('pax-comision'), paxInfantes: g('pax-infantes'), paxTransitos: g('pax-transitos'), paxConexiones: g('pax-conexiones'), paxExentos: g('pax-exentos'), paxTotal: g('pax-total'),
           obsTransito: g('mf-obs-transito'), paxDNI: g('mf-pax-dni'),
           signOperator: g('mf-sign-operator'), signCoordinator: g('mf-sign-coordinator'), signAdmin: g('mf-sign-admin'), signAdminDate: g('mf-sign-admin-date'),
-          demoras,
           image: previewImage
         };
       }
       function loadRecords(){ try { return JSON.parse(localStorage.getItem('aifa.manifests')||'[]'); } catch(_) { return []; } }
       function saveRecords(arr){ try { localStorage.setItem('aifa.manifests', JSON.stringify(arr)); } catch(_) {} }
-      function renderTable(){
-        if (!tableBody) return;
-        const rows = loadRecords();
-        tableBody.innerHTML = rows.map(r => `
-          <tr>
-            <td>${r.direction||''}</td>
-            <td>${(r.carrier3L? (r.carrier3L.toUpperCase()+ ' - ') : '') + (r.airline||r.operatorName||'')}</td>
-            <td>${r.flight||''}</td>
-            <td>${r.tail||''}</td>
-            <td></td>
-            <td></td>
-            <td>${(r.originCode||'')}/${r.finalDest||''}</td>
-            <td>${r.paxTotal||''}</td>
-            <td>${r.cargoKg||''}/${r.mailKg||''}</td>
-            <td>${r.image?'<img src="'+r.image+'" style="height:30px">':''}</td>
-          </tr>`).join('');
-        // Adjuntar el objeto completo al <tr> para que la exportación incluya TODOS los campos
-        try {
-          const trs = Array.from(tableBody.querySelectorAll('tr'));
-          trs.forEach((tr, i)=>{ tr._record = rows[i]; });
-        } catch(_){ }
-      }
+      function renderTable(){ if (!tableBody) return; const rows = loadRecords(); tableBody.innerHTML = rows.map(r => `
+        <tr>
+          <td>${r.direction||''}</td>
+          <td>${(r.carrier3L? (r.carrier3L.toUpperCase()+ ' - ') : '') + (r.airline||r.operatorName||'')}</td>
+          <td>${r.flight||''}</td>
+          <td>${r.tail||''}</td>
+          <td></td>
+          <td></td>
+          <td>${(r.originCode||'')}/${r.finalDest||''}</td>
+          <td>${r.paxTotal||''}</td>
+          <td>${r.cargoKg||''}/${r.mailKg||''}</td>
+          <td>${r.image?'<img src="'+r.image+'" style="height:30px">':''}</td>
+        </tr>`).join(''); }
 
       function recalcPaxTotal(){
         const ids = ['pax-tua','pax-diplomaticos','pax-comision','pax-infantes','pax-transitos','pax-conexiones','pax-exentos'];
@@ -2973,400 +2336,9 @@ Z,Others,Not specific,Special internal purposes`;
       });
       recalcPaxTotal();
 
-      // Hacer obligatorios todos los campos visibles excepto los de "Causas de la demora" y checkboxes
-      function isVisible(el){ try { return !!(el && el.offsetParent !== null && !el.hidden); } catch(_) { return false; } }
-      function inDemoras(el){ try { return !!(el.closest && (el.closest('#tabla-demoras') || /^(demora\d+\-(codigo|tiempo|descripcion))$/.test(el.id||''))); } catch(_) { return false; } }
-      function enforceRequiredFields(){
-        try {
-          const form = document.getElementById('manifest-form'); if (!form) return;
-          const controls = form.querySelectorAll('input, select, textarea');
-          controls.forEach(el=>{
-            // Reset primero
-            try { el.required = false; } catch(_){ }
-            // Excluir no visibles, deshabilitados, solo-lectura, checkboxes y demoras
-            if (!isVisible(el)) return;
-            if (el.disabled) return;
-            if (el.readOnly) return;
-            if (el.type === 'checkbox' || el.type === 'button' || el.type === 'file') return;
-            if (inDemoras(el)) return;
-            // Requerir el resto
-            try { el.required = true; } catch(_){ }
-          });
-          // Campos críticos que están fuera del formulario: siempre requeridos
-          try {
-            const hd = document.getElementById('mf-doc-date');
-            const hf = document.getElementById('mf-folio');
-            if (hd) hd.required = true;
-            if (hf) hf.required = true;
-          } catch(_){ }
-        } catch(_){ }
-      }
-      // Exponer para uso desde delegadores globales
-      try {
-        window._mfEnforceRequiredFields = enforceRequiredFields;
-      } catch(_){ }
-      function getControlLabelText(el){
-        // 1) label[for]
-        try { const lab = document.querySelector(`label[for="${el.id}"]`); if (lab && lab.textContent) return lab.textContent.trim(); } catch(_){}
-        // 2) label hermano anterior
-        try { const prev = el.previousElementSibling; if (prev && prev.tagName==='LABEL') return (prev.textContent||'').trim(); } catch(_){}
-        // 3) label dentro del mismo contenedor .col-*
-        try { const col = el.closest('.col-12, .col-md-6, .col-md-3, .col-md-4, .col-md-8'); if (col){ const l2 = col.querySelector('label'); if (l2 && l2.textContent) return l2.textContent.trim(); } } catch(_){}
-        // 4) placeholder o id
-        try { if (el.placeholder) return el.placeholder.trim(); } catch(_){}
-        return el.id || 'Campo';
-      }
-      function getMissingRequiredFields(){
-        const misses = [];
-        try {
-          const form = document.getElementById('manifest-form'); if (!form) return misses;
-          const controls = form.querySelectorAll('input, select, textarea');
-          controls.forEach(el=>{
-            if (!isVisible(el) || el.disabled || el.readOnly) return;
-            if (el.type === 'checkbox' || el.type === 'button' || el.type === 'file') return;
-            if (inDemoras(el)) return;
-            const req = !!el.required;
-            const val = (el.value||'').toString().trim();
-            if (req && !val){ misses.push({ id: el.id, label: getControlLabelText(el) }); }
-          });
-          // Incluir también los campos críticos fuera del formulario
-          try {
-            const addMiss = (id, label)=>{
-              const el = document.getElementById(id);
-              if (!el) return;
-              const val = (el.value||'').toString().trim();
-              if (!val) misses.push({ id, label });
-            };
-            addMiss('mf-doc-date', 'Fecha del Documento');
-            addMiss('mf-folio', 'Folio');
-          } catch(_){ }
-        } catch(_){ }
-        return misses;
-      }
-      try { window._mfGetMissingRequiredFields = getMissingRequiredFields; } catch(_){ }
-      function showMissingLegend(misses){
-        try {
-          if (!Array.isArray(misses) || !misses.length) return;
-          const list = misses.map(m=> ` - ${m.label||m.id}`).join('\n');
-          alert(`Faltan datos por llenar:\n${list}`);
-        } catch(_){ }
-      }
-      try { window._mfShowMissingLegend = showMissingLegend; } catch(_){ }
-      // Aplicar al cambiar dirección y al abrir la sección
-      try {
-        const dirA = document.getElementById('mf-dir-arr');
-        const dirD = document.getElementById('mf-dir-dep');
-        if (dirA && !dirA._reqW){ dirA._reqW = 1; dirA.addEventListener('change', enforceRequiredFields); }
-        if (dirD && !dirD._reqW){ dirD._reqW = 1; dirD.addEventListener('change', enforceRequiredFields); }
-        enforceRequiredFields();
-      } catch(_){ }
-
-      // Validador central para cabeceras críticas (fecha/folio)
-      function _validateCriticalHeaders(){
-        try {
-          const hd = document.getElementById('mf-doc-date');
-          const hf = document.getElementById('mf-folio');
-          const misses = [];
-          if (!hd || !String(hd.value||'').trim()) misses.push({ id:'mf-doc-date', label:'Fecha del Documento' });
-          if (!hf || !String(hf.value||'').trim()) misses.push({ id:'mf-folio', label:'Folio' });
-          // Marcar required para que reportValidity pueda funcionar a nivel de input
-          try { if (hd) hd.required = true; } catch(_){ }
-          try { if (hf) hf.required = true; } catch(_){ }
-          if (misses.length){
-            // Intentar resaltar el primero
-            try { const el0 = document.getElementById(misses[0].id); if (el0 && typeof el0.reportValidity==='function'){ el0.reportValidity(); el0.focus(); } } catch(_){ }
-            showMissingLegend(misses);
-            return { ok:false, misses };
-          }
-          return { ok:true, misses:[] };
-        } catch(_){ return { ok:true, misses:[] }; }
-      }
-
-      // Cómputo central de faltantes (sin efectos colaterales): reutilizado por validadores y UI
-      window._mfComputeMisses = function _mfComputeMisses(){
-        const res = [];
-        try {
-          // Marcar requeridos dinámicos antes de evaluar
-          try { if (typeof window._mfEnforceRequiredFields === 'function') window._mfEnforceRequiredFields(); else enforceRequiredFields(); } catch(_){ }
-          const form = document.getElementById('manifest-form');
-          // 1) Basado en atributos required visibles (excluye demoras/checkbox/file)
-          try {
-            const baseMiss = (typeof window._mfGetMissingRequiredFields === 'function')
-              ? window._mfGetMissingRequiredFields()
-              : (function(){
-                  const out=[]; if (!form) return out;
-                  const ctrls = form.querySelectorAll('input, select, textarea');
-                  ctrls.forEach(el=>{
-                    if (el.disabled || el.readOnly) return;
-                    if (el.type==='checkbox' || el.type==='button' || el.type==='file') return;
-                    const vis = !!(el.offsetParent !== null && !el.hidden);
-                    if (!vis) return;
-                    if (/(^demora\d+\-(codigo|tiempo|descripcion)$)/.test(el.id||'')) return;
-                    if (el.required && !String(el.value||'').trim()) out.push({ id: el.id, label: (document.querySelector(`label[for="${el.id}"]`)?.textContent||el.placeholder||el.id||'Campo').trim() });
-                  });
-                  return out;
-                })();
-            if (Array.isArray(baseMiss)) res.push(...baseMiss);
-          } catch(_){ }
-          // 2) Críticos fuera del form
-          const need = (id, label)=>{ const el=document.getElementById(id); if (!el || !String(el.value||'').trim()) res.push({ id, label }); };
-          need('mf-doc-date','Fecha del Documento');
-          need('mf-folio','Folio');
-          // 3) Paquetes mínimos por dirección (más estrictos)
-          try {
-            const isArrival = !!document.getElementById('mf-dir-arr')?.checked;
-            const common = ['mf-airport-main','mf-carrier-3l','mf-airline','mf-flight','mf-tail','mf-aircraft'];
-            const reqIds = isArrival
-              ? [...common,'mf-arr-origin-name','mf-arr-origin-code','mf-arr-slot-assigned','mf-arr-slot-coordinated','mf-arr-arribo-posicion','mf-arr-inicio-desembarque']
-              : [...common,'mf-origin-name','mf-origin-code','mf-final-dest','mf-final-dest-code','mf-slot-assigned','mf-slot-coordinated'];
-            reqIds.forEach(id=>{ const el=document.getElementById(id); if (!el) return; const v=String(el.value||'').trim(); if (!v){ const lab=(document.querySelector(`label[for="${id}"]`)?.textContent||el.placeholder||id).trim(); res.push({ id, label: lab }); } });
-          } catch(_){ }
-        } catch(_){ }
-        return res;
-      };
-
-      // Validador global y robusto: usa _mfComputeMisses y checkValidity nativo; muestra leyenda cuando falla
-      window._mfValidateAll = function _mfValidateAll(){
-        try {
-          const form = document.getElementById('manifest-form');
-          const misses = (typeof window._mfComputeMisses==='function') ? window._mfComputeMisses() : [];
-          if (misses.length){
-            try { const first = document.getElementById(misses[0].id); if (first){ first.focus(); first.scrollIntoView({ behavior:'smooth', block:'center' }); if (typeof first.reportValidity==='function') first.reportValidity(); } } catch(_){ }
-            try { (window._mfShowMissingLegend||function(x){ alert('Faltan datos por llenar'); })(misses); } catch(_){ }
-            return false;
-          }
-          if (form && typeof form.checkValidity==='function' && !form.checkValidity()){
-            try { form.reportValidity(); } catch(_){ }
-            return false;
-          }
-          return true;
-        } catch(_){ return true; }
-      };
-
-      // UI: desactivar/activar Guardar y Exportar según validez actual (silencioso)
-      function updateActionButtonsState(){
-        try {
-          const save = document.getElementById('manifest-save');
-          const exp = document.getElementById('manifest-export-csv');
-          const add = document.getElementById('manifest-add-to-table');
-          const misses = (typeof window._mfComputeMisses==='function') ? window._mfComputeMisses() : [];
-          const ok = misses.length===0;
-          [save, exp, add].forEach(btn=>{ if (!btn) return; btn.disabled = !ok; btn.classList.toggle('disabled', !ok); btn.setAttribute('aria-disabled', String(!ok)); });
-
-          // Mensaje de ayuda visible para el usuario cuando los botones están bloqueados
-          let hint = document.getElementById('manifest-actions-hint');
-          if (!hint){
-            // Insertar justo debajo del contenedor de botones
-            try {
-              const btnRow = document.querySelector('#manifest-form .col-12.d-flex.gap-2.mt-2');
-              hint = document.createElement('div');
-              hint.id = 'manifest-actions-hint';
-              hint.className = 'form-text text-danger mt-1';
-              if (btnRow && btnRow.parentElement){ btnRow.parentElement.insertBefore(hint, btnRow.nextSibling); }
-            } catch(_){ }
-          }
-          if (hint){
-            if (ok){ hint.textContent = ''; hint.style.display = 'none'; }
-            else {
-              const names = (misses||[]).slice(0,5).map(m=> m.label||m.id).filter(Boolean);
-              const more = misses.length>5 ? ` y ${misses.length-5} más` : '';
-              hint.textContent = `Completa ${names.join(', ')}${more} para habilitar Guardar y Exportar.`;
-              hint.style.display = '';
-            }
-          }
-        } catch(_){ }
-      }
-      try {
-        document.addEventListener('input', (e)=>{ if (e.target && e.target.closest && e.target.closest('#manifest-form')) updateActionButtonsState(); });
-        document.addEventListener('change', (e)=>{ if (e.target && e.target.closest && e.target.closest('#manifest-form')) updateActionButtonsState(); });
-        document.addEventListener('DOMContentLoaded', updateActionButtonsState);
-      } catch(_){ }
-
-    if (saveBtn && !saveBtn._wired) { saveBtn._wired = 1; saveBtn.addEventListener('click', ()=>{
-      // Validación centralizada y robusta
-      try { if (typeof window._mfValidateAll === 'function' && !window._mfValidateAll()) return; } catch(_){ }
-      recalcPaxTotal(); const recs = loadRecords(); recs.unshift(readForm()); saveRecords(recs.slice(0,200)); renderTable();
-      try { updateActionButtonsState(); } catch(_){ }
-    }); }
-    if (clearBtn && !clearBtn._wired) { clearBtn._wired = 1; clearBtn.addEventListener('click', ()=>{ document.getElementById('manifest-form')?.reset(); applyManifestDirection(); clearDynamicTables(); calculateTotals(); updateDemorasTotal(); try { updateActionButtonsState(); } catch(_){ } }); }
+    if (saveBtn && !saveBtn._wired) { saveBtn._wired = 1; saveBtn.addEventListener('click', ()=>{ recalcPaxTotal(); const recs = loadRecords(); recs.unshift(readForm()); saveRecords(recs.slice(0,200)); renderTable(); }); }
+    if (clearBtn && !clearBtn._wired) { clearBtn._wired = 1; clearBtn.addEventListener('click', ()=>{ document.getElementById('manifest-form')?.reset(); applyManifestDirection(); clearDynamicTables(); calculateTotals(); updateDemorasTotal(); }); }
       if (exportBtn && !exportBtn._wired) { exportBtn._wired = 1; exportBtn.addEventListener('click', ()=>{ const data = JSON.stringify(loadRecords(), null, 2); const blob = new Blob([data], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'manifiestos.json'; a.click(); }); }
-
-      // Añadir a tabla (sin guardar en localStorage): agrega una fila resumen al final de la tabla visible
-      (function wireAddToTable(){
-        const addBtn = document.getElementById('manifest-add-to-table');
-        if (!addBtn || addBtn._wired) return; addBtn._wired = 1;
-        function addCurrentToRecordsTable(){
-          try {
-            // Validación centralizada: no permitir añadir a la tabla si faltan campos requeridos
-            try { if (typeof window._mfValidateAll === 'function' && !window._mfValidateAll()) return; } catch(_){ }
-            const tbody = document.querySelector('#manifest-records-table tbody'); if (!tbody) return;
-            const r = readForm();
-            // Derivar fecha y hora sugeridas
-            const fecha = r.docDate || '';
-            const hora = r.direction === 'Llegada'
-              ? (r.arrSlotAssigned || r.arrSlotCoordinated || r.arrArriboPosicion || '')
-              : (r.slotAssigned || r.slotCoordinated || r.salidaPosicion || '');
-            const od = r.direction === 'Llegada'
-              ? `${r.arrOriginCode||r.arrOriginName||''}`
-              : `${r.finalDestCode||r.finalDest||''}`;
-            const airlineCol = `${r.carrier3L? (String(r.carrier3L).toUpperCase()+ ' - ') : ''}${r.airline||r.operatorName||''}`;
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td>${r.direction||''}</td>
-              <td>${airlineCol}</td>
-              <td>${r.flight||''}</td>
-              <td>${r.tail||''}</td>
-              <td>${fecha}</td>
-              <td>${hora}</td>
-              <td>${od}</td>
-              <td>${r.paxTotal||''}</td>
-              <td>${(r.cargoKg||'')}/${(r.mailKg||'')}</td>
-              <td>${r.image?('<img src="'+r.image+'" style="height:30px">') : ''}</td>`;
-            // Adjuntar el objeto completo al <tr> para exportar todos los campos
-            tr._record = r;
-            tbody.appendChild(tr);
-          } catch(err){ console.error('Añadir a tabla (manifiestos) falló:', err); }
-        }
-        addBtn.addEventListener('click', addCurrentToRecordsTable);
-      })();
-
-      // Utilidad global: construye matriz (AOA) con encabezados en español y filas a partir de registros
-      window._mfBuildAoA = function(rows){
-        const baseKeys = [
-          'direction','title','docDate','folio','carrier3L','operatorName','airline','flight',
-          'airportMain','flightType','tail','aircraft','originName','originCode',
-          'crewTotal','baggageKg','baggagePieces','cargoKg','cargoPieces','cargoVol','mailKg','mailPieces',
-          'dangerousGoods','liveAnimals','humanRemains','pilot','pilotLicense','agent','signature','notes',
-          'nextStop','nextStopCode','finalDest','finalDestCode','slotAssigned','slotCoordinated','terminoPernocta',
-          'inicioEmbarque','salidaPosicion',
-          'arrOriginName','arrOriginCode','arrSlotAssigned','arrSlotCoordinated','arrLastStop','arrLastStopCode','arrArriboPosicion','arrInicioDesembarque','arrInicioPernocta',
-          'paxTUA','paxDiplomaticos','paxComision','paxInfantes','paxTransitos','paxConexiones','paxExentos','paxTotal',
-          'obsTransito','paxDNI','signOperator','signCoordinator','signAdmin','signAdminDate'
-        ];
-        const baseLabels = [
-          'Tipo','Título','Fecha del Documento','Folio','Transportista (OACI)','Operador Aéreo (Razón social)','Transportista (Nombre comercial)','Vuelo',
-          'Aeropuerto','Tipo de vuelo','Matrícula','Equipo','Origen (Nombre)','Origen (Código)',
-          'No. de Tripulación','Equipaje (kg)','Equipaje (piezas)','Carga (kg)','Carga (piezas)','Volumen (m³)','Correo (kg)','Correo (piezas)',
-          'Mercancías Peligrosas','Animales Vivos','Restos Humanos','Piloto al Mando','No. de Licencia','Agente / Responsable','Nombre y Firma','Observaciones',
-          'Próxima escala (Nombre)','Próxima escala (Código)','Destino (Nombre)','Destino (Código)','Slot asignado (Salida)','Slot coordinado (Salida)','Término de pernocta (Salida)',
-          'Inicio de embarque','Salida de posición',
-          'Procedencia (Nombre)','Procedencia (Código)','Slot asignado (Llegada)','Slot coordinado (Llegada)','Escala anterior (Nombre)','Escala anterior (Código)','Entrada a la posición','Inicio desembarque','Inicio de pernocta',
-          'Pagan TUA','Diplomáticos','En comisión','Infantes','Tránsitos','Conexiones','Otros exentos','Total Pax',
-          'Carga en tránsito (destino/procedencia)','PAX DNI','Firma Operador','Firma Coordinador de Rampa','Administrador AIFA - Recibido por','Fecha de Recepción'
-        ];
-        const maxDemoras = rows.reduce((m,r)=> Math.max(m, Array.isArray(r.demoras)? r.demoras.length:0), 0);
-        const dCount = Math.max(3, maxDemoras);
-        const demoraKeys = [];
-        const demoraLabels = [];
-        for (let i=1;i<=dCount;i++){
-          demoraKeys.push(`Demora${i}_Codigo`,`Demora${i}_Minutos`,`Demora${i}_Descripcion`);
-          demoraLabels.push(`Demora${i}_Código`,`Demora${i}_Minutos`,`Demora${i}_Descripción`);
-        }
-        const headers = [...baseKeys, ...demoraKeys];
-        const headersEs = [...baseLabels, ...demoraLabels];
-        const aoa = rows.map(r=>{
-          const vals = baseKeys.map(k=>{
-            let v = r[k];
-            if (typeof v === 'boolean') v = v ? 'Sí' : 'No';
-            return v==null? '': v;
-          });
-          const ds = Array.isArray(r.demoras)? r.demoras: [];
-          for (let i=0;i<dCount;i++){
-            const d = ds[i]||{};
-            vals.push((d.codigo||'').toUpperCase(), d.minutos||'', d.descripcion||'');
-          }
-          return vals;
-        });
-        return { headers, headersEs, aoa };
-      };
-
-      // Exportar a Excel (.xlsx) usando SheetJS (XLSX). Si no está disponible, cae a CSV como fallback.
-      if (exportCsvBtn && !exportCsvBtn._wired){
-        exportCsvBtn._wired = 1;
-        try { window._mfExportDirect = true; } catch(_){ }
-        exportCsvBtn.addEventListener('click', async ()=>{
-          try {
-            // Validación centralizada: bloquear exportación si faltan campos requeridos (excepto demoras)
-            try { if (typeof window._mfValidateAll === 'function' && !window._mfValidateAll()) return; } catch(_){ }
-            // 1) Preferir exportar la tabla visible si tiene filas
-            const table = document.getElementById('manifest-records-table');
-            const trEls = table ? Array.from(table.querySelectorAll('tbody tr')) : [];
-            const tableRecs = trEls.map(tr=> tr && tr._record).filter(Boolean);
-            if (tableRecs.length){
-              const { headers, headersEs, aoa } = (window._mfBuildAoA||function(){ return { headers:[], headersEs:[], aoa:[] }; })(tableRecs);
-              // Excel primero
-              if (window.XLSX && XLSX.utils && typeof XLSX.utils.aoa_to_sheet === 'function'){
-                try {
-                  const ws = XLSX.utils.aoa_to_sheet([headersEs, ...aoa]);
-                  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Manifiestos');
-                  try { const range = XLSX.utils.decode_range(ws['!ref']||'A1'); ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) }; } catch(_){ }
-                  XLSX.writeFile(wb, 'manifiestos.xlsx');
-                  return;
-                } catch(_){ /* fall through */ }
-              }
-              // CSV fallback con todos los campos
-              const esc=(v)=>{ const s=(v==null)?'':(typeof v==='boolean'?(v?'Sí':'No'):String(v)); return /[",\n]/.test(s)? '"'+s.replace(/"/g,'""')+'"': s; };
-              const lines=[headersEs.join(',')]; aoa.forEach(arr=> lines.push(arr.map(esc).join(',')));
-              const blob = new Blob([lines.join('\n')], { type:'text/csv;charset=utf-8' });
-              const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'manifiestos.csv'; a.click();
-              return;
-            }
-
-            // 2) Si no hay tabla, exportar el formulario/guardados (lógica previa)
-            let rows = loadRecords();
-            // Si no hay registros guardados, exportar el formulario actual como un registro
-            if (!rows || rows.length===0){ rows = [ readForm() ]; }
-            // Asegurar que cada registro tenga demoras si la estructura existe en el formulario actual
-            const getDemorasFromDOM = ()=>{
-              try {
-                if (typeof readDemorasFromFixedFields === 'function'){
-                  const fx = readDemorasFromFixedFields();
-                  if (fx && fx.length) return fx;
-                }
-                const trs = Array.from(document.querySelectorAll('#tabla-demoras tbody tr'));
-                return trs.map(tr=>({
-                  codigo: (tr.querySelector('.demora-codigo')?.value||'').toUpperCase().trim(),
-                  minutos: tr.querySelector('.demora-minutos')?.value||'',
-                  descripcion: tr.querySelector('.demora-descripcion')?.value||''
-                })).filter(d=> d.codigo||d.minutos||d.descripcion);
-              } catch(_){ return []; }
-            };
-            if (rows.length>0 && (!rows[0].demoras || !Array.isArray(rows[0].demoras))){
-              const ds = getDemorasFromDOM();
-              if (ds.length){ rows[0] = { ...rows[0], demoras: ds }; }
-            }
-            const build = (window._mfBuildAoA||function(){ return { headers:[], headersEs:[], aoa:[] }; });
-            const { headers, headersEs, aoa } = build(rows);
-
-            // Intentar exportar con SheetJS si está cargado
-            if (window.XLSX && window.XLSX.utils && typeof window.XLSX.utils.aoa_to_sheet === 'function'){
-              try {
-                const ws = XLSX.utils.aoa_to_sheet([headersEs, ...aoa]);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, 'Manifiestos');
-                // Añadir auto-filter y tabla-like range (opcional): establecer rango completo
-                try {
-                  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-                  ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
-                } catch(_){ }
-                XLSX.writeFile(wb, 'manifiestos.xlsx');
-                return;
-              } catch(err){ console.warn('SheetJS export failed, falling back to CSV', err); }
-            }
-
-            // Fallback: generar CSV si SheetJS no está disponible
-            const esc = (v)=>{
-              const s = (v==null)? '' : (typeof v==='boolean'? (v?'Sí':'No'): String(v));
-              if (/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
-              return s;
-            };
-            const lines = [headersEs.join(',')];
-            aoa.forEach(rowArr=>{ lines.push(rowArr.map(esc).join(',')); });
-            const blob = new Blob([lines.join('\n')], { type:'text/csv;charset=utf-8' });
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'manifiestos.csv'; a.click();
-          } catch(err){ console.error('Export error', err); }
-        });
-      }
       renderTable();
 
       const demoraTbody = document.querySelector('#tabla-demoras tbody');
@@ -3376,61 +2348,19 @@ Z,Others,Not specific,Special internal purposes`;
         if (!demoraTbody) return;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><input type="text" class="form-control form-control-sm demora-codigo" list="delay-alpha-codes" placeholder="AA/AB/BC" value="${data.codigo||''}"></td>
+          <td><input type="text" class="form-control form-control-sm demora-codigo" value="${data.codigo||''}"></td>
           <td><input type="number" min="0" class="form-control form-control-sm demora-minutos" value="${data.minutos||''}"></td>
           <td><input type="text" class="form-control form-control-sm demora-descripcion" value="${data.descripcion||''}"></td>
           <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-demora-row"><i class="fas fa-times"></i></button></td>`;
         demoraTbody.appendChild(tr);
-        // Normalizar/validar código y autocompletar descripción al crear
-        try {
-          const codeInp = tr.querySelector('.demora-codigo');
-          const descInp = tr.querySelector('.demora-descripcion');
-          const norm = ()=>{
-            if (!codeInp) return;
-            codeInp.value = (codeInp.value||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
-            const rec = delayAlphaMap.get(codeInp.value);
-            tr.classList.toggle('table-warning', !rec);
-            if (rec && descInp && !descInp.value){ descInp.value = rec.description || rec.summary || ''; }
-          };
-          if (codeInp && !codeInp._wired){ codeInp._wired = 1; ['input','change','blur'].forEach(ev=> codeInp.addEventListener(ev, norm)); norm(); }
-        } catch(_){ }
-      }
-      function ensureInitialDemoraRows(n=3){
-        try {
-          if (!demoraTbody) return;
-          const cur = demoraTbody.querySelectorAll('tr').length;
-          for (let i=cur; i<n; i++) addDemoraRow();
-        } catch(_){ }
       }
       function updateDemorasTotal(){
         const total = Array.from(document.querySelectorAll('.demora-minutos')).reduce((acc, inp)=> acc + (parseFloat(inp.value)||0), 0);
         const out = document.getElementById('total-demora-minutos'); if (out) out.value = String(total);
       }
-  function clearDemoras(){ if (demoraTbody) { demoraTbody.innerHTML = ''; ensureInitialDemoraRows(3); } updateDemorasTotal(); }
+      function clearDemoras(){ if (demoraTbody) demoraTbody.innerHTML = ''; updateDemorasTotal(); }
       if (addDemoraBtn && !addDemoraBtn._wired){ addDemoraBtn._wired = 1; addDemoraBtn.addEventListener('click', ()=> addDemoraRow()); }
-      if (clearDemorasBtn && !clearDemorasBtn._wired){ clearDemorasBtn._wired = 1; clearDemorasBtn.addEventListener('click', ()=>{ clearDemoras(); clearDemorasFixedFields?.(); }); }
-  // Tabla dinámica: si existe, dejar 3 renglones listos; además cablear inputs fijos si están presentes
-  ensureInitialDemoraRows(3);
-      (function wireFixedDemoraInputs(){
-        for (let i=1;i<=3;i++){
-          const codeEl = document.getElementById(`demora${i}-codigo`);
-          const descEl = document.getElementById(`demora${i}-descripcion`);
-          if (codeEl && !codeEl._wired){
-            codeEl._wired = 1;
-            const norm = ()=>{
-              try {
-                codeEl.value = (codeEl.value||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
-                if (descEl && !descEl.value){
-                  const rec = delayAlphaMap.get(codeEl.value);
-                  if (rec){ descEl.value = rec.description || rec.summary || ''; }
-                }
-              } catch(_){ }
-            };
-            ['input','change','blur'].forEach(ev=> codeEl.addEventListener(ev, norm));
-            norm();
-          }
-        }
-      })();
+      if (clearDemorasBtn && !clearDemorasBtn._wired){ clearDemorasBtn._wired = 1; clearDemorasBtn.addEventListener('click', clearDemoras); }
 
       window._manifListeners = window._manifListeners || { clicks: false, inputs: false };
       if (!window._manifListeners.clicks){
@@ -3444,15 +2374,6 @@ Z,Others,Not specific,Special internal purposes`;
         window._manifListeners.inputs = true;
         document.addEventListener('input', (e)=>{
           if (e.target && e.target.classList && e.target.classList.contains('demora-minutos')) { updateDemorasTotal(); }
-          if (e.target && e.target.classList && e.target.classList.contains('demora-codigo')){
-            const inp = e.target;
-            const tr = inp.closest('tr');
-            inp.value = (inp.value||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
-            const rec = delayAlphaMap.get(inp.value);
-            if (tr) tr.classList.toggle('table-warning', !rec);
-            const d = tr ? tr.querySelector('.demora-descripcion') : null;
-            if (rec && d && !d.value) d.value = rec.description || rec.summary || '';
-          }
           if (e.target && e.target.closest && e.target.closest('#tabla-embarque')) { calculateTotals(); }
         });
       }
@@ -3482,15 +2403,13 @@ Z,Others,Not specific,Special internal purposes`;
         if (btn) { const tr = btn.closest('tr'); if (tr) tr.remove(); calculateTotals(); }
       });
 
-  function clearDynamicTables(){ try { clearDemoras(); } catch(_){ } try { clearDemorasFixedFields?.(); } catch(_){ } try { clearEmbarque(); } catch(_){ } }
+      function clearDynamicTables(){ clearDemoras(); clearEmbarque(); }
     } catch (e) { /* ignore */ }
   };
 
   function init(){ try { window.setupManifestsUI?.(); } catch(_){} }
   document.addEventListener('DOMContentLoaded', init);
   document.addEventListener('click', (e)=>{ if (e.target.closest('[data-section="manifiestos"]')) setTimeout(init, 50); });
-  // Refuerzo: inicializar el catálogo de Tipo de vuelo aunque otros módulos fallen
-  document.addEventListener('DOMContentLoaded', function(){ try { window._initFlightServiceType?.(); } catch(_){ } });
   // Enforce 24h and departure-specific formatting on manual edits
   // No custom input normalization needed for mf-slot-assigned now that it's a native time input
   // Keeping this space for future input-specific hooks if required.
@@ -3621,14 +2540,12 @@ Z,Others,Not specific,Special internal purposes`;
   let aircraftByReg = new Map(); // reg -> { type(IATA), ownerIATA }
   let typeByCode = new Map();    // IATA -> { ICAO, Name }
   let typeIcaoSetV2 = new Set(); // ICAO set for validation
-  let airportByIATA = new Map(); // IATA -> Name
-  let airportByName = new Map(); // name lower -> IATA
-  let airportNameIndex = []; // [{ name, iata, norm, tokens }]
+      let airportByIATA = new Map(); // IATA -> Name
+      let airportByName = new Map(); // name lower -> IATA
       let iataSet = new Set();
 
       async function loadAirlinesCatalog(){
         try {
-          if (location && location.protocol === 'file:') return; // skip fetch under file://
           const res = await fetch('data/master/airlines.csv', { cache:'no-store' });
           const text = await res.text();
           const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
@@ -3650,7 +2567,6 @@ Z,Others,Not specific,Special internal purposes`;
       }
       async function loadAircraftCatalog(){
         try {
-          if (location && location.protocol === 'file:') return; // skip fetch under file://
           const resA = await fetch('data/master/aircraft.csv', { cache:'no-store' });
           const textA = await resA.text();
           const linesA = textA.split(/\r?\n/).filter(l=>l.trim());
@@ -3670,7 +2586,6 @@ Z,Others,Not specific,Special internal purposes`;
           }
         } catch(_){ /* ignore */ }
         try {
-          if (location && location.protocol === 'file:') return; // skip fetch under file://
           const resT = await fetch('data/master/aircraft type.csv', { cache:'no-store' });
           const textT = await resT.text();
           const linesT = textT.split(/\r?\n/).filter(l=>l.trim());
@@ -3729,7 +2644,6 @@ Z,Others,Not specific,Special internal purposes`;
       }
       async function loadAirportsCatalog(){
         try {
-          if (location && location.protocol === 'file:') return; // skip fetch under file://
           const res = await fetch('data/master/airports.csv', { cache:'no-store' });
           const text = await res.text();
           const lines = text.split(/\r?\n/).filter(l=>l.trim());
@@ -3750,11 +2664,6 @@ Z,Others,Not specific,Special internal purposes`;
             airportByIATA.set(IATA, Name);
             airportByName.set(Name.toLowerCase(), IATA);
             iataSet.add(IATA);
-            try {
-              const norm = (Name||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
-              const tokens = norm.split(' ').filter(Boolean);
-              airportNameIndex.push({ name: Name, iata: IATA, norm, tokens });
-            } catch(_){ }
           }
         } catch(_){ /* ignore */ }
       }
@@ -3787,194 +2696,21 @@ Z,Others,Not specific,Special internal purposes`;
         } catch(_) { return ''; }
       }
       function findNearLabelIATACode(labels, text){
-            // Lightweight fallback: look for any ABC pattern near the label (no catalog dependency)
-            const rxIATA = /\b[A-Z]{3}\b/g;
-            try{
-              const lines = (text||'').split(/\r?\n/);
-              for (let i=0;i<lines.length;i++){
-                const u = lines[i].toUpperCase();
-                if (labels.some(lbl => u.includes(String(lbl||'').toUpperCase()))){
-                  const search = (s)=>{ const arr = (s||'').match(rxIATA)||[]; return arr.length ? arr[0] : ''; };
-                  // Checar línea anterior, actual y siguientes
-                  const hit = search(lines[i-1]) || search(lines[i]) || search(lines[i+1]) || search(lines[i+2]) || '';
-                  if (hit) return hit;
-                }
-              }
-              // Pista alternativa: si aparece "CÓDIGO 3 LETRAS", tomar la línea anterior como candidata
-              for (let i=0;i<lines.length;i++){
-                if (/C[ÓO]DIGO\s*3\s*LETRAS/i.test(lines[i])){
-                  const m = (lines[i-1]||'').match(rxIATA)||[];
-                  if (m.length) return m[0];
-                }
-              }
-            }catch(_){ }
-            return '';
+        // Lightweight fallback: look for any ABC pattern near the label (no catalog dependency)
+        const rxIATA = /\b[A-Z]{3}\b/g;
+        try{
+          const lines = (text||'').split(/\r?\n/);
+          for (let i=0;i<lines.length;i++){
+            const u = lines[i].toUpperCase();
+            if (labels.some(lbl => u.includes(String(lbl||'').toUpperCase()))){
+              const search = (s)=>{ const arr = s.match(rxIATA)||[]; return arr.length ? arr[0] : ''; };
+              const hit = search(lines[i]) || search(lines[i+1]||'');
+              if (hit) return hit;
+            }
+          }
+        }catch(_){ }
+        return '';
       }
-
-          // Extrae ORIGEN DEL VUELO: nombre completo y/o código IATA, usando pistas de líneas
-          function extractArrivalOriginFields(text){
-            const out = { name:'', code:'' };
-            try {
-              const lines = (text||'').toString().split(/\r?\n/);
-              const rxIATA = /\b([A-Z]{3})\b/;
-              const norm = (s)=> (s||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
-              const bestFuzzy = (phrase)=>{
-                const NP = norm(phrase); if (!NP) return null;
-                const pTok = NP.split(' ').filter(Boolean);
-                let best=null, bestScore=0;
-                for (const rec of airportNameIndex){
-                  if (!rec || !rec.norm) continue;
-                  if (NP.includes(rec.norm) || rec.norm.includes(NP)) return rec;
-                  const inter = rec.tokens.filter(t=> pTok.includes(t));
-                  const score = inter.length / Math.max(1, rec.tokens.length);
-                  if (score > bestScore && (inter.length>=2 || score>=0.6)) { best = rec; bestScore = score; }
-                }
-                return best;
-              };
-              const isNameLine = (s)=>{
-                if (!s) return false;
-                const t = s.trim(); if (!t) return false;
-                // Evitar que sea solo un código
-                if (/^\s*[A-Z]{3}\s*$/.test(t)) return false;
-                // Debe tener letras y espacios y longitud razonable
-                return /[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(t) && t.length >= 6;
-              };
-              const LABELS = [
-                /ORIGEN\s+DEL\s+VUELO/i,
-                /ORIGEN\s+DE\s+VUELO/i,
-                /PROCEDENCIA\s+DEL\s+VUELO/i,
-                /PROCEDENCIA\s+DE\s+VUELO/i,
-                /PROCEDENCIA\b/i,
-                /FROM\b/i
-              ];
-              for (let i=0;i<lines.length;i++){
-                if (LABELS.some(rx=> rx.test(lines[i]||''))){
-                  // Código: puede venir en la misma línea después del label
-                  try { const mSame = (lines[i]||'').toUpperCase().match(/\b([A-Z]{3})\b/); if (mSame) out.code = mSame[1]; } catch(_){ }
-                  // 1) Nombre: si la siguiente línea pide registrar nombre, tomar la anterior
-                  if (/NOMBRE\s+COMPLETO\s+DEL\s+AEROPUERTO/i.test(lines[i+1]||'') || /REGISTRAR\s+NOMBRE\s+COMPLETO\s+DEL\s+AEROPUERTO/i.test(lines[i+1]||'')){
-                    const cand = (lines[i-1]||'').trim();
-                    if (isNameLine(cand)){
-                      const rec = bestFuzzy(cand);
-                      if (rec){ out.name = rec.name; if (!out.code) out.code = rec.iata; }
-                      else { out.name = cand; }
-                    }
-                  }
-                  // Si aún no hay nombre, buscar en ventana alrededor
-                  if (!out.name){
-                    const win = [lines[i-2], lines[i-1], lines[i], lines[i+1], lines[i+2]];
-                    for (const s of win){ if (isNameLine(s||'')){ const cand=(s||'').trim(); const rec = bestFuzzy(cand); if (rec){ out.name = rec.name; if (!out.code) out.code = rec.iata; } else { out.name = cand; } break; } }
-                  }
-                  // 2) Código: si aparece "CÓDIGO 3 LETRAS", tomar la línea anterior
-                  for (let j=i-2;j<=i+4;j++){
-                    const L = lines[j]||'';
-                    if (/C[ÓO]DIGO\s*3\s*LETRAS/i.test(L)){
-                      const prev = lines[j-1]||''; const m = prev.toUpperCase().match(rxIATA);
-                      if (m){ out.code = m[1]; break; }
-                    }
-                  }
-                  // Si no hay aún código, buscar 3 letras cercanas
-                  if (!out.code){
-                    const win = [lines[i-2], lines[i-1], lines[i], lines[i+1], lines[i+2]];
-                    for (const s of win){ const m = (s||'').toUpperCase().match(rxIATA); if (m){ out.code = m[1]; break; } }
-                  }
-                  break;
-                }
-              }
-              // Cross-fill con catálogos
-              if (out.name && !out.code){
-                const key = out.name.trim().toLowerCase();
-                const c = airportByName.get(key);
-                if (c) out.code = c;
-              }
-              if (out.code && !out.name){
-                const nm = airportByIATA.get(out.code);
-                if (nm) out.name = nm;
-              }
-            } catch(_){ }
-            return out;
-          }
-
-          // Extrae ESCALA ANTERIOR (Última escala): nombre completo y/o código IATA
-          function extractArrivalLastStopFields(text){
-            const out = { name:'', code:'' };
-            try {
-              const lines = (text||'').toString().split(/\r?\n/);
-              const rxIATA = /\b([A-Z]{3})\b/;
-              const norm = (s)=> (s||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
-              const bestFuzzy = (phrase)=>{
-                const NP = norm(phrase); if (!NP) return null;
-                const pTok = NP.split(' ').filter(Boolean);
-                let best=null, bestScore=0;
-                for (const rec of airportNameIndex){
-                  if (!rec || !rec.norm) continue;
-                  if (NP.includes(rec.norm) || rec.norm.includes(NP)) return rec;
-                  const inter = rec.tokens.filter(t=> pTok.includes(t));
-                  const score = inter.length / Math.max(1, rec.tokens.length);
-                  if (score > bestScore && (inter.length>=2 || score>=0.6)) { best = rec; bestScore = score; }
-                }
-                return best;
-              };
-              const isNameLine = (s)=>{
-                if (!s) return false;
-                const t = s.trim(); if (!t) return false;
-                if (/^\s*[A-Z]{3}\s*$/.test(t)) return false;
-                return /[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(t) && t.length >= 6;
-              };
-              const LABELS = [
-                /ESCALA\s+ANTERIOR(?:\s+DEL\s+VUELO)?/i,
-                /ÚLTIMA\s+ESCALA(?:\s+DEL\s+VUELO)?/i,
-                /ULTIMA\s+ESCALA(?:\s+DEL\s+VUELO)?/i,
-                /ESCALA\s+DEL\s+VUELO/i,
-                /LAST\s+STOP/i
-              ];
-              for (let i=0;i<lines.length;i++){
-                if (LABELS.some(rx=> rx.test(lines[i]||''))){
-                  // Código en la MISMA línea del label (p.ej. "ESCALA ANTERIOR ABC")
-                  try { const mSame = (lines[i]||'').toUpperCase().match(/\b([A-Z]{3})\b/); if (mSame) out.code = mSame[1]; } catch(_){ }
-                  // Nombre: si la siguiente línea pide registrar nombre, tomar la anterior
-                  if (/NOMBRE\s+COMPLETO\s+DEL\s+AEROPUERTO/i.test(lines[i+1]||'') || /REGISTRAR\s+NOMBRE\s+COMPLETO\s+DEL\s+AEROPUERTO/i.test(lines[i+1]||'')){
-                    const cand = (lines[i-1]||'').trim();
-                    if (isNameLine(cand)){
-                      const rec = bestFuzzy(cand);
-                      if (rec){ out.name = rec.name; if (!out.code) out.code = rec.iata; }
-                      else { out.name = cand; }
-                    }
-                  }
-                  // Si aún no hay nombre, buscar en ventana alrededor
-                  if (!out.name){
-                    const win = [lines[i-2], lines[i-1], lines[i], lines[i+1], lines[i+2]];
-                    for (const s of win){ if (isNameLine(s||'')){ const cand=(s||'').trim(); const rec = bestFuzzy(cand); if (rec){ out.name = rec.name; if (!out.code) out.code = rec.iata; } else { out.name = cand; } break; } }
-                  }
-                  // Pista: si aparece "CÓDIGO 3 LETRAS", tomar la línea anterior
-                  for (let j=i-2;j<=i+4;j++){
-                    const L = lines[j]||'';
-                    if (/C[ÓO]DIGO\s*3\s*LETRAS/i.test(L)){
-                      const prev = lines[j-1]||''; const m = prev.toUpperCase().match(rxIATA);
-                      if (m){ out.code = m[1]; break; }
-                    }
-                  }
-                  // Si no hay aún código, buscar 3 letras cercanas
-                  if (!out.code){
-                    const win = [lines[i-2], lines[i-1], lines[i], lines[i+1], lines[i+2]];
-                    for (const s of win){ const m = (s||'').toUpperCase().match(rxIATA); if (m){ out.code = m[1]; break; } }
-                  }
-                  break;
-                }
-              }
-              // Cross-fill con catálogos
-              if (out.name && !out.code){
-                const key = out.name.trim().toLowerCase();
-                const c = airportByName.get(key);
-                if (c) out.code = c;
-              }
-              if (out.code && !out.name){
-                const nm = airportByIATA.get(out.code);
-                if (nm) out.name = nm;
-              }
-            } catch(_){ }
-            return out;
-          }
 
       // Heurística robusta para mapear Origen / Próxima escala / Destino en documentos de Salida
       function extractDepartureRouteFields(text){
@@ -4102,7 +2838,7 @@ Z,Others,Not specific,Special internal purposes`;
             const out = await window._mfOcrScheduler.addJob('recognize', r);
             return (out && out.data && out.data.text) ? out.data.text : '';
           } else {
-            const { data } = await Tesseract.recognize(r, 'spa+eng', { ...(_tessOpts||{}), logger: ()=>{} });
+            const { data } = await Tesseract.recognize(r, 'spa+eng', { logger: ()=>{} });
             return (data && data.text) ? data.text : '';
           }
         }
@@ -4123,7 +2859,7 @@ Z,Others,Not specific,Special internal purposes`;
             if (window._mfOcrScheduler){
               prom = window._mfOcrScheduler.addJob('recognize', dataUrl);
             } else {
-              prom = Tesseract.recognize(dataUrl, 'spa+eng', { ...(_tessOpts||{}), logger: ()=>{} });
+              prom = Tesseract.recognize(dataUrl, 'spa+eng', { logger: ()=>{} });
             }
             prom = Promise.resolve(prom).then((res)=>{ completed++; try { setProgress(50 + Math.round(((completed)/pages)*40), `OCR página ${completed}/${pages}...`); } catch(_){} return res; });
             jobs.push(prom);
@@ -4225,30 +2961,6 @@ Z,Others,Not specific,Special internal purposes`;
           if (!isoDate){ const m = (text||'').match(/\b(\d{1,2})\s*[\/\-.]\s*(\d{1,2})\s*[\/\-.]\s*(\d{2}|\d{4})\b/); if (m){ isoDate = (function(){ let dd=m[1],mm=m[2],yy=m[3]; let year=parseInt(yy,10); if (yy.length===2){ year=(year<=49)?(2000+year):(1900+year);} const z2=(n)=>n.length===1?('0'+n):n; return `${year}-${z2(mm)}-${z2(dd)}`; })(); } }
           if (isoDate) { const el = document.getElementById('mf-doc-date'); if (el) el.value = isoDate; }
 
-          // 3.1) Aeropuerto de Llegada (código IATA) — justo después de la fecha
-          try {
-            const lines = (text||'').toString().split(/\r?\n/);
-            let code = '';
-            for (let i=0;i<lines.length;i++){
-              if (/AEROPUERTO\s+DE\s+LLEGADA/i.test(lines[i])){
-                // El código suele estar 1 línea ARRIBA, o en la misma/siguientes
-                const candidates = [lines[i-1], lines[i], lines[i+1], lines[i+2]];
-                for (const s of candidates){ const m = (s||'').toUpperCase().match(/\b[A-Z]{3}\b/); if (m && (!code || (window.iataSet && window.iataSet.has(m[0])))){ code = m[0]; break; } }
-              }
-            }
-            // Alternativa: si hay "CÓDIGO 3 LETRAS", tomar la línea anterior
-            if (!code){
-              for (let i=0;i<lines.length;i++){
-                if (/C[ÓO]DIGO\s*3\s*LETRAS/i.test(lines[i])){
-                  const m = (lines[i-1]||'').toUpperCase().match(/\b[A-Z]{3}\b/);
-                  if (m && (!code || (window.iataSet && window.iataSet.has(m[0])))){ code = m[0]; break; }
-                }
-              }
-            }
-            if (!code){ code = findNearLabelIATACode(['AEROPUERTO DE LLEGADA'], text) || ''; }
-            if (code){ setVal('mf-airport-main', code); }
-          } catch(_){ }
-
           // 4) Aeropuertos y horarios
           // 24h times: HH:MM, HH.MM, HHhMM, H:MM, compact HHMM
           const rxTime = window._mfTimeRx || /\b(?:([01]?\d|2[0-3])[:hH\.]\s?([0-5]\d)|([01]?\d|2[0-3])([0-5]\d))\b(?:\s?(?:hrs|hr|h))?/;
@@ -4271,39 +2983,8 @@ Z,Others,Not specific,Special internal purposes`;
           let destino = chooseValidIATA(findNearLabelIATACode(['DESTINO','TO'], text));
           let escala = chooseValidIATA(findNearLabelIATACode(['ULTIMA ESCALA','ESCALA ANTERIOR','LAST STOP','ESCALA'], text));
           if (currentIsArrival){
-            // Intento fuerte: ORIGEN DEL VUELO (nombre + código)
-            try {
-              const got = extractArrivalOriginFields(text);
-              if (got && (got.code || got.name)){
-                if (got.code){ setVal('mf-arr-origin-code', got.code); }
-                if (got.name){ setVal('mf-arr-origin-name', got.name); }
-              } else if (origen) {
-                // Fallback a detección genérica
-                setVal('mf-arr-origin-code', origen);
-                const name = airportByIATA.get(origen); if (name) setVal('mf-arr-origin-name', name);
-              }
-            } catch(_){ if (origen) { setVal('mf-arr-origin-code', origen); const name = airportByIATA.get(origen); if (name) setVal('mf-arr-origin-name', name); } }
-            // Intento fuerte: ESCALA ANTERIOR / ÚLTIMA ESCALA (nombre + código)
-            try {
-              const got2 = extractArrivalLastStopFields(text);
-              if (got2 && (got2.code || got2.name)){
-                if (got2.code){ setVal('mf-arr-last-stop-code', got2.code); }
-                if (got2.name){ setVal('mf-arr-last-stop', got2.name); }
-              } else if (escala) {
-                // Fallback a detección genérica
-                setVal('mf-arr-last-stop-code', escala);
-                const name = airportByIATA.get(escala); if (name) setVal('mf-arr-last-stop', name);
-              }
-            } catch(_){ if (escala) { setVal('mf-arr-last-stop-code', escala); const name = airportByIATA.get(escala); if (name) setVal('mf-arr-last-stop', name); } }
-            // Aeropuerto principal (Llegada): detectar por etiqueta y colocar CÓDIGO IATA de 3 letras
-            try {
-              const mainArrCand = findNearLabelIATACode(['AEROPUERTO DE LLEGADA','AEROPUERTO DESTINO','AEROPUERTO DE ARRIBO','AEROPUERTO DESTINO DEL VUELO'], text);
-              const mainMatch = findValidAirport(mainArrCand);
-              if (mainMatch && mainMatch.IATA){
-                // Solicitud: rellenar con el código IATA (3 letras)
-                setVal('mf-airport-main', mainMatch.IATA);
-              }
-            } catch(_){ }
+            if (origen) { setVal('mf-arr-origin-code', origen); const name = airportByIATA.get(origen); if (name) setVal('mf-arr-origin-name', name); }
+            if (escala) { setVal('mf-arr-last-stop-code', escala); const name = airportByIATA.get(escala); if (name) setVal('mf-arr-last-stop', name); }
             // tiempos llegada (prefer robust slot-assigned extractor)
             const strongArr = (window._mfFindSlotAssignedTime?.(text) || '');
             const vSlotArr = strongArr || extractTimeAfterLabel(/\bHORA\s+DE\s+SLOT\s+ASIGNADO\b/i, 8) || extractTimeAfterLabel(/\bSLOT\s+ASIGNADO\b/i, 8);
@@ -4521,196 +3202,4 @@ Z,Others,Not specific,Special internal purposes`;
   // Activar V2 al cargar DOM
   document.addEventListener('DOMContentLoaded', function(){ try { window.setupManifestsUI_v2?.(); } catch(_){} });
   // Removed custom time picker for mf-slot-assigned; using native input type=time for consistency
-  
-  // Delegador global: garantiza que el botón "Exportar Excel" funcione aunque otro módulo reemplace los listeners
-  (function ensureExportExcelDelegator(){
-    if (window._mfExcelDelegator) return; window._mfExcelDelegator = true;
-    function buildAoALocal(rows){
-      try {
-        const baseKeys = [
-          'direction','title','docDate','folio','carrier3L','operatorName','airline','flight',
-          'airportMain','flightType','tail','aircraft','originName','originCode',
-          'crewTotal','baggageKg','baggagePieces','cargoKg','cargoPieces','cargoVol','mailKg','mailPieces',
-          'dangerousGoods','liveAnimals','humanRemains','pilot','pilotLicense','agent','signature','notes',
-          'nextStop','nextStopCode','finalDest','finalDestCode','slotAssigned','slotCoordinated','terminoPernocta',
-          'inicioEmbarque','salidaPosicion',
-          'arrOriginName','arrOriginCode','arrSlotAssigned','arrSlotCoordinated','arrLastStop','arrLastStopCode','arrArriboPosicion','arrInicioDesembarque','arrInicioPernocta',
-          'paxTUA','paxDiplomaticos','paxComision','paxInfantes','paxTransitos','paxConexiones','paxExentos','paxTotal',
-          'obsTransito','paxDNI','signOperator','signCoordinator','signAdmin','signAdminDate'
-        ];
-        const baseLabels = [
-          'Tipo','Título','Fecha del Documento','Folio','Transportista (OACI)','Operador Aéreo (Razón social)','Transportista (Nombre comercial)','Vuelo',
-          'Aeropuerto','Tipo de vuelo','Matrícula','Equipo','Origen (Nombre)','Origen (Código)',
-          'No. de Tripulación','Equipaje (kg)','Equipaje (piezas)','Carga (kg)','Carga (piezas)','Volumen (m³)','Correo (kg)','Correo (piezas)',
-          'Mercancías Peligrosas','Animales Vivos','Restos Humanos','Piloto al Mando','No. de Licencia','Agente / Responsable','Nombre y Firma','Observaciones',
-          'Próxima escala (Nombre)','Próxima escala (Código)','Destino (Nombre)','Destino (Código)','Slot asignado (Salida)','Slot coordinado (Salida)','Término de pernocta (Salida)',
-          'Inicio de embarque','Salida de posición',
-          'Procedencia (Nombre)','Procedencia (Código)','Slot asignado (Llegada)','Slot coordinado (Llegada)','Escala anterior (Nombre)','Escala anterior (Código)','Entrada a la posición','Inicio desembarque','Inicio de pernocta',
-          'Pagan TUA','Diplomáticos','En comisión','Infantes','Tránsitos','Conexiones','Otros exentos','Total Pax',
-          'Carga en tránsito (destino/procedencia)','PAX DNI','Firma Operador','Firma Coordinador de Rampa','Administrador AIFA - Recibido por','Fecha de Recepción'
-        ];
-        const maxDemoras = (rows||[]).reduce((m,r)=> Math.max(m, Array.isArray(r?.demoras)? r.demoras.length:0), 0);
-        const dCount = Math.max(3, maxDemoras);
-        const demoraKeys = [];
-        const demoraLabels = [];
-        for (let i=1;i<=dCount;i++){ demoraKeys.push(`Demora${i}_Codigo`,`Demora${i}_Minutos`,`Demora${i}_Descripcion`); demoraLabels.push(`Demora${i}_Código`,`Demora${i}_Minutos`,`Demora${i}_Descripción`); }
-        const headers = [...baseKeys, ...demoraKeys];
-        const headersEs = [...baseLabels, ...demoraLabels];
-        const aoa = (rows||[]).map(r=>{
-          const vals = baseKeys.map(k=>{ let v = r?.[k]; if (typeof v === 'boolean') v = v ? 'Sí' : 'No'; return v==null? '': v; });
-          const ds = Array.isArray(r?.demoras)? r.demoras: [];
-          for (let i=0;i<dCount;i++){ const d = ds[i]||{}; vals.push((d.codigo||'').toUpperCase(), d.minutos||'', d.descripcion||''); }
-          return vals;
-        });
-        return { headers, headersEs, aoa };
-      } catch(_){ return { headers:[], headersEs:[], aoa:[] }; }
-    }
-    function readDemorasFixedLight(){
-      const out = [];
-      for (let i=1;i<=3;i++){
-        const code = (document.getElementById(`demora${i}-codigo`)?.value||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
-        const minutos = document.getElementById(`demora${i}-tiempo`)?.value||'';
-        const descripcion = document.getElementById(`demora${i}-descripcion`)?.value||'';
-        if (code || minutos || descripcion) out.push({ codigo: code, minutos, descripcion });
-      }
-      return out;
-    }
-    function readFormLight(){
-      const g = (id)=> document.getElementById(id)?.value || '';
-      const dirArr = document.getElementById('mf-dir-arr');
-      const direction = (dirArr && dirArr.checked) ? 'Llegada' : 'Salida';
-      const demoras = readDemorasFixedLight();
-      return {
-        direction,
-        title: g('mf-title'), docDate: g('mf-doc-date'), folio: g('mf-folio'),
-        carrier3L: g('mf-carrier-3l'), operatorName: g('mf-operator-name'), airline: g('mf-airline'), flight: g('mf-flight'),
-        airportMain: g('mf-airport-main'), flightType: g('mf-flight-type'),
-        tail: g('mf-tail'), aircraft: g('mf-aircraft'), originName: g('mf-origin-name'), originCode: g('mf-origin-code'),
-  crewTotal: g('mf-crew-total'),
-  baggageKg: g('mf-baggage-kg') || g('total-equipaje'),
-  baggagePieces: g('mf-baggage-pcs'),
-  cargoKg: g('mf-cargo') || g('total-carga'),
-  cargoPieces: g('mf-cargo-pieces'),
-  cargoVol: g('mf-cargo-volume'),
-  mailKg: g('mf-mail') || g('total-correo'),
-  mailPieces: g('mf-mail-pieces'),
-        dangerousGoods: !!document.getElementById('mf-dangerous-goods')?.checked,
-        liveAnimals: !!document.getElementById('mf-live-animals')?.checked,
-        humanRemains: !!document.getElementById('mf-human-remains')?.checked,
-        pilot: g('mf-pilot'), pilotLicense: g('mf-pilot-license'), agent: g('mf-agent'), signature: g('mf-signature'), notes: g('mf-notes'),
-        nextStop: g('mf-next-stop'), nextStopCode: g('mf-next-stop-code'), finalDest: g('mf-final-dest'), finalDestCode: g('mf-final-dest-code'),
-        slotAssigned: g('mf-slot-assigned'), slotCoordinated: g('mf-slot-coordinated'), terminoPernocta: g('mf-termino-pernocta'),
-        inicioEmbarque: g('mf-inicio-embarque'), salidaPosicion: g('mf-salida-posicion'),
-        arrOriginName: g('mf-arr-origin-name'), arrOriginCode: g('mf-arr-origin-code'), arrSlotAssigned: g('mf-arr-slot-assigned'), arrSlotCoordinated: g('mf-arr-slot-coordinated'),
-        arrLastStop: g('mf-arr-last-stop'), arrLastStopCode: g('mf-arr-last-stop-code'), arrArriboPosicion: g('mf-arr-arribo-posicion'), arrInicioDesembarque: g('mf-arr-inicio-desembarque'), arrInicioPernocta: g('mf-arr-inicio-pernocta'),
-        paxTUA: g('pax-tua'), paxDiplomaticos: g('pax-diplomaticos'), paxComision: g('pax-comision'), paxInfantes: g('pax-infantes'), paxTransitos: g('pax-transitos'), paxConexiones: g('pax-conexiones'), paxExentos: g('pax-exentos'), paxTotal: g('pax-total'),
-        obsTransito: g('mf-obs-transito'), paxDNI: g('mf-pax-dni'),
-        signOperator: g('mf-sign-operator'), signCoordinator: g('mf-sign-coordinator'), signAdmin: g('mf-sign-admin'), signAdminDate: g('mf-sign-admin-date'),
-        demoras
-      };
-    }
-    function exportCurrentManifestsToExcel(){
-      try {
-        // Validación centralizada y robusta
-        try { if (typeof window._mfValidateAll === 'function' && !window._mfValidateAll()) return; } catch(_){ }
-        // 0) Preferir exportar la tabla visible si ya tiene filas
-        try {
-          const table = document.getElementById('manifest-records-table');
-          const trEls = table ? Array.from(table.querySelectorAll('tbody tr')) : [];
-          const tableRecs = trEls.map(tr=> tr && tr._record).filter(Boolean);
-          if (tableRecs.length){
-            const { headers, headersEs, aoa } = (window._mfBuildAoA||buildAoALocal)(tableRecs);
-            if (window.XLSX && XLSX.utils && typeof XLSX.utils.aoa_to_sheet === 'function'){
-              try { const ws = XLSX.utils.aoa_to_sheet([headersEs, ...aoa]); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Manifiestos'); try { const range = XLSX.utils.decode_range(ws['!ref']||'A1'); ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) }; } catch(_){ } XLSX.writeFile(wb, 'manifiestos.xlsx'); return; } catch(_){ }
-            }
-            const esc=(v)=>{ const s=(v==null)?'':(typeof v==='boolean'?(v?'Sí':'No'):String(v)); return /[",\n]/.test(s)? '"'+s.replace(/"/g,'""')+'"': s; };
-            const lines=[headersEs.join(',')]; aoa.forEach(arr=> lines.push(arr.map(esc).join(',')));
-            const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='manifiestos.csv'; a.click();
-            return;
-          }
-        } catch(_){ }
-        let rows = [];
-        try { rows = JSON.parse(localStorage.getItem('aifa.manifests')||'[]'); } catch(_){ rows = []; }
-        if (!rows || rows.length===0){ rows = [ readFormLight() ]; }
-        if (rows.length>0 && (!rows[0].demoras || !Array.isArray(rows[0].demoras))){
-          const ds = readDemorasFixedLight(); if (ds.length){ rows[0] = { ...rows[0], demoras: ds }; }
-        }
-  const build = (window._mfBuildAoA||buildAoALocal);
-  const { headers, headersEs, aoa } = build(rows);
-        if (window.XLSX && XLSX.utils && typeof XLSX.utils.aoa_to_sheet==='function'){
-          try {
-            const ws = XLSX.utils.aoa_to_sheet([headersEs, ...aoa]);
-            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Manifiestos');
-            try { const range = XLSX.utils.decode_range(ws['!ref']||'A1'); ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) }; } catch(_){ }
-            XLSX.writeFile(wb, 'manifiestos.xlsx'); return;
-          } catch(err){ console.warn('SheetJS export failed, fallback CSV', err); }
-        }
-        const esc=(v)=>{ const s=(v==null)?'':(typeof v==='boolean'?(v?'Sí':'No'):String(v)); return /[",\n]/.test(s)? '"'+s.replace(/"/g,'""')+'"': s; };
-        const lines=[headersEs.join(',')]; aoa.forEach(arr=>{ lines.push(arr.map(esc).join(',')); });
-        const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='manifiestos.csv'; a.click();
-      } catch(err){ console.error('Export (delegator) error', err); }
-    }
-    document.addEventListener('click', function(e){
-      const btn = e.target && (e.target.id === 'manifest-export-csv' ? e.target : (e.target.closest && e.target.closest('#manifest-export-csv')));
-      if (!btn) return;
-      // Evitar doble descarga si ya existe wiring directo
-      if (window._mfExportDirect) return;
-      e.preventDefault(); exportCurrentManifestsToExcel();
-    });
-  })();
-
-  // Delegador global (captura) para Guardar: bloquea si no es válido, incluso si otros listeners existen
-  (function ensureSaveDelegator(){
-    if (window._mfSaveDelegator) return; window._mfSaveDelegator = true;
-    document.addEventListener('click', function(e){
-      const t = e.target;
-      const btn = t && (t.id === 'manifest-save' ? t : (t.closest && t.closest('#manifest-save')));
-      if (!btn) return;
-      // Validación antes de otros listeners (fase de captura fuera; explicitamente prevenimos si inválido)
-      try {
-        if (typeof window._mfValidateAll === 'function'){
-          const ok = window._mfValidateAll();
-          if (!ok){ e.preventDefault(); e.stopImmediatePropagation(); return false; }
-        }
-      } catch(_){ }
-    }, true); // captura
-  })();
-
-  // Delegador global: garantiza que el botón "Añadir a tabla" funcione aunque el wiring original falle
-  (function ensureAddToTableDelegator(){
-    if (window._mfAddToTableDelegator) return; window._mfAddToTableDelegator = true;
-    function addCurrentToRecordsTableLight(){
-      try {
-        const tbody = document.querySelector('#manifest-records-table tbody'); if (!tbody) return;
-        // Preferir lector ligero para evitar dependencias
-        const r = (typeof readForm === 'function' ? readForm() : (typeof readFormLight === 'function' ? readFormLight() : {}));
-        const fecha = r.docDate || '';
-        const hora = r.direction === 'Llegada'
-          ? (r.arrSlotAssigned || r.arrSlotCoordinated || r.arrArriboPosicion || '')
-          : (r.slotAssigned || r.slotCoordinated || r.salidaPosicion || '');
-        const od = r.direction === 'Llegada'
-          ? `${r.arrOriginCode||r.arrOriginName||''}`
-          : `${r.finalDestCode||r.finalDest||''}`;
-        const airlineCol = `${r.carrier3L? (String(r.carrier3L).toUpperCase()+ ' - ') : ''}${r.airline||r.operatorName||''}`;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${r.direction||''}</td>
-          <td>${airlineCol}</td>
-          <td>${r.flight||''}</td>
-          <td>${r.tail||''}</td>
-          <td>${fecha}</td>
-          <td>${hora}</td>
-          <td>${od}</td>
-          <td>${r.paxTotal||''}</td>
-          <td>${(r.cargoKg||'')}/${(r.mailKg||'')}</td>
-          <td>${r.image?('<img src="'+r.image+'" style="height:30px">') : ''}</td>`;
-        tr._record = r;
-        tbody.appendChild(tr);
-      } catch(err){ console.error('Delegator: añadir a tabla falló:', err); }
-    }
-    document.addEventListener('click', function(e){
-      const btn = e.target && (e.target.id === 'manifest-add-to-table' ? e.target : (e.target.closest && e.target.closest('#manifest-add-to-table')));
-      if (btn){ e.preventDefault(); addCurrentToRecordsTableLight(); }
-    });
-  })();
 })();

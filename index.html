@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -16,7 +17,6 @@
 <body>
 
     <div id="login-screen" class="login-screen">
-        <div id="login-sky" aria-hidden="true"></div>
         <div class="login-overlay"></div>
         <div class="login-container">
             <div class="login-header">
@@ -390,7 +390,7 @@
                 <div id="parte-operaciones-section" class="content-section">
                     <div class="card">
                         <div class="card-header flex-column flex-md-row d-flex justify-content-between align-items-center">
-                            <h2 class="mb-3 mb-md-0">Resumen de operaciones (26 de octubre de 2025)</h2>
+                            <h2 class="mb-3 mb-md-0">Resumen de operaciones (22 de octubre de 2025)</h2>
                             <div class="d-flex gap-2">
                                 <a href="pdfs/parte_operaciones_completo.pdf" class="btn btn-danger download-btn" download><i class="fas fa-file-pdf me-2"></i><span class="btn-text">Descargar PDF</span></a>
                                 <a href="excel/parte_operaciones_completo.xlsx" class="btn btn-success download-btn" download><i class="fas fa-file-excel me-2"></i><span class="btn-text">Descargar Excel</span></a>
@@ -699,7 +699,7 @@
                 <div id="frecuencias-semana-section" class="content-section">
                     <div class="card border-0">
                         <div class="card-header bg-transparent d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
-                            <h2 class="mb-2 mb-md-0">Frecuencias de la semana del 27 de Octubre al 02 de Noviembre</h2>
+                            <h2 class="mb-2 mb-md-0">Frecuencias de la semana del 20 al 26 de octubre</h2>
                             <div class="small text-muted">Documento oficial (PDF)</div>
                         </div>
                         <div class="card-body pdf-container">
@@ -726,7 +726,7 @@
                     <div class="card">
                         <div class="card-header d-flex align-items-center justify-content-center">
                             <i class="fas fa-clock-check fa-2x text-primary me-3"></i>
-                            <h2 class="mb-0">PUNTUALIDAD DE AEROLÍNEAS (SEPTIEMBRE)</h2>
+                            <h2 class="mb-0">PUNTUALIDAD DE AEROLÍNEAS</h2>
                         </div>
                         <div class="card-body">
                             <ul class="nav nav-tabs" id="puntualidadTab" role="tablist">
@@ -940,40 +940,19 @@
                                         <!-- Nuevos primeros campos en Datos generales -->
                                         <div class="col-12 col-md-6 mb-2">
                                             <label class="form-label" id="mf-airport-main-label">Aeropuerto de Llegada</label>
-                                            <input type="text" class="form-control" id="mf-airport-main" placeholder="IATA (3 letras)" maxlength="3" style="text-transform:uppercase" list="airports-iata-list" />
+                                            <input type="text" class="form-control" id="mf-airport-main" list="airports-name-list" placeholder="Nombre completo del aeropuerto" />
                                         </div>
                                         <div class="col-12 col-md-6 mb-2">
                                             <label class="form-label">Tipo de vuelo</label>
                                             <select class="form-select" id="mf-flight-type">
                                                 <option value="">Selecciona…</option>
-                                                <option value="A" data-category="Additional flights" data-operation="Cargo,Mail" data-description="Cargo/Mail">A — Cargo/Mail</option>
-                                                <option value="B" data-category="Additional flights" data-operation="Passenger" data-description="Shuttle Mode">B — Shuttle Mode</option>
-                                                <option value="C" data-category="Charter" data-operation="Passenger" data-description="Passenger Only">C — Passenger Only</option>
-                                                <option value="D" data-category="Others" data-operation="Not specific" data-description="General Aviation">D — General Aviation</option>
-                                                <option value="E" data-category="Others" data-operation="Not specific" data-description="Test">E — Test</option>
-                                                <option value="F" data-category="Scheduled" data-operation="Cargo,Mail" data-description="Loose Loaded cargo and/or preloaded devices">F — Loose Loaded cargo and/or preloaded devices</option>
-                                                <option value="G" data-category="Additional flights" data-operation="Passenger" data-description="Normal Service">G — Normal Service</option>
-                                                <option value="H" data-category="Charter" data-operation="Cargo,Mail" data-description="Cargo and /or Mail">H — Cargo and /or Mail</option>
-                                                <option value="I" data-category="Others" data-operation="Not specific" data-description="State/Diplomatic/Air Ambulance">I — State/Diplomatic/Air Ambulance</option>
-                                                <option value="J" data-category="Scheduled" data-operation="Passenger" data-description="Normal Service">J — Normal Service</option>
-                                                <option value="K" data-category="Others" data-operation="Not specific" data-description="Training (School/Crew check)">K — Training (School/Crew check)</option>
-                                                <option value="L" data-category="Charter" data-operation="Cargo,Mail,Passenger" data-description="Passenger/Cargo/Mail">L — Passenger/Cargo/Mail</option>
-                                                <option value="M" data-category="Scheduled" data-operation="Cargo,Mail" data-description="Mail only">M — Mail only</option>
-                                                <option value="N" data-category="Others" data-operation="Not specific" data-description="Business Aviation/Air Taxi">N — Business Aviation/Air Taxi</option>
-                                                <option value="O" data-category="Charter" data-operation="Special handling" data-description="Charter requiring special handling(e.g. Migrants/immigrant Flights)">O — Charter requiring special handling(e.g. Migrants/immigrant Flights)</option>
-                                                <option value="P" data-category="Others" data-operation="Not specific" data-description="Non-revenue(Positioning/Ferry/Delivery/Demo">P — Non-revenue(Positioning/Ferry/Delivery/Demo</option>
-                                                <option value="Q" data-category="Scheduled" data-operation="Passenger,Cargo" data-description="Passenger/Cargo in Cabin (mixed configuration aircraft)">Q — Passenger/Cargo in Cabin (mixed configuration aircraft)</option>
-                                                <option value="R" data-category="Additional flights" data-operation="Passenger,Cargo" data-description="Passenger/Cargo in Cabin (mixed configuration aircraft)">R — Passenger/Cargo in Cabin (mixed configuration aircraft)</option>
-                                                <option value="S" data-category="Scheduled" data-operation="Passenger" data-description="Shuttle Mode">S — Shuttle Mode</option>
-                                                <option value="T" data-category="Others" data-operation="Not specific" data-description="Technical Test">T — Technical Test</option>
-                                                <option value="U" data-category="Scheduled" data-operation="Passenger" data-description="Service operated by Surface Vehicle">U — Service operated by Surface Vehicle</option>
-                                                <option value="V" data-category="Scheduled" data-operation="Cargo,Mail" data-description="Service operated by Surface Vehicle">V — Service operated by Surface Vehicle</option>
-                                                <option value="W" data-category="Others" data-operation="Not specific" data-description="Military">W — Military</option>
-                                                <option value="X" data-category="Others" data-operation="Not specific" data-description="Technical Stop">X — Technical Stop</option>
-                                                <option value="Y" data-category="Others" data-operation="Not specific" data-description="Special internal purposes">Y — Special internal purposes</option>
-                                                <option value="Z" data-category="Others" data-operation="Not specific" data-description="Special internal purposes">Z — Special internal purposes</option>
+                                                <option value="Comercial">Comercial</option>
+                                                <option value="Carga">Carga</option>
+                                                <option value="Aviación general">Aviación general</option>
+                                                <option value="Charter">Charter</option>
+                                                <option value="Militar">Militar</option>
+                                                <option value="Otro">Otro</option>
                                             </select>
-                                            <div id="mf-flight-type-info" class="form-text small text-muted"></div>
                                         </div>
                                         <div class="col-12 col-md-4 mb-2">
                                             <label class="form-label">Transportista (OACI - 3 letras)</label>
@@ -1171,57 +1150,38 @@
                                             </div>
                                             <hr />
                                         </div>
-                                        
-                                        <!-- Causas de la demora (3 filas fijas) -->
+                                        <!-- Causas de demora -->
                                         <div class="col-12">
-                                            <h6 class="mb-2 mf-section-title"><i class="fas fa-clock me-1"></i>Causas de la demora</h6>
-                                            <div class="row g-2 align-items-end mb-1">
-                                                <div class="col-12 col-md-3">
-                                                    <label class="form-label">Código de demora</label>
-                                                    <input type="text" class="form-control" id="demora1-codigo" list="delay-alpha-codes" placeholder="Escribe código (Alpha)" maxlength="3" autocomplete="off">
-                                                </div>
-                                                <div class="col-6 col-md-2">
-                                                    <label class="form-label">Tiempo (min)</label>
-                                                    <input type="number" min="0" class="form-control" id="demora1-tiempo" placeholder="0">
-                                                </div>
-                                                <div class="col-12 col-md-7">
-                                                    <label class="form-label">Descripción</label>
-                                                    <input type="text" class="form-control" id="demora1-descripcion" placeholder="Descripción del código">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <h6 class="mb-2 mf-section-title"><i class="fas fa-clock me-1"></i>Causas de demora</h6>
+                                                <div class="d-flex gap-2">
+                                                    <button type="button" id="add-demora-row" class="btn btn-sm btn-outline-secondary"><i class="fas fa-plus me-1"></i>Agregar</button>
+                                                    <button type="button" id="clear-demoras" class="btn btn-sm btn-outline-secondary"><i class="fas fa-trash me-1"></i>Limpiar</button>
                                                 </div>
                                             </div>
-                                            <div class="row g-2 align-items-end mb-1">
-                                                <div class="col-12 col-md-3">
-                                                    <label class="form-label">Código de demora</label>
-                                                    <input type="text" class="form-control" id="demora2-codigo" list="delay-alpha-codes" placeholder="Escribe código (Alpha)" maxlength="3" autocomplete="off">
-                                                </div>
-                                                <div class="col-6 col-md-2">
-                                                    <label class="form-label">Tiempo (min)</label>
-                                                    <input type="number" min="0" class="form-control" id="demora2-tiempo" placeholder="0">
-                                                </div>
-                                                <div class="col-12 col-md-7">
-                                                    <label class="form-label">Descripción</label>
-                                                    <input type="text" class="form-control" id="demora2-descripcion" placeholder="Descripción del código">
-                                                </div>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm align-middle" id="tabla-demoras">
+                                                    <thead>
+                                                        <tr>
+                                                            <th style="width:120px;">Código</th>
+                                                            <th style="width:120px;">Minutos</th>
+                                                            <th>Descripción</th>
+                                                            <th style="width:60px;"></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody></tbody>
+                                                    <tfoot>
+                                                        <tr class="table-light">
+                                                            <th>Total</th>
+                                                            <th><input type="text" class="form-control form-control-sm" id="total-demora-minutos" readonly></th>
+                                                            <th></th>
+                                                            <th></th>
+                                                        </tr>
+                                                    </tfoot>
+                                                </table>
                                             </div>
-                                            <div class="row g-2 align-items-end mb-2">
-                                                <div class="col-12 col-md-3">
-                                                    <label class="form-label">Código de demora</label>
-                                                    <input type="text" class="form-control" id="demora3-codigo" list="delay-alpha-codes" placeholder="Escribe código (Alpha)" maxlength="3" autocomplete="off">
-                                                </div>
-                                                <div class="col-6 col-md-2">
-                                                    <label class="form-label">Tiempo (min)</label>
-                                                    <input type="number" min="0" class="form-control" id="demora3-tiempo" placeholder="0">
-                                                </div>
-                                                <div class="col-12 col-md-7">
-                                                    <label class="form-label">Descripción</label>
-                                                    <input type="text" class="form-control" id="demora3-descripcion" placeholder="Descripción del código">
-                                                </div>
-                                            </div>
-                                            <!-- Datalist para códigos de demora (Alpha code) con Description -->
-                                            <datalist id="delay-alpha-codes"></datalist>
                                             <hr />
                                         </div>
-
                                         <!-- División: Pasajeros por categoría (después de Demoras) -->
                                         <div class="col-12" data-dir="departure-only">
                                             <h6 class="mb-2 mf-section-title"><i class="fas fa-people-group me-1"></i>Pasajeros por categoría</h6>
@@ -1373,14 +1333,12 @@
                                         <div class="col-12 d-flex gap-2 mt-2">
                                             <button type="button" class="btn btn-success" id="manifest-save"><i class="fas fa-save me-1"></i>Guardar</button>
                                             <button type="button" class="btn btn-outline-secondary" id="manifest-clear"><i class="fas fa-eraser me-1"></i>Limpiar</button>
-                                            <button type="button" class="btn btn-outline-success" id="manifest-add-to-table" title="Agregar el formulario actual a la tabla (sin guardar)"><i class="fas fa-plus me-1"></i>Añadir a tabla</button>
-                                            <button type="button" class="btn btn-outline-primary ms-auto" id="manifest-export-csv" title="Exportar registros rellenados a Excel"><i class="fas fa-file-excel me-1"></i>Exportar Excel</button>
+                                            <button type="button" class="btn btn-outline-primary ms-auto" id="manifest-export-json"><i class="fas fa-download me-1"></i>Exportar JSON</button>
                                         </div>
                                     </form>
                                     </div>
                                     <hr />
                                     <h5 class="mb-2">Registros Guardados</h5>
-                                    <p class="text-muted small mt-n2 mb-2">Tip: Usa “Añadir a tabla” para agregar el formulario actual aquí sin guardarlo; “Exportar Excel” exporta esta tabla tal cual se ve.</p>
                                     <div class="table-responsive">
                                         <table class="table table-sm table-hover align-middle" id="manifest-records-table">
                                             <thead>
@@ -1468,10 +1426,6 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-
-    <!-- SheetJS (XLSX) para exportar manifiestos a Excel en el cliente -->
-    <!-- Cargar desde CDN; si no hay red, la exportación caerá a CSV automáticamente -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <!-- Fallbacks y manejador de errores de imágenes (se define antes de script.js) -->
     <script>

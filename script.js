@@ -287,9 +287,8 @@ function getAirlineLogoCandidates(airline){
         if (base.includes('air_france')) candidates.push('images/airlines/logo_air_france_.png');
         if (base.includes('ifl_group')) candidates.push('images/airlines/lofo_ifl_group.png');
     }
-    // Nota: No agregamos un archivo local por defecto aquí para evitar más
-    // solicitudes fallidas cuando el host no está accesible; usaremos un
-    // placeholder inline (data:) en el manejador de error.
+    // Fallback local definitivo
+    candidates.push('images/airlines/default-airline-logo.svg');
     // quitar duplicados conservando orden
     return [...new Set(candidates)];
 }
@@ -300,32 +299,33 @@ function getAirlineLogoPath(airline){
 // Fallback para logos: si .png falla probamos .svg una vez; si también falla, ocultamos el <img>
 function handleLogoError(imgEl){
     try{
-        // Corta cualquier cadena de reintentos y usa un placeholder inline de inmediato
-        imgEl.onerror = null;
-        const svg = encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40"><rect width="100%" height="100%" fill="#f1f3f5"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#6c757d">Logo</text></svg>');
-        imgEl.src = 'data:image/svg+xml;charset=utf-8,' + svg;
-        imgEl.setAttribute('loading','lazy');
-        // Además, mantenemos visible el nombre de la aerolínea, quitando marcas de "tiene logo"
+        const list = (imgEl.dataset.cands || '').split('|').filter(Boolean);
+        let idx = parseInt(imgEl.dataset.candIdx || '0', 10);
+        if (list.length && idx < list.length - 1){
+            idx += 1;
+            imgEl.dataset.candIdx = String(idx);
+            imgEl.src = list[idx];
+            return;
+        }
+        // última oportunidad: alternar extensión png<->jpg<->svg en el mismo nombre
+        const current = imgEl.getAttribute('src') || '';
+        const nextByExt = current.endsWith('.png') ? current.replace(/\.png$/i, '.jpg')
+                          : current.endsWith('.jpg') ? current.replace(/\.jpg$/i, '.svg')
+                          : null;
+        if (nextByExt) { imgEl.src = nextByExt; return; }
+        // sin recurso: ocultar img y mantener visible el texto/color
+        imgEl.style.display = 'none';
         const cell = imgEl.closest('.airline-cell');
         if (cell) cell.classList.remove('has-logo');
+        const row = imgEl.closest('tr');
+        if (row) row.style.removeProperty('--airline-color');
         const header = imgEl.closest('.airline-header');
         if (header) header.classList.remove('airline-has-logo');
-    }catch(_){ try{ imgEl.style.display = 'none'; }catch(e){} }
+    }catch(_){ imgEl.style.display = 'none'; }
 }
 // Marcar celdas/headers cuando el logo carga correctamente para ocultar texto/color
 function logoLoaded(imgEl){
     try{
-        const src = (imgEl.currentSrc || imgEl.src || '').toLowerCase();
-        const isDefault = /images\/airlines\/default-airline-logo\.svg$/i.test(src);
-        // Si es el placeholder por defecto, ocultarlo y mantener el nombre visible
-        if (isDefault) {
-            imgEl.style.display = 'none';
-            const cell0 = imgEl.closest('.airline-cell');
-            if (cell0) cell0.classList.remove('has-logo');
-            const header0 = imgEl.closest('.airline-header');
-            if (header0) header0.classList.remove('airline-has-logo');
-            return;
-        }
         const cell = imgEl.closest('.airline-cell');
         if (cell) cell.classList.add('has-logo');
         // Marcar el header para ocultar el nombre cuando hay logo, sin aplicar fondos adicionales
@@ -409,10 +409,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch(_) {}
     initializeTheme();
     initializeSidebarState();
-    if (document.getElementById('login-screen') && !document.getElementById('login-screen').classList.contains('hidden')) { 
-        animateLoginTitle(); 
-        try { startLoginPlanes(); } catch(_) {}
-    }
+    if (document.getElementById('login-screen') && !document.getElementById('login-screen').classList.contains('hidden')) { animateLoginTitle(); }
     if (location.protocol !== 'file:') {
         loadItineraryData();      
         renderDemoras();          
@@ -719,14 +716,8 @@ window.diagnoseCharts = function() {
     
     setupBodyEventListeners();
     setupLightboxListeners();
-    // Inicializar UI de Manifiestos: preferir V2 si está disponible para evitar doble cableado
-    try {
-        if (typeof window.setupManifestsUI_v2 === 'function') {
-            window.setupManifestsUI_v2();
-        } else if (typeof window.setupManifestsUI === 'function') {
-            window.setupManifestsUI();
-        }
-    } catch(_) {}
+    // Inicializar UI de Manifiestos (desacoplado al módulo)
+    try { if (typeof window.setupManifestsUI === 'function') window.setupManifestsUI(); } catch(_) {}
     // Frecuencias: navegación de semana
     const prevW = document.getElementById('freq-prev-week'); if (prevW) prevW.addEventListener('click', ()=> changeFreqWeek(-7));
     const nextW = document.getElementById('freq-next-week'); if (nextW) nextW.addEventListener('click', ()=> changeFreqWeek(7));
@@ -746,218 +737,6 @@ function animateLoginTitle() {
     if (!titleElement) return;
         // Mantener el título solicitado
         titleElement.textContent = "OPERACIONES AIFA";
-}
-
-// ===================== Fondo animado del login: aviones volando =====================
-function startLoginPlanes(){
-    try {
-        const sky = document.getElementById('login-sky');
-        const login = document.getElementById('login-screen');
-        if (!sky || !login || login.classList.contains('hidden')) return;
-        // Evitar duplicados
-        if (sky.dataset.wired === '1') return;
-        sky.dataset.wired = '1';
-        // Limpiar por si acaso
-        sky.innerHTML = '';
-        // Logo superior fijo: colócalo dentro del overlay para que sobresalga sobre las nubes
-        try {
-            // Eliminar instancias anteriores para evitar duplicados
-            document.querySelectorAll('.sky-top-logo').forEach(el=>{ try{ el.remove(); }catch(_){} });
-            const overlay = document.querySelector('.login-overlay');
-            const topLogo = document.createElement('img');
-            topLogo.className = 'sky-top-logo';
-            topLogo.src = 'images/aifa-logo.png';
-            topLogo.alt = 'Logo AIFA';
-            (overlay || sky).appendChild(topLogo);
-        } catch(_) {}
-    // Forzar modo noche en el login
-    const mode = 'night';
-    sky.dataset.mode = mode;
-    applyLoginSkyMode();
-    // Asegurar clase aplicada incluso si algún handler externo llama a applyLoginSkyMode()
-    sky.classList.add('night');
-    sky.classList.remove('dusk');
-    createNightElements(sky);
-    // Crear nubes sutiles (ligera reducción para mejorar rendimiento)
-    const cloudCount = 5;
-        for (let i=0;i<cloudCount;i++){
-            const c = document.createElement('div');
-            c.className = 'cloud';
-            const topVh = 5 + Math.random()*70; // 5–75vh
-            const yJitter = (-10 + Math.random()*20) + 'px';
-            const dur = 48 + Math.random()*52; // 48–100s
-            const delay = -Math.random()*dur; // arranque descentralizado
-            c.style.top = topVh + 'vh';
-            c.style.setProperty('--y', yJitter);
-            c.style.setProperty('--dur', dur + 's');
-            c.style.setProperty('--delay', delay + 's');
-            sky.appendChild(c);
-        }
-    // Crear aviones (ligera reducción para mejorar rendimiento en equipos modestos)
-    const planeCount = 8;
-        for (let i=0;i<planeCount;i++){
-            const p = document.createElement('div');
-            p.className = 'plane';
-            const reverse = Math.random() < 0.35; // 35% en sentido inverso
-            if (reverse) p.classList.add('reverse');
-            const topVh = 10 + Math.random()*78; // 10–88vh
-            const scale = 0.85 + Math.random()*0.7; // 0.85–1.55
-            const tilt = (reverse ? -1 : 1) * (6 + Math.random()*8); // 6–14deg
-            const flight = 18 + Math.random()*26; // 18–44s
-            const delay = -Math.random()*flight; // inicio aleatorio
-            p.style.top = topVh + 'vh';
-            p.style.setProperty('--scale', String(scale));
-            p.style.setProperty('--tilt', tilt + 'deg');
-            p.style.setProperty('--flight', flight + 's');
-            p.style.setProperty('--delay', delay + 's');
-            p.style.setProperty('--y', ((-15 + Math.random()*30)|0) + 'px');
-            // Profundidad/parallax
-            const r = Math.random();
-            if (r < 0.25) p.classList.add('far'); else if (r < 0.75) p.classList.add('mid'); else p.classList.add('near');
-            p.style.zIndex = p.classList.contains('near') ? '3' : (p.classList.contains('mid') ? '2' : '1');
-            const icon = document.createElement('span');
-            icon.className = 'icon';
-            icon.innerHTML = '<i class="fas fa-plane"></i>';
-            const trail = document.createElement('span');
-            trail.className = 'trail';
-            // Luces: mantener beacon (rojo superior), strobe (blanco) y landing (frontal)
-            const beacon = document.createElement('span'); beacon.className = 'light beacon';
-            const strobe = document.createElement('span'); strobe.className = 'light strobe';
-            const landing = document.createElement('span'); landing.className = 'light landing';
-            // Añadir las luces al icono (se posicionan por CSS para quedar en puntas de ala)
-            const osc = document.createElement('span');
-            osc.className = 'osc';
-            // variar tiempo de oscilación
-            osc.style.setProperty('--bobTime', (6 + Math.random()*4).toFixed(2) + 's');
-            // Insert lights before appending icon so they layer correctly
-            icon.appendChild(beacon);
-            icon.appendChild(strobe);
-            icon.appendChild(landing);
-            osc.appendChild(icon);
-            osc.appendChild(trail);
-            p.appendChild(osc);
-            sky.appendChild(p);
-        }
-        // Programar chequeo periódico de modo (día/dusk/noche) cada 5 min
-        // Sin temporizador: el login permanece en modo noche
-    } catch(_) {}
-}
-function stopLoginPlanes(){
-    try {
-        const sky = document.getElementById('login-sky');
-        if (!sky) return;
-        // Limpiar intervalos
-        const tid = parseInt(sky.dataset.nightTimer || '0', 10);
-        if (tid) { try { clearInterval(tid); } catch(_) {} }
-        sky.innerHTML = '';
-        sky.dataset.wired = '0';
-    } catch(_) {}
-}
-
-// Día/Noche para el login
-function isNightNow(){ try { const h = new Date().getHours(); return (h >= 19 || h < 6); } catch(_) { return false; } }
-function isDuskNow(){
-    try {
-        const now = new Date();
-        const h = now.getHours();
-        const m = now.getMinutes();
-        const total = h*60 + m; // minutos desde medianoche
-        // Ventana extendida de atardecer: 17:40 (1060) – 19:20 (1160)
-        const duskStart = 17*60 + 40; // 1060
-        const duskEnd   = 19*60 + 20; // 1160
-        const isEvening = (total >= duskStart && total < duskEnd);
-        // Mantener breve amanecer (06:00–07:00)
-        const isMorning = (h === 6);
-        return isEvening || isMorning;
-    } catch(_) { return false; }
-}
-function updateDuskProgressVar(sky){
-    try {
-        if (!sky) sky = document.getElementById('login-sky');
-        if (!sky) return;
-        const now = new Date();
-        const total = now.getHours()*60 + now.getMinutes();
-        const duskStart = 17*60 + 40; // 17:40
-        const duskEnd   = 19*60 + 20; // 19:20
-        let p = 0;
-        if (total <= duskStart) p = 0; else if (total >= duskEnd) p = 1; else p = (total - duskStart) / (duskEnd - duskStart);
-        sky.style.setProperty('--duskP', p.toFixed(3));
-    } catch(_) {}
-}
-function getLoginSkyMode(){ try { if (isNightNow()) return 'night'; if (isDuskNow()) return 'dusk'; return 'day'; } catch(_) { return 'day'; } }
-function applyLoginSkyMode(){
-    try {
-        const sky = document.getElementById('login-sky');
-        if (!sky) return;
-        const forced = sky.dataset.mode || sky.dataset.forceMode || '';
-        const mode = forced || getLoginSkyMode();
-        sky.classList.toggle('night', mode === 'night');
-        sky.classList.toggle('dusk', mode === 'dusk');
-    } catch(_) {}
-}
-function createNightElements(sky){
-    try {
-        // Evitar estrellas duplicadas
-        if (!sky.querySelector('.moon')) {
-            const moon = document.createElement('div'); moon.className = 'moon'; sky.appendChild(moon);
-        }
-        // Generar estrellas si no hay
-        const existingStars = sky.querySelectorAll('.star').length;
-        if (existingStars < 30) {
-            const starCount = 60;
-            for (let i=0;i<starCount;i++){
-                const s = document.createElement('div');
-                s.className = 'star' + (Math.random() < 0.18 ? ' big' : '');
-                s.style.left = Math.round(Math.random()*100) + 'vw';
-                s.style.top = Math.round(Math.random()*100) + 'vh';
-                const tw = (2.4 + Math.random()*2.8).toFixed(2);
-                const td = (-Math.random()*5).toFixed(2);
-                s.style.setProperty('--tw', tw + 's');
-                s.style.setProperty('--td', td + 's');
-                sky.appendChild(s);
-            }
-        }
-        createAirportLights(sky);
-    } catch(_) {}
-}
-function cleanupNightElements(sky){
-    try {
-        sky.querySelectorAll('.star, .moon').forEach(el=>{ try{ el.remove(); }catch(_){} });
-    } catch(_) {}
-}
-function createDuskElements(sky){
-    try {
-        if (!sky.querySelector('.sun')) {
-            const sun = document.createElement('div'); sun.className = 'sun'; sky.appendChild(sun);
-        }
-        createAirportLights(sky);
-    } catch(_) {}
-}
-function cleanupDuskElements(sky){
-    try { sky.querySelectorAll('.sun').forEach(el=>{ try{ el.remove(); }catch(_){} }); } catch(_) {}
-}
-function createAirportLights(sky){
-    try {
-        let strip = sky.querySelector('.airport-lights');
-        if (!strip) { strip = document.createElement('div'); strip.className = 'airport-lights'; sky.appendChild(strip); }
-        // Generar puntitos si hay pocos
-        const need = 48;
-        if (strip.querySelectorAll('.ap-light').length < need) {
-            for (let i=0;i<need;i++){
-                const d = document.createElement('span');
-                d.className = 'ap-light ' + (Math.random() < 0.15 ? 'ap-blue' : (Math.random() < 0.35 ? 'ap-green' : 'ap-yellow'));
-                d.style.left = Math.round(Math.random()*100) + 'vw';
-                d.style.setProperty('--s', (0.7 + Math.random()*0.9).toFixed(2));
-                d.style.setProperty('--d', (-Math.random()*3).toFixed(2) + 's');
-                // Distribuir verticalmente con ligera pendiente
-                const y = 2 + Math.random()*8; d.style.bottom = y + 'vh';
-                strip.appendChild(d);
-            }
-        }
-    } catch(_) {}
-}
-function cleanupAirportLights(sky){
-    try { sky.querySelectorAll('.airport-lights').forEach(el=>{ try{ el.remove(); }catch(_){} }); } catch(_) {}
 }
 
 // Funciones específicas para reinicializar gráficas por sección
@@ -1747,7 +1526,7 @@ function displaySummaryTable(flights) {
     const logoPath = cands[0];
     const dataCands = cands.join('|');
     const sizeClass = getLogoSizeClass(airline, 'summary');
-    const logoHtml = logoPath ? `<img class="airline-logo ${sizeClass} me-2" src="${logoPath}" alt="Logo ${airline}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)" loading="lazy">` : '';
+    const logoHtml = logoPath ? `<img class="airline-logo ${sizeClass} me-2" src="${logoPath}" alt="Logo ${airline}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">` : '';
 
         html += `
         <div class="card">
@@ -1796,7 +1575,7 @@ function displayPassengerTable(flights) {
     const logoPath = cands[0];
     const dataCands = cands.join('|');
     const sizeClass = getLogoSizeClass(airlineName, 'table');
-    const logoHtml = logoPath ? `<img class="airline-logo ${sizeClass}" src="${logoPath}" alt="Logo ${airlineName}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)" loading="lazy">` : '';
+    const logoHtml = logoPath ? `<img class="airline-logo ${sizeClass}" src="${logoPath}" alt="Logo ${airlineName}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">` : '';
         const rowColor = (airlineColors[flight.aerolinea] || '#ccc');
         tableHtml += `<tr class="animated-row" style="--delay: ${index * 0.08}s; --airline-color: ${rowColor};">
             <td><div class="airline-cell">${logoHtml}<span class="airline-name">${airlineName}</span></div></td>
@@ -1862,7 +1641,7 @@ function displayCargoTable(flights) {
     const logoPath = cands[0];
     const dataCands = cands.join('|');
     const sizeClass = getLogoSizeClass(airlineName, 'table');
-    const logoHtml = logoPath ? `<img class="airline-logo ${sizeClass}" src="${logoPath}" alt="Logo ${airlineName}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)" loading="lazy">` : '';
+    const logoHtml = logoPath ? `<img class="airline-logo ${sizeClass}" src="${logoPath}" alt="Logo ${airlineName}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">` : '';
         const rowColor = (airlineColors[flight.aerolinea] || '#ccc');
         tableHtml += `<tr class="animated-row" style="--delay: ${index * 0.08}s; --airline-color: ${rowColor};">
             <td><div class="airline-cell">${logoHtml}<span class="airline-name">${airlineName}</span></div></td>
@@ -2029,7 +1808,6 @@ function performLogout(){
     const login = document.getElementById('login-screen');
     if (mainApp) mainApp.classList.add('hidden');
     if (login) login.classList.remove('hidden');
-    try { startLoginPlanes(); } catch(_) {}
     const userEl = document.getElementById('current-user'); if (userEl) userEl.textContent = '';
     // cerrar sidebar/overlay si estuvieran abiertos
     try {
@@ -3269,12 +3047,10 @@ function showMainApp() {
             try { sessionStorage.removeItem(SESSION_USER); sessionStorage.removeItem(SESSION_TOKEN); } catch(_) {}
             if (main) main.classList.add('hidden');
             if (login) login.classList.remove('hidden');
-            try { startLoginPlanes(); } catch(_) {}
             return;
         }
         if (login) login.classList.add('hidden');
         if (main) main.classList.remove('hidden');
-        try { stopLoginPlanes(); } catch(_) {}
         // Usuario actual
         const userEl = document.getElementById('current-user'); if (userEl) userEl.textContent = name;
         // Permisos: Itinerario mensual
@@ -3398,10 +3174,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Manifiestos: UI mínima (preview de imagen y tabla local)
-// IMPORTANTE: Esta es una implementación de respaldo.
-// Solo se asigna si js/manifiestos.js NO definió window.setupManifestsUI.
-if (typeof window.setupManifestsUI !== 'function') {
-window.setupManifestsUI = function() {
+function setupManifestsUI() {
     try {
         const up = document.getElementById('manifest-upload');
         const prevImg = document.getElementById('manifest-preview');
@@ -4082,6 +3855,5 @@ window.setupManifestsUI = function() {
             clearEmbarque();
         }
     } catch (e) { /* ignore */ }
-};
 }
 

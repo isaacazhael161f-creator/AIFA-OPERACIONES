@@ -52,7 +52,7 @@
         const dataCands = cands.join('|');
         const sizeClass = (typeof window.getLogoSizeClass === 'function') ? window.getLogoSizeClass(airline, 'summary') : 'lg';
         if (!logoPath) return '';
-  return `<img class="airline-logo ${sizeClass} me-2" src="${logoPath}" alt="Logo ${airline}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)" loading="lazy">`;
+        return `<img class="airline-logo ${sizeClass} me-2" src="${logoPath}" alt="Logo ${airline}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">`;
       } catch(_) { return ''; }
     }
 
@@ -60,15 +60,13 @@
       const el = document.getElementById(elId);
       if (!el) return;
       el.innerHTML = '';
-      items.forEach((r, i) => {
+      items.forEach((r) => {
         const pct = parsePercent(r.puntualidad);
         const li = document.createElement('li');
         li.className = 'd-flex align-items-center justify-content-between gap-2 mb-1';
         const logo = logoHtmlFor(r.aerolinea);
-        const rank = (typeof i === 'number') ? (i + 1) : null;
-        const rankHtml = (rank && rank <= 3) ? `<span class="punc-rank-badge" aria-label="Top ${rank}">${rank}</span>` : '';
         li.innerHTML = `
-          <span class="airline-header d-flex align-items-center gap-2 text-truncate" title="${r.aerolinea}">${rankHtml}${logo}<span class="airline-name">${r.aerolinea}</span></span>
+          <span class="airline-header d-flex align-items-center gap-2 text-truncate" title="${r.aerolinea}">${logo}<span class="airline-name">${r.aerolinea}</span></span>
           <span class="d-flex align-items-center gap-2">
             <span class="badge ${clsForPct(pct)}">${pct.toFixed(0)}%</span>
             <span class="small text-muted">(${r.total} vuelos)</span>
@@ -122,102 +120,61 @@
     if (!_data) return;
     const container = document.getElementById('puntualidad-table-container');
     if (!container) return;
-    // Helper para crear la tabla por categoría
-    function buildTable(items, title, cardClass){
-      const wrap = document.createElement('div');
-      wrap.className = `card mb-3 punc-card ${cardClass||''}`;
-      wrap.innerHTML = `<div class="card-header">${title}</div><div class="card-body"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
-        <thead>
-          <tr>
-            <th style="min-width:140px;">Aerolínea</th>
-            <th class="text-end">A tiempo</th>
-            <th class="text-end">Demora</th>
-            <th class="text-end">Cancelado</th>
-            <th class="text-end">Total</th>
-            <th style="min-width:160px;">Puntualidad</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-        <tfoot></tfoot>
-      </table></div></div>`;
-      const tbody = wrap.querySelector('tbody');
-      const tfoot = wrap.querySelector('tfoot');
-      let sumOnTime = 0, sumDelay = 0, sumCancel = 0, sumTotal = 0;
 
-      (items||[]).filter(r => (r.aerolinea||'').toLowerCase() !== 'total').forEach(r => {
-        const pct = parsePercent(r.puntualidad);
-        let logoHtml = '';
-        try {
-          if (typeof window.getAirlineLogoCandidates === 'function') {
-            const cands = window.getAirlineLogoCandidates(r.aerolinea || '') || [];
-            const logoPath = cands[0];
-            const dataCands = cands.join('|');
-            const sizeClass = (typeof window.getLogoSizeClass === 'function') ? window.getLogoSizeClass(r.aerolinea || '', 'table') : 'lg';
-            if (logoPath) {
-              logoHtml = `<img class="airline-logo ${sizeClass}" src="${logoPath}" alt="Logo ${r.aerolinea || ''}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)" loading="lazy">`;
-            }
+    // Build table
+    const table = document.createElement('table');
+    table.className = 'table table-hover align-middle';
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Categoría</th>
+          <th>Aerolínea</th>
+          <th class="text-end">A tiempo</th>
+          <th class="text-end">Demora</th>
+          <th class="text-end">Cancelado</th>
+          <th class="text-end">Total</th>
+          <th style="min-width:160px;">Puntualidad</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+    const tbody = table.querySelector('tbody');
+
+    _data.forEach(r => {
+      const pct = parsePercent(r.puntualidad);
+      const tr = document.createElement('tr');
+      // Logo en columna Aerolínea
+      let logoHtml = '';
+      try {
+        if (typeof window.getAirlineLogoCandidates === 'function') {
+          const cands = window.getAirlineLogoCandidates(r.aerolinea || '') || [];
+          const logoPath = cands[0];
+          const dataCands = cands.join('|');
+          const sizeClass = (typeof window.getLogoSizeClass === 'function') ? window.getLogoSizeClass(r.aerolinea || '', 'table') : 'lg';
+          if (logoPath) {
+            logoHtml = `<img class="airline-logo ${sizeClass}" src="${logoPath}" alt="Logo ${r.aerolinea || ''}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">`;
           }
-        } catch(_) {}
+        }
+      } catch(_) {}
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><div class="airline-cell">${logoHtml}<span class="airline-name">${r.aerolinea || ''}</span></div></td>
-          <td class="text-end">${Number(r.a_tiempo || 0)}</td>
-          <td class="text-end">${Number(r.demora || 0)}</td>
-          <td class="text-end">${Number(r.cancelado || 0)}</td>
-          <td class="text-end">${Number(r.total || 0)}</td>
-          <td>
-            <div class="progress" style="height: 18px;">
-              <div class="progress-bar ${clsForPct(pct)}" role="progressbar" style="width: ${Math.max(0, Math.min(100, pct))}%">${pct.toFixed(0)}%</div>
-            </div>
-          </td>`;
-        tbody.appendChild(tr);
-
-        sumOnTime += Number(r.a_tiempo || 0);
-        sumDelay += Number(r.demora || 0);
-        sumCancel += Number(r.cancelado || 0);
-        sumTotal += Number(r.total || 0);
-      });
-
-      // Totales por categoría en el pie de la tabla
-      const totalPct = sumTotal > 0 ? (sumOnTime / sumTotal) * 100 : 0;
-      const trTotal = document.createElement('tr');
-      trTotal.innerHTML = `
-        <td class="fw-bold">Total ${title}</td>
-        <td class="text-end fw-bold">${sumOnTime}</td>
-        <td class="text-end fw-bold">${sumDelay}</td>
-        <td class="text-end fw-bold">${sumCancel}</td>
-        <td class="text-end fw-bold">${sumTotal}</td>
+      tr.innerHTML = `
+        <td>${r.categoria || ''}</td>
+        <td><div class="airline-cell">${logoHtml}<span class="airline-name">${r.aerolinea || ''}</span></div></td>
+        <td class="text-end">${Number(r.a_tiempo || 0)}</td>
+        <td class="text-end">${Number(r.demora || 0)}</td>
+        <td class="text-end">${Number(r.cancelado || 0)}</td>
+        <td class="text-end">${Number(r.total || 0)}</td>
         <td>
           <div class="progress" style="height: 18px;">
-            <div class="progress-bar ${clsForPct(totalPct)}" role="progressbar" style="width: ${Math.max(0, Math.min(100, totalPct))}%">${totalPct.toFixed(0)}%</div>
+            <div class="progress-bar ${clsForPct(pct)}" role="progressbar" style="width: ${Math.max(0, Math.min(100, pct))}%">${pct.toFixed(0)}%</div>
           </div>
-        </td>`;
-      const tfootRow = document.createElement('tr');
-      tfootRow.appendChild(trTotal.children[0].cloneNode(true));
-      tfootRow.appendChild(trTotal.children[1].cloneNode(true));
-      tfootRow.appendChild(trTotal.children[2].cloneNode(true));
-      tfootRow.appendChild(trTotal.children[3].cloneNode(true));
-      tfootRow.appendChild(trTotal.children[4].cloneNode(true));
-      tfootRow.appendChild(trTotal.children[5].cloneNode(true));
-      tfoot.appendChild(tfootRow);
-
-      return wrap;
-    }
-
-    const paxItems = byCategory(_data, 'Pasajeros');
-    const cargoItems = byCategory(_data, 'Carga');
-
-    const frag = document.createDocumentFragment();
-    if ((paxItems||[]).length) frag.appendChild(buildTable(paxItems, 'Pasajeros', 'punc-passengers'));
-    if ((cargoItems||[]).length) frag.appendChild(buildTable(cargoItems, 'Carga', 'punc-cargo'));
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
 
     container.innerHTML = '';
-    if (!frag.childNodes.length) {
-      container.innerHTML = '<div class="alert alert-info bg-transparent text-body">No hay datos para mostrar.</div>';
-    } else {
-      container.appendChild(frag);
-    }
+    container.appendChild(table);
   }
 
   async function loadData(){
