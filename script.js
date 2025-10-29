@@ -115,6 +115,10 @@ const dashboardData = {
     pdfSections: { "itinerario-mensual": { title: "Itinerario Mensual (Octubre)", url: "pdfs/itinerario_mensual.pdf" } }
 };
 let allFlightsData = [];
+let summaryDetailMode = 'airline';
+let summarySelectedAirline = null;
+let summarySelectedPosition = null;
+let summarySelectionLocked = false;
 // Hashes de contraseñas (generados en cliente al inicio y luego se descartan passwords en claro)
 const AUTH_HASHES = Object.create(null);
 const SECRET_PW_SALT = 'aifa.ops.local.pw.v1';
@@ -135,10 +139,66 @@ async function initAuthHashes(){
         }
     } catch(_){ /* noop */ }
 }
+let authHashesInitPromise = null;
+function ensureAuthHashes(){
+    if (!authHashesInitPromise){
+        authHashesInitPromise = initAuthHashes().catch(err => {
+            authHashesInitPromise = null;
+            throw err;
+        });
+    }
+    return authHashesInitPromise;
+}
 let passengerAirlines = ["Viva", "Volaris", "Aeromexico", "Mexicana de Aviación", "Aeurus", "Arajet"];
 let cargoAirlines = ["MasAir", "China Southerrn", "Lufthansa", "Kalitta Air", "Aerounión", "Emirates Airlines", "Atlas Air", "Silk Way West Airlines", "Cathay Pacific", "United Parcel Service", "Turkish Airlines", "Cargojet Airways", "Air Canada", "Cargolux"];
 const airlineColors = { "Viva": "#00b200", "Volaris": "#6f2da8", "Aeromexico": "#00008b", "Mexicana de Aviación": "#a52a2a", "Aerus": "#ff4500", "Arajet": "#00ced1", "MasAir": "#4682b4", "China Southerrn": "#c71585", "Lufthansa": "#ffcc00", "Kalitta Air": "#dc143c", "Aerounión": "#2e8b57", "Emirates Airlines": "#d4af37", "Atlas Air": "#808080", "Silk Way West Airlines": "#f4a460", "Cathay Pacific": "#006400", "United Parcel Service": "#5f4b32", "Turkish Airlines": "#e81123", "Cargojet Airways": "#f0e68c", "Air Canada": "#f00", "Cargolux": "#00a0e2" };
 
+const passengerAirlinesNormalized = new Set(passengerAirlines.map(normalizeAirlineName));
+const cargoAirlinesNormalized = new Set(cargoAirlines.map(normalizeAirlineName));
+
+const cargoPositionCodes = new Set([
+    '601','602','603','604','605','606',
+    '601A','602A','603A','604A','605A',
+    '601B','602B','603B','604B'
+]);
+
+const semicontactoPositionCodes = new Set([
+    '501','502','503','504','505'
+]);
+
+const remotePositionCodes = new Set([
+    '506','507','508','509','510','511','512','513','514',
+    '506A','507A','508A','506B','507B'
+]);
+
+const cobusAttentionPositions = new Set([
+    '115','115A','115B','116','116A','116B',
+    '509','510','511','512','513','514'
+]);
+
+const positionCategoryLabels = {
+    cargo: 'Carga',
+    semicontacto: 'Semicontacto',
+    remote: 'Remota',
+    terminal: 'Edificio terminal'
+};
+
+function normalizePositionValue(value) {
+    return (value || '').toString().trim().toUpperCase();
+}
+
+function classifyPositionStand(value) {
+    const normalized = normalizePositionValue(value);
+    if (!normalized) return 'terminal';
+    if (cargoPositionCodes.has(normalized)) return 'cargo';
+    if (semicontactoPositionCodes.has(normalized)) return 'semicontacto';
+    if (remotePositionCodes.has(normalized)) return 'remote';
+    return 'terminal';
+}
+
+function getPositionCategoryLabel(category) {
+    return positionCategoryLabels[category] || positionCategoryLabels.terminal;
+}
 // ===================== Logos de Aerolíneas =====================
 // Mapa flexible: nombre normalizado (minúsculas, sin acentos) -> slug de archivo
 // Nota: ahora usamos una lista de candidatos por aerolínea (archivos reales en images/airlines)
@@ -158,11 +218,6 @@ const airlineLogoFileMap = {
     'air china': ['logo_air_china.png'],
     // Carga y otras
     'masair': ['logo_mas.png','logo_masair.png'],
-    'mas air': ['logo_mas.png','logo_masair.png'],
-    'Omni Air': ['logo_omni_air.png','logo_omni_air1.png'],
-    'omni air international': ['logo_omni_air.png','logo_omni_air1.png'],
-    'omni': ['logo_omni_air.png','logo_omni_air1.png'],
-    'mas air': ['logo_mas.png','logo_masair.png'],
     'amerijet international': ['logo_amerijet_international.png'],
     'cargojet': ['logo_cargojet.png'],
     'cargolux': ['logo_cargolux.png'],
@@ -229,9 +284,6 @@ const airlineLogoSlugMap = {
     'air canada': 'logo_air_canada',
     'air canada cargo': 'logo_air_canada',
     'cargolux': 'logo_cargolux',
-    'Omni Air': 'logo_omni_air',
-    'omni air international': 'logo_omni_air',
-    'omni': 'logo_omni_air',
     // Compat adicionales
     'air china': 'air_china',
     'tsm': 'logo_tsm_airlines',
@@ -267,7 +319,7 @@ function getAirlineLogoCandidates(airline){
     const key = normalizeAirlineName(airline);
     const files = airlineLogoFileMap[key];
     const candidates = [];
-        if (Array.isArray(files) && files.length) {
+    if (Array.isArray(files) && files.length) {
         files.forEach(f=>{ candidates.push(`images/airlines/${f}`); });
     } else {
         // Generar a partir del nombre normalizado
@@ -277,11 +329,7 @@ function getAirlineLogoCandidates(airline){
         candidates.push(`images/airlines/${base}.svg`);
         // Variaciones conocidas (solo archivos que existen en repo)
         if (base.includes('aerounion')) candidates.push('images/airlines/loho_aero_union.png');
-        if (base.includes('masair') || base.includes('mas_air')) candidates.push('images/airlines/logo_mas.png');
-        if (base.includes('Omni_Air')) { 
-            candidates.push('images/airlines/logo_omni_air.png');
-            candidates.push('images/airlines/logo_omni_air1.png');
-        }
+        if (base.includes('masair')) candidates.push('images/airlines/logo_mas.png');
         if (base.includes('silk_way_west') && !base.includes('silkway')) candidates.push('images/airlines/logo_silk_way_west_airlines.png');
         if (base.includes('air_canada')) candidates.push('images/airlines/logo_air_canada_.png');
         if (base.includes('air_france')) candidates.push('images/airlines/logo_air_france_.png');
@@ -331,146 +379,8 @@ function logoLoaded(imgEl){
         // Marcar el header para ocultar el nombre cuando hay logo, sin aplicar fondos adicionales
         const header = imgEl.closest('.airline-header');
         if (header) header.classList.add('airline-has-logo');
-    }catch(_){}
+    }catch(_){ }
 }
-const charts = {};
-let showSMA = false; // SMA deshabilitado
-let showMonthly2025 = false; // estado global para modo mensual 2025
-
-// Utilidad: convertir #RRGGBB a rgba()
-function hexToRgba(hex, alpha = 1) {
-    try {
-        const h = (hex || '').toString().trim();
-        if (/^#?[0-9a-fA-F]{3}$/.test(h)) {
-            const c = h.replace('#','');
-            const r = parseInt(c[0]+c[0],16), g = parseInt(c[1]+c[1],16), b = parseInt(c[2]+c[2],16);
-            return `rgba(${r},${g},${b},${alpha})`;
-        }
-        const c = h.replace('#','');
-        const r = parseInt(c.slice(0,2),16), g = parseInt(c.slice(2,4),16), b = parseInt(c.slice(4,6),16);
-        return `rgba(${r},${g},${b},${alpha})`;
-    } catch(_) {
-        return `rgba(0,0,0,${alpha})`;
-    }
-}
-
-// Formateo compacto para etiquetas en burbuja
-function formatCompact(value, type = 'int') {
-    const n = Number(value || 0);
-    if (type === 'ton') {
-        if (Math.abs(n) >= 1000) return (n/1000).toFixed(1) + 'k';
-        return n.toFixed(n < 100 ? 2 : 1);
-    }
-    if (type === 'pax') {
-        if (Math.abs(n) >= 1_000_000) return (n/1_000_000).toFixed(1) + 'M';
-        if (Math.abs(n) >= 1000) return (n/1000).toFixed(1) + 'k';
-        return String(Math.round(n));
-    }
-    // int ops
-    if (Math.abs(n) >= 1000) return (n/1000).toFixed(1) + 'k';
-    return String(Math.round(n));
-}
-
-// Formateo completo para etiquetas (sin compactar)
-function formatFull(value, type = 'int') {
-    const n = Number(value ?? 0);
-    if (type === 'ton') {
-        return new Intl.NumberFormat('es-MX', { maximumFractionDigits: 3 }).format(n);
-    }
-    return new Intl.NumberFormat('es-MX').format(Math.round(n));
-}
-
-function calculateTotals() {
-    const totalEquipaje = Array.from(document.querySelectorAll('.embarque-equipaje')).reduce((acc, input) => acc + (parseFloat(input.value) || 0), 0);
-    const totalCarga = Array.from(document.querySelectorAll('.embarque-carga')).reduce((acc, input) => acc + (parseFloat(input.value) || 0), 0);
-    const totalCorreo = Array.from(document.querySelectorAll('.embarque-correo')).reduce((acc, input) => acc + (parseFloat(input.value) || 0), 0);
-    const totalPaxNacional = Array.from(document.querySelectorAll('.embarque-pax-nacional')).reduce((acc, input) => acc + (parseFloat(input.value) || 0), 0);
-    const totalPaxInternacional = Array.from(document.querySelectorAll('.embarque-pax-internacional')).reduce((acc, input) => acc + (parseFloat(input.value) || 0), 0);
-    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = (typeof val === 'number' && !Number.isInteger(val)) ? val.toFixed(2) : val; };
-    setVal('total-equipaje', totalEquipaje.toLocaleString('es-MX'));
-    setVal('total-carga', totalCarga.toLocaleString('es-MX'));
-    setVal('total-correo', totalCorreo.toLocaleString('es-MX'));
-    setVal('total-pax-nacional', totalPaxNacional);
-    setVal('total-pax-internacional', totalPaxInternacional);
-}
-
-// Manifiestos: toda la lógica fue movida a js/manifiestos.js para aislar la sección
-
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Guard: running from file:// breaks fetch/XHR due to CORS; show banner and skip network initializers
-    try {
-        if (location.protocol === 'file:') {
-            const banner = document.createElement('div');
-            banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:3000;background:#dc3545;color:#fff;padding:10px 14px;font-weight:500;box-shadow:0 2px 8px rgba(0,0,0,0.2)';
-            banner.innerHTML = 'Esta página se abrió con file:// y los datos no pueden cargarse por CORS. Abre con un servidor local (por ejemplo, http://localhost:3000 con "npm start" o Live Server).';
-            document.body.appendChild(banner);
-        }
-    } catch(_) {}
-    initializeTheme();
-    initializeSidebarState();
-    if (document.getElementById('login-screen') && !document.getElementById('login-screen').classList.contains('hidden')) { animateLoginTitle(); }
-    if (location.protocol !== 'file:') {
-        loadItineraryData();      
-        renderDemoras();          
-        renderOperacionesTotales(); 
-    }
-    try{ updateOpsSummary(); }catch(_){ }
-    // Si la sección activa no es Operaciones Totales, pausar animación para evitar consumo innecesario
-    try {
-        const active = document.querySelector('.content-section.active');
-        if (active && active.id !== 'operaciones-totales-section') { stopOpsAnim(); }
-    } catch(_) {}
-    // Inicializa la sección de Frecuencias de la semana
-    try { if (location.protocol !== 'file:') initFrecuenciasSemana(); } catch(_) {}
-    // Inicializa fecha para picos diarios
-    try { initPeakDateControls(); } catch(_) {}
-    if (location.protocol !== 'file:') createPdfSections();
-    setupEventListeners();
-    updateClock();
-    updateDate();
-    
-    // Detectar errores en gráficas después de la inicialización
-    setTimeout(detectChartErrors, 1000);
-    setInterval(updateClock, 1000);
-    setInterval(updateDate, 60000);
-    if (location.protocol !== 'file:') checkSession();
-
-    // Animations enabled across devices (user preference)
-    try {
-        if (window.Chart && Chart.defaults) {
-            Chart.defaults.animation = { duration: 600 };
-            Chart.defaults.animations = Chart.defaults.animations || {};
-            Chart.defaults.transitions = Chart.defaults.transitions || {};
-        }
-    } catch(_) {}
-
-    // Respect URL hash to open a specific section (e.g. #manifiestos)
-    if (location.hash && location.hash.length > 1) {
-        const sectionId = location.hash.replace('#', '');
-        // find matching menu item
-        const menuItem = Array.from(document.querySelectorAll('.menu-item')).find(mi => mi.dataset && mi.dataset.section === sectionId);
-        if (menuItem) {
-            // trigger navigation handler
-            showSection(sectionId, menuItem);
-            if (sectionId === 'operaciones-totales') { try{ updateOpsSummary(); }catch(_){ } }
-            // mark menu item active
-            document.querySelectorAll('.menu-item').forEach(i=>i.classList.remove('active'));
-            menuItem.classList.add('active');
-        }
-    } else {
-        // Default section: Operaciones Totales
-        try {
-            const menuItem = Array.from(document.querySelectorAll('.menu-item')).find(mi => mi.dataset && mi.dataset.section === 'operaciones-totales');
-            if (menuItem) {
-                showSection('operaciones-totales', menuItem);
-                try{ updateOpsSummary(); renderOperacionesTotales(); }catch(_){ }
-            }
-        } catch(_) {}
-    }
-});
-
-// ===================== CSV Export: Itinerario Completo (sin filtros) =====================
 function flightsToCSV(rows, type){
     const headers = type === 'pax'
         ? ['Aerolínea','Aeronave','Vuelo Lleg.','Fecha Lleg.','Hora Lleg.','Origen','Banda','Posición','Vuelo Sal.','Fecha Sal.','Hora Sal.','Destino']
@@ -997,10 +907,159 @@ const SESSION_TOKEN  = 'aifa.session.token';
 const SESSION_USER   = 'currentUser';
 const SECRET_SALT    = 'aifa.ops.local.salt.v1'; // cambia en prod
 
+// Fallback SHA-256 for contexts without crypto.subtle
+const SHA256_FALLBACK_INIT = [
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+];
+const SHA256_FALLBACK_K = [
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
+    0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+    0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
+    0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+    0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+    0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
+    0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
+    0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+    0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+];
+
+function utf8ToBinaryString(str) {
+    const s = String(str ?? '');
+    if (typeof TextEncoder !== 'undefined') {
+        const bytes = new TextEncoder().encode(s);
+        let out = '';
+        for (let i = 0; i < bytes.length; i += 1) {
+            out += String.fromCharCode(bytes[i]);
+        }
+        return out;
+    }
+    const bytes = [];
+    for (let i = 0; i < s.length; i += 1) {
+        const code = s.charCodeAt(i);
+        if (code < 0x80) {
+            bytes.push(code);
+        } else if (code < 0x800) {
+            bytes.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
+        } else if (code >= 0xd800 && code <= 0xdbff) {
+            const next = s.charCodeAt(i + 1);
+            if (next >= 0xdc00 && next <= 0xdfff) {
+                const combined = 0x10000 + (((code & 0x3ff) << 10) | (next & 0x3ff));
+                bytes.push(
+                    0xf0 | (combined >> 18),
+                    0x80 | ((combined >> 12) & 0x3f),
+                    0x80 | ((combined >> 6) & 0x3f),
+                    0x80 | (combined & 0x3f)
+                );
+                i += 1;
+            } else {
+                bytes.push(0xef, 0xbf, 0xbd);
+            }
+        } else if (code >= 0xdc00 && code <= 0xdfff) {
+            bytes.push(0xef, 0xbf, 0xbd);
+        } else {
+            bytes.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
+        }
+    }
+    let out = '';
+    for (let i = 0; i < bytes.length; i += 1) {
+        out += String.fromCharCode(bytes[i]);
+    }
+    return out;
+}
+
+function sha256Fallback(str) {
+    const binary = utf8ToBinaryString(str);
+    const words = [];
+    const maxWord = Math.pow(2, 32);
+    let result = '';
+    let message = binary + '\x80';
+    while (message.length % 64 !== 56) {
+        message += '\x00';
+    }
+    for (let i = 0; i < message.length; i += 1) {
+        const j = message.charCodeAt(i);
+        words[i >> 2] = (words[i >> 2] || 0) | (j << ((3 - i) % 4) * 8);
+    }
+    const bitLength = binary.length * 8;
+    words[words.length] = (bitLength / maxWord) | 0;
+    words[words.length] = bitLength >>> 0;
+
+    const hash = SHA256_FALLBACK_INIT.slice();
+    const w = new Array(64);
+    const rightRotate = (value, amount) => (value >>> amount) | (value << (32 - amount));
+
+    for (let i = 0; i < words.length; i += 16) {
+        for (let t = 0; t < 16; t += 1) {
+            w[t] = words[i + t] | 0;
+        }
+        for (let t = 16; t < 64; t += 1) {
+            const s0 = rightRotate(w[t - 15], 7) ^ rightRotate(w[t - 15], 18) ^ (w[t - 15] >>> 3);
+            const s1 = rightRotate(w[t - 2], 17) ^ rightRotate(w[t - 2], 19) ^ (w[t - 2] >>> 10);
+            w[t] = (w[t - 16] + s0 + w[t - 7] + s1) | 0;
+        }
+
+        let a = hash[0];
+        let b = hash[1];
+        let c = hash[2];
+        let d = hash[3];
+        let e = hash[4];
+        let f = hash[5];
+        let g = hash[6];
+        let h = hash[7];
+
+        for (let t = 0; t < 64; t += 1) {
+            const S1 = rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25);
+            const ch = (e & f) ^ (~e & g);
+            const temp1 = (h + S1 + ch + SHA256_FALLBACK_K[t] + w[t]) | 0;
+            const S0 = rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22);
+            const maj = (a & b) ^ (a & c) ^ (b & c);
+            const temp2 = (S0 + maj) | 0;
+
+            h = g;
+            g = f;
+            f = e;
+            e = (d + temp1) | 0;
+            d = c;
+            c = b;
+            b = a;
+            a = (temp1 + temp2) | 0;
+        }
+
+        hash[0] = (hash[0] + a) | 0;
+        hash[1] = (hash[1] + b) | 0;
+        hash[2] = (hash[2] + c) | 0;
+        hash[3] = (hash[3] + d) | 0;
+        hash[4] = (hash[4] + e) | 0;
+        hash[5] = (hash[5] + f) | 0;
+        hash[6] = (hash[6] + g) | 0;
+        hash[7] = (hash[7] + h) | 0;
+    }
+
+    for (let i = 0; i < 8; i += 1) {
+        for (let j = 3; j >= 0; j -= 1) {
+            const byte = (hash[i] >> (j * 8)) & 0xff;
+            result += (byte < 16 ? '0' : '') + byte.toString(16);
+        }
+    }
+    return result;
+}
+
 async function sha256(str){
-    const enc = new TextEncoder().encode(str);
-    const buf = await crypto.subtle.digest('SHA-256', enc);
-    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    const cryptoObj = (typeof window !== 'undefined' && (window.crypto || window.msCrypto)) || null;
+    if (cryptoObj && cryptoObj.subtle && typeof TextEncoder !== 'undefined') {
+        const enc = new TextEncoder().encode(str);
+        const buf = await cryptoObj.subtle.digest('SHA-256', enc);
+        return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
+    return sha256Fallback(str);
 }
 
 async function makeToken(username){
@@ -1039,6 +1098,7 @@ async function handleLogin(e) {
     showGlobalLoader('Verificando credenciales...');
 
     try{
+        await ensureAuthHashes();
         const { count, until } = getLockInfo();
         const now = Date.now();
         if (until && now < until) {
@@ -1403,9 +1463,9 @@ function populatePositionFilter(flights = []) {
   const sel = document.getElementById('position-filter');
   if (!sel) return;
     const data = Array.isArray(flights) && flights.length ? flights : allFlightsData;
-    const vals = data
-    .map(f => (f.posicion || f.posición || f.stand || '').toString().trim())
-    .filter(Boolean);
+        const vals = data
+        .map((f) => normalizePositionValue(f.posicion || f.posición || f.stand || ''))
+        .filter(Boolean);
   const unique = Array.from(new Set(vals)).sort();
   sel.innerHTML = '<option value="all" selected>Todas las posiciones</option>' +
     unique.map(v => `<option value="${v}">${v}</option>`).join('');
@@ -1456,6 +1516,12 @@ function clearFilters() {
 
 function viewFlightsForAirline(airline) {
     // set airline filter and re-run
+    try {
+        summaryDetailMode = 'airline';
+        summarySelectedAirline = airline;
+        summarySelectedPosition = null;
+        summarySelectionLocked = true;
+    } catch(_) {}
     const select = document.getElementById('airline-filter');
     if (!select) return;
     // ensure option exists
@@ -1470,99 +1536,748 @@ function viewFlightsForAirline(airline) {
     const passengerEl = document.getElementById('passenger-itinerary-container');
     if (passengerEl) passengerEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+function displaySummaryTableLegacy(flights) {
+    // Legacy placeholder: delega a la nueva implementación modernizada.
+    displaySummaryTable(flights);
+}
 function displaySummaryTable(flights) {
     const container = document.getElementById('summary-table-container');
     if (!container) return;
-    // Normalizar aerolínea vacía a etiqueta legible
-    const summary = flights.reduce((acc, flight) => {
-        let airline = (flight.aerolinea || '').trim();
-        if (!airline) airline = 'Sin aerolínea';
-        if (!acc[airline]) acc[airline] = { paxLlegadas: 0, paxSalidas: 0, cargLlegadas: 0, cargSalidas: 0 };
-        const cat = (flight.categoria || '').toString().toLowerCase();
-        if (cat === 'pasajeros') {
-            if (flight.vuelo_llegada) acc[airline].paxLlegadas++;
-            if (flight.vuelo_salida) acc[airline].paxSalidas++;
-        } else if (cat === 'carga') {
-            if (flight.vuelo_llegada) acc[airline].cargLlegadas++;
-            if (flight.vuelo_salida) acc[airline].cargSalidas++;
-        } else {
-            // Unknown category: try to infer from known lists
-            if (passengerAirlines.includes(airline)) {
-                if (flight.vuelo_llegada) acc[airline].paxLlegadas++;
-                if (flight.vuelo_salida) acc[airline].paxSalidas++;
-            } else if (cargoAirlines.includes(airline)) {
-                if (flight.vuelo_llegada) acc[airline].cargLlegadas++;
-                if (flight.vuelo_salida) acc[airline].cargSalidas++;
-            } else {
-                // default to pasajeros
-                if (flight.vuelo_llegada) acc[airline].paxLlegadas++;
-                if (flight.vuelo_salida) acc[airline].paxSalidas++;
-            }
-        }
-        return acc;
-    }, {});
 
-    // Build a stacked card view: one card per airline with totals (Llegadas/Salidas)
-    const airlines = Object.keys(summary).sort((a, b) => {
-        const totalA = (summary[a].paxLlegadas || 0) + (summary[a].paxSalidas || 0) + (summary[a].cargLlegadas || 0) + (summary[a].cargSalidas || 0);
-        const totalB = (summary[b].paxLlegadas || 0) + (summary[b].paxSalidas || 0) + (summary[b].cargLlegadas || 0) + (summary[b].cargSalidas || 0);
-        return totalB - totalA;
-    });
+    const escapeHtml = (value) => {
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+        return String(value ?? '').replace(/[&<>"']/g, (char) => map[char]);
+    };
+    const formatNumber = (value) => new Intl.NumberFormat('es-MX').format(Number(value || 0));
 
-    if (airlines.length === 0) {
-        container.innerHTML = `<div class="alert alert-info bg-transparent text-body">No se encontraron operaciones.</div>`;
+    if (!Array.isArray(flights) || flights.length === 0) {
+        container.innerHTML = '<div class="alert alert-info bg-transparent text-body">No se encontraron operaciones.</div>';
+        summaryDetailMode = 'airline';
+        summarySelectedAirline = null;
+        summarySelectedPosition = null;
         return;
     }
 
-    let html = `<div class="d-flex flex-column gap-2">`;
-    airlines.forEach((airline, index) => {
-        const data = summary[airline];
-        const arrivals = (data.paxLlegadas || 0) + (data.cargLlegadas || 0);
-        const departures = (data.paxSalidas || 0) + (data.cargSalidas || 0);
-        const safeId = (airline || 'sin-aerolinea').replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-_]/g, '').toLowerCase();
-        const collapseId = `collapse-${safeId}-${index}`;
-    const color = airlineColors[airline] || '#ccc';
-    const cands = getAirlineLogoCandidates(airline);
-    const logoPath = cands[0];
-    const dataCands = cands.join('|');
-    const sizeClass = getLogoSizeClass(airline, 'summary');
-    const logoHtml = logoPath ? `<img class="airline-logo ${sizeClass} me-2" src="${logoPath}" alt="Logo ${airline}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">` : '';
+    const totals = { arrivals: 0, departures: 0, flights: 0, passengerFlights: 0, cargoFlights: 0 };
+    const summaryMap = new Map();
+    const positionMap = new Map();
 
+    flights.forEach((flight) => {
+        const airlineName = (flight && flight.aerolinea ? String(flight.aerolinea).trim() : '') || 'Sin aerolínea';
+        let entry = summaryMap.get(airlineName);
+        if (!entry) {
+            entry = { arrivals: 0, departures: 0, flights: [], passengerFlights: 0, cargoFlights: 0 };
+            summaryMap.set(airlineName, entry);
+        }
+        entry.flights.push(flight);
+        totals.flights += 1;
+
+        const hasArrival = !!String(flight?.vuelo_llegada || '').trim();
+        const hasDeparture = !!String(flight?.vuelo_salida || '').trim();
+        if (hasArrival) {
+            entry.arrivals += 1;
+            totals.arrivals += 1;
+        }
+        if (hasDeparture) {
+            entry.departures += 1;
+            totals.departures += 1;
+        }
+
+        const categoryRaw = (flight?.categoria || flight?.category || '').toString().trim().toLowerCase();
+        let isPassengerFlight = false;
+        let isCargoFlight = false;
+        if (categoryRaw.includes('pasaj')) isPassengerFlight = true;
+        if (categoryRaw.includes('carg')) isCargoFlight = true;
+
+        const normalizedAirline = normalizeAirlineName(airlineName);
+        if (!isPassengerFlight && !isCargoFlight) {
+            if (passengerAirlinesNormalized.has(normalizedAirline)) isPassengerFlight = true;
+            if (cargoAirlinesNormalized.has(normalizedAirline)) isCargoFlight = true;
+        }
+        if (!isPassengerFlight && !isCargoFlight) {
+            if (entry.passengerFlights > entry.cargoFlights) {
+                isPassengerFlight = true;
+            } else if (entry.cargoFlights > entry.passengerFlights) {
+                isCargoFlight = true;
+            } else if (cargoAirlinesNormalized.has(normalizedAirline) && !passengerAirlinesNormalized.has(normalizedAirline)) {
+                isCargoFlight = true;
+            } else {
+                isPassengerFlight = true;
+            }
+        }
+        if (isPassengerFlight && isCargoFlight) {
+            if (cargoAirlinesNormalized.has(normalizedAirline) && !passengerAirlinesNormalized.has(normalizedAirline)) {
+                isPassengerFlight = false;
+            } else {
+                isCargoFlight = false;
+            }
+        }
+        if (isPassengerFlight) {
+            entry.passengerFlights += 1;
+            totals.passengerFlights += 1;
+        }
+        if (isCargoFlight) {
+            entry.cargoFlights += 1;
+            totals.cargoFlights += 1;
+        }
+
+        const positionNormalized = normalizePositionValue(flight?.posicion || flight?.posición || flight?.stand || '');
+        if (positionNormalized) {
+            const positionCategory = classifyPositionStand(positionNormalized);
+            const needsAttention = cobusAttentionPositions.has(positionNormalized);
+            let posEntry = positionMap.get(positionNormalized);
+            if (!posEntry) {
+                posEntry = {
+                    position: positionNormalized,
+                    arrivals: 0,
+                    departures: 0,
+                    flights: [],
+                    airlines: new Set(),
+                    category: positionCategory,
+                    attention: needsAttention
+                };
+                positionMap.set(positionNormalized, posEntry);
+            }
+            if (!posEntry.category) posEntry.category = positionCategory;
+            if (needsAttention) posEntry.attention = true;
+            if (hasArrival) posEntry.arrivals += 1;
+            if (hasDeparture) posEntry.departures += 1;
+            posEntry.flights.push(flight);
+            posEntry.airlines.add(airlineName);
+        }
+    });
+
+    const airlines = Array.from(summaryMap.entries()).map(([airline, data]) => {
+        const passengerFlights = data.passengerFlights || 0;
+        const cargoFlights = data.cargoFlights || 0;
+        let type = 'passenger';
+        if (passengerFlights === 0 && cargoFlights > 0) type = 'cargo';
+        else if (cargoFlights === 0 && passengerFlights > 0) type = 'passenger';
+        else if (cargoFlights > passengerFlights) type = 'cargo';
+        else if (cargoFlights === passengerFlights && cargoFlights !== 0) {
+            const normalized = normalizeAirlineName(airline);
+            if (cargoAirlinesNormalized.has(normalized) && !passengerAirlinesNormalized.has(normalized)) type = 'cargo';
+        } else if (passengerFlights === 0 && cargoFlights === 0) {
+            const normalized = normalizeAirlineName(airline);
+            if (cargoAirlinesNormalized.has(normalized) && !passengerAirlinesNormalized.has(normalized)) type = 'cargo';
+        }
+        return {
+            airline,
+            arrivals: data.arrivals,
+            departures: data.departures,
+            total: data.flights.length,
+            flights: data.flights,
+            passengerFlights,
+            cargoFlights,
+            type
+        };
+    });
+
+    if (!airlines.length) {
+        container.innerHTML = '<div class="alert alert-info bg-transparent text-body">No se encontraron operaciones.</div>';
+        summaryDetailMode = 'airline';
+        summarySelectedAirline = null;
+        summarySelectedPosition = null;
+        return;
+    }
+
+    const passengerAirlineCards = airlines.filter((item) => item.type !== 'cargo');
+    const cargoAirlineCards = airlines.filter((item) => item.type === 'cargo');
+
+    const sortAirlineList = (list) => list.sort((a, b) => {
+        if (b.total !== a.total) return b.total - a.total;
+        return a.airline.localeCompare(b.airline, 'es', { sensitivity: 'base' });
+    });
+    sortAirlineList(passengerAirlineCards);
+    sortAirlineList(cargoAirlineCards);
+
+    const airlineDataMap = new Map();
+    airlines.forEach((item) => airlineDataMap.set(item.airline, item));
+
+    const positions = Array.from(positionMap.entries()).map(([positionKey, data]) => {
+        const airlinesList = Array.from(data.airlines || []).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+        const category = data.category || classifyPositionStand(positionKey);
+        return {
+            position: data.position || positionKey,
+            normalizedPosition: positionKey,
+            arrivals: data.arrivals,
+            departures: data.departures,
+            total: data.flights.length,
+            flights: data.flights,
+            airlines: airlinesList,
+            category,
+            categoryLabel: getPositionCategoryLabel(category),
+            attention: !!data.attention
+        };
+    }).filter((item) => item.total > 0).sort((a, b) => {
+        if (b.total !== a.total) return b.total - a.total;
+        return a.position.localeCompare(b.position, undefined, { sensitivity: 'base' });
+    });
+
+    const maxPositionTotal = positions.reduce((max, item) => Math.max(max, item.total), 0);
+
+    const getPositionIntensity = (value) => {
+        if (!maxPositionTotal) return 'low';
+        const ratio = value / maxPositionTotal;
+        if (ratio >= 0.66) return 'high';
+        if (ratio >= 0.33) return 'medium';
+        return 'low';
+    };
+
+    const groupedPositions = positions.reduce((accumulator, item) => {
+        const key = item.category || 'terminal';
+        if (!accumulator[key]) accumulator[key] = [];
+        accumulator[key].push(item);
+        return accumulator;
+    }, { cargo: [], semicontacto: [], remote: [], terminal: [] });
+
+    const positionGroupTitles = {
+        cargo: 'Posiciones de carga',
+        semicontacto: 'Posiciones de semicontacto',
+        remote: 'Posiciones remotas',
+        terminal: 'Posiciones edificio terminal'
+    };
+
+    const renderPositionGroup = (category) => {
+        const items = groupedPositions[category] || [];
+        if (!items.length) return '';
+        const label = positionGroupTitles[category] || getPositionCategoryLabel(category);
+        const badgesHtml = items.map((p) => {
+            const badgeIntensity = getPositionIntensity(p.total);
+            const categoryLabel = p.categoryLabel || getPositionCategoryLabel(p.category);
+            let airlineList = 'Sin aerolíneas';
+            if (p.airlines.length) {
+                const maxAirlines = 6;
+                const preview = p.airlines.slice(0, maxAirlines);
+                airlineList = preview.join(', ');
+                if (p.airlines.length > maxAirlines) {
+                    const remaining = p.airlines.length - maxAirlines;
+                    airlineList += ` y ${remaining} más`;
+                }
+            }
+            const tooltipParts = [
+                `Categoría: ${categoryLabel}`,
+                `Llegadas: ${formatNumber(p.arrivals)}`,
+                `Salidas: ${formatNumber(p.departures)}`,
+                `Aerolíneas: ${airlineList}`
+            ];
+            if (p.attention) tooltipParts.push('Atención: COBUS');
+            const tooltip = tooltipParts.join(' · ');
+            const tooltipEscaped = escapeHtml(tooltip);
+            const attentionAttr = p.attention ? ' data-special="cobus"' : '';
+            const attentionBadge = p.attention ? '<span class="summary-position-flag"><i class="fas fa-bus"></i> COBUS</span>' : '';
+            return `<span class="summary-position-badge" role="button" tabindex="0" data-position="${escapeHtml(p.position)}" data-category="${escapeHtml(p.category)}" data-intensity="${escapeHtml(badgeIntensity)}"${attentionAttr} data-bs-toggle="tooltip" data-bs-title="${tooltipEscaped}" title="${tooltipEscaped}">${escapeHtml(p.position)} <strong>${formatNumber(p.total)}</strong>${attentionBadge}</span>`;
+        }).join('');
+        return `
+        <div class="summary-position-group" data-category="${escapeHtml(category)}">
+            <div class="summary-position-group-label">${escapeHtml(label)}</div>
+            <div class="summary-position-group-row">
+                ${badgesHtml}
+            </div>
+        </div>`;
+    };
+
+    const renderAirlineSection = (title, list, sectionType) => {
+        if (!list.length) return '';
+        const cardsMarkup = list.map((item) => {
+            const logoCandidates = getAirlineLogoCandidates(item.airline) || [];
+            const logoPath = logoCandidates[0] || '';
+            const dataCands = logoCandidates.join('|');
+            const sizeClass = getLogoSizeClass(item.airline, 'summary');
+            const logoHtml = logoPath
+                ? `<img class="airline-logo ${escapeHtml(sizeClass)}" src="${escapeHtml(logoPath)}" alt="Logo ${escapeHtml(item.airline)}" data-cands="${escapeHtml(dataCands)}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">`
+                : `<span class="summary-airline-fallback">${escapeHtml(item.airline.charAt(0) || '?')}</span>`;
+            const accentColor = airlineColors[item.airline] || '#0d6efd';
+            return `
+            <div class="col-6 col-md-4 col-lg-3 col-xl-2 summary-airline-col" data-airline="${escapeHtml(item.airline)}" data-section="${escapeHtml(sectionType)}">
+                <div class="card summary-airline-card h-100" role="button" tabindex="0" data-airline="${escapeHtml(item.airline)}" data-section="${escapeHtml(sectionType)}" aria-label="${escapeHtml(item.airline)}: ${formatNumber(item.total)} vuelos" style="--summary-airline-color:${accentColor};">
+                    <div class="summary-airline-card-body card-body">
+                        <div class="summary-airline-logo">${logoHtml}</div>
+                        <div class="summary-airline-total">${formatNumber(item.total)}</div>
+                        <div class="summary-airline-total-label">Vuelos</div>
+                        <span class="visually-hidden">${escapeHtml(item.airline)}</span>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+        return `
+        <div class="summary-airline-section" data-section="${escapeHtml(sectionType)}">
+            <div class="summary-section-label">${title}</div>
+            <div class="row g-3 summary-airline-grid">
+                ${cardsMarkup}
+            </div>
+        </div>`;
+    };
+
+    const totalFlights = totals.flights;
+    let passengerFlightTotal = totals.passengerFlights || 0;
+    let cargoFlightTotal = totals.cargoFlights || 0;
+    if ((passengerFlightTotal + cargoFlightTotal) !== totalFlights) {
+        const delta = totalFlights - (passengerFlightTotal + cargoFlightTotal);
+        cargoFlightTotal = Math.max(0, Math.min(totalFlights, cargoFlightTotal + delta));
+        passengerFlightTotal = Math.max(0, totalFlights - cargoFlightTotal);
+    }
+    let html = `
+    <div class="card summary-total-card mb-3">
+        <div class="card-body d-flex flex-wrap align-items-center gap-3">
+            <div class="summary-total-icon"><i class="fas fa-chart-line"></i></div>
+            <div>
+                <div class="summary-total-title">Operaciones del día</div>
+                <div class="summary-total-sub">Resultados con los filtros aplicados</div>
+            </div>
+            <div class="summary-total-stats ms-auto d-flex flex-wrap gap-2">
+                <span class="summary-pill summary-pill-total"><i class="fas fa-plane"></i>Total ${formatNumber(totalFlights)}</span>
+                <span class="summary-pill summary-pill-passenger"><i class="fas fa-users"></i>Pasajeros ${formatNumber(passengerFlightTotal)}</span>
+                <span class="summary-pill summary-pill-cargo"><i class="fas fa-box-open"></i>Carga ${formatNumber(cargoFlightTotal)}</span>
+            </div>
+        </div>
+    </div>`;
+
+    if (positions.length) {
         html += `
-        <div class="card">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div class="airline-header d-flex align-items-center">${logoHtml}<strong class="airline-name">${airline}</strong></div>
-                <div class="d-flex align-items-center gap-3">
-                    <div class="text-center">
-                        <div class="fw-bold">${new Intl.NumberFormat('es-MX').format(arrivals)}</div>
-                        <small class="text-muted">Llegadas</small>
+        <div class="card summary-positions-card mb-3">
+            <div class="card-body">
+                <div class="summary-positions-header d-flex align-items-start gap-2 mb-2">
+                    <div class="summary-positions-icon"><i class="fas fa-map-marked-alt"></i></div>
+                    <div>
+                        <div class="summary-positions-title">Posiciones activas</div>
+                        <div class="summary-positions-sub">Vuelos programados por stand</div>
                     </div>
-                    <div class="text-center">
-                        <div class="fw-bold">${new Intl.NumberFormat('es-MX').format(departures)}</div>
-                        <small class="text-muted">Salidas</small>
-                    </div>
-                    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="false" aria-controls="${collapseId}">Detalle</button>
+                </div>
+                <div class="summary-position-groups">
+                    ${renderPositionGroup('terminal')}
+                    ${renderPositionGroup('semicontacto')}
+                    ${renderPositionGroup('cargo')}
+                    ${renderPositionGroup('remote')}
                 </div>
             </div>
-            <div class="collapse" id="${collapseId}">
-                <div class="card-body py-2">
-                    <table class="table table-sm mb-2">
-                        <thead><tr><th></th><th class="text-center">Llegadas</th><th class="text-center">Salidas</th></tr></thead>
-                        <tbody>
-                            <tr><td>Pasajeros</td><td class="text-center">${new Intl.NumberFormat('es-MX').format(data.paxLlegadas || 0)}</td><td class="text-center">${new Intl.NumberFormat('es-MX').format(data.paxSalidas || 0)}</td></tr>
-                            <tr><td>Carga</td><td class="text-center">${new Intl.NumberFormat('es-MX').format(data.cargLlegadas || 0)}</td><td class="text-center">${new Intl.NumberFormat('es-MX').format(data.cargSalidas || 0)}</td></tr>
-                        </tbody>
-                    </table>
-                    <div class="d-flex justify-content-end">
-                        <button class="btn btn-sm btn-primary" onclick="viewFlightsForAirline('${airline.replace(/'/g, "\\'")}')">Ver vuelos</button>
+        </div>`;
+    }
+    html += `
+    <div class="summary-selection-controls d-flex justify-content-end align-items-center mb-3">
+        <button type="button" class="btn btn-sm btn-outline-secondary summary-reset-btn d-none" id="summary-selection-reset">
+            <i class="fas fa-arrow-left"></i>Regresar
+        </button>
+    </div>`;
+
+    html += '<div class="summary-airline-sections">';
+    html += renderAirlineSection('Pasajeros', passengerAirlineCards, 'passenger');
+    html += renderAirlineSection('Carga', cargoAirlineCards, 'cargo');
+    html += '</div>';
+    html += '<div id="summary-airline-detail" class="mt-4"></div>';
+
+    container.innerHTML = html;
+
+    if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+        const tooltipEls = container.querySelectorAll('[data-bs-toggle="tooltip"]');
+        tooltipEls.forEach((el) => {
+            try { new bootstrap.Tooltip(el); } catch (_) {}
+        });
+    }
+
+    const detailEl = container.querySelector('#summary-airline-detail');
+    if (!detailEl) {
+        summaryDetailMode = 'airline';
+        summarySelectedAirline = null;
+        summarySelectedPosition = null;
+        return;
+    }
+
+    const cards = Array.from(container.querySelectorAll('.summary-airline-card'));
+    const positionBadges = Array.from(container.querySelectorAll('.summary-position-badge'));
+    const positionDataMap = new Map();
+    positions.forEach((item) => positionDataMap.set(item.position, item));
+    const positionsCard = container.querySelector('.summary-positions-card');
+    const positionGroups = positionsCard ? Array.from(positionsCard.querySelectorAll('.summary-position-group')) : [];
+    const summarySections = Array.from(container.querySelectorAll('.summary-airline-section'));
+    const cardWrappers = cards.map((card) => card?.closest('.summary-airline-col') || null);
+    const resetBtn = container.querySelector('#summary-selection-reset');
+
+    const timeToMinutes = (value) => {
+        const match = /^\s*(\d{1,2})\s*:\s*(\d{2})/.exec(String(value || ''));
+        if (!match) return Number.MAX_SAFE_INTEGER;
+        const hours = Math.max(0, Math.min(23, parseInt(match[1], 10)));
+        const minutes = Math.max(0, Math.min(59, parseInt(match[2], 10)));
+        return hours * 60 + minutes;
+    };
+
+    const buildFlightRows = (flightList) => {
+        if (!Array.isArray(flightList) || flightList.length === 0) return '';
+        const sortedFlights = [...flightList].sort((a, b) => {
+            const aTime = Math.min(timeToMinutes(a?.hora_llegada), timeToMinutes(a?.hora_salida));
+            const bTime = Math.min(timeToMinutes(b?.hora_llegada), timeToMinutes(b?.hora_salida));
+            if (aTime !== bTime) return aTime - bTime;
+            return String(a?.vuelo_llegada || a?.vuelo_salida || '').localeCompare(String(b?.vuelo_llegada || b?.vuelo_salida || ''), undefined, { sensitivity: 'base' });
+        });
+        return sortedFlights.map((flight, idx) => {
+            const cell = (field) => {
+                const value = field === undefined || field === null || String(field).trim() === '' ? '-' : field;
+                return escapeHtml(String(value));
+            };
+            const airlineName = (flight && flight.aerolinea) ? String(flight.aerolinea) : 'Sin aerolínea';
+            const rowLogoCandidates = getAirlineLogoCandidates(airlineName) || [];
+            const rowLogoPath = rowLogoCandidates[0] || '';
+            const rowDataCands = rowLogoCandidates.join('|');
+            const rowSizeClass = getLogoSizeClass(airlineName, 'table');
+            const rowLogoHtml = rowLogoPath
+                ? `<img class="airline-logo ${escapeHtml(rowSizeClass)}" src="${escapeHtml(rowLogoPath)}" alt="Logo ${escapeHtml(airlineName)}" data-cands="${escapeHtml(rowDataCands)}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">`
+                : '';
+            const rowColor = airlineColors[airlineName] || '#ccc';
+            const delay = (idx * 0.06).toFixed(2);
+            const positionDisplay = normalizePositionValue(flight?.posicion || flight?.posición || flight?.stand || '');
+            const positionCell = positionDisplay ? escapeHtml(positionDisplay) : '-';
+            return `<tr class="animated-row" style="--delay:${delay}s; --airline-color:${rowColor};"><td><div class="airline-cell">${rowLogoHtml}<span class="airline-name">${escapeHtml(airlineName)}</span></div></td><td>${cell(flight?.aeronave)}</td><td>${cell(flight?.vuelo_llegada)}</td><td>${cell(flight?.fecha_llegada)}</td><td>${cell(flight?.hora_llegada)}</td><td class="col-origen">${cell(flight?.origen)}</td><td class="text-center">${cell(flight?.banda_reclamo)}</td><td>${positionCell}</td><td>${cell(flight?.vuelo_salida)}</td><td>${cell(flight?.fecha_salida)}</td><td>${cell(flight?.hora_salida)}</td><td class="col-destino">${cell(flight?.destino)}</td></tr>`;
+        }).join('');
+    };
+
+    const setActiveCard = (airlineName) => {
+        cards.forEach((card) => {
+            const isActive = !!airlineName && card.dataset.airline === airlineName;
+            card.classList.toggle('active', isActive);
+            card.classList.toggle('border-primary', isActive);
+            card.classList.toggle('shadow-sm', isActive);
+        });
+    };
+
+    const setActivePosition = (position) => {
+        positionBadges.forEach((badge) => {
+            const isActive = !!position && badge.dataset.position === position;
+            badge.classList.toggle('active', isActive);
+        });
+    };
+
+    const refreshPositionGroupVisibility = () => {
+        if (!positionGroups || !positionGroups.length) return;
+        positionGroups.forEach((group) => {
+            const hasVisibleBadge = Array.from(group.querySelectorAll('.summary-position-badge')).some((badge) => !badge.classList.contains('d-none'));
+            group.classList.toggle('d-none', !hasVisibleBadge);
+        });
+    };
+
+    const renderAirlineDetail = (item) => {
+        if (!item) {
+            detailEl.innerHTML = '<div class="alert alert-info">Selecciona una aerolínea para ver el detalle.</div>';
+            return;
+        }
+        const rows = buildFlightRows(item.flights);
+        const logoCandidates = getAirlineLogoCandidates(item.airline) || [];
+        const logoPath = logoCandidates[0] || '';
+        const dataCands = logoCandidates.join('|');
+        const sizeClass = getLogoSizeClass(item.airline, 'summary');
+        const detailLogo = logoPath
+            ? `<img class="airline-logo ${escapeHtml(sizeClass)}" src="${escapeHtml(logoPath)}" alt="Logo ${escapeHtml(item.airline)}" data-cands="${escapeHtml(dataCands)}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">`
+            : `<span class="summary-airline-fallback">${escapeHtml(item.airline.charAt(0) || '?')}</span>`;
+        const accentColor = airlineColors[item.airline] || '#0d6efd';
+        detailEl.innerHTML = `
+        <div class="card summary-detail-card" style="--summary-airline-color:${accentColor};">
+            <div class="summary-detail-hero d-flex flex-wrap align-items-center gap-3">
+                <div class="summary-detail-logo">${detailLogo}</div>
+                <div>
+                    <div class="summary-detail-title">${escapeHtml(item.airline)}</div>
+                    <div class="summary-detail-sub">Total de vuelos: ${formatNumber(item.total)}</div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="summary-detail-actions d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div class="small text-muted">Incluye vuelos filtrados en la vista actual.</div>
+                    <button type="button" class="btn btn-sm btn-outline-primary summary-detail-filter"><i class="fas fa-table me-1"></i>Ver en tablas</button>
+                </div>
+                <div class="summary-detail-table table-container-tech">
+                    <div class="table-responsive vertical-scroll">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Aerolínea</th>
+                                    <th>Aeronave</th>
+                                    <th>Vuelo Lleg.</th>
+                                    <th>Fecha Lleg.</th>
+                                    <th>Hora Lleg.</th>
+                                    <th class="col-origen">Origen</th>
+                                    <th>Banda</th>
+                                    <th>Posición</th>
+                                    <th>Vuelo Sal.</th>
+                                    <th>Fecha Sal.</th>
+                                    <th>Hora Sal.</th>
+                                    <th class="col-destino">Destino</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rows || '<tr><td colspan="12" class="text-center text-muted">Sin vuelos disponibles.</td></tr>'}</tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>`;
+        const filterBtn = detailEl.querySelector('.summary-detail-filter');
+        if (filterBtn) {
+            filterBtn.addEventListener('click', () => viewFlightsForAirline(item.airline));
+        }
+    };
+
+    const renderPositionDetail = (item) => {
+        if (!item) {
+            detailEl.innerHTML = '<div class="alert alert-info">Selecciona una posición para ver el detalle.</div>';
+            return;
+        }
+        const rows = buildFlightRows(item.flights);
+        const accentColor = (() => {
+            if (!item.flights || !item.flights.length) return '#0d6efd';
+            const firstAirline = item.flights.find((flight) => airlineColors[flight?.aerolinea]);
+            return firstAirline ? airlineColors[firstAirline.aerolinea] : '#0d6efd';
+        })();
+        const categoryLabel = escapeHtml(item.categoryLabel || getPositionCategoryLabel(item.category));
+        const attentionBadge = item.attention ? '<span class="summary-detail-flag"><i class="fas fa-bus"></i> Cobus</span>' : '';
+        detailEl.innerHTML = `
+        <div class="card summary-detail-card" style="--summary-airline-color:${accentColor};">
+            <div class="summary-detail-hero d-flex flex-wrap align-items-center gap-3">
+                <div class="summary-detail-logo position-logo"><i class="fas fa-map-marker-alt"></i></div>
+                <div>
+                    <div class="summary-detail-title">Posición ${escapeHtml(item.position)}</div>
+                    <div class="summary-detail-sub">Vuelos programados: ${formatNumber(item.total)} · ${categoryLabel}</div>
+                    ${attentionBadge}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="summary-detail-actions d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div class="small text-muted">Incluye vuelos filtrados en la vista actual.</div>
+                    <button type="button" class="btn btn-sm btn-outline-primary summary-detail-filter-position"><i class="fas fa-sliders-h me-1"></i>Filtrar por posición</button>
+                </div>
+                <div class="summary-detail-table table-container-tech">
+                    <div class="table-responsive vertical-scroll">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Aerolínea</th>
+                                    <th>Aeronave</th>
+                                    <th>Vuelo Lleg.</th>
+                                    <th>Fecha Lleg.</th>
+                                    <th>Hora Lleg.</th>
+                                    <th class="col-origen">Origen</th>
+                                    <th>Banda</th>
+                                    <th>Posición</th>
+                                    <th>Vuelo Sal.</th>
+                                    <th>Fecha Sal.</th>
+                                    <th>Hora Sal.</th>
+                                    <th class="col-destino">Destino</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rows || '<tr><td colspan="12" class="text-center text-muted">Sin vuelos programados para esta posición.</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        const filterBtn = detailEl.querySelector('.summary-detail-filter-position');
+        if (filterBtn) {
+            filterBtn.addEventListener('click', () => {
+                const select = document.getElementById('position-filter');
+                if (!select) return;
+                const existingOption = Array.from(select.options).find((opt) => opt.value === item.position);
+                if (!existingOption) {
+                    const option = new Option(item.position, item.position, true, true);
+                    select.add(option);
+                }
+                select.value = item.position;
+                summaryDetailMode = 'position';
+                summarySelectedPosition = item.position;
+                summarySelectedAirline = null;
+                applyFilters();
+            });
+        }
+    };
+
+    const getSelectedCardSection = () => {
+        const card = cards.find((entry) => entry?.dataset?.airline === summarySelectedAirline);
+        return card?.dataset?.section || null;
+    };
+
+    const updateResetButton = (hasSelection, isAirline) => {
+        if (!resetBtn) return;
+        if (!hasSelection) {
+            resetBtn.classList.add('d-none');
+            return;
+        }
+        const label = isAirline ? 'Regresar a todas las aerolíneas' : 'Regresar a todas las posiciones';
+        resetBtn.innerHTML = `<i class="fas fa-arrow-left"></i>${label}`;
+        resetBtn.classList.remove('d-none');
+    };
+
+    const updateSelectionLayout = () => {
+        const hasAirlineSelection = summaryDetailMode === 'airline' && !!summarySelectedAirline && airlineDataMap.has(summarySelectedAirline);
+        const hasPositionSelection = summaryDetailMode === 'position' && !!summarySelectedPosition && positionDataMap.has(summarySelectedPosition);
+        const hasLockedSelection = summarySelectionLocked && (hasAirlineSelection || hasPositionSelection);
+
+        updateResetButton(hasLockedSelection, hasAirlineSelection);
+
+        cardWrappers.forEach((wrapper) => {
+            if (!wrapper) return;
+            wrapper.classList.remove('d-none');
+        });
+        summarySections.forEach((section) => section.classList.remove('d-none'));
+        positionBadges.forEach((badge) => badge.classList.remove('d-none'));
+        if (positionsCard) {
+            positionsCard.classList.remove('d-none');
+            positionsCard.classList.remove('compact');
+        }
+        positionGroups.forEach((group) => group.classList.remove('d-none'));
+        refreshPositionGroupVisibility();
+
+        if (!hasLockedSelection) return;
+
+        if (hasAirlineSelection) {
+            const selectedSection = getSelectedCardSection();
+            cardWrappers.forEach((wrapper) => {
+                if (!wrapper) return;
+                const matches = wrapper.dataset.airline === summarySelectedAirline;
+                wrapper.classList.toggle('d-none', !matches);
+            });
+            summarySections.forEach((section) => {
+                if (!section) return;
+                const matches = section.dataset.section === selectedSection;
+                section.classList.toggle('d-none', !matches);
+            });
+            if (positionsCard) positionsCard.classList.add('d-none');
+            refreshPositionGroupVisibility();
+            return;
+        }
+
+        if (hasPositionSelection && positionsCard) {
+            summarySections.forEach((section) => section.classList.add('d-none'));
+            cardWrappers.forEach((wrapper) => {
+                if (!wrapper) return;
+                wrapper.classList.add('d-none');
+            });
+            const badges = Array.from(positionsCard.querySelectorAll('.summary-position-badge'));
+            badges.forEach((badge) => {
+                const matches = badge.dataset.position === summarySelectedPosition;
+                badge.classList.toggle('d-none', !matches);
+            });
+            positionsCard.classList.remove('d-none');
+            positionsCard.classList.add('compact');
+            refreshPositionGroupVisibility();
+        }
+    };
+
+    const ensureDetailVisible = () => {
+        let detailRendered = false;
+
+        if (summaryDetailMode === 'position' && summarySelectedPosition) {
+            const selectedPosition = positionDataMap.get(summarySelectedPosition);
+            if (selectedPosition) {
+                setActiveCard(null);
+                setActivePosition(summarySelectedPosition);
+                renderPositionDetail(selectedPosition);
+                detailRendered = true;
+            }
+        }
+
+        if (!detailRendered) {
+            let defaultAirline = summarySelectedAirline && airlineDataMap.has(summarySelectedAirline)
+                ? summarySelectedAirline
+                : null;
+            if (!defaultAirline) {
+                if (passengerAirlineCards.length) defaultAirline = passengerAirlineCards[0].airline;
+                else if (cargoAirlineCards.length) defaultAirline = cargoAirlineCards[0].airline;
+            }
+            if (defaultAirline && airlineDataMap.has(defaultAirline)) {
+                summaryDetailMode = 'airline';
+                summarySelectedAirline = defaultAirline;
+                summarySelectedPosition = null;
+                setActivePosition(null);
+                setActiveCard(defaultAirline);
+                renderAirlineDetail(airlineDataMap.get(defaultAirline));
+                detailRendered = true;
+            }
+        }
+
+        if (!detailRendered && positions.length) {
+            const firstPosition = positions[0].position;
+            const data = positionDataMap.get(firstPosition);
+            if (data) {
+                summaryDetailMode = 'position';
+                summarySelectedPosition = firstPosition;
+                summarySelectedAirline = null;
+                setActiveCard(null);
+                setActivePosition(firstPosition);
+                renderPositionDetail(data);
+                detailRendered = true;
+            }
+        }
+
+        if (!detailRendered) {
+            detailEl.innerHTML = '<div class="alert alert-info">No hay información para mostrar.</div>';
+            summaryDetailMode = 'airline';
+            summarySelectedAirline = null;
+            summarySelectedPosition = null;
+        }
+    };
+
+    cards.forEach((card) => {
+        const airlineName = card.dataset.airline;
+        if (!airlineName) return;
+        const showDetail = () => {
+            if (!airlineDataMap.has(airlineName)) return;
+            summaryDetailMode = 'airline';
+            summarySelectedAirline = airlineName;
+            summarySelectedPosition = null;
+            summarySelectionLocked = true;
+            setActivePosition(null);
+            setActiveCard(airlineName);
+            renderAirlineDetail(airlineDataMap.get(airlineName));
+            updateSelectionLayout();
+        };
+        card.addEventListener('click', showDetail);
+        card.addEventListener('keypress', (ev) => {
+            if (ev.key === 'Enter' || ev.key === ' ') {
+                ev.preventDefault();
+                showDetail();
+            }
+        });
     });
-    html += `</div>`;
-    container.innerHTML = html;
+
+    positionBadges.forEach((badge) => {
+        const positionKey = badge.dataset.position;
+        if (!positionKey) return;
+        const showPositionDetail = () => {
+            const data = positionDataMap.get(positionKey);
+            if (!data) return;
+            summaryDetailMode = 'position';
+            summarySelectedPosition = positionKey;
+            summarySelectedAirline = null;
+            summarySelectionLocked = true;
+            setActiveCard(null);
+            setActivePosition(positionKey);
+            renderPositionDetail(data);
+            updateSelectionLayout();
+        };
+        badge.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            showPositionDetail();
+        });
+        badge.addEventListener('keypress', (ev) => {
+            if (ev.key === 'Enter' || ev.key === ' ') {
+                ev.preventDefault();
+                showPositionDetail();
+            }
+        });
+    });
+
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            summarySelectionLocked = false;
+            summaryDetailMode = 'airline';
+            summarySelectedAirline = null;
+            summarySelectedPosition = null;
+            setActiveCard(null);
+            setActivePosition(null);
+            ensureDetailVisible();
+            updateSelectionLayout();
+        });
+    }
+
+    ensureDetailVisible();
+    updateSelectionLayout();
 }
+
 function displayPassengerTable(flights) {
     const t0 = performance.now();
     const container = document.getElementById('passenger-itinerary-container');
@@ -1570,7 +2285,9 @@ function displayPassengerTable(flights) {
     if (flights.length === 0) { container.innerHTML = `<div class="alert alert-info bg-transparent text-body">No se encontraron vuelos de pasajeros.</div>`; return; }
     let tableHtml = `<table class="table table-hover"><thead><tr><th>Aerolínea</th><th>Aeronave</th><th>Vuelo Lleg.</th><th>Fecha Lleg.</th><th>Hora Lleg.</th><th class="col-origen">Origen</th><th>Banda</th><th>Posición</th><th>Vuelo Sal.</th><th>Fecha Sal.</th><th>Hora Sal.</th><th class="col-destino">Destino</th></tr></thead><tbody>`;
     flights.forEach((flight, index) => {
-        const airlineName = flight.aerolinea || '-';
+    const airlineName = flight.aerolinea || '-';
+    const positionDisplay = normalizePositionValue(flight.posicion || flight.posición || flight.stand || '');
+    const positionCell = positionDisplay || '-';
     const cands = getAirlineLogoCandidates(airlineName);
     const logoPath = cands[0];
     const dataCands = cands.join('|');
@@ -1585,7 +2302,7 @@ function displayPassengerTable(flights) {
             <td>${flight.hora_llegada || '-'}</td>
             <td class="col-origen">${flight.origen || '-'}</td>
             <td class="text-center">${flight.banda_reclamo || '-'}</td>
-            <td>${flight.posicion || '-'}</td>
+            <td>${positionCell}</td>
             <td>${flight.vuelo_salida || '-'}</td>
             <td>${flight.fecha_salida || '-'}</td>
             <td>${flight.hora_salida || '-'}</td>
@@ -1636,7 +2353,9 @@ function displayCargoTable(flights) {
     if (flights.length === 0) { container.innerHTML = `<div class="alert alert-info bg-transparent text-body">No se encontraron vuelos de carga.</div>`; return; }
     let tableHtml = `<table class="table table-hover"><thead><tr><th>Aerolínea</th><th>Aeronave</th><th>Vuelo Lleg.</th><th>Fecha Lleg.</th><th>Hora Lleg.</th><th class="col-origen">Origen</th><th>Posición</th><th>Vuelo Sal.</th><th>Fecha Sal.</th><th>Hora Sal.</th><th class="col-destino">Destino</th></tr></thead><tbody>`;
     flights.forEach((flight, index) => {
-        const airlineName = flight.aerolinea || '-';
+    const airlineName = flight.aerolinea || '-';
+    const positionDisplay = normalizePositionValue(flight.posicion || flight.posición || flight.stand || '');
+    const positionCell = positionDisplay || '-';
     const cands = getAirlineLogoCandidates(airlineName);
     const logoPath = cands[0];
     const dataCands = cands.join('|');
@@ -1650,7 +2369,7 @@ function displayCargoTable(flights) {
             <td>${flight.fecha_llegada || '-'}</td>
             <td>${flight.hora_llegada || '-'}</td>
             <td class="col-origen">${flight.origen || '-'}</td>
-            <td>${flight.posicion || '-'}</td>
+            <td>${positionCell}</td>
             <td>${flight.vuelo_salida || '-'}</td>
             <td>${flight.fecha_salida || '-'}</td>
             <td>${flight.hora_salida || '-'}</td>
@@ -1717,21 +2436,14 @@ function hideGlobalLoader() {
 function showSection(sectionKey, linkEl) {
     try {
         const targetId = `${sectionKey}-section`;
-        const prevActive = document.querySelector('.content-section.active');
         document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
-        let target = document.getElementById(targetId);
-        if (!target) {
-            console.warn('Sección no encontrada:', targetId, '- restaurando anterior o usando operaciones-totales');
-            target = prevActive || document.getElementById('operaciones-totales-section');
-        }
+        const target = document.getElementById(targetId);
         if (target) target.classList.add('active');
         // Marcar menú
         document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
         if (linkEl) linkEl.classList.add('active');
-        // Actualizar hash solo si la sección existe
-        if (target && target.id) {
-            try { history.replaceState(null, '', `#${target.id.replace('-section','')}`); } catch(_) {}
-        }
+        // Actualizar hash
+        try { history.replaceState(null, '', `#${sectionKey}`); } catch(_) {}
         // Cerrar sidebar en móvil
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebar-overlay');
@@ -3034,6 +3746,238 @@ async function exportAllChartsPDF() {
     } catch (e) { console.warn('exportAllChartsPDF error:', e); }
 }
 
+// Login sky animation (dawn / day / dusk / night)
+const LOGIN_SKY_STATE_CLASSES = ['night','dawn','day','dusk'];
+const LOGIN_PLANE_REFRESH_MS = 45000;
+let loginSkyCurrentState = null;
+let loginSkyIntervalId = null;
+let loginPlaneProfileTimer = null;
+
+function getLoginSkyState(now = new Date()) {
+    try {
+        const hours = now.getHours() + (now.getMinutes() / 60);
+        if (hours >= 5 && hours < 7) return 'dawn';
+        if (hours >= 7 && hours < 18) return 'day';
+        if (hours >= 18 && hours < 20) return 'dusk';
+        return 'night';
+    } catch (_) {
+        return 'day';
+    }
+}
+
+function initLoginSkyScene() {
+    try {
+        const sky = document.getElementById('login-sky');
+        if (!sky || sky.dataset.sceneReady) return;
+        sky.dataset.sceneReady = '1';
+
+        const overlay = document.querySelector('.login-overlay');
+        const logoSrc = 'images/aifa-logo.png';
+        if (overlay && !overlay.querySelector('.sky-top-logo')) {
+            const overlayLogo = document.createElement('img');
+            overlayLogo.src = logoSrc;
+            overlayLogo.alt = 'Aeropuerto Internacional Felipe Ángeles';
+            overlayLogo.className = 'sky-top-logo';
+            overlayLogo.setAttribute('aria-hidden', 'true');
+            overlay.appendChild(overlayLogo);
+        }
+        if (!sky.querySelector('.sun')) {
+            const sun = document.createElement('div');
+            sun.className = 'sun';
+            sun.setAttribute('aria-hidden', 'true');
+            sky.appendChild(sun);
+        }
+        if (!sky.querySelector('.moon')) {
+            const moon = document.createElement('div');
+            moon.className = 'moon';
+            moon.setAttribute('aria-hidden', 'true');
+            sky.appendChild(moon);
+        }
+
+        if (!sky.dataset.stars) {
+            const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const starLimit = reduceMotion ? 20 : (window.matchMedia && window.matchMedia('(max-width: 480px)').matches ? 28 : 40);
+            for (let i = 0; i < starLimit; i++) {
+                const star = document.createElement('span');
+                star.className = 'star' + (Math.random() > 0.78 ? ' big' : '');
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 60}%`;
+                star.style.setProperty('--tw', `${2.8 + Math.random() * 2.6}s`);
+                star.style.setProperty('--td', `${Math.random() * 6}s`);
+                star.setAttribute('aria-hidden', 'true');
+                sky.appendChild(star);
+            }
+            sky.dataset.stars = '1';
+        }
+
+        if (!sky.dataset.clouds) {
+            const cloudConfigs = [
+                { top: '8vh', dur: 72, delay: -12, y: '-8vh' },
+                { top: '20vh', dur: 68, delay: -4, y: '-3vh' },
+                { top: '34vh', dur: 82, delay: -18, y: '1vh' },
+                { top: '48vh', dur: 74, delay: -26, y: '4vh' },
+                { top: '60vh', dur: 88, delay: -6, y: '6vh' }
+            ];
+            cloudConfigs.forEach(cfg => {
+                const cloud = document.createElement('div');
+                cloud.className = 'cloud';
+                cloud.style.top = cfg.top;
+                cloud.style.setProperty('--dur', `${cfg.dur}s`);
+                cloud.style.setProperty('--delay', `${cfg.delay}s`);
+                cloud.style.setProperty('--y', cfg.y);
+                cloud.setAttribute('aria-hidden', 'true');
+                sky.appendChild(cloud);
+            });
+            sky.dataset.clouds = '1';
+        }
+
+        if (!sky.dataset.lights) {
+            const lights = document.createElement('div');
+            lights.className = 'airport-lights';
+            lights.setAttribute('aria-hidden', 'true');
+            const palette = ['ap-yellow', 'ap-blue', 'ap-green'];
+            const total = 18;
+            for (let i = 0; i < total; i++) {
+                const light = document.createElement('span');
+                light.className = `ap-light ${palette[i % palette.length]}`;
+                light.style.left = `${-5 + Math.random() * 110}%`;
+                light.style.setProperty('--d', `${Math.random() * 4}s`);
+                light.style.setProperty('--s', (0.8 + Math.random() * 0.8).toFixed(2));
+                light.setAttribute('aria-hidden', 'true');
+                lights.appendChild(light);
+            }
+            sky.appendChild(lights);
+            sky.dataset.lights = '1';
+        }
+
+        if (!sky.dataset.planes) {
+            const planeConfigs = [
+                { depth: 'far', top: '28vh', flight: 38, delay: -16, scale: 0.8, tilt: 6, y: -6, bob: 9 },
+                { depth: 'mid', top: '42vh', flight: 26, delay: -8, scale: 1, tilt: 8, y: -1, bob: 7 },
+                { depth: 'near', top: '58vh', flight: 32, delay: -4, scale: 1.16, tilt: 10, y: 1, bob: 6 },
+                { depth: 'mid', top: '34vh', flight: 30, delay: -22, scale: 0.92, tilt: 7, y: -4, bob: 8, reverse: true }
+            ];
+            planeConfigs.forEach(cfg => {
+                const plane = document.createElement('div');
+                plane.className = 'plane';
+                plane.classList.add(cfg.depth || 'mid');
+                if (cfg.reverse) plane.classList.add('reverse');
+                plane.setAttribute('aria-hidden', 'true');
+                plane.style.top = cfg.top;
+                if (typeof cfg.scale === 'number') plane.style.setProperty('--scale', String(cfg.scale));
+
+                const osc = document.createElement('span');
+                osc.className = 'osc';
+                const iconWrap = document.createElement('span');
+                iconWrap.className = 'icon';
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-plane';
+                icon.setAttribute('aria-hidden', 'true');
+                iconWrap.appendChild(icon);
+                osc.appendChild(iconWrap);
+
+                const trail = document.createElement('span');
+                trail.className = 'trail';
+                trail.setAttribute('aria-hidden', 'true');
+                osc.appendChild(trail);
+
+                plane.appendChild(osc);
+                ['nav-red','nav-green','beacon','strobe','landing'].forEach(cls => {
+                    const light = document.createElement('span');
+                    light.className = `light ${cls}`;
+                    light.setAttribute('aria-hidden', 'true');
+                    plane.appendChild(light);
+                });
+
+                plane.dataset.baseFlight = String(cfg.flight);
+                plane.dataset.baseDelay = String(cfg.delay);
+                plane.dataset.baseTilt = String(cfg.tilt);
+                plane.dataset.baseY = String(cfg.y ?? 0);
+                plane.dataset.baseBob = String(cfg.bob ?? 7);
+
+                applyPlaneFlightProfile(plane);
+                sky.appendChild(plane);
+            });
+            sky.dataset.planes = '1';
+            if (!loginPlaneProfileTimer) {
+                loginPlaneProfileTimer = window.setInterval(refreshPlaneFlightProfiles, LOGIN_PLANE_REFRESH_MS);
+            }
+        }
+    } catch (e) {
+        console.warn('initLoginSkyScene error:', e);
+    }
+}
+
+function applyLoginSkyState(state) {
+    try {
+        const sky = document.getElementById('login-sky');
+        if (!sky) return;
+        LOGIN_SKY_STATE_CLASSES.forEach(cls => {
+            sky.classList.toggle(cls, cls === state);
+        });
+        const overlay = document.querySelector('.login-overlay');
+        if (overlay) {
+            LOGIN_SKY_STATE_CLASSES.forEach(cls => {
+                overlay.classList.toggle(cls, cls === state);
+            });
+        }
+    } catch (e) {
+        console.warn('applyLoginSkyState error:', e);
+    }
+}
+
+function updateLoginSkyScene(force = false) {
+    try {
+        const nextState = getLoginSkyState();
+        if (!force && nextState === loginSkyCurrentState) return;
+        applyLoginSkyState(nextState);
+        loginSkyCurrentState = nextState;
+    } catch (e) {
+        console.warn('updateLoginSkyScene error:', e);
+    }
+}
+
+function applyPlaneFlightProfile(plane) {
+    try {
+        const baseFlight = parseFloat(plane.dataset.baseFlight) || 30;
+        const baseDelay = parseFloat(plane.dataset.baseDelay) || 0;
+        const baseTilt = parseFloat(plane.dataset.baseTilt) || 6;
+        const baseY = parseFloat(plane.dataset.baseY) || 0;
+        const baseBob = parseFloat(plane.dataset.baseBob) || 7;
+
+        const speedFactor = 0.85 + Math.random() * 0.3; // velocidades distintas 
+        const delayJitter = (Math.random() * 6) - 3; // evita trenes equiespaciados
+        const crosswind = (Math.random() * 2 - 1) * 0.6; // ligera variación en el bamboleo
+        const verticalDrift = baseY + (Math.random() * 1.6 - 0.8); // altitud relativa
+        const tiltDrift = baseTilt + (Math.random() * 1.8 - 0.9); // nariz leve arriba/abajo
+
+        plane.style.setProperty('--flight', `${(baseFlight * speedFactor).toFixed(1)}s`);
+        plane.style.setProperty('--delay', `${(baseDelay + delayJitter).toFixed(1)}s`);
+        plane.style.setProperty('--tilt', `${tiltDrift.toFixed(1)}deg`);
+        plane.style.setProperty('--y', `${verticalDrift.toFixed(1)}vh`);
+        plane.style.setProperty('--bobTime', `${Math.max(4.5, baseBob + crosswind).toFixed(1)}s`);
+    } catch (e) {
+        console.warn('applyPlaneFlightProfile error:', e);
+    }
+}
+
+function refreshPlaneFlightProfiles() {
+    try {
+        const sky = document.getElementById('login-sky');
+        if (!sky) return;
+        sky.querySelectorAll('.plane').forEach(applyPlaneFlightProfile);
+    } catch (e) {
+        console.warn('refreshPlaneFlightProfiles error:', e);
+    }
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        updateLoginSkyScene(true);
+        refreshPlaneFlightProfiles();
+    }
+});
+
 // Sesión y login
 function showMainApp() {
     const login = document.getElementById('login-screen');
@@ -3101,8 +4045,15 @@ function initPeakDateControls() {}
 // ================== Operaciones Totales: wiring de filtros del modal ==================
 document.addEventListener('DOMContentLoaded', () => {
     try {
+        initLoginSkyScene();
+        updateLoginSkyScene(true);
+        if (!loginSkyIntervalId) {
+            loginSkyIntervalId = window.setInterval(() => updateLoginSkyScene(), 60000);
+        }
+    } catch (_) {}
+    try {
         // Inicializar hashes de autenticación lo antes posible
-        initAuthHashes();
+    ensureAuthHashes();
         const toggleMonthly = document.getElementById('toggle-monthly-2025');
         const yearsHint = document.getElementById('years-disabled-hint');
         const monthsPanel = document.getElementById('ops-months-2025');
@@ -3856,4 +4807,58 @@ function setupManifestsUI() {
         }
     } catch (e) { /* ignore */ }
 }
+
+        // Inicialización principal de la aplicación cuando el DOM está listo
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                setupEventListeners();
+            } catch (err) {
+                console.warn('setupEventListeners failed:', err);
+            }
+
+            try {
+                animateLoginTitle();
+            } catch (err) {
+                console.warn('animateLoginTitle failed:', err);
+            }
+
+            try {
+                initializeTheme();
+                initializeSidebarState();
+            } catch (err) {
+                console.warn('Theme/sidebar init failed:', err);
+            }
+
+            try {
+                updateDate();
+                updateClock();
+                setInterval(updateClock, 1000);
+            } catch (err) {
+                console.warn('Clock/date init failed:', err);
+            }
+
+            try {
+                ensureAuthHashes();
+            } catch (err) {
+                console.warn('ensureAuthHashes eager init failed:', err);
+            }
+
+            try {
+                loadItineraryData();
+            } catch (err) {
+                console.warn('loadItineraryData failed:', err);
+            }
+
+            try {
+                createPdfSections();
+            } catch (err) {
+                console.warn('createPdfSections failed:', err);
+            }
+
+            try {
+                checkSession();
+            } catch (err) {
+                console.warn('checkSession failed:', err);
+            }
+        });
 

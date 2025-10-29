@@ -17,15 +17,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve a default favicon to avoid 404 noise
-app.get('/favicon.ico', (req, res) => {
-  try {
-    res.sendFile(path.join(ROOT, 'images', 'aifa-logo.png'));
-  } catch (_) {
-    res.status(204).end();
-  }
-});
-
 // During development, block serving files from /www to avoid duplicate HTML/CSS/JS paths
 if (DEV) {
   app.use('/www', (req, res) => {

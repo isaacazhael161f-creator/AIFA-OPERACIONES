@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -17,6 +16,7 @@
 <body>
 
     <div id="login-screen" class="login-screen">
+        <div id="login-sky" aria-hidden="true"></div>
         <div class="login-overlay"></div>
         <div class="login-container">
             <div class="login-header">
@@ -117,6 +117,7 @@
             <main class="main-content flex-grow-1 p-3 p-md-4">
                 <div id="file-protocol-warning" class="alert alert-warning alert-dismissible fade show d-none" role="alert">
                     <strong>Advertencia:</strong> Estás abriendo el archivo directamente (file://). Para evitar errores CORS al cargar CSV/JSON, inicia el servidor local y abre: <a href="http://localhost:3000" target="_blank" rel="noopener">http://localhost:3000</a>.
+                    
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
                 </div>
 
@@ -390,7 +391,7 @@
                 <div id="parte-operaciones-section" class="content-section">
                     <div class="card">
                         <div class="card-header flex-column flex-md-row d-flex justify-content-between align-items-center">
-                            <h2 class="mb-3 mb-md-0">Resumen de operaciones (22 de octubre de 2025)</h2>
+                            <h2 class="mb-3 mb-md-0">Resumen de operaciones (26 de octubre de 2025)</h2>
                             <div class="d-flex gap-2">
                                 <a href="pdfs/parte_operaciones_completo.pdf" class="btn btn-danger download-btn" download><i class="fas fa-file-pdf me-2"></i><span class="btn-text">Descargar PDF</span></a>
                                 <a href="excel/parte_operaciones_completo.xlsx" class="btn btn-success download-btn" download><i class="fas fa-file-excel me-2"></i><span class="btn-text">Descargar Excel</span></a>
@@ -699,7 +700,7 @@
                 <div id="frecuencias-semana-section" class="content-section">
                     <div class="card border-0">
                         <div class="card-header bg-transparent d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
-                            <h2 class="mb-2 mb-md-0">Frecuencias de la semana del 20 al 26 de octubre</h2>
+                            <h2 class="mb-2 mb-md-0">Frecuencias de la semana del 27 de Octubre al 02 de Noviembre</h2>
                             <div class="small text-muted">Documento oficial (PDF)</div>
                         </div>
                         <div class="card-body pdf-container">
@@ -726,7 +727,7 @@
                     <div class="card">
                         <div class="card-header d-flex align-items-center justify-content-center">
                             <i class="fas fa-clock-check fa-2x text-primary me-3"></i>
-                            <h2 class="mb-0">PUNTUALIDAD DE AEROLÍNEAS</h2>
+                            <h2 class="mb-0">PUNTUALIDAD DE AEROLÍNEAS (SEPTIEMBRE)</h2>
                         </div>
                         <div class="card-body">
                             <ul class="nav nav-tabs" id="puntualidadTab" role="tablist">
@@ -833,18 +834,24 @@
                             <h2 class="mb-1 d-inline-flex align-items-center justify-content-center gap-2">
                                 <span>Manifiestos</span>
                             </h2>
-                            <div class="small text-muted mt-3">Adjunta un PDF o imagen del manifiesto y presiona “Escanear PDF” u “Escaneo alternativo (OCR)”. En móviles, usa “Adjuntar PDF/imagen”.</div>
+                            
                         </div>
                         <div class="card-body">
-                            <div class="row g-3">
+                            <div class="row g-3 manifest-layout">
                                 <div class="col-12 col-lg-5">
-                                    <div class="mb-2 d-flex gap-2 flex-wrap align-items-center">
+                                    <div class="manifest-sidebar d-flex flex-column gap-3">
+                                        <div class="manifest-pane manifest-pane-controls">
+                                            <div class="manifest-controls mb-2 d-flex gap-2 flex-wrap align-items-center">
                                         <input type="file" id="manifest-upload" accept=".pdf,application/pdf,image/*" class="form-control form-control-sm" style="max-width:320px;">
                                         <div class="d-flex gap-2">
                                             <button id="manifest-upload-btn-pdf" type="button" class="btn btn-outline-secondary btn-sm"><i class="fas fa-file-pdf me-1"></i>Adjuntar PDF</button>
                                             <button id="manifest-upload-btn-img" type="button" class="btn btn-outline-secondary btn-sm"><i class="fas fa-image me-1"></i>Adjuntar imagen</button>
                                         </div>
                                         <button id="manifest-scan-pdf" class="btn btn-primary btn-sm ms-2"><i class="fas fa-wand-magic-sparkles me-1"></i>Escanear PDF</button>
+                                        <div class="form-check form-switch ms-2">
+                                            <input class="form-check-input" type="checkbox" id="manifest-fast-mode" checked>
+                                            <label class="form-check-label small" for="manifest-fast-mode" title="Usa texto del PDF primero y OCR dirigido solo si faltan campos clave. Igual de preciso, más rápido.">Modo rápido</label>
+                                        </div>
                                         <button id="manifest-scan-ocr" class="btn btn-outline-secondary btn-sm"><i class="fas fa-magic me-1"></i>Escaneo alternativo (OCR)</button>
                                         <select id="manifest-ocr-pages" class="form-select form-select-sm" style="width:auto; display:inline-block">
                                             <option value="1">1 pág</option>
@@ -852,53 +859,61 @@
                                             <option value="3">3 págs</option>
                                             <option value="5">5 págs</option>
                                         </select>
-                                        
-                                    </div>
-                                    <div class="small text-muted mb-2">En móviles: usa “Adjuntar PDF” para abrir Archivos/Files y seleccionar documentos .pdf; usa “Adjuntar imagen” para abrir Fotos/Cámara.</div>
-                                    <!-- Progreso estilo avión (arriba de la previsualización) -->
-                                    <div id="manifest-plane-progress" class="plane-progress mb-2 d-none" aria-hidden="false">
-                                        <div class="plane-progress-track">
-                                            <div class="plane-progress-fill" id="manifest-plane-fill"></div>
-                                            <div class="plane-progress-plane" id="manifest-plane-icon" title="Procesando">✈</div>
+                                            
+                                            </div>
+                                            <div class="manifest-mobile-hint small text-muted mb-2">En móviles: usa “Adjuntar PDF” para abrir Archivos/Files y seleccionar documentos .pdf; usa “Adjuntar imagen” para abrir Fotos/Cámara.</div>
                                         </div>
-                                        <div class="plane-progress-label small text-muted" id="manifest-plane-label">0%</div>
-                                    </div>
-                                    
-                                    <div class="border rounded p-2 bg-light" id="manifest-preview-container" style="position:relative; overflow:auto;">
-                                        <!-- Loader de sección Manifiestos (tipo login con avión orbitando) -->
-                                        <div id="manifiestos-loader" class="section-loader hidden" role="alert" aria-live="assertive" aria-busy="true">
-                                            <div class="loader-content text-center">
-                                                <div class="plane-orbit">
-                                                    <span class="orbit-ring"></span>
-                                                    <span class="plane-icon">✈</span>
-                                                    <img src="images/logo_aifa.jpg" alt="AIFA" class="loader-aifa-logo" />
+                                        <div class="manifest-pane manifest-pane-preview">
+                                            <!-- Progreso estilo avión (arriba de la previsualización) -->
+                                            <div id="manifest-plane-progress" class="plane-progress mb-2 d-none" aria-hidden="false">
+                                                <div class="plane-progress-track">
+                                                    <div class="plane-progress-fill" id="manifest-plane-fill"></div>
+                                                    <div class="plane-progress-plane" id="manifest-plane-icon" title="Procesando">✈</div>
                                                 </div>
-                                                <div class="loader-text">Escaneando…</div>
+                                                <div class="plane-progress-label small text-muted" id="manifest-plane-label">0%</div>
+                                            </div>
+                                            <div class="manifest-preview-shell">
+                                                <div id="manifest-preview-container" class="manifest-preview-card" style="position:relative; overflow:auto;">
+                                                    <!-- Loader de sección Manifiestos (tipo login con avión orbitando) -->
+                                                    <div id="manifiestos-loader" class="section-loader hidden" role="alert" aria-live="assertive" aria-busy="true">
+                                                        <div class="loader-content text-center">
+                                                            <div class="plane-orbit">
+                                                                <span class="orbit-ring"></span>
+                                                                <span class="plane-icon">✈</span>
+                                                                <img src="images/logo_aifa.jpg" alt="AIFA" class="loader-aifa-logo" />
+                                                            </div>
+                                                            <div class="loader-text">Escaneando…</div>
+                                                        </div>
+                                                    </div>
+                                                    <div id="manifest-preview-placeholder" class="text-muted small">Seleccione un PDF de manifiesto y presione "Escanear PDF" para procesarlo automáticamente.</div>
+                                                    <!-- Previsualización: imagen (para JPG/PNG) o canvas (para PDF) -->
+                                                    <img id="manifest-preview" alt="Previsualización" class="img-fluid d-none" style="position:relative; z-index:0;" />
+                                                    <canvas id="manifest-preview-canvas" class="d-none" style="display:block; margin:auto; position:relative; z-index:1;"></canvas>
+                                                    <div id="manifest-text-layer" style="position:absolute; left:0; top:0; right:0; bottom:0; pointer-events:auto; user-select:text; white-space:pre-wrap; overflow:hidden; padding:0.25rem; font: 12px/1.2 'Roboto Mono', monospace; z-index:5;"></div>
+                                                </div>
+                                            </div>
+                                            <div class="manifest-status-stack">
+                                                <div id="manifest-ocr-status" class="small text-muted"></div>
+                                                <div class="progress my-1 d-none" style="height: 18px;" id="manifest-progress-bar-container">
+                                                    <div class="progress-bar progress-bar-striped progress-bar-animated" id="manifest-progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">Escaneando PDF...</div>
+                                                </div>
+                                                <div id="manifest-pdf-status" class="small text-info"></div>
+                                                <details class="mt-1 manifest-debug-toggle">
+                                                    <summary class="small">Ver texto detectado (debug)</summary>
+                                                    <textarea id="manifest-ocr-debug" class="form-control form-control-sm mt-2" rows="8" style="font-family: 'Roboto Mono', monospace;"></textarea>
+                                                </details>
                                             </div>
                                         </div>
-                                        <div id="manifest-preview-placeholder" class="text-muted small">Seleccione un PDF de manifiesto y presione "Escanear PDF" para procesarlo automáticamente.</div>
-                                        <!-- Previsualización: imagen (para JPG/PNG) o canvas (para PDF) -->
-                                        <img id="manifest-preview" alt="Previsualización" class="img-fluid d-none" style="position:relative; z-index:0;" />
-                                        <canvas id="manifest-preview-canvas" class="d-none" style="display:block; margin:auto; position:relative; z-index:1;"></canvas>
-                                        <div id="manifest-text-layer" style="position:absolute; left:0; top:0; right:0; bottom:0; pointer-events:auto; user-select:text; white-space:pre-wrap; overflow:hidden; padding:0.25rem; font: 12px/1.2 'Roboto Mono', monospace; z-index:5;"></div>
                                     </div>
-                                    <div id="manifest-ocr-status" class="mt-2 small text-muted"></div>
-                                        <div class="progress my-2 d-none" style="height: 18px;" id="manifest-progress-bar-container">
-                                            <div class="progress-bar progress-bar-striped progress-bar-animated" id="manifest-progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">Escaneando PDF...</div>
-                                        </div>
-                                        <div id="manifest-pdf-status" class="mt-2 small text-info"></div>
-                                        <details class="mt-2">
-                                            <summary class="small">Ver texto detectado (debug)</summary>
-                                            <textarea id="manifest-ocr-debug" class="form-control form-control-sm mt-2" rows="8" style="font-family: 'Roboto Mono', monospace;"></textarea>
-                                        </details>
                                 </div>
                                 <div class="col-12 col-lg-7">
-                                    <div class="mf-sheet mf-ntp">
+                                    <div class="manifest-pane manifest-pane-form h-100">
+                                        <div class="mf-sheet mf-ntp manifest-form-shell">
                                     <div class="mf-header d-flex align-items-center justify-content-between flex-wrap gap-2">
                                         <div class="d-flex align-items-center gap-2">
                                             <img src="images/logo_aifa.jpg" alt="AIFA" class="mf-header-logo" />
                                             <div>
-                                                <div class="mf-header-title">Manifiesto de Llegada</div>
+                                                <div class="mf-header-title">Manifiestos</div>
                                                 <div class="mf-header-subtitle">Aeropuerto Internacional Felipe Ángeles</div>
                                             </div>
                                         </div>
@@ -940,20 +955,15 @@
                                         <!-- Nuevos primeros campos en Datos generales -->
                                         <div class="col-12 col-md-6 mb-2">
                                             <label class="form-label" id="mf-airport-main-label">Aeropuerto de Llegada</label>
-                                            <input type="text" class="form-control" id="mf-airport-main" list="airports-name-list" placeholder="Nombre completo del aeropuerto" />
+                                            <input type="text" class="form-control" id="mf-airport-main" placeholder="IATA (3 letras)" maxlength="3" style="text-transform:uppercase" list="airports-iata-list" />
                                         </div>
                                         <div class="col-12 col-md-6 mb-2">
                                             <label class="form-label">Tipo de vuelo</label>
-                                            <select class="form-select" id="mf-flight-type">
-                                                <option value="">Selecciona…</option>
-                                                <option value="Comercial">Comercial</option>
-                                                <option value="Carga">Carga</option>
-                                                <option value="Aviación general">Aviación general</option>
-                                                <option value="Charter">Charter</option>
-                                                <option value="Militar">Militar</option>
-                                                <option value="Otro">Otro</option>
-                                            </select>
+                                            <input type="text" class="form-control" id="mf-flight-type" placeholder="Escribe la letra del tipo (A–Z)" maxlength="1" pattern="[A-Za-z]" style="text-transform:uppercase" list="flight-type-list" autocomplete="off" />
+                                            <datalist id="flight-type-list"></datalist>
+                                            <div id="mf-flight-type-info" class="form-text small text-muted"></div>
                                         </div>
+                                        
                                         <div class="col-12 col-md-4 mb-2">
                                             <label class="form-label">Transportista (OACI - 3 letras)</label>
                                             <input type="text" class="form-control" id="mf-carrier-3l" maxlength="3" placeholder="Ej. AMX" style="text-transform:uppercase" list="airlines-icao-list" pattern="[A-Za-z]{3}" autocomplete="off" />
@@ -1043,6 +1053,12 @@
                                                     </div>
                                                     
                                                 </div>
+                                                <!-- Tipo de Operación (Salida) -->
+                                                <div class="col-12 col-md-4 mb-2">
+                                                    <label class="form-label">Tipo de Operación</label>
+                                                    <input type="text" class="form-control" id="mf-operation-type-dep" placeholder="Doméstica / Internacional" readonly />
+                                                    <div class="form-text">Se calcula con los aeropuertos (origen/destino).</div>
+                                                </div>
                                                 <!-- Grupo de tiempos (Salida) -->
                                                 <div class="col-12">
                                                     <div class="p-3 border rounded bg-light-subtle mf-times">
@@ -1102,14 +1118,20 @@
                                                 <!-- 6) Código de 3 letras (última escala) -->
                                                 <div class="col-6 col-md-3">
                                                     <label class="form-label">Código de 3 letras (escala anterior)</label>
-                            <input type="text" class="form-control" id="mf-arr-last-stop-code" maxlength="3" style="text-transform:uppercase" list="airports-iata-list" placeholder="IATA (3 letras)" />
-                                            
+                                                        <input type="text" class="form-control" id="mf-arr-last-stop-code" maxlength="3" style="text-transform:uppercase" list="airports-iata-list" placeholder="IATA (3 letras)" />
+
                         <datalist id="airports-iata-list"></datalist>
                         <datalist id="airports-name-list"></datalist>
                         <datalist id="hhmm-24-list">
                             <!-- 24h options in 5-minute increments for convenience; you can still type any minute -->
-                
+
                         </datalist>
+                                                </div>
+                                                <!-- Tipo de Operación (Llegada) -->
+                                                <div class="col-12 col-md-4 mb-2">
+                                                    <label class="form-label">Tipo de Operación</label>
+                                                    <input type="text" class="form-control" id="mf-operation-type-arr" placeholder="Doméstica / Internacional" readonly />
+                                                    <div class="form-text">Se calcula con los aeropuertos (procedencia/escala).</div>
                                                 </div>
                                                 
                                                 <!-- Grupo de tiempos (Llegada) -->
@@ -1120,26 +1142,31 @@
                                                             <div class="col-6 col-md-3">
                                                                 <label class="form-label">Hora de slot asignado</label>
                                                                 <input type="text" class="form-control" id="mf-arr-slot-assigned" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
+                                                                <label class="form-check-label ms-2 d-inline-flex align-items-center"><input type="checkbox" class="form-check-input me-1" id="mf-arr-slot-assigned-na" title="No aplica (N/A)">N/A</label>
                                                                 <div class="form-text">Hora local</div>
                                                             </div>
                                                             <div class="col-6 col-md-3">
                                                                 <label class="form-label">Hora de slot coordinado</label>
                                                                 <input type="text" class="form-control" id="mf-arr-slot-coordinated" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
+                                                                <label class="form-check-label ms-2 d-inline-flex align-items-center"><input type="checkbox" class="form-check-input me-1" id="mf-arr-slot-coordinated-na" title="No aplica (N/A)">N/A</label>
                                                                 <div class="form-text">Hora local</div>
                                                             </div>
                                                             <div class="col-6 col-md-3">
                                                                 <label class="form-label">Hora de entrada a la posición</label>
                                                                 <input type="text" class="form-control" id="mf-arr-arribo-posicion" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
+                                                                <label class="form-check-label ms-2 d-inline-flex align-items-center"><input type="checkbox" class="form-check-input me-1" id="mf-arr-arribo-posicion-na" title="No aplica (N/A)">N/A</label>
                                                                 <div class="form-text">Hora local</div>
                                                             </div>
                                                             <div class="col-6 col-md-3">
                                                                 <label class="form-label">Hora de termino de maniobras de desembarque</label>
                                                                 <input type="text" class="form-control" id="mf-arr-inicio-desembarque" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
+                                                                <label class="form-check-label ms-2 d-inline-flex align-items-center"><input type="checkbox" class="form-check-input me-1" id="mf-arr-inicio-desembarque-na" title="No aplica (N/A)">N/A</label>
                                                                 <div class="form-text">Hora local</div>
                                                             </div>
                                                             <div class="col-6 col-md-3">
                                                                 <label class="form-label">Hora de inicio de pernocta</label>
                                                                 <input type="text" class="form-control" id="mf-arr-inicio-pernocta" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
+                                                                <label class="form-check-label ms-2 d-inline-flex align-items-center"><input type="checkbox" class="form-check-input me-1" id="mf-arr-inicio-pernocta-na" title="No aplica (N/A)">N/A</label>
                                                                 <div class="form-text">Hora local</div>
                                                             </div>
                                                         </div>
@@ -1150,38 +1177,57 @@
                                             </div>
                                             <hr />
                                         </div>
-                                        <!-- Causas de demora -->
+                                        
+                                        <!-- Causas de la demora (3 filas fijas) -->
                                         <div class="col-12">
-                                            <div class="d-flex align-items-center justify-content-between">
-                                                <h6 class="mb-2 mf-section-title"><i class="fas fa-clock me-1"></i>Causas de demora</h6>
-                                                <div class="d-flex gap-2">
-                                                    <button type="button" id="add-demora-row" class="btn btn-sm btn-outline-secondary"><i class="fas fa-plus me-1"></i>Agregar</button>
-                                                    <button type="button" id="clear-demoras" class="btn btn-sm btn-outline-secondary"><i class="fas fa-trash me-1"></i>Limpiar</button>
+                                            <h6 class="mb-2 mf-section-title"><i class="fas fa-clock me-1"></i>Causas de la demora</h6>
+                                            <div class="row g-2 align-items-end mb-1">
+                                                <div class="col-12 col-md-3">
+                                                    <label class="form-label">Código de demora</label>
+                                                    <input type="text" class="form-control" id="demora1-codigo" list="delay-alpha-codes" placeholder="Escribe código (Alpha)" maxlength="3" autocomplete="off">
+                                                </div>
+                                                <div class="col-6 col-md-2">
+                                                    <label class="form-label">Tiempo (min)</label>
+                                                    <input type="number" min="0" class="form-control" id="demora1-tiempo" placeholder="0">
+                                                </div>
+                                                <div class="col-12 col-md-7">
+                                                    <label class="form-label">Descripción</label>
+                                                    <input type="text" class="form-control" id="demora1-descripcion" placeholder="Descripción del código">
                                                 </div>
                                             </div>
-                                            <div class="table-responsive">
-                                                <table class="table table-sm align-middle" id="tabla-demoras">
-                                                    <thead>
-                                                        <tr>
-                                                            <th style="width:120px;">Código</th>
-                                                            <th style="width:120px;">Minutos</th>
-                                                            <th>Descripción</th>
-                                                            <th style="width:60px;"></th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody></tbody>
-                                                    <tfoot>
-                                                        <tr class="table-light">
-                                                            <th>Total</th>
-                                                            <th><input type="text" class="form-control form-control-sm" id="total-demora-minutos" readonly></th>
-                                                            <th></th>
-                                                            <th></th>
-                                                        </tr>
-                                                    </tfoot>
-                                                </table>
+                                            <div class="row g-2 align-items-end mb-1">
+                                                <div class="col-12 col-md-3">
+                                                    <label class="form-label">Código de demora</label>
+                                                    <input type="text" class="form-control" id="demora2-codigo" list="delay-alpha-codes" placeholder="Escribe código (Alpha)" maxlength="3" autocomplete="off">
+                                                </div>
+                                                <div class="col-6 col-md-2">
+                                                    <label class="form-label">Tiempo (min)</label>
+                                                    <input type="number" min="0" class="form-control" id="demora2-tiempo" placeholder="0">
+                                                </div>
+                                                <div class="col-12 col-md-7">
+                                                    <label class="form-label">Descripción</label>
+                                                    <input type="text" class="form-control" id="demora2-descripcion" placeholder="Descripción del código">
+                                                </div>
                                             </div>
+                                            <div class="row g-2 align-items-end mb-2">
+                                                <div class="col-12 col-md-3">
+                                                    <label class="form-label">Código de demora</label>
+                                                    <input type="text" class="form-control" id="demora3-codigo" list="delay-alpha-codes" placeholder="Escribe código (Alpha)" maxlength="3" autocomplete="off">
+                                                </div>
+                                                <div class="col-6 col-md-2">
+                                                    <label class="form-label">Tiempo (min)</label>
+                                                    <input type="number" min="0" class="form-control" id="demora3-tiempo" placeholder="0">
+                                                </div>
+                                                <div class="col-12 col-md-7">
+                                                    <label class="form-label">Descripción</label>
+                                                    <input type="text" class="form-control" id="demora3-descripcion" placeholder="Descripción del código">
+                                                </div>
+                                            </div>
+                                            <!-- Datalist para códigos de demora (Alpha code) con Description -->
+                                            <datalist id="delay-alpha-codes"></datalist>
                                             <hr />
                                         </div>
+
                                         <!-- División: Pasajeros por categoría (después de Demoras) -->
                                         <div class="col-12" data-dir="departure-only">
                                             <h6 class="mb-2 mf-section-title"><i class="fas fa-people-group me-1"></i>Pasajeros por categoría</h6>
@@ -1333,30 +1379,34 @@
                                         <div class="col-12 d-flex gap-2 mt-2">
                                             <button type="button" class="btn btn-success" id="manifest-save"><i class="fas fa-save me-1"></i>Guardar</button>
                                             <button type="button" class="btn btn-outline-secondary" id="manifest-clear"><i class="fas fa-eraser me-1"></i>Limpiar</button>
-                                            <button type="button" class="btn btn-outline-primary ms-auto" id="manifest-export-json"><i class="fas fa-download me-1"></i>Exportar JSON</button>
+                                            <button type="button" class="btn btn-outline-success" id="manifest-add-to-table" title="Agregar el formulario actual a la tabla (sin guardar)"><i class="fas fa-plus me-1"></i>Añadir a tabla</button>
+                                            <button type="button" class="btn btn-outline-primary ms-auto" id="manifest-export-csv" title="Exportar registros rellenados a Excel"><i class="fas fa-file-excel me-1"></i>Exportar Excel</button>
                                         </div>
                                     </form>
                                     </div>
-                                    <hr />
-                                    <h5 class="mb-2">Registros Guardados</h5>
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-hover align-middle" id="manifest-records-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>Tipo</th>
-                                                    <th>Aerolínea</th>
-                                                    <th>Vuelo</th>
-                                                    <th>Matrícula</th>
-                                                    <th>Fecha</th>
-                                                    <th>Hora</th>
-                                                    <th>Origen/Destino</th>
-                                                    <th>Pax</th>
-                                                    <th>Carga/Correo</th>
-                                                    <th>Imagen</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody></tbody>
-                                        </table>
+                                    <div class="manifest-records-block mt-3">
+                                        <hr />
+                                        <h5 class="mb-2">Registros Guardados</h5>
+                                        <p class="text-muted small mt-n2 mb-3">Tip: Usa “Añadir a tabla” para agregar el formulario actual aquí sin guardarlo; “Exportar Excel” exporta esta tabla tal cual se ve.</p>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-hover align-middle" id="manifest-records-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Tipo</th>
+                                                        <th>Aerolínea</th>
+                                                        <th>Vuelo</th>
+                                                        <th>Matrícula</th>
+                                                        <th>Fecha</th>
+                                                        <th>Hora</th>
+                                                        <th>Origen/Destino</th>
+                                                        <th>Pax</th>
+                                                        <th>Carga/Correo</th>
+                                                        <th>Imagen</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody></tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1373,6 +1423,26 @@
     <div id="pdf-lightbox" class="pdf-lightbox hidden">
         <button id="lightbox-close" class="lightbox-close">&times;</button>
         <div id="lightbox-content" class="lightbox-content"></div>
+    </div>
+
+    <!-- Modal: Selección de dirección del vuelo (Llegada/Salida) -->
+    <div class="modal fade" id="mfDirectionModal" tabindex="-1" aria-labelledby="mfDirectionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="mfDirectionModalLabel"><i class="fas fa-plane me-2"></i>¿Qué tipo de documento es?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">Selecciona la dirección del vuelo para completar el manifiesto.</p>
+                    <div class="d-flex gap-2">
+                        <button type="button" id="mfDirChooseArr" class="btn btn-primary flex-fill"><i class="fas fa-plane-arrival me-1"></i>Llegada</button>
+                        <button type="button" id="mfDirChooseDep" class="btn btn-success flex-fill"><i class="fas fa-plane-departure me-1"></i>Salida</button>
+                    </div>
+                    <div class="form-text mt-2">Puedes cambiarlo después si es necesario.</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 2050">
@@ -1426,6 +1496,10 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    <!-- SheetJS (XLSX) para exportar manifiestos a Excel en el cliente -->
+    <!-- Cargar desde CDN; si no hay red, la exportación caerá a CSV automáticamente -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <!-- Fallbacks y manejador de errores de imágenes (se define antes de script.js) -->
     <script>

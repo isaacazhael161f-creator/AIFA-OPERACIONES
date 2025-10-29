@@ -476,31 +476,6 @@
         } catch(_) {}
       }, 120);
     });
-
-    // Mantener botón de resumen con estado visual activo mientras el colapso esté abierto
-    try {
-      const toggleBtn = document.getElementById('fauna-summary-toggle');
-      const collapseEl = document.getElementById('fauna-summary-collapse');
-      if (toggleBtn && collapseEl && window.bootstrap && bootstrap.Collapse) {
-        const updateBtnState = () => {
-          const isOpen = collapseEl.classList.contains('show');
-          toggleBtn.classList.toggle('active', isOpen);
-          // Alternar estilo sólido vs contorno para mayor claridad
-          toggleBtn.classList.toggle('btn-primary', isOpen);
-          toggleBtn.classList.toggle('btn-outline-primary', !isOpen);
-          toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-          toggleBtn.setAttribute('aria-pressed', isOpen ? 'true' : 'false');
-        };
-        // Inicial: si no está abierto, ábrelo para que permanezca activo por defecto
-        if (!collapseEl.classList.contains('show')) {
-          const inst = bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
-          inst.show();
-        }
-        updateBtnState();
-        collapseEl.addEventListener('shown.bs.collapse', updateBtnState);
-        collapseEl.addEventListener('hidden.bs.collapse', updateBtnState);
-      }
-    } catch(_) {}
   }
 
   function init(){
