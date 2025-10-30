@@ -16,6 +16,9 @@
 <body>
 
     <div id="login-screen" class="login-screen">
+        <video id="login-bg-video" class="login-bg-video" autoplay muted loop playsinline poster="images/fondo-aifa.jpg">
+            <source src="videos/Aterrizaje%20AIFA.mp4" type="video/mp4">
+        </video>
         <div id="login-sky" aria-hidden="true"></div>
         <div class="login-overlay"></div>
         <div class="login-container">
@@ -84,8 +87,8 @@
                 </div>
             </div>
         </header>
-        <div class="date-bar text-center p-2">
-            <p id="current-date" class="m-0 fw-bold"></p>
+
+            <p id="current-date" class="m-0 fw-bold text-center"></p>
         </div>
 
         <div class="app-body">
@@ -391,7 +394,7 @@
                 <div id="parte-operaciones-section" class="content-section">
                     <div class="card">
                         <div class="card-header flex-column flex-md-row d-flex justify-content-between align-items-center">
-                            <h2 class="mb-3 mb-md-0">Resumen de operaciones (26 de octubre de 2025)</h2>
+                            <h2 class="mb-3 mb-md-0">Resumen de operaciones (29 de octubre de 2025)</h2>
                             <div class="d-flex gap-2">
                                 <a href="pdfs/parte_operaciones_completo.pdf" class="btn btn-danger download-btn" download><i class="fas fa-file-pdf me-2"></i><span class="btn-text">Descargar PDF</span></a>
                                 <a href="excel/parte_operaciones_completo.xlsx" class="btn btn-success download-btn" download><i class="fas fa-file-excel me-2"></i><span class="btn-text">Descargar Excel</span></a>
@@ -552,8 +555,8 @@
                     <div class="card border-0">
                         <div class="card-header bg-transparent d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
                             <div class="d-flex flex-column">
-                                <h2 class="mb-2 mb-md-0">Operaciones Totales (Visualización)</h2>
-                                <div class="update-note d-flex align-items-center"><i class="fas fa-calendar-check me-2"></i><small>Actualizado al <strong>30 septiembre 2025</strong></small></div>
+                                <h2 class="mb-2 mb-md-0">Operaciones Totales</h2>
+                                <div class="update-note d-flex align-items-center"><i class="fas fa-calendar-check me-2"></i><small>Actualizado al <strong>29 octubre 2025</strong></small></div>
                             </div>
                             
                         </div>
@@ -564,7 +567,7 @@
                                     <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#opsFiltersModal"><i class="fas fa-sliders-h me-1"></i>Configurar vista</button>
                                     <button class="btn btn-outline-primary btn-sm" id="ops-export-all-btn" title="Descargar todas las gráficas en PDF"><i class="fas fa-file-pdf me-1"></i>Descargar todas</button>
                                 </div>
-                                <div id="ops-summary" class="d-flex flex-wrap align-items-center gap-2 small text-muted"></div>
+                                <div id="ops-summary" class="ops-summary-slot"></div>
                             </div>
 
                             <!-- Modal de Filtros de Operaciones Totales -->
@@ -579,10 +582,18 @@
                                     <div class="mb-3">
                                         <h6 class="text-muted">Visual</h6>
                                         <div class="d-flex flex-wrap align-items-center gap-3">
+                                            <div class="form-check form-switch m-0" title="Comparativo semanal reciente">
+                                                <input class="form-check-input" type="checkbox" id="toggle-weekly-view">
+                                                <label class="form-check-label small" for="toggle-weekly-view">Semanal</label>
+                                            </div>
                                             <div class="form-check form-switch m-0" title="Activa los filtros por meses del año 2025">
                                                 <input class="form-check-input" type="checkbox" id="toggle-monthly-2025">
                                                 <label class="form-check-label small" for="toggle-monthly-2025">Mensual 2025</label>
                                                 <span class="badge bg-info text-dark ms-2 d-none" id="years-disabled-hint">Años inactivos</span>
+                                            </div>
+                                            <div id="weekly-day-filter" class="d-none d-flex align-items-center gap-2">
+                                                <label for="weekly-day-select" class="small text-muted fw-semibold mb-0">Día</label>
+                                                <select id="weekly-day-select" class="form-select form-select-sm"></select>
                                             </div>
                                         </div>
                                     </div>
@@ -715,7 +726,7 @@
                 <div id="itinerario-mensual-section" class="content-section">
                     <div class="card">
                         <div class="card-header text-center">
-                            <h2 class="mb-0">ITINERARIO MENSUAL (OCTUBRE) </h2>
+                            <h2 class="mb-0">ITINERARIO MENSUAL DEL MES DE OCTUBRE </h2>
                         </div>
                         <div class="card-body pdf-container">
                             <iframe id="pdf-itinerario-mensual" src="pdfs/itinerario_mensual.pdf" width="100%" height="800px" class="border-0"></iframe>

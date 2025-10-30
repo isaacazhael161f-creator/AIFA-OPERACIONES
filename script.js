@@ -9,6 +9,32 @@ const staticData = {
         carga: [ { periodo: '2022', operaciones: 8, toneladas: 5.19 }, { periodo: '2023', operaciones: 5578, toneladas: 186.31 }, { periodo: '2024', operaciones: 13219, toneladas: 447.34 }, { periodo: '2025', operaciones: 8616, toneladas: 292.696 } ],
         general: [ { periodo: '2022', operaciones: 458, pasajeros: 1385 }, { periodo: '2023', operaciones: 2212, pasajeros: 8160 }, { periodo: '2024', operaciones: 2777, pasajeros: 29637 }, { periodo: '2025', operaciones: 2214, pasajeros: 17391 } ]
     },
+    operacionesSemanaActual: {
+        rango: { inicio: '2025-10-27', fin: '2025-10-29', descripcion: 'Comparativo semanal del 27 al 29 de octubre del 2025', nota: 'Datos consolidados al 29 de octubre de 2025.' },
+        dias: [
+            {
+                fecha: '2025-10-27',
+                label: '27 Oct 2025',
+                comercial: { operaciones: 149, pasajeros: 15658 },
+                general: { operaciones: 11, pasajeros: 27 },
+                carga: { operaciones: 31, toneladas: 737, corteFecha: '2025-10-23', corteNota: 'Toneladas actualizadas al 23 de octubre de 2025 (ultimo corte disponible).' }
+            },
+            {
+                fecha: '2025-10-28',
+                label: '28 Oct 2025',
+                comercial: { operaciones: 121, pasajeros: 16962 },
+                general: { operaciones: 11, pasajeros: 27 },
+                carga: { operaciones: 21, toneladas: 620, corteFecha: '2025-10-26', corteNota: 'Toneladas actualizadas al 26 de octubre de 2025 (ultimo corte disponible).' }
+            },
+            {
+                fecha: '2025-10-29',
+                label: '29 Oct 2025',
+                comercial: { operaciones: 136, pasajeros: 18143 },
+                general: { operaciones: 3, pasajeros: 6 },
+                carga: { operaciones: 14, toneladas: 379, corteFecha: '2025-10-28', corteNota: 'Toneladas actualizadas al 28 de octubre de 2025 (ultimo corte disponible).' }
+            }
+        ]
+    },
     // Datos mensuales 2025 (hasta septiembre): Comercial y Carga
     mensual2025: {
         comercial: [
@@ -2610,12 +2636,45 @@ function drawLineChart(canvasId, labels, values, opts){
     if (xTitle){ g.fillStyle='#495057'; g.font='600 12px Roboto, Arial'; g.textAlign='center'; g.textBaseline='top'; g.fillText(xTitle, x0 + innerW/2, h-16); }
 }
 const opsUIState = {
-    monthly2025: false,
+    mode: 'weekly', // 'yearly' | 'monthly' | 'weekly'
     sections: { comercial: true, carga: true, general: true },
     years: new Set(['2022','2023','2024','2025']),
     months2025: new Set(['01','02','03','04','05','06','07','08','09','10','11','12']),
-    preset: 'full' // 'ops' | 'full'
+    preset: 'full', // 'ops' | 'full'
+    weeklyDay: 'all'
 };
+
+function formatSpanishDate(iso) {
+    if (!iso || typeof iso !== 'string') return '';
+    const parts = iso.split('-');
+    if (parts.length < 3) return iso;
+    const year = parts[0];
+    const month = Number(parts[1]);
+    const day = Number(parts[2]);
+    if (!year || !month || !day) return iso;
+    const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    const monthName = months[month - 1] || '';
+    return monthName ? `${day} de ${monthName} de ${year}` : iso;
+}
+
+function ensureNumber(value) {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : 0;
+}
+
+function getWeeklyValue(day, category, metric) {
+    if (!day || !category) return 0;
+    const segment = day[category];
+    if (!segment || typeof segment !== 'object') return 0;
+    return ensureNumber(segment[metric]);
+}
+
+function computeWeeklyVariation(day, category, metric, previousDay) {
+    if (!day || !previousDay) return null;
+    const current = getWeeklyValue(day, category, metric);
+    const prior = getWeeklyValue(previousDay, category, metric);
+    return current - prior;
+}
 // Animación segura para íconos viajeros en Operaciones Totales
 if (!window._opsAnim) window._opsAnim = { rafId: 0, running: false };
 function startOpsAnim() {
@@ -3240,7 +3299,7 @@ function renderOperacionesTotales() {
                 }
             };
 
-            function makePeakCfg(canvas, labels, data, label, stroke, fillTop, fillBottom, animProfile, fmtType='int', traveler, xTitle='Periodo', titleText){
+            function makePeakCfg(canvas, labels, data, label, stroke, fillTop, fillBottom, animProfile, fmtType='int', traveler, xTitle='Periodo', titleText, extraTooltip){
                 const bg = makeGradient(canvas, fillTop, fillBottom);
                 const border = stroke;
                 const maxVal = Math.max(0, ...data);
@@ -3355,7 +3414,17 @@ function renderOperacionesTotales() {
                                 callbacks: {
                                     label: (ctx) => {
                                         const v = ctx.parsed.y;
-                                        return `${ctx.dataset.label}: ${formatCompact(v, fmtType)}`;
+                                        let line = `${ctx.dataset.label}: ${formatCompact(v, fmtType)}`;
+                                        const variationData = Array.isArray(extraTooltip?.variations) ? extraTooltip.variations : null;
+                                        if (variationData) {
+                                            const delta = variationData[ctx.dataIndex];
+                                            if (delta != null) {
+                                                const sign = delta > 0 ? '+' : '';
+                                                const labelTxt = extraTooltip?.variationLabel || 'Δ vs período anterior';
+                                                line += ` (${labelTxt}: ${sign}${formatCompact(delta, fmtType)})`;
+                                            }
+                                        }
+                                        return line;
                                     }
                                 }
                             },
@@ -3391,7 +3460,10 @@ function renderOperacionesTotales() {
         // Preparar datos según modo
         const yearly = staticData.operacionesTotales;
         const monthly = staticData.mensual2025;
-        const useMonthly = opsUIState.monthly2025;
+        const weekly = staticData.operacionesSemanaActual;
+        const mode = opsUIState.mode || 'yearly';
+        const useMonthly = mode === 'monthly';
+        const useWeekly = mode === 'weekly';
 
         // Construir labels y series
         let labels = [];
@@ -3401,7 +3473,40 @@ function renderOperacionesTotales() {
             generalOps: [], generalPax: []
         };
 
-        if (!useMonthly) {
+        const variations = {
+            comercialOps: [], comercialPax: [],
+            cargaOps: [], cargaTon: [],
+            generalOps: [], generalPax: []
+        };
+
+        if (useWeekly) {
+            const days = Array.isArray(weekly?.dias) ? weekly.dias : [];
+            const selectedDay = opsUIState.weeklyDay || 'all';
+            let filteredDays = days.filter(d => selectedDay === 'all' ? true : d?.fecha === selectedDay);
+            if (!filteredDays.length) filteredDays = days;
+            const prevDayMap = new Map();
+            for (let i = 0; i < days.length; i++) {
+                const current = days[i];
+                const prev = i > 0 ? days[i - 1] : null;
+                if (current?.fecha) prevDayMap.set(current.fecha, prev || null);
+            }
+            labels = filteredDays.map((d, idx) => d?.label || d?.fecha || `Día ${idx + 1}`);
+            const seriesBuilders = [
+                ['comercialOps', 'comercial', 'operaciones'],
+                ['comercialPax', 'comercial', 'pasajeros'],
+                ['cargaOps', 'carga', 'operaciones'],
+                ['cargaTon', 'carga', 'toneladas'],
+                ['generalOps', 'general', 'operaciones'],
+                ['generalPax', 'general', 'pasajeros']
+            ];
+            seriesBuilders.forEach(([key, category, metric]) => {
+                series[key] = filteredDays.map(d => getWeeklyValue(d, category, metric));
+                variations[key] = filteredDays.map(d => {
+                    const previous = d?.fecha ? prevDayMap.get(d.fecha) : null;
+                    return computeWeeklyVariation(d, category, metric, previous);
+                });
+            });
+        } else if (!useMonthly) {
             const selYears = Array.from(opsUIState.years).sort();
             labels = selYears;
             const pick = (arr, key) => selYears.map(y => (arr.find(d=> String(d.periodo)===y)?.[key] ?? 0));
@@ -3425,7 +3530,11 @@ function renderOperacionesTotales() {
             series.generalPax = monthly.general.pasajeros.filter(m => selMonths.includes(m.mes)).map(m => m.pasajeros || 0);
     }
 
-        // Destruir charts previos y renderizar visibles
+    const periodLabel = useWeekly ? 'Día' : (useMonthly ? 'Mes' : 'Año');
+
+    const variationLabel = 'Δ vs día anterior';
+
+    // Destruir charts previos y renderizar visibles
         destroyOpsCharts();
         const showCom = !!opsUIState.sections.comercial;
         const showCar = !!opsUIState.sections.carga;
@@ -3446,14 +3555,16 @@ function renderOperacionesTotales() {
                     c1, labels, series.comercialOps,
                     'Operaciones', '#1e88e5', 'rgba(66,165,245,0.35)', 'rgba(21,101,192,0.05)',
                     { easing:'easeOutQuart', duration: 4800, stagger: 110 },
-                    'int', { type:'plane', speed: 20000, scale: 1.25 }, (useMonthly?'Mes':'Año'), '✈ Operaciones (Comercial)'
+                    'int', { type:'plane', speed: 20000, scale: 1.25 }, periodLabel, '✈ Operaciones (Comercial)',
+                    useWeekly ? { variations: variations.comercialOps, variationLabel } : null
                 ));
             setVisible('#commercial-group canvas#commercialPaxChart', !presetOpsOnly);
                 if (!presetOpsOnly && c2) opsCharts.commercialPaxChart = new Chart(c2, makePeakCfg(
                     c2, labels, series.comercialPax,
                     'Pasajeros', '#1565c0', 'rgba(33,150,243,0.35)', 'rgba(13,71,161,0.05)',
                     { easing:'easeOutElastic', duration: 5200, stagger: 160 },
-                    'pax', { type:'person', speed: 22000, scale: 0.9 }, (useMonthly?'Mes':'Año'), '🚶 Pasajeros (Comercial)'
+                    'pax', { type:'person', speed: 22000, scale: 0.9 }, periodLabel, '🚶 Pasajeros (Comercial)',
+                    useWeekly ? { variations: variations.comercialPax, variationLabel } : null
                 ));
         }
             // Carga
@@ -3464,14 +3575,16 @@ function renderOperacionesTotales() {
                     k1, labels, series.cargaOps,
                     'Operaciones', '#fb8c00', 'rgba(255,183,77,0.35)', 'rgba(239,108,0,0.05)',
                     { easing:'easeOutBack', duration: 5000, stagger: 140 },
-                    'int', { type:'plane', speed: 24000, scale: 1.35 }, (useMonthly?'Mes':'Año'), '✈ Operaciones (Carga)'
+                    'int', { type:'plane', speed: 24000, scale: 1.35 }, periodLabel, '✈ Operaciones (Carga)',
+                    useWeekly ? { variations: variations.cargaOps, variationLabel } : null
                 ));
             setVisible('#cargo-group canvas#cargoTonsChart', !presetOpsOnly);
                 if (!presetOpsOnly && k2) opsCharts.cargoTonsChart = new Chart(k2, makePeakCfg(
                     k2, labels, series.cargaTon,
                     'Toneladas', '#f57c00', 'rgba(255,204,128,0.35)', 'rgba(230,81,0,0.05)',
                     { easing:'easeOutCubic', duration: 5600, stagger: 170 },
-                    'ton', { type:'suitcase', speed: 26000, scale: 1.5 }, (useMonthly?'Mes':'Año'), '🧳 Toneladas (Carga)'
+                    'ton', { type:'suitcase', speed: 26000, scale: 1.5 }, periodLabel, '🧳 Toneladas (Carga)',
+                    useWeekly ? { variations: variations.cargaTon, variationLabel } : null
                 ));
         }
             // General
@@ -3482,14 +3595,16 @@ function renderOperacionesTotales() {
                     g1, labels, series.generalOps,
                     'Operaciones', '#2e7d32', 'rgba(129,199,132,0.35)', 'rgba(27,94,32,0.05)',
                     { easing:'easeOutQuart', duration: 4800, stagger: 130 },
-                    'int', { type:'plane', speed: 22000, scale: 1.3 }, (useMonthly?'Mes':'Año'), '✈ Operaciones (General)'
+                    'int', { type:'plane', speed: 22000, scale: 1.3 }, periodLabel, '✈ Operaciones (General)',
+                    useWeekly ? { variations: variations.generalOps, variationLabel } : null
                 ));
             setVisible('#general-group canvas#generalPaxChart', !presetOpsOnly);
                 if (!presetOpsOnly && g2) opsCharts.generalPaxChart = new Chart(g2, makePeakCfg(
                     g2, labels, series.generalPax,
                     'Pasajeros', '#1b5e20', 'rgba(165,214,167,0.35)', 'rgba(27,94,32,0.05)',
                     { easing:'easeOutElastic', duration: 5200, stagger: 160 },
-                    'pax', { type:'person', speed: 23000, scale: 0.9 }, (useMonthly?'Mes':'Año'), '🚶 Pasajeros (General)'
+                    'pax', { type:'person', speed: 23000, scale: 0.9 }, periodLabel, '🚶 Pasajeros (General)',
+                    useWeekly ? { variations: variations.generalPax, variationLabel } : null
                 ));
         }
 
@@ -3530,8 +3645,35 @@ function updateOpsSummary() {
         let headerMarkup = '';
         let captionMarkup = '';
         let cards = [];
+        let recommendationMarkup = '';
+        const sections = opsUIState.sections || {};
+        const showCom = sections.comercial !== false;
+        const showCar = sections.carga !== false;
+        const showGen = sections.general !== false;
+        const heroBackgroundImage = 'images/fondo-aifa.jpg';
+        const buildHero = (variant, iconClass, periodLabel, detailText, badgeLabel) => {
+            const detail = (detailText || '').trim();
+            const badge = (badgeLabel || '').trim();
+            return `
+            <div class="ops-summary-hero ${variant}" style="--ops-hero-media-image: url('${heroBackgroundImage}')">
+                <div class="ops-summary-hero-media" aria-hidden="true">
+                    <div class="ops-summary-hero-overlay"></div>
+                </div>
+                <span class="ops-summary-hero-icon" aria-hidden="true">
+                    <span class="ops-summary-hero-icon-inner"><i class="${iconClass}" aria-hidden="true"></i></span>
+                </span>
+                <div class="ops-summary-hero-body">
+                    <span class="ops-summary-hero-kicker">Periodo activo</span>
+                    <span class="ops-summary-hero-period">${periodLabel}</span>
+                    ${detail ? `<span class="ops-summary-hero-caption">${detail}</span>` : ''}
+                </div>
+                ${badge ? `<span class="ops-summary-hero-badge">${badge}</span>` : ''}
+            </div>`;
+        };
 
-        if (!opsUIState.monthly2025) {
+        const mode = opsUIState.mode || 'yearly';
+
+        if (mode === 'yearly') {
             const yData = staticData.operacionesTotales;
             const years = Array.from(opsUIState.years).sort();
             if (!years.length) {
@@ -3543,24 +3685,70 @@ function updateOpsSummary() {
             const cargo = yData.carga.find(d => String(d.periodo) === String(lastYear)) || {};
             const general = yData.general.find(d => String(d.periodo) === String(lastYear)) || {};
 
-            headerMarkup = `<span class="ops-summary-chip"><i class="fas fa-calendar-alt me-2" aria-hidden="true"></i>Año ${lastYear}</span>`;
-            captionMarkup = `<span class="ops-summary-caption"><i class="fas fa-chart-line me-1" aria-hidden="true"></i>Periodos seleccionados: ${years.join(' · ')}</span>`;
-            cards = [
-                makeCard('fas fa-plane-departure', 'Comercial', fmtInt(commercial.operaciones || 0), 'Operaciones', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-ops']),
-                makeCard('fas fa-user-friends', 'Comercial', fmtInt(commercial.pasajeros || 0), 'Pasajeros', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-passengers']),
-                makeCard('fas fa-box-open', 'Carga', fmtInt(cargo.operaciones || 0), 'Operaciones', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ops']),
-                makeCard('fas fa-weight-hanging', 'Carga', fmtTon(cargo.toneladas || 0), 'Toneladas', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ton']),
-                makeCard('fas fa-paper-plane', 'General', fmtInt(general.operaciones || 0), 'Operaciones', ['ops-summary-pill--general', 'ops-summary-pill--metric-ops']),
-                makeCard('fas fa-user-check', 'General', fmtInt(general.pasajeros || 0), 'Pasajeros', ['ops-summary-pill--general', 'ops-summary-pill--metric-passengers'])
-            ];
-        } else {
+            const detail = `Periodos seleccionados: ${years.join(' · ')}`;
+            headerMarkup = buildHero('ops-summary-hero--yearly', 'fas fa-calendar-alt', `Año ${lastYear}`, detail, 'Vista anual');
+            captionMarkup = '';
+            if (showCom) {
+                cards.push(
+                    makeCard('fas fa-plane-departure', 'Comercial', fmtInt(commercial.operaciones || 0), 'Operaciones', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-ops']),
+                    makeCard('fas fa-user-friends', 'Comercial', fmtInt(commercial.pasajeros || 0), 'Pasajeros', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-passengers'])
+                );
+            }
+            if (showCar) {
+                cards.push(
+                    makeCard('fas fa-box-open', 'Carga', fmtInt(cargo.operaciones || 0), 'Operaciones', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ops']),
+                    makeCard('fas fa-weight-hanging', 'Carga', fmtTon(cargo.toneladas || 0), 'Toneladas', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ton'])
+                );
+            }
+            if (showGen) {
+                cards.push(
+                    makeCard('fas fa-paper-plane', 'General', fmtInt(general.operaciones || 0), 'Operaciones', ['ops-summary-pill--general', 'ops-summary-pill--metric-ops']),
+                    makeCard('fas fa-user-check', 'General', fmtInt(general.pasajeros || 0), 'Pasajeros', ['ops-summary-pill--general', 'ops-summary-pill--metric-passengers'])
+                );
+            }
+        } else if (mode === 'monthly') {
             const monthly = staticData.mensual2025;
-            const months = Array.from(opsUIState.months2025).sort();
-            if (!months.length) {
+            const selectedMonths = Array.from(opsUIState.months2025).sort();
+            if (!selectedMonths.length) {
                 container.innerHTML = '<div class="ops-summary-empty text-muted">Selecciona al menos un mes de 2025 para ver el resumen.</div>';
                 return;
             }
-            const sum = (arr, key) => arr.filter(item => months.includes(item.mes)).reduce((acc, item) => acc + (Number(item[key] || 0)), 0);
+            const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+            const entriesForMonth = (code) => [
+                monthly.comercial.find(entry => entry.mes === code),
+                monthly.comercialPasajeros.find(entry => entry.mes === code),
+                monthly.carga.find(entry => entry.mes === code),
+                monthly.cargaToneladas.find(entry => entry.mes === code),
+                ...(Array.isArray(monthly.general?.operaciones) ? [monthly.general.operaciones.find(entry => entry.mes === code)] : []),
+                ...(Array.isArray(monthly.general?.pasajeros) ? [monthly.general.pasajeros.find(entry => entry.mes === code)] : [])
+            ].filter(Boolean);
+            const entryHasRealData = (entry) => {
+                if (!entry) return false;
+                if (typeof entry.label === 'string' && entry.label.toLowerCase().includes('proy')) return false;
+                return Object.entries(entry)
+                    .filter(([key]) => key !== 'mes' && key !== 'label')
+                    .some(([, value]) => value !== null && value !== undefined && value !== '');
+            };
+            const hasRealData = (code) => entriesForMonth(code).some(entryHasRealData);
+            const monthsWithData = selectedMonths.filter(hasRealData);
+            if (!monthsWithData.length) {
+                container.innerHTML = '<div class="ops-summary-empty text-muted">No hay datos confirmados para los meses seleccionados.</div>';
+                return;
+            }
+            const monthsWithoutData = selectedMonths.filter(code => !monthsWithData.includes(code));
+            const labelForMonth = (code) => {
+                const entry = entriesForMonth(code).find(item => item?.label) || {};
+                if (entry.label) {
+                    return entry.label.replace('(Proy.)', '').replace('Proy.', '').trim();
+                }
+                const idx = Number(code) - 1;
+                return monthNames[idx] || code;
+            };
+
+            const sum = (arr, key) => arr
+                .filter(item => monthsWithData.includes(item.mes))
+                .reduce((acc, item) => acc + Number(item[key] ?? 0), 0);
+
             const commercialOps = sum(monthly.comercial, 'operaciones');
             const commercialPax = sum(monthly.comercialPasajeros, 'pasajeros');
             const cargoOps = sum(monthly.carga, 'operaciones');
@@ -3568,33 +3756,105 @@ function updateOpsSummary() {
             const generalOps = sum(monthly.general.operaciones, 'operaciones');
             const generalPax = sum(monthly.general.pasajeros, 'pasajeros');
 
-            const monthLabels = months.map(code => {
-                const source = monthly.comercial.find(entry => entry.mes === code) || monthly.carga.find(entry => entry.mes === code) || {};
-                return source.label || code;
-            });
-            const listPreview = monthLabels.slice(0, 4).join(', ');
-            const extraCount = monthLabels.length - 4;
+            const availableLabels = monthsWithData.map(labelForMonth);
+            const listPreview = availableLabels.slice(0, 4).join(', ');
+            const extraCount = availableLabels.length - 4;
             const extraLabel = extraCount > 0 ? ` y +${extraCount}` : '';
 
-            headerMarkup = `<span class="ops-summary-chip"><i class="fas fa-calendar-week me-2" aria-hidden="true"></i>2025 · ${months.length} ${months.length === 1 ? 'mes' : 'meses'}</span>`;
-            captionMarkup = `<span class="ops-summary-caption"><i class="fas fa-layer-group me-1" aria-hidden="true"></i>Meses seleccionados: ${listPreview || months.join(', ')}${extraLabel}</span>`;
-            cards = [
-                makeCard('fas fa-plane-departure', 'Comercial', fmtInt(commercialOps), 'Operaciones acumuladas', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-ops']),
-                makeCard('fas fa-user-friends', 'Comercial', fmtInt(commercialPax), 'Pasajeros acumulados', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-passengers']),
-                makeCard('fas fa-box-open', 'Carga', fmtInt(cargoOps), 'Operaciones acumuladas', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ops']),
-                makeCard('fas fa-weight-hanging', 'Carga', fmtTon(cargoTon), 'Toneladas acumuladas', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ton']),
-                makeCard('fas fa-paper-plane', 'General', fmtInt(generalOps), 'Operaciones acumuladas', ['ops-summary-pill--general', 'ops-summary-pill--metric-ops']),
-                makeCard('fas fa-user-check', 'General', fmtInt(generalPax), 'Pasajeros acumulados', ['ops-summary-pill--general', 'ops-summary-pill--metric-passengers'])
-            ];
+            const periodTitle = monthsWithData.length === 1 ? (availableLabels[0] || 'Mes con datos') : `${monthsWithData.length} meses con datos 2025`;
+            const detail = `Meses con datos confirmados: ${listPreview || availableLabels.join(', ')}${extraLabel}`;
+            const badgeLabel = monthsWithData.length === 12 ? 'Cobertura anual 2025' : `${monthsWithData.length} ${monthsWithData.length === 1 ? 'mes con datos' : 'meses con datos'}`;
+            headerMarkup = buildHero('ops-summary-hero--monthly', 'fas fa-calendar-week', periodTitle, detail, badgeLabel);
+            captionMarkup = monthsWithoutData.length
+                ? `<div class="text-warning small mt-2">Sin datos confirmados: ${monthsWithoutData.map(labelForMonth).join(', ')}</div>`
+                : '';
+            if (showCom) {
+                cards.push(
+                    makeCard('fas fa-plane-departure', 'Comercial', fmtInt(commercialOps), 'Operaciones acumuladas', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-ops']),
+                    makeCard('fas fa-user-friends', 'Comercial', fmtInt(commercialPax), 'Pasajeros acumulados', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-passengers'])
+                );
+            }
+            if (showCar) {
+                cards.push(
+                    makeCard('fas fa-box-open', 'Carga', fmtInt(cargoOps), 'Operaciones acumuladas', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ops']),
+                    makeCard('fas fa-weight-hanging', 'Carga', fmtTon(cargoTon), 'Toneladas acumuladas', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ton'])
+                );
+            }
+            if (showGen) {
+                cards.push(
+                    makeCard('fas fa-paper-plane', 'General', fmtInt(generalOps), 'Operaciones acumuladas', ['ops-summary-pill--general', 'ops-summary-pill--metric-ops']),
+                    makeCard('fas fa-user-check', 'General', fmtInt(generalPax), 'Pasajeros acumulados', ['ops-summary-pill--general', 'ops-summary-pill--metric-passengers'])
+                );
+            }
+        } else {
+            const weekly = staticData.operacionesSemanaActual;
+            const days = Array.isArray(weekly?.dias) ? weekly.dias : [];
+            if (!days.length) {
+                container.innerHTML = '<div class="ops-summary-empty text-muted">No hay datos semanales disponibles.</div>';
+                return;
+            }
+            const selectedDay = opsUIState.weeklyDay || 'all';
+            let targetDays = days.filter(d => selectedDay === 'all' ? true : d?.fecha === selectedDay);
+            if (!targetDays.length) targetDays = days;
+            const sumCat = (category, metric) => targetDays.reduce((acc, day) => acc + getWeeklyValue(day, category, metric), 0);
+            const commercialOps = sumCat('comercial', 'operaciones');
+            const commercialPax = sumCat('comercial', 'pasajeros');
+            const cargoOps = sumCat('carga', 'operaciones');
+            const cargoTon = sumCat('carga', 'toneladas');
+            const generalOps = sumCat('general', 'operaciones');
+            const generalPax = sumCat('general', 'pasajeros');
+
+            const range = weekly?.rango || {};
+            const rangeLabel = selectedDay !== 'all'
+                ? (targetDays[0]?.label || targetDays[0]?.fecha || 'Jornada seleccionada')
+                : (range.descripcion || (range.inicio && range.fin ? `Semana del ${formatSpanishDate(range.inicio)} al ${formatSpanishDate(range.fin)}` : 'Semana reciente'));
+            const captionText = '';
+            const suffixOps = selectedDay === 'all' ? 'Operaciones semana' : 'Operaciones del día';
+            const suffixPax = selectedDay === 'all' ? 'Pasajeros semana' : 'Pasajeros del día';
+            const suffixTon = selectedDay === 'all' ? 'Toneladas semana' : 'Toneladas del día';
+
+            const badgeLabel = selectedDay === 'all' ? 'Vista semanal' : 'Vista por día';
+            headerMarkup = buildHero('ops-summary-hero--weekly', selectedDay === 'all' ? 'fas fa-calendar-week' : 'fas fa-calendar-day', rangeLabel, captionText, badgeLabel);
+            captionMarkup = '';
+            if (showCom) {
+                cards.push(
+                    makeCard('fas fa-plane-departure', 'Comercial', fmtInt(commercialOps), suffixOps, ['ops-summary-pill--comercial', 'ops-summary-pill--metric-ops']),
+                    makeCard('fas fa-user-friends', 'Comercial', fmtInt(commercialPax), suffixPax, ['ops-summary-pill--comercial', 'ops-summary-pill--metric-passengers'])
+                );
+            }
+            if (showCar) {
+                cards.push(
+                    makeCard('fas fa-box-open', 'Carga', fmtInt(cargoOps), suffixOps, ['ops-summary-pill--carga', 'ops-summary-pill--metric-ops']),
+                    makeCard('fas fa-weight-hanging', 'Carga', fmtTon(cargoTon), suffixTon, ['ops-summary-pill--carga', 'ops-summary-pill--metric-ton'])
+                );
+            }
+            if (showGen) {
+                cards.push(
+                    makeCard('fas fa-paper-plane', 'General', fmtInt(generalOps), suffixOps, ['ops-summary-pill--general', 'ops-summary-pill--metric-ops']),
+                    makeCard('fas fa-user-check', 'General', fmtInt(generalPax), suffixPax, ['ops-summary-pill--general', 'ops-summary-pill--metric-passengers'])
+                );
+            }
+            if (cards.length) {
+                recommendationMarkup = `<div class="ops-summary-reco small text-muted mt-2"><strong>Recomendación:</strong> podrías complementar las tarjetas-resumen semanales con un pequeño indicador de variación (↑/↓) usando el mismo cálculo de diferencias.</div>`;
+            }
         }
+
+        if (!cards.length) {
+            container.innerHTML = '<div class="ops-summary-empty text-muted">Activa al menos una categoría para ver las tarjetas.</div>';
+            return;
+        }
+
+        const generalOnly = cards.length > 0 && cards.every(card => card.includes('ops-summary-pill--general'));
+        const gridClass = generalOnly ? 'ops-summary-grid ops-summary-grid--general-only' : 'ops-summary-grid';
 
         container.innerHTML = `
             <div class="ops-summary-wrapper">
                 ${headerMarkup}
                 ${captionMarkup}
-                <div class="ops-summary-grid">
+                <div class="${gridClass}">
                     ${cards.join('')}
                 </div>
+                ${recommendationMarkup}
             </div>
         `;
     } catch (e) { /* ignore */ }
@@ -4154,6 +4414,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Inicializar hashes de autenticación lo antes posible
     ensureAuthHashes();
         const toggleMonthly = document.getElementById('toggle-monthly-2025');
+        const toggleWeekly = document.getElementById('toggle-weekly-view');
+        const weeklyDayFilter = document.getElementById('weekly-day-filter');
+        const weeklyDaySelect = document.getElementById('weekly-day-select');
         const yearsHint = document.getElementById('years-disabled-hint');
         const monthsPanel = document.getElementById('ops-months-2025');
         const monthsAll = document.getElementById('months-select-all');
@@ -4168,18 +4431,104 @@ document.addEventListener('DOMContentLoaded', () => {
             if (yearsHint) yearsHint.classList.toggle('d-none', !disabled);
         }
 
-        if (toggleMonthly && !toggleMonthly._wired) {
-            toggleMonthly._wired = 1;
-            toggleMonthly.addEventListener('change', () => {
-                opsUIState.monthly2025 = !!toggleMonthly.checked;
-                refreshDisabledYears(opsUIState.monthly2025);
-                if (monthsPanel) monthsPanel.style.display = opsUIState.monthly2025 ? '' : 'none';
+        function syncToggleStates(){
+            if (toggleWeekly) {
+                const usable = !toggleWeekly.disabled;
+                toggleWeekly.checked = usable && opsUIState.mode === 'weekly';
+            }
+            if (toggleMonthly) toggleMonthly.checked = opsUIState.mode === 'monthly';
+        }
+
+        function populateWeeklyDayOptions(){
+            if (!weeklyDaySelect) return;
+            const weekly = staticData?.operacionesSemanaActual;
+            const days = Array.isArray(weekly?.dias) ? weekly.dias : [];
+            if (toggleWeekly) {
+                toggleWeekly.disabled = !days.length;
+                if (!days.length) {
+                    toggleWeekly.checked = false;
+                    if (opsUIState.mode === 'weekly') {
+                        opsUIState.mode = (toggleMonthly && toggleMonthly.checked) ? 'monthly' : 'yearly';
+                        refreshDisabledYears(opsUIState.mode !== 'yearly');
+                        if (monthsPanel) monthsPanel.style.display = opsUIState.mode === 'monthly' ? '' : 'none';
+                    }
+                }
+            }
+            syncToggleStates();
+            weeklyDaySelect.innerHTML = '';
+            const optAll = document.createElement('option');
+            optAll.value = 'all';
+            optAll.textContent = 'Semana completa';
+            weeklyDaySelect.appendChild(optAll);
+            days.forEach(day => {
+                if (!day?.fecha) return;
+                const opt = document.createElement('option');
+                opt.value = day.fecha;
+                opt.textContent = day.label || day.fecha;
+                weeklyDaySelect.appendChild(opt);
+            });
+            if (!days.some(day => day?.fecha === opsUIState.weeklyDay)) {
+                opsUIState.weeklyDay = 'all';
+            }
+            weeklyDaySelect.value = opsUIState.weeklyDay;
+            syncToggleStates();
+        }
+
+        function syncWeeklyControls(){
+            const isWeekly = opsUIState.mode === 'weekly';
+            if (weeklyDayFilter) weeklyDayFilter.classList.toggle('d-none', !isWeekly);
+            if (!isWeekly) {
+                opsUIState.weeklyDay = 'all';
+                if (weeklyDaySelect) weeklyDaySelect.value = 'all';
+            }
+            syncToggleStates();
+        }
+
+        if (weeklyDaySelect && !weeklyDaySelect.dataset.bound) {
+            weeklyDaySelect.dataset.bound = '1';
+            weeklyDaySelect.addEventListener('change', () => {
+                opsUIState.weeklyDay = weeklyDaySelect.value || 'all';
                 renderOperacionesTotales();
             });
         }
+
+        if (toggleMonthly && !toggleMonthly._wired) {
+            toggleMonthly._wired = 1;
+            toggleMonthly.addEventListener('change', () => {
+                if (toggleMonthly.checked) {
+                    opsUIState.mode = 'monthly';
+                } else {
+                    opsUIState.mode = (toggleWeekly && toggleWeekly.checked) ? 'weekly' : 'yearly';
+                }
+                refreshDisabledYears(opsUIState.mode !== 'yearly');
+                if (monthsPanel) monthsPanel.style.display = opsUIState.mode === 'monthly' ? '' : 'none';
+                populateWeeklyDayOptions();
+                syncWeeklyControls();
+                renderOperacionesTotales();
+            });
+        }
+
+        if (toggleWeekly && !toggleWeekly._wired) {
+            toggleWeekly._wired = 1;
+            toggleWeekly.addEventListener('change', () => {
+                if (toggleWeekly.checked) {
+                    opsUIState.mode = 'weekly';
+                } else {
+                    opsUIState.mode = (toggleMonthly && toggleMonthly.checked) ? 'monthly' : 'yearly';
+                }
+                refreshDisabledYears(opsUIState.mode !== 'yearly');
+                if (monthsPanel) monthsPanel.style.display = opsUIState.mode === 'monthly' ? '' : 'none';
+                populateWeeklyDayOptions();
+                syncWeeklyControls();
+                renderOperacionesTotales();
+            });
+        }
+
         // Inicial: oculto por defecto
-        if (monthsPanel) monthsPanel.style.display = 'none';
-        refreshDisabledYears(false);
+        if (monthsPanel) monthsPanel.style.display = opsUIState.mode === 'monthly' ? '' : 'none';
+        refreshDisabledYears(opsUIState.mode !== 'yearly');
+        populateWeeklyDayOptions();
+        syncWeeklyControls();
 
         if (sectionsBox && !sectionsBox._wired) {
             sectionsBox._wired = 1;
