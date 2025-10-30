@@ -1372,7 +1372,7 @@
     "posicion": "602A",
     "vuelo_salida": "AC 7246",
     "destino": "Guadalajara",
-    "fecha_salida": "29/1q0/2025",
+    "fecha_salida": "29/10/2025",
     "hora_salida": "07:15"
   },
   {
@@ -1669,7 +1669,7 @@
     "aerolinea": "Estafeta",
     "aeronave": "734",
     "vuelo_llegada": "E7 610",
-    "fecha_llegada": "29/1D/2025",
+    "fecha_llegada": "29/10/2025",
     "hora_llegada": "23:15",
     "origen": "Merida",
     "banda_reclamo": null,
