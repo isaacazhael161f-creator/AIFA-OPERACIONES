@@ -1558,7 +1558,17 @@ function displaySummaryTable(flights) {
         return;
     }
 
-    const totals = { arrivals: 0, departures: 0, flights: 0, passengerFlights: 0, cargoFlights: 0 };
+    const totals = {
+        arrivals: 0,
+        departures: 0,
+        flights: 0,
+        passengerFlights: 0,
+        cargoFlights: 0,
+        generalFlights: 0,
+        passengerOps: { arrivals: 0, departures: 0 },
+        cargoOps: { arrivals: 0, departures: 0 },
+        generalOps: { arrivals: 0, departures: 0 }
+    };
     const summaryMap = new Map();
     const positionMap = new Map();
 
@@ -1566,7 +1576,7 @@ function displaySummaryTable(flights) {
         const airlineName = (flight && flight.aerolinea ? String(flight.aerolinea).trim() : '') || 'Sin aerolínea';
         let entry = summaryMap.get(airlineName);
         if (!entry) {
-            entry = { arrivals: 0, departures: 0, flights: [], passengerFlights: 0, cargoFlights: 0 };
+            entry = { arrivals: 0, departures: 0, flights: [], passengerFlights: 0, cargoFlights: 0, generalFlights: 0 };
             summaryMap.set(airlineName, entry);
         }
         entry.flights.push(flight);
@@ -1591,18 +1601,14 @@ function displaySummaryTable(flights) {
 
         const normalizedAirline = normalizeAirlineName(airlineName);
         if (!isPassengerFlight && !isCargoFlight) {
-            if (passengerAirlinesNormalized.has(normalizedAirline)) isPassengerFlight = true;
-            if (cargoAirlinesNormalized.has(normalizedAirline)) isCargoFlight = true;
-        }
-        if (!isPassengerFlight && !isCargoFlight) {
-            if (entry.passengerFlights > entry.cargoFlights) {
+            if (passengerAirlinesNormalized.has(normalizedAirline) && !cargoAirlinesNormalized.has(normalizedAirline)) {
+                isPassengerFlight = true;
+            } else if (cargoAirlinesNormalized.has(normalizedAirline) && !passengerAirlinesNormalized.has(normalizedAirline)) {
+                isCargoFlight = true;
+            } else if (entry.passengerFlights > entry.cargoFlights) {
                 isPassengerFlight = true;
             } else if (entry.cargoFlights > entry.passengerFlights) {
                 isCargoFlight = true;
-            } else if (cargoAirlinesNormalized.has(normalizedAirline) && !passengerAirlinesNormalized.has(normalizedAirline)) {
-                isCargoFlight = true;
-            } else {
-                isPassengerFlight = true;
             }
         }
         if (isPassengerFlight && isCargoFlight) {
@@ -1612,13 +1618,25 @@ function displaySummaryTable(flights) {
                 isCargoFlight = false;
             }
         }
+        const isGeneralFlight = !isPassengerFlight && !isCargoFlight;
+
         if (isPassengerFlight) {
             entry.passengerFlights += 1;
             totals.passengerFlights += 1;
+            if (hasArrival) totals.passengerOps.arrivals += 1;
+            if (hasDeparture) totals.passengerOps.departures += 1;
         }
         if (isCargoFlight) {
             entry.cargoFlights += 1;
             totals.cargoFlights += 1;
+            if (hasArrival) totals.cargoOps.arrivals += 1;
+            if (hasDeparture) totals.cargoOps.departures += 1;
+        }
+        if (isGeneralFlight) {
+            entry.generalFlights += 1;
+            totals.generalFlights += 1;
+            if (hasArrival) totals.generalOps.arrivals += 1;
+            if (hasDeparture) totals.generalOps.departures += 1;
         }
 
         const positionNormalized = normalizePositionValue(flight?.posicion || flight?.posición || flight?.stand || '');
@@ -1650,16 +1668,22 @@ function displaySummaryTable(flights) {
     const airlines = Array.from(summaryMap.entries()).map(([airline, data]) => {
         const passengerFlights = data.passengerFlights || 0;
         const cargoFlights = data.cargoFlights || 0;
+        const generalFlights = data.generalFlights || 0;
+        const normalized = normalizeAirlineName(airline);
         let type = 'passenger';
-        if (passengerFlights === 0 && cargoFlights > 0) type = 'cargo';
-        else if (cargoFlights === 0 && passengerFlights > 0) type = 'passenger';
-        else if (cargoFlights > passengerFlights) type = 'cargo';
-        else if (cargoFlights === passengerFlights && cargoFlights !== 0) {
-            const normalized = normalizeAirlineName(airline);
+        if (generalFlights > 0 && generalFlights >= passengerFlights && generalFlights >= cargoFlights) {
+            type = 'general';
+        } else if (cargoFlights > passengerFlights) {
+            type = 'cargo';
+        } else if (passengerFlights === 0 && cargoFlights > 0) {
+            type = 'cargo';
+        } else if (passengerFlights === 0 && cargoFlights === 0 && generalFlights > 0) {
+            type = 'general';
+        } else if (cargoFlights === passengerFlights && cargoFlights !== 0) {
             if (cargoAirlinesNormalized.has(normalized) && !passengerAirlinesNormalized.has(normalized)) type = 'cargo';
         } else if (passengerFlights === 0 && cargoFlights === 0) {
-            const normalized = normalizeAirlineName(airline);
             if (cargoAirlinesNormalized.has(normalized) && !passengerAirlinesNormalized.has(normalized)) type = 'cargo';
+            else if (generalFlights > 0) type = 'general';
         }
         return {
             airline,
@@ -1669,6 +1693,7 @@ function displaySummaryTable(flights) {
             flights: data.flights,
             passengerFlights,
             cargoFlights,
+            generalFlights,
             type
         };
     });
@@ -1681,8 +1706,9 @@ function displaySummaryTable(flights) {
         return;
     }
 
-    const passengerAirlineCards = airlines.filter((item) => item.type !== 'cargo');
+    const passengerAirlineCards = airlines.filter((item) => item.type === 'passenger');
     const cargoAirlineCards = airlines.filter((item) => item.type === 'cargo');
+    const generalAirlineCards = airlines.filter((item) => item.type === 'general');
 
     const sortAirlineList = (list) => list.sort((a, b) => {
         if (b.total !== a.total) return b.total - a.total;
@@ -1690,6 +1716,7 @@ function displaySummaryTable(flights) {
     });
     sortAirlineList(passengerAirlineCards);
     sortAirlineList(cargoAirlineCards);
+    sortAirlineList(generalAirlineCards);
 
     const airlineDataMap = new Map();
     airlines.forEach((item) => airlineDataMap.set(item.airline, item));
@@ -1810,25 +1837,24 @@ function displaySummaryTable(flights) {
     };
 
     const totalFlights = totals.flights;
-    let passengerFlightTotal = totals.passengerFlights || 0;
-    let cargoFlightTotal = totals.cargoFlights || 0;
-    if ((passengerFlightTotal + cargoFlightTotal) !== totalFlights) {
-        const delta = totalFlights - (passengerFlightTotal + cargoFlightTotal);
-        cargoFlightTotal = Math.max(0, Math.min(totalFlights, cargoFlightTotal + delta));
-        passengerFlightTotal = Math.max(0, totalFlights - cargoFlightTotal);
-    }
+    const totalOperations = totals.arrivals + totals.departures;
+    const passengerOperations = totals.passengerOps.arrivals + totals.passengerOps.departures;
+    const cargoOperations = totals.cargoOps.arrivals + totals.cargoOps.departures;
+    const generalOperations = totals.generalOps.arrivals + totals.generalOps.departures;
+    const summarySubtitle = `Incluye ${formatNumber(totals.arrivals)} llegadas y ${formatNumber(totals.departures)} salidas (${formatNumber(totalFlights)} vuelos listados).`;
     let html = `
     <div class="card summary-total-card mb-3">
         <div class="card-body d-flex flex-wrap align-items-center gap-3">
             <div class="summary-total-icon"><i class="fas fa-chart-line"></i></div>
             <div>
                 <div class="summary-total-title">Operaciones del día</div>
-                <div class="summary-total-sub">Resultados con los filtros aplicados</div>
+                <div class="summary-total-sub">${summarySubtitle}</div>
             </div>
             <div class="summary-total-stats ms-auto d-flex flex-wrap gap-2">
-                <span class="summary-pill summary-pill-total"><i class="fas fa-plane"></i>Total ${formatNumber(totalFlights)}</span>
-                <span class="summary-pill summary-pill-passenger"><i class="fas fa-users"></i>Pasajeros ${formatNumber(passengerFlightTotal)}</span>
-                <span class="summary-pill summary-pill-cargo"><i class="fas fa-box-open"></i>Carga ${formatNumber(cargoFlightTotal)}</span>
+                <span class="summary-pill summary-pill-total" title="Llegadas + salidas"><i class="fas fa-plane"></i>Operaciones ${formatNumber(totalOperations)}</span>
+                <span class="summary-pill summary-pill-passenger" title="Llegadas + salidas de vuelos de pasajeros"><i class="fas fa-users"></i>Pasajeros ${formatNumber(passengerOperations)}</span>
+                <span class="summary-pill summary-pill-cargo" title="Llegadas + salidas de vuelos de carga"><i class="fas fa-box-open"></i>Carga ${formatNumber(cargoOperations)}</span>
+                ${generalOperations > 0 ? `<span class="summary-pill summary-pill-general" title="Llegadas + salidas de aviación general"><i class="fas fa-paper-plane"></i>General ${formatNumber(generalOperations)}</span>` : ''}
             </div>
         </div>
     </div>`;
@@ -1863,6 +1889,7 @@ function displaySummaryTable(flights) {
     html += '<div class="summary-airline-sections">';
     html += renderAirlineSection('Pasajeros', passengerAirlineCards, 'passenger');
     html += renderAirlineSection('Carga', cargoAirlineCards, 'cargo');
+    html += renderAirlineSection('General', generalAirlineCards, 'general');
     html += '</div>';
     html += '<div id="summary-airline-detail" class="mt-4"></div>';
 
@@ -2944,6 +2971,40 @@ function detectChartErrors() {
 function renderOperacionesTotales() {
     try {
         const theme = getChartColors();
+        const aifa = window.AIFA || {};
+        const formatCompact = aifa.formatCompact || ((value, kind = 'int') => {
+            const num = Number(value || 0);
+            const abs = Math.abs(num);
+            if (kind === 'ton') {
+                if (abs >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+                const decimals = abs < 10 ? 2 : 1;
+                return num.toLocaleString('es-MX', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+            }
+            if (kind === 'pax' || kind === 'int') {
+                if (abs >= 1_000_000) return (num / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+                if (abs >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+                return Math.round(num).toLocaleString('es-MX');
+            }
+            return Math.round(num).toLocaleString('es-MX');
+        });
+        const formatFull = aifa.formatFull || ((value, kind = 'int') => {
+            const num = Number(value || 0);
+            if (kind === 'ton') {
+                return num.toLocaleString('es-MX', { maximumFractionDigits: 3 });
+            }
+            return Math.round(num).toLocaleString('es-MX');
+        });
+        const hexToRgba = aifa.hexToRgba || ((hex, alpha = 1) => {
+            try {
+                const clean = (hex || '').toString().trim().replace('#', '');
+                const r = parseInt(clean.slice(0, 2), 16) || 0;
+                const g = parseInt(clean.slice(2, 4), 16) || 0;
+                const b = parseInt(clean.slice(4, 6), 16) || 0;
+                return `rgba(${r},${g},${b},${alpha})`;
+            } catch (err) {
+                return `rgba(0,0,0,${alpha})`;
+            }
+        });
 
         // Helpers de colores con gradientes por canvas
             function makeGradient(canvas, c1, c2){
@@ -3463,41 +3524,94 @@ window.renderOperacionesTotales = renderOperacionesTotales;
 
 function updateOpsSummary() {
     try {
-        const el = document.getElementById('ops-summary'); if (!el) return;
-        if (!el) return;
-        const monthly = opsUIState.monthly2025;
-        if (!monthly) {
-            // Resumen del último año seleccionado (o 2025 si está)
+        const container = document.getElementById('ops-summary');
+        if (!container) return;
+
+        const fmtInt = (value) => Number(value || 0).toLocaleString('es-MX');
+        const fmtTon = (value) => Number(value || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+        const makeCard = (iconClass, label, value, subLabel, extraClasses = []) => {
+            const classes = ['ops-summary-pill', ...extraClasses.filter(Boolean)].join(' ');
+            return `
+            <div class="${classes}" role="group" aria-label="${label}">
+                <span class="pill-icon"><i class="${iconClass}" aria-hidden="true"></i></span>
+                <div class="pill-text">
+                    <span class="pill-label">${label}</span>
+                    <span class="pill-value">${value}</span>
+                    ${subLabel ? `<span class="pill-sub">${subLabel}</span>` : ''}
+                </div>
+            </div>`;
+        };
+
+        let headerMarkup = '';
+        let captionMarkup = '';
+        let cards = [];
+
+        if (!opsUIState.monthly2025) {
             const yData = staticData.operacionesTotales;
             const years = Array.from(opsUIState.years).sort();
-            const lastYear = years.includes('2025') ? '2025' : years[years.length-1];
-            const c = yData.comercial.find(d => String(d.periodo) === String(lastYear)) || {};
-            const k = yData.carga.find(d => String(d.periodo) === String(lastYear)) || {};
-            const g = yData.general.find(d => String(d.periodo) === String(lastYear)) || {};
-            el.innerHTML = `<span>Año ${lastYear}</span>
-                <span>· Comercial: <strong>${(c.operaciones||0).toLocaleString('es-MX')}</strong> ops</span>
-                <span>· Pax: <strong>${(c.pasajeros||0).toLocaleString('es-MX')}</strong></span>
-                <span>· Carga: <strong>${(k.operaciones||0).toLocaleString('es-MX')}</strong> ops</span>
-                <span>· Ton: <strong>${(k.toneladas||0).toLocaleString('es-MX')}</strong></span>
-                <span>· General: <strong>${(g.operaciones||0).toLocaleString('es-MX')}</strong> ops</span>`;
+            if (!years.length) {
+                container.innerHTML = '<div class="ops-summary-empty text-muted">Selecciona al menos un año para ver el resumen.</div>';
+                return;
+            }
+            const lastYear = years.includes('2025') ? '2025' : years[years.length - 1];
+            const commercial = yData.comercial.find(d => String(d.periodo) === String(lastYear)) || {};
+            const cargo = yData.carga.find(d => String(d.periodo) === String(lastYear)) || {};
+            const general = yData.general.find(d => String(d.periodo) === String(lastYear)) || {};
+
+            headerMarkup = `<span class="ops-summary-chip"><i class="fas fa-calendar-alt me-2" aria-hidden="true"></i>Año ${lastYear}</span>`;
+            captionMarkup = `<span class="ops-summary-caption"><i class="fas fa-chart-line me-1" aria-hidden="true"></i>Periodos seleccionados: ${years.join(' · ')}</span>`;
+            cards = [
+                makeCard('fas fa-plane-departure', 'Comercial', fmtInt(commercial.operaciones || 0), 'Operaciones', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-ops']),
+                makeCard('fas fa-user-friends', 'Comercial', fmtInt(commercial.pasajeros || 0), 'Pasajeros', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-passengers']),
+                makeCard('fas fa-box-open', 'Carga', fmtInt(cargo.operaciones || 0), 'Operaciones', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ops']),
+                makeCard('fas fa-weight-hanging', 'Carga', fmtTon(cargo.toneladas || 0), 'Toneladas', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ton']),
+                makeCard('fas fa-paper-plane', 'General', fmtInt(general.operaciones || 0), 'Operaciones', ['ops-summary-pill--general', 'ops-summary-pill--metric-ops']),
+                makeCard('fas fa-user-check', 'General', fmtInt(general.pasajeros || 0), 'Pasajeros', ['ops-summary-pill--general', 'ops-summary-pill--metric-passengers'])
+            ];
         } else {
-            const m = staticData.mensual2025;
+            const monthly = staticData.mensual2025;
             const months = Array.from(opsUIState.months2025).sort();
-            const sum = (arr, key) => arr.filter(x=>months.includes(x.mes)).reduce((a,b)=> a + (Number(b[key]||0)), 0);
-            const cOps = sum(m.comercial, 'operaciones');
-            const cPax = sum(m.comercialPasajeros, 'pasajeros');
-            const kOps = sum(m.carga, 'operaciones');
-            const kTon = sum(m.cargaToneladas, 'toneladas');
-            const gOps = sum(m.general.operaciones, 'operaciones');
-            const gPax = sum(m.general.pasajeros, 'pasajeros');
-            el.innerHTML = `<span>2025 (${months.length} meses)</span>
-                <span>· Comercial: <strong>${cOps.toLocaleString('es-MX')}</strong> ops</span>
-                <span>· Pax: <strong>${cPax.toLocaleString('es-MX')}</strong></span>
-                <span>· Carga: <strong>${kOps.toLocaleString('es-MX')}</strong> ops</span>
-                <span>· Ton: <strong>${kTon.toLocaleString('es-MX')}</strong></span>
-                <span>· General: <strong>${gOps.toLocaleString('es-MX')}</strong> ops</span>
-                <span>· Pax Gen: <strong>${gPax.toLocaleString('es-MX')}</strong></span>`;
+            if (!months.length) {
+                container.innerHTML = '<div class="ops-summary-empty text-muted">Selecciona al menos un mes de 2025 para ver el resumen.</div>';
+                return;
+            }
+            const sum = (arr, key) => arr.filter(item => months.includes(item.mes)).reduce((acc, item) => acc + (Number(item[key] || 0)), 0);
+            const commercialOps = sum(monthly.comercial, 'operaciones');
+            const commercialPax = sum(monthly.comercialPasajeros, 'pasajeros');
+            const cargoOps = sum(monthly.carga, 'operaciones');
+            const cargoTon = sum(monthly.cargaToneladas, 'toneladas');
+            const generalOps = sum(monthly.general.operaciones, 'operaciones');
+            const generalPax = sum(monthly.general.pasajeros, 'pasajeros');
+
+            const monthLabels = months.map(code => {
+                const source = monthly.comercial.find(entry => entry.mes === code) || monthly.carga.find(entry => entry.mes === code) || {};
+                return source.label || code;
+            });
+            const listPreview = monthLabels.slice(0, 4).join(', ');
+            const extraCount = monthLabels.length - 4;
+            const extraLabel = extraCount > 0 ? ` y +${extraCount}` : '';
+
+            headerMarkup = `<span class="ops-summary-chip"><i class="fas fa-calendar-week me-2" aria-hidden="true"></i>2025 · ${months.length} ${months.length === 1 ? 'mes' : 'meses'}</span>`;
+            captionMarkup = `<span class="ops-summary-caption"><i class="fas fa-layer-group me-1" aria-hidden="true"></i>Meses seleccionados: ${listPreview || months.join(', ')}${extraLabel}</span>`;
+            cards = [
+                makeCard('fas fa-plane-departure', 'Comercial', fmtInt(commercialOps), 'Operaciones acumuladas', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-ops']),
+                makeCard('fas fa-user-friends', 'Comercial', fmtInt(commercialPax), 'Pasajeros acumulados', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-passengers']),
+                makeCard('fas fa-box-open', 'Carga', fmtInt(cargoOps), 'Operaciones acumuladas', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ops']),
+                makeCard('fas fa-weight-hanging', 'Carga', fmtTon(cargoTon), 'Toneladas acumuladas', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ton']),
+                makeCard('fas fa-paper-plane', 'General', fmtInt(generalOps), 'Operaciones acumuladas', ['ops-summary-pill--general', 'ops-summary-pill--metric-ops']),
+                makeCard('fas fa-user-check', 'General', fmtInt(generalPax), 'Pasajeros acumulados', ['ops-summary-pill--general', 'ops-summary-pill--metric-passengers'])
+            ];
         }
+
+        container.innerHTML = `
+            <div class="ops-summary-wrapper">
+                ${headerMarkup}
+                ${captionMarkup}
+                <div class="ops-summary-grid">
+                    ${cards.join('')}
+                </div>
+            </div>
+        `;
     } catch (e) { /* ignore */ }
 }
 
