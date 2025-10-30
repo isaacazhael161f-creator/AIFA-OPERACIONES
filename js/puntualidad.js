@@ -47,11 +47,12 @@
     function logoHtmlFor(airline){
       try {
         if (typeof window.getAirlineLogoCandidates !== 'function') return '';
-        const cands = window.getAirlineLogoCandidates(airline) || [];
+        const cands = (window.getAirlineLogoCandidates(airline) || []).filter(path => !/default-airline-logo/i.test(path));
+        if (!cands.length) return '';
         const logoPath = cands[0];
+        if (!logoPath) return '';
         const dataCands = cands.join('|');
         const sizeClass = (typeof window.getLogoSizeClass === 'function') ? window.getLogoSizeClass(airline, 'summary') : 'lg';
-        if (!logoPath) return '';
         return `<img class="airline-logo ${sizeClass} me-2" src="${logoPath}" alt="Logo ${airline}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">`;
       } catch(_) { return ''; }
     }
@@ -147,11 +148,12 @@
       let logoHtml = '';
       try {
         if (typeof window.getAirlineLogoCandidates === 'function') {
-          const cands = window.getAirlineLogoCandidates(r.aerolinea || '') || [];
+          const raw = window.getAirlineLogoCandidates(r.aerolinea || '') || [];
+          const cands = raw.filter(path => !/default-airline-logo/i.test(path));
           const logoPath = cands[0];
-          const dataCands = cands.join('|');
-          const sizeClass = (typeof window.getLogoSizeClass === 'function') ? window.getLogoSizeClass(r.aerolinea || '', 'table') : 'lg';
           if (logoPath) {
+            const dataCands = cands.join('|');
+          const sizeClass = (typeof window.getLogoSizeClass === 'function') ? window.getLogoSizeClass(r.aerolinea || '', 'table') : 'lg';
             logoHtml = `<img class="airline-logo ${sizeClass}" src="${logoPath}" alt="Logo ${r.aerolinea || ''}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">`;
           }
         }

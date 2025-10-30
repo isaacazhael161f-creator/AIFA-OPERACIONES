@@ -1910,6 +1910,11 @@ function displaySummaryTable(flights) {
         return;
     }
 
+    const renderEmptyDetail = (message) => {
+        const text = message || 'Selecciona una aerolínea o posición para ver el detalle.';
+        detailEl.innerHTML = `<div class="alert alert-info">${escapeHtml(text)}</div>`;
+    };
+
     const cards = Array.from(container.querySelectorAll('.summary-airline-card'));
     const positionBadges = Array.from(container.querySelectorAll('.summary-position-badge'));
     const positionDataMap = new Map();
@@ -1983,7 +1988,7 @@ function displaySummaryTable(flights) {
 
     const renderAirlineDetail = (item) => {
         if (!item) {
-            detailEl.innerHTML = '<div class="alert alert-info">Selecciona una aerolínea para ver el detalle.</div>';
+            renderEmptyDetail('Selecciona una aerolínea para ver el detalle.');
             return;
         }
         const rows = buildFlightRows(item.flights);
@@ -2042,7 +2047,7 @@ function displaySummaryTable(flights) {
 
     const renderPositionDetail = (item) => {
         if (!item) {
-            detailEl.innerHTML = '<div class="alert alert-info">Selecciona una posición para ver el detalle.</div>';
+            renderEmptyDetail('Selecciona una posición para ver el detalle.');
             return;
         }
         const rows = buildFlightRows(item.flights);
@@ -2185,78 +2190,58 @@ function displaySummaryTable(flights) {
     };
 
     const ensureDetailVisible = () => {
-        let detailRendered = false;
+        const hasAirlineSelection = summarySelectedAirline && airlineDataMap.has(summarySelectedAirline);
+        const hasPositionSelection = summarySelectedPosition && positionDataMap.has(summarySelectedPosition);
 
-        if (summaryDetailMode === 'position' && summarySelectedPosition) {
-            const selectedPosition = positionDataMap.get(summarySelectedPosition);
-            if (selectedPosition) {
-                setActiveCard(null);
-                setActivePosition(summarySelectedPosition);
-                renderPositionDetail(selectedPosition);
-                detailRendered = true;
-            }
+        if (summarySelectionLocked && summaryDetailMode === 'airline' && hasAirlineSelection) {
+            setActiveCard(summarySelectedAirline);
+            setActivePosition(null);
+            renderAirlineDetail(airlineDataMap.get(summarySelectedAirline));
+            return;
         }
 
-        if (!detailRendered) {
-            let defaultAirline = summarySelectedAirline && airlineDataMap.has(summarySelectedAirline)
-                ? summarySelectedAirline
-                : null;
-            if (!defaultAirline) {
-                if (passengerAirlineCards.length) defaultAirline = passengerAirlineCards[0].airline;
-                else if (cargoAirlineCards.length) defaultAirline = cargoAirlineCards[0].airline;
-            }
-            if (defaultAirline && airlineDataMap.has(defaultAirline)) {
-                summaryDetailMode = 'airline';
-                summarySelectedAirline = defaultAirline;
-                summarySelectedPosition = null;
-                setActivePosition(null);
-                setActiveCard(defaultAirline);
-                renderAirlineDetail(airlineDataMap.get(defaultAirline));
-                detailRendered = true;
-            }
+        if (summarySelectionLocked && summaryDetailMode === 'position' && hasPositionSelection) {
+            setActiveCard(null);
+            setActivePosition(summarySelectedPosition);
+            renderPositionDetail(positionDataMap.get(summarySelectedPosition));
+            return;
         }
 
-        if (!detailRendered && positions.length) {
-            const firstPosition = positions[0].position;
-            const data = positionDataMap.get(firstPosition);
-            if (data) {
-                summaryDetailMode = 'position';
-                summarySelectedPosition = firstPosition;
-                summarySelectedAirline = null;
-                setActiveCard(null);
-                setActivePosition(firstPosition);
-                renderPositionDetail(data);
-                detailRendered = true;
-            }
+        if (summarySelectionLocked) {
+            summarySelectionLocked = false;
         }
-
-        if (!detailRendered) {
-            detailEl.innerHTML = '<div class="alert alert-info">No hay información para mostrar.</div>';
-            summaryDetailMode = 'airline';
-            summarySelectedAirline = null;
-            summarySelectedPosition = null;
-        }
+        summaryDetailMode = 'airline';
+        summarySelectedAirline = null;
+        summarySelectedPosition = null;
+        setActiveCard(null);
+        setActivePosition(null);
+        renderEmptyDetail();
     };
 
     cards.forEach((card) => {
         const airlineName = card.dataset.airline;
         if (!airlineName) return;
-        const showDetail = () => {
+        const toggleDetail = () => {
             if (!airlineDataMap.has(airlineName)) return;
-            summaryDetailMode = 'airline';
-            summarySelectedAirline = airlineName;
-            summarySelectedPosition = null;
-            summarySelectionLocked = true;
-            setActivePosition(null);
-            setActiveCard(airlineName);
-            renderAirlineDetail(airlineDataMap.get(airlineName));
+            const isActive = summarySelectionLocked && summaryDetailMode === 'airline' && summarySelectedAirline === airlineName;
+            if (isActive) {
+                summarySelectionLocked = false;
+                summarySelectedAirline = null;
+                summarySelectedPosition = null;
+            } else {
+                summaryDetailMode = 'airline';
+                summarySelectedAirline = airlineName;
+                summarySelectedPosition = null;
+                summarySelectionLocked = true;
+            }
+            ensureDetailVisible();
             updateSelectionLayout();
         };
-        card.addEventListener('click', showDetail);
+        card.addEventListener('click', toggleDetail);
         card.addEventListener('keypress', (ev) => {
             if (ev.key === 'Enter' || ev.key === ' ') {
                 ev.preventDefault();
-                showDetail();
+                toggleDetail();
             }
         });
     });

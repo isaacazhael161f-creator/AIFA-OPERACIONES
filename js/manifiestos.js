@@ -15,6 +15,46 @@
   let _cpItems = [];
   let _cpCurrentQuery = '';
 
+  const FORCED_AIRPORT_MAIN_CODE = 'NLU';
+  const MEXICO_IATA_FALLBACK = new Set([
+    'ACA','AGU','BJX','CED','CEN','CJS','CLQ','CME','CPE','CTM','CUL','CUN','CVM','CYW','CZM','DGO','GDL','HMO','HUX','ICD','IZT','JJC','LAP','LMM','LTO','MAM','MEX','MID','MLM','MTT','MTY','MXL','MZT','NLD','NLU','OAX','PAZ','PCA','PBC','PDS','PQM','PVR','PXM','QRO','REX','SJD','SLP','SLW','TAM','TAP','TGZ','TIJ','TLC','TQO','TRC','TPQ','UPN','VER','VSA','ZCL','ZIH','ZLO'
+  ]);
+  try {
+    const dedup = new Set();
+    MEXICO_IATA_FALLBACK.forEach(code=>{ if (code) dedup.add(String(code).trim().toUpperCase()); });
+    MEXICO_IATA_FALLBACK.clear();
+    dedup.forEach(code=> MEXICO_IATA_FALLBACK.add(code));
+    MEXICO_IATA_FALLBACK.add(FORCED_AIRPORT_MAIN_CODE);
+  } catch(_){ }
+  const MEXICO_COUNTRY_NAME = 'MEXICO';
+
+  function forceAirportMainValue(){
+    try {
+      const el = document.getElementById('mf-airport-main');
+      if (!el) return;
+      if (!el._forceNLUHandler){
+        const enforce = ()=>{
+          try {
+            const forced = FORCED_AIRPORT_MAIN_CODE;
+            const current = ((el.value || '')).toString().trim().toUpperCase();
+            if (current === forced) return;
+            el.value = forced;
+            try { el.dispatchEvent(new Event('input',{ bubbles:true })); } catch(_){ }
+            try { el.dispatchEvent(new Event('change',{ bubbles:true })); } catch(_){ }
+          } catch(_){ }
+        };
+        el._forceNLUHandler = enforce;
+        ['input','change','blur'].forEach(ev=> el.addEventListener(ev, enforce));
+      }
+      const forced = FORCED_AIRPORT_MAIN_CODE;
+      const current = ((el.value || '')).toString().trim().toUpperCase();
+      if (current === forced) return;
+      el.value = forced;
+      try { el.dispatchEvent(new Event('input',{ bubbles:true })); } catch(_){ }
+      try { el.dispatchEvent(new Event('change',{ bubbles:true })); } catch(_){ }
+    } catch(_){ }
+  }
+
   const _escapeHtml = (str)=> String(str ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[ch]));
   const _normalize = (str)=> (str||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]+/gi,' ').toUpperCase();
   const _sortItems = (items)=> [...(items||[])].sort((a,b)=>{
@@ -800,7 +840,7 @@
       try { const a = it?.meta; if (!a) return; input.value = (a.icao||'').toUpperCase(); const el = document.getElementById('mf-airline'); if (el && a.name) el.value = a.name; } catch(_){ }
     }});
     // Aeropuerto principal (Llegada/Salida)
-  window._mfAttachCatalogButton('mf-airport-main', { load:'airports', onPick:(it, input)=>{ try { const a=it?.meta; if (!a) return; input.value = (a.iata||'').toUpperCase(); } catch(_){ } }});
+  window._mfAttachCatalogButton('mf-airport-main', { load:'airports', onPick:(it, input)=>{ try { forceAirportMainValue(); } catch(_){ } }});
   } catch(_){ }
   try {
     // Aeropuertos: code/name pairs
@@ -1826,8 +1866,12 @@
   let typeByCode = new Map();
   let typeIcaoSet = new Set();
   let icaoToTypeName = new Map();
-      let airportByIATA = new Map();
-      let airportByName = new Map();
+    let airportByIATA = new Map();
+    let airportMetaByIATA = new Map();
+    let airportByName = new Map();
+    let airportByICAO = new Map();
+    let airportMetaByICAO = new Map();
+    let icaoToIata = new Map();
   let iataSet = new Set();
   // Evitar falsos positivos de palabras comunes en español o abreviaturas que no son IATA
   let iataStopwords = new Set(['DEL','LIC','AER','INT']);
@@ -1922,6 +1966,10 @@
         if (!el) return;
         // Respect locked fields (candado): don't overwrite programmatically
         if (el.dataset && el.dataset.locked === '1') return;
+        if (id === 'mf-airport-main'){
+          forceAirportMainValue();
+          return;
+        }
         // If it's a managed time field, handle N/A state and 24h normalization
         if (window._mfTimeFieldIds && window._mfTimeFieldIds.has(id)){
           const isNA = (String(v||'').trim().toUpperCase() === 'N/A');
@@ -1951,13 +1999,26 @@
           _ensureTimeAttrs(id);
           // Create a small NA checkbox; place it immediately after the input
           const wrap = input.parentElement;
-          const label = document.createElement('label'); label.className = 'form-check-label ms-2 d-inline-flex align-items-center'; label.style.userSelect='none';
-          const cb = document.createElement('input'); cb.type='checkbox'; cb.className='form-check-input me-1'; cb.id = id+'-na'; cb.title='No aplica (N/A)';
-          label.appendChild(cb); label.appendChild(document.createTextNode('N/A'));
-          if (wrap && !wrap.querySelector('#'+cb.id)) {
-            // Insert right after the input, before any help text
-            input.insertAdjacentElement('afterend', label);
+          let cb = document.getElementById(id+'-na');
+          if (!cb){
+            const label = document.createElement('label');
+            label.className = 'form-check-label ms-2 d-inline-flex align-items-center';
+            label.style.userSelect = 'none';
+            cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.className = 'form-check-input me-1';
+            cb.id = id+'-na';
+            cb.title = 'No aplica (N/A)';
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode('N/A'));
+            if (wrap){
+              input.insertAdjacentElement('afterend', label);
+            }
+          } else {
+            if (!cb.classList.contains('form-check-input')) cb.classList.add('form-check-input');
+            if (cb.classList.contains('me-1') === false) cb.classList.add('me-1');
           }
+          if (!cb) return;
           const syncFromCb = ()=>{
             if (cb.checked){
               input.dataset.na='1';
@@ -1995,6 +2056,137 @@
       }
       function hasWordFactory(text){ const U=(text||'').toUpperCase(); return (w)=> U.includes(String(w||'').toUpperCase()); }
       function tokenizeUpper(text){ return (text||'').toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean); }
+  const FOREIGN_NAME_HINTS = /(USA|U\.?S\.?A|UNITED\s+STATES(?:\s+OF\s+AMERICA)?|ESTADOS\s+UNIDOS|EUA|EE\.?UU\.?(?:\.?|\b)|CANADA|CANADÁ|COLOMBIA|PERÚ|PERU|CHILE|ARGENTINA|BRASIL|BRAZIL|ECUADOR|BOLIVIA|PARAGUAY|URUGUAY|VENEZUELA|CUBA|PUERTO\s+RICO|JAMAICA|ESPAÑA|SPAIN|FRANCIA|FRANCE|REINO\s+UNIDO|UNITED\s+KINGDOM|INGLATERRA|ITALIA|GERMANY|ALEMANIA|HOLANDA|NETHERLANDS|CHINA|JAP(?:Ó|O)N|KOREA|COREA|INDIA|QATAR|PANAM(?:A|Á)|GUATEMALA|HONDURAS|NICARAGUA|SALVADOR|HAIT[IÍ]|REP(?:Ú|U)BLICA\s+DOMINICANA|DOMINICAN\s+REPUBLIC|COSTA\s+RICA|BELICE|BELIZE|CANARIAS|ISLAS\s+CANARIAS|CROACIA|POLONIA|RUSIA|RUSSIA|ALEUTIAN)/i;
+  function getAirportMeta(iata){ try { return airportMetaByIATA.get((iata||'').toString().toUpperCase()) || null; } catch(_){ return null; } }
+      function normalizeIATA(code){ return (code||'').toString().toUpperCase().replace(/[^A-Z]/g,'').slice(0,3); }
+      function determineOperationTypeFromSources(mainCode, codeCandidates, nameCandidates){
+        try {
+          const metaByIATA = (typeof airportMetaByIATA !== 'undefined' && airportMetaByIATA) || (typeof window !== 'undefined' && window.airportMetaByIATA) || null;
+          const metaByICAO = (typeof airportMetaByICAO !== 'undefined' && airportMetaByICAO) || (typeof window !== 'undefined' && window.airportMetaByICAO) || null;
+          const namesMap = (typeof airportByName !== 'undefined' && airportByName) || (typeof window !== 'undefined' && window.airportByName) || null;
+          const mapIataToIcao = (typeof iataToIcao !== 'undefined' && iataToIcao) || (typeof window !== 'undefined' && window.iataToIcao) || null;
+          const mapIcaoToIata = (typeof icaoToIata !== 'undefined' && icaoToIata) || (typeof window !== 'undefined' && window.icaoToIata) || null;
+
+          const seenTokens = new Set();
+          const unresolvedTokens = new Set();
+          let hasMexicoEvidence = false;
+          let hasForeignEvidence = false;
+
+          const noteMexico = ()=>{ hasMexicoEvidence = true; };
+          const noteForeign = ()=>{ hasForeignEvidence = true; };
+          const noteUnknown = (token)=>{ if (token) unresolvedTokens.add(token); };
+          const toUpper = (val)=> (val||'').toString().trim().toUpperCase();
+
+          const considerCountry = (country)=>{
+            const norm = toUpper(country);
+            if (!norm) return false;
+            if (norm === MEXICO_COUNTRY_NAME){ noteMexico(); return true; }
+            noteForeign(); return true;
+          };
+
+          const resolveIATAFromName = (name)=>{
+            try {
+              const raw = (name||'').toString().trim();
+              if (!raw) return '';
+              let iata = '';
+              try {
+                if (typeof window !== 'undefined' && typeof window._mfLookupIATAByName === 'function'){
+                  iata = window._mfLookupIATAByName(raw) || '';
+                }
+              } catch(_){ }
+              if (!iata && namesMap && typeof namesMap.get === 'function'){
+                iata = namesMap.get(raw.toLowerCase()) || '';
+              }
+              if (!iata && typeof window !== 'undefined'){
+                const idx = window.airportNameIndex;
+                if (Array.isArray(idx)){
+                  const norm = raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/gi,' ').replace(/\s+/g,' ').trim().toLowerCase();
+                  const hit = idx.find(entry => entry && entry.norm === norm);
+                  if (hit && hit.iata) iata = hit.iata;
+                }
+              }
+              return iata ? iata.toUpperCase() : '';
+            } catch(_){ return ''; }
+          };
+
+          const analyzeCodeToken = (raw)=>{
+            try {
+              if (raw == null) return;
+              const cleaned = toUpper(raw).replace(/[^A-Z0-9]/g,'');
+              if (!cleaned || cleaned.length < 3) return;
+              if (iataStopwords && typeof iataStopwords.has === 'function' && iataStopwords.has(cleaned)) return;
+              if (seenTokens.has(cleaned)) return;
+              seenTokens.add(cleaned);
+
+              if (cleaned.length === 3){
+                if (MEXICO_IATA_FALLBACK && typeof MEXICO_IATA_FALLBACK.has === 'function' && MEXICO_IATA_FALLBACK.has(cleaned)){ noteMexico(); return; }
+                const meta = metaByIATA && typeof metaByIATA.get === 'function' ? metaByIATA.get(cleaned) : null;
+                if (meta && considerCountry(meta.country)) return;
+                const icao = mapIataToIcao && typeof mapIataToIcao.get === 'function' ? mapIataToIcao.get(cleaned) : '';
+                if (icao){ analyzeCodeToken(icao); return; }
+                noteUnknown(cleaned);
+                return;
+              }
+
+              if (cleaned.length === 4){
+                const metaIcao = metaByICAO && typeof metaByICAO.get === 'function' ? metaByICAO.get(cleaned) : null;
+                if (metaIcao && considerCountry(metaIcao.country)){
+                  if (metaIcao.iata) analyzeCodeToken(metaIcao.iata);
+                  return;
+                }
+                if (/^MM[A-Z0-9]{2}$/.test(cleaned)){ noteMexico(); return; }
+                const mappedIATA = mapIcaoToIata && typeof mapIcaoToIata.get === 'function' ? mapIcaoToIata.get(cleaned) : '';
+                if (mappedIATA){ analyzeCodeToken(mappedIATA); return; }
+                noteUnknown(cleaned);
+                return;
+              }
+
+              if (cleaned.length > 4){
+                for (let i = 0; i <= cleaned.length - 3; i++){
+                  analyzeCodeToken(cleaned.slice(i, i + 3));
+                }
+                return;
+              }
+
+              noteUnknown(cleaned);
+            } catch(_){ }
+          };
+
+          const analyzeName = (raw)=>{
+            try {
+              const trimmed = (raw||'').toString().trim();
+              if (!trimmed) return;
+              if (/M[EÉ]XICO/i.test(trimmed) || /\bNACIONAL\b/i.test(trimmed)) noteMexico();
+              if (FOREIGN_NAME_HINTS.test(trimmed)) noteForeign();
+              const resolved = resolveIATAFromName(trimmed);
+              if (resolved) analyzeCodeToken(resolved);
+              const upper = trimmed.toUpperCase();
+              const tokens = upper.match(/[A-Z]{3,4}/g);
+              if (tokens){
+                tokens.forEach(tok=>{
+                  if (iataStopwords && typeof iataStopwords.has === 'function' && iataStopwords.has(tok)) return;
+                  analyzeCodeToken(tok);
+                });
+              }
+            } catch(_){ }
+          };
+
+          const processCodeField = (value)=>{
+            if (value == null) return;
+            const str = String(value);
+            analyzeCodeToken(str);
+            str.split(/[^A-Z0-9]+/i).forEach(token=> analyzeCodeToken(token));
+          };
+
+          analyzeCodeToken(mainCode || FORCED_AIRPORT_MAIN_CODE);
+          if (Array.isArray(codeCandidates)) codeCandidates.forEach(processCodeField);
+          if (Array.isArray(nameCandidates)) nameCandidates.forEach(analyzeName);
+
+          if (hasForeignEvidence) return 'Internacional';
+          if (hasMexicoEvidence && unresolvedTokens.size === 0) return 'Doméstica';
+          return '';
+        } catch(_){ return ''; }
+      }
   // Time patterns: HH:MM, HH.MM, HHhMM, H:MM, and compact HHMM (24h)
   const timeRx = /\b(?:([01]?\d|2[0-3])[:hH\.]\s?([0-5]\d)|([01]?\d|2[0-3])([0-5]\d))\b(?:\s?(?:hrs|hr|h))?/;
       function findNearLabelValue(labels, valueRegex, text){
@@ -2633,7 +2825,6 @@
       }
       async function loadAirportsCatalog(){
         try {
-          if (location && location.protocol === 'file:') return; // skip fetch under file:// to avoid errors
           const res = await fetch('data/master/airports.csv', { cache:'no-store' });
           const text = await res.text();
           const lines = text.split(/\r?\n/).filter(l=>l.trim());
@@ -2649,11 +2840,19 @@
             }
             cols.push(cur); return cols;
           }
+          airportByIATA.clear();
+          airportByName.clear();
+          iataSet.clear();
+          airportMetaByIATA.clear();
+          airportByICAO.clear();
+          airportMetaByICAO.clear();
+          icaoToIata.clear();
           const optsIATA = [], optsName = [];
           for (let i=1;i<lines.length;i++){
             const parts = parseCSVLine(lines[i]);
             if (parts.length < 3) continue;
             const IATA = (parts[0]||'').trim().toUpperCase();
+            const ICAO = (parts[1]||'').trim().toUpperCase();
             const Name = (parts[2]||'').trim().replace(/^\"|\"$/g,'');
             const Country = (parts[3]||'').trim();
             const Security = (parts[5]||'').trim();
@@ -2661,7 +2860,15 @@
             airportByIATA.set(IATA, Name);
             airportByName.set(Name.toLowerCase(), IATA);
             iataSet.add(IATA);
+            try {
+              if ((Country||'').toString().trim().toUpperCase() === MEXICO_COUNTRY_NAME){ MEXICO_IATA_FALLBACK.add(IATA); }
+            } catch(_){ }
             try { airportMetaByIATA.set(IATA, { name: Name, country: Country, security: Security }); } catch(_){ }
+            if (ICAO){
+              try { airportByICAO.set(ICAO, Name); } catch(_){ }
+              try { icaoToIata.set(ICAO, IATA); } catch(_){ }
+              try { airportMetaByICAO.set(ICAO, { name: Name, country: Country, security: Security, iata: IATA }); } catch(_){ }
+            }
             optsIATA.push(`<option value="${IATA}">${Name}</option>`);
             optsName.push(`<option value="${Name}">${IATA}</option>`);
           }
@@ -2669,9 +2876,41 @@
           const dlName = document.getElementById('airports-name-list');
           if (dlIATA) dlIATA.innerHTML = optsIATA.join('');
           if (dlName) dlName.innerHTML = optsName.join('');
+          try {
+            window.airportByIATA = airportByIATA;
+            window.airportByName = airportByName;
+            window.airportMetaByIATA = airportMetaByIATA;
+            window.airportByICAO = airportByICAO;
+            window.airportMetaByICAO = airportMetaByICAO;
+            window.icaoToIata = icaoToIata;
+          } catch(_){ }
           // Recalcular Tipo de Operación tras cargar catálogo
           try { if (typeof window._mfComputeOperationType === 'function') window._mfComputeOperationType(); } catch(_){ }
-        } catch(e){ console.warn('No se pudo cargar airports.csv', e); }
+        } catch(e){
+          console.warn('No se pudo cargar airports.csv', e);
+          try {
+            if (MEXICO_IATA_FALLBACK && typeof MEXICO_IATA_FALLBACK.forEach === 'function'){
+              const opts = [];
+              MEXICO_IATA_FALLBACK.forEach(code=>{
+                const c = (code||'').toUpperCase(); if (!c) return;
+                if (!airportByIATA.has(c)) airportByIATA.set(c, c);
+                if (!airportByName.has(c.toLowerCase())) airportByName.set(c.toLowerCase(), c);
+                if (!airportMetaByIATA.has(c)) airportMetaByIATA.set(c, { name:c, country:'Mexico', security:'' });
+                opts.push(`<option value="${c}">${c}</option>`);
+              });
+              const dlIATA = document.getElementById('airports-iata-list');
+              if (dlIATA && !dlIATA.innerHTML) dlIATA.innerHTML = opts.join('');
+            }
+          } catch(_){ }
+          try {
+            window.airportByIATA = airportByIATA;
+            window.airportByName = airportByName;
+            window.airportMetaByIATA = airportMetaByIATA;
+            window.airportByICAO = airportByICAO;
+            window.airportMetaByICAO = airportMetaByICAO;
+            window.icaoToIata = icaoToIata;
+          } catch(_){ }
+        }
       }
 
       function applyManifestDirection(){
@@ -2729,6 +2968,8 @@
           const labMain = document.getElementById('mf-airport-main-label');
           if (labMain) labMain.textContent = isArrival ? 'Aeropuerto de Llegada' : 'Aeropuerto de Salida';
         } catch(_){ }
+
+        forceAirportMainValue();
 
         // Reglas específicas de valores para salidas
         try {
@@ -3356,68 +3597,134 @@ Z,Others,Not specific,Special internal purposes`;
         link('mf-final-dest','mf-final-dest-code');
         link('mf-arr-origin-name','mf-arr-origin-code');
         link('mf-arr-last-stop','mf-arr-last-stop-code');
+  try { window._mfLookupIATAByName = lookupIATAByNameAny; } catch(_){ }
         // Aeropuerto principal (IATA): normalizar y validar
         (function(){
           const el = document.getElementById('mf-airport-main');
-          if (!el || el._wired) return; el._wired = 1;
-          const onIATA = ()=>{ el.value = (el.value||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3); };
-          ['input','change','blur'].forEach(ev=> el.addEventListener(ev, onIATA));
+          if (!el) return;
+          if (!el._wired){
+            el._wired = 1;
+            const onIATA = ()=>{ el.value = (el.value||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3); };
+            ['input','change','blur'].forEach(ev=> el.addEventListener(ev, onIATA));
+          }
+          forceAirportMainValue();
         })();
       })();
 
       // Tipo de Operación (Doméstica / Internacional) derivado de aeropuertos (IATA/Nombre)
       (function wireOperationTypeComputation(){
-        function normCountry(c){ return (c||'').toString().trim().toUpperCase(); }
-        function getMeta(iata){ try { return airportMetaByIATA.get((iata||'').toString().toUpperCase()) || null; } catch(_){ return null; } }
-        function classify(mainIATA, otherIATA){
-          const M = getMeta(mainIATA); const O = getMeta(otherIATA);
-          const cM = normCountry(M && M.country); const cO = normCountry(O && O.country);
-          // Si no tenemos el otro aeropuerto, no clasificar
-          if (!otherIATA) return '';
-          // Regla: País (Country) como fuente principal
-          if (cM && cO){
-            if (cM === 'MEXICO' && cO === 'MEXICO') return 'Doméstica';
-            return 'Internacional';
-          }
-          if (cO){
-            return (cO === 'MEXICO') ? 'Doméstica' : 'Internacional';
-          }
-          // No concluyente
-          return '';
-        }
-        function resolveIATAFromName(name){
-          try {
-            const nm = (name||'').toString().trim().toLowerCase();
-            if (!nm) return '';
-            const iata = airportByName && airportByName.get ? (airportByName.get(nm) || '') : '';
-            return (iata||'').toString().toUpperCase();
-          } catch(_){ return ''; }
+        function collectOperationSourcesFromForm(){
+          const getVal = (id)=> document.getElementById(id)?.value || '';
+          const main = normalizeIATA(getVal('mf-airport-main')) || FORCED_AIRPORT_MAIN_CODE;
+          const codeSources = [
+            getVal('mf-arr-origin-code'),
+            getVal('mf-arr-last-stop-code'),
+            getVal('mf-origin-code'),
+            getVal('mf-next-stop-code'),
+            getVal('mf-final-dest-code')
+          ];
+          const nameSources = [
+            getVal('mf-arr-origin-name'),
+            getVal('mf-arr-last-stop'),
+            getVal('mf-origin-name'),
+            getVal('mf-next-stop'),
+            getVal('mf-final-dest')
+          ];
+          return { main, codeSources, nameSources };
         }
         function compute(){
           try {
-            const dirArr = document.getElementById('mf-dir-arr');
-            const isArrival = !!(dirArr && dirArr.checked);
-            const main = (document.getElementById('mf-airport-main')?.value||'').toUpperCase() || 'NLU'; // Asumir NLU si vacío
-            // Resolver IATA del "otro" por código o por nombre
-            const arrCode = (document.getElementById('mf-arr-origin-code')?.value||'').toUpperCase() || (document.getElementById('mf-arr-last-stop-code')?.value||'').toUpperCase();
-            const arrName = (document.getElementById('mf-arr-origin-name')?.value||'') || (document.getElementById('mf-arr-last-stop')?.value||'');
-            const depCode = (document.getElementById('mf-final-dest-code')?.value||'').toUpperCase() || (document.getElementById('mf-next-stop-code')?.value||'').toUpperCase();
-            const depName = (document.getElementById('mf-final-dest')?.value||'') || (document.getElementById('mf-next-stop')?.value||'');
-            let other = isArrival ? arrCode : depCode;
-            if (!other){
-              const name = isArrival ? arrName : depName;
-              other = resolveIATAFromName(name);
-            }
-            const val = classify(main, other);
-            const els = [document.getElementById('mf-operation-type-arr'), document.getElementById('mf-operation-type-dep')].filter(Boolean);
-            els.forEach(el=>{ el.value = val || ''; try { el.dispatchEvent(new Event('input',{ bubbles:true })); } catch(_){ } });
+            const { main, codeSources, nameSources } = collectOperationSourcesFromForm();
+            const derived = determineOperationTypeFromSources(main, codeSources, nameSources) || '';
+            const els = [
+              document.getElementById('mf-operation-type-arr'),
+              document.getElementById('mf-operation-type-dep')
+            ].filter(Boolean);
+            els.forEach(el=>{
+              if (!el) return;
+              if (el.value !== derived) el.value = derived;
+              try { el.dispatchEvent(new Event('input',{ bubbles:true })); } catch(_){ }
+            });
           } catch(_){ }
         }
         try { window._mfComputeOperationType = compute; } catch(_){ }
-        // Recalcular al cambiar los códigos y nombres clave
-  const ids = ['mf-airport-main','mf-arr-origin-code','mf-arr-last-stop-code','mf-final-dest-code','mf-next-stop-code','mf-origin-name','mf-next-stop','mf-final-dest','mf-arr-origin-name','mf-arr-last-stop','mf-dir-arr','mf-dir-dep'];
-        ids.forEach(id=>{ const el = document.getElementById(id); if (el && !el._opTypeWired){ el._opTypeWired=1; ['input','change','blur'].forEach(ev=> el.addEventListener(ev, compute)); } });
-        // Inicializar una vez cargada la página
+        try {
+          window._mfResolveOperationTypeFromRecord = function(rec){
+            try {
+              if (!rec) return '';
+              const main = normalizeIATA(rec?.airportMain) || FORCED_AIRPORT_MAIN_CODE;
+              const codeCandidates = [
+                rec?.arrOriginCode,
+                rec?.arrLastStopCode,
+                rec?.originCode,
+                rec?.nextStopCode,
+                rec?.finalDestCode
+              ];
+              const nameCandidates = [
+                rec?.arrOriginName,
+                rec?.arrLastStop,
+                rec?.originName,
+                rec?.nextStop,
+                rec?.finalDest
+              ];
+              return determineOperationTypeFromSources(main, codeCandidates, nameCandidates) || '';
+            } catch(_){ return ''; }
+          };
+        } catch(_){ }
+        try {
+          window._mfEnsureOperationType = function(rec){
+            if (!rec) return '';
+            let val = (rec.operationType||'').toString().trim();
+            let derived = '';
+            try {
+              if (typeof window._mfResolveOperationTypeFromRecord === 'function'){
+                derived = window._mfResolveOperationTypeFromRecord(rec) || '';
+              }
+            } catch(_){ }
+            if (derived){
+              const normVal = (val||'').toString().trim();
+              const normValSimple = normVal.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+              if (!normVal || normValSimple === 'sin determinar' || normValSimple === 'domestica' || derived === 'Internacional'){
+                val = derived;
+              }
+            }
+            if (!val){
+              const code = (rec.flightType||'').toString().trim().toUpperCase();
+              if (code){
+                try {
+                  if (typeof window._mfFlightTypeInfo === 'function'){
+                    const info = window._mfFlightTypeInfo(code);
+                    if (info && info.name) val = info.name;
+                  }
+                } catch(_){ }
+              }
+            }
+            if (!val) val = 'Sin determinar';
+            rec.operationType = val;
+            return val;
+          };
+        } catch(_){ }
+        const ids = [
+          'mf-airport-main',
+          'mf-origin-code',
+          'mf-arr-origin-code',
+          'mf-arr-last-stop-code',
+          'mf-origin-name',
+          'mf-arr-origin-name',
+          'mf-arr-last-stop',
+          'mf-next-stop',
+          'mf-next-stop-code',
+          'mf-final-dest',
+          'mf-final-dest-code',
+          'mf-dir-arr',
+          'mf-dir-dep'
+        ];
+        ids.forEach(id=>{
+          const el = document.getElementById(id);
+          if (!el || el._opTypeWired) return;
+          el._opTypeWired = 1;
+          ['input','change','blur'].forEach(ev=> el.addEventListener(ev, compute));
+        });
         try { document.addEventListener('DOMContentLoaded', ()=> setTimeout(compute, 0)); } catch(_){ }
       })();
 
@@ -3447,6 +3754,7 @@ Z,Others,Not specific,Special internal purposes`;
         } catch(_){ return ''; }
       }
       function readForm(){
+        try { if (typeof window._mfComputeOperationType === 'function') window._mfComputeOperationType(); } catch(_){ }
         const g = id => document.getElementById(id)?.value || '';
         const direction = (dirArr && dirArr.checked) ? 'Llegada' : 'Salida';
         // Captura imagen de previsualización si hay canvas o img
@@ -3474,7 +3782,7 @@ Z,Others,Not specific,Special internal purposes`;
           ? (document.getElementById('mf-operation-type-arr')?.value || '')
           : (document.getElementById('mf-operation-type-dep')?.value || '');
 
-        return {
+        const record = {
           direction,
           title: g('mf-title'), docDate: g('mf-doc-date'), folio: g('mf-folio'),
           carrier3L: g('mf-carrier-3l'), operatorName: g('mf-operator-name'), airline: g('mf-airline'), flight: g('mf-flight'),
@@ -3504,12 +3812,25 @@ Z,Others,Not specific,Special internal purposes`;
           demoras,
           image: previewImage
         };
+        if ((!record.operationType || !record.operationType.trim()) && typeof window._mfResolveOperationTypeFromRecord === 'function'){
+          try {
+            const derived = window._mfResolveOperationTypeFromRecord(record);
+            if (derived) record.operationType = derived;
+          } catch(_){ }
+        }
+        try { if (typeof window._mfEnsureOperationType === 'function') window._mfEnsureOperationType(record); } catch(_){ }
+        return record;
       }
       function loadRecords(){ try { return JSON.parse(localStorage.getItem('aifa.manifests')||'[]'); } catch(_) { return []; } }
       function saveRecords(arr){ try { localStorage.setItem('aifa.manifests', JSON.stringify(arr)); } catch(_) {} }
       function renderTable(){
         if (!tableBody) return;
         const rows = loadRecords();
+        try {
+          if (Array.isArray(rows) && typeof window._mfEnsureOperationType === 'function'){
+            rows.forEach(r=>{ try { window._mfEnsureOperationType(r); } catch(_){ } });
+          }
+        } catch(_){ }
         tableBody.innerHTML = rows.map(r => `
           <tr>
             <td>${r.direction||''}</td>
@@ -3805,6 +4126,12 @@ Z,Others,Not specific,Special internal purposes`;
           const opType = (r)=>{
             // Preferir Tipo de Operación (Doméstica/Internacional) si está disponible
             const ot = (r?.operationType||'').trim(); if (ot) return ot;
+            try {
+              if (typeof window._mfResolveOperationTypeFromRecord === 'function'){
+                const derived = window._mfResolveOperationTypeFromRecord(r);
+                if (derived) return derived;
+              }
+            } catch(_){ }
             // Fallback: mapear Tipo de vuelo (A–Z) a nombre si es posible
             const code = (r?.flightType||'').toUpperCase();
             try {
@@ -3825,6 +4152,11 @@ Z,Others,Not specific,Special internal purposes`;
             'MES','FECHA','TIPO DE MANIFIESTO','AEROLINEA','TIPO DE OPERACIÓN','AERONAVE','MATRÍCULA','ESTATUS MATRÍCULA','NUMERO DE VUELO','DESTINO / ORIGEN','SLOT ASIGNADO','SLOT COORDINADO','HORA DE INICIO O TERMINO DE PERNOCTA','HORA DE OPERACIÓN','HORA MÁXIMA DE ENTREGA','HORA DE RECEPCIÓN','HORAS CUMPLIDAS','PUNTUALIDAD / CANCELACIÓN','TOTAL PAX','DIPLOMATICOS','EN COMISION','INFANTES','TRANSITOS','CONEXIONES','OTROS EXENTOS','TOTAL EXENTOS','PAX QUE PAGAN TUA','KGS. DE EQUIPAJE'
           ];
           const headers = headersEs.slice();
+          try {
+            if (Array.isArray(rows) && typeof window._mfEnsureOperationType === 'function'){
+              rows.forEach(r=>{ try { window._mfEnsureOperationType(r); } catch(_){ } });
+            }
+          } catch(_){ }
           const aoa = (rows||[]).map(r=>{
             const vals = [];
             vals.push(monthOf(r.docDate));
@@ -3874,6 +4206,11 @@ Z,Others,Not specific,Special internal purposes`;
             const table = document.getElementById('manifest-records-table');
             const trEls = table ? Array.from(table.querySelectorAll('tbody tr')) : [];
             const tableRecs = trEls.map(tr=> tr && tr._record).filter(Boolean);
+            try {
+              if (typeof window._mfEnsureOperationType === 'function'){
+                tableRecs.forEach(r=>{ try { window._mfEnsureOperationType(r); } catch(_){ } });
+              }
+            } catch(_){ }
             if (tableRecs.length){
               const { headers, headersEs, aoa } = (window._mfBuildAoA||function(){ return { headers:[], headersEs:[], aoa:[] }; })(tableRecs);
               // Excel primero
@@ -3898,6 +4235,11 @@ Z,Others,Not specific,Special internal purposes`;
             let rows = loadRecords();
             // Si no hay registros guardados, exportar el formulario actual como un registro
             if (!rows || rows.length===0){ rows = [ readForm() ]; }
+            try {
+              if (Array.isArray(rows) && typeof window._mfEnsureOperationType === 'function'){
+                rows.forEach(r=>{ try { window._mfEnsureOperationType(r); } catch(_){ } });
+              }
+            } catch(_){ }
             // Asegurar que cada registro tenga demoras si la estructura existe en el formulario actual
             const getDemorasFromDOM = ()=>{
               try {
@@ -4207,7 +4549,15 @@ Z,Others,Not specific,Special internal purposes`;
       }
 
       // Local helpers (decoupled from V1) to avoid ReferenceErrors
-      function setVal(id, v){ const el = document.getElementById(id); if (el) el.value = v; }
+      function setVal(id, v){
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (id === 'mf-airport-main'){
+          forceAirportMainValue();
+          return;
+        }
+        el.value = v;
+      }
       const normalizeReg = (s)=> (s||'').toString().toUpperCase().replace(/[^A-Z0-9]/g,'');
       const regVariants = (s)=>{
         const base = normalizeReg(s); const out = new Set([base]);
@@ -4243,6 +4593,9 @@ Z,Others,Not specific,Special internal purposes`;
   let airportMetaByIATA = new Map(); // IATA -> { name, country, security }
   let airportByName = new Map(); // name lower -> IATA
   let airportNameIndex = []; // [{ name, iata, norm, tokens }]
+  let airportByICAO = new Map();
+  let airportMetaByICAO = new Map();
+  let icaoToIata = new Map();
   let iataSet = new Set();
   // Evitar falsos positivos de palabras comunes en español o abreviaturas que no son IATA
   let iataStopwords = new Set(['DEL','LIC','AER','INT']);
@@ -4963,7 +5316,7 @@ Z,Others,Not specific,Special internal purposes`;
             try { const a = it?.meta; if (!a) return; input.value = (a.icao||'').toUpperCase(); const el = document.getElementById('mf-airline'); if (el && a.name) el.value = a.name; } catch(_){ }
           }});
           // Aeropuerto principal (Llegada/Salida)
-          window._mfAttachCatalogButton?.('mf-airport-main', { load:'airports', onPick:(it, input)=>{ try { const a=it?.meta; if (!a) return; input.value = (a.iata||'').toUpperCase(); } catch(_){ } }});
+          window._mfAttachCatalogButton?.('mf-airport-main', { load:'airports', onPick:(it, input)=>{ try { forceAirportMainValue(); } catch(_){ } }});
         } catch(_){ }
         try {
           // Pares nombre/código para origen, próxima escala, destino y sus equivalentes de llegada
@@ -6115,11 +6468,15 @@ Z,Others,Not specific,Special internal purposes`;
         const monthOf = (iso)=>{ try { if (!iso) return ''; const [y,m] = String(iso).split('-'); return m || ''; } catch(_){ return ''; } };
         const isArr = (r)=> (r?.direction||'').toUpperCase().startsWith('L');
         const opType = (r)=>{
-          const code = (r?.flightType||'').toUpperCase();
           try {
-            if (typeof window._mfFlightTypeInfo === 'function'){ const info = window._mfFlightTypeInfo(code); if (info && info.name) return info.name; }
+            if (typeof window._mfEnsureOperationType === 'function'){
+              const ensured = window._mfEnsureOperationType(r);
+              if (ensured) return ensured;
+            }
           } catch(_){ }
-          return code;
+          const code = (r?.operationType || r?.flightType || '').toString().trim();
+          if (code) return code;
+            return 'Sin determinar';
         };
         const tailStatus = (r)=>{
           try {
@@ -6191,15 +6548,19 @@ Z,Others,Not specific,Special internal purposes`;
       return out;
     }
     function readFormLight(){
+      try { if (typeof window._mfComputeOperationType === 'function') window._mfComputeOperationType(); } catch(_){ }
       const g = (id)=> document.getElementById(id)?.value || '';
       const dirArr = document.getElementById('mf-dir-arr');
       const direction = (dirArr && dirArr.checked) ? 'Llegada' : 'Salida';
       const demoras = readDemorasFixedLight();
-      return {
+      const opTypeVal = (dirArr && dirArr.checked)
+        ? (document.getElementById('mf-operation-type-arr')?.value || '')
+        : (document.getElementById('mf-operation-type-dep')?.value || '');
+      const record = {
         direction,
         title: g('mf-title'), docDate: g('mf-doc-date'), folio: g('mf-folio'),
         carrier3L: g('mf-carrier-3l'), operatorName: g('mf-operator-name'), airline: g('mf-airline'), flight: g('mf-flight'),
-        airportMain: g('mf-airport-main'), flightType: g('mf-flight-type'),
+        airportMain: g('mf-airport-main'), flightType: g('mf-flight-type'), operationType: opTypeVal,
         tail: g('mf-tail'), aircraft: g('mf-aircraft'), originName: g('mf-origin-name'), originCode: g('mf-origin-code'),
   crewTotal: g('mf-crew-total'),
   baggageKg: g('mf-baggage-kg') || g('total-equipaje'),
@@ -6223,6 +6584,8 @@ Z,Others,Not specific,Special internal purposes`;
         signOperator: g('mf-sign-operator'), signCoordinator: g('mf-sign-coordinator'), signAdmin: g('mf-sign-admin'), signAdminDate: g('mf-sign-admin-date'),
         demoras
       };
+      try { if (typeof window._mfEnsureOperationType === 'function') window._mfEnsureOperationType(record); } catch(_){ }
+      return record;
     }
     function exportCurrentManifestsToExcel(){
       try {
@@ -6233,6 +6596,11 @@ Z,Others,Not specific,Special internal purposes`;
           const table = document.getElementById('manifest-records-table');
           const trEls = table ? Array.from(table.querySelectorAll('tbody tr')) : [];
           const tableRecs = trEls.map(tr=> tr && tr._record).filter(Boolean);
+          try {
+            if (typeof window._mfEnsureOperationType === 'function'){
+              tableRecs.forEach(r=>{ try { window._mfEnsureOperationType(r); } catch(_){ } });
+            }
+          } catch(_){ }
           if (tableRecs.length){
             const { headers, headersEs, aoa } = (window._mfBuildAoA||buildAoALocal)(tableRecs);
             if (window.XLSX && XLSX.utils && typeof XLSX.utils.aoa_to_sheet === 'function'){
@@ -6247,6 +6615,11 @@ Z,Others,Not specific,Special internal purposes`;
         let rows = [];
         try { rows = JSON.parse(localStorage.getItem('aifa.manifests')||'[]'); } catch(_){ rows = []; }
         if (!rows || rows.length===0){ rows = [ readFormLight() ]; }
+        try {
+          if (Array.isArray(rows) && typeof window._mfEnsureOperationType === 'function'){
+            rows.forEach(r=>{ try { window._mfEnsureOperationType(r); } catch(_){ } });
+          }
+        } catch(_){ }
         if (rows.length>0 && (!rows[0].demoras || !Array.isArray(rows[0].demoras))){
           const ds = readDemorasFixedLight(); if (ds.length){ rows[0] = { ...rows[0], demoras: ds }; }
         }
