@@ -2922,15 +2922,19 @@
             if (!span) return '';
             const direct = span.match(/F[O0]L[I1]O[^0-9]{0,14}([0-9\s\-]{3,36})/i);
             if (direct){
+              const immediate = (direct[1]||'').match(/\d{3,10}/);
+              if (immediate && immediate[0]) return immediate[0].slice(0,14);
               const dig = collapseDigits(direct[1]);
               if (dig.length >= 3) return dig.slice(0,14);
             }
             const after = span.replace(/^.*?F[O0]L[I1]O[^A-Z0-9]{0,14}/i, '');
             const parts = after.split(/\s+/).filter(Boolean);
-            let collected = '';
+            const chunks = [];
             let started = false;
-            for (const raw of parts){
-              const tok = raw.replace(/[•·,:;=]/g,'').trim();
+            let totalLen = 0;
+            for (let idx=0; idx<parts.length; idx++){
+              const rawTok = parts[idx];
+              const tok = rawTok.replace(/[•·,:;=]/g,'').trim();
               if (!tok) continue;
               if (/^(FECHA|AEROPUERTO|VUELO|ORIGEN|DESTINO|HORA|TIPO)$/i.test(tok)) break;
               if (/^N[O0]\.?$/i.test(tok)) { started = true; continue; }
@@ -2938,11 +2942,27 @@
               if (/\d:\d/.test(tok)) continue;
               const digits = collapseDigits(tok);
               if (!digits){ if (started) break; continue; }
-              collected += digits;
               started = true;
-              if (collected.length >= 8) break;
+              chunks.push({ digits, idx });
+              totalLen += digits.length;
+              if (totalLen >= 10) break;
             }
-            if (collected.length >= 3) return collected.slice(0,14);
+            if (chunks.length){
+              let combined = chunks.map(c=>c.digits).join('');
+              if (chunks.length >= 2) {
+                const firstDigits = chunks[0].digits;
+                const dayVal = parseInt(firstDigits, 10);
+                if (!Number.isNaN(dayVal) && dayVal >= 1 && dayVal <= 31 && firstDigits.length <= 2) {
+                  const tail = chunks.slice(1).map(c=>c.digits).join('');
+                  if (tail.length >= 3 && (firstDigits.length === 2 || tail.length >= 4)) {
+                    combined = tail;
+                  }
+                }
+              }
+              if (combined.length >= 3) return combined.slice(0,14);
+            }
+            const splitDay = after.match(/\b(0[1-9]|[12][0-9]|3[01])\D+(\d{3,8})\b/);
+            if (splitDay && splitDay[2]) return splitDay[2].slice(0,14);
             const fallback = collapseDigits(after);
             if (fallback.length >= 4) return fallback.slice(0,14);
             return '';
@@ -2998,6 +3018,20 @@
             if (trimmed && trimmed.length >= 3) return trimmed;
             return digits;
           };
+          const resolveDaySplit = (digits)=>{
+            if (!digits || digits.length < 4) return digits || '';
+            const tests = [];
+            if (digits.length >= 5) tests.push({ prefix: digits.slice(0, 2), suffix: digits.slice(2) });
+            tests.push({ prefix: digits.slice(0, 1), suffix: digits.slice(1) });
+            for (const t of tests){
+              const val = parseInt(t.prefix, 10);
+              if (Number.isNaN(val) || val < 1 || val > 31) continue;
+              if (!t.suffix || t.suffix.length < 3) continue;
+              const rx = new RegExp(`F[O0]L[I1]O[^0-9]{0,24}${t.prefix}[^0-9]{1,6}${t.suffix}`, 'i');
+              if (rx.test(raw)) return t.suffix;
+            }
+            return digits;
+          };
           const baseRaw = normalizeDigits(window._mfExtractFolioExhaustive?.(raw) || '');
           let base = stripLeadingDate(baseRaw);
           const dateRx = /\b\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}\b/gi;
@@ -3032,12 +3066,16 @@
             else if (c.len === 6) score += 4;
             else if (c.len === 3) score += 3;
             else if (c.len > 8) score -= 3;
+            if (c.len >= 5 && /^(0[1-9]|[12][0-9]|3[01])/.test(c.digits)) score -= 2;
             score += Math.max(0, 3 - c.idx);
             if (score > bestScore){ best = c.digits; bestScore = score; }
           });
-          if (best) return stripLeadingDate(best).slice(0,10);
+          if (best) {
+            const refined = resolveDaySplit(stripLeadingDate(best));
+            if (refined) return refined.slice(0,10);
+          }
           if (base){
-            base = stripLeadingDate(base);
+            base = resolveDaySplit(stripLeadingDate(base));
             if (base.length > 8){
               const tail = base.slice(-6);
               if (tail.length >= 3) return tail;
@@ -3047,7 +3085,7 @@
           const globalMatches = raw.replace(dateRx,' ').replace(timeRx,' ').replace(compactDateRx,' ').match(/\b\d{3,14}\b/g);
           if (globalMatches){
             for (let i=globalMatches.length-1; i>=0; i--){
-              const digits = stripLeadingDate(normalizeDigits(globalMatches[i]));
+              const digits = resolveDaySplit(stripLeadingDate(normalizeDigits(globalMatches[i])));
               if (digits.length >=3 && digits.length <=10) return digits;
             }
           }

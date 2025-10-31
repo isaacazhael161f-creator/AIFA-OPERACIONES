@@ -5463,6 +5463,189 @@ function setupManifestsUI() {
     } catch (e) { /* ignore */ }
 }
 
+let parteOperacionesSummaryCache = null;
+async function loadParteOperacionesSummary(){
+    const container = document.getElementById('operations-summary-table');
+    if (!container) return;
+    if (parteOperacionesSummaryCache){
+        renderParteOperacionesSummary(parteOperacionesSummaryCache);
+        return;
+    }
+    container.innerHTML = `
+        <div class="text-center text-muted py-5">
+            <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+            <div class="mt-2">Cargando resumen operativo...</div>
+        </div>
+    `;
+    if (typeof location !== 'undefined' && location.protocol === 'file:'){
+        container.innerHTML = '<div class="alert alert-info mb-0">Inicia el servidor local para visualizar el resumen.</div>';
+        return;
+    }
+    try {
+    const res = await fetch('data/resumen_parte_operaciones.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        parteOperacionesSummaryCache = data;
+        renderParteOperacionesSummary(data);
+    } catch (err) {
+        console.warn('loadParteOperacionesSummary failed:', err);
+        container.innerHTML = '<div class="alert alert-warning mb-0">No se pudo cargar el resumen. Intenta nuevamente.</div>';
+    }
+}
+function renderParteOperacionesSummary(data){
+    const container = document.getElementById('operations-summary-table');
+    if (!container) return;
+    const ops = Array.isArray(data?.operaciones) ? data.operaciones : [];
+    if (!ops.length){
+        container.innerHTML = '<div class="alert alert-info mb-0">No hay información disponible.</div>';
+        return;
+    }
+    const formatter = new Intl.NumberFormat('es-MX');
+    const typeConfig = {
+        'aviacion de pasajeros': {
+            cardClass: 'ops-mini-card--comercial',
+            iconClass: 'ops-type-icon--comercial',
+            icon: 'fas fa-user-friends',
+            progressClass: 'bg-primary'
+        },
+        'aviacion de carga': {
+            cardClass: 'ops-mini-card--carga',
+            iconClass: 'ops-type-icon--carga',
+            icon: 'fas fa-box-open',
+            progressClass: 'bg-warning'
+        },
+        'aviacion general': {
+            cardClass: 'ops-mini-card--general',
+            iconClass: 'ops-type-icon--general',
+            icon: 'fas fa-paper-plane',
+            progressClass: 'bg-success'
+        },
+        default: {
+            cardClass: 'ops-mini-card--neutral',
+            iconClass: 'ops-type-icon--neutral',
+            icon: 'fas fa-plane',
+            progressClass: 'bg-secondary'
+        }
+    };
+    const totals = ops.reduce((acc, item)=>{
+        const lleg = Number(item?.llegada) || 0;
+        const sal = Number(item?.salida) || 0;
+        const rawSubtotal = Number(item?.subtotal);
+        const subtotal = Number.isFinite(rawSubtotal) && rawSubtotal > 0 ? rawSubtotal : (lleg + sal);
+        acc.llegada += lleg;
+        acc.salida += sal;
+        acc.subtotal += subtotal;
+        return acc;
+    }, { llegada: 0, salida: 0, subtotal: 0 });
+    const totalGeneral = Number(data?.total_general) || totals.subtotal || (totals.llegada + totals.salida);
+    const enriched = ops.map(item => {
+        const tipo = (item?.tipo || 'Sin clasificar').toString().trim();
+        const key = tipo.toLowerCase();
+        const cfg = typeConfig[key] || typeConfig.default;
+        const llegada = Number(item?.llegada) || 0;
+        const salida = Number(item?.salida) || 0;
+        const rawSubtotal = Number(item?.subtotal);
+        const subtotal = Number.isFinite(rawSubtotal) && rawSubtotal > 0 ? rawSubtotal : (llegada + salida);
+        const share = totalGeneral > 0 ? (subtotal / totalGeneral) * 100 : 0;
+        const shareRounded = Math.min(100, Math.max(0, Number.isFinite(share) ? share : 0));
+        const shareLabel = shareRounded.toFixed(1);
+        return { tipo, llegada, salida, subtotal, cfg, shareRounded, shareLabel };
+    });
+    const cardsMarkup = enriched.map(entry => {
+        const { tipo, llegada, salida, subtotal, cfg, shareLabel, shareRounded } = entry;
+        const shareSentence = `Participación ${shareLabel}%`;
+        return `
+            <div class="ops-mini-card ${cfg.cardClass}">
+                <div class="ops-mini-card__icon"><i class="${cfg.icon}" aria-hidden="true"></i></div>
+                <div class="ops-mini-card__body">
+                    <p class="ops-mini-card__label">${tipo}</p>
+                    <h4 class="ops-mini-card__value">${formatter.format(subtotal)}</h4>
+                    <div class="ops-mini-card__meta">
+                        <span><i class="fas fa-plane-arrival me-1"></i>${formatter.format(llegada)}</span>
+                        <span><i class="fas fa-plane-departure me-1"></i>${formatter.format(salida)}</span>
+                    </div>
+                    <div class="ops-mini-card__footer">
+                        <span class="badge rounded-pill bg-white text-dark ops-mini-card__badge" title="${shareSentence}">${shareSentence}</span>
+                    </div>
+                    <div class="ops-mini-card__progress">
+                        <div class="progress progress-thin" role="progressbar" aria-label="${shareSentence}" aria-valuenow="${shareRounded}" aria-valuemin="0" aria-valuemax="100">
+                            <div class="progress-bar ${cfg.progressClass}" style="width:${shareRounded}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    const rows = enriched.map(entry => {
+        const { tipo, llegada, salida, subtotal, cfg, shareLabel, shareRounded } = entry;
+        const shareSentence = `Participación ${shareLabel}%`;
+        return `
+            <tr>
+                <th scope="row">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="ops-type-icon ${cfg.iconClass}"><i class="${cfg.icon}" aria-hidden="true"></i></span>
+                        <span>${tipo}</span>
+                    </div>
+                </th>
+                <td class="text-center">${formatter.format(llegada)}</td>
+                <td class="text-center">${formatter.format(salida)}</td>
+                <td class="text-center fw-semibold">${formatter.format(subtotal)}</td>
+                <td class="text-center">
+                    <span class="badge bg-light text-dark border">${shareLabel}%</span>
+                    <div class="progress progress-thin mt-1" role="progressbar" aria-label="${shareSentence}" aria-valuenow="${shareRounded}" aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar ${cfg.progressClass}" style="width:${shareRounded}%"></div>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    const totalPercentLabel = totalGeneral > 0 ? '100%' : '0%';
+    container.innerHTML = `
+        <div class="card shadow-sm border-0 ops-summary-table">
+            <div class="card-body p-0">
+                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 px-4 py-3 border-bottom">
+                    <div>
+                        <h3 class="h5 mb-1">Resumen operativo diario</h3>
+                        <p class="small text-muted mb-0">Fuente: parte de operaciones</p>
+                    </div>
+                    <div class="text-md-end">
+                        <span class="badge bg-primary text-white fs-6">${formatter.format(totalGeneral)} operaciones</span>
+                    </div>
+                </div>
+                <div class="px-4 pt-4 pb-2">
+                    <div class="ops-mini-grid">
+                        ${cardsMarkup}
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle mb-0">
+                        <caption class="text-muted small px-4 pt-3">Desglose por tipo de operación</caption>
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">Tipo</th>
+                                <th scope="col" class="text-center">Llegadas</th>
+                                <th scope="col" class="text-center">Salidas</th>
+                                <th scope="col" class="text-center">Subtotal</th>
+                                <th scope="col" class="text-center">Participación</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                        <tfoot>
+                            <tr class="table-secondary fw-semibold">
+                                <th scope="row">Total general</th>
+                                <td class="text-center">${formatter.format(totals.llegada)}</td>
+                                <td class="text-center">${formatter.format(totals.salida)}</td>
+                                <td class="text-center">${formatter.format(totalGeneral)}</td>
+                                <td class="text-center">${totalPercentLabel}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
         // Inicialización principal de la aplicación cuando el DOM está listo
         document.addEventListener('DOMContentLoaded', () => {
             try {
@@ -5508,6 +5691,12 @@ function setupManifestsUI() {
                 createPdfSections();
             } catch (err) {
                 console.warn('createPdfSections failed:', err);
+            }
+
+            try {
+                loadParteOperacionesSummary();
+            } catch (err) {
+                console.warn('loadParteOperacionesSummary failed:', err);
             }
 
             try {
