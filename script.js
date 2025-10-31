@@ -4503,9 +4503,13 @@ function showMainApp() {
         }
         if (mainWasHidden) {
             try {
-                const inicioLink = document.querySelector('.menu-item[data-section="inicio"]');
-                if (inicioLink) {
-                    showSection('inicio', inicioLink);
+                const startCandidates = [
+                    document.querySelector('.menu-item[data-section="inicio"]'),
+                    document.querySelector('.menu-item[data-section="parte-operaciones"]')
+                ];
+                const targetLink = startCandidates.find(Boolean);
+                if (targetLink && targetLink.dataset?.section) {
+                    showSection(targetLink.dataset.section, targetLink);
                 }
             } catch (_) {}
             try {
@@ -5501,6 +5505,13 @@ function renderParteOperacionesSummary(data){
         return;
     }
     const formatter = new Intl.NumberFormat('es-MX');
+    const normalizeKey = (value)=> {
+        return (value || '')
+            .toString()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase();
+    };
     const typeConfig = {
         'aviacion de pasajeros': {
             cardClass: 'ops-mini-card--comercial',
@@ -5539,8 +5550,8 @@ function renderParteOperacionesSummary(data){
     }, { llegada: 0, salida: 0, subtotal: 0 });
     const totalGeneral = Number(data?.total_general) || totals.subtotal || (totals.llegada + totals.salida);
     const enriched = ops.map(item => {
-        const tipo = (item?.tipo || 'Sin clasificar').toString().trim();
-        const key = tipo.toLowerCase();
+    const tipo = (item?.tipo || 'Sin clasificar').toString().trim();
+    const key = normalizeKey(tipo);
         const cfg = typeConfig[key] || typeConfig.default;
         const llegada = Number(item?.llegada) || 0;
         const salida = Number(item?.salida) || 0;
@@ -5552,7 +5563,7 @@ function renderParteOperacionesSummary(data){
         return { tipo, llegada, salida, subtotal, cfg, shareRounded, shareLabel };
     });
     const cardsMarkup = enriched.map(entry => {
-        const { tipo, llegada, salida, subtotal, cfg, shareLabel, shareRounded } = entry;
+    const { tipo, llegada, salida, subtotal, cfg, shareLabel, shareRounded } = entry;
         const shareSentence = `Participación ${shareLabel}%`;
         return `
             <div class="ops-mini-card ${cfg.cardClass}">
