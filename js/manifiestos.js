@@ -2373,103 +2373,225 @@
         } catch(_){ }
         return '';
       };
-      // Extra robusto: extractor de nombre completo en MAYÚSCULAS cerca de la etiqueta "PILOTO AL MANDO" (tolera "No." intermedio)
-      // Solo actúa como refuerzo si la lógica previa no llenó el campo.
+      const _mfPilotAliasTokens = new Set([
+        'CAPITAN','CAPITÁN','CAP','CAPT','CAPTAIN','CAPTN','CPT','COMMANDER','COMANDER','COMANDANTE','CMDTE','CMDT','CDTE','CMTE','COMTE',
+        'PILOTO','PILOT','MANDO','PILOTOALMANDO','PILOTOAL','ALMANDO','NUMERO','NÚMERO','NUM','NO'
+      ]);
+      const _mfPilotConnectorTokens = new Set([
+        'DE','DEL','DELA','DA','DO','DOS','DAS','DI','DU','LA','EL','LOS','LAS','LE','LES','VON','VAN','MC','MAC','SAN','SANTA','ST','Y','E'
+      ]);
+      const _mfPilotSuffixTokens = new Set(['JR','SR','II','III','IV','V']);
+      const _mfPilotForbiddenTokens = new Set([
+        'FIRMA','FIRME','SIGNATURE','SIGNATURA','NOMBRE','NOMBRES','NAME','TRIPULACION','TRIPULACIÓN',
+        'OPERADOR','OPERADORA','COORDINADOR','COORDINADORA','DESPACHADOR','DESPACHADORA','CONTROL','RUTA',
+        'FECHA','HORA','DESTINO','ORIGEN','VUELO','FOLIO','TOTAL','CARGO','PASAJEROS','PAX','AUTORIZA','AUTORIZACIÓN',
+        'ADMINISTRADOR','SUPERVISOR','SUPERVISORA','JEFE','DIRECTOR','GERENTE','LIC','LICENCIA'
+      ]);
+
+      function _mfPilotTokenize(raw){
+        try {
+          const up = (raw||'').toString()
+            .replace(/\u00A0/g,' ')
+            .replace(/[\u2018\u2019]/g,"'")
+            .replace(/[\u201C\u201D]/g,'"')
+            .toUpperCase();
+          const clean = up.replace(/[.,;:|•·¡!¿?\(\)\[\]{}<>]/g,' ').replace(/\s+/g,' ').trim();
+          if (!clean) return [];
+          return clean.split(' ');
+        } catch(_){ return []; }
+      }
+
+      function _mfPilotPrepareTokens(tokens){
+        try {
+          if (!Array.isArray(tokens) || !tokens.length) return null;
+          const seq = [];
+          let coreCount = 0;
+          let hasLong = false;
+          let suffixCount = 0;
+          for (const rawTok of tokens){
+            let tok = (rawTok||'').trim();
+            if (!tok) continue;
+            tok = tok.replace(/^[^A-ZÁÉÍÓÚÑ'’\-]+/g,'').replace(/[^A-ZÁÉÍÓÚÑ'’\-]+$/g,'');
+            if (!tok) continue;
+            tok = tok.replace(/’/g,"'").replace(/--+/g,'-');
+            if (!tok) continue;
+            if (_mfPilotForbiddenTokens.has(tok)) return null;
+            if (_mfPilotAliasTokens.has(tok)) continue;
+            if (_mfPilotConnectorTokens.has(tok)){
+              seq.push(tok);
+              continue;
+            }
+            if (_mfPilotSuffixTokens.has(tok)){
+              seq.push(tok);
+              suffixCount++;
+              continue;
+            }
+            if (/\d/.test(tok)) return null;
+            const letters = tok.replace(/[^A-ZÁÉÍÓÚÑ]/g,'');
+            if (letters.length < 2) return null;
+            if (letters.length >= 3) hasLong = true;
+            seq.push(tok);
+            coreCount++;
+          }
+          while (seq.length && (_mfPilotConnectorTokens.has(seq[0]) || _mfPilotSuffixTokens.has(seq[0]))) seq.shift();
+          while (seq.length && (_mfPilotConnectorTokens.has(seq[seq.length-1]) || _mfPilotSuffixTokens.has(seq[seq.length-1]))) seq.pop();
+          if (!seq.length) return null;
+          const coreTokens = seq.filter(tok=> !_mfPilotConnectorTokens.has(tok) && !_mfPilotSuffixTokens.has(tok));
+          if (coreTokens.length < 2 || coreTokens.length > 6) return null;
+          if (!hasLong) return null;
+          for (let i=1;i<seq.length;i++){
+            const a = seq[i-1], b = seq[i];
+            if (_mfPilotConnectorTokens.has(a) && _mfPilotConnectorTokens.has(b)) return null;
+            if (!_mfPilotConnectorTokens.has(a) && !_mfPilotConnectorTokens.has(b) && a === b) return null;
+          }
+          const text = seq.join(' ').replace(/\s+/g,' ').trim();
+          if (!text) return null;
+          const lettersLen = text.replace(/[^A-ZÁÉÍÓÚÑ]/g,'').length;
+          return {
+            text,
+            coreCount: coreTokens.length,
+            connectors: seq.filter(tok=> _mfPilotConnectorTokens.has(tok)).length,
+            suffixCount,
+            lettersLen
+          };
+        } catch(_){ return null; }
+      }
+
+      function _mfPilotScoreCandidate(raw, opts={}){
+        try {
+          if (!raw) return null;
+          const str = (raw||'').toString().replace(/\u00A0/g,' ');
+          const trunk = str.length > 220 ? str.slice(0,220) : str;
+          const tokens = _mfPilotTokenize(trunk);
+          const info = _mfPilotPrepareTokens(tokens);
+          if (!info) return null;
+          let score = info.coreCount * 28 + info.lettersLen;
+          if (info.coreCount >= 3) score += 12;
+          if (info.coreCount >= 4) score += 6;
+          if (info.suffixCount) score += info.suffixCount * 2;
+          if (opts.sameLine) score += 34;
+          if (opts.beforeLabel) score -= 12;
+          if (typeof opts.distance === 'number') score += Math.max(18 - (opts.distance * 6), -16);
+          if (opts.windowBoost) score += opts.windowBoost;
+          if (info.connectors > info.coreCount) score -= 10;
+          if (info.lettersLen > 44) score -= (info.lettersLen - 44) * 1.6;
+          if (info.lettersLen < 9) score -= 12;
+          return { text: info.text, score };
+        } catch(_){ return null; }
+      }
+
+      // Refuerzo robusto: heurística refinada para capturar nombres completos cerca de "PILOTO AL MANDO"
       window._mfExtractPilotUpperNearLabel = function(text){
         try {
           const lines = (text||'').split(/\r?\n/);
-          // Incluir sinónimos y abreviaturas comunes (acepta "PILOTO AL No. MANDO")
-          const labelRx = /(PILOTO\s+AL(?:\s+(?:N[O0º°]\.?|N[ÚU]M(?:ERO)?\.?))?\s+MANDO|PILOTO\b|CAPIT[ÁA]N\b|CAP\.|CPT\b|COMANDANTE\b)/i;
-          // Token de nombre en mayúsculas: permite acentos, apóstrofes, guiones y partículas cortas (DE/DEL/DA/VON/VAN/LA/LOS/LAS/etc.)
-          const nameToken = "(?:[A-ZÁÉÍÓÚÑ](?:[A-ZÁÉÍÓÚÑ'’\-]{1,})|DE|DEL|DA|DO|DOS|DAS|VON|VAN|LA|EL|LOS|LAS)";
-          const nameSeq = new RegExp('^\n?\t?\s*' + nameToken + '(?:\s+' + nameToken + '){1,6}\s*$', '');
-          // Búsqueda de candidatos en un string: devuelve el mejor match por tamaño de nombre
-          const findBestIn = (s)=>{
-            const L = (s||'').toUpperCase().replace(/[:·•\|]/g,' ').replace(/\s+/g,' ').trim();
-            if (!L) return '';
-            // Escanear secuencias de 2 a 7 tokens; priorizar las más largas
-            const toks = L.split(' ');
-            let best=''; let bestScore=0;
-            for (let a=0;a<toks.length;a++){
-              for (let b=a+1;b<=Math.min(toks.length, a+7);b++){
-                const seg = toks.slice(a,b).join(' ').trim();
-                if (!seg) continue;
-                // Rechazar si contiene palabras claramente no-nombre
-                if (/(PILOTO|MANDO|CAPITAN|CAPITÁN|CPT|CAP\.|LIC|FOLIO|VUELO|FECHA|ORIGEN|DESTINO|COMANDANTE|NOMBRE)/i.test(seg)) continue;
-                // Validar con patrón de secuencia de nombres
-                const ok = seg.split(' ').every(tok=> /^(?:[A-ZÁÉÍÓÚÑ]{2,}|[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ'’\-]{1,})$/.test(tok) || /^(DE|DEL|DA|DO|DOS|DAS|VON|VAN|LA|EL|LOS|LAS)$/.test(tok));
-                if (!ok) continue;
-                // Al menos un token de 3+ letras
-                if (!seg.split(' ').some(t=> t.replace(/[^A-ZÁÉÍÓÚÑ]/g,'').length>=3)) continue;
-                const score = seg.length + seg.split(' ').length*2;
-                if (score > bestScore){ best=seg; bestScore=score; }
+          const strongLabelRx = /PILOTO\s+AL(?:\s+(?:N[O0º°]\.??|N[ÚU]M(?:ERO)?\.??))?\s+MANDO/i;
+          const wordPilot = /\bPILOTO\b/i;
+          const wordMando = /\bMANDO\b/i;
+          const weakLabel = /\b(CAPIT[ÁA]N|CAPT|CAP|CPT|COMANDANTE)\b/i;
+          let best = { score: -Infinity, text: '' };
+          const register = (raw, opts={})=>{
+            try {
+              if (!raw) return;
+              const normalized = (raw||'').toString().replace(/\u00A0/g,' ');
+              const compact = normalized.replace(/\s+/g,' ').trim();
+              if (!compact) return;
+              const segments = new Set([compact]);
+              compact.split(/\bFIRMA\b/i).forEach(seg=>{ if (seg) segments.add(seg.trim()); });
+              compact.split(/[|;]/).forEach(seg=>{ if (seg) segments.add(seg.trim()); });
+              compact.split(/,\s*/).forEach(seg=>{ if (seg) segments.add(seg.trim()); });
+              compact.split(/\s-\s/).forEach(seg=>{ if (seg) segments.add(seg.trim()); });
+              compact.split(/:\s*/).forEach(seg=>{ if (seg) segments.add(seg.trim()); });
+              for (const piece of segments){
+                const clean = (piece||'').replace(/\s+/g,' ').trim();
+                if (!clean) continue;
+                const cand = _mfPilotScoreCandidate(clean, opts);
+                if (cand && cand.score > best.score) best = cand;
               }
-            }
-            return best;
+            } catch(_){ }
           };
           for (let i=0;i<lines.length;i++){
             const line = lines[i]||'';
-            if (!labelRx.test(line)) continue;
-            // 1) Mismo renglón: a la derecha de la etiqueta
-            try {
-              const m = line.match(labelRx);
-              const rest = m && typeof m.index==='number' ? line.slice(m.index + (m[0]?.length||0)) : '';
-              // Intento directo: capturar nombre en mayúsculas inmediatamente después de "...MANDO"
-              const direct = rest.toUpperCase().match(/\s*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ'’-]+(?:\s+[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ'’-]+){1,6})\s*$/);
-              if (direct && direct[1]){
-                const cand = direct[1].trim();
-                if (!/(COMANDANTE|NOMBRE|VUELO)/.test(cand)) return cand;
+            const prev = lines[i-1]||'';
+            const next = lines[i+1]||'';
+            const block = [prev,line,next].join(' ');
+            const hasStrong = strongLabelRx.test(line) || strongLabelRx.test(block);
+            const hasPilot = wordPilot.test(block);
+            const hasMando = wordMando.test(block);
+            const hasWeak = weakLabel.test(line);
+            if (!(hasStrong || (hasPilot && hasMando) || (hasWeak && (hasPilot || hasMando)))) continue;
+
+            if (hasStrong){
+              const match = line.match(strongLabelRx);
+              if (match){
+                const after = line.slice(match.index + match[0].length);
+                register(after, { sameLine: true, distance: 0 });
+                register(line.slice(0, match.index), { sameLine: true, distance: 0, beforeLabel: true });
               }
-              const hitSame = findBestIn(rest);
-              if (hitSame) return hitSame.trim();
-            } catch(_){ }
-            // 2) Ventana de contexto: 2 líneas arriba hasta 5 abajo
-            let buf = [];
-            for (let k=-2; k<=5; k++){
-              const s = lines[i+k]||'';
-              // Saltar líneas que repiten la etiqueta
-              if (labelRx.test(s)) continue;
-              buf.push(s);
+            } else {
+              const matchPilot = line.match(wordPilot);
+              if (matchPilot){
+                register(line.slice(matchPilot.index + matchPilot[0].length), { sameLine: true, distance: 0 });
+                register(line.slice(0, matchPilot.index), { sameLine: true, distance: 0, beforeLabel: true });
+              }
+              const matchWeak = line.match(weakLabel);
+              if (matchWeak){
+                register(line.slice(matchWeak.index + matchWeak[0].length), { sameLine: true, distance: 0 });
+                register(line.slice(0, matchWeak.index), { sameLine: true, distance: 0, beforeLabel: true });
+              }
             }
-            const hitWin = findBestIn(buf.join(' '));
-            if (hitWin) return hitWin.trim();
+
+            let aggregate = '';
+            for (let d=1; d<=6; d++){
+              const ln = lines[i+d];
+              if (ln == null) break;
+              if (!ln.trim()) continue;
+              aggregate += ' ' + ln;
+              register(ln, { distance: d, windowBoost: 6 - d });
+              register(aggregate, { distance: d, windowBoost: 4 });
+            }
+
+            aggregate = '';
+            for (let d=1; d<=2; d++){
+              const ln = lines[i-d];
+              if (ln == null) break;
+              if (!ln.trim()) continue;
+              aggregate = ln + ' ' + aggregate;
+              register(ln, { distance: d, beforeLabel: true, windowBoost: 3 });
+              register(aggregate, { distance: d, beforeLabel: true });
+            }
           }
-        } catch(_){ }
-        return '';
+          return best.score > -Infinity ? best.text.trim() : '';
+        } catch(_){ return ''; }
       };
 
-      // Extra: extracción por capa de texto PDF con tamaño/fuente para priorizar el nombre más grande cerca de la etiqueta
-      // file: Blob/File (PDF), pages: número de páginas a considerar (por defecto 2)
+      // Refuerzo avanzado con capa de texto PDF: pondera cercanía, tamaño de fuente y estilo
       window._mfExtractPilotUpperFromPdf = async function(file, pages=2){
         try {
           await ensurePdfJsLite();
           const ab = await file.arrayBuffer();
           const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(ab) }).promise;
           const maxPages = Math.min(pdf.numPages, Math.max(1, pages||1));
-          const labelRx = /(PILOTO\s+AL\s+MANDO|PILOTO\b|CAPIT[ÁA]N\b|CAP\.|CPT\b|COMANDANTE\b)/i;
-          const badTokens = /^(PILOTO|MANDO|CAPITAN|CAPITÁN|CPT|CAP\.|LIC|FOLIO|VUELO|FECHA|ORIGEN|DESTINO|COMANDANTE|NOMBRE|TRIPULACION|TRIPULACIÓN|OPERADOR|COORDINADOR|ADMINISTRADOR|FIRMA)$/i;
-          const isNameToken = (t)=> /^(?:[A-ZÁÉÍÓÚÑ]{2,}|[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ'’\-]{1,})$/.test(t) || /^(DE|DEL|DA|DO|DOS|DAS|VON|VAN|LA|EL|LOS|LAS)$/i.test(t);
+          const strongLabelRx = /PILOTO\s+AL(?:\s+(?:N[O0º°]\.??|N[ÚU]M(?:ERO)?\.??))?\s+MANDO/i;
+          const wordPilot = /\bPILOTO\b/i;
+          const wordMando = /\bMANDO\b/i;
+          const weakLabel = /\b(CAPIT[ÁA]N|CAPT|CAP|CPT|COMANDANTE)\b/i;
           const toUpper = (s)=> (s||'').toString().toUpperCase();
-          const scoreCand = (tokens)=>{
-            // tokens: [{txt, size, font, x}]
-            const clean = tokens.filter(t=> isNameToken(toUpper(t.txt)) && !badTokens.test(toUpper(t.txt)));
-            if (clean.length < 2) return { s: -1, text: '' };
-            const text = clean.map(t=> toUpper(t.txt)).join(' ').trim();
-            if (!text.split(' ').some(w=> w.replace(/[^A-ZÁÉÍÓÚÑ]/g,'').length>=3)) return { s:-1, text:'' };
-            const maxSize = Math.max(...clean.map(t=> t.size||0));
-            const avg = clean.reduce((a,t)=>a+(t.size||0),0)/clean.length;
-            const nTok = clean.length;
-            const len = text.replace(/[^A-ZÁÉÍÓÚÑ]/g,'').length;
-            const boldBoost = clean.some(t=> /BLACK|BOLD/i.test(String(t.font||''))) ? 12 : 0;
-            const s = (maxSize*18) + (avg*6) + (nTok*3) + len + boldBoost;
-            return { s, text };
+          const considerTokens = (tokens, opts={})=>{
+            if (!Array.isArray(tokens) || tokens.length < 2) return null;
+            const joined = tokens.map(t=> t.txt || '').join(' ');
+            const cand = _mfPilotScoreCandidate(joined, opts);
+            if (!cand) return null;
+            const maxSize = Math.max(...tokens.map(t=> t.size||0), 0);
+            const avgSize = tokens.reduce((acc,t)=> acc + (t.size||0), 0) / tokens.length;
+            const boldBoost = tokens.some(t=> /BLACK|BOLD|HEAVY/i.test(String(t.font||''))) ? 18 : 0;
+            cand.score += (maxSize * 18) + (avgSize * 6) + (tokens.length * 2) + boldBoost;
+            return cand;
           };
-          let best = { s: -1, text: '' };
+          let best = { score: -Infinity, text: '' };
           for (let p=1; p<=maxPages; p++){
             const page = await pdf.getPage(p);
             const tc = await page.getTextContent();
             const items = (tc && tc.items) || [];
-            // Mapeo básico de ítem -> { str,x,y,size,font }
             const arr = items.map(it=>{
               const tr = Array.isArray(it.transform) ? it.transform : [1,0,0,1,0,0];
               const x = tr[4]||0, y = tr[5]||0;
@@ -2477,55 +2599,82 @@
               const size = Math.max(a,d,b,c);
               return { txt: it.str||'', x, y, size, font: it.fontName||'' };
             }).filter(it=> (it.txt||'').trim());
-            // Agrupar por renglones: cluster por Y con tolerancia
             arr.sort((u,v)=> v.y - u.y);
             const lines = [];
             const tolY = 3.0;
             for (const it of arr){
               const last = lines[lines.length-1];
-              if (last && Math.abs(last.y - it.y) <= tolY){ last.items.push(it); last.y = (last.y + it.y)/2; }
-              else { lines.push({ y: it.y, items: [it] }); }
+              if (last && Math.abs(last.y - it.y) <= tolY){
+                last.items.push(it);
+                last.y = (last.y + it.y) / 2;
+              } else {
+                lines.push({ y: it.y, items: [it] });
+              }
             }
             lines.forEach(ln=> ln.items.sort((a,b)=> a.x - b.x));
-            // Buscar líneas con etiqueta
             for (let i=0;i<lines.length;i++){
               const ln = lines[i];
-              const textU = toUpper(ln.items.map(t=> t.txt).join(' '));
-              if (!labelRx.test(textU)) continue;
-              // punto pivote: a la derecha del último token de etiqueta
+              const prev = lines[i-1];
+              const next = lines[i+1];
+              const currentText = toUpper(ln.items.map(t=> t.txt).join(' '));
+              const block = [
+                prev ? toUpper(prev.items.map(t=> t.txt).join(' ')) : '',
+                currentText,
+                next ? toUpper(next.items.map(t=> t.txt).join(' ')) : ''
+              ].join(' ');
+              const hasStrong = strongLabelRx.test(currentText) || strongLabelRx.test(block);
+              const hasPilot = wordPilot.test(block);
+              const hasMando = wordMando.test(block);
+              const hasWeak = weakLabel.test(currentText);
+              if (!(hasStrong || (hasPilot && hasMando) || (hasWeak && (hasPilot || hasMando)))) continue;
+
               let pivotX = 0;
-              for (const it of ln.items){ if (labelRx.test(toUpper(it.txt))) pivotX = Math.max(pivotX, it.x + 2); }
-              // 1) mismo renglón a la derecha
-              const right = ln.items.filter(t=> t.x > pivotX);
-              // construir candidatos por ventanas de 2 a 7 tokens
-              for (let a=0;a<right.length;a++){
-                for (let b=a+2;b<=Math.min(right.length, a+7);b++){
-                  const slice = right.slice(a,b);
-                  const cand = scoreCand(slice);
-                  if (cand.s > best.s) best = cand;
+              for (const it of ln.items){
+                const up = toUpper(it.txt);
+                if (strongLabelRx.test(up) || wordPilot.test(up) || wordMando.test(up) || weakLabel.test(up)){
+                  pivotX = Math.max(pivotX, it.x + 2);
                 }
               }
-              // 2) líneas siguientes cercanas (hasta 5)
-              for (let k=1;k<=5;k++){
-                const L = lines[i+k]; if (!L) break;
-                // si hay otra etiqueta, omitir
-                const tU = toUpper(L.items.map(t=> t.txt).join(' '));
-                if (labelRx.test(tU)) continue;
-                // tomar toda la línea como ventana y generar sub-ventanas
-                const candFull = scoreCand(L.items);
-                if (candFull.s > best.s) best = candFull;
-                for (let a=0;a<L.items.length;a++){
-                  for (let b=a+2;b<=Math.min(L.items.length, a+7);b++){
-                    const slice = L.items.slice(a,b);
-                    const cand = scoreCand(slice);
-                    if (cand.s > best.s) best = cand;
-                  }
+              const right = ln.items.filter(t=> t.x >= pivotX);
+              const consider = (slice, meta)=>{
+                const cand = considerTokens(slice, meta);
+                if (cand && cand.score > best.score) best = cand;
+              };
+              for (let a=0;a<right.length;a++){
+                for (let b=a+2;b<=Math.min(right.length, a+7);b++){
+                  consider(right.slice(a,b), { sameLine: true, distance: 0 });
                 }
+              }
+              const left = ln.items.filter(t=> t.x < pivotX - 1);
+              for (let a=0;a<left.length;a++){
+                for (let b=a+2;b<=Math.min(left.length, a+7);b++){
+                  consider(left.slice(a,b), { sameLine: true, distance: 0, beforeLabel: true });
+                }
+              }
+              let aggregate = [];
+              for (let d=1; d<=6; d++){
+                const target = lines[i+d];
+                if (!target) break;
+                const textTarget = toUpper(target.items.map(t=> t.txt).join(' '));
+                if (!textTarget.trim()) continue;
+                aggregate = aggregate.concat(target.items);
+                consider(target.items, { distance: d, windowBoost: 6 - d });
+                consider(aggregate, { distance: d, windowBoost: 4 });
+              }
+              aggregate = [];
+              for (let d=1; d<=2; d++){
+                const target = lines[i-d];
+                if (!target) break;
+                const textPrev = toUpper(target.items.map(t=> t.txt).join(' '));
+                if (!textPrev.trim()) continue;
+                aggregate = target.items.concat(aggregate);
+                consider(target.items, { distance: d, beforeLabel: true, windowBoost: 3 });
+                consider(aggregate, { distance: d, beforeLabel: true });
               }
             }
           }
-          return (best.text||'').trim();
-        } catch(_) { return ''; }
+          return best.score > -Infinity ? best.text.trim() : '';
+        } catch(_){ return ''; }
       };
       function normalizeTextSimple1(s){ return (s||'').toString().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim(); }
       function matchAirlineByName1(text){
@@ -4833,14 +4982,21 @@ Z,Others,Not specific,Special internal purposes`;
         try {
           const raw = (text||'').toString();
           if (!raw.trim()) return '';
-          const normalize = (s)=> (s||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+          const normalize = (s)=>{
+            if (typeof s !== 'string') s = s == null ? '' : String(s);
+            return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+          };
           const infoByCode = (window.flightServiceTypeInfoByCode instanceof Map) ? window.flightServiceTypeInfoByCode : new Map();
+          const catalog = Array.isArray(window.flightServiceTypeCatalog) ? window.flightServiceTypeCatalog : [];
           const codesSet = (function(){
             const base = window.flightServiceTypeCodes;
             if (base && typeof base.has === 'function' && base.size){
               return new Set(Array.from(base).map(c=> (c||'').toString().toUpperCase().slice(0,1)).filter(Boolean));
             }
-            if (infoByCode.size){ return new Set(infoByCode.keys()); }
+            if (infoByCode.size){ return new Set(Array.from(infoByCode.keys()).map(k=> (k||'').toString().toUpperCase().slice(0,1)).filter(Boolean)); }
+            if (catalog.length){
+              return new Set(catalog.map(row=> (row?.Code||'').toString().toUpperCase().slice(0,1)).filter(Boolean));
+            }
             return new Set('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''));
           })();
           if (!codesSet.size) return '';
@@ -4848,82 +5004,185 @@ Z,Others,Not specific,Special internal purposes`;
           const codePattern = codesArr.join('');
           const lines = raw.split(/\r?\n/);
           const upperLines = lines.map(line=> (line||'').toString().toUpperCase());
+          const normLines = lines.map(line=> normalize(line||'').toLowerCase());
+          const tokenLines = normLines.map(norm=> new Set(norm.split(/[^a-z0-9]+/).filter(Boolean)));
           const scoreboard = new Map();
           const record = (code, pts)=>{
-            if (!code) return;
+            if (!code || !Number.isFinite(pts)) return;
             const up = code.toString().toUpperCase().slice(0,1);
             if (!codesSet.has(up)) return;
             const prev = scoreboard.get(up)||0;
             scoreboard.set(up, prev + pts);
           };
-          const labelRegex = /(TIPO\s*DE\s*VUELO|FLIGHT\s*TYPE)/i;
-          const labelIndex = upperLines.findIndex(line=> labelRegex.test(line));
-          let ctxStart = 0;
-          let ctxEnd = upperLines.length;
-          if (labelIndex !== -1){
-            ctxStart = Math.max(0, labelIndex - 2);
-            ctxEnd = Math.min(upperLines.length, labelIndex + 14);
-          }
-          const ctxUpper = upperLines.slice(ctxStart, ctxEnd);
-          const ctxOriginal = lines.slice(ctxStart, ctxEnd);
-          const ctxTextUpper = ctxUpper.join('\n');
-          const directForward = new RegExp(`(?:TIPO\s*DE\s*VUELO|FLIGHT\s*TYPE)[^A-Z]*([${codePattern}])`);
-          const directForwardMatch = ctxTextUpper.match(directForward);
-          if (directForwardMatch && directForwardMatch[1]) record(directForwardMatch[1], 64);
-          const directBackward = new RegExp(`([${codePattern}])[^A-Z]*(?:TIPO\s*DE\s*VUELO|FLIGHT\s*TYPE)`);
-          const directBackwardMatch = ctxTextUpper.match(directBackward);
-          if (directBackwardMatch && directBackwardMatch[1]) record(directBackwardMatch[1], 56);
-          const markerBlock = '(?:\\[\\s*[Xx☒☑✓✔✘✗■●◉☓]\\s*\\]|\\(\\s*[Xx☒☑✓✔✘✗■●◉☓]\\s*\\)|[Xx☒☑✓✔✘✗■●◉☓])';
-          const markerNear = /[Xx☒☑✓✔✘✗■●◉☓]/;
-          ctxOriginal.forEach((line, idx)=>{
-            const upper = (line||'').toString().toUpperCase();
-            const trimmed = upper.trim();
-            const absoluteIdx = ctxStart + idx;
-            if (trimmed && /^[A-Z]$/.test(trimmed) && codesSet.has(trimmed)){
-              const base = 52 - (Math.min(Math.abs((labelIndex === -1 ? absoluteIdx : absoluteIdx - labelIndex)), 4) * 6);
-              record(trimmed, Math.max(24, base));
+          const labelRegex = /(TIPO\s*DE\s*VUELO|FLIGHT\s*TYPE|TYPE\s*OF\s*FLIGHT)/i;
+          const labelIndices = [];
+          upperLines.forEach((line, idx)=>{ if (labelRegex.test(line||'')) labelIndices.push(idx); });
+          const distanceToLabel = (idx)=>{
+            if (!labelIndices.length) return Infinity;
+            let best = Infinity;
+            for (const pos of labelIndices){
+              const diff = Math.abs(pos - idx);
+              if (diff < best) best = diff;
             }
-            const sameLineDirect = upper.match(directForward);
-            if (sameLineDirect && sameLineDirect[1]) record(sameLineDirect[1], 40);
-            const bracketBefore = new RegExp(`${markerBlock}\\s*([${codePattern}])`, 'g');
-            let m;
-            while ((m = bracketBefore.exec(upper))){ record(m[1], 42); }
-            const bracketAfter = new RegExp(`([${codePattern}])\\s*${markerBlock}`, 'g');
-            while ((m = bracketAfter.exec(upper))){ record(m[1], 38); }
-            const markerBefore = new RegExp(`(?:^|\\s)(?:[Xx☒☑✓✔✘✗■●◉☓])\\s*([${codePattern}])(?:\\s|$|[\)\\.\-:])`, 'g');
-            while ((m = markerBefore.exec(upper))){ record(m[1], 34); }
-            const markerAfter = new RegExp(`([${codePattern}])(?:\\s|[\)\\.\-:])?\\s*(?:[Xx☒☑✓✔✘✗■●◉☓])(?:\\s|$)`, 'g');
-            while ((m = markerAfter.exec(upper))){ record(m[1], 32); }
-            const enumPattern = new RegExp(`(?:^|\\s)([${codePattern}])\\s*[\)\-–—:\.]`, 'g');
-            while ((m = enumPattern.exec(upper))){
-              const code = (m[1]||'').toUpperCase();
-              const startIdx = Math.max(0, m.index - 8);
-              const endIdx = Math.min(upper.length, enumPattern.lastIndex + 8);
-              const surrounding = upper.slice(startIdx, endIdx);
-              const bonus = markerNear.test(surrounding) ? 20 : 6;
-              record(code, bonus);
+            return best;
+          };
+          const weightByDistance = (idx)=>{
+            const dist = distanceToLabel(idx);
+            if (dist === Infinity) return 0;
+            return Math.max(0, 40 - dist * 6);
+          };
+          const parenLetterRx = new RegExp(`\\(([${codePattern}])\\)`, 'g');
+          const boundaryLetterRx = new RegExp(`(?:^|[^A-Z0-9])([${codePattern}])(?=[^A-Z0-9]|$)`, 'g');
+          const mappingLetterRx = new RegExp(`([${codePattern}])\\s*[-–—:=]\\s*`, 'g');
+          const markRegex = /[Xx☒☑✓✔✘✗■●◉☓]/;
+          const hasPositiveWord = (idx)=>{
+            const norm = normLines[idx]||'';
+            return /\b(marcad[oa]|seleccionad|aplica|aplicar|check|checked|yes|si|sí)\b/.test(norm);
+          };
+          const hasNegativeWord = (idx)=>{
+            const norm = normLines[idx]||'';
+            return /\b(no aplica|no seleccionad|n\/a|no marcar|no aplicar)\b/.test(norm);
+          };
+          const hasInstructionWord = (idx)=>{
+            const norm = normLines[idx]||'';
+            return /\b(escriba|capture|anote|indique)\b/.test(norm);
+          };
+          const tokensFor = (code)=>{
+            const upCode = (code||'').toString().toUpperCase();
+            if (infoByCode && infoByCode.has && infoByCode.has(upCode)){
+              const info = infoByCode.get(upCode);
+              if (info && Array.isArray(info.tokens)) return info.tokens;
             }
-          });
-          const contextNorm = normalize(ctxOriginal.join(' ')).toLowerCase();
-          if (contextNorm){
-            const ctxTokens = new Set(contextNorm.split(/[^a-z0-9]+/).filter(t=> t && t.length >= 3));
-            infoByCode.forEach((info, code)=>{
-              if (!codesSet.has(code)) return;
-              const tokens = Array.isArray(info?.tokens) ? info.tokens : [];
-              if (!tokens.length) return;
-              let hits = 0;
-              tokens.forEach(tok=>{ if (ctxTokens.has(tok)) hits++; });
-              if (hits > 0){ record(code, Math.min(22, 6 + hits * 4)); }
+            const row = catalog.find(r=> (r?.Code||'').toString().toUpperCase() === upCode);
+            if (!row) return [];
+            const text = `${row.Description||''} ${row.Type||row['Type of operation']||''} ${row.Category||''}`;
+            return Array.from(new Set(normalize(text).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)));
+          };
+          const tokensByCode = new Map();
+          codesArr.forEach(code=> tokensByCode.set(code, tokensFor(code)));
+
+          if (labelIndices.length){
+            const directLetterFromLabelRx = new RegExp(`(?:TIPO\\s*DE\\s*VUELO|FLIGHT\\s*TYPE|TYPE\\s*OF\\s*FLIGHT)[^A-Z0-9]{0,10}([${codePattern}])`, 'i');
+            const parenFromLabelRx = new RegExp(`(?:TIPO\\s*DE\\s*VUELO|FLIGHT\\s*TYPE|TYPE\\s*OF\\s*FLIGHT)[^\n]{0,60}?\\(([${codePattern}])\\)`, 'i');
+            labelIndices.forEach(idx=>{
+              const line = upperLines[idx]||'';
+              const direct = line.match(directLetterFromLabelRx);
+              if (direct && direct[1]) record(direct[1], 120);
+              const paren = line.match(parenFromLabelRx);
+              if (paren && paren[1]) record(paren[1], 108);
+              const nextLine = upperLines[idx+1]||'';
+              const leading = nextLine.match(new RegExp(`^\\s*([${codePattern}])\\b`));
+              if (leading && leading[1]) record(leading[1], 86);
+              const nextLineMatches = (lines[idx+1]||'').toUpperCase().match(parenLetterRx);
+              if (nextLineMatches){ nextLineMatches.forEach(letter=> record(letter, 80)); }
             });
           }
+
+          for (let idx=0; idx<upperLines.length; idx++){
+            const upper = upperLines[idx]||'';
+            if (!upper.trim()) continue;
+            const tokens = tokenLines[idx] || new Set();
+            const base = weightByDistance(idx);
+            let penalty = 0;
+            if (hasNegativeWord(idx)) penalty += 18;
+            if (hasInstructionWord(idx)) penalty += 10;
+
+            parenLetterRx.lastIndex = 0;
+            let parenMatch;
+            while ((parenMatch = parenLetterRx.exec(upper))){
+              const letter = parenMatch[1];
+              let score = 22 + base;
+              if (markRegex.test(upper)) score += 18;
+              const tokList = tokensByCode.get(letter) || [];
+              if (tokList.length){
+                let hits = 0;
+                tokList.forEach(t=>{ if (tokens.has(t)) hits++; });
+                if (hits) score += Math.min(30, 8 + hits * 5);
+              }
+              score -= penalty;
+              if (score > 0) record(letter, score);
+            }
+
+            mappingLetterRx.lastIndex = 0;
+            let mapMatch;
+            while ((mapMatch = mappingLetterRx.exec(upper))){
+              const letter = mapMatch[1];
+              const restStart = mappingLetterRx.lastIndex;
+              const rest = upper.slice(restStart, restStart + 80);
+              const restTokens = new Set(normalize(rest).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
+              const tokList = tokensByCode.get(letter) || [];
+              let hits = 0;
+              tokList.forEach(t=>{ if (restTokens.has(t) || tokens.has(t)) hits++; });
+              if (hits){
+                let score = 28 + base + Math.min(24, hits * 6);
+                if (markRegex.test(upper)) score += 10;
+                score -= penalty;
+                if (score > 0) record(letter, score);
+              }
+            }
+
+            boundaryLetterRx.lastIndex = 0;
+            let boundaryMatch;
+            while ((boundaryMatch = boundaryLetterRx.exec(upper))){
+              const letter = boundaryMatch[1];
+              let score = 8 + base;
+              if (markRegex.test(upper)) score += 26;
+              if (hasPositiveWord(idx)) score += 16;
+              const tokList = tokensByCode.get(letter) || [];
+              if (tokList.length){
+                let hits = 0;
+                tokList.forEach(t=>{ if (tokens.has(t)) hits++; });
+                if (hits) score += Math.min(20, hits * 5);
+              }
+              if (letter === 'X' && score < 60 && !tokens.has('tecnica')) score -= 6;
+              score -= penalty;
+              if (score > 0) record(letter, score);
+            }
+          }
+
+          const contextIndices = new Set();
+          if (labelIndices.length){
+            labelIndices.forEach(i=>{
+              for (let j=i-6; j<=i+14; j++){
+                if (j>=0 && j<lines.length) contextIndices.add(j);
+              }
+            });
+          } else {
+            for (let j=0; j<lines.length; j++) contextIndices.add(j);
+          }
+          const contextTokens = new Set();
+          contextIndices.forEach(idx=>{
+            tokenLines[idx]?.forEach(tok=> contextTokens.add(tok));
+          });
+          tokensByCode.forEach((tokList, code)=>{
+            if (!tokList.length) return;
+            let hits = 0;
+            tokList.forEach(t=>{ if (contextTokens.has(t)) hits++; });
+            if (hits >= 2) record(code, Math.min(30, 12 + hits * 3));
+          });
+
           if (!scoreboard.size) return '';
           const sorted = Array.from(scoreboard.entries()).sort((a,b)=> b[1] - a[1]);
-          const [bestCode, bestScore] = sorted[0];
+          let [bestCode, bestScore] = sorted[0];
           const secondScore = sorted[1]?.[1] || 0;
-          if (bestScore < 16) return '';
-          if (bestCode === 'X' && bestScore < 30 && secondScore > 0 && Math.abs(bestScore - secondScore) <= 3){
-            const alt = sorted.find(([code])=> code !== 'X');
-            if (alt && alt[1] >= 14) return alt[0];
+          if (bestScore < 26) return '';
+          if (bestCode === 'X' && bestScore < 48){
+            const alt = sorted.find(([code, score])=> code !== 'X' && score >= bestScore - 6 && score >= 32);
+            if (alt){ bestCode = alt[0]; bestScore = alt[1]; }
+          }
+          if (sorted.length > 1 && bestScore - secondScore <= 4){
+            const contextHits = (code)=>{
+              const tokList = tokensByCode.get(code) || [];
+              let hits = 0;
+              tokList.forEach(t=>{ if (contextTokens.has(t)) hits++; });
+              return hits;
+            };
+            const bestHits = contextHits(bestCode);
+            const secondHits = contextHits(sorted[1][0]);
+            if (secondHits > bestHits){
+              bestCode = sorted[1][0];
+              bestScore = sorted[1][1];
+            }
           }
           return bestCode;
         } catch(_){ return ''; }
@@ -6200,10 +6459,14 @@ Z,Others,Not specific,Special internal purposes`;
             const pilot = findNearLabelValue(['PILOTO AL MANDO','PILOTO','CAPITAN','CAPITÁN'], nameRx, text);
             if (pilot) setVal('mf-pilot', pilot);
           } catch(_){ }
-          // Refuerzo V2: si aún no hay valor, intentar nombre completo en MAYÚSCULAS cercano a la etiqueta
-          try { const cur = document.getElementById('mf-pilot')?.value || ''; if (!cur){ const p2 = window._mfExtractPilotUpperNearLabel?.(text) || ''; if (p2) setVal('mf-pilot', p2); } } catch(_){ }
-          // Refuerzo: si no se obtuvo, intentar nombre completo en MAYÚSCULAS junto a la etiqueta
-          try { const cur = document.getElementById('mf-pilot')?.value || ''; if (!cur){ const p2 = window._mfExtractPilotUpperNearLabel?.(text) || ''; if (p2) setVal('mf-pilot', p2); } } catch(_){ }
+          // Refuerzo: heurística dedicada que prioriza nombres completos cercanos a la etiqueta de piloto
+          try {
+            const cur = document.getElementById('mf-pilot')?.value || '';
+            if (!cur){
+              const name = window._mfExtractPilotUpperNearLabel?.(text) || '';
+              if (name) setVal('mf-pilot', name);
+            }
+          } catch(_){ }
           // Si aún no se obtuvo el Piloto, intentar extracción basada en fuente y tamaño directamente del PDF (Arial Black ~ Bold ~ 12pt)
           try {
             const cur = document.getElementById('mf-pilot')?.value || '';
@@ -6214,8 +6477,6 @@ Z,Others,Not specific,Special internal purposes`;
               }
             }
           } catch(_){ }
-          // Refuerzo: fallback a nombre completo en MAYÚSCULAS si falta
-          try { const cur = document.getElementById('mf-pilot')?.value || ''; if (!cur){ const p2 = window._mfExtractPilotUpperNearLabel?.(text) || ''; if (p2) setVal('mf-pilot', p2); } } catch(_){ }
           try {
             const found = (window._mfExtractPilotLicenseExhaustive?.(text) || '').toUpperCase();
             if (found) setVal('mf-pilot-license', found);

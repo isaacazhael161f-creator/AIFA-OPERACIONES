@@ -29,11 +29,11 @@
             </div>
             <form id="login-form" class="login-form">
                 <div class="form-floating mb-3">
-                    <input type="text" class="form-control" id="username" name="username" required placeholder="Ingrese su usuario" autocomplete="username">
+                    <input type="text" class="form-control" id="username" name="username" required placeholder=" " autocomplete="username">
                     <label for="username">Usuario</label>
                 </div>
                 <div class="form-floating mb-3">
-                    <input type="password" class="form-control" id="password" name="password" required placeholder="Ingrese su contraseña" autocomplete="current-password">
+                    <input type="password" class="form-control" id="password" name="password" required placeholder=" " autocomplete="current-password">
                     <label for="password">Contraseña</label>
                 </div>
                 <button type="submit" id="login-button" class="btn btn-primary w-100 py-2">
@@ -141,7 +141,7 @@
                                 <div class="tab-pane fade show active" id="interactivo-inicio-pane" role="tabpanel" aria-labelledby="interactivo-inicio-tab" tabindex="0">
                                     <div class="mb-3">
                                         <button class="btn btn-outline-primary w-100" data-bs-toggle="collapse" data-bs-target="#summary-collapse" aria-expanded="false" aria-controls="summary-collapse">
-                                            Resumen por Aerolínea
+                                            Resumen de Operaciones
                                         </button>
                                     </div>
                                     <div class="collapse" id="summary-collapse">
@@ -556,7 +556,7 @@
                         <div class="card-header bg-transparent d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
                             <div class="d-flex flex-column">
                                 <h2 class="mb-2 mb-md-0">Operaciones Totales</h2>
-                                <div class="update-note d-flex align-items-center"><i class="fas fa-calendar-check me-2"></i><small>Actualizado al <strong>29 octubre 2025</strong></small></div>
+                                <div class="update-note d-flex align-items-center"><i class="fas fa-calendar-check me-2"></i><small>Actualizado al <strong>30 octubre 2025</strong></small></div>
                             </div>
                             
                         </div>
@@ -590,6 +590,10 @@
                                                 <input class="form-check-input" type="checkbox" id="toggle-monthly-2025">
                                                 <label class="form-check-label small" for="toggle-monthly-2025">Mensual 2025</label>
                                                 <span class="badge bg-info text-dark ms-2 d-none" id="years-disabled-hint">Años inactivos</span>
+                                            </div>
+                                            <div class="form-check form-switch m-0" title="Vista acumulada por año">
+                                                <input class="form-check-input" type="checkbox" id="toggle-yearly-view">
+                                                <label class="form-check-label small" for="toggle-yearly-view">Anual</label>
                                             </div>
                                             <div id="weekly-day-filter" class="d-none d-flex align-items-center gap-2">
                                                 <label for="weekly-day-select" class="small text-muted fw-semibold mb-0">Día</label>
@@ -646,6 +650,7 @@
                                     </div>
                                     <div class="mt-4" id="ops-months-2025" style="display:none;">
                                         <h6 class="text-muted">Meses 2025</h6>
+                                        <p class="small text-muted mb-2">Selecciona los meses que deseas visualizar; las gráficas solo mostrarán datos de los meses marcados.</p>
                                         <div class="d-flex flex-wrap align-items-center gap-2">
                                             <div class="months-chips d-flex flex-wrap gap-1">
                                                 <label class="chip"><input type="checkbox" data-month="01" checked><span class="chip-text">Ene</span></label>
@@ -738,7 +743,7 @@
                     <div class="card">
                         <div class="card-header d-flex align-items-center justify-content-center">
                             <i class="fas fa-clock-check fa-2x text-primary me-3"></i>
-                            <h2 class="mb-0">PUNTUALIDAD DE AEROLÍNEAS (SEPTIEMBRE)</h2>
+                            <h2 class="mb-0">PUNTUALIDAD DE AEROLÍNEAS DEL MES DE SEPTIEMBRE</h2>
                         </div>
                         <div class="card-body">
                             <ul class="nav nav-tabs" id="puntualidadTab" role="tablist">
@@ -1746,6 +1751,96 @@
                 window.addEventListener('online', applyOnlineState);
                 window.addEventListener('offline', applyOnlineState);
                 applyOnlineState();
+            })();
+        </script>
+        <script>
+            // Ajustar la paleta del login según el color medio del video de fondo
+            (function adaptLoginPaletteToVideo(){
+                const video = document.getElementById('login-bg-video');
+                if (!video) return;
+                const root = document.documentElement;
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext && canvas.getContext('2d', { willReadFrequently: true });
+                if (!ctx) return;
+
+                const clamp = (v)=> Math.max(0, Math.min(255, Math.round(v)));
+                const lighten = (rgb, amount)=> rgb.map(ch => clamp(ch + (255 - ch) * amount));
+                const darken = (rgb, amount)=> rgb.map(ch => clamp(ch * (1 - amount)));
+                const rgba = (rgb, alpha)=> `rgba(${clamp(rgb[0])},${clamp(rgb[1])},${clamp(rgb[2])},${alpha})`;
+
+                let sampling = false;
+                let lastApplied = null;
+
+                function applyPalette(avg){
+                    const [r,g,b] = avg.map(clamp);
+                    const luminance = (0.299*r + 0.587*g + 0.114*b) / 255;
+                    const isBright = luminance > 0.55;
+
+                    const base = darken(avg, 0.18);
+                    const edge = lighten(avg, 0.25);
+                    const highlight1 = lighten(avg, 0.48);
+                    const highlight2 = lighten(avg, 0.68);
+                    const frame = lighten(avg, 0.32);
+                    const formBgColor = isBright ? darken(avg, 0.12) : darken(avg, 0.42);
+                    const formBgAlpha = isBright ? 0.28 : 0.4;
+                    const formBorder = lighten(avg, isBright ? 0.22 : 0.58);
+                    const textRGB = isBright ? darken(avg, 0.68) : lighten(avg, 0.92);
+                    const labelRGB = isBright ? darken(avg, 0.46) : lighten(avg, 0.82);
+                    const helperRGB = isBright ? darken(avg, 0.36) : lighten(avg, 0.74);
+
+                    root.style.setProperty('--login-glass-base', rgba(base, 0.52));
+                    root.style.setProperty('--login-glass-edge', rgba(edge, 0.24));
+                    root.style.setProperty('--login-glass-highlight-1', rgba(highlight1, 0.32));
+                    root.style.setProperty('--login-glass-highlight-2', rgba(highlight2, 0.22));
+                    root.style.setProperty('--login-glass-frame', rgba(frame, 0.26));
+                    root.style.setProperty('--login-form-bg', rgba(formBgColor, formBgAlpha));
+                    root.style.setProperty('--login-form-border', rgba(formBorder, 0.24));
+                    root.style.setProperty('--login-form-text', rgba(textRGB, 0.96));
+                    root.style.setProperty('--login-label-color', rgba(labelRGB, 0.88));
+                    root.style.setProperty('--login-helper-color', rgba(helperRGB, 0.78));
+                }
+
+                function sampleFrame(){
+                    if (sampling) return;
+                    sampling = true;
+                    requestAnimationFrame(()=>{
+                        try {
+                            if (!video.videoWidth || !video.videoHeight){ sampling = false; return; }
+                            const targetWidth = 140;
+                            const targetHeight = Math.max(1, Math.round((video.videoHeight / video.videoWidth) * targetWidth));
+                            canvas.width = targetWidth;
+                            canvas.height = targetHeight;
+                            ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+                            const { data } = ctx.getImageData(0, 0, targetWidth, targetHeight);
+                            let r = 0, g = 0, b = 0, count = 0;
+                            for (let i=0; i<data.length; i+=4){
+                                const alpha = data[i+3];
+                                if (alpha < 32) continue;
+                                r += data[i];
+                                g += data[i+1];
+                                b += data[i+2];
+                                count++;
+                            }
+                            if (count){
+                                const avg = [r/count, g/count, b/count];
+                                const key = avg.map(v=> clamp(v)).join(',');
+                                if (key !== lastApplied){
+                                    applyPalette(avg);
+                                    lastApplied = key;
+                                }
+                            }
+                        } catch(_){ /* ignore sampling errors */ }
+                        sampling = false;
+                    });
+                }
+
+                const triggerSample = ()=> sampleFrame();
+                if (video.readyState >= 2){ triggerSample(); }
+                else video.addEventListener('loadeddata', triggerSample, { once: true });
+
+                ['play','playing','timeupdate'].forEach(evt =>{
+                    video.addEventListener(evt, triggerSample, { passive: true });
+                });
             })();
         </script>
     <!-- Loader Global -->
