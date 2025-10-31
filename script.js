@@ -2659,6 +2659,22 @@ function formatSpanishDate(iso) {
     return monthName ? `${day} de ${monthName} de ${year}` : iso;
 }
 
+function updateOperationsSummaryTitle() {
+    const el = document.getElementById('operations-summary-title');
+    if (!el) return;
+    try {
+        const today = new Date();
+        const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+        const iso = yesterday.toISOString().slice(0, 10);
+        const label = formatSpanishDate(iso);
+        if (label) {
+            el.textContent = `Resumen de operaciones del ${label}`;
+        }
+    } catch (_) { /* ignore */ }
+}
+
+document.addEventListener('DOMContentLoaded', updateOperationsSummaryTitle);
+
 function ensureNumber(value) {
     const num = Number(value);
     return Number.isFinite(num) ? num : 0;
@@ -3361,6 +3377,44 @@ function renderOperacionesTotales() {
                     padBottom += isMobile ? 10 : 6;  // y algo más abajo para evitar recortes
                 }
 
+                const xMaxRotation = isYearAxis ? 0 : (isMobile ? 42 : (isTablet ? 22 : 0));
+                const xMinRotation = isYearAxis ? 0 : (isMobile ? 12 : 0);
+                const tickPadding = isYearAxis ? 0 : (isMobile ? 12 : (isTablet ? 10 : 6));
+
+                const formatTickLabel = (value) => {
+                    if (value == null) return value;
+                    const raw = typeof value === 'string' ? value : String(value);
+                    const trimmed = raw.trim();
+                    if (!trimmed) return trimmed;
+                    if (/^\d{4}$/.test(trimmed)) return trimmed;
+                    if (isMobile && trimmed.length > 10){
+                        const tokens = trimmed.split(/\s+/).filter(Boolean);
+                        if (tokens.length > 1){
+                            const mid = Math.ceil(tokens.length / 2);
+                            return [tokens.slice(0, mid).join(' '), tokens.slice(mid).join(' ')];
+                        }
+                        return trimmed.length > 12 ? `${trimmed.slice(0, 9)}...` : trimmed;
+                    }
+                    if (isTablet && trimmed.length > 14){
+                        const tokens = trimmed.split(/\s+/).filter(Boolean);
+                        if (tokens.length > 1){
+                            const mid = Math.ceil(tokens.length / 2);
+                            return [tokens.slice(0, mid).join(' '), tokens.slice(mid).join(' ')];
+                        }
+                    }
+                    return trimmed;
+                };
+
+                const resolvedTitle = (()=>{
+                    if (!isMobile || typeof finalTitle !== 'string') return finalTitle;
+                    const clean = finalTitle.trim();
+                    if (clean.length <= 24) return clean;
+                    const parts = clean.split(/\s+/).filter(Boolean);
+                    if (parts.length <= 1) return clean.length > 26 ? `${clean.slice(0, 24)}...` : clean;
+                    const half = Math.ceil(parts.length / 2);
+                    return [parts.slice(0, half).join(' '), parts.slice(half).join(' ')];
+                })();
+
                 // Opciones específicas para las burbujas en ejes de años (4-5 puntos)
                 const bubbleOpts = {
                     show: true,
@@ -3423,11 +3477,11 @@ function renderOperacionesTotales() {
                             legend: { display: false },
                             title: {
                                 display: true,
-                                text: finalTitle,
+                                text: resolvedTitle,
                                 align: 'start',
                                 color: theme.labels,
                                 padding: { top: 6, bottom: 8 },
-                                font: { size: 14, weight: '600' }
+                                font: { size: isMobile ? 13 : 14, weight: '600' }
                             },
                             tooltip: {
                                 backgroundColor: theme.tooltip.backgroundColor,
@@ -3466,11 +3520,12 @@ function renderOperacionesTotales() {
                                     // Para ejes con años (2022, 2023, ...), no omitir etiquetas en móvil
                                     autoSkip: !isYearAxis,
                                     maxTicksLimit: isYearAxis ? (labels?.length || maxTicks) : maxTicks,
-                                    autoSkipPadding: isYearAxis ? 0 : undefined,
+                                    autoSkipPadding: tickPadding,
                                     source: 'labels',
                                     font: { size: xTickFont },
-                                    minRotation: 0,
-                                    maxRotation: isYearAxis ? 0 : (isMobile ? 30 : 0)
+                                    minRotation: xMinRotation,
+                                    maxRotation: xMaxRotation,
+                                    callback: (val) => formatTickLabel(val)
                                 },
                                 title: { display: true, text: xTitle, color: theme.labels, font: { weight: '600' } }
                             },
@@ -5000,6 +5055,7 @@ function setupManifestsUI() {
                         const originCandLbl = findNearLabelIATACode(['origen','procedencia','from','procedencia del vuelo'], text);
                         const lastStopCandLbl = findNearLabelIATACode(['ultima escala','escala anterior','last stop','escala'], text);
                         const finalDestCandLbl = findNearLabelIATACode(['destino','to','destino del vuelo'], text);
+                        const arrivalMainCandLbl = currentIsArrival ? findNearLabelIATACode(['aeropuerto de llegada','aeropuerto destino','aeropuerto de arribo','aeropuerto destino del vuelo'], text) : '';
                         // Buscar candidatos por tokens de 3 letras que existan en catálogo
                         const airportCodes = upperTokens.filter(t => t.length === 3 && /^[A-Z]{3}$/.test(t) && iataSet.has(t));
                         // Heurística por palabras clave en líneas
@@ -5007,6 +5063,7 @@ function setupManifestsUI() {
                         let originCand = '';
                         let lastStopCand = '';
                         let finalDestCand = '';
+                        let forcedLastStopFromOrigin = false;
                         for (const line of rawLines){
                             const u = line.toUpperCase();
                             // Origen/Procedencia
@@ -5034,9 +5091,46 @@ function setupManifestsUI() {
                         if (!lastStopCand && airportCodes[1]) lastStopCand = airportCodes[1];
                         if (!finalDestCand && airportCodes[2]) finalDestCand = airportCodes[2];
 
+                        const airportCounts = airportCodes.reduce((acc, code)=>{
+                            acc[code] = (acc[code] || 0) + 1;
+                            return acc;
+                        }, {});
+                        const uniqueAirports = Object.keys(airportCounts);
+                        const lastStopFromLabel = !!lastStopCandLbl;
+
+                        if (currentIsArrival && !lastStopFromLabel){
+                            const originCandidate = originCand || airportCodes[0] || '';
+                            const arrivalMainGuess = arrivalMainCandLbl || '';
+                            const isLikelyDirect = uniqueAirports.length <= 2;
+                            if (!lastStopCand && originCandidate){
+                                lastStopCand = originCandidate;
+                                forcedLastStopFromOrigin = true;
+                            } else if (originCandidate){
+                                const alignsWithArrivalAirport = arrivalMainGuess && lastStopCand && lastStopCand === arrivalMainGuess;
+                                const looksLikeDirect = isLikelyDirect && lastStopCand && lastStopCand !== originCandidate;
+                                if (alignsWithArrivalAirport || looksLikeDirect){
+                                    if (lastStopCand !== originCandidate){
+                                        lastStopCand = originCandidate;
+                                    }
+                                    forcedLastStopFromOrigin = true;
+                                }
+                            }
+                        }
+
                         if (currentIsArrival){
                             if (originCand) setVal('mf-arr-origin-code', originCand);
-                            if (lastStopCand) setVal('mf-arr-last-stop-code', lastStopCand);
+                            if (lastStopCand) {
+                                setVal('mf-arr-last-stop-code', lastStopCand);
+                                if (forcedLastStopFromOrigin){
+                                    const nameEl = document.getElementById('mf-arr-last-stop');
+                                    const hasName = ((nameEl && nameEl.value) || '').trim();
+                                    if (!hasName){
+                                        const originNameEl = document.getElementById('mf-arr-origin-name');
+                                        const fallbackName = airportByIATA.get(lastStopCand) || ((originNameEl && originNameEl.value) || '');
+                                        if (fallbackName) setVal('mf-arr-last-stop', fallbackName);
+                                    }
+                                }
+                            }
                         } else {
                             if (originCand) setVal('mf-origin-code', originCand);
                             if (lastStopCand) setVal('mf-next-stop-code', lastStopCand);

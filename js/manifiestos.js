@@ -1670,6 +1670,20 @@
               text = (data && data.text) ? data.text : '';
             }
             if (ocrDebug) ocrDebug.value = text || '';
+            const hasWord = hasWordFactory(text);
+            const upperTokens = tokenizeUpper(text);
+            const isArrivalDoc = hasWord('LLEGADA') || hasWord('ARRIVAL');
+            const isDepartureDoc = hasWord('SALIDA') || hasWord('DEPARTURE');
+            if (isArrivalDoc && dirArr) {
+              dirArr.checked = true;
+              if (dirDep) dirDep.checked = false;
+              try { dirArr.dispatchEvent(new Event('change', { bubbles: true })); } catch(_){}
+            } else if (isDepartureDoc && dirDep) {
+              dirDep.checked = true;
+              if (dirArr) dirArr.checked = false;
+              try { dirDep.dispatchEvent(new Event('change', { bubbles: true })); } catch(_){}
+            }
+            const currentIsArrival = dirArr && dirArr.checked;
             setProgress(70, 'Procesando campos...');
             // Reutilizar el mismo pipeline de parseo
             // No auto-fill de Título
@@ -1715,12 +1729,97 @@
             let iso = dmyToISO(fecha);
             if (!iso){ const m = (text||'').match(/\b(\d{1,2})\s*[\/\-.]\s*(\d{1,2})\s*[\/\-.]\s*(\d{2}|\d{4})\b/); if (m) iso = dmyToISO(m[0]); }
             if (iso) { const el = document.getElementById('mf-doc-date'); if (el) el.value = iso; }
-            let origen = findNearLabelIATACode(['ORIGEN','PROCEDENCIA'], text);
-            let origenMatch = findValidAirport(origen);
-            setVal('mf-origin-code', origenMatch ? origenMatch.IATA : '');
-            let destino = findNearLabelIATACode(['DESTINO'], text);
-            let destinoMatch = findValidAirport(destino);
-            setVal('mf-final-dest-code', destinoMatch ? destinoMatch.IATA : '');
+            const originCandLbl = findNearLabelIATACode(['ORIGEN','PROCEDENCIA','PROCEDENCIA DEL VUELO','FROM'], text);
+            const lastStopCandLbl = findNearLabelIATACode(['ULTIMA ESCALA','ESCALA ANTERIOR','LAST STOP','ESCALA'], text);
+            const finalDestCandLbl = findNearLabelIATACode(['DESTINO','DESTINO DEL VUELO','TO'], text);
+            const arrivalMainCandLbl = currentIsArrival ? findNearLabelIATACode(['AEROPUERTO DE LLEGADA','AEROPUERTO DESTINO','AEROPUERTO DE ARRIBO','AEROPUERTO DESTINO DEL VUELO'], text) : '';
+            const airportCodes = upperTokens.filter(t => t.length === 3 && /^[A-Z]{3}$/.test(t) && iataSet.has(t));
+            const rawLines = (text||'').split(/\r?\n/);
+            let originCand = '';
+            let lastStopCand = '';
+            let finalDestCand = '';
+            let forcedLastStopFromOrigin = false;
+            for (const line of rawLines){
+              const u = line.toUpperCase();
+              if (/ORIGEN|PROCEDENCIA|FROM\b/.test(u)){
+                const hit = Array.from(iataSet).find(c => u.includes(c));
+                if (hit) originCand = hit;
+              }
+              if (/ULTIMA\s+ESCALA|LAST\s+STOP|ESCALA\b/.test(u)){
+                const hit = Array.from(iataSet).find(c => u.includes(c));
+                if (hit) lastStopCand = hit;
+              }
+              if (/DESTINO|TO\b/.test(u)){
+                const hit = Array.from(iataSet).find(c => u.includes(c));
+                if (hit) finalDestCand = hit;
+              }
+            }
+            originCand = originCandLbl || originCand;
+            lastStopCand = lastStopCandLbl || lastStopCand;
+            finalDestCand = finalDestCandLbl || finalDestCand;
+            if (!originCand && airportCodes[0]) originCand = airportCodes[0];
+            if (!lastStopCand && airportCodes[1]) lastStopCand = airportCodes[1];
+            if (!finalDestCand && airportCodes[2]) finalDestCand = airportCodes[2];
+            const airportCounts = airportCodes.reduce((acc, code)=>{
+              acc[code] = (acc[code] || 0) + 1;
+              return acc;
+            }, {});
+            const uniqueAirports = Object.keys(airportCounts);
+            const lastStopFromLabel = !!lastStopCandLbl;
+            if (currentIsArrival && !lastStopFromLabel){
+              const originCandidate = originCand || airportCodes[0] || '';
+              const arrivalMainGuess = arrivalMainCandLbl || '';
+              const isLikelyDirect = uniqueAirports.length <= 2;
+              if (!lastStopCand && originCandidate){
+                lastStopCand = originCandidate;
+                forcedLastStopFromOrigin = true;
+              } else if (originCandidate){
+                const alignsWithArrivalAirport = arrivalMainGuess && lastStopCand && lastStopCand === arrivalMainGuess;
+                const looksLikeDirect = isLikelyDirect && lastStopCand && lastStopCand !== originCandidate;
+                if (alignsWithArrivalAirport || looksLikeDirect){
+                  if (lastStopCand !== originCandidate){
+                    lastStopCand = originCandidate;
+                  }
+                  forcedLastStopFromOrigin = true;
+                }
+              }
+            }
+            const originMatch = originCand ? findValidAirport(originCand) : null;
+            const lastStopMatch = lastStopCand ? findValidAirport(lastStopCand) : null;
+            const finalDestMatch = finalDestCand ? findValidAirport(finalDestCand) : null;
+            if (currentIsArrival){
+              if (originCand){
+                const code = originMatch?.IATA || originCand;
+                setVal('mf-arr-origin-code', code);
+                const name = originMatch?.Name || airportByIATA.get(code) || '';
+                if (name) setVal('mf-arr-origin-name', name);
+              }
+              if (lastStopCand){
+                const code = lastStopMatch?.IATA || lastStopCand;
+                setVal('mf-arr-last-stop-code', code);
+                const lastName = lastStopMatch?.Name || airportByIATA.get(code) || (forcedLastStopFromOrigin ? (originMatch?.Name || airportByIATA.get(originMatch?.IATA||'')) : '');
+                if (lastName) setVal('mf-arr-last-stop', lastName);
+              }
+            } else {
+              if (originCand){
+                const code = originMatch?.IATA || originCand;
+                setVal('mf-origin-code', code);
+                const name = originMatch?.Name || airportByIATA.get(code) || '';
+                if (name) setVal('mf-origin-name', name);
+              }
+              if (lastStopCand){
+                const code = lastStopMatch?.IATA || lastStopCand;
+                setVal('mf-next-stop-code', code);
+                const name = lastStopMatch?.Name || airportByIATA.get(code) || '';
+                if (name) setVal('mf-next-stop', name);
+              }
+              if (finalDestCand){
+                const code = finalDestMatch?.IATA || finalDestCand;
+                setVal('mf-final-dest-code', code);
+                const name = finalDestMatch?.Name || airportByIATA.get(code) || '';
+                if (name) setVal('mf-final-dest', name);
+              }
+            }
             let pax = findNearLabelValue(['PASAJEROS','PAX'], /\d{1,4}/, text);
             setVal('pax-total', pax || '');
             // Tripulación total (número)
@@ -3492,11 +3591,15 @@ Z,Others,Not specific,Special internal purposes`;
               const originCandLbl = findNearLabelIATACode(['origen','procedencia','from','procedencia del vuelo'], text);
               const lastStopCandLbl = findNearLabelIATACode(['ultima escala','escala anterior','last stop','escala'], text);
               const finalDestCandLbl = findNearLabelIATACode(['destino','to','destino del vuelo'], text);
+              const arrivalMainCandLbl = currentIsArrival ? findNearLabelIATACode([
+                'aeropuerto de llegada','aeropuerto destino','aeropuerto de arribo','aeropuerto destino del vuelo'
+              ], text) : '';
               const airportCodes = upperTokens.filter(t => t.length === 3 && /^[A-Z]{3}$/.test(t) && iataSet.has(t));
               const rawLines = text.split(/\r?\n/);
               let originCand = '';
               let lastStopCand = '';
               let finalDestCand = '';
+              let forcedLastStopFromOrigin = false;
               for (const line of rawLines){
                 const u = line.toUpperCase();
                 if (/ORIGEN|PROCEDENCIA|FROM\b/.test(u)){
@@ -3515,6 +3618,32 @@ Z,Others,Not specific,Special internal purposes`;
               if (!originCand && airportCodes[0]) originCand = airportCodes[0];
               if (!lastStopCand && airportCodes[1]) lastStopCand = airportCodes[1];
               if (!finalDestCand && airportCodes[2]) finalDestCand = airportCodes[2];
+
+              const airportCounts = airportCodes.reduce((acc, code)=>{
+                acc[code] = (acc[code] || 0) + 1;
+                return acc;
+              }, {});
+              const uniqueAirports = Object.keys(airportCounts);
+              const lastStopFromLabel = !!lastStopCandLbl;
+
+              if (currentIsArrival && !lastStopFromLabel){
+                const originCandidate = originCand || airportCodes[0] || '';
+                const arrivalMainGuess = arrivalMainCandLbl || '';
+                const isLikelyDirect = uniqueAirports.length <= 2;
+                if (!lastStopCand && originCandidate){
+                  lastStopCand = originCandidate;
+                  forcedLastStopFromOrigin = true;
+                } else if (originCandidate){
+                  const alignsWithArrivalAirport = arrivalMainGuess && lastStopCand && lastStopCand === arrivalMainGuess;
+                  const looksLikeDirect = isLikelyDirect && lastStopCand && lastStopCand !== originCandidate;
+                  if (alignsWithArrivalAirport || looksLikeDirect){
+                    if (lastStopCand !== originCandidate){
+                      lastStopCand = originCandidate;
+                    }
+                    forcedLastStopFromOrigin = true;
+                  }
+                }
+              }
               if (currentIsArrival){
                 if (originCand) {
                   setVal('mf-arr-origin-code', originCand);
@@ -3522,11 +3651,18 @@ Z,Others,Not specific,Special internal purposes`;
                 }
                 if (lastStopCand) {
                   setVal('mf-arr-last-stop-code', lastStopCand);
-                  try { const nm = airportByIATA.get(lastStopCand)||''; if (nm) setVal('mf-arr-last-stop', nm); } catch(_){}
+                  try {
+                    const nm = airportByIATA.get(lastStopCand)||'';
+                    if (nm) setVal('mf-arr-last-stop', nm);
+                    else if (forcedLastStopFromOrigin){
+                      const originName = airportByIATA.get(originCand)||'';
+                      if (originName) setVal('mf-arr-last-stop', originName);
+                    }
+                  } catch(_){}
                 }
                 // Aeropuerto principal (Llegada): leer código IATA cerca de la etiqueta y colocar código IATA (3 letras)
                 try {
-                  const mainArrCand = findNearLabelIATACode([
+                  const mainArrCand = arrivalMainCandLbl || findNearLabelIATACode([
                     'AEROPUERTO DE LLEGADA','AEROPUERTO DESTINO','AEROPUERTO DE ARRIBO','AEROPUERTO DESTINO DEL VUELO'
                   ], text);
                   const mainMatch = findValidAirport(mainArrCand);
