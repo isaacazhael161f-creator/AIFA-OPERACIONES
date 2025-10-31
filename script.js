@@ -3934,9 +3934,7 @@ function updateOpsSummary() {
                     makeCard('fas fa-user-check', 'General', fmtInt(generalPax), suffixPax, ['ops-summary-pill--general', 'ops-summary-pill--metric-passengers'])
                 );
             }
-            if (cards.length) {
-                recommendationMarkup = `<div class="ops-summary-reco small text-muted mt-2"><strong>Recomendación:</strong> podrías complementar las tarjetas-resumen semanales con un pequeño indicador de variación (↑/↓) usando el mismo cálculo de diferencias.</div>`;
-            }
+            // recommendation intentionally removed per latest UI guidance
         }
 
         if (!cards.length) {
@@ -4491,6 +4489,7 @@ function showMainApp() {
             if (login) login.classList.remove('hidden');
             return;
         }
+        const mainWasHidden = main ? main.classList.contains('hidden') : false;
         if (login) login.classList.add('hidden');
         if (main) main.classList.remove('hidden');
         // Usuario actual
@@ -4501,6 +4500,26 @@ function showMainApp() {
             const u = dashboardData.users[name];
             const can = !!(u && u.canViewItinerarioMensual);
             menu.style.display = can ? '' : 'none';
+        }
+        if (mainWasHidden) {
+            try {
+                const inicioLink = document.querySelector('.menu-item[data-section="inicio"]');
+                if (inicioLink) {
+                    showSection('inicio', inicioLink);
+                }
+            } catch (_) {}
+            try {
+                const isMobile = window.innerWidth <= 991.98;
+                if (isMobile) {
+                    const sidebar = document.getElementById('sidebar');
+                    const overlay = document.getElementById('sidebar-overlay');
+                    if (sidebar) sidebar.classList.remove('visible');
+                    if (overlay) overlay.classList.remove('active');
+                } else {
+                    document.body.classList.add('sidebar-collapsed');
+                    try { localStorage.setItem('sidebarState', 'collapsed'); } catch (_) {}
+                }
+            } catch (_) {}
         }
     }).catch(()=>{
         if (main) main.classList.add('hidden');

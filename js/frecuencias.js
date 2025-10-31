@@ -12,15 +12,35 @@
   // Lazy-load PDF.js from CDN if not present
   function ensurePdfJs(){
     return new Promise((resolve, reject) => {
-      if (window.pdfjsLib) return resolve();
+      if (window.pdfjsLib){
+        if (!window._pdfJsAssetBase){
+          try { window._pdfJsAssetBase = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/'; } catch(_){ }
+        }
+        return resolve();
+      }
       const s = document.createElement('script');
       s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
       s.crossOrigin = 'anonymous';
       s.onload = () => {
-        try { window['pdfjsLib'].GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch(_) {}
+        try {
+          window._pdfJsAssetBase = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+          window['pdfjsLib'].GlobalWorkerOptions.workerSrc = window._pdfJsAssetBase + 'pdf.worker.min.js';
+        } catch(_){ }
         resolve();
       };
-      s.onerror = reject;
+      s.onerror = () => {
+        const local = document.createElement('script');
+        local.src = 'vendor/pdfjs/pdf.min.js';
+        local.onload = () => {
+          try {
+            window._pdfJsAssetBase = 'vendor/pdfjs/';
+            window['pdfjsLib'].GlobalWorkerOptions.workerSrc = 'vendor/pdfjs/pdf.worker.min.js';
+          } catch(_){ }
+          resolve();
+        };
+        local.onerror = reject;
+        document.head.appendChild(local);
+      };
       document.head.appendChild(s);
     });
   }
@@ -153,7 +173,15 @@
       if (!src) return;
       const canvas = container.querySelector('canvas');
       const linksLayer = container.querySelector('.links-layer');
-      const pdfDoc = await pdfjsLib.getDocument(src).promise;
+      const assetBase = window._pdfJsAssetBase || 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+      const pdfDoc = await pdfjsLib.getDocument({
+        url: src,
+        cMapUrl: assetBase + 'cmaps/',
+        cMapPacked: true,
+        standardFontDataUrl: assetBase + 'standard_fonts/',
+        useSystemFonts: true,
+        disableFontFace: true
+      }).promise;
       viewers.set(container, { pdfDoc, canvas, linksLayer, currentPageNum: 1 });
       await renderPage(container);
     } catch (e){ console.warn('PDF singlepage init error:', e); }

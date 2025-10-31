@@ -1784,40 +1784,96 @@
                 }
               }
             }
-            const originMatch = originCand ? findValidAirport(originCand) : null;
-            const lastStopMatch = lastStopCand ? findValidAirport(lastStopCand) : null;
-            const finalDestMatch = finalDestCand ? findValidAirport(finalDestCand) : null;
+            const resolveAirportCode = (value)=>{
+              const raw = (value||'').toString().trim();
+              if (!raw) return '';
+              const found = findValidAirport(raw);
+              if (found && found.IATA) return found.IATA;
+              const upper = raw.toUpperCase();
+              if (/^[A-Z]{3}$/.test(upper) && (iataSet.size === 0 || iataSet.has(upper))) return upper;
+              return '';
+            };
             if (currentIsArrival){
-              if (originCand){
-                const code = originMatch?.IATA || originCand;
-                setVal('mf-arr-origin-code', code);
-                const name = originMatch?.Name || airportByIATA.get(code) || '';
-                if (name) setVal('mf-arr-origin-name', name);
+              let originCode = '';
+              let originName = '';
+              let helperOrigin = null;
+              try { helperOrigin = extractArrivalOriginFields(text); } catch(_){ }
+              if (helperOrigin){
+                const resolved = resolveAirportCode(helperOrigin.code || helperOrigin.IATA || helperOrigin.name || '');
+                if (resolved) originCode = resolved;
+                if (helperOrigin.name) originName = helperOrigin.name;
               }
-              if (lastStopCand){
-                const code = lastStopMatch?.IATA || lastStopCand;
-                setVal('mf-arr-last-stop-code', code);
-                const lastName = lastStopMatch?.Name || airportByIATA.get(code) || (forcedLastStopFromOrigin ? (originMatch?.Name || airportByIATA.get(originMatch?.IATA||'')) : '');
-                if (lastName) setVal('mf-arr-last-stop', lastName);
+              if (!originCode && originCand){
+                const resolved = resolveAirportCode(originCand);
+                if (resolved) originCode = resolved;
+              }
+              if (!originName && originCode){
+                const rec = findValidAirport(originCode) || (originCand ? findValidAirport(originCand) : null);
+                originName = rec?.Name || airportByIATA.get(originCode) || originName;
+              }
+              if (originCode){
+                setVal('mf-arr-origin-code', originCode);
+                if (originName) setVal('mf-arr-origin-name', originName);
+              }
+
+              let lastStopCode = '';
+              let lastStopName = '';
+              let helperLast = null;
+              try { helperLast = extractArrivalLastStopFields(text); } catch(_){ }
+              if (helperLast){
+                const resolved = resolveAirportCode(helperLast.code || helperLast.IATA || helperLast.name || '');
+                if (resolved) lastStopCode = resolved;
+                if (helperLast.name) lastStopName = helperLast.name;
+              }
+              if (!lastStopCode && lastStopCand){
+                const resolved = resolveAirportCode(lastStopCand);
+                if (resolved) lastStopCode = resolved;
+              }
+              let forcedNameFromOrigin = false;
+              if (!lastStopCode && originCode){
+                lastStopCode = originCode;
+                forcedNameFromOrigin = true;
+              }
+              if (lastStopCode){
+                const sameAsOrigin = !!(originCode && lastStopCode === originCode);
+                if (sameAsOrigin) forcedNameFromOrigin = true;
+                if (!lastStopName){
+                  const rec = findValidAirport(lastStopCode) || (lastStopCand ? findValidAirport(lastStopCand) : null);
+                  lastStopName = rec?.Name || airportByIATA.get(lastStopCode) || lastStopName;
+                  if (!lastStopName && (forcedLastStopFromOrigin || forcedNameFromOrigin || sameAsOrigin) && originName){
+                    lastStopName = originName;
+                  }
+                }
+                setVal('mf-arr-last-stop-code', lastStopCode);
+                if (lastStopName) setVal('mf-arr-last-stop', lastStopName);
               }
             } else {
               if (originCand){
-                const code = originMatch?.IATA || originCand;
-                setVal('mf-origin-code', code);
-                const name = originMatch?.Name || airportByIATA.get(code) || '';
-                if (name) setVal('mf-origin-name', name);
+                const code = resolveAirportCode(originCand);
+                if (code){
+                  setVal('mf-origin-code', code);
+                  const rec = findValidAirport(originCand) || findValidAirport(code);
+                  const name = rec?.Name || airportByIATA.get(code) || '';
+                  if (name) setVal('mf-origin-name', name);
+                }
               }
               if (lastStopCand){
-                const code = lastStopMatch?.IATA || lastStopCand;
-                setVal('mf-next-stop-code', code);
-                const name = lastStopMatch?.Name || airportByIATA.get(code) || '';
-                if (name) setVal('mf-next-stop', name);
+                const code = resolveAirportCode(lastStopCand);
+                if (code){
+                  setVal('mf-next-stop-code', code);
+                  const rec = findValidAirport(lastStopCand) || findValidAirport(code);
+                  const name = rec?.Name || airportByIATA.get(code) || '';
+                  if (name) setVal('mf-next-stop', name);
+                }
               }
               if (finalDestCand){
-                const code = finalDestMatch?.IATA || finalDestCand;
-                setVal('mf-final-dest-code', code);
-                const name = finalDestMatch?.Name || airportByIATA.get(code) || '';
-                if (name) setVal('mf-final-dest', name);
+                const code = resolveAirportCode(finalDestCand);
+                if (code){
+                  setVal('mf-final-dest-code', code);
+                  const rec = findValidAirport(finalDestCand) || findValidAirport(code);
+                  const name = rec?.Name || airportByIATA.get(code) || '';
+                  if (name) setVal('mf-final-dest', name);
+                }
               }
             }
             let pax = findNearLabelValue(['PASAJEROS','PAX'], /\d{1,4}/, text);
@@ -2926,6 +2982,73 @@
             if (digits.length >= 6){
               const maybe = digits.slice(0,14);
               if (!/^20\d{2}(?:0[1-9]|1[0-2])/.test(maybe)) return maybe;
+            }
+          }
+          return '';
+        } catch(_){ return ''; }
+      };
+      window._mfExtractFolioDigitsSmart = function(text){
+        try {
+          const raw = (text||'').toString();
+          if (!raw.trim()) return '';
+          const normalizeDigits = (val)=> (val||'').replace(/\D/g,'');
+          const stripLeadingDate = (digits)=>{
+            if (!digits || digits.length < 7) return digits||'';
+            const trimmed = digits.replace(/^(?:0[1-9]|[12][0-9]|3[01])(?:0[1-9]|1[0-2])(?:19|20)\d{2}/, '');
+            if (trimmed && trimmed.length >= 3) return trimmed;
+            return digits;
+          };
+          const baseRaw = normalizeDigits(window._mfExtractFolioExhaustive?.(raw) || '');
+          let base = stripLeadingDate(baseRaw);
+          const dateRx = /\b\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}\b/gi;
+          const timeRx = /\b\d{1,2}:\d{2}\b/g;
+          const compactDateRx = /\b(?:0[1-9]|[12][0-9]|3[01])(?:0[1-9]|1[0-2])(?:19|20)\d{2}\b/g;
+          const lines = raw.split(/\r?\n/);
+          const candidates = [];
+          let prevLabel = false;
+          lines.forEach((line, idx)=>{
+            if (!line){ prevLabel = false; return; }
+            const hasLabel = /F[O0]L[I1]O/i.test(line);
+            let cleaned = line.replace(dateRx,' ').replace(timeRx,' ').replace(compactDateRx,' ');
+            const matches = cleaned.match(/\b\d{3,14}\b/g);
+            if (matches){
+              matches.forEach(tok=>{
+                const digits = normalizeDigits(tok);
+                if (!digits || digits.length < 3) return;
+                if (/^20\d{6}$/.test(digits) || /^20\d{2}(0[1-9]|1[0-2])\d{2}$/.test(digits)) return;
+                candidates.push({ digits, len: digits.length, hasLabel, prevLabel, idx });
+              });
+            }
+            prevLabel = hasLabel;
+          });
+          let best = '';
+          let bestScore = -Infinity;
+          candidates.forEach(c=>{
+            let score = 0;
+            if (c.hasLabel) score += 8;
+            if (c.prevLabel) score += 5;
+            if (c.len === 4) score += 6;
+            else if (c.len === 5) score += 5;
+            else if (c.len === 6) score += 4;
+            else if (c.len === 3) score += 3;
+            else if (c.len > 8) score -= 3;
+            score += Math.max(0, 3 - c.idx);
+            if (score > bestScore){ best = c.digits; bestScore = score; }
+          });
+          if (best) return stripLeadingDate(best).slice(0,10);
+          if (base){
+            base = stripLeadingDate(base);
+            if (base.length > 8){
+              const tail = base.slice(-6);
+              if (tail.length >= 3) return tail;
+            }
+            if (base.length >= 3) return base.slice(0,10);
+          }
+          const globalMatches = raw.replace(dateRx,' ').replace(timeRx,' ').replace(compactDateRx,' ').match(/\b\d{3,14}\b/g);
+          if (globalMatches){
+            for (let i=globalMatches.length-1; i>=0; i--){
+              const digits = stripLeadingDate(normalizeDigits(globalMatches[i]));
+              if (digits.length >=3 && digits.length <=10) return digits;
             }
           }
           return '';
@@ -5360,13 +5483,43 @@ Z,Others,Not specific,Special internal purposes`;
                 /PROCEDENCIA\b/i,
                 /FROM\b/i
               ];
+              let fallbackInlineName = '';
+              const extractInlineAfterLabel = (line, labelMatch)=>{
+                if (!line || !labelMatch) return { name:'', code:'' };
+                const start = labelMatch.index + labelMatch[0].length;
+                let remainder = line.slice(start).replace(/\s+/g, ' ').trim();
+                if (!remainder) return { name:'', code:'' };
+                const inlineCodes = (remainder.toUpperCase().match(/\b([A-Z]{3})\b/g) || []).filter(c => iataSet.has(c) && !iataStopwords.has(c));
+                let code = inlineCodes.length ? inlineCodes[inlineCodes.length - 1] : '';
+                if (code){
+                  const rxCode = new RegExp(`\\b${code}\\b`);
+                  remainder = remainder.replace(rxCode, '').replace(/[\-–—]+$/, '').trim();
+                }
+                const name = remainder.trim();
+                return { name, code };
+              };
               for (let i=0;i<lines.length;i++){
-                if (LABELS.some(rx=> rx.test(lines[i]||''))){
+                const line = lines[i]||'';
+                let matchedRx = null;
+                let matchedInfo = null;
+                for (const rx of LABELS){
+                  const m = rx.exec(line);
+                  if (m){ matchedRx = rx; matchedInfo = m; break; }
+                }
+                if (matchedRx){
                   // Código: puede venir en la misma línea después del label
                   try {
-                    const mSame = (lines[i]||'').toUpperCase().match(/\b([A-Z]{3})\b/);
+                    const mSame = line.toUpperCase().match(/\b([A-Z]{3})\b/);
                     if (mSame && mSame[1] && iataSet.has(mSame[1]) && !iataStopwords.has(mSame[1])) out.code = mSame[1];
                   } catch(_){ }
+                  // Analizar lo que viene justo después del label en la misma línea
+                  const inline = extractInlineAfterLabel(line, matchedInfo);
+                  if (inline.code && !out.code) out.code = inline.code;
+                  if (inline.name){
+                    const rec = bestFuzzy(inline.name);
+                    if (rec && !out.name){ out.name = rec.name; if (!out.code) out.code = rec.iata; }
+                    else if (!rec && !fallbackInlineName) fallbackInlineName = inline.name;
+                  }
                   // 1) Nombre: si la siguiente línea pide registrar nombre, tomar la anterior
                   if (/NOMBRE\s+COMPLETO\s+DEL\s+AEROPUERTO/i.test(lines[i+1]||'') || /REGISTRAR\s+NOMBRE\s+COMPLETO\s+DEL\s+AEROPUERTO/i.test(lines[i+1]||'')){
                     const cand = (lines[i-1]||'').trim();
@@ -5400,6 +5553,7 @@ Z,Others,Not specific,Special internal purposes`;
                   break;
                 }
               }
+              if (!out.name && fallbackInlineName) out.name = fallbackInlineName;
               // Cross-fill con catálogos
               if (out.name && !out.code){
                 const key = out.name.trim().toLowerCase();
@@ -5409,6 +5563,16 @@ Z,Others,Not specific,Special internal purposes`;
               if (out.code && !out.name){
                 const nm = airportByIATA.get(out.code);
                 if (nm) out.name = nm;
+              }
+              if (out.code && out.name){
+                const canonical = airportByIATA.get(out.code);
+                if (canonical){
+                  if (norm(out.name) !== norm(canonical)) out.name = canonical;
+                } else {
+                  const key = out.name.trim().toLowerCase();
+                  const c = airportByName.get(key);
+                  if (c && c !== out.code){ out.code = c; }
+                }
               }
             } catch(_){ }
             return out;
@@ -5447,13 +5611,42 @@ Z,Others,Not specific,Special internal purposes`;
                 /ESCALA\s+DEL\s+VUELO/i,
                 /LAST\s+STOP/i
               ];
+              let fallbackInlineName = '';
+              const extractInlineAfterLabel = (line, labelMatch)=>{
+                if (!line || !labelMatch) return { name:'', code:'' };
+                const start = labelMatch.index + labelMatch[0].length;
+                let remainder = line.slice(start).replace(/\s+/g, ' ').trim();
+                if (!remainder) return { name:'', code:'' };
+                const inlineCodes = (remainder.toUpperCase().match(/\b([A-Z]{3})\b/g) || []).filter(c => iataSet.has(c) && !iataStopwords.has(c));
+                let code = inlineCodes.length ? inlineCodes[inlineCodes.length - 1] : '';
+                if (code){
+                  const rxCode = new RegExp(`\\b${code}\\b`);
+                  remainder = remainder.replace(rxCode, '').replace(/[\-–—]+$/, '').trim();
+                }
+                const name = remainder.trim();
+                return { name, code };
+              };
               for (let i=0;i<lines.length;i++){
-                if (LABELS.some(rx=> rx.test(lines[i]||''))){
+                const line = lines[i]||'';
+                let matchedRx = null;
+                let matchedInfo = null;
+                for (const rx of LABELS){
+                  const m = rx.exec(line);
+                  if (m){ matchedRx = rx; matchedInfo = m; break; }
+                }
+                if (matchedRx){
                   // Código en la MISMA línea del label (p.ej. "ESCALA ANTERIOR ABC")
                   try {
-                    const mSame = (lines[i]||'').toUpperCase().match(/\b([A-Z]{3})\b/);
+                    const mSame = line.toUpperCase().match(/\b([A-Z]{3})\b/);
                     if (mSame && mSame[1] && iataSet.has(mSame[1]) && !iataStopwords.has(mSame[1])) out.code = mSame[1];
                   } catch(_){ }
+                  const inline = extractInlineAfterLabel(line, matchedInfo);
+                  if (inline.code && !out.code) out.code = inline.code;
+                  if (inline.name){
+                    const rec = bestFuzzy(inline.name);
+                    if (rec && !out.name){ out.name = rec.name; if (!out.code) out.code = rec.iata; }
+                    else if (!rec && !fallbackInlineName) fallbackInlineName = inline.name;
+                  }
                   // Nombre: si la siguiente línea pide registrar nombre, tomar la anterior
                   if (/NOMBRE\s+COMPLETO\s+DEL\s+AEROPUERTO/i.test(lines[i+1]||'') || /REGISTRAR\s+NOMBRE\s+COMPLETO\s+DEL\s+AEROPUERTO/i.test(lines[i+1]||'')){
                     const cand = (lines[i-1]||'').trim();
@@ -5487,6 +5680,7 @@ Z,Others,Not specific,Special internal purposes`;
                   break;
                 }
               }
+              if (!out.name && fallbackInlineName) out.name = fallbackInlineName;
               // Cross-fill con catálogos
               if (out.name && !out.code){
                 const key = out.name.trim().toLowerCase();
@@ -5496,6 +5690,16 @@ Z,Others,Not specific,Special internal purposes`;
               if (out.code && !out.name){
                 const nm = airportByIATA.get(out.code);
                 if (nm) out.name = nm;
+              }
+              if (out.code && out.name){
+                const canonical = airportByIATA.get(out.code);
+                if (canonical){
+                  if (norm(out.name) !== norm(canonical)) out.name = canonical;
+                } else {
+                  const key = out.name.trim().toLowerCase();
+                  const c = airportByName.get(key);
+                  if (c && c !== out.code){ out.code = c; }
+                }
               }
             } catch(_){ }
             return out;
@@ -5791,6 +5995,73 @@ Z,Others,Not specific,Special internal purposes`;
         } catch(e){ return ''; }
       }
 
+      async function extractFolioFromPdfVector(file, maxPages=2){
+        try {
+          if (!file) return '';
+          await ensurePdfJsLite();
+          const ab = await file.arrayBuffer();
+          const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(ab) }).promise;
+          const smart = window._mfExtractFolioDigitsSmart || function(txt){ const digits = (txt||'').toString().replace(/\D/g,''); return digits.length >= 3 ? digits.slice(-Math.min(6, digits.length)) : ''; };
+          let best = '';
+          let bestScore = -Infinity;
+          const labelRx = /F[O0]L[I1]O/i;
+          const consider = (raw, boost)=>{
+            if (!raw) return;
+            const digits = smart(raw);
+            if (!digits) return;
+            let score = boost || 0;
+            const len = digits.length;
+            if (len === 4) score += 8;
+            else if (len === 5) score += 6;
+            else if (len === 6) score += 5;
+            else if (len === 3) score += 4;
+            else if (len > 8) score -= 3;
+            if (score > bestScore){ bestScore = score; best = digits; }
+          };
+          const pages = Math.min(Math.max(1, maxPages||1), pdf.numPages);
+          for (let p=1; p<=pages; p++){
+            const page = await pdf.getPage(p);
+            const content = await page.getTextContent();
+            const items = (content && content.items) || [];
+            if (!items.length) continue;
+            const rows = [];
+            const tol = 4;
+            for (const it of items){
+              const raw = (it && it.str) || '';
+              const text = raw.replace(/\s+/g,' ').trim();
+              if (!text) continue;
+              const tr = Array.isArray(it.transform) ? it.transform : [1,0,0,1,0,0];
+              const x = Number(tr[4])||0;
+              const y = Number(tr[5])||0;
+              let row = null;
+              for (const r of rows){ if (Math.abs(r.y - y) <= tol){ row = r; break; } }
+              if (!row){ row = { y, tokens: [] }; rows.push(row); }
+              row.tokens.push({ x, text: raw });
+            }
+            if (!rows.length) continue;
+            rows.sort((a,b)=> b.y - a.y);
+            const lines = rows.map(r=>{
+              r.tokens.sort((a,b)=> a.x - b.x);
+              return r.tokens.map(t=> t.text).join(' ').replace(/\s+/g,' ').trim();
+            }).filter(Boolean);
+            for (let i=0;i<lines.length;i++){
+              const line = lines[i];
+              const hasLabel = labelRx.test(line);
+              consider(line, hasLabel ? 20 : 3);
+              if (hasLabel){
+                if (lines[i+1]) consider(`${line} ${lines[i+1]}`, 26);
+                if (lines[i-1]) consider(`${lines[i-1]} ${line}`, 18);
+              }
+            }
+            const topCluster = lines.slice(0,5).join(' ');
+            if (topCluster) consider(topCluster, 10);
+            if (best) break;
+          }
+          return best || '';
+        } catch(_){ return ''; }
+      }
+      try { window._mfExtractFolioFromPdfVector = extractFolioFromPdfVector; } catch(_){ }
+
       // Texto con geometría (coordenadas y tamaño) para localizar etiquetas y construir ROIs rápidas
       async function extractPdfTextGeometry(file, maxPages=2){
         const out = [];
@@ -5879,7 +6150,20 @@ Z,Others,Not specific,Special internal purposes`;
               const { data } = await Tesseract.recognize(dataUrl, 'spa+eng', { logger: ()=>{} }); return data && data.text || '';
             } catch(_) { return ''; }
           };
-          const makeRois = (pg, labelRegex, rightWidthFrac=0.6)=>{
+          const makeRois = (pg, labelRegex, rightWidthFrac=0.6, options)=>{
+            if (typeof rightWidthFrac === 'object' && options === undefined){
+              options = rightWidthFrac;
+              rightWidthFrac = (options && typeof options.rightWidthFrac === 'number') ? options.rightWidthFrac : 0.6;
+            } else {
+              options = options || {};
+            }
+            const offsetX = typeof options.offsetX === 'number' ? options.offsetX : 10;
+            const minWidth = typeof options.minWidth === 'number' ? options.minWidth : 140;
+            const verticalStretch = typeof options.verticalStretch === 'number' ? options.verticalStretch : 3.0;
+            const extraBelow = options.extraBelowCentered === true;
+            const extraWidthFrac = typeof options.centerWidthFrac === 'number' ? options.centerWidthFrac : 0.45;
+            const extraPad = typeof options.centerPad === 'number' ? options.centerPad : 20;
+            const fallbackTop = options.fallbackTop === true;
             const items = pg.items;
             const labelHits = [];
             const U = (s)=> (s||'').toUpperCase();
@@ -5892,10 +6176,34 @@ Z,Others,Not specific,Special internal purposes`;
             }
             const rois = [];
             for (const h of labelHits){
-              const x = h.x + 10; const y = h.y - h.size*0.5; const hgt = h.size*3.0; const w = Math.max(140, pg.width * rightWidthFrac);
+              const x = h.x + offsetX;
+              const y = h.y - h.size*0.5;
+              const hgt = h.size * verticalStretch;
+              const w = Math.max(minWidth, pg.width * rightWidthFrac);
               rois.push({ x, y, w, h: hgt });
               // ROI adicional debajo (por si el nombre está en la siguiente línea)
               rois.push({ x, y: y + hgt*0.75, w, h: hgt });
+              if (extraBelow){
+                const bw = Math.max(minWidth, pg.width * extraWidthFrac);
+                const bx = Math.max(0, h.x - extraPad);
+                const by = h.y + h.size * 0.3;
+                rois.push({ x: bx, y: by, w: bw, h: hgt });
+                rois.push({ x: bx, y: by + hgt*0.8, w: bw, h: hgt });
+              }
+            }
+            if (!rois.length && fallbackTop){
+              const topOffsetFrac = typeof options.fallbackTopOffsetFrac === 'number' ? options.fallbackTopOffsetFrac : 0.015;
+              const heightFrac = typeof options.fallbackHeightFrac === 'number' ? options.fallbackHeightFrac : 0.22;
+              const leftFrac = typeof options.fallbackLeftFrac === 'number' ? options.fallbackLeftFrac : 0.05;
+              const widths = Array.isArray(options.fallbackWidths) && options.fallbackWidths.length ? options.fallbackWidths : [0.45, 0.65, 0.85];
+              const baseY = pg.height * topOffsetFrac;
+              const hgt = pg.height * heightFrac;
+              widths.forEach(frac=>{
+                const w = Math.max(minWidth, pg.width * frac);
+                const x = Math.max(0, pg.width * leftFrac);
+                rois.push({ x, y: baseY, w, h: hgt });
+                rois.push({ x, y: baseY + hgt * 0.9, w, h: hgt });
+              });
             }
             return rois;
           };
@@ -5904,6 +6212,7 @@ Z,Others,Not specific,Special internal purposes`;
             { rx: /FELIPE\s+ANGELES/i, code: 'NLU' },
             { rx: /SANTA\s+LUCIA/i, code: 'NLU' }
           ];
+          const extractFolioDigits = (txt)=> window._mfExtractFolioDigitsSmart?.(txt) || '';
           const wantPilot = !!want.pilot, wantLic = !!want.license, wantTail = !!want.tail, wantFolio = !!want.folio, wantArrival = !!want.arrivalMain, wantFlightType = !!want.flightType;
           for (const pg of geoPages){
             if (wantPilot && !results.pilot){
@@ -5940,11 +6249,12 @@ Z,Others,Not specific,Special internal purposes`;
               }
             }
             if (wantFolio && !results.folio){
-              const rx = /(F[O0]L[I1]O\b|\bN[O0]\.?\s*F[O0]L[I1]O\b)/i;
-              const rois = makeRois(pg, rx, 0.55);
+              const rx = /(F[O0]L[I1]O\b|\bN[O0]\.\?\s*F[O0]L[I1]O\b)/i;
+              const rois = makeRois(pg, rx, { rightWidthFrac: 0.55, extraBelowCentered: true, centerWidthFrac: 0.5, centerPad: 30, fallbackTop: true, fallbackHeightFrac: 0.26, fallbackWidths: [0.5, 0.7, 0.9] });
               for (const r of rois){
-                const img = await makeCrop(pg, r); const txt = (await OCR(img))||'';
-                const fol = (window._mfExtractFolioExhaustive?.(txt)||'').trim();
+                const img = await makeCrop(pg, r);
+                const txt = (await OCR(img))||'';
+                const fol = extractFolioDigits(txt);
                 if (fol){ results.folio = fol; break; }
               }
             }
@@ -6159,7 +6469,7 @@ Z,Others,Not specific,Special internal purposes`;
 
           // 1.1) FOLIO (exhaustivo, prioriza números) – suele estar al principio
           try {
-            const folio = (window._mfExtractFolioExhaustive?.(text) || '').trim();
+            const folio = (window._mfExtractFolioDigitsSmart?.(text) || window._mfExtractFolioExhaustive?.(text) || '').toString().trim();
             if (folio) setVal('mf-folio', folio);
           } catch(_){ }
 
@@ -6728,7 +7038,10 @@ Z,Others,Not specific,Special internal purposes`;
                   if (!masterRegIndex.size || masterRegIndex.has(key)) setVal('mf-tail', reg);
                 } catch(_){ setVal('mf-tail', reg); }
               }
-              if (got && got.folio && !document.getElementById('mf-folio')?.value){ setVal('mf-folio', got.folio); }
+              if (got && got.folio && !document.getElementById('mf-folio')?.value){
+                const val = (window._mfExtractFolioDigitsSmart?.(got.folio) || got.folio);
+                setVal('mf-folio', val);
+              }
               if (got && got.arrivalMain && !document.getElementById('mf-airport-main')?.value){ setVal('mf-airport-main', got.arrivalMain); }
               if (got && got.flightType && !document.getElementById('mf-flight-type')?.value){
                 const letter = (got.flightType||'').toString().toUpperCase().slice(0,1);
@@ -6802,11 +7115,35 @@ Z,Others,Not specific,Special internal purposes`;
           setProgress(15, 'Preparando OCR...'); if (status) status.textContent = '';
           const pagesSel = document.getElementById('manifest-ocr-pages');
           const maxPages = parseInt((pagesSel && pagesSel.value)||'2', 10) || 2;
+          const name = (file && file.name) || '';
+          const type = (file && file.type) || '';
+          const isPdf = /\.pdf$/i.test(name) || /application\/pdf/i.test(type);
           // Ensure catalogs are ready to improve matching accuracy
           try { await _v2CatalogsReady; } catch(_){ }
           const text = await ocrPdfOrImageV2(file, maxPages);
           setProgress(85, 'Procesando...');
           fillFieldsFromTextV2(text||'');
+          try {
+            const folioEmpty = !((document.getElementById('mf-folio')?.value||'').trim());
+            if (folioEmpty && isPdf && typeof ocrPdfTargeted === 'function'){
+              setProgress(92, 'Buscando folio con OCR dirigido...');
+              const got = await ocrPdfTargeted(file, { folio: true });
+              if (got && got.folio){
+                const clean = (window._mfExtractFolioDigitsSmart?.(got.folio) || got.folio || '').toString().trim();
+                if (clean) setVal('mf-folio', clean);
+              }
+            }
+            if (!((document.getElementById('mf-folio')?.value||'').trim())){
+              const debugText = document.getElementById('manifest-ocr-debug')?.value || text || '';
+              const fallback = (window._mfExtractFolioDigitsSmart?.(debugText) || '').toString().trim();
+              if (fallback) setVal('mf-folio', fallback);
+            }
+            if (!((document.getElementById('mf-folio')?.value||'').trim()) && isPdf && typeof extractFolioFromPdfVector === 'function'){
+              setProgress(94, 'Leyendo texto vectorial...');
+              const vector = await extractFolioFromPdfVector(file, 2);
+              if (vector) setVal('mf-folio', vector);
+            }
+          } catch(_){ }
           setProgress(100, 'Completado');
           try { _v2Tar = 100; _v2EffTar = 100; } catch(_){ }
           hideProgress();
