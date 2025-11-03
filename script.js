@@ -2959,20 +2959,34 @@ function computeSequentialPercent(values = []) {
     });
 }
 // Animación segura para íconos viajeros en Operaciones Totales
-if (!window._opsAnim) window._opsAnim = { rafId: 0, running: false };
+if (!window._opsAnim) window._opsAnim = { rafId: 0, running: false, lastTs: 0 };
 function startOpsAnim() {
-    // Allow animation on all devices
+    // Allow animation on all devices without forcing full redraws every frame
     if (window._opsAnim.running) return;
     window._opsAnim.running = true;
-    const tick = () => {
+    const FRAME_INTERVAL = 1000 / 24; // ~24fps keeps motion smooth while reducing jitter
+    const needsTraveler = (chart) => {
+        const opts = chart?.config?.options?.plugins?.travelerPlugin;
+        if (!opts || opts === false) return false;
+        if (typeof opts !== 'object') return true;
+        return Object.keys(opts).length > 0;
+    };
+    const tick = (ts) => {
         if (!window._opsAnim.running) { window._opsAnim.rafId = 0; return; }
         window._opsAnim.rafId = requestAnimationFrame(tick);
+        if (document?.visibilityState === 'hidden') return;
+        if (window._opsAnim.lastTs && (ts - window._opsAnim.lastTs) < FRAME_INTERVAL) return;
+        window._opsAnim.lastTs = ts;
         try {
-            Object.values(opsCharts).forEach(ch => {
-                if (ch && ch.config && ch.config.type === 'line') {
-                    if (typeof ch.draw === 'function') ch.draw();
-                    else if (typeof ch.render === 'function') ch.render();
-                }
+            Object.values(opsCharts).forEach((chart) => {
+                if (!chart || chart.config?.type !== 'line') return;
+                if (!needsTraveler(chart)) return;
+                const canvas = chart.ctx?.canvas;
+                if (!canvas || !canvas.isConnected) return;
+                const area = chart.chartArea;
+                if (!area || !area.width || !area.height) return;
+                if (typeof chart.draw === 'function') chart.draw();
+                else if (typeof chart.render === 'function') chart.render();
             });
         } catch(_) { /* noop */ }
     };
@@ -2980,6 +2994,7 @@ function startOpsAnim() {
 }
 function stopOpsAnim() {
     window._opsAnim.running = false;
+    window._opsAnim.lastTs = 0;
     if (window._opsAnim.rafId) cancelAnimationFrame(window._opsAnim.rafId);
     window._opsAnim.rafId = 0;
 }
