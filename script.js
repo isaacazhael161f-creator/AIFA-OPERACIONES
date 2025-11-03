@@ -3,14 +3,105 @@
  * CONFIGURACIÓN DE DATOS ESTÁTICOS
  * =================================================================================
  */
-const staticData = {
-    operacionesTotales: {
-        comercial: [ { periodo: '2022', operaciones: 8996, pasajeros: 912415 }, { periodo: '2023', operaciones: 23211, pasajeros: 2631261 }, { periodo: '2024', operaciones: 51734, pasajeros: 6318454 }, { periodo: '2025', operaciones: 43141, pasajeros: 5663296} ],
-        carga: [ { periodo: '2022', operaciones: 8, toneladas: 5.19 }, { periodo: '2023', operaciones: 5578, toneladas: 186319.83}, { periodo: '2024', operaciones: 13219, toneladas: 447341.17 }, { periodo: '2025', operaciones: 9611, toneladas: 324760.64} ],
-        general: [ { periodo: '2022', operaciones: 458, pasajeros: 1385 }, { periodo: '2023', operaciones: 2212, pasajeros: 8160 }, { periodo: '2024', operaciones: 2777, pasajeros: 29637 }, { periodo: '2025', operaciones: 2506, pasajeros: 18353} ]
+const SPANISH_MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+function normalizeDate(date) {
+    if (!(date instanceof Date)) return null;
+    const time = date.getTime();
+    if (Number.isNaN(time)) return null;
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function parseIsoDay(iso) {
+    if (typeof iso !== 'string') return null;
+    const parts = iso.split('-').map(Number);
+    if (parts.length !== 3 || parts.some(num => !Number.isFinite(num))) return null;
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function isDateInRange(target, startIso, endIso) {
+    const start = parseIsoDay(startIso);
+    const end = parseIsoDay(endIso);
+    const day = normalizeDate(target);
+    if (!start || !end || !day) return false;
+    const startDay = normalizeDate(start);
+    const endDay = normalizeDate(end);
+    return startDay && endDay ? (day >= startDay && day <= endDay) : false;
+}
+
+function buildWeekRangeLabel(startIso, endIso) {
+    const start = parseIsoDay(startIso);
+    const end = parseIsoDay(endIso);
+    if (!start || !end) return '';
+    const startDay = start.getDate();
+    const endDay = end.getDate();
+    const startMonth = SPANISH_MONTH_NAMES[start.getMonth()] || '';
+    const endMonth = SPANISH_MONTH_NAMES[end.getMonth()] || '';
+    if (start.getFullYear() === end.getFullYear()) {
+        if (start.getMonth() === end.getMonth()) {
+            return `${startDay} al ${endDay} de ${endMonth} de ${end.getFullYear()}`;
+        }
+        return `${startDay} de ${startMonth} al ${endDay} de ${endMonth} de ${end.getFullYear()}`;
+    }
+    return `${startDay} de ${startMonth} de ${start.getFullYear()} al ${endDay} de ${endMonth} de ${end.getFullYear()}`;
+}
+
+function describeWeekRange(startIso, endIso) {
+    const rangeText = buildWeekRangeLabel(startIso, endIso);
+    return rangeText ? `Comparativo semanal del ${rangeText}` : '';
+}
+
+function escapeHTML(value) {
+    if (value == null) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function hasWeekData(week) {
+    return Array.isArray(week?.dias) && week.dias.some(day => day && (day.comercial || day.general || day.carga));
+}
+
+function deepCloneWeek(week) {
+    if (!week) return { id: null, rango: {}, dias: [] };
+    const clone = {
+        id: week.id || null,
+        rango: week.rango ? { ...week.rango } : {},
+        dias: Array.isArray(week.dias)
+            ? week.dias.map(day => ({
+                ...day,
+                comercial: day?.comercial ? { ...day.comercial } : {},
+                general: day?.general ? { ...day.general } : {},
+                carga: day?.carga ? { ...day.carga } : {}
+            }))
+            : []
+    };
+    if (week.meta) clone.meta = { ...week.meta };
+    return clone;
+}
+
+const WEEKLY_OPERATIONS_DATASETS = [
+    {
+        id: '2025-11-03',
+        rango: {
+            inicio: '2025-11-03',
+            fin: '2025-11-09',
+            descripcion: describeWeekRange('2025-11-03', '2025-11-09'),
+            nota: 'Semana en curso (3 al 9 de noviembre de 2025). Datos en integración.'
+        },
+        dias: []
     },
-    operacionesSemanaActual: {
-        rango: { inicio: '2025-10-27', fin: '2025-10-29', descripcion: 'Comparativo semanal del 27 al 29 de octubre del 2025', nota: 'Datos consolidados al 29 de octubre de 2025.' },
+    {
+        id: '2025-10-27',
+        rango: {
+            inicio: '2025-10-27',
+            fin: '2025-11-02',
+            descripcion: describeWeekRange('2025-10-27', '2025-11-02'),
+            nota: 'Datos consolidados al 1 de noviembre de 2025.'
+        },
         dias: [
             {
                 fecha: '2025-10-27',
@@ -32,9 +123,98 @@ const staticData = {
                 comercial: { operaciones: 136, pasajeros: 18143 },
                 general: { operaciones: 3, pasajeros: 6 },
                 carga: { operaciones: 14, toneladas: 379, corteFecha: '2025-10-28', corteNota: 'Toneladas actualizadas al 28 de octubre de 2025 (ultimo corte disponible).' }
+            },
+            {
+                fecha: '2025-10-31',
+                label: '31 Oct 2025',
+                comercial: { operaciones: 161, pasajeros: 21611 },
+                general: { operaciones: 14, pasajeros: 31 },
+                carga: { operaciones: 32, toneladas: 1121, corteFecha: '2025-10-30', corteNota: 'Cifras del 30 de octubre de 2025.' }
+            },
+            {
+                fecha: '2025-11-01',
+                label: '01 Nov 2025',
+                comercial: { operaciones: 145, pasajeros: 17186 },
+                general: { operaciones: 3, pasajeros: 47 },
+                carga: { operaciones: 32, toneladas: 1121, corteFecha: '2025-10-30', corteNota: 'Cifras del 30 de octubre de 2025.' }
             }
         ]
     },
+    {
+        id: '2025-10-20',
+        rango: {
+            inicio: '2025-10-20',
+            fin: '2025-10-26',
+            descripcion: describeWeekRange('2025-10-20', '2025-10-26'),
+            nota: 'Datos consolidados al 26 de octubre de 2025.'
+        },
+        dias: [
+            {
+                fecha: '2025-10-26',
+                label: '26 Oct 2025',
+                comercial: { operaciones: 149, pasajeros: 15658 },
+                general: { operaciones: 11, pasajeros: 27 },
+                carga: { operaciones: 31, toneladas: 737, corteFecha: '2025-10-23', corteNota: 'Cifras del 23 de octubre de 2025.' }
+            }
+        ]
+    }
+];
+
+function resolveCurrentOperationsWeek(referenceDate = new Date()) {
+    const today = normalizeDate(referenceDate instanceof Date ? referenceDate : new Date());
+    const orderedWeeks = [...WEEKLY_OPERATIONS_DATASETS].sort((a, b) => {
+        const aEnd = parseIsoDay(a?.rango?.fin || '') || new Date(0);
+        const bEnd = parseIsoDay(b?.rango?.fin || '') || new Date(0);
+        return bEnd - aEnd;
+    });
+
+    const currentWeek = orderedWeeks.find(week => week?.rango && isDateInRange(today, week.rango.inicio, week.rango.fin)) || null;
+    const datasetWithData = currentWeek && hasWeekData(currentWeek)
+        ? currentWeek
+        : orderedWeeks.find(hasWeekData) || null;
+
+    if (!datasetWithData) {
+        const fallbackRange = currentWeek?.rango ? { ...currentWeek.rango } : { descripcion: 'Sin datos semanales disponibles', nota: '' };
+        const noticeRange = currentWeek?.rango ? buildWeekRangeLabel(currentWeek.rango.inicio, currentWeek.rango.fin) : '';
+        return {
+            id: currentWeek?.id || null,
+            rango: fallbackRange,
+            dias: [],
+            meta: {
+                targetWeekId: currentWeek?.id || null,
+                resolvedWeekId: null,
+                isFallback: false,
+                requestedRange: currentWeek?.rango ? { ...currentWeek.rango } : null,
+                notice: noticeRange ? `Sin datos confirmados para la semana del ${noticeRange}.` : 'Sin datos semanales disponibles.'
+            }
+        };
+    }
+
+    const resolved = deepCloneWeek(datasetWithData);
+    if (!resolved.meta) resolved.meta = {};
+    resolved.meta.targetWeekId = currentWeek?.id || null;
+    resolved.meta.resolvedWeekId = datasetWithData.id || null;
+    resolved.meta.requestedRange = currentWeek?.rango ? { ...currentWeek.rango } : null;
+    resolved.meta.isFallback = !!(currentWeek && currentWeek.id !== datasetWithData.id);
+    if (!resolved.rango.descripcion && datasetWithData?.rango) {
+        resolved.rango.descripcion = describeWeekRange(datasetWithData.rango.inicio, datasetWithData.rango.fin);
+    }
+    if (resolved.meta.isFallback && currentWeek?.rango && datasetWithData?.rango) {
+        const targetLabel = buildWeekRangeLabel(currentWeek.rango.inicio, currentWeek.rango.fin);
+        const resolvedLabel = buildWeekRangeLabel(datasetWithData.rango.inicio, datasetWithData.rango.fin);
+        resolved.meta.notice = `Sin datos confirmados para la semana del ${targetLabel}. Se muestra la semana del ${resolvedLabel}.`;
+    }
+    return resolved;
+}
+
+const staticData = {
+    operacionesTotales: {
+        comercial: [ { periodo: '2022', operaciones: 8996, pasajeros: 912415 }, { periodo: '2023', operaciones: 23211, pasajeros: 2631261 }, { periodo: '2024', operaciones: 51734, pasajeros: 6318454 }, { periodo: '2025', operaciones: 43141, pasajeros: 5663296} ],
+        carga: [ { periodo: '2022', operaciones: 8, toneladas: 5.19 }, { periodo: '2023', operaciones: 5578, toneladas: 186319.83}, { periodo: '2024', operaciones: 13219, toneladas: 447341.17 }, { periodo: '2025', operaciones: 9611, toneladas: 324760.64} ],
+        general: [ { periodo: '2022', operaciones: 458, pasajeros: 1385 }, { periodo: '2023', operaciones: 2212, pasajeros: 8160 }, { periodo: '2024', operaciones: 2777, pasajeros: 29637 }, { periodo: '2025', operaciones: 2506, pasajeros: 18353} ]
+    },
+    operacionesSemanasCatalogo: WEEKLY_OPERATIONS_DATASETS.map(deepCloneWeek),
+    operacionesSemanaActual: resolveCurrentOperationsWeek(),
     // Datos mensuales 2025 (hasta septiembre): Comercial y Carga
     mensual2025: {
         comercial: [
@@ -1572,10 +1752,7 @@ function displaySummaryTable(flights) {
     const container = document.getElementById('summary-table-container');
     if (!container) return;
 
-    const escapeHtml = (value) => {
-        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-        return String(value ?? '').replace(/[&<>"']/g, (char) => map[char]);
-    };
+    const escapeHtml = escapeHTML;
     const formatNumber = (value) => new Intl.NumberFormat('es-MX').format(Number(value || 0));
 
     if (!Array.isArray(flights) || flights.length === 0) {
@@ -2643,8 +2820,82 @@ const opsUIState = {
     years: new Set(['2022','2023','2024','2025']),
     months2025: new Set(['01','02','03','04','05','06','07','08','09','10','11','12']),
     preset: 'full', // 'ops' | 'full'
-    weeklyDay: 'all'
+    weeklyDay: 'all',
+    weeklyWeekId: 'auto'
 };
+
+function getWeeklyDatasetsCatalog() {
+    const catalog = staticData?.operacionesSemanasCatalogo;
+    if (!Array.isArray(catalog)) return [];
+    return catalog.map(deepCloneWeek);
+}
+
+function getWeeklyDatasetById(weekId) {
+    if (!weekId) return null;
+    return getWeeklyDatasetsCatalog().find(week => week.id === weekId) || null;
+}
+
+function getActiveWeeklyDataset() {
+    const resolvedCurrent = staticData?.operacionesSemanaActual ? deepCloneWeek(staticData.operacionesSemanaActual) : deepCloneWeek(null);
+    const desiredId = opsUIState?.weeklyWeekId;
+    if (!desiredId || desiredId === 'auto' || desiredId === 'current') {
+        return resolvedCurrent;
+    }
+    const selected = getWeeklyDatasetById(desiredId);
+    if (selected) {
+        if (!selected.meta) selected.meta = {};
+        selected.meta.selectedFromCatalog = true;
+        return selected;
+    }
+    return resolvedCurrent;
+}
+
+function formatWeekLabel(week) {
+    if (!week) return 'Semana';
+    const custom = week?.rango?.descripcion;
+    if (custom) {
+        return custom.replace(/^Comparativo semanal del\s+/i, '');
+    }
+    const label = buildWeekRangeLabel(week?.rango?.inicio, week?.rango?.fin);
+    if (label) return label;
+    return week?.id || 'Semana';
+}
+
+function getLatestCargoLegendInfo(week) {
+    if (!week) return null;
+    const days = Array.isArray(week.dias) ? [...week.dias] : [];
+    if (!days.length) return null;
+    days.sort((a, b) => {
+        const dateA = parseIsoDay(a?.fecha || '') || new Date(0);
+        const dateB = parseIsoDay(b?.fecha || '') || new Date(0);
+        return dateB - dateA;
+    });
+    for (const day of days) {
+        const note = day?.carga?.corteNota;
+        if (note) {
+            return {
+                note,
+                corteFecha: day?.carga?.corteFecha || null,
+                sourceDate: day?.fecha || null
+            };
+        }
+    }
+    return null;
+}
+
+function updateCargoLegend(week) {
+    const legendEl = document.getElementById('cargo-legend');
+    if (!legendEl) return;
+    const info = getLatestCargoLegendInfo(week || getActiveWeeklyDataset());
+    if (info) {
+        const legendText = escapeHTML(info.note);
+        legendEl.innerHTML = `<strong>Leyenda:</strong> ${legendText}`;
+        legendEl.classList.remove('d-none');
+    } else {
+        legendEl.innerHTML = '';
+        legendEl.classList.add('d-none');
+    }
+}
 
 function formatSpanishDate(iso) {
     if (!iso || typeof iso !== 'string') return '';
@@ -3537,9 +3788,9 @@ function renderOperacionesTotales() {
             }
 
         // Preparar datos según modo
-        const yearly = staticData.operacionesTotales;
-        const monthly = staticData.mensual2025;
-        const weekly = staticData.operacionesSemanaActual;
+    const yearly = staticData.operacionesTotales;
+    const monthly = staticData.mensual2025;
+    const weekly = getActiveWeeklyDataset();
         const mode = opsUIState.mode || 'yearly';
         const useMonthly = mode === 'monthly';
         const useWeekly = mode === 'weekly';
@@ -3704,6 +3955,8 @@ function renderOperacionesTotales() {
                 ));
         }
 
+    updateCargoLegend(useWeekly ? weekly : getActiveWeeklyDataset());
+
     // Iniciar animación de viajeros
     startOpsAnim();
 
@@ -3725,6 +3978,7 @@ function updateOpsSummary() {
 
         const fmtInt = (value) => Number(value || 0).toLocaleString('es-MX');
         const fmtTon = (value) => Number(value || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char] || char));
         const makeCard = (iconClass, label, value, subLabel, extraClasses = []) => {
             const classes = ['ops-summary-pill', ...extraClasses.filter(Boolean)].join(' ');
             return `
@@ -3887,7 +4141,7 @@ function updateOpsSummary() {
                 );
             }
         } else {
-            const weekly = staticData.operacionesSemanaActual;
+            const weekly = getActiveWeeklyDataset();
             const days = Array.isArray(weekly?.dias) ? weekly.dias : [];
             if (!days.length) {
                 container.innerHTML = '<div class="ops-summary-empty text-muted">No hay datos semanales disponibles.</div>';
@@ -3908,7 +4162,10 @@ function updateOpsSummary() {
             const rangeLabel = selectedDay !== 'all'
                 ? (targetDays[0]?.label || targetDays[0]?.fecha || 'Jornada seleccionada')
                 : (range.descripcion || (range.inicio && range.fin ? `Semana del ${formatSpanishDate(range.inicio)} al ${formatSpanishDate(range.fin)}` : 'Semana reciente'));
-            const captionText = '';
+            const extraNotes = [];
+            if (weekly?.meta?.notice) extraNotes.push(weekly.meta.notice);
+            if (range?.nota) extraNotes.push(range.nota);
+            const captionText = extraNotes.length ? extraNotes.map(escapeHtml).join('<br>') : '';
             const suffixOps = selectedDay === 'all' ? 'Operaciones semana' : 'Operaciones del día';
             const suffixPax = selectedDay === 'all' ? 'Pasajeros semana' : 'Pasajeros del día';
             const suffixTon = selectedDay === 'all' ? 'Toneladas semana' : 'Toneladas del día';
