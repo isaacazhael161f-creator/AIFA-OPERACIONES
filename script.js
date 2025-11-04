@@ -4,6 +4,8 @@
  * =================================================================================
  */
 const SPANISH_MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const SPANISH_MONTH_ABBRS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const SPANISH_WEEKDAY_NAMES = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 
 function normalizeDate(date) {
     if (!(date instanceof Date)) return null;
@@ -17,6 +19,56 @@ function parseIsoDay(iso) {
     const parts = iso.split('-').map(Number);
     if (parts.length !== 3 || parts.some(num => !Number.isFinite(num))) return null;
     return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+let WEEKDAY_FORMATTER;
+try {
+    WEEKDAY_FORMATTER = new Intl.DateTimeFormat('es-MX', { weekday: 'long' });
+} catch (_) {
+    WEEKDAY_FORMATTER = null;
+}
+
+function capitalizeFirst(str) {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function formatShortSpanishDate(date) {
+    if (!(date instanceof Date)) return '';
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = SPANISH_MONTH_ABBRS[date.getMonth()] || '';
+    const year = date.getFullYear();
+    return month ? `${day} ${month} ${year}` : `${day} ${year}`;
+}
+
+function formatWeeklyDayLabel(isoDate, fallback = '') {
+    if (!isoDate) {
+        const fallbackStr = fallback || '';
+        return { day: fallbackStr, date: '', combined: fallbackStr };
+    }
+    const date = parseIsoDay(isoDate);
+    const fallbackStr = fallback || isoDate || '';
+    if (!date) return { day: fallbackStr, date: '', combined: fallbackStr };
+    let weekday = '';
+    try {
+        weekday = WEEKDAY_FORMATTER ? WEEKDAY_FORMATTER.format(date) : '';
+    } catch (_) {
+        weekday = '';
+    }
+    if (!weekday) {
+        weekday = SPANISH_WEEKDAY_NAMES[date.getDay()] || '';
+    }
+    const prettyWeekday = capitalizeFirst(weekday);
+    const prettyDate = formatShortSpanishDate(date);
+    const combined = prettyWeekday && prettyDate
+        ? `${prettyWeekday} (${prettyDate})`
+        : (prettyWeekday || prettyDate || fallbackStr);
+    return {
+        day: prettyWeekday || fallbackStr,
+        date: prettyDate,
+        combined,
+        fallback: fallbackStr
+    };
 }
 
 function isDateInRange(target, startIso, endIso) {
@@ -71,12 +123,19 @@ function deepCloneWeek(week) {
         id: week.id || null,
         rango: week.rango ? { ...week.rango } : {},
         dias: Array.isArray(week.dias)
-            ? week.dias.map(day => ({
-                ...day,
-                comercial: day?.comercial ? { ...day.comercial } : {},
-                general: day?.general ? { ...day.general } : {},
-                carga: day?.carga ? { ...day.carga } : {}
-            }))
+            ? week.dias.map(day => {
+                if (!day) return day;
+                const labelParts = formatWeeklyDayLabel(day.fecha, day.label);
+                return {
+                    ...day,
+                    label: labelParts.day,
+                    labelDate: labelParts.date,
+                    labelFull: labelParts.combined,
+                    comercial: day?.comercial ? { ...day.comercial } : {},
+                    general: day?.general ? { ...day.general } : {},
+                    carga: day?.carga ? { ...day.carga } : {}
+                };
+            })
             : []
     };
     if (week.meta) clone.meta = { ...week.meta };
@@ -106,9 +165,9 @@ const WEEKLY_OPERATIONS_DATASETS = [
             {
                 fecha: '2025-10-27',
                 label: '27 Oct 2025',
-                comercial: { operaciones: 149, pasajeros: 15658 },
-                general: { operaciones: 11, pasajeros: 27 },
-                carga: { operaciones: 31, toneladas: 737, corteFecha: '2025-10-23', corteNota: 'Toneladas actualizadas al 23 de octubre de 2025 (ultimo corte disponible).' }
+                comercial: { operaciones: 142, pasajeros: 20580},
+                general: { operaciones: 18, pasajeros: 121},
+                carga: { operaciones: 21, toneladas: 620, corteFecha: '2025-10-23', corteNota: 'Cifras del 26 de octubre de 2025.' }
             },
             {
                 fecha: '2025-10-28',
@@ -221,11 +280,13 @@ function resolveCurrentOperationsWeek(referenceDate = new Date()) {
     return resolved;
 }
 
+
+// Datos Anuales
 const staticData = {
     operacionesTotales: {
-        comercial: [ { periodo: '2022', operaciones: 8996, pasajeros: 912415 }, { periodo: '2023', operaciones: 23211, pasajeros: 2631261 }, { periodo: '2024', operaciones: 51734, pasajeros: 6318454 }, { periodo: '2025', operaciones: 43141, pasajeros: 5663296} ],
-        carga: [ { periodo: '2022', operaciones: 8, toneladas: 5.19 }, { periodo: '2023', operaciones: 5578, toneladas: 186319.83}, { periodo: '2024', operaciones: 13219, toneladas: 447341.17 }, { periodo: '2025', operaciones: 9611, toneladas: 324760.64} ],
-        general: [ { periodo: '2022', operaciones: 458, pasajeros: 1385 }, { periodo: '2023', operaciones: 2212, pasajeros: 8160 }, { periodo: '2024', operaciones: 2777, pasajeros: 29637 }, { periodo: '2025', operaciones: 2506, pasajeros: 18353} ]
+        comercial: [ { periodo: '2022', operaciones: 8996, pasajeros: 912415 }, { periodo: '2023', operaciones: 23211, pasajeros: 2631261 }, { periodo: '2024', operaciones: 51734, pasajeros: 6318454 }, { periodo: '2025', operaciones: 43753, pasajeros: 5743323} ],
+        carga: [ { periodo: '2022', operaciones: 8, toneladas: 5.19 }, { periodo: '2023', operaciones: 5578, toneladas: 186319.83}, { periodo: '2024', operaciones: 13219, toneladas: 447341.17 }, { periodo: '2025', operaciones: 9707, toneladas: 328020.88} ],
+        general: [ { periodo: '2022', operaciones: 458, pasajeros: 1385 }, { periodo: '2023', operaciones: 2212, pasajeros: 8160 }, { periodo: '2024', operaciones: 2777, pasajeros: 29637 }, { periodo: '2025', operaciones: 2549, pasajeros: 18873} ]
     },
     operacionesSemanasCatalogo: WEEKLY_OPERATIONS_DATASETS.map(deepCloneWeek),
     operacionesSemanaActual: resolveCurrentOperationsWeek(),
@@ -3754,7 +3815,7 @@ function renderOperacionesTotales() {
                 }
             };
 
-            function makePeakCfg(canvas, labels, data, label, stroke, fillTop, fillBottom, animProfile, fmtType='int', traveler, xTitle='Periodo', titleText, extraTooltip){
+            function makePeakCfg(canvas, labels, data, label, stroke, fillTop, fillBottom, animProfile, fmtType='int', traveler, xTitle='Periodo', titleText, extraTooltip, tickDetails=null){
                 const bg = makeGradient(canvas, fillTop, fillBottom);
                 const border = stroke;
                 const maxVal = Math.max(0, ...data);
@@ -3956,6 +4017,20 @@ function renderOperacionesTotales() {
                                         } else if (labels && typeof index === 'number' && labels[index] != null && rawValue == null) {
                                             rawValue = labels[index];
                                         }
+                                        if (Array.isArray(tickDetails)) {
+                                            let detail = null;
+                                            if (typeof index === 'number' && index >= 0) {
+                                                detail = tickDetails[index];
+                                            }
+                                            if ((!detail || !detail.length) && typeof val === 'number' && val >= 0) {
+                                                detail = tickDetails[val];
+                                            }
+                                            if ((!detail || !detail.length) && rawValue != null) {
+                                                const lookupIndex = Array.isArray(labels) ? labels.indexOf(rawValue) : -1;
+                                                if (lookupIndex >= 0) detail = tickDetails[lookupIndex];
+                                            }
+                                            if (detail && detail.length) return detail;
+                                        }
                                         return formatTickLabel(rawValue);
                                     }
                                 },
@@ -3980,7 +4055,8 @@ function renderOperacionesTotales() {
         const useWeekly = mode === 'weekly';
 
         // Construir labels y series
-        let labels = [];
+    let labels = [];
+    let tickDetails = null;
         const series = {
             comercialOps: [], comercialPax: [],
             cargaOps: [], cargaTon: [],
@@ -4004,7 +4080,28 @@ function renderOperacionesTotales() {
                 const prev = i > 0 ? days[i - 1] : null;
                 if (current?.fecha) prevDayMap.set(current.fecha, prev || null);
             }
-            labels = filteredDays.map((d, idx) => d?.label || d?.fecha || `Día ${idx + 1}`);
+            const labelInfo = filteredDays.map((d, idx) => {
+                const fallback = `Día ${idx + 1}`;
+                const dayLabel = (d?.label && d.label.trim()) ? d.label.trim() : (d?.fecha || fallback);
+                const dateLabel = (d?.labelDate && d.labelDate.trim())
+                    ? d.labelDate.trim()
+                    : (() => {
+                        if (!d?.fecha) return '';
+                        const parsed = parseIsoDay(d.fecha);
+                        return parsed ? formatShortSpanishDate(parsed) : '';
+                    })();
+                return {
+                    day: dayLabel,
+                    date: dateLabel
+                };
+            });
+            labels = labelInfo.map(info => info.day || '');
+            tickDetails = labelInfo.map(info => {
+                const lines = [];
+                if (info.day) lines.push(info.day);
+                if (info.date && info.date !== info.day) lines.push(info.date);
+                return lines.length ? lines : [info.day];
+            });
             const seriesBuilders = [
                 ['comercialOps', 'comercial', 'operaciones'],
                 ['comercialPax', 'comercial', 'pasajeros'],
@@ -4087,7 +4184,8 @@ function renderOperacionesTotales() {
                     'Operaciones', '#1e88e5', 'rgba(66,165,245,0.35)', 'rgba(21,101,192,0.05)',
                     { easing:'easeOutQuart', duration: 4800, stagger: 110, disableMotion: true },
                     'int', { type:'plane', speed: 20000, scale: 1.25 }, periodLabel, '✈ Operaciones (Comercial)',
-                    getVariationPayload(variations.comercialOps)
+                    getVariationPayload(variations.comercialOps),
+                    tickDetails
                 ));
             setVisible('#commercial-group canvas#commercialPaxChart', !presetOpsOnly);
                 if (!presetOpsOnly && c2) opsCharts.commercialPaxChart = new Chart(c2, makePeakCfg(
@@ -4095,7 +4193,8 @@ function renderOperacionesTotales() {
                     'Pasajeros', '#1565c0', 'rgba(33,150,243,0.35)', 'rgba(13,71,161,0.05)',
                     { easing:'easeOutElastic', duration: 5200, stagger: 160, disableMotion: true },
                     'pax', { type:'person', speed: 22000, scale: 0.9 }, periodLabel, '🚶 Pasajeros (Comercial)',
-                    getVariationPayload(variations.comercialPax)
+                    getVariationPayload(variations.comercialPax),
+                    tickDetails
                 ));
         }
             // Carga
@@ -4107,7 +4206,8 @@ function renderOperacionesTotales() {
                     'Operaciones', '#fb8c00', 'rgba(255,183,77,0.35)', 'rgba(239,108,0,0.05)',
                     { easing:'easeOutBack', duration: 5000, stagger: 140, disableMotion: true },
                     'int', { type:'plane', speed: 24000, scale: 1.35 }, periodLabel, '✈ Operaciones (Carga)',
-                    getVariationPayload(variations.cargaOps)
+                    getVariationPayload(variations.cargaOps),
+                    tickDetails
                 ));
             setVisible('#cargo-group canvas#cargoTonsChart', !presetOpsOnly);
                 if (!presetOpsOnly && k2) opsCharts.cargoTonsChart = new Chart(k2, makePeakCfg(
@@ -4115,7 +4215,8 @@ function renderOperacionesTotales() {
                     'Toneladas', '#f57c00', 'rgba(255,204,128,0.35)', 'rgba(230,81,0,0.05)',
                     { easing:'easeOutCubic', duration: 5600, stagger: 170, disableMotion: true },
                     'ton', { type:'suitcase', speed: 26000, scale: 1.5 }, periodLabel, '🧳 Toneladas (Carga)',
-                    getVariationPayload(variations.cargaTon)
+                    getVariationPayload(variations.cargaTon),
+                    tickDetails
                 ));
         }
             // General
@@ -4127,7 +4228,8 @@ function renderOperacionesTotales() {
                     'Operaciones', '#2e7d32', 'rgba(129,199,132,0.35)', 'rgba(27,94,32,0.05)',
                     { easing:'easeOutQuart', duration: 4800, stagger: 130, disableMotion: true },
                     'int', { type:'plane', speed: 22000, scale: 1.3 }, periodLabel, '✈ Operaciones (General)',
-                    getVariationPayload(variations.generalOps)
+                    getVariationPayload(variations.generalOps),
+                    tickDetails
                 ));
             setVisible('#general-group canvas#generalPaxChart', !presetOpsOnly);
                 if (!presetOpsOnly && g2) opsCharts.generalPaxChart = new Chart(g2, makePeakCfg(
@@ -4135,7 +4237,8 @@ function renderOperacionesTotales() {
                     'Pasajeros', '#1b5e20', 'rgba(165,214,167,0.35)', 'rgba(27,94,32,0.05)',
                     { easing:'easeOutElastic', duration: 5200, stagger: 160, disableMotion: true },
                     'pax', { type:'person', speed: 23000, scale: 0.9 }, periodLabel, '🚶 Pasajeros (General)',
-                    getVariationPayload(variations.generalPax)
+                    getVariationPayload(variations.generalPax),
+                    tickDetails
                 ));
         }
 
@@ -5085,7 +5188,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!day?.fecha) return;
                 const opt = document.createElement('option');
                 opt.value = day.fecha;
-                opt.textContent = day.label || day.fecha;
+                opt.textContent = day.labelFull || day.label || day.fecha;
                 weeklyDaySelect.appendChild(opt);
             });
             if (!days.some(day => day?.fecha === opsUIState.weeklyDay)) {
