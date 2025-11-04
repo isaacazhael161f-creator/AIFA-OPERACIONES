@@ -2823,6 +2823,157 @@ function performLogout(){
     } catch(_) {}
 }
 
+let gsoNavVisibilityController = null;
+
+function showGsoContent(){
+    try {
+        const hero = document.querySelector('#fauna-section .gso-media-wrapper');
+        const quick = document.querySelector('#fauna-section .gso-quick-links');
+        const tabsBar = document.getElementById('gsoTab');
+        const tabContent = document.getElementById('gsoTabContent');
+        if (hero) hero.classList.add('d-none');
+        if (quick) quick.classList.add('d-none');
+        if (tabsBar) tabsBar.classList.remove('d-none');
+        if (tabContent) tabContent.classList.remove('d-none');
+        const activeLinkId = tabsBar?.querySelector('.nav-link.active')?.id || '';
+        if (gsoNavVisibilityController && activeLinkId) {
+            gsoNavVisibilityController.update(activeLinkId);
+        }
+    } catch (err) {
+        console.warn('showGsoContent failed:', err);
+    }
+}
+
+function showGsoMenu(){
+    try {
+        const hero = document.querySelector('#fauna-section .gso-media-wrapper');
+        const quick = document.querySelector('#fauna-section .gso-quick-links');
+        const tabsBar = document.getElementById('gsoTab');
+        const tabContent = document.getElementById('gsoTabContent');
+        if (hero) hero.classList.remove('d-none');
+        if (quick) quick.classList.remove('d-none');
+        if (tabsBar) tabsBar.classList.add('d-none');
+        if (tabContent) tabContent.classList.add('d-none');
+
+        if (tabsBar) {
+            tabsBar.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+                link.setAttribute('aria-selected', 'false');
+                link.setAttribute('tabindex', '-1');
+            });
+        }
+        if (tabContent) {
+            tabContent.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('show', 'active');
+            });
+        }
+        document.querySelectorAll('.gso-nav-btn[data-nav-button]').forEach(btn => btn.classList.remove('active'));
+        if (gsoNavVisibilityController) {
+            gsoNavVisibilityController.reset();
+        }
+    } catch (err) {
+        console.warn('showGsoMenu failed:', err);
+    }
+}
+
+function initializeGsoQuickLinks(){
+    try {
+        const quickButtons = document.querySelectorAll('.gso-nav-btn[data-nav-button]');
+        if (!quickButtons.length) return;
+
+        const triggerNavById = (id)=>{
+            if (!id) return;
+            const navBtn = document.getElementById(id);
+            if (!navBtn) return;
+            if (typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+                bootstrap.Tab.getOrCreateInstance(navBtn).show();
+            } else {
+                navBtn.click();
+            }
+        };
+
+        quickButtons.forEach(btn => {
+            btn.addEventListener('click', (ev)=>{
+                ev.preventDefault();
+                const navId = btn.getAttribute('data-nav-button');
+                showGsoContent();
+                triggerNavById(navId);
+                if (gsoNavVisibilityController && navId) {
+                    gsoNavVisibilityController.update(navId);
+                }
+            });
+        });
+
+        const gsoTab = document.getElementById('gsoTab');
+        const gsoNavLinks = gsoTab ? Array.from(gsoTab.querySelectorAll('.nav-link')) : [];
+        if (gsoNavLinks.length) {
+            gsoNavVisibilityController = {
+                update(activeId){
+                    const targetId = activeId || (gsoNavLinks.find(link => link.classList.contains('active'))?.id || '');
+                    if (!targetId) {
+                        gsoNavVisibilityController.reset();
+                        return;
+                    }
+                    gsoNavLinks.forEach(link => {
+                        const isActive = link.id === targetId;
+                        link.classList.toggle('d-none', !isActive);
+                        if (!isActive) {
+                            link.setAttribute('aria-hidden', 'true');
+                        } else {
+                            link.removeAttribute('aria-hidden');
+                        }
+                    });
+                },
+                reset(){
+                    gsoNavLinks.forEach(link => {
+                        link.classList.remove('d-none');
+                        link.removeAttribute('aria-hidden');
+                    });
+                }
+            };
+            gsoNavVisibilityController.reset();
+        }
+        if (gsoTab) {
+            gsoTab.addEventListener('shown.bs.tab', (event)=>{
+                const activeId = event?.target?.id || '';
+                quickButtons.forEach(btn => {
+                    btn.classList.toggle('active', btn.getAttribute('data-nav-button') === activeId);
+                });
+                const activeLink = event?.target;
+                if (activeLink) {
+                    activeLink.setAttribute('tabindex', '0');
+                }
+                showGsoContent();
+                if (gsoNavVisibilityController) {
+                    gsoNavVisibilityController.update(activeId);
+                }
+                // Re-render fauna charts once the tab content is fully visible
+                setTimeout(() => {
+                    try {
+                        if (typeof window.dispatchEvent === 'function') {
+                            window.dispatchEvent(new Event('fauna:visible'));
+                        }
+                    } catch (_) {}
+                }, 90);
+            });
+        }
+
+        const backButtons = document.querySelectorAll('#gsoTabContent .gso-return-btn');
+        backButtons.forEach(btn => {
+            btn.addEventListener('click', (ev)=>{
+                ev.preventDefault();
+                showGsoMenu();
+                const hero = document.querySelector('#fauna-section .gso-media-wrapper');
+                if (hero) {
+                    hero.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    } catch (err) {
+        console.warn('initializeGsoQuickLinks failed:', err);
+    }
+}
+
 // Fecha en la barra superior
 function updateDate() {
     try {
@@ -6270,6 +6421,18 @@ function renderParteOperacionesSummary(data){
                 checkSession();
             } catch (err) {
                 console.warn('checkSession failed:', err);
+            }
+
+            try {
+                initializeGsoQuickLinks();
+            } catch (err) {
+                console.warn('initializeGsoQuickLinks init failed:', err);
+            }
+
+            try {
+                showGsoMenu();
+            } catch (err) {
+                console.warn('showGsoMenu init failed:', err);
             }
         });
 

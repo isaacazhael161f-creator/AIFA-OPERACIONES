@@ -110,7 +110,7 @@
                     <a class="menu-item" id="itinerario-mensual-menu" href="#" data-section="itinerario-mensual"><i class="fas fa-table"></i><span>Itinerario Mensual</span></a>
                     <a class="menu-item" href="#" data-section="comparativa"><i class="fas fa-chart-line"></i><span>Comparativa</span></a>
                     <a class="menu-item" href="#" data-section="manifiestos"><i class="fas fa-file-signature"></i><span>Manifiestos</span></a>
-                    <a class="menu-item" href="#" data-section="fauna"><i class="fas fa-dove"></i><span>Fauna</span></a>
+                    <a class="menu-item" href="#" data-section="fauna"><i class="fas fa-shield-alt"></i><span>GSO</span></a>
                     
                     <a class="menu-item logout-item" href="#" data-action="logout"><i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span></a>
                 </nav>
@@ -418,109 +418,166 @@
                     </div>
                 </div>
 
-                <!-- Fauna Section -->
+                <!-- GSO Section (Impactos de Ave + Fauna Rescatada) -->
                 <div id="fauna-section" class="content-section">
-                    <div class="text-center mb-3"><h2 class="fw-bold"><i class="fas fa-dove me-2"></i>Registros de Impactos con Fauna 2025</h2></div>
-                    <div class="card">
-                        <div class="card-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
-                            <div class="d-flex flex-wrap align-items-center gap-2 fauna-filters filters-bar">
-                                <div class="chip">
-                                    <label class="me-1"><i class="fas fa-calendar-alt me-1"></i>Fecha</label>
-                                    <input type="date" id="fauna-date-from" class="form-control form-control-sm" />
-                                    <span class="mx-1">a</span>
-                                    <input type="date" id="fauna-date-to" class="form-control form-control-sm" />
-                                </div>
-                                <div class="chip">
-                                    <label class="me-1"><i class="fas fa-calendar me-1"></i>Mes</label>
-                                    <select id="fauna-month" class="form-select form-select-sm">
-                                        <option value="all" selected>Todos</option>
-                                        <option value="01">Enero</option>
-                                        <option value="02">Febrero</option>
-                                        <option value="03">Marzo</option>
-                                        <option value="04">Abril</option>
-                                        <option value="05">Mayo</option>
-                                        <option value="06">Junio</option>
-                                        <option value="07">Julio</option>
-                                        <option value="08">Agosto</option>
-                                        <option value="09">Septiembre</option>
-                                        <option value="10">Octubre</option>
-                                        <option value="11">Noviembre</option>
-                                        <option value="12">Diciembre</option>
-                                    </select>
-                                </div>
-                                <div class="chip">
-                                    <label class="me-1"><i class="fas fa-paw me-1"></i>Especie</label>
-                                    <select id="fauna-species" class="form-select form-select-sm"><option value="all" selected>Todas</option></select>
-                                </div>
-                                <div class="chip">
-                                    <label class="me-1"><i class="fas fa-arrows-to-dot me-1"></i>Tamaño</label>
-                                    <select id="fauna-size" class="form-select form-select-sm"><option value="all" selected>Todos</option></select>
-                                </div>
-                                <div class="chip">
-                                    <label class="me-1"><i class="fas fa-plane-departure me-1"></i>Fase</label>
-                                    <select id="fauna-phase" class="form-select form-select-sm"><option value="all" selected>Todas</option></select>
-                                </div>
-                                    <div class="chip">
-                                        <label class="me-1"><i class="fas fa-plane me-1"></i>Aerolínea</label>
-                                        <select id="fauna-airline" class="form-select form-select-sm"><option value="all" selected>Todas</option></select>
+                    <div class="card border-0">
+                        <div class="card-body px-0">
+                            <div class="gso-media-wrapper mb-4 px-3 px-md-0">
+                                <div class="ratio ratio-16x9 gso-hero">
+                                    <video class="gso-hero-media" src="videos/Aterrizaje%20Cargo.mp4" autoplay muted loop playsinline preload="metadata" aria-label="Gerencia de Seguridad Operacional"></video>
+                                    <div class="gso-hero-overlay">
+                                        <div class="gso-hero-inner">
+                                            <div class="gso-hero-copy text-center">
+                                                <h3 class="gso-hero-title mb-0">Gerencia de Seguridad Operacional (GSO)</h3>
+                                                <p class="gso-hero-caption mb-0"><i class="fas fa-plane-departure me-2"></i>Selecciona la opción en la que deseas navegar</p>
+                                            </div>
+                                            <div class="gso-hero-actions">
+                                                <div class="gso-tab-buttons">
+                                                    <button type="button" class="gso-nav-btn" data-nav-button="gso-impactos-tab">
+                                                        <span class="gso-nav-icon"><i class="fas fa-dove" aria-hidden="true"></i></span>
+                                                        <span class="gso-nav-label">Impactos de Ave</span>
+                                                    </button>
+                                                    <button type="button" class="gso-nav-btn" data-nav-button="gso-rescate-tab">
+                                                        <span class="gso-nav-icon"><i class="fas fa-seedling" aria-hidden="true"></i></span>
+                                                        <span class="gso-nav-label">Fauna Rescatada</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                <div class="chip chip-actions">
-                                    <label class="me-1"><i class="fas fa-broom me-1"></i>Acciones</label>
-                                    <button id="fauna-clear" class="btn btn-outline-secondary btn-sm">Limpiar</button>
-                                    <button id="fauna-export-csv" class="btn btn-outline-primary btn-sm"><i class="fas fa-file-csv me-1"></i>CSV</button>
                                 </div>
                             </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
-                                <span class="badge bg-primary" id="fauna-total-badge">Total: 0</span>
-                                <span class="badge bg-info text-dark" id="fauna-period-badge">Periodo: Todos</span>
-                                <button class="btn btn-outline-primary btn-sm active" id="fauna-summary-toggle" data-bs-toggle="collapse" data-bs-target="#fauna-summary-collapse" aria-expanded="true" aria-controls="fauna-summary-collapse">
-                                    <i class="fas fa-list-ul me-1"></i>Resumen por Aerolínea
-                                </button>
+                            <ul class="nav nav-tabs d-none" id="gsoTab" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="gso-impactos-tab" data-bs-toggle="tab" data-bs-target="#gso-impactos-pane" type="button" role="tab" aria-controls="gso-impactos-pane" aria-selected="false" tabindex="-1"><i class="fas fa-dove me-2"></i>Registro de Impactos de Ave</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="gso-rescate-tab" data-bs-toggle="tab" data-bs-target="#gso-fauna-rescate-pane" type="button" role="tab" aria-controls="gso-fauna-rescate-pane" aria-selected="false" tabindex="-1"><i class="fas fa-seedling me-2"></i>Fauna Rescatada</button>
+                                </li>
+                            </ul>
+                            <div class="tab-content pt-3 d-none" id="gsoTabContent">
+                                <div class="tab-pane fade" id="gso-impactos-pane" role="tabpanel" aria-labelledby="gso-impactos-tab" tabindex="0">
+                                    <div class="gso-return mb-3">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm gso-return-btn"><i class="fas fa-arrow-left me-2"></i>Regresar al menú GSO</button>
+                                    </div>
+                                    <div class="text-center mb-3"><h3 class="fw-bold mb-0"><i class="fas fa-dove me-2"></i>Registros de Impactos de Ave 2025</h3></div>
+                                    <div class="card">
+                                        <div class="card-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
+                                            <div class="d-flex flex-wrap align-items-center gap-2 fauna-filters filters-bar">
+                                                <div class="chip">
+                                                    <label class="me-1"><i class="fas fa-calendar-alt me-1"></i>Fecha</label>
+                                                    <input type="date" id="fauna-date-from" class="form-control form-control-sm" />
+                                                    <span class="mx-1">a</span>
+                                                    <input type="date" id="fauna-date-to" class="form-control form-control-sm" />
+                                                </div>
+                                                <div class="chip">
+                                                    <label class="me-1"><i class="fas fa-calendar me-1"></i>Mes</label>
+                                                    <select id="fauna-month" class="form-select form-select-sm">
+                                                        <option value="all" selected>Todos</option>
+                                                        <option value="01">Enero</option>
+                                                        <option value="02">Febrero</option>
+                                                        <option value="03">Marzo</option>
+                                                        <option value="04">Abril</option>
+                                                        <option value="05">Mayo</option>
+                                                        <option value="06">Junio</option>
+                                                        <option value="07">Julio</option>
+                                                        <option value="08">Agosto</option>
+                                                        <option value="09">Septiembre</option>
+                                                        <option value="10">Octubre</option>
+                                                        <option value="11">Noviembre</option>
+                                                        <option value="12">Diciembre</option>
+                                                    </select>
+                                                </div>
+                                                <div class="chip">
+                                                    <label class="me-1"><i class="fas fa-paw me-1"></i>Especie</label>
+                                                    <select id="fauna-species" class="form-select form-select-sm"><option value="all" selected>Todas</option></select>
+                                                </div>
+                                                <div class="chip">
+                                                    <label class="me-1"><i class="fas fa-arrows-to-dot me-1"></i>Tamaño</label>
+                                                    <select id="fauna-size" class="form-select form-select-sm"><option value="all" selected>Todos</option></select>
+                                                </div>
+                                                <div class="chip">
+                                                    <label class="me-1"><i class="fas fa-plane-departure me-1"></i>Fase</label>
+                                                    <select id="fauna-phase" class="form-select form-select-sm"><option value="all" selected>Todas</option></select>
+                                                </div>
+                                                    <div class="chip">
+                                                        <label class="me-1"><i class="fas fa-plane me-1"></i>Aerolínea</label>
+                                                        <select id="fauna-airline" class="form-select form-select-sm"><option value="all" selected>Todas</option></select>
+                                                    </div>
+                                                <div class="chip chip-actions">
+                                                    <label class="me-1"><i class="fas fa-broom me-1"></i>Acciones</label>
+                                                    <button id="fauna-clear" class="btn btn-outline-secondary btn-sm">Limpiar</button>
+                                                    <button id="fauna-export-csv" class="btn btn-outline-primary btn-sm"><i class="fas fa-file-csv me-1"></i>CSV</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                                                <span class="badge bg-primary" id="fauna-total-badge">Total: 0</span>
+                                                <span class="badge bg-info text-dark" id="fauna-period-badge">Periodo: Todos</span>
+                                                <button class="btn btn-outline-primary btn-sm active" id="fauna-summary-toggle" data-bs-toggle="collapse" data-bs-target="#fauna-summary-collapse" aria-expanded="true" aria-controls="fauna-summary-collapse">
+                                                    <i class="fas fa-list-ul me-1"></i>Resumen por Aerolínea
+                                                </button>
+                                            </div>
+                                            <div class="collapse show" id="fauna-summary-collapse">
+                                                <h6 class="mb-2"><i class="fas fa-plane me-2"></i>Resumen por Aerolínea</h6>
+                                                <div id="fauna-summary-container" class="table-container-tech"></div>
+                                            </div>
+                                            <!-- Top horas críticas arriba -->
+                                            <div class="mb-3">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fas fa-bolt text-warning"></i>
+                                                    <strong>Top horas críticas</strong>
+                                                    <span class="small text-muted">(con filtros aplicados)</span>
+                                                </div>
+                                                <div id="fauna-top-hours" class="mt-2 d-flex flex-wrap gap-2"></div>
+                                            </div>
+                                            <!-- Resumen despegues vs aterrizajes -->
+                                            <div class="mb-3">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fas fa-plane me-1 text-primary"></i>
+                                                    <strong>Resumen por fase de operación</strong>
+                                                </div>
+                                                <div id="fauna-phase-summary" class="mt-2 d-flex flex-wrap gap-2"></div>
+                                            </div>
+                                            <!-- Resumen visual: gráficas -->
+                                            <div class="row g-3 mb-3">
+                                                <div class="col-lg-6">
+                                                    <h6 class="text-muted mb-2"><i class="fas fa-chart-column me-1"></i>Eventos por mes</h6>
+                                                    <div class="chart-container" style="height:360px"><canvas id="fauna-by-month"></canvas></div>
+                                                </div>
+                                                <div class="col-lg-6">
+                                                    <h6 class="text-muted mb-2"><i class="fas fa-paw me-1"></i>Eventos por especie</h6>
+                                                    <div class="chart-container" style="height:360px"><canvas id="fauna-by-species"></canvas></div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <h6 class="text-muted mb-2"><i class="fas fa-grip-vertical me-1"></i>Matriz Mes × Condiciones (Heatmap)</h6>
+                                                    <div class="chart-container heatmap-container" style="height:420px"><div id="fauna-heatmap" style="width:100%; height:100%"></div></div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <h6 class="text-muted mb-2"><i class="fas fa-clock me-1"></i>Distribución por hora del día</h6>
+                                                    <div class="chart-container" style="height:360px"><canvas id="fauna-by-hour"></canvas></div>
+                                                </div>
+                                            </div>
+                                            <!-- Tabla completa sin paginación -->
+                                            <div class="table-responsive" id="fauna-table-container"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="gso-fauna-rescate-pane" role="tabpanel" aria-labelledby="gso-rescate-tab" tabindex="0">
+                                    <div class="gso-return mb-3">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm gso-return-btn"><i class="fas fa-arrow-left me-2"></i>Regresar al menú GSO</button>
+                                    </div>
+                                    <div class="alert alert-info shadow-sm mb-0" role="alert">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="fas fa-info-circle"></i>
+                                            <div>
+                                                <strong>Fauna Rescatada:</strong> Esta pestaña se reservará para los reportes de fauna protegida y rescates operativos. Puedes agregar la información cuando esté lista.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="collapse show" id="fauna-summary-collapse">
-                                <h6 class="mb-2"><i class="fas fa-plane me-2"></i>Resumen por Aerolínea</h6>
-                                <div id="fauna-summary-container" class="table-container-tech"></div>
-                            </div>
-                            <!-- Top horas críticas arriba -->
-                            <div class="mb-3">
-                                <div class="d-flex align-items-center gap-2">
-                                    <i class="fas fa-bolt text-warning"></i>
-                                    <strong>Top horas críticas</strong>
-                                    <span class="small text-muted">(con filtros aplicados)</span>
-                                </div>
-                                <div id="fauna-top-hours" class="mt-2 d-flex flex-wrap gap-2"></div>
-                            </div>
-                            <!-- Resumen despegues vs aterrizajes -->
-                            <div class="mb-3">
-                                <div class="d-flex align-items-center gap-2">
-                                    <i class="fas fa-plane me-1 text-primary"></i>
-                                    <strong>Resumen por fase de operación</strong>
-                                </div>
-                                <div id="fauna-phase-summary" class="mt-2 d-flex flex-wrap gap-2"></div>
-                            </div>
-                            <!-- Resumen visual: gráficas -->
-                            <div class="row g-3 mb-3">
-                                <div class="col-lg-6">
-                                    <h6 class="text-muted mb-2"><i class="fas fa-chart-column me-1"></i>Eventos por mes</h6>
-                                    <div class="chart-container" style="height:360px"><canvas id="fauna-by-month"></canvas></div>
-                                </div>
-                                <div class="col-lg-6">
-                                    <h6 class="text-muted mb-2"><i class="fas fa-paw me-1"></i>Eventos por especie</h6>
-                                    <div class="chart-container" style="height:360px"><canvas id="fauna-by-species"></canvas></div>
-                                </div>
-                                <div class="col-12">
-                                    <h6 class="text-muted mb-2"><i class="fas fa-grip-vertical me-1"></i>Matriz Mes × Condiciones (Heatmap)</h6>
-                                    <div class="chart-container heatmap-container" style="height:420px"><div id="fauna-heatmap" style="width:100%; height:100%"></div></div>
-                                </div>
-                                <div class="col-12">
-                                    <h6 class="text-muted mb-2"><i class="fas fa-clock me-1"></i>Distribución por hora del día</h6>
-                                    <div class="chart-container" style="height:360px"><canvas id="fauna-by-hour"></canvas></div>
-                                </div>
-                            </div>
-                            <!-- Tabla completa sin paginación -->
-                            <div class="table-responsive" id="fauna-table-container"></div>
                         </div>
                     </div>
                 </div>
