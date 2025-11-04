@@ -4317,30 +4317,46 @@ function updateOpsSummary() {
                 container.innerHTML = '<div class="ops-summary-empty text-muted">Selecciona al menos un año para ver el resumen.</div>';
                 return;
             }
-            const lastYear = years.includes('2025') ? '2025' : years[years.length - 1];
-            const commercial = yData.comercial.find(d => String(d.periodo) === String(lastYear)) || {};
-            const cargo = yData.carga.find(d => String(d.periodo) === String(lastYear)) || {};
-            const general = yData.general.find(d => String(d.periodo) === String(lastYear)) || {};
 
-            const detail = `Periodos seleccionados: ${years.join(' · ')}`;
-            headerMarkup = buildHero('ops-summary-hero--yearly', 'fas fa-calendar-alt', `Año ${lastYear}`, detail, 'Vista anual');
+            const sumForYears = (collection, key) => collection
+                .filter(entry => years.includes(String(entry.periodo)))
+                .reduce((acc, entry) => acc + Number(entry?.[key] ?? 0), 0);
+
+            const commercialOps = sumForYears(yData.comercial, 'operaciones');
+            const commercialPax = sumForYears(yData.comercial, 'pasajeros');
+            const cargoOps = sumForYears(yData.carga, 'operaciones');
+            const cargoTon = sumForYears(yData.carga, 'toneladas');
+            const generalOps = sumForYears(yData.general, 'operaciones');
+            const generalPax = sumForYears(yData.general, 'pasajeros');
+
+            const firstYear = years[0];
+            const lastYear = years[years.length - 1];
+            const periodLabel = years.length === 1
+                ? `Año ${firstYear}`
+                : `Años ${firstYear}–${lastYear}`;
+            const badgeLabel = years.length === 1 ? 'Vista anual' : `${years.length} años acumulados`;
+            const detail = years.length === 1
+                ? `Periodo seleccionado: ${firstYear}`
+                : `Periodos seleccionados: ${years.join(' · ')}`;
+
+            headerMarkup = buildHero('ops-summary-hero--yearly', 'fas fa-calendar-alt', periodLabel, detail, badgeLabel);
             captionMarkup = '';
             if (showCom) {
                 cards.push(
-                    makeCard('fas fa-plane-departure', 'Comercial', fmtInt(commercial.operaciones || 0), 'Operaciones', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-ops']),
-                    makeCard('fas fa-user-friends', 'Comercial', fmtInt(commercial.pasajeros || 0), 'Pasajeros', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-passengers'])
+                    makeCard('fas fa-plane-departure', 'Comercial', fmtInt(commercialOps), 'Operaciones acumuladas', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-ops']),
+                    makeCard('fas fa-user-friends', 'Comercial', fmtInt(commercialPax), 'Pasajeros acumulados', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-passengers'])
                 );
             }
             if (showCar) {
                 cards.push(
-                    makeCard('fas fa-box-open', 'Carga', fmtInt(cargo.operaciones || 0), 'Operaciones', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ops']),
-                    makeCard('fas fa-weight-hanging', 'Carga', fmtTon(cargo.toneladas || 0), 'Toneladas', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ton'])
+                    makeCard('fas fa-box-open', 'Carga', fmtInt(cargoOps), 'Operaciones acumuladas', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ops']),
+                    makeCard('fas fa-weight-hanging', 'Carga', fmtTon(cargoTon), 'Toneladas acumuladas', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ton'])
                 );
             }
             if (showGen) {
                 cards.push(
-                    makeCard('fas fa-paper-plane', 'General', fmtInt(general.operaciones || 0), 'Operaciones', ['ops-summary-pill--general', 'ops-summary-pill--metric-ops']),
-                    makeCard('fas fa-user-check', 'General', fmtInt(general.pasajeros || 0), 'Pasajeros', ['ops-summary-pill--general', 'ops-summary-pill--metric-passengers'])
+                    makeCard('fas fa-paper-plane', 'General', fmtInt(generalOps), 'Operaciones acumuladas', ['ops-summary-pill--general', 'ops-summary-pill--metric-ops']),
+                    makeCard('fas fa-user-check', 'General', fmtInt(generalPax), 'Pasajeros acumulados', ['ops-summary-pill--general', 'ops-summary-pill--metric-passengers'])
                 );
             }
         } else if (mode === 'monthly') {
@@ -4446,8 +4462,12 @@ function updateOpsSummary() {
             const generalPax = sumCat('general', 'pasajeros');
 
             const range = weekly?.rango || {};
+            const firstTargetDay = targetDays[0] || {};
+            const fullDayLabel = firstTargetDay?.labelFull || '';
+            const fallbackDayLabel = firstTargetDay?.label || '';
+            const fallbackIsoLabel = firstTargetDay?.fecha ? formatSpanishDate(firstTargetDay.fecha) : '';
             const rangeLabel = selectedDay !== 'all'
-                ? (targetDays[0]?.label || targetDays[0]?.fecha || 'Jornada seleccionada')
+                ? (fullDayLabel || fallbackDayLabel || fallbackIsoLabel || 'Jornada seleccionada')
                 : (range.descripcion || (range.inicio && range.fin ? `Semana del ${formatSpanishDate(range.inicio)} al ${formatSpanishDate(range.fin)}` : 'Semana reciente'));
             const extraNotes = [];
             if (weekly?.meta?.notice) extraNotes.push(weekly.meta.notice);
