@@ -100,7 +100,7 @@ const WEEKLY_OPERATIONS_DATASETS = [
             inicio: '2025-10-27',
             fin: '2025-11-02',
             descripcion: describeWeekRange('2025-10-27', '2025-11-02'),
-            nota: 'Datos consolidados al 1 de noviembre de 2025.'
+            nota: ''
         },
         dias: [
             {
