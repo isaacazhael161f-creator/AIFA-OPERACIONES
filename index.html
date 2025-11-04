@@ -98,7 +98,7 @@
                     <a class="menu-item" href="#" data-section="parte-operaciones"><i class="fas fa-file-invoice"></i><span>Parte de Operaciones</span></a>
                     <a class="menu-item" href="#" data-section="inicio"><i class="fas fa-calendar-day"></i><span>Itinerario diario</span></a>
                     <a class="menu-item" href="#" data-section="itinerario"><i class="fas fa-chart-area"></i><span>Gráficas Itinerario</span></a>
-                    <a class="menu-item" href="#" data-section="frecuencias-semana"><i class="fas fa-chart-bar"></i><span>Frecuencias (Semana)</span></a>
+                    <a class="menu-item" href="#" data-section="frecuencias-semana"><i class="fas fa-chart-bar"></i><span>Frecuencias semanales</span></a>
                     <a class="menu-item" href="#" data-section="puntualidad-agosto">
                         <span class="icon-clock-check" aria-hidden="true">
                             <i class="fas fa-clock"></i>
@@ -107,7 +107,7 @@
                         <span>Puntualidad</span>
                     </a>
                     <a class="menu-item" href="#" data-section="demoras"><i class="fas fa-clock"></i><span>Demoras</span></a>
-                    <a class="menu-item" id="itinerario-mensual-menu" href="#" data-section="itinerario-mensual"><i class="fas fa-table"></i><span>Itinerario Mensual (Octubre)</span></a>
+                    <a class="menu-item" id="itinerario-mensual-menu" href="#" data-section="itinerario-mensual"><i class="fas fa-table"></i><span>Itinerario Mensual</span></a>
                     <a class="menu-item" href="#" data-section="comparativa"><i class="fas fa-chart-line"></i><span>Comparativa</span></a>
                     <a class="menu-item" href="#" data-section="manifiestos"><i class="fas fa-file-signature"></i><span>Manifiestos</span></a>
                     <a class="menu-item" href="#" data-section="fauna"><i class="fas fa-dove"></i><span>Fauna</span></a>
@@ -692,6 +692,10 @@
                                 </div>
                             </div>
                             <h5 class="text-uppercase text-muted fw-bold mb-3 mt-4"><span class="section-icon icon-cargo">⛟</span>Operaciones de Carga</h5>
+                            <div class="update-note d-flex align-items-center mb-2">
+                                <i class="fas fa-calendar-check me-2" aria-hidden="true"></i>
+                                <small>Datos actualizados al <strong>31 de octubre 2025</strong></small>
+                            </div>
                             <div class="row g-3 mb-4" id="cargo-group">
                                 <div class="col-lg-6">
                                     <div class="chart-container ops-chart"><canvas id="cargoOpsChart"></canvas></div>
@@ -750,7 +754,7 @@
                 <div id="itinerario-mensual-section" class="content-section">
                     <div class="card">
                         <div class="card-header text-center">
-                            <h2 class="mb-0">ITINERARIO MENSUAL DEL MES DE OCTUBRE </h2>
+                            <h2 class="mb-0">ITINERARIO MENSUAL DEL MES DE NOVIEMBRE </h2>
                         </div>
                         <div class="card-body pdf-container">
                             <iframe id="pdf-itinerario-mensual" src="pdfs/itinerario_mensual.pdf" width="100%" height="800px" class="border-0"></iframe>

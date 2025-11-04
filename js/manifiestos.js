@@ -1,7 +1,6 @@
 ;(function(){
 
   // ======================= MANIFIESTOS: CANDADO ACTIVADO =======================
-  // Esta sección está 'con candado'. Evita cambios no solicitados explícitamente.
   // Solo realizar modificaciones específicas bajo instrucción del usuario.
   // ============================================================================
 
@@ -31,7 +30,7 @@
   function forceAirportMainValue(){
     try {
       const el = document.getElementById('mf-airport-main');
-      if (!el) return;
+    if (!el) return; 
       if (!el._forceNLUHandler){
         const enforce = ()=>{
           try {
@@ -112,7 +111,7 @@
   function _refreshList(query){
     if (!_cpList) return;
     _cpCurrentQuery = (query || '').trim();
-    const q = _normalize(_cpCurrentQuery);
+    const q = _normalize(_cpCurrentQuery); 
     const matches = q ? _cpItems.filter(it=> (it._k || '').includes(q)) : _cpItems;
     if (!matches.length){
       _cpList.innerHTML = '<div class="p-2 text-muted">Sin resultados</div>';
@@ -150,7 +149,6 @@
     el.style.maxWidth = '360px';
     el.style.background = '#fff';
     el.style.border = '1px solid rgba(0,0,0,0.15)';
-    el.style.borderRadius = '8px';
     el.style.boxShadow = '0 10px 30px rgba(0,0,0,0.2)';
     el.style.display = 'none';
     el.innerHTML = `
@@ -1539,21 +1537,33 @@
             const crew = findNearLabelValue(['TRIPULACION','TRIPULACIÓN','CREW'], /\b\d{1,3}\b/, text);
             if (crew) setVal('mf-crew-total', crew);
           } catch(_){}
-          // Piloto al mando (robusto, mayúsculas cerca de etiqueta). No sobrescribir si ya hay valor manual.
+          // Piloto al mando (robusto): use a stronger extractor, log text and candidates, and force-write when necessary
           try {
+            // Dump the raw text to the debug panel for manual inspection when enabled
+            try { window._mfDebugDump?.(text); } catch(_){ }
             const current = (document.getElementById('mf-pilot')?.value||'').trim();
             if (!current){
-              const pilot = (window._mfExtractPilotUpperNearLabel?.(text) || '').trim();
-              if (pilot) setVal('mf-pilot', pilot);
-              // Fallback con capa de texto PDF (mayor tamaño/fuente cerca de etiqueta)
+              // Try the new robust extractor first
+              const robust = (window._mfExtractPilotRobust?.(text) || '').trim();
+              if (robust){ try { forceSetVal('mf-pilot', robust); } catch(_){ setVal('mf-pilot', robust); } }
+              // If not set yet, fall back to existing extractors (preserve previous behavior)
+              if (!document.getElementById('mf-pilot')?.value){
+                const direct = (window._mfExtractPilotDirectBlock?.(text) || '').trim();
+                if (direct) try { forceSetVal('mf-pilot', direct); } catch(_){ setVal('mf-pilot', direct); }
+              }
+              if (!document.getElementById('mf-pilot')?.value){
+                const pilot = (window._mfExtractPilotUpperNearLabel?.(text) || '').trim();
+                if (pilot) try { forceSetVal('mf-pilot', pilot); } catch(_){ setVal('mf-pilot', pilot); }
+              }
+              // PDF-layer async fallback: attempt but don't block
               try {
                 const f = pdfFile; const isPdf = f && (/\.pdf$/i.test(f.name||'') || /application\/pdf/i.test(f.type||''));
                 if (!document.getElementById('mf-pilot')?.value && isPdf && typeof window._mfExtractPilotUpperFromPdf==='function'){
                   window._mfExtractPilotUpperFromPdf(f, 2).then(name=>{
-                    if (name && !document.getElementById('mf-pilot')?.value) setVal('mf-pilot', name);
+                    if (name && !document.getElementById('mf-pilot')?.value) try { forceSetVal('mf-pilot', name); } catch(_){ setVal('mf-pilot', name); }
                   }).catch(()=>{});
                 }
-              } catch(_){}
+              } catch(_){ }
             }
           } catch(_){ }
           // No. de licencia: extractor exhaustivo (soporta "No. LIC." y variantes, mismo renglón o siguientes)
@@ -1883,12 +1893,17 @@
               const crew = findNearLabelValue(['TRIPULACION','TRIPULACIÓN','CREW'], /\b\d{1,3}\b/, text);
               if (crew) setVal('mf-crew-total', crew);
             } catch(_){}
-            // Piloto al mando (robusto, mayúsculas cerca de etiqueta). No sobrescribir si ya hay valor manual.
+            // Piloto al mando (robusto): use robust extractor and debug dump; force-write if we obtain a candidate
             try {
+              try { window._mfDebugDump?.(text); } catch(_){ }
               const current = (document.getElementById('mf-pilot')?.value||'').trim();
               if (!current){
-                const pilot = (window._mfExtractPilotUpperNearLabel?.(text) || '').trim();
-                if (pilot) setVal('mf-pilot', pilot);
+                const robust = (window._mfExtractPilotRobust?.(text) || '').trim();
+                if (robust) try { forceSetVal('mf-pilot', robust); } catch(_){ setVal('mf-pilot', robust); }
+                if (!document.getElementById('mf-pilot')?.value){
+                  const pilot = (window._mfExtractPilotUpperNearLabel?.(text) || '').trim();
+                  if (pilot) try { forceSetVal('mf-pilot', pilot); } catch(_){ setVal('mf-pilot', pilot); }
+                }
               }
             } catch(_){ }
             // No. de licencia (usa extractor exhaustivo como primario)
@@ -2005,7 +2020,16 @@
           s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
           s.crossOrigin = 'anonymous'; s.onload = resolve; s.onerror = reject; document.head.appendChild(s);
         });
-        try { window['pdfjsLib'].GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch(_) {}
+        try {
+          const lib = window['pdfjsLib'];
+          if (lib && lib.GlobalWorkerOptions){
+            lib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            if (lib.VerbosityLevel && typeof lib.VerbosityLevel.ERRORS === 'number'){
+              lib.GlobalWorkerOptions.verbosity = lib.VerbosityLevel.ERRORS;
+              try { lib.verbosity = lib.VerbosityLevel.ERRORS; } catch(_){ }
+            }
+          }
+        } catch(_) {}
       }
 
       function fileToDataURL(file){
@@ -2147,6 +2171,24 @@
           return;
         }
         el.value = v;
+      }
+      // Force-set a field even when locked: temporarily remove dataset.locked, set value and restore.
+      // Use only for fields where automated fill is desired (pilot, license) and caller accepts override.
+      function forceSetVal(id, v, opts){
+        try {
+          const el = document.getElementById(id);
+          if (!el) return;
+          const prevLocked = el.dataset && el.dataset.locked === '1';
+          // Temporary unlock
+          if (prevLocked){ try { el.dataset.locked = ''; } catch(_){} }
+          // Use the standard setter logic where possible (to preserve N/A handling, etc.)
+          try { setVal(id, v); } catch(_) { el.value = v; }
+          // Dispatch events so other handlers react
+          try { el.dispatchEvent(new Event('input',{ bubbles:true })); } catch(_){}
+          try { el.dispatchEvent(new Event('change',{ bubbles:true })); } catch(_){}
+          // Restore lock state
+          if (prevLocked){ try { el.dataset.locked = '1'; } catch(_){} }
+        } catch(_){ }
       }
       function _attachNaToggle(id){
         try {
@@ -2362,17 +2404,19 @@
         try {
           const lines = (text||'').split(/\r?\n/);
           // Etiquetas tolerantes a OCR: NO puede leerse como N0 (cero); LIC puede leerse como L1C (uno) o con espacios
-          const rxNO = /\bN(?:[O0]|[º°])\.??\b|\bN[UÚ]M\.??\b|\bNO\.??\b/i;    // No. / Nº / N° / N0. / Núm.
+          const rxNO = /\bN\s*(?:[O0]|[º°])\.??\b|\bN\s*[UÚ]\s*M\.??\b|\bN[UÚ]M(?:ERO)?\.??\b|\bN\s*O\.??\b/i;    // No. / Nº / N° / N0. / Núm. con espacios tolerantes
           const rxLIC = /\bL\s*[I1]\s*C(?:\.|\s*[EÉ]\s*N\s*C\s*[I1]\s*A)?\b/i; // LIC. / L I C . / L1C / LICENCIA (tolerante a espacios)
           const clean = (s)=> (s||'').toUpperCase().replace(/\s+/g,' ').trim();
           const finalizeLicense = (raw)=>{
             try {
               if (!raw) return '';
               let S = String(raw).toUpperCase();
+              S = S.replace(/[_•·˙|]+/g,' ');
               // Cortar en palabras que marcan otro campo
               const boundary = /(TRIPUL[ACÁ]CION|CREW|PAX|PASAJ|VUELO|FECHA|ORIGEN|DESTINO|HORA|MATR[IÍ]CULA|PILOTO|MANDO|OPERACI[ÓO]N|AGENTE|RESPONSABLE|FOLIO)\b/i;
               const b = S.match(boundary);
               if (b && typeof b.index==='number'){ S = S.slice(0, b.index).trim(); }
+              S = S.replace(/\s+/g,' ').trim();
               // Patrones preferentes
               let m = S.match(/\b[A-Z]{1,6}[-\/]?\d{2,8}\b/);
               if (m) return m[0].toUpperCase();
@@ -2388,6 +2432,10 @@
                   i=j-1;
                 }
               }
+              if (toks.length){
+                const joined = toks.join('');
+                if (joined.length >= 3) return joined.toUpperCase();
+              }
               return S.replace(/[^A-Z0-9\/\-].*$/, '').trim();
             } catch(_){ return (raw||'').toString().trim().toUpperCase(); }
           };
@@ -2399,27 +2447,33 @@
               return idx>=0 ? s.slice(idx + (s.match(idx===idxLic?rxLIC:rxNO)?.[0]?.length||0)) : s;
             } catch(_){ return s; }
           };
-          function findCandidatesInString(s){
+          function findCandidatesInString(s, opts={}){
+            const rawDigits = Number(opts.minDigits);
+            const minDigits = Number.isFinite(rawDigits) ? Math.max(3, rawDigits) : 7;
+            const rawMixed = Number(opts.minMixedDigits);
+            const minMixedDigits = Number.isFinite(rawMixed) ? Math.max(3, rawMixed) : Math.max(minDigits, 5);
             const U = (s||'').toUpperCase();
             const tokens = U.replace(/[^A-Z0-9\-\/]/g,' ').split(/\s+/).filter(Boolean);
             const out = new Set();
-            // 1) dígitos puros contiguos >=7
-            const dHits = U.match(/\b\d{7,}\b/g) || [];
+            // 1) dígitos puros contiguos >= minDigits
+            const digitRx = new RegExp(`\\b\\d{${minDigits},}\\b`, 'g');
+            const dHits = U.match(digitRx) || [];
             dHits.forEach(v=> out.add(v));
             // 2) letras+digitos (con posible guión o "/")
-            const mixHits = U.match(/\b[A-Z]{1,6}[-\/]?\d{5,}\b/g) || [];
+            const mixRx = new RegExp(`\\b[A-Z]{1,6}[-\\/]?\\d{${minMixedDigits},}\\b`, 'g');
+            const mixHits = U.match(mixRx) || [];
             mixHits.forEach(v=> out.add(v));
             // 3) pares separados por espacio: ABC 1234567
             for (let i=0;i<tokens.length-1;i++){
               const a=tokens[i], b=tokens[i+1];
-              if (/^[A-Z]{2,6}$/.test(a) && /^\d{5,}$/.test(b)) out.add(a+b);
+              if (/^[A-Z]{2,6}$/.test(a) && new RegExp(`^\\d{${minMixedDigits},}$`).test(b)) out.add(a+b);
             }
             // 4) dígitos fragmentados por espacios: 2016 355 35 -> 201635535
             for (let i=0;i<tokens.length;i++){
               if (/^\d+$/.test(tokens[i])){
                 let j=i; let acc='';
                 while (j<tokens.length && /^\d+$/.test(tokens[j])){ acc += tokens[j]; j++; }
-                if (acc.length>=7) out.add(acc);
+                if (acc.length>=minDigits) out.add(acc);
                 i = j-1;
               }
             }
@@ -2428,7 +2482,7 @@
               if (/^[A-Z]{1,6}$/.test(tokens[i])){
                 let j=i+1; let acc='';
                 while (j<tokens.length && /^\d+$/.test(tokens[j])){ acc += tokens[j]; j++; }
-                if (acc.length>=5){ out.add(tokens[i] + acc); }
+                if (acc.length>=minMixedDigits){ out.add(tokens[i] + acc); }
                 i = j-1;
               }
             }
@@ -2451,10 +2505,12 @@
             // Dar prioridad a lo que venga después del último label en la línea base
             const base = lines[Math.max(fromIdx, toIdx)] || '';
             const tail = sliceAfterLastLabel(base);
-            const c1 = findCandidatesInString(tail);
+            const c1 = findCandidatesInString(tail, { minDigits: 3, minMixedDigits: 3 });
             if (c1.length) return c1[0];
-            const c2 = findCandidatesInString(buf);
-            return c2[0]||'';
+            const c2 = findCandidatesInString(buf, { minDigits: 3, minMixedDigits: 3 });
+            if (c2.length) return c2[0];
+            if (tail && tail.trim()) return tail;
+            return buf.trim();
           }
           // 1) Misma línea: NO y LIC presentes -> buscar a la derecha del último label
           for (let i=0;i<lines.length;i++){
@@ -2525,6 +2581,22 @@
               return finalizeLicense(m[1]||'');
             }
           } catch(_){ }
+          // 4) Fallback con etiqueta colapsada: permite que "No." y "Lic." estén separados por saltos o espacios irregulares
+          try {
+            const rawFull = (text||'').toString().replace(/\u00A0/g,' ');
+            const collapsed = rawFull.replace(/\s+/g,' ').toUpperCase();
+            const patterns = [
+              /N(?:O|0|[º°])\s*(?:\.|°)?\s*(?:DE\s+)?LIC(?:\.|ENCIA)?(?:\s+COMPLETO\s+O\s+NO\s+DE\s+EMPLEADO)?\s*[:=\-]?\s*([A-Z0-9\-\/ ]{3,})/i,
+              /NO\W+LIC(?:\.|ENCIA)?\W*[:=\-]?\W*([A-Z0-9\-\/ ]{3,})/i
+            ];
+            for (const rx of patterns){
+              const m = collapsed.match(rx);
+              if (m && m[1]){
+                const cand = finalizeLicense(m[1]);
+                if (cand) return cand;
+              }
+            }
+          } catch(_){ }
         } catch(_){ }
         return '';
       };
@@ -2533,15 +2605,38 @@
         'PILOTO','PILOT','MANDO','PILOTOALMANDO','PILOTOAL','ALMANDO','NUMERO','NÚMERO','NUM','NO'
       ]);
       const _mfPilotConnectorTokens = new Set([
-        'DE','DEL','DELA','DA','DO','DOS','DAS','DI','DU','LA','EL','LOS','LAS','LE','LES','VON','VAN','MC','MAC','SAN','SANTA','ST','Y','E'
+        'DE','DEL','DELA','DA','DO','DOS','DAS','DI','DU','LA','EL','LOS','LAS','LE','LES','VON','VAN','MC','MAC','SAN','SANTA','ST','Y','E','AL'
       ]);
       const _mfPilotSuffixTokens = new Set(['JR','SR','II','III','IV','V']);
+      // Corrige confusiones comunes de OCR (0→O, 1→I, etc.) sin aceptar tokens puramente numéricos.
+      const _mfPilotDigitLetterMap = new Map([
+        ['0','O'],['1','I'],['2','Z'],['3','E'],['4','A'],['5','S'],['6','G'],['7','T'],['8','B'],['9','G']
+      ]);
       const _mfPilotForbiddenTokens = new Set([
         'FIRMA','FIRME','SIGNATURE','SIGNATURA','NOMBRE','NOMBRES','NAME','TRIPULACION','TRIPULACIÓN',
         'OPERADOR','OPERADORA','COORDINADOR','COORDINADORA','DESPACHADOR','DESPACHADORA','CONTROL','RUTA',
         'FECHA','HORA','DESTINO','ORIGEN','VUELO','FOLIO','TOTAL','CARGO','PASAJEROS','PAX','AUTORIZA','AUTORIZACIÓN',
-        'ADMINISTRADOR','SUPERVISOR','SUPERVISORA','JEFE','DIRECTOR','GERENTE','LIC','LICENCIA'
+        'ADMINISTRADOR','SUPERVISOR','SUPERVISORA','JEFE','DIRECTOR','GERENTE','LIC','LICENCIA','CARACTERES','CARACERES',
+        'ALFANUMERICO','ALFANUMÉRICO','ADMINISTRACION','ADMINISTRACIÓN','ESPACIO','RESERVADO','RESERVADA','RESERVADOS','RESERVADAS',
+        'DIA','DÍA','MES','AÑO','ANO','MARCA','NACIONALIDAD','MATRICULA','MATRÍCULA','MATRICULAS','MATRÍCULAS','ANANUMENCO'
       ]);
+
+      const _mfPilotForbiddenRegexes = (() => {
+        const esc = (str) => String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return Array.from(_mfPilotForbiddenTokens).map(token => new RegExp(`\\b${esc(token)}\\b`, 'i'));
+      })();
+
+      function _mfPilotStripForbiddenTail(str){
+        if (!str) return '';
+        let cutoff = str.length;
+        for (const rx of _mfPilotForbiddenRegexes){
+          const match = rx.exec(str);
+          if (match && match.index < cutoff) cutoff = match.index;
+        }
+        if (cutoff === 0) return '';
+        const sliced = cutoff < str.length ? str.slice(0, cutoff) : str;
+        return sliced.replace(/\s+/g,' ').trim();
+      }
 
       function _mfPilotTokenize(raw){
         try {
@@ -2650,12 +2745,15 @@
               const normalized = (raw||'').toString().replace(/\u00A0/g,' ');
               const compact = normalized.replace(/\s+/g,' ').trim();
               if (!compact) return;
-              const segments = new Set([compact]);
+              const base = _mfPilotStripForbiddenTail(compact) || compact;
+              const segments = new Set([base]);
               compact.split(/\bFIRMA\b/i).forEach(seg=>{ if (seg) segments.add(seg.trim()); });
               compact.split(/[|;]/).forEach(seg=>{ if (seg) segments.add(seg.trim()); });
               compact.split(/,\s*/).forEach(seg=>{ if (seg) segments.add(seg.trim()); });
               compact.split(/\s-\s/).forEach(seg=>{ if (seg) segments.add(seg.trim()); });
               compact.split(/:\s*/).forEach(seg=>{ if (seg) segments.add(seg.trim()); });
+              segments.add(base.replace(/\bNOMBRE\s+DEL\s+COMANDANTE\s+DE\s+VUELO\b.*$/i,'').trim());
+              segments.add(base.replace(/\bNOMBRE\s+DEL\s+PILOTO\b.*$/i,'').trim());
               for (const piece of segments){
                 const clean = (piece||'').replace(/\s+/g,' ').trim();
                 if (!clean) continue;
@@ -2676,11 +2774,31 @@
             if (!(hasStrong || (hasPilot && hasMando) || (hasWeak && (hasPilot || hasMando)))) continue;
 
             if (hasStrong){
-              const match = line.match(strongLabelRx);
+              let match = line.match(strongLabelRx);
               if (match){
                 const after = line.slice(match.index + match[0].length);
                 register(after, { sameLine: true, distance: 0 });
                 register(line.slice(0, match.index), { sameLine: true, distance: 0, beforeLabel: true });
+              } else {
+                let composite = line;
+                for (let span=1; span<=3 && !match; span++){
+                  composite = (composite + ' ' + (lines[i+span] || '')).replace(/\s+/g,' ').trim();
+                  if (!composite) continue;
+                  const spanMatch = composite.match(strongLabelRx);
+                  if (spanMatch){
+                    match = spanMatch;
+                    const after = composite.slice(spanMatch.index + spanMatch[0].length);
+                    if (after) register(after, { sameLine: true, distance: 0, windowBoost: 8 });
+                    // Registrar líneas siguientes cercanas como candidatos directos
+                    for (let off=1; off<=6; off++){
+                      const ln = lines[i+off];
+                      if (ln == null) break;
+                      if (!ln.trim()) continue;
+                      register(ln, { distance: off, windowBoost: Math.max(10 - off*2, 2) });
+                    }
+                    break;
+                  }
+                }
               }
             } else {
               const matchPilot = line.match(wordPilot);
@@ -2715,7 +2833,84 @@
               register(aggregate, { distance: d, beforeLabel: true });
             }
           }
+            // Captura adicional basada en bloques completos posteriores a "PILOTO AL MANDO"
+            try {
+              const blockRx = /PILOTO\s+AL\s+MANDO([\s\S]{0,260})/gi;
+              let match;
+              while ((match = blockRx.exec(text || '')) !== null) {
+                let segment = match[1] || '';
+                segment = segment.replace(/^[\s:;._-]+/, '');
+                if (!segment) continue;
+                const blockLines = segment.split(/\r?\n/)
+                  .map(line => line.replace(/[\u2013\u2014]/g,' ').replace(/[_•·˙]+/g,' ').replace(/\s+/g,' ').trim())
+                  .filter(Boolean);
+                for (let idx = 0; idx < blockLines.length; idx++) {
+                  const line = blockLines[idx];
+                  if (!line) continue;
+                  if (/NOMBRE\s+DEL\s+COMANDANTE/i.test(line) || /NOMBRE\s+DEL\s+PILOTO/i.test(line) || /FIRMA/i.test(line)) break;
+                  register(line, { distance: idx + 1, windowBoost: Math.max(12 - idx * 2, 3) });
+                  if (idx + 1 < blockLines.length) {
+                    const joined = [line, blockLines[idx + 1]].join(' ').replace(/\s+/g,' ').trim();
+                    if (joined && !/NOMBRE\s+DEL\s+COMANDANTE/i.test(joined)) {
+                      register(joined, { distance: idx + 1, windowBoost: Math.max(10 - idx, 2) });
+                    }
+                  }
+                }
+              }
+            } catch(_){ }
+          if (!best.text || best.score <= 0) {
+            try {
+              const fallbackRx = /PILOTO\s+AL\s+MANDO([\s\S]{0,260})/i;
+              const found = fallbackRx.exec(text || '');
+              if (found && found[1]) {
+                const remainder = found[1].replace(/^[\s:;._-]+/, '');
+                const linesAfter = remainder.split(/\r?\n/).map(line => line.replace(/[\u2013\u2014]/g,' ').replace(/[_•·˙]+/g,' ').trim()).filter(Boolean);
+                for (const line of linesAfter) {
+                  if (!line || /NOMBRE\s+DEL\s+COMANDANTE/i.test(line) || /NOMBRE\s+DEL\s+PILOTO/i.test(line) || /FIRMA/i.test(line)) break;
+                  const cand = _mfPilotScoreCandidate(line, { sameLine: true, windowBoost: 18 });
+                  if (cand) {
+                    best = cand;
+                    break;
+                  }
+                }
+              }
+            } catch(_){ }
+          }
+          if (!best.text || best.score <= 0) {
+            try {
+              const directAlt = window._mfExtractPilotDirectBlock ? window._mfExtractPilotDirectBlock(text) : '';
+              if (directAlt) {
+                const score = directAlt.replace(/[^A-ZÁÉÍÓÚÑ]/g,'').length + 30;
+                best = { text: directAlt, score };
+              }
+            } catch(_){ }
+          }
           return best.score > -Infinity ? best.text.trim() : '';
+        } catch(_){ return ''; }
+      };
+
+      window._mfExtractPilotDirectBlock = function(text){
+        try {
+          if (!text) return '';
+          const upper = text.toUpperCase().replace(/\u00A0/g, ' ');
+          const pattern = /PILOTO\s+AL\s+MANDO[^A-ZÁÉÍÓÚÑ]*([A-ZÁÉÍÓÚÑ'’\-]{2,}(?:\s+[A-ZÁÉÍÓÚÑ'’\-]{2,}){0,8})/g;
+          let best = { score: -Infinity, value: '' };
+          const isLegend = (str) => /PILOTO|MANDO|NOMBRE\s+DEL\s+COMANDANTE|NOMBRE\s+DEL\s+PILOTO|FIRMA|CARACTERES|ALFANUMERICO/i.test(str);
+          let match;
+          while ((match = pattern.exec(upper)) !== null){
+            let raw = (match[1] || '').replace(/[_•·˙]+/g,' ').replace(/\s+/g,' ').trim();
+            raw = raw.replace(/\b(NOMBRE\s+DEL\s+COMANDANTE\s+DE\s+VUELO|NOMBRE\s+DEL\s+PILOTO|FIRMA|CARACTERES\s+ALFANUMERICO).*$/i, '').trim();
+            raw = raw.replace(/\bCARACTERES?\s+ALFANUMERICO[OS]?\b/gi, '').trim();
+            if (!raw || isLegend(raw)) continue;
+            const words = raw.split(' ').filter(Boolean);
+            if (words.length < 2 || words.length > 6) continue;
+            if (words.some(w => w.length < 2)) continue;
+            const letterCount = raw.replace(/[^A-ZÁÉÍÓÚÑ]/g,'').length;
+            if (letterCount < 6) continue;
+            const score = letterCount + (words.length * 12);
+            if (score > best.score) best = { score, value: raw };
+          }
+          return best.value || '';
         } catch(_){ return ''; }
       };
 
@@ -2734,7 +2929,8 @@
           const considerTokens = (tokens, opts={})=>{
             if (!Array.isArray(tokens) || tokens.length < 2) return null;
             const joined = tokens.map(t=> t.txt || '').join(' ');
-            const cand = _mfPilotScoreCandidate(joined, opts);
+            const pruned = _mfPilotStripForbiddenTail(joined) || joined;
+            const cand = _mfPilotScoreCandidate(pruned, opts);
             if (!cand) return null;
             const maxSize = Math.max(...tokens.map(t=> t.size||0), 0);
             const avgSize = tokens.reduce((acc,t)=> acc + (t.size||0), 0) / tokens.length;
@@ -2831,6 +3027,285 @@
           return best.score > -Infinity ? best.text.trim() : '';
         } catch(_){ return ''; }
       };
+      // Lightweight debug dump: creates or updates a small debug panel with the raw OCR/text content and timestamp.
+      window._mfDebugDump = function(text){
+        try {
+          const id = 'mf-debug-panel';
+          let el = document.getElementById(id);
+          if (!el){
+            el = document.createElement('textarea');
+            el.id = id; el.style.position='fixed'; el.style.right='8px'; el.style.bottom='8px'; el.style.width='420px'; el.style.height='240px';
+            el.style.zIndex='99999'; el.style.background='rgba(0,0,0,0.85)'; el.style.color='#fff'; el.style.border='1px solid rgba(255,255,255,0.08)';
+            el.style.padding='8px'; el.style.fontSize='12px'; el.style.fontFamily='monospace'; el.style.opacity='0.95'; el.title = 'DEBUG: texto OCR / extraído';
+            document.body.appendChild(el);
+          }
+          const head = '[' + (new Date()).toLocaleString() + '] (len=' + ((text||'').length) + ')\n';
+          el.value = head + (text||'');
+        } catch(_){ console.log('mf: debug dump failed'); }
+      };
+
+      function _mfPilotCollapseTokens(tokens){
+        try {
+          const out = [];
+          for (let i=0; i<tokens.length; i++){
+            let tok = tokens[i];
+            if (!tok) continue;
+            if (/^[A-ZÁÉÍÓÚÑ]$/.test(tok)){
+              let j = i;
+              let combined = tok;
+              while (j + 1 < tokens.length && /^[A-ZÁÉÍÓÚÑ]$/.test(tokens[j+1])){
+                combined += tokens[++j];
+              }
+              if (j > i){
+                out.push(combined);
+                i = j;
+                continue;
+              }
+              if (tokens[i+1] && /^[A-ZÁÉÍÓÚÑ]{2,}$/.test(tokens[i+1])){
+                out.push(tok + tokens[i+1]);
+                i++;
+                continue;
+              }
+            }
+            out.push(tok);
+          }
+          return out;
+        } catch(_){ return Array.isArray(tokens) ? tokens : []; }
+      }
+
+      function _mfPilotSanitizeRawCandidate(raw){
+        try {
+          let txt = (raw||'').toString().replace(/\u00A0/g,' ');
+          txt = txt.replace(/[•|]/g,' ').replace(/\s+/g,' ').trim();
+          if (!txt) return '';
+          const dropPhrases = [
+            /\bPILOTO\s+AL\s+(?:N(?:O|0|[º°])\.?\s*)?MANDO\b/gi,
+            /\bCAPIT[ÁA]N\b/gi,
+            /\bCOMANDANTE\b/gi,
+            /\bCARACTERES?\s+ALFAN(?:U|Ú)M[ÉE]RICO\b/gi,
+            /\bNOMBRE\s+DEL\s+COMANDANTE(?:\s+DE\s+VUELO)?\b/gi,
+            /\bMARCA\s+DE\s+NACIONALIDAD\b.*/gi,
+            /\bMATR[IÍ]CULA\b.*/gi
+          ];
+          for (const rx of dropPhrases){ txt = txt.replace(rx,' '); }
+          txt = txt.replace(/\bLIC(?:\.?|ENCIA)?\b.*$/i,' ');
+          txt = txt.replace(/\bN(?:O|0)[º°.]?\b/gi,' ').replace(/\bNUM(?:ERO)?\b/gi,' ');
+          txt = txt.replace(/\bLIC(?:\.?|ENCIA)?\b/gi,' ');
+          txt = txt.replace(/\bNO\.\b/gi,' ');
+          txt = txt.replace(/\bCARACTERES\b/gi,' ').replace(/\bALFAN(?:U|Ú)M[ÉE]RICO\b/gi,' ');
+          txt = txt.replace(/\bMARCA\b/gi,' ').replace(/\bNACIONALIDAD\b/gi,' ').replace(/\bMATR[IÍ]CULA\b/gi,' ');
+          txt = (_mfPilotStripForbiddenTail(txt) || txt).replace(/\s+/g,' ').trim();
+          if (!txt) return '';
+          const tokenBase = _mfPilotTokenize(txt);
+          if (!tokenBase.length) return '';
+          const rawTokens = _mfPilotCollapseTokens(tokenBase);
+          const kept = [];
+          const core = [];
+          let lastWasConnector = false;
+          for (let token of rawTokens){
+            let up = token.toUpperCase();
+            if (!up) continue;
+            if (/[0-9]/.test(up)){
+              const baseLetters = up.replace(/[0-9]/g,'');
+              const originalHasLetters = /[A-ZÁÉÍÓÚÑ]/.test(baseLetters);
+              const converted = up.replace(/[0-9]/g, d => _mfPilotDigitLetterMap.get(d) || '');
+              if (!originalHasLetters){
+                // Token compuesto solo por dígitos: descartar en lugar de convertir a letras artificiales.
+                continue;
+              }
+              if (converted && /[A-ZÁÉÍÓÚÑ]/.test(converted)){
+                up = converted;
+              }
+            }
+            if (!/[A-ZÁÉÍÓÚÑ]/.test(up)) continue;
+            if (_mfPilotAliasTokens.has(up)) continue;
+            if (_mfPilotForbiddenTokens.has(up)) continue;
+            if (up === 'NO' || up === 'NUM' || up === 'NUMERO' || up === 'NÚMERO') continue;
+            if (up.includes('CARAC') || up.includes('ALFAN') || up.includes('MARCA') || up.includes('NACION') || up.includes('MATRIC')) continue;
+            if (up.length === 1 && !_mfPilotConnectorTokens.has(up)) continue;
+            if (_mfPilotConnectorTokens.has(up)){
+              if (!core.length) continue;
+              if (lastWasConnector) continue;
+              kept.push(up);
+              lastWasConnector = true;
+              continue;
+            }
+            kept.push(up);
+            core.push(up);
+            lastWasConnector = false;
+          }
+          while (kept.length && _mfPilotConnectorTokens.has(kept[0])) kept.shift();
+          while (kept.length && _mfPilotConnectorTokens.has(kept[kept.length-1])) kept.pop();
+          if (!kept.length) return '';
+          const coreTokens = kept.filter(tok => !_mfPilotConnectorTokens.has(tok));
+          if (coreTokens.length < 2) return '';
+          if (coreTokens.some(tok => tok.length < 2 || tok.length > 18)) return '';
+          const candidate = kept.join(' ');
+          if (/(CARAC|ALFAN|NACION|MARCA|MATRIC|TRIPUL|RESERV|ADMIN|CONTROL|OBSERV)/i.test(candidate)) return '';
+          return candidate;
+        } catch(_){ return (raw||'').toString().trim(); }
+      }
+
+      function _mfPilotPickAfterMando(raw){
+        try {
+          const source = (raw||'').toString();
+          if (!source) return '';
+          const labelRx = /(?:P\s*I\s*L\s*O\s*T\s*O[\s:;,.•_'’"\/\-]+A\s*L[\s:;,.•_'’"\/\-]+)?M\s*A\s*N\s*D\s*O\b/i;
+          const match = labelRx.exec(source);
+          let slice;
+          if (match){
+            slice = source.slice(match.index + match[0].length);
+          } else {
+            const up = source.toUpperCase();
+            const idx = up.indexOf('MANDO');
+            if (idx === -1) return '';
+            slice = source.slice(idx + 5);
+          }
+          slice = slice.replace(/^[\s:;.,"'“”‘’\-]+/, '');
+          const segments = slice.split(/\r?\n/).map(seg=> seg.replace(/^[\s:;.,"'“”‘’\-]+/, '').trim()).filter(Boolean);
+          let focus = segments[0] || '';
+          if (!focus && segments.length > 1) focus = segments[1] || '';
+          if (!focus) focus = slice;
+          let scanZone = focus;
+          if (!scanZone && segments.length > 1) scanZone = segments.slice(0,2).join(' ');
+          const stopRx = /\b(LIC(?:\.|ENCIA)?|TRIPUL[A-ZÁÉÍÓÚÑ]*|NOMBRE|FIRMA|CARACTERES?|ALFAN(?:U|Ú)M|OPERADOR|COORDINAD|ADMINISTR|OBSERV|PAX|PASAJER|CAPIT|COMAND|CONTROL|RUTA|TOTAL|MATR[IÍ]CULA|EQUIPO)\b/i;
+          const stop = stopRx.exec(scanZone);
+          if (stop) scanZone = scanZone.slice(0, Math.max(0, stop.index));
+          const direct = _mfPilotSanitizeRawCandidate(scanZone);
+          if (direct) return direct;
+          return _mfPilotFindFallbackInText(slice);
+        } catch(_){ return ''; }
+      }
+
+      function _mfPilotFindFallbackInText(raw){
+        try {
+          const text = (raw||'').toString().replace(/\u00A0/g,' ').replace(/[•|]/g,' ');
+          if (!text.trim()) return '';
+          const tokens = text.split(/\s+/).map(t=> t.trim()).filter(Boolean);
+          if (!tokens.length) return '';
+          let best = null;
+          for (let start=0; start<tokens.length; start++){
+            const tok = tokens[start];
+            if (!tok || /\d/.test(tok)) continue;
+            for (let len=2; len<=6 && start+len<=tokens.length; len++){
+              const slice = tokens.slice(start, start+len);
+              if (slice.some(part=> /\d/.test(part))) continue;
+              const joined = slice.join(' ');
+              const cleaned = _mfPilotSanitizeRawCandidate(joined);
+              if (!cleaned) continue;
+              if (/(CARAC|ALFAN|NACION|MARCA|MATRIC|TRIPUL|RESERV|ADMIN|CONTROL|OBSERV)/i.test(cleaned)) continue;
+              const scored = typeof _mfPilotScoreCandidate === 'function' ? _mfPilotScoreCandidate(cleaned, {}) : null;
+              if (!scored || !scored.text) continue;
+              const score = scored.score + len;
+              if (!best || score > best.score){ best = { text: scored.text, score }; }
+            }
+          }
+          return best ? best.text : '';
+        } catch(_){ return ''; }
+      }
+
+      // Robust pilot extractor: orchestrates multiple strategies and returns the best candidate (synchronous).
+      window._mfExtractPilotRobust = function(text){
+        try {
+          if (!text || String(text||'').trim().length < 6) return '';
+          const candidates = [];
+          const seen = new Set();
+          const push = (raw, why, bonusScore, opts)=>{
+            try {
+              let sanitized = _mfPilotSanitizeRawCandidate(raw);
+              if (!sanitized) return;
+              const cand = typeof _mfPilotScoreCandidate === 'function' ? _mfPilotScoreCandidate(sanitized, opts||{}) : null;
+              if (!cand || !cand.text) return;
+              const key = cand.text.trim();
+              if (!key) return;
+              const totalScore = (cand.score || 0) + (Number(bonusScore)||0);
+              if (seen.has(key)){
+                const existing = candidates.find(item => item.v === key);
+                if (existing && totalScore > existing.score){ existing.score = totalScore; existing.why = why; }
+                return;
+              }
+              seen.add(key);
+              candidates.push({ v: key, why: why||'', score: totalScore });
+            } catch(_){ }
+          };
+          // 1) Direct block (strong)
+          try {
+            const d = (window._mfExtractPilotDirectBlock?.(text) || '').trim();
+            if (d) push(d, 'direct-block', d.replace(/[^A-ZÁÉÍÓÚÑ]/gi,'').length + 40, { sameLine: true });
+          } catch(_){ }
+          // 2) Existing near-label heuristic
+          try {
+            const n = (window._mfExtractPilotUpperNearLabel?.(text) || '').trim();
+            if (n) push(n, 'near-label', n.replace(/[^A-ZÁÉÍÓÚÑ]/gi,'').length + 18, { sameLine: true });
+          } catch(_){ }
+          // 3) Label-following lines: simple synchronous scan of lines after label
+          try {
+            const lines = (text||'').split(/\r?\n/).map(l=> l.replace(/[\u2013\u2014]/g,' ').replace(/[\u00A0]/g,' ').trim()).filter(Boolean);
+            const labelRx = /PILOTO\s*AL\s*MANDO|NOMBRE\s*DEL\s*COMANDANTE|COMANDANTE|PILOTO\s*COMANDANTE|CAPITAN|CAPIT[ÁA]N|PILOTO/i;
+            for (let i=0;i<lines.length;i++){
+              if (labelRx.test(lines[i])){
+                for (let k=0;k<=4;k++){
+                  const cand = (lines[i+k+1]||'').trim();
+                  if (!cand) continue;
+                  if (/NOMBRE\s+DEL\s+COMANDANTE|FIRMA|CARACTERES?\s+ALFANUMERICO/i.test(cand)) break;
+                  const words = cand.split(/\s+/).filter(Boolean);
+                  if (words.length >= 2 && cand.replace(/[^A-ZÁÉÍÓÚÑa-záéíóúñ]/g,'').length >= 6){
+                    const isUpper = /^[^a-z]*[A-ZÁÉÍÓÚÑ\s'’\-]+$/.test(cand);
+                    push(cand, 'label-follow', (isUpper?40:14) + (words.length*6), { distance:k+1 });
+                    break;
+                  }
+                }
+              }
+            }
+          } catch(_){ }
+          // 4) Uppercase-looking lines near pilot-related words
+          try {
+            const lines = (text||'').split(/\r?\n/).map(l=> l.replace(/[\u2013\u2014]/g,' ').trim());
+            for (let i=0;i<lines.length;i++){
+              const l = lines[i] || '';
+              if (!l) continue;
+              const words = l.split(/\s+/).filter(Boolean);
+              if (words.length >= 2 && words.length <= 5){
+                const letterCount = l.replace(/[^A-ZÁÉÍÓÚÑ]/g,'').length;
+                if (letterCount >= 6){
+                  const neigh = (()=>{ for (let d=-6; d<=6; d++){ if (d===0) continue; const j = i + d; if (j<0 || j>=lines.length) continue; if (/PILOTO|MANDO|COMANDANTE|CAPITAN|PILOTO AL MANDO|NOMBRE DEL COMANDANTE/i.test(lines[j])) return Math.abs(d); } return null; })();
+                  if (neigh !== null){
+                    const isUpper = /^[^a-z]*[A-ZÁÉÍÓÚÑ\s'’\-]+$/.test(l);
+                    push(l, 'upper-near', (isUpper?30:8) + (10 - Math.min(9, neigh)) + (words.length*4), { distance: neigh });
+                  }
+                }
+              }
+            }
+          } catch(_){ }
+          if (!candidates.length){
+            try {
+              const direct = _mfPilotPickAfterMando(text || '');
+              if (direct) push(direct, 'after-mando', 60, { sameLine: true });
+            } catch(_){ }
+          }
+          if (!candidates.length){
+            try {
+              const grab = /MANDO\s+([A-ZÁÉÍÓÚÑ'’\-\s]{4,})/i.exec(text || '');
+              if (grab && grab[1]){
+                let span = grab[1].replace(/\s+/g,' ').trim();
+                span = span.replace(/\bLIC(?:\.?|ENCIA)?\b.*$/i,' ');
+                const rescued = _mfPilotSanitizeRawCandidate(span);
+                if (rescued) push(rescued, 'regex-after-mando', 58, { sameLine: true });
+              }
+            } catch(_){ }
+          }
+          if (!candidates.length){
+            try {
+              const generic = _mfPilotFindFallbackInText(text || '');
+              if (generic) push(generic, 'generic-fallback', 22, {});
+            } catch(_){ }
+          }
+          candidates.sort((a,b)=> b.score - a.score);
+          if (candidates.length){ try { console.log('mf: pilot candidates', candidates.slice(0,6)); } catch(_){}; return candidates[0].v.trim(); }
+          return '';
+        } catch(_){ return ''; }
+      };
+
       function normalizeTextSimple1(s){ return (s||'').toString().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim(); }
       function matchAirlineByName1(text){
         try {
@@ -2878,15 +3353,6 @@
             if (iataStopwords && iataStopwords.has(c)) return false;
             return hasCatalog ? iataSet.has(c) : true;
           };
-          for (let i=0;i<lines.length;i++){
-            const u = (lines[i]||'').toUpperCase();
-            if (labels.some(lbl => u.includes(String(lbl||'').toUpperCase()))){
-              const search = (s)=>{ const arr = (s||'').match(rxIATA)||[]; return arr.find(isValid) || ''; };
-              // Checar línea anterior, actual y siguientes
-              const hit = search(lines[i-1]) || search(lines[i]) || search(lines[i+1]) || search(lines[i+2]) || '';
-              if (hit) return hit;
-            }
-          }
           // Pista alternativa: si aparece "CÓDIGO 3 LETRAS", tomar la línea anterior como candidata
           for (let i=0;i<lines.length;i++){
             if (/C[ÓO]DIGO\s*3\s*LETRAS/i.test(lines[i])){
@@ -5979,10 +6445,26 @@ Z,Others,Not specific,Special internal purposes`;
         if (window.pdfjsLib) return;
         try {
           await new Promise((res, rej)=>{ const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; s.crossOrigin='anonymous'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
-          window['pdfjsLib'].GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+          const lib = window['pdfjsLib'];
+          if (lib && lib.GlobalWorkerOptions){
+            lib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            if (lib.VerbosityLevel && typeof lib.VerbosityLevel.ERRORS === 'number'){
+              lib.GlobalWorkerOptions.verbosity = lib.VerbosityLevel.ERRORS;
+              try { lib.verbosity = lib.VerbosityLevel.ERRORS; } catch(_){ }
+            }
+          }
         } catch(_){
           await new Promise((res, rej)=>{ const s=document.createElement('script'); s.src='vendor/pdfjs/pdf.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
-          try { window['pdfjsLib'].GlobalWorkerOptions.workerSrc = 'vendor/pdfjs/pdf.worker.min.js'; } catch(_){ }
+          try {
+            const lib = window['pdfjsLib'];
+            if (lib && lib.GlobalWorkerOptions){
+              lib.GlobalWorkerOptions.workerSrc = 'vendor/pdfjs/pdf.worker.min.js';
+              if (lib.VerbosityLevel && typeof lib.VerbosityLevel.ERRORS === 'number'){
+                lib.GlobalWorkerOptions.verbosity = lib.VerbosityLevel.ERRORS;
+                try { lib.verbosity = lib.VerbosityLevel.ERRORS; } catch(_){ }
+              }
+            }
+          } catch(_){ }
         }
       }
 
@@ -6133,34 +6615,45 @@ Z,Others,Not specific,Special internal purposes`;
           if (!window._mfExtractPilotNameFromROI){
             window._mfExtractPilotNameFromROI = function(txt){
               try {
-                const U = (txt||'').toString().toUpperCase();
-                // Eliminar tokens de etiquetas comunes
-                const STOP = ['PILOTO','AL','MANDO','CAPITAN','CAPITÁN','CAP','CPT','COMANDANTE','NOMBRE','FIRMA','LICENCIA','NO','Nº','N°','Y','OPERADOR','COORDINADOR','ADMINISTRADOR'];
-                const lines = U.split(/\r?\n/).map(s=> s.trim()).filter(Boolean);
-                let best = '';
-                const isNameLike = (s)=>{
-                  if (!s) return false;
-                  // Tokens: permitir iniciales ("J." o "J") y palabras >=2 letras; requerir al menos un token >=3 letras
-                  const raw = s.split(/\s+/).filter(Boolean);
-                  const words = raw.filter(w=> /[A-ZÁÉÍÓÚÑ]{2,}|^[A-ZÁÉÍÓÚÑ]\.?$/.test(w));
-                  if (words.length < 2) return false;
-                  if (!raw.some(w=> w.replace(/[^A-ZÁÉÍÓÚÑ]/g,'').length>=3)) return false;
-                  // Evitar si contiene demasiados dígitos o símbolos
-                  if ((s.match(/\d/g)||[]).length > 0) return false;
-                  // Evitar si son casi todas palabras de STOP
-                  const clean = words.filter(w=> !STOP.includes(w));
-                  return clean.length >= 2;
-                };
-                for (const raw of lines){
-                  // Quitar prefijos como ':' o '-'
-                  let s = raw.replace(/[•:\-–—]+/g,' ').replace(/\s+/g,' ').trim();
-                  // Quitar palabras de etiqueta a inicio
-                  s = s.replace(/^(PILOTO|CAPIT[ÁA]N|CAP\.|CPT|COMANDANTE|NOMBRE|FIRMA|DEL|DE|AL|OPERADOR|COORDINADOR|ADMINISTRADOR)\b\s*/g,'').trim();
-                  if (!isNameLike(s)) continue;
-                  // Escoger la más larga (por caracteres) como mejor candidata
-                  if (s.length > best.length) best = s;
+                const rawText = (txt||'').toString();
+                if (!rawText) return '';
+                const directAfter = _mfPilotPickAfterMando(rawText);
+                if (directAfter) return directAfter;
+                const upper = rawText.toUpperCase();
+                const afterLabel = upper.match(/MANDO\s+([A-ZÁÉÍÓÚÑ'’\-\.\s]+)/);
+                if (afterLabel && afterLabel[1]){
+                  const direct = _mfPilotSanitizeRawCandidate(afterLabel[1]);
+                  if (direct) return direct;
                 }
-                return best;
+                const STOP = new Set(['PILOTO','AL','MANDO','CAPITAN','CAPITÁN','CAP','CPT','COMANDANTE','NOMBRE','FIRMA','LICENCIA','NO','Nº','N°','Y','OPERADOR','COORDINADOR','ADMINISTRADOR']);
+                const lines = upper.split(/\r?\n/).map(s=> s.trim()).filter(Boolean);
+                let best = '';
+                const consider = (candidate, scoreBoost)=>{
+                  const cleaned = _mfPilotSanitizeRawCandidate(candidate || '');
+                  if (!cleaned) return;
+                  if (/(CARAC|ALFAN|NACION|MARCA|MATRIC|TRIPUL|RESERV|ADMIN|CONTROL|OBSERV)/i.test(cleaned)) return;
+                  const tokens = cleaned.split(/\s+/).filter(Boolean);
+                  if (tokens.length < 2 || tokens.length > 5) return;
+                  const bad = tokens.some(tok=> STOP.has(tok));
+                  if (bad) return;
+                  const score = (cleaned.length) + (scoreBoost || 0);
+                  if (score > (best ? best.score : -Infinity)) best = { text: cleaned, score };
+                };
+                for (let i=0;i<lines.length;i++){
+                  let line = lines[i];
+                  if (!line) continue;
+                  line = line.replace(/[•:\-–—]+/g,' ').replace(/\s+/g,' ').trim();
+                  consider(line, 0);
+                  if (line.includes('MANDO')){
+                    const tail = line.split('MANDO').slice(1).join('MANDO');
+                    consider(tail, 12);
+                  }
+                  if (lines[i+1]) consider(`${line} ${lines[i+1]}`, -4);
+                  if (lines[i-1]) consider(`${lines[i-1]} ${line}`, -6);
+                }
+                if (best && best.text) return best.text;
+                const fallback = _mfPilotFindFallbackInText(rawText);
+                return fallback || '';
               } catch(_){ return ''; }
             };
           }
@@ -6939,16 +7432,44 @@ Z,Others,Not specific,Special internal purposes`;
 
           // 5.1) Piloto al mando y No. de licencia
           try {
-            const nameRx = /\b[A-ZÁÉÍÓÚÑ](?:\.|\s)\s?[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ]+\b/;
-            const pilot = findNearLabelValue(['PILOTO AL MANDO','PILOTO','CAPITAN','CAPITÁN'], nameRx, text);
-            if (pilot) setVal('mf-pilot', pilot);
+            const pilotEl = document.getElementById('mf-pilot');
+            const setPilotIfEmpty = (value) => {
+              const cleaned = (value || '').toString().replace(/\s+/g,' ').trim();
+              if (!cleaned) return;
+              if (/\bPILOTO\b|\bMANDO\b|\bCAPIT[ÁA]N\b/i.test(cleaned)) return;
+              if (pilotEl){
+                const current = (pilotEl.value||'').trim();
+                const isPlaceholder = /^N\s*\/?\s*A$/i.test(current);
+                if (!current || isPlaceholder){
+                  try { forceSetVal('mf-pilot', cleaned); } catch(_){ setVal('mf-pilot', cleaned); }
+                }
+              }
+            };
+            setPilotIfEmpty(window._mfExtractPilotRobust?.(text) || '');
+            // Priorizar extracción directa basada en bloque
+            setPilotIfEmpty(window._mfExtractPilotDirectBlock?.(text) || '');
+            const pilotCurrent = (pilotEl?.value || '').trim();
+            const pilotPlaceholder = /^N\s*\/?\s*A$/i.test(pilotCurrent);
+            if (!pilotCurrent || pilotPlaceholder) {
+              setPilotIfEmpty(window._mfExtractPilotUpperNearLabel?.(text) || '');
+            }
+            const pilotCurrentAfterNear = (pilotEl?.value || '').trim();
+            if (!pilotCurrentAfterNear || /^N\s*\/?\s*A$/i.test(pilotCurrentAfterNear)) {
+              const nameRx = /\b[A-ZÁÉÍÓÚÑ]{2,}(?:\s+[A-ZÁÉÍÓÚÑ]{2,}){1,5}\b/;
+              let pilot = findNearLabelValue(['PILOTO AL MANDO','PILOTO','CAPITAN','CAPITÁN'], nameRx, text) || '';
+              if (pilot && /\bPILOTO\b|\bMANDO\b|\bCAPIT[ÁA]N\b/i.test(pilot)) pilot = '';
+              setPilotIfEmpty(pilot);
+            }
           } catch(_){ }
-          // Refuerzo: heurística dedicada que prioriza nombres completos cercanos a la etiqueta de piloto
+          // Refuerzo adicional: si aún no hay piloto, volver a intentar con heurística avanzada (por seguridad)
           try {
-            const cur = document.getElementById('mf-pilot')?.value || '';
-            if (!cur){
-              const name = window._mfExtractPilotUpperNearLabel?.(text) || '';
-              if (name) setVal('mf-pilot', name);
+            const curRaw = document.getElementById('mf-pilot')?.value || '';
+            const cur = curRaw.trim();
+            if (!cur || /^N\s*\/?\s*A$/i.test(cur)){
+              const name = window._mfExtractPilotRobust?.(text) || window._mfExtractPilotUpperNearLabel?.(text) || '';
+              if (name){
+                try { forceSetVal('mf-pilot', name); } catch(_){ setVal('mf-pilot', name); }
+              }
             }
           } catch(_){ }
           // Si aún no se obtuvo el Piloto, intentar extracción basada en fuente y tamaño directamente del PDF (Arial Black ~ Bold ~ 12pt)
@@ -7066,7 +7587,9 @@ Z,Others,Not specific,Special internal purposes`;
             if (anyNeed){
               setProgress(58, 'OCR dirigido en campos faltantes...');
               const got = await ocrPdfTargeted(file, need);
-              if (got && got.pilot && !document.getElementById('mf-pilot')?.value) setVal('mf-pilot', got.pilot);
+              if (got && got.pilot && !document.getElementById('mf-pilot')?.value){
+                try { forceSetVal('mf-pilot', got.pilot); } catch(_){ setVal('mf-pilot', got.pilot); }
+              }
               if (got && got.license && !document.getElementById('mf-pilot-license')?.value) setVal('mf-pilot-license', (got.license||'').toUpperCase());
               if (got && got.tail && !document.getElementById('mf-tail')?.value){
                 const reg = (got.tail||'').toUpperCase();
@@ -7162,6 +7685,34 @@ Z,Others,Not specific,Special internal purposes`;
           setProgress(85, 'Procesando...');
           fillFieldsFromTextV2(text||'');
           try {
+            const pilotVal = (document.getElementById('mf-pilot')?.value||'').trim();
+            const pilotEmpty = !pilotVal || /^N\s*\/?\s*A$/i.test(pilotVal);
+            if (pilotEmpty && isPdf && typeof ocrPdfTargeted === 'function'){
+              try {
+                const gotPilot = await ocrPdfTargeted(file, { pilot: true, license: false, tail: false, folio: false, arrivalMain: false, flightType: false });
+                if (gotPilot && gotPilot.pilot){
+                  const pilotEl = document.getElementById('mf-pilot');
+                  const current = (pilotEl?.value || '').trim();
+                  const isPlaceholder = /^N\s*\/?\s*A$/i.test(current);
+                  if (!current || isPlaceholder){
+                    try { forceSetVal('mf-pilot', gotPilot.pilot); } catch(_){ setVal('mf-pilot', gotPilot.pilot); }
+                  }
+                }
+              } catch(_){ }
+            }
+            const pilotValAfterTarget = (document.getElementById('mf-pilot')?.value||'').trim();
+            if (!pilotValAfterTarget || /^N\s*\/?\s*A$/i.test(pilotValAfterTarget)){
+              try {
+                const dbg = document.getElementById('manifest-ocr-debug')?.value || text || '';
+                let fallbackPilot = _mfPilotPickAfterMando(dbg) || _mfPilotPickAfterMando(text || '');
+                if (!fallbackPilot){
+                  fallbackPilot = _mfPilotFindFallbackInText(dbg) || _mfPilotFindFallbackInText(text || '');
+                }
+                if (fallbackPilot){
+                  try { forceSetVal('mf-pilot', fallbackPilot); } catch(_){ setVal('mf-pilot', fallbackPilot); }
+                }
+              } catch(_){ }
+            }
             const folioEmpty = !((document.getElementById('mf-folio')?.value||'').trim());
             if (folioEmpty && isPdf && typeof ocrPdfTargeted === 'function'){
               setProgress(92, 'Buscando folio con OCR dirigido...');

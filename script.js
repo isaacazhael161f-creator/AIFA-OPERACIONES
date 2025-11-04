@@ -125,6 +125,13 @@ const WEEKLY_OPERATIONS_DATASETS = [
                 carga: { operaciones: 14, toneladas: 379, corteFecha: '2025-10-28', corteNota: 'Toneladas actualizadas al 28 de octubre de 2025 (ultimo corte disponible).' }
             },
             {
+                fecha: '2025-10-30',
+                label: '30 Oct 2025',
+                comercial: { operaciones: 146, pasajeros: 20253},
+                general: { operaciones: 9, pasajeros: 233},
+                carga: { operaciones: 14, toneladas: 379, corteFecha: '2025-10-28', corteNota: 'Cifras del 28 de octubre de 2025' }
+            },
+            {
                 fecha: '2025-10-31',
                 label: '31 Oct 2025',
                 comercial: { operaciones: 161, pasajeros: 21611 },
@@ -136,6 +143,13 @@ const WEEKLY_OPERATIONS_DATASETS = [
                 label: '01 Nov 2025',
                 comercial: { operaciones: 145, pasajeros: 17186 },
                 general: { operaciones: 3, pasajeros: 47 },
+                carga: { operaciones: 32, toneladas: 1121, corteFecha: '2025-10-30', corteNota: 'Cifras del 30 de octubre de 2025.' }
+            },
+            {
+                fecha: '2025-11-02',
+                label: '02 Nov 2025',
+                comercial: { operaciones: 160, pasajeros: 20977},
+                general: { operaciones: 17, pasajeros: 209 },
                 carga: { operaciones: 32, toneladas: 1121, corteFecha: '2025-10-30', corteNota: 'Cifras del 30 de octubre de 2025.' }
             }
         ]
@@ -316,11 +330,12 @@ const dashboardData = {
         "Mauro Hernández": { password: "Mauro123", canViewItinerarioMensual: true },
         "Emily Beltrán": { password: "Emily67", canViewItinerarioMensual: true },
         "Director General": { password: "Dirección71", canViewItinerarioMensual: true },
-        "Director de Operación": { password: "OperacionesNLU", canViewItinerarioMensual: true },
-        "Jefe Mateos": { password: "2025M", canViewItinerarioMensual: true },
-        "Usuario1": { password: "AIFAOps", canViewItinerarioMensual: true }
+    "Director de Operación": { password: "OperacionesNLU", canViewItinerarioMensual: true },
+    "Jefe Mateos": { password: "2025M", canViewItinerarioMensual: true },
+    "Usuario1": { password: "AIFAOps", canViewItinerarioMensual: true },
+    "Dilery Urenda": { password: "DileryNLU", canViewItinerarioMensual: true }
     },
-    pdfSections: { "itinerario-mensual": { title: "Itinerario Mensual (Octubre)", url: "pdfs/itinerario_mensual.pdf" } }
+    pdfSections: { "itinerario-mensual": { title: "Itinerario Mensual", url: "pdfs/itinerario_mensual.pdf" } }
 };
 let allFlightsData = [];
 let summaryDetailMode = 'airline';
@@ -2959,48 +2974,31 @@ function computeSequentialPercent(values = []) {
     });
 }
 // Animación segura para íconos viajeros en Operaciones Totales
-if (!window._opsAnim) window._opsAnim = { rafId: 0, running: false, lastTs: 0 };
+if (!window._opsAnim) window._opsAnim = { running: false };
 function startOpsAnim() {
-    // Allow animation on all devices without forcing full redraws every frame
-    if (window._opsAnim.running) return;
     window._opsAnim.running = true;
-    const FRAME_INTERVAL = 1000 / 24; // ~24fps keeps motion smooth while reducing jitter
-    const needsTraveler = (chart) => {
-        const opts = chart?.config?.options?.plugins?.travelerPlugin;
-        if (!opts || opts === false) return false;
-        if (typeof opts !== 'object') return true;
-        return Object.keys(opts).length > 0;
-    };
-    const tick = (ts) => {
-        if (!window._opsAnim.running) { window._opsAnim.rafId = 0; return; }
-        window._opsAnim.rafId = requestAnimationFrame(tick);
-        if (document?.visibilityState === 'hidden') return;
-        if (window._opsAnim.lastTs && (ts - window._opsAnim.lastTs) < FRAME_INTERVAL) return;
-        window._opsAnim.lastTs = ts;
-        try {
-            Object.values(opsCharts).forEach((chart) => {
-                if (!chart || chart.config?.type !== 'line') return;
-                if (!needsTraveler(chart)) return;
-                const canvas = chart.ctx?.canvas;
-                if (!canvas || !canvas.isConnected) return;
-                const area = chart.chartArea;
-                if (!area || !area.width || !area.height) return;
-                if (typeof chart.draw === 'function') chart.draw();
-                else if (typeof chart.render === 'function') chart.render();
-            });
-        } catch(_) { /* noop */ }
-    };
-    window._opsAnim.rafId = requestAnimationFrame(tick);
+    Object.values(opsCharts).forEach((chart) => {
+        if (!chart) return;
+        const traveler = chart.$traveler;
+        if (traveler && typeof traveler.start === 'function') traveler.start();
+    });
 }
 function stopOpsAnim() {
     window._opsAnim.running = false;
-    window._opsAnim.lastTs = 0;
-    if (window._opsAnim.rafId) cancelAnimationFrame(window._opsAnim.rafId);
-    window._opsAnim.rafId = 0;
+    Object.values(opsCharts).forEach((chart) => {
+        if (!chart) return;
+        const traveler = chart.$traveler;
+        if (traveler && typeof traveler.stop === 'function') traveler.stop();
+    });
 }
 function destroyOpsCharts() {
-    Object.keys(opsCharts).forEach(k => { try { opsCharts[k].destroy(); } catch(_) {} delete opsCharts[k]; });
     stopOpsAnim();
+    Object.keys(opsCharts).forEach((k) => {
+        try {
+            if (opsCharts[k]) opsCharts[k].destroy();
+        } catch (_) { /* noop */ }
+        delete opsCharts[k];
+    });
 }
 
 // Función global para reinicializar todas las gráficas cuando fallan
@@ -3362,61 +3360,218 @@ function renderOperacionesTotales() {
             g.addColorStop(1, c2);
             return g;
         }
-            // Plugin para animar un ícono viajero sobre la línea
+            function shouldEnableTraveler(opts){
+                return opts !== false;
+            }
+            function normalizeTravelerOpts(raw){
+                const base = { speed: 24000, scale: 1, type: 'plane', alpha: 0.9 };
+                if (!raw || typeof raw !== 'object') return { ...base };
+                const parsed = { ...base };
+                if (Number.isFinite(raw.speed) && raw.speed > 500) parsed.speed = raw.speed;
+                if (Number.isFinite(raw.scale) && raw.scale > 0) parsed.scale = Math.max(0.4, Math.min(raw.scale, 3));
+                if (typeof raw.type === 'string') parsed.type = raw.type;
+                if (Number.isFinite(raw.alpha) && raw.alpha >= 0 && raw.alpha <= 1) parsed.alpha = raw.alpha;
+                return parsed;
+            }
+            function getTravelerPointXY(point){
+                if (!point) return null;
+                if (typeof point.x === 'number' && typeof point.y === 'number') {
+                    return { x: point.x, y: point.y };
+                }
+                if (typeof point.tooltipPosition === 'function') {
+                    return point.tooltipPosition();
+                }
+                const model = point._model || point.$context;
+                if (model && typeof model.x === 'number' && typeof model.y === 'number') {
+                    return { x: model.x, y: model.y };
+                }
+                return null;
+            }
+            function drawTravelerIcon(ctx, type){
+                ctx.font = '14px system-ui, Segoe UI, Roboto';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                if (type === 'person') {
+                    const isDark = document.body.classList.contains('dark-mode');
+                    const tone = isDark ? '#e9ecef' : '#1f2937';
+                    ctx.strokeStyle = tone;
+                    ctx.fillStyle = tone;
+                    ctx.lineWidth = 2.0;
+                    ctx.beginPath(); ctx.arc(0, -5, 2.6, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(0, 5); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(0, -0.5); ctx.lineTo(5, 2.5); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(0, -0.5); ctx.lineTo(-3.5, 0.8); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(0, 5); ctx.lineTo(5.5, 9); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(0, 5); ctx.lineTo(-2.8, 10.2); ctx.stroke();
+                } else {
+                    const emoji = type === 'suitcase' ? '🧳' : type === 'box' ? '📦' : '✈';
+                    ctx.fillText(emoji, 0, 0);
+                }
+            }
+            function resizeTravelerOverlay(chart, state){
+                if (!state || !state.overlay) return;
+                const canvas = chart.canvas;
+                const width = chart.width || (canvas && canvas.clientWidth) || 0;
+                const height = chart.height || (canvas && canvas.clientHeight) || 0;
+                if (!width || !height) return;
+                const ratio = chart.currentDevicePixelRatio || window.devicePixelRatio || 1;
+                if (state.width === width && state.height === height && state.ratio === ratio) return;
+                state.width = width;
+                state.height = height;
+                state.ratio = ratio;
+                const overlay = state.overlay;
+                overlay.width = Math.max(1, Math.round(width * ratio));
+                overlay.height = Math.max(1, Math.round(height * ratio));
+                overlay.style.width = `${width}px`;
+                overlay.style.height = `${height}px`;
+                const ctx = overlay.getContext('2d');
+                if (ctx && ctx.resetTransform) ctx.resetTransform();
+                ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+                state.ctx = ctx;
+            }
+            function destroyTravelerState(chart){
+                const state = chart.$traveler;
+                if (!state) return;
+                if (state.stop) state.stop();
+                if (state.overlay && state.overlay.parentNode) {
+                    state.overlay.parentNode.removeChild(state.overlay);
+                }
+                if (state.autoPosition && state.parent) {
+                    state.parent.style.position = state.parentOriginalPosition;
+                }
+                delete chart.$traveler;
+            }
+            function ensureTravelerState(chart, opts){
+                if (!shouldEnableTraveler(opts)) {
+                    destroyTravelerState(chart);
+                    return null;
+                }
+                let state = chart.$traveler;
+                const canvas = chart.canvas;
+                if (!canvas || !canvas.parentNode) return null;
+                const parent = canvas.parentNode;
+                if (!state) {
+                    const overlay = document.createElement('canvas');
+                    overlay.className = 'traveler-overlay';
+                    overlay.style.position = 'absolute';
+                    overlay.style.left = '0';
+                    overlay.style.top = '0';
+                    overlay.style.pointerEvents = 'none';
+                    overlay.style.zIndex = '3';
+                    parent.appendChild(overlay);
+                    let autoPosition = false;
+                    let parentOriginalPosition = parent.style.position || '';
+                    if (window.getComputedStyle(parent).position === 'static') {
+                        parent.style.position = 'relative';
+                        autoPosition = true;
+                    }
+                    state = chart.$traveler = {
+                        overlay,
+                        parent,
+                        ctx: overlay.getContext('2d'),
+                        running: false,
+                        raf: 0,
+                        startTs: 0,
+                        width: 0,
+                        height: 0,
+                        ratio: 1,
+                        opts: normalizeTravelerOpts(opts),
+                        autoPosition,
+                        parentOriginalPosition,
+                        loop: null,
+                        start: null,
+                        stop: null
+                    };
+                    state.loop = function loop(ts){
+                        if (!state.running) return;
+                        if (!chart.canvas || !chart.canvas.isConnected) {
+                            state.stop();
+                            return;
+                        }
+                        resizeTravelerOverlay(chart, state);
+                        renderTravelerFrame(chart, state, ts);
+                        state.raf = requestAnimationFrame(loop);
+                    };
+                    state.start = function(){
+                        if (state.running) return;
+                        state.running = true;
+                        state.startTs = performance.now();
+                        cancelAnimationFrame(state.raf);
+                        state.raf = requestAnimationFrame(state.loop);
+                    };
+                    state.stop = function(){
+                        if (!state.running && !state.raf) return;
+                        state.running = false;
+                        if (state.raf) cancelAnimationFrame(state.raf);
+                        state.raf = 0;
+                        if (state.ctx) {
+                            state.ctx.clearRect(0, 0, state.width || 0, state.height || 0);
+                        }
+                    };
+                } else {
+                    state.opts = normalizeTravelerOpts(opts);
+                }
+                resizeTravelerOverlay(chart, state);
+                return state;
+            }
+            function renderTravelerFrame(chart, state, ts){
+                const ctx = state.ctx;
+                if (!ctx) return;
+                const meta = chart.getDatasetMeta ? chart.getDatasetMeta(0) : null;
+                const points = meta && meta.data ? meta.data : null;
+                const area = chart.chartArea;
+                ctx.clearRect(0, 0, state.width || chart.width || 0, state.height || chart.height || 0);
+                if (!points || points.length < 2 || !area) return;
+                const opts = state.opts || {};
+                const speed = Math.max(600, opts.speed || 24000);
+                const duration = speed;
+                if (!state.startTs) state.startTs = ts;
+                const cycle = ((ts - state.startTs) % duration) / duration;
+                const total = points.length;
+                const fracIndex = cycle * (total - 1);
+                const idx0 = Math.floor(fracIndex);
+                const idx1 = Math.min(total - 1, idx0 + 1);
+                const p0 = getTravelerPointXY(points[idx0]);
+                const p1 = getTravelerPointXY(points[idx1]);
+                if (!p0 || !p1) return;
+                const localT = fracIndex - idx0;
+                const x = p0.x + (p1.x - p0.x) * localT;
+                const y = p0.y + (p1.y - p0.y) * localT;
+                ctx.save();
+                ctx.globalAlpha = Number.isFinite(opts.alpha) ? opts.alpha : 0.9;
+                ctx.translate(x, y);
+                const scale = opts.scale || 1;
+                ctx.scale(scale, scale);
+                drawTravelerIcon(ctx, opts.type || 'plane');
+                ctx.restore();
+            }
             const TravelerPlugin = {
                 id: 'travelerPlugin',
-                afterDraw(chart, args, opts){
-                    try {
-                        const { ctx, chartArea } = chart;
-                        if (!chartArea || !chart.getDatasetMeta) return;
-                        const ds = chart.data.datasets[0];
-                        const meta = chart.getDatasetMeta(0);
-                        if (!meta || !meta.data || meta.data.length === 0) return;
-                        const t = (performance.now() / (opts?.speed || 3500)) % 1; // ciclo
-                        // posición interpolada entre dos puntos
-                        const total = meta.data.length;
-                        const fIdx = t * (total - 1);
-                        const i0 = Math.floor(fIdx), i1 = Math.min(total-1, i0+1);
-                        const p0 = meta.data[i0], p1 = meta.data[i1];
-                        if (!p0 || !p1) return;
-                        const localT = fIdx - i0;
-                        const x = p0.x + (p1.x - p0.x) * localT;
-                        const y = p0.y + (p1.y - p0.y) * localT;
-                        // Dibujar el ícono
-                        ctx.save();
-                        ctx.translate(x, y);
-                        const scale = opts?.scale || 1.0;
-                        ctx.scale(scale, scale);
-                        const type = opts?.type || 'plane';
-                        ctx.font = '14px system-ui, Segoe UI, Roboto';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.globalAlpha = 0.9;
-                        if (type==='person') {
-                            // Dibujo básico para representar persona hacia la derecha
-                            const isDark = document.body.classList.contains('dark-mode');
-                            const tone = isDark ? '#e9ecef' : '#1f2937'; // claro en oscuro, oscuro en claro
-                            ctx.strokeStyle = tone;
-                            ctx.fillStyle = tone;
-                            ctx.lineWidth = 2.0;
-                            // cabeza
-                            ctx.beginPath(); ctx.arc(0, -5, 2.6, 0, Math.PI*2); ctx.fill();
-                            // cuerpo
-                            ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(0, 5); ctx.stroke();
-                            // brazo derecho (hacia adelante)
-                            ctx.beginPath(); ctx.moveTo(0, -0.5); ctx.lineTo(5, 2.5); ctx.stroke();
-                            // brazo izquierdo (hacia atrás)
-                            ctx.beginPath(); ctx.moveTo(0, -0.5); ctx.lineTo(-3.5, 0.8); ctx.stroke();
-                            // pierna derecha (al frente)
-                            ctx.beginPath(); ctx.moveTo(0,5); ctx.lineTo(5.5,9); ctx.stroke();
-                            // pierna izquierda (atrás)
-                            ctx.beginPath(); ctx.moveTo(0,5); ctx.lineTo(-2.8,10.2); ctx.stroke();
-                        } else {
-                            const emoji = type==='suitcase' ? '🧳' : type==='box' ? '📦' : '✈';
-                            ctx.fillText(emoji, 0, 0);
-                        }
-                        ctx.restore();
-                    } catch(_){ /* noop */ }
+                afterInit(chart, args, opts){
+                    const state = ensureTravelerState(chart, opts);
+                    if (state && window._opsAnim && window._opsAnim.running) {
+                        state.start();
+                    }
+                },
+                afterUpdate(chart, args, opts){
+                    const state = ensureTravelerState(chart, opts);
+                    if (state && window._opsAnim && window._opsAnim.running) {
+                        state.start();
+                    }
+                },
+                afterResize(chart){
+                    const state = chart.$traveler;
+                    if (state) {
+                        resizeTravelerOverlay(chart, state);
+                    }
+                },
+                beforeDraw(chart, args, opts){
+                    if (opts === false) {
+                        destroyTravelerState(chart);
+                    }
+                },
+                beforeDestroy(chart){
+                    destroyTravelerState(chart);
                 }
             };
 
@@ -3499,7 +3654,7 @@ function renderOperacionesTotales() {
                             // Evitar encimado mediante detección de colisiones con otras etiquetas colocadas
                             let rect = { x: rx, y: ry, w, h };
                             let tries = 0;
-                            while (placed.some(r => intersects(r, rect)) && tries < 4) {
+                            while (placed.some(r => intersects(r, rect)) && tries < 6) {
                                 tries++;
                                 if (tries === 1) {
                                     // primer intento: alternar arriba/abajo
@@ -3525,10 +3680,6 @@ function renderOperacionesTotales() {
                                     if (ry + h > area.bottom - 2) ry = Math.round(area.bottom - 2 - h);
                                 }
                                 rect = { x: rx, y: ry, w, h };
-                            }
-                            if (tries >= 4 && placed.some(r => intersects(r, rect))) {
-                                // si no se pudo evitar encimado, omitir etiqueta para preservar claridad
-                                continue;
                             }
                             // sombra sutil
                             ctx.save();
@@ -3617,6 +3768,12 @@ function renderOperacionesTotales() {
                 const emoji = fmtType==='pax' ? '🚶' : (fmtType==='ton' ? '🧳' : '✈');
                 const finalTitle = titleText || `${emoji} ${label}`;
                 const anim = Object.assign({ duration: 2600, easing: 'easeInOutCubic', stagger: 50 }, animProfile||{});
+                const disableMotion = !!anim.disableMotion;
+                if (disableMotion) {
+                    anim.duration = 0;
+                    anim.stagger = 0;
+                }
+                delete anim.disableMotion;
                 const smallMode = labels && labels.length > 8; // mensual normalmente
                 // Responsivo por ancho del lienzo para móvil/tablet
                 const w = (canvas && canvas.clientWidth) ? canvas.clientWidth : (canvas && canvas.width ? canvas.width : (window.innerWidth||1200));
@@ -3688,8 +3845,8 @@ function renderOperacionesTotales() {
                     fillColor: border,
                     textColor: '#ffffff',
                     format: fmtType,
-                    // En ejes anuales mostramos todo: sin gap mínimo para no omitir 2023
-                    minGapX: isYearAxis ? 0 : Math.floor(dynMinGapX),
+                    // Siempre intentamos mostrar todas las etiquetas; el algoritmo de colisiones decide reposiciones.
+                    minGapX: 0,
                     // Burbuja compacta para reducir colisiones en pantallas pequeñas
                     small: isYearAxis ? true : smallMode,
                     // Offsets afinados para móvil
@@ -3709,6 +3866,7 @@ function renderOperacionesTotales() {
                         } catch(_) {}
                     }
                 } : null;
+                const travelerEnabled = traveler && typeof traveler === 'object';
                 return {
                     type: 'line',
                     data: { labels, datasets: [{
@@ -3730,12 +3888,12 @@ function renderOperacionesTotales() {
                         responsive: true,
                         maintainAspectRatio: false,
                         layout: { padding: { top: padTop, right: padRight, bottom: padBottom, left: padLeft } },
-                        animation: {
+                        animation: disableMotion ? false : {
                             duration: anim.duration,
                             easing: anim.easing,
                             delay: (ctx) => ctx.type === 'data' ? (ctx.dataIndex * (anim.stagger||0)) : 0
                         },
-                        animations: {
+                        animations: disableMotion ? {} : {
                             y: { easing: anim.easing, duration: anim.duration },
                             tension: { from: 0.6, to: 0.25, duration: Math.min(1200, anim.duration), easing: 'easeOutQuad' }
                         },
@@ -3774,7 +3932,7 @@ function renderOperacionesTotales() {
                             },
                             // Desactivamos completamente chartjs-plugin-datalabels
                             datalabels: false,
-                            travelerPlugin: traveler || {},
+                            travelerPlugin: travelerEnabled ? traveler : false,
                             dataBubble: bubbleOpts
                         },
                         scales: {
@@ -3783,22 +3941,33 @@ function renderOperacionesTotales() {
                                 offset: false,
                                 ticks: {
                                     color: theme.ticks,
-                                    // Para ejes con años (2022, 2023, ...), no omitir etiquetas en móvil
-                                    autoSkip: !isYearAxis,
-                                    maxTicksLimit: isYearAxis ? (labels?.length || maxTicks) : maxTicks,
+                                    // No omitir etiquetas; las partimos en varias líneas si es necesario.
+                                    autoSkip: false,
+                                    maxTicksLimit: labels?.length || maxTicks,
                                     autoSkipPadding: tickPadding,
                                     source: 'labels',
                                     font: { size: xTickFont },
                                     minRotation: xMinRotation,
                                     maxRotation: xMaxRotation,
-                                    callback: (val) => formatTickLabel(val)
+                                    callback: (val, index) => {
+                                        let rawValue = val;
+                                        if (typeof val === 'number' && Array.isArray(labels) && labels[val] != null) {
+                                            rawValue = labels[val];
+                                        } else if (labels && typeof index === 'number' && labels[index] != null && rawValue == null) {
+                                            rawValue = labels[index];
+                                        }
+                                        return formatTickLabel(rawValue);
+                                    }
                                 },
                                 title: { display: true, text: xTitle, color: theme.labels, font: { weight: '600' } }
                             },
                             y: { beginAtZero: true, suggestedMax: Math.ceil(maxVal * 1.15), grid: { color: theme.grid }, ticks: { color: theme.ticks, font: { size: yTickFont } }, title: { display: true, text: label, color: theme.labels, font: { weight: '600' } } }
                         }
                     },
-                    plugins: [PeakGlowPlugin, TravelerPlugin, DataBubblePlugin].concat(YearAxisFitPlugin ? [YearAxisFitPlugin] : [])
+                    plugins: [PeakGlowPlugin]
+                        .concat(travelerEnabled ? [TravelerPlugin] : [])
+                        .concat([DataBubblePlugin])
+                        .concat(YearAxisFitPlugin ? [YearAxisFitPlugin] : [])
                 };
             }
 
@@ -3916,7 +4085,7 @@ function renderOperacionesTotales() {
                 if (c1) opsCharts.commercialOpsChart = new Chart(c1, makePeakCfg(
                     c1, labels, series.comercialOps,
                     'Operaciones', '#1e88e5', 'rgba(66,165,245,0.35)', 'rgba(21,101,192,0.05)',
-                    { easing:'easeOutQuart', duration: 4800, stagger: 110 },
+                    { easing:'easeOutQuart', duration: 4800, stagger: 110, disableMotion: true },
                     'int', { type:'plane', speed: 20000, scale: 1.25 }, periodLabel, '✈ Operaciones (Comercial)',
                     getVariationPayload(variations.comercialOps)
                 ));
@@ -3924,7 +4093,7 @@ function renderOperacionesTotales() {
                 if (!presetOpsOnly && c2) opsCharts.commercialPaxChart = new Chart(c2, makePeakCfg(
                     c2, labels, series.comercialPax,
                     'Pasajeros', '#1565c0', 'rgba(33,150,243,0.35)', 'rgba(13,71,161,0.05)',
-                    { easing:'easeOutElastic', duration: 5200, stagger: 160 },
+                    { easing:'easeOutElastic', duration: 5200, stagger: 160, disableMotion: true },
                     'pax', { type:'person', speed: 22000, scale: 0.9 }, periodLabel, '🚶 Pasajeros (Comercial)',
                     getVariationPayload(variations.comercialPax)
                 ));
@@ -3936,7 +4105,7 @@ function renderOperacionesTotales() {
                 if (k1) opsCharts.cargoOpsChart = new Chart(k1, makePeakCfg(
                     k1, labels, series.cargaOps,
                     'Operaciones', '#fb8c00', 'rgba(255,183,77,0.35)', 'rgba(239,108,0,0.05)',
-                    { easing:'easeOutBack', duration: 5000, stagger: 140 },
+                    { easing:'easeOutBack', duration: 5000, stagger: 140, disableMotion: true },
                     'int', { type:'plane', speed: 24000, scale: 1.35 }, periodLabel, '✈ Operaciones (Carga)',
                     getVariationPayload(variations.cargaOps)
                 ));
@@ -3944,7 +4113,7 @@ function renderOperacionesTotales() {
                 if (!presetOpsOnly && k2) opsCharts.cargoTonsChart = new Chart(k2, makePeakCfg(
                     k2, labels, series.cargaTon,
                     'Toneladas', '#f57c00', 'rgba(255,204,128,0.35)', 'rgba(230,81,0,0.05)',
-                    { easing:'easeOutCubic', duration: 5600, stagger: 170 },
+                    { easing:'easeOutCubic', duration: 5600, stagger: 170, disableMotion: true },
                     'ton', { type:'suitcase', speed: 26000, scale: 1.5 }, periodLabel, '🧳 Toneladas (Carga)',
                     getVariationPayload(variations.cargaTon)
                 ));
@@ -3956,7 +4125,7 @@ function renderOperacionesTotales() {
                 if (g1) opsCharts.generalOpsChart = new Chart(g1, makePeakCfg(
                     g1, labels, series.generalOps,
                     'Operaciones', '#2e7d32', 'rgba(129,199,132,0.35)', 'rgba(27,94,32,0.05)',
-                    { easing:'easeOutQuart', duration: 4800, stagger: 130 },
+                    { easing:'easeOutQuart', duration: 4800, stagger: 130, disableMotion: true },
                     'int', { type:'plane', speed: 22000, scale: 1.3 }, periodLabel, '✈ Operaciones (General)',
                     getVariationPayload(variations.generalOps)
                 ));
@@ -3964,7 +4133,7 @@ function renderOperacionesTotales() {
                 if (!presetOpsOnly && g2) opsCharts.generalPaxChart = new Chart(g2, makePeakCfg(
                     g2, labels, series.generalPax,
                     'Pasajeros', '#1b5e20', 'rgba(165,214,167,0.35)', 'rgba(27,94,32,0.05)',
-                    { easing:'easeOutElastic', duration: 5200, stagger: 160 },
+                    { easing:'easeOutElastic', duration: 5200, stagger: 160, disableMotion: true },
                     'pax', { type:'person', speed: 23000, scale: 0.9 }, periodLabel, '🚶 Pasajeros (General)',
                     getVariationPayload(variations.generalPax)
                 ));
