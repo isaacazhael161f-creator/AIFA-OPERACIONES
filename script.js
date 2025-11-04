@@ -4944,26 +4944,18 @@ function showMainApp() {
         }
         if (mainWasHidden) {
             try {
-                const startCandidates = [
-                    document.querySelector('.menu-item[data-section="inicio"]'),
-                    document.querySelector('.menu-item[data-section="parte-operaciones"]')
-                ];
-                const targetLink = startCandidates.find(Boolean);
-                if (targetLink && targetLink.dataset?.section) {
-                    showSection(targetLink.dataset.section, targetLink);
+                const startLink = document.querySelector('.menu-item[data-section="operaciones-totales"]');
+                if (startLink && startLink.dataset?.section) {
+                    showSection(startLink.dataset.section, startLink);
                 }
             } catch (_) {}
             try {
-                const isMobile = window.innerWidth <= 991.98;
-                if (isMobile) {
-                    const sidebar = document.getElementById('sidebar');
-                    const overlay = document.getElementById('sidebar-overlay');
-                    if (sidebar) sidebar.classList.remove('visible');
-                    if (overlay) overlay.classList.remove('active');
-                } else {
-                    document.body.classList.add('sidebar-collapsed');
-                    try { localStorage.setItem('sidebarState', 'collapsed'); } catch (_) {}
-                }
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebar-overlay');
+                if (sidebar) sidebar.classList.remove('visible');
+                if (overlay) overlay.classList.remove('active');
+                document.body.classList.add('sidebar-collapsed');
+                try { localStorage.setItem('sidebarState', 'collapsed'); } catch (_) {}
             } catch (_) {}
         }
     }).catch(()=>{
