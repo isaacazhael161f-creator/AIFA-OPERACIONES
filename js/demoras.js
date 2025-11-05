@@ -3,15 +3,15 @@
   if (!sec) return;
     // Fallback de datos local (para mantener el módulo autosuficiente)
     const LOCAL_DEMORAS = {
-        periodo: 'Septiembre 2025',
+        periodo: 'Octubre 2025',
         causas: [
-            { causa: 'Repercusión', demoras: 319 },
-            { causa: 'Compañía', demoras: 158 },
-            { causa: 'Evento Circunstancial', demoras: 7 },
-            { causa: 'Combustible', demoras: 3 },
-            { causa: 'Autoridad', demoras: 5 },
-            { causa: 'Meteorología', demoras: 4 },
-            { causa: 'Aeropuerto', demoras: 0 }
+            { causa: 'Repercusión', demoras: 479 },
+            { causa: 'Compañía', demoras: 164 },
+            { causa: 'Evento Circunstancial', demoras: 4 },
+            { causa: 'Combustible', demoras: 2 },
+            { causa: 'Autoridad', demoras: 4 },
+            { causa: 'Meteorología', demoras: 13 },
+            { causa: 'Aeropuerto', demoras: 1 }
         ]
     };
 

@@ -599,6 +599,20 @@ function normalizeAirlineName(name = ''){
     // quitar acentos simples
     return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
+function getAirlineAccentColor(name){
+    if (!name) return '#0d6efd';
+    if (airlineColors && Object.prototype.hasOwnProperty.call(airlineColors, name)) {
+        return airlineColors[name];
+    }
+    const normalizedTarget = normalizeAirlineName(name);
+    for (const key in airlineColors) {
+        if (!Object.prototype.hasOwnProperty.call(airlineColors, key)) continue;
+        if (normalizeAirlineName(key) === normalizedTarget) {
+            return airlineColors[key];
+        }
+    }
+    return '#0d6efd';
+}
 function getAirlineLogoCandidates(airline){
     const key = normalizeAirlineName(airline);
     const files = airlineLogoFileMap[key];
@@ -627,6 +641,15 @@ function getAirlineLogoCandidates(airline){
 function getAirlineLogoPath(airline){
     const cands = getAirlineLogoCandidates(airline);
     return cands.length ? cands[0] : null;
+}
+function hexToRgba(hex, alpha){
+    const match = /^#?([0-9a-f]{6})$/i.exec((hex||'').trim());
+    if (!match) return `rgba(13,110,253,${alpha})`;
+    const value = parseInt(match[1], 16);
+    const r = (value >> 16) & 255;
+    const g = (value >> 8) & 255;
+    const b = value & 255;
+    return `rgba(${r},${g},${b},${alpha})`;
 }
 // Fallback para logos: si .png falla probamos .svg una vez; si también falla, ocultamos el <img>
 function handleLogoError(imgEl){
@@ -664,6 +687,12 @@ function logoLoaded(imgEl){
         const header = imgEl.closest('.airline-header');
         if (header) header.classList.add('airline-has-logo');
     }catch(_){ }
+}
+function formatYMDToDMY(ymd){
+    if (!ymd) return '';
+    const parts = String(ymd).split('-');
+    if (parts.length !== 3) return '';
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
 function flightsToCSV(rows, type){
     const headers = type === 'pax'
@@ -1494,7 +1523,7 @@ async function loadItineraryData() {
             dateInput.value = ymd;
         }
     } catch (_) {}
-    displaySummaryTable(allFlightsData);
+    displaySummaryTable(allFlightsData, { selectedAirline: 'all' });
     populateAirlineFilter();
     populatePositionFilter();
     populateOriginFilter();
@@ -1509,6 +1538,131 @@ async function loadItineraryData() {
         const passengerContainer = document.getElementById('passenger-itinerary-container');
         if(passengerContainer) { passengerContainer.innerHTML = `<div class="alert alert-danger">Error al cargar datos del itinerario.</div>`; }
     }
+}
+function updateAirlineQuickSummary(options = {}) {
+    const card = document.getElementById('airline-summary-card');
+    if (!card) return;
+    const clearStyles = () => {
+        ['--airline-summary-accent','--airline-summary-bg-strong','--airline-summary-bg-soft','--airline-summary-border','--airline-summary-shadow'].forEach(prop => card.style.removeProperty(prop));
+    };
+    const airlineNameRaw = (options.airline || '').toString().trim();
+    const isAllAirlines = !airlineNameRaw || airlineNameRaw === 'all';
+    const flights = Array.isArray(options.flights) ? options.flights : [];
+    const passengerCount = Math.max(0, Number(options.passengerCount || 0));
+    const cargoCount = Math.max(0, Number(options.cargoCount || 0));
+    const generalCount = Math.max(0, flights.length - passengerCount - cargoCount);
+
+    clearStyles();
+
+    if (!flights.length) {
+        card.classList.add('is-empty');
+        const message = isAllAirlines
+            ? '<i class="fas fa-plane-slash me-2"></i>No se encontraron vuelos con los filtros seleccionados.'
+            : `<i class="fas fa-plane-slash me-2"></i>${escapeHTML(airlineNameRaw)} no tiene vuelos programados con los filtros seleccionados.`;
+        card.innerHTML = `<div class="airline-summary-placeholder">${message}</div>`;
+        return;
+    }
+
+    card.classList.remove('is-empty');
+
+    const accent = isAllAirlines ? '#0d6efd' : getAirlineAccentColor(airlineNameRaw);
+    card.style.setProperty('--airline-summary-accent', accent);
+    card.style.setProperty('--airline-summary-bg-strong', hexToRgba(accent, 0.18));
+    card.style.setProperty('--airline-summary-bg-soft', hexToRgba(accent, 0.05));
+    card.style.setProperty('--airline-summary-border', hexToRgba(accent, 0.3));
+    card.style.setProperty('--airline-summary-shadow', hexToRgba(accent, 0.2));
+
+    const logoCandidates = isAllAirlines ? [] : getAirlineLogoCandidates(airlineNameRaw);
+    const logoPath = logoCandidates[0];
+    const dataCands = logoCandidates.join('|');
+    const logoMarkup = isAllAirlines
+        ? '<div class="airline-summary-logo-icon"><i class="fas fa-globe-americas"></i></div>'
+        : (logoPath
+            ? `<img class="airline-summary-logo-img" src="${escapeHTML(logoPath)}" alt="Logo ${escapeHTML(airlineNameRaw)}" data-cands="${escapeHTML(dataCands)}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">`
+            : `<span class="airline-summary-logo-fallback">${escapeHTML((airlineNameRaw || '?').charAt(0) || '?')}</span>`);
+
+    const formatter = new Intl.NumberFormat('es-MX');
+    const fmt = (value) => formatter.format(Number(value || 0));
+
+    const arrivals = flights.reduce((total, flight) => total + (String(flight?.vuelo_llegada || flight?.hora_llegada || '').trim() ? 1 : 0), 0);
+    const departures = flights.reduce((total, flight) => total + (String(flight?.vuelo_salida || flight?.hora_salida || '').trim() ? 1 : 0), 0);
+    const operations = arrivals + departures;
+
+    let dateLabel = '';
+    if (options.selectedDate) {
+        dateLabel = formatYMDToDMY(options.selectedDate);
+    }
+    if (!dateLabel) {
+        if (isAllAirlines) {
+            dateLabel = 'Sin filtro de fecha';
+        } else {
+            const sample = flights.find(f => (f && (f.fecha_llegada || f.fecha_salida)));
+            if (sample) dateLabel = (sample.fecha_llegada || sample.fecha_salida || '').toString();
+            if (!dateLabel) dateLabel = 'Sin fecha definida';
+        }
+    }
+
+    const typeMap = {
+        passenger: { label: 'Pasajeros', icon: 'fas fa-users', variant: 'passenger' },
+        cargo: { label: 'Carga', icon: 'fas fa-boxes', variant: 'cargo' },
+        general: { label: 'Aviación general', icon: 'fas fa-paper-plane', variant: 'general' },
+        mixed: { label: 'Mixta', icon: 'fas fa-layer-group', variant: 'mixed' },
+        empty: { label: 'Sin vuelos', icon: 'fas fa-plane-slash', variant: 'empty' }
+    };
+
+    let typeVariant = 'mixed';
+    if (!isAllAirlines) {
+        if (passengerCount > 0 && cargoCount === 0 && generalCount === 0) typeVariant = 'passenger';
+        else if (cargoCount > 0 && passengerCount === 0 && generalCount === 0) typeVariant = 'cargo';
+        else if (generalCount > 0 && passengerCount === 0 && cargoCount === 0) typeVariant = 'general';
+        else if (!flights.length) typeVariant = 'empty';
+    }
+    let typeInfo = typeMap[typeVariant] || typeMap.mixed;
+    if (isAllAirlines) {
+        typeInfo = { label: 'Vista general', icon: 'fas fa-globe-americas', variant: 'mixed' };
+    }
+
+    const metricsHtml = [
+        { icon: 'fas fa-plane', label: 'Vuelos', value: flights.length },
+        { icon: 'fas fa-plane-arrival', label: 'Llegadas', value: arrivals },
+        { icon: 'fas fa-plane-departure', label: 'Salidas', value: departures },
+        { icon: 'fas fa-route', label: 'Operaciones', value: operations }
+    ].map(metric => `
+        <div class="airline-summary-metric">
+            <span class="label">${metric.icon ? `<i class="${metric.icon} icon"></i>` : ''}${escapeHTML(metric.label)}</span>
+            <span class="value">${fmt(metric.value)}</span>
+        </div>
+    `).join('');
+    const breakdownChips = [
+        { label: 'Pasajeros', value: passengerCount, variant: 'passenger', icon: 'fas fa-users' },
+        { label: 'Carga', value: cargoCount, variant: 'cargo', icon: 'fas fa-box-open' },
+        { label: 'General', value: generalCount, variant: 'general', icon: 'fas fa-paper-plane' }
+    ].filter(item => item.value > 0).map(item => `
+        <span class="airline-summary-chip" data-variant="${item.variant}">${item.icon ? `<i class="${item.icon}"></i>` : ''}${escapeHTML(item.label)} <strong>${fmt(item.value)}</strong></span>
+    `).join('');
+    const dateHtml = dateLabel ? `<span class="airline-summary-date">${escapeHTML(dateLabel)}</span>` : '';
+    const displayTitle = isAllAirlines ? 'Todas las aerolíneas' : airlineNameRaw;
+
+    card.innerHTML = `
+        <div class="airline-summary-body">
+            <div class="airline-summary-main">
+                <div class="airline-summary-logo">${logoMarkup}</div>
+                <div class="airline-summary-text">
+                    <div class="airline-summary-title">${escapeHTML(displayTitle)}</div>
+                    <div class="airline-summary-meta">
+                        ${dateHtml}
+                        <span class="airline-summary-type" data-variant="${typeInfo.variant}"><i class="${typeInfo.icon}"></i>${escapeHTML(typeInfo.label)}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="airline-summary-metrics">${metricsHtml}</div>
+            ${breakdownChips ? `<div class="airline-summary-breakdown">${breakdownChips}</div>` : ''}
+        </div>
+    `;
+    card.classList.remove('is-highlight');
+    void card.offsetWidth;
+    card.classList.add('is-highlight');
+    setTimeout(() => card.classList.remove('is-highlight'), 650);
 }
 function applyFilters() {
     const t0 = performance.now();
@@ -1654,31 +1808,23 @@ function applyFilters() {
     }
     // (global search ya aplicado antes del filtro por hora)
     // Mostrar/ocultar tablas según categoría si hay filtro de aerolínea específico
-    const passContainer = document.getElementById('passenger-itinerary-container');
-    const cargoContainer = document.getElementById('cargo-itinerary-container');
-    const passBlock = document.getElementById('passenger-itinerary-scroll')?.closest('.itinerary-horizontal');
-    const cargoBlock = document.getElementById('cargo-itinerary-scroll')?.closest('.itinerary-horizontal');
+    const passBlock = document.getElementById('itinerary-passenger-block');
+    const cargoBlock = document.getElementById('itinerary-cargo-block');
+    const filterControls = document.getElementById('filter-controls');
+    const toolbar = document.querySelector('.itinerary-airline-toolbar');
     const isSpecificAirline = !!selectedAirline && selectedAirline !== 'all';
+    const hasPassengerFlights = passengerFlights.length > 0;
+    const hasCargoFlights = cargoFlights.length > 0;
     if (isSpecificAirline) {
-        const isPassengerAirline = passengerAirlines.includes(selectedAirline) || (filteredData.some(f=> (f.aerolinea||'')===selectedAirline && (f.categoria||'').toLowerCase()==='pasajeros'));
-        const isCargoAirline = cargoAirlines.includes(selectedAirline) || (filteredData.some(f=> (f.aerolinea||'')===selectedAirline && (f.categoria||'').toLowerCase()==='carga'));
-        // Si es de pasajeros, ocultar bloque de carga
-        if (isPassengerAirline && !isCargoAirline) {
-            if (cargoBlock) cargoBlock.style.display = 'none';
-            if (passBlock) passBlock.style.display = '';
-        }
-        // Si es de carga, ocultar bloque de pasajeros
-        else if (isCargoAirline && !isPassengerAirline) {
-            if (passBlock) passBlock.style.display = 'none';
-            if (cargoBlock) cargoBlock.style.display = '';
-        } else {
-            // aerolínea mixta o datos mezclados: mostrar ambos
-            if (passBlock) passBlock.style.display = '';
-            if (cargoBlock) cargoBlock.style.display = '';
-        }
+        if (passBlock) passBlock.style.display = hasPassengerFlights ? '' : 'none';
+        if (cargoBlock) cargoBlock.style.display = hasCargoFlights ? '' : 'none';
+        if (filterControls) filterControls.classList.add('d-none');
+        if (toolbar) toolbar.classList.add('airline-selected');
     } else {
         if (passBlock) passBlock.style.display = '';
         if (cargoBlock) cargoBlock.style.display = '';
+        if (filterControls) filterControls.classList.remove('d-none');
+        if (toolbar) toolbar.classList.remove('airline-selected');
     }
 
     // If an hour is selected, sort results ascending by the chosen time field
@@ -1703,7 +1849,14 @@ function applyFilters() {
     displayPassengerTable(passengerFlights);
     displayCargoTable(cargoFlights);
     // update summary based on currently visible (fully filtered) data
-    displaySummaryTable([...(passengerFlights||[]), ...(cargoFlights||[])]);
+    displaySummaryTable([...(passengerFlights||[]), ...(cargoFlights||[])], { selectedAirline });
+    updateAirlineQuickSummary({
+        airline: selectedAirline,
+        flights: Array.isArray(filteredData) ? filteredData : [],
+        passengerCount: passengerFlights.length,
+        cargoCount: cargoFlights.length,
+        selectedDate
+    });
     // Expose the filtered subset to sync charts in 'Gráficas Itinerario'
     try {
         window.currentItineraryFilterState = {
@@ -1820,19 +1973,28 @@ function viewFlightsForAirline(airline) {
     const passengerEl = document.getElementById('passenger-itinerary-container');
     if (passengerEl) passengerEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
-function displaySummaryTableLegacy(flights) {
+function displaySummaryTableLegacy(flights, options) {
     // Legacy placeholder: delega a la nueva implementación modernizada.
-    displaySummaryTable(flights);
+    displaySummaryTable(flights, options);
 }
-function displaySummaryTable(flights) {
+function displaySummaryTable(flights, options = {}) {
     const container = document.getElementById('summary-table-container');
     if (!container) return;
 
     const escapeHtml = escapeHTML;
     const formatNumber = (value) => new Intl.NumberFormat('es-MX').format(Number(value || 0));
+    const selectedAirlineRaw = options.selectedAirline !== undefined
+        ? options.selectedAirline
+        : (document.getElementById('airline-filter')?.value ?? 'all');
+    const selectedAirline = (selectedAirlineRaw || '').toString().trim();
+    const hasSpecificAirline = selectedAirline && selectedAirline !== 'all';
+    const selectedAirlineEscaped = hasSpecificAirline ? escapeHtml(selectedAirline) : '';
 
     if (!Array.isArray(flights) || flights.length === 0) {
-        container.innerHTML = '<div class="alert alert-info bg-transparent text-body">No se encontraron operaciones.</div>';
+        const emptyMessage = hasSpecificAirline
+            ? `No hay operaciones para ${selectedAirlineEscaped} con los filtros actuales.`
+            : 'No se encontraron operaciones.';
+        container.innerHTML = `<div class="alert alert-info bg-transparent text-body">${emptyMessage}</div>`;
         summaryDetailMode = 'airline';
         summarySelectedAirline = null;
         summarySelectedPosition = null;
@@ -1863,8 +2025,8 @@ function displaySummaryTable(flights) {
         entry.flights.push(flight);
         totals.flights += 1;
 
-        const hasArrival = !!String(flight?.vuelo_llegada || '').trim();
-        const hasDeparture = !!String(flight?.vuelo_salida || '').trim();
+    const hasArrival = !!String(flight?.vuelo_llegada || flight?.hora_llegada || '').trim();
+    const hasDeparture = !!String(flight?.vuelo_salida || flight?.hora_salida || '').trim();
         if (hasArrival) {
             entry.arrivals += 1;
             totals.arrivals += 1;
@@ -2122,13 +2284,18 @@ function displaySummaryTable(flights) {
     const passengerOperations = totals.passengerOps.arrivals + totals.passengerOps.departures;
     const cargoOperations = totals.cargoOps.arrivals + totals.cargoOps.departures;
     const generalOperations = totals.generalOps.arrivals + totals.generalOps.departures;
-    const summarySubtitle = `Incluye ${formatNumber(totals.arrivals)} llegadas y ${formatNumber(totals.departures)} salidas (${formatNumber(totalFlights)} vuelos listados).`;
+    const cardTitle = hasSpecificAirline
+        ? `Operaciones de ${selectedAirlineEscaped}`
+        : 'Operaciones del día';
+    const summarySubtitle = hasSpecificAirline
+        ? `Incluye ${formatNumber(totals.arrivals)} llegadas y ${formatNumber(totals.departures)} salidas (${formatNumber(totalFlights)} vuelos de ${selectedAirlineEscaped}).`
+        : `Incluye ${formatNumber(totals.arrivals)} llegadas y ${formatNumber(totals.departures)} salidas (${formatNumber(totalFlights)} vuelos listados).`;
     let html = `
     <div class="card summary-total-card mb-3">
         <div class="card-body d-flex flex-wrap align-items-center gap-3">
             <div class="summary-total-icon"><i class="fas fa-chart-line"></i></div>
             <div>
-                <div class="summary-total-title">Operaciones del día</div>
+                <div class="summary-total-title">${cardTitle}</div>
                 <div class="summary-total-sub">${summarySubtitle}</div>
             </div>
             <div class="summary-total-stats ms-auto d-flex flex-wrap gap-2">
