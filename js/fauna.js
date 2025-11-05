@@ -191,9 +191,11 @@
   function groupBySpecies(rows){
     const counts = new Map();
     rows.forEach(r => {
-      const sp = (r['Especie'] || '').trim();
-      if (!sp) return;
-      counts.set(sp, (counts.get(sp)||0) + 1);
+      const common = String(r['Nombre común'] || r['Nombre comun'] || '').trim();
+      const scientific = String(r['Especie'] || '').trim();
+      const key = common || scientific;
+      if (!key) return;
+      counts.set(key, (counts.get(key)||0) + 1);
     });
     // Take top 10 species, bucket rest as "Otros"
     const entries = Array.from(counts.entries()).sort((a,b)=>b[1]-a[1]);
@@ -282,12 +284,36 @@
     const orientation = (opts && opts.orientation) || 'v';
     const color = (opts && opts.color) || '#1565c0';
     const isSmall = window.matchMedia && window.matchMedia('(max-width: 576px)').matches;
+    const numericValues = (Array.isArray(values) ? values : []).map(v => Number(v) || 0);
+    const maxValue = numericValues.length ? Math.max(...numericValues) : 0;
+    const digitEstimate = Math.max(1, String(Math.round(maxValue)).length);
+    const labelConfig = {
+      show: true,
+      position: orientation === 'v' ? 'top' : 'right',
+      distance: 4,
+      color: '#1f2937',
+      align: orientation === 'v' ? 'center' : 'left',
+      fontWeight: 600,
+      fontSize: isSmall ? 10 : 12,
+      formatter: ({ value }) => {
+        const v = Number(value || 0);
+        return v > 0 ? v : '';
+      }
+    };
+    const paddingForDigits = digitEstimate * (isSmall ? 8 : 10) + 16;
+    const grid = {
+      left: isSmall ? 54 : 80,
+      right: orientation === 'v' ? 28 : Math.max(isSmall ? 72 : 96, paddingForDigits),
+      top: orientation === 'v' ? Math.max(32, (isSmall ? 20 : 24) + digitEstimate * (isSmall ? 4 : 5)) : 16,
+      bottom: orientation === 'v' ? (isSmall ? 54 : 48) : (isSmall ? 36 : 40),
+      containLabel: true
+    };
     const option = {
-      grid: { left: isSmall ? 54 : 80, right: 16, top: 12, bottom: isSmall ? 54 : 40, containLabel: true },
+      grid,
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
       xAxis: orientation==='v' ? { type: 'category', data: labels, axisLabel: { color: '#334155' } } : { type: 'value', axisLabel: { color: '#334155' } },
       yAxis: orientation==='v' ? { type: 'value', axisLabel: { color: '#334155' } } : { type: 'category', data: labels, inverse: true, axisLabel: { color: '#334155' } },
-      series: [{ type: 'bar', data: values, itemStyle: { color } }]
+      series: [{ type: 'bar', data: values, itemStyle: { color }, label: labelConfig }]
     };
     if (opts && opts.xTitle) {
       option.xAxis.name = opts.xTitle;
@@ -623,8 +649,6 @@
       }
       sel.value = airline || 'all';
       applyFilters();
-      const tbl = document.getElementById('fauna-table-container');
-      if (tbl) tbl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch(_) {}
   }
 })();
