@@ -78,7 +78,12 @@
 
   function updateBadges(){
     const total = state.filtered.length;
-    const b1 = document.getElementById('fauna-total-badge'); if (b1) b1.textContent = `Total: ${total.toLocaleString('es-MX')}`;
+    const b1 = document.getElementById('fauna-total-badge');
+    if (b1){
+      const formatted = total.toLocaleString('es-MX');
+      b1.innerHTML = `<span class="fauna-total-label">Total</span><span class="fauna-total-value">${formatted}</span>`;
+      b1.setAttribute('aria-label', `Total de impactos ${formatted}`);
+    }
     const from = document.getElementById('fauna-date-from')?.value || '';
     const to = document.getElementById('fauna-date-to')?.value || '';
     const month = document.getElementById('fauna-month')?.value || 'all';
@@ -530,6 +535,12 @@
   function renderAirlineSummary(rows){
     const container = document.getElementById('fauna-summary-container');
     if (!container) return;
+    const airlineSelect = document.getElementById('fauna-airline');
+    const activeAirlineValue = airlineSelect ? airlineSelect.value : 'all';
+    const filteredByAirline = !!(activeAirlineValue && activeAirlineValue !== 'all');
+    const activeAirlineLabel = filteredByAirline
+      ? (airlineSelect?.options?.[airlineSelect.selectedIndex]?.text || activeAirlineValue)
+      : '';
     const counts = new Map();
     rows.forEach(r => {
       const a = String(r['Aerolínea']||'').trim() || 'Sin aerolínea';
@@ -538,6 +549,20 @@
     const items = Array.from(counts.entries()).sort((a,b)=> b[1]-a[1]);
     if (!items.length){ container.innerHTML = '<div class="text-muted">Sin datos.</div>'; return; }
     let html = '<div class="row g-2">';
+    if (filteredByAirline) {
+        const activeTotal = rows.length.toLocaleString('es-MX');
+        html += `
+        <div class="fauna-active-filter">
+          <div class="fauna-active-filter-label">
+            <i class="fas fa-filter"></i>
+            <span>Mostrando <strong>${escapeHtml(activeAirlineLabel)}</strong></span>
+            <span class="fauna-active-filter-total">${activeTotal} impactos</span>
+          </div>
+          <button type="button" class="btn btn-outline-primary btn-sm" id="fauna-summary-reset">
+            Ver todas las aerolíneas
+          </button>
+        </div>`;
+    }
     items.forEach(([airline, n]) => {
       const cands = (window.getAirlineLogoCandidates ? window.getAirlineLogoCandidates(airline) : []);
       const logoPath = cands && cands.length ? cands[0] : '';
@@ -560,6 +585,19 @@
     });
     html += '</div>';
     container.innerHTML = html;
+    if (filteredByAirline) {
+      const resetBtn = container.querySelector('#fauna-summary-reset');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', (ev)=>{
+          ev.preventDefault();
+          const sel = document.getElementById('fauna-airline');
+          if (sel) {
+            sel.value = 'all';
+            applyFilters();
+          }
+        });
+      }
+    }
     // Click -> aplicar filtro por aerolínea y desplazar a la tabla
     try {
       container.querySelectorAll('.fauna-airline-link').forEach(a => {

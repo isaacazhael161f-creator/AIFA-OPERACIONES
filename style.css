@@ -1966,14 +1966,66 @@ body.dark-mode #fauna-section .gso-hero-copy { background: linear-gradient(135de
 #fauna-section .fauna-table { font-variant-numeric: tabular-nums; }
 
 /* ===================== Fauna: resúmenes más grandes ===================== */
-#fauna-section #fauna-total-badge,
+#fauna-section #fauna-total-badge {
+   position: relative;
+   display: inline-flex;
+   flex-direction: column;
+   align-items: flex-start;
+   gap: .4rem;
+   padding: 1rem 1.6rem;
+   border-radius: 20px;
+   background: linear-gradient(135deg,#0061ff 0%,#4facfe 45%,#38b6ff 100%);
+   box-shadow: 0 16px 34px -18px rgba(0,97,255,0.75), 0 8px 20px -12px rgba(0,64,148,0.55);
+   color: #fff;
+   font-weight: 600;
+   min-width: 210px;
+   min-height: 82px;
+   border: none;
+}
+#fauna-section #fauna-total-badge .fauna-total-label {
+   display: block;
+   font-size: .85rem;
+   text-transform: uppercase;
+   letter-spacing: .18em;
+   opacity: .78;
+}
+#fauna-section #fauna-total-badge .fauna-total-value {
+   display: block;
+   font-size: 2.1rem;
+   font-weight: 800;
+   line-height: 1;
+}
+#fauna-section #fauna-total-badge::after {
+   content: '';
+   position: absolute;
+   top: 14px;
+   right: 16px;
+   width: 12px;
+   height: 12px;
+   border-radius: 50%;
+   background: rgba(255,255,255,0.55);
+   box-shadow: 0 0 0 8px rgba(255,255,255,0.16), 0 0 20px rgba(255,255,255,0.35);
+}
 #fauna-section #fauna-period-badge {
-   font-size: 1rem; /* antes ~.875rem por default */
-   padding: .5rem .75rem;
+   font-size: 1rem;
+   padding: .6rem 1rem;
    border-radius: 999px;
+   background: rgba(0,97,255,0.08);
+   color: #03409a;
+   font-weight: 600;
+   border: 1px solid rgba(0,97,255,0.18);
 }
 #fauna-section .card .d-flex.flex-wrap.gap-3.mb-3 .badge { /* asegurar consistencia si el layout cambia */
    font-size: 1rem;
+}
+body.dark-mode #fauna-section #fauna-total-badge {
+   background: linear-gradient(135deg,#0d61ff 0%,#3a7dff 50%,#2aa1ff 100%);
+   box-shadow: 0 18px 34px -16px rgba(0,72,214,0.7), 0 8px 22px -12px rgba(0,48,140,0.6);
+}
+body.dark-mode #fauna-section #fauna-period-badge {
+   background: rgba(80,142,255,0.15);
+   border-color: rgba(80,142,255,0.28);
+   color: #cfe2ff;
 }
 #fauna-top-hours {
    display: flex; flex-wrap: wrap; gap: .4rem .5rem;
@@ -1982,6 +2034,45 @@ body.dark-mode #fauna-section .gso-hero-copy { background: linear-gradient(135de
    font-size: .95rem;
    padding: .45rem .6rem;
 }
+#fauna-section .fauna-active-filter {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   justify-content: space-between;
+   gap: .75rem;
+   margin-bottom: 1rem;
+   padding: .85rem 1.15rem;
+   border-radius: 16px;
+   background: linear-gradient(120deg, rgba(0,97,255,0.12), rgba(72,149,255,0.18));
+   border: 1px solid rgba(0,97,255,0.18);
+   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22);
+}
+#fauna-section .fauna-active-filter-label {
+   display: flex;
+   align-items: baseline;
+   gap: .65rem;
+   font-size: 1rem;
+   color: #0b3a7d;
+}
+#fauna-section .fauna-active-filter-label i {
+   font-size: 1.05rem;
+   color: #0050d1;
+}
+#fauna-section .fauna-active-filter-total {
+   font-weight: 600;
+   font-size: .95rem;
+   color: #06306a;
+}
+body.dark-mode #fauna-section .fauna-active-filter {
+   background: linear-gradient(120deg, rgba(44,124,255,0.18), rgba(80,160,255,0.18));
+   border-color: rgba(80,142,255,0.26);
+   box-shadow: inset 0 0 0 1px rgba(17,38,92,0.7);
+}
+body.dark-mode #fauna-section .fauna-active-filter-label { color: #d6e4ff; }
+body.dark-mode #fauna-section .fauna-active-filter-label i { color: #8ab5ff; }
+body.dark-mode #fauna-section .fauna-active-filter-total { color: #a8c8ff; }
+#fauna-section #fauna-summary-reset { font-weight: 600; }
+#fauna-section #fauna-summary-reset:hover { transform: translateY(-1px); }
 #fauna-section h6.text-muted { /* títulos como "Top horas críticas" y "Resumen por fase" */
    font-size: 1.05rem !important;
 }
@@ -1991,8 +2082,24 @@ body.dark-mode #fauna-section .gso-hero-copy { background: linear-gradient(135de
 }
 /* Ajustes para pantallas pequeñas: mantenerlos grandes también en móvil */
 @media (max-width: 576px) {
-   #fauna-section #fauna-total-badge,
+   #fauna-section #fauna-total-badge {
+      width: 100%;
+      padding: 1rem 1.25rem 1rem 1.35rem;
+      min-height: 74px;
+   }
+   #fauna-section #fauna-total-badge .fauna-total-label {
+      font-size: .78rem;
+      letter-spacing: .1em;
+   }
+   #fauna-section #fauna-total-badge .fauna-total-value {
+      font-size: 2rem;
+   }
    #fauna-section #fauna-period-badge { font-size: 1.05rem; }
+   #fauna-section .fauna-active-filter {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: .6rem;
+   }
    #fauna-top-hours .badge { font-size: 1rem; }
    #fauna-phase-summary .badge { font-size: 1.05rem; }
 }

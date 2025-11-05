@@ -7001,7 +7001,7 @@ Z,Others,Not specific,Special internal purposes`;
           // 1.1) FOLIO (exhaustivo, prioriza números) – suele estar al principio
           try {
             const folio = (window._mfExtractFolioDigitsSmart?.(text) || window._mfExtractFolioExhaustive?.(text) || '').toString().trim();
-            if (folio) setVal('mf-folio', folio);
+            if (folio && isFolioConfidenceHigh(text, folio)) setVal('mf-folio', folio);
           } catch(_){ }
 
           // 2) Vuelo y transportista (robusto)
@@ -7544,6 +7544,27 @@ Z,Others,Not specific,Special internal purposes`;
         } catch(e) {
           if (status) status.textContent = 'Error al llenar campos: ' + (e?.message||e);
         }
+      }
+
+      function isFolioConfidenceHigh(text, folio){
+        try {
+          const raw = (text||'').toString();
+          const digits = (folio||'').toString().trim();
+          if (!raw || !digits) return false;
+          if (digits.length < 3 || digits.length > 10) return false;
+          const esc = digits.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const direct = new RegExp(`F[O0]L[I1]O[^0-9\n\r]{0,18}(?:N[O0]\.?\s*)?${esc}`, 'i');
+          if (direct.test(raw)) return true;
+          const lines = raw.split(/\r?\n/);
+          for (let i=0; i<lines.length; i++){
+            const line = lines[i] || '';
+            if (!new RegExp(`\\b${esc}\\b`).test(line)) continue;
+            if (/F[O0]L[I1]O/i.test(line)) return true;
+            if (/F[O0]L[I1]O/i.test(lines[i-1]||'')) return true;
+            if (/F[O0]L[I1]O/i.test(lines[i+1]||'')) return true;
+          }
+          return false;
+        } catch(_){ return false; }
       }
 
       async function handleScanPdf(){
