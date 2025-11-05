@@ -924,9 +924,42 @@ body.dark-mode .pdf-container iframe, body.dark-mode .pdf-preview-container ifra
    background: #fff;
 }
 /* Chart containers - consistent height and spacing to avoid overlapping visuals */
-.chart-container { height: 300px; position: relative; }
+.chart-container {
+   position: relative;
+   width: 100%;
+   height: clamp(280px, 48vw, 360px);
+}
 .card .chart-container canvas { width: 100% !important; height: 100% !important; }
 .card .chart-container > div { width: 100% !important; height: 100% !important; }
+@media (max-width: 992px) {
+   .chart-container { height: clamp(260px, 54vw, 340px); }
+}
+@media (max-width: 768px) {
+   .chart-container { height: clamp(240px, 60vw, 320px); }
+}
+@media (max-width: 576px) {
+   .chart-container { height: clamp(220px, 70vw, 300px) !important; }
+}
+
+#demoras-section .table-responsive {
+   border-radius: 14px;
+   overflow-x: auto;
+   -webkit-overflow-scrolling: touch;
+}
+#demoras-section .table { min-width: 100%; }
+@media (max-width: 768px) {
+   #demoras-section .table thead th,
+   #demoras-section .table tbody td,
+   #demoras-section .table tfoot th { white-space: nowrap; }
+}
+@media (max-width: 576px) {
+   #demoras-section .card-body { padding: 1rem; }
+   #demoras-section .table { font-size: 0.85rem; }
+   #demoras-section .table thead th,
+   #demoras-section .table tbody td,
+   #demoras-section .table tfoot th { padding: 0.5rem 0.6rem; }
+   #operaciones-totales-section .card-body { padding: 1rem; }
+}
 
 /* Itinerary charts: dedicated horizontal scroll wrapper */
 .itinerary-charts-scroll {
