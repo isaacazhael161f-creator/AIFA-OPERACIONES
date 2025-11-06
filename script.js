@@ -3198,6 +3198,11 @@ function resetOpsChartViewport(chart) {
         container.style.removeProperty('--chart-width');
         container.style.removeProperty('overflow-x');
         canvas.style.removeProperty('max-width');
+        if (typeof container.scrollTo === 'function') {
+            container.scrollTo({ left: 0, behavior: 'instant' });
+        } else {
+            container.scrollLeft = 0;
+        }
     } catch (_) { /* noop */ }
 }
 
@@ -3212,9 +3217,9 @@ function adjustOpsChartViewport(chart) {
         const containerWidth = container.clientWidth || viewport || 360;
         const isMobile = viewport <= 640;
         const isTablet = viewport > 640 && viewport <= 992;
-        const unit = isMobile ? 78 : (isTablet ? 66 : 54);
-        const approxWidth = labelCount > 1 ? Math.min(1400, Math.max(containerWidth, labelCount * unit)) : containerWidth;
-        const shouldScroll = approxWidth > (containerWidth + 16) && (isMobile || labelCount > 14);
+        const unit = isMobile ? 64 : (isTablet ? 56 : 48);
+        const approxWidth = labelCount > 1 ? Math.min(1300, Math.max(containerWidth, labelCount * unit)) : containerWidth;
+        const shouldScroll = approxWidth > containerWidth * 1.18 && labelCount > 16;
         const prevMode = container.getAttribute('data-scroll-mode') || 'off';
         const prevWidth = parseInt(container.getAttribute('data-scroll-width') || '0', 10);
 
@@ -4218,12 +4223,6 @@ function renderOperacionesTotales() {
                 const bg = makeGradient(canvas, fillTop, fillBottom);
                 const border = stroke;
                 const maxVal = Math.max(0, ...data);
-                const pointRadius = data.map(v => {
-                    const t = maxVal>0 ? (v/maxVal) : 0;
-                    const base = 2 + Math.min(3, t*2.5);
-                    return v === maxVal && maxVal>0 ? Math.max(6, base) : base;
-                });
-                const pointHoverRadius = data.map(v => (v === maxVal && maxVal>0) ? 7 : 4);
                 const isDark = document.body.classList.contains('dark-mode');
                 const emoji = fmtType==='pax' ? '🚶' : (fmtType==='ton' ? '🧳' : '✈');
                 const finalTitle = titleText || `${emoji} ${label}`;
@@ -4240,16 +4239,16 @@ function renderOperacionesTotales() {
                 const isTablet = !isMobile && viewportWidth < 992;
                 const smallMode = labelCount > 8;
                 const canvasBaseWidth = (canvas && canvas.clientWidth) ? canvas.clientWidth : (canvas && canvas.width ? canvas.width : viewportWidth || 1024);
-                const densityUnit = isMobile ? 78 : (isTablet ? 66 : 54);
-                const denseThreshold = isMobile ? 6 : (isTablet ? 10 : 14);
+                const densityUnit = isMobile ? 64 : (isTablet ? 56 : 48);
+                const denseThreshold = isMobile ? 8 : (isTablet ? 12 : 16);
                 const targetWidth = labelCount > denseThreshold
-                    ? Math.min(1400, Math.max(canvasBaseWidth, labelCount * densityUnit))
+                    ? Math.min(1300, Math.max(canvasBaseWidth, labelCount * densityUnit))
                     : canvasBaseWidth;
                 const widthForSpacing = Math.max(canvasBaseWidth, targetWidth);
                 const isYearAxis = Array.isArray(labels) && labels.length>0 && labels.every(l => /^\d{4}$/.test(String(l)));
                 const steps = Math.max(1, (labelCount || 1) - 1);
                 const approxStep = Math.max(1, (widthForSpacing - 60) / steps);
-                const dynMinGapX = Math.max(18, smallMode ? approxStep * (isMobile ? 0.85 : 0.7) : approxStep * (isMobile ? 0.75 : 0.55));
+                const dynMinGapX = Math.max(16, smallMode ? approxStep * (isMobile ? 0.8 : 0.68) : approxStep * (isMobile ? 0.7 : 0.5));
                 const dynOffsetY = isYearAxis ? (isMobile ? 44 : 40) : (isMobile ? 34 : (isTablet ? 38 : 44));
                 const dynOffsetBelow = isYearAxis ? (isMobile ? 28 : 26) : (isMobile ? 24 : (isTablet ? 26 : 28));
                 const xTickFont = isMobile ? 10 : (isTablet ? 11 : 12);
@@ -4259,6 +4258,20 @@ function renderOperacionesTotales() {
                 const padRight = isMobile ? 12 : (isTablet ? 14 : 16);
                 let padBottom = isMobile ? 28 : (isTablet ? 24 : 22);
                 const padLeft = isMobile ? 8 : 10;
+
+                const radiusScale = isMobile ? 0.7 : (isTablet ? 0.85 : 1);
+                const pointRadius = data.map(v => {
+                    const t = maxVal>0 ? (v/maxVal) : 0;
+                    const base = (2 + Math.min(3, t*2.5)) * radiusScale;
+                    const baseline = Math.max(2.5 * radiusScale, base);
+                    if (v === maxVal && maxVal>0) {
+                        return Math.max(baseline, 5.5 * radiusScale);
+                    }
+                    return baseline;
+                });
+                const pointHoverRadius = data.map(v => (v === maxVal && maxVal>0)
+                    ? Math.max(5, 6 * radiusScale)
+                    : Math.max(3, 4 * radiusScale));
 
                 if (isYearAxis) {
                     padTop += isMobile ? 18 : 12;
@@ -4304,17 +4317,18 @@ function renderOperacionesTotales() {
                 })();
 
                 // Opciones específicas para las burbujas en ejes de años (4-5 puntos)
+                const bubbleShow = !isMobile || labelCount <= 12;
                 const bubbleOpts = {
-                    show: true,
+                    show: bubbleShow,
                     borderColor: border,
                     fillColor: border,
                     textColor: '#ffffff',
                     format: fmtType,
-                    minGapX: Math.min(160, dynMinGapX),
+                    minGapX: Math.min(140, dynMinGapX),
                     small: isYearAxis ? true : (isMobile ? true : smallMode),
                     offsetY: dynOffsetY,
                     offsetBelow: dynOffsetBelow,
-                    onlyMax: false
+                    onlyMax: isMobile && labelCount > 12
                 };
 
                 // Plugin ligero para dar un extra de alto a la escala X en ejes anuales y evitar cortes

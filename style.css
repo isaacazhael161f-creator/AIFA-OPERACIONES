@@ -825,8 +825,8 @@ body.sidebar-open { overflow: hidden; }
    .sidebar { transform: translateX(-100%); width: var(--sidebar-width); box-shadow: 4px 0 12px rgba(0,0,0,0.2); }
    .sidebar.visible { transform: translateX(0); }
    .main-content { margin-left: 0; width: 100%; }
-   .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); opacity: 0; visibility: hidden; transition: opacity .2s ease, visibility .2s ease; z-index: 1040; cursor: pointer; }
-   .sidebar-overlay.active { opacity: 1; visibility: visible; }
+   .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); opacity: 0; visibility: hidden; transition: opacity .2s ease, visibility .2s ease; z-index: 1040; cursor: pointer; pointer-events: none; }
+   .sidebar-overlay.active { opacity: 1; visibility: visible; pointer-events: auto; }
 }
 
 /* ==========================================================================
@@ -928,7 +928,7 @@ body.dark-mode .pdf-container iframe, body.dark-mode .pdf-preview-container ifra
 .chart-container {
    position: relative;
    width: 100%;
-   height: clamp(300px, 50vw, 400px);
+   height: clamp(280px, 42vw, 360px);
    --chart-width: 100%;
 }
 .card .chart-container canvas { width: var(--chart-width, 100%) !important; height: 100% !important; }
@@ -939,7 +939,7 @@ body.dark-mode .pdf-container iframe, body.dark-mode .pdf-preview-container ifra
    overflow-y: hidden;
    touch-action: pan-x;
    -webkit-overflow-scrolling: touch;
-   padding-bottom: 10px;
+   padding-bottom: 8px;
    scrollbar-width: thin;
 }
 .chart-container.chart-scrollable::-webkit-scrollbar { height: 6px; }
@@ -950,13 +950,13 @@ body.dark-mode .chart-container.chart-scrollable::-webkit-scrollbar-thumb { back
    max-width: none !important;
 }
 @media (max-width: 992px) {
-   .chart-container { height: clamp(280px, 58vw, 380px); }
+   .chart-container { height: clamp(250px, 54vw, 330px); }
 }
 @media (max-width: 768px) {
-   .chart-container { height: clamp(260px, 68vw, 360px); }
+   .chart-container { height: clamp(230px, 58vw, 310px); }
 }
 @media (max-width: 576px) {
-   .chart-container { height: clamp(280px, 82vw, 420px) !important; }
+   .chart-container { height: clamp(208px, 64vw, 280px) !important; }
 }
 
 #demoras-section .table-responsive {
@@ -1884,7 +1884,7 @@ body.dark-mode #daily-stats-row .stat-card { background:#233142; }
 /* Ajustes responsivos para gráficas de inicio (Operaciones Totales) */
 #operaciones-totales-section .chart-container.ops-chart {
    position: relative;
-   height: clamp(360px, 52vw, 460px);
+   height: clamp(320px, 46vw, 420px);
    min-height: 0;
    padding: clamp(10px, 1.6vw, 16px);
    border-radius: 18px;
@@ -1894,31 +1894,31 @@ body.dark-mode #daily-stats-row .stat-card { background:#233142; }
    height: 100% !important;
 }
 @media (max-width: 1200px) {
-   #operaciones-totales-section .chart-container.ops-chart { height: clamp(340px, 58vw, 440px); }
+   #operaciones-totales-section .chart-container.ops-chart { height: clamp(300px, 52vw, 380px); }
 }
 @media (max-width: 992px) {
-   #operaciones-totales-section .chart-container.ops-chart { height: clamp(320px, 62vw, 420px); }
+   #operaciones-totales-section .chart-container.ops-chart { height: clamp(280px, 56vw, 360px); }
 }
 @media (max-width: 768px) {
    #operaciones-totales-section .chart-container.ops-chart {
-      height: clamp(320px, 78vw, 440px);
-      width: min(540px, 100%);
+      height: clamp(248px, 68vw, 320px);
+      width: min(510px, 100%);
       margin-inline: auto;
-      padding: clamp(10px, 3vw, 14px);
+      padding: clamp(9px, 3vw, 12px);
       border-radius: 16px;
    }
    #operaciones-totales-section .update-note { width: 100%; }
 }
 @media (max-width: 576px) {
    #operaciones-totales-section .chart-container.ops-chart {
-      height: clamp(320px, 96vw, 460px);
-      padding: clamp(8px, 4vw, 14px);
+      height: clamp(228px, 82vw, 300px);
+      padding: clamp(8px, 3.6vw, 12px);
    }
 }
 @media (max-width: 420px) {
    #operaciones-totales-section .chart-container.ops-chart {
-      height: clamp(320px, 112vw, 460px);
-      padding: clamp(6px, 4.8vw, 12px);
+      height: clamp(212px, 90vw, 280px);
+      padding: clamp(6px, 4.5vw, 10px);
       border-radius: 14px;
    }
 }
