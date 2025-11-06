@@ -870,6 +870,15 @@ function setupEventListeners() {
     
     // Atajos de teclado para reinicializar gráficas
     document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (window.innerWidth <= 991.98 && sidebar && overlay && sidebar.classList.contains('visible')) {
+                sidebar.classList.remove('visible');
+                overlay.classList.remove('active');
+                document.body.classList.remove('sidebar-open');
+            }
+        }
         if (e.ctrlKey && e.shiftKey) {
             const activeSection = document.querySelector('.content-section.active');
             const sectionId = activeSection ? activeSection.id.replace('-section', '') : '';
@@ -1495,6 +1504,7 @@ function toggleSidebar() {
         const willShow = !sidebar.classList.contains('visible');
         sidebar.classList.toggle('visible', willShow);
         overlay.classList.toggle('active', willShow);
+        document.body.classList.toggle('sidebar-open', willShow);
     } else {
         const isCollapsed = document.body.classList.toggle('sidebar-collapsed');
         localStorage.setItem('sidebarState', isCollapsed ? 'collapsed' : 'expanded');
@@ -2910,6 +2920,7 @@ function showSection(sectionKey, linkEl) {
         if (sidebar && overlay && sidebar.classList.contains('visible')) {
             sidebar.classList.remove('visible');
             overlay.classList.remove('active');
+            document.body.classList.remove('sidebar-open');
         }
     } catch (e) { console.warn('showSection error:', e); }
 }
@@ -3165,6 +3176,7 @@ document.addEventListener('DOMContentLoaded', function(){
             overlay.addEventListener('click', function(){
                 sidebar.classList.remove('visible');
                 overlay.classList.remove('active');
+                document.body.classList.remove('sidebar-open');
             });
         }
     } catch(_) {}
@@ -3172,6 +3184,72 @@ document.addEventListener('DOMContentLoaded', function(){
 
 // Resumen y gráficas de Operaciones Totales (restauración completa con filtros, animaciones y colores)
 const opsCharts = {};
+let opsViewportFrame = null;
+
+function resetOpsChartViewport(chart) {
+    try {
+        if (!chart || !chart.canvas) return;
+        const canvas = chart.canvas;
+        const container = canvas.parentElement;
+        if (!container) return;
+        container.classList.remove('chart-scrollable');
+        container.removeAttribute('data-scroll-mode');
+        container.removeAttribute('data-scroll-width');
+        container.style.removeProperty('--chart-width');
+        container.style.removeProperty('overflow-x');
+        canvas.style.removeProperty('max-width');
+    } catch (_) { /* noop */ }
+}
+
+function adjustOpsChartViewport(chart) {
+    try {
+        if (!chart || !chart.canvas) return;
+        const canvas = chart.canvas;
+        const container = canvas.parentElement;
+        if (!container) return;
+        const labelCount = Array.isArray(chart.data?.labels) ? chart.data.labels.length : 0;
+        const viewport = Math.max(window.innerWidth || 0, document.documentElement?.clientWidth || 0, 0);
+        const containerWidth = container.clientWidth || viewport || 360;
+        const isMobile = viewport <= 640;
+        const isTablet = viewport > 640 && viewport <= 992;
+        const unit = isMobile ? 78 : (isTablet ? 66 : 54);
+        const approxWidth = labelCount > 1 ? Math.min(1400, Math.max(containerWidth, labelCount * unit)) : containerWidth;
+        const shouldScroll = approxWidth > (containerWidth + 16) && (isMobile || labelCount > 14);
+        const prevMode = container.getAttribute('data-scroll-mode') || 'off';
+        const prevWidth = parseInt(container.getAttribute('data-scroll-width') || '0', 10);
+
+        if (shouldScroll) {
+            const widthValue = Math.round(approxWidth);
+            container.classList.add('chart-scrollable');
+            container.setAttribute('data-scroll-mode', 'on');
+            container.setAttribute('data-scroll-width', String(widthValue));
+            container.style.setProperty('--chart-width', `${widthValue}px`);
+            container.style.overflowX = 'auto';
+            canvas.style.maxWidth = 'none';
+            requestAnimationFrame(() => {
+                try { chart.resize(); } catch (_) {}
+            });
+        } else if (prevMode !== 'off') {
+            resetOpsChartViewport(chart);
+            requestAnimationFrame(() => {
+                try { chart.resize(); } catch (_) {}
+            });
+        }
+    } catch (err) {
+        console.warn('adjustOpsChartViewport error:', err);
+    }
+}
+
+function scheduleOpsViewportUpdate() {
+    if (opsViewportFrame) cancelAnimationFrame(opsViewportFrame);
+    opsViewportFrame = requestAnimationFrame(() => {
+        opsViewportFrame = null;
+        Object.values(opsCharts).forEach((chart) => adjustOpsChartViewport(chart));
+    });
+}
+
+window.addEventListener('resize', () => scheduleOpsViewportUpdate(), { passive: true });
+
 function drawLineChart(canvasId, labels, values, opts){
     const c = document.getElementById(canvasId); if (!c) return;
     const dpr=window.devicePixelRatio||1; const w=c.clientWidth||640, h=c.clientHeight||380;
@@ -3374,7 +3452,10 @@ function destroyOpsCharts() {
     stopOpsAnim();
     Object.keys(opsCharts).forEach((k) => {
         try {
-            if (opsCharts[k]) opsCharts[k].destroy();
+            if (opsCharts[k]) {
+                resetOpsChartViewport(opsCharts[k]);
+                opsCharts[k].destroy();
+            }
         } catch (_) { /* noop */ }
         delete opsCharts[k];
     });
@@ -4153,35 +4234,40 @@ function renderOperacionesTotales() {
                     anim.stagger = 0;
                 }
                 delete anim.disableMotion;
-                const smallMode = labels && labels.length > 8; // mensual normalmente
-                // Responsivo por ancho del lienzo para móvil/tablet
-                const w = (canvas && canvas.clientWidth) ? canvas.clientWidth : (canvas && canvas.width ? canvas.width : (window.innerWidth||1200));
-                const isMobile = w < 576;
-                const isTablet = !isMobile && w < 992;
+                const labelCount = Array.isArray(labels) ? labels.length : 0;
+                const viewportWidth = Math.max(window.innerWidth || 0, document.documentElement?.clientWidth || 0, 0);
+                const isMobile = viewportWidth < 576;
+                const isTablet = !isMobile && viewportWidth < 992;
+                const smallMode = labelCount > 8;
+                const canvasBaseWidth = (canvas && canvas.clientWidth) ? canvas.clientWidth : (canvas && canvas.width ? canvas.width : viewportWidth || 1024);
+                const densityUnit = isMobile ? 78 : (isTablet ? 66 : 54);
+                const denseThreshold = isMobile ? 6 : (isTablet ? 10 : 14);
+                const targetWidth = labelCount > denseThreshold
+                    ? Math.min(1400, Math.max(canvasBaseWidth, labelCount * densityUnit))
+                    : canvasBaseWidth;
+                const widthForSpacing = Math.max(canvasBaseWidth, targetWidth);
                 const isYearAxis = Array.isArray(labels) && labels.length>0 && labels.every(l => /^\d{4}$/.test(String(l)));
-                const steps = Math.max(1, (labels && labels.length ? labels.length - 1 : 1));
-                const approxStep = Math.max(1, (w - 60)) / steps;
-                const dynMinGapX = Math.max(isMobile ? approxStep * 0.7 : (isTablet ? approxStep * 0.55 : approxStep * 0.45), smallMode ? 28 : 16);
-                const dynOffsetY = isMobile ? 28 : (isTablet ? 34 : 40);
-                const dynOffsetBelow = isMobile ? 22 : 26;
+                const steps = Math.max(1, (labelCount || 1) - 1);
+                const approxStep = Math.max(1, (widthForSpacing - 60) / steps);
+                const dynMinGapX = Math.max(18, smallMode ? approxStep * (isMobile ? 0.85 : 0.7) : approxStep * (isMobile ? 0.75 : 0.55));
+                const dynOffsetY = isYearAxis ? (isMobile ? 44 : 40) : (isMobile ? 34 : (isTablet ? 38 : 44));
+                const dynOffsetBelow = isYearAxis ? (isMobile ? 28 : 26) : (isMobile ? 24 : (isTablet ? 26 : 28));
                 const xTickFont = isMobile ? 10 : (isTablet ? 11 : 12);
                 const yTickFont = isMobile ? 10 : (isTablet ? 11 : 12);
                 const maxTicks = isMobile ? 6 : (isTablet ? 8 : 12);
-                let padTop = isMobile ? 48 : (isTablet ? 56 : 64);
-                const padRight = isMobile ? 12 : 14;
-                // Dar un poco más de margen inferior en móviles para no recortar etiquetas
-                let padBottom = isMobile ? 24 : 20;
+                let padTop = isMobile ? 52 : (isTablet ? 60 : 68);
+                const padRight = isMobile ? 12 : (isTablet ? 14 : 16);
+                let padBottom = isMobile ? 28 : (isTablet ? 24 : 22);
                 const padLeft = isMobile ? 8 : 10;
 
-                // En ejes de años queremos asegurar visibilidad de TODAS las etiquetas y sus datalabels
                 if (isYearAxis) {
-                    padTop += isMobile ? 16 : 12;     // más espacio arriba para burbujas
-                    padBottom += isMobile ? 10 : 6;  // y algo más abajo para evitar recortes
+                    padTop += isMobile ? 18 : 12;
+                    padBottom += isMobile ? 12 : 8;
                 }
 
-                const xMaxRotation = isYearAxis ? 0 : (isMobile ? 42 : (isTablet ? 22 : 0));
+                const xMaxRotation = isYearAxis ? 0 : (isMobile ? 36 : (isTablet ? 20 : 0));
                 const xMinRotation = isYearAxis ? 0 : (isMobile ? 12 : 0);
-                const tickPadding = isYearAxis ? 0 : (isMobile ? 12 : (isTablet ? 10 : 6));
+                const tickPadding = isYearAxis ? 0 : (isMobile ? 10 : (isTablet ? 8 : 6));
 
                 const formatTickLabel = (value) => {
                     if (value == null) return value;
@@ -4224,13 +4310,10 @@ function renderOperacionesTotales() {
                     fillColor: border,
                     textColor: '#ffffff',
                     format: fmtType,
-                    // Siempre intentamos mostrar todas las etiquetas; el algoritmo de colisiones decide reposiciones.
-                    minGapX: 0,
-                    // Burbuja compacta para reducir colisiones en pantallas pequeñas
-                    small: isYearAxis ? true : smallMode,
-                    // Offsets afinados para móvil
-                    offsetY: isYearAxis ? (isMobile ? 44 : 40) : dynOffsetY,
-                    offsetBelow: isYearAxis ? (isMobile ? 28 : 26) : dynOffsetBelow,
+                    minGapX: Math.min(160, dynMinGapX),
+                    small: isYearAxis ? true : (isMobile ? true : smallMode),
+                    offsetY: dynOffsetY,
+                    offsetBelow: dynOffsetBelow,
                     onlyMax: false
                 };
 
@@ -4567,6 +4650,7 @@ function renderOperacionesTotales() {
 
     // Actualizar resumen en función del modo/filtros
         try { updateOpsSummary(); } catch(_) {}
+        scheduleOpsViewportUpdate();
     } catch (e) { console.warn('renderOperacionesTotales error:', e); }
     
     // Detectar errores después de renderizar
@@ -5007,6 +5091,7 @@ function setupBodyEventListeners() {
             const sidebar = document.getElementById('sidebar');
             if (sidebar) sidebar.classList.remove('visible');
             overlay.classList.remove('active');
+            document.body.classList.remove('sidebar-open');
         }); }
         // Scroll controls ranges
         document.querySelectorAll('.itinerary-horizontal .h-scroll-area').forEach(area => {

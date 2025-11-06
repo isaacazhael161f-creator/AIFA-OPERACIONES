@@ -2,22 +2,22 @@
   "operaciones": [
     {
   "tipo": "Aviación de Pasajeros",
-      "llegada": 71,
-      "salida": 71,
-      "subtotal": 142
+      "llegada": 77,
+      "salida": 77,
+      "subtotal": 154
     },
     {
   "tipo": "Aviación de Carga",
-      "llegada": 16,
-      "salida": 16,
-      "subtotal": 32
+      "llegada": 19,
+      "salida": 22,
+      "subtotal": 41
     },
     {
   "tipo": "Aviación General",
-      "llegada": 7,
-      "salida": 7,
-      "subtotal": 14
+      "llegada": 5,
+      "salida": 3,
+      "subtotal": 8
     }
   ],
-  "total_general": 188
+  "total_general": 203
 }

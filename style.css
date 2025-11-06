@@ -818,13 +818,14 @@ body.dark-mode #cargo-itinerary-container .table thead th {
 .sidebar-toggler-btn { color: var(--text-color); border: none; font-size: 1.2rem; }
 body.sidebar-collapsed .sidebar { transform: translateX(calc(-1 * var(--sidebar-width))); }
 body.sidebar-collapsed .main-content { margin-left: 0; width: 100%; }
+body.sidebar-open { overflow: hidden; }
 
 /* Mobile sidebar behavior */
 @media (max-width: 991.98px) {
    .sidebar { transform: translateX(-100%); width: var(--sidebar-width); box-shadow: 4px 0 12px rgba(0,0,0,0.2); }
    .sidebar.visible { transform: translateX(0); }
    .main-content { margin-left: 0; width: 100%; }
-   .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); opacity: 0; visibility: hidden; transition: opacity .2s ease, visibility .2s ease; z-index: 1040; }
+   .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); opacity: 0; visibility: hidden; transition: opacity .2s ease, visibility .2s ease; z-index: 1040; cursor: pointer; }
    .sidebar-overlay.active { opacity: 1; visibility: visible; }
 }
 
@@ -927,18 +928,35 @@ body.dark-mode .pdf-container iframe, body.dark-mode .pdf-preview-container ifra
 .chart-container {
    position: relative;
    width: 100%;
-   height: clamp(280px, 48vw, 360px);
+   height: clamp(300px, 50vw, 400px);
+   --chart-width: 100%;
 }
-.card .chart-container canvas { width: 100% !important; height: 100% !important; }
-.card .chart-container > div { width: 100% !important; height: 100% !important; }
+.card .chart-container canvas { width: var(--chart-width, 100%) !important; height: 100% !important; }
+.card .chart-container > div { width: var(--chart-width, 100%) !important; height: 100% !important; }
+/* Horizontal scroll helper for dense charts (mobile) */
+.chart-container.chart-scrollable {
+   overflow-x: auto;
+   overflow-y: hidden;
+   touch-action: pan-x;
+   -webkit-overflow-scrolling: touch;
+   padding-bottom: 10px;
+   scrollbar-width: thin;
+}
+.chart-container.chart-scrollable::-webkit-scrollbar { height: 6px; }
+.chart-container.chart-scrollable::-webkit-scrollbar-thumb { background-color: rgba(15, 23, 42, 0.25); border-radius: 999px; }
+body.dark-mode .chart-container.chart-scrollable::-webkit-scrollbar-thumb { background-color: rgba(209, 213, 219, 0.35); }
+.chart-container.chart-scrollable canvas,
+.chart-container.chart-scrollable > div {
+   max-width: none !important;
+}
 @media (max-width: 992px) {
-   .chart-container { height: clamp(260px, 54vw, 340px); }
+   .chart-container { height: clamp(280px, 58vw, 380px); }
 }
 @media (max-width: 768px) {
-   .chart-container { height: clamp(240px, 60vw, 320px); }
+   .chart-container { height: clamp(260px, 68vw, 360px); }
 }
 @media (max-width: 576px) {
-   .chart-container { height: clamp(220px, 70vw, 300px) !important; }
+   .chart-container { height: clamp(280px, 82vw, 420px) !important; }
 }
 
 #demoras-section .table-responsive {
@@ -1866,8 +1884,8 @@ body.dark-mode #daily-stats-row .stat-card { background:#233142; }
 /* Ajustes responsivos para gráficas de inicio (Operaciones Totales) */
 #operaciones-totales-section .chart-container.ops-chart {
    position: relative;
-   height: auto;
-   min-height: 420px;
+   height: clamp(360px, 52vw, 460px);
+   min-height: 0;
    padding: clamp(10px, 1.6vw, 16px);
    border-radius: 18px;
 }
@@ -1876,14 +1894,14 @@ body.dark-mode #daily-stats-row .stat-card { background:#233142; }
    height: 100% !important;
 }
 @media (max-width: 1200px) {
-   #operaciones-totales-section .chart-container.ops-chart { min-height: 380px; }
+   #operaciones-totales-section .chart-container.ops-chart { height: clamp(340px, 58vw, 440px); }
 }
 @media (max-width: 992px) {
-   #operaciones-totales-section .chart-container.ops-chart { min-height: 340px; }
+   #operaciones-totales-section .chart-container.ops-chart { height: clamp(320px, 62vw, 420px); }
 }
 @media (max-width: 768px) {
    #operaciones-totales-section .chart-container.ops-chart {
-      min-height: 320px;
+      height: clamp(320px, 78vw, 440px);
       width: min(540px, 100%);
       margin-inline: auto;
       padding: clamp(10px, 3vw, 14px);
@@ -1893,13 +1911,13 @@ body.dark-mode #daily-stats-row .stat-card { background:#233142; }
 }
 @media (max-width: 576px) {
    #operaciones-totales-section .chart-container.ops-chart {
-      min-height: 280px;
+      height: clamp(320px, 96vw, 460px);
       padding: clamp(8px, 4vw, 14px);
    }
 }
 @media (max-width: 420px) {
    #operaciones-totales-section .chart-container.ops-chart {
-      min-height: 260px;
+      height: clamp(320px, 112vw, 460px);
       padding: clamp(6px, 4.8vw, 12px);
       border-radius: 14px;
    }
@@ -2093,7 +2111,13 @@ body.dark-mode .text-light-ntp { color: rgba(215,230,255,0.92) !important; text-
    .header-logo { height: 28px; }
    .gob-logo { display: none; }
    .main-title { font-size: 1rem; line-height: 1.2; text-align: center; max-width: 85vw; }
-   .header-center-content > .d-flex { flex-wrap: wrap; gap: .35rem; }
+   .header .header-content > .d-flex.align-items-center:first-child { width: 100%; justify-content: center; gap: .75rem; }
+   .header .header-content > .d-flex.align-items-center:first-child .sidebar-toggler-btn { padding: .35rem .55rem; font-size: 1.3rem; }
+   .header-center-content { width: 100%; }
+   .header-center-content > .d-flex { flex-wrap: wrap; gap: .35rem; justify-content: center; }
+   .header-title-row { justify-content: center; flex-wrap: wrap; gap: .4rem; align-items: center; }
+   .header-title-row .header-logo { height: 28px; }
+   .header-right-content { width: 100%; justify-content: center; gap: .5rem; flex-wrap: wrap; }
    .clocks-wrapper { gap: 6px; }
    .utc-clock-container { display: none; }
    .formal-clock, .utc-clock { font-size: .95rem; padding: .1rem .5rem; }
