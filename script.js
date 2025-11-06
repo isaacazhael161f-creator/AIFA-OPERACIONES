@@ -1490,10 +1490,18 @@ function updateThemeIcon(isDarkMode) {
 }
 function initializeSidebarState() {
     const isMobile = window.innerWidth <= 991.98;
-    if (!isMobile) {
-        const savedState = localStorage.getItem('sidebarState') || 'collapsed';
-        if (savedState === 'collapsed') { document.body.classList.add('sidebar-collapsed'); }
+    if (isMobile) {
+        document.body.classList.remove('sidebar-collapsed');
+        document.body.classList.remove('sidebar-open');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        if (sidebar) sidebar.classList.remove('visible');
+        if (overlay) overlay.classList.remove('active');
+        return;
     }
+    const savedState = localStorage.getItem('sidebarState') || 'collapsed';
+    if (savedState === 'collapsed') document.body.classList.add('sidebar-collapsed');
+    else document.body.classList.remove('sidebar-collapsed');
 }
 function toggleSidebar() {
     const isMobile = window.innerWidth <= 991.98;
@@ -1502,6 +1510,9 @@ function toggleSidebar() {
         const overlay = document.getElementById('sidebar-overlay');
         if (!sidebar || !overlay) return;
         const willShow = !sidebar.classList.contains('visible');
+        if (willShow) {
+            document.body.classList.remove('sidebar-collapsed');
+        }
         sidebar.classList.toggle('visible', willShow);
         overlay.classList.toggle('active', willShow);
         document.body.classList.toggle('sidebar-open', willShow);
@@ -5494,8 +5505,14 @@ function showMainApp() {
                 const overlay = document.getElementById('sidebar-overlay');
                 if (sidebar) sidebar.classList.remove('visible');
                 if (overlay) overlay.classList.remove('active');
-                document.body.classList.add('sidebar-collapsed');
-                try { localStorage.setItem('sidebarState', 'collapsed'); } catch (_) {}
+                const isMobile = window.innerWidth <= 991.98;
+                if (isMobile) {
+                    document.body.classList.remove('sidebar-collapsed');
+                    document.body.classList.remove('sidebar-open');
+                } else {
+                    document.body.classList.add('sidebar-collapsed');
+                    try { localStorage.setItem('sidebarState', 'collapsed'); } catch (_) {}
+                }
             } catch (_) {}
         }
     }).catch(()=>{
