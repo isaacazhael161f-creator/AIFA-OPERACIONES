@@ -787,6 +787,12 @@
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="aviacion-comercial-tab" data-bs-toggle="tab" data-bs-target="#aviacion-comercial-pane" type="button" role="tab" aria-controls="aviacion-comercial-pane" aria-selected="false"><i class="fas fa-paper-plane me-2"></i>Aviación comercial</button>
                                 </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="aviacion-general-tab" data-bs-toggle="tab" data-bs-target="#aviacion-general-pane" type="button" role="tab" aria-controls="aviacion-general-pane" aria-selected="false"><i class="fas fa-plane-up me-2"></i>Aviación general</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="aviacion-carga-tab" data-bs-toggle="tab" data-bs-target="#aviacion-carga-pane" type="button" role="tab" aria-controls="aviacion-carga-pane" aria-selected="false"><i class="fas fa-box-open me-2"></i>Aviación de carga</button>
+                                </li>
                             </ul>
                             <div class="tab-content pt-3" id="opsTabsContent">
                                 <div class="tab-pane fade show active" id="ops-resumen-pane" role="tabpanel" aria-labelledby="ops-resumen-tab" tabindex="0">
@@ -1048,6 +1054,210 @@
                                             </div>
                                         </div>
                                         <div class="ag-insights d-none mt-3" id="ag-insights"></div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="aviacion-general-pane" role="tabpanel" aria-labelledby="aviacion-general-tab" tabindex="0">
+                                    <div class="ag-wrapper">
+                                        <div class="row g-3 align-items-stretch" id="gen-controls-row">
+                                            <div class="col-12 col-lg-4 col-xxl-3">
+                                                <div class="card ag-controls-card h-100">
+                                                    <div class="card-body">
+                                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                                            <div class="d-flex align-items-center gap-2 text-uppercase small fw-semibold text-muted">
+                                                                <i class="fas fa-sliders-h text-primary"></i>
+                                                                <span>Configuración</span>
+                                                            </div>
+                                                            <button class="btn btn-outline-secondary btn-sm" id="gen-reset-btn"><i class="fas fa-rotate-left me-1"></i>Restablecer</button>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="gen-metric-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-chart-column me-1"></i>Indicador</label>
+                                                            <select id="gen-metric-select" class="form-select form-select-sm">
+                                                                <option value="operaciones" selected>Operaciones</option>
+                                                                <option value="pasajeros">Pasajeros</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="gen-view-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-layer-group me-1"></i>Detalle</label>
+                                                            <select id="gen-view-select" class="form-select form-select-sm">
+                                                                <option value="anual" selected>Vista anual</option>
+                                                                <option value="mensual">Detalle mensual</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="mb-3 d-none" id="gen-year-group">
+                                                            <label for="gen-year-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-calendar me-1"></i>Año base</label>
+                                                            <select id="gen-year-select" class="form-select form-select-sm"></select>
+                                                        </div>
+                                                        <div class="mb-0 d-none" id="gen-comparison-group">
+                                                            <label for="gen-comparison-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-balance-scale me-1"></i>Comparar con</label>
+                                                            <select id="gen-comparison-select" class="form-select form-select-sm"></select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-lg-8 col-xxl-9">
+                                                <div class="card h-100">
+                                                    <div class="card-body">
+                                                        <div class="d-flex flex-column gap-3">
+                                                            <div>
+                                                                <h5 class="mb-1 d-flex align-items-center gap-2">
+                                                                    <i class="fas fa-chart-area text-primary"></i>
+                                                                    <span>Panorama táctico</span>
+                                                                </h5>
+                                                                <p class="text-muted small mb-0">Monitorea el pulso operativo de la aviación general con métricas históricas y comparativos inmediatos.</p>
+                                                            </div>
+                                                            <ul class="list-unstyled small text-muted mb-0">
+                                                                <li class="d-flex align-items-center gap-2"><i class="fas fa-compass text-primary"></i><span>Identifica variaciones relevantes por temporada.</span></li>
+                                                                <li class="d-flex align-items-center gap-2"><i class="fas fa-calendar-alt text-primary"></i><span>Activa el detalle mensual para detectar meses pico.</span></li>
+                                                                <li class="d-flex align-items-center gap-2"><i class="fas fa-lightbulb text-warning"></i><span>Recibe hallazgos clave calculados automáticamente.</span></li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <div class="row g-3" id="gen-summary-cards"></div>
+                                            </div>
+                                        </div>
+                                        <div class="row g-3 align-items-start">
+                                            <div class="col-12 col-xxl-6">
+                                                <div class="card h-100">
+                                                    <div class="card-body">
+                                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                                                            <span class="badge bg-primary-subtle text-primary fw-semibold" id="gen-chart-tag">Vista anual</span>
+                                                            <small class="text-muted" id="gen-chart-subtitle"></small>
+                                                        </div>
+                                                        <div class="chart-container" style="height: 420px;"><canvas id="gen-chart"></canvas></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-xxl-6">
+                                                <div class="card h-100">
+                                                    <div class="card-body">
+                                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                                                            <span class="badge bg-secondary-subtle text-secondary fw-semibold" id="gen-table-tag">Variación interanual</span>
+                                                            <small class="text-muted" id="gen-table-caption"></small>
+                                                        </div>
+                                                        <div id="gen-table-wrapper">
+                                                            <div class="table-responsive">
+                                                                <table class="table table-sm align-middle mb-0" id="gen-data-table">
+                                                                    <thead></thead>
+                                                                    <tbody></tbody>
+                                                                </table>
+                                                            </div>
+                                                            <div class="ag-table-meta mt-2" id="gen-footnote"></div>
+                                                        </div>
+                                                        <div class="alert alert-info d-none mt-2 mb-0" id="gen-empty-state">
+                                                            No hay datos para el periodo seleccionado.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="ag-insights d-none mt-3" id="gen-insights"></div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="aviacion-carga-pane" role="tabpanel" aria-labelledby="aviacion-carga-tab" tabindex="0">
+                                    <div class="ag-wrapper">
+                                        <div class="row g-3 align-items-stretch" id="cargo-controls-row">
+                                            <div class="col-12 col-lg-4 col-xxl-3">
+                                                <div class="card ag-controls-card h-100">
+                                                    <div class="card-body">
+                                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                                            <div class="d-flex align-items-center gap-2 text-uppercase small fw-semibold text-muted">
+                                                                <i class="fas fa-sliders-h text-primary"></i>
+                                                                <span>Configuración</span>
+                                                            </div>
+                                                            <button class="btn btn-outline-secondary btn-sm" id="cargo-reset-btn"><i class="fas fa-rotate-left me-1"></i>Restablecer</button>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="cargo-metric-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-chart-column me-1"></i>Indicador</label>
+                                                            <select id="cargo-metric-select" class="form-select form-select-sm">
+                                                                <option value="operaciones" selected>Operaciones</option>
+                                                                <option value="tons_transportadas">Toneladas transportadas</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="cargo-view-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-layer-group me-1"></i>Detalle</label>
+                                                            <select id="cargo-view-select" class="form-select form-select-sm">
+                                                                <option value="anual" selected>Vista anual</option>
+                                                                <option value="mensual">Detalle mensual</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="mb-3 d-none" id="cargo-year-group">
+                                                            <label for="cargo-year-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-calendar me-1"></i>Año base</label>
+                                                            <select id="cargo-year-select" class="form-select form-select-sm"></select>
+                                                        </div>
+                                                        <div class="mb-0 d-none" id="cargo-comparison-group">
+                                                            <label for="cargo-comparison-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-balance-scale me-1"></i>Comparar con</label>
+                                                            <select id="cargo-comparison-select" class="form-select form-select-sm"></select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-lg-8 col-xxl-9">
+                                                <div class="card h-100">
+                                                    <div class="card-body">
+                                                        <div class="d-flex flex-column gap-3">
+                                                            <div>
+                                                                <h5 class="mb-1 d-flex align-items-center gap-2">
+                                                                    <i class="fas fa-chart-area text-primary"></i>
+                                                                    <span>Visión logística</span>
+                                                                </h5>
+                                                                <p class="text-muted small mb-0">Supervisa el desempeño de la aviación de carga con comparativos históricos de operaciones y toneladas transportadas.</p>
+                                                            </div>
+                                                            <ul class="list-unstyled small text-muted mb-0">
+                                                                <li class="d-flex align-items-center gap-2"><i class="fas fa-dolly text-primary"></i><span>Evalúa la tracción mensual y acumulada de las operaciones de carga.</span></li>
+                                                                <li class="d-flex align-items-center gap-2"><i class="fas fa-weight-hanging text-secondary"></i><span>Contrasta las toneladas transportadas contra periodos previos.</span></li>
+                                                                <li class="d-flex align-items-center gap-2"><i class="fas fa-lightbulb text-warning"></i><span>Obtén hallazgos clave generados automáticamente.</span></li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <div class="row g-3" id="cargo-summary-cards"></div>
+                                            </div>
+                                        </div>
+                                        <div class="row g-3 align-items-start">
+                                            <div class="col-12 col-xxl-6">
+                                                <div class="card h-100">
+                                                    <div class="card-body">
+                                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                                                            <span class="badge bg-primary-subtle text-primary fw-semibold" id="cargo-chart-tag">Vista anual</span>
+                                                            <small class="text-muted" id="cargo-chart-subtitle"></small>
+                                                        </div>
+                                                        <div class="chart-container" style="height: 420px;"><canvas id="cargo-chart"></canvas></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-xxl-6">
+                                                <div class="card h-100">
+                                                    <div class="card-body">
+                                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                                                            <span class="badge bg-secondary-subtle text-secondary fw-semibold" id="cargo-table-tag">Variación interanual</span>
+                                                            <small class="text-muted" id="cargo-table-caption"></small>
+                                                        </div>
+                                                        <div id="cargo-table-wrapper">
+                                                            <div class="table-responsive">
+                                                                <table class="table table-sm align-middle mb-0" id="cargo-data-table">
+                                                                    <thead></thead>
+                                                                    <tbody></tbody>
+                                                                </table>
+                                                            </div>
+                                                            <div class="ag-table-meta mt-2" id="cargo-footnote"></div>
+                                                        </div>
+                                                        <div class="alert alert-info d-none mt-2 mb-0" id="cargo-empty-state">
+                                                            No hay datos para el periodo seleccionado.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="ag-insights d-none mt-3" id="cargo-insights"></div>
                                     </div>
                                 </div>
                             </div>
