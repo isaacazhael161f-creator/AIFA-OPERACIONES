@@ -675,21 +675,62 @@
                         <div class="card-header bg-transparent d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
                             <div>
                                 <h2 class="mb-1">Servicio Médico</h2>
-                                <p class="mb-0 text-muted small">Documento colaborativo en Google Docs para coordinar atenciones médicas.</p>
+                                <p class="mb-0 text-muted small">Indicadores históricos y coordinación en vivo del Servicio Médico.</p>
                             </div>
                             <a id="servicio-medico-open" class="btn btn-outline-primary btn-sm d-none" href="#" target="_blank" rel="noopener">
                                 <i class="fas fa-external-link-alt me-1"></i>Abrir en Google Docs
                             </a>
                         </div>
                         <div class="card-body">
-                            <p class="small text-muted mb-3">Comparte el documento con “Cualquiera con el enlace puede editar” y pega el vínculo público en <code>data-doc-url</code> para que todos lo vean aquí.</p>
-                            <div id="servicio-medico-embed" class="doc-embed-wrapper" data-doc-url="https://docs.google.com/spreadsheets/d/1-hD3d3GaggG_HvxBCAsQuijjTtj2_RYkJiRDQxYaYng/edit?usp=sharing">
-                                <div class="doc-embed-placeholder">
-                                    <i class="fas fa-file-circle-plus me-2"></i>
-                                    <span>Coloca el enlace de Google Docs o Google Sheets en el atributo <code>data-doc-url</code> para cargar el documento.</span>
+                            <ul class="nav nav-tabs" id="medicasTab" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="medicas-analytics-tab" data-bs-toggle="tab" data-bs-target="#medicas-analytics-pane" type="button" role="tab" aria-controls="medicas-analytics-pane" aria-selected="true" data-section="medicas"><i class="fas fa-heartbeat me-1"></i>Atenciones Médicas</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="medicas-doc-tab" data-bs-toggle="tab" data-bs-target="#medicas-doc-pane" type="button" role="tab" aria-controls="medicas-doc-pane" aria-selected="false"><i class="fas fa-file-medical me-1"></i>Documento colaborativo</button>
+                                </li>
+                            </ul>
+                            <div class="tab-content pt-3" id="medicasTabContent">
+                                <div class="tab-pane fade show active" id="medicas-analytics-pane" role="tabpanel" aria-labelledby="medicas-analytics-tab" tabindex="0">
+                                    <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+                                        <span class="badge bg-success-subtle text-success fw-semibold" id="medicas-top-badge">Top mes: -</span>
+                                        <div class="d-flex flex-wrap align-items-center gap-3 ms-auto">
+                                            <div class="form-check form-switch m-0" title="Mostrar siempre etiquetas">
+                                                <input class="form-check-input" type="checkbox" id="medicasLabelsAlways">
+                                                <label class="form-check-label small" for="medicasLabelsAlways">Etiquetas</label>
+                                            </div>
+                                            <div class="form-check form-switch m-0" title="Mostrar porcentaje cuando sea relevante">
+                                                <input class="form-check-input" type="checkbox" id="medicasShowPct" checked>
+                                                <label class="form-check-label small" for="medicasShowPct">Porcentaje</label>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <label for="medicasTipo" class="small text-muted fw-semibold mb-0"><i class="fas fa-filter me-1"></i>Filtro</label>
+                                                <select id="medicasTipo" class="form-select form-select-sm">
+                                                    <option value="all" selected>Todo el personal</option>
+                                                    <option value="aifa">AIFA</option>
+                                                    <option value="otra">Otra Empresa</option>
+                                                    <option value="pasajeros">Pasajeros</option>
+                                                    <option value="visitantes">Visitantes</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="chart-container" style="height: 420px;">
+                                        <div id="medicasChart" class="echart-host w-100 h-100"></div>
+                                    </div>
+                                    <p class="small text-muted mt-3 mb-0">Fuente: Servicio Médico AIFA. Datos históricos 2022, clasificados por tipo de atención.</p>
                                 </div>
-                                <div class="ratio ratio-4x3 doc-embed-frame d-none">
-                                    <iframe title="Servicio Médico - Documento colaborativo" class="doc-iframe d-none" allow="clipboard-write"></iframe>
+                                <div class="tab-pane fade" id="medicas-doc-pane" role="tabpanel" aria-labelledby="medicas-doc-tab" tabindex="0">
+                                    <p class="small text-muted mb-3">Comparte el documento con “Cualquiera con el enlace puede editar” y pega el vínculo público en <code>data-doc-url</code> para que todos lo vean aquí.</p>
+                                    <div id="servicio-medico-embed" class="doc-embed-wrapper" data-doc-url="https://docs.google.com/spreadsheets/d/1-hD3d3GaggG_HvxBCAsQuijjTtj2_RYkJiRDQxYaYng/edit?usp=sharing">
+                                        <div class="doc-embed-placeholder">
+                                            <i class="fas fa-file-circle-plus me-2"></i>
+                                            <span>Coloca el enlace de Google Docs o Google Sheets en el atributo <code>data-doc-url</code> para cargar el documento.</span>
+                                        </div>
+                                        <div class="ratio ratio-4x3 doc-embed-frame d-none">
+                                            <iframe title="Servicio Médico - Documento colaborativo" class="doc-iframe d-none" allow="clipboard-write"></iframe>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -765,6 +806,10 @@
                                             <div class="form-check form-switch m-0" title="Vista acumulada por año">
                                                 <input class="form-check-input" type="checkbox" id="toggle-yearly-view">
                                                 <label class="form-check-label small" for="toggle-yearly-view">Anual</label>
+                                            </div>
+                                            <div id="weekly-week-filter" class="d-none d-flex align-items-center gap-2">
+                                                <label for="weekly-week-select" class="small text-muted fw-semibold mb-0"><i class="fas fa-calendar-week me-1"></i>Semana</label>
+                                                <select id="weekly-week-select" class="form-select form-select-sm"></select>
                                             </div>
                                             <div id="weekly-day-filter" class="d-none d-flex align-items-center gap-2">
                                                 <label for="weekly-day-select" class="small text-muted fw-semibold mb-0">Día</label>
@@ -854,10 +899,10 @@
                             
                             <h5 class="text-uppercase text-muted fw-bold mb-3"><span class="section-icon icon-commercial">✈</span>Aviación Comercial</h5>
                             <div class="row g-3 mb-4" id="commercial-group">
-                                <div class="col-lg-6">
+                                <div class="col-12 col-xxl-6">
                                     <div class="chart-container ops-chart"><canvas id="commercialOpsChart"></canvas></div>
                                 </div>
-                                <div class="col-lg-6">
+                                <div class="col-12 col-xxl-6">
                                     <div class="chart-container ops-chart"><canvas id="commercialPaxChart"></canvas></div>
                                 </div>
                             </div>
@@ -867,19 +912,19 @@
                                 <small>Datos actualizados al <strong>31 de octubre 2025</strong></small>
                             </div>
                             <div class="row g-3 mb-4" id="cargo-group">
-                                <div class="col-lg-6">
+                                <div class="col-12 col-xxl-6">
                                     <div class="chart-container ops-chart"><canvas id="cargoOpsChart"></canvas></div>
                                 </div>
-                                <div class="col-lg-6">
+                                <div class="col-12 col-xxl-6">
                                     <div class="chart-container ops-chart"><canvas id="cargoTonsChart"></canvas></div>
                                 </div>
                             </div>
                             <h5 class="text-uppercase text-muted fw-bold mb-3 mt-4"><span class="section-icon icon-general">🛩</span>Aviación General</h5>
                             <div class="row g-3 mb-4" id="general-group">
-                                <div class="col-lg-6">
+                                <div class="col-12 col-xxl-6">
                                     <div class="chart-container ops-chart"><canvas id="generalOpsChart"></canvas></div>
                                 </div>
-                                <div class="col-lg-6">
+                                <div class="col-12 col-xxl-6">
                                     <div class="chart-container ops-chart"><canvas id="generalPaxChart"></canvas></div>
                                 </div>
                             </div>
@@ -1834,6 +1879,7 @@
     <script src="js/operaciones.js"></script>
     <script src="js/frecuencias.js"></script>
     <script src="js/manifiestos.js"></script>
+    <script src="js/medicas.js"></script>
     <script src="js/fauna.js"></script>
     
         <script src="script.js"></script>

@@ -112,15 +112,24 @@
     const legendConfig = layout?.legend || { top: 34, type: 'scroll', itemGap: 20 };
     const gridTop = layout?.gridTop ?? 80;
     const gridBottom = layout?.gridBottom ?? 30;
+    const axisLabelConfig = layout?.axisLabel || {};
+    const titleTop = layout?.titleTop ?? 8;
+    const titleGap = layout?.titleGap ?? 6;
+    const titleFontSize = layout?.titleFontSize ?? 16;
+    const subtitleFontSize = layout?.subtitleFontSize ?? 11;
+    const titleLineHeight = layout?.titleLineHeight ?? 22;
+    const subtitleLineHeight = layout?.subtitleLineHeight ?? 16;
+    const titleLeft = layout?.titleLeft ?? 'center';
 
     return {
       title: {
         text: titleText || 'Atenciones Médicas AIFA 2022',
         subtext: subtitleText || '',
-        top: 6,
-        left: 'center',
-        textStyle: { fontWeight: 800, color: '#0f172a', fontSize: 16 },
-        subtextStyle: { color: '#475569', fontSize: 11 }
+        top: titleTop,
+        left: titleLeft,
+        itemGap: titleGap,
+        textStyle: { fontWeight: 800, color: '#0f172a', fontSize: titleFontSize, lineHeight: titleLineHeight },
+        subtextStyle: { color: '#475569', fontSize: subtitleFontSize, lineHeight: subtitleLineHeight }
       },
       color: palette,
       animationDuration: 900,
@@ -135,7 +144,12 @@
       },
       legend: { ...legendConfig, textStyle: { color: '#334155' } },
       grid: { left: 44, right: 28, top: gridTop, bottom: gridBottom },
-      xAxis: { type: 'category', data: labels, axisTick: { alignWithLabel: true }, axisLabel: { color: '#475569' } },
+      xAxis: {
+        type: 'category',
+        data: labels,
+        axisTick: { alignWithLabel: true },
+        axisLabel: { color: '#475569', interval: 0, ...axisLabelConfig }
+      },
       yAxis: { type: 'value', axisLabel: { color: '#475569' }, splitLine: { lineStyle: { color: 'rgba(15,23,42,0.07)' } } },
       series: [...series, totalSeries]
     };
@@ -179,10 +193,76 @@
     const isMobile = w < 576;
     const isTablet = w >= 576 && w < 992;
     const layout = isMobile
-      ? { legend: { type: 'scroll', bottom: 6, left: 'center', orient: 'horizontal', itemGap: 12, pageIconSize: 10 }, gridTop: 70, gridBottom: 72 }
+      ? {
+          legend: {
+            type: 'scroll',
+            bottom: 10,
+            left: 'center',
+            orient: 'horizontal',
+            itemGap: 12,
+            pageIconSize: 10,
+            padding: [6, 12, 0, 12],
+            icon: 'rect',
+            itemWidth: 16,
+            itemHeight: 12
+          },
+          gridTop: 112,
+          gridBottom: 90,
+          axisLabel: { rotate: 32, fontSize: 11, lineHeight: 16 },
+          titleTop: 8,
+          titleGap: 6,
+          titleFontSize: 15,
+          subtitleFontSize: 11,
+          titleLineHeight: 22,
+          subtitleLineHeight: 18
+        }
       : isTablet
-        ? { legend: { type: 'scroll', top: 36, left: 'center', orient: 'horizontal', itemGap: 18, pageIconSize: 10 }, gridTop: 88, gridBottom: 36 }
-        : { legend: { type: 'scroll', top: 34, left: 'center', orient: 'horizontal', itemGap: 22, pageIconSize: 10 }, gridTop: 86, gridBottom: 30 };
+        ? {
+            legend: {
+              type: 'scroll',
+              top: 100,
+              left: 'center',
+              orient: 'horizontal',
+              itemGap: 18,
+              pageIconSize: 10,
+              padding: [8, 16, 8, 16],
+              icon: 'rect',
+              itemWidth: 18,
+              itemHeight: 12
+            },
+            gridTop: 150,
+            gridBottom: 40,
+            axisLabel: { rotate: 18, fontSize: 12 },
+            titleTop: 10,
+            titleGap: 6,
+            titleFontSize: 17,
+            subtitleFontSize: 12,
+            titleLineHeight: 24,
+            subtitleLineHeight: 18
+          }
+        : {
+            legend: {
+              type: 'scroll',
+              top: 96,
+              left: 'center',
+              orient: 'horizontal',
+              itemGap: 22,
+              pageIconSize: 10,
+              padding: [8, 20, 10, 20],
+              icon: 'rect',
+              itemWidth: 22,
+              itemHeight: 12
+            },
+            gridTop: 142,
+            gridBottom: 36,
+            axisLabel: { rotate: 0, fontSize: 12 },
+            titleTop: 10,
+            titleGap: 6,
+            titleFontSize: 18,
+            subtitleFontSize: 12,
+            titleLineHeight: 26,
+            subtitleLineHeight: 18
+          };
 
     // Título/subtítulo según filtro
   const baseTitle = 'Atenciones Médicas AIFA 2022';
@@ -247,10 +327,20 @@
       option.title = {
         text: baseTitle,
         subtext: subTitle,
-        top: 6,
-        left: 'center',
-        textStyle: { fontWeight: 800, color: '#0f172a', fontSize: 16 },
-        subtextStyle: { color: '#475569', fontSize: 11 }
+        top: layout.titleTop ?? 8,
+        left: layout.titleLeft ?? 'center',
+        itemGap: layout.titleGap ?? 6,
+        textStyle: {
+          fontWeight: 800,
+          color: '#0f172a',
+          fontSize: layout.titleFontSize ?? 16,
+          lineHeight: layout.titleLineHeight ?? 22
+        },
+        subtextStyle: {
+          color: '#475569',
+          fontSize: layout.subtitleFontSize ?? 11,
+          lineHeight: layout.subtitleLineHeight ?? 16
+        }
       };
     }
 

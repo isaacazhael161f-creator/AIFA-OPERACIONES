@@ -151,7 +151,29 @@ const WEEKLY_OPERATIONS_DATASETS = [
             descripcion: describeWeekRange('2025-11-03', '2025-11-09'),
             nota: 'Semana en curso (3 al 9 de noviembre de 2025). Datos en integración.'
         },
-        dias: []
+        dias: [
+            {
+                fecha: '2025-11-03',
+                label: '03 Nov 2025',
+                comercial: { operaciones: 150, pasajeros: 21525 },
+                general: { operaciones: 18, pasajeros: 44 },
+                carga: { operaciones: 32, toneladas: 1121, corteFecha: '2025-10-30', corteNota: 'Cifras del 30 de octubre de 2025.' }
+            },
+            {
+                fecha: '2025-11-04',
+                label: '04 Nov 2025',
+                comercial: { operaciones: 142, pasajeros: 18746 },
+                general: { operaciones: 14, pasajeros: 81 },
+                carga: { operaciones: 22, toneladas: 753, corteFecha: '2025-11-02', corteNota: 'Cifras del 02 de noviembre de 2025.' }
+            },
+            {
+                fecha: '2025-11-05',
+                label: '05 Nov 2025',
+                comercial: { operaciones: 154, pasajeros: 21097 },
+                general: { operaciones: 8, pasajeros: 23 },
+                carga: { operaciones: 23, toneladas: 747, corteFecha: '2025-11-04', corteNota: 'Cifras del 04 de noviembre de 2025.' }
+            }
+        ]
     },
     {
         id: '2025-10-27',
@@ -221,15 +243,7 @@ const WEEKLY_OPERATIONS_DATASETS = [
             descripcion: describeWeekRange('2025-10-20', '2025-10-26'),
             nota: 'Datos consolidados al 26 de octubre de 2025.'
         },
-        dias: [
-            {
-                fecha: '2025-10-26',
-                label: '26 Oct 2025',
-                comercial: { operaciones: 149, pasajeros: 15658 },
-                general: { operaciones: 11, pasajeros: 27 },
-                carga: { operaciones: 31, toneladas: 737, corteFecha: '2025-10-23', corteNota: 'Cifras del 23 de octubre de 2025.' }
-            }
-        ]
+        dias: []
     }
 ];
 
@@ -293,16 +307,16 @@ const staticData = {
     // Datos mensuales 2025 (hasta septiembre): Comercial y Carga
     mensual2025: {
         comercial: [
-            { mes: '01', label: 'Enero', operaciones: 4487, llegadas: 2242, salidas: 2245 },
-            { mes: '02', label: 'Febrero', operaciones: 4015, llegadas: 2008, salidas: 2007 },
-            { mes: '03', label: 'Marzo', operaciones: 4432, llegadas: 2215, salidas: 2217 },
-            { mes: '04', label: 'Abril', operaciones: 4585, llegadas: 2291, salidas: 2294 },
-            { mes: '05', label: 'Mayo', operaciones: 4449, llegadas: 2225, salidas: 2224 },
-            { mes: '06', label: 'Junio', operaciones: 4128, llegadas: 2062, salidas: 2066 },
-            { mes: '07', label: 'Julio', operaciones: 4533, llegadas: 2267, salidas: 2266 },
-            { mes: '08', label: 'Agosto', operaciones: 4490, llegadas: 2244, salidas: 2246 },
-            { mes: '09', label: 'Septiembre', operaciones: 4151, llegadas: 2077, salidas: 2074 },
-            { mes: '10', label: 'Octubre', operaciones: 3999, llegadas: 2000, salidas: 1999}
+            { mes: '01', label: 'Enero', operaciones: 4487 },
+            { mes: '02', label: 'Febrero', operaciones: 4015 },
+            { mes: '03', label: 'Marzo', operaciones: 4432 },
+            { mes: '04', label: 'Abril', operaciones: 4585 },
+            { mes: '05', label: 'Mayo', operaciones: 4449 },
+            { mes: '06', label: 'Junio', operaciones: 4128 },
+            { mes: '07', label: 'Julio', operaciones: 4533 },
+            { mes: '08', label: 'Agosto', operaciones: 4490 },
+            { mes: '09', label: 'Septiembre', operaciones: 4151 },
+            { mes: '10', label: 'Octubre', operaciones: 3999 }
         ],
         // Pasajeros de aviación comercial por mes (con proyección conservadora 81% donde indica)
         comercialPasajeros: [
@@ -320,16 +334,16 @@ const staticData = {
             { mes: '12', label: 'Diciembre (Proy.)', pasajeros: 704718 }
         ],
         carga: [
-            { mes: '01', label: 'Enero', operaciones: 884, llegadas: 443, salidas: 441 },
-            { mes: '02', label: 'Febrero', operaciones: 803, llegadas: 400, salidas: 403 },
-            { mes: '03', label: 'Marzo', operaciones: 917, llegadas: 460, salidas: 457 },
-            { mes: '04', label: 'Abril', operaciones: 903, llegadas: 451, salidas: 452 },
-            { mes: '05', label: 'Mayo', operaciones: 1006, llegadas: 502, salidas: 504 },
-            { mes: '06', label: 'Junio', operaciones: 1011, llegadas: 507, salidas: 504 },
-            { mes: '07', label: 'Julio', operaciones: 1027, llegadas: 512, salidas: 515 },
-            { mes: '08', label: 'Agosto', operaciones: 1082, llegadas: 543, salidas: 539 },
-            { mes: '09', label: 'Septiembre', operaciones: 990, llegadas: 494, salidas: 496 },
-            { mes: '10', label: 'Octubre', operaciones: 995, llegadas: 500, salidas: 495 }
+            { mes: '01', label: 'Enero', operaciones: 880 },
+            { mes: '02', label: 'Febrero', operaciones: 803 },
+            { mes: '03', label: 'Marzo', operaciones: 916 },
+            { mes: '04', label: 'Abril', operaciones: 902 },
+            { mes: '05', label: 'Mayo', operaciones: 1006 },
+            { mes: '06', label: 'Junio', operaciones: 1014 },
+            { mes: '07', label: 'Julio', operaciones: 1021 },
+            { mes: '08', label: 'Agosto', operaciones: 1082 },
+            { mes: '09', label: 'Septiembre', operaciones: 992},
+            { mes: '10', label: 'Octubre', operaciones: 1151 }
         ],
         // Toneladas por mes (con nulos cuando no hay datos)
         cargaToneladas: [
@@ -342,7 +356,7 @@ const staticData = {
             { mes: '07', label: 'Julio', toneladas: 35649.92 },
             { mes: '08', label: 'Agosto', toneladas: 35737.78 },
             { mes: '09', label: 'Septiembre', toneladas: 31076.71 },
-            { mes: '10', label: 'Octubre', toneladas: 32063.67 },
+            { mes: '10', label: 'Octubre', toneladas: 37197.03 },
             { mes: '11', label: 'Noviembre', toneladas: null },
             { mes: '12', label: 'Diciembre', toneladas: null }
         ],
@@ -3228,9 +3242,9 @@ function adjustOpsChartViewport(chart) {
         const containerWidth = container.clientWidth || viewport || 360;
         const isMobile = viewport <= 640;
         const isTablet = viewport > 640 && viewport <= 992;
-        const unit = isMobile ? 64 : (isTablet ? 56 : 48);
-        const approxWidth = labelCount > 1 ? Math.min(1300, Math.max(containerWidth, labelCount * unit)) : containerWidth;
-        const shouldScroll = approxWidth > containerWidth * 1.18 && labelCount > 16;
+    const unit = isMobile ? 68 : (isTablet ? 58 : 50);
+    const approxWidth = labelCount > 1 ? Math.min(1400, Math.max(containerWidth, labelCount * unit)) : containerWidth;
+    const shouldScroll = approxWidth > containerWidth * 1.05 && labelCount > 9;
         const prevMode = container.getAttribute('data-scroll-mode') || 'off';
         const prevWidth = parseInt(container.getAttribute('data-scroll-width') || '0', 10);
 
@@ -4205,6 +4219,71 @@ function renderOperacionesTotales() {
                 }
             };
 
+            // Renderizado manual de todas las etiquetas del eje X para evitar auto-salto
+            const CustomXAxisLabelsPlugin = {
+                id: 'customXAxisLabels',
+                afterDraw(chart, args, opts){
+                    try {
+                        if (!opts || opts.enabled !== true) return;
+                        const scale = chart.scales?.x;
+                        if (!scale) return;
+                        const rawLabels = Array.isArray(opts.labels) ? opts.labels : [];
+                        if (!rawLabels.length) return;
+
+                        const sanitized = rawLabels.map((entry) => {
+                            if (Array.isArray(entry)) {
+                                return entry.map((line) => (line == null ? '' : String(line)));
+                            }
+                            return [(entry == null ? '' : String(entry))];
+                        });
+
+                        const ctx = chart.ctx;
+                        ctx.save();
+                        const fontSize = Math.max(8, Number(opts.fontSize) || 12);
+                        const fontFamily = opts.fontFamily || 'system-ui, Segoe UI, Roboto, Arial';
+                        const fontWeight = opts.fontWeight || '500';
+                        ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+                        ctx.fillStyle = opts.color || '#6b7280';
+                        const lineHeight = Math.max(10, Number(opts.lineHeight) || Math.round(fontSize * 1.18));
+                        const rotationDeg = Number.isFinite(opts.rotationDegrees) ? opts.rotationDegrees : 0;
+                        const rotationRad = rotationDeg * (Math.PI / 180);
+                        const align = rotationDeg > 0 ? 'right' : rotationDeg < 0 ? 'left' : 'center';
+                        ctx.textAlign = align;
+                        ctx.textBaseline = 'top';
+                        const baseOffset = Number.isFinite(opts.baseOffset) ? opts.baseOffset : 8;
+                        const capLeft = scale.left + 4;
+                        const capRight = scale.right - 4;
+
+                        sanitized.forEach((tickLines, idx) => {
+                            if (!tickLines || !tickLines.length) return;
+                            const xBase = scale.getPixelForTick(idx);
+                            if (!Number.isFinite(xBase)) return;
+                            const yBase = scale.bottom + baseOffset;
+                            ctx.save();
+                            let drawX = xBase;
+                            if (!rotationRad && align === 'center') {
+                                const widest = tickLines.reduce((acc, text) => Math.max(acc, ctx.measureText(text).width), 0);
+                                const overflowLeft = drawX - widest / 2 - capLeft;
+                                if (overflowLeft < 0) drawX -= overflowLeft;
+                                const overflowRight = (drawX + widest / 2) - capRight;
+                                if (overflowRight > 0) drawX -= overflowRight;
+                            } else {
+                                if (drawX < capLeft) drawX = capLeft;
+                                if (drawX > capRight) drawX = capRight;
+                            }
+                            ctx.translate(drawX, yBase);
+                            if (rotationRad) ctx.rotate(rotationRad);
+                            tickLines.forEach((text, lineIdx) => {
+                                ctx.fillText(text, 0, lineIdx * lineHeight);
+                            });
+                            ctx.restore();
+                        });
+
+                        ctx.restore();
+                    } catch (_) { /* noop */ }
+                }
+            };
+
             // Resalta el pico máximo con un glow sutil (debajo de etiquetas)
             const PeakGlowPlugin = {
                 id: 'peakGlow',
@@ -4289,10 +4368,19 @@ function renderOperacionesTotales() {
                     padBottom += isMobile ? 12 : 8;
                 }
 
-                const xMaxRotation = isYearAxis ? 0 : (isMobile ? 36 : (isTablet ? 20 : 0));
-                const xMinRotation = isYearAxis ? 0 : (isMobile ? 12 : 0);
-                const tickPadding = isYearAxis ? 0 : (isMobile ? 10 : (isTablet ? 8 : 6));
+                const denseXAxis = !isYearAxis && labelCount >= 10;
+                if (denseXAxis) {
+                    padBottom = Math.max(padBottom, isMobile ? 62 : (isTablet ? 54 : 46));
+                }
+                const xMaxRotation = isYearAxis ? 0 : (denseXAxis ? (isMobile ? 48 : (isTablet ? 30 : 22)) : (isMobile ? 36 : (isTablet ? 20 : 0)));
+                const xMinRotation = isYearAxis ? 0 : (denseXAxis ? (isMobile ? 24 : (isTablet ? 14 : 10)) : (isMobile ? 12 : 0));
+                const tickPadding = isYearAxis ? 0 : (isMobile ? 8 : (isTablet ? 7 : (denseXAxis ? 4 : 6)));
 
+                const monthLookup = {
+                    'enero': 'Ene', 'febrero': 'Feb', 'marzo': 'Mar', 'abril': 'Abr',
+                    'mayo': 'May', 'junio': 'Jun', 'julio': 'Jul', 'agosto': 'Ago',
+                    'septiembre': 'Sep', 'octubre': 'Oct', 'noviembre': 'Nov', 'diciembre': 'Dic'
+                };
                 const formatTickLabel = (value) => {
                     if (value == null) return value;
                     const raw = typeof value === 'string' ? value : String(value);
@@ -4313,6 +4401,17 @@ function renderOperacionesTotales() {
                             const mid = Math.ceil(tokens.length / 2);
                             return [tokens.slice(0, mid).join(' '), tokens.slice(mid).join(' ')];
                         }
+                    }
+                    if (denseXAxis && !/\s/.test(trimmed) && trimmed.length > (isMobile ? 5 : 6)){
+                        const mid = Math.ceil(trimmed.length / 2);
+                        const first = trimmed.slice(0, mid);
+                        const second = trimmed.slice(mid);
+                        return second ? [first, second] : [trimmed];
+                    }
+                    const lower = trimmed.toLowerCase();
+                    if (monthLookup[lower]) return monthLookup[lower];
+                    if (monthLookup[lower.replace(/\s+\(.+\)$/g, '')]) {
+                        return monthLookup[lower.replace(/\s+\(.+\)$/g, '')];
                     }
                     return trimmed;
                 };
@@ -4341,6 +4440,41 @@ function renderOperacionesTotales() {
                     offsetBelow: dynOffsetBelow,
                     onlyMax: isMobile && labelCount > 12
                 };
+
+                const resolvedTickDetails = (Array.isArray(tickDetails) && tickDetails.length === labelCount)
+                    ? tickDetails
+                    : null;
+                const useCustomXAxis = !isYearAxis && (denseXAxis || labelCount >= 6 || !!resolvedTickDetails);
+                if (useCustomXAxis) {
+                    padBottom = Math.max(padBottom, isMobile ? 70 : (isTablet ? 60 : 52));
+                }
+                const multilineLabels = labels.map((labelValue, idx) => {
+                    if (resolvedTickDetails) {
+                        const detail = resolvedTickDetails[idx];
+                        if (Array.isArray(detail)) return detail.map((entry) => (entry == null ? '' : String(entry)));
+                        return [detail == null ? '' : String(detail)];
+                    }
+                    const formatted = formatTickLabel(labelValue);
+                    if (Array.isArray(formatted)) {
+                        return formatted.map((entry) => (entry == null ? '' : String(entry)));
+                    }
+                    const text = formatted == null ? '' : String(formatted);
+                    return [text];
+                });
+                const xAxisRotationDegrees = useCustomXAxis ? (denseXAxis ? (isMobile ? 38 : (isTablet ? 28 : 20)) : 0) : 0;
+                const xAxisLineHeight = Math.round((xTickFont || 12) * (isMobile ? 1.28 : 1.18));
+                const xAxisBaseOffset = useCustomXAxis ? (denseXAxis ? (isMobile ? 20 : 16) : (isMobile ? 14 : 12)) : 8;
+                const xAxisLabelPluginConfig = useCustomXAxis ? {
+                    enabled: true,
+                    labels: multilineLabels,
+                    fontSize: xTickFont,
+                    fontFamily: 'system-ui, Segoe UI, Roboto, Arial',
+                    fontWeight: '500',
+                    color: theme.ticks,
+                    rotationDegrees: xAxisRotationDegrees,
+                    lineHeight: xAxisLineHeight,
+                    baseOffset: xAxisBaseOffset
+                } : false;
 
                 // Plugin ligero para dar un extra de alto a la escala X en ejes anuales y evitar cortes
                 const YearAxisFitPlugin = isYearAxis ? {
@@ -4420,18 +4554,21 @@ function renderOperacionesTotales() {
                             // Desactivamos completamente chartjs-plugin-datalabels
                             datalabels: false,
                             travelerPlugin: travelerEnabled ? traveler : false,
-                            dataBubble: bubbleOpts
+                            dataBubble: bubbleOpts,
+                            customXAxisLabels: xAxisLabelPluginConfig
                         },
                         scales: {
                             x: {
                                 grid: { display: false },
                                 offset: false,
                                 ticks: {
+                                    display: !useCustomXAxis,
                                     color: theme.ticks,
                                     // No omitir etiquetas; las partimos en varias líneas si es necesario.
                                     autoSkip: false,
                                     maxTicksLimit: labels?.length || maxTicks,
                                     autoSkipPadding: tickPadding,
+                                    stepSize: 1,
                                     source: 'labels',
                                     font: { size: xTickFont },
                                     minRotation: xMinRotation,
@@ -4460,7 +4597,46 @@ function renderOperacionesTotales() {
                                         return formatTickLabel(rawValue);
                                     }
                                 },
-                                title: { display: true, text: xTitle, color: theme.labels, font: { weight: '600' } }
+                                title: { display: true, text: xTitle, color: theme.labels, font: { weight: '600' } },
+                                afterBuildTicks(scale){
+                                    try {
+                                        if (!Array.isArray(labels) || !labels.length) return;
+                                        const normalized = labels.map((labelText, idx) => ({ value: idx, label: labelText }));
+                                        if (Array.isArray(tickDetails) && tickDetails.length === normalized.length) {
+                                            scale.ticks = normalized.map((tick, idx) => ({
+                                                value: tick.value,
+                                                label: tickDetails[idx]
+                                            }));
+                                        } else {
+                                            scale.ticks = normalized;
+                                        }
+                                        if (scale?.options?.ticks) {
+                                            scale.options.ticks.autoSkip = false;
+                                            scale.options.ticks.maxTicksLimit = normalized.length;
+                                            scale.options.ticks.sampleSize = normalized.length;
+                                            scale.options.ticks.stepSize = 1;
+                                            scale.options.ticks.display = !useCustomXAxis;
+                                        }
+                                        if (typeof scale.autoSkip === 'boolean') {
+                                            scale.autoSkip = false;
+                                        }
+                                        if (typeof scale.tickAutoSkip === 'boolean') {
+                                            scale.tickAutoSkip = false;
+                                        }
+                                        if (typeof scale.ticksLength === 'number') {
+                                            scale.ticksLength = normalized.length;
+                                        }
+                                        if (typeof scale.tickAutoSkipEnabled === 'function') {
+                                            scale.tickAutoSkipEnabled = () => false;
+                                        }
+                                        if (scale._cache && typeof scale._cache === 'object') {
+                                            scale._cache.ticks = normalized;
+                                            scale._cache.labels = labels;
+                                        }
+                                        if (typeof scale.min === 'number') scale.min = 0;
+                                        if (typeof scale.max === 'number') scale.max = normalized.length ? normalized.length - 1 : scale.max;
+                                    } catch (_) { /* noop */ }
+                                }
                             },
                             y: { beginAtZero: true, suggestedMax: Math.ceil(maxVal * 1.15), grid: { color: theme.grid }, ticks: { color: theme.ticks, font: { size: yTickFont } }, title: { display: true, text: label, color: theme.labels, font: { weight: '600' } } }
                         }
@@ -4468,6 +4644,7 @@ function renderOperacionesTotales() {
                     plugins: [PeakGlowPlugin]
                         .concat(travelerEnabled ? [TravelerPlugin] : [])
                         .concat([DataBubblePlugin])
+                        .concat(useCustomXAxis ? [CustomXAxisLabelsPlugin] : [])
                         .concat(YearAxisFitPlugin ? [YearAxisFitPlugin] : [])
                 };
             }
@@ -5568,6 +5745,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleMonthly = document.getElementById('toggle-monthly-2025');
     const toggleWeekly = document.getElementById('toggle-weekly-view');
     const toggleYearly = document.getElementById('toggle-yearly-view');
+        const weeklyWeekFilter = document.getElementById('weekly-week-filter');
+        const weeklyWeekSelect = document.getElementById('weekly-week-select');
         const weeklyDayFilter = document.getElementById('weekly-day-filter');
         const weeklyDaySelect = document.getElementById('weekly-day-select');
         const yearsHint = document.getElementById('years-disabled-hint');
@@ -5595,44 +5774,60 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let adjustingMode = false;
 
-        function forceMode(newMode){
-            if (!['weekly','monthly','yearly'].includes(newMode)) return;
-            if (newMode === 'weekly' && toggleWeekly && toggleWeekly.disabled) {
-                newMode = 'monthly';
-                if (!toggleMonthly || toggleMonthly.disabled) newMode = 'yearly';
+        function getSortedWeeklyCatalog(withDataOnly = false){
+            const catalog = getWeeklyDatasetsCatalog();
+            if (!Array.isArray(catalog)) return [];
+            const sorted = catalog.slice().sort((a, b) => {
+                const aEnd = parseIsoDay(a?.rango?.fin || '') || new Date(0);
+                const bEnd = parseIsoDay(b?.rango?.fin || '') || new Date(0);
+                return bEnd - aEnd;
+            });
+            return withDataOnly ? sorted.filter(hasWeekData) : sorted;
+        }
+
+        function populateWeeklyWeekOptions(){
+            if (!weeklyWeekSelect) return { weeks: [], hasAny: false, currentHasData: false };
+            const currentWeekRaw = staticData?.operacionesSemanaActual || null;
+            const currentWeek = currentWeekRaw ? deepCloneWeek(currentWeekRaw) : null;
+            const currentHasData = hasWeekData(currentWeek);
+            const sorted = getSortedWeeklyCatalog(true);
+            const hasAny = sorted.length > 0 || currentHasData;
+            weeklyWeekSelect.innerHTML = '';
+            const autoOpt = document.createElement('option');
+            autoOpt.value = 'auto';
+            const autoLabel = currentWeek ? formatWeekLabel(currentWeek) : '';
+            autoOpt.textContent = currentHasData && autoLabel ? `Semana actual (${autoLabel})` : 'Semana actual (automático)';
+            weeklyWeekSelect.appendChild(autoOpt);
+            const seen = new Set();
+            const distinctWeeks = [];
+            sorted.forEach(week => {
+                if (!week?.id || seen.has(week.id)) return;
+                seen.add(week.id);
+                distinctWeeks.push(week);
+                const opt = document.createElement('option');
+                opt.value = week.id;
+                let label = formatWeekLabel(week);
+                if (currentWeek && week.id === currentWeek.id && label) label += ' (actual)';
+                opt.textContent = label || week.id;
+                weeklyWeekSelect.appendChild(opt);
+            });
+            let desired = opsUIState.weeklyWeekId || 'auto';
+            if (desired !== 'auto' && !seen.has(desired)) {
+                desired = 'auto';
             }
-            adjustingMode = true;
-            try {
-                opsUIState.mode = newMode;
-                refreshDisabledYears(newMode !== 'yearly');
-                if (monthsPanel) monthsPanel.style.display = newMode === 'monthly' ? '' : 'none';
-                syncToggleStates();
-                syncWeeklyControls();
-                populateWeeklyDayOptions();
-            } finally {
-                adjustingMode = false;
+            opsUIState.weeklyWeekId = desired;
+            weeklyWeekSelect.value = desired;
+            weeklyWeekSelect.disabled = !hasAny;
+            if (toggleWeekly) {
+                toggleWeekly.disabled = !hasAny;
             }
-            if (opsUIState.mode === 'weekly' && toggleWeekly && toggleWeekly.disabled) {
-                const fallback = (toggleMonthly && !toggleMonthly.disabled) ? 'monthly' : 'yearly';
-                forceMode(fallback);
-                return;
-            }
-            renderOperacionesTotales();
+            return { weeks: distinctWeeks, hasAny, currentHasData };
         }
 
         function populateWeeklyDayOptions(){
-            if (!weeklyDaySelect) return;
-            const weekly = staticData?.operacionesSemanaActual;
-            const days = Array.isArray(weekly?.dias) ? weekly.dias : [];
-            if (toggleWeekly) {
-                toggleWeekly.disabled = !days.length;
-                if (!days.length && opsUIState.mode === 'weekly' && !adjustingMode) {
-                    const fallback = (toggleMonthly && !toggleMonthly.disabled) ? 'monthly' : 'yearly';
-                    forceMode(fallback);
-                    return;
-                }
-            }
-            syncToggleStates();
+            if (!weeklyDaySelect) return { hasDays: false };
+            const activeWeek = getActiveWeeklyDataset();
+            const days = Array.isArray(activeWeek?.dias) ? activeWeek.dias : [];
             weeklyDaySelect.innerHTML = '';
             const optAll = document.createElement('option');
             optAll.value = 'all';
@@ -5649,11 +5844,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 opsUIState.weeklyDay = 'all';
             }
             weeklyDaySelect.value = opsUIState.weeklyDay;
-            syncToggleStates();
+            weeklyDaySelect.disabled = !days.length || opsUIState.mode !== 'weekly';
+            return { hasDays: days.length > 0, week: activeWeek };
         }
 
         function syncWeeklyControls(){
             const isWeekly = opsUIState.mode === 'weekly';
+            if (weeklyWeekFilter) weeklyWeekFilter.classList.toggle('d-none', !isWeekly);
             if (weeklyDayFilter) weeklyDayFilter.classList.toggle('d-none', !isWeekly);
             if (!isWeekly) {
                 opsUIState.weeklyDay = 'all';
@@ -5662,11 +5859,59 @@ document.addEventListener('DOMContentLoaded', () => {
             syncToggleStates();
         }
 
+        function forceMode(newMode){
+            if (!['weekly','monthly','yearly'].includes(newMode)) return;
+            if (newMode === 'weekly' && toggleWeekly && toggleWeekly.disabled) {
+                newMode = 'monthly';
+                if (!toggleMonthly || toggleMonthly.disabled) newMode = 'yearly';
+            }
+            adjustingMode = true;
+            let availability = { weeks: [], hasAny: true, currentHasData: false };
+            try {
+                opsUIState.mode = newMode;
+                refreshDisabledYears(newMode !== 'yearly');
+                if (monthsPanel) monthsPanel.style.display = newMode === 'monthly' ? '' : 'none';
+                syncToggleStates();
+                availability = populateWeeklyWeekOptions();
+                if (opsUIState.mode === 'weekly' && opsUIState.weeklyWeekId === 'auto' && !availability.currentHasData && availability.weeks.length) {
+                    opsUIState.weeklyWeekId = availability.weeks[0].id;
+                    availability = populateWeeklyWeekOptions();
+                }
+                syncWeeklyControls();
+                populateWeeklyDayOptions();
+            } finally {
+                adjustingMode = false;
+            }
+            if (opsUIState.mode === 'weekly' && !availability.hasAny) {
+                const fallback = (toggleMonthly && !toggleMonthly.disabled) ? 'monthly' : 'yearly';
+                if (fallback !== 'weekly') {
+                    forceMode(fallback);
+                    return;
+                }
+            }
+            renderOperacionesTotales();
+        }
+
         if (weeklyDaySelect && !weeklyDaySelect.dataset.bound) {
             weeklyDaySelect.dataset.bound = '1';
             weeklyDaySelect.addEventListener('change', () => {
                 opsUIState.weeklyDay = weeklyDaySelect.value || 'all';
-                renderOperacionesTotales();
+                if (opsUIState.mode === 'weekly') {
+                    renderOperacionesTotales();
+                }
+            });
+        }
+
+        if (weeklyWeekSelect && !weeklyWeekSelect.dataset.bound) {
+            weeklyWeekSelect.dataset.bound = '1';
+            weeklyWeekSelect.addEventListener('change', () => {
+                opsUIState.weeklyWeekId = weeklyWeekSelect.value || 'auto';
+                opsUIState.weeklyDay = 'all';
+                if (weeklyDaySelect) weeklyDaySelect.value = 'all';
+                populateWeeklyDayOptions();
+                if (opsUIState.mode === 'weekly') {
+                    renderOperacionesTotales();
+                }
             });
         }
 
@@ -5686,11 +5931,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Inicial: sincronizar modo actual
+        const initialAvailability = populateWeeklyWeekOptions();
         populateWeeklyDayOptions();
         syncWeeklyControls();
         refreshDisabledYears(opsUIState.mode !== 'yearly');
         if (monthsPanel) monthsPanel.style.display = opsUIState.mode === 'monthly' ? '' : 'none';
         syncToggleStates();
+        if (opsUIState.mode === 'weekly' && !initialAvailability.hasAny) {
+            const fallback = (toggleMonthly && !toggleMonthly.disabled) ? 'monthly' : 'yearly';
+            if (fallback !== 'weekly') forceMode(fallback);
+        }
 
         if (sectionsBox && !sectionsBox._wired) {
             sectionsBox._wired = 1;
