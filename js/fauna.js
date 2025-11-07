@@ -539,7 +539,7 @@
     const sep = ',';
     const header = state.columns.map(csvEscape).join(sep);
     const rows = state.filtered.map(r => state.columns.map(c => csvEscape(r[c])).join(sep));
-    const csv = [header].concat(rows).join('\r\n');
+    const csv = '\ufeff' + [header].concat(rows).join('\r\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -651,4 +651,586 @@
       applyFilters();
     } catch(_) {}
   }
+})();
+
+// Fauna Rescatada module: mirrors Impactos with tailored filters/charts for rescue operations
+(function(){
+  const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const MONTH_ABBRS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const TABLE_COLUMNS = ['No. captura','Fecha','Hora','Mes','Clase','Nombre común','Nombre científico','No. individuos','Método de captura','Cuadrante','Disposición final'];
+  const state = {
+    raw: [],
+    filtered: [],
+    charts: { month: null, class: null, relocation: null, hour: null, method: null }
+  };
+
+  function loadDataset(){
+    try {
+      if (location.protocol === 'file:') {
+        console.warn('fauna-rescate: saltando carga por file:// (CORS).');
+        return Promise.resolve([]);
+      }
+    } catch(_) {}
+    const sources = ['data/fauna_rescatada.json', 'data/fauna_rescatada'];
+    const trySource = (index)=>{
+      if (index >= sources.length) {
+        return Promise.resolve([]);
+      }
+      const url = sources[index];
+      return fetch(url).then(resp => {
+        if (!resp.ok) {
+          throw new Error(`HTTP ${resp.status}`);
+        }
+        return resp.json();
+      }).catch(err => {
+        console.warn(`fauna-rescate: fallo al cargar ${url}`, err);
+        return trySource(index + 1);
+      });
+    };
+    return trySource(0).catch(err => {
+      console.warn('fauna-rescate: error al cargar dataset', err);
+      return [];
+    });
+  }
+
+  function parseDMY(str){
+    if (!str || typeof str !== 'string') return null;
+    const match = str.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!match) return null;
+    const day = Number(match[1]);
+    const month = Number(match[2]) - 1;
+    const year = Number(match[3]);
+    const date = new Date(Date.UTC(year, month, day));
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  function escapeHtml(str){
+    return String(str ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[ch]));
+  }
+
+  function normalizeRow(row){
+    const normalized = {};
+    TABLE_COLUMNS.forEach(col => { normalized[col] = row[col] ?? ''; });
+    return normalized;
+  }
+
+  function uniqueValues(rows, key, sorter){
+    const values = new Set();
+    rows.forEach(r => { const val = String(r[key] ?? '').trim(); if (val) values.add(val); });
+    const list = Array.from(values);
+    return typeof sorter === 'function' ? list.sort(sorter) : list.sort((a,b)=>a.localeCompare(b));
+  }
+
+  function populateFilters(){
+    const monthSel = document.getElementById('fauna-rescate-month');
+    const classSel = document.getElementById('fauna-rescate-class');
+    const methodSel = document.getElementById('fauna-rescate-method');
+    const quadrantSel = document.getElementById('fauna-rescate-quadrant');
+    const disposalSel = document.getElementById('fauna-rescate-disposal');
+
+    if (monthSel){
+      const months = uniqueValues(state.raw, 'Mes', (a,b)=>MONTH_NAMES.indexOf(a) - MONTH_NAMES.indexOf(b));
+      const options = months.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('');
+      if (!monthSel._populated){
+        monthSel.insertAdjacentHTML('beforeend', options);
+        monthSel._populated = true;
+      } else {
+        monthSel.innerHTML = '<option value="all">Todos</option>' + options;
+      }
+    }
+    if (classSel){
+      const classes = uniqueValues(state.raw, 'Clase');
+      classSel.innerHTML = '<option value="all">Todas</option>' + classes.map(val => `<option value="${escapeHtml(val)}">${escapeHtml(val)}</option>`).join('');
+    }
+    if (methodSel){
+      const methods = uniqueValues(state.raw, 'Método de captura');
+      methodSel.innerHTML = '<option value="all">Todos</option>' + methods.map(val => `<option value="${escapeHtml(val)}">${escapeHtml(val)}</option>`).join('');
+    }
+    if (quadrantSel){
+      const quadrants = uniqueValues(state.raw, 'Cuadrante');
+      quadrantSel.innerHTML = '<option value="all">Todos</option>' + quadrants.map(val => `<option value="${escapeHtml(val)}">${escapeHtml(val)}</option>`).join('');
+    }
+    if (disposalSel){
+      const disposals = uniqueValues(state.raw, 'Disposición final');
+      disposalSel.innerHTML = '<option value="all">Todas</option>' + disposals.map(val => `<option value="${escapeHtml(val)}">${escapeHtml(val)}</option>`).join('');
+    }
+  }
+
+  function readFilters(){
+    const month = document.getElementById('fauna-rescate-month')?.value || 'all';
+    const classVal = document.getElementById('fauna-rescate-class')?.value || 'all';
+    const method = document.getElementById('fauna-rescate-method')?.value || 'all';
+    const quadrant = document.getElementById('fauna-rescate-quadrant')?.value || 'all';
+    const disposal = document.getElementById('fauna-rescate-disposal')?.value || 'all';
+    const fromDate = document.getElementById('fauna-rescate-date-from')?.value || '';
+    const toDate = document.getElementById('fauna-rescate-date-to')?.value || '';
+    return { month, classVal, method, quadrant, disposal, fromDate, toDate };
+  }
+
+  function applyFilters(){
+    const filters = readFilters();
+    const from = filters.fromDate ? new Date(filters.fromDate + 'T00:00:00Z') : null;
+    const to = filters.toDate ? new Date(filters.toDate + 'T23:59:59Z') : null;
+    state.filtered = state.raw.filter(row => {
+      const date = parseDMY(row['Fecha']);
+      if (!date) return false;
+      if (from && date < from) return false;
+      if (to && date > to) return false;
+      if (filters.month !== 'all' && String(row['Mes'] || '').trim() !== filters.month) return false;
+      if (filters.classVal !== 'all' && String(row['Clase'] || '').trim() !== filters.classVal) return false;
+      if (filters.method !== 'all' && String(row['Método de captura'] || '').trim() !== filters.method) return false;
+      if (filters.quadrant !== 'all' && String(row['Cuadrante'] || '').trim() !== filters.quadrant) return false;
+      if (filters.disposal !== 'all' && String(row['Disposición final'] || '').trim() !== filters.disposal) return false;
+      return true;
+    });
+    updateBadges();
+    renderActiveFilter();
+    renderCharts();
+    renderSpecies();
+    renderTable();
+  }
+
+  function updateBadges(){
+    const totalBadge = document.getElementById('fauna-rescate-total-badge');
+    const individualsBadge = document.getElementById('fauna-rescate-individuals-badge');
+    if (totalBadge){
+      totalBadge.textContent = `Total rescates: ${state.filtered.length.toLocaleString('es-MX')}`;
+    }
+    if (individualsBadge){
+      const totalIndividuals = state.filtered.reduce((sum, row) => sum + Number(row['No. individuos'] || 0), 0);
+      individualsBadge.textContent = `Individuos atendidos: ${totalIndividuals.toLocaleString('es-MX')}`;
+    }
+  }
+
+  function renderActiveFilter(){
+    const el = document.getElementById('fauna-rescate-active-filter');
+    if (!el) return;
+    const defaults = {
+      month: 'all', classVal: 'all', method: 'all', quadrant: 'all', disposal: 'all', fromDate: '', toDate: ''
+    };
+    const filters = readFilters();
+    const applied = [];
+    if (filters.month !== defaults.month) applied.push(`Mes: ${filters.month}`);
+    if (filters.classVal !== defaults.classVal) applied.push(`Clase: ${filters.classVal}`);
+    if (filters.method !== defaults.method) applied.push(`Método: ${filters.method}`);
+    if (filters.quadrant !== defaults.quadrant) applied.push(`Cuadrante: ${filters.quadrant}`);
+    if (filters.disposal !== defaults.disposal) applied.push(`Disposición: ${filters.disposal}`);
+    if (filters.fromDate) applied.push(`Desde: ${filters.fromDate}`);
+    if (filters.toDate) applied.push(`Hasta: ${filters.toDate}`);
+    if (!applied.length){
+      el.classList.add('d-none');
+      el.textContent = '';
+      return;
+    }
+    el.classList.remove('d-none');
+    el.textContent = `Filtros aplicados · ${applied.join(' · ')}`;
+  }
+
+  function disposeChart(ref){
+    try { if (ref && typeof ref.dispose === 'function') ref.dispose(); } catch(_) {}
+  }
+
+  function renderCharts(){
+    disposeChart(state.charts.month);
+    disposeChart(state.charts.class);
+    disposeChart(state.charts.relocation);
+    disposeChart(state.charts.hour);
+    disposeChart(state.charts.method);
+    const monthData = aggregateByMonth(state.filtered);
+    const classData = aggregateByKey(state.filtered, 'Clase');
+    const relocationData = aggregateByKey(state.filtered, 'Disposición final');
+    const hourData = aggregateByHour(state.filtered);
+    const methodData = aggregateByKey(state.filtered, 'Método de captura');
+    state.charts.month = renderBarChart('fauna-rescate-by-month', monthData.labels, monthData.values, { color: '#1565c0' });
+    state.charts.class = renderPieChart('fauna-rescate-by-class', classData.labels, classData.values);
+    state.charts.relocation = renderRelocationChart('fauna-rescate-by-relocation', relocationData.labels, relocationData.values);
+    state.charts.hour = renderBarChart('fauna-rescate-by-hour', hourData.labels, hourData.values, { color: '#fb8c00' });
+    state.charts.method = renderBarChart('fauna-rescate-by-method', methodData.labels, methodData.values, { color: '#6366f1', orientation: 'h' });
+  }
+
+  function aggregateByMonth(rows){
+    const counts = new Map();
+    rows.forEach(row => {
+      const month = String(row['Mes'] || '').trim();
+      if (!month) return;
+      const idx = MONTH_NAMES.indexOf(month);
+      const key = idx >= 0 ? `${String(idx).padStart(2,'0')}-${month}` : `99-${month}`;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    const ordered = Array.from(counts.entries()).sort((a,b)=>a[0].localeCompare(b[0]));
+    return {
+      labels: ordered.map(([key]) => {
+        const parts = key.split('-');
+        const idx = Number(parts[0]);
+        return idx >= 0 && idx < MONTH_ABBRS.length ? MONTH_ABBRS[idx] : parts.slice(1).join('-');
+      }),
+      values: ordered.map(([,value]) => value)
+    };
+  }
+
+  function aggregateByKey(rows, key){
+    const counts = new Map();
+    rows.forEach(row => {
+      const val = String(row[key] || '').trim();
+      if (!val) return;
+      counts.set(val, (counts.get(val) || 0) + 1);
+    });
+    const ordered = Array.from(counts.entries()).sort((a,b)=>b[1]-a[1]);
+    return {
+      labels: ordered.map(([label]) => label),
+      values: ordered.map(([,value]) => value)
+    };
+  }
+
+  function aggregateByHour(rows){
+    const buckets = new Array(24).fill(0);
+    rows.forEach(row => {
+      const raw = String(row['Hora'] || '').trim();
+      const match = raw.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+      if (!match) return;
+      const hour = Number(match[1]);
+      buckets[hour] += 1;
+    });
+    return {
+      labels: buckets.map((_, idx) => `${String(idx).padStart(2,'0')}:00`),
+      values: buckets
+    };
+  }
+
+  function renderBarChart(id, labels, values, opts){
+    if (!window.echarts) return null;
+    const host = document.getElementById(id);
+    if (!host) return null;
+    if (!host.classList.contains('fauna-relocation-chart')) {
+      host.classList.add('fauna-relocation-chart');
+    }
+    let chart = window.echarts.getInstanceByDom(host);
+    if (!chart) {
+      chart = window.echarts.init(host);
+    }
+    const orientation = opts?.orientation === 'h' ? 'h' : 'v';
+    const isSmall = window.matchMedia && window.matchMedia('(max-width: 576px)').matches;
+    const option = {
+      grid: {
+        left: orientation === 'v' ? (isSmall ? 48 : 60) : (isSmall ? 60 : 90),
+        right: orientation === 'v' ? 16 : (isSmall ? 24 : 48),
+        top: isSmall ? 32 : 40,
+        bottom: orientation === 'v' ? (isSmall ? 48 : 52) : (isSmall ? 20 : 24),
+        containLabel: true
+      },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      xAxis: orientation === 'v'
+        ? { type: 'category', data: labels, axisLabel: { color: '#334155' } }
+        : { type: 'value', axisLabel: { color: '#334155' } },
+      yAxis: orientation === 'v'
+        ? { type: 'value', axisLabel: { color: '#334155' } }
+        : { type: 'category', data: labels, inverse: true, axisLabel: { color: '#334155' } },
+      series: [{
+        type: 'bar',
+        data: values,
+        itemStyle: { color: opts?.color || '#1565c0' },
+        label: {
+          show: true,
+          position: orientation === 'v' ? 'top' : 'right',
+          color: '#1f2937',
+          fontSize: isSmall ? 10 : 12,
+          fontWeight: 600,
+          formatter: ({ value }) => (value ? value : '')
+        }
+      }]
+    };
+    chart.setOption(option, true);
+    return chart;
+  }
+
+  function renderPieChart(id, labels, values){
+    if (!window.echarts) return null;
+    const host = document.getElementById(id);
+    if (!host) return null;
+    let chart = window.echarts.getInstanceByDom(host);
+    if (!chart) {
+      chart = window.echarts.init(host);
+    }
+    const data = labels.map((name, idx) => ({ name, value: values[idx] ?? 0 })).filter(item => item.value > 0);
+    const option = {
+      tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+      legend: { orient: 'vertical', left: 'left', textStyle: { color: '#334155' } },
+      series: [{
+        name: 'Clase',
+        type: 'pie',
+        radius: ['45%', '70%'],
+        center: ['55%', '55%'],
+        data,
+        label: { formatter: '{b}\n{c}', fontWeight: 600 },
+        labelLine: { smooth: true, length: 16, length2: 10 },
+        itemStyle: {
+          shadowBlur: 12,
+          shadowColor: 'rgba(15, 23, 42, 0.2)'
+        }
+      }]
+    };
+    chart.setOption(option, true);
+    return chart;
+  }
+
+  function renderRelocationChart(id, labels, values){
+    if (!window.echarts) return null;
+    const host = document.getElementById(id);
+    if (!host) return null;
+    let chart = window.echarts.getInstanceByDom(host);
+    if (!chart) {
+      chart = window.echarts.init(host);
+    }
+    const pairs = labels.map((label, idx) => ({
+      label,
+      value: Number(values[idx]) || 0
+    }));
+    const isSmall = window.matchMedia && window.matchMedia('(max-width: 576px)').matches;
+    const isDark = !!(document.body && document.body.classList && document.body.classList.contains('dark-mode'));
+    const wrapLimit = isSmall ? 18 : 26;
+    const wrapLabel = (value) => {
+      const words = String(value || '').split(/\s+/);
+      const lines = [];
+      let current = '';
+      words.forEach(word => {
+        if (!word) return;
+        const candidate = current ? `${current} ${word}` : word;
+        if (candidate.length > wrapLimit && current) {
+          lines.push(current);
+          current = word;
+        } else if (candidate.length > wrapLimit) {
+          const chunks = word.match(new RegExp(`.{1,${wrapLimit}}`, 'g')) || [word];
+          if (chunks.length) {
+            if (current) {
+              lines.push(current);
+              current = '';
+            }
+            const lastChunk = chunks.pop();
+            lines.push(...chunks);
+            current = lastChunk;
+          }
+        } else {
+          current = candidate;
+        }
+      });
+      if (current) lines.push(current);
+      return lines.join('\n');
+    };
+    const wrappedLabels = pairs.map(item => wrapLabel(item.label));
+    const maxLineLength = wrappedLabels.reduce((max, label) => {
+      return Math.max(max, ...label.split('\n').map(line => line.length));
+    }, 0);
+    const leftPadding = Math.min(300, Math.max(isSmall ? 140 : 200, maxLineLength * (isSmall ? 6 : 7)));
+    const maxValue = pairs.reduce((max, item) => Math.max(max, item.value), 0);
+    const rightPadding = Math.max(isSmall ? 32 : 48, String(Math.max(maxValue, 0)).length * (isSmall ? 8 : 11) + 28);
+    const axisLabelColor = isDark ? '#e2e8f0' : '#1f2937';
+    const axisSecondaryColor = isDark ? '#cbd5f5' : '#6b7280';
+    const splitLineColor = isDark ? 'rgba(148,163,184,0.35)' : '#d9dde3';
+    const valueColor = isDark ? '#f8fafc' : '#111827';
+    const barGradient = new window.echarts.graphic.LinearGradient(0, 0, 1, 0, [
+      { offset: 0, color: isDark ? '#22c55e' : '#bbf7d0' },
+      { offset: 1, color: isDark ? '#16a34a' : '#4ade80' }
+    ]);
+    const option = {
+      grid: {
+        left: leftPadding,
+        right: rightPadding,
+        top: isSmall ? 26 : 34,
+        bottom: isSmall ? 18 : 26,
+        containLabel: true
+      },
+      animationDuration: 400,
+      tooltip: {
+        trigger: 'item',
+        formatter: ({ dataIndex, value }) => {
+          const original = pairs[dataIndex]?.label || '';
+          return `${original}<br/><strong>${value}</strong> rescates`;
+        }
+      },
+      xAxis: {
+        type: 'value',
+        min: 0,
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: { color: axisSecondaryColor, fontWeight: 600 },
+        splitLine: { show: true, lineStyle: { color: splitLineColor } }
+      },
+      yAxis: {
+        type: 'category',
+        data: pairs.map(item => item.label),
+        inverse: true,
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: {
+          color: axisLabelColor,
+          fontWeight: 600,
+          fontSize: isSmall ? 11 : 13,
+          lineHeight: isSmall ? 16 : 20,
+          formatter: wrapLabel,
+          margin: isSmall ? 10 : 14
+        }
+      },
+      series: [{
+        type: 'bar',
+        data: pairs.map(item => item.value),
+        barWidth: isSmall ? 18 : 24,
+        itemStyle: {
+          color: barGradient,
+          borderRadius: [4, 14, 14, 4],
+          shadowColor: isDark ? 'rgba(34,197,94,0.48)' : 'rgba(34,197,94,0.28)',
+          shadowBlur: 10,
+          shadowOffsetX: 0,
+          shadowOffsetY: 4
+        },
+        label: {
+          show: true,
+          position: 'right',
+          color: valueColor,
+          fontWeight: 700,
+          fontSize: isSmall ? 11 : 13,
+          formatter: ({ value }) => (value ? value : '')
+        },
+        emphasis: {
+          itemStyle: {
+            shadowColor: isDark ? 'rgba(34,197,94,0.6)' : 'rgba(34,197,94,0.4)',
+            shadowBlur: 14,
+            shadowOffsetX: 0,
+            shadowOffsetY: 4
+          }
+        }
+      }]
+    };
+    chart.setOption(option, true);
+    return chart;
+  }
+
+  function renderSpecies(){
+    const container = document.getElementById('fauna-rescate-top-species');
+    if (!container) return;
+    const counts = new Map();
+    state.filtered.forEach(row => {
+      const common = String(row['Nombre común'] || '').trim();
+      const scientific = String(row['Nombre científico'] || '').trim();
+      const key = common || scientific;
+      if (!key) return;
+      counts.set(key, (counts.get(key) || 0) + Number(row['No. individuos'] || 1));
+    });
+    const ordered = Array.from(counts.entries()).sort((a,b)=>b[1]-a[1]);
+    if (!ordered.length){
+      container.innerHTML = '<span class="text-muted small">Sin datos para los filtros actuales.</span>';
+      return;
+    }
+    const limit = Math.min(ordered.length, 8);
+    const chips = [];
+    for (let i = 0; i < limit; i++){
+      const [label, count] = ordered[i];
+      chips.push(`<span class="badge">${escapeHtml(label)} · ${count}</span>`);
+    }
+    container.innerHTML = chips.join('');
+  }
+
+  function renderTable(){
+    const container = document.getElementById('fauna-rescate-table');
+    if (!container) return;
+    if (!state.filtered.length){
+      container.innerHTML = '<div class="text-muted">Sin registros para los filtros seleccionados.</div>';
+      return;
+    }
+    const thead = '<thead><tr>' + TABLE_COLUMNS.map(col => `<th class="text-nowrap">${escapeHtml(col)}</th>`).join('') + '</tr></thead>';
+    const rowsHtml = state.filtered.map(row => {
+      return '<tr>' + TABLE_COLUMNS.map(col => `<td>${escapeHtml(row[col])}</td>`).join('') + '</tr>';
+    }).join('');
+    const table = `<div class="table-container-tech h-scroll-area"><table class="table table-striped table-hover table-sm align-middle">${thead}<tbody>${rowsHtml}</tbody></table></div>`;
+    container.innerHTML = table;
+  }
+
+  function exportCSV(){
+    if (!state.filtered.length) return;
+    const header = TABLE_COLUMNS.map(csvEscape).join(',');
+    const rows = state.filtered.map(row => TABLE_COLUMNS.map(col => csvEscape(row[col])).join(','));
+    const csv = '\ufeff' + [header].concat(rows).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'fauna_rescatada.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  }
+
+  function csvEscape(value){
+    if (value === null || value === undefined) value = '';
+    let str = String(value);
+    if (/["\n\r,]/.test(str)){
+      str = '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+  }
+
+  function clearFilters(){
+    const monthSel = document.getElementById('fauna-rescate-month'); if (monthSel) monthSel.value = 'all';
+    const classSel = document.getElementById('fauna-rescate-class'); if (classSel) classSel.value = 'all';
+    const methodSel = document.getElementById('fauna-rescate-method'); if (methodSel) methodSel.value = 'all';
+    const quadrantSel = document.getElementById('fauna-rescate-quadrant'); if (quadrantSel) quadrantSel.value = 'all';
+    const disposalSel = document.getElementById('fauna-rescate-disposal'); if (disposalSel) disposalSel.value = 'all';
+    const from = document.getElementById('fauna-rescate-date-from'); if (from) from.value = '';
+    const to = document.getElementById('fauna-rescate-date-to'); if (to) to.value = '';
+    applyFilters();
+  }
+
+  function bindEvents(){
+    document.getElementById('fauna-rescate-month')?.addEventListener('change', applyFilters);
+    document.getElementById('fauna-rescate-class')?.addEventListener('change', applyFilters);
+    document.getElementById('fauna-rescate-method')?.addEventListener('change', applyFilters);
+    document.getElementById('fauna-rescate-quadrant')?.addEventListener('change', applyFilters);
+    document.getElementById('fauna-rescate-disposal')?.addEventListener('change', applyFilters);
+    document.getElementById('fauna-rescate-date-from')?.addEventListener('change', applyFilters);
+    document.getElementById('fauna-rescate-date-to')?.addEventListener('change', applyFilters);
+    document.getElementById('fauna-rescate-clear')?.addEventListener('click', (ev)=>{ ev.preventDefault(); clearFilters(); });
+    document.getElementById('fauna-rescate-export')?.addEventListener('click', (ev)=>{ ev.preventDefault(); exportCSV(); });
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        try {
+          Object.values(state.charts).forEach(chart => { if (chart && typeof chart.resize === 'function') chart.resize(); });
+        } catch(_) {}
+      }, 120);
+    });
+    window.addEventListener('fauna:visible', () => {
+      const pane = document.getElementById('gso-fauna-rescate-pane');
+      if (!pane) return;
+      if (pane.classList.contains('show') || pane.classList.contains('active')){
+        setTimeout(() => {
+          try {
+            Object.values(state.charts).forEach(chart => { if (chart && typeof chart.resize === 'function') chart.resize(); });
+          } catch(_) {}
+        }, 60);
+      }
+    });
+  }
+
+  function init(){
+    const pane = document.getElementById('gso-fauna-rescate-pane');
+    if (!pane) return;
+    loadDataset().then(rows => {
+      state.raw = (rows || []).map(normalizeRow);
+      state.filtered = state.raw.slice();
+      populateFilters();
+      updateBadges();
+      renderActiveFilter();
+  renderCharts();
+      renderSpecies();
+      renderTable();
+      bindEvents();
+    }).catch(err => {
+      console.warn('fauna-rescate: init error', err);
+      const table = document.getElementById('fauna-rescate-table');
+      if (table) table.innerHTML = '<div class="text-danger">No se pudo cargar fauna_rescatada.</div>';
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
 })();

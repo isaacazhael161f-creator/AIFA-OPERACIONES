@@ -5138,7 +5138,8 @@ Z,Others,Not specific,Special internal purposes`;
               // CSV fallback con todos los campos
               const esc=(v)=>{ const s=(v==null)?'':(typeof v==='boolean'?(v?'Sí':'No'):String(v)); return /[",\n]/.test(s)? '"'+s.replace(/"/g,'""')+'"': s; };
               const lines=[headersEs.join(',')]; aoa.forEach(arr=> lines.push(arr.map(esc).join(',')));
-              const blob = new Blob([lines.join('\n')], { type:'text/csv;charset=utf-8' });
+              const csv='\ufeff'+lines.join('\r\n');
+              const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
               const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'manifiestos.csv'; a.click();
               return;
             }
@@ -5198,7 +5199,8 @@ Z,Others,Not specific,Special internal purposes`;
             };
             const lines = [headersEs.join(',')];
             aoa.forEach(rowArr=>{ lines.push(rowArr.map(esc).join(',')); });
-            const blob = new Blob([lines.join('\n')], { type:'text/csv;charset=utf-8' });
+            const csv = '\ufeff' + lines.join('\r\n');
+            const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'manifiestos.csv'; a.click();
           } catch(err){ console.error('Export error', err); }
         });
@@ -7952,7 +7954,8 @@ Z,Others,Not specific,Special internal purposes`;
             }
             const esc=(v)=>{ const s=(v==null)?'':(typeof v==='boolean'?(v?'Sí':'No'):String(v)); return /[",\n]/.test(s)? '"'+s.replace(/"/g,'""')+'"': s; };
             const lines=[headersEs.join(',')]; aoa.forEach(arr=> lines.push(arr.map(esc).join(',')));
-            const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='manifiestos.csv'; a.click();
+            const csv='\ufeff'+lines.join('\r\n');
+            const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='manifiestos.csv'; a.click();
             return;
           }
         } catch(_){ }
@@ -7977,9 +7980,10 @@ Z,Others,Not specific,Special internal purposes`;
             XLSX.writeFile(wb, 'manifiestos.xlsx'); return;
           } catch(err){ console.warn('SheetJS export failed, fallback CSV', err); }
         }
-        const esc=(v)=>{ const s=(v==null)?'':(typeof v==='boolean'?(v?'Sí':'No'):String(v)); return /[",\n]/.test(s)? '"'+s.replace(/"/g,'""')+'"': s; };
-        const lines=[headersEs.join(',')]; aoa.forEach(arr=>{ lines.push(arr.map(esc).join(',')); });
-        const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='manifiestos.csv'; a.click();
+  const esc=(v)=>{ const s=(v==null)?'':(typeof v==='boolean'?(v?'Sí':'No'):String(v)); return /[",\n]/.test(s)? '"'+s.replace(/"/g,'""')+'"': s; };
+  const lines=[headersEs.join(',')]; aoa.forEach(arr=>{ lines.push(arr.map(esc).join(',')); });
+  const csv='\ufeff'+lines.join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='manifiestos.csv'; a.click();
       } catch(err){ console.error('Export (delegator) error', err); }
     }
     document.addEventListener('click', function(e){

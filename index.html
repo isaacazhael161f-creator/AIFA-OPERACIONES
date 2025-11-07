@@ -111,6 +111,7 @@
                     <a class="menu-item" href="#" data-section="comparativa"><i class="fas fa-chart-line"></i><span>Comparativa</span></a>
                     <a class="menu-item" href="#" data-section="manifiestos"><i class="fas fa-file-signature"></i><span>Manifiestos</span></a>
                     <a class="menu-item" href="#" data-section="fauna"><i class="fas fa-shield-alt"></i><span>GSO</span></a>
+                    <a class="menu-item" href="#" data-section="medicas"><i class="fas fa-briefcase-medical"></i><span>Servicio Médico</span></a>
                     
                     <a class="menu-item logout-item" href="#" data-action="logout"><i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span></a>
                 </nav>
@@ -447,7 +448,7 @@
                                                         <span class="gso-nav-label">Impactos de Ave</span>
                                                     </button>
                                                     <button type="button" class="gso-nav-btn" data-nav-button="gso-rescate-tab">
-                                                        <span class="gso-nav-icon"><i class="fas fa-seedling" aria-hidden="true"></i></span>
+                                                        <span class="gso-nav-icon"><i class="fas fa-paw" aria-hidden="true"></i></span>
                                                         <span class="gso-nav-label">Fauna Rescatada</span>
                                                     </button>
                                                 </div>
@@ -461,7 +462,7 @@
                                     <button class="nav-link" id="gso-impactos-tab" data-bs-toggle="tab" data-bs-target="#gso-impactos-pane" type="button" role="tab" aria-controls="gso-impactos-pane" aria-selected="false" tabindex="-1"><i class="fas fa-dove me-2"></i>Registro de Impactos de Ave</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="gso-rescate-tab" data-bs-toggle="tab" data-bs-target="#gso-fauna-rescate-pane" type="button" role="tab" aria-controls="gso-fauna-rescate-pane" aria-selected="false" tabindex="-1"><i class="fas fa-seedling me-2"></i>Fauna Rescatada</button>
+                                    <button class="nav-link" id="gso-rescate-tab" data-bs-toggle="tab" data-bs-target="#gso-fauna-rescate-pane" type="button" role="tab" aria-controls="gso-fauna-rescate-pane" aria-selected="false" tabindex="-1"><i class="fas fa-paw me-2"></i>Fauna Rescatada</button>
                                 </li>
                             </ul>
                             <div class="tab-content pt-3 d-none" id="gsoTabContent">
@@ -577,14 +578,118 @@
                                     <div class="gso-return mb-3">
                                         <button type="button" class="btn btn-outline-secondary btn-sm gso-return-btn"><i class="fas fa-arrow-left me-2"></i>Regresar al menú GSO</button>
                                     </div>
-                                    <div class="alert alert-info shadow-sm mb-0" role="alert">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <i class="fas fa-info-circle"></i>
-                                            <div>
-                                                <strong>Fauna Rescatada:</strong> Esta pestaña se reservará para los reportes de fauna protegida y rescates operativos. Puedes agregar la información cuando esté lista.
+                                    <div class="text-center mb-3"><h3 class="fw-bold mb-0"><i class="fas fa-paw me-2"></i>Fauna Rescatada 2025</h3></div>
+                                    <div class="card">
+                                        <div class="card-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
+                                            <div class="d-grid d-md-flex flex-wrap align-items-center gap-2 fauna-rescate-filters filters-bar">
+                                                <div class="chip">
+                                                    <label class="me-1"><i class="fas fa-calendar-day me-1"></i>Desde</label>
+                                                    <input type="date" id="fauna-rescate-date-from" class="form-control form-control-sm" />
+                                                </div>
+                                                <div class="chip">
+                                                    <label class="me-1"><i class="fas fa-calendar-day me-1"></i>Hasta</label>
+                                                    <input type="date" id="fauna-rescate-date-to" class="form-control form-control-sm" />
+                                                </div>
+                                                <div class="chip">
+                                                    <label class="me-1"><i class="fas fa-calendar-alt me-1"></i>Mes</label>
+                                                    <select id="fauna-rescate-month" class="form-select form-select-sm">
+                                                        <option value="all" selected>Todos</option>
+                                                    </select>
+                                                </div>
+                                                <div class="chip">
+                                                    <label class="me-1"><i class="fas fa-paw me-1"></i>Clase</label>
+                                                    <select id="fauna-rescate-class" class="form-select form-select-sm">
+                                                        <option value="all" selected>Todas</option>
+                                                    </select>
+                                                </div>
+                                                <div class="chip">
+                                                    <label class="me-1"><i class="fas fa-tools me-1"></i>Método</label>
+                                                    <select id="fauna-rescate-method" class="form-select form-select-sm">
+                                                        <option value="all" selected>Todos</option>
+                                                    </select>
+                                                </div>
+                                                <div class="chip">
+                                                    <label class="me-1"><i class="fas fa-route me-1"></i>Cuadrante</label>
+                                                    <select id="fauna-rescate-quadrant" class="form-select form-select-sm">
+                                                        <option value="all" selected>Todos</option>
+                                                    </select>
+                                                </div>
+                                                <div class="chip">
+                                                    <label class="me-1"><i class="fas fa-warehouse me-1"></i>Disposición</label>
+                                                    <select id="fauna-rescate-disposal" class="form-select form-select-sm">
+                                                        <option value="all" selected>Todas</option>
+                                                    </select>
+                                                </div>
+                                                <div class="chip chip-actions">
+                                                    <label class="me-1"><i class="fas fa-broom me-1"></i>Acciones</label>
+                                                    <button id="fauna-rescate-clear" class="btn btn-outline-secondary btn-sm">Restablecer</button>
+                                                </div>
                                             </div>
                                         </div>
+                                        <div class="card-body">
+                                            <div class="fauna-rescate-badges d-flex flex-wrap align-items-center gap-3 mb-4">
+                                                <span class="badge bg-success-subtle text-success fw-semibold" id="fauna-rescate-total-badge">Total rescates: 0</span>
+                                                <span class="badge bg-primary-subtle text-primary fw-semibold" id="fauna-rescate-individuals-badge">Individuos atendidos: 0</span>
+                                                <span class="badge bg-info-subtle text-info fw-semibold d-none" id="fauna-rescate-active-filter"></span>
+                                            </div>
+                                            <div class="row g-3 mb-4">
+                                                <div class="col-lg-6">
+                                                    <h6 class="text-muted mb-2"><i class="fas fa-calendar-alt me-1"></i>Capturas por mes</h6>
+                                                    <div class="chart-container" style="height: 320px;"><div id="fauna-rescate-by-month" class="echart-host"></div></div>
+                                                </div>
+                                                <div class="col-lg-6">
+                                                    <h6 class="text-muted mb-2"><i class="fas fa-paw me-1"></i>Eventos por clase</h6>
+                                                    <div class="chart-container" style="height: 320px;"><div id="fauna-rescate-by-class" class="echart-host"></div></div>
+                                                </div>
+                                                <div class="col-lg-6">
+                                                    <h6 class="text-muted mb-2"><i class="fas fa-map-location-dot me-1"></i>Sitios de reubicación</h6>
+                                                    <div class="chart-container" style="height: 320px;"><div id="fauna-rescate-by-relocation" class="echart-host fauna-relocation-chart"></div></div>
+                                                </div>
+                                                <div class="col-lg-6">
+                                                    <h6 class="text-muted mb-2"><i class="fas fa-tools me-1"></i>Método de rescate</h6>
+                                                    <div class="chart-container" style="height: 320px;"><div id="fauna-rescate-by-method" class="echart-host"></div></div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <h6 class="text-muted mb-2"><i class="fas fa-clock me-1"></i>Distribución por hora del día</h6>
+                                                    <div class="chart-container" style="height: 320px;"><div id="fauna-rescate-by-hour" class="echart-host"></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="fauna-rescate-top-chipset mb-4">
+                                                <h6 class="text-muted mb-2"><i class="fas fa-leaf me-1"></i>Especies más frecuentes</h6>
+                                                <div id="fauna-rescate-top-species" class="d-flex flex-wrap gap-2"></div>
+                                            </div>
+                                            <div class="d-flex justify-content-end mb-3">
+                                                <button class="btn btn-outline-primary btn-sm" id="fauna-rescate-export"><i class="fas fa-file-csv me-1"></i>Exportar CSV</button>
+                                            </div>
+                                            <div id="fauna-rescate-table" class="table-responsive"></div>
+                                        </div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="medicas-section" class="content-section">
+                    <div class="card border-0">
+                        <div class="card-header bg-transparent d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
+                            <div>
+                                <h2 class="mb-1">Servicio Médico</h2>
+                                <p class="mb-0 text-muted small">Documento colaborativo en Google Docs para coordinar atenciones médicas.</p>
+                            </div>
+                            <a id="servicio-medico-open" class="btn btn-outline-primary btn-sm d-none" href="#" target="_blank" rel="noopener">
+                                <i class="fas fa-external-link-alt me-1"></i>Abrir en Google Docs
+                            </a>
+                        </div>
+                        <div class="card-body">
+                            <p class="small text-muted mb-3">Comparte el documento con “Cualquiera con el enlace puede editar” y pega el vínculo público en <code>data-doc-url</code> para que todos lo vean aquí.</p>
+                            <div id="servicio-medico-embed" class="doc-embed-wrapper" data-doc-url="https://docs.google.com/spreadsheets/d/1-hD3d3GaggG_HvxBCAsQuijjTtj2_RYkJiRDQxYaYng/edit?usp=sharing">
+                                <div class="doc-embed-placeholder">
+                                    <i class="fas fa-file-circle-plus me-2"></i>
+                                    <span>Coloca el enlace de Google Docs o Google Sheets en el atributo <code>data-doc-url</code> para cargar el documento.</span>
+                                </div>
+                                <div class="ratio ratio-4x3 doc-embed-frame d-none">
+                                    <iframe title="Servicio Médico - Documento colaborativo" class="doc-iframe d-none" allow="clipboard-write"></iframe>
                                 </div>
                             </div>
                         </div>
@@ -1774,6 +1879,58 @@
                     const ov = document.getElementById('sidebar-overlay');
                     if (ov) ov.classList.remove('active');
                 }catch(_){}
+            })();
+        </script>
+        <script>
+            (function initServicioMedicoDoc(){
+                function formatGoogleDocUrl(raw){
+                    if (!raw) return '';
+                    const trimmed = String(raw).trim();
+                    if (!trimmed || trimmed.includes('TU_ID_DE_DOCUMENTO')) return '';
+                    try {
+                        const candidate = new URL(trimmed, window.location.href);
+                        if (!/docs\.google\.com$/i.test(candidate.hostname)) return trimmed;
+                        const match = candidate.pathname.match(/\/document\/d\/([^/]+)/);
+                        if (match && match[1]) {
+                            return `https://docs.google.com/document/d/${match[1]}/preview`;
+                        }
+                        const sheetMatch = candidate.pathname.match(/\/spreadsheets\/d\/([^/]+)/);
+                        if (sheetMatch && sheetMatch[1]) {
+                            const gid = candidate.searchParams.get('gid');
+                            const hash = gid ? `#gid=${gid}` : '';
+                            return `https://docs.google.com/spreadsheets/d/${sheetMatch[1]}/preview${hash}`;
+                        }
+                    } catch (_) {
+                        return trimmed;
+                    }
+                    return trimmed;
+                }
+
+                document.addEventListener('DOMContentLoaded', function(){
+                    const wrapper = document.getElementById('servicio-medico-embed');
+                    if (!wrapper) return;
+                    const frameShell = wrapper.querySelector('.doc-embed-frame');
+                    const frame = frameShell ? frameShell.querySelector('iframe') : null;
+                    if (!frame) return;
+
+                    let url = wrapper.dataset.docUrl || '';
+                    url = formatGoogleDocUrl(url);
+                    if (!url) return;
+
+                    frame.src = url;
+                    const placeholder = wrapper.querySelector('.doc-embed-placeholder');
+                    if (placeholder) placeholder.classList.add('d-none');
+                    if (frameShell) frameShell.classList.remove('d-none');
+                    frame.classList.remove('d-none');
+                    wrapper.classList.add('doc-embed-ready');
+
+                    const openBtn = document.getElementById('servicio-medico-open');
+                    if (openBtn) {
+                        const editUrl = url.includes('/preview') ? url.replace('/preview', '/edit') : url;
+                        openBtn.href = editUrl;
+                        openBtn.classList.remove('d-none');
+                    }
+                });
             })();
         </script>
         <script>
