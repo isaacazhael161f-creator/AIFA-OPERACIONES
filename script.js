@@ -1699,6 +1699,142 @@ function updateAirlineQuickSummary(options = {}) {
     card.classList.add('is-highlight');
     setTimeout(() => card.classList.remove('is-highlight'), 650);
 }
+
+function renderItineraryAirlineDetail(config = {}) {
+    const container = document.getElementById('itinerary-airline-detail');
+    if (!container) return;
+    const airlineNameRaw = (config.airline || '').toString().trim();
+    if (!airlineNameRaw || airlineNameRaw === 'all') {
+        container.classList.add('d-none');
+        container.innerHTML = '';
+        return;
+    }
+    const flights = Array.isArray(config.flights) ? config.flights : [];
+    const passengerFlights = Array.isArray(config.passengerFlights) ? config.passengerFlights : [];
+    const cargoFlights = Array.isArray(config.cargoFlights) ? config.cargoFlights : [];
+    const fmt = new Intl.NumberFormat('es-MX');
+    const escapeHtml = escapeHTML;
+    if (!flights.length) {
+        container.classList.remove('d-none');
+        container.innerHTML = `<div class="alert alert-warning mb-0">No hay operaciones para ${escapeHtml(airlineNameRaw)} con los filtros actuales.</div>`;
+        return;
+    }
+
+    const timeToMinutes = (value) => {
+        const match = /^\s*(\d{1,2})\s*:\s*(\d{2})/.exec(String(value || ''));
+        if (!match) return Number.MAX_SAFE_INTEGER;
+        const hours = Math.max(0, Math.min(23, parseInt(match[1], 10)));
+        const minutes = Math.max(0, Math.min(59, parseInt(match[2], 10)));
+        return hours * 60 + minutes;
+    };
+
+    let arrivals = 0;
+    let departures = 0;
+    flights.forEach((flight) => {
+        if (String(flight?.vuelo_llegada || flight?.hora_llegada || '').trim()) arrivals += 1;
+        if (String(flight?.vuelo_salida || flight?.hora_salida || '').trim()) departures += 1;
+    });
+    const operations = arrivals + departures;
+    const passengerCount = passengerFlights.length;
+    const cargoCount = cargoFlights.length;
+    const generalCount = Math.max(0, flights.length - passengerCount - cargoCount);
+    const accentColor = getAirlineAccentColor(airlineNameRaw) || '#0d6efd';
+    const accentBg = hexToRgba(accentColor, 0.12);
+    const accentBorder = hexToRgba(accentColor, 0.35);
+    const accentShadow = hexToRgba(accentColor, 0.18);
+    const dateLabel = config.selectedDate ? formatYMDToDMY(config.selectedDate) : '';
+    const subtitleParts = [
+        `Incluye ${fmt.format(arrivals)} llegadas y ${fmt.format(departures)} salidas`,
+        `${fmt.format(flights.length)} vuelos listados`
+    ];
+    if (dateLabel) subtitleParts.push(`Fecha ${escapeHtml(dateLabel)}`);
+    const subtitle = subtitleParts.join(' · ');
+
+    const sortFlights = [...flights].sort((a, b) => {
+        const aTime = Math.min(timeToMinutes(a?.hora_llegada), timeToMinutes(a?.hora_salida));
+        const bTime = Math.min(timeToMinutes(b?.hora_llegada), timeToMinutes(b?.hora_salida));
+        if (aTime !== bTime) return aTime - bTime;
+        return String(a?.vuelo_llegada || a?.vuelo_salida || '').localeCompare(String(b?.vuelo_llegada || b?.vuelo_salida || ''), undefined, { sensitivity: 'base' });
+    });
+    const rows = sortFlights.map((flight, index) => {
+        const airlineName = (flight && flight.aerolinea) ? String(flight.aerolinea) : 'Sin aerolínea';
+        const logoCandidates = getAirlineLogoCandidates(airlineName) || [];
+        const logoPath = logoCandidates[0] || '';
+        const dataCands = logoCandidates.join('|');
+        const sizeClass = getLogoSizeClass(airlineName, 'table');
+        const logoHtml = logoPath
+            ? `<img class="airline-logo ${escapeHtml(sizeClass)}" src="${escapeHtml(logoPath)}" alt="Logo ${escapeHtml(airlineName)}" data-cands="${escapeHtml(dataCands)}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">`
+            : '';
+        const rowColor = airlineColors[airlineName] || '#0d6efd';
+        const delay = (index * 0.05).toFixed(2);
+        const cell = (field) => {
+            const value = field === undefined || field === null || String(field).trim() === '' ? '-' : field;
+            return escapeHtml(String(value));
+        };
+        const positionDisplay = normalizePositionValue(flight?.posicion || flight?.posición || flight?.stand || '');
+        const positionCell = positionDisplay ? escapeHtml(positionDisplay) : '-';
+        return `<tr class="animated-row" style="--delay:${delay}s; --airline-color:${rowColor};"><td><div class="airline-cell">${logoHtml}<span class="airline-name">${escapeHtml(airlineName)}</span></div></td><td>${cell(flight?.aeronave)}</td><td>${cell(flight?.vuelo_llegada)}</td><td>${cell(flight?.fecha_llegada)}</td><td>${cell(flight?.hora_llegada)}</td><td class="col-origen">${cell(flight?.origen)}</td><td class="text-center">${cell(flight?.banda_reclamo)}</td><td>${positionCell}</td><td>${cell(flight?.vuelo_salida)}</td><td>${cell(flight?.fecha_salida)}</td><td>${cell(flight?.hora_salida)}</td><td class="col-destino">${cell(flight?.destino)}</td></tr>`;
+    }).join('');
+
+    const breakdownChips = [
+        { label: 'Pasajeros', value: passengerCount, icon: 'fas fa-users', variant: 'passenger' },
+        { label: 'Carga', value: cargoCount, icon: 'fas fa-box-open', variant: 'cargo' },
+        { label: 'General', value: generalCount, icon: 'fas fa-paper-plane', variant: 'general' }
+    ].filter(item => item.value > 0).map(item => `<span class="itinerary-airline-chip" data-variant="${item.variant}"><i class="${item.icon}"></i>${escapeHtml(item.label)} <strong>${fmt.format(item.value)}</strong></span>`).join('');
+
+    container.classList.remove('d-none');
+    container.innerHTML = `
+    <div class="card itinerary-airline-card" style="--itinerary-airline-accent:${accentColor}; --itinerary-airline-accent-bg:${accentBg}; --itinerary-airline-accent-border:${accentBorder}; --itinerary-airline-accent-shadow:${accentShadow};">
+            <div class="card-body">
+                <div class="itinerary-airline-card-head">
+                    <div>
+                        <div class="itinerary-airline-title">Itinerario de ${escapeHtml(airlineNameRaw)}</div>
+                        <div class="itinerary-airline-sub">${subtitle}</div>
+                    </div>
+                    <div class="itinerary-airline-pills">
+                        <span class="itinerary-pill"><i class="fas fa-plane"></i>${fmt.format(operations)} operaciones</span>
+                        <span class="itinerary-pill"><i class="fas fa-plane-arrival"></i>${fmt.format(arrivals)} llegadas</span>
+                        <span class="itinerary-pill"><i class="fas fa-plane-departure"></i>${fmt.format(departures)} salidas</span>
+                    </div>
+                </div>
+                <div class="itinerary-airline-toolbar-detail">
+                    <div class="itinerary-airline-breakdown">${breakdownChips || '<span class="text-muted small">Sin desglose por tipo disponible.</span>'}</div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-action="clear-airline-filter"><i class="fas fa-undo me-1"></i>Ver todas las aerolíneas</button>
+                </div>
+                <div class="table-responsive itinerary-airline-table">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Aerolínea</th>
+                                <th>Aeronave</th>
+                                <th>Vuelo Lleg.</th>
+                                <th>Fecha Lleg.</th>
+                                <th>Hora Lleg.</th>
+                                <th class="col-origen">Origen</th>
+                                <th>Banda</th>
+                                <th>Posición</th>
+                                <th>Vuelo Sal.</th>
+                                <th>Fecha Sal.</th>
+                                <th>Hora Sal.</th>
+                                <th class="col-destino">Destino</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows || '<tr><td colspan="12" class="text-center text-muted">Sin vuelos disponibles.</td></tr>'}</tbody>
+                    </table>
+                </div>
+            </div>
+        </div>`;
+
+    const clearBtn = container.querySelector('[data-action="clear-airline-filter"]');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            const select = document.getElementById('airline-filter');
+            if (!select) return;
+            select.value = 'all';
+            applyFilters();
+        });
+    }
+}
 function applyFilters() {
     const t0 = performance.now();
     const selectedAirlineRaw = document.getElementById('airline-filter').value;
@@ -1851,8 +1987,8 @@ function applyFilters() {
     const hasPassengerFlights = passengerFlights.length > 0;
     const hasCargoFlights = cargoFlights.length > 0;
     if (isSpecificAirline) {
-        if (passBlock) passBlock.style.display = hasPassengerFlights ? '' : 'none';
-        if (cargoBlock) cargoBlock.style.display = hasCargoFlights ? '' : 'none';
+        if (passBlock) passBlock.style.display = 'none';
+        if (cargoBlock) cargoBlock.style.display = 'none';
         if (filterControls) filterControls.classList.add('d-none');
         if (toolbar) toolbar.classList.add('airline-selected');
     } else {
@@ -1890,6 +2026,13 @@ function applyFilters() {
         flights: Array.isArray(filteredData) ? filteredData : [],
         passengerCount: passengerFlights.length,
         cargoCount: cargoFlights.length,
+        selectedDate
+    });
+    renderItineraryAirlineDetail({
+        airline: selectedAirline,
+        flights: Array.isArray(filteredData) ? filteredData : [],
+        passengerFlights,
+        cargoFlights,
         selectedDate
     });
     // Expose the filtered subset to sync charts in 'Gráficas Itinerario'
@@ -4767,82 +4910,97 @@ function renderOperacionesTotales() {
 
     // Destruir charts previos y renderizar visibles
         destroyOpsCharts();
-        const showCom = !!opsUIState.sections.comercial;
-        const showCar = !!opsUIState.sections.carga;
-        const showGen = !!opsUIState.sections.general;
-        const presetOpsOnly = (opsUIState.preset === 'ops');
+        const showComBase = !!opsUIState.sections.comercial;
+        const showCarBase = !!opsUIState.sections.carga;
+        const showGenBase = !!opsUIState.sections.general;
+        const presetMode = opsUIState.preset || 'full';
+        const showOpsCharts = presetMode === 'full' || presetMode === 'ops';
+        const showPassengerCharts = presetMode === 'full' || presetMode === 'pax';
+        const showCargoTonCharts = presetMode === 'full' || presetMode === 'cargoTon';
+
+        const showCommercialSection = showComBase && (showOpsCharts || showPassengerCharts);
+        const showCargoSection = showCarBase && (showOpsCharts || showCargoTonCharts);
+        const showGeneralSection = showGenBase && (showOpsCharts || showPassengerCharts);
 
         // Helpers para mostrar/ocultar grupos y charts específicos
         const setVisible = (selector, vis) => { const el = document.querySelector(selector); if (el) el.style.display = vis ? '' : 'none'; };
-        setVisible('#commercial-group', showCom);
-        setVisible('#cargo-group', showCar);
-        setVisible('#general-group', showGen);
+        setVisible('#commercial-heading', showCommercialSection);
+        setVisible('#commercial-group', showCommercialSection);
+        setVisible('#cargo-heading', showCargoSection);
+        setVisible('#cargo-update-note', showCargoSection);
+        setVisible('#cargo-group', showCargoSection);
+        setVisible('#general-heading', showGeneralSection);
+        setVisible('#general-group', showGeneralSection);
+
+        setVisible('#commercial-group canvas#commercialOpsChart', showCommercialSection && showOpsCharts);
+        setVisible('#commercial-group canvas#commercialPaxChart', showCommercialSection && showPassengerCharts);
+        setVisible('#cargo-group canvas#cargoOpsChart', showCargoSection && showOpsCharts);
+        setVisible('#cargo-group canvas#cargoTonsChart', showCargoSection && showCargoTonCharts);
+        setVisible('#general-group canvas#generalOpsChart', showGeneralSection && showOpsCharts);
+        setVisible('#general-group canvas#generalPaxChart', showGeneralSection && showPassengerCharts);
 
             // Comercial
-        if (showCom) {
+        if (showCommercialSection) {
             const c1 = document.getElementById('commercialOpsChart');
             const c2 = document.getElementById('commercialPaxChart');
-                if (c1) opsCharts.commercialOpsChart = new Chart(c1, makePeakCfg(
-                    c1, labels, series.comercialOps,
-                    'Operaciones', '#1e88e5', 'rgba(66,165,245,0.35)', 'rgba(21,101,192,0.05)',
-                    { easing:'easeOutQuart', duration: 4800, stagger: 110, disableMotion: true },
-                    'int', { type:'plane', speed: 20000, scale: 1.25 }, periodLabel, '✈ Operaciones (Comercial)',
-                    getVariationPayload(variations.comercialOps),
-                    tickDetails
-                ));
-            setVisible('#commercial-group canvas#commercialPaxChart', !presetOpsOnly);
-                if (!presetOpsOnly && c2) opsCharts.commercialPaxChart = new Chart(c2, makePeakCfg(
-                    c2, labels, series.comercialPax,
-                    'Pasajeros', '#1565c0', 'rgba(33,150,243,0.35)', 'rgba(13,71,161,0.05)',
-                    { easing:'easeOutElastic', duration: 5200, stagger: 160, disableMotion: true },
-                    'pax', { type:'person', speed: 22000, scale: 0.9 }, periodLabel, '🚶 Pasajeros (Comercial)',
-                    getVariationPayload(variations.comercialPax),
-                    tickDetails
-                ));
+            if (showOpsCharts && c1) opsCharts.commercialOpsChart = new Chart(c1, makePeakCfg(
+                c1, labels, series.comercialOps,
+                'Operaciones', '#1e88e5', 'rgba(66,165,245,0.35)', 'rgba(21,101,192,0.05)',
+                { easing:'easeOutQuart', duration: 4800, stagger: 110, disableMotion: true },
+                'int', { type:'plane', speed: 20000, scale: 1.25 }, periodLabel, '✈ Operaciones (Comercial)',
+                getVariationPayload(variations.comercialOps),
+                tickDetails
+            ));
+            if (showPassengerCharts && c2) opsCharts.commercialPaxChart = new Chart(c2, makePeakCfg(
+                c2, labels, series.comercialPax,
+                'Pasajeros', '#1565c0', 'rgba(33,150,243,0.35)', 'rgba(13,71,161,0.05)',
+                { easing:'easeOutElastic', duration: 5200, stagger: 160, disableMotion: true },
+                'pax', { type:'person', speed: 22000, scale: 0.9 }, periodLabel, '🚶 Pasajeros (Comercial)',
+                getVariationPayload(variations.comercialPax),
+                tickDetails
+            ));
         }
             // Carga
-        if (showCar) {
+        if (showCargoSection) {
             const k1 = document.getElementById('cargoOpsChart');
             const k2 = document.getElementById('cargoTonsChart');
-                if (k1) opsCharts.cargoOpsChart = new Chart(k1, makePeakCfg(
-                    k1, labels, series.cargaOps,
-                    'Operaciones', '#fb8c00', 'rgba(255,183,77,0.35)', 'rgba(239,108,0,0.05)',
-                    { easing:'easeOutBack', duration: 5000, stagger: 140, disableMotion: true },
-                    'int', { type:'plane', speed: 24000, scale: 1.35 }, periodLabel, '✈ Operaciones (Carga)',
-                    getVariationPayload(variations.cargaOps),
-                    tickDetails
-                ));
-            setVisible('#cargo-group canvas#cargoTonsChart', !presetOpsOnly);
-                if (!presetOpsOnly && k2) opsCharts.cargoTonsChart = new Chart(k2, makePeakCfg(
-                    k2, labels, series.cargaTon,
-                    'Toneladas', '#f57c00', 'rgba(255,204,128,0.35)', 'rgba(230,81,0,0.05)',
-                    { easing:'easeOutCubic', duration: 5600, stagger: 170, disableMotion: true },
-                    'ton', { type:'suitcase', speed: 26000, scale: 1.5 }, periodLabel, '🧳 Toneladas (Carga)',
-                    getVariationPayload(variations.cargaTon),
-                    tickDetails
-                ));
+            if (showOpsCharts && k1) opsCharts.cargoOpsChart = new Chart(k1, makePeakCfg(
+                k1, labels, series.cargaOps,
+                'Operaciones', '#fb8c00', 'rgba(255,183,77,0.35)', 'rgba(239,108,0,0.05)',
+                { easing:'easeOutBack', duration: 5000, stagger: 140, disableMotion: true },
+                'int', { type:'plane', speed: 24000, scale: 1.35 }, periodLabel, '✈ Operaciones (Carga)',
+                getVariationPayload(variations.cargaOps),
+                tickDetails
+            ));
+            if (showCargoTonCharts && k2) opsCharts.cargoTonsChart = new Chart(k2, makePeakCfg(
+                k2, labels, series.cargaTon,
+                'Toneladas', '#f57c00', 'rgba(255,204,128,0.35)', 'rgba(230,81,0,0.05)',
+                { easing:'easeOutCubic', duration: 5600, stagger: 170, disableMotion: true },
+                'ton', { type:'suitcase', speed: 26000, scale: 1.5 }, periodLabel, '🧳 Toneladas (Carga)',
+                getVariationPayload(variations.cargaTon),
+                tickDetails
+            ));
         }
             // General
-        if (showGen) {
+        if (showGeneralSection) {
             const g1 = document.getElementById('generalOpsChart');
             const g2 = document.getElementById('generalPaxChart');
-                if (g1) opsCharts.generalOpsChart = new Chart(g1, makePeakCfg(
-                    g1, labels, series.generalOps,
-                    'Operaciones', '#2e7d32', 'rgba(129,199,132,0.35)', 'rgba(27,94,32,0.05)',
-                    { easing:'easeOutQuart', duration: 4800, stagger: 130, disableMotion: true },
-                    'int', { type:'plane', speed: 22000, scale: 1.3 }, periodLabel, '✈ Operaciones (General)',
-                    getVariationPayload(variations.generalOps),
-                    tickDetails
-                ));
-            setVisible('#general-group canvas#generalPaxChart', !presetOpsOnly);
-                if (!presetOpsOnly && g2) opsCharts.generalPaxChart = new Chart(g2, makePeakCfg(
-                    g2, labels, series.generalPax,
-                    'Pasajeros', '#1b5e20', 'rgba(165,214,167,0.35)', 'rgba(27,94,32,0.05)',
-                    { easing:'easeOutElastic', duration: 5200, stagger: 160, disableMotion: true },
-                    'pax', { type:'person', speed: 23000, scale: 0.9 }, periodLabel, '🚶 Pasajeros (General)',
-                    getVariationPayload(variations.generalPax),
-                    tickDetails
-                ));
+            if (showOpsCharts && g1) opsCharts.generalOpsChart = new Chart(g1, makePeakCfg(
+                g1, labels, series.generalOps,
+                'Operaciones', '#2e7d32', 'rgba(129,199,132,0.35)', 'rgba(27,94,32,0.05)',
+                { easing:'easeOutQuart', duration: 4800, stagger: 130, disableMotion: true },
+                'int', { type:'plane', speed: 22000, scale: 1.3 }, periodLabel, '✈ Operaciones (General)',
+                getVariationPayload(variations.generalOps),
+                tickDetails
+            ));
+            if (showPassengerCharts && g2) opsCharts.generalPaxChart = new Chart(g2, makePeakCfg(
+                g2, labels, series.generalPax,
+                'Pasajeros', '#1b5e20', 'rgba(165,214,167,0.35)', 'rgba(27,94,32,0.05)',
+                { easing:'easeOutElastic', duration: 5200, stagger: 160, disableMotion: true },
+                'pax', { type:'person', speed: 23000, scale: 0.9 }, periodLabel, '🚶 Pasajeros (General)',
+                getVariationPayload(variations.generalPax),
+                tickDetails
+            ));
         }
 
     updateCargoLegend(useWeekly ? weekly : getActiveWeeklyDataset());
@@ -5134,12 +5292,28 @@ function verifyChartsCreated(sectionId) {
     console.log(`🔍 Verificando gráficas de sección: ${sectionId}`);
     
     if (sectionId === 'operaciones-totales') {
-        const expectedCharts = [
-            'commercialOpsChart', 'commercialPaxChart',
-            'cargoOpsChart', 'cargoTonsChart',
-            'generalOpsChart', 'generalPaxChart'
-        ];
-        
+        const sections = opsUIState.sections || {};
+        const showCom = sections.comercial !== false;
+        const showCar = sections.carga !== false;
+        const showGen = sections.general !== false;
+        const presetMode = opsUIState.preset || 'full';
+        const showOpsCharts = presetMode === 'full' || presetMode === 'ops';
+        const showPassengerCharts = presetMode === 'full' || presetMode === 'pax';
+        const showCargoTonCharts = presetMode === 'full' || presetMode === 'cargoTon';
+
+        const expectedCharts = [];
+        if (showCom && showOpsCharts) expectedCharts.push('commercialOpsChart');
+        if (showCom && showPassengerCharts) expectedCharts.push('commercialPaxChart');
+        if (showCar && showOpsCharts) expectedCharts.push('cargoOpsChart');
+        if (showCar && showCargoTonCharts) expectedCharts.push('cargoTonsChart');
+        if (showGen && showOpsCharts) expectedCharts.push('generalOpsChart');
+        if (showGen && showPassengerCharts) expectedCharts.push('generalPaxChart');
+
+        if (!expectedCharts.length) {
+            console.log('ℹ️ Vista seleccionada no requiere gráficas en Operaciones Totales.');
+            return true;
+        }
+
         let createdCount = 0;
         expectedCharts.forEach(chartKey => {
             if (opsCharts[chartKey] && opsCharts[chartKey].data) {
@@ -5149,7 +5323,7 @@ function verifyChartsCreated(sectionId) {
                 console.warn(`❌ ${chartKey} NO se creó`);
             }
         });
-        
+
         return createdCount === expectedCharts.length;
         
     } else if (sectionId === 'itinerario') {
@@ -5755,8 +5929,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const monthsNone = document.getElementById('months-select-none');
         const sectionsBox = document.getElementById('ops-sections-filters');
         const yearsBox = document.getElementById('ops-years-filters');
-        const presetOps = document.getElementById('preset-ops');
-        const presetFull = document.getElementById('preset-full');
+    const presetOps = document.getElementById('preset-ops');
+    const presetPassengers = document.getElementById('preset-passengers');
+    const presetCargoTon = document.getElementById('preset-cargo-ton');
+    const presetFull = document.getElementById('preset-full');
 
         function refreshDisabledYears(disabled){
             yearsBox?.querySelectorAll('input[type="checkbox"]').forEach(inp => { inp.disabled = disabled; });
@@ -5979,8 +6155,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (monthsAll && !monthsAll._wired) { monthsAll._wired = 1; monthsAll.addEventListener('click', ()=>{ monthsPanel?.querySelectorAll('input[type="checkbox"]').forEach(inp => inp.checked = true); readMonths(); renderOperacionesTotales(); }); }
         if (monthsNone && !monthsNone._wired) { monthsNone._wired = 1; monthsNone.addEventListener('click', ()=>{ monthsPanel?.querySelectorAll('input[type="checkbox"]').forEach(inp => inp.checked = false); readMonths(); renderOperacionesTotales(); }); }
 
-        if (presetOps && !presetOps._wired) { presetOps._wired = 1; presetOps.addEventListener('click', ()=>{ opsUIState.preset='ops'; renderOperacionesTotales(); }); }
-        if (presetFull && !presetFull._wired) { presetFull._wired = 1; presetFull.addEventListener('click', ()=>{ opsUIState.preset='full'; renderOperacionesTotales(); }); }
+    if (presetOps && !presetOps._wired) { presetOps._wired = 1; presetOps.addEventListener('click', ()=>{ opsUIState.preset='ops'; renderOperacionesTotales(); }); }
+    if (presetPassengers && !presetPassengers._wired) { presetPassengers._wired = 1; presetPassengers.addEventListener('click', ()=>{ opsUIState.preset='pax'; renderOperacionesTotales(); }); }
+    if (presetCargoTon && !presetCargoTon._wired) { presetCargoTon._wired = 1; presetCargoTon.addEventListener('click', ()=>{ opsUIState.preset='cargoTon'; renderOperacionesTotales(); }); }
+    if (presetFull && !presetFull._wired) { presetFull._wired = 1; presetFull.addEventListener('click', ()=>{ opsUIState.preset='full'; renderOperacionesTotales(); }); }
     } catch (_) {}
 });
 

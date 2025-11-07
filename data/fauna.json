@@ -1378,5 +1378,46 @@
     "Medidas proactivas": "Implementación de pirotecnia, repelente electrónico y aplicación de químicos (DDVP, Resifum, Bird-off).",
     "Condiciones meteorológicas": "Despejado",
     "Resultados de las medidas": "Dispersión de fauna"
+  },
+{
+    "No.": "70",
+    "Fecha": "05/11/2025",
+    "Hora": "10:44",
+    "Ubicación": "04C-22C",
+    "Zona de impacto": "K6",
+    "Fase de la operación": "Aterrizaje",
+    "Aerolineas": "Volaris",
+    "Aeronave": "A-320",
+    "Matricula": "XA-VLE",
+    "Zona de impacto resto": "Radomo",
+    "Cantidad de restos": "3",
+    "Tamaño": "Pequeño",
+    "Especie": "Hirundo rustica",
+    "Nombre común": "Golondrina tijereta",
+    "Personal que reporta": "TWR",
+    "Medidas proactivas": "Implementación de pirotecnia y repelente electrónico",
+    "Condiciones meteorológicas": "Despejado",
+    "Resultados de las medidas": "Dispersión de fauna"
+  },
+  {
+    "No.": "71",
+    "Fecha": "07/11/2025",
+    "Hora": "09:43",
+    "Ubicación": "04C-22C",
+    "Zona de impacto": "K3-K7",
+    "Fase de la operación": "Aterrizaje",
+    "Aerolineas": "Viva Aerobus",
+    "Aeronave": "A-321",
+    "Matricula": "XA-VXL",
+    "Zona de impacto resto": "Radomo y Motor No. 2",
+    "Cantidad de restos": "6",
+    "Tamaño": "Pequeño",
+    "Especie": "Hirundo rustica",
+    "Nombre común": "Golondrina tijereta",
+    "Personal que reporta": "TWR",
+    "Medidas proactivas": "Implementación de pirotecnia y repelente electrónico",
+    "Condiciones meteorológicas": "Despejado",
+    "Resultados de las medidas": "Dispersión de fauna"
   }
+
 ]

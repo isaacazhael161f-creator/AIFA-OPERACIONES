@@ -242,6 +242,7 @@
                                                     <div class="airline-summary-placeholder"><i class="fas fa-plane-arrival me-2"></i>Selecciona una aerolínea para ver su resumen diario.</div>
                                                 </div>
                                             </div>
+                                            <div id="itinerary-airline-detail" class="itinerary-airline-detail d-none" aria-live="polite"></div>
                                             <div class="itinerary-table-block" id="itinerary-passenger-block">
                                                 <div class="d-flex align-items-center justify-content-between mb-2">
                                                     <h4 class="mb-0"><i class="fas fa-plane-departure me-2"></i>Itinerario de Pasajeros</h4>
@@ -821,6 +822,8 @@
                                         <h6 class="text-muted">Vistas rápidas</h6>
                                         <div class="d-flex flex-wrap align-items-center gap-2">
                                             <button type="button" class="btn btn-outline-secondary btn-sm" id="preset-ops"><i class="fas fa-tachometer-alt me-1"></i>Operaciones</button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" id="preset-passengers"><i class="fas fa-users me-1"></i>Pasajeros</button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" id="preset-cargo-ton"><i class="fas fa-weight-hanging me-1"></i>Toneladas Carga</button>
                                             <button type="button" class="btn btn-outline-secondary btn-sm" id="preset-full"><i class="fas fa-layer-group me-1"></i>Completa</button>
                                         </div>
                                     </div>
@@ -897,7 +900,7 @@
                               </div>
                             </div>
                             
-                            <h5 class="text-uppercase text-muted fw-bold mb-3"><span class="section-icon icon-commercial">✈</span>Aviación Comercial</h5>
+                            <h5 class="text-uppercase text-muted fw-bold mb-3" id="commercial-heading"><span class="section-icon icon-commercial">✈</span>Aviación Comercial</h5>
                             <div class="row g-3 mb-4" id="commercial-group">
                                 <div class="col-12 col-xxl-6">
                                     <div class="chart-container ops-chart"><canvas id="commercialOpsChart"></canvas></div>
@@ -906,8 +909,8 @@
                                     <div class="chart-container ops-chart"><canvas id="commercialPaxChart"></canvas></div>
                                 </div>
                             </div>
-                            <h5 class="text-uppercase text-muted fw-bold mb-3 mt-4"><span class="section-icon icon-cargo">⛟</span>Operaciones de Carga</h5>
-                            <div class="update-note d-flex align-items-center mb-2">
+                            <h5 class="text-uppercase text-muted fw-bold mb-3 mt-4" id="cargo-heading"><span class="section-icon icon-cargo">⛟</span>Operaciones de Carga</h5>
+                            <div class="update-note d-flex align-items-center mb-2" id="cargo-update-note">
                                 <i class="fas fa-calendar-check me-2" aria-hidden="true"></i>
                                 <small>Datos actualizados al <strong>31 de octubre 2025</strong></small>
                             </div>
@@ -919,7 +922,7 @@
                                     <div class="chart-container ops-chart"><canvas id="cargoTonsChart"></canvas></div>
                                 </div>
                             </div>
-                            <h5 class="text-uppercase text-muted fw-bold mb-3 mt-4"><span class="section-icon icon-general">🛩</span>Aviación General</h5>
+                            <h5 class="text-uppercase text-muted fw-bold mb-3 mt-4" id="general-heading"><span class="section-icon icon-general">🛩</span>Aviación General</h5>
                             <div class="row g-3 mb-4" id="general-group">
                                 <div class="col-12 col-xxl-6">
                                     <div class="chart-container ops-chart"><canvas id="generalOpsChart"></canvas></div>
