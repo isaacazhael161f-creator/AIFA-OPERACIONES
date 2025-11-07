@@ -172,7 +172,18 @@ const WEEKLY_OPERATIONS_DATASETS = [
                 comercial: { operaciones: 154, pasajeros: 21097 },
                 general: { operaciones: 8, pasajeros: 23 },
                 carga: { operaciones: 23, toneladas: 747, corteFecha: '2025-11-04', corteNota: 'Cifras del 04 de noviembre de 2025.' }
+            },
+
+{
+                fecha: '2025-11-06',
+                label: '06 Nov 2025',
+                comercial: { operaciones: 154, pasajeros: 21458},
+                general: { operaciones: 14, pasajeros: 21 },
+                carga: { operaciones: 23, toneladas: 775, corteFecha: '2025-11-04', corteNota: 'Cifras del 04 de noviembre de 2025.' }
             }
+
+
+
         ]
     },
     {
@@ -397,6 +408,190 @@ const staticData = {
         causas: [ { causa: 'Repercusión', demoras: 219 }, { causa: 'Compañía', demoras: 190 }, { causa: 'Evento Circunstancial', demoras: 8 }, { causa: 'Combustible', demoras: 5 }, { causa: 'Autoridad', demoras: 4 }, { causa: 'Meteorología', demoras: 199 }, { causa: 'Aeropuerto', demoras: 4 }, ]
     }
 };
+
+const RAW_AVIACION_GENERAL_DATA = {
+    aviacion_comercial: {
+        operaciones: {
+            "2022": {
+                enero: 0,
+                febrero: 0,
+                marzo: 138,
+                abril: 356,
+                mayo: 371,
+                junio: 356,
+                julio: 338,
+                agosto: 620,
+                septiembre: 1327,
+                octubre: 1866,
+                noviembre: 1784,
+                diciembre: 1840,
+                total_por_ano: 8996
+            },
+            "2023": {
+                enero: 1856,
+                febrero: 1650,
+                marzo: 1840,
+                abril: 1710,
+                mayo: 1851,
+                junio: 1839,
+                julio: 2029,
+                agosto: 2108,
+                septiembre: 1731,
+                octubre: 2106,
+                noviembre: 2027,
+                diciembre: 2464,
+                total_por_ano: 23211
+            },
+            "2024": {
+                enero: 3161,
+                febrero: 3190,
+                marzo: 3620,
+                abril: 4333,
+                mayo: 4387,
+                junio: 4509,
+                julio: 4701,
+                agosto: 4749,
+                septiembre: 4553,
+                octubre: 4779,
+                noviembre: 4816,
+                diciembre: 4936,
+                total_por_ano: 51734
+            },
+            "2025": {
+                enero: 4488,
+                febrero: 4016,
+                marzo: 4426,
+                abril: 4575,
+                mayo: 4443,
+                junio: 4129,
+                julio: 4430,
+                agosto: 4500,
+                septiembre: 4135,
+                octubre: 4306,
+                noviembre: 905,
+                diciembre: 0,
+                total_por_ano: 44353
+            },
+            acumulado: 128294
+        },
+        pasajeros: {
+            "2022": {
+                enero: 0,
+                febrero: 0,
+                marzo: 14225,
+                abril: 35593,
+                mayo: 36405,
+                junio: 33354,
+                julio: 36280,
+                agosto: 53580,
+                septiembre: 102521,
+                octubre: 185617,
+                noviembre: 203094,
+                diciembre: 211746,
+                total_por_ano: 912415
+            },
+            "2023": {
+                enero: 186572,
+                febrero: 165315,
+                marzo: 196339,
+                abril: 205008,
+                mayo: 218322,
+                junio: 208041,
+                julio: 256590,
+                agosto: 266541,
+                septiembre: 197770,
+                octubre: 231971,
+                noviembre: 221425,
+                diciembre: 277367,
+                total_por_ano: 2631261
+            },
+            "2024": {
+                enero: 339052,
+                febrero: 354017,
+                marzo: 424298,
+                abril: 518932,
+                mayo: 521107,
+                junio: 544724,
+                julio: 600910,
+                agosto: 602796,
+                septiembre: 547003,
+                octubre: 590528,
+                noviembre: 624883,
+                diciembre: 650204,
+                total_por_ano: 6318454
+            },
+            "2025": {
+                enero: 565716,
+                febrero: 488440,
+                marzo: 570097,
+                abril: 621197,
+                mayo: 586299,
+                junio: 541400,
+                julio: 604758,
+                agosto: 630952,
+                septiembre: 546457,
+                octubre: 549844,
+                noviembre: 120989,
+                diciembre: 0,
+                total_por_ano: 5826149
+            },
+            acumulado: 15688279
+        }
+    }
+};
+
+const AVIACION_GENERAL_DATA = (() => {
+    const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const monthLabels = months.map((m) => m.charAt(0).toUpperCase() + m.slice(1));
+    const result = {
+        months,
+        monthLabels,
+        operaciones: { years: Object.create(null), acumulado: 0 },
+        pasajeros: { years: Object.create(null), acumulado: 0 },
+        years: []
+    };
+    const metrics = ['operaciones','pasajeros'];
+    const yearSet = new Set();
+    const source = (RAW_AVIACION_GENERAL_DATA && RAW_AVIACION_GENERAL_DATA.aviacion_comercial) || {};
+    const toNumber = (value) => {
+        if (value === null || value === undefined || value === '') return null;
+        if (typeof value === 'number' && Number.isFinite(value)) return value;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    metrics.forEach((metric) => {
+        const metricSource = source[metric] || {};
+        result[metric].acumulado = Number(metricSource.acumulado || 0);
+        Object.entries(metricSource).forEach(([year, payload]) => {
+            if (year === 'acumulado') return;
+            const yearData = { total: Number((payload && payload.total_por_ano) || 0), months: Object.create(null) };
+            months.forEach((month) => {
+                yearData.months[month] = toNumber(payload ? payload[month] : null);
+            });
+            result[metric].years[year] = yearData;
+            yearSet.add(year);
+        });
+    });
+
+    result.years = Array.from(yearSet).sort((a, b) => Number(a) - Number(b));
+    return result;
+})();
+
+const AVIACION_GENERAL_METRIC_META = {
+    operaciones: { label: 'Operaciones', color: '#1e88e5' },
+    pasajeros: { label: 'Pasajeros', color: '#8e24aa' }
+};
+
+const aviacionGeneralState = {
+    metric: 'operaciones',
+    view: 'anual',
+    year: null,
+    comparison: 'previous'
+};
+
+let aviacionGeneralChart = null;
+
 const dashboardData = {
     users: {
         // NOTA: las contraseñas en texto plano no se usan para validar; se migran a hash en tiempo de ejecución y se descartan
@@ -5903,6 +6098,739 @@ function changeFreqWeek(_delta) {}
 function ensurePeakDate() {}
 function renderDailyPeaks() {}
 function initPeakDateControls() {}
+
+// ================== Aviación General: comparativo dinámico ==================
+function isFiniteNumber(value) {
+    return typeof value === 'number' && Number.isFinite(value);
+}
+
+function formatNumberMX(value, options = {}) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return '-';
+    const baseOptions = { maximumFractionDigits: 0 };
+    const finalOptions = Object.assign({}, baseOptions, options || {});
+    return new Intl.NumberFormat('es-MX', finalOptions).format(numeric);
+}
+
+function normalizeMetricValue(value) {
+    if (value === null || value === undefined || value === '') return null;
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function computeDelta(current, previous) {
+    if (!isFiniteNumber(current) || !isFiniteNumber(previous)) return null;
+    const abs = current - previous;
+    const pct = previous === 0 ? null : (abs / previous) * 100;
+    return { abs, pct };
+}
+
+function buildAnnualRows(metricData = {}) {
+    const years = AVIACION_GENERAL_DATA.years || [];
+    const rows = [];
+    let previousValue = null;
+    years.forEach((year) => {
+        const payload = metricData.years ? metricData.years[year] : null;
+        const rawTotal = normalizeMetricValue(payload ? payload.total : null);
+        const value = isFiniteNumber(rawTotal) ? rawTotal : 0;
+        const deltaPrevYear = isFiniteNumber(previousValue) ? computeDelta(value, previousValue) : null;
+        rows.push({ year, value, deltaPrevYear });
+        previousValue = isFiniteNumber(value) ? value : previousValue;
+    });
+    return rows;
+}
+
+function buildMonthlyRows(metricData = {}, year, comparisonYear) {
+    const months = AVIACION_GENERAL_DATA.months || [];
+    const labels = AVIACION_GENERAL_DATA.monthLabels || months.map((m) => m.charAt(0).toUpperCase() + m.slice(1));
+    const rows = [];
+    const yearInfo = metricData.years ? metricData.years[year] : null;
+    if (!yearInfo) return rows;
+    const comparisonInfo = comparisonYear && metricData.years ? metricData.years[comparisonYear] : null;
+    let prevValidValue = null;
+    months.forEach((month, index) => {
+        const current = normalizeMetricValue(yearInfo.months ? yearInfo.months[month] : null);
+        const compareRaw = comparisonInfo ? normalizeMetricValue(comparisonInfo.months ? comparisonInfo.months[month] : null) : null;
+        const currentValue = isFiniteNumber(current) ? current : null;
+        const compareValue = isFiniteNumber(compareRaw) ? compareRaw : null;
+        const deltaPrev = isFiniteNumber(currentValue) && isFiniteNumber(prevValidValue) ? computeDelta(currentValue, prevValidValue) : null;
+        const deltaCompare = isFiniteNumber(currentValue) && isFiniteNumber(compareValue) ? computeDelta(currentValue, compareValue) : null;
+        rows.push({
+            key: month,
+            label: labels[index] || month,
+            value: currentValue,
+            compareValue,
+            deltaPrev,
+            deltaCompare
+        });
+        if (isFiniteNumber(currentValue)) prevValidValue = currentValue;
+    });
+    return rows;
+}
+
+function formatNumberCell(value, options) {
+    return isFiniteNumber(value) ? formatNumberMX(value, options) : '<span class="text-muted">-</span>';
+}
+
+function renderVariationAbs(delta) {
+    if (!delta || !isFiniteNumber(delta.abs)) return '<span class="text-muted">-</span>';
+    const type = delta.abs > 0 ? 'up' : (delta.abs < 0 ? 'down' : 'flat');
+    const icon = type === 'up' ? 'fas fa-arrow-up' : (type === 'down' ? 'fas fa-arrow-down' : 'fas fa-minus');
+    const sign = delta.abs > 0 ? '+' : (delta.abs < 0 ? '-' : '');
+    const valueText = `${sign}${formatNumberMX(Math.abs(delta.abs))}`;
+    return `<span class="ag-variation-pill ${type}"><i class="${icon}" aria-hidden="true"></i><span>${valueText}</span></span>`;
+}
+
+function renderVariationPct(delta) {
+    if (!delta || !isFiniteNumber(delta.abs)) return '<span class="text-muted">-</span>';
+    if (!isFiniteNumber(delta.pct)) return '<span class="ag-variation-pill flat">NA</span>';
+    const type = delta.pct > 0 ? 'up' : (delta.pct < 0 ? 'down' : 'flat');
+    const icon = type === 'up' ? 'fas fa-arrow-up' : (type === 'down' ? 'fas fa-arrow-down' : 'fas fa-minus');
+    const sign = delta.pct > 0 ? '+' : (delta.pct < 0 ? '-' : '');
+    const valueText = `${sign}${Math.abs(delta.pct).toFixed(1)}%`;
+    return `<span class="ag-variation-pill ${type}"><i class="${icon}" aria-hidden="true"></i><span>${valueText}</span></span>`;
+}
+
+function hexToRgba(color, alpha) {
+    if (typeof color !== 'string') return `rgba(30,136,229,${typeof alpha === 'number' ? alpha : 0.25})`;
+    const sanitized = color.replace('#', '').trim();
+    if (sanitized.length !== 6) return `rgba(30,136,229,${typeof alpha === 'number' ? alpha : 0.25})`;
+    const r = parseInt(sanitized.slice(0, 2), 16);
+    const g = parseInt(sanitized.slice(2, 4), 16);
+    const b = parseInt(sanitized.slice(4, 6), 16);
+    const a = typeof alpha === 'number' ? alpha : 0.25;
+    return `rgba(${r},${g},${b},${a})`;
+}
+
+function getMaxValue(values = []) {
+    return values.reduce((max, value) => (isFiniteNumber(value) && value > max ? value : max), 0);
+}
+
+function buildTrendFromDelta(delta, contextLabel) {
+    if (!delta || !isFiniteNumber(delta.abs)) return null;
+    const type = delta.abs > 0 ? 'up' : (delta.abs < 0 ? 'down' : 'flat');
+    const icon = type === 'up' ? 'fas fa-arrow-up' : (type === 'down' ? 'fas fa-arrow-down' : 'fas fa-minus');
+    const sign = delta.abs > 0 ? '+' : (delta.abs < 0 ? '-' : '');
+    const absText = `${sign}${formatNumberMX(Math.abs(delta.abs))}`;
+    let pctText = '';
+    if (isFiniteNumber(delta.pct)) {
+        pctText = `${sign}${Math.abs(delta.pct).toFixed(1)}%`;
+    }
+    const context = contextLabel ? ` vs ${contextLabel}` : '';
+    const details = pctText ? `${absText}${context} (${pctText})` : `${absText}${context}`;
+    return { type, icon, text: details.trim() };
+}
+
+function renderSummaryTrend(trend) {
+    if (!trend || !trend.text) return '';
+    const type = trend.type || 'flat';
+    const icon = trend.icon || 'fas fa-minus';
+    return `<span class="ag-summary-trend ${type}"><i class="${icon}" aria-hidden="true"></i><span>${trend.text}</span></span>`;
+}
+
+function updateAviacionGeneralSummary({ view, metricKey, metricMeta, annualRows, monthlyRows, year, comparisonYear }) {
+    const container = document.getElementById('ag-summary-cards');
+    if (!container) return;
+    const cards = [];
+    const metricData = AVIACION_GENERAL_DATA[metricKey] || {};
+    const metricLabelLower = (metricMeta?.label || 'indicador').toLowerCase();
+
+    if (view === 'anual') {
+        const acumulado = Number(metricData.acumulado || 0);
+        const yearsRangeStart = annualRows.length ? annualRows[0].year : '';
+        const yearsRangeEnd = annualRows.length ? annualRows[annualRows.length - 1].year : '';
+        const avgAnnual = annualRows.length ? acumulado / annualRows.length : 0;
+        const latestRow = annualRows[annualRows.length - 1] || null;
+        const prevRow = annualRows.length > 1 ? annualRows[annualRows.length - 2] : null;
+        let bestRow = null;
+        let worstRow = null;
+        annualRows.forEach((row) => {
+            if (!bestRow || row.value > bestRow.value) bestRow = row;
+            if (!worstRow || row.value < worstRow.value) worstRow = row;
+        });
+        cards.push({
+            variant: '',
+            heading: 'Acumulado histórico',
+            value: formatNumberMX(acumulado),
+            caption: yearsRangeStart && yearsRangeEnd ? `${metricLabelLower} ${yearsRangeStart} - ${yearsRangeEnd}` : `Total histórico de ${metricLabelLower}`,
+            trend: avgAnnual > 0 ? { type: 'flat', icon: 'fas fa-chart-line', text: `Promedio anual ${formatNumberMX(avgAnnual, { maximumFractionDigits: 0 })}` } : null
+        });
+        if (latestRow) {
+            cards.push({
+                variant: 'contrast',
+                heading: `Último año (${latestRow.year})`,
+                value: formatNumberMX(latestRow.value),
+                caption: `Participación anual de ${metricLabelLower}`,
+                trend: buildTrendFromDelta(latestRow.deltaPrevYear, prevRow ? prevRow.year : null) || { type: 'flat', icon: 'fas fa-minus', text: 'Sin referencia previa' }
+            });
+        }
+        if (bestRow && worstRow && bestRow.year !== worstRow.year) {
+            cards.push({
+                variant: 'alert',
+                heading: `Año más alto (${bestRow.year})`,
+                value: formatNumberMX(bestRow.value),
+                caption: `Referencia: ${worstRow.year}`,
+                trend: buildTrendFromDelta(computeDelta(bestRow.value, worstRow.value), worstRow.year)
+            });
+        }
+    } else {
+        const baseTotal = monthlyRows.reduce((sum, row) => sum + (isFiniteNumber(row.value) ? row.value : 0), 0);
+        const baseMonths = monthlyRows.filter((row) => isFiniteNumber(row.value)).length;
+        const baseAverage = baseMonths ? baseTotal / baseMonths : 0;
+        const comparisonTotal = comparisonYear ? monthlyRows.reduce((sum, row) => sum + (isFiniteNumber(row.compareValue) ? row.compareValue : 0), 0) : null;
+        const comparisonMonths = comparisonYear ? monthlyRows.filter((row) => isFiniteNumber(row.compareValue)).length : 0;
+        const comparisonAverage = comparisonMonths ? comparisonTotal / comparisonMonths : null;
+        const deltaTotal = comparisonYear && isFiniteNumber(baseTotal) && isFiniteNumber(comparisonTotal) ? computeDelta(baseTotal, comparisonTotal) : null;
+        const deltaAverage = comparisonYear && isFiniteNumber(baseAverage) && isFiniteNumber(comparisonAverage) ? computeDelta(baseAverage, comparisonAverage) : null;
+        let bestMonth = null;
+        monthlyRows.forEach((row) => {
+            if (isFiniteNumber(row.value) && (!bestMonth || row.value > bestMonth.value)) bestMonth = row;
+        });
+        cards.push({
+            variant: '',
+            heading: `Total ${year || ''}`.trim(),
+            value: formatNumberMX(baseTotal),
+            caption: `Acumulado anual de ${metricLabelLower}`,
+            trend: comparisonYear ? buildTrendFromDelta(deltaTotal, comparisonYear) : null
+        });
+        cards.push({
+            variant: 'contrast',
+            heading: 'Promedio mensual',
+            value: baseMonths ? formatNumberMX(baseAverage, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '-',
+            caption: baseMonths ? `${baseMonths} meses con datos` : 'Sin registros mensuales',
+            trend: comparisonYear ? buildTrendFromDelta(deltaAverage, comparisonYear) : null
+        });
+        if (bestMonth) {
+            const trend = comparisonYear ? buildTrendFromDelta(bestMonth.deltaCompare, comparisonYear) : buildTrendFromDelta(bestMonth.deltaPrev, 'mes previo');
+            cards.push({
+                variant: 'alert',
+                heading: 'Mes más activo',
+                value: bestMonth.label,
+                caption: `${formatNumberMX(bestMonth.value)} ${metricLabelLower}`,
+                trend: trend || null
+            });
+        }
+    }
+
+    container.innerHTML = cards.length
+        ? cards.map((card) => `
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="ag-summary-card"${card.variant ? ` data-variant="${card.variant}"` : ''}>
+                    <div class="ag-summary-heading">${card.heading}</div>
+                    <div class="ag-summary-value">${card.value}</div>
+                    ${card.caption ? `<div class="ag-summary-caption">${card.caption}</div>` : ''}
+                    ${card.trend ? renderSummaryTrend(card.trend) : ''}
+                </div>
+            </div>`).join('')
+        : '<div class="col-12"><div class="alert alert-warning">No hay datos para mostrar.</div></div>';
+}
+
+function updateAviacionGeneralTable({ view, metricMeta, annualRows, monthlyRows, year, comparisonYear }) {
+    const table = document.getElementById('ag-data-table');
+    if (!table) return;
+    const thead = table.querySelector('thead');
+    const tbody = table.querySelector('tbody');
+    const emptyState = document.getElementById('ag-empty-state');
+    const wrapper = document.getElementById('ag-table-wrapper');
+
+    if (view === 'anual') {
+        if (!annualRows.length) {
+            if (thead) thead.innerHTML = '';
+            if (tbody) tbody.innerHTML = '';
+            if (emptyState) emptyState.classList.remove('d-none');
+            if (wrapper) wrapper.classList.add('d-none');
+            return;
+        }
+        if (emptyState) emptyState.classList.add('d-none');
+        if (wrapper) wrapper.classList.remove('d-none');
+        if (thead) {
+            thead.innerHTML = `
+                <tr>
+                    <th>Año</th>
+                    <th class="text-end">${metricMeta?.label || 'Indicador'}</th>
+                    <th class="text-end">Δ vs año previo</th>
+                    <th class="text-end">Δ% vs año previo</th>
+                </tr>`;
+        }
+        if (tbody) {
+            tbody.innerHTML = annualRows.map((row) => `
+                <tr>
+                    <td>${row.year}</td>
+                    <td class="text-end">${formatNumberCell(row.value)}</td>
+                    <td class="text-end">${renderVariationAbs(row.deltaPrevYear)}</td>
+                    <td class="text-end">${renderVariationPct(row.deltaPrevYear)}</td>
+                </tr>`).join('');
+        }
+    } else {
+        if (!monthlyRows.length) {
+            if (thead) thead.innerHTML = '';
+            if (tbody) tbody.innerHTML = '';
+            if (emptyState) emptyState.classList.remove('d-none');
+            if (wrapper) wrapper.classList.add('d-none');
+            return;
+        }
+        if (emptyState) emptyState.classList.add('d-none');
+        if (wrapper) wrapper.classList.remove('d-none');
+        const comparisonLabel = comparisonYear ? String(comparisonYear) : '';
+        if (thead) {
+            let head = `
+                <tr>
+                    <th>Mes</th>
+                    <th class="text-end">${metricMeta?.label || 'Indicador'} ${year || ''}</th>
+                    <th class="text-end">Δ vs mes previo</th>
+                    <th class="text-end">Δ% vs mes previo</th>`;
+            if (comparisonYear) {
+                head += `
+                    <th class="text-end">${metricMeta?.label || 'Indicador'} ${comparisonLabel}</th>
+                    <th class="text-end">Δ vs ${comparisonLabel}</th>
+                    <th class="text-end">Δ% vs ${comparisonLabel}</th>`;
+            }
+            head += '\n                </tr>';
+            thead.innerHTML = head;
+        }
+        if (tbody) {
+            tbody.innerHTML = monthlyRows.map((row) => {
+                const baseCells = `
+                    <td>${row.label}</td>
+                    <td class="text-end">${formatNumberCell(row.value)}</td>
+                    <td class="text-end">${renderVariationAbs(row.deltaPrev)}</td>
+                    <td class="text-end">${renderVariationPct(row.deltaPrev)}</td>`;
+                const comparisonCells = comparisonYear ? `
+                    <td class="text-end">${formatNumberCell(row.compareValue)}</td>
+                    <td class="text-end">${renderVariationAbs(row.deltaCompare)}</td>
+                    <td class="text-end">${renderVariationPct(row.deltaCompare)}</td>` : '';
+                return `<tr>${baseCells}${comparisonCells}</tr>`;
+            }).join('');
+        }
+    }
+}
+
+function updateAviacionGeneralChart({ view, metricMeta, annualRows, monthlyRows, year, comparisonYear, forceResize }) {
+    const canvas = document.getElementById('ag-chart');
+    if (!canvas) return;
+    if (aviacionGeneralChart) {
+        try { aviacionGeneralChart.destroy(); } catch (_) {}
+        aviacionGeneralChart = null;
+    }
+
+    if (view === 'anual') {
+        const labels = annualRows.map((row) => row.year);
+        const data = annualRows.map((row) => (isFiniteNumber(row.value) ? row.value : null));
+        const hasData = data.some((value) => isFiniteNumber(value));
+        if (!labels.length || !hasData) {
+            const ctx = canvas.getContext('2d');
+            if (ctx) ctx.clearRect(0, 0, canvas.width || 0, canvas.height || 0);
+            return;
+        }
+        const barColor = metricMeta?.color || '#1e88e5';
+        aviacionGeneralChart = new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label: `${metricMeta?.label || 'Indicador'} por año`,
+                    data,
+                    backgroundColor: barColor,
+                    borderRadius: 8,
+                    maxBarThickness: 42
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label(context) {
+                                return `${context.dataset.label}: ${formatNumberMX(context.parsed.y)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { ticks: { maxRotation: 0 } },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (val) => formatNumberMX(val)
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        const labels = monthlyRows.map((row) => row.label);
+        const primaryColor = metricMeta?.color || '#1e88e5';
+        const primaryData = monthlyRows.map((row) => (isFiniteNumber(row.value) ? row.value : null));
+        const comparisonData = monthlyRows.map((row) => (isFiniteNumber(row.compareValue) ? row.compareValue : null));
+        const hasPrimary = primaryData.some((value) => isFiniteNumber(value));
+        const hasComparison = comparisonYear && comparisonData.some((value) => isFiniteNumber(value));
+        if (!labels.length || (!hasPrimary && !hasComparison)) {
+            const ctx = canvas.getContext('2d');
+            if (ctx) ctx.clearRect(0, 0, canvas.width || 0, canvas.height || 0);
+            return;
+        }
+        const datasets = [{
+            label: year || 'Año base',
+            data: primaryData,
+            borderColor: primaryColor,
+            backgroundColor: hexToRgba(primaryColor, 0.18),
+            tension: 0.35,
+            fill: false,
+            spanGaps: true,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBorderWidth: 2
+        }];
+        if (hasComparison) {
+            datasets.push({
+                label: comparisonYear,
+                data: comparisonData,
+                borderColor: '#6c757d',
+                backgroundColor: hexToRgba('#6c757d', 0.12),
+                tension: 0.3,
+                fill: false,
+                spanGaps: true,
+                borderDash: [6, 4],
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                pointBorderWidth: 1.5
+            });
+        }
+        const maxValue = Math.max(getMaxValue(primaryData), getMaxValue(comparisonData));
+        aviacionGeneralChart = new Chart(canvas, {
+            type: 'line',
+            data: { labels, datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: true },
+                    tooltip: {
+                        callbacks: {
+                            label(context) {
+                                return `${context.dataset.label}: ${formatNumberMX(context.parsed.y)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { ticks: { maxRotation: 0 } },
+                    y: {
+                        beginAtZero: true,
+                        suggestedMax: maxValue ? maxValue * 1.1 : undefined,
+                        ticks: {
+                            callback: (val) => formatNumberMX(val)
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    if (aviacionGeneralChart && forceResize) {
+        setTimeout(() => {
+            try { aviacionGeneralChart.resize(); } catch (_) {}
+        }, 120);
+    }
+}
+
+function updateAviacionGeneralInsights({ view, metricMeta, metricKey, annualRows, monthlyRows, year, comparisonYear }) {
+    const container = document.getElementById('ag-insights');
+    if (!container) return;
+    const insights = [];
+    const metricLabelLower = (metricMeta?.label || 'indicador').toLowerCase();
+
+    if (view === 'anual') {
+        const latestRow = annualRows[annualRows.length - 1];
+        const prevRow = annualRows.length > 1 ? annualRows[annualRows.length - 2] : null;
+        if (latestRow && prevRow && latestRow.deltaPrevYear) {
+            const delta = latestRow.deltaPrevYear;
+            if (delta.abs > 0) {
+                const direction = delta.abs > 0 ? 'creció' : 'disminuyó';
+                const amount = formatNumberMX(Math.abs(delta.abs));
+                const pctText = isFiniteNumber(delta.pct) ? ` (${Math.abs(delta.pct).toFixed(1)}%)` : '';
+                insights.push(`El total de ${metricLabelLower} en ${latestRow.year} ${direction} ${amount}${pctText} frente a ${prevRow.year}.`);
+            } else {
+                insights.push(`El total de ${metricLabelLower} en ${latestRow.year} se mantuvo estable respecto a ${prevRow.year}.`);
+            }
+        }
+        let bestRow = null;
+        let worstRow = null;
+        annualRows.forEach((row) => {
+            if (!bestRow || row.value > bestRow.value) bestRow = row;
+            if (!worstRow || row.value < worstRow.value) worstRow = row;
+        });
+        if (bestRow && worstRow && bestRow.year !== worstRow.year) {
+            const diff = computeDelta(bestRow.value, worstRow.value);
+            if (diff && diff.abs !== 0) {
+                const amount = formatNumberMX(Math.abs(diff.abs));
+                const pctText = isFiniteNumber(diff.pct) ? ` (${Math.abs(diff.pct).toFixed(1)}%)` : '';
+                insights.push(`${bestRow.year} fue el año con mayor registro, superando a ${worstRow.year} en ${amount}${pctText}.`);
+            }
+        }
+        const acumulado = Number((AVIACION_GENERAL_DATA[metricKey] || {}).acumulado || 0);
+        if (acumulado && annualRows.length) {
+            const avgAnnual = acumulado / annualRows.length;
+            insights.push(`El promedio anual registrado es ${formatNumberMX(avgAnnual, { maximumFractionDigits: 0 })} ${metricLabelLower}.`);
+        }
+    } else {
+        const baseTotal = monthlyRows.reduce((sum, row) => sum + (isFiniteNumber(row.value) ? row.value : 0), 0);
+        const comparisonTotal = comparisonYear ? monthlyRows.reduce((sum, row) => sum + (isFiniteNumber(row.compareValue) ? row.compareValue : 0), 0) : null;
+        if (comparisonYear && isFiniteNumber(baseTotal) && isFiniteNumber(comparisonTotal)) {
+            const delta = computeDelta(baseTotal, comparisonTotal);
+            if (delta) {
+                const direction = delta.abs >= 0 ? 'incremento' : 'reducción';
+                const amount = formatNumberMX(Math.abs(delta.abs));
+                const pctText = isFiniteNumber(delta.pct) ? ` (${Math.abs(delta.pct).toFixed(1)}%)` : '';
+                insights.push(`El acumulado de ${year} mostró un ${direction} de ${amount}${pctText} frente a ${comparisonYear}.`);
+            }
+        } else if (isFiniteNumber(baseTotal)) {
+            insights.push(`El acumulado de ${year} suma ${formatNumberMX(baseTotal)} ${metricLabelLower}.`);
+        }
+        const bestMonth = monthlyRows.reduce((acc, row) => {
+            if (isFiniteNumber(row.value) && (!acc || row.value > acc.value)) return row;
+            return acc;
+        }, null);
+        if (bestMonth) {
+            let detail = '';
+            if (comparisonYear && bestMonth.deltaCompare) {
+                const delta = bestMonth.deltaCompare;
+                if (isFiniteNumber(delta.abs) && delta.abs !== 0) {
+                    const amount = formatNumberMX(Math.abs(delta.abs));
+                    const pctText = isFiniteNumber(delta.pct) ? ` (${Math.abs(delta.pct).toFixed(1)}%)` : '';
+                    detail = delta.abs > 0 ? `, superando a ${comparisonYear} en ${amount}${pctText}` : `, quedando por debajo de ${comparisonYear} en ${amount}${pctText}`;
+                }
+            } else if (bestMonth.deltaPrev && isFiniteNumber(bestMonth.deltaPrev.abs) && bestMonth.deltaPrev.abs !== 0) {
+                const amount = formatNumberMX(Math.abs(bestMonth.deltaPrev.abs));
+                const pctText = isFiniteNumber(bestMonth.deltaPrev.pct) ? ` (${Math.abs(bestMonth.deltaPrev.pct).toFixed(1)}%)` : '';
+                detail = bestMonth.deltaPrev.abs > 0 ? `, un alza de ${amount}${pctText} respecto al mes previo` : `, un descenso de ${amount}${pctText} respecto al mes previo`;
+            }
+            insights.push(`El mes con mayor actividad fue ${bestMonth.label} con ${formatNumberMX(bestMonth.value)} ${metricLabelLower}${detail}.`);
+        }
+        const dropMonth = monthlyRows.reduce((acc, row, index) => {
+            if (row.deltaPrev && isFiniteNumber(row.deltaPrev.abs) && row.deltaPrev.abs < 0) {
+                if (!acc || row.deltaPrev.abs < acc.deltaPrev.abs) {
+                    return { ...row, index };
+                }
+            }
+            return acc;
+        }, null);
+        if (dropMonth) {
+            const prevLabel = dropMonth.index > 0 ? monthlyRows[dropMonth.index - 1].label : 'el mes previo';
+            const amount = formatNumberMX(Math.abs(dropMonth.deltaPrev.abs));
+            const pctText = isFiniteNumber(dropMonth.deltaPrev.pct) ? ` (${Math.abs(dropMonth.deltaPrev.pct).toFixed(1)}%)` : '';
+            insights.push(`La mayor caída mensual ocurrió en ${dropMonth.label}, disminuyendo ${amount}${pctText} respecto a ${prevLabel}.`);
+        }
+    }
+
+    if (!insights.length) {
+        container.classList.add('d-none');
+        container.innerHTML = '';
+    } else {
+        container.classList.remove('d-none');
+        container.innerHTML = `<strong>Hallazgos clave</strong><ul>${insights.map((item) => `<li>${item}</li>`).join('')}</ul>`;
+    }
+}
+
+function updateAviacionGeneralLabels({ view, metricMeta, year, comparisonYear }) {
+    const chartTag = document.getElementById('ag-chart-tag');
+    const chartSubtitle = document.getElementById('ag-chart-subtitle');
+    const tableCaption = document.getElementById('ag-table-caption');
+    const tableTag = document.getElementById('ag-table-tag');
+    const footnote = document.getElementById('ag-footnote');
+    const metricLabelLower = (metricMeta?.label || 'indicador').toLowerCase();
+    const firstYear = AVIACION_GENERAL_DATA.years[0];
+    const lastYear = AVIACION_GENERAL_DATA.years[AVIACION_GENERAL_DATA.years.length - 1];
+
+    if (chartTag) chartTag.textContent = view === 'anual' ? 'Vista anual' : 'Vista mensual';
+    if (chartSubtitle) {
+        chartSubtitle.textContent = view === 'anual'
+            ? `Desempeño anual de ${metricLabelLower} ${firstYear && lastYear ? `${firstYear}-${lastYear}` : ''}.`
+            : `Detalle mensual de ${metricLabelLower} ${year || ''}${comparisonYear ? ` vs ${comparisonYear}` : ''}.`;
+    }
+    if (tableCaption) {
+        tableCaption.textContent = view === 'anual'
+            ? `Comparativo anual de ${metricLabelLower}.`
+            : `Detalle mensual de ${year || ''} (${metricLabelLower}).`;
+    }
+    if (tableTag) tableTag.textContent = view === 'anual' ? 'Variación interanual' : 'Variación mes a mes';
+    if (footnote) {
+        if (view === 'anual') {
+            footnote.textContent = 'Selecciona "Detalle mensual" para desglosar por mes y comparar periodos específicos.';
+        } else if (comparisonYear) {
+            footnote.textContent = `Comparación activa: ${year} vs ${comparisonYear}. Ajusta la referencia para explorar otros periodos.`;
+        } else if (aviacionGeneralState.comparison === 'previous') {
+            footnote.textContent = 'No hay datos del año previo para comparar. Selecciona otro año de referencia o "Sin comparación".';
+        } else {
+            footnote.textContent = 'Selecciona un año de referencia o elige "Sin comparación" para enfocar solo el año base.';
+        }
+    }
+}
+
+function resolveComparisonYear(mode, year) {
+    const years = AVIACION_GENERAL_DATA.years || [];
+    if (!year) return null;
+    if (mode === 'none') return null;
+    if (mode === 'previous') {
+        const target = String(Number(year) - 1);
+        return years.includes(target) ? target : null;
+    }
+    return years.includes(mode) ? mode : null;
+}
+
+function updateComparisonOptions(selectedYear) {
+    const select = document.getElementById('ag-comparison-select');
+    if (!select) return;
+    const years = AVIACION_GENERAL_DATA.years || [];
+    const previousValue = select.value || aviacionGeneralState.comparison || 'previous';
+    select.innerHTML = '';
+    const autoOpt = document.createElement('option');
+    autoOpt.value = 'previous';
+    autoOpt.textContent = 'Año anterior';
+    select.appendChild(autoOpt);
+    const noneOpt = document.createElement('option');
+    noneOpt.value = 'none';
+    noneOpt.textContent = 'Sin comparación';
+    select.appendChild(noneOpt);
+    years.forEach((year) => {
+        const opt = document.createElement('option');
+        opt.value = year;
+        opt.textContent = year === selectedYear ? `${year} (actual)` : year;
+        select.appendChild(opt);
+    });
+    let targetValue = previousValue;
+    if (targetValue === selectedYear) {
+        targetValue = 'none';
+    } else if (!years.includes(targetValue) && targetValue !== 'previous' && targetValue !== 'none') {
+        targetValue = 'previous';
+    }
+    select.value = targetValue;
+    aviacionGeneralState.comparison = targetValue;
+}
+
+function renderAviacionGeneral(forceResize = false) {
+    try {
+        const metricKey = aviacionGeneralState.metric === 'pasajeros' ? 'pasajeros' : 'operaciones';
+        const view = aviacionGeneralState.view === 'mensual' ? 'mensual' : 'anual';
+        const metricData = AVIACION_GENERAL_DATA[metricKey] || { years: {} };
+        const metricMeta = AVIACION_GENERAL_METRIC_META[metricKey] || { label: 'Indicador', color: '#1e88e5' };
+        const availableYears = AVIACION_GENERAL_DATA.years || [];
+        let year = aviacionGeneralState.year;
+
+        if (view === 'mensual') {
+            if (!year || !metricData.years[year]) {
+                const fallback = availableYears[availableYears.length - 1] || null;
+                if (fallback) {
+                    aviacionGeneralState.year = fallback;
+                    year = fallback;
+                    const yearSelect = document.getElementById('ag-year-select');
+                    if (yearSelect) yearSelect.value = fallback;
+                    updateComparisonOptions(fallback);
+                }
+            } else {
+                updateComparisonOptions(year);
+            }
+        } else if (!year) {
+            year = availableYears[availableYears.length - 1] || null;
+            aviacionGeneralState.year = year;
+        }
+
+        const comparisonYear = resolveComparisonYear(aviacionGeneralState.comparison, year);
+        const annualRows = buildAnnualRows(metricData);
+        const monthlyRows = view === 'mensual' && year ? buildMonthlyRows(metricData, year, comparisonYear) : [];
+
+        updateAviacionGeneralSummary({ view, metricKey, metricMeta, annualRows, monthlyRows, year, comparisonYear });
+        updateAviacionGeneralTable({ view, metricMeta, annualRows, monthlyRows, year, comparisonYear });
+        updateAviacionGeneralChart({ view, metricMeta, annualRows, monthlyRows, year, comparisonYear, forceResize });
+        updateAviacionGeneralInsights({ view, metricMeta, metricKey, annualRows, monthlyRows, year, comparisonYear });
+        updateAviacionGeneralLabels({ view, metricMeta, year, comparisonYear });
+
+        const yearGroup = document.getElementById('ag-year-group');
+        const comparisonGroup = document.getElementById('ag-comparison-group');
+        const showMonthlyControls = view === 'mensual';
+        if (yearGroup) yearGroup.classList.toggle('d-none', !showMonthlyControls);
+        if (comparisonGroup) comparisonGroup.classList.toggle('d-none', !showMonthlyControls);
+    } catch (err) {
+        console.warn('renderAviacionGeneral error:', err);
+    }
+}
+
+function initAviacionGeneralTab() {
+    try {
+        const metricSelect = document.getElementById('ag-metric-select');
+        const viewSelect = document.getElementById('ag-view-select');
+        const yearSelect = document.getElementById('ag-year-select');
+        const comparisonSelect = document.getElementById('ag-comparison-select');
+        const resetBtn = document.getElementById('ag-reset-btn');
+        if (!metricSelect || !viewSelect || !yearSelect || !comparisonSelect) return;
+        if (metricSelect.dataset.bound === '1') {
+            renderAviacionGeneral(true);
+            return;
+        }
+
+        const years = AVIACION_GENERAL_DATA.years || [];
+        yearSelect.innerHTML = years.map((year) => `<option value="${year}">${year}</option>`).join('');
+        const defaultYear = years[years.length - 1] || '';
+        aviacionGeneralState.year = defaultYear || null;
+        if (defaultYear) yearSelect.value = defaultYear;
+        updateComparisonOptions(defaultYear);
+
+        metricSelect.dataset.bound = '1';
+        viewSelect.dataset.bound = '1';
+        yearSelect.dataset.bound = '1';
+        comparisonSelect.dataset.bound = '1';
+
+        metricSelect.addEventListener('change', () => {
+            aviacionGeneralState.metric = metricSelect.value === 'pasajeros' ? 'pasajeros' : 'operaciones';
+            renderAviacionGeneral();
+        });
+        viewSelect.addEventListener('change', () => {
+            aviacionGeneralState.view = viewSelect.value === 'mensual' ? 'mensual' : 'anual';
+            renderAviacionGeneral(true);
+        });
+        yearSelect.addEventListener('change', () => {
+            aviacionGeneralState.year = yearSelect.value || null;
+            updateComparisonOptions(aviacionGeneralState.year);
+            renderAviacionGeneral();
+        });
+        comparisonSelect.addEventListener('change', () => {
+            aviacionGeneralState.comparison = comparisonSelect.value || 'previous';
+            renderAviacionGeneral();
+        });
+        if (resetBtn && !resetBtn.dataset.bound) {
+            resetBtn.dataset.bound = '1';
+            resetBtn.addEventListener('click', (event) => {
+                event.preventDefault();
+                aviacionGeneralState.metric = 'operaciones';
+                aviacionGeneralState.view = 'anual';
+                aviacionGeneralState.year = defaultYear || null;
+                aviacionGeneralState.comparison = 'previous';
+                metricSelect.value = 'operaciones';
+                viewSelect.value = 'anual';
+                if (defaultYear) yearSelect.value = defaultYear;
+                updateComparisonOptions(defaultYear);
+                comparisonSelect.value = 'previous';
+                renderAviacionGeneral(true);
+            });
+        }
+
+    const agTab = document.getElementById('aviacion-comercial-tab');
+        if (agTab && !agTab.dataset.bound) {
+            agTab.dataset.bound = '1';
+            agTab.addEventListener('shown.bs.tab', () => renderAviacionGeneral(true));
+        }
+
+        renderAviacionGeneral(true);
+    } catch (err) {
+        console.warn('initAviacionGeneralTab error:', err);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initAviacionGeneralTab);
 
 // ================== Operaciones Totales: wiring de filtros del modal ==================
 document.addEventListener('DOMContentLoaded', () => {

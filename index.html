@@ -780,163 +780,278 @@
                             
                         </div>
                         <div class="card-body">
-                            <!-- Toolbar compacta -->
-                            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-                                <div id="ops-summary" class="ops-summary-slot me-auto"></div>
-                                <div class="d-flex gap-2 ms-auto">
-                                    <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#opsFiltersModal"><i class="fas fa-sliders-h me-1"></i>Configurar vista</button>
-                                    <button class="btn btn-outline-primary btn-sm" id="ops-export-all-btn" title="Descargar todas las gráficas en PDF"><i class="fas fa-file-pdf me-1"></i>Descargar todas</button>
+                            <ul class="nav nav-tabs mb-3" id="opsTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="ops-resumen-tab" data-bs-toggle="tab" data-bs-target="#ops-resumen-pane" type="button" role="tab" aria-controls="ops-resumen-pane" aria-selected="true"><i class="fas fa-chart-line me-2"></i>Resumen general</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="aviacion-comercial-tab" data-bs-toggle="tab" data-bs-target="#aviacion-comercial-pane" type="button" role="tab" aria-controls="aviacion-comercial-pane" aria-selected="false"><i class="fas fa-paper-plane me-2"></i>Aviación comercial</button>
+                                </li>
+                            </ul>
+                            <div class="tab-content pt-3" id="opsTabsContent">
+                                <div class="tab-pane fade show active" id="ops-resumen-pane" role="tabpanel" aria-labelledby="ops-resumen-tab" tabindex="0">
+                                    <!-- Toolbar compacta -->
+                                    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                                        <div id="ops-summary" class="ops-summary-slot me-auto"></div>
+                                        <div class="d-flex gap-2 ms-auto">
+                                            <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#opsFiltersModal"><i class="fas fa-sliders-h me-1"></i>Configurar vista</button>
+                                            <button class="btn btn-outline-primary btn-sm" id="ops-export-all-btn" title="Descargar todas las gráficas en PDF"><i class="fas fa-file-pdf me-1"></i>Descargar todas</button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Modal de Filtros de Operaciones Totales -->
+                                    <div class="modal fade" id="opsFiltersModal" tabindex="-1" aria-labelledby="opsFiltersModalLabel" aria-hidden="true">
+                                      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                        <div class="modal-content">
+                                          <div class="modal-header">
+                                            <h5 class="modal-title" id="opsFiltersModalLabel"><i class="fas fa-sliders-h me-2"></i>Configurar visualización</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                          </div>
+                                          <div class="modal-body">
+                                            <div class="mb-3">
+                                                <h6 class="text-muted">Visual</h6>
+                                                <div class="d-flex flex-wrap align-items-center gap-3">
+                                                    <div class="form-check form-switch m-0" title="Comparativo semanal reciente">
+                                                        <input class="form-check-input" type="checkbox" id="toggle-weekly-view">
+                                                        <label class="form-check-label small" for="toggle-weekly-view">Semanal</label>
+                                                    </div>
+                                                    <div class="form-check form-switch m-0" title="Activa los filtros por meses del año 2025">
+                                                        <input class="form-check-input" type="checkbox" id="toggle-monthly-2025">
+                                                        <label class="form-check-label small" for="toggle-monthly-2025">Mensual 2025</label>
+                                                        <span class="badge bg-info text-dark ms-2 d-none" id="years-disabled-hint">Años inactivos</span>
+                                                    </div>
+                                                    <div class="form-check form-switch m-0" title="Vista acumulada por año">
+                                                        <input class="form-check-input" type="checkbox" id="toggle-yearly-view">
+                                                        <label class="form-check-label small" for="toggle-yearly-view">Anual</label>
+                                                    </div>
+                                                    <div id="weekly-week-filter" class="d-none d-flex align-items-center gap-2">
+                                                        <label for="weekly-week-select" class="small text-muted fw-semibold mb-0"><i class="fas fa-calendar-week me-1"></i>Semana</label>
+                                                        <select id="weekly-week-select" class="form-select form-select-sm"></select>
+                                                    </div>
+                                                    <div id="weekly-day-filter" class="d-none d-flex align-items-center gap-2">
+                                                        <label for="weekly-day-select" class="small text-muted fw-semibold mb-0">Día</label>
+                                                        <select id="weekly-day-select" class="form-select form-select-sm"></select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <h6 class="text-muted">Vistas rápidas</h6>
+                                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="preset-ops"><i class="fas fa-tachometer-alt me-1"></i>Operaciones</button>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="preset-passengers"><i class="fas fa-users me-1"></i>Pasajeros</button>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="preset-cargo-ton"><i class="fas fa-weight-hanging me-1"></i>Toneladas Carga</button>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="preset-full"><i class="fas fa-layer-group me-1"></i>Completa</button>
+                                                </div>
+                                            </div>
+                                            <div class="row g-3">
+                                                <div class="col-12 col-lg-6">
+                                                    <h6 class="text-muted">Secciones</h6>
+                                                    <div class="d-flex flex-wrap gap-3" id="ops-sections-filters">
+                                                        <div class="form-check m-0">
+                                                            <input class="form-check-input" type="checkbox" id="filter-section-comercial" checked>
+                                                            <label class="form-check-label" for="filter-section-comercial">Comercial</label>
+                                                        </div>
+                                                        <div class="form-check m-0">
+                                                            <input class="form-check-input" type="checkbox" id="filter-section-carga" checked>
+                                                            <label class="form-check-label" for="filter-section-carga">Carga</label>
+                                                        </div>
+                                                        <div class="form-check m-0">
+                                                            <input class="form-check-input" type="checkbox" id="filter-section-general" checked>
+                                                            <label class="form-check-label" for="filter-section-general">General</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-lg-6">
+                                                    <h6 class="text-muted">Años <small class="text-muted">(se desactivan en modo mensual)</small></h6>
+                                                    <div class="d-flex flex-wrap gap-3" id="ops-years-filters">
+                                                        <div class="form-check m-0">
+                                                            <input class="form-check-input" type="checkbox" id="filter-year-2022" data-year="2022" checked>
+                                                            <label class="form-check-label" for="filter-year-2022">2022</label>
+                                                        </div>
+                                                        <div class="form-check m-0">
+                                                            <input class="form-check-input" type="checkbox" id="filter-year-2023" data-year="2023" checked>
+                                                            <label class="form-check-label" for="filter-year-2023">2023</label>
+                                                        </div>
+                                                        <div class="form-check m-0">
+                                                            <input class="form-check-input" type="checkbox" id="filter-year-2024" data-year="2024" checked>
+                                                            <label class="form-check-label" for="filter-year-2024">2024</label>
+                                                        </div>
+                                                        <div class="form-check m-0">
+                                                            <input class="form-check-input" type="checkbox" id="filter-year-2025" data-year="2025" checked>
+                                                            <label class="form-check-label" for="filter-year-2025">2025</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="mt-4" id="ops-months-2025" style="display:none;">
+                                                <h6 class="text-muted">Meses 2025</h6>
+                                                <p class="small text-muted mb-2">Selecciona los meses que deseas visualizar; las gráficas solo mostrarán datos de los meses marcados.</p>
+                                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                                    <div class="months-chips d-flex flex-wrap gap-1">
+                                                        <label class="chip"><input type="checkbox" data-month="01" checked><span class="chip-text">Ene</span></label>
+                                                        <label class="chip"><input type="checkbox" data-month="02" checked><span class="chip-text">Feb</span></label>
+                                                        <label class="chip"><input type="checkbox" data-month="03" checked><span class="chip-text">Mar</span></label>
+                                                        <label class="chip"><input type="checkbox" data-month="04" checked><span class="chip-text">Abr</span></label>
+                                                        <label class="chip"><input type="checkbox" data-month="05" checked><span class="chip-text">May</span></label>
+                                                        <label class="chip"><input type="checkbox" data-month="06" checked><span class="chip-text">Jun</span></label>
+                                                        <label class="chip"><input type="checkbox" data-month="07" checked><span class="chip-text">Jul</span></label>
+                                                        <label class="chip"><input type="checkbox" data-month="08" checked><span class="chip-text">Ago</span></label>
+                                                        <label class="chip"><input type="checkbox" data-month="09" checked><span class="chip-text">Sep</span></label>
+                                                        <label class="chip"><input type="checkbox" data-month="10" checked><span class="chip-text">Oct</span></label>
+                                                        <label class="chip"><input type="checkbox" data-month="11" checked><span class="chip-text">Nov</span></label>
+                                                        <label class="chip"><input type="checkbox" data-month="12" checked><span class="chip-text">Dic</span></label>
+                                                    </div>
+                                                    <div class="ms-auto d-flex gap-2">
+                                                        <button class="btn btn-sm btn-outline-secondary" id="months-select-all">Todos</button>
+                                                        <button class="btn btn-sm btn-outline-secondary" id="months-select-none">Ninguno</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                          </div>
+                                          <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Aplicar</button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <h5 class="text-uppercase text-muted fw-bold mb-3" id="commercial-heading"><span class="section-icon icon-commercial">✈</span>Aviación Comercial</h5>
+                                    <div class="row g-3 mb-4" id="commercial-group">
+                                        <div class="col-12 col-xxl-6">
+                                            <div class="chart-container ops-chart"><canvas id="commercialOpsChart"></canvas></div>
+                                        </div>
+                                        <div class="col-12 col-xxl-6">
+                                            <div class="chart-container ops-chart"><canvas id="commercialPaxChart"></canvas></div>
+                                        </div>
+                                    </div>
+                                    <h5 class="text-uppercase text-muted fw-bold mb-3 mt-4" id="cargo-heading"><span class="section-icon icon-cargo">⛟</span>Operaciones de Carga</h5>
+                                    <div class="update-note d-flex align-items-center mb-2" id="cargo-update-note">
+                                        <i class="fas fa-calendar-check me-2" aria-hidden="true"></i>
+                                        <small>Datos actualizados al <strong>31 de octubre 2025</strong></small>
+                                    </div>
+                                    <div class="row g-3 mb-4" id="cargo-group">
+                                        <div class="col-12 col-xxl-6">
+                                            <div class="chart-container ops-chart"><canvas id="cargoOpsChart"></canvas></div>
+                                        </div>
+                                        <div class="col-12 col-xxl-6">
+                                            <div class="chart-container ops-chart"><canvas id="cargoTonsChart"></canvas></div>
+                                        </div>
+                                    </div>
+                                    <h5 class="text-uppercase text-muted fw-bold mb-3 mt-4" id="general-heading"><span class="section-icon icon-general">🛩</span>Aviación General</h5>
+                                    <div class="row g-3 mb-4" id="general-group">
+                                        <div class="col-12 col-xxl-6">
+                                            <div class="chart-container ops-chart"><canvas id="generalOpsChart"></canvas></div>
+                                        </div>
+                                        <div class="col-12 col-xxl-6">
+                                            <div class="chart-container ops-chart"><canvas id="generalPaxChart"></canvas></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="aviacion-comercial-pane" role="tabpanel" aria-labelledby="aviacion-comercial-tab" tabindex="0">
+                                    <div class="ag-wrapper">
+                                        <div class="row g-3 align-items-stretch" id="ag-controls-row">
+                                            <div class="col-12 col-lg-4 col-xxl-3">
+                                                <div class="card ag-controls-card h-100">
+                                                    <div class="card-body">
+                                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                                            <div class="d-flex align-items-center gap-2 text-uppercase small fw-semibold text-muted">
+                                                                <i class="fas fa-sliders-h text-primary"></i>
+                                                                <span>Configuración</span>
+                                                            </div>
+                                                            <button class="btn btn-outline-secondary btn-sm" id="ag-reset-btn"><i class="fas fa-rotate-left me-1"></i>Restablecer</button>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="ag-metric-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-chart-column me-1"></i>Indicador</label>
+                                                            <select id="ag-metric-select" class="form-select form-select-sm">
+                                                                <option value="operaciones" selected>Operaciones</option>
+                                                                <option value="pasajeros">Pasajeros</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="ag-view-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-layer-group me-1"></i>Detalle</label>
+                                                            <select id="ag-view-select" class="form-select form-select-sm">
+                                                                <option value="anual" selected>Vista anual</option>
+                                                                <option value="mensual">Detalle mensual</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="mb-3 d-none" id="ag-year-group">
+                                                            <label for="ag-year-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-calendar me-1"></i>Año base</label>
+                                                            <select id="ag-year-select" class="form-select form-select-sm"></select>
+                                                        </div>
+                                                        <div class="mb-0 d-none" id="ag-comparison-group">
+                                                            <label for="ag-comparison-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-balance-scale me-1"></i>Comparar con</label>
+                                                            <select id="ag-comparison-select" class="form-select form-select-sm"></select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-lg-8 col-xxl-9">
+                                                <div class="card h-100">
+                                                    <div class="card-body">
+                                                        <div class="d-flex flex-column gap-3">
+                                                            <div>
+                                                                <h5 class="mb-1 d-flex align-items-center gap-2">
+                                                                    <i class="fas fa-chart-area text-primary"></i>
+                                                                    <span>Inteligencia operacional</span>
+                                                                </h5>
+                                                                <p class="text-muted small mb-0">Explora la evolución de operaciones y pasajeros en aviación comercial con comparativos automáticos y contexto histórico.</p>
+                                                            </div>
+                                                            <ul class="list-unstyled small text-muted mb-0">
+                                                                <li class="d-flex align-items-center gap-2"><i class="fas fa-arrow-trend-up text-success"></i><span>Detecta variaciones contra años anteriores en segundos.</span></li>
+                                                                <li class="d-flex align-items-center gap-2"><i class="fas fa-calendar-alt text-primary"></i><span>Activa el detalle mensual para un seguimiento puntual.</span></li>
+                                                                <li class="d-flex align-items-center gap-2"><i class="fas fa-lightbulb text-warning"></i><span>Recibe hallazgos clave generados automáticamente.</span></li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <div class="row g-3" id="ag-summary-cards"></div>
+                                            </div>
+                                        </div>
+                                        <div class="row g-3 align-items-start">
+                                            <div class="col-12 col-xxl-6">
+                                                <div class="card h-100">
+                                                    <div class="card-body">
+                                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                                                            <span class="badge bg-primary-subtle text-primary fw-semibold" id="ag-chart-tag">Vista anual</span>
+                                                            <small class="text-muted" id="ag-chart-subtitle"></small>
+                                                        </div>
+                                                        <div class="chart-container" style="height: 420px;"><canvas id="ag-chart"></canvas></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-xxl-6">
+                                                <div class="card h-100">
+                                                    <div class="card-body">
+                                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                                                            <span class="badge bg-secondary-subtle text-secondary fw-semibold" id="ag-table-tag">Variación interanual</span>
+                                                            <small class="text-muted" id="ag-table-caption"></small>
+                                                        </div>
+                                                        <div id="ag-table-wrapper">
+                                                            <div class="table-responsive">
+                                                                <table class="table table-sm align-middle mb-0" id="ag-data-table">
+                                                                    <thead></thead>
+                                                                    <tbody></tbody>
+                                                                </table>
+                                                            </div>
+                                                            <div class="ag-table-meta mt-2" id="ag-footnote"></div>
+                                                        </div>
+                                                        <div class="alert alert-info d-none mt-2 mb-0" id="ag-empty-state">
+                                                            No hay datos para el periodo seleccionado.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="ag-insights d-none mt-3" id="ag-insights"></div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- Modal de Filtros de Operaciones Totales -->
-                            <div class="modal fade" id="opsFiltersModal" tabindex="-1" aria-labelledby="opsFiltersModalLabel" aria-hidden="true">
-                              <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                                <div class="modal-content">
-                                  <div class="modal-header">
-                                    <h5 class="modal-title" id="opsFiltersModalLabel"><i class="fas fa-sliders-h me-2"></i>Configurar visualización</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                  </div>
-                                  <div class="modal-body">
-                                    <div class="mb-3">
-                                        <h6 class="text-muted">Visual</h6>
-                                        <div class="d-flex flex-wrap align-items-center gap-3">
-                                            <div class="form-check form-switch m-0" title="Comparativo semanal reciente">
-                                                <input class="form-check-input" type="checkbox" id="toggle-weekly-view">
-                                                <label class="form-check-label small" for="toggle-weekly-view">Semanal</label>
-                                            </div>
-                                            <div class="form-check form-switch m-0" title="Activa los filtros por meses del año 2025">
-                                                <input class="form-check-input" type="checkbox" id="toggle-monthly-2025">
-                                                <label class="form-check-label small" for="toggle-monthly-2025">Mensual 2025</label>
-                                                <span class="badge bg-info text-dark ms-2 d-none" id="years-disabled-hint">Años inactivos</span>
-                                            </div>
-                                            <div class="form-check form-switch m-0" title="Vista acumulada por año">
-                                                <input class="form-check-input" type="checkbox" id="toggle-yearly-view">
-                                                <label class="form-check-label small" for="toggle-yearly-view">Anual</label>
-                                            </div>
-                                            <div id="weekly-week-filter" class="d-none d-flex align-items-center gap-2">
-                                                <label for="weekly-week-select" class="small text-muted fw-semibold mb-0"><i class="fas fa-calendar-week me-1"></i>Semana</label>
-                                                <select id="weekly-week-select" class="form-select form-select-sm"></select>
-                                            </div>
-                                            <div id="weekly-day-filter" class="d-none d-flex align-items-center gap-2">
-                                                <label for="weekly-day-select" class="small text-muted fw-semibold mb-0">Día</label>
-                                                <select id="weekly-day-select" class="form-select form-select-sm"></select>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <h6 class="text-muted">Vistas rápidas</h6>
-                                        <div class="d-flex flex-wrap align-items-center gap-2">
-                                            <button type="button" class="btn btn-outline-secondary btn-sm" id="preset-ops"><i class="fas fa-tachometer-alt me-1"></i>Operaciones</button>
-                                            <button type="button" class="btn btn-outline-secondary btn-sm" id="preset-passengers"><i class="fas fa-users me-1"></i>Pasajeros</button>
-                                            <button type="button" class="btn btn-outline-secondary btn-sm" id="preset-cargo-ton"><i class="fas fa-weight-hanging me-1"></i>Toneladas Carga</button>
-                                            <button type="button" class="btn btn-outline-secondary btn-sm" id="preset-full"><i class="fas fa-layer-group me-1"></i>Completa</button>
-                                        </div>
-                                    </div>
-                                    <div class="row g-3">
-                                        <div class="col-12 col-lg-6">
-                                            <h6 class="text-muted">Secciones</h6>
-                                            <div class="d-flex flex-wrap gap-3" id="ops-sections-filters">
-                                                <div class="form-check m-0">
-                                                    <input class="form-check-input" type="checkbox" id="filter-section-comercial" checked>
-                                                    <label class="form-check-label" for="filter-section-comercial">Comercial</label>
-                                                </div>
-                                                <div class="form-check m-0">
-                                                    <input class="form-check-input" type="checkbox" id="filter-section-carga" checked>
-                                                    <label class="form-check-label" for="filter-section-carga">Carga</label>
-                                                </div>
-                                                <div class="form-check m-0">
-                                                    <input class="form-check-input" type="checkbox" id="filter-section-general" checked>
-                                                    <label class="form-check-label" for="filter-section-general">General</label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-12 col-lg-6">
-                                            <h6 class="text-muted">Años <small class="text-muted">(se desactivan en modo mensual)</small></h6>
-                                            <div class="d-flex flex-wrap gap-3" id="ops-years-filters">
-                                                <div class="form-check m-0">
-                                                    <input class="form-check-input" type="checkbox" id="filter-year-2022" data-year="2022" checked>
-                                                    <label class="form-check-label" for="filter-year-2022">2022</label>
-                                                </div>
-                                                <div class="form-check m-0">
-                                                    <input class="form-check-input" type="checkbox" id="filter-year-2023" data-year="2023" checked>
-                                                    <label class="form-check-label" for="filter-year-2023">2023</label>
-                                                </div>
-                                                <div class="form-check m-0">
-                                                    <input class="form-check-input" type="checkbox" id="filter-year-2024" data-year="2024" checked>
-                                                    <label class="form-check-label" for="filter-year-2024">2024</label>
-                                                </div>
-                                                <div class="form-check m-0">
-                                                    <input class="form-check-input" type="checkbox" id="filter-year-2025" data-year="2025" checked>
-                                                    <label class="form-check-label" for="filter-year-2025">2025</label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="mt-4" id="ops-months-2025" style="display:none;">
-                                        <h6 class="text-muted">Meses 2025</h6>
-                                        <p class="small text-muted mb-2">Selecciona los meses que deseas visualizar; las gráficas solo mostrarán datos de los meses marcados.</p>
-                                        <div class="d-flex flex-wrap align-items-center gap-2">
-                                            <div class="months-chips d-flex flex-wrap gap-1">
-                                                <label class="chip"><input type="checkbox" data-month="01" checked><span class="chip-text">Ene</span></label>
-                                                <label class="chip"><input type="checkbox" data-month="02" checked><span class="chip-text">Feb</span></label>
-                                                <label class="chip"><input type="checkbox" data-month="03" checked><span class="chip-text">Mar</span></label>
-                                                <label class="chip"><input type="checkbox" data-month="04" checked><span class="chip-text">Abr</span></label>
-                                                <label class="chip"><input type="checkbox" data-month="05" checked><span class="chip-text">May</span></label>
-                                                <label class="chip"><input type="checkbox" data-month="06" checked><span class="chip-text">Jun</span></label>
-                                                <label class="chip"><input type="checkbox" data-month="07" checked><span class="chip-text">Jul</span></label>
-                                                <label class="chip"><input type="checkbox" data-month="08" checked><span class="chip-text">Ago</span></label>
-                                                <label class="chip"><input type="checkbox" data-month="09" checked><span class="chip-text">Sep</span></label>
-                                                <label class="chip"><input type="checkbox" data-month="10" checked><span class="chip-text">Oct</span></label>
-                                                <label class="chip"><input type="checkbox" data-month="11" checked><span class="chip-text">Nov</span></label>
-                                                <label class="chip"><input type="checkbox" data-month="12" checked><span class="chip-text">Dic</span></label>
-                                            </div>
-                                            <div class="ms-auto d-flex gap-2">
-                                                <button class="btn btn-sm btn-outline-secondary" id="months-select-all">Todos</button>
-                                                <button class="btn btn-sm btn-outline-secondary" id="months-select-none">Ninguno</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                  </div>
-                                  <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Aplicar</button>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <h5 class="text-uppercase text-muted fw-bold mb-3" id="commercial-heading"><span class="section-icon icon-commercial">✈</span>Aviación Comercial</h5>
-                            <div class="row g-3 mb-4" id="commercial-group">
-                                <div class="col-12 col-xxl-6">
-                                    <div class="chart-container ops-chart"><canvas id="commercialOpsChart"></canvas></div>
-                                </div>
-                                <div class="col-12 col-xxl-6">
-                                    <div class="chart-container ops-chart"><canvas id="commercialPaxChart"></canvas></div>
-                                </div>
-                            </div>
-                            <h5 class="text-uppercase text-muted fw-bold mb-3 mt-4" id="cargo-heading"><span class="section-icon icon-cargo">⛟</span>Operaciones de Carga</h5>
-                            <div class="update-note d-flex align-items-center mb-2" id="cargo-update-note">
-                                <i class="fas fa-calendar-check me-2" aria-hidden="true"></i>
-                                <small>Datos actualizados al <strong>31 de octubre 2025</strong></small>
-                            </div>
-                            <div class="row g-3 mb-4" id="cargo-group">
-                                <div class="col-12 col-xxl-6">
-                                    <div class="chart-container ops-chart"><canvas id="cargoOpsChart"></canvas></div>
-                                </div>
-                                <div class="col-12 col-xxl-6">
-                                    <div class="chart-container ops-chart"><canvas id="cargoTonsChart"></canvas></div>
-                                </div>
-                            </div>
-                            <h5 class="text-uppercase text-muted fw-bold mb-3 mt-4" id="general-heading"><span class="section-icon icon-general">🛩</span>Aviación General</h5>
-                            <div class="row g-3 mb-4" id="general-group">
-                                <div class="col-12 col-xxl-6">
-                                    <div class="chart-container ops-chart"><canvas id="generalOpsChart"></canvas></div>
-                                </div>
-                                <div class="col-12 col-xxl-6">
-                                    <div class="chart-container ops-chart"><canvas id="generalPaxChart"></canvas></div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
