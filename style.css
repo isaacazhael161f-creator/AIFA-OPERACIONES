@@ -2668,6 +2668,95 @@ body.dark-mode #fauna-section #fauna-period-badge {
    border-color: rgba(80,142,255,0.28);
    color: #cfe2ff;
 }
+#fauna-section .fauna-rescate-metric {
+   position: relative;
+   display: inline-flex;
+   flex-direction: column;
+   align-items: flex-start;
+   gap: .35rem;
+   padding: .9rem 1.45rem 1.1rem;
+   border-radius: 18px;
+   min-width: 200px;
+   background: #ffffff;
+   color: #0f172a;
+   font-weight: 600;
+   box-shadow: 0 18px 32px -22px rgba(15,23,42,0.38);
+   border: none;
+   transition: box-shadow .25s ease, transform .25s ease;
+}
+#fauna-section .fauna-rescate-metric:hover {
+   transform: translateY(-2px);
+   box-shadow: 0 22px 36px -22px rgba(15,23,42,0.45);
+}
+#fauna-section .fauna-rescate-metric .fauna-rescate-label {
+   font-size: .78rem;
+   text-transform: uppercase;
+   letter-spacing: .16em;
+   opacity: .78;
+}
+#fauna-section .fauna-rescate-metric .fauna-rescate-value {
+   font-size: 2rem;
+   font-weight: 800;
+   line-height: 1;
+}
+#fauna-section .fauna-rescate-metric::after {
+   content: '';
+   position: absolute;
+   top: 12px;
+   right: 16px;
+   width: 11px;
+   height: 11px;
+   border-radius: 50%;
+   background: rgba(255,255,255,0.6);
+   box-shadow: 0 0 0 8px rgba(255,255,255,0.2), 0 0 20px rgba(255,255,255,0.28);
+}
+#fauna-section #fauna-rescate-total-badge {
+   background: linear-gradient(135deg,#0ea960 0%,#22c07c 48%,#74f0a5 100%);
+   color: #ffffff;
+   box-shadow: 0 20px 38px -20px rgba(14,169,96,0.55), 0 10px 20px -14px rgba(11,122,71,0.45);
+}
+#fauna-section #fauna-rescate-total-badge::after {
+   background: rgba(255,255,255,0.75);
+}
+#fauna-section #fauna-rescate-individuals-badge {
+   background: linear-gradient(135deg,#4f46e5 0%,#6366f1 52%,#8b5cf6 100%);
+   color: #ffffff;
+   box-shadow: 0 20px 38px -20px rgba(79,70,229,0.55), 0 10px 20px -14px rgba(69,60,201,0.45);
+}
+#fauna-section #fauna-rescate-individuals-badge::after {
+   background: rgba(255,255,255,0.7);
+}
+body.dark-mode #fauna-section .fauna-rescate-metric {
+   background: linear-gradient(135deg, rgba(15,23,42,0.92), rgba(30,41,59,0.82));
+   color: #e2e8f0;
+   box-shadow: 0 22px 36px -18px rgba(5,11,22,0.7);
+}
+body.dark-mode #fauna-section #fauna-rescate-total-badge {
+   background: linear-gradient(135deg,#0b7d4a 0%,#11a05f 48%,#33d086 100%);
+   box-shadow: 0 22px 38px -18px rgba(11,120,76,0.6);
+}
+body.dark-mode #fauna-section #fauna-rescate-individuals-badge {
+   background: linear-gradient(135deg,#4338ca 0%,#5850ec 52%,#7c3aed 100%);
+   box-shadow: 0 22px 38px -18px rgba(66,60,201,0.6);
+}
+@media (max-width: 576px) {
+   #fauna-section .fauna-rescate-metric {
+      width: 100%;
+      min-width: 0;
+      align-items: center;
+      text-align: center;
+   }
+   #fauna-section .fauna-rescate-metric::after {
+      right: 14px;
+   }
+   #fauna-section .fauna-rescate-metric .fauna-rescate-label {
+      font-size: .74rem;
+      letter-spacing: .13em;
+   }
+   #fauna-section .fauna-rescate-metric .fauna-rescate-value {
+      font-size: 1.8rem;
+   }
+}
 #fauna-top-hours {
    display: flex; flex-wrap: wrap; gap: .4rem .5rem;
 }

@@ -793,12 +793,21 @@
   function updateBadges(){
     const totalBadge = document.getElementById('fauna-rescate-total-badge');
     const individualsBadge = document.getElementById('fauna-rescate-individuals-badge');
+    const totalRescues = state.filtered.length;
     if (totalBadge){
-      totalBadge.textContent = `Total rescates: ${state.filtered.length.toLocaleString('es-MX')}`;
+      const labelEl = totalBadge.querySelector('.fauna-rescate-label');
+      const valueEl = totalBadge.querySelector('.fauna-rescate-value');
+      if (labelEl) labelEl.textContent = 'Total rescates';
+      if (valueEl) valueEl.textContent = totalRescues.toLocaleString('es-MX');
+      totalBadge.setAttribute('aria-label', `Total de rescates ${totalRescues.toLocaleString('es-MX')}`);
     }
     if (individualsBadge){
       const totalIndividuals = state.filtered.reduce((sum, row) => sum + Number(row['No. individuos'] || 0), 0);
-      individualsBadge.textContent = `Individuos atendidos: ${totalIndividuals.toLocaleString('es-MX')}`;
+      const labelEl = individualsBadge.querySelector('.fauna-rescate-label');
+      const valueEl = individualsBadge.querySelector('.fauna-rescate-value');
+      if (labelEl) labelEl.textContent = 'Individuos atendidos';
+      if (valueEl) valueEl.textContent = totalIndividuals.toLocaleString('es-MX');
+      individualsBadge.setAttribute('aria-label', `Individuos atendidos ${totalIndividuals.toLocaleString('es-MX')}`);
     }
   }
 
