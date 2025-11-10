@@ -313,7 +313,7 @@ body.dark-mode {
    .header-right-content { max-width: 100%; flex-wrap: wrap; justify-content: center; }
 }
 /* Vertical scroll within the table on mobile: allow pan-y and set a reasonable max-height */
-.vertical-scroll { max-height: 60vh; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+.vertical-scroll { position: relative; max-height: 60vh; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
 .vertical-scroll table { margin: 0; }
 .table-container-tech table { --bs-table-color: var(--text-color); --bs-table-bg: transparent; --bs-table-border-color: var(--border-color); --bs-table-hover-color: var(--text-color); --bs-table-hover-bg: var(--body-bg); }
 
@@ -823,9 +823,8 @@ body.dark-mode .itinerary-airline-table .table {
 /* Ensure table inside can be wider than container */
 .table-container-tech table {
    width: max-content;
+   display: table;
 }
-
-.table-container-tech table { display: inline-table; }
 
 /* Fauna table specific improvements */
 .fauna-table { width: max-content; border-collapse: separate; border-spacing: 0; }
@@ -931,11 +930,28 @@ body.dark-mode { --fids-row-odd-bg: rgba(255, 255, 255, 0.06); --fids-row-even-b
    font-weight: 700;
    letter-spacing: .7px;
    border-bottom: 2px solid var(--primary-color-dark) !important;
+   position: sticky;
+   top: 0;
+   z-index: 8;
+   box-shadow: 0 2px 0 rgba(13,110,253,0.35);
 }
 body.dark-mode #passenger-itinerary-container .table thead th,
 body.dark-mode #cargo-itinerary-container .table thead th {
    background: linear-gradient(180deg, #2a5fa3 0%, #0d2d56 100%) !important; /* tonos azules adaptados para contraste en oscuro */
    border-bottom-color: #0d2d56 !important;
+   box-shadow: 0 2px 0 rgba(148,186,255,0.28);
+}
+
+.itinerary-airline-table thead th {
+   position: sticky;
+   top: 0;
+   z-index: 8;
+   background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(245,247,252,0.92) 100%);
+   box-shadow: 0 2px 0 rgba(13,110,253,0.2);
+}
+body.dark-mode .itinerary-airline-table thead th {
+   background: linear-gradient(180deg, rgba(30,39,57,0.96) 0%, rgba(24,32,48,0.94) 100%);
+   box-shadow: 0 2px 0 rgba(148,186,255,0.22);
 }
 
 /* Mejor legibilidad numérica (alineación de dígitos) y tamaño */

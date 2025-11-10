@@ -3143,7 +3143,15 @@ function displaySummaryTable(flights, options = {}) {
             renderEmptyDetail('Selecciona una aerolínea para ver el detalle.');
             return;
         }
-        const rows = buildFlightRows(item.flights);
+
+        const flights = Array.isArray(item.flights) ? item.flights : [];
+        const totalFlights = Number(item.total || flights.length || 0);
+        const arrivals = Number(item.arrivals || 0);
+        const departures = Number(item.departures || 0);
+        const passengerFlights = Number(item.passengerFlights || 0);
+        const cargoFlights = Number(item.cargoFlights || 0);
+        const generalFlights = Number(item.generalFlights || 0);
+
         const logoCandidates = getAirlineLogoCandidates(item.airline) || [];
         const logoPath = logoCandidates[0] || '';
         const dataCands = logoCandidates.join('|');
@@ -3152,48 +3160,82 @@ function displaySummaryTable(flights, options = {}) {
             ? `<img class="airline-logo ${escapeHtml(sizeClass)}" src="${escapeHtml(logoPath)}" alt="Logo ${escapeHtml(item.airline)}" data-cands="${escapeHtml(dataCands)}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">`
             : `<span class="summary-airline-fallback">${escapeHtml(item.airline.charAt(0) || '?')}</span>`;
         const accentColor = airlineColors[item.airline] || '#0d6efd';
+
+        const breakdownChips = [
+            { label: 'Pasajeros', value: passengerFlights, icon: 'fas fa-users text-primary' },
+            { label: 'Carga', value: cargoFlights, icon: 'fas fa-box-open text-warning' },
+            { label: 'General', value: generalFlights, icon: 'fas fa-paper-plane text-info' }
+        ].filter((chip) => chip.value > 0).map((chip) => `
+            <span class="badge bg-light border text-body d-inline-flex align-items-center gap-1">
+                <i class="${chip.icon}"></i>${escapeHtml(chip.label)} <strong>${formatNumber(chip.value)}</strong>
+            </span>
+        `).join('');
+
         detailEl.innerHTML = `
         <div class="card summary-detail-card" style="--summary-airline-color:${accentColor};">
             <div class="summary-detail-hero d-flex flex-wrap align-items-center gap-3">
                 <div class="summary-detail-logo">${detailLogo}</div>
                 <div>
                     <div class="summary-detail-title">${escapeHtml(item.airline)}</div>
-                    <div class="summary-detail-sub">Total de vuelos: ${formatNumber(item.total)}</div>
+                    <div class="summary-detail-sub">${formatNumber(totalFlights)} vuelos listados · ${formatNumber(arrivals)} llegadas · ${formatNumber(departures)} salidas</div>
                 </div>
             </div>
             <div class="card-body">
                 <div class="summary-detail-actions d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-                    <div class="small text-muted">Incluye vuelos filtrados en la vista actual.</div>
-                    <button type="button" class="btn btn-sm btn-outline-primary summary-detail-filter"><i class="fas fa-table me-1"></i>Ver en tablas</button>
-                </div>
-                <div class="summary-detail-table table-container-tech">
-                    <div class="table-responsive vertical-scroll">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Aerolínea</th>
-                                    <th>Aeronave</th>
-                                    <th>Vuelo Lleg.</th>
-                                    <th>Fecha Lleg.</th>
-                                    <th>Hora Lleg.</th>
-                                    <th class="col-origen">Origen</th>
-                                    <th>Banda</th>
-                                    <th>Posición</th>
-                                    <th>Vuelo Sal.</th>
-                                    <th>Fecha Sal.</th>
-                                    <th>Hora Sal.</th>
-                                    <th class="col-destino">Destino</th>
-                                </tr>
-                            </thead>
-                            <tbody>${rows || '<tr><td colspan="12" class="text-center text-muted">Sin vuelos disponibles.</td></tr>'}</tbody>
-                        </table>
+                    <div class="small text-muted d-flex align-items-center gap-2">
+                        <i class="fas fa-table"></i>
+                        <span>Las tablas interactivas ya están filtradas con esta aerolínea.</span>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-primary" data-action="summary-go-tables"><i class="fas fa-arrow-down-short-wide me-1"></i>Ir a tablas</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="summary-reset-airline"><i class="fas fa-undo me-1"></i>Ver todas</button>
                     </div>
                 </div>
+                <div class="row g-3">
+                    <div class="col-12 col-md-4">
+                        <div class="p-3 border rounded-3 bg-light-subtle h-100">
+                            <div class="text-muted text-uppercase small fw-semibold mb-1"><i class="fas fa-plane me-1"></i>Vuelos</div>
+                            <div class="h4 mb-0">${formatNumber(totalFlights)}</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="p-3 border rounded-3 bg-light-subtle h-100">
+                            <div class="text-muted text-uppercase small fw-semibold mb-1"><i class="fas fa-plane-arrival me-1"></i>Llegadas</div>
+                            <div class="h4 mb-0">${formatNumber(arrivals)}</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="p-3 border rounded-3 bg-light-subtle h-100">
+                            <div class="text-muted text-uppercase small fw-semibold mb-1"><i class="fas fa-plane-departure me-1"></i>Salidas</div>
+                            <div class="h4 mb-0">${formatNumber(departures)}</div>
+                        </div>
+                    </div>
+                </div>
+                ${breakdownChips ? `<div class="d-flex flex-wrap align-items-center gap-2 mt-3">${breakdownChips}</div>` : ''}
             </div>
         </div>`;
-        const filterBtn = detailEl.querySelector('.summary-detail-filter');
-        if (filterBtn) {
-            filterBtn.addEventListener('click', () => viewFlightsForAirline(item.airline));
+
+        const scrollBtn = detailEl.querySelector('[data-action="summary-go-tables"]');
+        if (scrollBtn) {
+            scrollBtn.addEventListener('click', () => {
+                const passengerEl = document.getElementById('passenger-itinerary-container');
+                if (passengerEl) passengerEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
+
+        const resetSelectionBtn = detailEl.querySelector('[data-action="summary-reset-airline"]');
+        if (resetSelectionBtn) {
+            resetSelectionBtn.addEventListener('click', () => {
+                summarySelectionLocked = false;
+                summaryDetailMode = 'airline';
+                summarySelectedAirline = null;
+                summarySelectedPosition = null;
+                const select = document.getElementById('airline-filter');
+                if (select) {
+                    select.value = 'all';
+                }
+                applyFilters();
+            });
         }
     };
 
@@ -3380,14 +3422,21 @@ function displaySummaryTable(flights, options = {}) {
                 summarySelectionLocked = false;
                 summarySelectedAirline = null;
                 summarySelectedPosition = null;
-            } else {
-                summaryDetailMode = 'airline';
-                summarySelectedAirline = airlineName;
-                summarySelectedPosition = null;
-                summarySelectionLocked = true;
+                const select = document.getElementById('airline-filter');
+                if (select && select.value !== 'all') {
+                    select.value = 'all';
+                    applyFilters();
+                    return;
+                }
+                ensureDetailVisible();
+                updateSelectionLayout();
+                return;
             }
-            ensureDetailVisible();
-            updateSelectionLayout();
+            summaryDetailMode = 'airline';
+            summarySelectedAirline = airlineName;
+            summarySelectedPosition = null;
+            summarySelectionLocked = true;
+            viewFlightsForAirline(airlineName);
         };
         card.addEventListener('click', toggleDetail);
         card.addEventListener('keypress', (ev) => {
@@ -3431,9 +3480,15 @@ function displaySummaryTable(flights, options = {}) {
             summaryDetailMode = 'airline';
             summarySelectedAirline = null;
             summarySelectedPosition = null;
+            const select = document.getElementById('airline-filter');
+            if (select && select.value !== 'all') {
+                select.value = 'all';
+                applyFilters();
+                return;
+            }
             setActiveCard(null);
             setActivePosition(null);
-            ensureDetailVisible();
+            renderEmptyDetail();
             updateSelectionLayout();
         });
     }
