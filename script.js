@@ -325,9 +325,9 @@ function resolveCurrentOperationsWeek(referenceDate = new Date()) {
 // Datos Anuales
 const staticData = {
     operacionesTotales: {
-        comercial: [ { periodo: '2022', operaciones: 8996, pasajeros: 912415 }, { periodo: '2023', operaciones: 23211, pasajeros: 2631261 }, { periodo: '2024', operaciones: 51734, pasajeros: 6318454 }, { periodo: '2025', operaciones: 43753, pasajeros: 5743323} ],
-        carga: [ { periodo: '2022', operaciones: 8, toneladas: 5.19 }, { periodo: '2023', operaciones: 5578, toneladas: 186319.83}, { periodo: '2024', operaciones: 13219, toneladas: 447341.17 }, { periodo: '2025', operaciones: 9707, toneladas: 328020.88} ],
-        general: [ { periodo: '2022', operaciones: 458, pasajeros: 1385 }, { periodo: '2023', operaciones: 2212, pasajeros: 8160 }, { periodo: '2024', operaciones: 2777, pasajeros: 29637 }, { periodo: '2025', operaciones: 2549, pasajeros: 18873} ]
+        comercial: [ { periodo: '2022', operaciones: 8996, pasajeros: 912415 }, { periodo: '2023', operaciones: 23211, pasajeros: 2631261 }, { periodo: '2024', operaciones: 51734, pasajeros: 6318454 }, { periodo: '2025', operaciones: 44777, pasajeros: 5922533} ],
+        carga: [ { periodo: '2022', operaciones: 8, toneladas: 5.19 }, { periodo: '2023', operaciones: 5578, toneladas: 186319.83}, { periodo: '2024', operaciones: 13219, toneladas: 447341.17 }, { periodo: '2025', operaciones: 9945, toneladas: 335808.15} ],
+        general: [ { periodo: '2022', operaciones: 458, pasajeros: 1385 }, { periodo: '2023', operaciones: 2212, pasajeros: 8160 }, { periodo: '2024', operaciones: 2777, pasajeros: 29637 }, { periodo: '2025', operaciones: 2626, pasajeros: 19169} ]
     },
     operacionesSemanasCatalogo: WEEKLY_OPERATIONS_DATASETS.map(deepCloneWeek),
     operacionesSemanaActual: resolveCurrentOperationsWeek(),
@@ -343,7 +343,8 @@ const staticData = {
             { mes: '07', label: 'Julio', operaciones: 4430 },
             { mes: '08', label: 'Agosto', operaciones: 4500 },
             { mes: '09', label: 'Septiembre', operaciones: 4135 },
-            { mes: '10', label: 'Octubre', operaciones: 4306 }
+            { mes: '10', label: 'Octubre', operaciones: 4291 },
+            { mes: '11', label: 'Noviembre', operaciones: 1344 }
         ],
         // Pasajeros de aviación comercial por mes (con proyección conservadora 81% donde indica)
         comercialPasajeros: [
@@ -356,8 +357,8 @@ const staticData = {
             { mes: '07', label: 'Julio', pasajeros: 604758 },
             { mes: '08', label: 'Agosto', pasajeros: 630952 },
             { mes: '09', label: 'Septiembre', pasajeros: 546457 },
-            { mes: '10', label: 'Octubre', pasajeros: 5},
-            { mes: '11', label: 'Noviembre (Proy.)', pasajeros: 663314 },
+            { mes: '10', label: 'Octubre', pasajeros: 584629 },
+            { mes: '11', label: 'Noviembre', pasajeros: 182588 },
             { mes: '12', label: 'Diciembre (Proy.)', pasajeros: 704718 }
         ],
         carga: [
@@ -370,7 +371,8 @@ const staticData = {
             { mes: '07', label: 'Julio', operaciones: 1021 },
             { mes: '08', label: 'Agosto', operaciones: 1082 },
             { mes: '09', label: 'Septiembre', operaciones: 992},
-            { mes: '10', label: 'Octubre', operaciones: 1151 }
+            { mes: '10', label: 'Octubre', operaciones: 1155 },
+            { mes: '11', label: 'Noviembre', operaciones: 174 }
         ],
         // Toneladas por mes (con nulos cuando no hay datos)
         cargaToneladas: [
@@ -383,8 +385,8 @@ const staticData = {
             { mes: '07', label: 'Julio', toneladas: 35649.92 },
             { mes: '08', label: 'Agosto', toneladas: 35737.78 },
             { mes: '09', label: 'Septiembre', toneladas: 31076.71 },
-            { mes: '10', label: 'Octubre', toneladas: 37197.03 },
-            { mes: '11', label: 'Noviembre', toneladas: null },
+            { mes: '10', label: 'Octubre', toneladas: 37273.41},
+            { mes: '11', label: 'Noviembre', toneladas: 5837.78 },
             { mes: '12', label: 'Diciembre', toneladas: null }
         ],
         // Aviación general (operaciones y pasajeros)
@@ -400,7 +402,7 @@ const staticData = {
                 { mes: '08', label: 'Agosto', operaciones: 282 },
                 { mes: '09', label: 'Septiembre', operaciones: 249 },
                 { mes: '10', label: 'Octubre', operaciones: 315 },
-                { mes: '11', label: 'Noviembre', operaciones: null },
+                { mes: '11', label: 'Noviembre', operaciones: 97 },
                 { mes: '12', label: 'Diciembre', operaciones: null }
             ],
             pasajeros: [
@@ -413,8 +415,8 @@ const staticData = {
                 { mes: '07', label: 'Julio', pasajeros: 1515 },
                 { mes: '08', label: 'Agosto', pasajeros: 3033 },
                 { mes: '09', label: 'Septiembre', pasajeros: 948 },
-                { mes: '10', label: 'Octubre', pasajeros: 1226},
-                { mes: '11', label: 'Noviembre', pasajeros: null },
+                { mes: '10', label: 'Octubre', pasajeros: 1298},
+                { mes: '11', label: 'Noviembre', pasajeros: 480 },
                 { mes: '12', label: 'Diciembre', pasajeros: null }
             ]
         }
@@ -4855,6 +4857,333 @@ function computeSequentialPercent(values = []) {
         return Number.isFinite(delta) ? delta : null;
     });
 }
+
+const OPS_MONTH_NAME_LABELS = SPANISH_MONTH_NAMES.map((name) => capitalizeFirst(name));
+
+function cloneOpsYearlyDataset(source) {
+    const cloneArray = (input) => Array.isArray(input) ? input.map((item) => ({ ...item })) : [];
+    return {
+        comercial: cloneArray(source?.comercial),
+        carga: cloneArray(source?.carga),
+        general: cloneArray(source?.general)
+    };
+}
+
+function cloneOpsMonthlyDataset(source) {
+    const cloneArray = (input) => Array.isArray(input) ? input.map((item) => ({ ...item })) : [];
+    const general = source?.general || {};
+    return {
+        comercial: cloneArray(source?.comercial),
+        comercialPasajeros: cloneArray(source?.comercialPasajeros),
+        carga: cloneArray(source?.carga),
+        cargaToneladas: cloneArray(source?.cargaToneladas),
+        general: {
+            operaciones: cloneArray(general?.operaciones),
+            pasajeros: cloneArray(general?.pasajeros)
+        }
+    };
+}
+
+function getLastConsolidatedMonth(collection, valueKey) {
+    if (!Array.isArray(collection)) return 0;
+    return collection.reduce((maxMonth, entry) => {
+        if (!entry) return maxMonth;
+        const label = typeof entry.label === 'string' ? entry.label.toLowerCase() : '';
+        if (label.includes('proy')) return maxMonth;
+        const raw = entry[valueKey];
+        if (raw === null || raw === undefined || raw === '') return maxMonth;
+        const monthValue = Number(entry.mes);
+        if (!Number.isFinite(monthValue)) return maxMonth;
+        return Math.max(maxMonth, monthValue);
+    }, 0);
+}
+
+function getOpsMonthLabel(monthCode) {
+    const monthNumber = Number(monthCode);
+    if (!Number.isFinite(monthNumber) || monthNumber < 1 || monthNumber > 12) {
+        return `Mes ${monthCode}`;
+    }
+    return OPS_MONTH_NAME_LABELS[monthNumber - 1] || `Mes ${monthCode}`;
+}
+
+function collectOpsWeeklySources() {
+    const sources = [];
+    const seenIds = new Set();
+    const pushWeek = (week) => {
+        if (!week) return;
+        const id = week.id || null;
+        if (id && seenIds.has(id)) return;
+        if (id) seenIds.add(id);
+        sources.push(week);
+    };
+
+    const current = staticData?.operacionesSemanaActual ? deepCloneWeek(staticData.operacionesSemanaActual) : null;
+    if (current) pushWeek(current);
+
+    const catalog = getWeeklyDatasetsCatalog();
+    catalog.forEach((week) => pushWeek(week));
+
+    if (!sources.length && current) sources.push(current);
+    return sources;
+}
+
+function getOpsAggregatedData() {
+    const monthlyBase = cloneOpsMonthlyDataset(staticData?.mensual2025 || {});
+    const yearlyBase = cloneOpsYearlyDataset(staticData?.operacionesTotales || {});
+    const weeklySources = collectOpsWeeklySources();
+    if (!weeklySources.length) {
+        return { monthly: monthlyBase, yearly: yearlyBase };
+    }
+
+    const monthTotals = new Map();
+    const seenDailyKeys = new Set();
+
+    weeklySources.forEach((week) => {
+        if (!Array.isArray(week?.dias)) return;
+        week.dias.forEach((day) => {
+            const iso = day?.fecha;
+            if (!iso || seenDailyKeys.has(iso)) return;
+            const parsed = parseIsoDay(iso);
+            if (!parsed) return;
+            seenDailyKeys.add(iso);
+            const year = parsed.getFullYear();
+            const monthCode = String(parsed.getMonth() + 1).padStart(2, '0');
+            const key = `${year}-${monthCode}`;
+            if (!monthTotals.has(key)) {
+                monthTotals.set(key, {
+                    year,
+                    month: monthCode,
+                    totals: {
+                        comercial: { operaciones: 0, pasajeros: 0 },
+                        general: { operaciones: 0, pasajeros: 0 },
+                        carga: { operaciones: 0, toneladas: 0 }
+                    }
+                });
+            }
+            const bucket = monthTotals.get(key);
+            const addValue = (category, metric, raw) => {
+                const num = Number(raw);
+                if (!Number.isFinite(num)) return;
+                bucket.totals[category][metric] += num;
+            };
+            addValue('comercial', 'operaciones', day?.comercial?.operaciones);
+            addValue('comercial', 'pasajeros', day?.comercial?.pasajeros);
+            addValue('general', 'operaciones', day?.general?.operaciones);
+            addValue('general', 'pasajeros', day?.general?.pasajeros);
+            addValue('carga', 'operaciones', day?.carga?.operaciones);
+            addValue('carga', 'toneladas', day?.carga?.toneladas);
+        });
+    });
+
+    if (!monthTotals.size) {
+        return { monthly: monthlyBase, yearly: yearlyBase };
+    }
+
+    const ensureSorted = (collection) => {
+        if (Array.isArray(collection)) {
+            collection.sort((a, b) => Number(a.mes) - Number(b.mes));
+        }
+    };
+
+    const yearDiffs = new Map();
+    const ensureYearContribution = (year) => {
+        const key = String(year);
+        if (!yearDiffs.has(key)) {
+            yearDiffs.set(key, {
+                comercial: { operaciones: 0, pasajeros: 0 },
+                general: { operaciones: 0, pasajeros: 0 },
+                carga: { operaciones: 0, toneladas: 0 }
+            });
+        }
+        return yearDiffs.get(key);
+    };
+
+    const monthCutoffs = {
+        comercialOps: getLastConsolidatedMonth(monthlyBase.comercial, 'operaciones'),
+        comercialPax: getLastConsolidatedMonth(monthlyBase.comercialPasajeros, 'pasajeros'),
+        cargaOps: getLastConsolidatedMonth(monthlyBase.carga, 'operaciones'),
+        cargaTon: getLastConsolidatedMonth(monthlyBase.cargaToneladas, 'toneladas'),
+        generalOps: getLastConsolidatedMonth(monthlyBase.general.operaciones, 'operaciones'),
+        generalPax: getLastConsolidatedMonth(monthlyBase.general.pasajeros, 'pasajeros')
+    };
+
+    const yearlyCandidates = Array.isArray(yearlyBase?.comercial)
+        ? yearlyBase.comercial.map((entry) => Number(entry?.periodo)).filter(Number.isFinite)
+        : [];
+    const dailyYearCandidates = Array.from(monthTotals.values())
+        .map((bucket) => Number(bucket?.year))
+        .filter(Number.isFinite);
+    const aggregationYearPool = [...yearlyCandidates, ...dailyYearCandidates];
+    const aggregationYear = aggregationYearPool.length
+        ? Math.max(...aggregationYearPool)
+        : (new Date()).getFullYear();
+
+    const applyMetric = ({
+        collection,
+        cutoff,
+        valueKey,
+        aggregatedValue,
+        monthCode,
+        monthNum,
+        monthLabel,
+        yearKey,
+        categoryKey,
+        metricKey
+    }) => {
+        if (!Array.isArray(collection)) return;
+        if (!Number.isFinite(aggregatedValue)) return;
+        if (monthNum <= cutoff) return;
+        const normalizedValue = Math.abs(aggregatedValue) < 1e-6 ? 0 : aggregatedValue;
+        let entry = collection.find((item) => item?.mes === monthCode) || null;
+        const prevRaw = entry ? Number(entry[valueKey]) : 0;
+        const prevValue = Number.isFinite(prevRaw) ? prevRaw : 0;
+        if (!entry) {
+            if (normalizedValue === 0) return;
+            entry = { mes: monthCode, label: monthLabel };
+            collection.push(entry);
+        }
+        if (!entry.label || entry.label.toLowerCase().includes('proy')) {
+            entry.label = monthLabel;
+        }
+        entry[valueKey] = normalizedValue;
+        const diff = normalizedValue - prevValue;
+        if (Math.abs(diff) >= 1e-6) {
+            const yearContribution = ensureYearContribution(yearKey);
+            yearContribution[categoryKey][metricKey] += diff;
+        }
+    };
+
+    monthTotals.forEach((bucket) => {
+        if (bucket.year !== aggregationYear) return;
+        const monthCode = bucket.month;
+        const monthNum = Number(monthCode);
+        if (!Number.isFinite(monthNum)) return;
+        const monthLabel = getOpsMonthLabel(monthCode);
+        const yearKey = String(bucket.year);
+        const totals = bucket.totals;
+
+        applyMetric({
+            collection: monthlyBase.comercial,
+            cutoff: monthCutoffs.comercialOps,
+            valueKey: 'operaciones',
+            aggregatedValue: totals.comercial.operaciones,
+            monthCode,
+            monthNum,
+            monthLabel,
+            yearKey,
+            categoryKey: 'comercial',
+            metricKey: 'operaciones'
+        });
+
+        applyMetric({
+            collection: monthlyBase.comercialPasajeros,
+            cutoff: monthCutoffs.comercialPax,
+            valueKey: 'pasajeros',
+            aggregatedValue: totals.comercial.pasajeros,
+            monthCode,
+            monthNum,
+            monthLabel,
+            yearKey,
+            categoryKey: 'comercial',
+            metricKey: 'pasajeros'
+        });
+
+        applyMetric({
+            collection: monthlyBase.carga,
+            cutoff: monthCutoffs.cargaOps,
+            valueKey: 'operaciones',
+            aggregatedValue: totals.carga.operaciones,
+            monthCode,
+            monthNum,
+            monthLabel,
+            yearKey,
+            categoryKey: 'carga',
+            metricKey: 'operaciones'
+        });
+
+        applyMetric({
+            collection: monthlyBase.cargaToneladas,
+            cutoff: monthCutoffs.cargaTon,
+            valueKey: 'toneladas',
+            aggregatedValue: totals.carga.toneladas,
+            monthCode,
+            monthNum,
+            monthLabel,
+            yearKey,
+            categoryKey: 'carga',
+            metricKey: 'toneladas'
+        });
+
+        applyMetric({
+            collection: monthlyBase.general.operaciones,
+            cutoff: monthCutoffs.generalOps,
+            valueKey: 'operaciones',
+            aggregatedValue: totals.general.operaciones,
+            monthCode,
+            monthNum,
+            monthLabel,
+            yearKey,
+            categoryKey: 'general',
+            metricKey: 'operaciones'
+        });
+
+        applyMetric({
+            collection: monthlyBase.general.pasajeros,
+            cutoff: monthCutoffs.generalPax,
+            valueKey: 'pasajeros',
+            aggregatedValue: totals.general.pasajeros,
+            monthCode,
+            monthNum,
+            monthLabel,
+            yearKey,
+            categoryKey: 'general',
+            metricKey: 'pasajeros'
+        });
+    });
+
+    ensureSorted(monthlyBase.comercial);
+    ensureSorted(monthlyBase.comercialPasajeros);
+    ensureSorted(monthlyBase.carga);
+    ensureSorted(monthlyBase.cargaToneladas);
+    ensureSorted(monthlyBase.general.operaciones);
+    ensureSorted(monthlyBase.general.pasajeros);
+
+    yearDiffs.forEach((diffs, yearKey) => {
+        const adjustYearEntry = (collection, valueKey, delta) => {
+            if (!Number.isFinite(delta) || Math.abs(delta) < 1e-6) return;
+            let entry = Array.isArray(collection)
+                ? collection.find((item) => String(item?.periodo) === yearKey)
+                : null;
+            if (!entry) {
+                entry = { periodo: yearKey };
+                collection.push(entry);
+            }
+            const previousRaw = Number(entry[valueKey]);
+            const previous = Number.isFinite(previousRaw) ? previousRaw : 0;
+            entry[valueKey] = previous + delta;
+        };
+
+        adjustYearEntry(yearlyBase.comercial, 'operaciones', diffs.comercial.operaciones);
+        adjustYearEntry(yearlyBase.comercial, 'pasajeros', diffs.comercial.pasajeros);
+        adjustYearEntry(yearlyBase.carga, 'operaciones', diffs.carga.operaciones);
+        adjustYearEntry(yearlyBase.carga, 'toneladas', diffs.carga.toneladas);
+        adjustYearEntry(yearlyBase.general, 'operaciones', diffs.general.operaciones);
+        adjustYearEntry(yearlyBase.general, 'pasajeros', diffs.general.pasajeros);
+    });
+
+    const sortYearly = (collection) => {
+        if (!Array.isArray(collection)) return;
+        collection.sort((a, b) => Number(a.periodo) - Number(b.periodo));
+    };
+    sortYearly(yearlyBase.comercial);
+    sortYearly(yearlyBase.carga);
+    sortYearly(yearlyBase.general);
+
+    return {
+        monthly: monthlyBase,
+        yearly: yearlyBase
+    };
+}
 // Animación segura para íconos viajeros en Operaciones Totales
 if (!window._opsAnim) window._opsAnim = { running: false };
 function startOpsAnim() {
@@ -6074,8 +6403,9 @@ function renderOperacionesTotales() {
             }
 
         // Preparar datos según modo
-    const yearly = staticData.operacionesTotales;
-    const monthly = staticData.mensual2025;
+    const opsAggregated = getOpsAggregatedData();
+    const yearly = opsAggregated.yearly;
+    const monthly = opsAggregated.monthly;
     const weekly = getActiveWeeklyDataset();
         const mode = opsUIState.mode || 'yearly';
         const useMonthly = mode === 'monthly';
@@ -6352,10 +6682,12 @@ function updateOpsSummary() {
             </div>`;
         };
 
+        const opsAggregated = getOpsAggregatedData();
+        const yData = opsAggregated.yearly;
+        const monthlyAggregated = opsAggregated.monthly;
         const mode = opsUIState.mode || 'yearly';
 
         if (mode === 'yearly') {
-            const yData = staticData.operacionesTotales;
             const years = Array.from(opsUIState.years).sort();
             if (!years.length) {
                 container.innerHTML = '<div class="ops-summary-empty text-muted">Selecciona al menos un año para ver el resumen.</div>';
@@ -6404,7 +6736,7 @@ function updateOpsSummary() {
                 );
             }
         } else if (mode === 'monthly') {
-            const monthly = staticData.mensual2025;
+            const monthly = monthlyAggregated;
             const selectedMonths = Array.from(opsUIState.months2025).sort();
             if (!selectedMonths.length) {
                 container.innerHTML = '<div class="ops-summary-empty text-muted">Selecciona al menos un mes de 2025 para ver el resumen.</div>';
