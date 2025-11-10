@@ -10,15 +10,15 @@
   "theme_color": "#0a1f44",
   "icons": [
     {
-      "src": "images/aifa-logo.png",
+  "src": "images/logo-aifa-obscuro.jpg",
       "sizes": "192x192",
-  "type": "image/png",
+    "type": "image/jpeg",
       "purpose": "any"
     },
     {
-      "src": "images/aifa-logo.png",
+  "src": "images/logo-aifa-obscuro.jpg",
       "sizes": "512x512",
-  "type": "image/png",
+    "type": "image/jpeg",
       "purpose": "any maskable"
     }
   ]
