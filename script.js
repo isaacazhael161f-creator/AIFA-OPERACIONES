@@ -196,6 +196,14 @@ const WEEKLY_OPERATIONS_DATASETS = [
                 comercial: { operaciones: 136, pasajeros: 17658},
                 general: { operaciones: 10, pasajeros: 23 },
                 carga: { operaciones: 16, toneladas: 424, corteFecha: '2025-11-06', corteNota: 'Cifras del 06 de noviembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-11-09',
+                label: '09 Nov 2025',
+                comercial: { operaciones: 154, pasajeros: 22170},
+                general: { operaciones: 5, pasajeros: 14 },
+                carga: { operaciones: 16, toneladas: 424, corteFecha: '2025-11-06', corteNota: 'Cifras del 06 de noviembre de 2025.' }
             }
 
 
@@ -4139,6 +4147,8 @@ document.addEventListener('DOMContentLoaded', function(){
 const opsCharts = {};
 let opsViewportFrame = null;
 let opsTooltipsAlwaysOn = false;
+let deferredPwaInstallEvent = null;
+let installAppModalInstance = null;
 
 function updateOpsTooltipToggleButton() {
     const btn = document.getElementById('ops-tooltips-toggle-btn');
@@ -4784,15 +4794,35 @@ function getLatestCargoLegendInfo(week) {
 
 function updateCargoLegend(week) {
     const legendEl = document.getElementById('cargo-legend');
-    if (!legendEl) return;
+    const cargoNoteSmall = document.querySelector('#cargo-update-note small');
     const info = getLatestCargoLegendInfo(week || getActiveWeeklyDataset());
+
     if (info) {
-        const legendText = escapeHTML(info.note);
-        legendEl.innerHTML = `<strong>Leyenda:</strong> ${legendText}`;
-        legendEl.classList.remove('d-none');
+        if (legendEl) {
+            const legendText = escapeHTML(info.note);
+            legendEl.innerHTML = `<strong>Leyenda:</strong> ${legendText}`;
+            legendEl.classList.remove('d-none');
+        }
+        if (cargoNoteSmall) {
+            if (info.corteFecha) {
+                const formatted = formatSpanishDate(info.corteFecha);
+                if (formatted) {
+                    cargoNoteSmall.innerHTML = `Datos actualizados al <strong>${escapeHTML(formatted)}</strong>`;
+                } else {
+                    cargoNoteSmall.textContent = info.note;
+                }
+            } else if (info.note) {
+                cargoNoteSmall.textContent = info.note;
+            }
+        }
     } else {
-        legendEl.innerHTML = '';
-        legendEl.classList.add('d-none');
+        if (legendEl) {
+            legendEl.innerHTML = '';
+            legendEl.classList.add('d-none');
+        }
+        if (cargoNoteSmall) {
+            cargoNoteSmall.innerHTML = 'Datos actualizados disponibles próximamente';
+        }
     }
 }
 
@@ -5490,6 +5520,210 @@ function detectChartErrors() {
                 missingCharts.push('Gráficas de itinerario no dibujadas');
             }
             
+
+    function resolveDefaultInstallTabId() {
+        try {
+            const ua = (typeof navigator !== 'undefined' && navigator.userAgent ? navigator.userAgent : '').toLowerCase();
+            if (/iphone|ipad|ipod/.test(ua)) return 'install-ios-pane';
+            if (/android/.test(ua)) return 'install-android-pane';
+            if (/macintosh/.test(ua) && /safari/.test(ua) && !/chrome|crios|fxios/.test(ua)) {
+                return 'install-desktop-safari-pane';
+            }
+        } catch (_) {}
+        return 'install-desktop-chrome-pane';
+    }
+
+    function updateInstallSupportAlert(state) {
+        try {
+            const alertEl = document.getElementById('install-app-support');
+            if (!alertEl) return;
+            let message = '';
+            let type = 'info';
+            switch (state) {
+                case 'installed':
+                    type = 'success';
+                    message = 'Esta sesion ya ejecuta Operaciones AIFA como app. Usa los accesos creados por tu sistema.';
+                    break;
+                case 'prompt-ready':
+                    type = 'success';
+                    message = 'Este navegador permite instalacion directa. Usa el boton "Instalar app" o "Intentar instalacion".';
+                    break;
+                case 'manual':
+                    type = 'warning';
+                    message = 'Este navegador no muestra aviso automatico. Sigue las instrucciones del apartado correspondiente.';
+                    break;
+                default:
+                    message = 'Puedes instalar la app desde el boton "Instalar app" cuando este disponible o seguir las instrucciones manuales.';
+                    break;
+            }
+            alertEl.className = 'alert alert-' + type + ' small mb-3';
+            alertEl.textContent = message;
+            alertEl.classList.remove('d-none');
+        } catch (err) {
+            console.warn('updateInstallSupportAlert failed:', err);
+        }
+    }
+
+    function showInstallInstructions(options = {}) {
+        try {
+            const modalEl = document.getElementById('install-app-modal');
+            if (!modalEl) return;
+            const targetTabId = options.tabId || resolveDefaultInstallTabId();
+            if (targetTabId && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+                const tabTrigger = modalEl.querySelector('[data-bs-target="#' + targetTabId + '"]');
+                if (tabTrigger) {
+                    bootstrap.Tab.getOrCreateInstance(tabTrigger).show();
+                }
+            }
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                installAppModalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+                installAppModalInstance.show();
+            } else {
+                modalEl.classList.add('show');
+                modalEl.style.display = 'block';
+            }
+        } catch (err) {
+            console.warn('showInstallInstructions failed:', err);
+        }
+    }
+
+    function registerServiceWorkerIfNeeded() {
+        try {
+            if (!('serviceWorker' in navigator)) return;
+            if (typeof window !== 'undefined' && window.__NO_SW__) return;
+            if (location.protocol === 'file:') return;
+            navigator.serviceWorker.register('sw.js').catch((err) => {
+                console.warn('Service worker registration failed:', err);
+            });
+        } catch (err) {
+            console.warn('registerServiceWorkerIfNeeded failed:', err);
+        }
+    }
+
+    function setupPwaInstallExperience() {
+        try {
+            registerServiceWorkerIfNeeded();
+
+            const installBtn = document.getElementById('install-app-btn');
+            const modalInstallBtn = document.getElementById('install-app-modal-install-btn');
+            const sidebarLink = document.querySelector('[data-install-app-info]');
+
+            const showInstallButton = () => {
+                if (installBtn) installBtn.classList.remove('d-none');
+            };
+            const hideInstallButton = () => {
+                if (installBtn) installBtn.classList.add('d-none');
+            };
+
+            const attemptInstallPrompt = async () => {
+                if (!deferredPwaInstallEvent) {
+                    updateInstallSupportAlert('manual');
+                    showInstallInstructions();
+                    return;
+                }
+                try {
+                    if (installBtn) installBtn.disabled = true;
+                    if (modalInstallBtn) modalInstallBtn.disabled = true;
+                    deferredPwaInstallEvent.prompt();
+                    const choice = await deferredPwaInstallEvent.userChoice;
+                    deferredPwaInstallEvent = null;
+                    if (choice && choice.outcome === 'accepted') {
+                        updateInstallSupportAlert('installed');
+                        hideInstallButton();
+                        showNotification('Instalacion iniciada. Busca Operaciones AIFA en tus apps.', 'success');
+                        if (installAppModalInstance && typeof installAppModalInstance.hide === 'function') {
+                            installAppModalInstance.hide();
+                        }
+                        return;
+                    }
+                    updateInstallSupportAlert('manual');
+                    showNotification('Instalacion cancelada. Puedes intentarlo despues o seguir las instrucciones manuales.', 'warning');
+                    showInstallInstructions();
+                } catch (err) {
+                    console.warn('PWA install prompt failed:', err);
+                    updateInstallSupportAlert('manual');
+                    showNotification('No se pudo iniciar la instalacion automatica. Usa las instrucciones manuales.', 'error');
+                    showInstallInstructions();
+                } finally {
+                    if (installBtn) installBtn.disabled = false;
+                    if (modalInstallBtn) modalInstallBtn.disabled = false;
+                }
+            };
+
+            const bindClick = (element) => {
+                if (!element || element.dataset.installBound === '1') return;
+                element.dataset.installBound = '1';
+                element.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (deferredPwaInstallEvent) {
+                        attemptInstallPrompt();
+                    } else {
+                        showInstallInstructions();
+                    }
+                });
+            };
+
+            bindClick(installBtn);
+            bindClick(modalInstallBtn);
+            if (sidebarLink && sidebarLink.dataset.installBound !== '1') {
+                sidebarLink.dataset.installBound = '1';
+                sidebarLink.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    showInstallInstructions();
+                });
+            }
+
+            const isStandalone = (() => {
+                try {
+                    const mq = window.matchMedia ? window.matchMedia('(display-mode: standalone)').matches : false;
+                    const iosStandalone = typeof navigator !== 'undefined' && navigator.standalone === true;
+                    return mq || iosStandalone;
+                } catch (_) {
+                    return false;
+                }
+            })();
+
+            if (isStandalone) {
+                hideInstallButton();
+                updateInstallSupportAlert('installed');
+            } else {
+                showInstallButton();
+                if ('beforeinstallprompt' in window) {
+                    updateInstallSupportAlert('pending');
+                } else {
+                    updateInstallSupportAlert('manual');
+                }
+            }
+
+            window.addEventListener('beforeinstallprompt', (event) => {
+                event.preventDefault();
+                deferredPwaInstallEvent = event;
+                showInstallButton();
+                updateInstallSupportAlert('prompt-ready');
+                if (installBtn) {
+                    installBtn.dataset.installReady = '1';
+                }
+            });
+
+            window.addEventListener('appinstalled', () => {
+                deferredPwaInstallEvent = null;
+                updateInstallSupportAlert('installed');
+                hideInstallButton();
+                showNotification('Operaciones AIFA se instalo en este dispositivo.', 'success');
+                if (installAppModalInstance && typeof installAppModalInstance.hide === 'function') {
+                    installAppModalInstance.hide();
+                }
+            });
+
+            if (typeof window !== 'undefined') {
+                window.showInstallInstructions = showInstallInstructions;
+            }
+        } catch (err) {
+            console.warn('setupPwaInstallExperience failed:', err);
+        }
+    }
             if (missingCharts.length > 0) {
                 errorInfo = `Itinerario: ${missingCharts.length} gráficas con problemas`;
             }
@@ -9486,6 +9720,12 @@ function renderParteOperacionesSummary(data){
                 initializeSidebarState();
             } catch (err) {
                 console.warn('Theme/sidebar init failed:', err);
+            }
+
+            try {
+                setupPwaInstallExperience();
+            } catch (err) {
+                console.warn('setupPwaInstallExperience failed:', err);
             }
 
             try {
