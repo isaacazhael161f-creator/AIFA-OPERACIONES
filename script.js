@@ -1388,6 +1388,17 @@ function setupEventListeners() {
     // Exportar todas las gráficas (Operaciones Totales)
     const opsExportAllBtn = document.getElementById('ops-export-all-btn');
     if (opsExportAllBtn) opsExportAllBtn.addEventListener('click', exportAllChartsPDF);
+
+    const opsTooltipsToggleBtn = document.getElementById('ops-tooltips-toggle-btn');
+    if (opsTooltipsToggleBtn && !opsTooltipsToggleBtn._wired) {
+        opsTooltipsToggleBtn._wired = 1;
+        opsTooltipsToggleBtn.addEventListener('click', () => {
+            opsTooltipsAlwaysOn = !opsTooltipsAlwaysOn;
+            updateOpsTooltipToggleButton();
+            applyOpsTooltipsStateToCharts();
+        });
+        updateOpsTooltipToggleButton();
+    }
     
     // Botón de reinicialización de gráficas global
     const chartsResetBtn = document.getElementById('charts-reset-btn');
@@ -4109,6 +4120,475 @@ document.addEventListener('DOMContentLoaded', function(){
 // Resumen y gráficas de Operaciones Totales (restauración completa con filtros, animaciones y colores)
 const opsCharts = {};
 let opsViewportFrame = null;
+let opsTooltipsAlwaysOn = false;
+
+function updateOpsTooltipToggleButton() {
+    const btn = document.getElementById('ops-tooltips-toggle-btn');
+    if (!btn) return;
+    const enabled = !!opsTooltipsAlwaysOn;
+    const iconClass = enabled ? 'fa-eye' : 'fa-eye-slash';
+    const labelText = enabled ? 'Ocultar tooltips' : 'Tooltips fijos';
+    btn.classList.toggle('btn-primary', enabled);
+    btn.classList.toggle('btn-outline-secondary', !enabled);
+    btn.classList.toggle('active', enabled);
+    btn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+    btn.setAttribute('data-enabled', enabled ? 'true' : 'false');
+    btn.title = enabled ? 'Ocultar tooltips siempre visibles' : 'Mostrar tooltips siempre visibles';
+    btn.innerHTML = `<i class="fas ${iconClass} me-1"></i>${labelText}`;
+}
+
+function applyOpsTooltipsStateToCharts() {
+    Object.values(opsCharts).forEach((chart) => {
+        if (!chart) return;
+        try {
+            const tooltipCfg = chart.options?.plugins?.tooltip;
+            if (tooltipCfg) {
+                const desired = !opsTooltipsAlwaysOn;
+                if (tooltipCfg.enabled !== desired) {
+                    tooltipCfg.enabled = desired;
+                }
+            }
+            const bubbleCfg = chart.options?.plugins?.dataBubble;
+            if (bubbleCfg) {
+                const defaultShow = bubbleCfg.defaultShow;
+                const desiredBubble = opsTooltipsAlwaysOn ? false : (defaultShow === undefined ? true : defaultShow);
+                if (bubbleCfg.show !== desiredBubble) {
+                    bubbleCfg.show = desiredBubble;
+                }
+            }
+            const dataset = chart.data?.datasets?.[0];
+            if (dataset && dataset.aifaTooltipConfig) {
+                const labels = Array.isArray(chart.data?.labels) ? chart.data.labels : [];
+                const labelCount = labels.length;
+                const xTitle = chart.options?.scales?.x?.title?.text || '';
+                const xTitleString = typeof xTitle === 'string' ? xTitle.toLowerCase() : '';
+                const isMonthlyAxis = xTitleString.includes('mes');
+                const isWeeklyAxis = xTitleString.includes('semana') || xTitleString.includes('sem ') || xTitleString.includes('día') || xTitleString.includes('dia');
+                const weeklyDense = isWeeklyAxis && labelCount >= 6;
+                const resolvedHint = (() => {
+                    if ((isMonthlyAxis && opsTooltipsAlwaysOn) || weeklyDense) return 'micro';
+                    if (labelCount >= 30 || (isMonthlyAxis && labelCount >= 24)) return 'micro';
+                    if (labelCount >= 22 || (isMonthlyAxis && labelCount >= 18)) return 'mini';
+                    if (labelCount >= 16 || isMonthlyAxis) return 'compact';
+                    return 'default';
+                })();
+                if (dataset.aifaTooltipConfig.sizeHint !== resolvedHint) {
+                    dataset.aifaTooltipConfig.sizeHint = resolvedHint;
+                }
+            }
+        } catch (_) { /* noop */ }
+        try {
+            chart.update('none');
+        } catch (_) {
+            try { chart.draw(); } catch (_) { /* noop */ }
+        }
+    });
+}
+
+const fallbackPercentFormatter = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+const opsPersistentTooltipPlugin = {
+    id: 'opsPersistentTooltip',
+    afterDatasetsDraw(chart) {
+        try {
+            if (!opsTooltipsAlwaysOn) return;
+            const dataset = chart.data?.datasets?.[0];
+            const meta = chart.getDatasetMeta ? chart.getDatasetMeta(0) : null;
+            if (!dataset || !meta || !Array.isArray(meta.data)) return;
+            if (typeof chart.isDatasetVisible === 'function' && !chart.isDatasetVisible(0)) return;
+            const cfg = dataset.aifaTooltipConfig;
+            if (!cfg) return;
+            const ctx = chart.ctx;
+            if (!ctx) return;
+            const chartArea = chart.chartArea || { left: 0, right: chart.width, top: 0, bottom: chart.height };
+            const theme = cfg.theme || {};
+            const border = theme.borderColor || 'rgba(20, 27, 39, 0.85)';
+            const formatValue = typeof cfg.formatValue === 'function' ? cfg.formatValue : (value) => String(value ?? '');
+            const formatVariation = typeof cfg.formatVariation === 'function'
+                ? cfg.formatVariation
+                : (delta) => {
+                    if (!Number.isFinite(delta)) return '';
+                    const sign = delta > 0 ? '+' : delta < 0 ? '-' : '';
+                    return `${sign}${fallbackPercentFormatter.format(Math.abs(delta))}%`;
+                };
+            const getVariation = typeof cfg.getVariation === 'function' ? cfg.getVariation : () => null;
+            const variationLabel = cfg.variationLabel || 'Δ%';
+
+            ctx.save();
+                const sizeHint = String(cfg.sizeHint || 'default');
+                const tooltipStyles = {
+                    micro: {
+                        headerFont: '600 7px "Roboto", "Segoe UI", Arial, sans-serif',
+                        bodyFont: '500 7px "Roboto", "Segoe UI", Arial, sans-serif',
+                        headerLineHeight: 8,
+                        bodyLineHeight: 8,
+                        headerPadX: 4,
+                        headerPadY: 2,
+                        bodyPadX: 4,
+                        bodyPadY: 3,
+                        pointerWidth: 8,
+                        pointerHeight: 4,
+                        cornerRadius: 6,
+                        preferredOffset: 8,
+                        shadowBlur: 4,
+                        shadowOffsetY: 1
+                    },
+                    mini: {
+                        headerFont: '600 9px "Roboto", "Segoe UI", Arial, sans-serif',
+                        bodyFont: '500 9px "Roboto", "Segoe UI", Arial, sans-serif',
+                        headerLineHeight: 11,
+                        bodyLineHeight: 12,
+                        headerPadX: 8,
+                        headerPadY: 4,
+                        bodyPadX: 8,
+                        bodyPadY: 6,
+                        pointerWidth: 12,
+                        pointerHeight: 5,
+                        cornerRadius: 8,
+                        preferredOffset: 12,
+                        shadowBlur: 8,
+                        shadowOffsetY: 2
+                    },
+                    compact: {
+                        headerFont: '600 10px "Roboto", "Segoe UI", Arial, sans-serif',
+                        bodyFont: '500 10px "Roboto", "Segoe UI", Arial, sans-serif',
+                        headerLineHeight: 12,
+                        bodyLineHeight: 13,
+                        headerPadX: 10,
+                        headerPadY: 5,
+                        bodyPadX: 10,
+                        bodyPadY: 8,
+                        pointerWidth: 14,
+                        pointerHeight: 6,
+                        cornerRadius: 10,
+                        preferredOffset: 14,
+                        shadowBlur: 10,
+                        shadowOffsetY: 3
+                    },
+                    default: {
+                        headerFont: '600 11px "Roboto", "Segoe UI", Arial, sans-serif',
+                        bodyFont: '500 11px "Roboto", "Segoe UI", Arial, sans-serif',
+                        headerLineHeight: 14,
+                        bodyLineHeight: 15,
+                        headerPadX: 12,
+                        headerPadY: 7,
+                        bodyPadX: 14,
+                        bodyPadY: 10,
+                        pointerWidth: 16,
+                        pointerHeight: 8,
+                        cornerRadius: 12,
+                        preferredOffset: 18,
+                        shadowBlur: 12,
+                        shadowOffsetY: 4
+                    }
+                };
+                const style = tooltipStyles[sizeHint] || tooltipStyles.default;
+                const isMicro = sizeHint === 'micro';
+                const placedRects = [];
+                const headerFont = style.headerFont;
+                const bodyFont = style.bodyFont;
+                const headerLineHeight = style.headerLineHeight;
+                const bodyLineHeight = style.bodyLineHeight;
+                const headerPadX = style.headerPadX;
+                const headerPadY = style.headerPadY;
+                const bodyPadX = style.bodyPadX;
+                const bodyPadY = style.bodyPadY;
+                const pointerWidth = style.pointerWidth;
+                const pointerHeight = style.pointerHeight;
+                const cornerRadius = style.cornerRadius;
+                const preferredOffset = style.preferredOffset;
+            const isDark = document.body.classList.contains('dark-mode');
+            const defaultCardBg = isDark ? 'rgba(17,27,39,0.94)' : '#ffffff';
+            const bodyTextDefault = isDark ? '#e2e8f0' : '#1f2937';
+            const borderTone = isDark ? 'rgba(100,116,139,0.35)' : 'rgba(148,163,184,0.35)';
+            const shadowColor = isDark ? 'rgba(0,0,0,0.45)' : 'rgba(15,23,42,0.18)';
+
+            meta.data.forEach((point, index) => {
+                if (!point || typeof point.x !== 'number' || typeof point.y !== 'number') return;
+                const rawValue = Array.isArray(dataset.data) ? dataset.data[index] : null;
+                if (rawValue == null || Number.isNaN(rawValue)) return;
+                const axisLabel = Array.isArray(chart.data?.labels) ? chart.data.labels[index] : null;
+                const headerText = axisLabel != null ? String(axisLabel) : (dataset.label || '');
+                const bodyLines = [];
+                const valueText = formatValue(rawValue);
+                if (valueText) {
+                    if (isMicro) {
+                        const microLabel = (() => {
+                            const labelRaw = typeof dataset.label === 'string' ? dataset.label.trim() : '';
+                            if (!labelRaw) return '';
+                            if (labelRaw.length <= 12) return labelRaw;
+                            const words = labelRaw.split(/\s+/).filter(Boolean);
+                            if (words.length >= 2) {
+                                const acronym = words.map((word) => word[0]).join('').toUpperCase();
+                                if (acronym.length >= 2 && acronym.length <= 6) return acronym;
+                            }
+                            return `${labelRaw.slice(0, 9)}...`;
+                        })();
+                        if (microLabel) {
+                            bodyLines.push({ text: microLabel, color: bodyTextDefault });
+                        }
+                        bodyLines.push({ text: valueText, color: bodyTextDefault });
+                    } else {
+                        bodyLines.push({ text: `${dataset.label}: ${valueText}`, color: bodyTextDefault });
+                    }
+                }
+                const variationRaw = getVariation(index);
+                if (variationRaw != null) {
+                    const formattedVariation = formatVariation(variationRaw);
+                    if (formattedVariation) {
+                        const upColor = isDark ? '#4ade80' : '#16a34a';
+                        const downColor = isDark ? '#f87171' : '#dc2626';
+                        const neutralColor = bodyTextDefault;
+                        const deltaColor = variationRaw > 0 ? upColor : variationRaw < 0 ? downColor : neutralColor;
+                        const variationLine = isMicro ? `Δ ${formattedVariation}` : `${variationLabel}: ${formattedVariation}`;
+                        bodyLines.push({ text: variationLine, color: deltaColor });
+                    }
+                }
+                if (!bodyLines.length) {
+                    const fallbackText = isMicro ? (dataset.label || '') : (dataset.label || '');
+                    if (fallbackText) {
+                        bodyLines.push({ text: fallbackText, color: bodyTextDefault });
+                    }
+                }
+
+                ctx.font = headerFont;
+                ctx.textBaseline = 'top';
+                ctx.textAlign = 'center';
+                const headerTextWidth = headerText ? ctx.measureText(headerText).width : 0;
+                const headerHeight = headerText ? (headerPadY * 2) + headerLineHeight : 0;
+                const headerWidth = headerText ? headerTextWidth + headerPadX * 2 : 0;
+
+                ctx.font = bodyFont;
+                ctx.textAlign = 'left';
+                let maxBodyWidth = 0;
+                bodyLines.forEach((line) => {
+                    const width = ctx.measureText(line.text).width;
+                    if (width > maxBodyWidth) maxBodyWidth = width;
+                });
+                const bodyWidth = maxBodyWidth + bodyPadX * 2;
+                const bodyHeight = bodyLines.length ? (bodyPadY * 2) + (bodyLines.length * bodyLineHeight) : 0;
+
+                const boxWidth = Math.max(headerWidth, bodyWidth);
+                const boxHeight = headerHeight + bodyHeight;
+                if (!(boxWidth > 0 && boxHeight > 0)) return;
+
+                const makePlacement = (x, y, below) => ({
+                    boxX: x,
+                    boxY: y,
+                    left: x,
+                    right: x + boxWidth,
+                    top: below ? y - pointerHeight : y,
+                    bottom: below ? y + boxHeight : y + boxHeight + pointerHeight,
+                    below
+                });
+                const intersects = (candidate) => placedRects.some((prev) => !(prev.right <= candidate.left || prev.left >= candidate.right || prev.bottom <= candidate.top || prev.top >= candidate.bottom));
+
+                let boxX = point.x - boxWidth / 2;
+                let boxY = point.y + preferredOffset;
+                let placedBelow = true;
+                const clampHorizontal = () => {
+                    if (boxX < chartArea.left + 2) boxX = chartArea.left + 2;
+                    if (boxX + boxWidth > chartArea.right - 2) boxX = chartArea.right - boxWidth - 2;
+                };
+
+                clampHorizontal();
+                if (boxY + boxHeight + pointerHeight > chartArea.bottom - 4) {
+                    boxY = point.y - boxHeight - preferredOffset;
+                    placedBelow = false;
+                    if (boxY < chartArea.top + 4) {
+                        boxY = chartArea.top + 4;
+                        placedBelow = true;
+                    }
+                }
+
+                clampHorizontal();
+
+                if (isMicro) {
+                    const minX = chartArea.left + 2;
+                    let maxX = chartArea.right - boxWidth - 2;
+                    if (maxX < minX) maxX = minX;
+                    if (boxX < minX) boxX = minX;
+                    if (boxX > maxX) boxX = maxX;
+                    let placement = makePlacement(boxX, boxY, placedBelow);
+                    if (intersects(placement)) {
+                        const candidates = [placement];
+                        const fitWithinBounds = (candidate) => {
+                            let nextX = candidate.boxX;
+                            if (nextX < minX) nextX = minX;
+                            if (nextX > maxX) nextX = maxX;
+                            let nextY = candidate.boxY;
+                            if (candidate.below) {
+                                const maxY = chartArea.bottom - pointerHeight - boxHeight - 4;
+                                const minY = chartArea.top + pointerHeight + 4;
+                                if (nextY > maxY) nextY = maxY;
+                                if (nextY < minY) nextY = minY;
+                            } else {
+                                const minY = chartArea.top + 4;
+                                const maxY = chartArea.bottom - boxHeight - pointerHeight - 4;
+                                if (nextY < minY) nextY = minY;
+                                if (nextY > maxY) nextY = maxY;
+                            }
+                            return makePlacement(nextX, nextY, candidate.below);
+                        };
+                        const addCandidate = (x, y, below) => {
+                            candidates.push(fitWithinBounds(makePlacement(x, y, below)));
+                        };
+                        addCandidate(boxX, point.y - boxHeight - preferredOffset, false);
+                        addCandidate(boxX, point.y + preferredOffset, true);
+                        const step = boxHeight + pointerHeight + 6;
+                        const horizontalStep = Math.max(10, Math.round(boxWidth + 8));
+                        for (let offset = 1; offset <= 4; offset += 1) {
+                            addCandidate(boxX, point.y + preferredOffset + offset * step, true);
+                            addCandidate(boxX, point.y - boxHeight - preferredOffset - offset * step, false);
+                            addCandidate(boxX + offset * horizontalStep, point.y + preferredOffset, true);
+                            addCandidate(boxX - offset * horizontalStep, point.y + preferredOffset, true);
+                            addCandidate(boxX + offset * horizontalStep, point.y - boxHeight - preferredOffset, false);
+                            addCandidate(boxX - offset * horizontalStep, point.y - boxHeight - preferredOffset, false);
+                        }
+                        let bestCandidate = placement;
+                        let bestScore = Number.POSITIVE_INFINITY;
+                        for (let c = 0; c < candidates.length; c += 1) {
+                            const candidate = candidates[c];
+                            let overlapScore = 0;
+                            for (let i = 0; i < placedRects.length; i += 1) {
+                                const prev = placedRects[i];
+                                const overlapWidth = Math.max(0, Math.min(prev.right, candidate.right) - Math.max(prev.left, candidate.left));
+                                const overlapHeight = Math.max(0, Math.min(prev.bottom, candidate.bottom) - Math.max(prev.top, candidate.top));
+                                if (overlapWidth > 0 && overlapHeight > 0) {
+                                    overlapScore += overlapWidth * overlapHeight;
+                                }
+                            }
+                            if (overlapScore < bestScore) {
+                                bestScore = overlapScore;
+                                bestCandidate = candidate;
+                                if (bestScore === 0) break;
+                            }
+                        }
+                        placement = bestCandidate;
+                    }
+                    boxX = placement.boxX;
+                    boxY = placement.boxY;
+                    placedBelow = placement.below;
+                    placedRects.push(placement);
+                } else {
+                    placedRects.push(makePlacement(boxX, boxY, placedBelow));
+                }
+
+                const datasetColor = typeof dataset.borderColor === 'string' ? dataset.borderColor : null;
+                const cardBg = cfg.backgroundColor || defaultCardBg;
+                const headerBg = datasetColor ? hexToRgba(datasetColor, isDark ? 0.75 : 0.85) : (isDark ? 'rgba(59,130,246,0.65)' : 'rgba(59,130,246,0.82)');
+                const headerTextColor = '#ffffff';
+                const bodyTextColor = cfg.bodyColor || bodyTextDefault;
+                const outlineColor = border || borderTone;
+
+                ctx.shadowColor = shadowColor;
+                ctx.shadowBlur = style.shadowBlur;
+                ctx.shadowOffsetY = style.shadowOffsetY;
+
+                const drawRoundedRect = () => {
+                    ctx.beginPath();
+                    if (ctx.roundRect) {
+                        ctx.roundRect(boxX, boxY, boxWidth, boxHeight, cornerRadius);
+                    } else {
+                        const r = Math.min(cornerRadius, boxWidth / 2, boxHeight / 2);
+                        ctx.moveTo(boxX + r, boxY);
+                        ctx.lineTo(boxX + boxWidth - r, boxY);
+                        ctx.quadraticCurveTo(boxX + boxWidth, boxY, boxX + boxWidth, boxY + r);
+                        ctx.lineTo(boxX + boxWidth, boxY + boxHeight - r);
+                        ctx.quadraticCurveTo(boxX + boxWidth, boxY + boxHeight, boxX + boxWidth - r, boxY + boxHeight);
+                        ctx.lineTo(boxX + r, boxY + boxHeight);
+                        ctx.quadraticCurveTo(boxX, boxY + boxHeight, boxX, boxY + boxHeight - r);
+                        ctx.lineTo(boxX, boxY + r);
+                        ctx.quadraticCurveTo(boxX, boxY, boxX + r, boxY);
+                        ctx.closePath();
+                    }
+                };
+
+                drawRoundedRect();
+                ctx.fillStyle = cardBg;
+                ctx.fill();
+
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetY = 0;
+
+                let pointerPath = null;
+                const pointerCenter = Math.max(boxX + pointerWidth / 2 + 4, Math.min(point.x, boxX + boxWidth - pointerWidth / 2 - 4));
+                if (placedBelow) {
+                    const baseY = boxY;
+                    const tipY = baseY - pointerHeight;
+                    pointerPath = { points: [[pointerCenter, tipY], [pointerCenter - pointerWidth / 2, baseY], [pointerCenter + pointerWidth / 2, baseY]] };
+                } else {
+                    const baseY = boxY + boxHeight;
+                    const tipY = baseY + pointerHeight;
+                    pointerPath = { points: [[pointerCenter, tipY], [pointerCenter + pointerWidth / 2, baseY], [pointerCenter - pointerWidth / 2, baseY]] };
+                }
+
+                if (pointerPath) {
+                    ctx.fillStyle = cardBg;
+                    ctx.beginPath();
+                    const [p0, p1, p2] = pointerPath.points;
+                    ctx.moveTo(p0[0], p0[1]);
+                    ctx.lineTo(p1[0], p1[1]);
+                    ctx.lineTo(p2[0], p2[1]);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                if (outlineColor) {
+                    ctx.lineWidth = 1;
+                    ctx.strokeStyle = outlineColor;
+                    drawRoundedRect();
+                    ctx.stroke();
+                    if (pointerPath) {
+                        ctx.beginPath();
+                        const [p0, p1, p2] = pointerPath.points;
+                        ctx.moveTo(p0[0], p0[1]);
+                        ctx.lineTo(p1[0], p1[1]);
+                        ctx.lineTo(p2[0], p2[1]);
+                        ctx.closePath();
+                        ctx.stroke();
+                    }
+                }
+
+                if (headerHeight) {
+                    ctx.beginPath();
+                    const topRadius = cornerRadius;
+                    ctx.moveTo(boxX, boxY + headerHeight);
+                    ctx.lineTo(boxX, boxY + topRadius);
+                    ctx.quadraticCurveTo(boxX, boxY, boxX + topRadius, boxY);
+                    ctx.lineTo(boxX + boxWidth - topRadius, boxY);
+                    ctx.quadraticCurveTo(boxX + boxWidth, boxY, boxX + boxWidth, boxY + topRadius);
+                    ctx.lineTo(boxX + boxWidth, boxY + headerHeight);
+                    ctx.closePath();
+                    ctx.fillStyle = headerBg;
+                    ctx.fill();
+                }
+
+                if (headerHeight) {
+                    ctx.font = headerFont;
+                    ctx.fillStyle = headerTextColor;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'top';
+                    ctx.fillText(headerText, boxX + boxWidth / 2, boxY + headerPadY);
+                }
+
+                ctx.font = bodyFont;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                let textY = boxY + headerHeight + bodyPadY;
+                const textX = boxX + bodyPadX;
+                bodyLines.forEach((line) => {
+                    ctx.fillStyle = line.color || bodyTextColor;
+                    ctx.fillText(line.text, textX, textY);
+                    textY += bodyLineHeight;
+                });
+            });
+
+            ctx.restore();
+        } catch (_) { /* noop */ }
+    }
+};
 
 function resetOpsChartViewport(chart) {
     try {
@@ -4700,6 +5180,7 @@ function detectChartErrors() {
 function renderOperacionesTotales() {
     try {
         const theme = getChartColors();
+        updateOpsTooltipToggleButton();
         const aifa = window.AIFA || {};
         const formatCompact = aifa.formatCompact || ((value, kind = 'int') => {
             const num = Number(value || 0);
@@ -5329,6 +5810,7 @@ function renderOperacionesTotales() {
                 const bubbleShow = !isMobile || labelCount <= 12;
                 const bubbleOpts = {
                     show: bubbleShow,
+                    defaultShow: bubbleShow,
                     borderColor: border,
                     fillColor: border,
                     textColor: '#ffffff',
@@ -5387,23 +5869,50 @@ function renderOperacionesTotales() {
                     }
                 } : null;
                 const travelerEnabled = traveler && typeof traveler === 'object';
+                const tooltipSizeHint = (() => {
+                    const xTitleString = typeof xTitle === 'string' ? xTitle.toLowerCase() : '';
+                    const isMonthlyAxis = xTitleString.includes('mes');
+                    const isWeeklyAxis = xTitleString.includes('semana') || xTitleString.includes('sem ') || xTitleString.includes('día') || xTitleString.includes('dia');
+                    const weeklyDense = isWeeklyAxis && labelCount >= 6;
+                    const preferMicro = (isMonthlyAxis && opsTooltipsAlwaysOn) || weeklyDense;
+                    if (preferMicro) return 'micro';
+                    if (labelCount >= 30 || (isMonthlyAxis && labelCount >= 24)) return 'micro';
+                    if (labelCount >= 22 || (isMonthlyAxis && labelCount >= 18)) return 'mini';
+                    if (labelCount >= 16 || isMonthlyAxis) return 'compact';
+                    return 'default';
+                })();
+                const variationAccessor = Array.isArray(extraTooltip?.variations)
+                    ? (idx) => extraTooltip.variations[idx]
+                    : () => null;
+                const variationLabelText = extraTooltip?.variationLabel || 'Δ% vs período anterior';
                 return {
                     type: 'line',
-                    data: { labels, datasets: [{
-                        label,
-                        data,
-                        borderColor: border,
-                        backgroundColor: bg,
-                        borderWidth: 3,
-                        pointBackgroundColor: border,
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 1,
-                        pointRadius,
-                        pointHoverRadius,
-                        tension: 0.25,
-                        fill: true,
-                        clip: false
-                    }] },
+                    data: {
+                        labels,
+                        datasets: [{
+                            label,
+                            data,
+                            borderColor: border,
+                            backgroundColor: bg,
+                            borderWidth: 3,
+                            pointBackgroundColor: border,
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 1,
+                            pointRadius,
+                            pointHoverRadius,
+                            tension: 0.25,
+                            fill: true,
+                            clip: false,
+                            aifaTooltipConfig: {
+                                theme: theme.tooltip,
+                                formatValue: (value) => formatFull(value, fmtType),
+                                getVariation: variationAccessor,
+                                variationLabel: variationLabelText,
+                                formatVariation: formatPercentDelta,
+                                sizeHint: tooltipSizeHint
+                            }
+                        }]
+                    },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
@@ -5428,13 +5937,14 @@ function renderOperacionesTotales() {
                                 font: { size: isMobile ? 13 : 14, weight: '600' }
                             },
                             tooltip: {
+                                enabled: !opsTooltipsAlwaysOn,
                                 backgroundColor: theme.tooltip.backgroundColor,
                                 titleColor: theme.tooltip.titleColor,
                                 bodyColor: theme.tooltip.bodyColor,
                                 callbacks: {
                                     label: (ctx) => {
                                         const v = ctx.parsed.y;
-                                        let line = `${ctx.dataset.label}: ${formatCompact(v, fmtType)}`;
+                                        let line = `${ctx.dataset.label}: ${formatFull(v, fmtType)}`;
                                         const variationData = Array.isArray(extraTooltip?.variations) ? extraTooltip.variations : null;
                                         if (variationData) {
                                             const delta = variationData[ctx.dataIndex];
@@ -5536,11 +6046,10 @@ function renderOperacionesTotales() {
                                         if (typeof scale.max === 'number') scale.max = normalized.length ? normalized.length - 1 : scale.max;
                                     } catch (_) { /* noop */ }
                                 }
-                            },
-                            y: { beginAtZero: true, suggestedMax: Math.ceil(maxVal * 1.15), grid: { color: theme.grid }, ticks: { color: theme.ticks, font: { size: yTickFont } }, title: { display: true, text: label, color: theme.labels, font: { weight: '600' } } }
+                            }
                         }
                     },
-                    plugins: [PeakGlowPlugin]
+                    plugins: [opsPersistentTooltipPlugin, PeakGlowPlugin]
                         .concat(travelerEnabled ? [TravelerPlugin] : [])
                         .concat([DataBubblePlugin])
                         .concat(useCustomXAxis ? [CustomXAxisLabelsPlugin] : [])
@@ -5763,6 +6272,7 @@ function renderOperacionesTotales() {
 
     // Iniciar animación de viajeros
     startOpsAnim();
+    applyOpsTooltipsStateToCharts();
 
     // Actualizar resumen en función del modo/filtros
         try { updateOpsSummary(); } catch(_) {}
