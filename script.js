@@ -972,6 +972,361 @@ let summarySelectionLocked = false;
 // Hashes de contraseñas (generados en cliente al inicio y luego se descartan passwords en claro)
 const AUTH_HASHES = Object.create(null);
 const SECRET_PW_SALT = 'aifa.ops.local.pw.v1';
+const BIOMETRIC_RECORD_KEY = 'aifa.biometric.record.v1';
+const BIOMETRIC_PREF_KEY = 'aifa.biometric.pref.v1';
+
+let biometricSupportState = { available: false, platform: false, conditional: false };
+let biometricPromptInFlight = false;
+
+function bufferToBase64Url(buffer) {
+    if (!buffer) return '';
+    const bytes = buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : new Uint8Array(buffer.buffer || buffer);
+    let binary = '';
+    bytes.forEach(b => { binary += String.fromCharCode(b); });
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function base64UrlToBuffer(base64url) {
+    if (!base64url || typeof base64url !== 'string') return new Uint8Array();
+    const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+    const pad = base64.length % 4 === 0 ? '' : '='.repeat(4 - (base64.length % 4));
+    const normalized = base64 + pad;
+    const binary = atob(normalized);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+function getStoredBiometricRecord() {
+    try {
+        const raw = localStorage.getItem(BIOMETRIC_RECORD_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return null;
+        if (!parsed.username || !parsed.credentialId) return null;
+        return parsed;
+    } catch (_) {
+        return null;
+    }
+}
+
+function persistBiometricRecord(record) {
+    try {
+        if (record) {
+            localStorage.setItem(BIOMETRIC_RECORD_KEY, JSON.stringify(record));
+        } else {
+            localStorage.removeItem(BIOMETRIC_RECORD_KEY);
+        }
+    } catch (_) { /* ignore */ }
+}
+
+function removeBiometricRecord() {
+    persistBiometricRecord(null);
+}
+
+function setBiometricMessage(message, type = 'warning') {
+    const box = document.getElementById('biometric-error');
+    if (!box) return;
+    box.textContent = message || '';
+    box.classList.remove('text-warning', 'text-danger', 'text-success');
+    if (!message) return;
+    const className = type === 'success' ? 'text-success' : (type === 'danger' ? 'text-danger' : 'text-warning');
+    box.classList.add(className);
+}
+
+function readBiometricPreference() {
+    try {
+        const raw = localStorage.getItem(BIOMETRIC_PREF_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+    } catch (_) {
+        return null;
+    }
+}
+
+function persistBiometricPreference(pref) {
+    try {
+        if (pref) localStorage.setItem(BIOMETRIC_PREF_KEY, JSON.stringify(pref));
+        else localStorage.removeItem(BIOMETRIC_PREF_KEY);
+    } catch (_) { /* ignore */ }
+}
+
+function updateBiometricUi() {
+    const record = getStoredBiometricRecord();
+    const pref = readBiometricPreference();
+    const biometricBtn = document.getElementById('biometric-login-button');
+    const removeBtn = document.getElementById('biometric-remove-button');
+    const rememberCbx = document.getElementById('remember-with-biometrics');
+    const loginBtn = document.getElementById('login-button');
+
+    if (rememberCbx) {
+        const shouldCheck = pref && typeof pref.rememberChecked === 'boolean' ? !!pref.rememberChecked : !!record;
+        rememberCbx.checked = shouldCheck;
+        rememberCbx.disabled = !biometricSupportState.available;
+    }
+
+    if (biometricBtn) {
+        const canShow = biometricSupportState.available && !!record;
+        biometricBtn.classList.toggle('d-none', !canShow);
+        biometricBtn.disabled = !canShow || biometricPromptInFlight;
+    }
+
+    if (removeBtn) {
+        const showRemove = !!record;
+        removeBtn.classList.toggle('d-none', !showRemove);
+        removeBtn.disabled = false;
+    }
+
+    if (loginBtn) {
+        loginBtn.disabled = false;
+    }
+}
+
+async function detectBiometricSupport() {
+    let available = false;
+    let platform = false;
+    let conditional = false;
+    try {
+        if (window.PublicKeyCredential) {
+            available = true;
+            if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
+                platform = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+            }
+            if (typeof PublicKeyCredential.isConditionalMediationAvailable === 'function') {
+                conditional = await PublicKeyCredential.isConditionalMediationAvailable();
+            }
+        }
+    } catch (_) {
+        available = false;
+        platform = false;
+        conditional = false;
+    }
+    biometricSupportState = {
+        available: !!(available && platform && window.isSecureContext),
+        platform: platform && window.isSecureContext,
+        conditional: !!conditional
+    };
+    return biometricSupportState;
+}
+
+function buildWebAuthnUserId(username) {
+    const encoder = new TextEncoder();
+    const normalized = (username || '').toString().trim().toLowerCase();
+    return encoder.encode(`aifa:${normalized}`);
+}
+
+function resolveRpId() {
+    try {
+        const host = window.location.hostname || 'localhost';
+        if (!host || host === '') return 'localhost';
+        return host;
+    } catch (_) {
+        return 'localhost';
+    }
+}
+
+function randomChallenge(bytes = 32) {
+    const challenge = new Uint8Array(bytes);
+    if (window.crypto && window.crypto.getRandomValues) {
+        window.crypto.getRandomValues(challenge);
+    } else {
+        for (let i = 0; i < bytes; i += 1) {
+            challenge[i] = Math.floor(Math.random() * 256);
+        }
+    }
+    return challenge;
+}
+
+async function registerBiometricCredentialForUser(username) {
+    if (!biometricSupportState.available) {
+        await detectBiometricSupport();
+    }
+    if (!biometricSupportState.available) {
+        setBiometricMessage('Este navegador no soporta autenticación biométrica local.', 'danger');
+        return;
+    }
+    if (!window.isSecureContext) {
+        setBiometricMessage('Activa HTTPS o abre http://localhost para usar Face ID / Huella.', 'danger');
+        return;
+    }
+    const existing = getStoredBiometricRecord();
+    if (existing && existing.username === username) {
+        persistBiometricPreference({ rememberChecked: true });
+        setBiometricMessage('Este dispositivo ya cuenta con acceso biométrico activo.', 'success');
+        updateBiometricUi();
+        return;
+    }
+    try {
+        const challenge = randomChallenge();
+        const publicKey = {
+            challenge,
+            rp: {
+                name: 'AIFA Operaciones',
+                id: resolveRpId()
+            },
+            user: {
+                id: buildWebAuthnUserId(username),
+                name: username,
+                displayName: username
+            },
+            pubKeyCredParams: [
+                { type: 'public-key', alg: -7 },
+                { type: 'public-key', alg: -257 }
+            ],
+            authenticatorSelection: {
+                authenticatorAttachment: 'platform',
+                userVerification: 'required'
+            },
+            timeout: 60000,
+            attestation: 'none'
+        };
+
+        const credential = await navigator.credentials.create({ publicKey });
+        if (!credential) {
+            throw new Error('No se pudo crear la credencial biométrica.');
+        }
+
+        const record = {
+            username,
+            credentialId: bufferToBase64Url(credential.rawId),
+            createdAt: Date.now(),
+            transports: typeof credential.response?.getTransports === 'function'
+                ? credential.response.getTransports()
+                : ['internal']
+        };
+        persistBiometricRecord(record);
+        persistBiometricPreference({ rememberChecked: true });
+        setBiometricMessage('Acceso biométrico configurado correctamente.', 'success');
+    } catch (error) {
+        const reason = error?.message || error?.name || 'No se pudo crear la credencial biométrica.';
+        setBiometricMessage(reason, 'danger');
+        throw error;
+    } finally {
+        updateBiometricUi();
+    }
+}
+
+function markBiometricUsage() {
+    const record = getStoredBiometricRecord();
+    if (!record) return;
+    record.lastUsedAt = Date.now();
+    persistBiometricRecord(record);
+}
+
+async function completeLoginForUser(username) {
+    if (!username) throw new Error('Usuario inválido');
+    setLockInfo(0, 0);
+    const token = await makeToken(username);
+    sessionStorage.setItem(SESSION_USER, username);
+    sessionStorage.setItem(SESSION_TOKEN, token);
+    const loginButton = document.getElementById('login-button');
+    if (loginButton) loginButton.classList.remove('loading');
+    showMainApp();
+    updateBiometricUi();
+}
+
+async function promptBiometricLogin(options = {}) {
+    if (biometricPromptInFlight) return false;
+    const record = getStoredBiometricRecord();
+    if (!record) return false;
+    if (!biometricSupportState.available) {
+        await detectBiometricSupport();
+    }
+    if (!biometricSupportState.available) return false;
+    const loginScreen = document.getElementById('login-screen');
+    if (!loginScreen || loginScreen.classList.contains('hidden')) return false;
+
+    biometricPromptInFlight = true;
+    const mediationMode = options.auto && biometricSupportState.conditional ? 'conditional' : 'optional';
+    const challenge = randomChallenge();
+    const allowCredential = {
+        type: 'public-key',
+        id: base64UrlToBuffer(record.credentialId),
+        transports: record.transports && record.transports.length ? record.transports : ['internal']
+    };
+
+    setBiometricMessage('');
+    const loaderMessage = options.auto ? 'Verificando...' : 'Verificando Face ID / Huella...';
+    showGlobalLoader(loaderMessage);
+    try {
+        const assertion = await navigator.credentials.get({
+            publicKey: {
+                challenge,
+                allowCredentials: [allowCredential],
+                timeout: 60000,
+                userVerification: 'required'
+            },
+            mediation: mediationMode
+        });
+        if (!assertion) throw new Error('No se recibió respuesta biométrica.');
+        await completeLoginForUser(record.username);
+        markBiometricUsage();
+        setBiometricMessage('Ingreso biométrico exitoso.', 'success');
+        return true;
+    } catch (error) {
+        const name = error?.name || '';
+        if (!options.auto || (name !== 'NotAllowedError' && name !== 'AbortError')) {
+            const reason = error?.message || 'No se pudo completar el acceso biométrico.';
+            setBiometricMessage(reason, 'danger');
+        }
+        return false;
+    } finally {
+        hideGlobalLoader();
+        biometricPromptInFlight = false;
+        updateBiometricUi();
+    }
+}
+
+function setupBiometricEventHandlers() {
+    const biometricBtn = document.getElementById('biometric-login-button');
+    const removeBtn = document.getElementById('biometric-remove-button');
+    const rememberCbx = document.getElementById('remember-with-biometrics');
+
+    if (biometricBtn && !biometricBtn._wired) {
+        biometricBtn._wired = 1;
+        biometricBtn.addEventListener('click', async () => {
+            await promptBiometricLogin({ auto: false });
+        });
+    }
+
+    if (removeBtn && !removeBtn._wired) {
+        removeBtn._wired = 1;
+        removeBtn.addEventListener('click', () => {
+            removeBiometricRecord();
+            persistBiometricPreference({ rememberChecked: false });
+            setBiometricMessage('Acceso biométrico eliminado para este dispositivo.', 'warning');
+            updateBiometricUi();
+        });
+    }
+
+    if (rememberCbx && !rememberCbx._wired) {
+        rememberCbx._wired = 1;
+        rememberCbx.addEventListener('change', () => {
+            persistBiometricPreference({ rememberChecked: rememberCbx.checked });
+        });
+    }
+}
+
+async function initializeBiometricLogin() {
+    await detectBiometricSupport();
+    setupBiometricEventHandlers();
+    updateBiometricUi();
+
+    const record = getStoredBiometricRecord();
+    if (record && biometricSupportState.available) {
+        const pref = readBiometricPreference();
+        const shouldAuto = pref ? pref.rememberChecked === true : true;
+        // Retrasar ligeramente para evitar competir con otros loaders
+        setTimeout(() => {
+            promptBiometricLogin({ auto: shouldAuto });
+        }, 350);
+    } else if (!window.isSecureContext) {
+        setBiometricMessage('Inicia sesión desde https:// o http://localhost para habilitar Face ID / Huella.', 'warning');
+    }
+}
+
 
 async function initAuthHashes(){
     try {
@@ -1292,6 +1647,8 @@ function downloadCSV(name, content){
         a.href = url; a.download = name; document.body.appendChild(a); a.click();
         setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
     } catch(_) {}
+
+    updateBiometricUi();
 }
 function wireItineraryExports(){
     const btnP = document.getElementById('export-pax-full');
@@ -1995,6 +2352,7 @@ async function handleLogin(e) {
     errorDiv.textContent = '';
     loginButton.classList.add('loading');
     showGlobalLoader('Verificando credenciales...');
+    setBiometricMessage('');
 
     try{
         await ensureAuthHashes();
@@ -2007,9 +2365,10 @@ async function handleLogin(e) {
 
         const usernameInput = (document.getElementById('username').value || '').toString();
         const password = document.getElementById('password').value;
+    const rememberCheckbox = document.getElementById('remember-with-biometrics');
+    const rememberBiometric = !!(rememberCheckbox && rememberCheckbox.checked);
         const normalized = usernameInput.trim().toLowerCase();
         const matchedKey = Object.keys(dashboardData.users).find(k => (k || '').toString().trim().toLowerCase() === normalized);
-        const user = matchedKey ? dashboardData.users[matchedKey] : undefined;
 
         // Comparar hash de la contraseña ingresada contra el hash inicializado
         let passOk = false;
@@ -2027,16 +2386,21 @@ async function handleLogin(e) {
         }
 
         // Éxito: limpiar lockout y emitir token firmado
-        setLockInfo(0, 0);
-        const token = await makeToken(matchedKey);
-        sessionStorage.setItem(SESSION_USER, matchedKey);
-        sessionStorage.setItem(SESSION_TOKEN, token);
-        showMainApp();
+        await completeLoginForUser(matchedKey);
+        persistBiometricPreference({ rememberChecked: rememberBiometric });
+        if (rememberBiometric && biometricSupportState.available) {
+            try {
+                await registerBiometricCredentialForUser(matchedKey);
+            } catch (errBiometric) {
+                console.warn('Biometric enrollment failed:', errBiometric);
+            }
+        } else {
+            updateBiometricUi();
+        }
     } catch(err){
         const msg = (err && err.message) ? err.message : 'Error de autenticación';
         const errorDiv = document.getElementById('login-error');
         if (errorDiv) errorDiv.textContent = msg;
-        const loginButton = document.getElementById('login-button');
         if (loginButton) loginButton.classList.remove('loading');
     } finally {
         hideGlobalLoader();
@@ -9708,6 +10072,10 @@ function renderParteOperacionesSummary(data){
             } catch (err) {
                 console.warn('setupEventListeners failed:', err);
             }
+
+            initializeBiometricLogin().catch(err => {
+                console.warn('initializeBiometricLogin failed:', err);
+            });
 
             try {
                 animateLoginTitle();

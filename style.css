@@ -189,6 +189,40 @@ body.dark-mode {
 .login-form .form-floating > .form-control:focus {
    padding: 1.25rem 1rem 0.45rem;
 }
+.login-form #biometric-login-button {
+   min-height: 48px;
+   font-weight: 600;
+   letter-spacing: 0.3px;
+   transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.login-form #biometric-login-button:hover:not(:disabled) {
+   transform: translateY(-1px);
+   box-shadow: 0 10px 24px rgba(4, 22, 54, 0.28);
+}
+.login-form #biometric-login-button .fas {
+   font-size: 1.05rem;
+}
+.login-form .form-check-input {
+   background-color: rgba(255,255,255,0.05);
+   border-color: rgba(210,220,240,0.36);
+}
+.login-form .form-check-input:checked {
+   background-color: var(--primary-color);
+   border-color: var(--primary-color);
+}
+.login-form .form-check-label {
+   color: var(--login-label-color);
+   user-select: none;
+}
+#biometric-remove-button {
+   color: rgba(214,230,255,0.72) !important;
+}
+#biometric-remove-button:hover {
+   color: #fff !important;
+}
+#biometric-error {
+   min-height: 1.2rem;
+}
 .login-screen #login-error { min-height: 1.2rem; }
 @media (max-width: 768px) {
    .login-container {
