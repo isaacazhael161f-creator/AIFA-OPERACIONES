@@ -2229,6 +2229,7 @@ function updateAirlineQuickSummary(options = {}) {
 function renderItineraryAirlineDetail(config = {}) {
     const container = document.getElementById('itinerary-airline-detail');
     if (!container) return;
+    cleanupDynamicTableHeader('itinerary-detail');
     const airlineNameRaw = (config.airline || '').toString().trim();
     if (!airlineNameRaw || airlineNameRaw === 'all') {
         container.classList.add('d-none');
@@ -2360,6 +2361,7 @@ function renderItineraryAirlineDetail(config = {}) {
             applyFilters();
         });
     }
+    setupDynamicTableHeader(container.querySelector('table'), 'itinerary-detail');
 }
 function applyFilters() {
     const t0 = performance.now();
@@ -3497,10 +3499,181 @@ function displaySummaryTable(flights, options = {}) {
     updateSelectionLayout();
 }
 
+const dynamicTableHeaderRegistry = new Map();
+
+function cleanupDynamicTableHeader(key) {
+    if (!key) return;
+    const state = dynamicTableHeaderRegistry.get(key);
+    if (!state) return;
+    try { state.cleanup(); } catch (_) { /* ignore cleanup errors */ }
+    dynamicTableHeaderRegistry.delete(key);
+}
+
+function setupDynamicTableHeader(table, key) {
+    if (!key) return;
+    cleanupDynamicTableHeader(key);
+    if (!table || !table.tHead) return;
+    const state = createFloatingTableHeader(table, key);
+    if (state) {
+        dynamicTableHeaderRegistry.set(key, state);
+    }
+}
+
+function getDynamicTableHeaderOffset() {
+    let offset = 0;
+    try {
+        const rootStyles = getComputedStyle(document.documentElement);
+        const cssVar = parseFloat(rootStyles.getPropertyValue('--dynamic-table-header-offset'));
+        if (!Number.isNaN(cssVar)) {
+            offset = cssVar;
+        }
+    } catch (_) { /* ignore */ }
+    const headerEl = document.querySelector('.header');
+    if (headerEl) {
+        const headerStyles = getComputedStyle(headerEl);
+        if (headerStyles.position === 'fixed' || headerStyles.position === 'sticky') {
+            const headerRect = headerEl.getBoundingClientRect();
+            if (headerRect.height > 0) {
+                offset = Math.max(offset, headerRect.height);
+            }
+        }
+    }
+    return offset;
+}
+
+function createFloatingTableHeader(table, contextKey) {
+    const scrollHost = table.closest('.h-scroll-area') || table.closest('.table-responsive') || table.parentElement;
+    const overlay = document.createElement('div');
+    overlay.className = 'floating-table-header';
+    overlay.setAttribute('aria-hidden', 'true');
+    if (contextKey) {
+        overlay.dataset.headerContext = contextKey;
+        overlay.classList.add(`floating-table-header--${contextKey}`);
+    }
+
+    const overlayTable = document.createElement('table');
+    const tableClass = table.className ? `${table.className} floating-header-table`.trim() : 'floating-header-table';
+    overlayTable.className = tableClass;
+    overlayTable.appendChild(table.tHead.cloneNode(true));
+    overlay.appendChild(overlayTable);
+    overlayTable.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+
+    try {
+        const computed = getComputedStyle(table);
+        overlayTable.style.borderCollapse = computed.borderCollapse;
+        overlayTable.style.borderSpacing = computed.borderSpacing;
+        overlayTable.style.margin = '0';
+    } catch (_) { /* ignore */ }
+
+    overlay.style.left = '0px';
+    overlay.style.top = '0px';
+    overlay.style.width = '0px';
+    overlayTable.style.pointerEvents = 'none';
+    document.body.appendChild(overlay);
+
+    const state = {
+        table,
+        overlay,
+        overlayTable,
+        scrollHost,
+        headerHeight: 0,
+        destroyed: false
+    };
+
+    let syncScheduled = false;
+
+    const syncWidths = () => {
+        if (state.destroyed) return;
+        const head = table.tHead;
+        const cloneHead = overlayTable.tHead;
+        if (!head || !cloneHead) return;
+        const sourceCells = Array.from(head.querySelectorAll('th'));
+        const cloneCells = Array.from(cloneHead.querySelectorAll('th'));
+        if (!sourceCells.length || sourceCells.length !== cloneCells.length) return;
+        sourceCells.forEach((cell, index) => {
+            const width = cell.getBoundingClientRect().width;
+            cloneCells[index].style.width = `${width}px`;
+            cloneCells[index].style.minWidth = `${width}px`;
+            cloneCells[index].style.maxWidth = `${width}px`;
+        });
+        const tableRect = table.getBoundingClientRect();
+        if (tableRect.width > 0) {
+            overlayTable.style.width = `${tableRect.width}px`;
+        }
+        const headRect = head.getBoundingClientRect();
+        state.headerHeight = headRect.height || overlayTable.getBoundingClientRect().height || 0;
+    };
+
+    const updatePosition = () => {
+        if (state.destroyed) return;
+        const rect = table.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) {
+            overlay.classList.remove('is-visible');
+            return;
+        }
+        const offset = getDynamicTableHeaderOffset();
+        const headerHeight = state.headerHeight || (table.tHead ? table.tHead.getBoundingClientRect().height : 0);
+        const shouldShow = rect.top < offset && (rect.bottom - headerHeight) > offset;
+        if (!shouldShow) {
+            overlay.classList.remove('is-visible');
+            return;
+        }
+        overlay.classList.add('is-visible');
+        overlay.style.top = `${offset}px`;
+        overlay.style.left = `${Math.round(rect.left)}px`;
+        overlay.style.width = `${Math.round(rect.width)}px`;
+    };
+
+    const scheduleSync = () => {
+        if (syncScheduled) return;
+        syncScheduled = true;
+        requestAnimationFrame(() => {
+            syncScheduled = false;
+            syncWidths();
+            updatePosition();
+        });
+    };
+
+    const handleWindowScroll = () => updatePosition();
+    const handleWindowResize = () => scheduleSync();
+    const handleHostScroll = () => updatePosition();
+
+    window.addEventListener('scroll', handleWindowScroll, { passive: true });
+    window.addEventListener('resize', handleWindowResize);
+    if (scrollHost) {
+        scrollHost.addEventListener('scroll', handleHostScroll, { passive: true });
+    }
+
+    let resizeObserver = null;
+    if (typeof ResizeObserver === 'function') {
+        resizeObserver = new ResizeObserver(scheduleSync);
+        resizeObserver.observe(table);
+        if (table.parentElement) resizeObserver.observe(table.parentElement);
+    }
+
+    scheduleSync();
+
+    state.cleanup = () => {
+        if (state.destroyed) return;
+        state.destroyed = true;
+        window.removeEventListener('scroll', handleWindowScroll);
+        window.removeEventListener('resize', handleWindowResize);
+        if (scrollHost) scrollHost.removeEventListener('scroll', handleHostScroll);
+        if (resizeObserver) resizeObserver.disconnect();
+        overlay.remove();
+    };
+
+    state.update = updatePosition;
+    state.sync = scheduleSync;
+
+    return state;
+}
+
 function displayPassengerTable(flights) {
     const t0 = performance.now();
     const container = document.getElementById('passenger-itinerary-container');
     if (!container) return;
+    cleanupDynamicTableHeader('passenger-itinerary');
     if (flights.length === 0) { container.innerHTML = `<div class="alert alert-info bg-transparent text-body">No se encontraron vuelos de pasajeros.</div>`; return; }
     let tableHtml = `<table class="table table-hover"><thead><tr><th>Aerolínea</th><th>Aeronave</th><th>Vuelo Lleg.</th><th>Fecha Lleg.</th><th>Hora Lleg.</th><th class="col-origen">Origen</th><th>Banda</th><th>Posición</th><th>Vuelo Sal.</th><th>Fecha Sal.</th><th>Hora Sal.</th><th class="col-destino">Destino</th></tr></thead><tbody>`;
     flights.forEach((flight, index) => {
@@ -3569,6 +3742,7 @@ function displayCargoTable(flights) {
     const t0 = performance.now();
     const container = document.getElementById('cargo-itinerary-container');
     if (!container) return;
+    cleanupDynamicTableHeader('cargo-itinerary');
     if (flights.length === 0) { container.innerHTML = `<div class="alert alert-info bg-transparent text-body">No se encontraron vuelos de carga.</div>`; return; }
     let tableHtml = `<table class="table table-hover"><thead><tr><th>Aerolínea</th><th>Aeronave</th><th>Vuelo Lleg.</th><th>Fecha Lleg.</th><th>Hora Lleg.</th><th class="col-origen">Origen</th><th>Posición</th><th>Vuelo Sal.</th><th>Fecha Sal.</th><th>Hora Sal.</th><th class="col-destino">Destino</th></tr></thead><tbody>`;
     flights.forEach((flight, index) => {
@@ -3597,6 +3771,7 @@ function displayCargoTable(flights) {
     });
     tableHtml += `</tbody></table>`;
     container.innerHTML = `<div class="table-responsive vertical-scroll">${tableHtml}</div>`;
+    setupDynamicTableHeader(container.querySelector('table'), 'cargo-itinerary');
     console.log(`[perf] carga tabla: ${(performance.now()-t0).toFixed(1)}ms, filas=${flights.length}`);
     // After rendering, ensure the table can overflow horizontally on small screens.
     try {
