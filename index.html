@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;700&family=Roboto+Condensed:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <link rel="stylesheet" href="style.css">
-    <link rel="icon" type="image/jpeg" href="images/logo_aifa.jpg">
+    <link rel="icon" type="image/png" sizes="192x192" href="images/icons/aifa-app-icon-192.png">
     <link rel="manifest" href="manifest.webmanifest">
 </head>
 
@@ -2033,13 +2033,19 @@
                 </div>
                 <div class="modal-body">
                     <div id="install-app-support" class="alert alert-info small mb-3 d-none" role="status"></div>
-                    <p class="mb-3">Sigue estos pasos para agregar Operaciones AIFA a tu dispositivo y tener acceso directo desde la pantalla de inicio o el menú de aplicaciones.</p>
-                    <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
-                        <div class="app-icon-preview" role="img" aria-label="Icono de Operaciones AIFA">
-                            <img src="images/logo_aifa.jpg" alt="Icono de Operaciones AIFA" loading="lazy">
+                    <div class="install-welcome-card mb-4">
+                        <div class="install-icon-stack" role="figure" aria-label="Vista previa instalada de Operaciones AIFA">
+                            <span class="install-icon-glow" aria-hidden="true"></span>
+                            <img src="images/icons/aifa-app-icon-192.png" alt="Icono de Operaciones AIFA" class="install-icon-main" loading="lazy">
+                            <span class="install-icon-caption">Operaciones AIFA</span>
                         </div>
-                        <div class="small text-muted">Este modal muestra el archivo <code>images/logo_aifa.jpg</code>, que también se usa como icono de la app.</div>
+                        <div class="install-welcome-copy">
+                            <h2 class="install-welcome-title mb-2">Bienvenidos a AIFA Operaciones</h2>
+                            <p class="install-welcome-text mb-3">Instala la app para acceder al panel táctil con estadísticas en vivo, reportes y controles listos desde la pantalla de inicio de tu dispositivo.</p>
+                            <p class="install-welcome-meta small text-muted mb-0">Los íconos optimizados se generan automáticamente en <code>images/icons/aifa-app-icon-512.png</code> y <code>images/icons/aifa-app-icon-192.png</code>, listos para cualquier plataforma.</p>
+                        </div>
                     </div>
+                    <p class="mb-3">Sigue estos pasos para agregar Operaciones AIFA a tu dispositivo y tener acceso directo desde la pantalla de inicio o el menú de aplicaciones.</p>
                     <ul class="nav nav-pills mb-3" id="install-app-tabs" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="install-android-tab" data-bs-toggle="pill" data-bs-target="#install-android-pane" type="button" role="tab" aria-controls="install-android-pane" aria-selected="true"><i class="fab fa-android me-2"></i>Android (Chrome)</button>
