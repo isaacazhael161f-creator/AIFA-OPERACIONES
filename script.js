@@ -8,6 +8,18 @@ const SPANISH_MONTH_ABBRS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Se
 const SPANISH_WEEKDAY_NAMES = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 
 function normalizeDate(date) {
+    if (!(date instanceof Date)) return null;
+    const time = date.getTime();
+    if (Number.isNaN(time)) return null;
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+const APP_SIGNATURE_STORAGE_KEY = 'aifa.app.signature';
+const APP_UPDATE_CHECK_INTERVAL = 5 * 60 * 1000;
+let appUpdateCheckTimer = null;
+let appUpdateWatchersBound = false;
+let appReloadScheduled = false;
+
 function resolveDefaultInstallTabId() {
     try {
         const ua = (typeof navigator !== 'undefined' && navigator.userAgent ? navigator.userAgent : '').toLowerCase();
@@ -76,20 +88,145 @@ function showInstallInstructions(options = {}) {
 
 function registerServiceWorkerIfNeeded() {
     try {
-        if (!('serviceWorker' in navigator)) return;
-        if (typeof window !== 'undefined' && window.__NO_SW__) return;
-        if (location.protocol === 'file:') return;
-        navigator.serviceWorker.register('sw.js').catch((err) => {
+        if (!('serviceWorker' in navigator)) return null;
+        if (typeof window !== 'undefined' && window.__NO_SW__) return null;
+        if (location.protocol === 'file:') return null;
+        return navigator.serviceWorker.register('sw.js').catch((err) => {
             console.warn('Service worker registration failed:', err);
+            return null;
         });
     } catch (err) {
         console.warn('registerServiceWorkerIfNeeded failed:', err);
+        return null;
+    }
+}
+
+function scheduleAppReload(reason) {
+    if (appReloadScheduled) return;
+    appReloadScheduled = true;
+    try { console.info('Scheduling app reload:', reason); } catch (_) {}
+    try { showGlobalLoader('Actualizando Operaciones AIFA...'); } catch (_) {}
+    setTimeout(() => {
+        window.location.reload();
+    }, 400);
+}
+
+async function fetchAppSignature() {
+    const resources = ['script.js', 'manifest.webmanifest'];
+    for (const resource of resources) {
+        try {
+            const response = await fetch(`${resource}?ts=${Date.now()}`, { cache: 'no-store' });
+            if (!response || !response.ok) continue;
+            const signature = response.headers.get('etag') || response.headers.get('last-modified');
+            if (signature) return `${resource}:${signature}`;
+            const text = await response.text();
+            return `${resource}:${await sha256(text)}`;
+        } catch (err) {
+            console.warn('fetchAppSignature failed for', resource, err);
+        }
+    }
+    return null;
+}
+
+async function checkForAppUpdates(force = false) {
+    if (appReloadScheduled) return;
+    try {
+        const signature = await fetchAppSignature();
+        if (!signature) return;
+        const stored = (() => {
+            try { return localStorage.getItem(APP_SIGNATURE_STORAGE_KEY); } catch (_) { return null; }
+        })();
+        if (stored && stored !== signature) {
+            scheduleAppReload('asset-signature-change');
+            return;
+        }
+        if (!stored || force) {
+            try { localStorage.setItem(APP_SIGNATURE_STORAGE_KEY, signature); } catch (_) {}
+        } else {
+            try { localStorage.setItem(APP_SIGNATURE_STORAGE_KEY, signature); } catch (_) {}
+        }
+    } catch (err) {
+        console.warn('checkForAppUpdates failed:', err);
+    }
+}
+
+function startAppUpdatePolling() {
+    if (appUpdateCheckTimer) clearInterval(appUpdateCheckTimer);
+    checkForAppUpdates().catch(() => {});
+    appUpdateCheckTimer = setInterval(() => {
+        checkForAppUpdates().catch(() => {});
+    }, APP_UPDATE_CHECK_INTERVAL);
+    if (!appUpdateWatchersBound) {
+        appUpdateWatchersBound = true;
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                checkForAppUpdates().catch(() => {});
+            }
+        });
+        window.addEventListener('focus', () => {
+            checkForAppUpdates().catch(() => {});
+        });
+    }
+}
+
+function setupServiceWorkerLifecycle(registrationPromise) {
+    if (!('serviceWorker' in navigator)) return;
+
+    let controllerChangeSeen = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!controllerChangeSeen) {
+            controllerChangeSeen = true;
+            return;
+        }
+        scheduleAppReload('controller-change');
+    });
+
+    navigator.serviceWorker.addEventListener('message', (event) => {
+        if (!event || !event.data) return;
+        if (event.data.type === 'SW_ACTIVATED') {
+            checkForAppUpdates(true).catch(() => {});
+        }
+    });
+
+    const monitorRegistration = (registration) => {
+        if (!registration) return;
+        const requestSkipWaiting = (worker) => {
+            try {
+                if (worker && typeof worker.postMessage === 'function') {
+                    worker.postMessage({ type: 'SKIP_WAITING' });
+                }
+            } catch (_) {}
+        };
+        if (registration.waiting) {
+            requestSkipWaiting(registration.waiting);
+        }
+        registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    requestSkipWaiting(registration.waiting || newWorker);
+                }
+            });
+        });
+    };
+
+    if (registrationPromise && typeof registrationPromise.then === 'function') {
+        registrationPromise.then(monitorRegistration).catch((err) => {
+            console.warn('SW registration monitoring failed:', err);
+        });
+    } else if (navigator.serviceWorker.getRegistration) {
+        navigator.serviceWorker.getRegistration().then(monitorRegistration).catch((err) => {
+            console.warn('getRegistration failed:', err);
+        });
     }
 }
 
 function setupPwaInstallExperience() {
     try {
-        registerServiceWorkerIfNeeded();
+        const swRegistrationPromise = registerServiceWorkerIfNeeded();
+        setupServiceWorkerLifecycle(swRegistrationPromise);
+        startAppUpdatePolling();
 
         const installBtn = document.getElementById('install-app-btn');
         const modalInstallBtn = document.getElementById('install-app-modal-install-btn');
@@ -202,20 +339,17 @@ function setupPwaInstallExperience() {
             if (installAppModalInstance && typeof installAppModalInstance.hide === 'function') {
                 installAppModalInstance.hide();
             }
+            checkForAppUpdates(true).catch(() => {});
         });
 
         if (typeof window !== 'undefined') {
             window.showInstallInstructions = showInstallInstructions;
         }
+        return swRegistrationPromise;
     } catch (err) {
         console.warn('setupPwaInstallExperience failed:', err);
+        return null;
     }
-}
-
-    if (!(date instanceof Date)) return null;
-    const time = date.getTime();
-    if (Number.isNaN(time)) return null;
-    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
 function parseIsoDay(iso) {
@@ -2459,6 +2593,18 @@ async function handleLogin(e) {
         hideGlobalLoader();
     }
 }
+
+function resetLoginFormState() {
+    try {
+        const form = document.getElementById('login-form');
+        if (form && typeof form.reset === 'function') form.reset();
+    } catch (_) {}
+    const loginButton = document.getElementById('login-button');
+    if (loginButton) loginButton.classList.remove('loading');
+    const errorDiv = document.getElementById('login-error');
+    if (errorDiv) errorDiv.textContent = '';
+}
+
 function updateClock() {
     const clockElement = document.getElementById('formal-clock');
     if (clockElement) {
@@ -4365,6 +4511,18 @@ function handleNavigation(e) {
 
 // Logout centralizado
 function performLogout(){
+    hideGlobalLoader();
+    resetLoginFormState();
+    try { destroyOpsCharts(); } catch(_){ }
+    try {
+        if (typeof window.destroyItinerarioCharts === 'function') {
+            window.destroyItinerarioCharts();
+        }
+    } catch (_) {}
+    try { window._itineraryChartsOk = false; } catch (_) {}
+    try { window._delaysPieDrawn = false; } catch (_) {}
+    checkForAppUpdates(true).catch(() => {});
+    startAppUpdatePolling();
     try { sessionStorage.removeItem('currentUser'); } catch(_) {}
     try { sessionStorage.removeItem('aifa.user'); } catch(_) {}
     const mainApp = document.getElementById('main-app');
@@ -4379,6 +4537,15 @@ function performLogout(){
         if (sidebar) sidebar.classList.remove('visible');
         if (overlay) overlay.classList.remove('active');
     } catch(_) {}
+    try {
+        document.body.classList.remove('sidebar-open');
+        document.body.classList.remove('sidebar-collapsed');
+    } catch (_) {}
+    try {
+        currentSectionKey = 'operaciones-totales';
+        orientationHintMuteUntil = 0;
+        refreshOrientationHint(currentSectionKey);
+    } catch (_) {}
 }
 
 let gsoNavVisibilityController = null;
@@ -7895,6 +8062,7 @@ function showMainApp() {
             if (login) login.classList.remove('hidden');
             return;
         }
+        checkForAppUpdates().catch(() => {});
         const mainWasHidden = main ? main.classList.contains('hidden') : false;
         if (login) login.classList.add('hidden');
         if (main) main.classList.remove('hidden');

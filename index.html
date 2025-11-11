@@ -757,23 +757,70 @@
                             <h2 class="mb-0" id="demoras-title">Análisis de Demoras</h2>
                         </div>
                         <div class="card-body">
-                            <div class="mb-4">
-                                <h3 class="h5 text-center mb-3">Demoras en vuelos de salida</h3>
-                                <div class="table-responsive">
-                                    <table class="table table-bordered table-sm align-middle text-center">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th>Causa</th>
-                                                <th>Demoras</th>
-                                                <th>Porcentaje</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="demoras-tbody"></tbody>
-                                        <tfoot id="demoras-tfoot"></tfoot>
-                                    </table>
+                            <div class="demoras-interactive-hint" id="demoras-interactive-hint" role="note">
+                                <div class="hint-icon" aria-hidden="true"><i class="fas fa-compass"></i></div>
+                                <div>
+                                    <strong class="d-block">Explora las causas</strong>
+                                    <span class="small">Selecciona una fila o una porción de la gráfica para ver motivos, incidentes y observaciones.</span>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-light demoras-hint-cta ms-auto" id="demoras-hint-cta">
+                                    <i class="fas fa-hand-pointer me-1" aria-hidden="true"></i>Recorrer ahora
+                                </button>
+                            </div>
+                            <div class="row g-4 align-items-start">
+                                <div class="col-12 col-xl-6">
+                                    <div class="mb-4">
+                                        <h3 class="h5 text-center mb-3">Demoras en vuelos de salida</h3>
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered table-sm align-middle text-center">
+                                                <thead class="table-dark">
+                                                    <tr>
+                                                        <th>Causa</th>
+                                                        <th>Demoras</th>
+                                                        <th>Porcentaje</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="demoras-tbody"></tbody>
+                                                <tfoot id="demoras-tfoot"></tfoot>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="demoras-detail card border-0 shadow-sm" id="demoras-detail-card">
+                                        <div class="card-body">
+                                            <div class="demoras-detail-header">
+                                                <div class="demoras-detail-icon" id="demoras-detail-icon" aria-hidden="true">
+                                                    <i class="fas fa-chart-pie"></i>
+                                                </div>
+                                                <div class="demoras-detail-titles">
+                                                    <span class="demoras-detail-badge">Detalle interactivo</span>
+                                                    <h3 class="demoras-detail-title" id="demoras-detail-title">Selecciona una causa</h3>
+                                                    <p class="demoras-detail-description text-muted" id="demoras-detail-description">Haz clic en la tabla o en la gráfica para ver el motivo y observaciones.</p>
+                                                </div>
+                                                <div class="demoras-detail-metric" id="demoras-detail-metric" aria-live="polite">--</div>
+                                            </div>
+                                            <div class="demoras-detail-tags d-none" id="demoras-detail-tags" aria-live="polite"></div>
+                                            <div class="demoras-incidentes demoras-detail-section d-none" id="demoras-detail-incidentes">
+                                                <h4 class="demoras-detail-section-title">Casos registrados</h4>
+                                                <ul class="demoras-timeline" id="demoras-detail-incidentes-list"></ul>
+                                            </div>
+                                            <div class="demoras-observaciones demoras-detail-section d-none" id="demoras-detail-observaciones">
+                                                <h4 class="demoras-detail-section-title">Observaciones</h4>
+                                                <p class="demoras-detail-observacion" id="demoras-detail-observaciones-text"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-xl-6">
+                                    <div class="demoras-chart-wrapper position-relative" id="demoras-chart-wrapper">
+                                        <div class="demoras-chart-hint" id="demoras-chart-hint">
+                                            <i class="fas fa-chart-pie me-2" aria-hidden="true"></i>
+                                            <span>Interactúa con la gráfica</span>
+                                        </div>
+                                        <div class="chart-container"><canvas id="delaysPieChart"></canvas></div>
+                                        <div class="demoras-chart-legend" id="demoras-chart-legend" aria-live="polite"></div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="chart-container" style="height: 380px;"><canvas id="delaysPieChart"></canvas></div>
                         </div>
                     </div>
                 </div>
