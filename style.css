@@ -1722,9 +1722,40 @@ body.dark-mode .demoras-chart-hint {
 }
 /* En escritorio no forzamos ancho extra; solo en móvil (ver más abajo) */
 
+#pasajeros-grafica-pane.show,
+#pasajeros-grafica-pane.active,
+#carga-grafica-pane.show,
+#carga-grafica-pane.active {
+   display: flex;
+   flex-direction: column;
+   gap: 1.75rem;
+}
+
+.itinerary-pane-block {
+   width: 100%;
+}
+
+@media (max-width: 768px) {
+   .itinerary-top-block {
+      order: -1;
+   }
+   .itinerary-charts-scroll {
+      touch-action: auto;
+      -ms-touch-action: auto;
+   }
+   .h-scroll-area {
+      touch-action: auto;
+      -ms-touch-action: auto;
+   }
+   .chart-container.chart-scrollable {
+      touch-action: auto;
+      -ms-touch-action: auto;
+   }
+}
+
 /* Gráficas Itinerario Diario: en móviles, poner ambas en una fila horizontal scrolleable */
 @media (max-width: 576px) {
-   .itinerary-charts-scroll { overflow: visible; white-space: normal; }
+   .itinerary-charts-scroll { overflow: visible; white-space: normal; touch-action: auto; }
    .itinerary-charts-scroll > .row { min-width: 100%; display: block; white-space: normal; }
    .chart-row-mobile-scroll {
       display: grid;
