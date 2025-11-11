@@ -131,6 +131,9 @@ const LANDSCAPE_HINT_MESSAGES = {
 
 let currentSectionKey = 'operaciones-totales';
 let orientationHintMuteUntil = 0;
+let orientationQuickToggleEl = null;
+
+const ORIENTATION_LOCK_ERROR_MESSAGE = 'No fue posible forzar la orientación. Activa la rotación automática de tu dispositivo.';
 
 function isLikelyPhoneViewport() {
     try {
@@ -165,6 +168,71 @@ function hideOrientationHint() {
     hint.setAttribute('aria-hidden', 'true');
 }
 
+async function attemptOrientationLock() {
+    if (!('orientation' in screen) || typeof screen.orientation.lock !== 'function') {
+        throw new Error('unsupported');
+    }
+    const alreadyLandscape = !isPortraitViewport();
+    let fullscreenRequested = false;
+    let lockSucceeded = false;
+    let lastError = null;
+    const rootEl = document.documentElement || document.body;
+    if (!document.fullscreenElement && rootEl && rootEl.requestFullscreen) {
+        try {
+            await rootEl.requestFullscreen({ navigationUI: 'hide' });
+            fullscreenRequested = true;
+        } catch (_) {
+            /* ignore fullscreen failures */
+        }
+    }
+    try {
+        await screen.orientation.lock('landscape');
+        lockSucceeded = true;
+    } catch (err) {
+        lastError = err;
+        if (err && (err.name === 'NotSupportedError' || err.name === 'NotAllowedError')) {
+            try {
+                await screen.orientation.lock('landscape-primary');
+                lockSucceeded = true;
+                lastError = null;
+            } catch (secondaryErr) {
+                lastError = secondaryErr;
+            }
+        }
+    }
+    const exitFullscreenIfNeeded = () => {
+        if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+        }
+    };
+    if (fullscreenRequested && document.exitFullscreen) {
+        if (lockSucceeded && !alreadyLandscape) {
+            setTimeout(exitFullscreenIfNeeded, 600);
+        } else {
+            exitFullscreenIfNeeded();
+        }
+    }
+    if (!lockSucceeded) {
+        throw (lastError || new Error('orientation lock failed'));
+    }
+}
+
+async function handleOrientationQuickToggleClick(event) {
+    event.preventDefault();
+    try {
+        await attemptOrientationLock();
+        orientationHintMuteUntil = Date.now() + 300000;
+        hideOrientationHint();
+        setTimeout(() => refreshOrientationHint(currentSectionKey), 700);
+    } catch (err) {
+        orientationHintMuteUntil = 0;
+        const message = (err && err.message === 'unsupported')
+            ? 'Tu navegador no permite ajustar la orientación automáticamente. Activa la rotación manualmente.'
+            : ORIENTATION_LOCK_ERROR_MESSAGE;
+        window.alert(message);
+    }
+}
+
 function refreshOrientationHint(sectionKey) {
     const hint = document.getElementById('orientation-hint');
     if (!hint) return;
@@ -176,6 +244,15 @@ function refreshOrientationHint(sectionKey) {
     }
     const now = Date.now();
     const requiresLandscape = LANDSCAPE_HINT_SECTIONS.has(effectiveSection);
+    const quickToggle = orientationQuickToggleEl || document.getElementById('orientation-quick-toggle');
+    if (quickToggle) {
+        orientationQuickToggleEl = quickToggle;
+        const showButton = requiresLandscape && isLikelyPhoneViewport();
+        quickToggle.classList.toggle('visible', showButton);
+        quickToggle.setAttribute('aria-hidden', showButton ? 'false' : 'true');
+        quickToggle.disabled = !showButton;
+        quickToggle.tabIndex = showButton ? 0 : -1;
+    }
     const shouldShow = requiresLandscape && isLikelyPhoneViewport() && isPortraitViewport() && now >= orientationHintMuteUntil;
     if (!shouldShow) {
         if (!isPortraitViewport()) {
@@ -212,6 +289,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     hideOrientationHint();
                 }
             });
+        }
+        const quickToggle = document.getElementById('orientation-quick-toggle');
+        if (quickToggle && !quickToggle._wired) {
+            quickToggle._wired = 1;
+            orientationQuickToggleEl = quickToggle;
+            quickToggle.disabled = true;
+            quickToggle.tabIndex = -1;
+            quickToggle.setAttribute('aria-hidden', 'true');
+            quickToggle.addEventListener('click', handleOrientationQuickToggleClick);
         }
         refreshOrientationHint(currentSectionKey);
     } catch (_) { /* ignore wiring issues */ }

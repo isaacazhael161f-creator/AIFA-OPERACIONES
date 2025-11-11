@@ -1061,6 +1061,15 @@ body.dark-mode .orientation-hint-card { background: rgba(13,25,48,0.94); border-
 body.dark-mode .orientation-hint-icon { color: #93c5fd; }
 body.dark-mode .orientation-hint-message { color: #cbd5f5; }
 
+.orientation-quick-toggle { position: fixed; bottom: 18px; left: 18px; display: none; align-items: center; gap: 0.45rem; padding: 0.6rem 0.9rem; border: none; border-radius: 999px; background: rgba(10,31,68,0.9); color: #f8fafc; font-size: 0.9rem; font-weight: 600; box-shadow: 0 16px 32px rgba(15,23,42,0.35); z-index: 2001; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.orientation-quick-toggle.visible { display: inline-flex; }
+.orientation-quick-toggle:active { transform: scale(0.96); }
+.orientation-quick-toggle i { font-size: 1.1rem; }
+body.dark-mode .orientation-quick-toggle { background: rgba(15,23,42,0.92); color: #f1f5f9; box-shadow: 0 16px 32px rgba(0,0,0,0.45); }
+@media (min-width: 768px) {
+   .orientation-quick-toggle { display: none !important; }
+}
+
 /* ==========================================================================
    Animaciones Generales
    ========================================================================== */
