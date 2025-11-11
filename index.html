@@ -696,16 +696,7 @@
                             </a>
                         </div>
                         <div class="card-body">
-                            <ul class="nav nav-tabs" id="medicasTab" role="tablist">
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="medicas-analytics-tab" data-bs-toggle="tab" data-bs-target="#medicas-analytics-pane" type="button" role="tab" aria-controls="medicas-analytics-pane" aria-selected="true" data-section="medicas"><i class="fas fa-heartbeat me-1"></i>Atenciones Médicas</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="medicas-doc-tab" data-bs-toggle="tab" data-bs-target="#medicas-doc-pane" type="button" role="tab" aria-controls="medicas-doc-pane" aria-selected="false"><i class="fas fa-file-medical me-1"></i>Documento colaborativo</button>
-                                </li>
-                            </ul>
-                            <div class="tab-content pt-3" id="medicasTabContent">
-                                <div class="tab-pane fade show active" id="medicas-analytics-pane" role="tabpanel" aria-labelledby="medicas-analytics-tab" tabindex="0">
+                            <div id="medicas-analytics-pane" class="medicas-analytics-pane" tabindex="0">
                                     <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
                                         <span class="badge bg-success-subtle text-success fw-semibold" id="medicas-top-badge">Top mes: -</span>
                                         <div class="d-flex flex-wrap align-items-center gap-3 ms-auto">
@@ -734,19 +725,6 @@
                                     </div>
                                     <p class="small text-muted mt-3 mb-0">Fuente: Servicio Médico AIFA. Datos históricos 2022, clasificados por tipo de atención.</p>
                                 </div>
-                                <div class="tab-pane fade" id="medicas-doc-pane" role="tabpanel" aria-labelledby="medicas-doc-tab" tabindex="0">
-                                    <p class="small text-muted mb-3">Comparte el documento con “Cualquiera con el enlace puede editar” y pega el vínculo público en <code>data-doc-url</code> para que todos lo vean aquí.</p>
-                                    <div id="servicio-medico-embed" class="doc-embed-wrapper" data-doc-url="https://docs.google.com/spreadsheets/d/1-hD3d3GaggG_HvxBCAsQuijjTtj2_RYkJiRDQxYaYng/edit?usp=sharing">
-                                        <div class="doc-embed-placeholder">
-                                            <i class="fas fa-file-circle-plus me-2"></i>
-                                            <span>Coloca el enlace de Google Docs o Google Sheets en el atributo <code>data-doc-url</code> para cargar el documento.</span>
-                                        </div>
-                                        <div class="ratio ratio-4x3 doc-embed-frame d-none">
-                                            <iframe title="Servicio Médico - Documento colaborativo" class="doc-iframe d-none" allow="clipboard-write"></iframe>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>

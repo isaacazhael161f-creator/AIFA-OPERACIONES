@@ -1426,10 +1426,60 @@ function transformAviationAnalyticsSource(source = {}) {
     return result;
 }
 
+function applyAviationAnalyticsCutoff(dataset, targetYear, lastClosedMonthIndex) {
+    if (!dataset || !dataset.metrics || typeof lastClosedMonthIndex !== 'number') return;
+    const months = Array.isArray(dataset.months) ? dataset.months : [];
+    if (!months.length) return;
+    const cutoff = Math.max(0, Math.min(lastClosedMonthIndex, months.length - 1));
+    const monthsToNull = months.slice(cutoff + 1);
+    dataset.metrics.forEach((metric) => {
+        const metricData = dataset[metric];
+        if (!metricData || !metricData.years) return;
+        const yearData = metricData.years[targetYear];
+        if (!yearData || !yearData.months) return;
+        monthsToNull.forEach((monthKey) => {
+            yearData.months[monthKey] = null;
+        });
+    });
+    recomputeAviationMetricTotals(dataset);
+}
+
+function recomputeAviationMetricTotals(dataset) {
+    if (!dataset || !dataset.metrics) return;
+    dataset.metrics.forEach((metric) => {
+        const metricData = dataset[metric];
+        if (!metricData || !metricData.years) return;
+        let acumulado = 0;
+        Object.values(metricData.years).forEach((yearData) => {
+            if (!yearData || !yearData.months) return;
+            let total = 0;
+            Object.values(yearData.months).forEach((value) => {
+                if (isFiniteNumber(value)) total += value;
+            });
+            yearData.total = total;
+            if (isFiniteNumber(total)) acumulado += total;
+        });
+        metricData.acumulado = acumulado;
+    });
+}
+
 const AVIATION_ANALYTICS_DATA = {
     comercial: transformAviationAnalyticsSource(RAW_AVIATION_ANALYTICS_DATA.comercial),
     general: transformAviationAnalyticsSource(RAW_AVIATION_ANALYTICS_DATA.general),
     carga: transformAviationAnalyticsSource(RAW_AVIATION_ANALYTICS_DATA.carga)
+};
+
+const AVIATION_ANALYTICS_CUTOFF_YEAR = '2025';
+const AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX = 9; // octubre
+
+Object.keys(AVIATION_ANALYTICS_DATA).forEach((key) => {
+    applyAviationAnalyticsCutoff(AVIATION_ANALYTICS_DATA[key], AVIATION_ANALYTICS_CUTOFF_YEAR, AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX);
+});
+
+const AVIATION_ANALYTICS_SCOPE_LABELS = {
+    comercial: 'aviación comercial',
+    general: 'aviación general',
+    carga: 'aviación de carga'
 };
 
 const AVIATION_ANALYTICS_METRIC_META = {
@@ -8569,10 +8619,15 @@ function renderAviationAnalyticsChart(moduleKey, canvas, { view, metricMeta, ann
     }
 }
 
-function renderAviationAnalyticsInsights(container, { view, metricMeta, metricKey, annualRows, monthlyRows, year, comparisonYear, metricData }) {
+function renderAviationAnalyticsInsights(container, { view, metricMeta, metricKey, annualRows, monthlyRows, year, comparisonYear, metricData, moduleKey }) {
     if (!container) return;
     const insights = [];
-    const metricLabelLower = (metricMeta?.label || 'indicador').toLowerCase();
+    const metricLabel = metricMeta?.label || 'Indicador';
+    const metricLabelLower = metricLabel.toLowerCase();
+    const scopeLabel = moduleKey && AVIATION_ANALYTICS_SCOPE_LABELS[moduleKey]
+        ? AVIATION_ANALYTICS_SCOPE_LABELS[moduleKey]
+        : 'aviación';
+    const subject = `${metricLabelLower} de ${scopeLabel}`;
 
     if (view === 'anual') {
         const latestRow = annualRows[annualRows.length - 1];
@@ -8583,9 +8638,9 @@ function renderAviationAnalyticsInsights(container, { view, metricMeta, metricKe
                 const direction = delta.abs > 0 ? 'creció' : 'disminuyó';
                 const amount = formatMetricValue(Math.abs(delta.abs), metricMeta);
                 const pctText = isFiniteNumber(delta.pct) ? ` (${Math.abs(delta.pct).toFixed(1)}%)` : '';
-                insights.push(`El total de ${metricLabelLower} en ${latestRow.year} ${direction} ${amount}${pctText} frente a ${prevRow.year}.`);
+                insights.push(`El total de ${subject} en ${latestRow.year} ${direction} ${amount}${pctText} frente a ${prevRow.year}.`);
             } else {
-                insights.push(`El total de ${metricLabelLower} en ${latestRow.year} se mantuvo estable respecto a ${prevRow.year}.`);
+                insights.push(`El total de ${subject} en ${latestRow.year} se mantuvo estable respecto a ${prevRow.year}.`);
             }
         }
         let bestRow = null;
@@ -8599,13 +8654,13 @@ function renderAviationAnalyticsInsights(container, { view, metricMeta, metricKe
             if (diff && isFiniteNumber(diff.abs) && diff.abs !== 0) {
                 const amount = formatMetricValue(Math.abs(diff.abs), metricMeta);
                 const pctText = isFiniteNumber(diff.pct) ? ` (${Math.abs(diff.pct).toFixed(1)}%)` : '';
-                insights.push(`${bestRow.year} fue el año con mayor registro, superando a ${worstRow.year} en ${amount}${pctText}.`);
+                insights.push(`El año ${bestRow.year} registró el mayor volumen de ${subject}, superando a ${worstRow.year} en ${amount}${pctText}.`);
             }
         }
         const acumulado = Number(metricData?.acumulado || 0);
         if (acumulado && annualRows.length) {
             const avgAnnual = acumulado / annualRows.length;
-            insights.push(`El promedio anual registrado es ${formatMetricValue(avgAnnual, metricMeta)} ${metricLabelLower}.`);
+            insights.push(`El promedio anual registrado de ${subject} es ${formatMetricValue(avgAnnual, metricMeta)} ${metricLabelLower}.`);
         }
     } else {
         const baseTotal = monthlyRows.reduce((sum, row) => sum + (isFiniteNumber(row.value) ? row.value : 0), 0);
@@ -8616,27 +8671,37 @@ function renderAviationAnalyticsInsights(container, { view, metricMeta, metricKe
                 const direction = delta.abs >= 0 ? 'incremento' : 'reducción';
                 const amount = formatMetricValue(Math.abs(delta.abs), metricMeta);
                 const pctText = isFiniteNumber(delta.pct) ? ` (${Math.abs(delta.pct).toFixed(1)}%)` : '';
-                insights.push(`El acumulado de ${year} mostró un ${direction} de ${amount}${pctText} frente a ${comparisonYear}.`);
+                insights.push(`El acumulado de ${subject} en ${year} mostró un ${direction} de ${amount}${pctText} frente a ${comparisonYear}.`);
             }
         } else if (isFiniteNumber(baseTotal)) {
-            insights.push(`El acumulado de ${year} suma ${formatMetricValue(baseTotal, metricMeta)} ${metricLabelLower}.`);
+            insights.push(`El acumulado de ${subject} en ${year} suma ${formatMetricValue(baseTotal, metricMeta)} ${metricLabelLower}.`);
         }
         const bestMonth = monthlyRows.reduce((acc, row) => {
             if (isFiniteNumber(row.value) && (!acc || row.value > acc.value)) return row;
             return acc;
         }, null);
         if (bestMonth) {
-            let detail = '';
+            const baseText = `${formatMetricValue(bestMonth.value, metricMeta)} ${metricLabelLower}`;
+            const detailParts = [];
             if (comparisonYear && bestMonth.deltaCompare && isFiniteNumber(bestMonth.deltaCompare.abs) && bestMonth.deltaCompare.abs !== 0) {
                 const amount = formatMetricValue(Math.abs(bestMonth.deltaCompare.abs), metricMeta);
                 const pctText = isFiniteNumber(bestMonth.deltaCompare.pct) ? ` (${Math.abs(bestMonth.deltaCompare.pct).toFixed(1)}%)` : '';
-                detail = bestMonth.deltaCompare.abs > 0 ? `, superando a ${comparisonYear} en ${amount}${pctText}` : `, quedando por debajo de ${comparisonYear} en ${amount}${pctText}`;
+                detailParts.push(bestMonth.deltaCompare.abs > 0
+                    ? `superó el dato homólogo de ${comparisonYear} en ${amount}${pctText} ${metricLabelLower}`
+                    : `quedó por debajo del dato homólogo de ${comparisonYear} en ${amount}${pctText} ${metricLabelLower}`);
             } else if (bestMonth.deltaPrev && isFiniteNumber(bestMonth.deltaPrev.abs) && bestMonth.deltaPrev.abs !== 0) {
                 const amount = formatMetricValue(Math.abs(bestMonth.deltaPrev.abs), metricMeta);
                 const pctText = isFiniteNumber(bestMonth.deltaPrev.pct) ? ` (${Math.abs(bestMonth.deltaPrev.pct).toFixed(1)}%)` : '';
-                detail = bestMonth.deltaPrev.abs > 0 ? `, un alza de ${amount}${pctText} respecto al mes previo` : `, un descenso de ${amount}${pctText} respecto al mes previo`;
+                detailParts.push(bestMonth.deltaPrev.abs > 0
+                    ? `representó un aumento de ${amount}${pctText} ${metricLabelLower} frente al mes previo`
+                    : `registró una disminución de ${amount}${pctText} ${metricLabelLower} frente al mes previo`);
             }
-            insights.push(`El mes con mayor actividad fue ${bestMonth.label} con ${formatMetricValue(bestMonth.value, metricMeta)} ${metricLabelLower}${detail}.`);
+            const formattedDetailParts = detailParts.map((text) => {
+                if (!text) return '';
+                return text.charAt(0).toUpperCase() + text.slice(1);
+            }).filter(Boolean);
+            const detailText = formattedDetailParts.length ? ` ${formattedDetailParts.join('. ')}.` : '';
+            insights.push(`El mes con mayor actividad de ${subject} fue ${bestMonth.label} con ${baseText}.${detailText}`);
         }
         const dropMonth = monthlyRows.reduce((acc, row, index) => {
             if (row.deltaPrev && isFiniteNumber(row.deltaPrev.abs) && row.deltaPrev.abs < 0) {
@@ -8650,7 +8715,7 @@ function renderAviationAnalyticsInsights(container, { view, metricMeta, metricKe
             const prevLabel = dropMonth.index > 0 ? monthlyRows[dropMonth.index - 1].label : 'el mes previo';
             const amount = formatMetricValue(Math.abs(dropMonth.deltaPrev.abs), metricMeta);
             const pctText = isFiniteNumber(dropMonth.deltaPrev.pct) ? ` (${Math.abs(dropMonth.deltaPrev.pct).toFixed(1)}%)` : '';
-            insights.push(`La mayor caída mensual ocurrió en ${dropMonth.label}, disminuyendo ${amount}${pctText} respecto a ${prevLabel}.`);
+            insights.push(`La mayor caída mensual de ${subject} ocurrió en ${dropMonth.label}, con una disminución de ${amount}${pctText} ${metricLabelLower} respecto a ${prevLabel}.`);
         }
     }
 
@@ -8777,13 +8842,25 @@ function renderAviationAnalyticsModule(moduleKey, forceResize = false) {
             if (elements.comparisonSelect) elements.comparisonSelect.value = 'none';
         }
         const annualRows = buildAnnualRows(metricData, availableYears);
-        const monthlyRows = view === 'mensual' && state.year ? buildMonthlyRows(metricData, state.year, comparisonYear, dataset.months, dataset.monthLabels) : [];
+        const useClosedMonths = view === 'mensual' && (
+            state.year === AVIATION_ANALYTICS_CUTOFF_YEAR ||
+            comparisonYear === AVIATION_ANALYTICS_CUTOFF_YEAR
+        );
+        const monthsForRows = useClosedMonths
+            ? dataset.months.slice(0, AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX + 1)
+            : dataset.months;
+        const monthLabelsForRows = useClosedMonths
+            ? dataset.monthLabels.slice(0, AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX + 1)
+            : dataset.monthLabels;
+        const monthlyRows = view === 'mensual' && state.year
+            ? buildMonthlyRows(metricData, state.year, comparisonYear, monthsForRows, monthLabelsForRows)
+            : [];
         const metricMeta = AVIATION_ANALYTICS_METRIC_META[metricKey] || { label: 'Indicador', color: '#1e88e5' };
 
         renderAviationAnalyticsSummary(elements.summaryCards, { view, metricMeta, annualRows, monthlyRows, year: state.year, comparisonYear, metricData });
         renderAviationAnalyticsTable(elements.table, { view, metricMeta, annualRows, monthlyRows, year: state.year, comparisonYear });
         renderAviationAnalyticsChart(moduleKey, elements.chartCanvas, { view, metricMeta, annualRows, monthlyRows, year: state.year, comparisonYear }, forceResize);
-        renderAviationAnalyticsInsights(elements.insights, { view, metricMeta, metricKey, annualRows, monthlyRows, year: state.year, comparisonYear, metricData });
+        renderAviationAnalyticsInsights(elements.insights, { view, metricMeta, metricKey, annualRows, monthlyRows, year: state.year, comparisonYear, metricData, moduleKey });
         renderAviationAnalyticsLabels(elements.labels, { view, metricMeta, year: state.year, comparisonYear, availableYears, state });
 
         if (elements.yearGroup) elements.yearGroup.classList.toggle('d-none', view !== 'mensual');
