@@ -189,40 +189,6 @@ body.dark-mode {
 .login-form .form-floating > .form-control:focus {
    padding: 1.25rem 1rem 0.45rem;
 }
-.login-form #biometric-login-button {
-   min-height: 48px;
-   font-weight: 600;
-   letter-spacing: 0.3px;
-   transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.login-form #biometric-login-button:hover:not(:disabled) {
-   transform: translateY(-1px);
-   box-shadow: 0 10px 24px rgba(4, 22, 54, 0.28);
-}
-.login-form #biometric-login-button .fas {
-   font-size: 1.05rem;
-}
-.login-form .form-check-input {
-   background-color: rgba(255,255,255,0.05);
-   border-color: rgba(210,220,240,0.36);
-}
-.login-form .form-check-input:checked {
-   background-color: var(--primary-color);
-   border-color: var(--primary-color);
-}
-.login-form .form-check-label {
-   color: var(--login-label-color);
-   user-select: none;
-}
-#biometric-remove-button {
-   color: rgba(214,230,255,0.72) !important;
-}
-#biometric-remove-button:hover {
-   color: #fff !important;
-}
-#biometric-error {
-   min-height: 1.2rem;
-}
 .login-screen #login-error { min-height: 1.2rem; }
 @media (max-width: 768px) {
    .login-container {
@@ -1066,7 +1032,7 @@ body.dark-mode .floating-table-header--itinerary-detail .floating-header-table t
    Barra Lateral Plegable
    ========================================================================== */
 .app-body { position: relative; }
-.sidebar { position: fixed; left: 0; top: 0; bottom: 0; transform: translateX(0); transition: transform 0.3s ease; }
+.sidebar { position: fixed; left: 0; top: 0; bottom: 0; transform: translateX(0); transition: transform 0.3s ease; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; }
 .main-content { margin-left: var(--sidebar-width); transition: margin-left 0.3s ease, width 0.3s ease; width: calc(100% - var(--sidebar-width)); }
 .sidebar-toggler-btn { color: var(--text-color); border: none; font-size: 1.2rem; }
 body.sidebar-collapsed .sidebar { transform: translateX(calc(-1 * var(--sidebar-width))); }
@@ -1081,6 +1047,19 @@ body.sidebar-open { overflow: hidden; }
    .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); opacity: 0; visibility: hidden; transition: opacity .2s ease, visibility .2s ease; z-index: 1040; cursor: pointer; pointer-events: none; }
    .sidebar-overlay.active { opacity: 1; visibility: visible; pointer-events: auto; }
 }
+
+/* Orientation hint overlay for phone users that need landscape */
+#orientation-hint { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1.5rem; background: rgba(6,17,40,0.86); backdrop-filter: blur(4px); z-index: 2000; opacity: 0; visibility: hidden; transition: opacity 0.25s ease; }
+#orientation-hint.visible { opacity: 1; visibility: visible; }
+.orientation-hint-card { width: min(440px, 100%); text-align: center; background: rgba(10,26,58,0.92); border-radius: 18px; padding: 1.8rem 1.4rem; box-shadow: 0 20px 48px rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.14); color: #f1f5f9; }
+.orientation-hint-icon { font-size: 2.4rem; margin-bottom: 1rem; color: #60a5fa; }
+.orientation-hint-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem; }
+.orientation-hint-message { font-size: 0.98rem; margin-bottom: 1.4rem; color: #e2e8f0; }
+.orientation-hint-dismiss { min-width: 120px; }
+body.dark-mode #orientation-hint { background: rgba(4,13,30,0.88); }
+body.dark-mode .orientation-hint-card { background: rgba(13,25,48,0.94); border-color: rgba(148,163,184,0.28); color: #e2e8f0; }
+body.dark-mode .orientation-hint-icon { color: #93c5fd; }
+body.dark-mode .orientation-hint-message { color: #cbd5f5; }
 
 /* ==========================================================================
    Animaciones Generales
