@@ -137,6 +137,7 @@ async function checkForAppUpdates(force = false) {
             try { return localStorage.getItem(APP_SIGNATURE_STORAGE_KEY); } catch (_) { return null; }
         })();
         if (stored && stored !== signature) {
+            try { localStorage.setItem(APP_SIGNATURE_STORAGE_KEY, signature); } catch (_) {}
             scheduleAppReload('asset-signature-change');
             return;
         }
@@ -475,10 +476,30 @@ const ORIENTATION_LOCK_ERROR_MESSAGE = 'No fue posible forzar la orientación. A
 
 function isLikelyPhoneViewport() {
     try {
-        const fallbackWidth = window.innerWidth || 0;
-        const screenWidth = (window.screen && window.screen.width) ? window.screen.width : fallbackWidth;
-        const width = Math.min(fallbackWidth || screenWidth, screenWidth || fallbackWidth);
-        return width > 0 && width <= 820;
+        if (navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean') {
+            return navigator.userAgentData.mobile;
+        }
+        const ua = (navigator.userAgent || navigator.vendor || '').trim();
+        const tabletIndicators = /(iPad|Tablet|Tab(?! key)|Kindle|Silk|PlayBook|Nexus\s?(7|9|10)|SM-T|Lenovo\sTab|Pixel\sC)/i;
+        if (tabletIndicators.test(ua)) {
+            return false;
+        }
+        if (/Android/i.test(ua) && !/Mobile/i.test(ua)) {
+            return false;
+        }
+        if (/\b(Mobi|iPhone|Phone)\b/i.test(ua) || (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+            return true;
+        }
+        const innerWidth = window.innerWidth || 0;
+        const outerWidth = window.outerWidth || 0;
+        const screenWidth = window.screen && window.screen.width ? window.screen.width : innerWidth;
+        const screenHeight = window.screen && window.screen.height ? window.screen.height : (window.innerHeight || screenWidth);
+        const minScreen = Math.min(screenWidth, screenHeight);
+        const dpr = window.devicePixelRatio || 1;
+        const logicalWidth = minScreen / dpr;
+        const widthCandidates = [innerWidth, outerWidth, logicalWidth, screenWidth].filter((value) => value && Number.isFinite(value));
+        const effectiveWidth = widthCandidates.length ? Math.min(...widthCandidates) : 0;
+        return effectiveWidth > 0 && effectiveWidth <= 640;
     } catch (_) {
         return false;
     }
