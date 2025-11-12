@@ -111,6 +111,15 @@ function scheduleAppReload(reason) {
     }, 400);
 }
 
+const isAndroidDevice = (typeof navigator !== 'undefined') && /Android/i.test(navigator.userAgent || '');
+const ANDROID_AUTO_REFRESH_THRESHOLD = 3 * 60 * 1000;
+const OPERATIONAL_REFRESH_DEBOUNCE = 60 * 1000;
+const OPERATIONAL_REFRESH_INTERVAL = 6 * 60 * 1000;
+let androidVisibilityHiddenAt = Date.now();
+let lastOperationalAutoRefresh = 0;
+let operationalRefreshInFlight = null;
+let androidAutoRefreshIntervalId = null;
+
 async function fetchAppSignature() {
     const resources = ['script.js', 'manifest.webmanifest'];
     for (const resource of resources) {
@@ -2741,9 +2750,58 @@ function getChartColors() {
         tooltip: { backgroundColor: isDarkMode ? '#151d27' : '#fff', titleColor: isDarkMode ? '#e8eaed' : '#333', bodyColor: isDarkMode ? '#e8eaed' : '#333', }
     };
 }
-async function loadItineraryData() {
+function captureItineraryFilterSelections() {
+    const getValue = (id) => {
+        const el = document.getElementById(id);
+        if (!el) return null;
+        if (el.type === 'checkbox' || el.type === 'radio') return !!el.checked;
+        return el.value;
+    };
+    return {
+        airline: getValue('airline-filter'),
+        position: getValue('position-filter'),
+        origin: getValue('origin-filter'),
+        destination: getValue('destination-filter'),
+        claim: getValue('claim-filter'),
+        date: getValue('date-filter'),
+        hour: getValue('hour-filter'),
+        hourType: getValue('hour-type-filter')
+    };
+}
+
+function restoreItineraryFilterSelections(state = {}) {
+    const setSelectValue = (id, value, fallback = 'all') => {
+        if (value == null || value === undefined) return;
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.tagName === 'SELECT') {
+            const exists = Array.from(el.options || []).some(opt => opt.value === value);
+            el.value = exists ? value : fallback;
+        } else if ('value' in el) {
+            el.value = value;
+        }
+    };
+    setSelectValue('airline-filter', state.airline, 'all');
+    setSelectValue('position-filter', state.position, 'all');
+    setSelectValue('origin-filter', state.origin, 'all');
+    setSelectValue('destination-filter', state.destination, 'all');
+    const claimInput = document.getElementById('claim-filter');
+    if (claimInput && Object.prototype.hasOwnProperty.call(state, 'claim')) {
+        claimInput.value = state.claim != null ? state.claim : '';
+    }
+    if (state.date) {
+        const dateInput = document.getElementById('date-filter');
+        if (dateInput) dateInput.value = state.date;
+    }
+    setSelectValue('hour-filter', state.hour, 'all');
+    setSelectValue('hour-type-filter', state.hourType, 'both');
+}
+
+async function loadItineraryData(options = {}) {
+    const preserveFilters = !!options.preserveFilters;
+    const previousFilters = preserveFilters ? captureItineraryFilterSelections() : null;
     try {
-        const response = await fetch('data/itinerario.json');
+        const response = await fetch('data/itinerario.json', { cache: 'no-store' });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         allFlightsData = await response.json();
     // Pre-cargar filtro de fecha con 'hoy' si está vacío
@@ -2755,11 +2813,16 @@ async function loadItineraryData() {
             dateInput.value = ymd;
         }
     } catch (_) {}
-    displaySummaryTable(allFlightsData, { selectedAirline: 'all' });
+    if (!preserveFilters) {
+        displaySummaryTable(allFlightsData, { selectedAirline: 'all' });
+    }
     populateAirlineFilter();
     populatePositionFilter();
     populateOriginFilter();
     populateDestinationFilter();
+    if (preserveFilters && previousFilters) {
+        restoreItineraryFilterSelections(previousFilters);
+    }
     applyFilters(); 
     // actualizar estadísticas diarias una vez cargado el itinerario
     computeDailyStats();
@@ -2768,8 +2831,9 @@ async function loadItineraryData() {
     } catch (error) {
         console.error("Error al cargar itinerario:", error);
         const passengerContainer = document.getElementById('passenger-itinerary-container');
-        if(passengerContainer) { passengerContainer.innerHTML = `<div class="alert alert-danger">Error al cargar datos del itinerario.</div>`; }
+        if(passengerContainer && !preserveFilters) { passengerContainer.innerHTML = `<div class="alert alert-danger">Error al cargar datos del itinerario.</div>`; }
     }
+    return allFlightsData;
 }
 function updateAirlineQuickSummary(options = {}) {
     const card = document.getElementById('airline-summary-card');
@@ -9993,19 +10057,26 @@ function setupManifestsUI() {
 }
 
 let parteOperacionesSummaryCache = null;
-async function loadParteOperacionesSummary(){
+let parteOperacionesSummaryCacheFetchedAt = 0;
+async function loadParteOperacionesSummary(options = {}){
+    const { force = false, silent = false } = options;
     const container = document.getElementById('operations-summary-table');
     if (!container) return;
-    if (parteOperacionesSummaryCache){
-        renderParteOperacionesSummary(parteOperacionesSummaryCache);
-        return;
+    if (!force && parteOperacionesSummaryCache){
+        const isStale = parteOperacionesSummaryCacheFetchedAt && (Date.now() - parteOperacionesSummaryCacheFetchedAt > OPERATIONAL_REFRESH_INTERVAL);
+        if (!isStale) {
+            renderParteOperacionesSummary(parteOperacionesSummaryCache);
+            return;
+        }
     }
-    container.innerHTML = `
-        <div class="text-center text-muted py-5">
-            <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
-            <div class="mt-2">Cargando resumen operativo...</div>
-        </div>
-    `;
+    if (!silent) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-5">
+                <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                <div class="mt-2">Cargando resumen operativo...</div>
+            </div>
+        `;
+    }
     if (typeof location !== 'undefined' && location.protocol === 'file:'){
         container.innerHTML = '<div class="alert alert-info mb-0">Inicia el servidor local para visualizar el resumen.</div>';
         return;
@@ -10015,10 +10086,13 @@ async function loadParteOperacionesSummary(){
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         parteOperacionesSummaryCache = data;
+        parteOperacionesSummaryCacheFetchedAt = Date.now();
         renderParteOperacionesSummary(data);
     } catch (err) {
         console.warn('loadParteOperacionesSummary failed:', err);
-        container.innerHTML = '<div class="alert alert-warning mb-0">No se pudo cargar el resumen. Intenta nuevamente.</div>';
+        if (!silent) {
+            container.innerHTML = '<div class="alert alert-warning mb-0">No se pudo cargar el resumen. Intenta nuevamente.</div>';
+        }
     }
 }
 function renderParteOperacionesSummary(data){
@@ -10182,6 +10256,90 @@ function renderParteOperacionesSummary(data){
     `;
 }
 
+async function refreshOperationalData(options = {}) {
+    if (operationalRefreshInFlight) return operationalRefreshInFlight;
+    const preserveFilters = options.preserveFilters !== false;
+    const silentSummary = options.silentSummary !== false;
+    const reason = options.reason || 'auto';
+    try { console.info(`[auto-refresh] Actualizando datos (${reason})`); } catch (_) {}
+    lastOperationalAutoRefresh = Date.now();
+    const runner = (async () => {
+        const tasks = [];
+        try {
+            tasks.push(loadItineraryData({ preserveFilters }));
+        } catch (err) {
+            console.warn('Auto refresh: loadItineraryData falló', err);
+        }
+        try {
+            tasks.push(loadParteOperacionesSummary({ force: true, silent: silentSummary }));
+        } catch (err) {
+            console.warn('Auto refresh: loadParteOperacionesSummary falló', err);
+        }
+        if (tasks.length) {
+            await Promise.allSettled(tasks);
+        }
+    })();
+    operationalRefreshInFlight = runner;
+    runner.finally(() => {
+        operationalRefreshInFlight = null;
+    });
+    return runner;
+}
+
+function canTriggerAndroidAutoRefresh(trigger, now = Date.now()) {
+    if (!isAndroidDevice) return false;
+    if (document.visibilityState === 'prerender') return false;
+    if (now - lastOperationalAutoRefresh < OPERATIONAL_REFRESH_DEBOUNCE) return false;
+    if (trigger === 'interval') return true;
+    const gap = androidVisibilityHiddenAt ? now - androidVisibilityHiddenAt : Number.POSITIVE_INFINITY;
+    return gap >= ANDROID_AUTO_REFRESH_THRESHOLD;
+}
+
+function maybeTriggerAndroidAutoRefresh(trigger) {
+    if (!isAndroidDevice) return;
+    if (document.readyState === 'loading') return;
+    if (!canTriggerAndroidAutoRefresh(trigger)) return;
+    refreshOperationalData({ preserveFilters: true, silentSummary: true, reason: `android-${trigger}` }).catch((err) => {
+        console.warn('Android auto-refresh error:', err);
+    });
+}
+
+function handleAndroidVisibilityChange() {
+    if (!isAndroidDevice) return;
+    if (document.hidden) {
+        androidVisibilityHiddenAt = Date.now();
+        return;
+    }
+    maybeTriggerAndroidAutoRefresh('visibility');
+}
+
+function handleAndroidFocus() {
+    if (!isAndroidDevice) return;
+    maybeTriggerAndroidAutoRefresh('focus');
+}
+
+function startAndroidAutoRefreshTimer() {
+    if (!isAndroidDevice) return;
+    if (androidAutoRefreshIntervalId) return;
+    androidAutoRefreshIntervalId = setInterval(() => {
+        maybeTriggerAndroidAutoRefresh('interval');
+    }, OPERATIONAL_REFRESH_INTERVAL);
+}
+
+if (isAndroidDevice) {
+    try {
+        document.addEventListener('visibilitychange', handleAndroidVisibilityChange, { passive: true });
+        window.addEventListener('focus', handleAndroidFocus, { passive: true });
+        window.addEventListener('pageshow', (event) => {
+            if (event && event.persisted) {
+                maybeTriggerAndroidAutoRefresh('pageshow');
+            }
+        }, { passive: true });
+    } catch (err) {
+        console.warn('Android auto-refresh listeners failed:', err);
+    }
+}
+
         // Inicialización principal de la aplicación cuando el DOM está listo
         document.addEventListener('DOMContentLoaded', () => {
             try {
@@ -10257,6 +10415,12 @@ function renderParteOperacionesSummary(data){
                 showGsoMenu();
             } catch (err) {
                 console.warn('showGsoMenu init failed:', err);
+            }
+
+            try {
+                if (isAndroidDevice) startAndroidAutoRefreshTimer();
+            } catch (err) {
+                console.warn('Android auto-refresh timer init failed:', err);
             }
         });
 
