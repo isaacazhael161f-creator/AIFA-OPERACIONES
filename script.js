@@ -724,13 +724,42 @@ function deepCloneWeek(week) {
 }
 
 const WEEKLY_OPERATIONS_DATASETS = [
+
+    {
+        id: '2025-11-10',
+        rango: {
+            inicio: '2025-11-10',
+            fin: '2025-11-16',
+            descripcion: describeWeekRange('2025-11-10', '2025-11-16'),
+            nota: 'Semana del (10 al 16 de noviembre de 2025). Datos en Integración'
+        },
+        dias: [
+            {
+                fecha: '2025-11-10',
+                label: '10 Nov 2025',
+                comercial: { operaciones: 152, pasajeros: 22119 },
+                general: { operaciones: 9, pasajeros: 19 },
+                carga: { operaciones: 31, toneladas: 1079, corteFecha: '2025-11-09', corteNota: 'Cifras del 09 de noviembre de 2025.' }
+            },
+            {
+                fecha: '2025-11-11',
+                label: '11 Nov 2025',
+                comercial: { operaciones: 139, pasajeros: 18904 },
+                general: { operaciones: 5, pasajeros: 14 },
+                carga: { operaciones: 31, toneladas: 1079, corteFecha: '2025-11-09', corteNota: 'Cifras del 09 de noviembre de 2025.' }
+            },
+           
+        ]
+    },
+
+    
     {
         id: '2025-11-03',
         rango: {
             inicio: '2025-11-03',
             fin: '2025-11-09',
             descripcion: describeWeekRange('2025-11-03', '2025-11-09'),
-            nota: 'Semana en curso (3 al 9 de noviembre de 2025). Datos en integración.'
+            nota: 'Semana del (3 al 9 de noviembre de 2025)'
         },
         dias: [
             {
@@ -10058,6 +10087,287 @@ function setupManifestsUI() {
 
 let parteOperacionesSummaryCache = null;
 let parteOperacionesSummaryCacheFetchedAt = 0;
+let parteOperacionesSummarySelectedDate = null;
+let parteOperacionesSummaryAvailableDates = [];
+let parteOperacionesSummaryTitleDefault = null;
+const parteOperacionesDateFormatter = new Intl.DateTimeFormat('es-MX', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+});
+const parteOperacionesTitleFormatter = new Intl.DateTimeFormat('es-MX', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+});
+
+function sanitizeParteOperacionesItem(item){
+    if (!item || typeof item !== 'object') {
+        return { tipo: 'Sin clasificar', llegada: 0, salida: 0, subtotal: 0 };
+    }
+    return {
+        tipo: (item?.tipo ?? 'Sin clasificar').toString().trim(),
+        llegada: Number(item?.llegada) || 0,
+        salida: Number(item?.salida) || 0,
+        subtotal: Number(item?.subtotal) || 0
+    };
+}
+
+function normalizeParteOperacionesSummary(raw){
+    const empty = { dates: [], byDate: {}, isLegacy: false, availableRange: null };
+    if (!raw) return empty;
+
+    if (raw?.dias && typeof raw.dias === 'object'){
+        const entries = Object.entries(raw.dias)
+            .filter(([key]) => /^\d{4}-\d{2}-\d{2}$/.test(key))
+            .sort((a, b) => a[0].localeCompare(b[0]));
+        const byDate = {};
+        for (const [dateKey, value] of entries){
+            const operaciones = Array.isArray(value?.operaciones) ? value.operaciones.map(sanitizeParteOperacionesItem) : [];
+            const totalGeneral = Number(value?.total_general) || 0;
+            byDate[dateKey] = { operaciones, total_general: totalGeneral };
+        }
+        const dates = entries.map(([date]) => date);
+        const availableRange = dates.length ? { inicio: dates[0], fin: dates[dates.length - 1] } : null;
+        return { dates, byDate, isLegacy: false, availableRange };
+    }
+
+    if (Array.isArray(raw?.operaciones)){
+        const operaciones = raw.operaciones.map(sanitizeParteOperacionesItem);
+        const totalGeneral = Number(raw?.total_general) || 0;
+        return { dates: ['legacy'], byDate: { legacy: { operaciones, total_general: totalGeneral } }, isLegacy: true, availableRange: null };
+    }
+
+    return empty;
+}
+
+function formatParteOperacionesDate(dateStr){
+    if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return '';
+    const jsDate = new Date(`${dateStr}T00:00:00`);
+    if (Number.isNaN(jsDate.getTime())) return dateStr;
+    let formatted = parteOperacionesDateFormatter.format(jsDate);
+    if (formatted) {
+        formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    }
+    return formatted;
+}
+
+function formatParteOperacionesDateForTitle(dateStr){
+    if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return '';
+    const jsDate = new Date(`${dateStr}T00:00:00`);
+    if (Number.isNaN(jsDate.getTime())) return '';
+    let formatted = parteOperacionesTitleFormatter.format(jsDate);
+    if (formatted) {
+        formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    }
+    return formatted;
+}
+
+function getDefaultParteOperacionesDate(summary){
+    if (!summary || !Array.isArray(summary.dates) || !summary.dates.length) return null;
+    const { dates, byDate } = summary;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterdayTime = today.getTime() - 24 * 60 * 60 * 1000;
+
+    for (let i = dates.length - 1; i >= 0; i -= 1){
+        const iso = dates[i];
+        if (!byDate?.[iso]) continue;
+        const parsed = new Date(`${iso}T00:00:00`);
+        if (!Number.isNaN(parsed.getTime()) && parsed.getTime() <= yesterdayTime){
+            return iso;
+        }
+    }
+
+    for (let i = dates.length - 1; i >= 0; i -= 1){
+        const iso = dates[i];
+        if (byDate?.[iso]) return iso;
+    }
+
+    return dates[dates.length - 1];
+}
+
+function updateParteOperacionesAvailabilityBanner(summary){
+    const bannerWrapper = document.querySelector('.ops-worknote');
+    if (!bannerWrapper) return;
+    const hasData = Array.isArray(summary?.dates) && summary.dates.length > 0;
+    if (!hasData) {
+        bannerWrapper.classList.add('d-none');
+        return;
+    }
+    bannerWrapper.classList.remove('d-none');
+}
+
+function updateParteOperacionesTitle(isoDate){
+    const titleEl = document.getElementById('operations-summary-title');
+    if (!titleEl) return;
+    if (parteOperacionesSummaryTitleDefault === null) {
+        parteOperacionesSummaryTitleDefault = titleEl.dataset?.defaultTitle?.trim()
+            || titleEl.textContent?.trim()
+            || 'Resumen de operaciones';
+        titleEl.dataset.defaultTitle = parteOperacionesSummaryTitleDefault;
+    }
+    if (isoDate && /^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
+        const formatted = formatParteOperacionesDateForTitle(isoDate);
+        if (formatted) {
+            titleEl.textContent = `${parteOperacionesSummaryTitleDefault} del ${formatted}`;
+            return;
+        }
+    }
+    titleEl.textContent = parteOperacionesSummaryTitleDefault;
+}
+
+function attachParteOperacionesCalendarListeners(){
+    const dateInput = document.getElementById('operations-summary-date');
+    if (dateInput && !dateInput._wired){
+        dateInput._wired = true;
+        dateInput.addEventListener('change', (event)=>{
+            handleParteOperacionesDateChange(event.target.value, { source: 'input' });
+        });
+    }
+    const prevBtn = document.getElementById('operations-summary-prev');
+    if (prevBtn && !prevBtn._wired){
+        prevBtn._wired = true;
+        prevBtn.addEventListener('click', ()=>{
+            if (!parteOperacionesSummaryCache || parteOperacionesSummaryCache.isLegacy) return;
+            const idx = parteOperacionesSummaryAvailableDates.indexOf(parteOperacionesSummarySelectedDate);
+            if (idx > 0) {
+                handleParteOperacionesDateChange(parteOperacionesSummaryAvailableDates[idx - 1], { source: 'nav' });
+            }
+        });
+    }
+    const nextBtn = document.getElementById('operations-summary-next');
+    if (nextBtn && !nextBtn._wired){
+        nextBtn._wired = true;
+        nextBtn.addEventListener('click', ()=>{
+            if (!parteOperacionesSummaryCache || parteOperacionesSummaryCache.isLegacy) return;
+            const idx = parteOperacionesSummaryAvailableDates.indexOf(parteOperacionesSummarySelectedDate);
+            if (idx >= 0 && idx < parteOperacionesSummaryAvailableDates.length - 1) {
+                handleParteOperacionesDateChange(parteOperacionesSummaryAvailableDates[idx + 1], { source: 'nav' });
+            }
+        });
+    }
+    const todayBtn = document.getElementById('operations-summary-today');
+    if (todayBtn && !todayBtn._wired){
+        todayBtn._wired = true;
+        todayBtn.addEventListener('click', ()=>{
+            if (!parteOperacionesSummaryCache || parteOperacionesSummaryCache.isLegacy) return;
+            if (parteOperacionesSummaryAvailableDates.length) {
+                const latest = parteOperacionesSummaryAvailableDates[parteOperacionesSummaryAvailableDates.length - 1];
+                handleParteOperacionesDateChange(latest, { source: 'today' });
+            }
+        });
+    }
+}
+
+function syncParteOperacionesCalendarControls(summary){
+    attachParteOperacionesCalendarListeners();
+    const controlsWrapper = document.querySelector('[data-ops-calendar-controls]');
+    const hasCalendar = summary && !summary.isLegacy && Array.isArray(summary.dates) && summary.dates.length > 0;
+    if (controlsWrapper) {
+        controlsWrapper.classList.toggle('d-none', !hasCalendar);
+    }
+    updateParteOperacionesAvailabilityBanner(summary);
+    parteOperacionesSummaryAvailableDates = Array.isArray(summary?.dates) ? summary.dates.slice() : [];
+    const dateInput = document.getElementById('operations-summary-date');
+    if (dateInput) {
+        if (hasCalendar) {
+            dateInput.min = summary.dates[0];
+            dateInput.max = summary.dates[summary.dates.length - 1];
+            dateInput.disabled = false;
+        } else {
+            dateInput.value = '';
+            dateInput.min = '';
+            dateInput.max = '';
+            dateInput.disabled = true;
+        }
+    }
+    refreshParteOperacionesNavState();
+    if (!hasCalendar) {
+        const label = document.getElementById('operations-summary-date-human');
+        if (label) {
+            label.textContent = summary?.isLegacy ? 'Último registro disponible' : 'Sin registros disponibles';
+        }
+    }
+}
+
+function refreshParteOperacionesNavState(){
+    const prevBtn = document.getElementById('operations-summary-prev');
+    const nextBtn = document.getElementById('operations-summary-next');
+    if (!prevBtn && !nextBtn) return;
+    if (!parteOperacionesSummaryAvailableDates.length || (parteOperacionesSummaryCache && parteOperacionesSummaryCache.isLegacy)){
+        if (prevBtn) prevBtn.disabled = true;
+        if (nextBtn) nextBtn.disabled = true;
+        return;
+    }
+    const idx = parteOperacionesSummaryAvailableDates.indexOf(parteOperacionesSummarySelectedDate);
+    if (prevBtn) prevBtn.disabled = idx <= 0;
+    if (nextBtn) nextBtn.disabled = idx === -1 || idx >= parteOperacionesSummaryAvailableDates.length - 1;
+}
+
+function renderParteOperacionesSummaryForCurrentSelection(){
+    if (!parteOperacionesSummaryCache) {
+        renderParteOperacionesSummary(null, {});
+        return;
+    }
+    const { dates, byDate, isLegacy } = parteOperacionesSummaryCache;
+    if (!Array.isArray(dates) || !dates.length) {
+        const label = document.getElementById('operations-summary-date-human');
+        if (label) label.textContent = 'Sin registros disponibles';
+        renderParteOperacionesSummary(null, {});
+        refreshParteOperacionesNavState();
+        return;
+    }
+    let target = parteOperacionesSummarySelectedDate;
+    if (!target || !byDate[target]) {
+        target = getDefaultParteOperacionesDate(parteOperacionesSummaryCache) || dates[dates.length - 1];
+    }
+    parteOperacionesSummarySelectedDate = target;
+    if (isLegacy) {
+        const label = document.getElementById('operations-summary-date-human');
+        if (label) label.textContent = 'Último registro disponible';
+        renderParteOperacionesSummary(byDate[target], { friendlyDate: null, isoDate: null, isLegacy: true });
+        refreshParteOperacionesNavState();
+        return;
+    }
+    const dateInput = document.getElementById('operations-summary-date');
+    if (dateInput && dateInput.value !== target) {
+        dateInput.value = target;
+    }
+    const friendly = formatParteOperacionesDate(target) || 'Sin información disponible';
+    const label = document.getElementById('operations-summary-date-human');
+    if (label) label.textContent = friendly;
+    renderParteOperacionesSummary(byDate[target], { friendlyDate: friendly, isoDate: target });
+    refreshParteOperacionesNavState();
+}
+
+function handleParteOperacionesDateChange(dateStr, options = {}){
+    if (!parteOperacionesSummaryCache || parteOperacionesSummaryCache.isLegacy) return;
+    if (!Array.isArray(parteOperacionesSummaryAvailableDates) || !parteOperacionesSummaryAvailableDates.length) return;
+    let target = (dateStr || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(target) || !parteOperacionesSummaryCache.byDate[target]) {
+        const fallback = getDefaultParteOperacionesDate(parteOperacionesSummaryCache);
+        if (parteOperacionesSummaryCache.byDate[fallback]) {
+            target = fallback;
+        } else {
+            const firstValid = parteOperacionesSummaryAvailableDates.find(d => parteOperacionesSummaryCache.byDate[d]);
+            if (firstValid) target = firstValid;
+        }
+    }
+    if (!parteOperacionesSummaryCache.byDate[target]) return;
+    parteOperacionesSummarySelectedDate = target;
+    const dateInput = document.getElementById('operations-summary-date');
+    if (dateInput && !options.skipInputUpdate && dateInput.value !== target) {
+        dateInput.value = target;
+    }
+    const friendly = formatParteOperacionesDate(target) || 'Sin información disponible';
+    const label = document.getElementById('operations-summary-date-human');
+    if (label) label.textContent = friendly;
+    renderParteOperacionesSummary(parteOperacionesSummaryCache.byDate[target], { friendlyDate: friendly, isoDate: target });
+    refreshParteOperacionesNavState();
+}
+
 async function loadParteOperacionesSummary(options = {}){
     const { force = false, silent = false } = options;
     const container = document.getElementById('operations-summary-table');
@@ -10065,7 +10375,8 @@ async function loadParteOperacionesSummary(options = {}){
     if (!force && parteOperacionesSummaryCache){
         const isStale = parteOperacionesSummaryCacheFetchedAt && (Date.now() - parteOperacionesSummaryCacheFetchedAt > OPERATIONAL_REFRESH_INTERVAL);
         if (!isStale) {
-            renderParteOperacionesSummary(parteOperacionesSummaryCache);
+            syncParteOperacionesCalendarControls(parteOperacionesSummaryCache);
+            renderParteOperacionesSummaryForCurrentSelection();
             return;
         }
     }
@@ -10082,12 +10393,24 @@ async function loadParteOperacionesSummary(options = {}){
         return;
     }
     try {
-    const res = await fetch('data/resumen_parte_operaciones.json', { cache: 'no-store' });
+        const res = await fetch('data/resumen_parte_operaciones.json', { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        parteOperacionesSummaryCache = data;
+        const raw = await res.json();
+        const normalized = normalizeParteOperacionesSummary(raw);
+        const previousSelection = parteOperacionesSummarySelectedDate;
+        parteOperacionesSummaryCache = normalized;
         parteOperacionesSummaryCacheFetchedAt = Date.now();
-        renderParteOperacionesSummary(data);
+        syncParteOperacionesCalendarControls(normalized);
+        if (normalized.isLegacy) {
+            parteOperacionesSummarySelectedDate = normalized.dates[0] || null;
+        } else if (previousSelection && normalized.byDate[previousSelection]) {
+            parteOperacionesSummarySelectedDate = previousSelection;
+        } else if (parteOperacionesSummaryAvailableDates.length) {
+        parteOperacionesSummarySelectedDate = getDefaultParteOperacionesDate(normalized) || parteOperacionesSummaryAvailableDates[parteOperacionesSummaryAvailableDates.length - 1];
+        } else {
+            parteOperacionesSummarySelectedDate = null;
+        }
+        renderParteOperacionesSummaryForCurrentSelection();
     } catch (err) {
         console.warn('loadParteOperacionesSummary failed:', err);
         if (!silent) {
@@ -10095,14 +10418,17 @@ async function loadParteOperacionesSummary(options = {}){
         }
     }
 }
-function renderParteOperacionesSummary(data){
+
+function renderParteOperacionesSummary(data, metadata = {}){
     const container = document.getElementById('operations-summary-table');
     if (!container) return;
-    const ops = Array.isArray(data?.operaciones) ? data.operaciones : [];
-    if (!ops.length){
+    updateParteOperacionesAvailabilityBanner(parteOperacionesSummaryCache);
+    if (!data){
+        updateParteOperacionesTitle(metadata?.isoDate);
         container.innerHTML = '<div class="alert alert-info mb-0">No hay información disponible.</div>';
         return;
     }
+    const ops = Array.isArray(data?.operaciones) ? data.operaciones : [];
     const formatter = new Intl.NumberFormat('es-MX');
     const normalizeKey = (value)=> {
         return (value || '')
@@ -10138,19 +10464,46 @@ function renderParteOperacionesSummary(data){
         }
     };
     const totals = ops.reduce((acc, item)=>{
-        const lleg = Number(item?.llegada) || 0;
-        const sal = Number(item?.salida) || 0;
+        const llegada = Number(item?.llegada) || 0;
+        const salida = Number(item?.salida) || 0;
         const rawSubtotal = Number(item?.subtotal);
-        const subtotal = Number.isFinite(rawSubtotal) && rawSubtotal > 0 ? rawSubtotal : (lleg + sal);
-        acc.llegada += lleg;
-        acc.salida += sal;
+        const subtotal = Number.isFinite(rawSubtotal) && rawSubtotal > 0 ? rawSubtotal : (llegada + salida);
+        acc.llegada += llegada;
+        acc.salida += salida;
         acc.subtotal += subtotal;
         return acc;
     }, { llegada: 0, salida: 0, subtotal: 0 });
-    const totalGeneral = Number(data?.total_general) || totals.subtotal || (totals.llegada + totals.salida);
+    const totalGeneralFallback = Number(data?.total_general);
+    const totalGeneral = Number.isFinite(totalGeneralFallback) && totalGeneralFallback >= 0 ? totalGeneralFallback : (totals.subtotal || (totals.llegada + totals.salida));
+    const friendlyDate = metadata?.friendlyDate || '';
+
+    if (!ops.length){
+        updateParteOperacionesTitle(metadata?.isoDate);
+        container.innerHTML = `
+            <div class="card shadow-sm border-0 ops-summary-table">
+                <div class="card-body p-0">
+                    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 px-4 py-3 border-bottom">
+                        <div>
+                            <h3 class="h5 mb-1">Resumen operativo diario</h3>
+                            <p class="small text-muted mb-0">Fuente: parte de operaciones</p>
+                            ${friendlyDate ? `<p class="small text-primary mb-0 mt-1 d-flex align-items-center gap-2"><i class="fas fa-calendar-day"></i><span>${friendlyDate}</span></p>` : ''}
+                        </div>
+                        <div class="text-md-end">
+                            <span class="badge bg-primary text-white fs-6">${formatter.format(totalGeneral)} operaciones</span>
+                        </div>
+                    </div>
+                    <div class="px-4 py-4">
+                        <div class="alert alert-info mb-0">No hay información capturada para esta fecha.</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
     const enriched = ops.map(item => {
-    const tipo = (item?.tipo || 'Sin clasificar').toString().trim();
-    const key = normalizeKey(tipo);
+        const tipo = (item?.tipo || 'Sin clasificar').toString().trim();
+        const key = normalizeKey(tipo);
         const cfg = typeConfig[key] || typeConfig.default;
         const llegada = Number(item?.llegada) || 0;
         const salida = Number(item?.salida) || 0;
@@ -10161,8 +10514,9 @@ function renderParteOperacionesSummary(data){
         const shareLabel = shareRounded.toFixed(1);
         return { tipo, llegada, salida, subtotal, cfg, shareRounded, shareLabel };
     });
+
     const cardsMarkup = enriched.map(entry => {
-    const { tipo, llegada, salida, subtotal, cfg, shareLabel, shareRounded } = entry;
+        const { tipo, llegada, salida, subtotal, cfg, shareLabel, shareRounded } = entry;
         const shareSentence = `Participación ${shareLabel}%`;
         return `
             <div class="ops-mini-card ${cfg.cardClass}">
@@ -10186,6 +10540,7 @@ function renderParteOperacionesSummary(data){
             </div>
         `;
     }).join('');
+
     const rows = enriched.map(entry => {
         const { tipo, llegada, salida, subtotal, cfg, shareLabel, shareRounded } = entry;
         const shareSentence = `Participación ${shareLabel}%`;
@@ -10209,7 +10564,11 @@ function renderParteOperacionesSummary(data){
             </tr>
         `;
     }).join('');
+
     const totalPercentLabel = totalGeneral > 0 ? '100%' : '0%';
+
+    updateParteOperacionesTitle(metadata?.isoDate);
+
     container.innerHTML = `
         <div class="card shadow-sm border-0 ops-summary-table">
             <div class="card-body p-0">
@@ -10217,6 +10576,7 @@ function renderParteOperacionesSummary(data){
                     <div>
                         <h3 class="h5 mb-1">Resumen operativo diario</h3>
                         <p class="small text-muted mb-0">Fuente: parte de operaciones</p>
+                        ${friendlyDate ? `<p class="small text-primary mb-0 mt-1 d-flex align-items-center gap-2"><i class="fas fa-calendar-day"></i><span>${friendlyDate}</span></p>` : ''}
                     </div>
                     <div class="text-md-end">
                         <span class="badge bg-primary text-white fs-6">${formatter.format(totalGeneral)} operaciones</span>

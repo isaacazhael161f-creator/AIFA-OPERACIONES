@@ -413,7 +413,7 @@
                 <div id="parte-operaciones-section" class="content-section">
                     <div class="card">
                         <div class="card-header flex-column flex-md-row d-flex justify-content-between align-items-center">
-                            <h2 class="section-title mb-3 mb-md-0" id="operations-summary-title">Resumen de operaciones</h2>
+                            <h2 class="section-title mb-3 mb-md-0" id="operations-summary-title" data-default-title="Resumen de operaciones">Resumen de operaciones</h2>
                             <div class="d-flex gap-2">
                                 <a href="pdfs/parte_operaciones_completo.pdf" class="btn btn-danger download-btn" download><i class="fas fa-file-pdf me-2"></i><span class="btn-text">Descargar PDF</span></a>
                                 <a href="excel/parte_operaciones_completo.xlsx" class="btn btn-success download-btn" download><i class="fas fa-file-excel me-2"></i><span class="btn-text">Descargar Excel</span></a>
@@ -426,6 +426,24 @@
                             </ul>
                             <div class="tab-content pt-3" id="operationsTabContent">
                                 <div class="tab-pane fade show active" id="resumen1-pane">
+                                    <div class="alert alert-warning d-flex align-items-start gap-3 ops-worknote" role="status">
+                                        <i class="fas fa-person-digging fa-lg mt-1" aria-hidden="true"></i>
+                                        <div>
+                                            <strong>Sección en trabajo.</strong>
+                                        </div>
+                                    </div>
+                                    <div class="ops-calendar-controls d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3" data-ops-calendar-controls>
+                                        <div class="d-flex flex-wrap align-items-center gap-2">
+                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="operations-summary-prev" aria-label="Día anterior"><i class="fas fa-chevron-left"></i></button>
+                                            <input type="date" class="form-control form-control-sm" id="operations-summary-date" aria-label="Seleccionar fecha del parte de operaciones">
+                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="operations-summary-next" aria-label="Día siguiente"><i class="fas fa-chevron-right"></i></button>
+                                            <button class="btn btn-outline-primary btn-sm" type="button" id="operations-summary-today"><i class="fas fa-calendar-day me-1"></i>Hoy</button>
+                                        </div>
+                                        <div class="small text-muted d-flex align-items-center gap-2" id="operations-summary-date-label">
+                                            <i class="fas fa-calendar-alt"></i>
+                                            <span id="operations-summary-date-human">Selecciona una fecha</span>
+                                        </div>
+                                    </div>
                                     <div id="operations-summary-table"></div>
                                 </div>
                                 <div class="tab-pane fade" id="resumen2-pane">
