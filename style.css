@@ -437,21 +437,34 @@ body.dark-mode .section-title small {
    margin-bottom: 2rem;
 }
 .itinerary-airline-toolbar.airline-selected {
-   align-items: flex-start;
+   background: var(--airline-row-bg, transparent);
+   transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-left-color 0.2s ease;
 }
 .itinerary-airline-toolbar.airline-selected .airline-summary-card {
    flex: 1 1 100%;
 }
 .itinerary-airline-picker {
-   min-width: 220px;
-   flex: 1 1 220px;
-   display: flex;
+   transform: translateY(-2px);
+   box-shadow: 0 10px 24px -18px rgba(15,23,42,0.35);
+   background: var(--airline-row-hover, rgba(13,110,253,0.05));
    flex-direction: column;
    gap: 0.45rem;
 }
 .airline-picker-label {
    font-size: 0.75rem;
    font-weight: 600;
+.itinerary-airline-table .airline-dot {
+   display: inline-block;
+   width: 8px;
+   height: 8px;
+   border-radius: 50%;
+   background: var(--airline-color, #0d6efd);
+   margin-right: 0.35rem;
+   flex-shrink: 0;
+ }
+.itinerary-airline-table .airline-cell.has-logo .airline-dot {
+   display: none;
+}
    letter-spacing: 0.05em;
    text-transform: uppercase;
    color: #6c757d;
@@ -799,12 +812,17 @@ body.dark-mode .itinerary-airline-chip {
    border-radius: 14px;
    overflow: hidden;
 }
+.itinerary-airline-table .table tbody tr {
+   border-left: 4px solid var(--airline-color, transparent);
+   transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-left-color 0.2s ease;
+}
 .itinerary-airline-table .table tbody tr.animated-row {
    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .itinerary-airline-table .table tbody tr.animated-row:hover {
    transform: translateY(-2px);
    box-shadow: 0 10px 24px -18px rgba(15,23,42,0.35);
+   background: rgba(13,110,253,0.05);
 }
 .itinerary-airline-table .airline-cell {
    display: inline-flex;
@@ -854,6 +872,9 @@ body.dark-mode .itinerary-pill {
 }
 body.dark-mode .itinerary-airline-table .table {
    background: rgba(15,23,42,0.65);
+}
+body.dark-mode .itinerary-airline-table .table tbody tr.animated-row:hover {
+   background: var(--airline-row-hover-dark, rgba(148,186,255,0.12));
 }
 .itinerary-table-block {
    margin-bottom: 2.5rem;
@@ -1024,26 +1045,16 @@ body.dark-mode .table-container-tech td:first-child .airline-logo { filter: brig
 /* Ajuste de contraste en modo oscuro */
 body.dark-mode { --fids-row-odd-bg: rgba(255, 255, 255, 0.06); --fids-row-even-bg: rgba(255, 255, 255, 0.035); }
 
-/* ================== Itinerario (Inicio) — Encabezados estilo FIDS en azul ================== */
-#passenger-itinerary-container .table thead th,
-#cargo-itinerary-container .table thead th {
-   background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-color-dark) 100%) !important;
-   color: #fff !important;
-   text-transform: uppercase;
-   font-weight: 700;
-   letter-spacing: .7px;
-   border-bottom: 2px solid var(--primary-color-dark) !important;
-   position: sticky;
-   top: 0;
-   z-index: 8;
-   box-shadow: 0 2px 0 rgba(13,110,253,0.35);
-}
-body.dark-mode #passenger-itinerary-container .table thead th,
-body.dark-mode #cargo-itinerary-container .table thead th {
-   background: linear-gradient(180deg, #2a5fa3 0%, #0d2d56 100%) !important; /* tonos azules adaptados para contraste en oscuro */
-   border-bottom-color: #0d2d56 !important;
-   box-shadow: 0 2px 0 rgba(148,186,255,0.28);
-}
+/* Itinerario (Inicio) — reutiliza el diseño del detalle por aerolínea */
+.itinerary-general-host .itinerary-airline-card { margin-top: 0.6rem; }
+.itinerary-general-card .itinerary-airline-toolbar-detail { align-items: center; }
+.itinerary-general-card .itinerary-airline-toolbar-detail .text-muted { font-weight: 500; }
+.itinerary-general-card .itinerary-airline-toolbar-detail > .text-muted i { color: var(--itinerary-airline-accent, #0d6efd); }
+.itinerary-general-host .itinerary-airline-table .col-origen,
+.itinerary-general-host .itinerary-airline-table .col-destino { min-width: 160px; white-space: nowrap; }
+.itinerary-general-host .itinerary-airline-table th:nth-child(2),
+.itinerary-general-host .itinerary-airline-table td:nth-child(2) { min-width: 90px; }
+
 
 .itinerary-airline-table thead th {
    position: sticky;
@@ -1084,21 +1095,7 @@ body.dark-mode .itinerary-airline-table thead th {
    z-index: auto !important;
 }
 .floating-table-header--passenger-itinerary .floating-header-table thead th,
-.floating-table-header--cargo-itinerary .floating-header-table thead th {
-   background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-color-dark) 100%) !important;
-   color: #fff !important;
-   text-transform: uppercase;
-   font-weight: 700;
-   letter-spacing: .7px;
-   border-bottom: 2px solid var(--primary-color-dark) !important;
-   box-shadow: 0 2px 0 rgba(13,110,253,0.35);
-}
-body.dark-mode .floating-table-header--passenger-itinerary .floating-header-table thead th,
-body.dark-mode .floating-table-header--cargo-itinerary .floating-header-table thead th {
-   background: linear-gradient(180deg, #2a5fa3 0%, #0d2d56 100%) !important;
-   border-bottom-color: #0d2d56 !important;
-   box-shadow: 0 2px 0 rgba(148,186,255,0.28);
-}
+.floating-table-header--cargo-itinerary .floating-header-table thead th,
 .floating-table-header--itinerary-detail .floating-header-table thead th {
    background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(245,247,252,0.92) 100%);
    color: var(--text-color);
@@ -1106,6 +1103,8 @@ body.dark-mode .floating-table-header--cargo-itinerary .floating-header-table th
    border-bottom: 2px solid rgba(13,110,253,0.28);
    box-shadow: 0 2px 0 rgba(13,110,253,0.2);
 }
+body.dark-mode .floating-table-header--passenger-itinerary .floating-header-table thead th,
+body.dark-mode .floating-table-header--cargo-itinerary .floating-header-table thead th,
 body.dark-mode .floating-table-header--itinerary-detail .floating-header-table thead th {
    background: linear-gradient(180deg, rgba(30,39,57,0.96) 0%, rgba(24,32,48,0.94) 100%);
    color: #e2e8f0;
@@ -1118,6 +1117,24 @@ body.dark-mode .floating-table-header--itinerary-detail .floating-header-table t
 #cargo-itinerary-container .table {
    font-variant-numeric: tabular-nums; /* dígitos de ancho fijo */
    font-family: 'Roboto Condensed', var(--font-family-base), system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+#cargo-itinerary-container .table thead th {
+   font-size: 0.78rem;
+   padding-top: 0.45rem;
+   padding-bottom: 0.45rem;
+   letter-spacing: 0.5px;
+   line-height: 1.25;
+}
+#cargo-itinerary-container .table td {
+   padding-top: 0.5rem;
+   padding-bottom: 0.5rem;
+}
+.floating-table-header--cargo-itinerary .floating-header-table thead th {
+   font-size: 0.78rem;
+   padding-top: 0.45rem;
+   padding-bottom: 0.45rem;
+   letter-spacing: 0.5px;
+   line-height: 1.25;
 }
 #passenger-itinerary-container .table td,
 #cargo-itinerary-container .table td {
@@ -2640,6 +2657,81 @@ body.dark-mode #ops-sections-filters .form-check-input:checked + .form-check-lab
    caption-side: top;
    font-weight: 600;
    letter-spacing: 0.015em;
+}
+
+.ops-calendar-hint {
+   border-radius: 12px;
+   border: 1px solid rgba(13,71,161,0.16);
+   background: linear-gradient(135deg, rgba(226,242,253,0.85), rgba(255,255,255,0.92));
+   color: #0f3c68;
+   padding-top: 0.85rem;
+   padding-bottom: 0.85rem;
+}
+.ops-calendar-hint i {
+   color: #0d6efd;
+   font-size: 1.1rem;
+}
+
+.ops-summary-wrapper {
+   position: relative;
+   min-height: 160px;
+}
+.ops-summary-wrapper .is-loading {
+   opacity: 0.35;
+   filter: blur(1px);
+   pointer-events: none;
+   transition: opacity 0.25s ease;
+}
+#operations-summary-wrapper .section-loader {
+   padding: 1.5rem;
+}
+#operations-summary-wrapper .section-loader .loader-content {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 0.85rem;
+   max-width: 240px;
+   padding: 1.25rem 1.5rem;
+   margin: 0 auto;
+   border-radius: 16px;
+   background: rgba(255,255,255,0.92);
+   box-shadow: 0 18px 40px rgba(15,76,129,0.18);
+}
+#operations-summary-wrapper .section-loader .plane-orbit {
+   width: 150px;
+   height: 150px;
+}
+#operations-summary-wrapper .section-loader .loader-text {
+   font-size: 0.92rem;
+   color: #0f3c68;
+   font-weight: 600;
+}
+
+body.dark-mode .ops-calendar-hint {
+   background: rgba(15,23,42,0.72);
+   border-color: rgba(148,197,255,0.28);
+   color: #dbeafe;
+}
+body.dark-mode .ops-calendar-hint i {
+   color: #93c5fd;
+}
+body.dark-mode .ops-summary-wrapper .is-loading {
+   opacity: 0.28;
+}
+body.dark-mode #operations-summary-wrapper .section-loader {
+   background: rgba(15,23,42,0.78);
+}
+body.dark-mode #operations-summary-wrapper .section-loader .loader-content {
+   background: rgba(30,41,59,0.88);
+   box-shadow: 0 18px 40px rgba(0,0,0,0.32);
+}
+body.dark-mode #operations-summary-wrapper .section-loader .loader-text {
+   color: #e2e8f0;
+}
+body.dark-mode #operations-summary-wrapper .section-loader .plane-orbit .orbit-ring {
+   border-color: rgba(148,197,255,0.2);
+   border-top-color: rgba(56,189,248,0.75);
+   border-bottom-color: rgba(30,64,175,0.8);
 }
 
 @media (max-width: 768px) {
