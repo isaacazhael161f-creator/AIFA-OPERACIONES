@@ -8361,6 +8361,18 @@ function showMainApp() {
                 }
             } catch (_) {}
         }
+
+        const refreshOpsAfterLogin = () => {
+            const opsSection = document.getElementById('operaciones-totales-section');
+            if (!opsSection || !opsSection.classList.contains('active')) return;
+            try { updateOpsSummary(); } catch (err) { console.warn('updateOpsSummary after login failed:', err); }
+            try { renderOperacionesTotales(); } catch (err) { console.warn('renderOperacionesTotales after login failed:', err); }
+            try { setTimeout(() => { try { detectChartErrors(); } catch (_) {} }, 400); } catch (_) {}
+        };
+        const shouldRefreshOps = mainWasHidden || !Object.keys(opsCharts || {}).length;
+        if (shouldRefreshOps) {
+            setTimeout(refreshOpsAfterLogin, 120);
+        }
     }).catch(()=>{
         if (main) main.classList.add('hidden');
         if (login) login.classList.remove('hidden');
