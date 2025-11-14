@@ -396,6 +396,69 @@
                             </ul>
                             <div class="tab-content pt-3" id="operationsTabContent">
                                 <div class="tab-pane fade show active" id="resumen1-pane">
+                                    <div id="ops-entry-panel" class="card border-primary-subtle mb-4 d-none">
+                                        <div class="card-body">
+                                            <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+                                                <div>
+                                                    <h5 class="mb-1 d-flex align-items-center gap-2">
+                                                        <i class="fas fa-user-pen text-primary"></i>
+                                                        <span>Captura rápida del parte de operaciones</span>
+                                                    </h5>
+                                                    <p class="small text-muted mb-0">Solo Isaac López puede registrar llegadas y salidas manuales para complementar el resumen diario.</p>
+                                                </div>
+                                                <div class="text-lg-end">
+                                                    <span class="small text-muted d-block">Usuario activo</span>
+                                                    <span class="badge bg-primary-subtle text-primary" id="ops-entry-active-user">-</span>
+                                                </div>
+                                            </div>
+                                            <hr class="my-3">
+                                            <form id="ops-entry-form" class="ops-entry-form">
+                                                <div class="row g-3 align-items-end">
+                                                    <div class="col-12 col-md-4">
+                                                        <label for="ops-entry-date" class="form-label">Fecha del parte</label>
+                                                        <input type="date" class="form-control" id="ops-entry-date" required>
+                                                    </div>
+                                                    <div class="col-12 col-md-8 text-md-end d-flex flex-wrap justify-content-md-end gap-2">
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="ops-entry-sync-summary"><i class="fas fa-link me-1"></i>Usar fecha del resumen</button>
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="ops-entry-today"><i class="fas fa-calendar-day me-1"></i>Hoy</button>
+                                                        <button type="button" class="btn btn-outline-danger btn-sm" id="ops-entry-clear-day"><i class="fas fa-trash me-1"></i>Eliminar captura</button>
+                                                    </div>
+                                                </div>
+                                                <div class="table-responsive mt-3">
+                                                    <table class="table table-sm align-middle mb-0" id="ops-entry-table">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th scope="col">Tipo de operación</th>
+                                                                <th scope="col" class="text-center">Llegadas</th>
+                                                                <th scope="col" class="text-center">Salidas</th>
+                                                                <th scope="col" class="text-center">Subtotal</th>
+                                                                <th scope="col" class="text-center" style="width:48px"></th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody></tbody>
+                                                    </table>
+                                                </div>
+                                                <datalist id="ops-entry-type-suggestions">
+                                                    <option value="Aviación de pasajeros"></option>
+                                                    <option value="Aviación de carga"></option>
+                                                    <option value="Aviación general"></option>
+                                                    <option value="Militar"></option>
+                                                    <option value="Ambulancia aérea"></option>
+                                                    <option value="Servicios complementarios"></option>
+                                                </datalist>
+                                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+                                                    <div class="d-flex flex-wrap gap-2">
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="ops-entry-add-row"><i class="fas fa-plus me-1"></i>Agregar fila</button>
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="ops-entry-reset-table"><i class="fas fa-broom me-1"></i>Vaciar tabla</button>
+                                                    </div>
+                                                    <div class="d-flex flex-wrap gap-2">
+                                                        <button type="button" class="btn btn-primary btn-sm" id="ops-entry-save"><i class="fas fa-save me-1"></i>Guardar y aplicar</button>
+                                                    </div>
+                                                </div>
+                                                <p id="ops-entry-feedback" class="small text-muted mt-2 mb-0" role="status"></p>
+                                            </form>
+                                        </div>
+                                    </div>
                                     <div class="alert alert-warning d-flex align-items-start gap-3 ops-worknote" role="status">
                                         <i class="fas fa-person-digging fa-lg mt-1" aria-hidden="true"></i>
                                         <div>
@@ -700,35 +763,58 @@
                             </a>
                         </div>
                         <div class="card-body">
-                            <div id="medicas-analytics-pane" class="medicas-analytics-pane" tabindex="0">
-                                    <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
-                                        <span class="badge bg-success-subtle text-success fw-semibold" id="medicas-top-badge">Top mes: -</span>
-                                        <div class="d-flex flex-wrap align-items-center gap-3 ms-auto">
-                                            <div class="form-check form-switch m-0" title="Mostrar siempre etiquetas">
-                                                <input class="form-check-input" type="checkbox" id="medicasLabelsAlways">
-                                                <label class="form-check-label small" for="medicasLabelsAlways">Etiquetas</label>
-                                            </div>
-                                            <div class="form-check form-switch m-0" title="Mostrar porcentaje cuando sea relevante">
-                                                <input class="form-check-input" type="checkbox" id="medicasShowPct" checked>
-                                                <label class="form-check-label small" for="medicasShowPct">Porcentaje</label>
-                                            </div>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <label for="medicasTipo" class="small text-muted fw-semibold mb-0"><i class="fas fa-filter me-1"></i>Filtro</label>
-                                                <select id="medicasTipo" class="form-select form-select-sm">
-                                                    <option value="all" selected>Todo el personal</option>
-                                                    <option value="aifa">AIFA</option>
-                                                    <option value="otra">Otra Empresa</option>
-                                                    <option value="pasajeros">Pasajeros</option>
-                                                    <option value="visitantes">Visitantes</option>
-                                                </select>
+                            <ul class="nav nav-tabs mb-3" id="medicasTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="medicas-analytics-tab" data-bs-toggle="tab" data-bs-target="#medicas-analytics-pane" type="button" role="tab" aria-controls="medicas-analytics-pane" aria-selected="true"><i class="fas fa-chart-column me-2"></i>Indicadores</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="medicas-directorio-tab" data-bs-toggle="tab" data-bs-target="#medicas-directorio-pane" type="button" role="tab" aria-controls="medicas-directorio-pane" aria-selected="false"><i class="fas fa-address-book me-2"></i>Directorio</button>
+                                </li>
+                            </ul>
+                            <div class="tab-content" id="medicasTabsContent">
+                                <div id="medicas-analytics-pane" class="tab-pane fade show active medicas-analytics-pane" role="tabpanel" aria-labelledby="medicas-analytics-tab" tabindex="0">
+                                        <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+                                            <span class="badge bg-success-subtle text-success fw-semibold" id="medicas-top-badge">Top mes: -</span>
+                                            <div class="d-flex flex-wrap align-items-center gap-3 ms-auto">
+                                                <div class="form-check form-switch m-0" title="Mostrar siempre etiquetas">
+                                                    <input class="form-check-input" type="checkbox" id="medicasLabelsAlways">
+                                                    <label class="form-check-label small" for="medicasLabelsAlways">Etiquetas</label>
+                                                </div>
+                                                <div class="form-check form-switch m-0" title="Mostrar porcentaje cuando sea relevante">
+                                                    <input class="form-check-input" type="checkbox" id="medicasShowPct" checked>
+                                                    <label class="form-check-label small" for="medicasShowPct">Porcentaje</label>
+                                                </div>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <label for="medicasTipo" class="small text-muted fw-semibold mb-0"><i class="fas fa-filter me-1"></i>Filtro</label>
+                                                    <select id="medicasTipo" class="form-select form-select-sm">
+                                                        <option value="all" selected>Todo el personal</option>
+                                                        <option value="aifa">AIFA</option>
+                                                        <option value="otra">Otra Empresa</option>
+                                                        <option value="pasajeros">Pasajeros</option>
+                                                        <option value="visitantes">Visitantes</option>
+                                                    </select>
+                                                </div>
                                             </div>
                                         </div>
+                                        <div class="chart-container" style="height: 420px;">
+                                            <div id="medicasChart" class="echart-host w-100 h-100"></div>
+                                        </div>
+                                        <p class="small text-muted mt-3 mb-0">Fuente: Servicio Médico AIFA. Datos históricos 2022, clasificados por tipo de atención.</p>
                                     </div>
-                                    <div class="chart-container" style="height: 420px;">
-                                        <div id="medicasChart" class="echart-host w-100 h-100"></div>
+                                <div class="tab-pane fade" id="medicas-directorio-pane" role="tabpanel" aria-labelledby="medicas-directorio-tab" tabindex="0">
+                                    <div id="servicio-medico-embed" class="doc-embed-wrapper" data-doc-url="">
+                                        <div class="doc-embed-placeholder">
+                                            <i class="fas fa-file-signature"></i>
+                                            <h3 class="h6 mb-1">Directorio del Servicio Médico</h3>
+                                            <p class="mb-2">Proporciona el enlace de Google Docs o Sheets para mostrar el directorio oficial dentro de esta pestaña.</p>
+                                            <p class="small mb-0">Configura el atributo <code>data-doc-url</code> con la URL de vista previa compartida.</p>
+                                        </div>
+                                        <div class="doc-embed-frame ratio ratio-16x9 d-none">
+                                            <iframe class="doc-iframe d-none" src="" title="Directorio del Servicio Médico" loading="lazy" allowfullscreen referrerpolicy="no-referrer"></iframe>
+                                        </div>
                                     </div>
-                                    <p class="small text-muted mt-3 mb-0">Fuente: Servicio Médico AIFA. Datos históricos 2022, clasificados por tipo de atención.</p>
                                 </div>
+                            </div>
                         </div>
                     </div>
                 </div>

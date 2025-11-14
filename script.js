@@ -748,6 +748,14 @@ const WEEKLY_OPERATIONS_DATASETS = [
                 general: { operaciones: 5, pasajeros: 14 },
                 carga: { operaciones: 31, toneladas: 1079, corteFecha: '2025-11-09', corteNota: 'Cifras del 09 de noviembre de 2025.' }
             },
+
+            {
+                fecha: '2025-11-12',
+                label: '12 Nov 2025',
+                comercial: { operaciones: 149, pasajeros: 20757},
+                general: { operaciones: 9, pasajeros: 31 },
+                carga: { operaciones: 20, toneladas: 636, corteFecha: '2025-11-11', corteNota: 'Cifras del 11 de noviembre de 2025.' }
+            }
            
         ]
     },
@@ -4810,6 +4818,9 @@ function performLogout(){
         orientationHintMuteUntil = 0;
         refreshOrientationHint(currentSectionKey);
     } catch (_) {}
+    try {
+        updateParteOperacionesAvailabilityBanner(undefined, { skipBanner: true });
+    } catch (_) {}
 }
 
 let gsoNavVisibilityController = null;
@@ -8339,6 +8350,11 @@ function showMainApp() {
             const can = !!(u && u.canViewItinerarioMensual);
             menu.style.display = can ? '' : 'none';
         }
+        try {
+            ensureOpsEntryPanel();
+            const hasSummary = !!(parteOperacionesSummaryCache && Array.isArray(parteOperacionesSummaryCache.dates));
+            updateParteOperacionesAvailabilityBanner(parteOperacionesSummaryCache, { skipBanner: !hasSummary });
+        } catch (_) {}
         if (mainWasHidden) {
             try {
                 const startLink = document.querySelector('.menu-item[data-section="operaciones-totales"]');
@@ -10202,6 +10218,29 @@ let parteOperacionesSummaryCacheFetchedAt = 0;
 let parteOperacionesSummarySelectedDate = null;
 let parteOperacionesSummaryAvailableDates = [];
 let parteOperacionesSummaryTitleDefault = null;
+let parteOperacionesSummaryBaseCache = null;
+let parteOperacionesCustomEntriesStore = null;
+const PARTE_OPERACIONES_CUSTOM_KEY = 'parteOps.customEntries.v1';
+const PARTE_OPERACIONES_EDITORS = ['isaac lópez'];
+const PARTE_OPERACIONES_REMOTE_ENDPOINT = '/api/parte-operaciones/custom';
+const PARTE_OPERACIONES_REMOTE_SYNC_TTL = 2 * 60 * 1000;
+const PARTE_OPERACIONES_DIRTY_KEY = 'parteOps.unsyncedDates.v1';
+const parteOperacionesRemoteState = {
+    enabled: true,
+    healthy: false,
+    lastSync: 0,
+    syncPromise: null,
+    lastError: null
+};
+let parteOperacionesDirtyDates = new Set();
+let parteOperacionesDirtyLedgerLoaded = false;
+const parteOperacionesEntryState = {
+    initialized: false,
+    panel: null,
+    tableBody: null,
+    dateInput: null,
+    feedback: null
+};
 const parteOperacionesDateFormatter = new Intl.DateTimeFormat('es-MX', {
     weekday: 'long',
     year: 'numeric',
@@ -10214,16 +10253,235 @@ const parteOperacionesTitleFormatter = new Intl.DateTimeFormat('es-MX', {
     day: 'numeric'
 });
 
+function isValidParteOperacionesDate(value){
+    return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function ensureParteOperacionesDirtyLedger(){
+    if (parteOperacionesDirtyLedgerLoaded) return parteOperacionesDirtyDates;
+    parteOperacionesDirtyLedgerLoaded = true;
+    try {
+        const raw = localStorage.getItem(PARTE_OPERACIONES_DIRTY_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                parteOperacionesDirtyDates = new Set(parsed.filter(isValidParteOperacionesDate));
+            }
+        }
+    } catch (_) {}
+    return parteOperacionesDirtyDates;
+}
+
+function persistParteOperacionesDirtyLedger(){
+    if (!parteOperacionesDirtyLedgerLoaded) return;
+    try {
+        const payload = JSON.stringify(Array.from(parteOperacionesDirtyDates));
+        localStorage.setItem(PARTE_OPERACIONES_DIRTY_KEY, payload);
+    } catch (_) {}
+}
+
+function markParteOperacionesDateDirty(date){
+    if (!isValidParteOperacionesDate(date)) return;
+    ensureParteOperacionesDirtyLedger();
+    parteOperacionesDirtyDates.add(date);
+    persistParteOperacionesDirtyLedger();
+}
+
+function clearParteOperacionesDateDirty(date){
+    if (!isValidParteOperacionesDate(date)) return;
+    ensureParteOperacionesDirtyLedger();
+    if (parteOperacionesDirtyDates.delete(date)) {
+        persistParteOperacionesDirtyLedger();
+    }
+}
+
 function sanitizeParteOperacionesItem(item){
     if (!item || typeof item !== 'object') {
         return { tipo: 'Sin clasificar', llegada: 0, salida: 0, subtotal: 0 };
     }
-    return {
+    const sanitized = {
         tipo: (item?.tipo ?? 'Sin clasificar').toString().trim(),
         llegada: Number(item?.llegada) || 0,
         salida: Number(item?.salida) || 0,
         subtotal: Number(item?.subtotal) || 0
     };
+    if (item.__custom) sanitized.__custom = true;
+    return sanitized;
+}
+
+function normalizeParteOperacionesType(value){
+    return (value || '')
+        .toString()
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+}
+
+function shouldUseParteOperacionesRemoteBackend(){
+    if (typeof window === 'undefined') return false;
+    if (window.location && window.location.protocol === 'file:') return false;
+    if (typeof fetch !== 'function') return false;
+    return parteOperacionesRemoteState.enabled;
+}
+
+async function upsertParteOperacionesRemoteEntries(date, rows, options = {}){
+    if (!isValidParteOperacionesDate(date)) return false;
+    if (!shouldUseParteOperacionesRemoteBackend()) return false;
+    try {
+        const res = await fetch(PARTE_OPERACIONES_REMOTE_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date, entries: rows })
+        });
+        if (res.status === 404) {
+            parteOperacionesRemoteState.enabled = false;
+            throw new Error('Endpoint no disponible (404)');
+        }
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
+        parteOperacionesRemoteState.healthy = true;
+        parteOperacionesRemoteState.lastError = null;
+        parteOperacionesRemoteState.lastSync = 0;
+        return true;
+    } catch (err) {
+        parteOperacionesRemoteState.lastError = err;
+        parteOperacionesRemoteState.healthy = false;
+        if (!options.silent) {
+            console.warn('upsertParteOperacionesRemoteEntries failed:', err);
+        }
+        return false;
+    }
+}
+
+async function deleteParteOperacionesRemoteEntries(date, options = {}){
+    if (!isValidParteOperacionesDate(date)) return false;
+    if (!shouldUseParteOperacionesRemoteBackend()) return false;
+    try {
+        const endpoint = `${PARTE_OPERACIONES_REMOTE_ENDPOINT}/${encodeURIComponent(date)}`;
+        const res = await fetch(endpoint, { method: 'DELETE' });
+        if (res.status === 404) {
+            parteOperacionesRemoteState.enabled = false;
+            throw new Error('Endpoint no disponible (404)');
+        }
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
+        parteOperacionesRemoteState.healthy = true;
+        parteOperacionesRemoteState.lastError = null;
+        parteOperacionesRemoteState.lastSync = 0;
+        return true;
+    } catch (err) {
+        parteOperacionesRemoteState.lastError = err;
+        parteOperacionesRemoteState.healthy = false;
+        if (!options.silent) {
+            console.warn('deleteParteOperacionesRemoteEntries failed:', err);
+        }
+        return false;
+    }
+}
+
+async function flushParteOperacionesDirtyDates(options = {}){
+    if (!shouldUseParteOperacionesRemoteBackend()) return false;
+    const ledger = ensureParteOperacionesDirtyLedger();
+    if (!ledger.size) return false;
+    let flushed = false;
+    for (const date of Array.from(ledger)) {
+        const store = ensureParteOperacionesCustomStore();
+        const entries = Array.isArray(store?.dates?.[date]) ? store.dates[date] : [];
+        let success = false;
+        if (entries.length) {
+            success = await upsertParteOperacionesRemoteEntries(date, entries, { silent: true });
+        } else {
+            success = await deleteParteOperacionesRemoteEntries(date, { silent: true });
+        }
+        if (success) {
+            clearParteOperacionesDateDirty(date);
+            flushed = true;
+        } else {
+            break;
+        }
+    }
+    if (flushed && !options.skipResync) {
+        await syncParteOperacionesRemoteStore({ force: true, silent: true, skipFlush: true });
+    }
+    return flushed;
+}
+
+async function syncParteOperacionesRemoteStore(options = {}){
+    if (!shouldUseParteOperacionesRemoteBackend()) return false;
+    const now = Date.now();
+    if (!options.force && parteOperacionesRemoteState.lastSync && (now - parteOperacionesRemoteState.lastSync) < PARTE_OPERACIONES_REMOTE_SYNC_TTL) {
+        return parteOperacionesRemoteState.healthy;
+    }
+    if (parteOperacionesRemoteState.syncPromise) {
+        return parteOperacionesRemoteState.syncPromise;
+    }
+    const runner = (async () => {
+        if (!options.skipFlush) {
+            try {
+                await flushParteOperacionesDirtyDates({ skipResync: true });
+            } catch (err) {
+                console.warn('flushParteOperacionesDirtyDates failed:', err);
+            }
+        }
+        try {
+            const res = await fetch(PARTE_OPERACIONES_REMOTE_ENDPOINT, {
+                headers: { Accept: 'application/json' },
+                cache: 'no-store'
+            });
+            if (res.status === 404) {
+                parteOperacionesRemoteState.enabled = false;
+                throw new Error('Endpoint no disponible (404)');
+            }
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+            const payload = await res.json();
+            const remoteDates = payload?.dates && typeof payload.dates === 'object' ? payload.dates : {};
+            const dirtyLedger = ensureParteOperacionesDirtyLedger();
+            const currentStore = ensureParteOperacionesCustomStore();
+            const safeDates = {};
+            Object.entries(remoteDates).forEach(([dateKey, entries]) => {
+                if (!isValidParteOperacionesDate(dateKey)) return;
+                if (dirtyLedger.has(dateKey)) {
+                    if (Array.isArray(currentStore?.dates?.[dateKey])) {
+                        safeDates[dateKey] = currentStore.dates[dateKey].map(sanitizeParteOperacionesItem);
+                    }
+                    return;
+                }
+                if (Array.isArray(entries) && entries.length) {
+                    safeDates[dateKey] = entries.map(sanitizeParteOperacionesItem);
+                }
+            });
+            if (currentStore?.dates) {
+                Object.entries(currentStore.dates).forEach(([dateKey, entries]) => {
+                    if (!safeDates[dateKey] && dirtyLedger.has(dateKey)) {
+                        safeDates[dateKey] = entries.map(sanitizeParteOperacionesItem);
+                    }
+                });
+            }
+            parteOperacionesCustomEntriesStore = { dates: safeDates };
+            saveParteOperacionesCustomStore();
+            parteOperacionesRemoteState.healthy = true;
+            parteOperacionesRemoteState.lastSync = Date.now();
+            parteOperacionesRemoteState.lastError = null;
+            rebuildParteOperacionesCacheFromLocal();
+            return true;
+        } catch (err) {
+            parteOperacionesRemoteState.lastError = err;
+            parteOperacionesRemoteState.healthy = false;
+            if (!options.silent) {
+                console.warn('syncParteOperacionesRemoteStore failed:', err);
+            }
+            return false;
+        } finally {
+            parteOperacionesRemoteState.syncPromise = null;
+        }
+    })();
+    parteOperacionesRemoteState.syncPromise = runner;
+    return runner;
 }
 
 function normalizeParteOperacionesSummary(raw){
@@ -10252,6 +10510,83 @@ function normalizeParteOperacionesSummary(raw){
     }
 
     return empty;
+}
+
+function ensureParteOperacionesCustomStore(){
+    if (parteOperacionesCustomEntriesStore) return parteOperacionesCustomEntriesStore;
+    parteOperacionesCustomEntriesStore = { dates: {} };
+    try {
+        const raw = localStorage.getItem(PARTE_OPERACIONES_CUSTOM_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object' && parsed.dates) {
+                parteOperacionesCustomEntriesStore = parsed;
+            }
+        }
+    } catch (_) {}
+    return parteOperacionesCustomEntriesStore;
+}
+
+function saveParteOperacionesCustomStore(){
+    if (!parteOperacionesCustomEntriesStore) return;
+    try {
+        localStorage.setItem(PARTE_OPERACIONES_CUSTOM_KEY, JSON.stringify(parteOperacionesCustomEntriesStore));
+    } catch (_) {}
+}
+
+function mergeParteOperacionesCustomEntries(summary){
+    if (!summary || !summary.byDate) return summary;
+    const store = ensureParteOperacionesCustomStore();
+    const combined = JSON.parse(JSON.stringify(summary));
+    combined.byDate = combined.byDate || {};
+    combined.dates = Array.isArray(combined.dates) ? combined.dates.slice() : [];
+    Object.entries(store?.dates || {}).forEach(([dateKey, entries]) => {
+        if (!Array.isArray(entries) || !entries.length) return;
+        if (!combined.byDate[dateKey]) {
+            combined.byDate[dateKey] = { operaciones: [], total_general: 0 };
+            if (!combined.dates.includes(dateKey)) combined.dates.push(dateKey);
+        }
+        const target = combined.byDate[dateKey];
+        const baseOps = Array.isArray(target.operaciones) ? target.operaciones : [];
+        const normalizedBase = baseOps.map(sanitizeParteOperacionesItem);
+        const normalizedCustom = entries.map(entry => Object.assign({}, sanitizeParteOperacionesItem(entry), { __custom: true }));
+        const merged = [...normalizedBase];
+        normalizedCustom.forEach(customItem => {
+            const baseKey = normalizeParteOperacionesType(customItem.tipo);
+            const existingIdx = merged.findIndex(it => normalizeParteOperacionesType(it.tipo) === baseKey);
+            if (existingIdx === -1) {
+                merged.push(customItem);
+                return;
+            }
+            const existing = merged[existingIdx];
+            merged[existingIdx] = {
+                tipo: existing.tipo,
+                llegada: existing.llegada + customItem.llegada,
+                salida: existing.salida + customItem.salida,
+                subtotal: existing.subtotal + customItem.subtotal,
+                __custom: existing.__custom || customItem.__custom
+            };
+        });
+        target.operaciones = merged;
+        if (typeof target.total_general !== 'number' || Number.isNaN(target.total_general)) {
+            target.total_general = 0;
+        }
+        const customTotals = normalizedCustom.reduce((acc, item) => acc + (Number(item.subtotal) || 0), 0);
+        target.total_general = Math.max(target.total_general, merged.reduce((acc, item) => acc + (Number(item.subtotal) || 0), 0));
+        if (customTotals > 0 && target.total_general < customTotals) {
+            target.total_general = customTotals;
+        }
+    });
+    combined.dates.sort();
+    return combined;
+}
+
+function rebuildParteOperacionesCacheFromLocal(){
+    if (!parteOperacionesSummaryBaseCache && !parteOperacionesSummaryCache) return;
+    const source = parteOperacionesSummaryBaseCache || parteOperacionesSummaryCache;
+    parteOperacionesSummaryCache = mergeParteOperacionesCustomEntries(source);
+    syncParteOperacionesCalendarControls(parteOperacionesSummaryCache);
+    renderParteOperacionesSummaryForCurrentSelection();
 }
 
 function formatParteOperacionesDate(dateStr){
@@ -10298,6 +10633,254 @@ function getDefaultParteOperacionesDate(summary){
     }
 
     return dates[dates.length - 1];
+}
+
+function canCurrentUserEditParteOperaciones(){
+    const name = (sessionStorage.getItem(SESSION_USER) || '').toLowerCase();
+    if (!name) return false;
+    return PARTE_OPERACIONES_EDITORS.includes(name);
+}
+
+function getCurrentParteOperacionesEditor(){
+    return sessionStorage.getItem(SESSION_USER) || '';
+}
+
+function ensureOpsEntryPanel(){
+    if (parteOperacionesEntryState.initialized) return parteOperacionesEntryState;
+    parteOperacionesEntryState.initialized = true;
+    parteOperacionesEntryState.panel = document.getElementById('ops-entry-panel');
+    parteOperacionesEntryState.tableBody = document.querySelector('#ops-entry-table tbody');
+    parteOperacionesEntryState.dateInput = document.getElementById('ops-entry-date');
+    parteOperacionesEntryState.feedback = document.getElementById('ops-entry-feedback');
+    parteOperacionesEntryState.addBtn = document.getElementById('ops-entry-add-row');
+    parteOperacionesEntryState.resetBtn = document.getElementById('ops-entry-reset-table');
+    parteOperacionesEntryState.saveBtn = document.getElementById('ops-entry-save');
+    parteOperacionesEntryState.clearDayBtn = document.getElementById('ops-entry-clear-day');
+    parteOperacionesEntryState.todayBtn = document.getElementById('ops-entry-today');
+    parteOperacionesEntryState.syncBtn = document.getElementById('ops-entry-sync-summary');
+    if (parteOperacionesEntryState.addBtn && !parteOperacionesEntryState.addBtn._wired) {
+        parteOperacionesEntryState.addBtn._wired = 1;
+        parteOperacionesEntryState.addBtn.addEventListener('click', () => addParteOperacionesEntryRow());
+    }
+    if (parteOperacionesEntryState.resetBtn && !parteOperacionesEntryState.resetBtn._wired) {
+        parteOperacionesEntryState.resetBtn._wired = 1;
+        parteOperacionesEntryState.resetBtn.addEventListener('click', () => resetParteOperacionesEntryTable());
+    }
+    if (parteOperacionesEntryState.saveBtn && !parteOperacionesEntryState.saveBtn._wired) {
+        parteOperacionesEntryState.saveBtn._wired = 1;
+        parteOperacionesEntryState.saveBtn.addEventListener('click', () => {
+            saveParteOperacionesEntriesForCurrentDate().catch((err) => {
+                console.warn('saveParteOperacionesEntriesForCurrentDate failed:', err);
+            });
+        });
+    }
+    if (parteOperacionesEntryState.clearDayBtn && !parteOperacionesEntryState.clearDayBtn._wired) {
+        parteOperacionesEntryState.clearDayBtn._wired = 1;
+        parteOperacionesEntryState.clearDayBtn.addEventListener('click', () => {
+            clearParteOperacionesEntriesForCurrentDate().catch((err) => {
+                console.warn('clearParteOperacionesEntriesForCurrentDate failed:', err);
+            });
+        });
+    }
+    if (parteOperacionesEntryState.todayBtn) parteOperacionesEntryState.todayBtn.addEventListener('click', () => setParteOperacionesEntryDate(new Date()));
+    if (parteOperacionesEntryState.syncBtn) parteOperacionesEntryState.syncBtn.addEventListener('click', () => {
+        if (parteOperacionesSummarySelectedDate) {
+            setParteOperacionesEntryDate(parteOperacionesSummarySelectedDate);
+        } else {
+            setParteOperacionesEntryDate(new Date());
+        }
+    });
+    document.addEventListener('click', (event) => {
+        if (event.target.closest('.ops-entry-remove-row')) {
+            const tr = event.target.closest('tr');
+            if (tr && parteOperacionesEntryState.tableBody) {
+                tr.remove();
+                updateParteOperacionesEntryTotals(tr.closest('table'));
+            }
+        }
+    });
+    document.addEventListener('input', (event) => {
+        const table = event.target.closest('#ops-entry-table');
+        if (table) {
+            if (event.target.matches('#ops-entry-table tbody tr td:nth-child(4) input')) {
+                event.target.dataset.manual = event.target.value ? '1' : '';
+            }
+            updateParteOperacionesEntryTotals(table);
+        }
+    });
+    if (parteOperacionesEntryState.dateInput && !parteOperacionesEntryState.dateInput.value) {
+        setParteOperacionesEntryDate(new Date());
+    }
+    return parteOperacionesEntryState;
+}
+
+function setParteOperacionesEntryDate(value){
+    const st = ensureOpsEntryPanel();
+    if (!st.dateInput) return;
+    if (value instanceof Date) {
+        const copy = new Date(value.getTime());
+        copy.setHours(0,0,0,0);
+        st.dateInput.value = copy.toISOString().slice(0,10);
+    } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        st.dateInput.value = value;
+    }
+    loadParteOperacionesEntriesForDate(st.dateInput.value);
+}
+
+function addParteOperacionesEntryRow(data = {}){
+    const st = ensureOpsEntryPanel();
+    if (!st.tableBody) return;
+    const tr = document.createElement('tr');
+    const llegada = Number(data.llegada);
+    const salida = Number(data.salida);
+    const subtotalValue = Number.isFinite(Number(data.subtotal)) ? Number(data.subtotal) : '';
+    const autoSubtotal = (Number.isFinite(llegada) ? llegada : 0) + (Number.isFinite(salida) ? salida : 0);
+    const manualAttr = subtotalValue !== '' && subtotalValue !== autoSubtotal ? 'data-manual="1"' : '';
+    tr.innerHTML = `
+        <td>
+            <input type="text" class="form-control form-control-sm" list="ops-entry-type-suggestions" value="${data.tipo || ''}" placeholder="Ej. Aviación de pasajeros" required>
+        </td>
+        <td><input type="number" min="0" class="form-control form-control-sm" value="${data.llegada ?? ''}" aria-label="Llegadas"></td>
+        <td><input type="number" min="0" class="form-control form-control-sm" value="${data.salida ?? ''}" aria-label="Salidas"></td>
+        <td><input type="number" min="0" class="form-control form-control-sm" value="${subtotalValue === '' ? '' : subtotalValue}" aria-label="Subtotal" ${manualAttr}></td>
+        <td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm ops-entry-remove-row" title="Eliminar fila"><i class="fas fa-times"></i></button></td>`;
+    st.tableBody.appendChild(tr);
+    updateParteOperacionesEntryTotals(st.tableBody.closest('table'));
+}
+
+function resetParteOperacionesEntryTable(){
+    const st = ensureOpsEntryPanel();
+    if (!st.tableBody) return;
+    st.tableBody.innerHTML = '';
+    addParteOperacionesEntryRow();
+}
+
+function readParteOperacionesEntryTable(){
+    const st = ensureOpsEntryPanel();
+    if (!st.tableBody) return [];
+    const rows = Array.from(st.tableBody.querySelectorAll('tr'));
+    return rows.map(row => {
+        const inputs = row.querySelectorAll('input');
+        const tipo = inputs[0]?.value || '';
+        const llegada = Number(inputs[1]?.value) || 0;
+        const salida = Number(inputs[2]?.value) || 0;
+        let subtotal = Number(inputs[3]?.value);
+        if (!Number.isFinite(subtotal) || subtotal <= 0) {
+            subtotal = llegada + salida;
+        }
+        return sanitizeParteOperacionesItem({ tipo, llegada, salida, subtotal, __custom: true });
+    }).filter(item => item.tipo);
+}
+
+function updateParteOperacionesEntryTotals(table){
+    if (!table) return;
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        if (inputs.length < 4) return;
+        const llegada = Number(inputs[1].value) || 0;
+        const salida = Number(inputs[2].value) || 0;
+        const subtotalInput = inputs[3];
+        if (!subtotalInput.dataset.manual) {
+            subtotalInput.value = llegada + salida;
+        }
+    });
+}
+
+function loadParteOperacionesEntriesForDate(date){
+    const st = ensureOpsEntryPanel();
+    if (!st.tableBody) return;
+    const store = ensureParteOperacionesCustomStore();
+    const entries = Array.isArray(store?.dates?.[date]) ? store.dates[date] : [];
+    st.tableBody.innerHTML = '';
+    if (!entries.length) {
+        addParteOperacionesEntryRow();
+        return;
+    }
+    entries.forEach(entry => addParteOperacionesEntryRow(entry));
+    if (st.feedback) st.feedback.textContent = entries.length ? `Se cargaron ${entries.length} filas guardadas para ${date}` : '';
+}
+
+async function clearParteOperacionesEntriesForCurrentDate(){
+    const st = ensureOpsEntryPanel();
+    if (!st.dateInput) return;
+    const date = (st.dateInput.value || '').trim();
+    if (!isValidParteOperacionesDate(date)) {
+        setParteOperacionesFeedback('Selecciona una fecha válida para eliminar.', 'danger');
+        return;
+    }
+    const store = ensureParteOperacionesCustomStore();
+    if (store.dates[date]) {
+        delete store.dates[date];
+        saveParteOperacionesCustomStore();
+    }
+    const useRemote = shouldUseParteOperacionesRemoteBackend();
+    if (useRemote) {
+        markParteOperacionesDateDirty(date);
+    }
+    loadParteOperacionesEntriesForDate(date);
+    setParteOperacionesFeedback('Eliminando captura...', 'muted');
+    let remoteSynced = false;
+    if (useRemote) {
+        remoteSynced = await deleteParteOperacionesRemoteEntries(date);
+        if (remoteSynced) {
+            clearParteOperacionesDateDirty(date);
+            await syncParteOperacionesRemoteStore({ force: true, silent: true, skipFlush: true }).catch(() => {});
+        }
+    }
+    setParteOperacionesFeedback(
+        remoteSynced ? 'Se eliminaron las capturas y se sincronizaron con el servidor.'
+            : (useRemote ? 'Captura eliminada localmente. Pendiente de sincronizar con el servidor.' : 'Captura eliminada.'),
+        remoteSynced ? 'success' : (useRemote ? 'warning' : 'success')
+    );
+    rebuildParteOperacionesCacheFromLocal();
+    loadParteOperacionesSummary({ force: true, silent: true, skipRemoteSync: remoteSynced }).catch(() => {});
+}
+
+async function saveParteOperacionesEntriesForCurrentDate(){
+    const st = ensureOpsEntryPanel();
+    if (!st.dateInput) return;
+    const date = (st.dateInput.value || '').trim();
+    if (!isValidParteOperacionesDate(date)) {
+        setParteOperacionesFeedback('Selecciona una fecha válida para guardar.', 'danger');
+        return;
+    }
+    const rows = readParteOperacionesEntryTable();
+    if (!rows.length) {
+        setParteOperacionesFeedback('Agrega al menos una fila para guardar.', 'danger');
+        return;
+    }
+    const store = ensureParteOperacionesCustomStore();
+    store.dates[date] = rows;
+    saveParteOperacionesCustomStore();
+    const useRemote = shouldUseParteOperacionesRemoteBackend();
+    if (useRemote) {
+        markParteOperacionesDateDirty(date);
+    }
+    setParteOperacionesFeedback('Guardando captura...', 'muted');
+    let remoteSynced = false;
+    if (useRemote) {
+        remoteSynced = await upsertParteOperacionesRemoteEntries(date, rows);
+        if (remoteSynced) {
+            clearParteOperacionesDateDirty(date);
+            await syncParteOperacionesRemoteStore({ force: true, silent: true, skipFlush: true }).catch(() => {});
+        }
+    }
+    setParteOperacionesFeedback(
+        remoteSynced ? `Captura guardada y sincronizada (${rows.length} filas).`
+            : (useRemote ? `Captura guardada localmente (${rows.length} filas). Se sincronizará cuando haya conexión.`
+                : `Captura guardada (${rows.length} filas).`),
+        remoteSynced ? 'success' : (useRemote ? 'warning' : 'success')
+    );
+    rebuildParteOperacionesCacheFromLocal();
+    loadParteOperacionesSummary({ force: true, silent: true, skipRemoteSync: remoteSynced }).catch(() => {});
+}
+
+function setParteOperacionesFeedback(message, tone = 'muted'){
+    const st = ensureOpsEntryPanel();
+    if (!st.feedback) return;
+    st.feedback.textContent = message || '';
+    st.feedback.className = `small text-${tone} mt-2 mb-0`;
 }
 
 const PARTE_OPERACIONES_LOADER_DELAY = 2600;
@@ -10381,9 +10964,20 @@ function scheduleParteOperacionesRender(callback, loaderMessage){
     }, delay);
 }
 
-function updateParteOperacionesAvailabilityBanner(summary){
+function updateParteOperacionesAvailabilityBanner(summary, options = {}){
     const bannerWrapper = document.querySelector('.ops-worknote');
-    if (!bannerWrapper) return;
+    const panelState = ensureOpsEntryPanel();
+    const canEdit = canCurrentUserEditParteOperaciones();
+    const activeUserLabel = document.getElementById('ops-entry-active-user');
+    if (activeUserLabel) activeUserLabel.textContent = getCurrentParteOperacionesEditor() || 'Sin sesión';
+    if (panelState.panel) {
+        panelState.panel.classList.toggle('d-none', !canEdit);
+    }
+    if (canEdit && panelState.tableBody && !panelState.tableBody.children.length) {
+        addParteOperacionesEntryRow();
+    }
+    const skipBanner = !!options.skipBanner;
+    if (!bannerWrapper || skipBanner) return;
     const hasData = Array.isArray(summary?.dates) && summary.dates.length > 0;
     if (!hasData) {
         bannerWrapper.classList.add('d-none');
@@ -10566,9 +11160,16 @@ function handleParteOperacionesDateChange(dateStr, options = {}){
 }
 
 async function loadParteOperacionesSummary(options = {}){
-    const { force = false, silent = false } = options;
+    const { force = false, silent = false, skipRemoteSync = false } = options;
     const container = document.getElementById('operations-summary-table');
     if (!container) return;
+    if (!skipRemoteSync) {
+        try {
+            await syncParteOperacionesRemoteStore({ silent: true });
+        } catch (err) {
+            console.warn('syncParteOperacionesRemoteStore before load failed:', err);
+        }
+    }
     if (!force && parteOperacionesSummaryCache){
         const isStale = parteOperacionesSummaryCacheFetchedAt && (Date.now() - parteOperacionesSummaryCacheFetchedAt > OPERATIONAL_REFRESH_INTERVAL);
         if (!isStale) {
@@ -10594,16 +11195,18 @@ async function loadParteOperacionesSummary(options = {}){
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const raw = await res.json();
         const normalized = normalizeParteOperacionesSummary(raw);
+        parteOperacionesSummaryBaseCache = normalized;
+        const merged = mergeParteOperacionesCustomEntries(normalized);
         const previousSelection = parteOperacionesSummarySelectedDate;
-        parteOperacionesSummaryCache = normalized;
+        parteOperacionesSummaryCache = merged;
         parteOperacionesSummaryCacheFetchedAt = Date.now();
-        syncParteOperacionesCalendarControls(normalized);
-        if (normalized.isLegacy) {
-            parteOperacionesSummarySelectedDate = normalized.dates[0] || null;
-        } else if (previousSelection && normalized.byDate[previousSelection]) {
+        syncParteOperacionesCalendarControls(merged);
+        if (merged.isLegacy) {
+            parteOperacionesSummarySelectedDate = merged.dates[0] || null;
+        } else if (previousSelection && merged.byDate[previousSelection]) {
             parteOperacionesSummarySelectedDate = previousSelection;
         } else if (parteOperacionesSummaryAvailableDates.length) {
-        parteOperacionesSummarySelectedDate = getDefaultParteOperacionesDate(normalized) || parteOperacionesSummaryAvailableDates[parteOperacionesSummaryAvailableDates.length - 1];
+        parteOperacionesSummarySelectedDate = getDefaultParteOperacionesDate(merged) || parteOperacionesSummaryAvailableDates[parteOperacionesSummaryAvailableDates.length - 1];
         } else {
             parteOperacionesSummarySelectedDate = null;
         }

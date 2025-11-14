@@ -383,6 +383,15 @@
       if (sp && !sp._medBound) { sp._medBound = true; sp.addEventListener('change', ()=> safeRender()); }
       const st = document.getElementById('medicasTipo');
       if (st && !st._medBound) { st._medBound = true; st.addEventListener('change', ()=> safeRender()); }
+      const tabsEl = document.getElementById('medicasTabs');
+      if (tabsEl && !tabsEl._medBound) {
+        tabsEl._medBound = true;
+        tabsEl.addEventListener('shown.bs.tab', (event)=>{
+          if (event?.target?.id === 'medicas-analytics-tab') {
+            setTimeout(()=> safeRender(), 60);
+          }
+        });
+      }
     }
     safeRender();
   }

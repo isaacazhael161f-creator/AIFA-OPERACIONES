@@ -2902,360 +2902,360 @@
       "operaciones": [
         {
           "tipo": "Aviación de Pasajeros",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 70,
+          "salida": 70,
+          "subtotal": 140
         },
         {
           "tipo": "Aviación de Carga",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 17,
+          "salida": 18,
+          "subtotal": 35
         },
         {
           "tipo": "Aviación General",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 5,
+          "salida": 5,
+          "subtotal": 10
         }
       ],
-      "total_general": 0
+      "total_general": 185
     },
     "2025-05-08": {
       "operaciones": [
         {
           "tipo": "Aviación de Pasajeros",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 76,
+          "salida": 77,
+          "subtotal": 153
         },
         {
           "tipo": "Aviación de Carga",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 17,
+          "salida": 15,
+          "subtotal": 32
         },
         {
           "tipo": "Aviación General",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 3,
+          "salida": 2,
+          "subtotal": 5
         }
       ],
-      "total_general": 0
+      "total_general": 190
     },
     "2025-05-09": {
       "operaciones": [
         {
           "tipo": "Aviación de Pasajeros",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 80,
+          "salida": 75,
+          "subtotal": 155
         },
         {
           "tipo": "Aviación de Carga",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 20,
+          "salida": 21,
+          "subtotal": 41
         },
         {
           "tipo": "Aviación General",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 2,
+          "salida": 3,
+          "subtotal": 5
         }
       ],
-      "total_general": 0
+      "total_general": 201
     },
     "2025-05-10": {
       "operaciones": [
         {
           "tipo": "Aviación de Pasajeros",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 66,
+          "salida": 67,
+          "subtotal": 133
         },
         {
           "tipo": "Aviación de Carga",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 12,
+          "salida": 11,
+          "subtotal": 23
         },
         {
           "tipo": "Aviación General",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 3,
+          "salida": 4,
+          "subtotal": 7
         }
       ],
-      "total_general": 0
+      "total_general": 163
     },
     "2025-05-11": {
       "operaciones": [
         {
           "tipo": "Aviación de Pasajeros",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 70,
+          "salida": 72,
+          "subtotal": 142
         },
         {
           "tipo": "Aviación de Carga",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 15,
+          "salida": 13,
+          "subtotal": 28
         },
         {
           "tipo": "Aviación General",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 1,
+          "salida": 2,
+          "subtotal": 3
         }
       ],
-      "total_general": 0
+      "total_general": 173
     },
     "2025-05-12": {
       "operaciones": [
         {
           "tipo": "Aviación de Pasajeros",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 72,
+          "salida": 73,
+          "subtotal": 145
         },
         {
           "tipo": "Aviación de Carga",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 12,
+          "salida": 14,
+          "subtotal": 26
         },
         {
           "tipo": "Aviación General",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 3,
+          "salida": 1,
+          "subtotal": 4
         }
       ],
-      "total_general": 0
+      "total_general": 175
     },
     "2025-05-13": {
       "operaciones": [
         {
           "tipo": "Aviación de Pasajeros",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 68,
+          "salida": 66,
+          "subtotal": 134
         },
         {
           "tipo": "Aviación de Carga",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 16,
+          "salida": 17,
+          "subtotal": 33
         },
         {
           "tipo": "Aviación General",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 4,
+          "salida": 5,
+          "subtotal": 9
         }
       ],
-      "total_general": 0
+      "total_general": 176
     },
     "2025-05-14": {
       "operaciones": [
         {
           "tipo": "Aviación de Pasajeros",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 67,
+          "salida": 68,
+          "subtotal": 135
         },
         {
           "tipo": "Aviación de Carga",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 18,
+          "salida": 18,
+          "subtotal": 36
         },
         {
           "tipo": "Aviación General",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 6,
+          "salida": 6,
+          "subtotal": 12
         }
       ],
-      "total_general": 0
+      "total_general": 183
     },
     "2025-05-15": {
       "operaciones": [
         {
           "tipo": "Aviación de Pasajeros",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 71,
+          "salida": 60,
+          "subtotal": 131
         },
         {
           "tipo": "Aviación de Carga",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 16,
+          "salida": 17,
+          "subtotal": 33
         },
         {
           "tipo": "Aviación General",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 6,
+          "salida": 6,
+          "subtotal": 12
         }
       ],
-      "total_general": 0
+      "total_general": 176
     },
     "2025-05-16": {
       "operaciones": [
         {
           "tipo": "Aviación de Pasajeros",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 76,
+          "salida": 77,
+          "subtotal": 153
         },
         {
           "tipo": "Aviación de Carga",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 21,
+          "salida": 20,
+          "subtotal": 41
         },
         {
           "tipo": "Aviación General",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 6,
+          "salida": 5,
+          "subtotal": 11
         }
       ],
-      "total_general": 0
+      "total_general": 205
     },
     "2025-05-17": {
       "operaciones": [
         {
           "tipo": "Aviación de Pasajeros",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 67,
+          "salida": 65,
+          "subtotal": 132
         },
         {
           "tipo": "Aviación de Carga",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 13,
+          "salida": 15,
+          "subtotal": 28
         },
         {
           "tipo": "Aviación General",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 4,
+          "salida": 4,
+          "subtotal": 8
         }
       ],
-      "total_general": 0
+      "total_general": 168
     },
     "2025-05-18": {
       "operaciones": [
         {
           "tipo": "Aviación de Pasajeros",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 75,
+          "salida": 75,
+          "subtotal": 150
         },
         {
           "tipo": "Aviación de Carga",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 16,
+          "salida": 13,
+          "subtotal": 29
         },
         {
           "tipo": "Aviación General",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 3,
+          "salida": 6,
+          "subtotal": 9
         }
       ],
-      "total_general": 0
+      "total_general": 188
     },
     "2025-05-19": {
       "operaciones": [
         {
           "tipo": "Aviación de Pasajeros",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 73,
+          "salida": 74,
+          "subtotal": 147
         },
         {
           "tipo": "Aviación de Carga",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 15,
+          "salida": 17,
+          "subtotal": 32
         },
         {
           "tipo": "Aviación General",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 10,
+          "salida": 4,
+          "subtotal": 14
         }
       ],
-      "total_general": 0
+      "total_general": 193
     },
     "2025-05-20": {
       "operaciones": [
         {
           "tipo": "Aviación de Pasajeros",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 68,
+          "salida": 66,
+          "subtotal": 134
         },
         {
           "tipo": "Aviación de Carga",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 13,
+          "salida": 14,
+          "subtotal": 27
         },
         {
           "tipo": "Aviación General",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 5,
+          "salida": 5,
+          "subtotal": 10
         }
       ],
-      "total_general": 0
+      "total_general": 171
     },
     "2025-05-21": {
       "operaciones": [
         {
           "tipo": "Aviación de Pasajeros",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 68,
+          "salida": 68,
+          "subtotal": 136
         },
         {
           "tipo": "Aviación de Carga",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 20,
+          "salida": 19,
+          "subtotal": 39
         },
         {
           "tipo": "Aviación General",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 4,
+          "salida": 6,
+          "subtotal": 10
         }
       ],
-      "total_general": 0
+      "total_general": 185
     },
     "2025-05-22": {
       "operaciones": [
         {
           "tipo": "Aviación de Pasajeros",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 70,
+          "salida": 73,
+          "subtotal": 143
         },
         {
           "tipo": "Aviación de Carga",
-          "llegada": 0,
-          "salida": 0,
-          "subtotal": 0
+          "llegada": 20,
+          "salida": 20,
+          "subtotal": 40
         },
         {
           "tipo": "Aviación General",
@@ -7267,11 +7267,41 @@
         }
       ],
       "total_general": 199
+    },
+
+    "2025-11-13": {
+      "operaciones": [
+        {
+          "tipo": "Aviación de Pasajeros",
+          "llegada": 80,
+          "salida": 81,
+          "subtotal": 161
+        },
+        {
+          "tipo": "Aviación de Carga",
+          "llegada": 21,
+          "salida": 18,
+          "subtotal": 39
+        },
+        {
+          "tipo": "Aviación General",
+          "llegada": 4,
+          "salida": 5,
+          "subtotal": 9
+        }
+      ],
+      "total_general": 209
     }
+
+
+
+
+
+    
   },
   "metadata": {
     "version": 1,
-    "ultima_actualizacion": "2025-11-12",
+    "ultima_actualizacion": "2025-11-13",
     "descripcion": "Plantilla diaria para parte de operaciones 2025"
   }
 }
