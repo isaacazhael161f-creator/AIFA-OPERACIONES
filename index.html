@@ -756,7 +756,6 @@
                         <div class="card-header bg-transparent d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
                             <div>
                                 <h2 class="section-title mb-1">Servicio Médico</h2>
-                                <p class="section-subheading mb-0">Indicadores históricos y coordinación en vivo del Servicio Médico.</p>
                             </div>
                             <a id="servicio-medico-open" class="btn btn-outline-primary btn-sm d-none" href="#" target="_blank" rel="noopener">
                                 <i class="fas fa-external-link-alt me-1"></i>Abrir en Google Docs
@@ -765,14 +764,40 @@
                         <div class="card-body">
                             <ul class="nav nav-tabs mb-3" id="medicasTabs" role="tablist">
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="medicas-analytics-tab" data-bs-toggle="tab" data-bs-target="#medicas-analytics-pane" type="button" role="tab" aria-controls="medicas-analytics-pane" aria-selected="true"><i class="fas fa-chart-column me-2"></i>Indicadores</button>
+                                    <button class="nav-link active" id="medicas-directorio-tab" data-bs-toggle="tab" data-bs-target="#medicas-directorio-pane" type="button" role="tab" aria-controls="medicas-directorio-pane" aria-selected="true"><i class="fas fa-address-book me-2"></i>Directorio</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="medicas-directorio-tab" data-bs-toggle="tab" data-bs-target="#medicas-directorio-pane" type="button" role="tab" aria-controls="medicas-directorio-pane" aria-selected="false"><i class="fas fa-address-book me-2"></i>Directorio</button>
+                                    <button class="nav-link" id="medicas-analytics-tab" data-bs-toggle="tab" data-bs-target="#medicas-analytics-pane" type="button" role="tab" aria-controls="medicas-analytics-pane" aria-selected="false"><i class="fas fa-chart-column me-2"></i>Indicadores</button>
                                 </li>
                             </ul>
                             <div class="tab-content" id="medicasTabsContent">
-                                <div id="medicas-analytics-pane" class="tab-pane fade show active medicas-analytics-pane" role="tabpanel" aria-labelledby="medicas-analytics-tab" tabindex="0">
+                                <div id="medicas-directorio-pane" class="tab-pane fade show active" role="tabpanel" aria-labelledby="medicas-directorio-tab" tabindex="0">
+                                    <div class="card border-0 shadow-sm medicas-directorio-card">
+                                        <div class="card-body">
+                                            <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-3">
+                                                <div>
+                                                    <h3 class="h6 mb-1 text-uppercase text-muted">Directorio operativo 2025</h3>
+                                                    <p class="mb-0 small text-muted">Haz clic en el nombre de cada documento para abrir el PDF correspondiente.</p>
+                                                </div>
+                                                <div class="d-flex flex-wrap gap-2">
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="medicas-directorio-reload">
+                                                        <i class="fas fa-rotate-right me-1"></i>Actualizar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div id="medicas-directorio-alert" class="alert alert-info d-none" role="status"></div>
+                                            <div id="medicas-directorio-loader" class="text-center py-4" role="status" aria-live="polite">
+                                                <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                                                <div class="mt-2 small text-muted">Cargando directorio...</div>
+                                            </div>
+                                            <div id="medicas-directorio-list" class="row g-3" data-doc-base="pdfs/directorio"></div>
+                                            <div id="medicas-directorio-empty" class="alert alert-warning d-none mb-0" role="status">
+                                                No hay registros de directorio disponibles. Verifica el archivo <code>data/directorio.json</code> y vuelve a intentarlo.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="medicas-analytics-pane" class="tab-pane fade medicas-analytics-pane" role="tabpanel" aria-labelledby="medicas-analytics-tab" tabindex="0">
                                         <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
                                             <span class="badge bg-success-subtle text-success fw-semibold" id="medicas-top-badge">Top mes: -</span>
                                             <div class="d-flex flex-wrap align-items-center gap-3 ms-auto">
@@ -801,19 +826,6 @@
                                         </div>
                                         <p class="small text-muted mt-3 mb-0">Fuente: Servicio Médico AIFA. Datos históricos 2022, clasificados por tipo de atención.</p>
                                     </div>
-                                <div class="tab-pane fade" id="medicas-directorio-pane" role="tabpanel" aria-labelledby="medicas-directorio-tab" tabindex="0">
-                                    <div id="servicio-medico-embed" class="doc-embed-wrapper" data-doc-url="">
-                                        <div class="doc-embed-placeholder">
-                                            <i class="fas fa-file-signature"></i>
-                                            <h3 class="h6 mb-1">Directorio del Servicio Médico</h3>
-                                            <p class="mb-2">Proporciona el enlace de Google Docs o Sheets para mostrar el directorio oficial dentro de esta pestaña.</p>
-                                            <p class="small mb-0">Configura el atributo <code>data-doc-url</code> con la URL de vista previa compartida.</p>
-                                        </div>
-                                        <div class="doc-embed-frame ratio ratio-16x9 d-none">
-                                            <iframe class="doc-iframe d-none" src="" title="Directorio del Servicio Médico" loading="lazy" allowfullscreen referrerpolicy="no-referrer"></iframe>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>

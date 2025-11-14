@@ -1633,11 +1633,17 @@ const dashboardData = {
         "Mauro Hernández": { password: "Mauro123", canViewItinerarioMensual: true },
         "Emily Beltrán": { password: "Emily67", canViewItinerarioMensual: true },
         "Director General": { password: "Dirección71", canViewItinerarioMensual: true },
-    "Director de Operación": { password: "OperacionesNLU", canViewItinerarioMensual: true },
-    "Jefe Mateos": { password: "2025M", canViewItinerarioMensual: true },
-    "Usuario1": { password: "AIFAOps", canViewItinerarioMensual: true },
-    "Dilery Urenda": { password: "DileryNLU", canViewItinerarioMensual: true },
-    "Isaac Hernández": { password: "CoordIsaac", canViewItinerarioMensual: true }
+        "Director de Operación": { password: "OperacionesNLU", canViewItinerarioMensual: true },
+        "Jefe Mateos": { password: "2025M", canViewItinerarioMensual: true },
+        "Usuario1": { password: "AIFAOps", canViewItinerarioMensual: true },
+        "Dilery Urenda": { password: "DileryNLU", canViewItinerarioMensual: true },
+        "Isaac Hernández": { password: "CoordIsaac", canViewItinerarioMensual: true },
+        "Germán Nuñez": {
+            password: "DrGerman12",
+            canViewItinerarioMensual: false,
+            allowedSections: ["medicas"],
+            defaultSection: "medicas"
+        }
     },
     pdfSections: { "itinerario-mensual": { title: "Itinerario Mensual", url: "pdfs/itinerario_mensual.pdf" } }
 };
@@ -1646,6 +1652,285 @@ let summaryDetailMode = 'airline';
 let summarySelectedAirline = null;
 let summarySelectedPosition = null;
 let summarySelectionLocked = false;
+const SERVICIO_MEDICO_DIRECTORIO_DATA_PATH = 'data/directorio.json';
+const SERVICIO_MEDICO_DIRECTORIO_DEFAULT_BASE = 'pdfs/directorio';
+const servicioMedicoDirectorioState = {
+    cache: null,
+    lastFetch: 0,
+    inFlight: null
+};
+let userSectionWhitelist = null;
+let userDefaultSectionKey = 'operaciones-totales';
+
+function sanitizeDirectorioEntry(raw) {
+    if (!raw || typeof raw !== 'object') {
+        return { asunto: 'Sin asunto', responsable: '', estado: '', documentos: [] };
+    }
+    const documentos = Array.isArray(raw.documentos)
+        ? raw.documentos
+            .filter(item => typeof item === 'string' && item.trim().length)
+            .map(item => item.trim())
+        : [];
+    return {
+        asunto: (raw.asunto || 'Sin asunto').toString().trim() || 'Sin asunto',
+        responsable: (raw.responsable || '').toString().trim(),
+        estado: (raw.estado || '').toString().trim(),
+        documentos
+    };
+}
+
+function getDirectorioDocBasePath() {
+    try {
+        const listEl = document.getElementById('medicas-directorio-list');
+        if (!listEl) return SERVICIO_MEDICO_DIRECTORIO_DEFAULT_BASE;
+        const base = (listEl.dataset.docBase || '').trim();
+        const sanitized = base.replace(/\\/g, '/').replace(/\s+/g, '');
+        return sanitized || SERVICIO_MEDICO_DIRECTORIO_DEFAULT_BASE;
+    } catch (err) {
+        console.warn('getDirectorioDocBasePath failed:', err);
+        return SERVICIO_MEDICO_DIRECTORIO_DEFAULT_BASE;
+    }
+}
+
+function buildDirectorioDocUrl(filename) {
+    if (!filename || typeof filename !== 'string') return null;
+    const trimmed = filename.trim();
+    if (!trimmed) return null;
+    if (/^(https?:|data:)/i.test(trimmed)) return trimmed;
+    if (trimmed.startsWith('/') || trimmed.startsWith('./') || trimmed.startsWith('../')) {
+        return trimmed.replace(/\\/g, '/');
+    }
+    const normalized = trimmed.replace(/\\/g, '/');
+    const encodedSegments = normalized
+        .split('/')
+        .filter(Boolean)
+        .map(segment => encodeURIComponent(segment.trim()));
+    const base = getDirectorioDocBasePath().replace(/\\/g, '/').replace(/\/+$/, '');
+    return `${base}/${encodedSegments.join('/')}`;
+}
+
+function setDirectorioAlert(message, tone = 'info') {
+    const alertEl = document.getElementById('medicas-directorio-alert');
+    if (!alertEl) return;
+    if (!message) {
+        alertEl.classList.add('d-none');
+        alertEl.textContent = '';
+        return;
+    }
+    alertEl.className = `alert alert-${tone}`;
+    alertEl.textContent = message;
+    alertEl.classList.remove('d-none');
+}
+
+function toggleDirectorioLoader(visible) {
+    const loader = document.getElementById('medicas-directorio-loader');
+    if (!loader) return;
+    loader.classList.toggle('d-none', !visible);
+    loader.setAttribute('aria-hidden', visible ? 'false' : 'true');
+}
+
+function renderServicioMedicoDirectorio(entries) {
+    const listEl = document.getElementById('medicas-directorio-list');
+    const emptyEl = document.getElementById('medicas-directorio-empty');
+    if (!listEl) return;
+    toggleDirectorioLoader(false);
+    if (!Array.isArray(entries) || !entries.length) {
+        listEl.innerHTML = '';
+        if (emptyEl) emptyEl.classList.remove('d-none');
+        return;
+    }
+    if (emptyEl) emptyEl.classList.add('d-none');
+    const escapeHtml = escapeHTML;
+    const markup = entries.map((entry) => {
+        const docs = entry.documentos.length
+            ? entry.documentos.map((doc, docIndex) => {
+                const safeLabel = escapeHtml(doc);
+                const docUrl = buildDirectorioDocUrl(doc);
+                const docNumber = docIndex + 1;
+                if (docUrl) {
+                    return `
+                        <a class="btn btn-outline-primary btn-sm directorio-doc-link" href="${escapeHtml(docUrl)}" target="_blank" rel="noopener noreferrer" data-directorio-doc="${escapeHtml(doc)}">
+                            <i class="fas fa-file-pdf me-1" aria-hidden="true"></i>${safeLabel}
+                            <span class="visually-hidden">(Documento ${docNumber})</span>
+                        </a>`;
+                }
+                return `
+                    <button type="button" class="btn btn-outline-secondary btn-sm directorio-doc-fallback" data-directorio-doc="${escapeHtml(doc)}">
+                        <i class="fas fa-file-circle-xmark me-1" aria-hidden="true"></i>${safeLabel}
+                    </button>`;
+            }).join('')
+            : '<span class="badge bg-light text-muted">Sin documentos adjuntos</span>';
+        const responsableLine = entry.responsable
+            ? `<p class="mb-1 small text-muted"><i class="fas fa-user-tie me-1" aria-hidden="true"></i>${escapeHtml(entry.responsable)}</p>`
+            : '';
+        const estadoBadge = entry.estado
+            ? `<span class="badge bg-primary-subtle text-primary">${escapeHtml(entry.estado)}</span>`
+            : '';
+        return `
+            <div class="col-12">
+                <div class="border rounded-3 p-3 h-100 directorio-entry">
+                    <div class="d-flex flex-column flex-sm-row justify-content-between gap-2 mb-2">
+                        <div>
+                            <p class="text-uppercase small text-muted mb-1">Asunto</p>
+                            <h4 class="h6 mb-0">${escapeHtml(entry.asunto)}${estadoBadge ? ' ' + estadoBadge : ''}</h4>
+                        </div>
+                    </div>
+                    ${responsableLine}
+                    <div class="mt-3">
+                        <p class="mb-2 fw-semibold small text-muted"><i class="fas fa-folder-open me-1" aria-hidden="true"></i>Documentos</p>
+                        <div class="d-flex flex-wrap gap-2">${docs}</div>
+                    </div>
+                </div>
+            </div>`;
+    }).join('');
+    listEl.innerHTML = markup;
+}
+
+async function loadServicioMedicoDirectorio(options = {}) {
+    const listEl = document.getElementById('medicas-directorio-list');
+    if (!listEl) return;
+    const { force = false } = options;
+    setDirectorioAlert('', 'info');
+    if (!force && Array.isArray(servicioMedicoDirectorioState.cache) && servicioMedicoDirectorioState.cache.length) {
+        renderServicioMedicoDirectorio(servicioMedicoDirectorioState.cache);
+        return;
+    }
+    toggleDirectorioLoader(true);
+    try {
+        if (servicioMedicoDirectorioState.inFlight && !force) {
+            await servicioMedicoDirectorioState.inFlight;
+            renderServicioMedicoDirectorio(servicioMedicoDirectorioState.cache || []);
+            return;
+        }
+        const fetchPromise = fetch(SERVICIO_MEDICO_DIRECTORIO_DATA_PATH, { cache: 'no-store' })
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                return res.json();
+            })
+            .then((payload) => {
+                const entries = Array.isArray(payload) ? payload.map(sanitizeDirectorioEntry) : [];
+                servicioMedicoDirectorioState.cache = entries;
+                servicioMedicoDirectorioState.lastFetch = Date.now();
+                return entries;
+            });
+        servicioMedicoDirectorioState.inFlight = fetchPromise;
+        const entries = await fetchPromise;
+        renderServicioMedicoDirectorio(entries);
+    } catch (err) {
+        console.warn('loadServicioMedicoDirectorio failed:', err);
+        setDirectorioAlert('No se pudo cargar el directorio. Intenta nuevamente.', 'warning');
+        toggleDirectorioLoader(false);
+        const emptyEl = document.getElementById('medicas-directorio-empty');
+        if (emptyEl) emptyEl.classList.remove('d-none');
+    } finally {
+        servicioMedicoDirectorioState.inFlight = null;
+    }
+}
+
+function initServicioMedicoDirectorio() {
+    const reloadBtn = document.getElementById('medicas-directorio-reload');
+    if (reloadBtn && !reloadBtn._wired) {
+        reloadBtn._wired = 1;
+        reloadBtn.addEventListener('click', () => {
+            loadServicioMedicoDirectorio({ force: true }).catch((err) => console.warn('reload directorio failed:', err));
+        });
+    }
+    loadServicioMedicoDirectorio().catch((err) => console.warn('init directorio failed:', err));
+}
+
+function handleDirectorioDocClick(target) {
+    if (!target) return;
+    const docName = target.getAttribute('data-directorio-doc');
+    const url = buildDirectorioDocUrl(docName);
+    if (!url) {
+        setDirectorioAlert('No se pudo abrir el documento solicitado.', 'warning');
+        return;
+    }
+    try {
+        window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+        console.warn('handleDirectorioDocClick failed:', err);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initServicioMedicoDirectorio();
+});
+
+document.addEventListener('click', (event) => {
+    const trigger = event.target?.closest?.('.directorio-doc-fallback, .directorio-doc-link');
+    if (!trigger) return;
+    const isAnchorWithHref = trigger.tagName === 'A' && trigger.getAttribute('href');
+    if (isAnchorWithHref) return; // let browser handle real links
+    event.preventDefault();
+    handleDirectorioDocClick(trigger);
+});
+
+function normalizeSectionKey(key) {
+    return (key || '').toString().trim();
+}
+
+function resetSectionPermissions() {
+    userSectionWhitelist = null;
+    userDefaultSectionKey = 'operaciones-totales';
+    document.querySelectorAll('.menu-item[data-section]').forEach((item) => item.classList.remove('perm-hidden'));
+    document.querySelectorAll('.content-section').forEach((section) => section.classList.remove('perm-hidden'));
+}
+
+function isSectionAllowed(sectionKey) {
+    if (!sectionKey) return true;
+    if (!Array.isArray(userSectionWhitelist) || !userSectionWhitelist.length) return true;
+    return userSectionWhitelist.includes(sectionKey);
+}
+
+function getDefaultAllowedSection() {
+    if (Array.isArray(userSectionWhitelist) && userSectionWhitelist.length) {
+        if (userDefaultSectionKey && userSectionWhitelist.includes(userDefaultSectionKey)) {
+            return userDefaultSectionKey;
+        }
+        return userSectionWhitelist[0];
+    }
+    return 'operaciones-totales';
+}
+
+function applySectionPermissions(userName) {
+    resetSectionPermissions();
+    const users = dashboardData?.users || {};
+    const user = users[userName];
+    const rawWhitelist = Array.isArray(user?.allowedSections)
+        ? user.allowedSections.map((section) => normalizeSectionKey(section)).filter(Boolean)
+        : [];
+
+    if (rawWhitelist.length) {
+        userSectionWhitelist = [...new Set(rawWhitelist)];
+        const preferred = normalizeSectionKey(user?.defaultSection);
+        userDefaultSectionKey = preferred && userSectionWhitelist.includes(preferred)
+            ? preferred
+            : userSectionWhitelist[0];
+
+        document.querySelectorAll('.menu-item[data-section]').forEach((item) => {
+            const sectionKey = normalizeSectionKey(item.dataset.section);
+            if (!userSectionWhitelist.includes(sectionKey)) {
+                item.classList.add('perm-hidden');
+            }
+        });
+        document.querySelectorAll('.content-section').forEach((sectionEl) => {
+            const key = normalizeSectionKey((sectionEl.id || '').replace(/-section$/, ''));
+            if (!userSectionWhitelist.includes(key)) {
+                sectionEl.classList.add('perm-hidden');
+                sectionEl.classList.remove('active');
+            }
+        });
+
+        if (!isSectionAllowed(currentSectionKey)) {
+            const fallback = getDefaultAllowedSection();
+            const fallbackLink = document.querySelector(`.menu-item[data-section="${fallback}"]`);
+            showSection(fallback, fallbackLink);
+        }
+    }
+}
 // Hashes de contraseñas (generados en cliente al inicio y luego se descartan passwords en claro)
 const AUTH_HASHES = Object.create(null);
 const SECRET_PW_SALT = 'aifa.ops.local.pw.v1';
@@ -4709,16 +4994,28 @@ function hideGlobalLoader() {
 // Navegación: mostrar sección y marcar menú activo
 function showSection(sectionKey, linkEl) {
     try {
-        const targetId = `${sectionKey}-section`;
+        let targetKey = sectionKey || currentSectionKey || getDefaultAllowedSection();
+        if (!isSectionAllowed(targetKey)) {
+            const fallback = getDefaultAllowedSection();
+            if (!fallback) return;
+            targetKey = fallback;
+            if (!linkEl) {
+                linkEl = document.querySelector(`.menu-item[data-section="${fallback}"]`);
+            }
+        }
+        if (!linkEl && targetKey) {
+            linkEl = document.querySelector(`.menu-item[data-section="${targetKey}"]`);
+        }
+        const targetId = `${targetKey}-section`;
         document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
         const target = document.getElementById(targetId);
         if (target) target.classList.add('active');
-        if (sectionKey) currentSectionKey = sectionKey;
+        if (targetKey) currentSectionKey = targetKey;
         // Marcar menú
         document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
         if (linkEl) linkEl.classList.add('active');
         // Actualizar hash
-        try { history.replaceState(null, '', `#${sectionKey}`); } catch(_) {}
+        try { history.replaceState(null, '', `#${targetKey}`); } catch(_) {}
         // Cerrar sidebar en móvil
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebar-overlay');
@@ -4793,6 +5090,7 @@ function handleNavigation(e) {
 function performLogout(){
     hideGlobalLoader();
     resetLoginFormState();
+    resetSectionPermissions();
     try { destroyOpsCharts(); } catch(_){ }
     try {
         if (typeof window.destroyItinerarioCharts === 'function') {
@@ -8351,6 +8649,7 @@ function showMainApp() {
         if (main) main.classList.remove('hidden');
         // Usuario actual
         const userEl = document.getElementById('current-user'); if (userEl) userEl.textContent = name;
+        applySectionPermissions(name);
         // Permisos: Itinerario mensual
         const menu = document.getElementById('itinerario-mensual-menu');
         if (menu) {

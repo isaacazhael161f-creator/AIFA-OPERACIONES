@@ -1,0 +1,57 @@
+[
+  {
+    "asunto": "Agenda Pral. AIFA",
+    "responsable": "G.S.M.",
+    "estado": "",
+    "documentos": [
+      "Directorio 2025.pdf",
+      "Directorio 2.pdf"
+    ]
+  },
+  {
+    "asunto": "Contrato de servicio Médico",
+    "responsable": "Lic. José Luis Garcia Mateos. Admr. Contrato.",
+    "estado": "",
+    "documentos": [
+      "Contrato Jet Medical.pdf",
+      "Ficha Técnica SV Médico.pdf"
+    ]
+  },
+  {
+    "asunto": "Personal Proveedor de Servicio Médico.",
+    "responsable": "Lic. María Fernanda López Ficachi.",
+    "estado": "",
+    "documentos": [
+      "Listado Personal Octubre 2025.pdf"
+    ]
+  },
+  {
+    "asunto": "Equipo de Radiocomunicacion y Mobiliario Médico.",
+    "responsable": "",
+    "estado": "2025",
+    "documentos": [
+      "Mobiliario y Equipo Médico 2025.pdf",
+      "Resguardo inicio de contrato 2025.pdf"
+    ]
+  },
+  {
+    "asunto": "Estado de Fuerza G.S.M.",
+    "responsable": "",
+    "estado": "",
+    "documentos": []
+  },
+  {
+    "asunto": "Red Hospitalaria.",
+    "responsable": "",
+    "estado": "",
+    "documentos": [
+      "Red hospitalaria 2025.pdf"
+    ]
+  },
+  {
+    "asunto": "Estadística de atención Médica.",
+    "responsable": "",
+    "estado": "",
+    "documentos": []
+  }
+]

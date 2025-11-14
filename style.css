@@ -36,6 +36,9 @@ body {
    overflow-x: hidden;
    transition: background-color 0.3s, color 0.3s;
 }
+.perm-hidden {
+   display: none !important;
+}
 body.dark-mode {
    --primary-color: #4dabf7;
    --primary-color-dark: #1e88e5;
