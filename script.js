@@ -978,7 +978,7 @@ const staticData = {
             { mes: '08', label: 'Agosto', operaciones: 4500 },
             { mes: '09', label: 'Septiembre', operaciones: 4135 },
             { mes: '10', label: 'Octubre', operaciones: 4291 },
-            { mes: '11', label: 'Noviembre', operaciones: 1344 }
+            { mes: '11', label: 'Noviembre', operaciones: 1945 }
         ],
         // Pasajeros de aviación comercial por mes (con proyección conservadora 81% donde indica)
         comercialPasajeros: [
@@ -992,7 +992,7 @@ const staticData = {
             { mes: '08', label: 'Agosto', pasajeros: 630952 },
             { mes: '09', label: 'Septiembre', pasajeros: 546457 },
             { mes: '10', label: 'Octubre', pasajeros: 584629 },
-            { mes: '11', label: 'Noviembre', pasajeros: 182588 },
+            { mes: '11', label: 'Noviembre', pasajeros: 267011 },
             { mes: '12', label: 'Diciembre (Proy.)', pasajeros: 704718 }
         ],
         carga: [
@@ -1006,7 +1006,7 @@ const staticData = {
             { mes: '08', label: 'Agosto', operaciones: 1082 },
             { mes: '09', label: 'Septiembre', operaciones: 992},
             { mes: '10', label: 'Octubre', operaciones: 1155 },
-            { mes: '11', label: 'Noviembre', operaciones: 174 }
+            { mes: '11', label: 'Noviembre', operaciones: 361 }
         ],
         // Toneladas por mes (con nulos cuando no hay datos)
         cargaToneladas: [
@@ -1020,7 +1020,7 @@ const staticData = {
             { mes: '08', label: 'Agosto', toneladas: 35737.78 },
             { mes: '09', label: 'Septiembre', toneladas: 31076.71 },
             { mes: '10', label: 'Octubre', toneladas: 37273.41},
-            { mes: '11', label: 'Noviembre', toneladas: 5837.78 },
+            { mes: '11', label: 'Noviembre', toneladas: 12581.31 },
             { mes: '12', label: 'Diciembre', toneladas: null }
         ],
         // Aviación general (operaciones y pasajeros)
@@ -1036,7 +1036,7 @@ const staticData = {
                 { mes: '08', label: 'Agosto', operaciones: 282 },
                 { mes: '09', label: 'Septiembre', operaciones: 249 },
                 { mes: '10', label: 'Octubre', operaciones: 315 },
-                { mes: '11', label: 'Noviembre', operaciones: 97 },
+                { mes: '11', label: 'Noviembre', operaciones: 128 },
                 { mes: '12', label: 'Diciembre', operaciones: null }
             ],
             pasajeros: [
@@ -1050,7 +1050,7 @@ const staticData = {
                 { mes: '08', label: 'Agosto', pasajeros: 3033 },
                 { mes: '09', label: 'Septiembre', pasajeros: 948 },
                 { mes: '10', label: 'Octubre', pasajeros: 1298},
-                { mes: '11', label: 'Noviembre', pasajeros: 480 },
+                { mes: '11', label: 'Noviembre', pasajeros: 605 },
                 { mes: '12', label: 'Diciembre', pasajeros: null }
             ]
         }
@@ -1120,11 +1120,11 @@ const RAW_AVIATION_ANALYTICS_DATA = {
                 agosto: 4500,
                 septiembre: 4135,
                 octubre: 4306,
-                noviembre: 905,
+                noviembre: 1945,
                 diciembre: 0,
-                total_por_ano: 44353
+                total_por_ano: 45378
             },
-            acumulado: 128294
+            acumulado: 129319
         },
         pasajeros: {
             "2022": {
@@ -1183,11 +1183,11 @@ const RAW_AVIATION_ANALYTICS_DATA = {
                 agosto: 630952,
                 septiembre: 546457,
                 octubre: 549844,
-                noviembre: 120989,
+                noviembre: 267011,
                 diciembre: 0,
-                total_por_ano: 5826149
+                total_por_ano: 6006956
             },
-            acumulado: 15688279
+            acumulado: 15869086
         }
     },
     general: {
@@ -1248,11 +1248,11 @@ const RAW_AVIATION_ANALYTICS_DATA = {
                 agosto: 282,
                 septiembre: 249,
                 octubre: 315,
-                noviembre: 74,
+                noviembre: 128,
                 diciembre: 0,
-                total_por_ano: 2603
+                total_por_ano: 2657
             },
-            acumulado: 8050
+            acumulado: 8104
         },
         pasajeros: {
             "2022": {
@@ -1376,11 +1376,11 @@ const RAW_AVIATION_ANALYTICS_DATA = {
                 agosto: 1082,
                 septiembre: 992,
                 octubre: 1151,
-                noviembre: 95,
+                noviembre: 361,
                 diciembre: 0,
-                total_por_ano: 9862
+                total_por_ano: 10132
             },
-            acumulado: 28667
+            acumulado: 28937
         },
         tons_transportadas: {
             "2022": {
@@ -1439,11 +1439,11 @@ const RAW_AVIATION_ANALYTICS_DATA = {
                 agosto: 35737.78,
                 septiembre: 31076.71,
                 octubre: 37197.03,
-                noviembre: 3134.56,
+                noviembre: 12581.37,
                 diciembre: 0.0,
-                total_por_ano: 333028.55
+                total_por_ano: 342551.74
             },
-            acumulado: 966694.74
+            acumulado: 976217.93
         }
     }
 };
