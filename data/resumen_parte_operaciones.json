@@ -7315,6 +7315,52 @@
         }
       ],
       "total_general": 207
+    },
+    "2025-11-15": {
+      "operaciones": [
+        {
+          "tipo": "Aviación de Pasajeros",
+          "llegada": 73,
+          "salida": 72,
+          "subtotal": 145
+        },
+        {
+          "tipo": "Aviación de Carga",
+          "llegada": 21,
+          "salida": 21,
+          "subtotal": 42
+        },
+        {
+          "tipo": "Aviación General",
+          "llegada": 3,
+          "salida": 3,
+          "subtotal": 6
+        }
+      ],
+      "total_general": 193
+    },
+    "2025-11-16": {
+      "operaciones": [
+        {
+          "tipo": "Aviación de Pasajeros",
+          "llegada": 74,
+          "salida": 75,
+          "subtotal": 149
+        },
+        {
+          "tipo": "Aviación de Carga",
+          "llegada": 13,
+          "salida": 10,
+          "subtotal": 23
+        },
+        {
+          "tipo": "Aviación General",
+          "llegada": 5,
+          "salida": 7,
+          "subtotal": 12
+        }
+      ],
+      "total_general": 184
     }
     
   },
