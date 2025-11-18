@@ -726,12 +726,31 @@ function deepCloneWeek(week) {
 const WEEKLY_OPERATIONS_DATASETS = [
 
     {
+        id: '2025-11-17',
+        rango: {
+            inicio: '2025-11-17',
+            fin: '2025-11-23',
+            descripcion: describeWeekRange('2025-11-17', '2025-11-23'),
+            nota: 'Semana del (17 al 23 de noviembre de 2025). Datos en Integración. Cierre de datos al Lunes 17-Nov-2025.'
+        },
+        dias: [
+            {
+                fecha: '2025-11-17',
+                label: '17 Nov 2025',
+                comercial: { operaciones: 156, pasajeros: 21082 },
+                general: { operaciones: 6, pasajeros: 19 },
+                carga: { operaciones: 21, toneladas: 706, corteFecha: '2025-11-13', corteNota: 'Cifras del 13 de noviembre de 2025.' }
+            }
+        ]
+    },
+
+    {
         id: '2025-11-10',
         rango: {
             inicio: '2025-11-10',
             fin: '2025-11-16',
             descripcion: describeWeekRange('2025-11-10', '2025-11-16'),
-            nota: 'Semana del (10 al 16 de noviembre de 2025). Datos en Integración'
+            nota: 'Semana del (10 al 16 de noviembre de 2025).'
         },
         dias: [
             {
@@ -935,6 +954,44 @@ const WEEKLY_OPERATIONS_DATASETS = [
     }
 ];
 
+function getWeekStartDate(week) {
+    if (!week) return null;
+    const startIso = week?.rango?.inicio || (typeof week?.id === 'string' ? week.id : null);
+    return parseIsoDay(startIso || '');
+}
+
+function getMonthlyOrdinalFromDate(date) {
+    if (!(date instanceof Date)) return null;
+    const day = Number(date.getDate()) || 1;
+    const ordinal = Math.floor((day - 1) / 7) + 1;
+    return Math.max(1, Math.min(6, ordinal));
+}
+
+function buildWeeklyOrdinalMetadata() {
+    const map = Object.create(null);
+    WEEKLY_OPERATIONS_DATASETS.forEach((week) => {
+        if (!week || !week.id) return;
+        const start = getWeekStartDate(week);
+        if (!start) return;
+        const monthName = SPANISH_MONTH_NAMES[start.getMonth()] || '';
+        map[week.id] = {
+            ordinal: getMonthlyOrdinalFromDate(start),
+            monthName,
+            year: start.getFullYear()
+        };
+    });
+    return map;
+}
+
+const WEEKLY_ORDINAL_METADATA = buildWeeklyOrdinalMetadata();
+
+function formatSpanishOrdinalFeminine(n) {
+    if (!Number.isFinite(n) || n <= 0) return '';
+    const lookup = { 1: '1ª', 2: '2ª', 3: '3ª', 4: '4ª', 5: '5ª' };
+    if (lookup[n]) return lookup[n];
+    return `${n}ª`;
+}
+
 function resolveCurrentOperationsWeek(referenceDate = new Date()) {
     const today = normalizeDate(referenceDate instanceof Date ? referenceDate : new Date());
     const orderedWeeks = [...WEEKLY_OPERATIONS_DATASETS].sort((a, b) => {
@@ -986,9 +1043,9 @@ function resolveCurrentOperationsWeek(referenceDate = new Date()) {
 // Datos Anuales
 const staticData = {
     operacionesTotales: {
-        comercial: [ { periodo: '2022', operaciones: 8996, pasajeros: 912415 }, { periodo: '2023', operaciones: 23211, pasajeros: 2631261 }, { periodo: '2024', operaciones: 51734, pasajeros: 6318454 }, { periodo: '2025', operaciones: 45828, pasajeros: 6071021} ],
+        comercial: [ { periodo: '2022', operaciones: 8996, pasajeros: 912415 }, { periodo: '2023', operaciones: 23211, pasajeros: 2631261 }, { periodo: '2024', operaciones: 51734, pasajeros: 6318454 }, { periodo: '2025', operaciones: 45984, pasajeros: 6092103} ],
         carga: [ { periodo: '2022', operaciones: 8, toneladas: 5.19 }, { periodo: '2023', operaciones: 5578, toneladas: 186319.83}, { periodo: '2024', operaciones: 13219, toneladas: 447341.17 }, { periodo: '2025', operaciones: 10210, toneladas: 345071.96} ],
-        general: [ { periodo: '2022', operaciones: 458, pasajeros: 1385 }, { periodo: '2023', operaciones: 2212, pasajeros: 8160 }, { periodo: '2024', operaciones: 2777, pasajeros: 29637 }, { periodo: '2025', operaciones: 2682, pasajeros: 19391} ]
+        general: [ { periodo: '2022', operaciones: 458, pasajeros: 1385 }, { periodo: '2023', operaciones: 2212, pasajeros: 8160 }, { periodo: '2024', operaciones: 2777, pasajeros: 29637 }, { periodo: '2025', operaciones: 2688, pasajeros: 19410} ]
     },
     operacionesSemanasCatalogo: WEEKLY_OPERATIONS_DATASETS.map(deepCloneWeek),
     operacionesSemanaActual: resolveCurrentOperationsWeek(),
@@ -1005,7 +1062,7 @@ const staticData = {
             { mes: '08', label: 'Agosto', operaciones: 4500 },
             { mes: '09', label: 'Septiembre', operaciones: 4135 },
             { mes: '10', label: 'Octubre', operaciones: 4291 },
-            { mes: '11', label: 'Noviembre', operaciones: 2395 }
+            { mes: '11', label: 'Noviembre', operaciones: 2551 }
         ],
         // Pasajeros de aviación comercial por mes (con proyección conservadora 81% donde indica)
         comercialPasajeros: [
@@ -1019,7 +1076,7 @@ const staticData = {
             { mes: '08', label: 'Agosto', pasajeros: 630952 },
             { mes: '09', label: 'Septiembre', pasajeros: 546457 },
             { mes: '10', label: 'Octubre', pasajeros: 584629 },
-            { mes: '11', label: 'Noviembre', pasajeros: 331076 },
+            { mes: '11', label: 'Noviembre', pasajeros: 352158 },
             { mes: '12', label: 'Diciembre (Proy.)', pasajeros: 704718 }
         ],
         carga: [
@@ -1063,7 +1120,7 @@ const staticData = {
                 { mes: '08', label: 'Agosto', operaciones: 282 },
                 { mes: '09', label: 'Septiembre', operaciones: 249 },
                 { mes: '10', label: 'Octubre', operaciones: 315 },
-                { mes: '11', label: 'Noviembre', operaciones: 153 },
+                { mes: '11', label: 'Noviembre', operaciones: 159 },
                 { mes: '12', label: 'Diciembre', operaciones: null }
             ],
             pasajeros: [
@@ -1077,7 +1134,7 @@ const staticData = {
                 { mes: '08', label: 'Agosto', pasajeros: 3033 },
                 { mes: '09', label: 'Septiembre', pasajeros: 948 },
                 { mes: '10', label: 'Octubre', pasajeros: 1298},
-                { mes: '11', label: 'Noviembre', pasajeros: 702 },
+                { mes: '11', label: 'Noviembre', pasajeros: 721 },
                 { mes: '12', label: 'Diciembre', pasajeros: null }
             ]
         }
@@ -1147,11 +1204,11 @@ const RAW_AVIATION_ANALYTICS_DATA = {
                 agosto: 4500,
                 septiembre: 4135,
                 octubre: 4306,
-                noviembre: 2395,
+                noviembre: 2551,
                 diciembre: 0,
-                total_por_ano: 45828
+                total_por_ano: 45984
             },
-            acumulado: 129769
+            acumulado: 129925
         },
         pasajeros: {
             "2022": {
@@ -1210,11 +1267,11 @@ const RAW_AVIATION_ANALYTICS_DATA = {
                 agosto: 630952,
                 septiembre: 546457,
                 octubre: 549844,
-                noviembre: 331076,
+                noviembre: 352158,
                 diciembre: 0,
-                total_por_ano: 6071021
+                total_por_ano: 6092103
             },
-            acumulado: 15933151
+            acumulado: 15954233
         }
     },
     general: {
@@ -1275,11 +1332,11 @@ const RAW_AVIATION_ANALYTICS_DATA = {
                 agosto: 282,
                 septiembre: 249,
                 octubre: 315,
-                noviembre: 153,
+                noviembre: 159,
                 diciembre: 0,
-                total_por_ano: 2682
+                total_por_ano: 2688
             },
-            acumulado: 8129
+            acumulado: 8135
         },
         pasajeros: {
             "2022": {
@@ -1338,11 +1395,11 @@ const RAW_AVIATION_ANALYTICS_DATA = {
                 agosto: 3033,
                 septiembre: 948,
                 octubre: 1226,
-                noviembre: 702,
+                noviembre: 721,
                 diciembre: 0,
-                total_por_ano: 19391
+                total_por_ano: 19410
             },
-            acumulado: 58573
+            acumulado: 58592
         }
     },
     carga: {
@@ -5964,6 +6021,28 @@ function formatWeekLabel(week) {
     return week?.id || 'Semana';
 }
 
+function formatWeekOrdinalLabel(week) {
+    if (!week || !week.id) return '';
+    const meta = WEEKLY_ORDINAL_METADATA[week.id];
+    if (!meta) {
+        const fallbackDate = getWeekStartDate(week);
+        const fallbackMonth = fallbackDate ? SPANISH_MONTH_NAMES[fallbackDate.getMonth()] : '';
+        if (!fallbackMonth) return '';
+        return `Semana de ${capitalizeFirst(fallbackMonth)}${fallbackDate ? ` ${fallbackDate.getFullYear()}` : ''}`;
+    }
+    const ordinal = formatSpanishOrdinalFeminine(meta.ordinal);
+    const monthName = capitalizeFirst(meta.monthName || '');
+    const yearPart = meta.year ? ` ${meta.year}` : '';
+    return ordinal && monthName ? `${ordinal} semana de ${monthName}${yearPart}` : '';
+}
+
+function formatWeekOptionLabel(week) {
+    const ordinalLabel = formatWeekOrdinalLabel(week);
+    const rangeLabel = formatWeekLabel(week);
+    if (ordinalLabel && rangeLabel) return `${ordinalLabel} · ${rangeLabel}`;
+    return ordinalLabel || rangeLabel || week?.id || 'Semana';
+}
+
 function getLatestCargoLegendInfo(week) {
     if (!week) return null;
     const days = Array.isArray(week.dias) ? [...week.dias] : [];
@@ -9633,7 +9712,7 @@ document.addEventListener('DOMContentLoaded', () => {
             weeklyWeekSelect.innerHTML = '';
             const autoOpt = document.createElement('option');
             autoOpt.value = 'auto';
-            const autoLabel = currentWeek ? formatWeekLabel(currentWeek) : '';
+            const autoLabel = currentWeek ? formatWeekOptionLabel(currentWeek) : '';
             autoOpt.textContent = currentHasData && autoLabel ? `Semana actual (${autoLabel})` : 'Semana actual (automático)';
             weeklyWeekSelect.appendChild(autoOpt);
             const seen = new Set();
@@ -9644,7 +9723,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 distinctWeeks.push(week);
                 const opt = document.createElement('option');
                 opt.value = week.id;
-                let label = formatWeekLabel(week);
+                let label = formatWeekOptionLabel(week);
                 if (currentWeek && week.id === currentWeek.id && label) label += ' (actual)';
                 opt.textContent = label || week.id;
                 weeklyWeekSelect.appendChild(opt);
