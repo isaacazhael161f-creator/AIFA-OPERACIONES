@@ -731,7 +731,7 @@ const WEEKLY_OPERATIONS_DATASETS = [
             inicio: '2025-11-17',
             fin: '2025-11-23',
             descripcion: describeWeekRange('2025-11-17', '2025-11-23'),
-            nota: 'Semana del (17 al 23 de noviembre de 2025). Datos en Integración. Cierre de datos al Lunes 17-Nov-2025.'
+            nota: 'Semana del (17 al 23 de noviembre de 2025). Datos en Integración. Cierre de datos al Martes 18-Nov-2025.'
         },
         dias: [
             {
@@ -740,9 +740,21 @@ const WEEKLY_OPERATIONS_DATASETS = [
                 comercial: { operaciones: 156, pasajeros: 21082 },
                 general: { operaciones: 6, pasajeros: 19 },
                 carga: { operaciones: 21, toneladas: 706, corteFecha: '2025-11-13', corteNota: 'Cifras del 13 de noviembre de 2025.' }
+            },
+
+
+            {
+                fecha: '2025-11-18',
+                label: '18 Nov 2025',
+                comercial: { operaciones: 146, pasajeros: 21670},
+                general: { operaciones: 17, pasajeros: 36 },
+                carga: { operaciones: 17, toneladas: 654, corteFecha: '2025-11-17', corteNota: 'Cifras del 17 de noviembre de 2025.' }
             }
         ]
     },
+
+    
+
 
     {
         id: '2025-11-10',
