@@ -1145,396 +1145,49 @@ const staticData = {
     }
 };
 
-const RAW_AVIATION_ANALYTICS_DATA = {
-    comercial: {
-        operaciones: {
-            "2022": {
-                enero: 0,
-                febrero: 0,
-                marzo: 138,
-                abril: 356,
-                mayo: 371,
-                junio: 356,
-                julio: 338,
-                agosto: 620,
-                septiembre: 1327,
-                octubre: 1866,
-                noviembre: 1784,
-                diciembre: 1840,
-                total_por_ano: 8996
-            },
-            "2023": {
-                enero: 1856,
-                febrero: 1650,
-                marzo: 1840,
-                abril: 1710,
-                mayo: 1851,
-                junio: 1839,
-                julio: 2029,
-                agosto: 2108,
-                septiembre: 1731,
-                octubre: 2106,
-                noviembre: 2027,
-                diciembre: 2464,
-                total_por_ano: 23211
-            },
-            "2024": {
-                enero: 3161,
-                febrero: 3190,
-                marzo: 3620,
-                abril: 4333,
-                mayo: 4387,
-                junio: 4509,
-                julio: 4701,
-                agosto: 4749,
-                septiembre: 4553,
-                octubre: 4779,
-                noviembre: 4816,
-                diciembre: 4936,
-                total_por_ano: 51734
-            },
-            "2025": {
-                enero: 4488,
-                febrero: 4016,
-                marzo: 4426,
-                abril: 4575,
-                mayo: 4443,
-                junio: 4129,
-                julio: 4430,
-                agosto: 4500,
-                septiembre: 4135,
-                octubre: 4306,
-                noviembre: 2551,
-                diciembre: 0,
-                total_por_ano: 45984
-            },
-            acumulado: 129925
-        },
-        pasajeros: {
-            "2022": {
-                enero: 0,
-                febrero: 0,
-                marzo: 14225,
-                abril: 35593,
-                mayo: 36405,
-                junio: 33354,
-                julio: 36280,
-                agosto: 53580,
-                septiembre: 102521,
-                octubre: 185617,
-                noviembre: 203094,
-                diciembre: 211746,
-                total_por_ano: 912415
-            },
-            "2023": {
-                enero: 186572,
-                febrero: 165315,
-                marzo: 196339,
-                abril: 205008,
-                mayo: 218322,
-                junio: 208041,
-                julio: 256590,
-                agosto: 266541,
-                septiembre: 197770,
-                octubre: 231971,
-                noviembre: 221425,
-                diciembre: 277367,
-                total_por_ano: 2631261
-            },
-            "2024": {
-                enero: 339052,
-                febrero: 354017,
-                marzo: 424298,
-                abril: 518932,
-                mayo: 521107,
-                junio: 544724,
-                julio: 600910,
-                agosto: 602796,
-                septiembre: 547003,
-                octubre: 590528,
-                noviembre: 624883,
-                diciembre: 650204,
-                total_por_ano: 6318454
-            },
-            "2025": {
-                enero: 565716,
-                febrero: 488440,
-                marzo: 570097,
-                abril: 621197,
-                mayo: 586299,
-                junio: 541400,
-                julio: 604758,
-                agosto: 630952,
-                septiembre: 546457,
-                octubre: 549844,
-                noviembre: 352158,
-                diciembre: 0,
-                total_por_ano: 6092103
-            },
-            acumulado: 15954233
-        }
-    },
-    general: {
-        operaciones: {
-            "2022": {
-                enero: 0,
-                febrero: 0,
-                marzo: 34,
-                abril: 24,
-                mayo: 48,
-                junio: 24,
-                julio: 24,
-                agosto: 20,
-                septiembre: 38,
-                octubre: 76,
-                noviembre: 108,
-                diciembre: 62,
-                total_por_ano: 458
-            },
-            "2023": {
-                enero: 120,
-                febrero: 128,
-                marzo: 158,
-                abril: 170,
-                mayo: 142,
-                junio: 226,
-                julio: 194,
-                agosto: 170,
-                septiembre: 196,
-                octubre: 270,
-                noviembre: 230,
-                diciembre: 208,
-                total_por_ano: 2212
-            },
-            "2024": {
-                enero: 178,
-                febrero: 223,
-                marzo: 192,
-                abril: 218,
-                mayo: 261,
-                junio: 174,
-                julio: 199,
-                agosto: 185,
-                septiembre: 271,
-                octubre: 348,
-                noviembre: 242,
-                diciembre: 286,
-                total_por_ano: 2777
-            },
-            "2025": {
-                enero: 251,
-                febrero: 242,
-                marzo: 272,
-                abril: 249,
-                mayo: 226,
-                junio: 209,
-                julio: 234,
-                agosto: 282,
-                septiembre: 249,
-                octubre: 315,
-                noviembre: 159,
-                diciembre: 0,
-                total_por_ano: 2688
-            },
-            acumulado: 8135
-        },
-        pasajeros: {
-            "2022": {
-                enero: 0,
-                febrero: 0,
-                marzo: 51,
-                abril: 54,
-                mayo: 154,
-                junio: 69,
-                julio: 66,
-                agosto: 34,
-                septiembre: 98,
-                octubre: 219,
-                noviembre: 483,
-                diciembre: 157,
-                total_por_ano: 1385
-            },
-            "2023": {
-                enero: 498,
-                febrero: 402,
-                marzo: 463,
-                abril: 1191,
-                mayo: 513,
-                junio: 585,
-                julio: 452,
-                agosto: 510,
-                septiembre: 427,
-                octubre: 1109,
-                noviembre: 1167,
-                diciembre: 843,
-                total_por_ano: 8160
-            },
-            "2024": {
-                enero: 566,
-                febrero: 793,
-                marzo: 1645,
-                abril: 2863,
-                mayo: 3108,
-                junio: 2164,
-                julio: 2496,
-                agosto: 2151,
-                septiembre: 2964,
-                octubre: 4274,
-                noviembre: 2946,
-                diciembre: 3667,
-                total_por_ano: 29637
-            },
-            "2025": {
-                enero: 2353,
-                febrero: 1348,
-                marzo: 1601,
-                abril: 1840,
-                mayo: 1576,
-                junio: 3177,
-                julio: 1515,
-                agosto: 3033,
-                septiembre: 948,
-                octubre: 1226,
-                noviembre: 721,
-                diciembre: 0,
-                total_por_ano: 19410
-            },
-            acumulado: 58592
-        }
-    },
-    carga: {
-        operaciones: {
-            "2022": {
-                enero: 0,
-                febrero: 0,
-                marzo: 2,
-                abril: 0,
-                mayo: 0,
-                junio: 0,
-                julio: 0,
-                agosto: 0,
-                septiembre: 4,
-                octubre: 2,
-                noviembre: 0,
-                diciembre: 0,
-                total_por_ano: 8
-            },
-            "2023": {
-                enero: 0,
-                febrero: 5,
-                marzo: 83,
-                abril: 86,
-                mayo: 86,
-                junio: 101,
-                julio: 296,
-                agosto: 661,
-                septiembre: 995,
-                octubre: 1116,
-                noviembre: 1049,
-                diciembre: 1100,
-                total_por_ano: 5578
-            },
-            "2024": {
-                enero: 1063,
-                febrero: 1056,
-                marzo: 1139,
-                abril: 1140,
-                mayo: 1184,
-                junio: 1135,
-                julio: 1116,
-                agosto: 1145,
-                septiembre: 1052,
-                octubre: 1123,
-                noviembre: 1084,
-                diciembre: 982,
-                total_por_ano: 13219
-            },
-            "2025": {
-                enero: 880,
-                febrero: 803,
-                marzo: 916,
-                abril: 902,
-                mayo: 1006,
-                junio: 1014,
-                julio: 1021,
-                agosto: 1082,
-                septiembre: 992,
-                octubre: 1151,
-                noviembre: 439,
-                diciembre: 0,
-                total_por_ano: 10210
-            },
-            acumulado: 29015
-        },
-        tons_transportadas: {
-            "2022": {
-                enero: 0.0,
-                febrero: 0.0,
-                marzo: 0.49,
-                abril: 0.0,
-                mayo: 0.0,
-                junio: 0.0,
-                julio: 0.0,
-                agosto: 0.0,
-                septiembre: 4.7,
-                octubre: 0.0,
-                noviembre: 0.0,
-                diciembre: 0.0,
-                total_por_ano: 5.19
-            },
-            "2023": {
-                enero: 0.0,
-                febrero: 24.79,
-                marzo: 1776.11,
-                abril: 1973.07,
-                mayo: 2054.75,
-                junio: 2657.15,
-                julio: 12061.95,
-                agosto: 22653.13,
-                septiembre: 32211.53,
-                octubre: 37567.61,
-                noviembre: 36843.49,
-                diciembre: 36496.25,
-                total_por_ano: 186319.83
-            },
-            "2024": {
-                enero: 33787.3,
-                febrero: 32861.0,
-                marzo: 38209.17,
-                abril: 38502.94,
-                mayo: 40133.83,
-                junio: 39593.67,
-                julio: 38531.59,
-                agosto: 39174.34,
-                septiembre: 35995.97,
-                octubre: 38827.07,
-                noviembre: 37606.79,
-                diciembre: 34117.49,
-                total_por_ano: 447341.17
-            },
-            "2025": {
-                enero: 27764.47,
-                febrero: 26628.78,
-                marzo: 33154.97,
-                abril: 30785.67,
-                mayo: 34190.6,
-                junio: 37708.07,
-                julio: 35649.92,
-                agosto: 35737.78,
-                septiembre: 31076.71,
-                octubre: 37197.03,
-                noviembre: 15101.59,
-                diciembre: 0.0,
-                total_por_ano: 345071.96
-            },
-            acumulado: 978738.15
-        }
+const AVIATION_ANALYTICS_SCOPES = ['comercial','general','carga'];
+const AVIATION_ANALYTICS_MONTH_KEYS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const AVIATION_ANALYTICS_MONTH_LABELS = AVIATION_ANALYTICS_MONTH_KEYS.map((m) => m.charAt(0).toUpperCase() + m.slice(1));
+const DEFAULT_AVIATION_ANALYTICS_CUTOFF_INDEX = AVIATION_ANALYTICS_MONTH_KEYS.length - 1;
+const AVIATION_ANALYTICS_DATA_PATH = 'data/aviacion_analytics.json';
+const AVIATION_ANALYTICS_CUTOFF_YEAR = '2025';
+let AVIATION_ANALYTICS_DATA = null;
+let aviationAnalyticsDataPromise = null;
+let aviationAnalyticsLoadError = null;
+
+function hasMeaningfulAviationValue(value) {
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'number') return Number.isFinite(value) && value !== 0;
+    if (typeof value === 'string') {
+        const parsed = Number(value.replace(/,/g, ''));
+        return Number.isFinite(parsed) && parsed !== 0;
     }
-};
+    return false;
+}
+
+function determineAviationAnalyticsCutoff(rawPayload = {}, targetYear) {
+    const yearKey = targetYear ? String(targetYear) : null;
+    if (!yearKey) return null;
+    for (let idx = AVIATION_ANALYTICS_MONTH_KEYS.length - 1; idx >= 0; idx -= 1) {
+        const monthKey = AVIATION_ANALYTICS_MONTH_KEYS[idx];
+        const hasData = AVIATION_ANALYTICS_SCOPES.some((scopeKey) => {
+            const scopePayload = rawPayload[scopeKey];
+            if (!scopePayload || typeof scopePayload !== 'object') return false;
+            return Object.values(scopePayload).some((metricPayload) => {
+                if (!metricPayload || typeof metricPayload !== 'object') return false;
+                const yearPayload = metricPayload[yearKey];
+                if (!yearPayload || typeof yearPayload !== 'object') return false;
+                return hasMeaningfulAviationValue(yearPayload[monthKey]);
+            });
+        });
+        if (hasData) return idx;
+    }
+    return null;
+}
 
 function transformAviationAnalyticsSource(source = {}) {
-    const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-    const monthLabels = months.map((m) => m.charAt(0).toUpperCase() + m.slice(1));
+    const months = AVIATION_ANALYTICS_MONTH_KEYS.slice();
+    const monthLabels = AVIATION_ANALYTICS_MONTH_LABELS.slice();
     const result = { months, monthLabels, years: [], metrics: [] };
     const metricKeys = Object.keys(source).filter((key) => source[key] && typeof source[key] === 'object');
     const yearSet = new Set();
@@ -1601,18 +1254,50 @@ function recomputeAviationMetricTotals(dataset) {
     });
 }
 
-const AVIATION_ANALYTICS_DATA = {
-    comercial: transformAviationAnalyticsSource(RAW_AVIATION_ANALYTICS_DATA.comercial),
-    general: transformAviationAnalyticsSource(RAW_AVIATION_ANALYTICS_DATA.general),
-    carga: transformAviationAnalyticsSource(RAW_AVIATION_ANALYTICS_DATA.carga)
-};
+function buildAviationAnalyticsDataset(rawPayload = {}) {
+    const safePayload = rawPayload && typeof rawPayload === 'object' ? rawPayload : {};
+    const target = Object.create(null);
+    const cutoffIndex = determineAviationAnalyticsCutoff(safePayload, AVIATION_ANALYTICS_CUTOFF_YEAR);
+    const effectiveCutoff = Number.isFinite(cutoffIndex) ? cutoffIndex : DEFAULT_AVIATION_ANALYTICS_CUTOFF_INDEX;
+    AVIATION_ANALYTICS_SCOPES.forEach((scopeKey) => {
+        target[scopeKey] = transformAviationAnalyticsSource(safePayload[scopeKey] || {});
+        applyAviationAnalyticsCutoff(target[scopeKey], AVIATION_ANALYTICS_CUTOFF_YEAR, effectiveCutoff);
+    });
+    return target;
+}
 
-const AVIATION_ANALYTICS_CUTOFF_YEAR = '2025';
-const AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX = 9; // octubre
-
-Object.keys(AVIATION_ANALYTICS_DATA).forEach((key) => {
-    applyAviationAnalyticsCutoff(AVIATION_ANALYTICS_DATA[key], AVIATION_ANALYTICS_CUTOFF_YEAR, AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX);
-});
+function ensureAviationAnalyticsData() {
+    if (AVIATION_ANALYTICS_DATA) {
+        return Promise.resolve(AVIATION_ANALYTICS_DATA);
+    }
+    if (aviationAnalyticsDataPromise) {
+        return aviationAnalyticsDataPromise;
+    }
+    aviationAnalyticsDataPromise = fetch(AVIATION_ANALYTICS_DATA_PATH, { cache: 'no-store' })
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            return response.json();
+        })
+        .then((rawPayload) => buildAviationAnalyticsDataset(rawPayload))
+        .then((dataset) => {
+            AVIATION_ANALYTICS_DATA = dataset;
+            aviationAnalyticsLoadError = null;
+            return dataset;
+        })
+        .catch((err) => {
+            aviationAnalyticsLoadError = err;
+            console.warn('Failed to load aviation analytics data:', err);
+            return null;
+        })
+        .finally(() => {
+            if (!AVIATION_ANALYTICS_DATA) {
+                aviationAnalyticsDataPromise = null;
+            }
+        });
+    return aviationAnalyticsDataPromise;
+}
 
 const AVIATION_ANALYTICS_SCOPE_LABELS = {
     comercial: 'aviación comercial',
@@ -1708,6 +1393,17 @@ const AVIATION_ANALYTICS_UI = {
         elements: null
     }
 };
+
+function setAviationAnalyticsUnavailableState(message) {
+    const note = message || 'No se pudo cargar data/aviacion_analytics.json. Verifica el archivo.';
+    Object.values(AVIATION_ANALYTICS_UI || {}).forEach((config) => {
+        if (!config || !config.emptyStateId) return;
+        const emptyState = document.getElementById(config.emptyStateId);
+        if (!emptyState) return;
+        emptyState.textContent = note;
+        emptyState.classList.remove('d-none');
+    });
+}
 
 const dashboardData = {
     users: {
@@ -9628,8 +9324,13 @@ function initAviationAnalyticsModule(moduleKey) {
     }
 }
 
-function initializeAviationAnalyticsModules() {
+async function initializeAviationAnalyticsModules() {
     try {
+        const dataset = await ensureAviationAnalyticsData();
+        if (!dataset) {
+            setAviationAnalyticsUnavailableState('No se pudo cargar data/aviacion_analytics.json. Revisa el archivo y vuelve a intentarlo.');
+            return;
+        }
         Object.keys(AVIATION_ANALYTICS_UI).forEach((moduleKey) => initAviationAnalyticsModule(moduleKey));
         Object.keys(AVIATION_ANALYTICS_UI).forEach((moduleKey) => {
             const config = AVIATION_ANALYTICS_UI[moduleKey];
@@ -9640,6 +9341,7 @@ function initializeAviationAnalyticsModules() {
         });
     } catch (err) {
         console.warn('initializeAviationAnalyticsModules error:', err);
+        setAviationAnalyticsUnavailableState('No se pudieron inicializar los tableros de aviación.');
     }
 }
 
@@ -10630,6 +10332,7 @@ let parteOperacionesSummaryCache = null;
 let parteOperacionesSummaryCacheFetchedAt = 0;
 let parteOperacionesSummarySelectedDate = null;
 let parteOperacionesSummaryAvailableDates = [];
+let parteOperacionesAllowedYears = new Set();
 let parteOperacionesSummaryTitleDefault = null;
 let parteOperacionesSummaryBaseCache = null;
 let parteOperacionesCustomEntriesStore = null;
@@ -11461,6 +11164,33 @@ function attachParteOperacionesCalendarListeners(){
     }
 }
 
+function getParteOperacionesAvailableYears(summary){
+    if (!summary || !Array.isArray(summary.dates)) return [];
+    const years = summary.dates
+        .map((date) => {
+            if (typeof date !== 'string') return null;
+            const match = /^\s*(\d{4})/.exec(date);
+            return match ? match[1] : null;
+        })
+        .filter(Boolean);
+    return Array.from(new Set(years));
+}
+
+function resolveParteOperacionesCalendarRange(summary){
+    const years = getParteOperacionesAvailableYears(summary);
+    if (!years.length) return null;
+    const sortedYears = [...years].sort();
+    const firstYear = sortedYears[0];
+    const lastYear = sortedYears[sortedYears.length - 1];
+    const buildBounds = (year) => ({
+        min: `${year}-01-01`,
+        max: `${year}-12-31`
+    });
+    return firstYear === lastYear
+        ? buildBounds(firstYear)
+        : { min: `${firstYear}-01-01`, max: `${lastYear}-12-31` };
+}
+
 function syncParteOperacionesCalendarControls(summary){
     attachParteOperacionesCalendarListeners();
     const controlsWrapper = document.querySelector('[data-ops-calendar-controls]');
@@ -11470,11 +11200,20 @@ function syncParteOperacionesCalendarControls(summary){
     }
     updateParteOperacionesAvailabilityBanner(summary);
     parteOperacionesSummaryAvailableDates = Array.isArray(summary?.dates) ? summary.dates.slice() : [];
+    parteOperacionesAllowedYears = hasCalendar
+        ? new Set(getParteOperacionesAvailableYears(summary))
+        : new Set();
     const dateInput = document.getElementById('operations-summary-date');
     if (dateInput) {
         if (hasCalendar) {
-            dateInput.min = summary.dates[0];
-            dateInput.max = summary.dates[summary.dates.length - 1];
+            const calendarRange = resolveParteOperacionesCalendarRange(summary);
+            if (calendarRange) {
+                dateInput.min = calendarRange.min;
+                dateInput.max = calendarRange.max;
+            } else {
+                dateInput.min = summary.dates[0];
+                dateInput.max = summary.dates[summary.dates.length - 1];
+            }
             dateInput.disabled = false;
         } else {
             dateInput.value = '';
