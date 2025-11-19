@@ -1163,9 +1163,20 @@ const AVIATION_ANALYTICS_MONTH_LABELS = AVIATION_ANALYTICS_MONTH_KEYS.map((m) =>
 const DEFAULT_AVIATION_ANALYTICS_CUTOFF_INDEX = AVIATION_ANALYTICS_MONTH_KEYS.length - 1;
 const AVIATION_ANALYTICS_DATA_PATH = 'data/aviacion_analytics.json';
 const AVIATION_ANALYTICS_CUTOFF_YEAR = '2025';
+let AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX = DEFAULT_AVIATION_ANALYTICS_CUTOFF_INDEX;
 let AVIATION_ANALYTICS_DATA = null;
 let aviationAnalyticsDataPromise = null;
 let aviationAnalyticsLoadError = null;
+
+function getCurrentMonthIndex() {
+    try {
+        const today = new Date();
+        const month = today.getMonth();
+        return Number.isFinite(month) ? month : null;
+    } catch (_) {
+        return null;
+    }
+}
 
 function hasMeaningfulAviationValue(value) {
     if (value === null || value === undefined) return false;
@@ -1233,8 +1244,9 @@ function applyAviationAnalyticsCutoff(dataset, targetYear, lastClosedMonthIndex)
     if (!dataset || !dataset.metrics || typeof lastClosedMonthIndex !== 'number') return;
     const months = Array.isArray(dataset.months) ? dataset.months : [];
     if (!months.length) return;
-    const cutoff = Math.max(0, Math.min(lastClosedMonthIndex, months.length - 1));
-    const monthsToNull = months.slice(cutoff + 1);
+    const normalizedIndex = Math.min(lastClosedMonthIndex, months.length - 1);
+    const cutoff = Math.max(-1, normalizedIndex);
+    const monthsToNull = cutoff >= 0 ? months.slice(cutoff + 1) : months.slice(0);
     dataset.metrics.forEach((metric) => {
         const metricData = dataset[metric];
         if (!metricData || !metricData.years) return;
@@ -1271,9 +1283,17 @@ function buildAviationAnalyticsDataset(rawPayload = {}) {
     const target = Object.create(null);
     const cutoffIndex = determineAviationAnalyticsCutoff(safePayload, AVIATION_ANALYTICS_CUTOFF_YEAR);
     const effectiveCutoff = Number.isFinite(cutoffIndex) ? cutoffIndex : DEFAULT_AVIATION_ANALYTICS_CUTOFF_INDEX;
+    const currentMonthIndex = getCurrentMonthIndex();
+    let sanitizedCutoff = effectiveCutoff;
+    if (Number.isFinite(currentMonthIndex)) {
+        const currentMonthLimit = currentMonthIndex - 1;
+        sanitizedCutoff = Math.min(sanitizedCutoff, currentMonthLimit);
+    }
+    sanitizedCutoff = Math.max(-1, sanitizedCutoff);
+    AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX = sanitizedCutoff;
     AVIATION_ANALYTICS_SCOPES.forEach((scopeKey) => {
         target[scopeKey] = transformAviationAnalyticsSource(safePayload[scopeKey] || {});
-        applyAviationAnalyticsCutoff(target[scopeKey], AVIATION_ANALYTICS_CUTOFF_YEAR, effectiveCutoff);
+        applyAviationAnalyticsCutoff(target[scopeKey], AVIATION_ANALYTICS_CUTOFF_YEAR, sanitizedCutoff);
     });
     return target;
 }
