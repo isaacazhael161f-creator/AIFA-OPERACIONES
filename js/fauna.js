@@ -657,12 +657,103 @@
 (function(){
   const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const MONTH_ABBRS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  const TABLE_COLUMNS = ['No. captura','Fecha','Hora','Mes','Clase','Nombre común','Nombre científico','No. individuos','Método de captura','Cuadrante','Disposición final'];
+  const TABLE_COLUMNS = ['Año','No. captura','Fecha','Hora','Mes','Clase','Nombre común','Nombre científico','No. individuos','Método de captura','Cuadrante','Disposición final'];
   const state = {
     raw: [],
     filtered: [],
-    charts: { month: null, class: null, relocation: null, hour: null, method: null }
+    charts: { month: null, class: null, relocation: null, hour: null, method: null },
+    year: 'all',
+    years: []
   };
+
+  function normalizeYearValue(row){
+    const year = row && (row['Año'] ?? row.Año);
+    if (year !== undefined && year !== null && String(year).trim()) {
+      return String(year);
+    }
+    const fecha = row && row['Fecha'];
+    if (typeof fecha === 'string') {
+      const match = fecha.trim().match(/(\d{4})$/);
+      if (match) return match[1];
+    }
+    return '';
+  }
+
+  function deriveYears(rows){
+    const set = new Set();
+    rows.forEach(r => {
+      const year = normalizeYearValue(r);
+      if (year) set.add(year);
+    });
+    return Array.from(set).sort();
+  }
+
+  function formatYearList(years){
+    if (!Array.isArray(years) || !years.length) return '';
+    if (years.length === 1) return years[0];
+    const head = years.slice(0, -1);
+    const tail = years[years.length - 1];
+    if (!head.length) return tail;
+    const headText = head.join(', ');
+    return `${headText}${head.length > 1 ? ',' : ''} y ${tail}`;
+  }
+
+  function updateYearLabel(){
+    const el = document.getElementById('fauna-rescate-year-label');
+    if (!el) return;
+    if (state.year === 'all') {
+      const label = formatYearList(state.years);
+      el.textContent = label || '';
+      return;
+    }
+    el.textContent = state.year;
+  }
+
+  function renderYearSwitch(){
+    const container = document.getElementById('fauna-rescate-year-switch');
+    if (!container) return;
+    const options = ['all'].concat(state.years);
+    container.innerHTML = options.map(year => {
+      const active = String(state.year) === String(year);
+      const label = year === 'all' ? 'Todos' : year;
+      const btnClass = active ? 'btn btn-primary active' : 'btn btn-outline-primary';
+      return `<button type="button" class="${btnClass}" data-year="${escapeHtml(year)}">${escapeHtml(label)}</button>`;
+    }).join('');
+    Array.from(container.querySelectorAll('button[data-year]')).forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetYear = btn.getAttribute('data-year') || 'all';
+        if (targetYear === state.year) return;
+        state.year = targetYear;
+        updateYearLabel();
+        applyFilters();
+        renderYearSwitch();
+      });
+    });
+  }
+
+  function flattenDatasetPayload(payload){
+    if (Array.isArray(payload)) {
+      return payload;
+    }
+    if (payload && typeof payload === 'object') {
+      const rows = [];
+      Object.keys(payload).sort().forEach(yearKey => {
+        const records = payload[yearKey];
+        if (!Array.isArray(records)) return;
+        records.forEach(entry => {
+          if (!entry || typeof entry !== 'object') return;
+          const copy = { ...entry };
+          if (copy['Año'] === undefined) {
+            const maybeYear = Number(yearKey);
+            copy['Año'] = Number.isFinite(maybeYear) ? maybeYear : yearKey;
+          }
+          rows.push(copy);
+        });
+      });
+      return rows;
+    }
+    return [];
+  }
 
   function loadDataset(){
     try {
@@ -682,7 +773,7 @@
           throw new Error(`HTTP ${resp.status}`);
         }
         return resp.json();
-      }).catch(err => {
+      }).then(flattenDatasetPayload).catch(err => {
         console.warn(`fauna-rescate: fallo al cargar ${url}`, err);
         return trySource(index + 1);
       });
@@ -710,7 +801,13 @@
 
   function normalizeRow(row){
     const normalized = {};
-    TABLE_COLUMNS.forEach(col => { normalized[col] = row[col] ?? ''; });
+    TABLE_COLUMNS.forEach(col => {
+      if (col === 'Año') {
+        normalized[col] = normalizeYearValue(row);
+      } else {
+        normalized[col] = row[col] ?? '';
+      }
+    });
     return normalized;
   }
 
@@ -772,6 +869,10 @@
     const from = filters.fromDate ? new Date(filters.fromDate + 'T00:00:00Z') : null;
     const to = filters.toDate ? new Date(filters.toDate + 'T23:59:59Z') : null;
     state.filtered = state.raw.filter(row => {
+      if (state.year !== 'all') {
+        const rowYear = String(row['Año'] || '').trim();
+        if (rowYear !== state.year) return false;
+      }
       const date = parseDMY(row['Fecha']);
       if (!date) return false;
       if (from && date < from) return false;
@@ -819,6 +920,7 @@
     };
     const filters = readFilters();
     const applied = [];
+    if (state.year !== 'all') applied.push(`Año: ${state.year}`);
     if (filters.month !== defaults.month) applied.push(`Mes: ${filters.month}`);
     if (filters.classVal !== defaults.classVal) applied.push(`Clase: ${filters.classVal}`);
     if (filters.method !== defaults.method) applied.push(`Método: ${filters.method}`);
@@ -1226,14 +1328,17 @@
     if (!pane) return;
     loadDataset().then(rows => {
       state.raw = (rows || []).map(normalizeRow);
-      state.filtered = state.raw.slice();
+      state.years = deriveYears(state.raw);
+      if (!state.years.length) {
+        state.year = 'all';
+      } else if (!state.year || state.year === 'all' || !state.years.includes(state.year)) {
+        state.year = state.years[state.years.length - 1];
+      }
+      renderYearSwitch();
+      updateYearLabel();
       populateFilters();
-      updateBadges();
-      renderActiveFilter();
-  renderCharts();
-      renderSpecies();
-      renderTable();
       bindEvents();
+      applyFilters();
     }).catch(err => {
       console.warn('fauna-rescate: init error', err);
       const table = document.getElementById('fauna-rescate-table');
