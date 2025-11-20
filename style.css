@@ -1588,11 +1588,32 @@ body.dark-mode .pdf-container iframe, body.dark-mode .pdf-preview-container ifra
 .chart-container {
    position: relative;
    width: 100%;
-   height: clamp(280px, 42vw, 360px);
+   height: clamp(340px, 46vw, 420px);
    --chart-width: 100%;
+   padding: 1.25rem 1.5rem;
+   border-radius: 1.5rem;
+   background: linear-gradient(135deg, rgba(13,110,253,0.08), rgba(13,110,253,0.02));
+   border: 1px solid rgba(15, 23, 42, 0.08);
+   box-shadow: 0 18px 35px rgba(15, 23, 42, 0.08);
+   overflow: hidden;
+   backdrop-filter: blur(10px);
+   transition: background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
-.card .chart-container canvas { width: var(--chart-width, 100%) !important; height: 100% !important; }
+.card .chart-container canvas {
+   width: var(--chart-width, 100%) !important;
+   height: 100% !important;
+   border-radius: 1rem;
+   display: block;
+}
 .card .chart-container > div { width: var(--chart-width, 100%) !important; height: 100% !important; }
+body.dark-mode .chart-container {
+   background: linear-gradient(135deg, rgba(15,23,42,0.85), rgba(15,23,42,0.55));
+   border-color: rgba(148, 163, 184, 0.25);
+   box-shadow: 0 18px 38px rgba(2, 6, 23, 0.65);
+}
+body.dark-mode .chart-container canvas {
+   background: transparent;
+}
 /* Horizontal scroll helper for dense charts (mobile) */
 .chart-container.chart-scrollable {
    overflow-x: auto;
@@ -1610,13 +1631,13 @@ body.dark-mode .chart-container.chart-scrollable::-webkit-scrollbar-thumb { back
    max-width: none !important;
 }
 @media (max-width: 992px) {
-   .chart-container { height: clamp(250px, 54vw, 330px); }
+   .chart-container { height: clamp(300px, 58vw, 380px); }
 }
 @media (max-width: 768px) {
-   .chart-container { height: clamp(230px, 58vw, 310px); }
+   .chart-container { height: clamp(280px, 64vw, 350px); }
 }
 @media (max-width: 576px) {
-   .chart-container { height: clamp(208px, 64vw, 280px) !important; }
+   .chart-container { height: clamp(260px, 72vw, 330px) !important; }
 }
 
 #demoras-section .table-responsive {
@@ -2191,7 +2212,7 @@ body.dark-mode .demoras-chart-hint {
       margin-right: 0;
    }
    #pasajeros-grafica-pane .chart-container,
-   #carga-grafica-pane .chart-container { height: 320px; }
+   #carga-grafica-pane .chart-container { height: 360px; }
    .chart-container { padding-bottom: 6px; }
 }
 

@@ -17,6 +17,7 @@
     'Salida': { icon: 'fa-plane-departure', cls: 'movement-departure', label: 'Salida' }
   };
   const MOVEMENT_META_DEFAULT = { icon: 'fa-plane', cls: 'movement-generic', label: 'Operación' };
+  const chartHitRegions = {};
   const PEAK_RESULTS_PLACEHOLDER = '<div class="intel-flight-placeholder text-center text-muted small">Selecciona una aerolínea u horario para ver los vuelos relacionados.</div>';
   function isChartsPaneActive(){
     const paneIds = ['graficas-itinerario-pane', 'radar-operativo-pane'];
@@ -218,8 +219,39 @@
     renderList('cargo-top-arr', agg.carArr, topNCargo, SCOPE_CARGO, 'Llegada');
     renderList('cargo-top-dep', agg.carDep, topNCargo, SCOPE_CARGO, 'Salida');
   }
-  // Dibujador de barras simple en canvas (sin Chart.js)
-  function drawBars(canvasId, labels, values, color, title){
+
+  function bindChartClicks(){
+    const charts = [
+      { id: 'paxArrivalsChart' },
+      { id: 'paxDeparturesChart' },
+      { id: 'cargoArrivalsChart' },
+      { id: 'cargoDeparturesChart' }
+    ];
+    charts.forEach(({ id }) => {
+      const canvas = document.getElementById(id);
+      if (!canvas || canvas.dataset.chartInteractive === 'true') return;
+      canvas.dataset.chartInteractive = 'true';
+      canvas.style.cursor = 'pointer';
+      canvas.addEventListener('click', (event)=> handleChartClick(id, event));
+    });
+  }
+
+  function handleChartClick(canvasId, event){
+    const hit = chartHitRegions[canvasId];
+    if (!hit || !Array.isArray(hit.slots) || !hit.slots.length) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    const bounds = hit.bounds;
+    if (!bounds || x < bounds.left || x > bounds.right || y < bounds.top || y > bounds.bottom) return;
+    const slot = hit.slots.find(s => x >= s.start && x <= s.end);
+    if (!slot || !Number.isFinite(slot.hour)) return;
+    const scope = hit.meta && hit.meta.scope === SCOPE_CARGO ? SCOPE_CARGO : SCOPE_PAX;
+    const movement = hit.meta && hit.meta.movement === 'Salida' ? 'Salida' : 'Llegada';
+    showTopHourFlights(scope, movement, slot.hour);
+  }
+  // Dibujador de barras (sin Chart.js) con estética pulida e interacción
+  function drawBars(canvasId, labels, values, color, title, meta = {}){
     const c = document.getElementById(canvasId);
     if (!c) return;
     const dpr = window.devicePixelRatio || 1;
@@ -232,27 +264,43 @@
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0,0,w,h);
 
-    // Márgenes y estilos
-  // Más margen inferior en móvil para permitir todas las etiquetas
-  const isMobile = (w < 576);
-  const margin = { top: 28, right: 12, bottom: isMobile ? 44 : 28, left: 34 };
+    const darkMode = document.body && document.body.classList.contains('dark-mode');
+    const bg = g.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, darkMode ? 'rgba(2,6,23,0.95)' : 'rgba(255,255,255,0.98)');
+    bg.addColorStop(1, darkMode ? 'rgba(15,23,42,0.9)' : 'rgba(243,246,255,0.95)');
+    g.fillStyle = bg;
+    g.fillRect(0, 0, w, h);
+
+    const isMobile = (w < 576);
+    const margin = { top: 42, right: 20, bottom: isMobile ? 58 : 38, left: 50 };
     const innerW = Math.max(1, w - margin.left - margin.right);
     const innerH = Math.max(1, h - margin.top - margin.bottom);
+    const x0 = margin.left;
+    const y0 = h - margin.bottom;
 
-    // Título
-    if (title) {
-      g.fillStyle = '#495057';
-      g.font = '600 12px Roboto, Arial';
-      g.textAlign = 'left';
-      g.textBaseline = 'top';
-      g.fillText(title, margin.left, 6);
-    }
+    const plotGradient = g.createLinearGradient(0, margin.top, 0, h - margin.bottom);
+    plotGradient.addColorStop(0, darkMode ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.92)');
+    plotGradient.addColorStop(1, darkMode ? 'rgba(15,23,42,0.55)' : 'rgba(240,249,255,0.88)');
+    g.save();
+    g.fillStyle = plotGradient;
+    roundRect(g, margin.left - 14, margin.top - 10, innerW + 28, innerH + 20, 18);
+    g.fill();
+    g.restore();
 
-    // Ejes
-    g.strokeStyle = 'rgba(0,0,0,0.2)';
+    const gridColor = darkMode ? 'rgba(226,232,240,0.15)' : 'rgba(15,23,42,0.08)';
+    const axisColor = darkMode ? '#cbd5f5' : '#475569';
+    const labelColor = darkMode ? '#f8fafc' : '#1f2937';
+
+    chartHitRegions[canvasId] = {
+      meta: meta || {},
+      bounds: { left: margin.left, right: w - margin.right, top: margin.top, bottom: h - margin.bottom },
+      slots: []
+    };
+
+    // Títulos externos ya contienen el contexto; evitamos duplicar texto dentro del canvas
+
+    g.strokeStyle = gridColor;
     g.lineWidth = 1;
-    // Eje X e Y
-    const x0 = margin.left, y0 = h - margin.bottom;
     g.beginPath();
     g.moveTo(x0, y0);
     g.lineTo(x0 + innerW, y0);
@@ -260,61 +308,82 @@
     g.lineTo(x0, y0 - innerH);
     g.stroke();
 
-    // Escala Y
     const maxV = Math.max(1, Math.max(...values));
     const nice = niceMax(maxV);
-    const tickCount = 4;
-    const tickStep = nice / tickCount;
-    g.fillStyle = '#6c757d';
-    g.font = '10px Roboto, Arial';
+    const ticks = 4;
+    const tickStep = nice / ticks;
+    g.strokeStyle = gridColor;
+    g.fillStyle = axisColor;
+    g.font = '11px "Inter", "Roboto", Arial';
     g.textAlign = 'right';
     g.textBaseline = 'middle';
-    for (let i=0; i<=tickCount; i++){
+    for (let i=0; i<=ticks; i++){
       const v = i * tickStep;
       const y = y0 - (v / nice) * innerH;
-      g.strokeStyle = 'rgba(0,0,0,0.06)';
       g.beginPath();
       g.moveTo(x0, y);
       g.lineTo(x0 + innerW, y);
       g.stroke();
-      g.fillStyle = '#6c757d';
-      g.fillText(String(Math.round(v)), x0 - 4, y);
+      g.fillText(String(Math.round(v)), x0 - 8, y);
     }
 
-    // Barras
     const n = labels.length;
-    const gap = 2; // separación mínima
-    const barW = Math.max(1, (innerW / n) - gap);
-    g.fillStyle = color;
+    const gap = 4;
+    const barW = Math.max(2, (innerW / n) - gap);
+    const gradientStops = Array.isArray(meta.gradientStops) && meta.gradientStops.length >= 2
+      ? meta.gradientStops
+      : [color, color];
+    const shadowColor = meta.shadowColor || 'rgba(15,23,42,0.18)';
+    const outlineColor = darkMode ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.08)';
     for (let i=0; i<n; i++){
       const v = values[i] || 0;
       const bh = (v / nice) * innerH;
       const x = x0 + i * (innerW / n) + gap/2;
       const y = y0 - bh;
-      // barra con esquinas ligeramente redondeadas
-      roundRect(g, x, y, Math.max(1, barW), Math.max(1, bh), 3);
+      const slotStart = x0 + i * (innerW / n);
+      const slotEnd = slotStart + (innerW / n);
+      chartHitRegions[canvasId].slots.push({ hour: i, start: slotStart, end: slotEnd });
+      if (bh <= 0.5) continue;
+      const barGradient = g.createLinearGradient(0, y, 0, y + bh);
+      barGradient.addColorStop(0, gradientStops[0]);
+      barGradient.addColorStop(1, gradientStops[gradientStops.length - 1]);
+      g.save();
+      g.shadowColor = shadowColor;
+      g.shadowBlur = 18;
+      g.shadowOffsetY = 10;
+      roundRect(g, x, y, Math.max(2, barW), Math.max(1, bh), 8);
+      g.fillStyle = barGradient;
       g.fill();
+      g.restore();
+
+      g.strokeStyle = outlineColor;
+      g.lineWidth = 1;
+      roundRect(g, x, y, Math.max(2, barW), Math.max(1, bh), 8);
+      g.stroke();
     }
 
-    // Etiquetas X: en móvil todas las horas con ligera rotación; en desktop cada 2 horas
-    g.fillStyle = '#6c757d';
-    g.font = '10px Roboto, Arial';
+    g.fillStyle = axisColor;
+    g.font = '11px "Inter", "Roboto", Arial';
     g.textAlign = 'center';
     g.textBaseline = 'top';
     const step = isMobile ? 1 : 2;
     for (let i=0; i<n; i+=step){
-      const x = x0 + i * (innerW / n) + (innerW / n)/2;
-      if (isMobile) {
+      const labelX = x0 + i * (innerW / n) + (innerW / n)/2;
+      if (isMobile){
         g.save();
-        // rotación suave para evitar encimado
-        g.translate(x, y0 + 4);
-        g.rotate(-Math.PI/6); // ~ -30°
+        g.translate(labelX, y0 + 6);
+        g.rotate(-Math.PI/6);
         g.fillText(labels[i], 0, 0);
         g.restore();
       } else {
-        g.fillText(labels[i], x, y0 + 4);
+        g.fillText(labels[i], labelX, y0 + 10);
       }
     }
+
+    g.fillStyle = darkMode ? 'rgba(148,163,184,0.8)' : 'rgba(71,85,105,0.8)';
+    g.font = '600 11px "Inter", "Roboto", Arial';
+    g.textAlign = 'right';
+    g.fillText('Haz clic en una barra para detallar vuelos', x0 + innerW, margin.top - 14);
   }
 
   function roundRect(g, x, y, w, h, r){
@@ -378,7 +447,96 @@
     const visual = logo || `<span class="intel-airline-badge xl">${escapeHtml(getAirlineInitials(safeName))}</span>`;
     return `<div class="intel-flight-carrier" title="${escapeAttr(safeName)}">${visual}<span class="visually-hidden">${escapeHtml(safeName)}</span></div>`;
   }
-  function renderHeatmap1D(canvasId, counts){ const c = document.getElementById(canvasId); if (!c) return; const dpr = window.devicePixelRatio || 1; const width = c.clientWidth, height = c.clientHeight; c.width = Math.max(1, width * dpr); c.height = Math.max(1, height * dpr); const g = c.getContext('2d'); g.scale(dpr, dpr); g.clearRect(0,0,width,height); const max = Math.max(1, ...counts); const pad = 6; const cellW = (width - pad*2) / 24; const cellH = (height - pad*2); for (let h=0; h<24; h++){ const v = counts[h]; const t = v / max; const r = 20, gC = Math.round(120+100*t), b = Math.round(255-80*(1-t)); g.fillStyle = `rgba(${r},${gC},${b},${0.25 + 0.6*t})`; const x = pad + h*cellW, y = pad; g.fillRect(x, y, Math.max(1,cellW-2), Math.max(1,cellH)); } g.fillStyle = 'rgba(127,127,127,0.9)'; g.font = '10px Roboto, Arial'; for (let h=0; h<24; h+=2){ const x = pad + h*cellW + cellW/2 - 8; g.fillText(String(h).padStart(2,'0'), x, height-4); } }
+  function renderHeatmap1D(canvasId, counts){
+    const c = document.getElementById(canvasId);
+    if (!c) return;
+    const dpr = window.devicePixelRatio || 1;
+    const width = c.clientWidth || 640;
+    const height = c.clientHeight || 220;
+    c.width = Math.max(1, width * dpr);
+    c.height = Math.max(1, height * dpr);
+    const g = c.getContext('2d');
+    if (!g) return;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0,0,width,height);
+
+    const darkMode = document.body && document.body.classList.contains('dark-mode');
+    const bg = g.createLinearGradient(0, 0, width, height);
+    bg.addColorStop(0, darkMode ? 'rgba(2,6,23,0.95)' : 'rgba(248,250,252,0.98)');
+    bg.addColorStop(1, darkMode ? 'rgba(15,23,42,0.85)' : 'rgba(237,244,255,0.95)');
+    g.fillStyle = bg;
+    g.fillRect(0, 0, width, height);
+
+    const pad = 14;
+    const cellW = (width - pad*2) / 24;
+    const cellH = Math.max(18, height - pad*2 - 24);
+    const max = Math.max(1, ...counts);
+    const palette = darkMode
+      ? ['#0f172a','#1e3a8a','#2563eb','#22d3ee','#facc15']
+      : ['#dbeafe','#93c5fd','#3b82f6','#0ea5e9','#f97316'];
+    const parseHex = (hex)=>{
+      const value = hex.replace('#','');
+      const bigint = parseInt(value, 16);
+      return {
+        r: (bigint >> 16) & 255,
+        g: (bigint >> 8) & 255,
+        b: bigint & 255
+      };
+    };
+    const lerp = (a,b,t)=> a + (b - a)*t;
+    const pickColor = (t)=>{
+      const scaled = t * (palette.length - 1);
+      const idx = Math.floor(scaled);
+      const nextIdx = Math.min(idx + 1, palette.length - 1);
+      const mix = scaled - idx;
+      const c1 = parseHex(palette[idx]);
+      const c2 = parseHex(palette[nextIdx]);
+      const r = Math.round(lerp(c1.r, c2.r, mix));
+      const gVal = Math.round(lerp(c1.g, c2.g, mix));
+      const b = Math.round(lerp(c1.b, c2.b, mix));
+      const alpha = darkMode ? 0.45 + (0.4 * t) : 0.35 + (0.45 * t);
+      return `rgba(${r},${gVal},${b},${alpha})`;
+    };
+
+    const topHour = counts.reduce((acc, val, idx) => {
+      if (val > acc.value) return { hour: idx, value: val };
+      return acc;
+    }, { hour: 0, value: 0 });
+
+    for (let h=0; h<24; h++){
+      const v = counts[h];
+      const t = v / max;
+      const color = pickColor(t);
+      const x = pad + h * cellW;
+      const y = pad;
+      g.fillStyle = color;
+      roundRect(g, x + 1, y, Math.max(2, cellW - 3), cellH, 6);
+      g.fill();
+    }
+
+    if (topHour.value > 0){
+      const hx = pad + topHour.hour * cellW + cellW/2;
+      const hy = pad + cellH/2;
+      g.strokeStyle = darkMode ? 'rgba(255,255,255,0.85)' : 'rgba(15,23,42,0.75)';
+      g.lineWidth = 2;
+      g.beginPath();
+      g.arc(hx, hy, Math.min(cellW, cellH) / 2.3, 0, Math.PI * 2);
+      g.stroke();
+      g.fillStyle = g.strokeStyle;
+      g.font = '600 11px "Inter", "Roboto", Arial';
+      g.textAlign = 'center';
+      g.fillText(`${String(topHour.hour).padStart(2,'0')}h`, hx, hy + 4);
+    }
+
+    g.fillStyle = darkMode ? '#cbd5f5' : '#475569';
+    g.font = '11px "Inter", "Roboto", Arial';
+    g.textAlign = 'center';
+    g.textBaseline = 'top';
+    for (let h=0; h<24; h+=2){
+      const labelX = pad + h * cellW + cellW/2;
+      g.fillText(String(h).padStart(2,'0'), labelX, pad + cellH + 6);
+    }
+  }
   async function renderItineraryCharts() {
     const base = await loadItinerary();
     // Sincronizar con filtros activos del Inicio si está habilitado (por defecto sí)
@@ -412,15 +570,40 @@
     applyIntelligenceForScope(getActiveChartsScope());
   const agg = aggregateDay(data, selectedDate);
   lastAgg = agg;
-  drawBars('paxArrivalsChart',     H_LABELS, agg.paxArr, 'rgba(0,123,255,0.85)', 'Llegadas Pax');
-  drawBars('paxDeparturesChart',   H_LABELS, agg.paxDep, 'rgba(0,180,120,0.85)', 'Salidas Pax');
-  drawBars('cargoArrivalsChart',   H_LABELS, agg.carArr, 'rgba(255,140,0,0.85)', 'Llegadas Carga');
-  drawBars('cargoDeparturesChart', H_LABELS, agg.carDep, 'rgba(200,80,0,0.85)', 'Salidas Carga');
+  drawBars('paxArrivalsChart', H_LABELS, agg.paxArr, 'rgba(13,110,253,0.9)', 'Llegadas (Pasajeros)', {
+    scope: SCOPE_PAX,
+    movement: 'Llegada',
+    gradientStops: ['rgba(148,205,255,0.95)', 'rgba(13,110,253,0.65)'],
+    shadowColor: 'rgba(13,110,253,0.25)',
+    subtitle: 'Tráfico entrante durante el día'
+  });
+  drawBars('paxDeparturesChart', H_LABELS, agg.paxDep, 'rgba(16,185,129,0.9)', 'Salidas (Pasajeros)', {
+    scope: SCOPE_PAX,
+    movement: 'Salida',
+    gradientStops: ['rgba(167,243,208,0.95)', 'rgba(16,185,129,0.65)'],
+    shadowColor: 'rgba(16,185,129,0.25)',
+    subtitle: 'Ventanas de salida previstas'
+  });
+  drawBars('cargoArrivalsChart', H_LABELS, agg.carArr, 'rgba(249,115,22,0.9)', 'Llegadas (Carga)', {
+    scope: SCOPE_CARGO,
+    movement: 'Llegada',
+    gradientStops: ['rgba(255,196,161,0.95)', 'rgba(249,115,22,0.65)'],
+    shadowColor: 'rgba(194,65,12,0.25)',
+    subtitle: 'Recepciones logísticas por hora'
+  });
+  drawBars('cargoDeparturesChart', H_LABELS, agg.carDep, 'rgba(234,88,12,0.9)', 'Salidas (Carga)', {
+    scope: SCOPE_CARGO,
+    movement: 'Salida',
+    gradientStops: ['rgba(253,186,140,0.95)', 'rgba(234,88,12,0.7)'],
+    shadowColor: 'rgba(234,88,12,0.25)',
+    subtitle: 'Despachos prioritarios'
+  });
     const paxSum = agg.paxArr.map((v,i)=> v + (agg.paxDep[i]||0));
     const carSum = agg.carArr.map((v,i)=> v + (agg.carDep[i]||0));
     renderHeatmap1D('heatmapPaxDay', paxSum);
     renderHeatmap1D('heatmapCargoDay', carSum);
     renderTopHoursLists(agg);
+    bindChartClicks();
     // Marcar banderas de renderizado exitoso para diagnóstico externo
     window._itineraryChartsOk = true;
   }
@@ -589,6 +772,7 @@
   function bindDayControls(){ const input = document.getElementById('it-day-input'); const prev  = document.getElementById('it-day-prev'); const next  = document.getElementById('it-day-next'); const today = document.getElementById('it-day-today'); if (input){ input.addEventListener('change', () => { if (!input.value) return; selectedDate = input.value; renderItineraryCharts(); }); } function shift(days){ const d = input && input.value ? new Date(input.value) : new Date(selectedDate || Date.now()); d.setDate(d.getDate() + days); selectedDate = toYMD(d); if (input) input.value = selectedDate; renderItineraryCharts(); } if (prev) prev.addEventListener('click', ()=> shift(-1)); if (next) next.addEventListener('click', ()=> shift(+1)); if (today) today.addEventListener('click', ()=> { selectedDate = toYMD(new Date()); if (input) input.value = selectedDate; renderItineraryCharts(); }); }
   document.addEventListener('DOMContentLoaded', async () => {
     bindDayControls();
+    bindChartClicks();
     const paxTop = document.getElementById('pax-topN');
     if (paxTop) paxTop.addEventListener('change', ()=> { if (lastAgg) renderTopHoursLists(lastAgg); });
     const carTop = document.getElementById('cargo-topN');
