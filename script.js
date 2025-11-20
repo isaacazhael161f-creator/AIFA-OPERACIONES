@@ -10460,6 +10460,12 @@ const parteOperacionesTitleFormatter = new Intl.DateTimeFormat('es-MX', {
     month: 'long',
     day: 'numeric'
 });
+const parteOperacionesAnnualState = {
+    chart: null,
+    lastSignature: null
+};
+const PARTE_OPERACIONES_MONTH_KEY_PATTERN = /^\d{4}-\d{2}$/;
+const PARTE_OPERACIONES_MIN_DAYS_PER_MONTH = 27;
 
 function isValidParteOperacionesDate(value){
     return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -11338,6 +11344,7 @@ function refreshParteOperacionesNavState(){
 }
 
 function renderParteOperacionesSummaryForCurrentSelection(){
+    renderParteOperacionesAnnualAnalysis(parteOperacionesSummaryCache);
     if (!parteOperacionesSummaryCache) {
         renderParteOperacionesSummary(null, {});
         return;
@@ -11461,6 +11468,274 @@ async function loadParteOperacionesSummary(options = {}){
             container.innerHTML = '<div class="alert alert-warning mb-0">No se pudo cargar el resumen. Intenta nuevamente.</div>';
         }
     }
+}
+
+function formatParteOperacionesMonthLabel(monthKey){
+    if (!PARTE_OPERACIONES_MONTH_KEY_PATTERN.test(monthKey)) return monthKey;
+    const [yearStr, monthStr] = monthKey.split('-');
+    const monthIndex = Number(monthStr) - 1;
+    if (monthIndex < 0 || monthIndex > 11) return monthKey;
+    const monthName = SPANISH_MONTH_NAMES[monthIndex] || '';
+    return monthName ? `${capitalizeFirst(monthName)} ${yearStr}` : monthKey;
+}
+
+function formatParteOperacionesMonthShortLabel(monthKey){
+    if (!PARTE_OPERACIONES_MONTH_KEY_PATTERN.test(monthKey)) return monthKey;
+    const monthIndex = Number(monthKey.slice(5, 7)) - 1;
+    if (monthIndex < 0 || monthIndex > 11) return monthKey;
+    return SPANISH_MONTH_ABBRS[monthIndex] || monthKey;
+}
+
+function resolveParteOperacionesSubtotal(item){
+    const llegada = Number(item?.llegada) || 0;
+    const salida = Number(item?.salida) || 0;
+    const rawSubtotal = Number(item?.subtotal);
+    if (Number.isFinite(rawSubtotal) && rawSubtotal >= 0) {
+        return rawSubtotal;
+    }
+    return llegada + salida;
+}
+
+function classifyParteOperacionesAnnualType(value){
+    const normalized = normalizeParteOperacionesType(value);
+    if (!normalized) return 'otros';
+    if (normalized.includes('pasaj')) return 'comercial';
+    if (normalized.includes('carga')) return 'carga';
+    if (normalized.includes('general')) return 'general';
+    return 'otros';
+}
+
+function computeParteOperacionesAnnualDataset(summary){
+    if (!summary || !summary.byDate) return null;
+    const entries = Object.entries(summary.byDate)
+        .filter(([dateKey]) => /^\d{4}-\d{2}-\d{2}$/.test(dateKey))
+        .sort((a, b) => a[0].localeCompare(b[0]));
+    if (!entries.length) return null;
+    const monthMap = new Map();
+    entries.forEach(([dateKey, entry]) => {
+        const monthKey = dateKey.slice(0, 7);
+        if (!monthMap.has(monthKey)) {
+            monthMap.set(monthKey, { key: monthKey, sums: { comercial: 0, carga: 0, general: 0, total: 0 }, days: 0 });
+        }
+        const bucket = monthMap.get(monthKey);
+        bucket.days += 1;
+        const ops = Array.isArray(entry?.operaciones) ? entry.operaciones : [];
+        let computedDailyTotal = 0;
+        ops.forEach((item) => {
+            const subtotal = resolveParteOperacionesSubtotal(item);
+            computedDailyTotal += subtotal;
+            const typeKey = classifyParteOperacionesAnnualType(item?.tipo);
+            if (typeKey === 'comercial' || typeKey === 'carga' || typeKey === 'general') {
+                bucket.sums[typeKey] += subtotal;
+            }
+        });
+        const rawTotal = Number(entry?.total_general);
+        const dayTotal = Number.isFinite(rawTotal) && rawTotal >= 0 ? rawTotal : computedDailyTotal;
+        bucket.sums.total += dayTotal;
+    });
+    const months = Array.from(monthMap.values())
+        .sort((a, b) => a.key.localeCompare(b.key))
+        .map((entry) => {
+            const divisor = Math.max(1, entry.days);
+            return {
+                key: entry.key,
+                label: formatParteOperacionesMonthLabel(entry.key),
+                shortLabel: formatParteOperacionesMonthShortLabel(entry.key),
+                dayCount: entry.days,
+                averages: {
+                    comercial: entry.sums.comercial / divisor,
+                    carga: entry.sums.carga / divisor,
+                    general: entry.sums.general / divisor,
+                    total: entry.sums.total / divisor
+                }
+            };
+        });
+    const qualifiedMonths = months.filter((month) => month.dayCount >= PARTE_OPERACIONES_MIN_DAYS_PER_MONTH);
+    if (!qualifiedMonths.length) return null;
+    const aggregates = qualifiedMonths.reduce((acc, month) => {
+        acc.comercial += month.averages.comercial;
+        acc.carga += month.averages.carga;
+        acc.general += month.averages.general;
+        acc.total += month.averages.total;
+        return acc;
+    }, { comercial: 0, carga: 0, general: 0, total: 0 });
+    const monthCount = qualifiedMonths.length;
+    const overall = {
+        comercial: aggregates.comercial / monthCount,
+        carga: aggregates.carga / monthCount,
+        general: aggregates.general / monthCount,
+        total: aggregates.total / monthCount
+    };
+    const coverageLabel = monthCount === 1
+        ? qualifiedMonths[0].label
+        : `${qualifiedMonths[0].label} — ${qualifiedMonths[monthCount - 1].label}`;
+    const signature = JSON.stringify(qualifiedMonths.map((month) => [month.key, month.averages, month.dayCount]));
+    const sampleDays = qualifiedMonths.reduce((acc, month) => acc + (month.dayCount || 0), 0);
+    return {
+        months: qualifiedMonths,
+        overall,
+        monthCount,
+        coverageLabel,
+        sampleDays,
+        signature
+    };
+}
+
+function updateParteOperacionesAnnualChart(dataset, formatter){
+    const canvas = document.getElementById('ops-annual-averages-chart');
+    if (!canvas || typeof Chart !== 'function') return;
+    if (parteOperacionesAnnualState.chart) {
+        parteOperacionesAnnualState.chart.destroy();
+        parteOperacionesAnnualState.chart = null;
+    }
+    if (!dataset || !dataset.months?.length) {
+        const ctx = canvas.getContext('2d');
+        if (ctx) ctx.clearRect(0, 0, canvas.width || 0, canvas.height || 0);
+        return;
+    }
+    const labels = dataset.months.map((month) => month.shortLabel);
+    const series = [
+        { key: 'comercial', label: 'Aviación comercial', color: '#1565c0' },
+        { key: 'carga', label: 'Aviación de carga', color: '#ef6c00' },
+        { key: 'general', label: 'Aviación general', color: '#2e7d32' },
+        { key: 'total', label: 'Promedio general', color: '#455a64' }
+    ];
+    const datasets = series.map((serie) => ({
+        label: serie.label,
+        data: dataset.months.map((month) => {
+            const value = Number(month.averages?.[serie.key]) || 0;
+            return Number(value.toFixed(2));
+        }),
+        borderColor: serie.color,
+        backgroundColor: serie.color,
+        borderWidth: 2,
+        tension: 0.35,
+        fill: false,
+        pointRadius: 3,
+        pointHoverRadius: 5
+    }));
+    const ctx = canvas.getContext('2d');
+    parteOperacionesAnnualState.chart = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: {
+                    callbacks: {
+                        label(context) {
+                            const raw = Number(context.parsed.y) || 0;
+                            const formatted = formatter ? formatter.format(Math.round(raw)) : raw;
+                            return `${context.dataset.label}: ${formatted} ops`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback(value) {
+                            return formatter ? formatter.format(value) : value;
+                        }
+                    }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+}
+
+function renderParteOperacionesAnnualAnalysis(summary){
+    const cardsHost = document.getElementById('ops-annual-averages-cards');
+    const tableHost = document.getElementById('ops-annual-averages-table');
+    const chartCanvas = document.getElementById('ops-annual-averages-chart');
+    if (!cardsHost && !tableHost && !chartCanvas) return;
+    const dataset = computeParteOperacionesAnnualDataset(summary);
+    const numberFormatter = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 });
+    if (!dataset) {
+        if (cardsHost) {
+            cardsHost.innerHTML = `<div class="alert alert-light border text-muted mb-0">Aún no hay meses con al menos ${PARTE_OPERACIONES_MIN_DAYS_PER_MONTH} días registrados. Completa el mes para habilitar el análisis anual.</div>`;
+        }
+        if (tableHost) {
+            tableHost.innerHTML = `<div class="alert alert-light border text-muted mb-0">Sin datos históricos suficientes para mostrar promedios mensuales (se requieren ${PARTE_OPERACIONES_MIN_DAYS_PER_MONTH} días capturados por mes).</div>`;
+        }
+        updateParteOperacionesAnnualChart(null, numberFormatter);
+        parteOperacionesAnnualState.lastSignature = null;
+        return;
+    }
+    const shouldUpdateDom = dataset.signature !== parteOperacionesAnnualState.lastSignature;
+    if (shouldUpdateDom) {
+        if (cardsHost) {
+            const cardConfig = [
+                { key: 'comercial', label: 'Aviación comercial', icon: 'fas fa-user-friends', tone: 'comercial' },
+                { key: 'carga', label: 'Aviación de carga', icon: 'fas fa-box-open', tone: 'carga' },
+                { key: 'general', label: 'Aviación general', icon: 'fas fa-paper-plane', tone: 'general' },
+                { key: 'total', label: 'Promedio general', icon: 'fas fa-chart-line', tone: 'total' }
+            ];
+            const monthLabel = dataset.monthCount === 1 ? 'mes' : 'meses';
+            cardsHost.innerHTML = cardConfig.map((card) => {
+                const value = Math.round(Number(dataset.overall?.[card.key]) || 0);
+                return `
+                    <div class="annual-analysis-card annual-analysis-card--${card.tone}">
+                        <span class="annual-analysis-card__eyebrow"><i class="${card.icon} me-2" aria-hidden="true"></i>${card.label}</span>
+                        <p class="annual-analysis-card__value">${numberFormatter.format(value)}</p>
+                        <div class="annual-analysis-card__trend">
+                            <span class="annual-analysis-card__pill"><i class="fas fa-calendar-week" aria-hidden="true"></i>${dataset.monthCount} ${monthLabel}</span>
+                            <span>Promedio mensual</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        if (tableHost) {
+            const rows = dataset.months.map((month) => `
+                <tr>
+                    <th scope="row">${month.label}</th>
+                    <td class="text-center">${numberFormatter.format(Math.round(month.averages.comercial || 0))}</td>
+                    <td class="text-center">${numberFormatter.format(Math.round(month.averages.carga || 0))}</td>
+                    <td class="text-center">${numberFormatter.format(Math.round(month.averages.general || 0))}</td>
+                    <td class="text-center fw-semibold">${numberFormatter.format(Math.round(month.averages.total || 0))}</td>
+                </tr>
+            `).join('');
+            const totalsRow = `
+                <tr class="table-secondary fw-semibold">
+                    <th scope="row">Promedio anual</th>
+                    <td class="text-center">${numberFormatter.format(Math.round(dataset.overall.comercial || 0))}</td>
+                    <td class="text-center">${numberFormatter.format(Math.round(dataset.overall.carga || 0))}</td>
+                    <td class="text-center">${numberFormatter.format(Math.round(dataset.overall.general || 0))}</td>
+                    <td class="text-center">${numberFormatter.format(Math.round(dataset.overall.total || 0))}</td>
+                </tr>
+            `;
+            const coverageText = dataset.coverageLabel
+                ? `<p class="small text-muted mt-2 mb-0"><i class="fas fa-calendar me-1"></i>Cobertura: ${dataset.coverageLabel} · ${dataset.sampleDays} ${dataset.sampleDays === 1 ? 'día' : 'días'} analizados · Regla mínima: ${PARTE_OPERACIONES_MIN_DAYS_PER_MONTH} días/mes</p>`
+                : '';
+            tableHost.innerHTML = `
+                <table class="table table-striped table-hover align-middle mb-0">
+                    <caption>Promedio mensual de operaciones</caption>
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">Mes</th>
+                            <th scope="col" class="text-center">Comercial</th>
+                            <th scope="col" class="text-center">Carga</th>
+                            <th scope="col" class="text-center">General</th>
+                            <th scope="col" class="text-center">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                    <tfoot>${totalsRow}</tfoot>
+                </table>
+                ${coverageText}
+            `;
+        }
+        parteOperacionesAnnualState.lastSignature = dataset.signature;
+    }
+    updateParteOperacionesAnnualChart(dataset, numberFormatter);
 }
 
 function renderParteOperacionesSummary(data, metadata = {}){

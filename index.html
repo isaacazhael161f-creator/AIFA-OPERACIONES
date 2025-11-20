@@ -564,8 +564,9 @@
                         </div>
                         <div class="card-body">
                             <ul class="nav nav-tabs" id="operationsTab" role="tablist">
-                                <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#resumen1-pane">Resumen 1</button></li>
-                                <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#resumen2-pane">Resumen 2</button></li>
+                                <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#resumen1-pane" type="button" role="tab">Resumen 1</button></li>
+                                <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#resumen2-pane" type="button" role="tab">Resumen 2</button></li>
+                                <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#analisis-anual-pane" type="button" role="tab">Análisis anual</button></li>
                             </ul>
                             <div class="tab-content pt-3" id="operationsTabContent">
                                 <div class="tab-pane fade show active" id="resumen1-pane">
@@ -664,6 +665,20 @@
                                 </div>
                                 <div class="tab-pane fade" id="resumen2-pane">
                                     <div class="pdf-container"><iframe src="pdfs/resumen_2.pdf" width="100%" height="700px" class="border-0"></iframe></div>
+                                </div>
+                                <div class="tab-pane fade" id="analisis-anual-pane">
+                                    <div class="annual-analysis-intro alert alert-secondary d-flex align-items-center gap-2" role="note">
+                                        <i class="fas fa-chart-line text-primary"></i>
+                                        <div>
+                                            <p class="mb-0 fw-semibold">Promedios mensuales por tipo de aviación</p>
+                                            <small class="text-muted">Calculados con todas las capturas disponibles durante el año seleccionado.</small>
+                                        </div>
+                                    </div>
+                                    <div class="annual-analysis-cards" id="ops-annual-averages-cards" aria-live="polite"></div>
+                                    <div class="chart-container annual-analysis-chart" style="height:420px">
+                                        <canvas id="ops-annual-averages-chart" aria-label="Promedio mensual por tipo" role="img"></canvas>
+                                    </div>
+                                    <div class="table-responsive mt-4" id="ops-annual-averages-table"></div>
                                 </div>
                             </div>
                         </div>

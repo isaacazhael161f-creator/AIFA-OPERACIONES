@@ -2980,6 +2980,90 @@ body.dark-mode #ops-sections-filters .form-check-input:checked + .form-check-lab
    letter-spacing: 0.015em;
 }
 
+.annual-analysis-cards {
+   display: grid;
+   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+   gap: 1rem;
+   margin-bottom: 1.5rem;
+}
+.annual-analysis-card {
+   border-radius: 18px;
+   background: linear-gradient(135deg, rgba(248,250,255,0.95), rgba(235,241,255,0.9));
+   border: 1px solid rgba(15,76,129,0.12);
+   padding: 1.25rem 1.35rem;
+   box-shadow: 0 18px 36px rgba(6,57,112,0.08);
+   display: flex;
+   flex-direction: column;
+   gap: 0.35rem;
+   min-height: 150px;
+}
+.annual-analysis-card__eyebrow {
+   font-size: 0.7rem;
+   text-transform: uppercase;
+   letter-spacing: 0.08em;
+   color: rgba(12,51,96,0.7);
+   font-weight: 700;
+   margin-bottom: 0.15rem;
+}
+.annual-analysis-card__value {
+   font-size: 2rem;
+   font-weight: 700;
+   color: #072445;
+   margin: 0;
+}
+.annual-analysis-card__trend {
+   display: flex;
+   align-items: center;
+   gap: 0.4rem;
+   font-size: 0.9rem;
+   color: rgba(12,51,96,0.75);
+}
+.annual-analysis-card__pill {
+   display: inline-flex;
+   align-items: center;
+   gap: 0.3rem;
+   padding: 0.15rem 0.65rem;
+   border-radius: 999px;
+   background: rgba(12,51,96,0.08);
+   font-size: 0.75rem;
+   font-weight: 600;
+   color: #0d47a1;
+}
+.annual-analysis-card--comercial .annual-analysis-card__pill {
+   background: rgba(21,101,192,0.15);
+   color: #0d47a1;
+}
+.annual-analysis-card--carga .annual-analysis-card__pill {
+   background: rgba(255,152,0,0.18);
+   color: #b25a00;
+}
+.annual-analysis-card--general .annual-analysis-card__pill {
+   background: rgba(56,142,60,0.16);
+   color: #1b5e20;
+}
+.annual-analysis-card--total .annual-analysis-card__pill {
+   background: rgba(96,125,139,0.18);
+   color: #37474f;
+}
+.annual-analysis-chart {
+   margin-top: 1rem;
+}
+#ops-annual-averages-table table caption {
+   caption-side: top;
+   font-weight: 600;
+   color: rgba(12,51,96,0.8);
+}
+
+body.dark-mode .annual-analysis-card {
+   background: linear-gradient(135deg, rgba(15,23,42,0.92), rgba(30,41,59,0.88));
+   border-color: rgba(148,163,184,0.22);
+   box-shadow: 0 18px 36px rgba(0,0,0,0.55);
+}
+body.dark-mode .annual-analysis-card__eyebrow { color: rgba(191,219,254,0.78); }
+body.dark-mode .annual-analysis-card__value { color: #e2e8f0; }
+body.dark-mode .annual-analysis-card__trend { color: rgba(226,232,240,0.72); }
+body.dark-mode .annual-analysis-card__pill { background: rgba(59,130,246,0.18); color: #93c5fd; }
+
 .ops-calendar-hint {
    border-radius: 12px;
    border: 1px solid rgba(13,71,161,0.16);
