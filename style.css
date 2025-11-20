@@ -399,6 +399,299 @@ body.dark-mode .section-title small {
 .header-center-content .header-subtext .current-date-display { margin: 0; font-size: .95rem; letter-spacing: .03em; }
 
 /* Mostrar avión animado también en móviles (preferencia del usuario) */
+
+/* Itinerary intelligence styling */
+.itinerary-intelligence {
+   background: linear-gradient(145deg, rgba(91,122,255,0.08), rgba(47,173,154,0.08));
+   border: 1px solid rgba(73,80,87,0.08);
+   border-radius: 18px;
+   padding: 1.5rem;
+   transition: box-shadow 0.3s ease;
+}
+.itinerary-intelligence:hover {
+   box-shadow: 0 20px 45px rgba(15,23,42,0.08);
+}
+.intel-scope-badge {
+   background: rgba(13,110,253,0.12);
+   color: #0d6efd;
+   border-radius: 999px;
+   padding: 0.35rem 1rem;
+   font-weight: 600;
+}
+.intel-metrics-row .intel-metric-card {
+   display: flex;
+   align-items: center;
+   gap: 0.9rem;
+   background: #fff;
+   border-radius: 16px;
+   padding: 1rem 1.2rem;
+   border: 1px solid rgba(15,23,42,0.05);
+   height: 100%;
+}
+.intel-metric-icon {
+   width: 44px;
+   height: 44px;
+   border-radius: 12px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 1.1rem;
+   color: #fff;
+}
+.intel-metric-icon.icon-primary { background: linear-gradient(135deg,#5a63ff,#2e49ff); }
+.intel-metric-icon.icon-success { background: linear-gradient(135deg,#1cc88a,#0ea371); }
+.intel-metric-icon.icon-warning { background: linear-gradient(135deg,#f6c23e,#f39c12); }
+.intel-metric-icon.icon-info { background: linear-gradient(135deg,#36b9cc,#1a8da5); }
+.intel-metric-label {
+   display: block;
+   font-size: 0.75rem;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+   color: #6c757d;
+   margin-bottom: 0.15rem;
+}
+.intel-metric-value {
+   font-size: 1.75rem;
+   font-weight: 700;
+   line-height: 1;
+   color: #212529;
+}
+.intel-metric-detail {
+   font-size: 0.85rem;
+   color: #6c757d;
+}
+.intel-header-pill {
+   width: 40px;
+   height: 40px;
+   border-radius: 12px;
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   color: #fff;
+   font-size: 1rem;
+}
+.intel-header-pill.pill-primary { background: linear-gradient(135deg,#4f46e5,#5b21b6); }
+.intel-header-pill.pill-success { background: linear-gradient(135deg,#22c55e,#15803d); }
+.intel-table thead {
+   background: rgba(15,23,42,0.04);
+   text-transform: uppercase;
+   font-size: 0.7rem;
+   letter-spacing: 0.05em;
+   color: #6c757d;
+}
+.intel-table tbody tr:hover {
+   background: rgba(13,110,253,0.06);
+}
+.intel-table button[data-peak-flight] {
+   font-size: 0.9rem;
+   color: #0d6efd;
+}
+.intel-connection-list {
+   counter-reset: connection;
+   list-style: none;
+   padding-left: 0;
+   margin-bottom: 0;
+}
+.intel-connection-list li {
+   counter-increment: connection;
+   padding: 0.4rem 0.6rem;
+   border-radius: 10px;
+   background: rgba(248,249,250,0.9);
+   font-size: 0.86rem;
+   margin-bottom: 0.4rem;
+   display: flex;
+   align-items: center;
+   gap: 0.35rem;
+}
+.intel-connection-list li::before {
+   content: counter(connection);
+   width: 22px;
+   height: 22px;
+   border-radius: 50%;
+   background: rgba(13,110,253,0.15);
+   color: #0d6efd;
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 0.75rem;
+   font-weight: 600;
+}
+.intel-results-card {
+   margin-top: 1.5rem;
+   border-radius: 18px;
+}
+.intel-results-card table tbody tr td {
+   vertical-align: middle;
+}
+.intel-peak-card,
+.intel-connections-card {
+   border-radius: 18px;
+   border: 1px solid rgba(15,23,42,0.05);
+}
+.intel-airline-cell {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   min-height: 80px;
+}
+.intel-airline-cell .airline-logo {
+   width: 68px;
+   height: 68px;
+   object-fit: contain;
+}
+.intel-airline-badge {
+   width: 72px;
+   height: 72px;
+   border-radius: 50%;
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   background: rgba(13,110,253,0.12);
+   color: #0d6efd;
+   font-size: 1rem;
+   font-weight: 700;
+   letter-spacing: 0.05em;
+}
+.intel-airline-badge.xl {
+   width: 110px;
+   height: 110px;
+   font-size: 1.25rem;
+}
+.intel-flight-results {
+   display: flex;
+   flex-direction: column;
+   gap: 0.9rem;
+}
+.intel-flight-card {
+   border: 1px solid rgba(15,23,42,0.08);
+   border-radius: 18px;
+   padding: 1rem 1.25rem;
+   background: #fff;
+   box-shadow: 0 12px 30px rgba(15,23,42,0.06);
+   transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.intel-flight-card:hover {
+   transform: translateY(-2px);
+   box-shadow: 0 16px 36px rgba(15,23,42,0.12);
+}
+.intel-flight-header {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   gap: 0.75rem;
+   margin-bottom: 0.75rem;
+}
+.intel-movement-chip {
+   display: inline-flex;
+   align-items: center;
+   gap: 0.35rem;
+   font-size: 0.78rem;
+   font-weight: 600;
+   padding: 0.25rem 0.75rem;
+   border-radius: 999px;
+   text-transform: uppercase;
+}
+.intel-movement-chip.movement-arrival { background: rgba(25,135,84,0.15); color: #198754; }
+.intel-movement-chip.movement-departure { background: rgba(13,110,253,0.15); color: #0d6efd; }
+.intel-movement-chip.movement-generic { background: rgba(108,117,125,0.2); color: #495057; }
+.intel-flight-number {
+   font-size: 0.95rem;
+   letter-spacing: 0.05em;
+   text-transform: uppercase;
+   color: #495057;
+}
+.intel-flight-number strong { color: #0f172a; }
+.intel-flight-time {
+   margin-left: auto;
+   font-weight: 600;
+   color: #0f172a;
+}
+.intel-flight-body {
+   display: flex;
+   flex-direction: column;
+   gap: 0.6rem;
+}
+.intel-flight-carrier {
+   display: inline-flex;
+   align-items: center;
+   gap: 0.75rem;
+   margin-bottom: 0.75rem;
+}
+.intel-flight-carrier .airline-logo,
+.intel-flight-carrier .intel-airline-badge {
+   width: 120px;
+   height: 120px;
+}
+.intel-flight-carrier .intel-airline-badge {
+   border-radius: 50%;
+   background: rgba(15,23,42,0.08);
+   color: #0f172a;
+   font-size: 1.4rem;
+}
+.intel-flight-route {
+   display: flex;
+   align-items: center;
+   flex-wrap: wrap;
+   gap: 0.4rem;
+   font-size: 1.1rem;
+   font-weight: 600;
+   color: #1f2937;
+}
+.intel-flight-route .route-airport {
+   text-transform: uppercase;
+   letter-spacing: 0.08em;
+}
+.intel-flight-route .route-arrow {
+   color: #0d6efd;
+   font-size: 0.95rem;
+}
+.intel-flight-meta {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 0.5rem;
+}
+.intel-flight-tag {
+   display: inline-flex;
+   align-items: center;
+   gap: 0.35rem;
+   padding: 0.35rem 0.65rem;
+   border-radius: 999px;
+   background: rgba(15,23,42,0.05);
+   font-size: 0.8rem;
+   font-weight: 600;
+   color: #1f2937;
+}
+.intel-flight-tag-muted {
+   background: rgba(108,117,125,0.2);
+   color: #495057;
+}
+.intel-flight-placeholder {
+   padding: 1.25rem;
+   border: 1px dashed rgba(15,23,42,0.15);
+   border-radius: 16px;
+   background: rgba(248,249,250,0.7);
+}
+@media (max-width: 576px) {
+   .intel-metric-card {
+      flex-direction: column;
+      align-items: flex-start;
+   }
+   .intel-metric-icon {
+      width: 38px;
+      height: 38px;
+   }
+   .intel-flight-header {
+      flex-direction: column;
+      align-items: flex-start;
+   }
+   .intel-flight-time {
+      margin-left: 0;
+   }
+   .intel-flight-carrier {
+      margin-bottom: 0.5rem;
+      justify-content: flex-start;
+   }
+}
 /* Ajuste XS: más chico y ligeramente más transparente para no tapar título */
 @media (max-width: 400px) {
    .header .header-content { flex-direction: column; align-items: center; gap: .35rem; }
@@ -461,6 +754,10 @@ body.dark-mode .section-title small {
    width: 8px;
    height: 8px;
    border-radius: 50%;
+   .intel-flight-carrier {
+      flex-direction: column;
+      align-items: flex-start;
+   }
    background: var(--airline-color, #0d6efd);
    margin-right: 0.35rem;
    flex-shrink: 0;
@@ -3882,6 +4179,171 @@ body.dark-mode .punc-rank-badge {
       font-size: 1.6rem;
    }
 }
+
+
+/* Top hours widget */
+.top-hours-widget {
+   border: 1px solid rgba(15,23,42,0.08);
+   border-radius: 20px;
+   padding: 1.25rem 1.5rem 1.4rem;
+   background: var(--card-bg, #fff);
+   box-shadow: 0 18px 32px rgba(15,23,42,0.08);
+}
+.top-hours-header {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 1.25rem;
+   align-items: flex-start;
+   border-bottom: 1px solid rgba(15,23,42,0.08);
+   padding-bottom: 1rem;
+   margin-bottom: 1.25rem;
+}
+.top-hours-title { max-width: 540px; }
+.top-hours-eyebrow {
+   display: inline-block;
+   font-size: 0.68rem;
+   letter-spacing: 0.26em;
+   text-transform: uppercase;
+   font-weight: 700;
+   color: var(--text-muted-color, #6c757d);
+   margin-bottom: 0.35rem;
+}
+.top-hours-heading {
+   font-weight: 700;
+   font-size: 1.05rem;
+   letter-spacing: 0.01em;
+}
+.top-hours-subtitle { font-size: 0.85rem; }
+.top-hours-controls {
+   display: inline-flex;
+   align-items: center;
+   gap: 0.45rem;
+   margin-left: auto;
+}
+.top-hours-label { font-size: 0.8rem; }
+.top-hours-select { min-width: 120px; font-weight: 600; }
+.top-hours-grid { margin-top: 0.25rem; }
+.top-hours-card {
+   border-radius: 18px;
+   padding: 1.15rem 1.25rem 1.05rem;
+   border: 1px solid rgba(15,23,42,0.08);
+   background: var(--card-bg, #fff);
+   box-shadow: 0 14px 28px rgba(15,23,42,0.1);
+   display: flex;
+   flex-direction: column;
+   gap: 0.7rem;
+   min-height: 100%;
+}
+.top-hours-card.arrivals-theme {
+   background: linear-gradient(135deg, rgba(76,175,80,0.08), rgba(76,175,80,0.18));
+   border-color: rgba(76,175,80,0.25);
+}
+.top-hours-card.departures-theme {
+   background: linear-gradient(135deg, rgba(255,152,0,0.09), rgba(255,111,0,0.18));
+   border-color: rgba(255,152,0,0.28);
+}
+.top-hours-card.cargo-accent {
+   background: linear-gradient(135deg, rgba(33,150,243,0.07), rgba(0,96,100,0.12));
+   border-color: rgba(0,96,156,0.28);
+}
+.top-hours-card-header {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 0.5rem;
+}
+.top-hours-chip {
+   display: inline-flex;
+   align-items: center;
+   gap: 0.4rem;
+   padding: 0.35rem 0.9rem;
+   border-radius: 999px;
+   font-weight: 600;
+   font-size: 0.85rem;
+   letter-spacing: 0.02em;
+   background: rgba(255,255,255,0.35);
+}
+.chip-arrivals { color: #0d4521; background: rgba(76,175,80,0.18); }
+.chip-departures { color: #7a3200; background: rgba(255,152,0,0.2); }
+.top-hours-list {
+   list-style: none;
+   padding-left: 0;
+   margin: 0;
+   display: flex;
+   flex-direction: column;
+   gap: 0.35rem;
+   counter-reset: topHour;
+}
+.top-hours-list li {
+   counter-increment: topHour;
+   display: flex;
+   align-items: stretch;
+}
+.top-hours-list li::before {
+   content: counter(topHour, decimal-leading-zero);
+   font-weight: 700;
+   font-size: 0.85rem;
+   color: rgba(15,23,42,0.45);
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   width: 2.4rem;
+}
+.top-hours-list li.text-muted { padding: 0.25rem 0; }
+.top-hours-list li.text-muted::before { content: '\2014'; font-weight: 400; }
+.top-hour-trigger {
+   border: none;
+   background: rgba(255,255,255,0.65);
+   border-radius: 12px;
+   padding: 0.55rem 0.75rem;
+   display: flex;
+   flex: 1;
+   align-items: center;
+   justify-content: space-between;
+   gap: 0.5rem;
+   font-weight: 600;
+   color: inherit;
+   text-decoration: none;
+   transition: background 0.18s ease, transform 0.18s ease;
+}
+.top-hour-trigger strong { font-size: 0.95rem; letter-spacing: 0.02em; }
+.top-hour-trigger .text-muted { font-size: 0.78rem; }
+.top-hours-card.arrivals-theme .top-hour-trigger:hover { background: rgba(76,175,80,0.22); color: #0b3e1a; }
+.top-hours-card.departures-theme .top-hour-trigger:hover { background: rgba(255,152,0,0.26); color: #6c2c00; }
+.top-hours-card.cargo-accent .top-hour-trigger:hover { background: rgba(33,150,243,0.22); color: #05345b; }
+.top-hour-trigger:focus-visible {
+   outline: 3px solid rgba(13,110,253,0.45);
+   outline-offset: 2px;
+}
+.top-hours-footnote {
+   font-size: 0.75rem;
+   display: flex;
+   align-items: center;
+   gap: 0.35rem;
+   opacity: 0.85;
+}
+
+@media (max-width: 576px) {
+   .top-hours-widget { padding: 1rem; border-radius: 16px; }
+   .top-hours-controls { width: 100%; justify-content: flex-start; }
+   .top-hours-list li::before { width: 2rem; }
+   .top-hour-trigger { padding: 0.5rem 0.65rem; }
+}
+
+body.dark-mode .top-hours-widget {
+   background: rgba(13,17,23,0.85);
+   border-color: rgba(255,255,255,0.06);
+   box-shadow: 0 14px 30px rgba(0,0,0,0.6);
+}
+body.dark-mode .top-hours-card {
+   background: rgba(13,17,23,0.9);
+   border-color: rgba(255,255,255,0.08);
+}
+body.dark-mode .top-hours-card.arrivals-theme { background: linear-gradient(135deg, rgba(46,125,50,0.35), rgba(13,71,29,0.65)); }
+body.dark-mode .top-hours-card.departures-theme { background: linear-gradient(135deg, rgba(255,111,0,0.3), rgba(130,50,0,0.55)); }
+body.dark-mode .top-hours-card.cargo-accent { background: linear-gradient(135deg, rgba(25,118,210,0.35), rgba(0,77,102,0.6)); }
+body.dark-mode .top-hour-trigger { background: rgba(255,255,255,0.08); }
+body.dark-mode .top-hours-list li::before { color: rgba(255,255,255,0.55); }
 
 .install-welcome-card {
    display: flex;

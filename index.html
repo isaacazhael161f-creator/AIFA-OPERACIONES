@@ -142,6 +142,9 @@
                                     <button class="nav-link" id="graficas-itinerario-tab" data-bs-toggle="tab" data-bs-target="#graficas-itinerario-pane" type="button" role="tab" aria-controls="graficas-itinerario-pane" aria-selected="false"><i class="fas fa-chart-area me-2"></i>Gráficas Itinerario</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="radar-operativo-tab" data-bs-toggle="tab" data-bs-target="#radar-operativo-pane" type="button" role="tab" aria-controls="radar-operativo-pane" aria-selected="false"><i class="fas fa-satellite-dish me-2"></i>Radar Operativo</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="pdf-inicio-tab" data-bs-toggle="tab" data-bs-target="#pdf-inicio-pane" type="button" role="tab" aria-controls="pdf-inicio-pane" aria-selected="false"><i class="fas fa-file-pdf me-2"></i>Documento PDF Original</button>
                                 </li>
                             </ul>
@@ -300,29 +303,45 @@
                                                                 </div>
                                                                 </div>
                                                             </div>
-                                                            <div class="itinerary-top-block itinerary-pane-block">
-                                                                <div class="d-flex align-items-center gap-2 mb-2">
-                                                                    <i class="fas fa-star text-warning"></i>
-                                                                    <strong>Top horas (Pasajeros)</strong>
-                                                                    <span class="ms-auto small text-muted">Mostrar</span>
-                                                                    <select id="pax-topN" class="form-select form-select-sm" style="width:auto;">
-                                                                        <option value="3">Top 3</option>
-                                                                        <option value="5" selected>Top 5</option>
-                                                                        <option value="10">Top 10</option>
-                                                                    </select>
+                                                            <div class="itinerary-top-block itinerary-pane-block top-hours-widget">
+                                                                <div class="top-hours-header">
+                                                                    <div class="top-hours-title">
+                                                                        <span class="top-hours-eyebrow">Radar horario</span>
+                                                                        <div class="d-flex align-items-center gap-2">
+                                                                            <i class="fas fa-star text-warning"></i>
+                                                                            <span class="top-hours-heading">Top horas (Pasajeros)</span>
+                                                                        </div>
+                                                                        <p class="mb-0 top-hours-subtitle text-muted">Haz clic en una franja para abrir los vuelos identificados en esa hora.</p>
+                                                                    </div>
+                                                                    <div class="top-hours-controls">
+                                                                        <label for="pax-topN" class="top-hours-label text-muted mb-0">Mostrar</label>
+                                                                        <select id="pax-topN" class="form-select form-select-sm top-hours-select">
+                                                                            <option value="3">Top 3</option>
+                                                                            <option value="5" selected>Top 5</option>
+                                                                            <option value="10">Top 10</option>
+                                                                        </select>
+                                                                    </div>
                                                                 </div>
-                                                                <div class="row g-3">
+                                                                <div class="row g-3 top-hours-grid">
                                                                     <div class="col-md-6">
-                                                                        <div class="card"><div class="card-body">
-                                                                            <h6 class="text-muted">Llegadas</h6>
-                                                                            <ol id="pax-top-arr" class="m-0"></ol>
-                                                                        </div></div>
+                                                                        <div class="top-hours-card arrivals-theme">
+                                                                            <div class="top-hours-card-header">
+                                                                                <span class="top-hours-chip chip-arrivals"><i class="fas fa-plane-arrival me-1"></i>Llegadas</span>
+                                                                                <small class="text-muted">Tráfico entrante del día</small>
+                                                                            </div>
+                                                                            <ol id="pax-top-arr" class="top-hours-list mb-0"></ol>
+                                                                            <p class="top-hours-footnote text-muted mb-0"><i class="fas fa-mouse-pointer me-1"></i>Selecciona la hora para ver los vuelos.</p>
+                                                                        </div>
                                                                     </div>
                                                                     <div class="col-md-6">
-                                                                        <div class="card"><div class="card-body">
-                                                                            <h6 class="text-muted">Salidas</h6>
-                                                                            <ol id="pax-top-dep" class="m-0"></ol>
-                                                                        </div></div>
+                                                                        <div class="top-hours-card departures-theme">
+                                                                            <div class="top-hours-card-header">
+                                                                                <span class="top-hours-chip chip-departures"><i class="fas fa-plane-departure me-1"></i>Salidas</span>
+                                                                                <small class="text-muted">Tráfico saliente programado</small>
+                                                                            </div>
+                                                                            <ol id="pax-top-dep" class="top-hours-list mb-0"></ol>
+                                                                            <p class="top-hours-footnote text-muted mb-0"><i class="fas fa-mouse-pointer me-1"></i>Haz clic para abrir la lista de vuelos.</p>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -341,29 +360,45 @@
                                                                 </div>
                                                                 </div>
                                                             </div>
-                                                            <div class="itinerary-top-block itinerary-pane-block">
-                                                                <div class="d-flex align-items-center gap-2 mb-2">
-                                                                    <i class="fas fa-star text-warning"></i>
-                                                                    <strong>Top horas (Carga)</strong>
-                                                                    <span class="ms-auto small text-muted">Mostrar</span>
-                                                                    <select id="cargo-topN" class="form-select form-select-sm" style="width:auto;">
-                                                                        <option value="3">Top 3</option>
-                                                                        <option value="5" selected>Top 5</option>
-                                                                        <option value="10">Top 10</option>
-                                                                    </select>
+                                                            <div class="itinerary-top-block itinerary-pane-block top-hours-widget">
+                                                                <div class="top-hours-header">
+                                                                    <div class="top-hours-title">
+                                                                        <span class="top-hours-eyebrow">Radar horario</span>
+                                                                        <div class="d-flex align-items-center gap-2">
+                                                                            <i class="fas fa-star text-warning"></i>
+                                                                            <span class="top-hours-heading">Top horas (Carga)</span>
+                                                                        </div>
+                                                                        <p class="mb-0 top-hours-subtitle text-muted">Explora las ventanas más cargadas y consulta los vuelos con un clic.</p>
+                                                                    </div>
+                                                                    <div class="top-hours-controls">
+                                                                        <label for="cargo-topN" class="top-hours-label text-muted mb-0">Mostrar</label>
+                                                                        <select id="cargo-topN" class="form-select form-select-sm top-hours-select">
+                                                                            <option value="3">Top 3</option>
+                                                                            <option value="5" selected>Top 5</option>
+                                                                            <option value="10">Top 10</option>
+                                                                        </select>
+                                                                    </div>
                                                                 </div>
-                                                                <div class="row g-3">
+                                                                <div class="row g-3 top-hours-grid">
                                                                     <div class="col-md-6">
-                                                                        <div class="card"><div class="card-body">
-                                                                            <h6 class="text-muted">Llegadas</h6>
-                                                                            <ol id="cargo-top-arr" class="m-0"></ol>
-                                                                        </div></div>
+                                                                        <div class="top-hours-card arrivals-theme cargo-accent">
+                                                                            <div class="top-hours-card-header">
+                                                                                <span class="top-hours-chip chip-arrivals"><i class="fas fa-box-open me-1"></i>Llegadas</span>
+                                                                                <small class="text-muted">Picos de recepción de carga</small>
+                                                                            </div>
+                                                                            <ol id="cargo-top-arr" class="top-hours-list mb-0"></ol>
+                                                                            <p class="top-hours-footnote text-muted mb-0"><i class="fas fa-mouse-pointer me-1"></i>Selecciona una franja horaria para detallar.</p>
+                                                                        </div>
                                                                     </div>
                                                                     <div class="col-md-6">
-                                                                        <div class="card"><div class="card-body">
-                                                                            <h6 class="text-muted">Salidas</h6>
-                                                                            <ol id="cargo-top-dep" class="m-0"></ol>
-                                                                        </div></div>
+                                                                        <div class="top-hours-card departures-theme cargo-accent">
+                                                                            <div class="top-hours-card-header">
+                                                                                <span class="top-hours-chip chip-departures"><i class="fas fa-truck-ramp-box me-1"></i>Salidas</span>
+                                                                                <small class="text-muted">Despachos prioritarios</small>
+                                                                            </div>
+                                                                            <ol id="cargo-top-dep" class="top-hours-list mb-0"></ol>
+                                                                            <p class="top-hours-footnote text-muted mb-0"><i class="fas fa-mouse-pointer me-1"></i>Haz clic para ver los vuelos programados.</p>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -374,12 +409,156 @@
                                         </div>
                                     </div>
                                 </div>
+                                <div class="tab-pane fade" id="radar-operativo-pane" role="tabpanel" aria-labelledby="radar-operativo-tab" tabindex="0">
+                                    <div class="pt-3">
+                                        <div class="card">
+                                            <div class="card-header flex-column flex-md-row d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h2 class="section-title mb-1">Radar operativo inteligente</h2>
+                                                    <p class="text-muted mb-0 small">Explora hallazgos, aerolíneas dominantes y conexiones destacadas.</p>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="itinerary-intelligence mb-4">
+                                                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                                                        <div>
+                                                            <h5 class="mb-1">Radar operativo inteligente</h5>
+                                                            <p class="small text-muted mb-0">Cambia de pestaña para ver los hallazgos de pasajeros o carga.</p>
+                                                        </div>
+                                                        <span class="badge intel-scope-badge" id="it-intelligence-scope-badge">Pasajeros</span>
+                                                    </div>
+                                                    <div class="row g-3 intel-metrics-row">
+                                                        <div class="col-6 col-lg-3">
+                                                            <div class="intel-metric-card shadow-sm h-100">
+                                                                <div class="intel-metric-icon icon-primary"><i class="fas fa-plane-departure"></i></div>
+                                                                <div class="intel-metric-copy">
+                                                                    <span class="intel-metric-label">Operaciones del día</span>
+                                                                    <div class="intel-metric-value" id="it-metric-total">-</div>
+                                                                    <div class="intel-metric-detail" id="it-metric-total-detail">Sin datos</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-6 col-lg-3">
+                                                            <div class="intel-metric-card shadow-sm h-100">
+                                                                <div class="intel-metric-icon icon-success"><i class="fas fa-person-arrival"></i></div>
+                                                                <div class="intel-metric-copy">
+                                                                    <span class="intel-metric-label">Arribos</span>
+                                                                    <div class="intel-metric-value" id="it-metric-arrivals">-</div>
+                                                                    <div class="intel-metric-detail" id="it-metric-arrivals-detail">Sin datos</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-6 col-lg-3">
+                                                            <div class="intel-metric-card shadow-sm h-100">
+                                                                <div class="intel-metric-icon icon-warning"><i class="fas fa-person-walking-luggage"></i></div>
+                                                                <div class="intel-metric-copy">
+                                                                    <span class="intel-metric-label">Salidas</span>
+                                                                    <div class="intel-metric-value" id="it-metric-departures">-</div>
+                                                                    <div class="intel-metric-detail" id="it-metric-departures-detail">Sin datos</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-6 col-lg-3">
+                                                            <div class="intel-metric-card shadow-sm h-100">
+                                                                <div class="intel-metric-icon icon-info"><i class="fas fa-network-wired"></i></div>
+                                                                <div class="intel-metric-copy">
+                                                                    <span class="intel-metric-label">Red activa</span>
+                                                                    <div class="intel-metric-value" id="it-metric-airlines">-</div>
+                                                                    <div class="intel-metric-detail" id="it-metric-busiest-hour">Sin hora pico registrada</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row g-3 mt-1">
+                                                        <div class="col-12 col-lg-7">
+                                                            <div class="card shadow-sm h-100 intel-peak-card">
+                                                                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                                                    <div class="d-flex align-items-center gap-2">
+                                                                        <span class="intel-header-pill pill-primary"><i class="fas fa-business-time"></i></span>
+                                                                        <div>
+                                                                            <span class="fw-semibold d-block">Horas pico por aerolínea</span>
+                                                                            <small class="text-muted">Identifica qué aerolínea domina cada hora</small>
+                                                                        </div>
+                                                                    </div>
+                                                                    <span class="badge bg-primary-subtle text-primary small">Haz clic para ver vuelos</span>
+                                                                </div>
+                                                                <div class="card-body p-0">
+                                                                    <div class="table-responsive">
+                                                                        <table class="table table-sm align-middle mb-0 intel-table" id="it-peak-airlines">
+                                                                            <thead>
+                                                                                <tr>
+                                                                                    <th scope="col">Aerolínea</th>
+                                                                                    <th scope="col" class="text-center">Operaciones</th>
+                                                                                    <th scope="col" class="text-center">Arribos</th>
+                                                                                    <th scope="col" class="text-center">Salidas</th>
+                                                                                    <th scope="col">Hora pico</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody id="it-peak-airlines-table">
+                                                                                <tr>
+                                                                                    <td colspan="5" class="text-center text-muted small">Cargando información...</td>
+                                                                                </tr>
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-lg-5">
+                                                            <div class="card shadow-sm h-100 intel-connections-card">
+                                                                <div class="card-header d-flex align-items-center gap-2">
+                                                                    <span class="intel-header-pill pill-success"><i class="fas fa-route"></i></span>
+                                                                    <div>
+                                                                        <span class="fw-semibold d-block">Conexiones destacadas</span>
+                                                                        <small class="text-muted">Top rutas de llegada y salida</small>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="card-body">
+                                                                    <div class="row g-3">
+                                                                        <div class="col-12 col-md-6">
+                                                                            <h6 class="text-muted text-uppercase small mb-2" id="it-top-origins-title">Principales orígenes</h6>
+                                                                            <ol class="intel-connection-list" id="it-top-origins">
+                                                                                <li class="text-muted small">Sin datos</li>
+                                                                            </ol>
+                                                                        </div>
+                                                                        <div class="col-12 col-md-6">
+                                                                            <h6 class="text-muted text-uppercase small mb-2" id="it-top-destinations-title">Principales destinos</h6>
+                                                                            <ol class="intel-connection-list" id="it-top-destinations">
+                                                                                <li class="text-muted small">Sin datos</li>
+                                                                            </ol>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="tab-pane fade" id="pdf-inicio-pane" role="tabpanel" aria-labelledby="pdf-inicio-tab" tabindex="0">
                                     <div class="pdf-container">
                                         <iframe src="pdfs/Itinerario.pdf" width="100%" height="700px" class="border-0"></iframe>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0 d-none intel-results-card mt-3" id="it-peak-results-card">
+                    <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div>
+                            <h6 class="mb-0" id="it-peak-results-title"></h6>
+                            <p class="small text-muted mb-0" id="it-peak-results-subtitle">Selecciona una aerolínea u horario para detallar los vuelos.</p>
+                        </div>
+                        <button class="btn btn-link text-decoration-none text-muted p-0" id="it-peak-results-close" type="button"><i class="fas fa-times me-1"></i>Cerrar</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="intel-flight-results" id="it-peak-results-body">
+                            <div class="intel-flight-placeholder text-center text-muted small">Selecciona una aerolínea o franja horaria para ver los vuelos relacionados.</div>
                         </div>
                     </div>
                 </div>
@@ -753,7 +932,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div id="medicas-section" class="content-section">
                     <div class="card border-0">
                         <div class="card-header bg-transparent d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
