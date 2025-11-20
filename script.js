@@ -731,7 +731,7 @@ const WEEKLY_OPERATIONS_DATASETS = [
             inicio: '2025-11-17',
             fin: '2025-11-23',
             descripcion: describeWeekRange('2025-11-17', '2025-11-23'),
-            nota: 'Semana del (17 al 23 de noviembre de 2025). Datos en Integración. Cierre de datos al Martes 18-Nov-2025.'
+            nota: 'Semana del (17 al 23 de noviembre de 2025). Datos en Integración.'
         },
         dias: [
             {
@@ -2231,8 +2231,7 @@ function setupEventListeners() {
             }
         }
         if (e.ctrlKey && e.shiftKey) {
-            const activeSection = document.querySelector('.content-section.active');
-            const sectionId = activeSection ? activeSection.id.replace('-section', '') : '';
+            const sectionId = getActiveSectionKey();
             
             if (e.key === 'R') {
                 e.preventDefault();
@@ -2270,7 +2269,7 @@ window.diagnoseCharts = function() {
     console.log('🔍 === DIAGNÓSTICO DE GRÁFICAS ===');
     
     const activeSection = document.querySelector('.content-section.active');
-    console.log('Sección activa:', activeSection?.id || 'ninguna');
+    console.log('Sección activa:', getActiveSectionKey() || activeSection?.id || 'ninguna');
     
     console.log('📊 Gráficas de Operaciones Totales:');
     console.log('opsCharts:', Object.keys(opsCharts));
@@ -3456,8 +3455,7 @@ function applyFilters() {
             flightsCombined: [...(passengerFlights||[]), ...(cargoFlights||[])]
         };
         const sync = (window.syncItineraryFiltersToCharts !== false); // default true
-        const itSec = document.getElementById('itinerario-section');
-        if (sync && itSec && itSec.classList.contains('active') && typeof window.renderItineraryCharts === 'function') {
+        if (sync && isItineraryChartsPaneActive() && typeof window.renderItineraryCharts === 'function') {
             clearTimeout(window._itSyncTimer);
             window._itSyncTimer = setTimeout(() => { try { window.renderItineraryCharts(); } catch(_) {} }, 80);
         }
@@ -4803,6 +4801,49 @@ function hideGlobalLoader() {
 // FUNCIONES FALTANTES PARA ESTABILIZAR LA APP Y EVITAR ERRORES EN TIEMPO DE EJECUCIÓN
 // =================================================================================
 
+const SECTION_HOST_OVERRIDES = { itinerario: 'inicio' };
+
+function resolveSectionHostKey(sectionKey) {
+    if (!sectionKey) return null;
+    return SECTION_HOST_OVERRIDES[sectionKey] || sectionKey;
+}
+
+function isItineraryChartsPaneActive() {
+    const pane = document.getElementById('graficas-itinerario-pane');
+    return !!(pane && pane.classList.contains('show') && pane.classList.contains('active'));
+}
+
+function activateItinerarioGraphsTab() {
+    try {
+        const tabBtn = document.getElementById('graficas-itinerario-tab');
+        if (!tabBtn) return;
+        if (typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+            bootstrap.Tab.getOrCreateInstance(tabBtn).show();
+        } else {
+            tabBtn.click();
+        }
+    } catch (err) {
+        console.warn('activateItinerarioGraphsTab failed:', err);
+    }
+}
+
+function initItinerarioGraphsTabBridge() {
+    const tabBtn = document.getElementById('graficas-itinerario-tab');
+    if (!tabBtn || tabBtn.dataset.bound) return;
+    tabBtn.dataset.bound = '1';
+    tabBtn.addEventListener('shown.bs.tab', () => {
+        try {
+            if (typeof window.renderItineraryCharts === 'function') {
+                setTimeout(() => window.renderItineraryCharts(), 60);
+            }
+        } catch (err) {
+            console.warn('renderItineraryCharts on tab show failed:', err);
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initItinerarioGraphsTabBridge);
+
 // Navegación: mostrar sección y marcar menú activo
 function showSection(sectionKey, linkEl) {
     try {
@@ -4818,7 +4859,8 @@ function showSection(sectionKey, linkEl) {
         if (!linkEl && targetKey) {
             linkEl = document.querySelector(`.menu-item[data-section="${targetKey}"]`);
         }
-        const targetId = `${targetKey}-section`;
+        const displayKey = resolveSectionHostKey(targetKey);
+        const targetId = `${displayKey}-section`;
         document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
         const target = document.getElementById(targetId);
         if (target) target.classList.add('active');
@@ -4840,6 +4882,13 @@ function showSection(sectionKey, linkEl) {
     } catch (e) { console.warn('showSection error:', e); }
 }
 
+function getActiveSectionKey() {
+    if (currentSectionKey) return currentSectionKey;
+    const activeSection = document.querySelector('.content-section.active');
+    if (!activeSection) return '';
+    return (activeSection.id || '').replace(/-section$/, '');
+}
+
 function handleNavigation(e) {
     const a = e.target.closest('a.menu-item');
     if (!a) return;
@@ -4849,6 +4898,9 @@ function handleNavigation(e) {
     if (action === 'logout') { performLogout(); return; }
     if (section) {
         showSection(section, a);
+        if (section === 'itinerario') {
+            activateItinerarioGraphsTab();
+        }
         // ensure sidebar closes after selecting on any device and collapse on desktop
         try {
             const sidebar = document.getElementById('sidebar');
@@ -6338,7 +6390,7 @@ function resetAllCharts() {
                     throw new Error('No se detectó sección activa');
                 }
                 
-                const sectionId = activeSection.id.replace('-section', '');
+                const sectionId = getActiveSectionKey() || activeSection.id.replace('-section', '');
                 console.log(`🔨 Recreando gráficas para sección: ${sectionId}`);
                 
                 // Recrear según la sección activa
@@ -6472,7 +6524,7 @@ function detectChartErrors() {
             return;
         }
         
-        const sectionId = activeSection.id.replace('-section', '');
+        const sectionId = getActiveSectionKey() || activeSection.id.replace('-section', '');
         let hasErrors = false;
         let errorInfo = '';
         

@@ -140,6 +140,9 @@
                                     <button class="nav-link active" id="interactivo-inicio-tab" data-bs-toggle="tab" data-bs-target="#interactivo-inicio-pane" type="button" role="tab" aria-controls="interactivo-inicio-pane" aria-selected="true"><i class="fas fa-table me-2"></i>Vista Interactiva</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="graficas-itinerario-tab" data-bs-toggle="tab" data-bs-target="#graficas-itinerario-pane" type="button" role="tab" aria-controls="graficas-itinerario-pane" aria-selected="false"><i class="fas fa-chart-area me-2"></i>Gráficas Itinerario</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="pdf-inicio-tab" data-bs-toggle="tab" data-bs-target="#pdf-inicio-pane" type="button" role="tab" aria-controls="pdf-inicio-pane" aria-selected="false"><i class="fas fa-file-pdf me-2"></i>Documento PDF Original</button>
                                 </li>
                             </ul>
@@ -260,121 +263,123 @@
                                         </div>
                                     </div>
                                 </div>
+                                <div class="tab-pane fade" id="graficas-itinerario-pane" role="tabpanel" aria-labelledby="graficas-itinerario-tab" tabindex="0">
+                                    <div class="pt-3">
+                                        <div id="itinerario-section">
+                                            <div class="card">
+                                                <div class="card-header flex-column flex-md-row d-flex justify-content-between align-items-center">
+                                                    <h2 class="section-title mb-3 mb-md-0">ITINERARIO DETALLADO <small id="it-stats-badge" class="text-muted ms-2" style="font-size:0.8rem"></small></h2>
+                                                    <div class="d-flex gap-2">
+                                                        <a href="excel/itinerario_completo.xlsx" class="btn btn-success download-btn" download><i class="fas fa-file-excel me-2"></i><span class="btn-text">Descargar Excel</span></a>
+                                                    </div>
+                                                </div>
+                                                <div class="card-body">
+                                                    <!-- Controles de fecha (vuelos del día) -->
+                                                    <div class="d-flex flex-wrap align-items-center justify-content-end gap-2 mb-2" id="itinerary-day-controls">
+                                                        <button class="btn btn-sm btn-outline-secondary" id="it-day-prev" title="Día anterior"><i class="fas fa-chevron-left"></i></button>
+                                                        <input type="date" id="it-day-input" class="form-control form-control-sm" />
+                                                        <button class="btn btn-sm btn-outline-secondary" id="it-day-next" title="Día siguiente"><i class="fas fa-chevron-right"></i></button>
+                                                        <button class="btn btn-sm btn-outline-primary" id="it-day-today" title="Hoy"><i class="fas fa-calendar-day me-1"></i>Hoy</button>
+                                                    </div>
+
+                                                    <ul class="nav nav-tabs" id="itineraryTab" role="tablist">
+                                                        <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#pasajeros-grafica-pane">1. Gráfica (Pasajeros)</button></li>
+                                                        <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#carga-grafica-pane">2. Gráfica (Carga)</button></li>
+                                                    </ul>
+                                                    <div class="tab-content pt-3" id="itineraryTabContent">
+                                                        <!-- Pasajeros: Llegadas/Salidas del día -->
+                                                        <div class="tab-pane fade show active" id="pasajeros-grafica-pane">
+                                                            <div class="itinerary-charts-scroll itinerary-pane-block charts-block">
+                                                                <div class="row g-3 chart-row-mobile-scroll">
+                                                                <div class="col-lg-6">
+                                                                    <h6 class="text-muted mb-2"><i class="fas fa-person-walking me-1"></i>Llegadas (Pasajeros) por hora</h6>
+                                                                    <div class="chart-container" style="height:360px"><canvas id="paxArrivalsChart"></canvas></div>
+                                                                </div>
+                                                                <div class="col-lg-6">
+                                                                    <h6 class="text-muted mb-2"><i class="fas fa-person-walking-luggage me-1"></i>Salidas (Pasajeros) por hora</h6>
+                                                                    <div class="chart-container" style="height:360px"><canvas id="paxDeparturesChart"></canvas></div>
+                                                                </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="itinerary-top-block itinerary-pane-block">
+                                                                <div class="d-flex align-items-center gap-2 mb-2">
+                                                                    <i class="fas fa-star text-warning"></i>
+                                                                    <strong>Top horas (Pasajeros)</strong>
+                                                                    <span class="ms-auto small text-muted">Mostrar</span>
+                                                                    <select id="pax-topN" class="form-select form-select-sm" style="width:auto;">
+                                                                        <option value="3">Top 3</option>
+                                                                        <option value="5" selected>Top 5</option>
+                                                                        <option value="10">Top 10</option>
+                                                                    </select>
+                                                                </div>
+                                                                <div class="row g-3">
+                                                                    <div class="col-md-6">
+                                                                        <div class="card"><div class="card-body">
+                                                                            <h6 class="text-muted">Llegadas</h6>
+                                                                            <ol id="pax-top-arr" class="m-0"></ol>
+                                                                        </div></div>
+                                                                    </div>
+                                                                    <div class="col-md-6">
+                                                                        <div class="card"><div class="card-body">
+                                                                            <h6 class="text-muted">Salidas</h6>
+                                                                            <ol id="pax-top-dep" class="m-0"></ol>
+                                                                        </div></div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <!-- Carga: Llegadas/Salidas del día -->
+                                                        <div class="tab-pane fade" id="carga-grafica-pane">
+                                                            <div class="itinerary-charts-scroll itinerary-pane-block charts-block">
+                                                                <div class="row g-3 chart-row-mobile-scroll">
+                                                                <div class="col-lg-6">
+                                                                    <h6 class="text-muted mb-2"><i class="fas fa-box-open me-1"></i>Llegadas (Carga) por hora</h6>
+                                                                    <div class="chart-container" style="height:360px"><canvas id="cargoArrivalsChart"></canvas></div>
+                                                                </div>
+                                                                <div class="col-lg-6">
+                                                                    <h6 class="text-muted mb-2"><i class="fas fa-truck-ramp-box me-1"></i>Salidas (Carga) por hora</h6>
+                                                                    <div class="chart-container" style="height:360px"><canvas id="cargoDeparturesChart"></canvas></div>
+                                                                </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="itinerary-top-block itinerary-pane-block">
+                                                                <div class="d-flex align-items-center gap-2 mb-2">
+                                                                    <i class="fas fa-star text-warning"></i>
+                                                                    <strong>Top horas (Carga)</strong>
+                                                                    <span class="ms-auto small text-muted">Mostrar</span>
+                                                                    <select id="cargo-topN" class="form-select form-select-sm" style="width:auto;">
+                                                                        <option value="3">Top 3</option>
+                                                                        <option value="5" selected>Top 5</option>
+                                                                        <option value="10">Top 10</option>
+                                                                    </select>
+                                                                </div>
+                                                                <div class="row g-3">
+                                                                    <div class="col-md-6">
+                                                                        <div class="card"><div class="card-body">
+                                                                            <h6 class="text-muted">Llegadas</h6>
+                                                                            <ol id="cargo-top-arr" class="m-0"></ol>
+                                                                        </div></div>
+                                                                    </div>
+                                                                    <div class="col-md-6">
+                                                                        <div class="card"><div class="card-body">
+                                                                            <h6 class="text-muted">Salidas</h6>
+                                                                            <ol id="cargo-top-dep" class="m-0"></ol>
+                                                                        </div></div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="tab-pane fade" id="pdf-inicio-pane" role="tabpanel" aria-labelledby="pdf-inicio-tab" tabindex="0">
                                     <div class="pdf-container">
                                         <iframe src="pdfs/Itinerario.pdf" width="100%" height="700px" class="border-0"></iframe>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="itinerario-section" class="content-section">
-                    <div class="card">
-                        <div class="card-header flex-column flex-md-row d-flex justify-content-between align-items-center">
-                            <h2 class="section-title mb-3 mb-md-0">ITINERARIO DETALLADO <small id="it-stats-badge" class="text-muted ms-2" style="font-size:0.8rem"></small></h2>
-                            <div class="d-flex gap-2">
-                                <a href="excel/itinerario_completo.xlsx" class="btn btn-success download-btn" download><i class="fas fa-file-excel me-2"></i><span class="btn-text">Descargar Excel</span></a>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <!-- Controles de fecha (vuelos del día) -->
-                            <div class="d-flex flex-wrap align-items-center justify-content-end gap-2 mb-2" id="itinerary-day-controls">
-                                <button class="btn btn-sm btn-outline-secondary" id="it-day-prev" title="Día anterior"><i class="fas fa-chevron-left"></i></button>
-                                <input type="date" id="it-day-input" class="form-control form-control-sm" />
-                                <button class="btn btn-sm btn-outline-secondary" id="it-day-next" title="Día siguiente"><i class="fas fa-chevron-right"></i></button>
-                                <button class="btn btn-sm btn-outline-primary" id="it-day-today" title="Hoy"><i class="fas fa-calendar-day me-1"></i>Hoy</button>
-                            </div>
-
-                            <ul class="nav nav-tabs" id="itineraryTab" role="tablist">
-                                <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#pasajeros-grafica-pane">1. Gráfica (Pasajeros)</button></li>
-                                <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#carga-grafica-pane">2. Gráfica (Carga)</button></li>
-                            </ul>
-                            <div class="tab-content pt-3" id="itineraryTabContent">
-                                <!-- Pasajeros: Llegadas/Salidas del día -->
-                                <div class="tab-pane fade show active" id="pasajeros-grafica-pane">
-                                    <div class="itinerary-charts-scroll itinerary-pane-block charts-block">
-                                        <div class="row g-3 chart-row-mobile-scroll">
-                                        <div class="col-lg-6">
-                                            <h6 class="text-muted mb-2"><i class="fas fa-person-walking me-1"></i>Llegadas (Pasajeros) por hora</h6>
-                                            <div class="chart-container" style="height:360px"><canvas id="paxArrivalsChart"></canvas></div>
-                                        </div>
-                                        <div class="col-lg-6">
-                                            <h6 class="text-muted mb-2"><i class="fas fa-person-walking-luggage me-1"></i>Salidas (Pasajeros) por hora</h6>
-                                            <div class="chart-container" style="height:360px"><canvas id="paxDeparturesChart"></canvas></div>
-                                        </div>
-                                        </div>
-                                    </div>
-                                    <div class="itinerary-top-block itinerary-pane-block">
-                                        <div class="d-flex align-items-center gap-2 mb-2">
-                                            <i class="fas fa-star text-warning"></i>
-                                            <strong>Top horas (Pasajeros)</strong>
-                                            <span class="ms-auto small text-muted">Mostrar</span>
-                                            <select id="pax-topN" class="form-select form-select-sm" style="width:auto;">
-                                                <option value="3">Top 3</option>
-                                                <option value="5" selected>Top 5</option>
-                                                <option value="10">Top 10</option>
-                                            </select>
-                                        </div>
-                                        <div class="row g-3">
-                                            <div class="col-md-6">
-                                                <div class="card"><div class="card-body">
-                                                    <h6 class="text-muted">Llegadas</h6>
-                                                    <ol id="pax-top-arr" class="m-0"></ol>
-                                                </div></div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="card"><div class="card-body">
-                                                    <h6 class="text-muted">Salidas</h6>
-                                                    <ol id="pax-top-dep" class="m-0"></ol>
-                                                </div></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Carga: Llegadas/Salidas del día -->
-                                <div class="tab-pane fade" id="carga-grafica-pane">
-                                    <div class="itinerary-charts-scroll itinerary-pane-block charts-block">
-                                        <div class="row g-3 chart-row-mobile-scroll">
-                                        <div class="col-lg-6">
-                                            <h6 class="text-muted mb-2"><i class="fas fa-box-open me-1"></i>Llegadas (Carga) por hora</h6>
-                                            <div class="chart-container" style="height:360px"><canvas id="cargoArrivalsChart"></canvas></div>
-                                        </div>
-                                        <div class="col-lg-6">
-                                            <h6 class="text-muted mb-2"><i class="fas fa-truck-ramp-box me-1"></i>Salidas (Carga) por hora</h6>
-                                            <div class="chart-container" style="height:360px"><canvas id="cargoDeparturesChart"></canvas></div>
-                                        </div>
-                                        </div>
-                                    </div>
-                                    <div class="itinerary-top-block itinerary-pane-block">
-                                        <div class="d-flex align-items-center gap-2 mb-2">
-                                            <i class="fas fa-star text-warning"></i>
-                                            <strong>Top horas (Carga)</strong>
-                                            <span class="ms-auto small text-muted">Mostrar</span>
-                                            <select id="cargo-topN" class="form-select form-select-sm" style="width:auto;">
-                                                <option value="3">Top 3</option>
-                                                <option value="5" selected>Top 5</option>
-                                                <option value="10">Top 10</option>
-                                            </select>
-                                        </div>
-                                        <div class="row g-3">
-                                            <div class="col-md-6">
-                                                <div class="card"><div class="card-body">
-                                                    <h6 class="text-muted">Llegadas</h6>
-                                                    <ol id="cargo-top-arr" class="m-0"></ol>
-                                                </div></div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="card"><div class="card-body">
-                                                    <h6 class="text-muted">Salidas</h6>
-                                                    <ol id="cargo-top-dep" class="m-0"></ol>
-                                                </div></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
                             </div>
                         </div>
                     </div>
