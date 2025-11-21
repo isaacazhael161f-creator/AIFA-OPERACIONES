@@ -757,6 +757,15 @@ const WEEKLY_OPERATIONS_DATASETS = [
                 comercial: { operaciones: 151, pasajeros: 19479},
                 general: { operaciones: 10, pasajeros: 31 },
                 carga: { operaciones: 12, toneladas: 423, corteFecha: '2025-11-19', corteNota: 'Cifras del 19 de noviembre de 2025.' }
+            },
+
+        
+            {
+                fecha: '2025-11-20',
+                label: '20 Nov 2025',
+                comercial: { operaciones: 150, pasajeros: 19728},
+                general: { operaciones: 19, pasajeros: 39 },
+                carga: { operaciones: 12, toneladas: 423, corteFecha: '2025-11-19', corteNota: 'Cifras del 19 de noviembre de 2025.' }
             }
         ]
     },
@@ -1159,18 +1168,47 @@ const staticData = {
             ]
         }
     },
+    mensualYear: '2025',
     demoras: {
         periodo: "Agosto 2025",
         causas: [ { causa: 'Repercusión', demoras: 219 }, { causa: 'Compañía', demoras: 190 }, { causa: 'Evento Circunstancial', demoras: 8 }, { causa: 'Combustible', demoras: 5 }, { causa: 'Autoridad', demoras: 4 }, { causa: 'Meteorología', demoras: 199 }, { causa: 'Aeropuerto', demoras: 4 }, ]
     }
 };
 
+function getOpsAvailableYearsFromTotals(source = staticData?.operacionesTotales) {
+    const groups = ['comercial', 'carga', 'general'];
+    const years = new Set();
+    groups.forEach((key) => {
+        const entries = source?.[key];
+        if (!Array.isArray(entries)) return;
+        entries.forEach((entry) => {
+            const year = entry?.periodo;
+            if (year === undefined || year === null) return;
+            years.add(String(year));
+        });
+    });
+    return Array.from(years).sort((a, b) => Number(a) - Number(b));
+}
+
+function deriveLatestOpsYearFromStaticData() {
+    try {
+        const years = getOpsAvailableYearsFromTotals();
+        if (years.length) return years[years.length - 1];
+    } catch (_) {}
+    return String(new Date().getFullYear());
+}
+
+function getOpsActiveMonthlyYear() {
+    if (staticData?.mensualYear) return String(staticData.mensualYear);
+    return deriveLatestOpsYearFromStaticData();
+}
+
 const AVIATION_ANALYTICS_SCOPES = ['comercial','general','carga'];
 const AVIATION_ANALYTICS_MONTH_KEYS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const AVIATION_ANALYTICS_MONTH_LABELS = AVIATION_ANALYTICS_MONTH_KEYS.map((m) => m.charAt(0).toUpperCase() + m.slice(1));
 const DEFAULT_AVIATION_ANALYTICS_CUTOFF_INDEX = AVIATION_ANALYTICS_MONTH_KEYS.length - 1;
 const AVIATION_ANALYTICS_DATA_PATH = 'data/aviacion_analytics.json';
-const AVIATION_ANALYTICS_CUTOFF_YEAR = '2025';
+let AVIATION_ANALYTICS_CUTOFF_YEAR = deriveLatestOpsYearFromStaticData();
 let AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX = DEFAULT_AVIATION_ANALYTICS_CUTOFF_INDEX;
 let AVIATION_ANALYTICS_DATA = null;
 let aviationAnalyticsDataPromise = null;
@@ -1215,6 +1253,21 @@ function hasMeaningfulAviationValue(value) {
     return false;
 }
 
+function clampAnalyticsCutoffToCurrentDate(candidateIndex, yearKey) {
+    if (!Number.isFinite(candidateIndex)) return candidateIndex;
+    try {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        if (Number(yearKey) !== currentYear) return candidateIndex;
+        const currentMonthIndex = now.getMonth();
+        const maxClosedIndex = currentMonthIndex - 1;
+        if (maxClosedIndex < 0) return -1;
+        return Math.min(candidateIndex, maxClosedIndex);
+    } catch (_) {
+        return candidateIndex;
+    }
+}
+
 function determineAviationAnalyticsCutoff(rawPayload = {}, targetYear) {
     const yearKey = targetYear ? String(targetYear) : null;
     if (!yearKey) return null;
@@ -1231,9 +1284,33 @@ function determineAviationAnalyticsCutoff(rawPayload = {}, targetYear) {
                 return hasMeaningfulAviationValue(yearPayload[monthKey]);
             });
         });
-        if (hasData) return idx;
+        if (hasData) {
+            return clampAnalyticsCutoffToCurrentDate(idx, yearKey);
+        }
     }
     return null;
+}
+
+function deriveLatestAviationAnalyticsYear(rawPayload = {}) {
+    try {
+        const years = new Set();
+        AVIATION_ANALYTICS_SCOPES.forEach((scopeKey) => {
+            const scopePayload = rawPayload?.[scopeKey];
+            if (!scopePayload || typeof scopePayload !== 'object') return;
+            Object.values(scopePayload).forEach((metricPayload) => {
+                if (!metricPayload || typeof metricPayload !== 'object') return;
+                Object.keys(metricPayload).forEach((yearKey) => {
+                    if (yearKey === 'acumulado') return;
+                    if (/^\d{4}$/.test(yearKey)) years.add(yearKey);
+                });
+            });
+        });
+        if (!years.size) return null;
+        return Array.from(years).sort((a, b) => Number(a) - Number(b)).pop() || null;
+    } catch (err) {
+        console.warn('deriveLatestAviationAnalyticsYear failed:', err);
+        return null;
+    }
 }
 
 function transformAviationAnalyticsSource(source = {}) {
@@ -1320,6 +1397,134 @@ function buildAviationAnalyticsDataset(rawPayload = {}) {
     return target;
 }
 
+function normalizeAnalyticsTotal(value) {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : 0;
+}
+
+function normalizeAnalyticsMonthly(value) {
+    if (value === null || value === undefined || value === '') return null;
+    const num = Number(value);
+    return Number.isFinite(num) ? num : null;
+}
+
+function deriveOpsYearlySeriesFromAnalytics(dataset, scopeKey, metricMappings = []) {
+    const scopeData = dataset && dataset[scopeKey];
+    if (!scopeData) return [];
+    const years = Array.isArray(scopeData.years) ? scopeData.years.map((year) => String(year)) : [];
+    return years.map((year) => {
+        const entry = { periodo: year };
+        metricMappings.forEach(({ metricKey, prop }) => {
+            const metricData = scopeData[metricKey];
+            const total = metricData?.years?.[year]?.total;
+            entry[prop] = normalizeAnalyticsTotal(total);
+        });
+        return entry;
+    });
+}
+
+function deriveOpsMonthlySeriesFromAnalytics(dataset, scopeKey, metricKey, valueProp, year, cutoffIndex) {
+    const scopeData = dataset && dataset[scopeKey];
+    const metricData = scopeData?.[metricKey];
+    const yearData = metricData?.years?.[year];
+    return AVIATION_ANALYTICS_MONTH_KEYS.map((monthKey, index) => {
+        const raw = yearData?.months ? yearData.months[monthKey] : null;
+        let value = normalizeAnalyticsMonthly(raw);
+        const baseLabel = AVIATION_ANALYTICS_MONTH_LABELS[index] || monthKey;
+        const isProjection = index > cutoffIndex || value === null;
+        if (index > cutoffIndex) {
+            value = null;
+        }
+        return {
+            mes: String(index + 1).padStart(2, '0'),
+            label: isProjection ? `${baseLabel} (Proy.)` : baseLabel,
+            [valueProp]: value
+        };
+    });
+}
+
+function syncOperationsDataFromAnalyticsDataset(dataset) {
+    if (!dataset) return;
+    try {
+        const cutoffIndex = Number.isFinite(AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX)
+            ? AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX
+            : (AVIATION_ANALYTICS_MONTH_KEYS.length - 1);
+        const targetYear = AVIATION_ANALYTICS_CUTOFF_YEAR;
+
+        const comercialYearly = deriveOpsYearlySeriesFromAnalytics(dataset, 'comercial', [
+            { metricKey: 'operaciones', prop: 'operaciones' },
+            { metricKey: 'pasajeros', prop: 'pasajeros' }
+        ]);
+        const cargaYearly = deriveOpsYearlySeriesFromAnalytics(dataset, 'carga', [
+            { metricKey: 'operaciones', prop: 'operaciones' },
+            { metricKey: 'tons_transportadas', prop: 'toneladas' }
+        ]);
+        const generalYearly = deriveOpsYearlySeriesFromAnalytics(dataset, 'general', [
+            { metricKey: 'operaciones', prop: 'operaciones' },
+            { metricKey: 'pasajeros', prop: 'pasajeros' }
+        ]);
+
+        if (!staticData.operacionesTotales) {
+            staticData.operacionesTotales = { comercial: [], carga: [], general: [] };
+        }
+        staticData.operacionesTotales.comercial = comercialYearly;
+        staticData.operacionesTotales.carga = cargaYearly;
+        staticData.operacionesTotales.general = generalYearly;
+
+        const comercialMonthly = deriveOpsMonthlySeriesFromAnalytics(dataset, 'comercial', 'operaciones', 'operaciones', targetYear, cutoffIndex);
+        const comercialPaxMonthly = deriveOpsMonthlySeriesFromAnalytics(dataset, 'comercial', 'pasajeros', 'pasajeros', targetYear, cutoffIndex);
+        const cargaMonthly = deriveOpsMonthlySeriesFromAnalytics(dataset, 'carga', 'operaciones', 'operaciones', targetYear, cutoffIndex);
+        const cargaTonMonthly = deriveOpsMonthlySeriesFromAnalytics(dataset, 'carga', 'tons_transportadas', 'toneladas', targetYear, cutoffIndex);
+        const generalOpsMonthly = deriveOpsMonthlySeriesFromAnalytics(dataset, 'general', 'operaciones', 'operaciones', targetYear, cutoffIndex);
+        const generalPaxMonthly = deriveOpsMonthlySeriesFromAnalytics(dataset, 'general', 'pasajeros', 'pasajeros', targetYear, cutoffIndex);
+
+        if (!staticData.mensual2025) {
+            staticData.mensual2025 = {
+                comercial: [],
+                comercialPasajeros: [],
+                carga: [],
+                cargaToneladas: [],
+                general: { operaciones: [], pasajeros: [] }
+            };
+        }
+        staticData.mensual2025.comercial = comercialMonthly;
+        staticData.mensual2025.comercialPasajeros = comercialPaxMonthly;
+        staticData.mensual2025.carga = cargaMonthly;
+        staticData.mensual2025.cargaToneladas = cargaTonMonthly;
+        if (!staticData.mensual2025.general) {
+            staticData.mensual2025.general = { operaciones: [], pasajeros: [] };
+        }
+        staticData.mensual2025.general.operaciones = generalOpsMonthly;
+        staticData.mensual2025.general.pasajeros = generalPaxMonthly;
+        staticData.mensualYear = targetYear;
+
+        const updatedYears = new Set();
+        [comercialYearly, cargaYearly, generalYearly].forEach((collection) => {
+            if (!Array.isArray(collection)) return;
+            collection.forEach((entry) => {
+                if (!entry) return;
+                const year = entry.periodo;
+                if (year === undefined || year === null) return;
+                updatedYears.add(String(year));
+            });
+        });
+        if (updatedYears.size) {
+            syncOpsYearSelection(Array.from(updatedYears));
+        }
+        syncOpsMonthlyYearState(targetYear);
+
+        if (typeof renderOperacionesTotales === 'function') {
+            try {
+                renderOperacionesTotales();
+            } catch (err) {
+                console.warn('renderOperacionesTotales sync failed:', err);
+            }
+        }
+    } catch (err) {
+        console.warn('syncOperationsDataFromAnalyticsDataset failed:', err);
+    }
+}
+
 function computeAviationAnalyticsSignature(payload) {
     if (!payload || typeof payload !== 'object') return null;
     try {
@@ -1331,10 +1536,15 @@ function computeAviationAnalyticsSignature(payload) {
 
 function setAviationAnalyticsDatasetFromPayload(rawPayload) {
     const safePayload = rawPayload && typeof rawPayload === 'object' ? rawPayload : {};
+    const derivedYear = deriveLatestAviationAnalyticsYear(safePayload);
+    if (derivedYear) {
+        AVIATION_ANALYTICS_CUTOFF_YEAR = String(derivedYear);
+    }
     const signature = computeAviationAnalyticsSignature(safePayload);
     const dataset = buildAviationAnalyticsDataset(safePayload);
     AVIATION_ANALYTICS_DATA = dataset;
     AVIATION_ANALYTICS_DATA_SIGNATURE = signature;
+    syncOperationsDataFromAnalyticsDataset(dataset);
     return dataset;
 }
 
@@ -5849,15 +6059,232 @@ function drawLineChart(canvasId, labels, values, opts){
     if (yTitle){ g.save(); g.translate(12, margin.top + innerH/2); g.rotate(-Math.PI/2); g.textAlign='center'; g.textBaseline='middle'; g.fillStyle='#495057'; g.font='600 12px Roboto, Arial'; g.fillText(yTitle, 0, 0); g.restore(); }
     if (xTitle){ g.fillStyle='#495057'; g.font='600 12px Roboto, Arial'; g.textAlign='center'; g.textBaseline='top'; g.fillText(xTitle, x0 + innerW/2, h-16); }
 }
+const OPS_ALL_MONTH_CODES = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+
+function computeStaticMonthlyCutoff() {
+    try {
+        const monthly = staticData?.mensual2025;
+        if (!monthly) return null;
+        const candidates = [
+            getLastConsolidatedMonth(monthly.comercial, 'operaciones'),
+            getLastConsolidatedMonth(monthly.comercialPasajeros, 'pasajeros'),
+            getLastConsolidatedMonth(monthly.carga, 'operaciones'),
+            getLastConsolidatedMonth(monthly.cargaToneladas, 'toneladas'),
+            getLastConsolidatedMonth(monthly.general?.operaciones, 'operaciones'),
+            getLastConsolidatedMonth(monthly.general?.pasajeros, 'pasajeros')
+        ].filter((value) => Number.isFinite(value) && value > 0);
+        if (!candidates.length) return null;
+        return Math.max(...candidates);
+    } catch (_) {
+        return null;
+    }
+}
+
+function getAllowedMonthsForYear(year) {
+    const codes = OPS_ALL_MONTH_CODES.slice();
+    if (!year) return codes;
+    if (String(year) !== String(AVIATION_ANALYTICS_CUTOFF_YEAR)) return codes;
+    let cutoffIndex = Number.isFinite(AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX)
+        ? AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX
+        : null;
+    if (!Number.isFinite(cutoffIndex) || cutoffIndex < 0) {
+        const fallback = computeStaticMonthlyCutoff();
+        if (Number.isFinite(fallback) && fallback > 0) {
+            cutoffIndex = fallback - 1;
+        }
+    }
+    if (!Number.isFinite(cutoffIndex) || cutoffIndex < 0) return [];
+    const normalizedCutoff = Math.min(cutoffIndex, codes.length - 1);
+    if (normalizedCutoff < 0) return [];
+    return codes.slice(0, normalizedCutoff + 1);
+}
+
+function createAllowedMonthsSet(year) {
+    return new Set(getAllowedMonthsForYear(year).map((code) => String(code).padStart(2, '0')));
+}
+
+const initialAllowedMonths = createAllowedMonthsSet(getOpsActiveMonthlyYear());
+
+function createDefaultOpsYearsSet() {
+    const derived = getOpsAvailableYearsFromTotals();
+    if (derived.length) return new Set(derived);
+    return new Set([deriveLatestOpsYearFromStaticData()]);
+}
+
 const opsUIState = {
     mode: 'weekly', // 'yearly' | 'monthly' | 'weekly'
     sections: { comercial: true, carga: true, general: true },
-    years: new Set(['2022','2023','2024','2025']),
-    months2025: new Set(['01','02','03','04','05','06','07','08','09','10','11','12']),
+    years: createDefaultOpsYearsSet(),
+    months2025: new Set(initialAllowedMonths),
+    allowedMonthsSnapshot: new Set(initialAllowedMonths),
     preset: 'full', // 'ops' | 'full'
     weeklyDay: 'all',
     weeklyWeekId: 'auto'
 };
+
+Object.defineProperty(opsUIState, 'activeMonthlyYear', {
+    get() {
+        return staticData?.mensualYear ? String(staticData.mensualYear) : getOpsActiveMonthlyYear();
+    },
+    set(value) {
+        staticData.mensualYear = value ? String(value) : getOpsActiveMonthlyYear();
+    }
+});
+
+function refreshOpsYearFilters(availableYears) {
+    if (typeof document === 'undefined') return;
+    const container = document.getElementById('ops-years-filters');
+    if (!container) return;
+    const years = Array.isArray(availableYears) && availableYears.length
+        ? availableYears
+        : getOpsAvailableYearsFromTotals();
+    if (!years.length) return;
+    const selected = (opsUIState?.years instanceof Set && opsUIState.years.size)
+        ? opsUIState.years
+        : new Set(years.map((year) => String(year)));
+    const markup = years.map((year) => {
+        const yearKey = String(year);
+        const checked = selected.has(yearKey) ? 'checked' : '';
+        const id = `filter-year-${yearKey}`;
+        return `
+        <div class="form-check m-0">
+            <input class="form-check-input" type="checkbox" id="${id}" data-year="${yearKey}" ${checked}>
+            <label class="form-check-label" for="${id}">${yearKey}</label>
+        </div>`;
+    }).join('');
+    container.innerHTML = markup;
+    const disableYears = opsUIState.mode !== 'yearly';
+    container.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+        input.disabled = disableYears;
+    });
+    const yearsHint = document.getElementById('years-disabled-hint');
+    if (yearsHint) yearsHint.classList.toggle('d-none', !disableYears);
+}
+
+function syncOpsYearSelection(availableYears) {
+    if (!Array.isArray(availableYears) || !availableYears.length) return;
+    const normalized = Array.from(new Set(availableYears.map((year) => String(year))))
+        .sort((a, b) => Number(a) - Number(b));
+    const normalizedSet = new Set(normalized);
+    let selection = opsUIState?.years instanceof Set ? new Set(Array.from(opsUIState.years).map((year) => String(year))) : new Set();
+    if (!selection.size) {
+        selection = new Set(normalized);
+    } else {
+        const next = new Set();
+        selection.forEach((year) => {
+            if (normalizedSet.has(year)) next.add(year);
+        });
+        if (!next.size) {
+            normalized.forEach((year) => next.add(year));
+        } else {
+            normalized.forEach((year) => {
+                if (!next.has(year)) next.add(year);
+            });
+        }
+        selection = next;
+    }
+    opsUIState.years = selection;
+    refreshOpsYearFilters(normalized);
+}
+
+function refreshOpsMonthsSelectionUI() {
+    if (typeof document === 'undefined') return;
+    const panel = document.getElementById('ops-months-2025');
+    if (!panel) return;
+    const activeYear = opsUIState?.activeMonthlyYear ? String(opsUIState.activeMonthlyYear) : getOpsActiveMonthlyYear();
+    const allowed = createAllowedMonthsSet(activeYear);
+    opsUIState.allowedMonthsSnapshot = new Set(allowed);
+    const selection = opsUIState?.months2025 instanceof Set ? opsUIState.months2025 : new Set();
+    const normalizedSelection = new Set();
+    selection.forEach((code) => {
+        const normalized = String(code || '').padStart(2, '0');
+        if (allowed.has(normalized)) normalizedSelection.add(normalized);
+    });
+    if (!normalizedSelection.size && allowed.size) {
+        allowed.forEach((code) => normalizedSelection.add(String(code).padStart(2, '0')));
+    }
+    opsUIState.months2025 = normalizedSelection;
+
+    const selectAllBtn = document.getElementById('months-select-all');
+    if (selectAllBtn) selectAllBtn.disabled = !allowed.size;
+    const selectNoneBtn = document.getElementById('months-select-none');
+    if (selectNoneBtn) selectNoneBtn.disabled = !allowed.size;
+
+    panel.querySelectorAll('input[type="checkbox"][data-month]').forEach((input) => {
+        const code = String(input.dataset.month || '').padStart(2, '0');
+        const isAllowed = allowed.has(code);
+        input.disabled = !isAllowed;
+        input.checked = isAllowed && normalizedSelection.has(code);
+        const label = input.closest('label');
+        if (label) {
+            label.classList.toggle('opacity-50', !isAllowed);
+            label.classList.toggle('pe-none', !isAllowed);
+        }
+    });
+}
+
+function refreshOpsMonthlyYearLabels(year) {
+    if (typeof document === 'undefined') return;
+    const container = document.getElementById('ops-months-2025');
+    if (!container) return;
+    const activeYear = year ? String(year) : getOpsActiveMonthlyYear();
+    const headingYear = container.querySelector('#ops-months-year-label');
+    if (headingYear) headingYear.textContent = activeYear;
+    const helper = container.querySelector('#ops-months-year-helper');
+    if (helper) {
+        helper.textContent = `Selecciona los meses que deseas visualizar en ${activeYear}; las gráficas solo mostrarán datos de los meses marcados.`;
+    }
+}
+
+function syncOpsMonthlyYearState(year) {
+    const normalized = year ? String(year) : getOpsActiveMonthlyYear();
+    const previous = opsUIState?.activeMonthlyYear ? String(opsUIState.activeMonthlyYear) : null;
+    const yearChanged = !previous || previous !== normalized;
+    opsUIState.activeMonthlyYear = normalized;
+    staticData.mensualYear = normalized;
+    refreshOpsMonthlyYearLabels(normalized);
+    let selectionReset = false;
+    const previousAllowed = opsUIState?.allowedMonthsSnapshot instanceof Set
+        ? new Set(Array.from(opsUIState.allowedMonthsSnapshot).map((code) => String(code || '').padStart(2, '0')))
+        : new Set();
+    const allowed = createAllowedMonthsSet(normalized);
+    opsUIState.allowedMonthsSnapshot = new Set(allowed);
+    if (!(opsUIState.months2025 instanceof Set)) {
+        opsUIState.months2025 = new Set(allowed);
+        selectionReset = true;
+    } else {
+        const currentSelection = new Set();
+        opsUIState.months2025.forEach((code) => {
+            currentSelection.add(String(code || '').padStart(2, '0'));
+        });
+        const hadFullSelectionBefore = previousAllowed.size > 0
+            && previousAllowed.size === currentSelection.size
+            && Array.from(previousAllowed).every((code) => currentSelection.has(String(code).padStart(2, '0')));
+        const nextSelection = new Set();
+        currentSelection.forEach((code) => {
+            if (allowed.has(code)) nextSelection.add(code);
+        });
+        if (hadFullSelectionBefore && allowed.size > previousAllowed.size) {
+            nextSelection.clear();
+            allowed.forEach((code) => nextSelection.add(String(code).padStart(2, '0')));
+        } else if (!nextSelection.size && allowed.size) {
+            allowed.forEach((code) => nextSelection.add(String(code).padStart(2, '0')));
+        }
+        let changed = yearChanged || currentSelection.size !== nextSelection.size;
+        if (!changed) {
+            nextSelection.forEach((code) => {
+                if (!currentSelection.has(code)) changed = true;
+            });
+        }
+        if (changed) {
+            opsUIState.months2025 = nextSelection;
+            selectionReset = true;
+        }
+    }
+    if (selectionReset) {
+        refreshOpsMonthsSelectionUI();
+    }
+}
 
 function getWeeklyDatasetsCatalog() {
     const catalog = staticData?.operacionesSemanasCatalogo;
@@ -7864,6 +8291,7 @@ function updateOpsSummary() {
         const yData = opsAggregated.yearly;
         const monthlyAggregated = opsAggregated.monthly;
         const mode = opsUIState.mode || 'yearly';
+        const activeMonthlyYear = getOpsActiveMonthlyYear();
 
         if (mode === 'yearly') {
             const years = Array.from(opsUIState.years).sort();
@@ -7917,7 +8345,7 @@ function updateOpsSummary() {
             const monthly = monthlyAggregated;
             const selectedMonths = Array.from(opsUIState.months2025).sort();
             if (!selectedMonths.length) {
-                container.innerHTML = '<div class="ops-summary-empty text-muted">Selecciona al menos un mes de 2025 para ver el resumen.</div>';
+                container.innerHTML = `<div class="ops-summary-empty text-muted">Selecciona al menos un mes de ${activeMonthlyYear} para ver el resumen.</div>`;
                 return;
             }
             const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -7968,13 +8396,15 @@ function updateOpsSummary() {
             const extraCount = availableLabels.length - 4;
             const extraLabel = extraCount > 0 ? ` y +${extraCount}` : '';
 
-            const periodTitle = monthsWithData.length === 1 ? (availableLabels[0] || 'Mes con datos') : `${monthsWithData.length} meses con datos 2025`;
+            const periodTitle = monthsWithData.length === 1 ? (availableLabels[0] || `Mes con datos ${activeMonthlyYear}`) : `${monthsWithData.length} meses con datos ${activeMonthlyYear}`;
             const summaryPreview = availableLabels.length <= 4 ? availableLabels.join(', ') : `${listPreview}${extraLabel}`;
             const showingAllMonths = monthsWithData.length === 12;
             const detail = showingAllMonths
-                ? 'Los datos mostrados incluyen los 12 meses seleccionados de 2025.'
+                ? `Los datos mostrados incluyen los 12 meses seleccionados de ${activeMonthlyYear}.`
                 : `Los datos mostrados corresponden a los meses seleccionados con datos confirmados: ${summaryPreview}.`;
-            const badgeLabel = showingAllMonths ? 'Cobertura anual 2025' : `${monthsWithData.length} ${monthsWithData.length === 1 ? 'mes con datos' : 'meses con datos'}`;
+            const badgeLabel = showingAllMonths
+                ? `Cobertura anual ${activeMonthlyYear}`
+                : `${monthsWithData.length} ${monthsWithData.length === 1 ? 'mes con datos' : 'meses con datos'}`;
             headerMarkup = buildHero('ops-summary-hero--monthly', 'fas fa-calendar-week', periodTitle, detail, badgeLabel);
             captionMarkup = monthsWithoutData.length
                 ? `<div class="text-warning small mt-2">Los meses seleccionados sin datos confirmados no se muestran en las gráficas: ${monthsWithoutData.map(labelForMonth).join(', ')}</div>`
@@ -9562,6 +9992,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const presetCargoTon = document.getElementById('preset-cargo-ton');
     const presetFull = document.getElementById('preset-full');
 
+        refreshOpsYearFilters();
+        refreshOpsMonthlyYearLabels();
+        refreshOpsMonthsSelectionUI();
+
         function refreshDisabledYears(disabled){
             yearsBox?.querySelectorAll('input[type="checkbox"]').forEach(inp => { inp.disabled = disabled; });
             if (yearsHint) yearsHint.classList.toggle('d-none', !disabled);
@@ -9768,7 +10202,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function readMonths(){
             const sel = new Set();
-            monthsPanel?.querySelectorAll('input[type="checkbox"]').forEach(inp => { if (inp.checked) sel.add(String(inp.dataset.month)); });
+            const activeYear = opsUIState?.activeMonthlyYear ? String(opsUIState.activeMonthlyYear) : getOpsActiveMonthlyYear();
+            const allowed = createAllowedMonthsSet(activeYear);
+            monthsPanel?.querySelectorAll('input[type="checkbox"]').forEach((inp) => {
+                if (!inp.checked) return;
+                const code = String(inp.dataset.month || '').padStart(2, '0');
+                if (allowed.size && !allowed.has(code)) return;
+                sel.add(code);
+            });
+            if (!sel.size && allowed.size) {
+                allowed.forEach((code) => sel.add(String(code).padStart(2, '0')));
+            }
             opsUIState.months2025 = sel;
         }
         if (monthsPanel && !monthsPanel._wired) {
@@ -9780,8 +10224,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-        if (monthsAll && !monthsAll._wired) { monthsAll._wired = 1; monthsAll.addEventListener('click', ()=>{ monthsPanel?.querySelectorAll('input[type="checkbox"]').forEach(inp => inp.checked = true); readMonths(); renderOperacionesTotales(); }); }
-        if (monthsNone && !monthsNone._wired) { monthsNone._wired = 1; monthsNone.addEventListener('click', ()=>{ monthsPanel?.querySelectorAll('input[type="checkbox"]').forEach(inp => inp.checked = false); readMonths(); renderOperacionesTotales(); }); }
+        if (monthsAll && !monthsAll._wired) {
+            monthsAll._wired = 1;
+            monthsAll.addEventListener('click', () => {
+                const activeYear = opsUIState?.activeMonthlyYear ? String(opsUIState.activeMonthlyYear) : getOpsActiveMonthlyYear();
+                const allowed = createAllowedMonthsSet(activeYear);
+                monthsPanel?.querySelectorAll('input[type="checkbox"]').forEach((inp) => {
+                    const code = String(inp.dataset.month || '').padStart(2, '0');
+                    inp.checked = allowed.has(code);
+                });
+                readMonths();
+                renderOperacionesTotales();
+            });
+        }
+        if (monthsNone && !monthsNone._wired) {
+            monthsNone._wired = 1;
+            monthsNone.addEventListener('click', () => {
+                monthsPanel?.querySelectorAll('input[type="checkbox"]').forEach((inp) => {
+                    inp.checked = false;
+                });
+                readMonths();
+                renderOperacionesTotales();
+            });
+        }
 
     if (presetOps && !presetOps._wired) { presetOps._wired = 1; presetOps.addEventListener('click', ()=>{ opsUIState.preset='ops'; renderOperacionesTotales(); }); }
     if (presetPassengers && !presetPassengers._wired) { presetPassengers._wired = 1; presetPassengers.addEventListener('click', ()=>{ opsUIState.preset='pax'; renderOperacionesTotales(); }); }
