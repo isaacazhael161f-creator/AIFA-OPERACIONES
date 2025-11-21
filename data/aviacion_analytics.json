@@ -57,11 +57,11 @@
         "agosto": 4500,
         "septiembre": 4135,
         "octubre": 4291,
-        "noviembre": 2551,
+        "noviembre": 2848,
         "diciembre": 0,
-        "total_por_ano": 45984
+        "total_por_ano": 46281
       },
-      "acumulado": 129925
+      "acumulado": 130222
     },
     "pasajeros": {
       "2022": {
@@ -120,11 +120,11 @@
         "agosto": 630952,
         "septiembre": 546457,
         "octubre": 584629,
-        "noviembre": 352158,
+        "noviembre": 393307,
         "diciembre": 0,
-        "total_por_ano": 6092103
+        "total_por_ano": 6133252
       },
-      "acumulado": 15954233
+      "acumulado": 15995382
     }
   },
   "general": {
@@ -185,11 +185,11 @@
         "agosto": 282,
         "septiembre": 249,
         "octubre": 315,
-        "noviembre": 159,
+        "noviembre": 186,
         "diciembre": 0,
-        "total_por_ano": 2688
+        "total_por_ano": 2715
       },
-      "acumulado": 8135
+      "acumulado": 8162
     },
     "pasajeros": {
       "2022": {
@@ -248,11 +248,11 @@
         "agosto": 3033,
         "septiembre": 948,
         "octubre": 1298,
-        "noviembre": 721,
+        "noviembre": 788,
         "diciembre": 0,
-        "total_por_ano": 19410
+        "total_por_ano": 19477
       },
-      "acumulado": 58592
+      "acumulado": 58659
     }
   },
   "carga": {
@@ -313,11 +313,11 @@
         "agosto": 1082,
         "septiembre": 992,
         "octubre": 1155,
-        "noviembre": 439,
+        "noviembre": 645,
         "diciembre": 0,
-        "total_por_ano": 10210
+        "total_por_ano": 10417
       },
-      "acumulado": 29015
+      "acumulado": 29221
     },
     "tons_transportadas": {
       "2022": {
@@ -376,11 +376,11 @@
         "agosto": 35737.78,
         "septiembre": 31076.71,
         "octubre": 37273.41,
-        "noviembre": 15101.59,
+        "noviembre": 22181.94,
         "diciembre": 0.0,
-        "total_por_ano": 345071.96
+        "total_por_ano": 352152.32
       },
-      "acumulado": 978738.15
+      "acumulado": 985818.51
     }
   }
 }

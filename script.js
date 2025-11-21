@@ -1063,9 +1063,9 @@ function resolveCurrentOperationsWeek(referenceDate = new Date()) {
 // Datos Anuales
 const staticData = {
     operacionesTotales: {
-        comercial: [ { periodo: '2022', operaciones: 8996, pasajeros: 912415 }, { periodo: '2023', operaciones: 23211, pasajeros: 2631261 }, { periodo: '2024', operaciones: 51734, pasajeros: 6318454 }, { periodo: '2025', operaciones: 45984, pasajeros: 6092103} ],
-        carga: [ { periodo: '2022', operaciones: 8, toneladas: 5.19 }, { periodo: '2023', operaciones: 5578, toneladas: 186319.83}, { periodo: '2024', operaciones: 13219, toneladas: 447341.17 }, { periodo: '2025', operaciones: 10210, toneladas: 345071.96} ],
-        general: [ { periodo: '2022', operaciones: 458, pasajeros: 1385 }, { periodo: '2023', operaciones: 2212, pasajeros: 8160 }, { periodo: '2024', operaciones: 2777, pasajeros: 29637 }, { periodo: '2025', operaciones: 2688, pasajeros: 19410} ]
+        comercial: [ { periodo: '2022', operaciones: 8996, pasajeros: 912415 }, { periodo: '2023', operaciones: 23211, pasajeros: 2631261 }, { periodo: '2024', operaciones: 51734, pasajeros: 6318454 }, { periodo: '2025', operaciones: 46281, pasajeros: 6133252} ],
+        carga: [ { periodo: '2022', operaciones: 8, toneladas: 5.19 }, { periodo: '2023', operaciones: 5578, toneladas: 186319.83}, { periodo: '2024', operaciones: 13219, toneladas: 447341.17 }, { periodo: '2025', operaciones: 10416, toneladas: 352152.32} ],
+        general: [ { periodo: '2022', operaciones: 458, pasajeros: 1385 }, { periodo: '2023', operaciones: 2212, pasajeros: 8160 }, { periodo: '2024', operaciones: 2777, pasajeros: 29637 }, { periodo: '2025', operaciones: 2715, pasajeros: 19477} ]
     },
     operacionesSemanasCatalogo: WEEKLY_OPERATIONS_DATASETS.map(deepCloneWeek),
     operacionesSemanaActual: resolveCurrentOperationsWeek(),
@@ -1082,7 +1082,7 @@ const staticData = {
             { mes: '08', label: 'Agosto', operaciones: 4500 },
             { mes: '09', label: 'Septiembre', operaciones: 4135 },
             { mes: '10', label: 'Octubre', operaciones: 4291 },
-            { mes: '11', label: 'Noviembre', operaciones: 2551 }
+            { mes: '11', label: 'Noviembre', operaciones: 2715 }
         ],
         // Pasajeros de aviación comercial por mes (con proyección conservadora 81% donde indica)
         comercialPasajeros: [
@@ -1096,7 +1096,7 @@ const staticData = {
             { mes: '08', label: 'Agosto', pasajeros: 630952 },
             { mes: '09', label: 'Septiembre', pasajeros: 546457 },
             { mes: '10', label: 'Octubre', pasajeros: 584629 },
-            { mes: '11', label: 'Noviembre', pasajeros: 352158 },
+            { mes: '11', label: 'Noviembre', pasajeros: 393307 },
             { mes: '12', label: 'Diciembre (Proy.)', pasajeros: 704718 }
         ],
         carga: [
@@ -1110,7 +1110,7 @@ const staticData = {
             { mes: '08', label: 'Agosto', operaciones: 1082 },
             { mes: '09', label: 'Septiembre', operaciones: 992},
             { mes: '10', label: 'Octubre', operaciones: 1155 },
-            { mes: '11', label: 'Noviembre', operaciones: 439 }
+            { mes: '11', label: 'Noviembre', operaciones: 645 }
         ],
         // Toneladas por mes (con nulos cuando no hay datos)
         cargaToneladas: [
@@ -1124,7 +1124,7 @@ const staticData = {
             { mes: '08', label: 'Agosto', toneladas: 35737.78 },
             { mes: '09', label: 'Septiembre', toneladas: 31076.71 },
             { mes: '10', label: 'Octubre', toneladas: 37273.41},
-            { mes: '11', label: 'Noviembre', toneladas: 15101.59 },
+            { mes: '11', label: 'Noviembre', toneladas: 22181.94 },
             { mes: '12', label: 'Diciembre', toneladas: null }
         ],
         // Aviación general (operaciones y pasajeros)
@@ -1140,7 +1140,7 @@ const staticData = {
                 { mes: '08', label: 'Agosto', operaciones: 282 },
                 { mes: '09', label: 'Septiembre', operaciones: 249 },
                 { mes: '10', label: 'Octubre', operaciones: 315 },
-                { mes: '11', label: 'Noviembre', operaciones: 159 },
+                { mes: '11', label: 'Noviembre', operaciones: 186 },
                 { mes: '12', label: 'Diciembre', operaciones: null }
             ],
             pasajeros: [
@@ -1154,7 +1154,7 @@ const staticData = {
                 { mes: '08', label: 'Agosto', pasajeros: 3033 },
                 { mes: '09', label: 'Septiembre', pasajeros: 948 },
                 { mes: '10', label: 'Octubre', pasajeros: 1298},
-                { mes: '11', label: 'Noviembre', pasajeros: 721 },
+                { mes: '11', label: 'Noviembre', pasajeros: 788 },
                 { mes: '12', label: 'Diciembre', pasajeros: null }
             ]
         }
@@ -1175,6 +1175,25 @@ let AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX = DEFAULT_AVIATION_ANALYTICS_CUTO
 let AVIATION_ANALYTICS_DATA = null;
 let aviationAnalyticsDataPromise = null;
 let aviationAnalyticsLoadError = null;
+let AVIATION_ANALYTICS_DATA_SIGNATURE = null;
+const AVIATION_ANALYTICS_AUTO_REFRESH_INTERVAL = 2 * 60 * 1000;
+let aviationAnalyticsAutoRefreshTimer = null;
+let aviationAnalyticsRefreshInFlight = null;
+let aviationAnalyticsVisibilityWatcherBound = false;
+
+function resolveAviationAnalyticsDataUrl(cacheBust = false) {
+    const basePath = AVIATION_ANALYTICS_DATA_PATH;
+    if (!cacheBust) return basePath;
+    try {
+        if (typeof window !== 'undefined' && window.location && window.location.protocol === 'file:') {
+            return basePath;
+        }
+    } catch (_) {
+        return basePath;
+    }
+    const separator = basePath.includes('?') ? '&' : '?';
+    return `${basePath}${separator}ts=${Date.now()}`;
+}
 
 function getCurrentMonthIndex() {
     try {
@@ -1188,10 +1207,10 @@ function getCurrentMonthIndex() {
 
 function hasMeaningfulAviationValue(value) {
     if (value === null || value === undefined) return false;
-    if (typeof value === 'number') return Number.isFinite(value) && value !== 0;
+    if (typeof value === 'number') return Number.isFinite(value);
     if (typeof value === 'string') {
         const parsed = Number(value.replace(/,/g, ''));
-        return Number.isFinite(parsed) && parsed !== 0;
+        return Number.isFinite(parsed);
     }
     return false;
 }
@@ -1208,6 +1227,7 @@ function determineAviationAnalyticsCutoff(rawPayload = {}, targetYear) {
                 if (!metricPayload || typeof metricPayload !== 'object') return false;
                 const yearPayload = metricPayload[yearKey];
                 if (!yearPayload || typeof yearPayload !== 'object') return false;
+                if (!Object.prototype.hasOwnProperty.call(yearPayload, monthKey)) return false;
                 return hasMeaningfulAviationValue(yearPayload[monthKey]);
             });
         });
@@ -1291,19 +1311,31 @@ function buildAviationAnalyticsDataset(rawPayload = {}) {
     const target = Object.create(null);
     const cutoffIndex = determineAviationAnalyticsCutoff(safePayload, AVIATION_ANALYTICS_CUTOFF_YEAR);
     const effectiveCutoff = Number.isFinite(cutoffIndex) ? cutoffIndex : DEFAULT_AVIATION_ANALYTICS_CUTOFF_INDEX;
-    const currentMonthIndex = getCurrentMonthIndex();
-    let sanitizedCutoff = effectiveCutoff;
-    if (Number.isFinite(currentMonthIndex)) {
-        const currentMonthLimit = currentMonthIndex - 1;
-        sanitizedCutoff = Math.min(sanitizedCutoff, currentMonthLimit);
-    }
-    sanitizedCutoff = Math.max(-1, sanitizedCutoff);
+    const sanitizedCutoff = Math.max(-1, Math.min(effectiveCutoff, AVIATION_ANALYTICS_MONTH_KEYS.length - 1));
     AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX = sanitizedCutoff;
     AVIATION_ANALYTICS_SCOPES.forEach((scopeKey) => {
         target[scopeKey] = transformAviationAnalyticsSource(safePayload[scopeKey] || {});
         applyAviationAnalyticsCutoff(target[scopeKey], AVIATION_ANALYTICS_CUTOFF_YEAR, sanitizedCutoff);
     });
     return target;
+}
+
+function computeAviationAnalyticsSignature(payload) {
+    if (!payload || typeof payload !== 'object') return null;
+    try {
+        return JSON.stringify(payload);
+    } catch (_) {
+        return null;
+    }
+}
+
+function setAviationAnalyticsDatasetFromPayload(rawPayload) {
+    const safePayload = rawPayload && typeof rawPayload === 'object' ? rawPayload : {};
+    const signature = computeAviationAnalyticsSignature(safePayload);
+    const dataset = buildAviationAnalyticsDataset(safePayload);
+    AVIATION_ANALYTICS_DATA = dataset;
+    AVIATION_ANALYTICS_DATA_SIGNATURE = signature;
+    return dataset;
 }
 
 function ensureAviationAnalyticsData() {
@@ -1320,9 +1352,8 @@ function ensureAviationAnalyticsData() {
             }
             return response.json();
         })
-        .then((rawPayload) => buildAviationAnalyticsDataset(rawPayload))
+        .then((rawPayload) => setAviationAnalyticsDatasetFromPayload(rawPayload))
         .then((dataset) => {
-            AVIATION_ANALYTICS_DATA = dataset;
             aviationAnalyticsLoadError = null;
             return dataset;
         })
@@ -1337,6 +1368,62 @@ function ensureAviationAnalyticsData() {
             }
         });
     return aviationAnalyticsDataPromise;
+}
+
+function refreshAviationAnalyticsDataIfChanged(options = {}) {
+    const { notifyOnChange = true, force = false } = options;
+    if (aviationAnalyticsRefreshInFlight) {
+        return aviationAnalyticsRefreshInFlight;
+    }
+    const requestPromise = fetch(resolveAviationAnalyticsDataUrl(true), { cache: 'no-store' })
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            return response.json();
+        })
+        .then((rawPayload) => {
+            const signature = computeAviationAnalyticsSignature(rawPayload);
+            if (!force && signature && signature === AVIATION_ANALYTICS_DATA_SIGNATURE) {
+                return false;
+            }
+            setAviationAnalyticsDatasetFromPayload(rawPayload);
+            rerenderAviationAnalyticsModules(true);
+            if (notifyOnChange) {
+                showNotification('Los datos de aviación se actualizaron automáticamente.', 'success');
+            }
+            return true;
+        })
+        .catch((err) => {
+            console.warn('refreshAviationAnalyticsDataIfChanged failed:', err);
+            return false;
+        })
+        .finally(() => {
+            aviationAnalyticsRefreshInFlight = null;
+        });
+    aviationAnalyticsRefreshInFlight = requestPromise;
+    return requestPromise;
+}
+
+function startAviationAnalyticsAutoRefresh() {
+    if (typeof window === 'undefined') return;
+    if (aviationAnalyticsAutoRefreshTimer) {
+        clearInterval(aviationAnalyticsAutoRefreshTimer);
+    }
+    const poll = (notify = true) => {
+        refreshAviationAnalyticsDataIfChanged({ notifyOnChange: notify }).catch(() => {});
+    };
+    poll(false);
+    aviationAnalyticsAutoRefreshTimer = window.setInterval(() => poll(true), AVIATION_ANALYTICS_AUTO_REFRESH_INTERVAL);
+    if (!aviationAnalyticsVisibilityWatcherBound) {
+        aviationAnalyticsVisibilityWatcherBound = true;
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                poll(false);
+            }
+        });
+        window.addEventListener('focus', () => poll(false));
+    }
 }
 
 const AVIATION_ANALYTICS_SCOPE_LABELS = {
@@ -9294,6 +9381,17 @@ function renderAviationAnalyticsModule(moduleKey, forceResize = false) {
     }
 }
 
+function rerenderAviationAnalyticsModules(forceResizeForActive = false) {
+    Object.keys(AVIATION_ANALYTICS_UI).forEach((moduleKey) => {
+        const config = AVIATION_ANALYTICS_UI[moduleKey];
+        if (!config || !config.elements) return;
+        const tabPane = document.getElementById(config.tabPaneId);
+        const isActive = tabPane && tabPane.classList.contains('show') && tabPane.classList.contains('active');
+        const shouldForceResize = forceResizeForActive && !!isActive;
+        renderAviationAnalyticsModule(moduleKey, shouldForceResize);
+    });
+}
+
 function initAviationAnalyticsModule(moduleKey) {
     try {
         const config = AVIATION_ANALYTICS_UI[moduleKey];
@@ -9424,13 +9522,8 @@ async function initializeAviationAnalyticsModules() {
             return;
         }
         Object.keys(AVIATION_ANALYTICS_UI).forEach((moduleKey) => initAviationAnalyticsModule(moduleKey));
-        Object.keys(AVIATION_ANALYTICS_UI).forEach((moduleKey) => {
-            const config = AVIATION_ANALYTICS_UI[moduleKey];
-            if (!config || !config.elements) return;
-            const tabPane = document.getElementById(config.tabPaneId);
-            const isActive = tabPane && tabPane.classList.contains('show') && tabPane.classList.contains('active');
-            renderAviationAnalyticsModule(moduleKey, !!isActive);
-        });
+        rerenderAviationAnalyticsModules(true);
+        startAviationAnalyticsAutoRefresh();
     } catch (err) {
         console.warn('initializeAviationAnalyticsModules error:', err);
         setAviationAnalyticsUnavailableState('No se pudieron inicializar los tableros de aviación.');
@@ -10433,6 +10526,7 @@ const PARTE_OPERACIONES_EDITORS = ['isaac lópez'];
 const PARTE_OPERACIONES_REMOTE_ENDPOINT = '/api/parte-operaciones/custom';
 const PARTE_OPERACIONES_REMOTE_SYNC_TTL = 2 * 60 * 1000;
 const PARTE_OPERACIONES_DIRTY_KEY = 'parteOps.unsyncedDates.v1';
+let parteOperacionesRemoteLocalBlockLogged = false;
 const parteOperacionesRemoteState = {
     enabled: true,
     healthy: false,
@@ -10466,6 +10560,23 @@ const parteOperacionesAnnualState = {
 };
 const PARTE_OPERACIONES_MONTH_KEY_PATTERN = /^\d{4}-\d{2}$/;
 const PARTE_OPERACIONES_MIN_DAYS_PER_MONTH = 27;
+
+function isLikelyLocalDevelopmentHost(hostname = '', port = '') {
+    const normalizedHost = (hostname || '').toString().trim().toLowerCase();
+    if (!normalizedHost) return false;
+    if (normalizedHost === 'localhost' || normalizedHost === '127.0.0.1' || normalizedHost === '0.0.0.0' || normalizedHost === '::1' || normalizedHost === '[::1]') {
+        return true;
+    }
+    if (normalizedHost.endsWith('.local')) return true;
+    if (/^192\.168\./.test(normalizedHost) || /^10\./.test(normalizedHost) || /^172\.(1[6-9]|2\d|3[01])\./.test(normalizedHost)) {
+        return true;
+    }
+    const numericPort = Number(port);
+    if (Number.isFinite(numericPort) && numericPort >= 5500 && numericPort <= 5599) {
+        return true;
+    }
+    return false;
+}
 
 function isValidParteOperacionesDate(value){
     return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -10535,6 +10646,16 @@ function normalizeParteOperacionesType(value){
 function shouldUseParteOperacionesRemoteBackend(){
     if (typeof window === 'undefined') return false;
     if (window.location && window.location.protocol === 'file:') return false;
+    if (window.location) {
+        const { hostname, port } = window.location;
+        if (isLikelyLocalDevelopmentHost(hostname, port)) {
+            if (!parteOperacionesRemoteLocalBlockLogged) {
+                parteOperacionesRemoteLocalBlockLogged = true;
+                console.info('Sincronización remota de parte de operaciones desactivada en este entorno local (sin API disponible).');
+            }
+            return false;
+        }
+    }
     if (typeof fetch !== 'function') return false;
     return parteOperacionesRemoteState.enabled;
 }
