@@ -774,7 +774,19 @@ const WEEKLY_OPERATIONS_DATASETS = [
                 comercial: { operaciones: 150, pasajeros: 20384},
                 general: { operaciones: 7, pasajeros: 29 },
                 carga: { operaciones: 31, toneladas: 802, corteFecha: '2025-11-20', corteNota: 'Cifras del 20 de noviembre de 2025.' }
-            }
+            },
+
+            {
+                fecha: '2025-11-22',
+                label: '22 Nov 2025',
+                comercial: { operaciones: 143, pasajeros: 19503},
+                general: { operaciones: 5, pasajeros: 13 },
+                carga: { operaciones: 31, toneladas: 802, corteFecha: '2025-11-20', corteNota: 'Cifras del 20 de noviembre de 2025.' }
+            },
+
+
+
+        
 
 
         ]
