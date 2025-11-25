@@ -12126,6 +12126,7 @@ function computeParteOperacionesAnnualDataset(summary){
         .sort((a, b) => a[0].localeCompare(b[0]));
     if (!entries.length) return null;
     const monthMap = new Map();
+    const dailySummaries = [];
     entries.forEach(([dateKey, entry]) => {
         const monthKey = dateKey.slice(0, 7);
         if (!monthMap.has(monthKey)) {
@@ -12135,17 +12136,27 @@ function computeParteOperacionesAnnualDataset(summary){
         bucket.days += 1;
         const ops = Array.isArray(entry?.operaciones) ? entry.operaciones : [];
         let computedDailyTotal = 0;
+        const dailyBreakdown = { comercial: 0, carga: 0, general: 0, otros: 0 };
         ops.forEach((item) => {
             const subtotal = resolveParteOperacionesSubtotal(item);
             computedDailyTotal += subtotal;
             const typeKey = classifyParteOperacionesAnnualType(item?.tipo);
             if (typeKey === 'comercial' || typeKey === 'carga' || typeKey === 'general') {
                 bucket.sums[typeKey] += subtotal;
+                dailyBreakdown[typeKey] += subtotal;
+            } else {
+                dailyBreakdown.otros += subtotal;
             }
         });
         const rawTotal = Number(entry?.total_general);
         const dayTotal = Number.isFinite(rawTotal) && rawTotal >= 0 ? rawTotal : computedDailyTotal;
         bucket.sums.total += dayTotal;
+        dailySummaries.push({
+            date: dateKey,
+            total: dayTotal,
+            breakdown: dailyBreakdown,
+            source: Number.isFinite(rawTotal) && rawTotal >= 0 ? 'reported' : 'computed'
+        });
     });
     const months = Array.from(monthMap.values())
         .sort((a, b) => a.key.localeCompare(b.key))
@@ -12183,15 +12194,51 @@ function computeParteOperacionesAnnualDataset(summary){
     const coverageLabel = monthCount === 1
         ? qualifiedMonths[0].label
         : `${qualifiedMonths[0].label} — ${qualifiedMonths[monthCount - 1].label}`;
-    const signature = JSON.stringify(qualifiedMonths.map((month) => [month.key, month.averages, month.dayCount]));
     const sampleDays = qualifiedMonths.reduce((acc, month) => acc + (month.dayCount || 0), 0);
+    const qualifiedMonthKeys = new Set(qualifiedMonths.map((month) => month.key));
+    const relevantDays = dailySummaries.filter((day) => qualifiedMonthKeys.has(day.date.slice(0, 7)));
+    let peakDayEntry = null;
+    let peakCommercialEntry = null;
+    relevantDays.forEach((day) => {
+        const totalOps = Number(day.total) || 0;
+        if (!peakDayEntry || totalOps > (Number(peakDayEntry.total) || 0) || (totalOps === (Number(peakDayEntry.total) || 0) && day.date > peakDayEntry.date)) {
+            peakDayEntry = day;
+        }
+        const commercialOps = Number(day.breakdown?.comercial) || 0;
+        if (commercialOps > 0) {
+            const currentMax = peakCommercialEntry ? Number(peakCommercialEntry.comercial) || 0 : -Infinity;
+            if (!peakCommercialEntry || commercialOps > currentMax || (commercialOps === currentMax && day.date > peakCommercialEntry.date)) {
+                peakCommercialEntry = { ...day, comercial: commercialOps };
+            }
+        }
+    });
+    const enrichPeak = (entry) => {
+        if (!entry || !entry.date) return null;
+        const dateObj = parseIsoDay(entry.date);
+        const formatted = dateObj ? capitalizeFirst(parteOperacionesDateFormatter.format(dateObj)) : entry.date;
+        const weekday = dateObj && WEEKDAY_FORMATTER ? capitalizeFirst(WEEKDAY_FORMATTER.format(dateObj)) : '';
+        return {
+            ...entry,
+            formatted,
+            weekday
+        };
+    };
+    const peakDayInfo = enrichPeak(peakDayEntry);
+    const peakCommercialInfo = enrichPeak(peakCommercialEntry);
+    const signature = JSON.stringify({
+        months: qualifiedMonths.map((month) => [month.key, month.averages, month.dayCount]),
+        peakDay: peakDayEntry ? [peakDayEntry.date, Number(peakDayEntry.total) || 0] : null,
+        peakCommercial: peakCommercialEntry ? [peakCommercialEntry.date, Number(peakCommercialEntry.comercial) || 0] : null
+    });
     return {
         months: qualifiedMonths,
         overall,
         monthCount,
         coverageLabel,
         sampleDays,
-        signature
+        signature,
+        peakDay: peakDayInfo,
+        peakCommercialDay: peakCommercialInfo
     };
 }
 
@@ -12293,7 +12340,7 @@ function renderParteOperacionesAnnualAnalysis(summary){
                 { key: 'total', label: 'Promedio general', icon: 'fas fa-chart-line', tone: 'total' }
             ];
             const monthLabel = dataset.monthCount === 1 ? 'mes' : 'meses';
-            cardsHost.innerHTML = cardConfig.map((card) => {
+            const cards = cardConfig.map((card) => {
                 const value = Math.round(Number(dataset.overall?.[card.key]) || 0);
                 return `
                     <div class="annual-analysis-card annual-analysis-card--${card.tone}">
@@ -12305,7 +12352,59 @@ function renderParteOperacionesAnnualAnalysis(summary){
                         </div>
                     </div>
                 `;
-            }).join('');
+            });
+            if (dataset.peakDay) {
+                const peak = dataset.peakDay;
+                const peakTotal = numberFormatter.format(Math.round(Number(peak.total) || 0));
+                const pillLabel = peak.formatted ? escapeHTML(peak.formatted) : escapeHTML(peak.date || '');
+                const breakdownParts = [];
+                if (peak.breakdown) {
+                    const formattedComercial = Math.round(Number(peak.breakdown.comercial) || 0);
+                    const formattedCarga = Math.round(Number(peak.breakdown.carga) || 0);
+                    const formattedGeneral = Math.round(Number(peak.breakdown.general) || 0);
+                    const formattedOtros = Math.round(Number(peak.breakdown.otros) || 0);
+                    if (formattedComercial > 0) breakdownParts.push(`Comercial ${numberFormatter.format(formattedComercial)} ops`);
+                    if (formattedCarga > 0) breakdownParts.push(`Carga ${numberFormatter.format(formattedCarga)} ops`);
+                    if (formattedGeneral > 0) breakdownParts.push(`General ${numberFormatter.format(formattedGeneral)} ops`);
+                    if (formattedOtros > 0) breakdownParts.push(`Otros ${numberFormatter.format(formattedOtros)} ops`);
+                }
+                const breakdownText = breakdownParts.join(' · ');
+                cards.push(`
+                    <div class="annual-analysis-card annual-analysis-card--peak">
+                        <span class="annual-analysis-card__eyebrow"><i class="fas fa-calendar-day me-2" aria-hidden="true"></i>Día con más operaciones</span>
+                        <p class="annual-analysis-card__value">${peakTotal}</p>
+                        <div class="annual-analysis-card__trend">
+                            <span class="annual-analysis-card__pill"><i class="fas fa-calendar-alt" aria-hidden="true"></i>${pillLabel}</span>
+                            <span>Pico anual</span>
+                        </div>
+                        ${breakdownText ? `<small class="annual-analysis-card__note">${breakdownText}</small>` : ''}
+                    </div>
+                `);
+            }
+            if (dataset.peakCommercialDay) {
+                const peak = dataset.peakCommercialDay;
+                const commercialValue = numberFormatter.format(Math.round(Number(peak.comercial) || 0));
+                const pillLabel = peak.formatted ? escapeHTML(peak.formatted) : escapeHTML(peak.date || '');
+                const totalOps = Number(peak.total) || 0;
+                const totalText = numberFormatter.format(Math.round(totalOps));
+                const share = totalOps > 0 ? Math.round((Number(peak.comercial) / totalOps) * 100) : null;
+                const noteParts = [`Total diario ${totalText} ops`];
+                if (Number.isFinite(share) && share >= 0) noteParts.push(`${share}% comercial`);
+                const noteHtml = noteParts.length ? `<small class="annual-analysis-card__note">${escapeHTML(noteParts.join(' · '))}</small>` : '';
+                const trendLabel = escapeHTML(peak.weekday || 'Mayor actividad comercial');
+                cards.push(`
+                    <div class="annual-analysis-card annual-analysis-card--peak-commercial">
+                        <span class="annual-analysis-card__eyebrow"><i class="fas fa-user-friends me-2" aria-hidden="true"></i>Día con más operaciones comerciales</span>
+                        <p class="annual-analysis-card__value">${commercialValue}</p>
+                        <div class="annual-analysis-card__trend">
+                            <span class="annual-analysis-card__pill"><i class="fas fa-calendar-alt" aria-hidden="true"></i>${pillLabel}</span>
+                            <span>${trendLabel}</span>
+                        </div>
+                        ${noteHtml}
+                    </div>
+                `);
+            }
+            cardsHost.innerHTML = cards.join('');
         }
         if (tableHost) {
             const rows = dataset.months.map((month) => `
