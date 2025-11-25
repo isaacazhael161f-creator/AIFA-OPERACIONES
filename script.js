@@ -2308,8 +2308,6 @@ function getAirlineLogoCandidates(airline){
         if (base.includes('air_france')) candidates.push('images/airlines/logo_air_france_.png');
         if (base.includes('ifl_group')) candidates.push('images/airlines/lofo_ifl_group.png');
     }
-    // Fallback local definitivo
-    candidates.push('images/airlines/default-airline-logo.svg');
     // quitar duplicados conservando orden
     return [...new Set(candidates)];
 }
