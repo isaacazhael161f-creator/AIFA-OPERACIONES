@@ -211,7 +211,7 @@
     const hours = new Array(24).fill(0);
     rows.forEach(r => {
       const h = String(r['Hora']||'').trim();
-      const m = h.match(/^(\d{2})\:(\d{2})$/);
+      const m = h.match(/^(\d{1,2})\:(\d{2})$/);
       if (!m) return;
       const hh = Math.max(0, Math.min(23, parseInt(m[1],10)));
       hours[hh] += 1;
