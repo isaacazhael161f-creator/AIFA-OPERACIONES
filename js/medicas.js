@@ -1,403 +1,759 @@
-// Atenciones Médicas AIFA 2022 (ECharts)
-// Gráfica: Barras apiladas por tipo con etiquetas de valor y total; meses con etiqueta completa.
+'use strict';
+
 (function(){
-  'use strict';
+  const ATENCIONES_URL = 'data/atenciones_medicas.json';
+  const TIPO_URL = 'data/tipo_atencion_medica.json';
+  const COMP_URL = 'data/atenciones_medicas_año.json';
+  const MONTH_ORDER = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
 
-  const DATA = [
-    { mes: 'ABRIL', aifa: 29, otra: 117, pasajeros: 36, visitantes: 36, total: 218 },
-    { mes: 'MAYO', aifa: 34, otra: 106, pasajeros: 23, visitantes: 12, total: 175 },
-    { mes: 'JUNIO', aifa: 68, otra: 82, pasajeros: 16, visitantes: 5, total: 171 },
-    { mes: 'JULIO', aifa: 41, otra: 71, pasajeros: 20, visitantes: 7, total: 139 },
-    { mes: 'AGOSTO', aifa: 39, otra: 80, pasajeros: 10, visitantes: 4, total: 133 },
-    { mes: 'SEPTIEMBRE', aifa: 15, otra: 155, pasajeros: 85, visitantes: 0, total: 255 },
-    { mes: 'OCTUBRE', aifa: 34, otra: 112, pasajeros: 77, visitantes: 9, total: 232 },
-    { mes: 'NOVIEMBRE', aifa: 47, otra: 91, pasajeros: 63, visitantes: 8, total: 209 },
-    { mes: 'DICIEMBRE', aifa: 66, otra: 95, pasajeros: 94, visitantes: 9, total: 264 },
-  ];
+  const ATENCIONES_KEYS = ['aifa', 'otra_empresa', 'pasajeros', 'visitantes'];
+  const ATENCIONES_LABELS = {
+    aifa: 'AIFA',
+    otra_empresa: 'Otra Empresa',
+    pasajeros: 'Pasajeros',
+    visitantes: 'Visitantes'
+  };
+  const ATENCIONES_COLORS = {
+    aifa: ['#34d399', '#0f766e'],
+    otra_empresa: ['#a5b4fc', '#4f46e5'],
+    pasajeros: ['#93c5fd', '#1d4ed8'],
+    visitantes: ['#cbd5e1', '#475569']
+  };
+  const TIPO_COLORS = {
+    traslado: ['#60a5fa', '#1d4ed8'],
+    ambulatorio: ['#fbbf24', '#d97706']
+  };
+  const COMP_COLORS = ['#0284c7', '#ec4899', '#22c55e', '#f97316', '#8b5cf6', '#facc15'];
 
-  let chart = null;
-  const state = { rendering: false, needs: false };
+  let rawAtenciones = [];
+  let rawTipo = [];
+  let rawComp = [];
+  const compByYear = new Map();
+  let atencionesChart = null;
+  let tipoChart = null;
+  let compChart = null;
+  let atencionesYear = 'all';
+  let tipoYear = 'all';
+  let compActiveYears = new Set();
+  let pendingAtenciones = false;
+  let pendingTipo = false;
+  let pendingComp = false;
+  let eventsBound = false;
 
-  function computeTotals(){ return DATA.map(d => Number(d.total) || 0); }
-  function updateTopBadge(labels, totals){
-    let topIdx = 0, topVal = -Infinity;
-    totals.forEach((v,i)=>{ if (v>topVal) { topVal=v; topIdx=i; } });
-    const topBadge = document.getElementById('medicas-top-badge');
-    if (topBadge) topBadge.textContent = `Top mes: ${labels[topIdx]} (${topVal})`;
+  function parseValue(value){
+    const num = Number(value);
+    return Number.isFinite(num) ? num : null;
   }
 
-  function buildOption(labels, totals, showPct, showAlways, titleText, subtitleText, layout){
-    // Paleta corporativa sobria
-    const COLORS = {
-      aifa:       { top: '#34d399', bottom: '#0f766e' },  // emerald -> teal
-      otra:       { top: '#a5b4fc', bottom: '#4f46e5' },  // indigo light -> indigo
-      pasajeros:  { top: '#93c5fd', bottom: '#1d4ed8' },  // blue light -> blue
-      visitantes: { top: '#cbd5e1', bottom: '#475569' }   // slate light -> slate
+  function createGradient(top, bottom){
+    return new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+      { offset: 0, color: top },
+      { offset: 1, color: bottom }
+    ]);
+  }
+
+  function formatLabel(item){
+    return `${item.mes}\n${item.anio}`;
+  }
+
+  function sortRecords(list){
+    return [...list].sort((a, b) => {
+      if (a.anio !== b.anio) return a.anio - b.anio;
+      return MONTH_ORDER.indexOf(a.mes) - MONTH_ORDER.indexOf(b.mes);
+    });
+  }
+
+  function uniqueYears(list){
+    return Array.from(new Set(list.map((item) => item.anio))).sort((a, b) => a - b);
+  }
+
+  function populateYearOptions(selectId, years){
+    const select = document.getElementById(selectId);
+    if (!select || select.dataset.populated === 'true') return;
+    const fragment = document.createDocumentFragment();
+    years.forEach((year) => {
+      const option = document.createElement('option');
+      option.value = String(year);
+      option.textContent = year;
+      fragment.appendChild(option);
+    });
+    select.appendChild(fragment);
+    select.dataset.populated = 'true';
+  }
+
+  function prepareCompIndex(){
+    compByYear.clear();
+    rawComp.forEach((item) => {
+      const year = Number(item.anio);
+      if (!Number.isFinite(year)) return;
+      const value = parseValue(item.total);
+      if (!compByYear.has(year)) {
+        compByYear.set(year, {});
+      }
+      compByYear.get(year)[item.mes] = value;
+    });
+  }
+
+  function getActiveCompYears(){
+    return Array.from(compActiveYears)
+      .map((year) => Number(year))
+      .filter((year) => Number.isFinite(year))
+      .sort((a, b) => a - b);
+  }
+
+  function populateCompYears(years){
+    const container = document.getElementById('medicas-comp-years');
+    if (!container) return;
+    const sorted = [...years].sort((a, b) => a - b);
+    container.innerHTML = '';
+
+    sorted.forEach((year) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'form-check form-check-inline m-0';
+
+      const checkboxId = `medicas-comp-year-${year}`;
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.className = 'form-check-input';
+      input.id = checkboxId;
+      input.value = String(year);
+      input.checked = true;
+
+      const label = document.createElement('label');
+      label.className = 'form-check-label small fw-semibold';
+      label.htmlFor = checkboxId;
+      label.textContent = year;
+
+      wrapper.appendChild(input);
+      wrapper.appendChild(label);
+      container.appendChild(wrapper);
+    });
+
+    const syncActiveYears = () => {
+      const inputs = container.querySelectorAll('input[type="checkbox"]');
+      compActiveYears = new Set();
+      inputs.forEach((input) => {
+        if (input.checked) compActiveYears.add(input.value);
+      });
+      renderComp();
     };
 
-    function grad(top, bottom){
-      return new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-        { offset: 0, color: top },
-        { offset: 1, color: bottom }
-      ]);
+    container.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+      input.addEventListener('change', syncActiveYears);
+    });
+
+    const selectAllBtn = document.getElementById('medicas-comp-select-all');
+    if (selectAllBtn && !selectAllBtn.dataset.bound){
+      selectAllBtn.dataset.bound = 'true';
+      selectAllBtn.addEventListener('click', () => {
+        container.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+          input.checked = true;
+        });
+        syncActiveYears();
+      });
     }
 
-    function tinted(bg, alpha){
-      return `rgba(${parseInt(bg.slice(1,3),16)}, ${parseInt(bg.slice(3,5),16)}, ${parseInt(bg.slice(5,7),16)}, ${alpha})`;
+    const selectNoneBtn = document.getElementById('medicas-comp-select-none');
+    if (selectNoneBtn && !selectNoneBtn.dataset.bound){
+      selectNoneBtn.dataset.bound = 'true';
+      selectNoneBtn.addEventListener('click', () => {
+        container.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+          input.checked = false;
+        });
+        syncActiveYears();
+      });
     }
 
-    const series = [
-      { name: 'AIFA',        key: 'aifa',       data: DATA.map(d=>d.aifa),       itemStyle:{ color: grad(COLORS.aifa.top, COLORS.aifa.bottom), borderRadius: 2 } },
-      { name: 'Otra Empresa', key: 'otra',       data: DATA.map(d=>d.otra),       itemStyle:{ color: grad(COLORS.otra.top, COLORS.otra.bottom), borderRadius: 2 } },
-      { name: 'Pasajeros',    key: 'pasajeros',  data: DATA.map(d=>d.pasajeros),  itemStyle:{ color: grad(COLORS.pasajeros.top, COLORS.pasajeros.bottom), borderRadius: 2 } },
-      { name: 'Visitantes',   key: 'visitantes', data: DATA.map(d=>d.visitantes), itemStyle:{ color: grad(COLORS.visitantes.top, COLORS.visitantes.bottom), borderRadius: 2 } }
-    ].map(s => ({
-      ...s,
-      type: 'bar',
-      stack: 'medicas',
-      barMaxWidth: 36,
-      barCategoryGap: '28%',
-      emphasis: { focus: 'series', itemStyle: { shadowBlur: 6, shadowColor: 'rgba(0,0,0,0.15)' } },
-      label: {
-        show: !!showAlways,
-        position: 'inside',
-        color: '#0f172a',
-        backgroundColor: tinted((s.key==='aifa'?COLORS.aifa.top:s.key==='otra'?COLORS.otra.top:s.key==='pasajeros'?COLORS.pasajeros.top:COLORS.visitantes.top), 0.22),
-        borderRadius: 8,
-        padding: [2,8],
-        fontWeight: '700',
-        shadowColor: 'rgba(0,0,0,0.12)',
-        shadowBlur: 2,
-        textBorderColor: 'rgba(255,255,255,0.9)',
-        textBorderWidth: 1,
-        formatter: (p)=>{
-          const val = Number(p.value||0);
-          if (!val) return '';
-          const idx = p.dataIndex;
-          const pct = totals[idx] > 0 ? Math.round((val / totals[idx]) * 100) : 0;
-          const num = val.toLocaleString('es-MX');
-          if (showPct && pct >= 5) return `${num} (${pct}%)`;
-          return `${num}`;
-        }
+    compActiveYears = new Set(sorted.map((year) => String(year)));
+    syncActiveYears();
+  }
+
+  function buildAtencionesDataset(year){
+    const filtered = rawAtenciones.filter((item) => year === 'all' ? true : item.anio === Number(year));
+    return sortRecords(filtered).map((item) => {
+      const aifa = parseValue(item.aifa);
+      const otra = parseValue(item.otra_empresa);
+      const pax = parseValue(item.pasajeros);
+      const visitors = parseValue(item.visitantes);
+      const providedTotal = parseValue(item.total);
+      const fallbackTotal = [aifa, otra, pax, visitors].reduce((sum, val) => sum + (Number.isFinite(val) ? val : 0), 0);
+      return {
+        mes: item.mes,
+        anio: item.anio,
+        aifa,
+        otra_empresa: otra,
+        pasajeros: pax,
+        visitantes: visitors,
+        total: Number.isFinite(providedTotal) ? providedTotal : fallbackTotal
+      };
+    });
+  }
+
+  function updateAtencionesSummary(dataset){
+    const summaryEl = document.getElementById('medicas-atenciones-resumen');
+    if (!summaryEl) return;
+    if (!dataset.length){
+      summaryEl.textContent = 'Sin datos disponibles';
+      return;
+    }
+    const total = dataset.reduce((sum, item) => sum + (item.total || 0), 0);
+    const peak = dataset.reduce((acc, item) => {
+      if ((item.total || 0) > acc.value){
+        return { value: item.total || 0, label: `${item.mes} ${item.anio}` };
       }
-    }));
+      return acc;
+    }, { value: -Infinity, label: '' });
+    const totalText = total.toLocaleString('es-MX');
+    if (peak.value > 0){
+      summaryEl.textContent = `Total periodo: ${totalText} | Pico: ${peak.label} (${peak.value.toLocaleString('es-MX')})`;
+    } else {
+      summaryEl.textContent = `Total periodo: ${totalText}`;
+    }
+  }
 
-    // Serie de totales (invisible) para mostrar etiqueta encima (sticky-like)
-    const totalSeries = {
+  function buildAtencionesOption(dataset){
+    const labels = dataset.map(formatLabel);
+    const totals = dataset.map((item) => item.total || 0);
+    const needsZoom = labels.length > 18;
+    const zoomEnd = needsZoom ? Math.min(100, Math.round((18 / labels.length) * 100)) : 100;
+
+    const series = ATENCIONES_KEYS.map((key) => {
+      const [top, bottom] = ATENCIONES_COLORS[key];
+      return {
+        name: ATENCIONES_LABELS[key],
+        type: 'bar',
+        stack: 'atenciones',
+        barGap: '12%',
+        barCategoryGap: '32%',
+        itemStyle: { color: createGradient(top, bottom), borderRadius: 2 },
+        emphasis: { focus: 'series' },
+        data: dataset.map((item) => {
+          const value = item[key];
+          return Number.isFinite(value) ? value : null;
+        })
+      };
+    });
+
+    series.push({
       name: 'Total',
       type: 'bar',
-      stack: 'totalOverlay',
+      stack: 'overlay',
       data: totals,
       barGap: '-100%',
       itemStyle: { color: 'transparent' },
       label: {
         show: true,
         position: 'top',
-        distance: 12,
-        fontWeight: '800',
+        distance: 10,
+        fontWeight: 700,
         color: '#0f172a',
-        backgroundColor: 'rgba(255,255,255,0.95)',
-        borderRadius: 10,
-        padding: [3,10],
-        shadowColor: 'rgba(0,0,0,0.12)',
-        shadowBlur: 2,
-        formatter: (p)=> (Number(p.value||0)).toLocaleString('es-MX')
+        backgroundColor: 'rgba(255,255,255,0.9)',
+        borderRadius: 8,
+        padding: [3, 8],
+        formatter: (params) => (Number(params.value) || 0).toLocaleString('es-MX')
       },
       tooltip: { show: false },
       emphasis: { disabled: true },
       z: 10
-    };
-
-    const palette = [COLORS.aifa.bottom, COLORS.otra.bottom, COLORS.pasajeros.bottom, COLORS.visitantes.bottom];
-    const legendConfig = layout?.legend || { top: 34, type: 'scroll', itemGap: 20 };
-    const gridTop = layout?.gridTop ?? 80;
-    const gridBottom = layout?.gridBottom ?? 30;
-    const axisLabelConfig = layout?.axisLabel || {};
-    const titleTop = layout?.titleTop ?? 8;
-    const titleGap = layout?.titleGap ?? 6;
-    const titleFontSize = layout?.titleFontSize ?? 16;
-    const subtitleFontSize = layout?.subtitleFontSize ?? 11;
-    const titleLineHeight = layout?.titleLineHeight ?? 22;
-    const subtitleLineHeight = layout?.subtitleLineHeight ?? 16;
-    const titleLeft = layout?.titleLeft ?? 'center';
+    });
 
     return {
       title: {
-        text: titleText || 'Atenciones Médicas AIFA 2022',
-        subtext: subtitleText || '',
-        top: titleTop,
-        left: titleLeft,
-        itemGap: titleGap,
-        textStyle: { fontWeight: 800, color: '#0f172a', fontSize: titleFontSize, lineHeight: titleLineHeight },
-        subtextStyle: { color: '#475569', fontSize: subtitleFontSize, lineHeight: subtitleLineHeight }
+        text: 'Atenciones médicas en el AIFA',
+        subtext: dataset.length ? (atencionesYear === 'all' ? 'Periodo 2022-2025' : `Año ${atencionesYear}`) : 'Sin registros',
+        left: 'center',
+        top: 6,
+        itemGap: 4,
+        textStyle: { fontWeight: 800, color: '#0f172a', fontSize: 18 },
+        subtextStyle: { color: '#475569', fontSize: 12 }
       },
-      color: palette,
-      animationDuration: 900,
-      animationEasing: 'cubicOut',
       tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'shadow' },
-        backgroundColor: '#0f172a',
-        borderColor: '#0f172a',
-        textStyle: { color: '#fff' },
-        padding: 10
+        formatter: (params) => {
+          if (!params || !params.length) return '';
+          const idx = params[0].dataIndex;
+          const header = `${params[0].axisValueLabel.replace('\n', ' ')}<br>`;
+          const lines = params.filter((entry) => entry.seriesName !== 'Total').map((entry) => {
+            const value = Number(entry.value);
+            if (!Number.isFinite(value)) return '';
+            return `${entry.marker} ${entry.seriesName}: ${value.toLocaleString('es-MX')}`;
+          }).filter(Boolean);
+          const total = totals[idx] || 0;
+          lines.push(`<strong>Total: ${total.toLocaleString('es-MX')}</strong>`);
+          return header + lines.join('<br>');
+        }
       },
-      legend: { ...legendConfig, textStyle: { color: '#334155' } },
-      grid: { left: 44, right: 28, top: gridTop, bottom: gridBottom },
+      legend: {
+        top: needsZoom ? 54 : 40,
+        left: 'center',
+        itemGap: 20,
+        textStyle: { color: '#334155' },
+        selected: { Total: false }
+      },
+      grid: { left: 48, right: 24, top: needsZoom ? 94 : 80, bottom: needsZoom ? 70 : 40 },
+      dataZoom: needsZoom ? [
+        { type: 'slider', bottom: 16, height: 20, start: 0, end: zoomEnd },
+        { type: 'inside', start: 0, end: zoomEnd }
+      ] : [],
       xAxis: {
         type: 'category',
         data: labels,
         axisTick: { alignWithLabel: true },
-        axisLabel: { color: '#475569', interval: 0, ...axisLabelConfig }
+        axisLabel: { interval: 0, color: '#475569' }
       },
-      yAxis: { type: 'value', axisLabel: { color: '#475569' }, splitLine: { lineStyle: { color: 'rgba(15,23,42,0.07)' } } },
-      series: [...series, totalSeries]
+      yAxis: {
+        type: 'value',
+        axisLabel: { color: '#475569' },
+        splitLine: { lineStyle: { color: 'rgba(15,23,42,0.08)' } }
+      },
+      series
     };
   }
 
-  function linearRegression(yValues){
-    // Simple linear regression for equally spaced x (0..n-1)
-    const n = yValues.length;
-    const sumX = (n-1)*n/2;
-    const sumY = yValues.reduce((a,b)=>a+b,0);
-    const sumXY = yValues.reduce((acc, y, i)=> acc + i*y, 0);
-    const sumXX = yValues.reduce((acc, _, i)=> acc + i*i, 0);
-    const denom = n*sumXX - sumX*sumX || 1;
-    const m = (n*sumXY - sumX*sumY) / denom;
-    const b = (sumY - m*sumX) / n;
-    return yValues.map((_, i)=> m*i + b);
+  function ensureAtencionesChart(){
+    const el = document.getElementById('medicasAtencionesChart');
+    if (!el || !window.echarts) return null;
+    if (!atencionesChart){
+      atencionesChart = echarts.init(el, null, { renderer: 'canvas' });
+    }
+    return atencionesChart;
   }
 
-  function renderChart(){
-    const el = document.getElementById('medicasChart');
-    if (!el || !window.echarts) return;
-
-    if (chart && typeof chart.dispose === 'function') {
-      try { chart.dispose(); } catch(_) {}
-      chart = null;
+  function renderAtenciones(){
+    const pane = document.getElementById('medicas-atenciones-pane');
+    if (!pane){
+      pendingAtenciones = false;
+      return;
     }
+    if (!pane.classList.contains('active')){
+      pendingAtenciones = true;
+      return;
+    }
+    const dataset = buildAtencionesDataset(atencionesYear);
+    updateAtencionesSummary(dataset);
+    const instance = ensureAtencionesChart();
+    if (!instance) return;
+    const option = buildAtencionesOption(dataset);
+    instance.setOption(option, true);
+    instance.resize();
+    pendingAtenciones = false;
+  }
 
-  const labels = DATA.map(d => d.mes);
-  const totals = computeTotals();
+  function buildTipoDataset(year){
+    const filtered = rawTipo.filter((item) => year === 'all' ? true : item.anio === Number(year));
+    return sortRecords(filtered).map((item) => {
+      const traslado = parseValue(item.traslado) ?? 0;
+      const ambulatorio = parseValue(item.ambulatorio) ?? 0;
+      const providedTotal = parseValue(item.total);
+      const total = Number.isFinite(providedTotal) ? providedTotal : traslado + ambulatorio;
+      const share = total > 0 ? (traslado / total) * 100 : null;
+      return {
+        mes: item.mes,
+        anio: item.anio,
+        traslado,
+        ambulatorio,
+        total,
+        share
+      };
+    });
+  }
 
-    chart = echarts.init(el, null, { renderer: 'canvas' });
-    const showAlways = !!document.getElementById('medicasLabelsAlways')?.checked;
-    const showPct = !!document.getElementById('medicasShowPct')?.checked;
+  function updateTipoSummary(dataset){
+    const summaryEl = document.getElementById('medicas-tipo-resumen');
+    if (!summaryEl) return;
+    if (!dataset.length){
+      summaryEl.textContent = 'Sin datos disponibles';
+      return;
+    }
+    const totals = dataset.reduce((acc, item) => {
+      acc.traslado += item.traslado || 0;
+      acc.ambulatorio += item.ambulatorio || 0;
+      return acc;
+    }, { traslado: 0, ambulatorio: 0 });
+    const overall = totals.traslado + totals.ambulatorio;
+    const share = overall > 0 ? (totals.traslado / overall) * 100 : 0;
+    const hotspot = dataset.reduce((acc, item) => {
+      if ((item.share || 0) > acc.value){
+        return { value: item.share || 0, label: `${item.mes} ${item.anio}` };
+      }
+      return acc;
+    }, { value: -1, label: '' });
+    const trasladoText = totals.traslado.toLocaleString('es-MX');
+    const ambulatorioText = totals.ambulatorio.toLocaleString('es-MX');
+    const shareText = share.toFixed(1);
+    if (hotspot.value >= 0){
+      summaryEl.textContent = `Traslados: ${trasladoText} | Ambulatorios: ${ambulatorioText} | % traslados: ${shareText}% | Pico de proporción: ${hotspot.label} (${hotspot.value.toFixed(1)}%)`;
+    } else {
+      summaryEl.textContent = `Traslados: ${trasladoText} | Ambulatorios: ${ambulatorioText} | % traslados: ${shareText}%`;
+    }
+  }
 
-    // Filtro por tipo
-    const typeSelect = document.getElementById('medicasTipo');
-    const selected = (typeSelect && typeSelect.value) || 'all';
+  function buildTipoOption(dataset){
+    const labels = dataset.map(formatLabel);
+    const needsZoom = labels.length > 18;
+    const zoomEnd = needsZoom ? Math.min(100, Math.round((18 / labels.length) * 100)) : 100;
+    const shareByIndex = dataset.map((item) => item.share);
 
-    // Layout responsivo para legend/grid
-    const w = el.clientWidth || window.innerWidth || 1200;
-    const isMobile = w < 576;
-    const isTablet = w >= 576 && w < 992;
-    const layout = isMobile
-      ? {
-          legend: {
-            type: 'scroll',
-            bottom: 10,
-            left: 'center',
-            orient: 'horizontal',
-            itemGap: 12,
-            pageIconSize: 10,
-            padding: [6, 12, 0, 12],
-            icon: 'rect',
-            itemWidth: 16,
-            itemHeight: 12
-          },
-          gridTop: 112,
-          gridBottom: 90,
-          axisLabel: { rotate: 32, fontSize: 11, lineHeight: 16 },
-          titleTop: 8,
-          titleGap: 6,
-          titleFontSize: 15,
-          subtitleFontSize: 11,
-          titleLineHeight: 22,
-          subtitleLineHeight: 18
+    return {
+      title: {
+        text: 'Tipo de atención médica',
+        subtext: dataset.length ? (tipoYear === 'all' ? 'Periodo 2022-2025' : `Año ${tipoYear}`) : 'Sin registros',
+        left: 'center',
+        top: 6,
+        itemGap: 4,
+        textStyle: { fontWeight: 800, color: '#0f172a', fontSize: 18 },
+        subtextStyle: { color: '#475569', fontSize: 12 }
+      },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter: (params) => {
+          if (!params || !params.length) return '';
+          const idx = params[0].dataIndex;
+          const header = `${params[0].axisValueLabel.replace('\n', ' ')}<br>`;
+          const lines = params
+            .filter((entry) => entry.seriesType === 'bar')
+            .map((entry) => `${entry.marker} ${entry.seriesName}: ${(Number(entry.value) || 0).toLocaleString('es-MX')}`);
+          const share = shareByIndex[idx];
+          if (Number.isFinite(share)){
+            lines.push(`<span style="display:inline-block;margin-right:4px;width:10px;height:10px;border-radius:50%;background:#2563eb;"></span>% Traslados: ${share.toFixed(1)}%`);
+          }
+          const total = (dataset[idx]?.total || 0).toLocaleString('es-MX');
+          lines.push(`<strong>Total: ${total}</strong>`);
+          return header + lines.join('<br>');
         }
-      : isTablet
-        ? {
-            legend: {
-              type: 'scroll',
-              top: 100,
-              left: 'center',
-              orient: 'horizontal',
-              itemGap: 18,
-              pageIconSize: 10,
-              padding: [8, 16, 8, 16],
-              icon: 'rect',
-              itemWidth: 18,
-              itemHeight: 12
-            },
-            gridTop: 150,
-            gridBottom: 40,
-            axisLabel: { rotate: 18, fontSize: 12 },
-            titleTop: 10,
-            titleGap: 6,
-            titleFontSize: 17,
-            subtitleFontSize: 12,
-            titleLineHeight: 24,
-            subtitleLineHeight: 18
-          }
-        : {
-            legend: {
-              type: 'scroll',
-              top: 96,
-              left: 'center',
-              orient: 'horizontal',
-              itemGap: 22,
-              pageIconSize: 10,
-              padding: [8, 20, 10, 20],
-              icon: 'rect',
-              itemWidth: 22,
-              itemHeight: 12
-            },
-            gridTop: 142,
-            gridBottom: 36,
-            axisLabel: { rotate: 0, fontSize: 12 },
-            titleTop: 10,
-            titleGap: 6,
-            titleFontSize: 18,
-            subtitleFontSize: 12,
-            titleLineHeight: 26,
-            subtitleLineHeight: 18
-          };
-
-    // Título/subtítulo según filtro
-  const baseTitle = 'Atenciones Médicas AIFA 2022';
-  let subTitle = '';
-    let option = buildOption(labels, totals, showPct, showAlways, baseTitle, subTitle, layout);
-  let badgeTotals = totals;
-
-    if (selected !== 'all') {
-      // Mostrar solo una barra por mes del tipo seleccionado + línea de tendencia
-      const keyMap = { aifa: 'aifa', otra: 'otra', pasajeros: 'pasajeros', visitantes: 'visitantes' };
-      const key = keyMap[selected] || 'aifa';
-      const yVals = DATA.map(d => Number(d[key]) || 0);
-  const trend = linearRegression(yVals);
-  badgeTotals = yVals;
-
-      const seriesName = option.series.find(s => s.key === key || (s.type==='bar' && s.name.toLowerCase().includes(key))).name;
-      const colorIdx = ['aifa','otra','pasajeros','visitantes'].indexOf(key);
-      const color = option.color?.[colorIdx] || '#1d4ed8';
-
-      subTitle = `Tipo: ${seriesName}`;
-      const shortName = seriesName; // already concise (e.g., "AIFA", "Pasajeros")
-      option.series = [
+      },
+      legend: {
+        top: needsZoom ? 54 : 40,
+        left: 'center',
+        itemGap: 20,
+        textStyle: { color: '#334155' }
+      },
+      grid: { left: 52, right: 48, top: needsZoom ? 94 : 80, bottom: needsZoom ? 70 : 40 },
+      dataZoom: needsZoom ? [
+        { type: 'slider', bottom: 16, height: 20, start: 0, end: zoomEnd },
+        { type: 'inside', start: 0, end: zoomEnd }
+      ] : [],
+      xAxis: {
+        type: 'category',
+        data: labels,
+        axisTick: { alignWithLabel: true },
+        axisLabel: { interval: 0, color: '#475569' }
+      },
+      yAxis: [
         {
-          name: shortName,
-          type: 'bar',
-          stack: 'one',
-          data: yVals,
-          barMaxWidth: 36,
-          itemStyle: option.series[colorIdx]?.itemStyle || {},
-          label: option.series[colorIdx]?.label || {
-            show: !!showAlways,
-            position: 'inside',
-            color: '#0f172a',
-            backgroundColor: 'rgba(255,255,255,0.92)',
-            borderRadius: 8,
-            padding: [2,8],
-            fontWeight: '700',
-            shadowColor: 'rgba(0,0,0,0.12)',
-            shadowBlur: 2,
-            formatter: (p)=>{
-              const val = Number(p.value||0);
-              if (!val) return '';
-              const num = val.toLocaleString('es-MX');
-              const pct = Math.round((val/(Math.max(...yVals)||1))*100);
-              return (showPct && pct >= 5) ? `${num} (${pct}%)` : `${num}`;
-            }
-          }
+          type: 'value',
+          axisLabel: { color: '#475569' },
+          splitLine: { lineStyle: { color: 'rgba(15,23,42,0.08)' } }
         },
         {
-          name: 'Tendencia',
+          type: 'value',
+          axisLabel: { color: '#475569', formatter: '{value}%' },
+          splitLine: { show: false }
+        }
+      ],
+      series: [
+        {
+          name: 'Traslado',
+          type: 'bar',
+          stack: 'total',
+          barGap: '12%',
+          barCategoryGap: '32%',
+          itemStyle: { color: createGradient(TIPO_COLORS.traslado[0], TIPO_COLORS.traslado[1]), borderRadius: 2 },
+          emphasis: { focus: 'series' },
+          data: dataset.map((item) => Number.isFinite(item.traslado) ? item.traslado : null)
+        },
+        {
+          name: 'Ambulatorio',
+          type: 'bar',
+          stack: 'total',
+          itemStyle: { color: createGradient(TIPO_COLORS.ambulatorio[0], TIPO_COLORS.ambulatorio[1]), borderRadius: 2 },
+          emphasis: { focus: 'series' },
+          data: dataset.map((item) => Number.isFinite(item.ambulatorio) ? item.ambulatorio : null)
+        },
+        {
+          name: '% Traslado',
           type: 'line',
-          data: trend,
+          yAxisIndex: 1,
           smooth: true,
           symbol: 'circle',
           symbolSize: 6,
-          lineStyle: { width: 3, color },
-          itemStyle: { color },
-          yAxisIndex: 0
+          lineStyle: { width: 3, color: '#2563eb' },
+          itemStyle: { color: '#2563eb' },
+          data: shareByIndex.map((value) => Number.isFinite(value) ? Number(value.toFixed(2)) : null)
         }
-      ];
-      // Actualiza título con subtítulo en opción filtrada
-      option.title = {
-        text: baseTitle,
-        subtext: subTitle,
-        top: layout.titleTop ?? 8,
-        left: layout.titleLeft ?? 'center',
-        itemGap: layout.titleGap ?? 6,
-        textStyle: {
-          fontWeight: 800,
-          color: '#0f172a',
-          fontSize: layout.titleFontSize ?? 16,
-          lineHeight: layout.titleLineHeight ?? 22
-        },
-        subtextStyle: {
-          color: '#475569',
-          fontSize: layout.subtitleFontSize ?? 11,
-          lineHeight: layout.subtitleLineHeight ?? 16
-        }
-      };
-    }
-
-  // Actualiza Top mes con el conjunto actualmente visible
-  updateTopBadge(labels, badgeTotals);
-
-  chart.setOption(option);
-
-    // Responsive
-    if (!el._resizeBound) {
-      el._resizeBound = true;
-      window.addEventListener('resize', ()=>{ chart && chart.resize(); });
-    }
+      ]
+    };
   }
 
-  let resizeTimer = null;
-  function safeRender(){
-    if (state.rendering) { state.needs = true; return; }
-    state.rendering = true;
-    try { renderChart(); }
-    finally {
-      state.rendering = false;
-      if (state.needs) { state.needs = false; setTimeout(safeRender, 0); }
+  function updateCompSummary(activeYears){
+    const summaryEl = document.getElementById('medicas-comp-resumen');
+    if (!summaryEl) return;
+    if (!activeYears.length){
+      summaryEl.textContent = 'Selecciona al menos un año para comparar.';
+      return;
     }
-  }
 
-  let wired = false;
-  function init(){
-    if (!wired) {
-      wired = true;
-      window.addEventListener('resize', ()=>{
-        const active = document.getElementById('medicas-section')?.classList.contains('active');
-        if (!active) return;
-        if (resizeTimer) clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(()=> safeRender(), 140);
-      });
-      const sw = document.getElementById('medicasLabelsAlways');
-      if (sw && !sw._medBound) { sw._medBound = true; sw.addEventListener('change', ()=> safeRender()); }
-      const sp = document.getElementById('medicasShowPct');
-      if (sp && !sp._medBound) { sp._medBound = true; sp.addEventListener('change', ()=> safeRender()); }
-      const st = document.getElementById('medicasTipo');
-      if (st && !st._medBound) { st._medBound = true; st.addEventListener('change', ()=> safeRender()); }
-      const tabsEl = document.getElementById('medicasTabs');
-      if (tabsEl && !tabsEl._medBound) {
-        tabsEl._medBound = true;
-        tabsEl.addEventListener('shown.bs.tab', (event)=>{
-          if (event?.target?.id === 'medicas-analytics-tab') {
-            setTimeout(()=> safeRender(), 60);
+    let totalAccum = 0;
+    let best = { value: Number.NEGATIVE_INFINITY, month: '', year: '' };
+
+    activeYears.forEach((year) => {
+      const yearData = compByYear.get(year);
+      if (!yearData) return;
+      MONTH_ORDER.forEach((month) => {
+        const val = yearData[month];
+        if (Number.isFinite(val)){
+          totalAccum += val;
+          if (val > best.value){
+            best = { value: val, month, year };
           }
-        });
-      }
+        }
+      });
+    });
+
+    const totalText = totalAccum.toLocaleString('es-MX');
+    if (Number.isFinite(best.value) && best.value >= 0){
+      summaryEl.textContent = `Total comparado: ${totalText} | Pico: ${best.month} ${best.year} (${best.value.toLocaleString('es-MX')})`;
+    } else {
+      summaryEl.textContent = `Total comparado: ${totalText} | Sin registros destacados`;
     }
-    safeRender();
   }
 
-  document.addEventListener('click', (e)=>{
-    if (e.target.closest('[data-section="medicas"]')) setTimeout(()=>safeRender(), 60);
-  });
-  document.addEventListener('DOMContentLoaded', ()=>{ init(); });
+  function buildCompOption(activeYears){
+    const labels = [...MONTH_ORDER];
+    const hasSelection = activeYears.length > 0;
+    const series = hasSelection ? activeYears.map((year, index) => {
+      const yearData = compByYear.get(year) || {};
+      const data = labels.map((month) => {
+        const value = yearData[month];
+        if (Number.isFinite(value)) return value;
+        return value === 0 ? 0 : null;
+      });
+      const color = COMP_COLORS[index % COMP_COLORS.length];
+      return {
+        name: String(year),
+        type: 'line',
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: { width: 3, color },
+        itemStyle: { color },
+        areaStyle: { opacity: 0.12, color },
+        data
+      };
+    }) : [];
+
+    return {
+      title: {
+        text: 'Atenciones médicas (comparación mensual)',
+        subtext: hasSelection ? 'Totales mensuales por año' : 'Selecciona al menos un año',
+        left: 'center',
+        top: 6,
+        itemGap: 4,
+        textStyle: { fontWeight: 800, color: '#0f172a', fontSize: 18 },
+        subtextStyle: { color: '#475569', fontSize: 12 }
+      },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'line' },
+        formatter: (params) => {
+          if (!params || !params.length) return '';
+          const month = params[0].axisValue || '';
+          const header = `<strong>${month}</strong>`;
+          const lines = params.map((entry) => {
+            const value = Number(entry.value);
+            if (Number.isFinite(value)){
+              return `${entry.marker} ${entry.seriesName}: ${value.toLocaleString('es-MX')}`;
+            }
+            return `${entry.marker} ${entry.seriesName}: Sin dato`;
+          });
+          return `${header}<br>${lines.join('<br>')}`;
+        }
+      },
+      legend: {
+        top: 40,
+        left: 'center',
+        itemGap: 20,
+        textStyle: { color: '#334155' },
+        data: activeYears.map((year) => String(year))
+      },
+      grid: { left: 52, right: 28, top: 90, bottom: 48 },
+      xAxis: {
+        type: 'category',
+        data: labels,
+        axisTick: { alignWithLabel: true },
+        axisLabel: {
+          interval: 0,
+          color: '#475569',
+          formatter: (value) => (value ? value.slice(0, 3) : value)
+        }
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: { color: '#475569' },
+        splitLine: { lineStyle: { color: 'rgba(15,23,42,0.08)' } }
+      },
+      series
+    };
+  }
+
+  function ensureCompChart(){
+    const el = document.getElementById('medicasCompChart');
+    if (!el || !window.echarts) return null;
+    if (!compChart){
+      compChart = echarts.init(el, null, { renderer: 'canvas' });
+    }
+    return compChart;
+  }
+
+  function renderComp(){
+    const pane = document.getElementById('medicas-comp-pane');
+    if (!pane){
+      pendingComp = false;
+      return;
+    }
+    if (!pane.classList.contains('active')){
+      pendingComp = true;
+      return;
+    }
+    const activeYears = getActiveCompYears();
+    updateCompSummary(activeYears);
+    const instance = ensureCompChart();
+    if (!instance) return;
+    const option = buildCompOption(activeYears);
+    instance.setOption(option, true);
+    instance.resize();
+    pendingComp = false;
+  }
+
+  function ensureTipoChart(){
+    const el = document.getElementById('medicasTipoChart');
+    if (!el || !window.echarts) return null;
+    if (!tipoChart){
+      tipoChart = echarts.init(el, null, { renderer: 'canvas' });
+    }
+    return tipoChart;
+  }
+
+  function renderTipo(){
+    const pane = document.getElementById('medicas-tipo-pane');
+    if (!pane){
+      pendingTipo = false;
+      return;
+    }
+    if (!pane.classList.contains('active')){
+      pendingTipo = true;
+      return;
+    }
+    const dataset = buildTipoDataset(tipoYear);
+    updateTipoSummary(dataset);
+    const instance = ensureTipoChart();
+    if (!instance) return;
+    const option = buildTipoOption(dataset);
+    instance.setOption(option, true);
+    instance.resize();
+    pendingTipo = false;
+  }
+
+  async function loadJSON(url){
+    try {
+      const response = await fetch(url, { cache: 'no-cache' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const payload = await response.json();
+      return Array.isArray(payload) ? payload.filter((item) => item && item.mes && item.anio) : [];
+    } catch (error) {
+      console.error(`No se pudo cargar ${url}`, error);
+      return [];
+    }
+  }
+
+  function bindEvents(){
+    if (eventsBound) return;
+    eventsBound = true;
+
+    const atencionesSelect = document.getElementById('medicas-atenciones-year');
+    if (atencionesSelect){
+      atencionesSelect.addEventListener('change', (event) => {
+        atencionesYear = event.target.value || 'all';
+        renderAtenciones();
+      });
+    }
+
+    const tipoSelect = document.getElementById('medicas-tipo-year');
+    if (tipoSelect){
+      tipoSelect.addEventListener('change', (event) => {
+        tipoYear = event.target.value || 'all';
+        renderTipo();
+      });
+    }
+
+    const tabs = document.getElementById('medicasTabs');
+    if (tabs){
+      tabs.addEventListener('shown.bs.tab', (event) => {
+        const targetId = event?.target?.id;
+        if (targetId === 'medicas-atenciones-tab' || pendingAtenciones){
+          setTimeout(() => renderAtenciones(), 60);
+        }
+        if (targetId === 'medicas-tipo-tab' || pendingTipo){
+          setTimeout(() => renderTipo(), 60);
+        }
+        if (targetId === 'medicas-comp-tab' || pendingComp){
+          setTimeout(() => renderComp(), 60);
+        }
+      });
+    }
+
+    document.addEventListener('click', (event) => {
+      if (event.target.closest('[data-section="medicas"]')){
+        setTimeout(() => {
+          if (pendingAtenciones) renderAtenciones();
+          if (pendingTipo) renderTipo();
+          if (pendingComp) renderComp();
+        }, 120);
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      if (atencionesChart && document.getElementById('medicas-atenciones-pane')?.classList.contains('active')){
+        atencionesChart.resize();
+      }
+      if (tipoChart && document.getElementById('medicas-tipo-pane')?.classList.contains('active')){
+        tipoChart.resize();
+      }
+      if (compChart && document.getElementById('medicas-comp-pane')?.classList.contains('active')){
+        compChart.resize();
+      }
+    });
+  }
+
+  async function init(){
+    const [atencionesData, tipoData, compData] = await Promise.all([
+      loadJSON(ATENCIONES_URL),
+      loadJSON(TIPO_URL),
+      loadJSON(COMP_URL)
+    ]);
+
+    rawAtenciones = atencionesData;
+    rawTipo = tipoData;
+    rawComp = compData;
+
+    populateYearOptions('medicas-atenciones-year', uniqueYears(rawAtenciones));
+    populateYearOptions('medicas-tipo-year', uniqueYears(rawTipo));
+
+    prepareCompIndex();
+    compActiveYears = new Set();
+    if (rawComp.length){
+      populateCompYears(uniqueYears(rawComp));
+    } else {
+      const summaryEl = document.getElementById('medicas-comp-resumen');
+      if (summaryEl) summaryEl.textContent = 'Sin datos disponibles para comparar.';
+    }
+
+    bindEvents();
+    renderAtenciones();
+    renderTipo();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => { init(); });
 })();

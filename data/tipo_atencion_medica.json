@@ -1,0 +1,317 @@
+[
+  {
+    "anio": 2022,
+    "mes": "ABRIL",
+    "traslado": 7,
+    "ambulatorio": 211,
+    "total": 218
+  },
+  {
+    "anio": 2022,
+    "mes": "MAYO",
+    "traslado": 6,
+    "ambulatorio": 169,
+    "total": 175
+  },
+  {
+    "anio": 2022,
+    "mes": "JUNIO",
+    "traslado": 10,
+    "ambulatorio": 161,
+    "total": 171
+  },
+  {
+    "anio": 2022,
+    "mes": "JULIO",
+    "traslado": 4,
+    "ambulatorio": 135,
+    "total": 139
+  },
+  {
+    "anio": 2022,
+    "mes": "AGOSTO",
+    "traslado": 2,
+    "ambulatorio": 131,
+    "total": 133
+  },
+  {
+    "anio": 2022,
+    "mes": "SEPTIEMBRE",
+    "traslado": 4,
+    "ambulatorio": 251,
+    "total": 255
+  },
+  {
+    "anio": 2022,
+    "mes": "OCTUBRE",
+    "traslado": 4,
+    "ambulatorio": 228,
+    "total": 232
+  },
+  {
+    "anio": 2022,
+    "mes": "NOVIEMBRE",
+    "traslado": 4,
+    "ambulatorio": 205,
+    "total": 209
+  },
+  {
+    "anio": 2022,
+    "mes": "DICIEMBRE",
+    "traslado": 2,
+    "ambulatorio": 262,
+    "total": 264
+  },
+  {
+    "anio": 2023,
+    "mes": "ENERO",
+    "traslado": 3,
+    "ambulatorio": 187,
+    "total": 190
+  },
+  {
+    "anio": 2023,
+    "mes": "FEBRERO",
+    "traslado": 5,
+    "ambulatorio": 117,
+    "total": 122
+  },
+  {
+    "anio": 2023,
+    "mes": "MARZO",
+    "traslado": 1,
+    "ambulatorio": 45,
+    "total": 46
+  },
+  {
+    "anio": 2023,
+    "mes": "ABRIL",
+    "traslado": 6,
+    "ambulatorio": 137,
+    "total": 143
+  },
+  {
+    "anio": 2023,
+    "mes": "MAYO",
+    "traslado": 2,
+    "ambulatorio": 183,
+    "total": 185
+  },
+  {
+    "anio": 2023,
+    "mes": "JUNIO",
+    "traslado": 6,
+    "ambulatorio": 154,
+    "total": 160
+  },
+  {
+    "anio": 2023,
+    "mes": "JULIO",
+    "traslado": 2,
+    "ambulatorio": 189,
+    "total": 191
+  },
+  {
+    "anio": 2023,
+    "mes": "AGOSTO",
+    "traslado": 7,
+    "ambulatorio": 219,
+    "total": 226
+  },
+  {
+    "anio": 2023,
+    "mes": "SEPTIEMBRE",
+    "traslado": 4,
+    "ambulatorio": 222,
+    "total": 226
+  },
+  {
+    "anio": 2023,
+    "mes": "OCTUBRE",
+    "traslado": 6,
+    "ambulatorio": 276,
+    "total": 282
+  },
+  {
+    "anio": 2023,
+    "mes": "NOVIEMBRE",
+    "traslado": 8,
+    "ambulatorio": 259,
+    "total": 267
+  },
+  {
+    "anio": 2023,
+    "mes": "DICIEMBRE",
+    "traslado": 6,
+    "ambulatorio": 310,
+    "total": 316
+  },
+  {
+    "anio": 2024,
+    "mes": "ENERO",
+    "traslado": 8,
+    "ambulatorio": 417,
+    "total": 425
+  },
+  {
+    "anio": 2024,
+    "mes": "FEBRERO",
+    "traslado": 5,
+    "ambulatorio": 335,
+    "total": 340
+  },
+  {
+    "anio": 2024,
+    "mes": "MARZO",
+    "traslado": 8,
+    "ambulatorio": 423,
+    "total": 431
+  },
+  {
+    "anio": 2024,
+    "mes": "ABRIL",
+    "traslado": 13,
+    "ambulatorio": 502,
+    "total": 515
+  },
+  {
+    "anio": 2024,
+    "mes": "MAYO",
+    "traslado": 11,
+    "ambulatorio": 482,
+    "total": 493
+  },
+  {
+    "anio": 2024,
+    "mes": "JUNIO",
+    "traslado": 15,
+    "ambulatorio": 461,
+    "total": 476
+  },
+  {
+    "anio": 2024,
+    "mes": "JULIO",
+    "traslado": 9,
+    "ambulatorio": 499,
+    "total": 508
+  },
+  {
+    "anio": 2024,
+    "mes": "AGOSTO",
+    "traslado": 7,
+    "ambulatorio": 400,
+    "total": 407
+  },
+  {
+    "anio": 2024,
+    "mes": "SEPTIEMBRE",
+    "traslado": 12,
+    "ambulatorio": 402,
+    "total": 414
+  },
+  {
+    "anio": 2024,
+    "mes": "OCTUBRE",
+    "traslado": 7,
+    "ambulatorio": 362,
+    "total": 369
+  },
+  {
+    "anio": 2024,
+    "mes": "NOVIEMBRE",
+    "traslado": 7,
+    "ambulatorio": 403,
+    "total": 410
+  },
+  {
+    "anio": 2024,
+    "mes": "DICIEMBRE",
+    "traslado": 11,
+    "ambulatorio": 425,
+    "total": 436
+  },
+  {
+    "anio": 2025,
+    "mes": "ENERO",
+    "traslado": 5,
+    "ambulatorio": 364,
+    "total": 369
+  },
+  {
+    "anio": 2025,
+    "mes": "FEBRERO",
+    "traslado": 2,
+    "ambulatorio": 384,
+    "total": 386
+  },
+  {
+    "anio": 2025,
+    "mes": "MARZO",
+    "traslado": 5,
+    "ambulatorio": 490,
+    "total": 495
+  },
+  {
+    "anio": 2025,
+    "mes": "ABRIL",
+    "traslado": 1,
+    "ambulatorio": 419,
+    "total": 420
+  },
+  {
+    "anio": 2025,
+    "mes": "MAYO",
+    "traslado": 5,
+    "ambulatorio": 438,
+    "total": 443
+  },
+  {
+    "anio": 2025,
+    "mes": "JUNIO",
+    "traslado": 5,
+    "ambulatorio": 420,
+    "total": 425
+  },
+  {
+    "anio": 2025,
+    "mes": "JULIO",
+    "traslado": 8,
+    "ambulatorio": 503,
+    "total": 511
+  },
+  {
+    "anio": 2025,
+    "mes": "AGOSTO",
+    "traslado": 4,
+    "ambulatorio": 457,
+    "total": 461
+  },
+  {
+    "anio": 2025,
+    "mes": "SEPTIEMBRE",
+    "traslado": 3,
+    "ambulatorio": 402,
+    "total": 405
+  },
+  {
+    "anio": 2025,
+    "mes": "OCTUBRE",
+    "traslado": 3,
+    "ambulatorio": 442,
+    "total": 445
+  },
+  {
+    "anio": 2025,
+    "mes": "NOVIEMBRE",
+    "traslado": null,
+    "ambulatorio": null,
+    "total": null
+  },
+  {
+    "anio": 2025,
+    "mes": "DICIEMBRE",
+    "traslado": null,
+    "ambulatorio": null,
+    "total": null
+  }
+]
