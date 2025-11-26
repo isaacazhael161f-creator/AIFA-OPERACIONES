@@ -28,6 +28,11 @@
     acc[month] = month.charAt(0) + month.slice(1).toLowerCase();
     return acc;
   }, {});
+  const MONTH_ABBR_MAP = MONTH_ORDER.reduce((acc, month) => {
+    const lower = month.toLowerCase();
+    acc[month] = lower.charAt(0).toUpperCase() + lower.slice(1, 3);
+    return acc;
+  }, {});
 
   let rawAtenciones = [];
   let rawTipo = [];
@@ -43,6 +48,7 @@
   let pendingTipo = false;
   let pendingComp = false;
   let eventsBound = false;
+  let currentViewportMode = getViewportMode();
 
   function parseValue(value){
     const num = Number(value);
@@ -68,6 +74,26 @@
     return MONTH_TITLE_MAP[month] || (String(month).charAt(0).toUpperCase() + String(month).slice(1).toLowerCase());
   }
 
+  function getMonthAbbr(month){
+    if (!month) return '';
+    const key = String(month).trim().toUpperCase();
+    if (MONTH_ABBR_MAP[key]) return MONTH_ABBR_MAP[key];
+    const value = String(month);
+    return value.charAt(0).toUpperCase() + value.slice(1, 3).toLowerCase();
+  }
+
+  function isCompactViewport(){
+    if (typeof window === 'undefined') return false;
+    if (typeof window.matchMedia === 'function'){
+      return window.matchMedia('(max-width: 640px)').matches;
+    }
+    return window.innerWidth <= 640;
+  }
+
+  function getViewportMode(){
+    return isCompactViewport() ? 'compact' : 'default';
+  }
+
   function createGradient(top, bottom){
     return new echarts.graphic.LinearGradient(0, 0, 0, 1, [
       { offset: 0, color: top },
@@ -76,7 +102,9 @@
   }
 
   function formatLabel(item){
-    return `${item.mes}\n${item.anio}`;
+    const monthLabel = getMonthAbbr(item.mes);
+    const yearLabel = item.anio ? String(item.anio) : '';
+    return yearLabel ? `${monthLabel}\n${yearLabel}` : monthLabel;
   }
 
   function sortRecords(list){
@@ -222,7 +250,8 @@
     const total = dataset.reduce((sum, item) => sum + (item.total || 0), 0);
     const peak = dataset.reduce((acc, item) => {
       if ((item.total || 0) > acc.value){
-        return { value: item.total || 0, label: `${item.mes} ${item.anio}` };
+        const monthTitle = formatMonthTitle(item.mes);
+        return { value: item.total || 0, label: `${monthTitle} ${item.anio}` };
       }
       return acc;
     }, { value: -Infinity, label: '' });
@@ -239,6 +268,19 @@
     const totals = dataset.map((item) => item.total || 0);
     const needsZoom = labels.length > 18;
     const zoomEnd = needsZoom ? Math.min(100, Math.round((18 / labels.length) * 100)) : 100;
+    const compact = isCompactViewport();
+    const legendTop = compact ? (needsZoom ? 66 : 54) : (needsZoom ? 54 : 40);
+    const legendFontSize = compact ? 11 : 12;
+    const gridTop = compact ? (needsZoom ? 108 : 92) : (needsZoom ? 94 : 80);
+    const gridBottom = compact ? (needsZoom ? 70 : 56) : (needsZoom ? 70 : 40);
+    const gridLeft = compact ? 40 : 48;
+    const gridRight = compact ? 20 : 24;
+    const axisFontSize = compact ? 11 : 12;
+    const axisLineHeight = compact ? 16 : 18;
+    const axisMargin = compact ? 14 : 18;
+    const labelDistance = compact ? 6 : 10;
+    const labelPadding = compact ? [2, 6] : [3, 8];
+    const labelFontSize = compact ? 11 : 12;
 
     const series = ATENCIONES_KEYS.map((key) => {
       const [top, bottom] = ATENCIONES_COLORS[key];
@@ -267,12 +309,13 @@
       label: {
         show: true,
         position: 'top',
-        distance: 10,
+        distance: labelDistance,
         fontWeight: 700,
         color: '#0f172a',
         backgroundColor: 'rgba(255,255,255,0.9)',
         borderRadius: 8,
-        padding: [3, 8],
+        padding: labelPadding,
+        fontSize: labelFontSize,
         formatter: (params) => (Number(params.value) || 0).toLocaleString('es-MX')
       },
       tooltip: { show: false },
@@ -308,26 +351,32 @@
         }
       },
       legend: {
-        top: needsZoom ? 54 : 40,
+        top: legendTop,
         left: 'center',
         itemGap: 20,
-        textStyle: { color: '#334155' },
+        textStyle: { color: '#334155', fontSize: legendFontSize },
         selected: { Total: false }
       },
-      grid: { left: 48, right: 24, top: needsZoom ? 94 : 80, bottom: needsZoom ? 70 : 40 },
+      grid: { left: gridLeft, right: gridRight, top: gridTop, bottom: gridBottom },
       dataZoom: needsZoom ? [
-        { type: 'slider', bottom: 16, height: 20, start: 0, end: zoomEnd },
+        { type: 'slider', bottom: 16, height: compact ? 18 : 20, start: 0, end: zoomEnd },
         { type: 'inside', start: 0, end: zoomEnd }
       ] : [],
       xAxis: {
         type: 'category',
         data: labels,
         axisTick: { alignWithLabel: true },
-        axisLabel: { interval: 0, color: '#475569' }
+        axisLabel: {
+          interval: 0,
+          color: '#475569',
+          fontSize: axisFontSize,
+          lineHeight: axisLineHeight,
+          margin: axisMargin
+        }
       },
       yAxis: {
         type: 'value',
-        axisLabel: { color: '#475569' },
+        axisLabel: { color: '#475569', fontSize: compact ? 11 : 12 },
         splitLine: { lineStyle: { color: 'rgba(15,23,42,0.08)' } }
       },
       series
@@ -361,6 +410,7 @@
     const option = buildAtencionesOption(dataset);
     instance.setOption(option, true);
     instance.resize();
+    currentViewportMode = getViewportMode();
     pendingAtenciones = false;
   }
 
@@ -399,7 +449,8 @@
     const share = overall > 0 ? (totals.traslado / overall) * 100 : 0;
     const hotspot = dataset.reduce((acc, item) => {
       if ((item.share || 0) > acc.value){
-        return { value: item.share || 0, label: `${item.mes} ${item.anio}` };
+        const monthTitle = formatMonthTitle(item.mes);
+        return { value: item.share || 0, label: `${monthTitle} ${item.anio}` };
       }
       return acc;
     }, { value: -1, label: '' });
@@ -418,6 +469,17 @@
     const needsZoom = labels.length > 18;
     const zoomEnd = needsZoom ? Math.min(100, Math.round((18 / labels.length) * 100)) : 100;
     const shareByIndex = dataset.map((item) => item.share);
+    const compact = isCompactViewport();
+    const legendTop = compact ? (needsZoom ? 66 : 54) : (needsZoom ? 54 : 40);
+    const legendFontSize = compact ? 11 : 12;
+    const gridTop = compact ? (needsZoom ? 108 : 92) : (needsZoom ? 94 : 80);
+    const gridBottom = compact ? (needsZoom ? 70 : 56) : (needsZoom ? 70 : 40);
+    const gridLeft = compact ? 44 : 52;
+    const gridRight = compact ? 40 : 48;
+    const axisFontSize = compact ? 11 : 12;
+    const axisLineHeight = compact ? 16 : 18;
+    const axisMargin = compact ? 14 : 18;
+    const symbolSize = compact ? 5 : 6;
 
     return {
       title: {
@@ -449,31 +511,37 @@
         }
       },
       legend: {
-        top: needsZoom ? 54 : 40,
+        top: legendTop,
         left: 'center',
         itemGap: 20,
-        textStyle: { color: '#334155' }
+        textStyle: { color: '#334155', fontSize: legendFontSize }
       },
-      grid: { left: 52, right: 48, top: needsZoom ? 94 : 80, bottom: needsZoom ? 70 : 40 },
+      grid: { left: gridLeft, right: gridRight, top: gridTop, bottom: gridBottom },
       dataZoom: needsZoom ? [
-        { type: 'slider', bottom: 16, height: 20, start: 0, end: zoomEnd },
+        { type: 'slider', bottom: 16, height: compact ? 18 : 20, start: 0, end: zoomEnd },
         { type: 'inside', start: 0, end: zoomEnd }
       ] : [],
       xAxis: {
         type: 'category',
         data: labels,
         axisTick: { alignWithLabel: true },
-        axisLabel: { interval: 0, color: '#475569' }
+        axisLabel: {
+          interval: 0,
+          color: '#475569',
+          fontSize: axisFontSize,
+          lineHeight: axisLineHeight,
+          margin: axisMargin
+        }
       },
       yAxis: [
         {
           type: 'value',
-          axisLabel: { color: '#475569' },
+          axisLabel: { color: '#475569', fontSize: compact ? 11 : 12 },
           splitLine: { lineStyle: { color: 'rgba(15,23,42,0.08)' } }
         },
         {
           type: 'value',
-          axisLabel: { color: '#475569', formatter: '{value}%' },
+          axisLabel: { color: '#475569', formatter: '{value}%', fontSize: compact ? 11 : 12 },
           splitLine: { show: false }
         }
       ],
@@ -502,7 +570,7 @@
           yAxisIndex: 1,
           smooth: true,
           symbol: 'circle',
-          symbolSize: 6,
+          symbolSize: symbolSize,
           lineStyle: { width: 3, color: '#2563eb' },
           itemStyle: { color: '#2563eb' },
           data: shareByIndex.map((value) => Number.isFinite(value) ? Number(value.toFixed(2)) : null)
@@ -538,7 +606,8 @@
 
     const totalText = totalAccum.toLocaleString('es-MX');
     if (Number.isFinite(best.value) && best.value >= 0){
-      summaryEl.textContent = `Total comparado: ${totalText} | Pico: ${best.month} ${best.year} (${best.value.toLocaleString('es-MX')})`;
+      const monthLabel = formatMonthTitle(best.month);
+      summaryEl.textContent = `Total comparado: ${totalText} | Pico: ${monthLabel} ${best.year} (${best.value.toLocaleString('es-MX')})`;
     } else {
       summaryEl.textContent = `Total comparado: ${totalText} | Sin registros destacados`;
     }
@@ -547,6 +616,17 @@
   function buildCompOption(activeYears){
     const labels = [...MONTH_ORDER];
     const hasSelection = activeYears.length > 0;
+    const compact = isCompactViewport();
+    const legendTop = compact ? 54 : 40;
+    const legendFontSize = compact ? 11 : 12;
+    const gridTop = compact ? 82 : 90;
+    const gridBottom = compact ? 52 : 48;
+    const gridLeft = compact ? 44 : 52;
+    const gridRight = compact ? 20 : 28;
+    const axisFontSize = compact ? 11 : 12;
+    const axisMargin = compact ? 12 : 16;
+    const symbolSize = compact ? 5 : 6;
+
     const series = hasSelection ? activeYears.map((year, index) => {
       const yearData = compByYear.get(year) || {};
       const data = labels.map((month) => {
@@ -560,7 +640,7 @@
         type: 'line',
         smooth: true,
         symbol: 'circle',
-        symbolSize: 6,
+        symbolSize,
         lineStyle: { width: 3, color },
         itemStyle: { color },
         areaStyle: { opacity: 0.12, color },
@@ -583,7 +663,7 @@
         axisPointer: { type: 'line' },
         formatter: (params) => {
           if (!params || !params.length) return '';
-          const month = params[0].axisValue || '';
+          const month = formatMonthTitle(params[0].axisValue || '');
           const header = `<strong>${month}</strong>`;
           const lines = params.map((entry) => {
             const value = Number(entry.value);
@@ -596,13 +676,13 @@
         }
       },
       legend: {
-        top: 40,
+        top: legendTop,
         left: 'center',
         itemGap: 20,
-        textStyle: { color: '#334155' },
+        textStyle: { color: '#334155', fontSize: legendFontSize },
         data: activeYears.map((year) => String(year))
       },
-      grid: { left: 52, right: 28, top: 90, bottom: 48 },
+      grid: { left: gridLeft, right: gridRight, top: gridTop, bottom: gridBottom },
       xAxis: {
         type: 'category',
         data: labels,
@@ -610,12 +690,14 @@
         axisLabel: {
           interval: 0,
           color: '#475569',
-          formatter: (value) => (value ? value.slice(0, 3) : value)
+          fontSize: axisFontSize,
+          margin: axisMargin,
+          formatter: (value) => (value ? getMonthAbbr(value) : value)
         }
       },
       yAxis: {
         type: 'value',
-        axisLabel: { color: '#475569' },
+        axisLabel: { color: '#475569', fontSize: compact ? 11 : 12 },
         splitLine: { lineStyle: { color: 'rgba(15,23,42,0.08)' } }
       },
       series
@@ -649,6 +731,7 @@
     const option = buildCompOption(activeYears);
     instance.setOption(option, true);
     instance.resize();
+    currentViewportMode = getViewportMode();
     pendingComp = false;
   }
 
@@ -679,6 +762,7 @@
     const option = buildTipoOption(dataset);
     instance.setOption(option, true);
     instance.resize();
+    currentViewportMode = getViewportMode();
     pendingTipo = false;
   }
 
@@ -872,14 +956,42 @@
     });
 
     window.addEventListener('resize', () => {
-      if (atencionesChart && document.getElementById('medicas-atenciones-pane')?.classList.contains('active')){
-        atencionesChart.resize();
+      const newMode = getViewportMode();
+      const modeChanged = newMode !== currentViewportMode;
+
+      const atencionesPane = document.getElementById('medicas-atenciones-pane');
+      const tipoPane = document.getElementById('medicas-tipo-pane');
+      const compPane = document.getElementById('medicas-comp-pane');
+
+      if (atencionesChart){
+        if (modeChanged && atencionesPane?.classList.contains('active')){
+          renderAtenciones();
+        } else {
+          atencionesChart.resize();
+          if (modeChanged) pendingAtenciones = true;
+        }
       }
-      if (tipoChart && document.getElementById('medicas-tipo-pane')?.classList.contains('active')){
-        tipoChart.resize();
+
+      if (tipoChart){
+        if (modeChanged && tipoPane?.classList.contains('active')){
+          renderTipo();
+        } else {
+          tipoChart.resize();
+          if (modeChanged) pendingTipo = true;
+        }
       }
-      if (compChart && document.getElementById('medicas-comp-pane')?.classList.contains('active')){
-        compChart.resize();
+
+      if (compChart){
+        if (modeChanged && compPane?.classList.contains('active')){
+          renderComp();
+        } else {
+          compChart.resize();
+          if (modeChanged) pendingComp = true;
+        }
+      }
+
+      if (modeChanged){
+        currentViewportMode = newMode;
       }
     });
   }
@@ -907,6 +1019,7 @@
       if (summaryEl) summaryEl.textContent = 'Sin datos disponibles para comparar.';
     }
 
+    currentViewportMode = getViewportMode();
     bindEvents();
     renderAtenciones();
     renderTipo();
