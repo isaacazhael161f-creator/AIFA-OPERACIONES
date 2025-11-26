@@ -737,9 +737,9 @@ const WEEKLY_OPERATIONS_DATASETS = [
             {
                 fecha: '2025-11-24',
                 label: '24 Nov 2025',
-                comercial: { operaciones: 145, pasajeros: 16066},
-                general: { operaciones: 7, pasajeros: 16 },
-                carga: { operaciones: 21, toneladas: 826, corteFecha: '2025-11-23', corteNota: 'Cifras del 23 de noviembre de 2025.' }
+                comercial: { operaciones: 145, pasajeros: 16066 },
+                general: { operaciones: 21, pasajeros: 826 },
+                carga: { operaciones: 31, toneladas: 802, corteFecha: '2025-11-23', corteNota: 'Cifras del 23 de noviembre de 2025.' }
             }
         ]
     },
@@ -1797,6 +1797,7 @@ const dashboardData = {
         "Jefe Mateos": { password: "2025M", canViewItinerarioMensual: true },
         "Usuario1": { password: "AIFAOps", canViewItinerarioMensual: true },
         "Dilery Urenda": { password: "DileryNLU", canViewItinerarioMensual: true },
+        "Fernanda Ficachi": { password: "GerenciaMedicos.", canViewItinerarioMensual: true },
         "Isaac Hernández": { password: "CoordIsaac", canViewItinerarioMensual: true },
         "Germán Nuñez": {
             password: "DrGerman12",

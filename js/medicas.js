@@ -24,6 +24,10 @@
     ambulatorio: ['#fbbf24', '#d97706']
   };
   const COMP_COLORS = ['#0284c7', '#ec4899', '#22c55e', '#f97316', '#8b5cf6', '#facc15'];
+  const MONTH_TITLE_MAP = MONTH_ORDER.reduce((acc, month) => {
+    acc[month] = month.charAt(0) + month.slice(1).toLowerCase();
+    return acc;
+  }, {});
 
   let rawAtenciones = [];
   let rawTipo = [];
@@ -43,6 +47,25 @@
   function parseValue(value){
     const num = Number(value);
     return Number.isFinite(num) ? num : null;
+  }
+
+  function escapeHtml(value){
+    if (value === null || value === undefined) return '';
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function formatNumber(value){
+    return Number.isFinite(value) ? value.toLocaleString('es-MX') : '—';
+  }
+
+  function formatMonthTitle(month){
+    if (!month) return '';
+    return MONTH_TITLE_MAP[month] || (String(month).charAt(0).toUpperCase() + String(month).slice(1).toLowerCase());
   }
 
   function createGradient(top, bottom){
@@ -332,6 +355,7 @@
     }
     const dataset = buildAtencionesDataset(atencionesYear);
     updateAtencionesSummary(dataset);
+    renderAtencionesTable(dataset);
     const instance = ensureAtencionesChart();
     if (!instance) return;
     const option = buildAtencionesOption(dataset);
@@ -619,6 +643,7 @@
     }
     const activeYears = getActiveCompYears();
     updateCompSummary(activeYears);
+    renderCompTable(activeYears);
     const instance = ensureCompChart();
     if (!instance) return;
     const option = buildCompOption(activeYears);
@@ -648,12 +673,144 @@
     }
     const dataset = buildTipoDataset(tipoYear);
     updateTipoSummary(dataset);
+    renderTipoTable(dataset);
     const instance = ensureTipoChart();
     if (!instance) return;
     const option = buildTipoOption(dataset);
     instance.setOption(option, true);
     instance.resize();
     pendingTipo = false;
+  }
+
+  function renderAtencionesTable(dataset){
+    const container = document.getElementById('medicas-atenciones-table');
+    if (!container) return;
+    if (!dataset.length){
+      container.innerHTML = '<div class="text-muted small">Sin datos disponibles para el periodo seleccionado.</div>';
+      return;
+    }
+    const rows = dataset.map((item) => {
+      const month = escapeHtml(formatMonthTitle(item.mes));
+      const year = escapeHtml(String(item.anio || ''));
+      return `
+        <tr>
+          <th scope="row">${month}</th>
+          <td class="text-center">${year}</td>
+          <td class="text-end">${formatNumber(item.aifa)}</td>
+          <td class="text-end">${formatNumber(item.otra_empresa)}</td>
+          <td class="text-end">${formatNumber(item.pasajeros)}</td>
+          <td class="text-end">${formatNumber(item.visitantes)}</td>
+          <td class="text-end fw-semibold">${formatNumber(item.total)}</td>
+        </tr>`;
+    }).join('');
+    container.innerHTML = `
+      <div class="table-responsive">
+        <table class="table table-hover table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th scope="col">Mes</th>
+              <th scope="col" class="text-center">Año</th>
+              <th scope="col" class="text-end">AIFA</th>
+              <th scope="col" class="text-end">Otra empresa</th>
+              <th scope="col" class="text-end">Pasajeros</th>
+              <th scope="col" class="text-end">Visitantes</th>
+              <th scope="col" class="text-end">Total</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  function renderTipoTable(dataset){
+    const container = document.getElementById('medicas-tipo-table');
+    if (!container) return;
+    if (!dataset.length){
+      container.innerHTML = '<div class="text-muted small">Sin datos disponibles para el periodo seleccionado.</div>';
+      return;
+    }
+    const rows = dataset.map((item) => {
+      const month = escapeHtml(formatMonthTitle(item.mes));
+      const year = escapeHtml(String(item.anio || ''));
+      const shareText = Number.isFinite(item.share) ? `${(item.share || 0).toFixed(1)}%` : '—';
+      return `
+        <tr>
+          <th scope="row">${month}</th>
+          <td class="text-center">${year}</td>
+          <td class="text-end">${formatNumber(item.traslado)}</td>
+          <td class="text-end">${formatNumber(item.ambulatorio)}</td>
+          <td class="text-end fw-semibold">${formatNumber(item.total)}</td>
+          <td class="text-end">${escapeHtml(shareText)}</td>
+        </tr>`;
+    }).join('');
+    container.innerHTML = `
+      <div class="table-responsive">
+        <table class="table table-hover table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th scope="col">Mes</th>
+              <th scope="col" class="text-center">Año</th>
+              <th scope="col" class="text-end">Traslado</th>
+              <th scope="col" class="text-end">Ambulatorio</th>
+              <th scope="col" class="text-end">Total</th>
+              <th scope="col" class="text-end">% Traslado</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  function renderCompTable(activeYears){
+    const container = document.getElementById('medicas-comp-table');
+    if (!container) return;
+    if (!compByYear.size){
+      container.innerHTML = '<div class="text-muted small">Sin datos disponibles para comparar.</div>';
+      return;
+    }
+    const years = (Array.isArray(activeYears) && activeYears.length
+      ? activeYears
+      : Array.from(compByYear.keys())).filter((year) => compByYear.has(year)).sort((a, b) => a - b);
+    if (!years.length){
+      container.innerHTML = '<div class="text-muted small">Selecciona al menos un año para visualizar la tabla comparativa.</div>';
+      return;
+    }
+    const headerCells = years.map((year) => `<th scope="col" class="text-end">${escapeHtml(String(year))}</th>`).join('');
+    const bodyRows = MONTH_ORDER.map((month) => {
+      const monthLabel = escapeHtml(formatMonthTitle(month));
+      const cells = years.map((year) => {
+        const bucket = compByYear.get(year) || {};
+        const value = bucket[month];
+        return `<td class="text-end">${formatNumber(value)}</td>`;
+      }).join('');
+      return `<tr><th scope="row">${monthLabel}</th>${cells}</tr>`;
+    }).join('');
+    const totalsRow = years.map((year) => {
+      const bucket = compByYear.get(year) || {};
+      const sum = MONTH_ORDER.reduce((acc, month) => {
+        const value = bucket[month];
+        return acc + (Number.isFinite(value) ? value : 0);
+      }, 0);
+      return `<td class="text-end fw-semibold">${formatNumber(sum)}</td>`;
+    }).join('');
+    container.innerHTML = `
+      <div class="table-responsive">
+        <table class="table table-hover table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th scope="col">Mes</th>
+              ${headerCells}
+            </tr>
+          </thead>
+          <tbody>${bodyRows}</tbody>
+          <tfoot>
+            <tr>
+              <th scope="row">Total anual</th>
+              ${totalsRow}
+            </tr>
+          </tfoot>
+        </table>
+      </div>`;
   }
 
   async function loadJSON(url){
