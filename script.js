@@ -1797,7 +1797,7 @@ const dashboardData = {
         "Jefe Mateos": { password: "2025M", canViewItinerarioMensual: true },
         "Usuario1": { password: "AIFAOps", canViewItinerarioMensual: true },
         "Dilery Urenda": { password: "DileryNLU", canViewItinerarioMensual: true },
-        "Fernanda Ficachi": { password: "GerenciaMedicos.", canViewItinerarioMensual: true },
+        "Fernanda Ficachi": { password: "GerenciaMedicos", canViewItinerarioMensual: true },
         "Isaac Hernández": { password: "CoordIsaac", canViewItinerarioMensual: true },
         "Germán Nuñez": {
             password: "DrGerman12",
