@@ -78,6 +78,11 @@ if (DEV) {
 
 const api = express.Router();
 
+app.get('/manifest.webmanifest', (req, res) => {
+  res.type('application/manifest+json');
+  res.sendFile(path.join(ROOT, 'manifest.webmanifest'));
+});
+
 api.get('/parte-operaciones/custom', async (req, res) => {
   try {
     const store = await readCustomStore();
