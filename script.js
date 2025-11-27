@@ -7700,7 +7700,29 @@ function renderOperacionesTotales() {
             function makePeakCfg(canvas, labels, data, label, stroke, fillTop, fillBottom, animProfile, fmtType='int', traveler, xTitle='Periodo', titleText, extraTooltip, tickDetails=null){
                 const bg = makeGradient(canvas, fillTop, fillBottom);
                 const border = stroke;
-                const maxVal = Math.max(0, ...data);
+                const processedData = Array.isArray(data)
+                    ? data.map((value) => {
+                        const num = Number(value);
+                        return Number.isFinite(num) ? num : null;
+                    })
+                    : [];
+                const numericData = processedData.filter((value) => value !== null);
+                const maxVal = numericData.length ? Math.max(...numericData) : 0;
+                const minVal = numericData.length ? Math.min(...numericData) : 0;
+                const range = Math.max(0, maxVal - minVal);
+                const lowerBand = range > 0
+                    ? Math.max(range * 0.55, maxVal * 0.04)
+                    : (maxVal > 0 ? maxVal * 0.25 : 10);
+                const upperBand = range > 0
+                    ? Math.max(range * 0.18, maxVal * 0.06)
+                    : (maxVal > 0 ? maxVal * 0.18 : 10);
+                let yAxisMin = Math.max(0, minVal - lowerBand);
+                let yAxisMax = maxVal + upperBand;
+                if (!Number.isFinite(yAxisMin)) yAxisMin = 0;
+                if (!Number.isFinite(yAxisMax) || yAxisMax <= yAxisMin) {
+                    const fallbackRange = maxVal > 0 ? Math.abs(maxVal) * 0.25 : 10;
+                    yAxisMax = yAxisMin + fallbackRange;
+                }
                 const isDark = document.body.classList.contains('dark-mode');
                 const emoji = fmtType==='pax' ? '🚶' : (fmtType==='ton' ? '🧳' : '✈');
                 const finalTitle = titleText || `${emoji} ${label}`;
@@ -7731,6 +7753,7 @@ function renderOperacionesTotales() {
                 const dynOffsetBelow = isYearAxis ? (isMobile ? 28 : 26) : (isMobile ? 24 : (isTablet ? 26 : 28));
                 const xTickFont = isMobile ? 10 : (isTablet ? 11 : 12);
                 const yTickFont = isMobile ? 10 : (isTablet ? 11 : 12);
+                const yTickPadding = isMobile ? 6 : (isTablet ? 8 : 10);
                 const maxTicks = isMobile ? 6 : (isTablet ? 8 : 12);
                 let padTop = isMobile ? 52 : (isTablet ? 60 : 68);
                 const padRight = isMobile ? 12 : (isTablet ? 14 : 16);
@@ -7738,18 +7761,21 @@ function renderOperacionesTotales() {
                 const padLeft = isMobile ? 8 : 10;
 
                 const radiusScale = isMobile ? 0.7 : (isTablet ? 0.85 : 1);
-                const pointRadius = data.map(v => {
-                    const t = maxVal>0 ? (v/maxVal) : 0;
+                const pointRadius = processedData.map((v) => {
+                    const safeValue = Number.isFinite(v) ? v : 0;
+                    const t = maxVal>0 ? (safeValue/maxVal) : 0;
                     const base = (2 + Math.min(3, t*2.5)) * radiusScale;
                     const baseline = Math.max(2.5 * radiusScale, base);
-                    if (v === maxVal && maxVal>0) {
+                    if (safeValue === maxVal && maxVal>0) {
                         return Math.max(baseline, 5.5 * radiusScale);
                     }
                     return baseline;
                 });
-                const pointHoverRadius = data.map(v => (v === maxVal && maxVal>0)
-                    ? Math.max(5, 6 * radiusScale)
-                    : Math.max(3, 4 * radiusScale));
+                const pointHoverRadius = processedData.map((v) => {
+                    const safeValue = Number.isFinite(v) ? v : 0;
+                    const isPeak = safeValue === maxVal && maxVal > 0;
+                    return isPeak ? Math.max(5, 6 * radiusScale) : Math.max(3, 4 * radiusScale);
+                });
 
                 if (isYearAxis) {
                     padTop += isMobile ? 18 : 12;
@@ -7767,7 +7793,20 @@ function renderOperacionesTotales() {
                 const monthLookup = {
                     'enero': 'Ene', 'febrero': 'Feb', 'marzo': 'Mar', 'abril': 'Abr',
                     'mayo': 'May', 'junio': 'Jun', 'julio': 'Jul', 'agosto': 'Ago',
-                    'septiembre': 'Sep', 'octubre': 'Oct', 'noviembre': 'Nov', 'diciembre': 'Dic'
+                    'septiembre': 'Sep', 'setiembre': 'Sep', 'octubre': 'Oct', 'noviembre': 'Nov', 'diciembre': 'Dic'
+                };
+                const normalizeMonthToken = (token) => {
+                    if (!token) return '';
+                    try {
+                        return token
+                            .toString()
+                            .normalize('NFD')
+                            .replace(/[\u0300-\u036f]/g, '')
+                            .replace(/[^a-z]/gi, '')
+                            .toLowerCase();
+                    } catch (_) {
+                        return token.toString().replace(/[^a-z]/gi, '').toLowerCase();
+                    }
                 };
                 const formatTickLabel = (value) => {
                     if (value == null) return value;
@@ -7775,6 +7814,29 @@ function renderOperacionesTotales() {
                     const trimmed = raw.trim();
                     if (!trimmed) return trimmed;
                     if (/^\d{4}$/.test(trimmed)) return trimmed;
+                    const rawTokens = trimmed.split(/\s+/).filter(Boolean);
+                    const primaryToken = rawTokens.length ? rawTokens[0] : trimmed;
+                    const normalizedPrimary = normalizeMonthToken(primaryToken);
+                    let monthAbbr = monthLookup[normalizedPrimary];
+                    if (!monthAbbr) {
+                        const normalizedFull = normalizeMonthToken(trimmed.replace(/\s*\(.+\)$/, ''));
+                        if (normalizedFull && monthLookup[normalizedFull]) {
+                            monthAbbr = monthLookup[normalizedFull];
+                        }
+                    }
+                    if (!monthAbbr && rawTokens.length > 1) {
+                        const fallbackPrimary = normalizeMonthToken(rawTokens[0]);
+                        if (fallbackPrimary && monthLookup[fallbackPrimary]) {
+                            monthAbbr = monthLookup[fallbackPrimary];
+                        }
+                    }
+                    if (monthAbbr) {
+                        if (rawTokens.length > 1) {
+                            const remainder = rawTokens.slice(1).join(' ');
+                            return remainder ? [monthAbbr, remainder] : monthAbbr;
+                        }
+                        return monthAbbr;
+                    }
                     if (isMobile && trimmed.length > 10){
                         const tokens = trimmed.split(/\s+/).filter(Boolean);
                         if (tokens.length > 1){
@@ -7795,11 +7857,6 @@ function renderOperacionesTotales() {
                         const first = trimmed.slice(0, mid);
                         const second = trimmed.slice(mid);
                         return second ? [first, second] : [trimmed];
-                    }
-                    const lower = trimmed.toLowerCase();
-                    if (monthLookup[lower]) return monthLookup[lower];
-                    if (monthLookup[lower.replace(/\s+\(.+\)$/g, '')]) {
-                        return monthLookup[lower.replace(/\s+\(.+\)$/g, '')];
                     }
                     return trimmed;
                 };
@@ -7893,13 +7950,21 @@ function renderOperacionesTotales() {
                     ? (idx) => extraTooltip.variations[idx]
                     : () => null;
                 const variationLabelText = extraTooltip?.variationLabel || 'Δ% vs período anterior';
+                const formatYAxisTick = (value) => {
+                    if (!Number.isFinite(value)) return value;
+                    try {
+                        return formatCompact ? formatCompact(value, fmtType) : value;
+                    } catch (_) {
+                        return value;
+                    }
+                };
                 return {
                     type: 'line',
                     data: {
                         labels,
                         datasets: [{
                             label,
-                            data,
+                            data: processedData,
                             borderColor: border,
                             backgroundColor: bg,
                             borderWidth: 3,
@@ -8053,6 +8118,24 @@ function renderOperacionesTotales() {
                                         if (typeof scale.min === 'number') scale.min = 0;
                                         if (typeof scale.max === 'number') scale.max = normalized.length ? normalized.length - 1 : scale.max;
                                     } catch (_) { /* noop */ }
+                                }
+                            },
+                            y: {
+                                beginAtZero: false,
+                                min: yAxisMin,
+                                max: yAxisMax,
+                                grid: {
+                                    color: theme.grid,
+                                    drawBorder: false,
+                                    borderDash: [4, 4],
+                                    zeroLineColor: theme.grid
+                                },
+                                ticks: {
+                                    color: theme.ticks,
+                                    font: { size: yTickFont },
+                                    padding: yTickPadding,
+                                    maxTicksLimit: isMobile ? 5 : 8,
+                                    callback: formatYAxisTick
                                 }
                             }
                         }
