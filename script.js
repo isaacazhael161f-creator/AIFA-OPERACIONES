@@ -1818,7 +1818,7 @@ const dashboardData = {
         "Dilery Urenda": { password: "DileryNLU", canViewItinerarioMensual: true },
         "Fernanda Ficachi": { password: "GerenciaMedicos", canViewItinerarioMensual: true },
         "Isaac Hernández": { password: "CoordIsaac", canViewItinerarioMensual: true },
-        "D. Cala": { password: "CCO2025", canViewItinerarioMensual: true },
+        "Darwin Cala": { password: "CCO2025", canViewItinerarioMensual: true },
         "Germán Nuñez": {
             password: "DrGerman12",
             canViewItinerarioMensual: false,
