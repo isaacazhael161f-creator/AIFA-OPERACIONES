@@ -1163,9 +1163,9 @@ function resolveCurrentOperationsWeek(referenceDate = new Date()) {
 // Datos Anuales
 const staticData = {
     operacionesTotales: {
-        comercial: [ { periodo: '2022', operaciones: 8996, pasajeros: 912415 }, { periodo: '2023', operaciones: 23211, pasajeros: 2631261 }, { periodo: '2024', operaciones: 51734, pasajeros: 6318454 }, { periodo: '2025', operaciones: 46281, pasajeros: 6133252} ],
-        carga: [ { periodo: '2022', operaciones: 8, toneladas: 5.19 }, { periodo: '2023', operaciones: 5578, toneladas: 186319.83}, { periodo: '2024', operaciones: 13219, toneladas: 447341.17 }, { periodo: '2025', operaciones: 10416, toneladas: 352152.32} ],
-        general: [ { periodo: '2022', operaciones: 458, pasajeros: 1385 }, { periodo: '2023', operaciones: 2212, pasajeros: 8160 }, { periodo: '2024', operaciones: 2777, pasajeros: 29637 }, { periodo: '2025', operaciones: 2715, pasajeros: 19477} ]
+        comercial: [ { periodo: '2022', operaciones: 8996, pasajeros: 912415 }, { periodo: '2023', operaciones: 23211, pasajeros: 2631261 }, { periodo: '2024', operaciones: 51734, pasajeros: 6318454 }, { periodo: '2025', operaciones: 47746, pasajeros: 6328669} ],
+        carga: [ { periodo: '2022', operaciones: 8, toneladas: 5.19 }, { periodo: '2023', operaciones: 5578, toneladas: 186319.83}, { periodo: '2024', operaciones: 13219, toneladas: 447341.17 }, { periodo: '2025', operaciones: 10777, toneladas: 363975.08} ],
+        general: [ { periodo: '2022', operaciones: 458, pasajeros: 1385 }, { periodo: '2023', operaciones: 2212, pasajeros: 8160 }, { periodo: '2024', operaciones: 2777, pasajeros: 29637 }, { periodo: '2025', operaciones: 2796, pasajeros: 19718} ]
     },
     operacionesSemanasCatalogo: WEEKLY_OPERATIONS_DATASETS.map(deepCloneWeek),
     operacionesSemanaActual: resolveCurrentOperationsWeek(),
@@ -1182,7 +1182,7 @@ const staticData = {
             { mes: '08', label: 'Agosto', operaciones: 4500 },
             { mes: '09', label: 'Septiembre', operaciones: 4135 },
             { mes: '10', label: 'Octubre', operaciones: 4291 },
-            { mes: '11', label: 'Noviembre', operaciones: 2715 }
+            { mes: '11', label: 'Noviembre', operaciones: 4313 }
         ],
         // Pasajeros de aviación comercial por mes (con proyección conservadora 81% donde indica)
         comercialPasajeros: [
@@ -1196,7 +1196,7 @@ const staticData = {
             { mes: '08', label: 'Agosto', pasajeros: 630952 },
             { mes: '09', label: 'Septiembre', pasajeros: 546457 },
             { mes: '10', label: 'Octubre', pasajeros: 584629 },
-            { mes: '11', label: 'Noviembre', pasajeros: 393307 },
+            { mes: '11', label: 'Noviembre', pasajeros: 588724 },
             { mes: '12', label: 'Diciembre (Proy.)', pasajeros: 704718 }
         ],
         carga: [
@@ -1210,7 +1210,7 @@ const staticData = {
             { mes: '08', label: 'Agosto', operaciones: 1082 },
             { mes: '09', label: 'Septiembre', operaciones: 992},
             { mes: '10', label: 'Octubre', operaciones: 1155 },
-            { mes: '11', label: 'Noviembre', operaciones: 645 }
+            { mes: '11', label: 'Noviembre', operaciones: 1006 }
         ],
         // Toneladas por mes (con nulos cuando no hay datos)
         cargaToneladas: [
@@ -1224,7 +1224,7 @@ const staticData = {
             { mes: '08', label: 'Agosto', toneladas: 35737.78 },
             { mes: '09', label: 'Septiembre', toneladas: 31076.71 },
             { mes: '10', label: 'Octubre', toneladas: 37273.41},
-            { mes: '11', label: 'Noviembre', toneladas: 22181.94 },
+            { mes: '11', label: 'Noviembre', toneladas: 34004.70 },
             { mes: '12', label: 'Diciembre', toneladas: null }
         ],
         // Aviación general (operaciones y pasajeros)
@@ -1240,7 +1240,7 @@ const staticData = {
                 { mes: '08', label: 'Agosto', operaciones: 282 },
                 { mes: '09', label: 'Septiembre', operaciones: 249 },
                 { mes: '10', label: 'Octubre', operaciones: 315 },
-                { mes: '11', label: 'Noviembre', operaciones: 186 },
+                { mes: '11', label: 'Noviembre', operaciones: 267 },
                 { mes: '12', label: 'Diciembre', operaciones: null }
             ],
             pasajeros: [
@@ -1254,7 +1254,7 @@ const staticData = {
                 { mes: '08', label: 'Agosto', pasajeros: 3033 },
                 { mes: '09', label: 'Septiembre', pasajeros: 948 },
                 { mes: '10', label: 'Octubre', pasajeros: 1298},
-                { mes: '11', label: 'Noviembre', pasajeros: 788 },
+                { mes: '11', label: 'Noviembre', pasajeros: 1029 },
                 { mes: '12', label: 'Diciembre', pasajeros: null }
             ]
         }
@@ -12271,8 +12271,9 @@ function classifyParteOperacionesAnnualType(value){
     return 'otros';
 }
 
-function computeParteOperacionesAnnualDataset(summary){
+function computeParteOperacionesAnnualDataset(summary, options = {}){
     if (!summary || !summary.byDate) return null;
+    const referenceSummary = options.referenceSummary || (options.preferBaseCache ? parteOperacionesSummaryBaseCache : null);
     const entries = Object.entries(summary.byDate)
         .filter(([dateKey]) => /^\d{4}-\d{2}-\d{2}$/.test(dateKey))
         .sort((a, b) => a[0].localeCompare(b[0]));
@@ -12286,7 +12287,9 @@ function computeParteOperacionesAnnualDataset(summary){
         }
         const bucket = monthMap.get(monthKey);
         bucket.days += 1;
-        const ops = Array.isArray(entry?.operaciones) ? entry.operaciones : [];
+        const referenceEntry = referenceSummary?.byDate?.[dateKey];
+        const opsSource = referenceEntry || entry;
+        const ops = Array.isArray(opsSource?.operaciones) ? opsSource.operaciones : [];
         let computedDailyTotal = 0;
         const dailyBreakdown = { comercial: 0, carga: 0, general: 0, otros: 0 };
         ops.forEach((item) => {
@@ -12300,14 +12303,28 @@ function computeParteOperacionesAnnualDataset(summary){
                 dailyBreakdown.otros += subtotal;
             }
         });
-        const rawTotal = Number(entry?.total_general);
-        const dayTotal = Number.isFinite(rawTotal) && rawTotal >= 0 ? rawTotal : computedDailyTotal;
+        const reportedTotal = Number(opsSource?.total_general);
+        const hasValidReportedTotal = Number.isFinite(reportedTotal) && reportedTotal >= 0;
+        let dayTotal = hasValidReportedTotal ? Math.max(reportedTotal, computedDailyTotal) : computedDailyTotal;
+        let daySource = hasValidReportedTotal && reportedTotal >= computedDailyTotal ? 'reported' : 'computed';
+        if (referenceEntry) {
+            const refReported = Number(referenceEntry.total_general);
+            const referenceTotal = Number.isFinite(refReported) && refReported >= 0
+                ? Math.max(refReported, computedDailyTotal)
+                : computedDailyTotal;
+            dayTotal = referenceTotal;
+            daySource = 'reference';
+        }
         bucket.sums.total += dayTotal;
         dailySummaries.push({
             date: dateKey,
+            monthKey,
             total: dayTotal,
+            reportedTotal: hasValidReportedTotal ? reportedTotal : null,
+            computedTotal: computedDailyTotal,
+            referenceTotal: referenceEntry ? Number(referenceEntry.total_general) || computedDailyTotal : null,
             breakdown: dailyBreakdown,
-            source: Number.isFinite(rawTotal) && rawTotal >= 0 ? 'reported' : 'computed'
+            source: daySource
         });
     });
     const months = Array.from(monthMap.values())
@@ -12348,29 +12365,44 @@ function computeParteOperacionesAnnualDataset(summary){
         : `${qualifiedMonths[0].label} — ${qualifiedMonths[monthCount - 1].label}`;
     const sampleDays = qualifiedMonths.reduce((acc, month) => acc + (month.dayCount || 0), 0);
     const qualifiedMonthKeys = new Set(qualifiedMonths.map((month) => month.key));
-    const relevantDays = dailySummaries.filter((day) => qualifiedMonthKeys.has(day.date.slice(0, 7)));
-    let peakDayEntry = null;
-    let peakCommercialEntry = null;
-    relevantDays.forEach((day) => {
-        const totalOps = Number(day.total) || 0;
-        if (!peakDayEntry || totalOps > (Number(peakDayEntry.total) || 0) || (totalOps === (Number(peakDayEntry.total) || 0) && day.date > peakDayEntry.date)) {
-            peakDayEntry = day;
-        }
-        const commercialOps = Number(day.breakdown?.comercial) || 0;
-        if (commercialOps > 0) {
-            const currentMax = peakCommercialEntry ? Number(peakCommercialEntry.comercial) || 0 : -Infinity;
-            if (!peakCommercialEntry || commercialOps > currentMax || (commercialOps === currentMax && day.date > peakCommercialEntry.date)) {
-                peakCommercialEntry = { ...day, comercial: commercialOps };
+    const relevantDays = dailySummaries.filter((day) => qualifiedMonthKeys.has(day.monthKey));
+    const pickPeak = (days, metricFn) => {
+        return days.reduce((best, candidate) => {
+            const value = metricFn(candidate);
+            if (!Number.isFinite(value)) return best;
+            if (!best) {
+                return { entry: candidate, value };
             }
-        }
-    });
+            if (value > best.value || (value === best.value && candidate.date > best.entry.date)) {
+                return { entry: candidate, value };
+            }
+            return best;
+        }, null);
+    };
+    const peakDayTuple = pickPeak(relevantDays, (day) => Number(day.total));
+    const peakCommercialTuple = pickPeak(relevantDays, (day) => Number(day.breakdown?.comercial));
+    const peakDayEntry = peakDayTuple ? { ...peakDayTuple.entry, total: peakDayTuple.value } : null;
+    const peakCommercialEntry = peakCommercialTuple && peakCommercialTuple.value > 0
+        ? { ...peakCommercialTuple.entry, comercial: peakCommercialTuple.value }
+        : null;
     const enrichPeak = (entry) => {
         if (!entry || !entry.date) return null;
         const dateObj = parseIsoDay(entry.date);
         const formatted = dateObj ? capitalizeFirst(parteOperacionesDateFormatter.format(dateObj)) : entry.date;
         const weekday = dateObj && WEEKDAY_FORMATTER ? capitalizeFirst(WEEKDAY_FORMATTER.format(dateObj)) : '';
+        const normalizedTotal = Number(entry.total);
+        const normalizeOptionalNumber = (value) => {
+            if (value === null || value === undefined) return null;
+            const numericValue = Number(value);
+            return Number.isFinite(numericValue) ? numericValue : null;
+        };
+        const normalizedReported = normalizeOptionalNumber(entry.reportedTotal);
+        const normalizedComputed = normalizeOptionalNumber(entry.computedTotal);
         return {
             ...entry,
+            total: Number.isFinite(normalizedTotal) ? normalizedTotal : 0,
+            reportedTotal: Number.isFinite(normalizedReported) ? normalizedReported : null,
+            computedTotal: Number.isFinite(normalizedComputed) ? normalizedComputed : null,
             formatted,
             weekday
         };
@@ -12469,7 +12501,7 @@ function renderParteOperacionesAnnualAnalysis(summary){
     const tableHost = document.getElementById('ops-annual-averages-table');
     const chartCanvas = document.getElementById('ops-annual-averages-chart');
     if (!cardsHost && !tableHost && !chartCanvas) return;
-    const dataset = computeParteOperacionesAnnualDataset(summary);
+    const dataset = computeParteOperacionesAnnualDataset(summary, { preferBaseCache: true });
     const numberFormatter = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 });
     if (!dataset) {
         if (cardsHost) {
