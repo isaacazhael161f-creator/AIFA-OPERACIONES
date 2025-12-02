@@ -726,6 +726,25 @@ function deepCloneWeek(week) {
 const WEEKLY_OPERATIONS_DATASETS = [
 
     {
+        id: '2025-12-01',
+        rango: {
+            inicio: '2025-12-01',
+            fin: '2025-12-07',
+            descripcion: describeWeekRange('2025-12-01', '2025-12-07'),
+            nota: 'Semana del (1 al 7 de diciembre de 2025).'
+        },
+        dias: [
+            {
+                fecha: '2025-12-01',
+                label: '01 Dic 2025',
+                comercial: { operaciones: 154, pasajeros: 22766},
+                general: { operaciones: 8, pasajeros: 27 },
+                carga: { operaciones: 22, toneladas: 872, corteFecha: '2025-11-30', corteNota: 'Cifras del 30 de noviembre de 2025.' }
+            }
+        ]
+    },
+
+    {
         id: '2025-11-24',
         rango: {
             inicio: '2025-11-24',
@@ -783,14 +802,6 @@ const WEEKLY_OPERATIONS_DATASETS = [
                 label: '29 Nov 2025',
                 comercial: { operaciones: 135, pasajeros: 18639},
                 general: { operaciones: 4, pasajeros: 18 },
-                carga: { operaciones: 30, toneladas: 957, corteFecha: '2025-11-27', corteNota: 'Cifras del 27 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-30',
-                label: '30 Nov 2025',
-                comercial: { operaciones: 137, pasajeros: 19903},
-                general: { operaciones: 1, pasajeros: 2 },
                 carga: { operaciones: 30, toneladas: 957, corteFecha: '2025-11-27', corteNota: 'Cifras del 27 de noviembre de 2025.' }
             }
 
@@ -10167,6 +10178,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleYearly = document.getElementById('toggle-yearly-view');
         const weeklyWeekFilter = document.getElementById('weekly-week-filter');
         const weeklyWeekSelect = document.getElementById('weekly-week-select');
+        const weeklyWeekPicker = document.getElementById('weekly-week-picker');
+        const weeklyWeekHint = document.getElementById('weekly-week-hint');
         const weeklyDayFilter = document.getElementById('weekly-day-filter');
         const weeklyDaySelect = document.getElementById('weekly-day-select');
         const yearsHint = document.getElementById('years-disabled-hint');
@@ -10211,6 +10224,114 @@ document.addEventListener('DOMContentLoaded', () => {
             return withDataOnly ? sorted.filter(hasWeekData) : sorted;
         }
 
+        function cleanWeekRangeLabel(label = '') {
+            return label
+                .replace(/^Semana\s+del\s+/i, '')
+                .replace(/^Comparativo semanal del\s+/i, '')
+                .replace(/\.$/, '')
+                .trim();
+        }
+
+        function buildWeekGroupsByMonth(weeks){
+            const groups = [];
+            weeks.forEach((week) => {
+                const startDate = getWeekStartDate(week) || parseIsoDay(week?.rango?.fin || '') || parseIsoDay(week?.dias?.[0]?.fecha || '');
+                const monthKey = startDate ? `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}` : 'otros';
+                let group = groups.find((entry) => entry.key === monthKey);
+                if (!group) {
+                    const monthName = startDate ? capitalizeFirst(SPANISH_MONTH_NAMES[startDate.getMonth()] || '') : 'Sin fecha';
+                    const label = startDate ? `${monthName} ${startDate.getFullYear()}` : 'Semanas sin rango definido';
+                    group = { key: monthKey, label, weeks: [], sortDate: startDate || new Date(0) };
+                    groups.push(group);
+                }
+                group.weeks.push(week);
+            });
+            groups.sort((a, b) => b.sortDate - a.sortDate);
+            return groups;
+        }
+
+        function renderWeeklyWeekPicker(weeks, options = {}) {
+            if (!weeklyWeekPicker) return;
+            const { autoLabel = '', hasAny = false, currentHasData = false } = options;
+            const activeWeekId = opsUIState.weeklyWeekId || 'auto';
+            weeklyWeekPicker.innerHTML = '';
+
+            const createChip = ({ id, title, subtitle, badge, disabled = false }) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'weekly-week-chip';
+                button.dataset.weekId = id;
+                if (badge) {
+                    button.classList.add('weekly-week-chip--has-badge');
+                }
+                if (id === activeWeekId) {
+                    button.classList.add('is-active');
+                }
+                if (disabled) {
+                    button.classList.add('is-disabled');
+                    button.disabled = true;
+                }
+                button.setAttribute('aria-pressed', id === activeWeekId ? 'true' : 'false');
+                button.innerHTML = `
+                    <span class="chip-title">${escapeHTML(title)}</span>
+                    ${subtitle ? `<span class="chip-subtitle">${escapeHTML(subtitle)}</span>` : ''}
+                    ${badge ? `<span class="chip-badge">${escapeHTML(badge)}</span>` : ''}
+                `;
+                return button;
+            };
+
+            const fragment = document.createDocumentFragment();
+            const autoRow = document.createElement('div');
+            autoRow.className = 'weekly-week-chip-row weekly-week-chip-row-auto';
+            autoRow.appendChild(createChip({
+                id: 'auto',
+                title: 'Semana actual',
+                subtitle: currentHasData && autoLabel ? autoLabel : 'Selección automática',
+                badge: 'AUTO',
+                disabled: !currentHasData && !weeks.length
+            }));
+            fragment.appendChild(autoRow);
+
+            if (!weeks.length) {
+                const emptyState = document.createElement('p');
+                emptyState.className = 'text-muted small mb-0';
+                emptyState.textContent = currentHasData ? 'Solo hay datos de la semana actual.' : 'Aún no hay semanas con datos en el catálogo.';
+                weeklyWeekPicker.classList.add('is-empty');
+                fragment.appendChild(emptyState);
+            } else {
+                weeklyWeekPicker.classList.remove('is-empty');
+                const groups = buildWeekGroupsByMonth(weeks);
+                groups.forEach((group) => {
+                    const wrapper = document.createElement('div');
+                    const label = document.createElement('div');
+                    label.className = 'weekly-week-month-label';
+                    label.textContent = group.label;
+                    wrapper.appendChild(label);
+                    const row = document.createElement('div');
+                    row.className = 'weekly-week-chip-row';
+                    group.weeks.forEach((week) => {
+                        const ordinalLabel = formatWeekOrdinalLabel(week);
+                        const rangeLabel = cleanWeekRangeLabel(formatWeekLabel(week));
+                        row.appendChild(createChip({
+                            id: week.id,
+                            title: ordinalLabel || rangeLabel || 'Semana',
+                            subtitle: ordinalLabel && rangeLabel && ordinalLabel !== rangeLabel ? rangeLabel : (ordinalLabel || rangeLabel || ''),
+                            badge: null
+                        }));
+                    });
+                    wrapper.appendChild(row);
+                    fragment.appendChild(wrapper);
+                });
+            }
+
+            weeklyWeekPicker.appendChild(fragment);
+            if (weeklyWeekHint) {
+                weeklyWeekHint.textContent = hasAny || currentHasData
+                    ? 'Selecciona la semana que desees analizar.'
+                    : 'No hay semanas disponibles; agrega datos para habilitar este filtro.';
+            }
+        }
+
         function populateWeeklyWeekOptions(){
             if (!weeklyWeekSelect) return { weeks: [], hasAny: false, currentHasData: false };
             const currentWeekRaw = staticData?.operacionesSemanaActual || null;
@@ -10247,6 +10368,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (toggleWeekly) {
                 toggleWeekly.disabled = !hasAny;
             }
+            renderWeeklyWeekPicker(distinctWeeks, { hasAny, currentHasData, autoLabel });
             return { weeks: distinctWeeks, hasAny, currentHasData };
         }
 
@@ -10334,6 +10456,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 opsUIState.weeklyWeekId = weeklyWeekSelect.value || 'auto';
                 opsUIState.weeklyDay = 'all';
                 if (weeklyDaySelect) weeklyDaySelect.value = 'all';
+                populateWeeklyWeekOptions();
+                populateWeeklyDayOptions();
+                if (opsUIState.mode === 'weekly') {
+                    renderOperacionesTotales();
+                }
+            });
+        }
+
+        if (weeklyWeekPicker && !weeklyWeekPicker.dataset.bound) {
+            weeklyWeekPicker.dataset.bound = '1';
+            weeklyWeekPicker.addEventListener('click', (event) => {
+                const chip = event.target.closest('[data-week-id]');
+                if (!chip || chip.classList.contains('is-disabled')) return;
+                const targetWeek = chip.dataset.weekId || 'auto';
+                if (targetWeek === opsUIState.weeklyWeekId) return;
+                opsUIState.weeklyWeekId = targetWeek;
+                if (weeklyWeekSelect) {
+                    weeklyWeekSelect.value = targetWeek;
+                }
+                opsUIState.weeklyDay = 'all';
+                if (weeklyDaySelect) weeklyDaySelect.value = 'all';
+                populateWeeklyWeekOptions();
                 populateWeeklyDayOptions();
                 if (opsUIState.mode === 'weekly') {
                     renderOperacionesTotales();
