@@ -4083,6 +4083,50 @@ body.dark-mode #fauna-section #fauna-rescate-individuals-badge {
    font-size: .95rem;
    color: #06306a;
 }
+#fauna-summary-container .card-body {
+   gap: 0.9rem;
+   flex-wrap: nowrap;
+}
+#fauna-section .fauna-airline-link {
+   gap: 0.9rem;
+}
+#fauna-section .fauna-airline-link .airline-logo,
+#fauna-section .fauna-airline-link .airline-logo.lg,
+#fauna-section .fauna-airline-link .airline-logo.xl {
+   width: 110px;
+   height: 110px;
+   max-width: 110px;
+   flex: 0 0 auto;
+   border-radius: 18px;
+   padding: 0.35rem;
+   background: rgba(255,255,255,0.9);
+   box-shadow: 0 10px 20px -12px rgba(0,0,0,0.4);
+}
+body.dark-mode #fauna-section .fauna-airline-link .airline-logo,
+body.dark-mode #fauna-section .fauna-airline-link .airline-logo.lg,
+body.dark-mode #fauna-section .fauna-airline-link .airline-logo.xl {
+   background: rgba(15,23,42,0.9);
+   box-shadow: 0 12px 26px -14px rgba(15,23,42,0.7);
+}
+#fauna-section .fauna-airline-link strong.airline-name {
+   font-size: 1rem;
+}
+@media (max-width: 576px) {
+   #fauna-summary-container .card-body {
+      flex-direction: column;
+      align-items: flex-start;
+   }
+   #fauna-section .fauna-airline-link {
+      width: 100%;
+   }
+   #fauna-section .fauna-airline-link .airline-logo,
+   #fauna-section .fauna-airline-link .airline-logo.lg,
+   #fauna-section .fauna-airline-link .airline-logo.xl {
+      width: 88px;
+      height: 88px;
+      max-width: 88px;
+   }
+}
 body.dark-mode #fauna-section .fauna-active-filter {
    background: linear-gradient(120deg, rgba(44,124,255,0.18), rgba(80,160,255,0.18));
    border-color: rgba(80,142,255,0.26);
