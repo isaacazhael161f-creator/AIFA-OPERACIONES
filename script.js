@@ -1291,8 +1291,8 @@ const staticData = {
     },
     mensualYear: '2025',
     demoras: {
-        periodo: "Agosto 2025",
-        causas: [ { causa: 'Repercusión', demoras: 219 }, { causa: 'Compañía', demoras: 190 }, { causa: 'Evento Circunstancial', demoras: 8 }, { causa: 'Combustible', demoras: 5 }, { causa: 'Autoridad', demoras: 4 }, { causa: 'Meteorología', demoras: 199 }, { causa: 'Aeropuerto', demoras: 4 }, ]
+        periodo: "Noviembre 2025",
+        causas: [ { causa: 'Repercusión', demoras: 507 }, { causa: 'Compañía', demoras: 190 }, { causa: 'Evento Circunstancial', demoras: 3 }, { causa: 'Combustible', demoras: 1 }, { causa: 'Autoridad', demoras: 0 }, { causa: 'Meteorología', demoras: 12 }, { causa: 'Aeropuerto', demoras: 1 }, ]
     }
 };
 
@@ -2290,6 +2290,7 @@ const airlineLogoFileMap = {
     'ifl group': ['lofo_ifl_group.png'],
     'china southern': ['logo_china_southern.png'],
     'china southerrn': ['logo_china_southern.png'],
+    'ukraine international airlines': ['logo_ukraine_international_airlines.png'],
     // Ajustes específicos por archivos presentes
     'air canada': ['logo_air_canada_.png'],
     'air france': ['logo_air_france_.png'],
@@ -2342,6 +2343,7 @@ const airlineLogoSlugMap = {
     'air canada': 'logo_air_canada',
     'air canada cargo': 'logo_air_canada',
     'cargolux': 'logo_cargolux',
+    'ukraine international airlines': 'logo_ukraine_international_airlines',
     // Compat adicionales
     'air china': 'air_china',
     'tsm': 'logo_tsm_airlines',
@@ -2357,7 +2359,8 @@ const BOOST_LOGO_SET = new Set([
     'air france',
     'mexicana de aviacion',
     'mexicana de aviación',
-    'mexicana'
+    'mexicana',
+    'ukraine international airlines'
 ]);
 
 function getLogoSizeClass(airlineName, context = 'table') {

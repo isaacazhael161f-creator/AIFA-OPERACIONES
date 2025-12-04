@@ -1722,7 +1722,7 @@
                                             <span class="badge bg-success">≥ 85% Puntual</span>
                                             <span class="badge bg-danger">&lt; 85% Impuntual</span>
                                         </div>
-                                        <div class="d-flex align-items-center gap-2">
+                                        <div class="d-flex flex-wrap align-items-center gap-2">
                                             <label for="puntualidad-minflights" class="small text-muted m-0">Mín. vuelos
                                                 <i id="minflights-help" class="fas fa-circle-question ms-1 text-muted" data-bs-toggle="tooltip" data-bs-placement="top" title="Sólo afecta los TOPs: excluye aerolíneas con menos vuelos que este mínimo."></i>
                                             </label>
@@ -1732,6 +1732,10 @@
                                                 <option value="5" selected>5</option>
                                                 <option value="10">10</option>
                                             </select>
+                                            <button type="button" class="btn btn-outline-danger btn-sm" id="puntualidad-toggle-worst" aria-pressed="false" aria-expanded="false">
+                                                <span class="punc-toggle-active-icon-show"><i class="fas fa-eye me-1"></i>Mostrar impuntuales</span>
+                                                <span class="punc-toggle-active-icon-hide"><i class="fas fa-eye-slash me-1"></i>Ocultar impuntuales</span>
+                                            </button>
                                         </div>
                                     </div>
                                     <div class="row g-3 mb-3">
@@ -1745,7 +1749,7 @@
                                                             <ol id="puntualidad-top-pax-best" class="m-0"></ol>
                                                             <div class="mt-2"><canvas id="punc-pax-best-chart" height="140"></canvas></div>
                                                         </div>
-                                                        <div class="col-12 col-md-6 punc-worst-col">
+                                                        <div class="col-12 col-md-6 punc-worst-col" data-punc-worst>
                                                             <h6 class="text-danger mb-2 punc-col-title punc-col-worst"><i class="fas fa-triangle-exclamation me-1"></i>Más impuntuales</h6>
                                                             <ol id="puntualidad-top-pax-worst" class="m-0"></ol>
                                                             <div class="mt-2"><canvas id="punc-pax-worst-chart" height="140"></canvas></div>
@@ -1764,7 +1768,7 @@
                                                             <ol id="puntualidad-top-cargo-best" class="m-0"></ol>
                                                             <div class="mt-2"><canvas id="punc-cargo-best-chart" height="140"></canvas></div>
                                                         </div>
-                                                        <div class="col-12 col-md-6 punc-worst-col">
+                                                        <div class="col-12 col-md-6 punc-worst-col" data-punc-worst>
                                                             <h6 class="text-danger mb-2 punc-col-title punc-col-worst"><i class="fas fa-triangle-exclamation me-1"></i>Más impuntuales</h6>
                                                             <ol id="puntualidad-top-cargo-worst" class="m-0"></ol>
                                                             <div class="mt-2"><canvas id="punc-cargo-worst-chart" height="140"></canvas></div>

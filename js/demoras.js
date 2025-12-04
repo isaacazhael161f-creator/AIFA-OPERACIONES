@@ -3,14 +3,14 @@
   if (!sec) return;
     // Fallback de datos local (para mantener el módulo autosuficiente)
     const LOCAL_DEMORAS = {
-        periodo: 'Octubre 2025',
+      periodo: 'Noviembre 2025',
         causas: [
-            { causa: 'Repercusión', demoras: 479 },
-            { causa: 'Compañía', demoras: 164 },
-            { causa: 'Evento Circunstancial', demoras: 4 },
-            { causa: 'Combustible', demoras: 2 },
-            { causa: 'Autoridad', demoras: 4 },
-            { causa: 'Meteorología', demoras: 13 },
+            { causa: 'Repercusión', demoras: 507 },
+            { causa: 'Compañía', demoras: 190 },
+            { causa: 'Evento Circunstancial', demoras: 3 },
+            { causa: 'Combustible', demoras: 1 },
+            { causa: 'Autoridad', demoras: 0 },
+            { causa: 'Meteorología', demoras: 12 },
             { causa: 'Aeropuerto', demoras: 1 }
         ]
     };
@@ -31,26 +31,22 @@
     'autoridad': {
       descripcion: 'Demoras relacionadas con inspecciones o procesos a cargo de la autoridad.',
       incidentes: [
-        '5X 3621 de 07 Oct. 2025 (36 min.)',
-        '5X 321 de 10 Oct. 2025 (34 min.)',
-        '5X 321 de 17 Oct. 2025 (22 min.)',
-        '5X 321 de 27 Oct. 2025 (25 min.)'
+        
       ],
       observaciones: 'Inspección tardía de carga por falta de equipo de Rayos "X".'
     },
     'combustible': {
       descripcion: 'Demoras causadas por disponibilidad o gestión de combustible.',
       incidentes: [
-        'VB 7438 de 02 Oct. 2025 (24 min.)',
-        'E7 615 de 03 Oct. 2025 (37 min.)'
+      
       ]
     },
     'aeropuerto': {
       descripcion: 'Demoras derivadas de infraestructura o servicios del propio aeropuerto.',
       incidentes: [
-        'VB 9312 de 03 Oct. 2025 (24 min.)'
+        
       ],
-      observaciones: 'Falla en aeropasillo 107-A del sistema de auto nivelación del contacto EK-3 que restringe su movimiento.'
+     
     }
   };
 

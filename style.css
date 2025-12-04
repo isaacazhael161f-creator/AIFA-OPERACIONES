@@ -2043,8 +2043,9 @@ body.dark-mode .demoras-interactive-hint .hint-icon {
    position: relative;
    border-radius: 20px;
    padding: 0.75rem;
-   background: linear-gradient(135deg, rgba(241, 245, 249, 0.9), rgba(226, 232, 240, 0.55));
-   box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
+   background: #fff;
+   border: 1px solid rgba(148, 163, 184, 0.2);
+   box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
 }
 
 .demoras-chart-wrapper .chart-container {
@@ -2128,8 +2129,9 @@ body.dark-mode .demoras-legend-item.active {
 }
 
 body.dark-mode .demoras-chart-wrapper {
-   background: linear-gradient(135deg, rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.45));
-   box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.35);
+   background: rgba(15, 23, 42, 0.95);
+   border-color: rgba(148, 163, 184, 0.35);
+   box-shadow: 0 18px 38px rgba(2, 6, 23, 0.65);
 }
 
 .demoras-chart-hint {
@@ -2149,6 +2151,7 @@ body.dark-mode .demoras-chart-wrapper {
    box-shadow: 0 10px 18px rgba(13, 110, 253, 0.12);
    transition: opacity 0.3s ease, transform 0.3s ease;
    animation: demorasHintFloat 3.2s ease-in-out infinite;
+   z-index: 2;
 }
 
 body.dark-mode .demoras-chart-hint {
@@ -3927,6 +3930,11 @@ body.dark-mode #fauna-section .gso-hero-copy { background: linear-gradient(135de
    height: 12px;
    border-radius: 50%;
    background: rgba(255,255,255,0.55);
+body.dark-mode .demoras-chart-hint {
+   background: rgba(59, 130, 246, 0.28);
+   color: #e7efff;
+   box-shadow: 0 12px 20px rgba(2, 6, 23, 0.35);
+}
    box-shadow: 0 0 0 8px rgba(255,255,255,0.16), 0 0 20px rgba(255,255,255,0.35);
 }
 #fauna-section #fauna-period-badge {
@@ -4154,6 +4162,26 @@ input[type="time"] { font-variant-numeric: tabular-nums; }
 body.dark-mode .punc-card .card-header { background: rgba(255,255,255,0.04); }
 body.dark-mode .punc-col-best { background: rgba(25,135,84,0.12); }
 body.dark-mode .punc-col-worst { background: rgba(220,53,69,0.12); }
+
+#punc-interactivo-pane:not(.punc-show-worst) .punc-worst-col {
+   display: none !important;
+}
+
+#punc-interactivo-pane:not(.punc-show-worst) .punc-best-col {
+   border-right: none;
+}
+
+#punc-interactivo-pane .punc-toggle-active-icon-hide {
+   display: none;
+}
+
+#punc-interactivo-pane.punc-show-worst .punc-toggle-active-icon-hide {
+   display: inline-flex;
+}
+
+#punc-interactivo-pane.punc-show-worst .punc-toggle-active-icon-show {
+   display: none;
+}
 
 /* Puntualidad: insignias de ranking Top 1–3 */
 .punc-rank-badge {

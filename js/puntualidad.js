@@ -5,6 +5,10 @@
   let _data = null;
   let _minFlights = 5;
 
+  function normalizeAirlineName(name){
+    return (name || '').toString().trim().toLowerCase();
+  }
+
   function parsePercent(p){
     if (typeof p === 'number') return p;
     if (!p) return 0;
@@ -20,8 +24,11 @@
     return (list || []).filter(r => (r.aerolinea || '').toLowerCase() !== 'total');
   }
 
-  function computeTop(list, count, best=true, minFlights=1){
-    const safe = excludeTotals(list).filter(r => Number(r.total || 0) >= minFlights);
+  function computeTop(list, count, best=true, minFlights=1, excludeNames){
+    const exclude = excludeNames || new Set();
+    const safe = excludeTotals(list)
+      .filter(r => Number(r.total || 0) >= minFlights)
+      .filter(r => !exclude.has(normalizeAirlineName(r.aerolinea)));
     const withPct = safe.map(r => ({
       ...r,
       pct: parsePercent(r.puntualidad)
@@ -40,9 +47,9 @@
     const cargo = byCategory(_data, 'Carga');
 
   const paxBest = computeTop(pax, TOP_N, true, _minFlights);
-  const paxWorst = computeTop(pax, TOP_N, false, _minFlights);
+  const paxWorst = computeTop(pax, TOP_N, false, _minFlights, new Set(paxBest.map(r => normalizeAirlineName(r.aerolinea))));
   const cargoBest = computeTop(cargo, TOP_N, true, _minFlights);
-  const cargoWorst = computeTop(cargo, TOP_N, false, _minFlights);
+  const cargoWorst = computeTop(cargo, TOP_N, false, _minFlights, new Set(cargoBest.map(r => normalizeAirlineName(r.aerolinea))));
 
     function logoHtmlFor(airline){
       try {
@@ -214,6 +221,21 @@
           _minFlights = isNaN(v) ? 5 : v;
           renderTopLists();
         });
+      }
+      const toggleWorstBtn = document.getElementById('puntualidad-toggle-worst');
+      const interactivePane = document.getElementById('punc-interactivo-pane');
+      if (toggleWorstBtn && interactivePane) {
+        const updateToggleUi = () => {
+          const showing = interactivePane.classList.contains('punc-show-worst');
+          toggleWorstBtn.setAttribute('aria-pressed', showing ? 'true' : 'false');
+          toggleWorstBtn.setAttribute('aria-expanded', showing ? 'true' : 'false');
+          toggleWorstBtn.setAttribute('title', showing ? 'Ocultar aerolíneas impuntuales' : 'Mostrar aerolíneas impuntuales');
+        };
+        toggleWorstBtn.addEventListener('click', () => {
+          interactivePane.classList.toggle('punc-show-worst');
+          updateToggleUi();
+        });
+        updateToggleUi();
       }
       // Kick off load
       loadData();
