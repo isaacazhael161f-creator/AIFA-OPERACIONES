@@ -2282,9 +2282,9 @@ const airlineLogoFileMap = {
     'lufthansa cargo': ['logo_lufthansa.png'],
     'silk way west airlines': ['logo_silk_way_west_airlines.png','logo_silkway.png'],
     'sun country airlines': ['logo_sun_country_airlines.png'],
-    'omni air': ['logo_omni_air.png'],
-    'omni air international': ['logo_omni_air.png'],
-    'omni air internacional': ['logo_omni_air.png'],
+    'omni air': ['logo_omni_air.png','logo_omni_air1.png'],
+    'omni air international': ['logo_omni_air.png','logo_omni_air1.png'],
+    'omni air internacional': ['logo_omni_air.png','logo_omni_air1.png'],
     'united parcel service': ['logo_united_parcel_service.png'],
     'ups': ['logo_united_parcel_service.png'],
     'ifl group': ['lofo_ifl_group.png'],
@@ -2409,6 +2409,7 @@ function getAirlineLogoCandidates(airline){
         if (base.includes('air_canada')) candidates.push('images/airlines/logo_air_canada_.png');
         if (base.includes('air_france')) candidates.push('images/airlines/logo_air_france_.png');
         if (base.includes('ifl_group')) candidates.push('images/airlines/lofo_ifl_group.png');
+        if (base.includes('omni_air')) candidates.push('images/airlines/logo_omni_air1.png');
     }
     // quitar duplicados conservando orden
     return [...new Set(candidates)];
