@@ -57,11 +57,11 @@
         "agosto": 4500,
         "septiembre": 4135,
         "octubre": 4291,
-        "noviembre": 4313,
-        "diciembre": 0,
-        "total_por_ano": 47746
+        "noviembre": 4450,
+        "diciembre": 284,
+        "total_por_ano": 48167
       },
-      "acumulado": 131687
+      "acumulado": 132108
     },
     "pasajeros": {
       "2022": {
@@ -120,11 +120,11 @@
         "agosto": 630952,
         "septiembre": 546457,
         "octubre": 584629,
-        "noviembre": 588724,
-        "diciembre": 0,
-        "total_por_ano": 6328669
+        "noviembre": 608627,
+        "diciembre": 40433,
+        "total_por_ano": 6389005
       },
-      "acumulado": 16190799
+      "acumulado": 16251135
     }
   },
   "general": {
@@ -185,11 +185,11 @@
         "agosto": 282,
         "septiembre": 249,
         "octubre": 315,
-        "noviembre": 267,
-        "diciembre": 0,
-        "total_por_ano": 2796
+        "noviembre": 268,
+        "diciembre": 11,
+        "total_por_ano": 2808
       },
-      "acumulado": 8243
+      "acumulado": 8255
     },
     "pasajeros": {
       "2022": {
@@ -248,11 +248,11 @@
         "agosto": 3033,
         "septiembre": 948,
         "octubre": 1298,
-        "noviembre": 1029,
+        "noviembre": 1031,
         "diciembre": 0,
-        "total_por_ano": 19718
+        "total_por_ano": 19751
       },
-      "acumulado": 58900
+      "acumulado": 58933
     }
   },
   "carga": {
@@ -313,11 +313,11 @@
         "agosto": 1082,
         "septiembre": 992,
         "octubre": 1155,
-        "noviembre": 1006,
+        "noviembre": 1115,
         "diciembre": 0,
-        "total_por_ano": 10777
+        "total_por_ano": 10886
       },
-      "acumulado": 29582
+      "acumulado": 29691
     },
     "tons_transportadas": {
       "2022": {
@@ -376,11 +376,12 @@
         "agosto": 35737.78,
         "septiembre": 31076.71,
         "octubre": 37273.41,
-        "noviembre": 34004.70,
+        "noviembre": 37832.59,
         "diciembre": 0.0,
-        "total_por_ano": 363975.08
+        "total_por_ano": 367802.96
       },
-      "acumulado": 997641.27
+      "acumulado": 1001469.15
     }
   }
 }
+
