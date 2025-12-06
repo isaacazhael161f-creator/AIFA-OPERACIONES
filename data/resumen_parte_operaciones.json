@@ -7794,15 +7794,36 @@
         }
       ],
       "total_general": 213
+    },
+
+    "2025-12-05": {
+      "operaciones": [
+        {
+          "tipo": "Aviación de Pasajeros",
+          "llegada": 81,
+          "salida": 80,
+          "subtotal": 161
+        },
+        {
+          "tipo": "Aviación de Carga",
+          "llegada": 24,
+          "salida": 25,
+          "subtotal": 49
+        },
+        {
+          "tipo": "Aviación General",
+          "llegada": 2,
+          "salida": 5,
+          "subtotal": 7
+        }
+      ],
+      "total_general": 217
     }
-
-
-
 },
 
   "metadata": {
     "version": 1,
-    "ultima_actualizacion": "2025-12-04",
+    "ultima_actualizacion": "2025-12-05",
     "descripcion": "Plantilla diaria para parte de operaciones 2025"
   }
 }
