@@ -7818,12 +7818,63 @@
         }
       ],
       "total_general": 217
+    },
+
+
+    "2025-12-06": {
+      "operaciones": [
+        {
+          "tipo": "Aviación de Pasajeros",
+          "llegada": 71,
+          "salida": 71,
+          "subtotal": 142
+        },
+        {
+          "tipo": "Aviación de Carga",
+          "llegada": 17,
+          "salida": 17,
+          "subtotal": 34
+        },
+        {
+          "tipo": "Aviación General",
+          "llegada": 6,
+          "salida": 4,
+          "subtotal": 10
+        }
+      ],
+      "total_general": 186
+    },
+
+
+    "2025-12-07": {
+      "operaciones": [
+        {
+          "tipo": "Aviación de Pasajeros",
+          "llegada": 81,
+          "salida": 89,
+          "subtotal": 170
+        },
+        {
+          "tipo": "Aviación de Carga",
+          "llegada": 19,
+          "salida": 17,
+          "subtotal": 36
+        },
+        {
+          "tipo": "Aviación General",
+          "llegada": 2,
+          "salida": 4,
+          "subtotal": 6
+        }
+      ],
+      "total_general": 212
     }
+
 },
 
   "metadata": {
     "version": 1,
-    "ultima_actualizacion": "2025-12-05",
+    "ultima_actualizacion": "2025-12-07",
     "descripcion": "Plantilla diaria para parte de operaciones 2025"
   }
 }
