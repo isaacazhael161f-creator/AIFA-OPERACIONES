@@ -559,15 +559,10 @@
                     <div class="card">
                         <div class="card-header flex-column flex-md-row d-flex justify-content-between align-items-center">
                             <h2 class="section-title mb-3 mb-md-0" id="operations-summary-title" data-default-title="Resumen de operaciones">Resumen de operaciones</h2>
-                            <div class="d-flex gap-2">
-                                <a href="pdfs/parte_operaciones_completo.pdf" class="btn btn-danger download-btn" download><i class="fas fa-file-pdf me-2"></i><span class="btn-text">Descargar PDF</span></a>
-                                <a href="excel/parte_operaciones_completo.xlsx" class="btn btn-success download-btn" download><i class="fas fa-file-excel me-2"></i><span class="btn-text">Descargar Excel</span></a>
-                            </div>
                         </div>
                         <div class="card-body">
                             <ul class="nav nav-tabs" id="operationsTab" role="tablist">
                                 <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#resumen1-pane" type="button" role="tab">Resumen 1</button></li>
-                                <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#resumen2-pane" type="button" role="tab">Resumen 2</button></li>
                                 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#analisis-anual-pane" type="button" role="tab">Análisis anual</button></li>
                             </ul>
                             <div class="tab-content pt-3" id="operationsTabContent">
@@ -664,9 +659,24 @@
                                         </div>
                                         <div id="operations-summary-table"></div>
                                     </div>
-                                </div>
-                                <div class="tab-pane fade" id="resumen2-pane">
-                                    <div class="pdf-container"><iframe src="pdfs/resumen_2.pdf" width="100%" height="700px" class="border-0"></iframe></div>
+                                    <div class="ops-pdf-viewer mt-4" id="operations-pdf-viewer" aria-live="polite">
+                                        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 ops-pdf-header">
+                                            <div>
+                                                <h3 class="h6 mb-1 d-flex align-items-center gap-2"><i class="fas fa-file-pdf text-danger"></i><span>Parte de operaciones (PDF)</span></h3>
+                                                <p class="small text-muted mb-0" id="operations-pdf-label">Selecciona una fecha para mostrar el documento.</p>
+                                            </div>
+                                            <a class="btn btn-outline-danger btn-sm d-none" id="operations-pdf-download" target="_blank" rel="noopener">
+                                                <i class="fas fa-external-link-alt me-1"></i>Abrir en otra pestaña
+                                            </a>
+                                        </div>
+                                        <div class="ops-pdf-frame position-relative border rounded" id="operations-pdf-frame-wrapper">
+                                            <div class="ops-pdf-placeholder text-center text-muted" id="operations-pdf-placeholder">
+                                                <i class="fas fa-calendar-day fa-2x mb-2"></i>
+                                                <p class="mb-0">Selecciona un día con parte disponible para mostrar el PDF.</p>
+                                            </div>
+                                            <iframe id="operations-pdf-frame" class="ops-pdf-iframe d-none" title="PDF del parte de operaciones" loading="lazy"></iframe>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="tab-pane fade" id="analisis-anual-pane">
                                     <div class="annual-analysis-intro alert alert-secondary d-flex align-items-center gap-2" role="note">

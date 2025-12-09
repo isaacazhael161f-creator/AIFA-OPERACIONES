@@ -11387,6 +11387,8 @@ const PARTE_OPERACIONES_REMOTE_ENDPOINT = '/api/parte-operaciones/custom';
 const PARTE_OPERACIONES_REMOTE_SYNC_TTL = 2 * 60 * 1000;
 const PARTE_OPERACIONES_DIRTY_KEY = 'parteOps.unsyncedDates.v1';
 let parteOperacionesRemoteLocalBlockLogged = false;
+const PARTE_OPERACIONES_PDF_BASE_PATH = 'pdfs/parte_operaciones';
+const PARTE_OPERACIONES_PDF_EXTENSION = '.pdf';
 const parteOperacionesRemoteState = {
     enabled: true,
     healthy: false,
@@ -11804,6 +11806,74 @@ function formatParteOperacionesDateForTitle(dateStr){
         formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
     }
     return formatted;
+}
+
+function formatParteOperacionesPdfFilename(dateStr){
+    if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
+    const jsDate = new Date(`${dateStr}T00:00:00`);
+    if (Number.isNaN(jsDate.getTime())) return null;
+    const day = String(jsDate.getDate()).padStart(2, '0');
+    const month = SPANISH_MONTH_NAMES[jsDate.getMonth()] || '';
+    if (!month) return null;
+    const monthLabel = capitalizeFirst(month);
+    return `Operaciones ${day} ${monthLabel} ${jsDate.getFullYear()}`;
+}
+
+function buildParteOperacionesPdfPath(dateStr){
+    const filename = formatParteOperacionesPdfFilename(dateStr);
+    if (!filename) return null;
+    const encoded = encodeURIComponent(`${filename}${PARTE_OPERACIONES_PDF_EXTENSION}`);
+    return `${PARTE_OPERACIONES_PDF_BASE_PATH}/${encoded}`;
+}
+
+function updateParteOperacionesPdfViewer(metadata = {}){
+    const wrapper = document.getElementById('operations-pdf-viewer');
+    if (!wrapper) return;
+    const iframe = document.getElementById('operations-pdf-frame');
+    const placeholder = document.getElementById('operations-pdf-placeholder');
+    const label = document.getElementById('operations-pdf-label');
+    const downloadBtn = document.getElementById('operations-pdf-download');
+    if (!iframe || !placeholder || !label || !downloadBtn) return;
+
+    const isoDate = metadata?.isoDate;
+    if (!isoDate || metadata?.isLegacy){
+        placeholder.classList.remove('d-none');
+        iframe.classList.add('d-none');
+        if (iframe.getAttribute('src')){
+            iframe.removeAttribute('src');
+        }
+        downloadBtn.classList.add('d-none');
+        downloadBtn.removeAttribute('href');
+        downloadBtn.removeAttribute('download');
+        label.textContent = metadata?.isLegacy
+            ? 'Solo se cuenta con un histórico consolidado; agrega el PDF manualmente si lo necesitas.'
+            : 'Selecciona una fecha con parte disponible para mostrar el documento.';
+        return;
+    }
+
+    const filename = formatParteOperacionesPdfFilename(isoDate);
+    const pdfPath = buildParteOperacionesPdfPath(isoDate);
+    if (!filename || !pdfPath){
+        placeholder.classList.remove('d-none');
+        iframe.classList.add('d-none');
+        if (iframe.getAttribute('src')){
+            iframe.removeAttribute('src');
+        }
+        downloadBtn.classList.add('d-none');
+        downloadBtn.removeAttribute('href');
+        downloadBtn.removeAttribute('download');
+        label.textContent = 'No fue posible construir la ruta del documento para esta fecha.';
+        return;
+    }
+
+    const friendly = metadata?.friendlyDate || formatParteOperacionesDate(isoDate) || isoDate;
+    label.textContent = `Documento correspondiente al ${friendly}.`;
+    placeholder.classList.add('d-none');
+    iframe.classList.remove('d-none');
+    iframe.setAttribute('src', pdfPath);
+    downloadBtn.classList.remove('d-none');
+    downloadBtn.href = pdfPath;
+    downloadBtn.download = `${filename}${PARTE_OPERACIONES_PDF_EXTENSION}`;
 }
 
 function getDefaultParteOperacionesDate(summary){
@@ -12859,6 +12929,7 @@ function renderParteOperacionesSummary(data, metadata = {}){
     hideParteOperacionesLoader();
     const container = document.getElementById('operations-summary-table');
     if (!container) return;
+    updateParteOperacionesPdfViewer(metadata);
     updateParteOperacionesAvailabilityBanner(parteOperacionesSummaryCache);
     if (!data){
         updateParteOperacionesTitle(metadata?.isoDate);
