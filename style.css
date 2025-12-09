@@ -3917,7 +3917,7 @@ body.dark-mode #fauna-section .gso-hero-copy { background: linear-gradient(135de
 }
 #fauna-section #fauna-total-badge .fauna-total-value {
    display: block;
-   font-size: 2.1rem;
+   font-size: 3.2rem;
    font-weight: 800;
    line-height: 1;
 }
@@ -4156,7 +4156,7 @@ body.dark-mode #fauna-section .fauna-active-filter-total { color: #a8c8ff; }
       letter-spacing: .1em;
    }
    #fauna-section #fauna-total-badge .fauna-total-value {
-      font-size: 2rem;
+      font-size: 2.7rem;
    }
    #fauna-section #fauna-period-badge { font-size: 1.05rem; }
    #fauna-section .fauna-active-filter {
