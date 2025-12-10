@@ -726,6 +726,30 @@ function deepCloneWeek(week) {
 const WEEKLY_OPERATIONS_DATASETS = [
 
     {
+        id: '2025-12-08',
+        rango: {
+            inicio: '2025-12-08',
+            fin: '2025-12-14',
+            descripcion: describeWeekRange('2025-12-08', '2025-12-14'),
+            nota: 'Semana del (8 al 14 de diciembre de 2025).'
+        },
+        dias: [
+            {
+                fecha: '2025-12-08',
+                label: '08 Dic 2025',
+                comercial: { operaciones: 159, pasajeros: 21818},
+                general: { operaciones: 10, pasajeros: 33 },
+                carga: { operaciones: 25, toneladas: 670, corteFecha: '2025-12-07', corteNota: 'Cifras del 07 de diciembre de 2025.' }
+            }
+
+        ]
+    },
+
+
+
+
+
+    {
         id: '2025-12-01',
         rango: {
             inicio: '2025-12-01',
