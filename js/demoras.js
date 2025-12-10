@@ -37,16 +37,17 @@
     },
     'combustible': {
       descripcion: 'Demoras causadas por disponibilidad o gestión de combustible.',
-      incidentes: [
+      incidentes: [ 'Vuelo VB7009 de fecha 27/11/2025'
       
-      ]
+      ],
+      observaciones: 'Demora de 23 minutos por falta de personal.'
     },
     'aeropuerto': {
       descripcion: 'Demoras derivadas de infraestructura o servicios del propio aeropuerto.',
-      incidentes: [
+      incidentes: [ 'Vuelo VB9496 de fecha 17/11/2025'
         
       ],
-     
+     observaciones: 'Demora de 20 minutos por falla del dispositivo electrónico; que abre y cierra la esclusa electrónicamente (relevador), en la posición 106A.'
     }
   };
 
