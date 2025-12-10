@@ -1265,9 +1265,9 @@ function resolveCurrentOperationsWeek(referenceDate = new Date()) {
 // Datos Anuales
 const staticData = {
     operacionesTotales: {
-        comercial: [ { periodo: '2022', operaciones: 8996, pasajeros: 912415 }, { periodo: '2023', operaciones: 23211, pasajeros: 2631261 }, { periodo: '2024', operaciones: 51734, pasajeros: 6318454 }, { periodo: '2025', operaciones: 47746, pasajeros: 6328669} ],
-        carga: [ { periodo: '2022', operaciones: 8, toneladas: 5.19 }, { periodo: '2023', operaciones: 5578, toneladas: 186319.83}, { periodo: '2024', operaciones: 13219, toneladas: 447341.17 }, { periodo: '2025', operaciones: 10777, toneladas: 363975.08} ],
-        general: [ { periodo: '2022', operaciones: 458, pasajeros: 1385 }, { periodo: '2023', operaciones: 2212, pasajeros: 8160 }, { periodo: '2024', operaciones: 2777, pasajeros: 29637 }, { periodo: '2025', operaciones: 2796, pasajeros: 19718} ]
+        comercial: [ { periodo: '2022', operaciones: 8996, pasajeros: 912415 }, { periodo: '2023', operaciones: 23211, pasajeros: 2631261 }, { periodo: '2024', operaciones: 51734, pasajeros: 6318454 }, { periodo: '2025', operaciones: 49160, pasajeros: 6547109} ],
+        carga: [ { periodo: '2022', operaciones: 8, toneladas: 5.19 }, { periodo: '2023', operaciones: 5578, toneladas: 186319.83}, { periodo: '2024', operaciones: 13219, toneladas: 447341.17 }, { periodo: '2025', operaciones: 11168, toneladas: 377761.43} ],
+        general: [ { periodo: '2022', operaciones: 458, pasajeros: 1385 }, { periodo: '2023', operaciones: 2212, pasajeros: 8160 }, { periodo: '2024', operaciones: 2777, pasajeros: 29637 }, { periodo: '2025', operaciones: 2891, pasajeros: 20577} ]
     },
     operacionesSemanasCatalogo: WEEKLY_OPERATIONS_DATASETS.map(deepCloneWeek),
     operacionesSemanaActual: resolveCurrentOperationsWeek(),
@@ -1284,7 +1284,7 @@ const staticData = {
             { mes: '08', label: 'Agosto', operaciones: 4500 },
             { mes: '09', label: 'Septiembre', operaciones: 4135 },
             { mes: '10', label: 'Octubre', operaciones: 4291 },
-            { mes: '11', label: 'Noviembre', operaciones: 4313 }
+            { mes: '11', label: 'Noviembre', operaciones: 4458 }
         ],
         // Pasajeros de aviación comercial por mes (con proyección conservadora 81% donde indica)
         comercialPasajeros: [
@@ -1298,7 +1298,7 @@ const staticData = {
             { mes: '08', label: 'Agosto', pasajeros: 630952 },
             { mes: '09', label: 'Septiembre', pasajeros: 546457 },
             { mes: '10', label: 'Octubre', pasajeros: 584629 },
-            { mes: '11', label: 'Noviembre', pasajeros: 588724 },
+            { mes: '11', label: 'Noviembre', pasajeros: 632853 },
             { mes: '12', label: 'Diciembre (Proy.)', pasajeros: 704718 }
         ],
         carga: [
@@ -1312,7 +1312,7 @@ const staticData = {
             { mes: '08', label: 'Agosto', operaciones: 1082 },
             { mes: '09', label: 'Septiembre', operaciones: 992},
             { mes: '10', label: 'Octubre', operaciones: 1155 },
-            { mes: '11', label: 'Noviembre', operaciones: 1006 }
+            { mes: '11', label: 'Noviembre', operaciones: 1127 }
         ],
         // Toneladas por mes (con nulos cuando no hay datos)
         cargaToneladas: [
@@ -1326,7 +1326,7 @@ const staticData = {
             { mes: '08', label: 'Agosto', toneladas: 35737.78 },
             { mes: '09', label: 'Septiembre', toneladas: 31076.71 },
             { mes: '10', label: 'Octubre', toneladas: 37273.41},
-            { mes: '11', label: 'Noviembre', toneladas: 34004.70 },
+            { mes: '11', label: 'Noviembre', toneladas: 38433.81 },
             { mes: '12', label: 'Diciembre', toneladas: null }
         ],
         // Aviación general (operaciones y pasajeros)
@@ -1342,7 +1342,7 @@ const staticData = {
                 { mes: '08', label: 'Agosto', operaciones: 282 },
                 { mes: '09', label: 'Septiembre', operaciones: 249 },
                 { mes: '10', label: 'Octubre', operaciones: 315 },
-                { mes: '11', label: 'Noviembre', operaciones: 267 },
+                { mes: '11', label: 'Noviembre', operaciones: 285 },
                 { mes: '12', label: 'Diciembre', operaciones: null }
             ],
             pasajeros: [
@@ -1356,7 +1356,7 @@ const staticData = {
                 { mes: '08', label: 'Agosto', pasajeros: 3033 },
                 { mes: '09', label: 'Septiembre', pasajeros: 948 },
                 { mes: '10', label: 'Octubre', pasajeros: 1298},
-                { mes: '11', label: 'Noviembre', pasajeros: 1029 },
+                { mes: '11', label: 'Noviembre', pasajeros: 1089 },
                 { mes: '12', label: 'Diciembre', pasajeros: null }
             ]
         }
