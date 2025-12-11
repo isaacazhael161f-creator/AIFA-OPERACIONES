@@ -469,6 +469,15 @@
     const needsZoom = labels.length > 18;
     const zoomEnd = needsZoom ? Math.min(100, Math.round((18 / labels.length) * 100)) : 100;
     const shareByIndex = dataset.map((item) => item.share);
+    const trasladoPercents = dataset.map((item) => {
+      if (!Number.isFinite(item.total) || item.total <= 0) return 0;
+      return Number(((item.traslado || 0) / item.total * 100).toFixed(2));
+    });
+    const ambulatorioPercents = dataset.map((item, idx) => {
+      const trasladoPct = trasladoPercents[idx];
+      if (!Number.isFinite(item.total) || item.total <= 0) return 0;
+      return Number((100 - trasladoPct).toFixed(2));
+    });
     const compact = isCompactViewport();
     const legendTop = compact ? (needsZoom ? 66 : 54) : (needsZoom ? 54 : 40);
     const legendFontSize = compact ? 11 : 12;
@@ -498,14 +507,15 @@
           if (!params || !params.length) return '';
           const idx = params[0].dataIndex;
           const header = `${params[0].axisValueLabel.replace('\n', ' ')}<br>`;
-          const lines = params
-            .filter((entry) => entry.seriesType === 'bar')
-            .map((entry) => `${entry.marker} ${entry.seriesName}: ${(Number(entry.value) || 0).toLocaleString('es-MX')}`);
+          const row = dataset[idx] || {};
+          const trasladoLine = `${params.find((entry) => entry.seriesName === 'Traslado')?.marker || ''} Traslado: ${(row.traslado || 0).toLocaleString('es-MX')} (${trasladoPercents[idx]}%)`;
+          const ambLine = `${params.find((entry) => entry.seriesName === 'Ambulatorio')?.marker || ''} Ambulatorio: ${(row.ambulatorio || 0).toLocaleString('es-MX')} (${ambulatorioPercents[idx]}%)`;
+          const lines = [trasladoLine, ambLine];
           const share = shareByIndex[idx];
           if (Number.isFinite(share)){
             lines.push(`<span style="display:inline-block;margin-right:4px;width:10px;height:10px;border-radius:50%;background:#2563eb;"></span>% Traslados: ${share.toFixed(1)}%`);
           }
-          const total = (dataset[idx]?.total || 0).toLocaleString('es-MX');
+          const total = (row.total || 0).toLocaleString('es-MX');
           lines.push(`<strong>Total: ${total}</strong>`);
           return header + lines.join('<br>');
         }
@@ -533,18 +543,13 @@
           margin: axisMargin
         }
       },
-      yAxis: [
-        {
-          type: 'value',
-          axisLabel: { color: '#475569', fontSize: compact ? 11 : 12 },
-          splitLine: { lineStyle: { color: 'rgba(15,23,42,0.08)' } }
-        },
-        {
-          type: 'value',
-          axisLabel: { color: '#475569', formatter: '{value}%', fontSize: compact ? 11 : 12 },
-          splitLine: { show: false }
-        }
-      ],
+      yAxis: {
+        type: 'value',
+        min: 0,
+        max: 100,
+        axisLabel: { color: '#475569', formatter: '{value}%', fontSize: compact ? 11 : 12 },
+        splitLine: { lineStyle: { color: 'rgba(15,23,42,0.08)' } }
+      },
       series: [
         {
           name: 'Traslado',
@@ -554,7 +559,7 @@
           barCategoryGap: '32%',
           itemStyle: { color: createGradient(TIPO_COLORS.traslado[0], TIPO_COLORS.traslado[1]), borderRadius: 2 },
           emphasis: { focus: 'series' },
-          data: dataset.map((item) => Number.isFinite(item.traslado) ? item.traslado : null)
+          data: trasladoPercents
         },
         {
           name: 'Ambulatorio',
@@ -562,12 +567,11 @@
           stack: 'total',
           itemStyle: { color: createGradient(TIPO_COLORS.ambulatorio[0], TIPO_COLORS.ambulatorio[1]), borderRadius: 2 },
           emphasis: { focus: 'series' },
-          data: dataset.map((item) => Number.isFinite(item.ambulatorio) ? item.ambulatorio : null)
+          data: ambulatorioPercents
         },
         {
           name: '% Traslado',
           type: 'line',
-          yAxisIndex: 1,
           smooth: true,
           symbol: 'circle',
           symbolSize: symbolSize,
