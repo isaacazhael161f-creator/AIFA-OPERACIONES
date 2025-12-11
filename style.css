@@ -4087,6 +4087,24 @@ body.dark-mode #fauna-section #fauna-rescate-individuals-badge {
    gap: 0.9rem;
    flex-wrap: nowrap;
 }
+#fauna-summary-container .card-body .badge.text-bg-primary {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   min-width: 68px;
+   min-height: 50px;
+   border-radius: 16px;
+   font-size: 1.4rem;
+   font-weight: 700;
+   letter-spacing: .03em;
+   padding: .45rem .9rem;
+   background: linear-gradient(135deg, #0d6efd, #4f9dff);
+   box-shadow: 0 14px 28px -18px rgba(13,110,253,.7);
+}
+body.dark-mode #fauna-summary-container .card-body .badge.text-bg-primary {
+   background: linear-gradient(135deg, rgba(93,156,255,.85), rgba(59,130,246,.78));
+   box-shadow: 0 16px 30px -18px rgba(6,12,30,.75);
+}
 #fauna-section .fauna-airline-link {
    gap: 0.9rem;
 }
@@ -4115,6 +4133,11 @@ body.dark-mode #fauna-section .fauna-airline-link .airline-logo.xl {
    #fauna-summary-container .card-body {
       flex-direction: column;
       align-items: flex-start;
+   }
+   #fauna-summary-container .card-body .badge.text-bg-primary {
+      width: 100%;
+      min-height: 48px;
+      font-size: 1.35rem;
    }
    #fauna-section .fauna-airline-link {
       width: 100%;
