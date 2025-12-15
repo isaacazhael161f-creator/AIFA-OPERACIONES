@@ -756,7 +756,33 @@ const WEEKLY_OPERATIONS_DATASETS = [
                 comercial: { operaciones: 147, pasajeros: 19397},
                 general: { operaciones: 11, pasajeros: 11 },
                 carga: { operaciones: 28, toneladas: 786, corteFecha: '2025-12-09', corteNota: 'Cifras del 09 de diciembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-12-11',
+                label: '11 Dic 2025',
+                comercial: { operaciones: 157, pasajeros: 21867},
+                general: { operaciones: 17, pasajeros: 42 },
+                carga: { operaciones: 26, toneladas: 697, corteFecha: '2025-12-11', corteNota: 'Cifras del 11 de diciembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-12-12',
+                label: '12 Dic 2025',
+                comercial: { operaciones: 157, pasajeros: 22461},
+                general: { operaciones: 7, pasajeros: 106 },
+                carga: { operaciones: 26, toneladas: 697, corteFecha: '2025-12-11', corteNota: 'Cifras del 11 de diciembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-12-13',
+                label: '13 Dic 2025',
+                comercial: { operaciones: 148, pasajeros: 21547},
+                general: { operaciones: 8, pasajeros: 18 },
+                carga: { operaciones: 26, toneladas: 697, corteFecha: '2025-12-11', corteNota: 'Cifras del 11 de diciembre de 2025.' }
             }
+
+
 
 
 
@@ -1381,11 +1407,7 @@ const staticData = {
             ]
         }
     },
-    mensualYear: '2025',
-    demoras: {
-        periodo: "Noviembre 2025",
-        causas: [ { causa: 'Repercusión', demoras: 507 }, { causa: 'Compañía', demoras: 190 }, { causa: 'Evento Circunstancial', demoras: 3 }, { causa: 'Combustible', demoras: 1 }, { causa: 'Autoridad', demoras: 0 }, { causa: 'Meteorología', demoras: 12 }, { causa: 'Aeropuerto', demoras: 1 }, ]
-    }
+    mensualYear: '2025'
 };
 
 function getOpsAvailableYearsFromTotals(source = staticData?.operacionesTotales) {
@@ -6638,16 +6660,30 @@ function formatSpanishDate(iso) {
 }
 
 function updateOperationsSummaryTitle() {
-    const el = document.getElementById('operations-summary-title');
-    if (!el) return;
+    const titleEl = document.getElementById('operations-summary-title');
+    if (!titleEl) return;
     try {
+        if (parteOperacionesSummaryTitleDefault === null) {
+            parteOperacionesSummaryTitleDefault = titleEl.dataset?.defaultTitle?.trim()
+                || titleEl.textContent?.trim()
+                || 'Resumen de operaciones';
+            titleEl.dataset.defaultTitle = parteOperacionesSummaryTitleDefault;
+        }
+
+        if (!isParteOperacionesPrimaryPaneActive()) {
+            titleEl.textContent = isParteOperacionesAnnualPaneActive()
+                ? 'Promedio de Operaciones'
+                : parteOperacionesSummaryTitleDefault;
+            return;
+        }
+
         const today = new Date();
         const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
         const iso = yesterday.toISOString().slice(0, 10);
         const label = formatSpanishDate(iso);
-        if (label) {
-            el.textContent = `Resumen de operaciones del ${label}`;
-        }
+        titleEl.textContent = label
+            ? `${parteOperacionesSummaryTitleDefault} del ${label}`
+            : parteOperacionesSummaryTitleDefault;
     } catch (_) { /* ignore */ }
 }
 
@@ -12304,6 +12340,12 @@ function updateParteOperacionesTitle(isoDate){
             || 'Resumen de operaciones';
         titleEl.dataset.defaultTitle = parteOperacionesSummaryTitleDefault;
     }
+    if (!isParteOperacionesPrimaryPaneActive()) {
+        titleEl.textContent = isParteOperacionesAnnualPaneActive()
+            ? 'Promedio de Operaciones'
+            : parteOperacionesSummaryTitleDefault;
+        return;
+    }
     if (isoDate && /^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
         const formatted = formatParteOperacionesDateForTitle(isoDate);
         if (formatted) {
@@ -12312,6 +12354,35 @@ function updateParteOperacionesTitle(isoDate){
         }
     }
     titleEl.textContent = parteOperacionesSummaryTitleDefault;
+}
+
+function isParteOperacionesPrimaryPaneActive(){
+    const pane = document.getElementById('resumen1-pane');
+    if (!pane) return true;
+    return pane.classList.contains('active');
+}
+
+function isParteOperacionesAnnualPaneActive(){
+    const pane = document.getElementById('analisis-anual-pane');
+    if (!pane) return false;
+    return pane.classList.contains('active');
+}
+
+function attachParteOperacionesTabListeners(){
+    const tabs = document.getElementById('operationsTab');
+    if (!tabs || tabs._parteOpsTabsWired) return;
+    tabs._parteOpsTabsWired = true;
+    tabs.addEventListener('shown.bs.tab', (event) => {
+        const target = event?.target?.dataset?.bsTarget || '';
+        if (target === '#resumen1-pane') {
+            updateParteOperacionesTitle(parteOperacionesSummarySelectedDate);
+        } else if (target === '#analisis-anual-pane') {
+            const titleEl = document.getElementById('operations-summary-title');
+            if (titleEl) titleEl.textContent = 'Promedio de Operaciones';
+        } else {
+            updateParteOperacionesTitle(null);
+        }
+    });
 }
 
 function attachParteOperacionesCalendarListeners(){
@@ -12386,6 +12457,7 @@ function resolveParteOperacionesCalendarRange(summary){
 
 function syncParteOperacionesCalendarControls(summary){
     attachParteOperacionesCalendarListeners();
+    attachParteOperacionesTabListeners();
     const controlsWrapper = document.querySelector('[data-ops-calendar-controls]');
     const hasCalendar = summary && !summary.isLegacy && Array.isArray(summary.dates) && summary.dates.length > 0;
     if (controlsWrapper) {
@@ -12943,7 +13015,7 @@ function renderParteOperacionesAnnualAnalysis(summary){
                 : '';
             tableHost.innerHTML = `
                 <table class="table table-striped table-hover align-middle mb-0">
-                    <caption>Promedio mensual de operaciones</caption>
+                    <caption>Promedio diario mensual de operaciones</caption>
                     <thead class="table-light">
                         <tr>
                             <th scope="col">Mes</th>

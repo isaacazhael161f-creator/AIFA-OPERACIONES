@@ -1687,6 +1687,134 @@ body.dark-mode .chart-container.chart-scrollable::-webkit-scrollbar-thumb { back
    .chart-container { height: clamp(260px, 72vw, 330px) !important; }
 }
 
+.demoras-period-toolbar {
+   background: rgba(13, 110, 253, 0.04);
+   border: 1px solid rgba(13, 110, 253, 0.08);
+   border-radius: 16px;
+   padding: 0.85rem 1rem;
+}
+
+.demoras-period-summary {
+   display: flex;
+   flex-direction: column;
+   gap: 0.15rem;
+}
+
+.demoras-period-caption {
+   text-transform: uppercase;
+   font-size: 0.68rem;
+   letter-spacing: 0.12em;
+   color: #6c757d;
+   font-weight: 600;
+}
+
+.demoras-period-value {
+   font-size: 1.05rem;
+   font-weight: 600;
+   color: #0b2f5b;
+}
+
+body.dark-mode .demoras-period-value { color: #dbeafe; }
+
+.demoras-period-controls {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 0.4rem;
+   justify-content: flex-end;
+}
+
+.demoras-period-btn {
+   border: 1px solid rgba(13, 110, 253, 0.35);
+   background: #ffffff;
+   color: #0d3f8f;
+   border-radius: 999px;
+   padding: 0.35rem 0.85rem;
+   font-size: 0.85rem;
+   font-weight: 600;
+   line-height: 1.2;
+   transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+   cursor: pointer;
+}
+
+.demoras-period-btn:hover,
+.demoras-period-btn:focus-visible {
+   background: rgba(13, 110, 253, 0.15);
+   color: #0b2f5b;
+   border-color: rgba(13, 110, 253, 0.6);
+   box-shadow: 0 6px 14px rgba(13, 110, 253, 0.14);
+}
+
+.demoras-period-btn.active {
+   background: #0d6efd;
+   color: #ffffff;
+   border-color: #0d6efd;
+   box-shadow: 0 10px 20px rgba(13, 110, 253, 0.35);
+}
+
+.demoras-period-btn.is-disabled {
+   opacity: 0.45;
+   cursor: not-allowed;
+   background: #f1f5f9;
+   color: #94a3b8;
+   border-color: rgba(148, 163, 184, 0.5);
+   box-shadow: none;
+}
+
+.demoras-period-btn.is-disabled:hover,
+.demoras-period-btn.is-disabled:focus-visible {
+   background: #f1f5f9;
+   color: #94a3b8;
+   border-color: rgba(148, 163, 184, 0.5);
+   box-shadow: none;
+}
+
+.demoras-period-btn.demoras-period-btn-annual::before {
+   content: '\f073';
+   font-family: 'Font Awesome 6 Free';
+   font-weight: 900;
+   margin-right: 0.35rem;
+}
+
+.demoras-period-btn.demoras-period-btn-current::before {
+   content: '\f017';
+   font-family: 'Font Awesome 6 Free';
+   font-weight: 900;
+   margin-right: 0.35rem;
+}
+
+.demoras-period-btn.demoras-period-btn-current {
+   border-color: rgba(32, 201, 151, 0.65);
+   color: #0c5132;
+}
+
+.demoras-period-btn.demoras-period-btn-current.active {
+   background: linear-gradient(135deg, #0d6efd, #20c997);
+   border-color: #0d6efd;
+}
+
+body.dark-mode .demoras-period-toolbar {
+   background: rgba(13, 110, 253, 0.08);
+   border-color: rgba(13, 110, 253, 0.16);
+}
+
+body.dark-mode .demoras-period-btn {
+   background: rgba(15, 23, 42, 0.65);
+   color: #e2e8f0;
+   border-color: rgba(148, 163, 184, 0.45);
+}
+
+body.dark-mode .demoras-period-btn:hover,
+body.dark-mode .demoras-period-btn:focus-visible {
+   background: rgba(59, 130, 246, 0.2);
+   color: #f8fafc;
+   border-color: rgba(99, 179, 237, 0.8);
+}
+
+@media (max-width: 576px) {
+   .demoras-period-toolbar { padding: 0.75rem; }
+   .demoras-period-controls { justify-content: flex-start; }
+}
+
 #demoras-section .table-responsive {
    border-radius: 14px;
    overflow-x: auto;
@@ -1967,6 +2095,17 @@ body.dark-mode .demoras-detail-section-title { color: #cde0ff; }
 
 .demoras-timeline li:last-child::after { display: none; }
 
+.demoras-timeline .demoras-empty-entry {
+   padding-left: 0;
+   font-style: italic;
+   color: #6c757d;
+}
+
+.demoras-timeline .demoras-empty-entry::before,
+.demoras-timeline .demoras-empty-entry::after {
+   display: none;
+}
+
 body.dark-mode .demoras-timeline li::before {
    background: linear-gradient(135deg, #4dabff, #60b4ff);
    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.28);
@@ -1976,13 +2115,72 @@ body.dark-mode .demoras-timeline li::after {
    background: rgba(13, 110, 253, 0.35);
 }
 
+body.dark-mode .demoras-timeline .demoras-empty-entry { color: #b0c4de; }
+
 .demoras-detail-observacion {
    margin: 0;
    font-size: 0.86rem;
    line-height: 1.4;
 }
 
+.demoras-detail-observacion p {
+   margin: 0 0 0.35rem;
+}
+
+.demoras-detail-observacion p:last-child {
+   margin-bottom: 0.5rem;
+}
 body.dark-mode .demoras-detail-observacion { color: #e6efff; }
+
+.demoras-observaciones-timeline {
+   margin: 0.4rem 0 0.2rem;
+   padding-left: 1.9rem;
+   list-style: none;
+}
+
+.demoras-observaciones-timeline li {
+   padding-left: 2.2rem;
+   margin-bottom: 0.75rem;
+}
+
+.demoras-observaciones-timeline li::before {
+   content: attr(data-step);
+   width: 1.65rem;
+   height: 1.65rem;
+   top: 0.15rem;
+   left: 0;
+   background: #0d6efd;
+   color: #fff;
+   font-size: 0.78rem;
+   font-weight: 600;
+   border-radius: 999px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   box-shadow: 0 6px 14px rgba(13, 110, 253, 0.3);
+}
+
+.demoras-observaciones-timeline li::after {
+   left: 0.8rem;
+   top: 1.95rem;
+   height: calc(100% - 1.35rem);
+}
+
+.demoras-observaciones-timeline li:last-child::after {
+   display: none;
+}
+
+.demoras-observaciones-timeline p {
+   margin: 0;
+   font-size: 0.86rem;
+   line-height: 1.4;
+}
+
+body.dark-mode .demoras-observaciones-timeline li::before {
+   background: linear-gradient(135deg, #4dabff, #78c5ff);
+   color: #0b1c3a;
+   box-shadow: 0 8px 18px rgba(12, 110, 253, 0.35);
+}
 
 #delaysPieChart.demoras-hover {
    cursor: pointer;
@@ -3934,6 +4132,27 @@ body.dark-mode .demoras-chart-hint {
    background: rgba(59, 130, 246, 0.28);
    color: #e7efff;
    box-shadow: 0 12px 20px rgba(2, 6, 23, 0.35);
+body.dark-mode .demoras-period-btn.demoras-period-btn-current {
+   color: #c3f3de;
+   border-color: rgba(74, 222, 128, 0.5);
+}
+body.dark-mode .demoras-period-btn.demoras-period-btn-current.active {
+   background: linear-gradient(135deg, rgba(13, 110, 253, 0.85), rgba(16, 185, 129, 0.9));
+   color: #f0fdf4;
+}
+
+body.dark-mode .demoras-period-btn.is-disabled {
+   background: rgba(15, 23, 42, 0.35);
+   color: rgba(226, 232, 240, 0.4);
+   border-color: rgba(148, 163, 184, 0.25);
+}
+
+body.dark-mode .demoras-period-btn.is-disabled:hover,
+body.dark-mode .demoras-period-btn.is-disabled:focus-visible {
+   background: rgba(15, 23, 42, 0.35);
+   color: rgba(226, 232, 240, 0.4);
+   border-color: rgba(148, 163, 184, 0.25);
+}
 }
    box-shadow: 0 0 0 8px rgba(255,255,255,0.16), 0 0 20px rgba(255,255,255,0.35);
 }
