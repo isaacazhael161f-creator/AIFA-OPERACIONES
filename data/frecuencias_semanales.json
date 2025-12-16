@@ -1,0 +1,588 @@
+{
+  "weekLabel": "08-14 Dic 2025",
+  "validFrom": "2025-12-08",
+  "validTo": "2025-12-14",
+  "destinations": [
+    {
+      "routeId": 1,
+      "city": "Tijuana",
+      "state": "Baja California",
+      "iata": "TIJ",
+      "airports": ["TIJ"],
+      "airlines": [
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":3,"M":0,"X":2,"J":3,"V":2,"S":0,"D":3},
+          "weeklyTotal": 19
+        },
+        {
+          "name": "Volaris",
+          "daily": {"L":1,"M":0,"X":0,"J":1,"V":0,"S":1,"D":1},
+          "weeklyTotal": 7
+        }
+      ]
+    },
+    {
+      "routeId": 2,
+      "city": "Hermosillo",
+      "state": "Sonora",
+      "iata": "HMO",
+      "airports": ["HMO"],
+      "airlines": [
+        {
+          "name": "Mexicana",
+          "daily": {"L":1,"M":0,"X":1,"J":1,"V":1,"S":1,"D":1},
+          "weeklyTotal": 6
+        },
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":0,"M":0,"X":0,"J":1,"V":1,"S":0,"D":0},
+          "weeklyTotal": 7
+        }
+      ]
+    },
+    {
+      "routeId": 3,
+      "city": "Ciudad Juárez",
+      "state": "Chihuahua",
+      "iata": "CJS",
+      "airports": ["CJS"],
+      "airlines": [
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":0,"M":0,"X":0,"J":1,"V":0,"S":0,"D":0},
+          "weeklyTotal": 7
+        }
+      ]
+    },
+    {
+      "routeId": 4,
+      "city": "Ciudad Obregón",
+      "state": "Sonora",
+      "iata": "CEN",
+      "airports": ["CEN"],
+      "airlines": [
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":1,"M":0,"X":1,"J":0,"V":1,"S":1,"D":1},
+          "weeklyTotal": 4
+        },
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":0,"M":0,"X":1,"J":0,"V":0,"S":0,"D":1},
+          "weeklyTotal": 7
+        }
+      ]
+    },
+    {
+      "routeId": 5,
+      "city": "Chihuahua",
+      "state": "Chihuahua",
+      "iata": "CUU",
+      "airports": ["CUU"],
+      "airlines": [
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":2,"M":1,"X":1,"J":1,"V":2,"S":1,"D":1},
+          "weeklyTotal": 9
+        }
+      ]
+    },
+    {
+      "routeId": 6,
+      "city": "Nuevo Laredo",
+      "state": "Tamaulipas",
+      "iata": "NLD",
+      "airports": ["NLD"],
+      "airlines": [
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":2,"M":1,"X":1,"J":1,"V":1,"S":0,"D":1},
+          "weeklyTotal": 7
+        }
+      ]
+    },
+    {
+      "routeId": 7,
+      "city": "Reynosa",
+      "state": "Tamaulipas",
+      "iata": "REX",
+      "airports": ["REX"],
+      "airlines": [
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":1,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 7
+        },
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":0,"M":0,"X":0,"J":1,"V":1,"S":1,"D":0},
+          "weeklyTotal": 5
+        }
+      ]
+    },
+    {
+      "routeId": 8,
+      "city": "La Paz",
+      "state": "Baja California Sur",
+      "iata": "LAP",
+      "airports": ["LAP"],
+      "airlines": [
+        {
+          "name": "Volaris",
+          "daily": {"L":0,"M":1,"X":0,"J":1,"V":0,"S":1,"D":0},
+          "weeklyTotal": 3
+        }
+      ]
+    },
+    {
+      "routeId": 9,
+      "city": "Culiacán",
+      "state": "Sinaloa",
+      "iata": "CUL",
+      "airports": ["CUL"],
+      "airlines": [
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":1,"M":1,"X":1,"J":1,"V":0,"S":1,"D":1},
+          "weeklyTotal": 7
+        }
+      ]
+    },
+    {
+      "routeId": 10,
+      "city": "Durango",
+      "state": "Durango",
+      "iata": "DGO",
+      "airports": ["DGO"],
+      "airlines": [
+        {
+          "name": "Aeroméxico",
+          "daily": {"L":1,"M":1,"X":1,"J":0,"V":1,"S":1,"D":1},
+          "weeklyTotal": 7
+        }
+      ]
+    },
+    {
+      "routeId": 11,
+      "city": "Monterrey",
+      "state": "Nuevo León",
+      "iata": "MTY",
+      "airports": ["MTY"],
+      "airlines": [
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":6,"M":5,"X":5,"J":6,"V":5,"S":5,"D":6},
+          "weeklyTotal": 40
+        }
+      ]
+    },
+    {
+      "routeId": 12,
+      "city": "Ciudad Victoria",
+      "state": "Tamaulipas",
+      "iata": "CVM",
+      "airports": ["CVM"],
+      "airlines": [
+        {
+          "name": "Aeroméxico",
+          "daily": {"L":1,"M":0,"X":1,"J":0,"V":1,"S":1,"D":1},
+          "weeklyTotal": 7
+        }
+      ]
+    },
+    {
+      "routeId": 13,
+      "city": "Matamoros",
+      "state": "Tamaulipas",
+      "iata": "MAM",
+      "airports": ["MAM"],
+      "airlines": [
+        {
+          "name": "Mexicana",
+          "daily": {"L":2,"M":0,"X":2,"J":0,"V":2,"S":2,"D":2},
+          "weeklyTotal": 2
+        },
+        {
+          "name": "Aerus",
+          "daily": {"L":1,"M":0,"X":1,"J":0,"V":0,"S":0,"D":1},
+          "weeklyTotal": 11
+        },
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":1,"M":0,"X":0,"J":0,"V":0,"S":1,"D":0},
+          "weeklyTotal": 7
+        },
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":1,"M":0,"X":0,"J":0,"V":0,"S":1,"D":0},
+          "weeklyTotal": 5
+        }
+      ]
+    },
+    {
+      "routeId": 14,
+      "city": "San José del Cabo",
+      "state": "Baja California Sur",
+      "iata": "SJD",
+      "airports": ["SJD"],
+      "airlines": [
+        {
+          "name": "Volaris",
+          "daily": {"L":1,"M":0,"X":0,"J":0,"V":0,"S":1,"D":0},
+          "weeklyTotal": 4
+        }
+      ]
+    },
+    {
+      "routeId": 15,
+      "city": "Mazatlán",
+      "state": "Sinaloa",
+      "iata": "MZT",
+      "airports": ["MZT"],
+      "airlines": [
+        {
+          "name": "Mexicana",
+          "daily": {"L":0,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 2
+        },
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":0,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 0
+        }
+      ]
+    },
+    {
+      "routeId": 16,
+      "city": "Tepic",
+      "state": "Nayarit",
+      "iata": "TPQ",
+      "airports": ["TPQ"],
+      "airlines": [
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":1,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 6
+        }
+      ]
+    },
+    {
+      "routeId": 17,
+      "city": "San Luis Potosí",
+      "state": "San Luis Potosí",
+      "iata": "SLP",
+      "airports": ["SLP"],
+      "airlines": [
+        {
+          "name": "Aerus",
+          "daily": {"L":0,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 0
+        }
+      ]
+    },
+    {
+      "routeId": 18,
+      "city": "Tampico",
+      "state": "Tamaulipas",
+      "iata": "TAM",
+      "airports": ["TAM"],
+      "airlines": [
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":0,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 7
+        },
+        {
+          "name": "Desconocido",
+          "daily": {"L":0,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 10
+        }
+      ]
+    },
+    {
+      "routeId": 19,
+      "city": "Puerto Vallarta",
+      "state": "Jalisco",
+      "iata": "PVR",
+      "airports": ["PVR"],
+      "airlines": [
+        {
+          "name": "Mexicana",
+          "daily": {"L":1,"M":0,"X":0,"J":0,"V":0,"S":1,"D":0},
+          "weeklyTotal": 2
+        },
+        {
+          "name": "Aeroméxico",
+          "daily": {"L":1,"M":0,"X":0,"J":0,"V":0,"S":1,"D":0},
+          "weeklyTotal": 7
+        }
+      ]
+    },
+    {
+      "routeId": 20,
+      "city": "Guadalajara",
+      "state": "Jalisco",
+      "iata": "GDL",
+      "airports": ["GDL"],
+      "airlines": [
+        {
+          "name": "Aeroméxico",
+          "daily": {"L":1,"M":2,"X":0,"J":0,"V":0,"S":4,"D":0},
+          "weeklyTotal": 29
+        },
+        {
+          "name": "Volaris",
+          "daily": {"L":2,"M":0,"X":0,"J":0,"V":0,"S":3,"D":0},
+          "weeklyTotal": 21
+        }
+      ]
+    },
+    {
+      "routeId": 23,
+      "city": "Zihuatanejo",
+      "state": "Guerrero",
+      "iata": "ZIH",
+      "airports": ["ZIH"],
+      "airlines": [
+        {
+          "name": "Mexicana",
+          "daily": {"L":0,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 2
+        },
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":0,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 0
+        }
+      ]
+    },
+    {
+      "routeId": 24,
+      "city": "Acapulco",
+      "state": "Guerrero",
+      "iata": "ACA",
+      "airports": ["ACA"],
+      "airlines": [
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":1,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 14
+        }
+      ]
+    },
+    {
+      "routeId": 25,
+      "city": "Oaxaca",
+      "state": "Oaxaca",
+      "iata": "OAX",
+      "airports": ["OAX"],
+      "airlines": [
+        {
+          "name": "Aeroméxico",
+          "daily": {"L":1,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 6
+        }
+      ]
+    },
+    {
+      "routeId": 26,
+      "city": "Veracruz",
+      "state": "Veracruz",
+      "iata": "VER",
+      "airports": ["VER"],
+      "airlines": [
+        {
+          "name": "Aeroméxico",
+          "daily": {"L":1,"M":0,"X":0,"J":0,"V":0,"S":1,"D":0},
+          "weeklyTotal": 7
+        },
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":1,"M":0,"X":0,"J":0,"V":0,"S":1,"D":0},
+          "weeklyTotal": 7
+        }
+      ]
+    },
+    {
+      "routeId": 29,
+      "city": "Mérida",
+      "state": "Yucatán",
+      "iata": "MID",
+      "airports": ["MID"],
+      "airlines": [
+        {
+          "name": "Mexicana",
+          "daily": {"L":2,"M":0,"X":0,"J":0,"V":0,"S":3,"D":0},
+          "weeklyTotal": 15
+        },
+        {
+          "name": "Mexicana",
+          "daily": {"L":0,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 5
+        },
+        {
+          "name": "Aeroméxico",
+          "daily": {"L":1,"M":0,"X":0,"J":0,"V":0,"S":1,"D":0},
+          "weeklyTotal": 7
+        },
+        {
+          "name": "Volaris",
+          "daily": {"L":1,"M":0,"X":0,"J":0,"V":0,"S":1,"D":0},
+          "weeklyTotal": 7
+        },
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":2,"M":0,"X":0,"J":0,"V":0,"S":2,"D":0},
+          "weeklyTotal": 11
+        }
+      ]
+    },
+    {
+      "routeId": 30,
+      "city": "Tulum",
+      "state": "Quintana Roo",
+      "iata": "TQO",
+      "airports": ["TQO"],
+      "airlines": [
+        {
+          "name": "Mexicana",
+          "daily": {"L":1,"M":0,"X":0,"J":0,"V":0,"S":1,"D":0},
+          "weeklyTotal": 7
+        },
+        {
+          "name": "Aeroméxico",
+          "daily": {"L":1,"M":0,"X":0,"J":1,"V":0,"S":1,"D":0},
+          "weeklyTotal": 7
+        },
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":5,"M":0,"X":0,"J":0,"V":0,"S":5,"D":0},
+          "weeklyTotal": 33
+        }
+      ]
+    },
+    {
+      "routeId": 31,
+      "city": "Cancún",
+      "state": "Quintana Roo",
+      "iata": "CUN",
+      "airports": ["CUN"],
+      "airlines": [
+        {
+          "name": "Aeroméxico",
+          "daily": {"L":0,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 7
+        }
+      ]
+    },
+    {
+      "routeId": 32,
+      "city": "Puerto Escondido",
+      "state": "Oaxaca",
+      "iata": "PXM",
+      "airports": ["PXM"],
+      "airlines": [
+        {
+          "name": "Volaris",
+          "daily": {"L":0,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 5
+        },
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":0,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 5
+        }
+      ]
+    },
+    {
+      "routeId": 33,
+      "city": "Huatulco",
+      "state": "Oaxaca",
+      "iata": "HUX",
+      "airports": ["HUX"],
+      "airlines": [
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":0,"M":0,"X":0,"J":0,"V":0,"S":1,"D":0},
+          "weeklyTotal": 7
+        }
+      ]
+    },
+    {
+      "routeId": 34,
+      "city": "Ixtepec",
+      "state": "Oaxaca",
+      "iata": "IZT",
+      "airports": ["IZT"],
+      "airlines": [
+        {
+          "name": "Mexicana",
+          "daily": {"L":0,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 3
+        }
+      ]
+    },
+    {
+      "routeId": 35,
+      "city": "Tuxtla Gutiérrez",
+      "state": "Chiapas",
+      "iata": "TGZ",
+      "airports": ["TGZ"],
+      "airlines": [
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":2,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 9
+        }
+      ]
+    },
+    {
+      "routeId": 36,
+      "city": "Saltillo",
+      "state": "Coahuila",
+      "iata": "SLW",
+      "airports": ["SLW"],
+      "airlines": [
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":1,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 7
+        }
+      ]
+    },
+    {
+      "routeId": 37,
+      "city": "Palenque",
+      "state": "Chiapas",
+      "iata": "PQM",
+      "airports": ["PQM"],
+      "airlines": [
+        {
+          "name": "Mexicana",
+          "daily": {"L":1,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 2
+        }
+      ]
+    },
+    {
+      "routeId": 38,
+      "city": "Chetumal",
+      "state": "Quintana Roo",
+      "iata": "CTM",
+      "airports": ["CTM"],
+      "airlines": [
+        {
+          "name": "Mexicana",
+          "daily": {"L":1,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 3
+        },
+        {
+          "name": "Viva Aerobus",
+          "daily": {"L":0,"M":0,"X":0,"J":0,"V":0,"S":0,"D":0},
+          "weeklyTotal": 4
+        }
+      ]
+    }
+  ]
+}

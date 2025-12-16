@@ -40,7 +40,7 @@
                     <input type="password" class="form-control" id="password" name="password" required placeholder=" " autocomplete="current-password">
                     <label for="password">Contraseña</label>
                 </div>
-                <button type="submit" id="login-button" class="btn btn-primary w-100 py-2">
+                <button type="submit" id="login-button" class="btn btn-primary w-100 py-2" aria-label="Iniciar Sesión">
                     <span class="btn-text">Iniciar Sesión</span>
                     <span class="spinner-plane" aria-hidden="true"></span>
                 </button>
@@ -57,7 +57,7 @@
             <div class="container-fluid">
                 <div class="header-content d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center">
-                        <button class="btn sidebar-toggler-btn" type="button" id="sidebar-toggler">
+                        <button class="btn sidebar-toggler-btn" type="button" id="sidebar-toggler" aria-label="Alternar barra lateral">
                             <i class="fas fa-bars"></i>
                         </button>
                         <img src="images/aifa-logo.png" alt="Logo AIFA" class="aifa-logo" />
@@ -91,7 +91,7 @@
                         
                         <img src="images/gobierno-mexico.png" alt="Logo del Gobierno de México" class="gob-logo" />
                         <!-- Tema fijo claro: se elimina el botón de cambio de tema -->
-                        <a href="#" class="btn btn-outline-danger d-lg-none logout-button-mobile" data-action="logout" title="Cerrar Sesión">
+                        <a href="#" class="btn btn-outline-danger d-lg-none logout-button-mobile" data-action="logout" title="Cerrar Sesión" aria-label="Cerrar Sesión">
                             <i class="fas fa-sign-out-alt"></i>
                         </a>
                     </div>
@@ -173,37 +173,37 @@
                                                 </div>
                                                 <div class="filters-bar">
                                                     <div class="chip">
-                                                        <label><i class="fas fa-suitcase me-1"></i>Banda</label>
+                                                        <label for="claim-filter"><i class="fas fa-suitcase me-1"></i>Banda</label>
                                                         <input type="text" id="claim-filter" class="form-control" placeholder="Número/Nombre de banda...">
                                                     </div>
                                                     <div class="chip">
-                                                        <label><i class="fas fa-map-pin me-1"></i>Posición</label>
+                                                        <label for="position-filter"><i class="fas fa-map-pin me-1"></i>Posición</label>
                                                         <select id="position-filter" class="form-select">
                                                             <option value="all" selected>Todas las posiciones</option>
                                                         </select>
                                                     </div>
                                                     <div class="chip">
-                                                        <label><i class="fas fa-plane-arrival me-1"></i>Origen</label>
+                                                        <label for="origin-filter"><i class="fas fa-plane-arrival me-1"></i>Origen</label>
                                                         <select id="origin-filter" class="form-select">
                                                             <option value="all" selected>Todos los orígenes</option>
                                                         </select>
                                                     </div>
                                                     <div class="chip">
-                                                        <label><i class="fas fa-plane-departure me-1"></i>Destino</label>
+                                                        <label for="destination-filter"><i class="fas fa-plane-departure me-1"></i>Destino</label>
                                                         <select id="destination-filter" class="form-select">
                                                             <option value="all" selected>Todos los destinos</option>
                                                         </select>
                                                     </div>
                                                     <div class="chip">
-                                                        <label><i class="fas fa-search me-1"></i>Buscar</label>
+                                                        <label for="global-search"><i class="fas fa-search me-1"></i>Buscar</label>
                                                         <input type="text" id="global-search" class="form-control" placeholder="Aerolínea, origen, destino, vuelo...">
                                                     </div>
                                                     <div class="chip">
-                                                        <label><i class="fas fa-calendar-day me-1"></i>Fecha</label>
+                                                        <label for="date-filter"><i class="fas fa-calendar-day me-1"></i>Fecha</label>
                                                         <input type="date" id="date-filter" class="form-control">
                                                     </div>
                                                     <div class="chip">
-                                                        <label><i class="fas fa-clock me-1"></i>Hora</label>
+                                                        <label for="hour-filter"><i class="fas fa-clock me-1"></i>Hora</label>
                                                         <select id="hour-filter" class="form-select">
                                                             <option value="all" selected>Todas</option>
                                                             <option value="00">00</option>
@@ -233,7 +233,7 @@
                                                         </select>
                                                     </div>
                                                     <div class="chip">
-                                                        <label><i class="fas fa-exchange-alt me-1"></i>Tipo de hora</label>
+                                                        <label for="hour-type-filter"><i class="fas fa-exchange-alt me-1"></i>Tipo de hora</label>
                                                         <select id="hour-type-filter" class="form-select">
                                                             <option value="both" selected>Ambas</option>
                                                             <option value="arr">Llegada</option>
@@ -272,7 +272,7 @@
                                         <div id="itinerario-section">
                                             <div class="card">
                                                 <div class="card-header flex-column flex-md-row d-flex justify-content-between align-items-center">
-                                                    <h2 class="section-title mb-3 mb-md-0">ITINERARIO DETALLADO <small id="it-stats-badge" class="text-muted ms-2" style="font-size:0.8rem"></small></h2>
+                                                    <h2 class="section-title mb-3 mb-md-0">ITINERARIO DETALLADO <small id="it-stats-badge" class="text-muted ms-2 text-small-8"></small></h2>
                                                     <div class="d-flex gap-2">
                                                         <a href="excel/itinerario_completo.xlsx" class="btn btn-success download-btn" download><i class="fas fa-file-excel me-2"></i><span class="btn-text">Descargar Excel</span></a>
                                                     </div>
@@ -281,14 +281,14 @@
                                                     <!-- Controles de fecha (vuelos del día) -->
                                                     <div class="d-flex flex-wrap align-items-center justify-content-end gap-2 mb-2" id="itinerary-day-controls">
                                                         <button class="btn btn-sm btn-outline-secondary" id="it-day-prev" title="Día anterior"><i class="fas fa-chevron-left"></i></button>
-                                                        <input type="date" id="it-day-input" class="form-control form-control-sm" />
+                                                        <input type="date" id="it-day-input" class="form-control form-control-sm" aria-label="Seleccionar fecha del itinerario" />
                                                         <button class="btn btn-sm btn-outline-secondary" id="it-day-next" title="Día siguiente"><i class="fas fa-chevron-right"></i></button>
                                                         <button class="btn btn-sm btn-outline-primary" id="it-day-today" title="Hoy"><i class="fas fa-calendar-day me-1"></i>Hoy</button>
                                                     </div>
 
                                                     <ul class="nav nav-tabs" id="itineraryTab" role="tablist">
-                                                        <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#pasajeros-grafica-pane">1. Gráfica (Pasajeros)</button></li>
-                                                        <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#carga-grafica-pane">2. Gráfica (Carga)</button></li>
+                                                        <li class="nav-item" role="presentation"><button class="nav-link active" id="pasajeros-grafica-tab" data-bs-toggle="tab" data-bs-target="#pasajeros-grafica-pane" type="button" role="tab" aria-controls="pasajeros-grafica-pane" aria-selected="true">1. Gráfica (Pasajeros)</button></li>
+                                                        <li class="nav-item" role="presentation"><button class="nav-link" id="carga-grafica-tab" data-bs-toggle="tab" data-bs-target="#carga-grafica-pane" type="button" role="tab" aria-controls="carga-grafica-pane" aria-selected="false">2. Gráfica (Carga)</button></li>
                                                     </ul>
                                                     <div class="tab-content pt-3" id="itineraryTabContent">
                                                         <!-- Pasajeros: Llegadas/Salidas del día -->
@@ -297,11 +297,11 @@
                                                                 <div class="row g-3 chart-row-mobile-scroll">
                                                                 <div class="col-lg-6">
                                                                     <h6 class="text-muted mb-2"><i class="fas fa-person-walking me-1"></i>Llegadas (Pasajeros) por hora</h6>
-                                                                    <div class="chart-container" style="height:360px"><canvas id="paxArrivalsChart"></canvas></div>
+                                                                    <div class="chart-container chart-height-360"><canvas id="paxArrivalsChart"></canvas></div>
                                                                 </div>
                                                                 <div class="col-lg-6">
                                                                     <h6 class="text-muted mb-2"><i class="fas fa-person-walking-luggage me-1"></i>Salidas (Pasajeros) por hora</h6>
-                                                                    <div class="chart-container" style="height:360px"><canvas id="paxDeparturesChart"></canvas></div>
+                                                                    <div class="chart-container chart-height-360"><canvas id="paxDeparturesChart"></canvas></div>
                                                                 </div>
                                                                 </div>
                                                             </div>
@@ -354,11 +354,11 @@
                                                                 <div class="row g-3 chart-row-mobile-scroll">
                                                                 <div class="col-lg-6">
                                                                     <h6 class="text-muted mb-2"><i class="fas fa-box-open me-1"></i>Llegadas (Carga) por hora</h6>
-                                                                    <div class="chart-container" style="height:360px"><canvas id="cargoArrivalsChart"></canvas></div>
+                                                                    <div class="chart-container chart-height-360"><canvas id="cargoArrivalsChart"></canvas></div>
                                                                 </div>
                                                                 <div class="col-lg-6">
                                                                     <h6 class="text-muted mb-2"><i class="fas fa-truck-ramp-box me-1"></i>Salidas (Carga) por hora</h6>
-                                                                    <div class="chart-container" style="height:360px"><canvas id="cargoDeparturesChart"></canvas></div>
+                                                                    <div class="chart-container chart-height-360"><canvas id="cargoDeparturesChart"></canvas></div>
                                                                 </div>
                                                                 </div>
                                                             </div>
@@ -532,7 +532,7 @@
                                 </div>
                                 <div class="tab-pane fade" id="pdf-inicio-pane" role="tabpanel" aria-labelledby="pdf-inicio-tab" tabindex="0">
                                     <div class="pdf-container">
-                                        <iframe src="pdfs/Itinerario.pdf" width="100%" height="700px" class="border-0"></iframe>
+                                        <iframe src="pdfs/Itinerario.pdf" class="iframe-pdf-height" title="Itinerario PDF"></iframe>
                                     </div>
                                 </div>
                             </div>
@@ -603,7 +603,7 @@
                                                                 <th scope="col" class="text-center">Llegadas</th>
                                                                 <th scope="col" class="text-center">Salidas</th>
                                                                 <th scope="col" class="text-center">Subtotal</th>
-                                                                <th scope="col" class="text-center" style="width:48px"></th>
+                                                                <th scope="col" class="text-center w-48px"></th>
                                                             </tr>
                                                         </thead>
                                                         <tbody></tbody>
@@ -687,7 +687,7 @@
                                         </div>
                                     </div>
                                     <div class="annual-analysis-cards" id="ops-annual-averages-cards" aria-live="polite"></div>
-                                    <div class="chart-container annual-analysis-chart" style="height:420px">
+                                    <div class="chart-container annual-analysis-chart chart-height-420">
                                         <canvas id="ops-annual-averages-chart" aria-label="Promedio mensual por tipo" role="img"></canvas>
                                     </div>
                                     <div class="table-responsive mt-4" id="ops-annual-averages-table"></div>
@@ -744,13 +744,13 @@
                                         <div class="card-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
                                             <div class="d-flex flex-wrap align-items-center gap-2 fauna-filters filters-bar">
                                                 <div class="chip">
-                                                    <label class="me-1"><i class="fas fa-calendar-alt me-1"></i>Fecha</label>
-                                                    <input type="date" id="fauna-date-from" class="form-control form-control-sm" />
+                                                    <label class="me-1" for="fauna-date-from"><i class="fas fa-calendar-alt me-1"></i>Fecha</label>
+                                                    <input type="date" id="fauna-date-from" class="form-control form-control-sm" aria-label="Fecha inicio" />
                                                     <span class="mx-1">a</span>
-                                                    <input type="date" id="fauna-date-to" class="form-control form-control-sm" />
+                                                    <input type="date" id="fauna-date-to" class="form-control form-control-sm" aria-label="Fecha fin" />
                                                 </div>
                                                 <div class="chip">
-                                                    <label class="me-1"><i class="fas fa-calendar me-1"></i>Mes</label>
+                                                    <label class="me-1" for="fauna-month"><i class="fas fa-calendar me-1"></i>Mes</label>
                                                     <select id="fauna-month" class="form-select form-select-sm">
                                                         <option value="all" selected>Todos</option>
                                                         <option value="01">Enero</option>
@@ -768,19 +768,19 @@
                                                     </select>
                                                 </div>
                                                 <div class="chip">
-                                                    <label class="me-1"><i class="fas fa-paw me-1"></i>Especie</label>
+                                                    <label class="me-1" for="fauna-species"><i class="fas fa-paw me-1"></i>Especie</label>
                                                     <select id="fauna-species" class="form-select form-select-sm"><option value="all" selected>Todas</option></select>
                                                 </div>
                                                 <div class="chip">
-                                                    <label class="me-1"><i class="fas fa-arrows-to-dot me-1"></i>Tamaño</label>
+                                                    <label class="me-1" for="fauna-size"><i class="fas fa-arrows-to-dot me-1"></i>Tamaño</label>
                                                     <select id="fauna-size" class="form-select form-select-sm"><option value="all" selected>Todos</option></select>
                                                 </div>
                                                 <div class="chip">
-                                                    <label class="me-1"><i class="fas fa-plane-departure me-1"></i>Fase</label>
+                                                    <label class="me-1" for="fauna-phase"><i class="fas fa-plane-departure me-1"></i>Fase</label>
                                                     <select id="fauna-phase" class="form-select form-select-sm"><option value="all" selected>Todas</option></select>
                                                 </div>
                                                     <div class="chip">
-                                                        <label class="me-1"><i class="fas fa-plane me-1"></i>Aerolínea</label>
+                                                        <label class="me-1" for="fauna-airline"><i class="fas fa-plane me-1"></i>Aerolínea</label>
                                                         <select id="fauna-airline" class="form-select form-select-sm"><option value="all" selected>Todas</option></select>
                                                     </div>
                                                 <div class="chip chip-actions">
@@ -823,19 +823,19 @@
                                             <div class="row g-3 mb-3">
                                                 <div class="col-lg-6">
                                                     <h6 class="text-muted mb-2"><i class="fas fa-chart-column me-1"></i>Eventos por mes</h6>
-                                                    <div class="chart-container" style="height:360px"><canvas id="fauna-by-month"></canvas></div>
+                                                    <div class="chart-container chart-height-360"><canvas id="fauna-by-month"></canvas></div>
                                                 </div>
                                                 <div class="col-lg-6">
                                                     <h6 class="text-muted mb-2"><i class="fas fa-paw me-1"></i>Eventos por nombre común</h6>
-                                                    <div class="chart-container" style="height:360px"><canvas id="fauna-by-species"></canvas></div>
+                                                    <div class="chart-container chart-height-360"><canvas id="fauna-by-species"></canvas></div>
                                                 </div>
                                                 <div class="col-12">
                                                     <h6 class="text-muted mb-2"><i class="fas fa-grip-vertical me-1"></i>Matriz Mes × Condiciones (Heatmap)</h6>
-                                                    <div class="chart-container heatmap-container" style="height:420px"><div id="fauna-heatmap" style="width:100%; height:100%"></div></div>
+                                                    <div class="chart-container heatmap-container chart-height-420"><div id="fauna-heatmap" class="w-100 h-100"></div></div>
                                                 </div>
                                                 <div class="col-12">
                                                     <h6 class="text-muted mb-2"><i class="fas fa-clock me-1"></i>Distribución por hora del día</h6>
-                                                    <div class="chart-container" style="height:360px"><canvas id="fauna-by-hour"></canvas></div>
+                                                    <div class="chart-container chart-height-360"><canvas id="fauna-by-hour"></canvas></div>
                                                 </div>
                                             </div>
                                             <!-- Tabla completa sin paginación -->
@@ -857,39 +857,39 @@
                                         <div class="card-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
                                             <div class="d-grid d-md-flex flex-wrap align-items-center gap-2 fauna-rescate-filters filters-bar">
                                                 <div class="chip">
-                                                    <label class="me-1"><i class="fas fa-calendar-day me-1"></i>Desde</label>
+                                                    <label class="me-1" for="fauna-rescate-date-from"><i class="fas fa-calendar-day me-1"></i>Desde</label>
                                                     <input type="date" id="fauna-rescate-date-from" class="form-control form-control-sm" />
                                                 </div>
                                                 <div class="chip">
-                                                    <label class="me-1"><i class="fas fa-calendar-day me-1"></i>Hasta</label>
+                                                    <label class="me-1" for="fauna-rescate-date-to"><i class="fas fa-calendar-day me-1"></i>Hasta</label>
                                                     <input type="date" id="fauna-rescate-date-to" class="form-control form-control-sm" />
                                                 </div>
                                                 <div class="chip">
-                                                    <label class="me-1"><i class="fas fa-calendar-alt me-1"></i>Mes</label>
+                                                    <label class="me-1" for="fauna-rescate-month"><i class="fas fa-calendar-alt me-1"></i>Mes</label>
                                                     <select id="fauna-rescate-month" class="form-select form-select-sm">
                                                         <option value="all" selected>Todos</option>
                                                     </select>
                                                 </div>
                                                 <div class="chip">
-                                                    <label class="me-1"><i class="fas fa-paw me-1"></i>Clase</label>
+                                                    <label class="me-1" for="fauna-rescate-class"><i class="fas fa-paw me-1"></i>Clase</label>
                                                     <select id="fauna-rescate-class" class="form-select form-select-sm">
                                                         <option value="all" selected>Todas</option>
                                                     </select>
                                                 </div>
                                                 <div class="chip">
-                                                    <label class="me-1"><i class="fas fa-tools me-1"></i>Método</label>
+                                                    <label class="me-1" for="fauna-rescate-method"><i class="fas fa-tools me-1"></i>Método</label>
                                                     <select id="fauna-rescate-method" class="form-select form-select-sm">
                                                         <option value="all" selected>Todos</option>
                                                     </select>
                                                 </div>
                                                 <div class="chip">
-                                                    <label class="me-1"><i class="fas fa-route me-1"></i>Cuadrante</label>
+                                                    <label class="me-1" for="fauna-rescate-quadrant"><i class="fas fa-route me-1"></i>Cuadrante</label>
                                                     <select id="fauna-rescate-quadrant" class="form-select form-select-sm">
                                                         <option value="all" selected>Todos</option>
                                                     </select>
                                                 </div>
                                                 <div class="chip">
-                                                    <label class="me-1"><i class="fas fa-warehouse me-1"></i>Disposición</label>
+                                                    <label class="me-1" for="fauna-rescate-disposal"><i class="fas fa-warehouse me-1"></i>Disposición</label>
                                                     <select id="fauna-rescate-disposal" class="form-select form-select-sm">
                                                         <option value="all" selected>Todas</option>
                                                     </select>
@@ -915,23 +915,23 @@
                                             <div class="row g-3 mb-4">
                                                 <div class="col-lg-6">
                                                     <h6 class="text-muted mb-2"><i class="fas fa-calendar-alt me-1"></i>Capturas por mes</h6>
-                                                    <div class="chart-container" style="height: 320px;"><div id="fauna-rescate-by-month" class="echart-host"></div></div>
+                                                    <div class="chart-container chart-height-320"><div id="fauna-rescate-by-month" class="echart-host"></div></div>
                                                 </div>
                                                 <div class="col-lg-6">
                                                     <h6 class="text-muted mb-2"><i class="fas fa-paw me-1"></i>Eventos por clase</h6>
-                                                    <div class="chart-container" style="height: 320px;"><div id="fauna-rescate-by-class" class="echart-host"></div></div>
+                                                    <div class="chart-container chart-height-320"><div id="fauna-rescate-by-class" class="echart-host"></div></div>
                                                 </div>
                                                 <div class="col-lg-6">
                                                     <h6 class="text-muted mb-2"><i class="fas fa-map-location-dot me-1"></i>Sitios de reubicación</h6>
-                                                    <div class="chart-container" style="height: 320px;"><div id="fauna-rescate-by-relocation" class="echart-host fauna-relocation-chart"></div></div>
+                                                    <div class="chart-container chart-height-320"><div id="fauna-rescate-by-relocation" class="echart-host fauna-relocation-chart"></div></div>
                                                 </div>
                                                 <div class="col-lg-6">
                                                     <h6 class="text-muted mb-2"><i class="fas fa-tools me-1"></i>Método de rescate</h6>
-                                                    <div class="chart-container" style="height: 320px;"><div id="fauna-rescate-by-method" class="echart-host"></div></div>
+                                                    <div class="chart-container chart-height-320"><div id="fauna-rescate-by-method" class="echart-host"></div></div>
                                                 </div>
                                                 <div class="col-12">
                                                     <h6 class="text-muted mb-2"><i class="fas fa-clock me-1"></i>Distribución por hora del día</h6>
-                                                    <div class="chart-container" style="height: 320px;"><div id="fauna-rescate-by-hour" class="echart-host"></div></div>
+                                                    <div class="chart-container chart-height-320"><div id="fauna-rescate-by-hour" class="echart-host"></div></div>
                                                 </div>
                                             </div>
                                             <div class="fauna-rescate-top-chipset mb-4">
@@ -1016,7 +1016,7 @@
                                                     </select>
                                                 </div>
                                             </div>
-                                            <div class="chart-container" style="height: 420px;">
+                                            <div class="chart-container chart-height-420">
                                                 <div id="medicasAtencionesChart" class="echart-host w-100 h-100"></div>
                                             </div>
                                             <p class="small text-muted mt-3 mb-0">Fuente: Servicio Médico AIFA. Datos 2022 a 2025 (cifras preliminares).</p>
@@ -1042,7 +1042,7 @@
                                                     </select>
                                                 </div>
                                             </div>
-                                            <div class="chart-container" style="height: 420px;">
+                                            <div class="chart-container chart-height-420">
                                                 <div id="medicasTipoChart" class="echart-host w-100 h-100"></div>
                                             </div>
                                             <p class="small text-muted mt-3 mb-0">Fuente: Servicio Médico AIFA. Traslados vs. atenciones ambulatorias.</p>
@@ -1072,7 +1072,7 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="chart-container" style="height: 420px;">
+                                            <div class="chart-container chart-height-420">
                                                 <div id="medicasCompChart" class="echart-host w-100 h-100"></div>
                                             </div>
                                             <p class="small text-muted mt-3 mb-0">Fuente: Servicio Médico AIFA. Totales mensuales comparados por año.</p>
@@ -1294,7 +1294,7 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="mt-4" id="ops-months-2025" style="display:none;">
+                                            <div class="mt-4 d-none" id="ops-months-2025">
                                                 <h6 class="text-muted">Meses <span id="ops-months-year-label">2025</span></h6>
                                                 <p class="small text-muted mb-2" id="ops-months-year-helper">Selecciona los meses que deseas visualizar; las gráficas solo mostrarán datos de los meses marcados.</p>
                                                 <div class="d-flex flex-wrap align-items-center gap-2">
@@ -1431,7 +1431,7 @@
                                                             <span class="badge bg-primary-subtle text-primary fw-semibold" id="ag-chart-tag">Vista anual</span>
                                                             <small class="text-muted" id="ag-chart-subtitle"></small>
                                                         </div>
-                                                        <div class="chart-container" style="height: 420px;"><canvas id="ag-chart"></canvas></div>
+                                                        <div class="chart-container chart-height-420"><canvas id="ag-chart"></canvas></div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1533,7 +1533,7 @@
                                                             <span class="badge bg-primary-subtle text-primary fw-semibold" id="gen-chart-tag">Vista anual</span>
                                                             <small class="text-muted" id="gen-chart-subtitle"></small>
                                                         </div>
-                                                        <div class="chart-container" style="height: 420px;"><canvas id="gen-chart"></canvas></div>
+                                                        <div class="chart-container chart-height-420"><canvas id="gen-chart"></canvas></div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1635,7 +1635,7 @@
                                                             <span class="badge bg-primary-subtle text-primary fw-semibold" id="cargo-chart-tag">Vista anual</span>
                                                             <small class="text-muted" id="cargo-chart-subtitle"></small>
                                                         </div>
-                                                        <div class="chart-container" style="height: 420px;"><canvas id="cargo-chart"></canvas></div>
+                                                        <div class="chart-container chart-height-420"><canvas id="cargo-chart"></canvas></div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1686,18 +1686,182 @@
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="frecuencias-int-tab" data-bs-toggle="tab" data-bs-target="#frecuencias-int-pane" type="button" role="tab" aria-controls="frecuencias-int-pane" aria-selected="false">Frecuencias semanales Internacionales</button>
                                 </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="frecuencias-auto-tab" data-bs-toggle="tab" data-bs-target="#frecuencias-auto-pane" type="button" role="tab" aria-controls="frecuencias-auto-pane" aria-selected="false">Automatización de Frecuencias</button>
+                                </li>
                             </ul>
                             <div class="tab-content pt-3" id="frecuenciasTabContent">
                                 <div class="tab-pane fade show active" id="frecuencias-nac-pane" role="tabpanel" aria-labelledby="frecuencias-nac-tab" tabindex="0">
-                                    <div id="frecuencias-viewer-nac" class="pdf-singlepage-viewer" data-src="pdfs/frecuencias_semanales.pdf" style="position:relative; width:100%; max-width:100%;">
-                                        <canvas style="width:100%; height:auto; display:block;"></canvas>
-                                        <div class="links-layer" style="position:absolute; left:0; top:0; pointer-events:none;"></div>
+                                    <div id="frecuencias-viewer-nac" class="pdf-singlepage-viewer pdf-viewer-container" data-src="pdfs/frecuencias_semanales.pdf">
+                                        <canvas class="pdf-canvas"></canvas>
+                                        <div class="links-layer pdf-links-layer"></div>
                                     </div>
                                 </div>
                                 <div class="tab-pane fade" id="frecuencias-int-pane" role="tabpanel" aria-labelledby="frecuencias-int-tab" tabindex="0">
-                                    <div id="frecuencias-viewer-int" class="pdf-singlepage-viewer" data-src="pdfs/frecuencias_semanales_internacionales.pdf" style="position:relative; width:100%; max-width:100%;">
-                                        <canvas style="width:100%; height:auto; display:block;"></canvas>
-                                        <div class="links-layer" style="position:absolute; left:0; top:0; pointer-events:none;"></div>
+                                    <div id="frecuencias-viewer-int" class="pdf-singlepage-viewer pdf-viewer-container" data-src="pdfs/frecuencias_semanales_internacionales.pdf">
+                                        <canvas class="pdf-canvas"></canvas>
+                                        <div class="links-layer pdf-links-layer"></div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="frecuencias-auto-pane" role="tabpanel" aria-labelledby="frecuencias-auto-tab" tabindex="0">
+                                    <div class="frecuencias-auto-wrapper" data-module="frecuencias-auto">
+                                        <div class="alert alert-info d-flex align-items-center gap-2 mb-3" role="status">
+                                            <i class="fas fa-database" aria-hidden="true"></i>
+                                            <div>
+                                                <strong>Fuente dinámica:</strong> los datos provienen de <code>data/frecuencias_semanales.json</code> y se actualizan con cada semana operativa.
+                                            </div>
+                                        </div>
+                                        <div class="alert alert-warning d-flex align-items-center gap-2 mb-3" role="alert">
+                                            <i class="fas fa-hard-hat" aria-hidden="true"></i>
+                                            <div>
+                                                <strong>En construcción:</strong> Se está trabajando en la sección de automatización de frecuencias. Datos solo para uso práctico.
+                                            </div>
+                                        </div>
+                                        <div id="frecuencias-error" class="alert alert-danger d-none" role="alert"></div>
+                                        <div id="frecuencias-loading" class="frecuencias-loading-state" role="status" aria-live="polite">
+                                            <div class="spinner-border text-primary" role="presentation"></div>
+                                            <div>
+                                                <strong>Cargando frecuencias...</strong>
+                                                <p class="mb-0 small text-muted">Si tarda demasiado, verifica que el servidor local esté en ejecución para permitir la lectura de archivos JSON.</p>
+                                            </div>
+                                        </div>
+                                        <div id="frecuencias-content" class="frecuencias-auto-content d-none">
+                                            <div class="frecuencias-meta card shadow-sm mb-3">
+                                                <div class="card-body d-flex flex-column flex-md-row justify-content-between gap-3">
+                                                    <div>
+                                                        <div class="text-uppercase text-muted fw-semibold small">Semana operacional</div>
+                                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                            <span class="badge bg-primary-subtle text-primary" data-week-label>Semana —</span>
+                                                            <span class="text-muted" data-week-range>Vigencia —</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="text-md-end">
+                                                        <div class="text-uppercase text-muted fw-semibold small">Última referencia</div>
+                                                        <div class="fw-semibold" data-last-updated>—</div>
+                                                        <small class="text-muted">Origen: Direcc. Operaciones AIFA</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="row g-3 mb-4">
+                                                <div class="col-12">
+                                                    <div class="card shadow-sm h-100">
+                                                        <div class="card-header d-flex align-items-center justify-content-between">
+                                                            <div>
+                                                                <h3 class="section-subheading mb-0">Mapa interactivo</h3>
+                                                                <small class="text-muted">Tamaño del marcador proporcional a los vuelos semanales.</small>
+                                                            </div>
+                                                            <button class="btn btn-outline-primary btn-sm" id="frecuencias-fit-map"><i class="fas fa-expand me-1"></i>Enfocar país</button>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div class="frecuencias-map-shell">
+                                                                <div id="frecuencias-map" class="frecuencias-map" role="img" aria-label="Mapa de frecuencias semanales"></div>
+                                                                <div id="frecuencias-map-empty" class="frecuencias-map-empty d-none">Sin destinos para mostrar con los filtros actuales.</div>
+                                                            </div>
+                                                            <p class="small text-muted mb-0 mt-2">Haz clic en un destino para resaltar la fila correspondiente en la tabla.</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="row g-3 frecuencias-kpi-row mb-4">
+                                                <div class="col-12 col-md-4">
+                                                    <div class="frecuencia-kpi-card h-100">
+                                                        <span class="kpi-label">Vuelos programados</span>
+                                                        <span class="kpi-value" data-kpi="flights">—</span>
+                                                        <small class="text-muted" data-kpi-note="flights">Conteo semanal por aerolínea</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-md-4">
+                                                    <div class="frecuencia-kpi-card h-100">
+                                                        <span class="kpi-label">Destinos atendidos</span>
+                                                        <span class="kpi-value" data-kpi="destinations">—</span>
+                                                        <small class="text-muted" data-kpi-note="destinations">Cobertura nacional</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-md-4">
+                                                    <div class="frecuencia-kpi-card h-100">
+                                                        <span class="kpi-label">Aerolíneas operando</span>
+                                                        <span class="kpi-value" data-kpi="airlines">—</span>
+                                                        <small class="text-muted" data-kpi-note="airlines">Incluye pax y carga</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="card shadow-sm mb-4">
+                                                <div class="card-body">
+                                                    <div class="row g-3 align-items-end">
+                                                        <div class="col-12 col-lg-3">
+                                                            <label for="frecuencias-airline-filter" class="form-label small text-uppercase text-muted">Filtrar por aerolínea</label>
+                                                            <select id="frecuencias-airline-filter" class="form-select form-select-sm"></select>
+                                                        </div>
+                                                        <div class="col-12 col-lg-3">
+                                                            <label for="frecuencias-destination-filter" class="form-label small text-uppercase text-muted">Filtrar por destino</label>
+                                                            <select id="frecuencias-destination-filter" class="form-select form-select-sm"></select>
+                                                        </div>
+                                                        <div class="col-12 col-lg-3">
+                                                            <label for="frecuencias-day-filter" class="form-label small text-uppercase text-muted">Día con operación</label>
+                                                            <select id="frecuencias-day-filter" class="form-select form-select-sm"></select>
+                                                        </div>
+                                                        <div class="col-12 col-lg-3">
+                                                            <label for="frecuencias-search" class="form-label small text-uppercase text-muted">Buscar</label>
+                                                            <input type="search" id="frecuencias-search" class="form-control form-control-sm" placeholder="Ciudad, estado o aerolínea">
+                                                        </div>
+                                                    </div>
+                                                    <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                                                        <button class="btn btn-outline-secondary btn-sm" id="frecuencias-reset-filters"><i class="fas fa-eraser me-1"></i>Limpiar filtros</button>
+                                                        <span class="small text-muted" id="frecuencias-active-filters">Mostrando todos los destinos.</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="row g-3 mb-4">
+                                                <div class="col-12">
+                                                    <div class="card shadow-sm h-100">
+                                                        <div class="card-header">
+                                                            <h3 class="section-subheading mb-0">Distribución semanal</h3>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div id="frecuencias-dow-list" class="frecuencias-dow-list"></div>
+                                                            <div id="frecuencias-insights" class="frecuencias-insights mt-3"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="card shadow-sm mt-4">
+                                                <div class="card-header d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-2">
+                                                    <div>
+                                                        <h3 class="section-subheading mb-0">Tabla por destino y aerolínea</h3>
+                                                        <small class="text-muted">Frecuencias expresadas en vuelos por día.</small>
+                                                    </div>
+                                                    <span class="badge bg-secondary-subtle text-secondary" id="frecuencias-table-count">— destinos listados</span>
+                                                </div>
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover table-bordered align-middle" id="frecuencias-destinos-table">
+                                                        <thead>
+                                                            <tr>
+                                                                <th scope="col">Destino</th>
+                                                                <th scope="col">Aerolínea</th>
+                                                                <th scope="col">L</th>
+                                                                <th scope="col">M</th>
+                                                                <th scope="col">X</th>
+                                                                <th scope="col">J</th>
+                                                                <th scope="col">V</th>
+                                                                <th scope="col">S</th>
+                                                                <th scope="col">D</th>
+                                                                <th scope="col">Total</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody></tbody>
+                                                    </table>
+                                                </div>
+                                                <div id="frecuencias-empty" class="frecuencias-empty d-none">No hay destinos que coincidan con los filtros seleccionados.</div>
+                                                <div class="card-footer bg-light text-muted small">
+                                                    <div id="frecuencias-table-footnote">Valores generados automáticamente a partir del archivo JSON semanal.</div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1711,7 +1875,7 @@
                             <h2 class="section-title mb-0">ITINERARIO MENSUAL DEL MES DE DICIEMBRE </h2>
                         </div>
                         <div class="card-body pdf-container">
-                            <iframe id="pdf-itinerario-mensual" src="pdfs/itinerario_mensual.pdf" width="100%" height="800px" class="border-0"></iframe>
+                            <iframe id="pdf-itinerario-mensual" title="Itinerario Mensual" src="pdfs/itinerario_mensual.pdf" width="100%" height="800px" class="border-0"></iframe>
                             <button class="btn btn-outline-primary w-100 mt-2" data-fullscreen-target="#pdf-itinerario-mensual"><i class="fas fa-expand me-2"></i>Ver en Pantalla Completa</button>
                         </div>
                     </div>
@@ -1743,7 +1907,7 @@
                                             <label for="puntualidad-minflights" class="small text-muted m-0">Mín. vuelos
                                                 <i id="minflights-help" class="fas fa-circle-question ms-1 text-muted" data-bs-toggle="tooltip" data-bs-placement="top" title="Sólo afecta los TOPs: excluye aerolíneas con menos vuelos que este mínimo."></i>
                                             </label>
-                                            <select id="puntualidad-minflights" class="form-select form-select-sm" style="width:auto;">
+                                            <select id="puntualidad-minflights" class="form-select form-select-sm w-auto">
                                                 <option value="1">1</option>
                                                 <option value="3">3</option>
                                                 <option value="5" selected>5</option>
@@ -1799,9 +1963,9 @@
                                 </div>
                                 <div class="tab-pane fade" id="punc-pdf-pane" role="tabpanel" aria-labelledby="punc-pdf-tab" tabindex="0">
                                     <div class="pdf-container">
-                                        <div class="pdf-singlepage-viewer v-scroll" data-src="pdfs/puntualidad_agosto.pdf" style="position:relative; width:100%; max-width:100%;">
-                                            <canvas style="width:100%; height:auto; display:block;"></canvas>
-                                            <div class="links-layer" style="position:absolute; left:0; top:0; pointer-events:none;"></div>
+                                        <div class="pdf-singlepage-viewer v-scroll pdf-viewer-container" data-src="pdfs/puntualidad_agosto.pdf">
+                                            <canvas class="pdf-canvas"></canvas>
+                                            <div class="links-layer pdf-links-layer"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -1817,7 +1981,7 @@
                         </div>
                         <div class="card-body">
                             <div class="pdf-preview-container shadow-sm">
-                                <iframe id="pdf-preview-2" src="pdfs/operatividad_aerolineas.pdf"></iframe>
+                                <iframe id="pdf-preview-2" title="Análisis Comparativo" src="pdfs/operatividad_aerolineas.pdf"></iframe>
                             </div>
                             <button class="btn btn-outline-primary w-100 mt-2" data-fullscreen-target="#pdf-preview-2"><i class="fas fa-expand me-2"></i>Ver en Pantalla Completa</button>
                         </div>
@@ -1839,7 +2003,8 @@
                                     <div class="manifest-sidebar d-flex flex-column gap-3">
                                         <div class="manifest-pane manifest-pane-controls">
                                             <div class="manifest-controls mb-2 d-flex gap-2 flex-wrap align-items-center">
-                                        <input type="file" id="manifest-upload" accept=".pdf,application/pdf,image/*" class="form-control form-control-sm" style="max-width:320px;">
+                                        <label for="manifest-upload" class="visually-hidden">Subir manifiesto</label>
+                                        <input type="file" id="manifest-upload" accept=".pdf,application/pdf,image/*" class="form-control form-control-sm max-w-320">
                                         <div class="d-flex gap-2">
                                             <button id="manifest-upload-btn-pdf" type="button" class="btn btn-outline-secondary btn-sm"><i class="fas fa-file-pdf me-1"></i>Adjuntar PDF</button>
                                             <button id="manifest-upload-btn-img" type="button" class="btn btn-outline-secondary btn-sm"><i class="fas fa-image me-1"></i>Adjuntar imagen</button>
@@ -1850,7 +2015,8 @@
                                             <label class="form-check-label small" for="manifest-fast-mode" title="Usa texto del PDF primero y OCR dirigido solo si faltan campos clave. Igual de preciso, más rápido.">Modo rápido</label>
                                         </div>
                                         <button id="manifest-scan-ocr" class="btn btn-outline-secondary btn-sm"><i class="fas fa-magic me-1"></i>Escaneo alternativo (OCR)</button>
-                                        <select id="manifest-ocr-pages" class="form-select form-select-sm" style="width:auto; display:inline-block">
+                                        <label for="manifest-ocr-pages" class="visually-hidden">Páginas a escanear</label>
+                                        <select id="manifest-ocr-pages" class="form-select form-select-sm w-auto d-inline-block">
                                             <option value="1">1 pág</option>
                                             <option value="2" selected>2 págs</option>
                                             <option value="3">3 págs</option>
@@ -1870,7 +2036,7 @@
                                                 <div class="plane-progress-label small text-muted" id="manifest-plane-label">0%</div>
                                             </div>
                                             <div class="manifest-preview-shell">
-                                                <div id="manifest-preview-container" class="manifest-preview-card" style="position:relative; overflow:auto;">
+                                                <div id="manifest-preview-container" class="manifest-preview-card manifest-preview-container">
                                                     <!-- Loader de sección Manifiestos (tipo login con avión orbitando) -->
                                                     <div id="manifiestos-loader" class="section-loader hidden" role="alert" aria-live="assertive" aria-busy="true">
                                                         <div class="loader-content text-center">
@@ -1884,20 +2050,21 @@
                                                     </div>
                                                     <div id="manifest-preview-placeholder" class="text-muted small">Seleccione un PDF de manifiesto y presione "Escanear PDF" para procesarlo automáticamente.</div>
                                                     <!-- Previsualización: imagen (para JPG/PNG) o canvas (para PDF) -->
-                                                    <img id="manifest-preview" alt="Previsualización" class="img-fluid d-none" style="position:relative; z-index:0;" />
-                                                    <canvas id="manifest-preview-canvas" class="d-none" style="display:block; margin:auto; position:relative; z-index:1;"></canvas>
-                                                    <div id="manifest-text-layer" style="position:absolute; left:0; top:0; right:0; bottom:0; pointer-events:auto; user-select:text; white-space:pre-wrap; overflow:hidden; padding:0.25rem; font: 12px/1.2 'Roboto Mono', monospace; z-index:5;"></div>
+                                                    <img id="manifest-preview" alt="Previsualización" class="img-fluid d-none manifest-preview-img" />
+                                                    <canvas id="manifest-preview-canvas" class="d-none manifest-preview-canvas"></canvas>
+                                                    <div id="manifest-text-layer" class="manifest-text-layer"></div>
                                                 </div>
                                             </div>
                                             <div class="manifest-status-stack">
                                                 <div id="manifest-ocr-status" class="small text-muted"></div>
-                                                <div class="progress my-1 d-none" style="height: 18px;" id="manifest-progress-bar-container">
-                                                    <div class="progress-bar progress-bar-striped progress-bar-animated" id="manifest-progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">Escaneando PDF...</div>
+                                                <div class="progress my-1 d-none h-18px" id="manifest-progress-bar-container">
+                                                    <div class="progress-bar progress-bar-striped progress-bar-animated w-0" id="manifest-progress-bar" role="progressbar" aria-label="Progreso de escaneo" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">Escaneando PDF...</div>
                                                 </div>
                                                 <div id="manifest-pdf-status" class="small text-info"></div>
                                                 <details class="mt-1 manifest-debug-toggle">
                                                     <summary class="small">Ver texto detectado (debug)</summary>
-                                                    <textarea id="manifest-ocr-debug" class="form-control form-control-sm mt-2" rows="8" style="font-family: 'Roboto Mono', monospace;"></textarea>
+                                                    <label for="manifest-ocr-debug" class="visually-hidden">Debug OCR</label>
+                                                    <textarea id="manifest-ocr-debug" class="form-control form-control-sm mt-2 font-roboto-mono" rows="8"></textarea>
                                                 </details>
                                             </div>
                                         </div>
@@ -1916,11 +2083,11 @@
                                         </div>
                                         <div class="d-flex align-items-end gap-2 mf-header-meta">
                                             <div>
-                                                <label class="form-label small mb-1 text-light-ntp">Fecha del Documento</label>
+                                                <label class="form-label small mb-1 text-light-ntp" for="mf-doc-date">Fecha del Documento</label>
                                                 <input type="date" class="form-control form-control-sm mf-header-input" id="mf-doc-date" />
                                             </div>
                                             <div>
-                                                <label class="form-label small mb-1 text-light-ntp">Folio</label>
+                                                <label class="form-label small mb-1 text-light-ntp" for="mf-folio">Folio</label>
                                                 <input type="text" class="form-control form-control-sm mf-header-input" id="mf-folio" />
                                             </div>
                                         </div>
@@ -1939,7 +2106,7 @@
                                             <div class="col-12">
                                                 <div class="d-flex flex-wrap align-items-end gap-3">
                                                     <div class="flex-grow-1">
-                                                        <label class="form-label">Título</label>
+                                                        <label class="form-label" for="mf-title">Título</label>
                                                         <input type="text" class="form-control" id="mf-title" value="MANIFIESTO DE LLEGADA" readonly>
                                                     </div>
                                                 </div>
@@ -1951,58 +2118,58 @@
                                         </div>
                                         <!-- Nuevos primeros campos en Datos generales -->
                                         <div class="col-12 col-md-6 mb-2">
-                                            <label class="form-label" id="mf-airport-main-label">Aeropuerto de Llegada</label>
-                                            <input type="text" class="form-control" id="mf-airport-main" placeholder="IATA (3 letras)" maxlength="3" style="text-transform:uppercase" list="airports-iata-list" />
+                                            <label class="form-label" id="mf-airport-main-label" for="mf-airport-main">Aeropuerto de Llegada</label>
+                                            <input type="text" class="form-control text-uppercase" id="mf-airport-main" placeholder="IATA (3 letras)" maxlength="3" list="airports-iata-list" />
                                         </div>
                                         <div class="col-12 col-md-6 mb-2">
-                                            <label class="form-label">Tipo de vuelo</label>
-                                            <input type="text" class="form-control" id="mf-flight-type" placeholder="Escribe la letra del tipo (A–Z)" maxlength="1" pattern="[A-Za-z]" style="text-transform:uppercase" list="flight-type-list" autocomplete="off" />
+                                            <label class="form-label" for="mf-flight-type">Tipo de vuelo</label>
+                                            <input type="text" class="form-control text-uppercase" id="mf-flight-type" placeholder="Escribe la letra del tipo (A–Z)" maxlength="1" pattern="[A-Za-z]" list="flight-type-list" autocomplete="off" />
                                             <datalist id="flight-type-list"></datalist>
                                             <div id="mf-flight-type-info" class="form-text small text-muted"></div>
                                         </div>
                                         
                                         <div class="col-12 col-md-4 mb-2">
-                                            <label class="form-label">Transportista (OACI - 3 letras)</label>
-                                            <input type="text" class="form-control" id="mf-carrier-3l" maxlength="3" placeholder="Ej. AMX" style="text-transform:uppercase" list="airlines-icao-list" pattern="[A-Za-z]{3}" autocomplete="off" />
+                                            <label class="form-label" for="mf-carrier-3l">Transportista (OACI - 3 letras)</label>
+                                            <input type="text" class="form-control text-uppercase" id="mf-carrier-3l" maxlength="3" placeholder="Ej. AMX" list="airlines-icao-list" pattern="[A-Za-z]{3}" autocomplete="off" />
                                             <datalist id="airlines-icao-list"></datalist>
                                             <div class="form-text">Usa el código OACI (ICAO) de 3 letras. Ejemplos: AMX (Aeroméxico), CLX (Cargolux), THY (Turkish).</div>
                                         </div>
                                         <div class="col-12 col-md-8 mb-2">
-                                            <label class="form-label">Nombre o razón social del transportista / operador aéreo</label>
+                                            <label class="form-label" for="mf-operator-name">Nombre o razón social del transportista / operador aéreo</label>
                                             <input type="text" class="form-control" id="mf-operator-name" />
                                         </div>
                                         <div class="col-12 col-md-4 mb-2">
-                                            <label class="form-label">Transportista / Operador (Nombre comercial)</label>
+                                            <label class="form-label" for="mf-airline">Transportista / Operador (Nombre comercial)</label>
                                             <input type="text" class="form-control" id="mf-airline" />
                                         </div>
                                         <div class="col-12 col-md-4 mb-2">
-                                            <label class="form-label">Matrícula</label>
-                                            <input type="text" class="form-control" id="mf-tail" list="aircraft-reg-list" placeholder="Ej. N851GT / XAABC" style="text-transform:uppercase" autocomplete="off" />
+                                            <label class="form-label" for="mf-tail">Matrícula</label>
+                                            <input type="text" class="form-control text-uppercase" id="mf-tail" list="aircraft-reg-list" placeholder="Ej. N851GT / XAABC" autocomplete="off" />
                                             <datalist id="aircraft-reg-list"></datalist>
                                             <div class="form-text">Selecciona una matrícula del catálogo o escríbela manualmente.</div>
                                             <div id="mf-tail-warning" class="form-text text-danger d-none"></div>
                                         </div>
                                         <div class="col-12 col-md-4 mb-2">
-                                            <label class="form-label">Vuelo</label>
+                                            <label class="form-label" for="mf-flight">Vuelo</label>
                                             <input type="text" class="form-control" id="mf-flight" />
                                         </div>
                                         
                                         <div class="col-12 col-md-4 mb-2">
-                                            <label class="form-label">Equipo</label>
-                                            <input type="text" class="form-control" id="mf-aircraft" list="aircraft-type-icao-list" placeholder="Ej. B77F / A21N / E195" style="text-transform:uppercase" pattern="[A-Za-z0-9]{2,5}" autocomplete="off" />
+                                            <label class="form-label" for="mf-aircraft">Equipo</label>
+                                            <input type="text" class="form-control text-uppercase" id="mf-aircraft" list="aircraft-type-icao-list" placeholder="Ej. B77F / A21N / E195" pattern="[A-Za-z0-9]{2,5}" autocomplete="off" />
                                             <datalist id="aircraft-type-icao-list"></datalist>
                                             <div class="form-text">Usa el código OACI del tipo de aeronave (ej. B77F, A21N). Puedes editarlo manualmente.</div>
                                         </div>
                                         <div class="col-12 col-md-4">
-                                            <label class="form-label">Piloto al Mando</label>
+                                            <label class="form-label" for="mf-pilot">Piloto al Mando</label>
                                             <input type="text" class="form-control" id="mf-pilot" />
                                         </div>
                                         <div class="col-12 col-md-4">
-                                            <label class="form-label">No. de Licencia</label>
+                                            <label class="form-label" for="mf-pilot-license">No. de Licencia</label>
                                             <input type="text" class="form-control" id="mf-pilot-license" />
                                         </div>
                                         <div class="col-12 col-md-4">
-                                            <label class="form-label">No. de Tripulación</label>
+                                            <label class="form-label" for="mf-crew-total">No. de Tripulación</label>
                                             <input type="number" min="0" class="form-control" id="mf-crew-total" />
                                         </div>
                                         
@@ -2016,43 +2183,43 @@
                                                 <!-- Columna 1: Origen -->
                                                 <div class="col-12 col-md-4">
                                                     <div class="mb-2">
-                                                        <label class="form-label">Origen de vuelo - Nombre completo del aeropuerto</label>
+                                                        <label class="form-label" for="mf-origin-name">Origen de vuelo - Nombre completo del aeropuerto</label>
                                                         <input type="text" class="form-control" id="mf-origin-name" list="airports-name-list" placeholder="Nombre completo del aeropuerto" />
                                                         <small class="text-muted">Si es Hangar, agregue "H". Si es Pernocta, agregue "P".</small>
                                                     </div>
                                                     <div class="mb-2">
-                                                        <label class="form-label">Código de 3 letras (origen)</label>
-                                                        <input type="text" class="form-control" id="mf-origin-code" maxlength="3" style="text-transform:uppercase" list="airports-iata-list" placeholder="IATA (3 letras)" />
+                                                        <label class="form-label" for="mf-origin-code">Código de 3 letras (origen)</label>
+                                                        <input type="text" class="form-control text-uppercase" id="mf-origin-code" maxlength="3" list="airports-iata-list" placeholder="IATA (3 letras)" />
                                                     </div>
                                                                                                         
                                                 </div>
                                                 <!-- Columna 2: Próxima escala -->
                                                 <div class="col-12 col-md-4">
                                                     <div class="mb-2">
-                                                        <label class="form-label">Próxima escala - Nombre completo del aeropuerto</label>
+                                                        <label class="form-label" for="mf-next-stop">Próxima escala - Nombre completo del aeropuerto</label>
                                                         <input type="text" class="form-control" id="mf-next-stop" list="airports-name-list" placeholder="Nombre completo del aeropuerto" />
                                                     </div>
                                                     <div class="mb-2">
-                                                        <label class="form-label">Código de 3 letras (próxima escala)</label>
-                                                        <input type="text" class="form-control" id="mf-next-stop-code" maxlength="3" style="text-transform:uppercase" list="airports-iata-list" placeholder="IATA (3 letras)" />
+                                                        <label class="form-label" for="mf-next-stop-code">Código de 3 letras (próxima escala)</label>
+                                                        <input type="text" class="form-control text-uppercase" id="mf-next-stop-code" maxlength="3" list="airports-iata-list" placeholder="IATA (3 letras)" />
                                                     </div>
                                                     
                                                 </div>
                                                 <!-- Columna 3: Destino -->
                                                 <div class="col-12 col-md-4">
                                                     <div class="mb-2">
-                                                        <label class="form-label">Destino del vuelo - Nombre completo del aeropuerto</label>
+                                                        <label class="form-label" for="mf-final-dest">Destino del vuelo - Nombre completo del aeropuerto</label>
                                                         <input type="text" class="form-control" id="mf-final-dest" list="airports-name-list" placeholder="Nombre completo del aeropuerto" />
                                                     </div>
                                                     <div class="mb-2">
-                                                        <label class="form-label">Código de 3 letras (destino)</label>
-                                                        <input type="text" class="form-control" id="mf-final-dest-code" maxlength="3" style="text-transform:uppercase" list="airports-iata-list" placeholder="IATA (3 letras)" />
+                                                        <label class="form-label" for="mf-final-dest-code">Código de 3 letras (destino)</label>
+                                                        <input type="text" class="form-control text-uppercase" id="mf-final-dest-code" maxlength="3" list="airports-iata-list" placeholder="IATA (3 letras)" />
                                                     </div>
                                                     
                                                 </div>
                                                 <!-- Tipo de Operación (Salida) -->
                                                 <div class="col-12 col-md-4 mb-2">
-                                                    <label class="form-label">Tipo de Operación</label>
+                                                    <label class="form-label" for="mf-operation-type-dep">Tipo de Operación</label>
                                                     <input type="text" class="form-control" id="mf-operation-type-dep" placeholder="Doméstica / Internacional" readonly />
                                                     <div class="form-text">Se calcula con los aeropuertos (origen/destino).</div>
                                                 </div>
@@ -2062,27 +2229,27 @@
                                                         <h6 class="mb-2">Tiempos (Salida)</h6>
                                                         <div class="row g-2">
                                                             <div class="col-6 col-md-3">
-                                                                <label class="form-label">Hora de slot asignado</label>
+                                                                <label class="form-label" for="mf-slot-assigned">Hora de slot asignado</label>
                                                                 <input type="text" class="form-control" id="mf-slot-assigned" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
                                                                 <div class="form-text">Hora local</div>
                                                             </div>
                                                             <div class="col-6 col-md-3">
-                                                                <label class="form-label">Hora de slot coordinado</label>
+                                                                <label class="form-label" for="mf-slot-coordinated">Hora de slot coordinado</label>
                                                                 <input type="text" class="form-control" id="mf-slot-coordinated" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
                                                                 <div class="form-text">Hora local</div>
                                                             </div>
                                                             <div class="col-6 col-md-3">
-                                                                <label class="form-label">Hora de término de pernocta</label>
+                                                                <label class="form-label" for="mf-termino-pernocta">Hora de término de pernocta</label>
                                                                 <input type="text" class="form-control" id="mf-termino-pernocta" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
                                                                 <div class="form-text">Hora local</div>
                                                             </div>
                                                             <div class="col-6 col-md-3">
-                                                                <label class="form-label">Hora de inicio de maniobras de embarque</label>
+                                                                <label class="form-label" for="mf-inicio-embarque">Hora de inicio de maniobras de embarque</label>
                                                                 <input type="text" class="form-control" id="mf-inicio-embarque" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
                                                                 <div class="form-text">Hora local</div>
                                                             </div>
                                                             <div class="col-6 col-md-3">
-                                                                <label class="form-label">Hora de salida de la posición</label>
+                                                                <label class="form-label" for="mf-salida-posicion">Hora de salida de la posición</label>
                                                                 <input type="text" class="form-control" id="mf-salida-posicion" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
                                                                 <div class="form-text">Hora local</div>
                                                             </div>
@@ -2098,24 +2265,24 @@
                                             <div class="row g-2">
                                                 <!-- 1) Procedencia del vuelo (nombre completo) -->
                                                 <div class="col-12 col-md-6">
-                                                    <label class="form-label">Procedencia del vuelo - Nombre completo del aeropuerto</label>
+                                                    <label class="form-label" for="mf-arr-origin-name">Procedencia del vuelo - Nombre completo del aeropuerto</label>
                                                     <input type="text" class="form-control" id="mf-arr-origin-name" list="airports-name-list" placeholder="Nombre completo del aeropuerto" />
                                                 </div>
                                                 <!-- 2) Código de 3 letras (procedencia) -->
                                                 <div class="col-6 col-md-3">
-                                                    <label class="form-label">Código de 3 letras (procedencia)</label>
-                                                    <input type="text" class="form-control" id="mf-arr-origin-code" maxlength="3" style="text-transform:uppercase" list="airports-iata-list" placeholder="IATA (3 letras)" />
+                                                    <label class="form-label" for="mf-arr-origin-code">Código de 3 letras (procedencia)</label>
+                                                    <input type="text" class="form-control text-uppercase" id="mf-arr-origin-code" maxlength="3" list="airports-iata-list" placeholder="IATA (3 letras)" />
                                                 </div>
                                                 
                                                 <!-- 5) Última escala - nombre completo del aeropuerto -->
                                                 <div class="col-12 col-md-6">
-                                                    <label class="form-label">Escala Anterior - Nombre completo del aeropuerto</label>
+                                                    <label class="form-label" for="mf-arr-last-stop">Escala Anterior - Nombre completo del aeropuerto</label>
                                                     <input type="text" class="form-control" id="mf-arr-last-stop" list="airports-name-list" placeholder="Nombre completo del aeropuerto" />
                                                 </div>
                                                 <!-- 6) Código de 3 letras (última escala) -->
                                                 <div class="col-6 col-md-3">
-                                                    <label class="form-label">Código de 3 letras (escala anterior)</label>
-                                                        <input type="text" class="form-control" id="mf-arr-last-stop-code" maxlength="3" style="text-transform:uppercase" list="airports-iata-list" placeholder="IATA (3 letras)" />
+                                                    <label class="form-label" for="mf-arr-last-stop-code">Código de 3 letras (escala anterior)</label>
+                                                        <input type="text" class="form-control text-uppercase" id="mf-arr-last-stop-code" maxlength="3" list="airports-iata-list" placeholder="IATA (3 letras)" />
 
                         <datalist id="airports-iata-list"></datalist>
                         <datalist id="airports-name-list"></datalist>
@@ -2126,7 +2293,7 @@
                                                 </div>
                                                 <!-- Tipo de Operación (Llegada) -->
                                                 <div class="col-12 col-md-4 mb-2">
-                                                    <label class="form-label">Tipo de Operación</label>
+                                                    <label class="form-label" for="mf-operation-type-arr">Tipo de Operación</label>
                                                     <input type="text" class="form-control" id="mf-operation-type-arr" placeholder="Doméstica / Internacional" readonly />
                                                     <div class="form-text">Se calcula con los aeropuertos (procedencia/escala).</div>
                                                 </div>
@@ -2137,33 +2304,33 @@
                                                         <h6 class="mb-2 mf-section-title">Tiempos (Llegada)</h6>
                                                         <div class="row g-2">
                                                             <div class="col-6 col-md-3">
-                                                                <label class="form-label">Hora de slot asignado</label>
+                                                                <label class="form-label" for="mf-arr-slot-assigned">Hora de slot asignado</label>
                                                                 <input type="text" class="form-control" id="mf-arr-slot-assigned" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
-                                                                <label class="form-check-label ms-2 d-inline-flex align-items-center"><input type="checkbox" class="form-check-input me-1" id="mf-arr-slot-assigned-na" title="No aplica (N/A)">N/A</label>
+                                                                <label class="form-check-label ms-2 d-inline-flex align-items-center" for="mf-arr-slot-assigned-na"><input type="checkbox" class="form-check-input me-1" id="mf-arr-slot-assigned-na" title="No aplica (N/A)">N/A</label>
                                                                 <div class="form-text">Hora local</div>
                                                             </div>
                                                             <div class="col-6 col-md-3">
-                                                                <label class="form-label">Hora de slot coordinado</label>
+                                                                <label class="form-label" for="mf-arr-slot-coordinated">Hora de slot coordinado</label>
                                                                 <input type="text" class="form-control" id="mf-arr-slot-coordinated" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
-                                                                <label class="form-check-label ms-2 d-inline-flex align-items-center"><input type="checkbox" class="form-check-input me-1" id="mf-arr-slot-coordinated-na" title="No aplica (N/A)">N/A</label>
+                                                                <label class="form-check-label ms-2 d-inline-flex align-items-center" for="mf-arr-slot-coordinated-na"><input type="checkbox" class="form-check-input me-1" id="mf-arr-slot-coordinated-na" title="No aplica (N/A)">N/A</label>
                                                                 <div class="form-text">Hora local</div>
                                                             </div>
                                                             <div class="col-6 col-md-3">
-                                                                <label class="form-label">Hora de entrada a la posición</label>
+                                                                <label class="form-label" for="mf-arr-arribo-posicion">Hora de entrada a la posición</label>
                                                                 <input type="text" class="form-control" id="mf-arr-arribo-posicion" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
-                                                                <label class="form-check-label ms-2 d-inline-flex align-items-center"><input type="checkbox" class="form-check-input me-1" id="mf-arr-arribo-posicion-na" title="No aplica (N/A)">N/A</label>
+                                                                <label class="form-check-label ms-2 d-inline-flex align-items-center" for="mf-arr-arribo-posicion-na"><input type="checkbox" class="form-check-input me-1" id="mf-arr-arribo-posicion-na" title="No aplica (N/A)">N/A</label>
                                                                 <div class="form-text">Hora local</div>
                                                             </div>
                                                             <div class="col-6 col-md-3">
-                                                                <label class="form-label">Hora de termino de maniobras de desembarque</label>
+                                                                <label class="form-label" for="mf-arr-inicio-desembarque">Hora de termino de maniobras de desembarque</label>
                                                                 <input type="text" class="form-control" id="mf-arr-inicio-desembarque" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
-                                                                <label class="form-check-label ms-2 d-inline-flex align-items-center"><input type="checkbox" class="form-check-input me-1" id="mf-arr-inicio-desembarque-na" title="No aplica (N/A)">N/A</label>
+                                                                <label class="form-check-label ms-2 d-inline-flex align-items-center" for="mf-arr-inicio-desembarque-na"><input type="checkbox" class="form-check-input me-1" id="mf-arr-inicio-desembarque-na" title="No aplica (N/A)">N/A</label>
                                                                 <div class="form-text">Hora local</div>
                                                             </div>
                                                             <div class="col-6 col-md-3">
-                                                                <label class="form-label">Hora de inicio de pernocta</label>
+                                                                <label class="form-label" for="mf-arr-inicio-pernocta">Hora de inicio de pernocta</label>
                                                                 <input type="text" class="form-control" id="mf-arr-inicio-pernocta" data-time24="1" inputmode="numeric" placeholder="HH:MM" maxlength="5" />
-                                                                <label class="form-check-label ms-2 d-inline-flex align-items-center"><input type="checkbox" class="form-check-input me-1" id="mf-arr-inicio-pernocta-na" title="No aplica (N/A)">N/A</label>
+                                                                <label class="form-check-label ms-2 d-inline-flex align-items-center" for="mf-arr-inicio-pernocta-na"><input type="checkbox" class="form-check-input me-1" id="mf-arr-inicio-pernocta-na" title="No aplica (N/A)">N/A</label>
                                                                 <div class="form-text">Hora local</div>
                                                             </div>
                                                         </div>
@@ -2180,43 +2347,43 @@
                                             <h6 class="mb-2 mf-section-title"><i class="fas fa-clock me-1"></i>Causas de la demora</h6>
                                             <div class="row g-2 align-items-end mb-1">
                                                 <div class="col-12 col-md-3">
-                                                    <label class="form-label">Código de demora</label>
+                                                    <label class="form-label" for="demora1-codigo">Código de demora</label>
                                                     <input type="text" class="form-control" id="demora1-codigo" list="delay-alpha-codes" placeholder="Escribe código (Alpha)" maxlength="3" autocomplete="off">
                                                 </div>
                                                 <div class="col-6 col-md-2">
-                                                    <label class="form-label">Tiempo (min)</label>
+                                                    <label class="form-label" for="demora1-tiempo">Tiempo (min)</label>
                                                     <input type="number" min="0" class="form-control" id="demora1-tiempo" placeholder="0">
                                                 </div>
                                                 <div class="col-12 col-md-7">
-                                                    <label class="form-label">Descripción</label>
+                                                    <label class="form-label" for="demora1-descripcion">Descripción</label>
                                                     <input type="text" class="form-control" id="demora1-descripcion" placeholder="Descripción del código">
                                                 </div>
                                             </div>
                                             <div class="row g-2 align-items-end mb-1">
                                                 <div class="col-12 col-md-3">
-                                                    <label class="form-label">Código de demora</label>
+                                                    <label class="form-label" for="demora2-codigo">Código de demora</label>
                                                     <input type="text" class="form-control" id="demora2-codigo" list="delay-alpha-codes" placeholder="Escribe código (Alpha)" maxlength="3" autocomplete="off">
                                                 </div>
                                                 <div class="col-6 col-md-2">
-                                                    <label class="form-label">Tiempo (min)</label>
+                                                    <label class="form-label" for="demora2-tiempo">Tiempo (min)</label>
                                                     <input type="number" min="0" class="form-control" id="demora2-tiempo" placeholder="0">
                                                 </div>
                                                 <div class="col-12 col-md-7">
-                                                    <label class="form-label">Descripción</label>
+                                                    <label class="form-label" for="demora2-descripcion">Descripción</label>
                                                     <input type="text" class="form-control" id="demora2-descripcion" placeholder="Descripción del código">
                                                 </div>
                                             </div>
                                             <div class="row g-2 align-items-end mb-2">
                                                 <div class="col-12 col-md-3">
-                                                    <label class="form-label">Código de demora</label>
+                                                    <label class="form-label" for="demora3-codigo">Código de demora</label>
                                                     <input type="text" class="form-control" id="demora3-codigo" list="delay-alpha-codes" placeholder="Escribe código (Alpha)" maxlength="3" autocomplete="off">
                                                 </div>
                                                 <div class="col-6 col-md-2">
-                                                    <label class="form-label">Tiempo (min)</label>
+                                                    <label class="form-label" for="demora3-tiempo">Tiempo (min)</label>
                                                     <input type="number" min="0" class="form-control" id="demora3-tiempo" placeholder="0">
                                                 </div>
                                                 <div class="col-12 col-md-7">
-                                                    <label class="form-label">Descripción</label>
+                                                    <label class="form-label" for="demora3-descripcion">Descripción</label>
                                                     <input type="text" class="form-control" id="demora3-descripcion" placeholder="Descripción del código">
                                                 </div>
                                             </div>
@@ -2229,14 +2396,14 @@
                                         <div class="col-12" data-dir="departure-only">
                                             <h6 class="mb-2 mf-section-title"><i class="fas fa-people-group me-1"></i>Pasajeros por categoría</h6>
                                             <div class="row g-2">
-                                                <div class="col-6 col-md-3"><label class="form-label">Pagan TUA</label><input type="number" min="0" class="form-control" id="pax-tua"></div>
-                                                <div class="col-6 col-md-3"><label class="form-label">Diplomáticos</label><input type="number" min="0" class="form-control" id="pax-diplomaticos"></div>
-                                                <div class="col-6 col-md-3"><label class="form-label">En comisión</label><input type="number" min="0" class="form-control" id="pax-comision"></div>
-                                                <div class="col-6 col-md-3"><label class="form-label">Infantes</label><input type="number" min="0" class="form-control" id="pax-infantes"></div>
-                                                <div class="col-6 col-md-3"><label class="form-label">Tránsitos</label><input type="number" min="0" class="form-control" id="pax-transitos"></div>
-                                                <div class="col-6 col-md-3"><label class="form-label">Conexiones</label><input type="number" min="0" class="form-control" id="pax-conexiones"></div>
-                                                <div class="col-6 col-md-3"><label class="form-label">Otros exentos</label><input type="number" min="0" class="form-control" id="pax-exentos"></div>
-                                                <div class="col-6 col-md-3"><label class="form-label">Total</label><input type="number" min="0" class="form-control" id="pax-total" readonly></div>
+                                                <div class="col-6 col-md-3"><label class="form-label" for="pax-tua">Pagan TUA</label><input type="number" min="0" class="form-control" id="pax-tua"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label" for="pax-diplomaticos">Diplomáticos</label><input type="number" min="0" class="form-control" id="pax-diplomaticos"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label" for="pax-comision">En comisión</label><input type="number" min="0" class="form-control" id="pax-comision"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label" for="pax-infantes">Infantes</label><input type="number" min="0" class="form-control" id="pax-infantes"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label" for="pax-transitos">Tránsitos</label><input type="number" min="0" class="form-control" id="pax-transitos"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label" for="pax-conexiones">Conexiones</label><input type="number" min="0" class="form-control" id="pax-conexiones"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label" for="pax-exentos">Otros exentos</label><input type="number" min="0" class="form-control" id="pax-exentos"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label" for="pax-total">Total</label><input type="number" min="0" class="form-control" id="pax-total" readonly></div>
                                             </div>
                                             <div class="row g-2 mt-1">
                                                 <div class="col-12 col-md-6"><div class="form-text">Nacionales</div></div>
@@ -2259,23 +2426,23 @@
                                                     <thead>
                                                         <tr>
                                                             <th>Estación</th>
-                                                            <th style="width:140px;">Pax Nacional</th>
-                                                            <th style="width:160px;">Pax Internacional</th>
-                                                            <th style="width:140px;">Equipaje (kg)</th>
-                                                            <th style="width:140px;">Carga (kg)</th>
-                                                            <th style="width:140px;">Correo (kg)</th>
-                                                            <th style="width:60px;"></th>
+                                                            <th class="w-140px">Pax Nacional</th>
+                                                            <th class="w-160px">Pax Internacional</th>
+                                                            <th class="w-140px">Equipaje (kg)</th>
+                                                            <th class="w-140px">Carga (kg)</th>
+                                                            <th class="w-140px">Correo (kg)</th>
+                                                            <th class="w-60px"></th>
                                                         </tr>
                                                     </thead>
                                                     <tbody></tbody>
                                                     <tfoot>
                                                         <tr class="table-light">
                                                             <th>Totales</th>
-                                                            <th><input type="number" class="form-control form-control-sm" id="total-pax-nacional" readonly></th>
-                                                            <th><input type="number" class="form-control form-control-sm" id="total-pax-internacional" readonly></th>
-                                                            <th><input type="text" class="form-control form-control-sm" id="total-equipaje" readonly></th>
-                                                            <th><input type="text" class="form-control form-control-sm" id="total-carga" readonly></th>
-                                                            <th><input type="text" class="form-control form-control-sm" id="total-correo" readonly></th>
+                                                            <th><label for="total-pax-nacional" class="visually-hidden">Total Pax Nacional</label><input type="number" class="form-control form-control-sm" id="total-pax-nacional" readonly></th>
+                                                            <th><label for="total-pax-internacional" class="visually-hidden">Total Pax Internacional</label><input type="number" class="form-control form-control-sm" id="total-pax-internacional" readonly></th>
+                                                            <th><label for="total-equipaje" class="visually-hidden">Total Equipaje</label><input type="text" class="form-control form-control-sm" id="total-equipaje" readonly></th>
+                                                            <th><label for="total-carga" class="visually-hidden">Total Carga</label><input type="text" class="form-control form-control-sm" id="total-carga" readonly></th>
+                                                            <th><label for="total-correo" class="visually-hidden">Total Correo</label><input type="text" class="form-control form-control-sm" id="total-correo" readonly></th>
                                                             <th></th>
                                                         </tr>
                                                     </tfoot>
@@ -2284,27 +2451,27 @@
                                             <hr />
                                         </div>
                                         <div class="col-6 col-md-4" data-dir="departure-only">
-                                            <label class="form-label">Equipaje Piezas</label>
+                                            <label class="form-label" for="mf-baggage-pcs">Equipaje Piezas</label>
                                             <input type="number" class="form-control" id="mf-baggage-pcs" />
                                         </div>
                                         <div class="col-6 col-md-4" data-dir="departure-only">
-                                            <label class="form-label">Carga (kg)</label>
+                                            <label class="form-label" for="mf-cargo">Carga (kg)</label>
                                             <input type="number" step="0.01" class="form-control" id="mf-cargo" />
                                         </div>
                                         <div class="col-6 col-md-4" data-dir="departure-only">
-                                            <label class="form-label">Carga Piezas</label>
+                                            <label class="form-label" for="mf-cargo-pieces">Carga Piezas</label>
                                             <input type="number" class="form-control" id="mf-cargo-pieces" />
                                         </div>
                                         <div class="col-6 col-md-4" data-dir="departure-only">
-                                            <label class="form-label">Volumen (m³)</label>
+                                            <label class="form-label" for="mf-cargo-volume">Volumen (m³)</label>
                                             <input type="number" step="0.01" class="form-control" id="mf-cargo-volume" />
                                         </div>
                                         <div class="col-6 col-md-4" data-dir="departure-only">
-                                            <label class="form-label">Correo (kg)</label>
+                                            <label class="form-label" for="mf-mail">Correo (kg)</label>
                                             <input type="number" step="0.01" class="form-control" id="mf-mail" />
                                         </div>
                                         <div class="col-6 col-md-4" data-dir="departure-only">
-                                            <label class="form-label">Correo Piezas</label>
+                                            <label class="form-label" for="mf-mail-pieces">Correo Piezas</label>
                                             <input type="number" class="form-control" id="mf-mail-pieces" />
                                         </div>
                                         <div class="col-12" data-dir="departure-only">
@@ -2325,25 +2492,25 @@
                                             <hr />
                                         </div>
                                         <div class="col-12 col-md-6" data-dir="departure-only">
-                                            <label class="form-label">Agente / Responsable</label>
+                                            <label class="form-label" for="mf-agent">Agente / Responsable</label>
                                             <input type="text" class="form-control" id="mf-agent" />
                                         </div>
                                         <div class="col-12 col-md-6" data-dir="departure-only">
-                                            <label class="form-label">Nombre y Firma</label>
+                                            <label class="form-label" for="mf-signature">Nombre y Firma</label>
                                             <input type="text" class="form-control" id="mf-signature" />
                                         </div>
                                         <div class="col-12" data-dir="departure-only">
                                             <div class="row g-2">
                                                 <div class="col-12">
-                                                    <label class="form-label">Observaciones</label>
+                                                    <label class="form-label" for="mf-notes">Observaciones</label>
                                                     <textarea class="form-control" id="mf-notes" rows="2"></textarea>
                                                 </div>
                                                 <div class="col-12 col-md-6">
-                                                    <label class="form-label">Carga en tránsito (destino/procedencia)</label>
+                                                    <label class="form-label" for="mf-obs-transito">Carga en tránsito (destino/procedencia)</label>
                                                     <input type="text" class="form-control" id="mf-obs-transito" />
                                                 </div>
                                                 <div class="col-12 col-md-6">
-                                                    <label class="form-label">PAX DNI</label>
+                                                    <label class="form-label" for="mf-pax-dni">PAX DNI</label>
                                                     <input type="text" class="form-control" id="mf-pax-dni" />
                                                 </div>
                                             </div>
@@ -2356,19 +2523,19 @@
                                             <h6 class="mb-2 mf-section-title"><i class="fas fa-signature me-1"></i>Firmas y sellos</h6>
                                             <div class="row g-2">
                                                 <div class="col-12 col-md-4">
-                                                    <label class="form-label">Operador (Nombre y Firma)</label>
+                                                    <label class="form-label" for="mf-sign-operator">Operador (Nombre y Firma)</label>
                                                     <input type="text" class="form-control" id="mf-sign-operator" />
                                                 </div>
                                                 <div class="col-12 col-md-4">
-                                                    <label class="form-label">Coordinador de Rampa (Nombre y Firma)</label>
+                                                    <label class="form-label" for="mf-sign-coordinator">Coordinador de Rampa (Nombre y Firma)</label>
                                                     <input type="text" class="form-control" id="mf-sign-coordinator" />
                                                 </div>
                                                 <div class="col-12 col-md-4">
-                                                    <label class="form-label">Administrador AIFA - Recibido por</label>
+                                                    <label class="form-label" for="mf-sign-admin">Administrador AIFA - Recibido por</label>
                                                     <input type="text" class="form-control" id="mf-sign-admin" />
                                                 </div>
                                                 <div class="col-12 col-md-3">
-                                                    <label class="form-label">Fecha de Recepción</label>
+                                                    <label class="form-label" for="mf-sign-admin-date">Fecha de Recepción</label>
                                                     <input type="date" class="form-control" id="mf-sign-admin-date" />
                                                 </div>
                                             </div>
@@ -2524,7 +2691,7 @@
         </div>
     </div>
 
-    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 2050">
+    <div class="position-fixed bottom-0 end-0 p-3 z-2050">
         <div id="action-toast" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
                 <div class="toast-body">Filtros limpiados</div>
@@ -2535,7 +2702,7 @@
 
         <!-- Time Picker Modal (24h) -->
         <div class="modal fade" id="timePickerModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered" style="max-width:360px">
+            <div class="modal-dialog modal-dialog-centered max-w-360">
                 <div class="modal-content">
                     <div class="modal-header py-2">
                         <h6 class="modal-title"><i class="fas fa-clock me-2"></i>Seleccionar hora (24h)</h6>
@@ -2703,6 +2870,7 @@
     <script src="js/demoras.js"></script>
     <script src="js/operaciones.js"></script>
     <script src="js/frecuencias.js"></script>
+    <script src="js/frecuencias_auto.js"></script>
     <script src="js/manifiestos.js"></script>
     <script src="js/medicas.js"></script>
     <script src="js/fauna.js"></script>
