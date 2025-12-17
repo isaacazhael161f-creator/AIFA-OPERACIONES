@@ -3307,6 +3307,16 @@ async function makeToken(username){
 
 async function verifyToken(token){
     if (!token) return false;
+
+    // Validación Supabase
+    if (window.supabaseClient) {
+        const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+        if (error || !session) return false;
+        // Si hay sesión activa en Supabase, consideramos el token válido
+        return true;
+    }
+
+    // Validación Legacy (Hash local)
     const parts = token.split('.');
     if (parts.length !== 3) return false;
     const [u, ts, sig] = parts;
@@ -3330,51 +3340,68 @@ async function handleLogin(e) {
     e.preventDefault();
     const loginButton = document.getElementById('login-button');
     const errorDiv = document.getElementById('login-error');
-    errorDiv.textContent = '';
-    loginButton.classList.add('loading');
+    if (errorDiv) errorDiv.textContent = '';
+    if (loginButton) loginButton.classList.add('loading');
     showGlobalLoader('Verificando credenciales...');
 
-    try{
-        await ensureAuthHashes();
-        const { count, until } = getLockInfo();
-        const now = Date.now();
-        if (until && now < until) {
-            const secs = Math.ceil((until-now)/1000);
-            throw new Error(`Demasiados intentos. Intenta en ${secs}s`);
-        }
-
-        const usernameInput = (document.getElementById('username').value || '').toString();
+    try {
+        let emailOrUsername = document.getElementById('username').value;
         const password = document.getElementById('password').value;
-        const normalized = usernameInput.trim().toLowerCase();
-        const matchedKey = Object.keys(dashboardData.users).find(k => (k || '').toString().trim().toLowerCase() === normalized);
-        const user = matchedKey ? dashboardData.users[matchedKey] : undefined;
 
-        // Comparar hash de la contraseña ingresada contra el hash inicializado
-        let passOk = false;
-        if (matchedKey) {
-            const inputHash = await sha256(password + '|' + normalized + '|' + SECRET_PW_SALT);
-            const storedHash = AUTH_HASHES[matchedKey];
-            passOk = !!(storedHash && storedHash === inputHash);
-        }
-        if (!passOk) {
-            // incrementar lock con backoff exponencial
-            const nextCount = Math.min(8, (count||0)+1);
-            const waitMs = Math.min(300000, Math.pow(2, nextCount) * 1000); // hasta 5 min
-            setLockInfo(nextCount, Date.now() + waitMs);
-            throw new Error('Usuario o contraseña incorrectos');
+        if (!window.supabaseClient) throw new Error('Supabase no inicializado');
+
+        // Si no es un email, asumimos que es un nombre de usuario y agregamos el dominio interno
+        if (!emailOrUsername.includes('@')) {
+            emailOrUsername = `${emailOrUsername}@aifa.operaciones`;
         }
 
-        // Éxito: limpiar lockout y emitir token firmado
-        setLockInfo(0, 0);
-        const token = await makeToken(matchedKey);
-        sessionStorage.setItem(SESSION_USER, matchedKey);
-        sessionStorage.setItem(SESSION_TOKEN, token);
+        const { data, error } = await window.supabaseClient.auth.signInWithPassword({
+            email: emailOrUsername,
+            password: password,
+        });
+
+        if (error) throw error;
+
+        // Éxito
+        sessionStorage.setItem(SESSION_USER, data.user.email);
+        sessionStorage.setItem(SESSION_TOKEN, data.session.access_token);
+
+        // Obtener nombre completo (metadata o tabla profiles)
+        let fullName = data.user.user_metadata?.full_name;
+        if (!fullName) {
+            try {
+                const { data: profile } = await window.supabaseClient
+                    .from('profiles')
+                    .select('full_name')
+                    .eq('id', data.user.id)
+                    .single();
+                if (profile) fullName = profile.full_name;
+            } catch (_) {}
+        }
+        sessionStorage.setItem('user_fullname', fullName || data.user.email);
+
+        // Obtener rol del usuario
+        let role = 'viewer';
+        try {
+            const { data: roleData } = await window.supabaseClient
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', data.user.id)
+                .single();
+            
+            if (roleData && roleData.role) {
+                role = roleData.role;
+            }
+        } catch (e) {
+            console.warn('No se pudo obtener el rol del usuario, asignando viewer por defecto', e);
+        }
+        sessionStorage.setItem('user_role', role);
+
         showMainApp();
+
     } catch(err){
         const msg = (err && err.message) ? err.message : 'Error de autenticación';
-        const errorDiv = document.getElementById('login-error');
         if (errorDiv) errorDiv.textContent = msg;
-        const loginButton = document.getElementById('login-button');
         if (loginButton) loginButton.classList.remove('loading');
     } finally {
         hideGlobalLoader();
@@ -9416,7 +9443,14 @@ function showMainApp() {
         if (login) login.classList.add('hidden');
         if (main) main.classList.remove('hidden');
         // Usuario actual
-        const userEl = document.getElementById('current-user'); if (userEl) userEl.textContent = name;
+        const userEl = document.getElementById('current-user'); 
+        if (userEl) {
+            const fullName = sessionStorage.getItem('user_fullname') || name;
+            const role = sessionStorage.getItem('user_role') || 'viewer';
+            // Capitalizar rol
+            const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1);
+            userEl.innerHTML = `<div>${fullName}</div><div style="font-size: 0.8em; font-weight: 400; opacity: 0.9;">${roleDisplay}</div>`;
+        }
         applySectionPermissions(name);
         // Permisos: Itinerario mensual
         const menu = document.getElementById('itinerario-mensual-menu');
@@ -11601,38 +11635,19 @@ function normalizeParteOperacionesType(value){
 }
 
 function shouldUseParteOperacionesRemoteBackend(){
-    if (typeof window === 'undefined') return false;
-    if (window.location && window.location.protocol === 'file:') return false;
-    if (window.location) {
-        const { hostname, port } = window.location;
-        if (isLikelyLocalDevelopmentHost(hostname, port)) {
-            if (!parteOperacionesRemoteLocalBlockLogged) {
-                parteOperacionesRemoteLocalBlockLogged = true;
-                console.info('Sincronización remota de parte de operaciones desactivada en este entorno local (sin API disponible).');
-            }
-            return false;
-        }
-    }
-    if (typeof fetch !== 'function') return false;
-    return parteOperacionesRemoteState.enabled;
+    return !!window.supabaseClient;
 }
 
 async function upsertParteOperacionesRemoteEntries(date, rows, options = {}){
     if (!isValidParteOperacionesDate(date)) return false;
     if (!shouldUseParteOperacionesRemoteBackend()) return false;
     try {
-        const res = await fetch(PARTE_OPERACIONES_REMOTE_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ date, entries: rows })
-        });
-        if (res.status === 404) {
-            parteOperacionesRemoteState.enabled = false;
-            throw new Error('Endpoint no disponible (404)');
-        }
-        if (!res.ok) {
-            throw new Error(`HTTP ${res.status}`);
-        }
+        const { error } = await window.supabaseClient
+            .from('custom_parte_operaciones')
+            .upsert({ date: date, entries: rows }, { onConflict: 'date' });
+
+        if (error) throw error;
+
         parteOperacionesRemoteState.healthy = true;
         parteOperacionesRemoteState.lastError = null;
         parteOperacionesRemoteState.lastSync = 0;
@@ -11651,15 +11666,13 @@ async function deleteParteOperacionesRemoteEntries(date, options = {}){
     if (!isValidParteOperacionesDate(date)) return false;
     if (!shouldUseParteOperacionesRemoteBackend()) return false;
     try {
-        const endpoint = `${PARTE_OPERACIONES_REMOTE_ENDPOINT}/${encodeURIComponent(date)}`;
-        const res = await fetch(endpoint, { method: 'DELETE' });
-        if (res.status === 404) {
-            parteOperacionesRemoteState.enabled = false;
-            throw new Error('Endpoint no disponible (404)');
-        }
-        if (!res.ok) {
-            throw new Error(`HTTP ${res.status}`);
-        }
+        const { error } = await window.supabaseClient
+            .from('custom_parte_operaciones')
+            .delete()
+            .eq('date', date);
+
+        if (error) throw error;
+
         parteOperacionesRemoteState.healthy = true;
         parteOperacionesRemoteState.lastError = null;
         parteOperacionesRemoteState.lastSync = 0;
@@ -11719,19 +11732,19 @@ async function syncParteOperacionesRemoteStore(options = {}){
             }
         }
         try {
-            const res = await fetch(PARTE_OPERACIONES_REMOTE_ENDPOINT, {
-                headers: { Accept: 'application/json' },
-                cache: 'no-store'
-            });
-            if (res.status === 404) {
-                parteOperacionesRemoteState.enabled = false;
-                throw new Error('Endpoint no disponible (404)');
+            const { data, error } = await window.supabaseClient
+                .from('custom_parte_operaciones')
+                .select('date, entries');
+
+            if (error) throw error;
+
+            const remoteDates = {};
+            if (data) {
+                data.forEach(row => {
+                    remoteDates[row.date] = row.entries;
+                });
             }
-            if (!res.ok) {
-                throw new Error(`HTTP ${res.status}`);
-            }
-            const payload = await res.json();
-            const remoteDates = payload?.dates && typeof payload.dates === 'object' ? payload.dates : {};
+
             const dirtyLedger = ensureParteOperacionesDirtyLedger();
             const currentStore = ensureParteOperacionesCustomStore();
             const safeDates = {};
@@ -11996,9 +12009,8 @@ function getDefaultParteOperacionesDate(summary){
 }
 
 function canCurrentUserEditParteOperaciones(){
-    const name = (sessionStorage.getItem(SESSION_USER) || '').toLowerCase();
-    if (!name) return false;
-    return PARTE_OPERACIONES_EDITORS.includes(name);
+    const role = sessionStorage.getItem('user_role');
+    return role === 'admin' || role === 'editor';
 }
 
 function getCurrentParteOperacionesEditor(){

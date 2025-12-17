@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Conexión Supabase</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-client.js"></script>
+</head>
+<body class="bg-light p-5">
+    <div class="container" style="max-width: 600px;">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">Prueba de Autenticación y Roles</h3>
+            </div>
+            <div class="card-body">
+                
+                <!-- Estado de Conexión -->
+                <div class="alert alert-info" id="status">Comprobando cliente Supabase...</div>
+
+                <!-- Login Form -->
+                <div id="login-section">
+                    <h5>Iniciar Sesión</h5>
+                    <div class="mb-3">
+                        <input type="text" id="username" class="form-control" placeholder="Nombre de Usuario">
+                    </div>
+                    <div class="mb-3">
+                        <input type="password" id="password" class="form-control" placeholder="Contraseña">
+                    </div>
+                    <button class="btn btn-primary w-100" onclick="testLogin()">Probar Login</button>
+                </div>
+
+                <!-- Register Form -->
+                <div id="register-section" class="mt-4 pt-3 border-top">
+                    <h5>Registrar Nuevo Usuario</h5>
+                    <div class="mb-3">
+                        <input type="text" id="reg-username" class="form-control" placeholder="Nuevo Usuario (ej: operador1)">
+                    </div>
+                    <div class="mb-3">
+                        <input type="text" id="reg-fullname" class="form-control" placeholder="Nombre Completo">
+                    </div>
+                    <div class="mb-3">
+                        <input type="password" id="reg-password" class="form-control" placeholder="Contraseña">
+                    </div>
+                    <button class="btn btn-success w-100" onclick="testRegister()">Crear Usuario</button>
+                </div>
+
+                <!-- User Info (Hidden by default) -->
+                <div id="user-section" class="d-none">
+                    <h5 class="text-success">¡Sesión Iniciada!</h5>
+                    <p><strong>Email:</strong> <span id="user-email"></span></p>
+                    <p><strong>ID:</strong> <span id="user-id"></span></p>
+                    <div class="alert alert-warning">
+                        <strong>Rol detectado:</strong> <span id="user-role" class="fw-bold">...</span>
+                    </div>
+                    
+                    <hr>
+                    <h6>Prueba de Permisos (Tabla custom_parte_operaciones)</h6>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="testRead()">Intentar Leer Datos</button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="logout()">Cerrar Sesión</button>
+                    <div id="data-result" class="mt-2 small text-muted"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function checkSession() {
+            if (!window.supabaseClient) {
+                document.getElementById('status').className = 'alert alert-danger';
+                document.getElementById('status').textContent = 'Error: window.supabaseClient no está definido. Revisa js/supabase-client.js';
+                return;
+            }
+            document.getElementById('status').className = 'alert alert-success';
+            document.getElementById('status').textContent = 'Cliente Supabase inicializado correctamente.';
+
+            const { data: { session } } = await window.supabaseClient.auth.getSession();
+            if (session) {
+                showUser(session.user);
+            }
+        }
+
+        async function testLogin() {
+            let username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const status = document.getElementById('status');
+
+            status.className = 'alert alert-info';
+            status.textContent = 'Conectando...';
+
+            try {
+                if (!username.includes('@')) {
+                    username = `${username}@aifa.operaciones`;
+                }
+
+                const { data, error } = await window.supabaseClient.auth.signInWithPassword({
+                    email: username,
+                    password
+                });
+
+                if (error) throw error;
+                
+                status.className = 'alert alert-success';
+                status.textContent = 'Login correcto.';
+                showUser(data.user);
+
+            } catch (err) {
+                status.className = 'alert alert-danger';
+                status.textContent = 'Error: ' + err.message;
+            }
+        }
+
+        async function testRegister() {
+            let username = document.getElementById('reg-username').value;
+            const fullName = document.getElementById('reg-fullname').value;
+            const password = document.getElementById('reg-password').value;
+            const status = document.getElementById('status');
+
+            if (!username || !password) {
+                alert('Usuario y contraseña requeridos');
+                return;
+            }
+
+            status.className = 'alert alert-info';
+            status.textContent = 'Registrando...';
+
+            try {
+                if (!username.includes('@')) {
+                    username = `${username}@aifa.operaciones`;
+                }
+
+                const { data, error } = await window.supabaseClient.auth.signUp({
+                    email: username,
+                    password: password,
+                    options: {
+                        data: {
+                            full_name: fullName
+                        }
+                    }
+                });
+
+                if (error) throw error;
+
+                if (data.user && !data.session) {
+                    status.className = 'alert alert-warning';
+                    status.innerHTML = 'Usuario creado, pero <strong>requiere confirmación de email</strong>.<br>Ve a Supabase > Authentication > Providers > Email y desactiva "Confirm email".';
+                } else {
+                    status.className = 'alert alert-success';
+                    status.textContent = 'Usuario creado exitosamente. Ya puedes iniciar sesión.';
+                    
+                    // Limpiar campos
+                    document.getElementById('reg-username').value = '';
+                    document.getElementById('reg-fullname').value = '';
+                    document.getElementById('reg-password').value = '';
+                }
+
+            } catch (err) {
+                console.error(err);
+                status.className = 'alert alert-danger';
+                
+                let msg = err.message || JSON.stringify(err);
+                if (msg.includes('Signups not allowed')) {
+                    msg = '<strong>Error: Registros desactivados en Supabase.</strong><br>' +
+                          'Ve a Authentication > Providers > Email y asegúrate de que "Enable Email provider" esté activo.<br>' +
+                          'O ve a Settings > Authentication y activa "Allow new users to sign up".';
+                } else if (msg.includes('Database error saving new user')) {
+                    msg = '<strong>Error de Base de Datos (Trigger Fallido).</strong><br>' +
+                          'Faltan tablas o funciones en Supabase.<br>' +
+                          '1. Abre el archivo <code>supabase_setup.sql</code> que acabo de crear.<br>' +
+                          '2. Copia todo su contenido.<br>' +
+                          '3. Pégalo en el <strong>SQL Editor</strong> de Supabase y ejecútalo.';
+                }
+                
+                status.innerHTML = 'Error al registrar: ' + msg;
+            }
+        }
+
+        async function showUser(user) {
+            document.getElementById('login-section').classList.add('d-none');
+            document.getElementById('user-section').classList.remove('d-none');
+            document.getElementById('user-email').textContent = user.email;
+            document.getElementById('user-id').textContent = user.id;
+
+            // Consultar Rol
+            document.getElementById('user-role').textContent = 'Consultando...';
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('user_roles')
+                    .select('role')
+                    .eq('user_id', user.id)
+                    .single();
+                
+                if (data) {
+                    document.getElementById('user-role').textContent = data.role;
+                } else {
+                    document.getElementById('user-role').textContent = 'No encontrado (Viewer por defecto)';
+                }
+            } catch (e) {
+                document.getElementById('user-role').textContent = 'Error consultando rol';
+            }
+        }
+
+        async function testRead() {
+            const resultDiv = document.getElementById('data-result');
+            resultDiv.textContent = 'Leyendo...';
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('custom_parte_operaciones')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) throw error;
+                resultDiv.textContent = 'Lectura exitosa. Acceso a base de datos confirmado.';
+                resultDiv.className = 'mt-2 small text-success';
+            } catch (e) {
+                resultDiv.textContent = 'Error de lectura: ' + e.message;
+                resultDiv.className = 'mt-2 small text-danger';
+            }
+        }
+
+        async function logout() {
+            await window.supabaseClient.auth.signOut();
+            location.reload();
+        }
+
+        checkSession();
+    </script>
+</body>
+</html>
