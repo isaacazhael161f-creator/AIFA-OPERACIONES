@@ -8090,7 +8090,34 @@
       ],
       "total_general": 204
 
+    },
+
+
+    "2025-12-17": {
+      "operaciones": [
+        {
+          "tipo": "Aviación de Pasajeros",
+          "llegada": 73,
+          "salida": 77,
+          "subtotal": 150
+        },
+        {
+          "tipo": "Aviación de Carga",
+          "llegada": 24,
+          "salida": 23,
+          "subtotal": 47
+        },
+        {
+          "tipo": "Aviación General",
+          "llegada": 3,
+          "salida": 4,
+          "subtotal": 7
+        }
+      ],
+      "total_general": 204
+
     }
+
 
     },
 
