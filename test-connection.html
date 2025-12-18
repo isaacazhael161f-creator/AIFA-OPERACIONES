@@ -92,7 +92,14 @@
 
             try {
                 if (!username.includes('@')) {
-                    username = `${username}@aifa.operaciones`;
+                    // Normalizar: quitar espacios, acentos y convertir a minúsculas
+                    const normalized = username
+                        .trim()
+                        .toLowerCase()
+                        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                        .replace(/\s+/g, '.');
+                    
+                    username = `${normalized}@aifa.operaciones`;
                 }
 
                 const { data, error } = await window.supabaseClient.auth.signInWithPassword({
@@ -128,7 +135,14 @@
 
             try {
                 if (!username.includes('@')) {
-                    username = `${username}@aifa.operaciones`;
+                    // Normalizar: quitar espacios, acentos y convertir a minúsculas
+                    const normalized = username
+                        .trim()
+                        .toLowerCase()
+                        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                        .replace(/\s+/g, '.');
+                    
+                    username = `${normalized}@aifa.operaciones`;
                 }
 
                 const { data, error } = await window.supabaseClient.auth.signUp({

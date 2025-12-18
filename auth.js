@@ -40,7 +40,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Convertir usuario a email falso si es necesario
                 if (email && !email.includes('@')) {
-                    email = `${email}@aifa.operaciones`;
+                    // Normalizar: quitar espacios, acentos y convertir a minúsculas
+                    const normalized = email
+                        .trim()
+                        .toLowerCase()
+                        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                        .replace(/\s+/g, '.');
+                    
+                    email = `${normalized}@aifa.operaciones`;
                 }
 
                 const { data, error } = await window.supabaseClient.auth.signUp({
@@ -86,7 +93,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Convertir usuario a email falso si es necesario
                 if (email && !email.includes('@')) {
-                    email = `${email}@aifa.operaciones`;
+                    // Normalizar: quitar espacios, acentos y convertir a minúsculas
+                    const normalized = email
+                        .trim()
+                        .toLowerCase()
+                        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                        .replace(/\s+/g, '.');
+                    
+                    email = `${normalized}@aifa.operaciones`;
                 }
 
                 const { data, error } = await window.supabaseClient.auth.signInWithPassword({
@@ -118,12 +132,4 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-});
-            localStorage.setItem('aifa-token', response.data.token);
-            alert('✅ ¡Inicio de sesión exitoso!');
-            window.location.href = './index.html'; 
-        } catch (error) {
-            alert(`❌ Error: ${error.response.data.msg}`);
-        }
-    });
 });

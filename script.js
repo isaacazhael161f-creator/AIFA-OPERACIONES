@@ -2272,6 +2272,11 @@ function applySectionPermissions(userName) {
         ? user.allowedSections.map((section) => normalizeSectionKey(section)).filter(Boolean)
         : [];
 
+    // Permitir siempre la sección de historia si el usuario está autenticado
+    if (rawWhitelist.length && !rawWhitelist.includes('historia')) {
+        rawWhitelist.push('historia');
+    }
+
     if (rawWhitelist.length) {
         userSectionWhitelist = [...new Set(rawWhitelist)];
         const preferred = normalizeSectionKey(user?.defaultSection);
@@ -3311,6 +3316,18 @@ async function verifyToken(token){
     // Validación Supabase
     if (window.supabaseClient) {
         const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+        
+        // Si no hay sesión pero tenemos token, intentamos restaurarla
+        if (!session && token && token.length > 50) { // Simple check to distinguish from legacy hash
+             const { data: restoreData, error: restoreError } = await window.supabaseClient.auth.setSession({
+                access_token: token,
+                refresh_token: token
+            });
+            if (!restoreError && restoreData.session) {
+                return true;
+            }
+        }
+
         if (error || !session) return false;
         // Si hay sesión activa en Supabase, consideramos el token válido
         return true;
@@ -3352,7 +3369,15 @@ async function handleLogin(e) {
 
         // Si no es un email, asumimos que es un nombre de usuario y agregamos el dominio interno
         if (!emailOrUsername.includes('@')) {
-            emailOrUsername = `${emailOrUsername}@aifa.operaciones`;
+            // Normalizar: quitar espacios, acentos y convertir a minúsculas
+            // Ejemplo: "Isaac López" -> "isaac.lopez"
+            const normalized = emailOrUsername
+                .trim()
+                .toLowerCase()
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+                .replace(/\s+/g, '.'); // Espacios a puntos
+
+            emailOrUsername = `${normalized}@aifa.operaciones`;
         }
 
         const { data, error } = await window.supabaseClient.auth.signInWithPassword({
@@ -5462,6 +5487,19 @@ function showSection(sectionKey, linkEl) {
         if (linkEl) linkEl.classList.add('active');
         // Actualizar hash
         try { history.replaceState(null, '', `#${targetKey}`); } catch(_) {}
+        
+        // Hook específico para Historia
+        if (targetKey === 'historia') {
+            console.log('Activando sección Historia...');
+            setTimeout(() => {
+                if (typeof loadHistory === 'function') {
+                    loadHistory();
+                } else {
+                    console.error('loadHistory no está definida');
+                }
+            }, 100);
+        }
+
         // Cerrar sidebar en móvil
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebar-overlay');
@@ -5538,6 +5576,9 @@ function handleNavigation(e) {
                     }
                 }, 60);
             } catch(_) {}
+        }
+        if (section === 'historia') {
+            try { loadHistory(); } catch(_) {}
         }
     }
 }
@@ -11638,15 +11679,243 @@ function shouldUseParteOperacionesRemoteBackend(){
     return !!window.supabaseClient;
 }
 
+// --- HISTORIAL DE CAMBIOS ---
+
+async function logHistory(action, entity, recordId, details) {
+    if (!window.supabaseClient) {
+        console.warn('logHistory: Supabase client not initialized');
+        return;
+    }
+    try {
+        // 1. Ensure session is active
+        let { data: { session } } = await window.supabaseClient.auth.getSession();
+        
+        if (!session) {
+             const token = sessionStorage.getItem('token');
+             if (token) {
+                 const { data: restoreData } = await window.supabaseClient.auth.setSession({ 
+                    access_token: token, 
+                    refresh_token: token 
+                 });
+                 session = restoreData.session;
+             }
+        }
+
+        if (!session || !session.user) {
+            console.warn('logHistory: No active session found. Cannot log history.');
+            return; 
+        }
+
+        const userId = session.user.id;
+        const userEmail = session.user.email || sessionStorage.getItem('user_fullname') || 'Usuario';
+
+        console.log('Logging history:', { action, entity, recordId, details, userId });
+
+        const { error } = await window.supabaseClient.from('change_history').insert({
+            user_id: userId,
+            user_email: userEmail,
+            action_type: action,
+            entity_type: entity,
+            record_id: recordId,
+            details: details
+        });
+
+        if (error) {
+            console.error('Error inserting history:', error);
+        } else {
+            console.log('History logged successfully');
+        }
+    } catch (err) {
+        console.warn('Error logging history:', err);
+    }
+}
+
+async function loadHistory() {
+    const tableBody = document.getElementById('history-table-body');
+    if (!tableBody) {
+        console.warn('loadHistory: table body not found');
+        return;
+    }
+    
+    tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted"><div class="spinner-border spinner-border-sm text-primary" role="status"></div> Cargando...</td></tr>';
+
+    if (!window.supabaseClient) {
+        tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error: Supabase no conectado.</td></tr>';
+        return;
+    }
+
+    try {
+        // Ensure session is active for RLS
+        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        if (!session) {
+             const token = sessionStorage.getItem('token');
+             if (token) {
+                 await window.supabaseClient.auth.setSession({ access_token: token, refresh_token: token });
+             }
+        }
+
+        const { data, error } = await window.supabaseClient
+            .from('change_history')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+        if (error) {
+            console.error('Supabase history error:', error);
+            if (error.code === '42P01') { // undefined_table
+                throw new Error('La tabla "change_history" no existe. Ejecuta el script SQL.');
+            }
+            throw error;
+        }
+
+        if (!data || data.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No hay historial de cambios registrado.</td></tr>';
+            return;
+        }
+
+        tableBody.innerHTML = '';
+        data.forEach(log => {
+            const date = new Date(log.created_at).toLocaleString('es-MX');
+            let badgeClass = 'bg-secondary';
+            if (log.action_type === 'CREAR' || log.action_type === 'AGREGAR') badgeClass = 'bg-success';
+            if (log.action_type === 'EDITAR' || log.action_type === 'ACTUALIZAR') badgeClass = 'bg-warning text-dark';
+            if (log.action_type === 'ELIMINAR') badgeClass = 'bg-danger';
+
+            let detailsText = '';
+            if (log.details) {
+                if (typeof log.details === 'string') {
+                    detailsText = log.details;
+                } else if (typeof log.details === 'object') {
+                    // Handle structured object
+                    const parts = [];
+                    if (log.details.mode === 'auto-sync') parts.push('<span class="badge bg-light text-dark border">Sincronización Auto</span>');
+                    
+                    if (log.details.diff) {
+                        parts.push(log.details.diff);
+                    } else {
+                        if (log.details.total_ops !== undefined) parts.push(`<strong>Total:</strong> ${log.details.total_ops} ops`);
+                        if (log.details.types) parts.push(`<strong>Tipos:</strong> ${log.details.types}`);
+                        if (log.details.count && !log.details.total_ops) parts.push(`${log.details.count} registros`);
+                    }
+                    
+                    if (parts.length > 0) detailsText = parts.join('<br>');
+                    else detailsText = JSON.stringify(log.details);
+                }
+            }
+
+            const userInitial = (log.user_email || '?').charAt(0).toUpperCase();
+            const userEmail = log.user_email || 'Desconocido';
+
+            const row = `
+                <tr>
+                    <td><small>${date}</small></td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-circle bg-primary text-white me-2" style="width: 24px; height: 24px; font-size: 10px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+                                ${userInitial}
+                            </div>
+                            <span class="text-truncate" style="max-width: 150px;" title="${userEmail}">${userEmail}</span>
+                        </div>
+                    </td>
+                    <td><span class="badge ${badgeClass}">${log.action_type}</span></td>
+                    <td>${log.entity_type}</td>
+                    <td class="text-wrap" style="min-width: 300px;"><small class="text-muted">${detailsText}</small></td>
+                </tr>
+            `;
+            tableBody.insertAdjacentHTML('beforeend', row);
+        });
+
+    } catch (err) {
+        console.error('Error loading history:', err);
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Error al cargar historial: ${err.message}</td></tr>`;
+    }
+}
+
+// Expose globally
+window.loadHistory = loadHistory;
+
+async function testHistoryConnection() {
+    if (!window.supabaseClient) {
+        alert('❌ Error: Supabase no está inicializado.');
+        return;
+    }
+    try {
+        const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
+        console.log('Test Connection - Session:', session);
+        
+        if (!session) {
+            alert('⚠️ Advertencia: No hay sesión activa en Supabase. El historial requiere autenticación.');
+            // Attempt to restore from sessionStorage if available (hacky fallback)
+            const token = sessionStorage.getItem('token');
+            if (token) {
+                console.log('Attempting to restore session from token...');
+                const { error: restoreError } = await window.supabaseClient.auth.setSession({
+                    access_token: token,
+                    refresh_token: token // This might fail if it's not a refresh token, but worth a try or just use access_token
+                });
+                if (restoreError) console.warn('Restore session failed:', restoreError);
+            }
+        }
+
+        const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+        const userId = user.id || session?.user?.id;
+
+        if (!userId) {
+            alert('❌ Error: No se encontró ID de usuario. Inicia sesión.');
+            return;
+        }
+
+        const { error } = await window.supabaseClient.from('change_history').insert({
+            user_id: userId,
+            user_email: 'test@connection.check',
+            action_type: 'PRUEBA',
+            entity_type: 'Sistema',
+            details: 'Verificación de conexión manual'
+        });
+
+        if (error) {
+            console.error('Test connection error:', error);
+            alert(`❌ Error al insertar en change_history:\n${error.message}\nCódigo: ${error.code}\nHint: ${error.hint || 'Posible error de permisos (RLS)'}`);
+        } else {
+            alert('✅ ¡Conexión exitosa! Se insertó un registro de prueba.');
+            loadHistory();
+        }
+    } catch (err) {
+        alert(`❌ Error inesperado: ${err.message}`);
+    }
+}
+window.testHistoryConnection = testHistoryConnection;
+
 async function upsertParteOperacionesRemoteEntries(date, rows, options = {}){
     if (!isValidParteOperacionesDate(date)) return false;
-    if (!shouldUseParteOperacionesRemoteBackend()) return false;
+    if (!shouldUseParteOperacionesRemoteBackend()) {
+        console.warn('upsertParteOperacionesRemoteEntries: Remote backend not available');
+        return false;
+    }
     try {
         const { error } = await window.supabaseClient
             .from('custom_parte_operaciones')
             .upsert({ date: date, entries: rows }, { onConflict: 'date' });
 
         if (error) throw error;
+
+        // Log history with more details
+        let historyDetails = options.historyDetails;
+        
+        if (!historyDetails) {
+             // Fallback for auto-sync or calls without explicit diff
+             historyDetails = {
+                mode: 'auto-sync',
+                count: rows.length,
+                types: rows.map(r => r.tipo).filter(Boolean).join(', '),
+                total_ops: rows.reduce((acc, r) => acc + (Number(r.subtotal)||0), 0)
+            };
+        } else if (typeof historyDetails === 'string') {
+            // Wrap string diff in object for consistent rendering
+            historyDetails = { diff: historyDetails };
+        }
+        
+        await logHistory('ACTUALIZAR', 'Parte Operaciones', date, historyDetails);
 
         parteOperacionesRemoteState.healthy = true;
         parteOperacionesRemoteState.lastError = null;
@@ -11670,8 +11939,11 @@ async function deleteParteOperacionesRemoteEntries(date, options = {}){
             .from('custom_parte_operaciones')
             .delete()
             .eq('date', date);
-
+        
         if (error) throw error;
+
+        // Log history
+        await logHistory('ELIMINAR', 'Parte Operaciones', date, { description: 'Eliminación completa del día' });
 
         parteOperacionesRemoteState.healthy = true;
         parteOperacionesRemoteState.lastError = null;
@@ -12223,6 +12495,10 @@ async function saveParteOperacionesEntriesForCurrentDate(){
         return;
     }
     const store = ensureParteOperacionesCustomStore();
+    
+    // Capture old state for history diff
+    const oldRows = store.dates[date] ? JSON.parse(JSON.stringify(store.dates[date])) : [];
+    
     store.dates[date] = rows;
     saveParteOperacionesCustomStore();
     const useRemote = shouldUseParteOperacionesRemoteBackend();
@@ -12232,7 +12508,9 @@ async function saveParteOperacionesEntriesForCurrentDate(){
     setParteOperacionesFeedback('Guardando captura...', 'muted');
     let remoteSynced = false;
     if (useRemote) {
-        remoteSynced = await upsertParteOperacionesRemoteEntries(date, rows);
+        // Calculate diff
+        const diff = calculateParteOperacionesDiff(oldRows, rows);
+        remoteSynced = await upsertParteOperacionesRemoteEntries(date, rows, { historyDetails: diff });
         if (remoteSynced) {
             clearParteOperacionesDateDirty(date);
             await syncParteOperacionesRemoteStore({ force: true, silent: true, skipFlush: true }).catch(() => {});
@@ -12246,6 +12524,33 @@ async function saveParteOperacionesEntriesForCurrentDate(){
     );
     rebuildParteOperacionesCacheFromLocal();
     loadParteOperacionesSummary({ force: true, silent: true, skipRemoteSync: remoteSynced }).catch(() => {});
+}
+
+function calculateParteOperacionesDiff(oldRows, newRows) {
+    const changes = [];
+    const oldMap = new Map(oldRows.map(r => [r.tipo, r]));
+    const newMap = new Map(newRows.map(r => [r.tipo, r]));
+    
+    const allTypes = new Set([...oldMap.keys(), ...newMap.keys()]);
+    
+    for (const type of allTypes) {
+        const oldRow = oldMap.get(type);
+        const newRow = newMap.get(type);
+        
+        if (!oldRow) {
+            changes.push(`Agregado: ${type} (${newRow.subtotal} ops)`);
+        } else if (!newRow) {
+            changes.push(`Eliminado: ${type} (${oldRow.subtotal} ops)`);
+        } else {
+            // Check for changes
+            if (oldRow.subtotal !== newRow.subtotal || oldRow.llegada !== newRow.llegada || oldRow.salida !== newRow.salida) {
+                changes.push(`Modificado: ${type} (${oldRow.subtotal} -> ${newRow.subtotal} ops)`);
+            }
+        }
+    }
+    
+    if (changes.length === 0) return 'Sin cambios detectados (Guardado idéntico)';
+    return changes.join(', ');
 }
 
 function setParteOperacionesFeedback(message, tone = 'muted'){
@@ -13429,9 +13734,10 @@ if (isAndroidDevice) {
             }
 
             try {
-                if (isAndroidDevice) startAndroidAutoRefreshTimer();
+                if (isAndroidDevice) { startAndroidAutoRefreshTimer(); }
             } catch (err) {
                 console.warn('Android auto-refresh timer init failed:', err);
             }
         });
 
+// End of script
