@@ -10050,8 +10050,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Expose update function for dynamic data loading
         window.updateOpsFiltersAfterDataLoad = function() {
-            populateWeeklyWeekOptions();
+            const availability = populateWeeklyWeekOptions();
             populateWeeklyDayOptions();
+            
+            // Restore weekly mode if data is available (overriding any fallback that happened during init)
+            if (availability && availability.hasAny) {
+                opsUIState.mode = 'weekly';
+                if (toggleWeekly) toggleWeekly.disabled = false;
+                refreshDisabledYears(true);
+                if (monthsPanel) monthsPanel.style.display = 'none';
+            }
+
             syncToggleStates();
             refreshOpsYearFilters();
             refreshOpsMonthlyYearLabels();
