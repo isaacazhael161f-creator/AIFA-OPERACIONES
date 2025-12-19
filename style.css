@@ -713,7 +713,7 @@ body.dark-mode .section-title small {
    .header-right-content { max-width: 100%; flex-wrap: wrap; justify-content: center; }
 }
 /* Vertical scroll within the table on mobile: allow pan-y and set a reasonable max-height */
-.vertical-scroll { position: relative; max-height: none; overflow-y: visible; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+.vertical-scroll { position: relative; max-height: none; overflow-y: visible; touch-action: pan-y; }
 .vertical-scroll table { margin: 0; }
 .table-container-tech table { --bs-table-color: var(--text-color); --bs-table-bg: transparent; --bs-table-border-color: var(--border-color); --bs-table-hover-color: var(--text-color); --bs-table-hover-bg: var(--body-bg); }
 
@@ -723,7 +723,6 @@ body.dark-mode .section-title small {
 }
 .h-scroll-area {
    overflow-x: auto;
-   -webkit-overflow-scrolling: touch;
 }
 
 .itinerary-airline-toolbar {
@@ -1226,7 +1225,6 @@ body.dark-mode .itinerary-airline-table .table tbody tr.animated-row:hover {
 /* Make horizontal scroll functional on any element using this helper */
 .h-scroll-area {
    overflow-x: auto;
-   -webkit-overflow-scrolling: touch;
    overscroll-behavior-x: contain;
    -ms-touch-action: pan-x;
    touch-action: pan-x;
@@ -1234,10 +1232,9 @@ body.dark-mode .itinerary-airline-table .table tbody tr.animated-row:hover {
 }
 /* For all browsers/devices: ensure horizontal scroll area only intercepts horizontal pan, not vertical */
 #fauna-section .h-scroll-area {
-   touch-action: pan-x;
    -ms-touch-action: pan-x;
+   touch-action: pan-x;
    overscroll-behavior-x: contain;
-   -webkit-overflow-scrolling: touch;
 }
 @media (pointer: coarse) {
    #fauna-section .h-scroll-area {
@@ -1262,7 +1259,7 @@ body.dark-mode .itinerary-airline-table .table tbody tr.animated-row:hover {
 @media (max-width: 991.98px) {
    #fauna-section #fauna-table-container,
    #fauna-section .table-container-tech,
-   #fauna-section .h-scroll-area { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+   #fauna-section .h-scroll-area { overflow-x: auto; }
    #fauna-section .fauna-table { min-width: 720px; }
 }
 
@@ -1453,7 +1450,7 @@ body.dark-mode .floating-table-header--itinerary-detail .floating-header-table t
    Barra Lateral Plegable
    ========================================================================== */
 .app-body { position: relative; }
-.sidebar { position: fixed; left: 0; top: 0; bottom: 0; transform: translateX(0); transition: transform 0.3s ease; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; }
+.sidebar { position: fixed; left: 0; top: 0; bottom: 0; transform: translateX(0); transition: transform 0.3s ease; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }
 .main-content { margin-left: var(--sidebar-width); transition: margin-left 0.3s ease, width 0.3s ease; width: calc(100% - var(--sidebar-width)); }
 .sidebar-toggler-btn { color: var(--text-color); border: none; font-size: 1.2rem; }
 body.sidebar-collapsed .sidebar { transform: translateX(calc(-1 * var(--sidebar-width))); }
@@ -1591,7 +1588,6 @@ body.dark-mode .weekly-week-chip.is-active { background: linear-gradient(135deg,
    gap: 0.75rem;
    padding-bottom: 0.35rem;
    scroll-snap-type: x proximity;
-   -webkit-overflow-scrolling: touch;
    scrollbar-width: thin;
 }
 #medicasTabs::-webkit-scrollbar {
@@ -1668,8 +1664,8 @@ body.dark-mode .chart-container canvas {
 .chart-container.chart-scrollable {
    overflow-x: auto;
    overflow-y: hidden;
+   -ms-touch-action: pan-x;
    touch-action: pan-x;
-   -webkit-overflow-scrolling: touch;
    padding-bottom: 8px;
    scrollbar-width: thin;
 }
@@ -1821,7 +1817,6 @@ body.dark-mode .demoras-period-btn:focus-visible {
 #demoras-section .table-responsive {
    border-radius: 14px;
    overflow-x: auto;
-   -webkit-overflow-scrolling: touch;
 }
 #demoras-section .table { min-width: 100%; }
 @media (max-width: 768px) {
@@ -2407,7 +2402,7 @@ body.dark-mode .demoras-chart-hint {
 /* Itinerary charts: dedicated horizontal scroll wrapper */
 .itinerary-charts-scroll {
    overflow-x: auto;
-   -webkit-overflow-scrolling: touch;
+   -ms-touch-action: pan-x;
    touch-action: pan-x;
    white-space: nowrap;
 }
@@ -4084,7 +4079,7 @@ body.dark-mode #fauna-section .gso-hero-copy { background: linear-gradient(135de
    #fauna-section .chart-container { height: 280px !important; }
    #fauna-section .heatmap-container { height: 320px !important; }
    /* Permitir scroll horizontal si los labels son largos o hay muchos meses */
-   #fauna-section .heatmap-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+   #fauna-section .heatmap-container { overflow-x: auto; }
    #fauna-section #fauna-heatmap { min-width: 520px; }
 }
 @media (min-width: 577px) and (max-width: 991.98px) {
@@ -4093,8 +4088,7 @@ body.dark-mode #fauna-section .gso-hero-copy { background: linear-gradient(135de
 }
 
 /* Tabla de Fauna: asegurar scroll horizontal suave y encabezados pegajosos visibles */
-#fauna-section .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-/* Dejamos el scroll vertical al documento completo (no caja interna) */
+#fauna-section .table-responsive { overflow-x: auto; }
 #fauna-section .fauna-table thead th { position: sticky; top: 0; z-index: 5; }
 #fauna-section .fauna-table { font-variant-numeric: tabular-nums; }
 

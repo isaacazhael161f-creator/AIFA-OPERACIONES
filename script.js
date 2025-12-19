@@ -723,519 +723,123 @@ function deepCloneWeek(week) {
     return clone;
 }
 
-const WEEKLY_OPERATIONS_DATASETS = [
-
-    {
-        id: '2025-12-08',
-        rango: {
-            inicio: '2025-12-08',
-            fin: '2025-12-14',
-            descripcion: describeWeekRange('2025-12-08', '2025-12-14'),
-            nota: 'Semana del (8 al 14 de diciembre de 2025).'
-        },
-        dias: [
-            {
-                fecha: '2025-12-08',
-                label: '08 Dic 2025',
-                comercial: { operaciones: 159, pasajeros: 21818},
-                general: { operaciones: 10, pasajeros: 33 },
-                carga: { operaciones: 25, toneladas: 670, corteFecha: '2025-12-07', corteNota: 'Cifras del 07 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-09',
-                label: '09 Dic 2025',
-                comercial: { operaciones: 132, pasajeros: 17657},
-                general: { operaciones: 11, pasajeros: 11 },
-                carga: { operaciones: 25, toneladas: 670, corteFecha: '2025-12-07', corteNota: 'Cifras del 07 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-10',
-                label: '10 Dic 2025',
-                comercial: { operaciones: 147, pasajeros: 19397},
-                general: { operaciones: 11, pasajeros: 11 },
-                carga: { operaciones: 28, toneladas: 786, corteFecha: '2025-12-09', corteNota: 'Cifras del 09 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-11',
-                label: '11 Dic 2025',
-                comercial: { operaciones: 157, pasajeros: 21867},
-                general: { operaciones: 17, pasajeros: 42 },
-                carga: { operaciones: 26, toneladas: 697, corteFecha: '2025-12-11', corteNota: 'Cifras del 11 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-12',
-                label: '12 Dic 2025',
-                comercial: { operaciones: 157, pasajeros: 22461},
-                general: { operaciones: 7, pasajeros: 106 },
-                carga: { operaciones: 26, toneladas: 697, corteFecha: '2025-12-11', corteNota: 'Cifras del 11 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-13',
-                label: '13 Dic 2025',
-                comercial: { operaciones: 148, pasajeros: 21547},
-                general: { operaciones: 8, pasajeros: 18 },
-                carga: { operaciones: 26, toneladas: 697, corteFecha: '2025-12-11', corteNota: 'Cifras del 11 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-14',
-                label: '14 Dic 2025',
-                comercial: { operaciones: 147, pasajeros: 22012},
-                general: { operaciones: 10, pasajeros: 14 },
-                carga: { operaciones: 26, toneladas: 697, corteFecha: '2025-12-11', corteNota: 'Cifras del 11 de diciembre de 2025.' }
-            }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        ]
-    },
-
-
-
-
-
-    {
-        id: '2025-12-01',
-        rango: {
-            inicio: '2025-12-01',
-            fin: '2025-12-07',
-            descripcion: describeWeekRange('2025-12-01', '2025-12-07'),
-            nota: 'Semana del (1 al 7 de diciembre de 2025).'
-        },
-        dias: [
-            {
-                fecha: '2025-12-01',
-                label: '01 Dic 2025',
-                comercial: { operaciones: 154, pasajeros: 22766},
-                general: { operaciones: 8, pasajeros: 27 },
-                carga: { operaciones: 22, toneladas: 872, corteFecha: '2025-11-30', corteNota: 'Cifras del 30 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-02',
-                label: '02 Dic 2025',
-                comercial: { operaciones: 130, pasajeros: 17667},
-                general: { operaciones: 3, pasajeros: 4 },
-                carga: { operaciones: 22, toneladas: 872, corteFecha: '2025-11-30', corteNota: 'Cifras del 30 de noviembre de 2025.' }
-            },
-
-
-            {
-                fecha: '2025-12-03',
-                label: '03 Dic 2025',
-                comercial: { operaciones: 145, pasajeros: 19149},
-                general: { operaciones: 9, pasajeros: 332 },
-                carga: { operaciones: 6, toneladas: 40, corteFecha: '2025-12-03', corteNota: 'Cifras del 03 de diciembre de 2025.' }
-            },
-
-             {
-                fecha: '2025-12-04',
-                label: '04 Dic 2025',
-                comercial: { operaciones: 153, pasajeros: 20412},
-                general: { operaciones: 13, pasajeros: 280 },
-                carga: { operaciones: 6, toneladas: 40, corteFecha: '2025-12-03', corteNota: 'Cifras del 03 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-05',
-                label: '05 Dic 2025',
-                comercial: { operaciones: 160, pasajeros: 23006},
-                general: { operaciones: 7, pasajeros: 12 },
-                carga: { operaciones: 24, toneladas: 801, corteFecha: '2025-12-04', corteNota: 'Cifras del 04 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-06',
-                label: '06 Dic 2025',
-                comercial: { operaciones: 142, pasajeros: 19586},
-                general: { operaciones: 10, pasajeros: 50 },
-                carga: { operaciones: 24, toneladas: 801, corteFecha: '2025-12-04', corteNota: 'Cifras del 04 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-07',
-                label: '07 Dic 2025',
-                comercial: { operaciones: 157, pasajeros: 21788},
-                general: { operaciones: 6, pasajeros: 50 },
-                carga: { operaciones: 24, toneladas: 801, corteFecha: '2025-12-04', corteNota: 'Cifras del 04 de diciembre de 2025.' }
-            }
-
-
-
-
-
-
-
-
-
-
-        ]
-    },
-
-    {
-        id: '2025-11-24',
-        rango: {
-            inicio: '2025-11-24',
-            fin: '2025-11-30',
-            descripcion: describeWeekRange('2025-11-24', '2025-11-30'),
-            nota: 'Semana del (24 al 30 de noviembre de 2025).'
-        },
-        dias: [
-            {
-                fecha: '2025-11-24',
-                label: '24 Nov 2025',
-                comercial: { operaciones: 145, pasajeros: 16066 },
-                general: { operaciones: 7, pasajeros: 16 },
-                carga: { operaciones: 31, toneladas: 802, corteFecha: '2025-11-23', corteNota: 'Cifras del 23 de noviembre de 2025.' }
-            },
-
-         
-{
-                fecha: '2025-11-25',
-                label: '25 Nov 2025',
-                comercial: { operaciones: 143, pasajeros: 20441},
-                general: { operaciones: 8, pasajeros: 18 },
-                carga: { operaciones: 26, toneladas: 690, corteFecha: '2025-11-25', corteNota: 'Cifras del 25 de noviembre de 2025.' }
-            },
-
-
-            {
-                fecha: '2025-11-26',
-                label: '26 Nov 2025',
-                comercial: { operaciones: 149, pasajeros: 20080},
-                general: { operaciones: 23, pasajeros: 44 },
-                carga: { operaciones: 26, toneladas: 690, corteFecha: '2025-11-25', corteNota: 'Cifras del 25 de noviembre de 2025.' }
-            },
-
-            
-
-{
-                fecha: '2025-11-27',
-                label: '27 Nov 2025',
-                comercial: { operaciones: 146, pasajeros: 21113},
-                general: { operaciones: 0, pasajeros: 0 },
-                carga: { operaciones: 26, toneladas: 690, corteFecha: '2025-11-25', corteNota: 'Cifras del 25 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-28',
-                label: '28 Nov 2025',
-                comercial: { operaciones: 146, pasajeros: 21241},
-                general: { operaciones: 6, pasajeros: 57 },
-                carga: { operaciones: 30, toneladas: 957, corteFecha: '2025-11-27', corteNota: 'Cifras del 27 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-29',
-                label: '29 Nov 2025',
-                comercial: { operaciones: 135, pasajeros: 18639},
-                general: { operaciones: 4, pasajeros: 18 },
-                carga: { operaciones: 30, toneladas: 957, corteFecha: '2025-11-27', corteNota: 'Cifras del 27 de noviembre de 2025.' }
-            }
-
-
-
-
-        ]
-    },
-
-    {
-        id: '2025-11-17',
-        rango: {
-            inicio: '2025-11-17',
-            fin: '2025-11-23',
-            descripcion: describeWeekRange('2025-11-17', '2025-11-23'),
-            nota: 'Semana del (17 al 23 de noviembre de 2025). Datos en Integración.'
-        },
-        dias: [
-            {
-                fecha: '2025-11-17',
-                label: '17 Nov 2025',
-                comercial: { operaciones: 156, pasajeros: 21082 },
-                general: { operaciones: 6, pasajeros: 19 },
-                carga: { operaciones: 21, toneladas: 706, corteFecha: '2025-11-13', corteNota: 'Cifras del 13 de noviembre de 2025.' }
-            },
-
-
-            {
-                fecha: '2025-11-18',
-                label: '18 Nov 2025',
-                comercial: { operaciones: 146, pasajeros: 21670},
-                general: { operaciones: 17, pasajeros: 36 },
-                carga: { operaciones: 17, toneladas: 654, corteFecha: '2025-11-17', corteNota: 'Cifras del 17 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-19',
-                label: '19 Nov 2025',
-                comercial: { operaciones: 151, pasajeros: 19479},
-                general: { operaciones: 10, pasajeros: 31 },
-                carga: { operaciones: 12, toneladas: 423, corteFecha: '2025-11-19', corteNota: 'Cifras del 19 de noviembre de 2025.' }
-            },
-
-        
-            {
-                fecha: '2025-11-20',
-                label: '20 Nov 2025',
-                comercial: { operaciones: 150, pasajeros: 19728},
-                general: { operaciones: 19, pasajeros: 39 },
-                carga: { operaciones: 12, toneladas: 423, corteFecha: '2025-11-19', corteNota: 'Cifras del 19 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-21',
-                label: '21 Nov 2025',
-                comercial: { operaciones: 150, pasajeros: 20384},
-                general: { operaciones: 7, pasajeros: 29 },
-                carga: { operaciones: 31, toneladas: 802, corteFecha: '2025-11-20', corteNota: 'Cifras del 20 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-22',
-                label: '22 Nov 2025',
-                comercial: { operaciones: 143, pasajeros: 19503},
-                general: { operaciones: 5, pasajeros: 13 },
-                carga: { operaciones: 31, toneladas: 802, corteFecha: '2025-11-20', corteNota: 'Cifras del 20 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-23',
-                label: '23 Nov 2025',
-                comercial: { operaciones: 158, pasajeros: 18222},
-                general: { operaciones: 2, pasajeros: 7 },
-                carga: { operaciones: 31, toneladas: 802, corteFecha: '2025-11-20', corteNota: 'Cifras del 20 de noviembre de 2025.' }
-            }
-        ]
-    },
-
-    
-
-
-    {
-        id: '2025-11-10',
-        rango: {
-            inicio: '2025-11-10',
-            fin: '2025-11-16',
-            descripcion: describeWeekRange('2025-11-10', '2025-11-16'),
-            nota: 'Semana del (10 al 16 de noviembre de 2025).'
-        },
-        dias: [
-            {
-                fecha: '2025-11-10',
-                label: '10 Nov 2025',
-                comercial: { operaciones: 152, pasajeros: 22119 },
-                general: { operaciones: 9, pasajeros: 19 },
-                carga: { operaciones: 31, toneladas: 1079, corteFecha: '2025-11-09', corteNota: 'Cifras del 09 de noviembre de 2025.' }
-            },
-            {
-                fecha: '2025-11-11',
-                label: '11 Nov 2025',
-                comercial: { operaciones: 139, pasajeros: 18904 },
-                general: { operaciones: 5, pasajeros: 14 },
-                carga: { operaciones: 31, toneladas: 1079, corteFecha: '2025-11-09', corteNota: 'Cifras del 09 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-12',
-                label: '12 Nov 2025',
-                comercial: { operaciones: 149, pasajeros: 20757},
-                general: { operaciones: 9, pasajeros: 31 },
-                carga: { operaciones: 20, toneladas: 636, corteFecha: '2025-11-11', corteNota: 'Cifras del 11 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-13',
-                label: '13 Nov 2025',
-                comercial: { operaciones: 161, pasajeros: 22643},
-                general: { operaciones: 9, pasajeros: 59 },
-                carga: { operaciones: 20, toneladas: 636, corteFecha: '2025-11-11', corteNota: 'Cifras del 11 de noviembre de 2025.' }
-            },
-           
-{
-                fecha: '2025-11-14',
-                label: '14 Nov 2025',
-                comercial: { operaciones: 156, pasajeros: 23383},
-                general: { operaciones: 7, pasajeros: 10 },
-                carga: { operaciones: 21, toneladas: 706, corteFecha: '2025-11-13', corteNota: 'Cifras del 13 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-15',
-                label: '15 Nov 2025',
-                comercial: { operaciones: 145, pasajeros: 20880},
-                general: { operaciones: 6, pasajeros: 59 },
-                carga: { operaciones: 21, toneladas: 706, corteFecha: '2025-11-13', corteNota: 'Cifras del 13 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-16',
-                label: '16 Nov 2025',
-                comercial: { operaciones: 149, pasajeros: 19802},
-                general: { operaciones: 12, pasajeros: 28 },
-                carga: { operaciones: 21, toneladas: 706, corteFecha: '2025-11-13', corteNota: 'Cifras del 13 de noviembre de 2025.' }
-            }
-
-
-
-
-        ]
-    },
-
-    
-    {
-        id: '2025-11-03',
-        rango: {
-            inicio: '2025-11-03',
-            fin: '2025-11-09',
-            descripcion: describeWeekRange('2025-11-03', '2025-11-09'),
-            nota: 'Semana del (3 al 9 de noviembre de 2025)'
-        },
-        dias: [
-            {
-                fecha: '2025-11-03',
-                label: '03 Nov 2025',
-                comercial: { operaciones: 150, pasajeros: 21525 },
-                general: { operaciones: 18, pasajeros: 44 },
-                carga: { operaciones: 32, toneladas: 1121, corteFecha: '2025-10-30', corteNota: 'Cifras del 30 de octubre de 2025.' }
-            },
-            {
-                fecha: '2025-11-04',
-                label: '04 Nov 2025',
-                comercial: { operaciones: 142, pasajeros: 18746 },
-                general: { operaciones: 14, pasajeros: 81 },
-                carga: { operaciones: 22, toneladas: 753, corteFecha: '2025-11-02', corteNota: 'Cifras del 02 de noviembre de 2025.' }
-            },
-            {
-                fecha: '2025-11-05',
-                label: '05 Nov 2025',
-                comercial: { operaciones: 154, pasajeros: 21097 },
-                general: { operaciones: 8, pasajeros: 23 },
-                carga: { operaciones: 23, toneladas: 747, corteFecha: '2025-11-04', corteNota: 'Cifras del 04 de noviembre de 2025.' }
-            },
-
-{
-                fecha: '2025-11-06',
-                label: '06 Nov 2025',
-                comercial: { operaciones: 154, pasajeros: 21458},
-                general: { operaciones: 14, pasajeros: 21 },
-                carga: { operaciones: 23, toneladas: 775, corteFecha: '2025-11-04', corteNota: 'Cifras del 04 de noviembre de 2025.' }
-            },
-
-{
-                fecha: '2025-11-07',
-                label: '07 Nov 2025',
-                comercial: { operaciones: 148, pasajeros: 21548},
-                general: { operaciones: 8, pasajeros: 18 },
-                carga: { operaciones: 16, toneladas: 424, corteFecha: '2025-11-06', corteNota: 'Cifras del 06 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-08',
-                label: '08 Nov 2025',
-                comercial: { operaciones: 136, pasajeros: 17658},
-                general: { operaciones: 10, pasajeros: 23 },
-                carga: { operaciones: 16, toneladas: 424, corteFecha: '2025-11-06', corteNota: 'Cifras del 06 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-09',
-                label: '09 Nov 2025',
-                comercial: { operaciones: 154, pasajeros: 22170},
-                general: { operaciones: 5, pasajeros: 14 },
-                carga: { operaciones: 16, toneladas: 424, corteFecha: '2025-11-06', corteNota: 'Cifras del 06 de noviembre de 2025.' }
-            }
-
-
-
-        ]
-    },
-    {
-        id: '2025-10-27',
-        rango: {
-            inicio: '2025-10-27',
-            fin: '2025-11-02',
-            descripcion: describeWeekRange('2025-10-27', '2025-11-02'),
-            nota: ''
-        },
-        dias: [
-            {
-                fecha: '2025-10-27',
-                label: '27 Oct 2025',
-                comercial: { operaciones: 142, pasajeros: 20580},
-                general: { operaciones: 18, pasajeros: 121},
-                carga: { operaciones: 21, toneladas: 620, corteFecha: '2025-10-23', corteNota: 'Cifras del 26 de octubre de 2025.' }
-            },
-            {
-                fecha: '2025-10-28',
-                label: '28 Oct 2025',
-                comercial: { operaciones: 121, pasajeros: 16962 },
-                general: { operaciones: 11, pasajeros: 27 },
-                carga: { operaciones: 21, toneladas: 620, corteFecha: '2025-10-26', corteNota: 'Toneladas actualizadas al 26 de octubre de 2025 (ultimo corte disponible).' }
-            },
-            {
-                fecha: '2025-10-29',
-                label: '29 Oct 2025',
-                comercial: { operaciones: 136, pasajeros: 18143 },
-                general: { operaciones: 3, pasajeros: 6 },
-                carga: { operaciones: 14, toneladas: 379, corteFecha: '2025-10-28', corteNota: 'Toneladas actualizadas al 28 de octubre de 2025 (ultimo corte disponible).' }
-            },
-            {
-                fecha: '2025-10-30',
-                label: '30 Oct 2025',
-                comercial: { operaciones: 146, pasajeros: 20253},
-                general: { operaciones: 9, pasajeros: 233},
-                carga: { operaciones: 14, toneladas: 379, corteFecha: '2025-10-28', corteNota: 'Cifras del 28 de octubre de 2025' }
-            },
-            {
-                fecha: '2025-10-31',
-                label: '31 Oct 2025',
-                comercial: { operaciones: 161, pasajeros: 21611 },
-                general: { operaciones: 14, pasajeros: 31 },
-                carga: { operaciones: 32, toneladas: 1121, corteFecha: '2025-10-30', corteNota: 'Cifras del 30 de octubre de 2025.' }
-            },
-            {
-                fecha: '2025-11-01',
-                label: '01 Nov 2025',
-                comercial: { operaciones: 145, pasajeros: 17186 },
-                general: { operaciones: 3, pasajeros: 47 },
-                carga: { operaciones: 32, toneladas: 1121, corteFecha: '2025-10-30', corteNota: 'Cifras del 30 de octubre de 2025.' }
-            },
-            {
-                fecha: '2025-11-02',
-                label: '02 Nov 2025',
-                comercial: { operaciones: 160, pasajeros: 20977},
-                general: { operaciones: 17, pasajeros: 209 },
-                carga: { operaciones: 32, toneladas: 1121, corteFecha: '2025-10-30', corteNota: 'Cifras del 30 de octubre de 2025.' }
-            }
-        ]
-    },
-    {
-        id: '2025-10-20',
-        rango: {
-            inicio: '2025-10-20',
-            fin: '2025-10-26',
-            descripcion: describeWeekRange('2025-10-20', '2025-10-26'),
-            nota: 'Datos consolidados al 26 de octubre de 2025.'
-        },
-        dias: []
+let WEEKLY_OPERATIONS_DATASETS = [];
+
+function formatDateLabel(dateStr) {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = SPANISH_MONTH_ABBRS[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
+}
+
+function formatDateShort(dateStr) {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return `${d} de ${SPANISH_MONTH_NAMES[m-1]}`;
+}
+
+async function loadWeeklyOperationsFromDB() {
+    if (!window.dataManager) {
+        console.warn('DataManager not available, retrying in 500ms');
+        setTimeout(loadWeeklyOperationsFromDB, 500);
+        return;
     }
-];
+
+    try {
+        const dailyOps = await window.dataManager.getDailyOperations(365);
+        
+        if (!dailyOps || dailyOps.length === 0) {
+            console.warn('No daily operations found in DB');
+            return;
+        }
+
+        const weeksMap = new Map();
+        
+        dailyOps.forEach(op => {
+            const dateParts = op.date.split('-').map(Number);
+            const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+            
+            // Get Monday
+            const day = date.getDay();
+            const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+            const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            monday.setDate(diff);
+            
+            const mondayStr = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
+            
+            if (!weeksMap.has(mondayStr)) {
+                weeksMap.set(mondayStr, []);
+            }
+            weeksMap.get(mondayStr).push(op);
+        });
+
+        const newDatasets = [];
+        
+        for (const [mondayStr, days] of weeksMap) {
+            days.sort((a, b) => a.date.localeCompare(b.date));
+            
+            // Calculate end date (Sunday)
+            const startParts = mondayStr.split('-').map(Number);
+            const startObj = new Date(startParts[0], startParts[1] - 1, startParts[2]);
+            const endObj = new Date(startObj);
+            endObj.setDate(startObj.getDate() + 6);
+            const endDateStr = `${endObj.getFullYear()}-${String(endObj.getMonth()+1).padStart(2,'0')}-${String(endObj.getDate()).padStart(2,'0')}`;
+
+            const weekObj = {
+                id: mondayStr,
+                rango: {
+                    inicio: mondayStr,
+                    fin: endDateStr,
+                    descripcion: describeWeekRange(mondayStr, endDateStr),
+                    nota: `Semana del (${formatDateShort(mondayStr)} al ${formatDateShort(endDateStr)}).`
+                },
+                dias: days.map(d => ({
+                    fecha: d.date,
+                    label: formatDateLabel(d.date),
+                    comercial: { operaciones: d.comercial_ops, pasajeros: d.comercial_pax },
+                    general: { operaciones: d.general_ops, pasajeros: d.general_pax },
+                    carga: { 
+                        operaciones: d.carga_ops, 
+                        toneladas: d.carga_tons, 
+                        corteFecha: d.carga_cutoff_date, 
+                        corteNota: d.carga_cutoff_note 
+                    }
+                }))
+            };
+            newDatasets.push(weekObj);
+        }
+
+        newDatasets.sort((a, b) => b.id.localeCompare(a.id));
+        
+        WEEKLY_OPERATIONS_DATASETS = newDatasets;
+        
+        // Update staticData
+        staticData.operacionesSemanasCatalogo = WEEKLY_OPERATIONS_DATASETS.map(deepCloneWeek);
+        staticData.operacionesSemanaActual = resolveCurrentOperationsWeek();
+        
+        // Update Metadata
+        const newMetadata = buildWeeklyOrdinalMetadata();
+        for (const key in WEEKLY_ORDINAL_METADATA) delete WEEKLY_ORDINAL_METADATA[key];
+        Object.assign(WEEKLY_ORDINAL_METADATA, newMetadata);
+
+        console.log('Weekly operations loaded from DB:', WEEKLY_OPERATIONS_DATASETS.length, 'weeks');
+        console.log('DB Data Sample (First Week):', WEEKLY_OPERATIONS_DATASETS[0]);
+
+        // Trigger UI updates
+        if (typeof window.updateOpsFiltersAfterDataLoad === 'function') {
+            window.updateOpsFiltersAfterDataLoad();
+        }
+        if (typeof renderOperacionesTotales === 'function') {
+             renderOperacionesTotales();
+        }
+        
+    } catch (e) {
+        console.error("Error loading daily operations:", e);
+    }
+}
 
 function getWeekStartDate(week) {
     if (!week) return null;
@@ -10444,6 +10048,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (toggleYearly) toggleYearly.checked = opsUIState.mode === 'yearly';
         }
 
+        // Expose update function for dynamic data loading
+        window.updateOpsFiltersAfterDataLoad = function() {
+            populateWeeklyWeekOptions();
+            populateWeeklyDayOptions();
+            syncToggleStates();
+            refreshOpsYearFilters();
+            refreshOpsMonthlyYearLabels();
+            refreshOpsMonthsSelectionUI();
+        };
+
         let adjustingMode = false;
 
         function getSortedWeeklyCatalog(withDataOnly = false){
@@ -13738,6 +13352,9 @@ if (isAndroidDevice) {
             } catch (err) {
                 console.warn('Android auto-refresh timer init failed:', err);
             }
+
+            // Load dynamic data
+            loadWeeklyOperationsFromDB();
         });
 
 // End of script

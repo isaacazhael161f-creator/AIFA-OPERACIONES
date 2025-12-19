@@ -1,0 +1,27 @@
+/* Admin Mode Styles */
+body.admin-enabled .admin-only {
+    display: block !important;
+}
+
+.admin-edit-btn {
+    display: none; /* Hidden by default, shown by JS if admin */
+    z-index: 9999;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: all 0.2s ease;
+}
+
+.admin-edit-btn:hover {
+    transform: scale(1.05);
+}
+
+/* Floating Admin Toggle for Testing (Remove in Prod) */
+#admin-toggle-test {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 10000;
+    opacity: 0.7;
+}
+#admin-toggle-test:hover {
+    opacity: 1;
+}

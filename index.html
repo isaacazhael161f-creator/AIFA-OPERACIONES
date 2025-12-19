@@ -11,6 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;700&family=Roboto+Condensed:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="admin.css">
     <link rel="icon" type="image/png" sizes="192x192" href="images/icons/aifa-app-icon-192.png?v=20251126">
     <link rel="icon" type="image/png" sizes="512x512" href="images/icons/aifa-app-icon-512.png?v=20251126">
     <link rel="apple-touch-icon" sizes="180x180" href="images/icons/aifa-app-icon-512.png?v=20251126">
@@ -121,6 +122,7 @@
                     <a class="menu-item" href="#" data-section="manifiestos"><i class="fas fa-file-signature"></i><span>Manifiestos</span></a>
                     <a class="menu-item" href="#" data-section="fauna"><i class="fas fa-shield-alt"></i><span>GSO</span></a>
                     <a class="menu-item" href="#" data-section="medicas"><i class="fas fa-briefcase-medical"></i><span>Servicio Médico</span></a>
+                    <a class="menu-item d-none" href="#" data-section="data-management" id="data-management-menu"><i class="fas fa-database"></i><span>Gestión de Datos</span></a>
                     <a class="menu-item" href="#" data-section="historia"><i class="fas fa-history"></i><span>Historia</span></a>
                     <a class="menu-item" href="#" data-install-app-info><i class="fas fa-download"></i><span>Instalar como app</span></a>
                     
@@ -134,6 +136,239 @@
                     <strong>Advertencia:</strong> Estás abriendo el archivo directamente (file://). Para evitar errores CORS al cargar CSV/JSON, inicia el servidor local y abre: <a href="http://localhost:3000" target="_blank" rel="noopener">http://localhost:3000</a>.
                     
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+
+                <div id="data-management-section" class="content-section">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="section-heading mb-0"><i class="fas fa-database me-2"></i>Gestión de Datos</h2>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <ul class="nav nav-tabs card-header-tabs" id="dataTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="tab-ops-summary" data-bs-toggle="tab" data-bs-target="#pane-ops-summary" type="button" role="tab">Resumen Mensual</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="tab-daily-ops" data-bs-toggle="tab" data-bs-target="#pane-daily-ops" type="button" role="tab">Operaciones Diarias</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="tab-itinerary" data-bs-toggle="tab" data-bs-target="#pane-itinerary" type="button" role="tab">Itinerario</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="tab-wildlife" data-bs-toggle="tab" data-bs-target="#pane-wildlife" type="button" role="tab">Fauna</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="tab-medical" data-bs-toggle="tab" data-bs-target="#pane-medical" type="button" role="tab">Atenciones Médicas</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="tab-delays" data-bs-toggle="tab" data-bs-target="#pane-delays" type="button" role="tab">Demoras</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="tab-punctuality" data-bs-toggle="tab" data-bs-target="#pane-punctuality" type="button" role="tab">Puntualidad</button>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="card-body">
+                            <div class="tab-content" id="dataTabsContent">
+                                <!-- Operations Summary Pane -->
+                                <div class="tab-pane fade show active" id="pane-ops-summary" role="tabpanel">
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <div class="input-group w-auto">
+                                            <span class="input-group-text">Año</span>
+                                            <select class="form-select" id="filter-ops-year" aria-label="Filtrar por año">
+                                                <option value="2025">2025</option>
+                                                <option value="2024">2024</option>
+                                                <option value="2023">2023</option>
+                                                <option value="2022">2022</option>
+                                            </select>
+                                        </div>
+                                        <button class="btn btn-primary btn-sm" onclick="dataManagement.addItem('operations_summary')"><i class="fas fa-plus"></i> Agregar Registro</button>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover" id="table-ops-summary">
+                                            <thead>
+                                                <tr>
+                                                    <th>Año</th>
+                                                    <th>Mes</th>
+                                                    <th>Categoría</th>
+                                                    <th>Métrica</th>
+                                                    <th>Valor</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Daily Operations Pane -->
+                                <div class="tab-pane fade" id="pane-daily-ops" role="tabpanel">
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <div class="input-group w-auto">
+                                            <span class="input-group-text">Semana</span>
+                                            <input type="date" class="form-control" id="filter-daily-ops-date" aria-label="Filtrar por fecha">
+                                        </div>
+                                        <button class="btn btn-primary btn-sm" onclick="dataManagement.addItem('daily_operations')"><i class="fas fa-plus"></i> Agregar Día</button>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover" id="table-daily-ops">
+                                            <thead>
+                                                <tr>
+                                                    <th>Fecha</th>
+                                                    <th>Comercial (Ops/Pax)</th>
+                                                    <th>General (Ops/Pax)</th>
+                                                    <th>Carga (Ops/Ton)</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Itinerary Pane -->
+                                <div class="tab-pane fade" id="pane-itinerary" role="tabpanel">
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <div class="input-group w-auto">
+                                            <span class="input-group-text">Fecha</span>
+                                            <input type="date" class="form-control" id="filter-itinerary-date" aria-label="Filtrar por fecha">
+                                        </div>
+                                        <button class="btn btn-primary btn-sm" onclick="dataManagement.addItem('flight_itinerary')"><i class="fas fa-plus"></i> Agregar Vuelo</button>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover" id="table-itinerary">
+                                            <thead>
+                                                <tr>
+                                                    <th>Vuelo</th>
+                                                    <th>Aerolínea</th>
+                                                    <th>Origen/Destino</th>
+                                                    <th>Hora</th>
+                                                    <th>Estado</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Wildlife Pane -->
+                                <div class="tab-pane fade" id="pane-wildlife" role="tabpanel">
+                                    <div class="d-flex justify-content-end mb-3">
+                                        <button class="btn btn-primary btn-sm" onclick="dataManagement.addItem('wildlife_incidents')"><i class="fas fa-plus"></i> Agregar Reporte</button>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover" id="table-wildlife">
+                                            <thead>
+                                                <tr>
+                                                    <th>Fecha</th>
+                                                    <th>Hora</th>
+                                                    <th>Especie</th>
+                                                    <th>Ubicación</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Medical Pane -->
+                                <div class="tab-pane fade" id="pane-medical" role="tabpanel">
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <select class="form-select w-auto" id="filter-medical-year" aria-label="Filtrar por año">
+                                            <option value="2025">2025</option>
+                                            <option value="2024">2024</option>
+                                        </select>
+                                        <button class="btn btn-primary btn-sm" onclick="dataManagement.addItem('medical_attentions')"><i class="fas fa-plus"></i> Agregar Registro</button>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover" id="table-medical">
+                                            <thead>
+                                                <tr>
+                                                    <th>Mes</th>
+                                                    <th>AIFA</th>
+                                                    <th>Otras Empresas</th>
+                                                    <th>Pasajeros</th>
+                                                    <th>Visitantes</th>
+                                                    <th>Total</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Delays Pane -->
+                                <div class="tab-pane fade" id="pane-delays" role="tabpanel">
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <div class="d-flex gap-2">
+                                            <select class="form-select w-auto" id="filter-delays-year" aria-label="Filtrar por año">
+                                                <option value="2025">2025</option>
+                                            </select>
+                                            <select class="form-select w-auto" id="filter-delays-month" aria-label="Filtrar por mes">
+                                                <option value="">Todos los meses</option>
+                                                <option value="Enero">Enero</option>
+                                                <option value="Febrero">Febrero</option>
+                                                <!-- Add more months -->
+                                            </select>
+                                        </div>
+                                        <button class="btn btn-primary btn-sm" onclick="dataManagement.addItem('delays')"><i class="fas fa-plus"></i> Agregar Demora</button>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover" id="table-delays">
+                                            <thead>
+                                                <tr>
+                                                    <th>Mes</th>
+                                                    <th>Causa</th>
+                                                    <th>Cantidad</th>
+                                                    <th>Descripción</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Punctuality Pane -->
+                                <div class="tab-pane fade" id="pane-punctuality" role="tabpanel">
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <div class="d-flex gap-2">
+                                            <select class="form-select w-auto" id="filter-punctuality-year" aria-label="Filtrar por año">
+                                                <option value="2025">2025</option>
+                                            </select>
+                                            <select class="form-select w-auto" id="filter-punctuality-month" aria-label="Filtrar por mes">
+                                                <option value="">Todos los meses</option>
+                                                <option value="Enero">Enero</option>
+                                                <!-- Add more months -->
+                                            </select>
+                                        </div>
+                                        <button class="btn btn-primary btn-sm" onclick="dataManagement.addItem('punctuality')"><i class="fas fa-plus"></i> Agregar Registro</button>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover" id="table-punctuality">
+                                            <thead>
+                                                <tr>
+                                                    <th>Mes</th>
+                                                    <th>Aerolínea</th>
+                                                    <th>A Tiempo</th>
+                                                    <th>Demora</th>
+                                                    <th>Cancelado</th>
+                                                    <th>Total</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="historia-section" class="content-section">
@@ -1924,9 +2159,6 @@
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link active" id="punc-interactivo-tab" data-bs-toggle="tab" data-bs-target="#punc-interactivo-pane" type="button" role="tab" aria-controls="punc-interactivo-pane" aria-selected="true"><i class="fas fa-table me-2"></i>Vista Interactiva</button>
                                 </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="punc-pdf-tab" data-bs-toggle="tab" data-bs-target="#punc-pdf-pane" type="button" role="tab" aria-controls="punc-pdf-pane" aria-selected="false"><i class="fas fa-file-pdf me-2"></i>Documento PDF Original</button>
-                                </li>
                             </ul>
                             <div class="tab-content pt-3" id="puntualidadTabContent">
                                 <div class="tab-pane fade show active" id="punc-interactivo-pane" role="tabpanel" aria-labelledby="punc-interactivo-tab" tabindex="0">
@@ -1993,14 +2225,6 @@
                                         </div>
                                     </div>
                                     <div class="table-responsive" id="puntualidad-table-container"></div>
-                                </div>
-                                <div class="tab-pane fade" id="punc-pdf-pane" role="tabpanel" aria-labelledby="punc-pdf-tab" tabindex="0">
-                                    <div class="pdf-container">
-                                        <div class="pdf-singlepage-viewer v-scroll pdf-viewer-container" data-src="pdfs/puntualidad_agosto.pdf">
-                                            <canvas class="pdf-canvas"></canvas>
-                                            <div class="links-layer pdf-links-layer"></div>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2908,7 +3132,11 @@
     <script src="js/medicas.js"></script>
     <script src="js/fauna.js"></script>
     
-        <script src="script.js"></script>
+        <script src="js/data-manager.js"></script>
+    <script src="js/admin-ui.js"></script>
+    <script src="js/init-data.js"></script>
+    <script src="js/data-management.js"></script>
+    <script src="script.js"></script>
         <script src="js/puntualidad.js"></script>
         <script>
             // Modo DEV: bloquear por completo el registro de Service Workers en localhost/127.0.0.1 o con bandera noSW
@@ -3185,5 +3413,6 @@
             <div class="loader-text" id="global-loader-text">Cargando...</div>
         </div>
     </div>
+
 </body>
 </html>
