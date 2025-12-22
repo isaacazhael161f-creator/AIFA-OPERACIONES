@@ -147,19 +147,16 @@
                         <div class="card-header">
                             <ul class="nav nav-tabs card-header-tabs" id="dataTabs" role="tablist">
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="tab-ops-summary" data-bs-toggle="tab" data-bs-target="#pane-ops-summary" type="button" role="tab">Resumen Mensual</button>
+                                    <button class="nav-link active" id="tab-daily-ops" data-bs-toggle="tab" data-bs-target="#pane-daily-ops" type="button" role="tab">Operaciones Diarias</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="tab-daily-ops" data-bs-toggle="tab" data-bs-target="#pane-daily-ops" type="button" role="tab">Operaciones Diarias</button>
+                                    <button class="nav-link" id="tab-ops-breakdown" data-bs-toggle="tab" data-bs-target="#pane-ops-breakdown" type="button" role="tab">Parte de Operaciones (BD)</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="tab-itinerary" data-bs-toggle="tab" data-bs-target="#pane-itinerary" type="button" role="tab">Itinerario</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="tab-wildlife" data-bs-toggle="tab" data-bs-target="#pane-wildlife" type="button" role="tab">Fauna</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="tab-medical" data-bs-toggle="tab" data-bs-target="#pane-medical" type="button" role="tab">Atenciones Médicas</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="tab-delays" data-bs-toggle="tab" data-bs-target="#pane-delays" type="button" role="tab">Demoras</button>
@@ -171,39 +168,8 @@
                         </div>
                         <div class="card-body">
                             <div class="tab-content" id="dataTabsContent">
-                                <!-- Operations Summary Pane -->
-                                <div class="tab-pane fade show active" id="pane-ops-summary" role="tabpanel">
-                                    <div class="d-flex justify-content-between mb-3">
-                                        <div class="input-group w-auto">
-                                            <span class="input-group-text">Año</span>
-                                            <select class="form-select" id="filter-ops-year" aria-label="Filtrar por año">
-                                                <option value="2025">2025</option>
-                                                <option value="2024">2024</option>
-                                                <option value="2023">2023</option>
-                                                <option value="2022">2022</option>
-                                            </select>
-                                        </div>
-                                        <button class="btn btn-primary btn-sm" onclick="dataManagement.addItem('operations_summary')"><i class="fas fa-plus"></i> Agregar Registro</button>
-                                    </div>
-                                    <div class="table-responsive">
-                                        <table class="table table-striped table-hover" id="table-ops-summary">
-                                            <thead>
-                                                <tr>
-                                                    <th>Año</th>
-                                                    <th>Mes</th>
-                                                    <th>Categoría</th>
-                                                    <th>Métrica</th>
-                                                    <th>Valor</th>
-                                                    <th>Acciones</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody></tbody>
-                                        </table>
-                                    </div>
-                                </div>
-
                                 <!-- Daily Operations Pane -->
-                                <div class="tab-pane fade" id="pane-daily-ops" role="tabpanel">
+                                <div class="tab-pane fade show active" id="pane-daily-ops" role="tabpanel">
                                     <div class="d-flex justify-content-between mb-3">
                                         <div class="input-group w-auto">
                                             <span class="input-group-text">Semana</span>
@@ -219,6 +185,32 @@
                                                     <th>Comercial (Ops/Pax)</th>
                                                     <th>General (Ops/Pax)</th>
                                                     <th>Carga (Ops/Ton)</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Daily Operations Breakdown Pane -->
+                                <div class="tab-pane fade" id="pane-ops-breakdown" role="tabpanel">
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <div class="input-group w-auto">
+                                            <span class="input-group-text">Fecha</span>
+                                            <input type="date" class="form-control" id="filter-ops-breakdown-date" aria-label="Filtrar por fecha">
+                                        </div>
+                                        <button class="btn btn-primary btn-sm" onclick="dataManagement.addItem('daily_operations_breakdown')"><i class="fas fa-plus"></i> Agregar Registro</button>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover" id="table-ops-breakdown">
+                                            <thead>
+                                                <tr>
+                                                    <th>Fecha</th>
+                                                    <th>Tipo de Operación</th>
+                                                    <th>Llegadas</th>
+                                                    <th>Salidas</th>
+                                                    <th>Subtotal</th>
                                                     <th>Acciones</th>
                                                 </tr>
                                             </thead>
@@ -274,33 +266,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Medical Pane -->
-                                <div class="tab-pane fade" id="pane-medical" role="tabpanel">
-                                    <div class="d-flex justify-content-between mb-3">
-                                        <select class="form-select w-auto" id="filter-medical-year" aria-label="Filtrar por año">
-                                            <option value="2025">2025</option>
-                                            <option value="2024">2024</option>
-                                        </select>
-                                        <button class="btn btn-primary btn-sm" onclick="dataManagement.addItem('medical_attentions')"><i class="fas fa-plus"></i> Agregar Registro</button>
-                                    </div>
-                                    <div class="table-responsive">
-                                        <table class="table table-striped table-hover" id="table-medical">
-                                            <thead>
-                                                <tr>
-                                                    <th>Mes</th>
-                                                    <th>AIFA</th>
-                                                    <th>Otras Empresas</th>
-                                                    <th>Pasajeros</th>
-                                                    <th>Visitantes</th>
-                                                    <th>Total</th>
-                                                    <th>Acciones</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody></tbody>
-                                        </table>
-                                    </div>
-                                </div>
-
                                 <!-- Delays Pane -->
                                 <div class="tab-pane fade" id="pane-delays" role="tabpanel">
                                     <div class="d-flex justify-content-between mb-3">
@@ -346,7 +311,7 @@
                                                 <!-- Add more months -->
                                             </select>
                                         </div>
-                                        <button class="btn btn-primary btn-sm" onclick="dataManagement.addItem('punctuality')"><i class="fas fa-plus"></i> Agregar Registro</button>
+                                        <button class="btn btn-primary btn-sm" onclick="dataManagement.addItem('punctuality_stats')"><i class="fas fa-plus"></i> Agregar Registro</button>
                                     </div>
                                     <div class="table-responsive">
                                         <table class="table table-striped table-hover" id="table-punctuality">
@@ -835,69 +800,7 @@
                             </ul>
                             <div class="tab-content pt-3" id="operationsTabContent">
                                 <div class="tab-pane fade show active" id="resumen1-pane">
-                                    <div id="ops-entry-panel" class="card border-primary-subtle mb-4 d-none">
-                                        <div class="card-body">
-                                            <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
-                                                <div>
-                                                    <h5 class="mb-1 d-flex align-items-center gap-2">
-                                                        <i class="fas fa-user-pen text-primary"></i>
-                                                        <span>Captura rápida del parte de operaciones</span>
-                                                    </h5>
-                                                    <p class="small text-muted mb-0">Solo Isaac López puede registrar llegadas y salidas manuales para complementar el resumen diario.</p>
-                                                </div>
-                                                <div class="text-lg-end">
-                                                    <span class="small text-muted d-block">Usuario activo</span>
-                                                    <span class="badge bg-primary-subtle text-primary" id="ops-entry-active-user">-</span>
-                                                </div>
-                                            </div>
-                                            <hr class="my-3">
-                                            <form id="ops-entry-form" class="ops-entry-form">
-                                                <div class="row g-3 align-items-end">
-                                                    <div class="col-12 col-md-4">
-                                                        <label for="ops-entry-date" class="form-label">Fecha del parte</label>
-                                                        <input type="date" class="form-control" id="ops-entry-date" required>
-                                                    </div>
-                                                    <div class="col-12 col-md-8 text-md-end d-flex flex-wrap justify-content-md-end gap-2">
-                                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="ops-entry-sync-summary"><i class="fas fa-link me-1"></i>Usar fecha del resumen</button>
-                                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="ops-entry-today"><i class="fas fa-calendar-day me-1"></i>Hoy</button>
-                                                        <button type="button" class="btn btn-outline-danger btn-sm" id="ops-entry-clear-day"><i class="fas fa-trash me-1"></i>Eliminar captura</button>
-                                                    </div>
-                                                </div>
-                                                <div class="table-responsive mt-3">
-                                                    <table class="table table-sm align-middle mb-0" id="ops-entry-table">
-                                                        <thead class="table-light">
-                                                            <tr>
-                                                                <th scope="col">Tipo de operación</th>
-                                                                <th scope="col" class="text-center">Llegadas</th>
-                                                                <th scope="col" class="text-center">Salidas</th>
-                                                                <th scope="col" class="text-center">Subtotal</th>
-                                                                <th scope="col" class="text-center w-48px"></th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody></tbody>
-                                                    </table>
-                                                </div>
-                                                <datalist id="ops-entry-type-suggestions">
-                                                    <option value="Aviación de pasajeros"></option>
-                                                    <option value="Aviación de carga"></option>
-                                                    <option value="Aviación general"></option>
-                                                    <option value="Militar"></option>
-                                                    <option value="Ambulancia aérea"></option>
-                                                    <option value="Servicios complementarios"></option>
-                                                </datalist>
-                                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
-                                                    <div class="d-flex flex-wrap gap-2">
-                                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="ops-entry-add-row"><i class="fas fa-plus me-1"></i>Agregar fila</button>
-                                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="ops-entry-reset-table"><i class="fas fa-broom me-1"></i>Vaciar tabla</button>
-                                                    </div>
-                                                    <div class="d-flex flex-wrap gap-2">
-                                                        <button type="button" class="btn btn-primary btn-sm" id="ops-entry-save"><i class="fas fa-save me-1"></i>Guardar y aplicar</button>
-                                                    </div>
-                                                </div>
-                                                <p id="ops-entry-feedback" class="small text-muted mt-2 mb-0" role="status"></p>
-                                            </form>
-                                        </div>
-                                    </div>
+
                                     <div class="alert alert-info d-flex align-items-center gap-2 ops-calendar-hint" role="note">
                                         <i class="fas fa-calendar-day" aria-hidden="true"></i>
                                         <span class="small mb-0">Elige cualquier día del 2025 con los controles o el calendario para consultar su parte operativo.</span>

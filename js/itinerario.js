@@ -58,6 +58,19 @@
   async function loadItinerary() {
     if (itData) return itData;
     try {
+      // Try loading from DataManager (DB) first
+      if (window.dataManager && typeof window.dataManager.getFlightItinerary === 'function') {
+          try {
+              const dbData = await window.dataManager.getFlightItinerary();
+              if (Array.isArray(dbData) && dbData.length > 0) {
+                  itData = dbData;
+                  return itData;
+              }
+          } catch (dbErr) {
+              console.warn('Error loading itinerary from DB, falling back to JSON:', dbErr);
+          }
+      }
+
       const res = await fetch('data/itinerario.json', { cache:'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       itData = await res.json();

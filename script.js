@@ -11684,6 +11684,46 @@ async function syncParteOperacionesRemoteStore(options = {}){
     return runner;
 }
 
+function normalizeParteOperacionesFromDB(rows) {
+    const byDate = {};
+    const datesSet = new Set();
+
+    if (!Array.isArray(rows)) return { dates: [], byDate: {}, isLegacy: false, availableRange: null };
+
+    rows.forEach(row => {
+        // Ensure date is YYYY-MM-DD
+        let dateKey = row.date;
+        if (dateKey && dateKey.includes('T')) {
+            dateKey = dateKey.split('T')[0];
+        }
+        
+        if (!dateKey) return;
+
+        if (!byDate[dateKey]) {
+            byDate[dateKey] = {
+                operaciones: [],
+                total_general: 0
+            };
+            datesSet.add(dateKey);
+        }
+        
+        const op = {
+            tipo: row.operation_type,
+            llegada: Number(row.arrivals) || 0,
+            salida: Number(row.departures) || 0,
+            subtotal: Number(row.subtotal) || 0
+        };
+        
+        byDate[dateKey].operaciones.push(op);
+        byDate[dateKey].total_general += op.subtotal;
+    });
+    
+    const dates = Array.from(datesSet).sort();
+    const availableRange = dates.length ? { inicio: dates[0], fin: dates[dates.length - 1] } : null;
+    
+    return { dates, byDate, isLegacy: false, availableRange };
+}
+
 function normalizeParteOperacionesSummary(raw){
     const empty = { dates: [], byDate: {}, isLegacy: false, availableRange: null };
     if (!raw) return empty;
@@ -12564,10 +12604,26 @@ async function loadParteOperacionesSummary(options = {}){
         return;
     }
     try {
-        const res = await fetch('data/resumen_parte_operaciones.json', { cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const raw = await res.json();
-        const normalized = normalizeParteOperacionesSummary(raw);
+        let normalized;
+        try {
+            // Try fetching from DB via DataManager
+            const dbData = await window.dataManager.getDailyOperationsBreakdown();
+            if (dbData && Array.isArray(dbData) && dbData.length > 0) {
+                normalized = normalizeParteOperacionesFromDB(dbData);
+                console.log('Loaded Operations Summary from DB');
+            }
+        } catch (dbErr) {
+            console.warn('DB fetch for Operations Summary failed, falling back to JSON:', dbErr);
+        }
+
+        if (!normalized) {
+            const res = await fetch('data/resumen_parte_operaciones.json', { cache: 'no-store' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const raw = await res.json();
+            normalized = normalizeParteOperacionesSummary(raw);
+            console.log('Loaded Operations Summary from JSON');
+        }
+
         parteOperacionesSummaryBaseCache = normalized;
         const merged = mergeParteOperacionesCustomEntries(normalized);
         const previousSelection = parteOperacionesSummarySelectedDate;
@@ -13367,3 +13423,4 @@ if (isAndroidDevice) {
         });
 
 // End of script
+// Verified clean

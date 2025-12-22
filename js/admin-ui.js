@@ -8,6 +8,13 @@ class AdminUI {
     }
 
     initModal() {
+        // Check if bootstrap is available
+        if (typeof bootstrap === 'undefined') {
+            console.error('Bootstrap is not loaded. AdminUI cannot initialize modal.');
+            alert('Error: Bootstrap no está cargado. Verifica tu conexión a internet.');
+            return;
+        }
+
         // Create modal HTML
         const modalHtml = `
             <div id="admin-modal" class="modal fade" tabindex="-1">
@@ -29,9 +36,18 @@ class AdminUI {
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
-        this.modal = new bootstrap.Modal(document.getElementById('admin-modal'));
         
-        document.getElementById('admin-save-btn').addEventListener('click', () => this.saveChanges());
+        try {
+            this.modal = new bootstrap.Modal(document.getElementById('admin-modal'));
+        } catch (e) {
+            console.error('Error initializing Bootstrap Modal:', e);
+            alert('Error al inicializar el modal de administración: ' + e.message);
+        }
+        
+        const saveBtn = document.getElementById('admin-save-btn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => this.saveChanges());
+        }
     }
 
     toggleAdminControls(isAdmin) {
@@ -93,6 +109,18 @@ class AdminUI {
                 input.type = 'number';
                 input.className = 'form-control';
                 if (field.step) input.step = field.step;
+            } else if (field.type === 'file') {
+                input = document.createElement('input');
+                input.type = 'file';
+                input.className = 'form-control';
+                if (field.accept) input.accept = field.accept;
+                
+                if (record && record[field.name]) {
+                    const help = document.createElement('div');
+                    help.className = 'form-text mt-1';
+                    help.innerHTML = `Archivo actual: <a href="${record[field.name]}" target="_blank" class="text-decoration-none"><i class="fas fa-file-pdf"></i> Ver PDF</a>`;
+                    div.appendChild(help);
+                }
             } else {
                 input = document.createElement('input');
                 input.type = field.type || 'text';
@@ -117,15 +145,35 @@ class AdminUI {
         const form = document.getElementById('admin-form');
         const formData = new FormData(form);
         const updates = {};
+        const saveBtn = document.getElementById('admin-save-btn');
         
-        this.currentSchema.forEach(field => {
-            if (!field.readonly || !this.currentRecord) { // Include readonly fields if it's a new record (unless auto-generated)
-                 // Handle different input types if needed
-                 updates[field.name] = formData.get(field.name);
-            }
-        });
-
         try {
+            // Handle file uploads and other fields
+            for (const field of this.currentSchema) {
+                if (field.type === 'file') {
+                    const fileInput = form.querySelector(`input[name="${field.name}"]`);
+                    if (fileInput && fileInput.files.length > 0) {
+                        const file = fileInput.files[0];
+                        
+                        // Show loading state
+                        const originalText = saveBtn.innerText;
+                        saveBtn.innerText = 'Subiendo archivo...';
+                        saveBtn.disabled = true;
+                        
+                        try {
+                            const fileUrl = await this.uploadFile(file);
+                            updates[field.name] = fileUrl;
+                        } finally {
+                            saveBtn.innerText = originalText;
+                            saveBtn.disabled = false;
+                        }
+                    }
+                    // If no new file, we don't add anything to updates, preserving existing value
+                } else if (!field.readonly || !this.currentRecord) { 
+                     updates[field.name] = formData.get(field.name);
+                }
+            }
+
             if (this.currentRecord) {
                 // Update
                 await window.dataManager.updateTable(this.currentTable, this.currentRecord.id, updates);
@@ -142,6 +190,25 @@ class AdminUI {
             console.error(err);
             alert('Error al guardar: ' + err.message);
         }
+    }
+
+    async uploadFile(file) {
+        // Use a dedicated bucket for operations files
+        const bucketName = 'operations_files'; 
+        // Create a unique file name: timestamp_sanitized-name
+        const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        
+        const { data, error } = await window.supabaseClient.storage
+            .from(bucketName)
+            .upload(fileName, file);
+            
+        if (error) throw error;
+        
+        const { data: { publicUrl } } = window.supabaseClient.storage
+            .from(bucketName)
+            .getPublicUrl(fileName);
+            
+        return publicUrl;
     }
 
     async deleteRecord(table, id) {

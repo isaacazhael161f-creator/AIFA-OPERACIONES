@@ -149,6 +149,24 @@
   function loadDemorasData(force = false){
     if (!force && demorasDataCache) return Promise.resolve(demorasDataCache);
     if (!force && demorasDataPromise) return demorasDataPromise;
+
+    if (window.dataManager && window.dataManager.getDelays) {
+      demorasDataPromise = window.dataManager.getDelays()
+        .then((data) => {
+          demorasDataCache = data;
+          demorasDataLoadError = null;
+          demorasDataPromise = null;
+          return data;
+        })
+        .catch((error) => {
+          console.warn('Error loading delays from DB, falling back to JSON', error);
+          demorasDataPromise = null;
+          demorasDataLoadError = error;
+          throw error;
+        });
+      return demorasDataPromise;
+    }
+
     try {
       const url = resolveDemorasDataUrl(force);
       demorasDataPromise = fetch(url, { cache: force ? 'no-store' : 'default' })

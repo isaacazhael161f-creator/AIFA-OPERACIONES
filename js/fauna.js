@@ -31,6 +31,15 @@
   }
 
   function loadFauna(){
+    if (window.dataManager && window.dataManager.getWildlifeIncidents) {
+      return window.dataManager.getWildlifeIncidents()
+        .catch(err => {
+          console.warn('Error loading fauna from DB, fallback to JSON', err);
+          return fetch('data/fauna.json').then(r => r.json());
+        })
+        .catch(() => []);
+    }
+
     try {
       if (location.protocol === 'file:') {
         console.warn('fauna: saltando carga por file:// (CORS).');
@@ -756,6 +765,17 @@
   }
 
   function loadDataset(){
+    if (window.dataManager && window.dataManager.getRescuedWildlife) {
+      return window.dataManager.getRescuedWildlife()
+        .catch(err => {
+          console.warn('fauna-rescate: error al cargar de DB, fallback a JSON', err);
+          return loadDatasetFromJson();
+        });
+    }
+    return loadDatasetFromJson();
+  }
+
+  function loadDatasetFromJson(){
     try {
       if (location.protocol === 'file:') {
         console.warn('fauna-rescate: saltando carga por file:// (CORS).');

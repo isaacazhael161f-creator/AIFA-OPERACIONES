@@ -188,17 +188,32 @@
 
   async function loadData(){
     try {
-      const res = await fetch(DATA_URL, { cache: 'no-store' });
-      if (!res.ok) throw new Error('HTTP '+res.status);
-      const json = await res.json();
-      _data = Array.isArray(json) ? json : [];
+      // Try to get data from DataManager (DB) first
+      if (window.dataManager && typeof window.dataManager.getPunctuality === 'function') {
+          // Fetching for Noviembre 2025 to match current view
+          const dbData = await window.dataManager.getPunctuality(2025, 'Noviembre');
+          if (dbData && dbData.length > 0) {
+              _data = dbData;
+          } else {
+             // Fallback if DB empty for that month
+             const res = await fetch(DATA_URL, { cache: 'no-store' });
+             if (!res.ok) throw new Error('HTTP '+res.status);
+             _data = await res.json();
+          }
+      } else {
+          const res = await fetch(DATA_URL, { cache: 'no-store' });
+          if (!res.ok) throw new Error('HTTP '+res.status);
+          _data = await res.json();
+      }
+
+      _data = Array.isArray(_data) ? _data : [];
       renderTopLists();
       renderTable();
     } catch (err) {
-      console.error('No se pudo cargar puntualidad.json', err);
+      console.error('No se pudo cargar puntualidad', err);
       const container = document.getElementById('puntualidad-table-container');
       if (container) {
-        container.innerHTML = '<div class="alert alert-warning">No se pudo cargar puntualidad.json. Verifica que estás usando el servidor local (no file://).</div>';
+        container.innerHTML = '<div class="alert alert-warning">No se pudo cargar la información de puntualidad.</div>';
       }
     }
   }

@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS wildlife_strikes (
+    id SERIAL PRIMARY KEY,
+    date DATE,
+    time TIME,
+    location TEXT,
+    impact_zone TEXT,
+    operation_phase TEXT,
+    airline TEXT,
+    aircraft TEXT,
+    registration TEXT,
+    remains_impact_zone TEXT,
+    remains_quantity TEXT,
+    size TEXT,
+    species TEXT,
+    common_name TEXT,
+    reporter TEXT,
+    proactive_measures TEXT,
+    weather_conditions TEXT,
+    results TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
