@@ -725,6 +725,74 @@ function deepCloneWeek(week) {
 
 const WEEKLY_OPERATIONS_DATASETS = [
 
+       {
+        id: '2025-12-15',
+        rango: {
+            inicio: '2025-12-15',
+            fin: '2025-12-21',
+            descripcion: describeWeekRange('2025-12-15', '2025-12-21'),
+            nota: 'Semana del (15 al 21 de diciembre de 2025).'
+        },
+        dias: [
+            {
+                fecha: '2025-12-15',
+                label: '15 Dic 2025',
+                comercial: { operaciones: 153, pasajeros: 21651},
+                general: { operaciones: 15, pasajeros: 21 },
+                carga: { operaciones: 18, toneladas: 479, corteFecha: '2025-12-14', corteNota: 'Cifras del 14 de diciembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-12-16',
+                label: '16 Dic 2025',
+                comercial: { operaciones: 155, pasajeros: 22401},
+                general: { operaciones: 12, pasajeros: 33 },
+                carga: { operaciones: 18, toneladas: 479, corteFecha: '2025-12-14', corteNota: 'Cifras del 14 de diciembre de 2025.' }
+            },
+
+
+            {
+                fecha: '2025-12-17',
+                label: '17 Dic 2025',
+                comercial: { operaciones: 150, pasajeros: 19080},
+                general: { operaciones: 7, pasajeros: 11 },
+                carga: { operaciones: 19, toneladas: 547, corteFecha: '2025-12-16', corteNota: 'Cifras del 16 de diciembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-12-18',
+                label: '18 Dic 2025',
+                comercial: { operaciones: 164, pasajeros: 25090},
+                general: { operaciones: 17, pasajeros: 90 },
+                carga: { operaciones: 19, toneladas: 547, corteFecha: '2025-12-16', corteNota: 'Cifras del 16 de diciembre de 2025.' }
+            },
+
+
+            {
+                fecha: '2025-12-19',
+                label: '19 Dic 2025',
+                comercial: { operaciones: 162, pasajeros: 24410},
+                general: { operaciones: 9, pasajeros: 13 },
+                carga: { operaciones: 33, toneladas: 1100, corteFecha: '2025-12-18', corteNota: 'Cifras del 18 de diciembre de 2025.' }
+            },
+
+
+            {
+                fecha: '2025-12-20',
+                label: '20 Dic 2025',
+                comercial: { operaciones: 160, pasajeros: 23977},
+                general: { operaciones: 12, pasajeros: 28 },
+                carga: { operaciones: 33, toneladas: 1100, corteFecha: '0', corteNota: 'Cifras del 18 de diciembre de 2025.' }
+            },
+
+
+
+
+
+            ]
+    },
+
+        
     {
         id: '2025-12-08',
         rango: {
@@ -11914,14 +11982,173 @@ function formatParteOperacionesPdfFilename(dateStr){
     return `Operaciones ${day} ${monthLabel} ${jsDate.getFullYear()}`;
 }
 
+let parteOperacionesPdfManifest = null;
+let parteOperacionesPdfManifestLoaded = false;
+
+async function loadParteOperacionesPdfManifest(){
+    // If we've already successfully loaded the manifest, return it.
+    if (parteOperacionesPdfManifestLoaded && Array.isArray(parteOperacionesPdfManifest)) return parteOperacionesPdfManifest;
+    try {
+        const res = await fetch(`${PARTE_OPERACIONES_PDF_BASE_PATH}/index.json`, { cache: 'no-store' });
+        if (!res.ok) {
+            console.warn('loadParteOperacionesPdfManifest: manifest fetch returned non-ok status', res.status);
+            return null;
+        }
+        const payload = await res.json();
+        if (Array.isArray(payload)) {
+            parteOperacionesPdfManifest = payload.slice();
+            parteOperacionesPdfManifestLoaded = true;
+            return parteOperacionesPdfManifest;
+        }
+        // If payload isn't an array, keep manifest unloaded so we can retry later
+        console.warn('loadParteOperacionesPdfManifest: invalid payload format');
+    } catch (err) {
+        console.warn('loadParteOperacionesPdfManifest failed:', err);
+    }
+    return null;
+}
+
+function _normalizeForPdfMatch(text){
+    if (!text) return '';
+    return text.toString()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9]+/g, ' ')
+        .trim()
+        .toLowerCase();
+}
+
+async function findParteOperacionesPdfFilename(dateStr){
+    if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
+    const jsDate = new Date(`${dateStr}T00:00:00`);
+    if (Number.isNaN(jsDate.getTime())) return null;
+    const day = String(jsDate.getDate());
+    const dayPadded = day.padStart(2, '0');
+    const monthName = SPANISH_MONTH_NAMES[jsDate.getMonth()] || '';
+    const monthShort = monthName.slice(0,3);
+    const year = String(jsDate.getFullYear());
+    const dayRe = new RegExp('\\b' + dayPadded + '\\b');
+    const monthRe = new RegExp('\\b' + monthName + '\\b');
+    const monthShortRe = new RegExp('\\b' + monthShort + '\\b');
+    const yearRe = new RegExp('\\b' + year + '\\b');
+
+    const manifest = await loadParteOperacionesPdfManifest();
+    if (!Array.isArray(manifest) || !manifest.length) return null;
+
+    // score candidates: prefer ones containing day, month (full or short), year
+    let best = null;
+    let bestScore = -1;
+    for (const candidate of manifest){
+        if (!candidate || typeof candidate !== 'string') continue;
+        // only consider pdf files
+        if (!/\.pdf$/i.test(candidate)) continue;
+        const norm = _normalizeForPdfMatch(candidate.replace(/\.pdf$/i, ''));
+        let score = 0;
+        if (dayRe.test(norm)) score += 6;
+        if (monthRe.test(norm)) score += 5;
+        if (monthShortRe.test(norm)) score += 2;
+        if (yearRe.test(norm)) score += 8;
+        if (norm.includes('operaciones')) score += 1;
+        if (score > bestScore){
+            bestScore = score;
+            best = candidate;
+        }
+    }
+    // require at least a minimal score (day + year or month + year)
+    if (bestScore >= 7) return best;
+
+    // Second pass: looser matching — prefer day+year, or day+month, or month+year
+    for (const candidate of manifest){
+        if (!candidate || typeof candidate !== 'string') continue;
+        if (!/\.pdf$/i.test(candidate)) continue;
+        const norm = _normalizeForPdfMatch(candidate.replace(/\.pdf$/i, ''));
+        // day + year
+        if (dayRe.test(norm) && yearRe.test(norm)) return candidate;
+        // day + month
+        if (dayRe.test(norm) && (monthRe.test(norm) || monthShortRe.test(norm))) return candidate;
+        // month + year
+        if ((monthRe.test(norm) || monthShortRe.test(norm)) && yearRe.test(norm)) return candidate;
+    }
+
+    // Third pass: match day only (last resort)
+    for (const candidate of manifest){
+        if (!candidate || typeof candidate !== 'string') continue;
+        if (!/\.pdf$/i.test(candidate)) continue;
+        const norm = _normalizeForPdfMatch(candidate.replace(/\.pdf$/i, ''));
+        if (dayRe.test(norm)) return candidate;
+    }
+
+    return null;
+}
+
 function buildParteOperacionesPdfPath(dateStr){
+    // Attempt to build a fallback path using the old deterministic filename
     const filename = formatParteOperacionesPdfFilename(dateStr);
     if (!filename) return null;
     const encoded = encodeURIComponent(`${filename}${PARTE_OPERACIONES_PDF_EXTENSION}`);
     return `${PARTE_OPERACIONES_PDF_BASE_PATH}/${encoded}`;
 }
 
-function updateParteOperacionesPdfViewer(metadata = {}){
+async function _urlExists(url){
+    try {
+        const res = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+        if (res.ok) return true;
+        // Some servers don't support HEAD; try GET lightly
+        if (res.status === 405 || res.status === 501) {
+            const r2 = await fetch(url, { method: 'GET', cache: 'no-store' });
+            return r2.ok;
+        }
+        return false;
+    } catch (err){
+        return false;
+    }
+}
+
+// Try multiple candidate paths (encoded/raw/normalized) and return the first that exists
+async function resolveParteOperacionesPdfPath(matchedFilename, fallbackFilename){
+    const base = PARTE_OPERACIONES_PDF_BASE_PATH;
+    const candidates = [];
+    if (matchedFilename) {
+        candidates.push(`${base}/${encodeURIComponent(matchedFilename)}`);
+        candidates.push(`${base}/${matchedFilename}`);
+    }
+    if (fallbackFilename) {
+        const fb = `${fallbackFilename}${PARTE_OPERACIONES_PDF_EXTENSION}`;
+        candidates.push(`${base}/${encodeURIComponent(fb)}`);
+        candidates.push(`${base}/${fb}`);
+    }
+
+    // add sanitized variants (collapse multiple spaces, remove stray space before dot, remove unexpected dots)
+    const sanitizers = [
+        s => s.replace(/\s+/g, ' ').trim(),
+        s => s.replace(/\s+\./g, '.'),
+        s => s.replace(/\.\s+/g, '.').replace(/\.{2,}/g, '.')
+    ];
+    const seen = new Set(candidates);
+    for (const c of [...candidates]){
+        const rawName = c.replace(`${base}/`, '');
+        for (const san of sanitizers){
+            const variant = `${base}/${encodeURIComponent(san(decodeURIComponent(rawName)))}`;
+            if (!seen.has(variant)) { seen.add(variant); candidates.push(variant); }
+            const variantRaw = `${base}/${san(decodeURIComponent(rawName))}`;
+            if (!seen.has(variantRaw)) { seen.add(variantRaw); candidates.push(variantRaw); }
+        }
+    }
+
+    for (const url of candidates){
+        if (!url) continue;
+        try {
+            // Try checking availability
+            // If running file:// this will likely fail; callers should handle null
+            // Use absolute URL if environment provides location origin
+            const abs = (typeof window !== 'undefined' && window.location && window.location.origin) ? `${window.location.origin}/${url}`.replace(/([^:])\/\//g,'$1/') : url;
+            if (await _urlExists(abs)) return url;
+        } catch (_) {}
+    }
+    return null;
+}
+
+async function updateParteOperacionesPdfViewer(metadata = {}){
     const wrapper = document.getElementById('operations-pdf-viewer');
     if (!wrapper) return;
     const iframe = document.getElementById('operations-pdf-frame');
@@ -11946,29 +12173,60 @@ function updateParteOperacionesPdfViewer(metadata = {}){
         return;
     }
 
-    const filename = formatParteOperacionesPdfFilename(isoDate);
-    const pdfPath = buildParteOperacionesPdfPath(isoDate);
-    if (!filename || !pdfPath){
+    // show placeholder until we resolve the actual PDF path
+    placeholder.classList.remove('d-none');
+    iframe.classList.add('d-none');
+    if (iframe.getAttribute('src')) iframe.removeAttribute('src');
+    downloadBtn.classList.add('d-none');
+    downloadBtn.removeAttribute('href');
+    downloadBtn.removeAttribute('download');
+
+    // Build a sensible friendly label while we try to find the actual file
+    const friendly = metadata?.friendlyDate || formatParteOperacionesDate(isoDate) || isoDate;
+    label.textContent = `Buscando documento correspondiente al ${friendly}...`;
+
+    // Try to find a file in the manifest (if available) or fall back to deterministic filename
+    let matchedFilename = null;
+    try {
+        matchedFilename = await findParteOperacionesPdfFilename(isoDate);
+    } catch (err) {
+        console.warn('findParteOperacionesPdfFilename failed:', err);
+    }
+
+    const fallbackFilename = formatParteOperacionesPdfFilename(isoDate);
+    let pdfPath = null;
+    let downloadName = null;
+    try {
+        const resolved = await resolveParteOperacionesPdfPath(matchedFilename, fallbackFilename);
+        if (resolved) {
+            pdfPath = resolved;
+            const leaf = (resolved || '').split('/').pop() || '';
+            downloadName = decodeURIComponent(leaf).replace(/\.pdf$/i, '');
+        } else if (matchedFilename) {
+            pdfPath = `${PARTE_OPERACIONES_PDF_BASE_PATH}/${encodeURIComponent(matchedFilename)}`;
+            downloadName = matchedFilename.replace(/\.pdf$/i, '');
+        } else if (fallbackFilename) {
+            pdfPath = buildParteOperacionesPdfPath(isoDate);
+            downloadName = `${fallbackFilename}${PARTE_OPERACIONES_PDF_EXTENSION}`.replace(/\.pdf$/i, '');
+        }
+    } catch (err) {
+        console.warn('resolveParteOperacionesPdfPath failed:', err);
+    }
+
+    if (!pdfPath){
         placeholder.classList.remove('d-none');
         iframe.classList.add('d-none');
-        if (iframe.getAttribute('src')){
-            iframe.removeAttribute('src');
-        }
-        downloadBtn.classList.add('d-none');
-        downloadBtn.removeAttribute('href');
-        downloadBtn.removeAttribute('download');
         label.textContent = 'No fue posible construir la ruta del documento para esta fecha.';
         return;
     }
 
-    const friendly = metadata?.friendlyDate || formatParteOperacionesDate(isoDate) || isoDate;
     label.textContent = `Documento correspondiente al ${friendly}.`;
     placeholder.classList.add('d-none');
     iframe.classList.remove('d-none');
     iframe.setAttribute('src', pdfPath);
     downloadBtn.classList.remove('d-none');
     downloadBtn.href = pdfPath;
-    downloadBtn.download = `${filename}${PARTE_OPERACIONES_PDF_EXTENSION}`;
+    downloadBtn.download = downloadName || (`${fallbackFilename}${PARTE_OPERACIONES_PDF_EXTENSION}`);
 }
 
 function getDefaultParteOperacionesDate(summary){

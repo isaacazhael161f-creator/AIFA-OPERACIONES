@@ -103,6 +103,7 @@
             <aside class="sidebar d-flex flex-column p-2" id="sidebar">
                 <nav class="nav flex-column" id="sidebar-nav">
                     <a class="menu-item active" href="#" data-section="operaciones-totales"><i class="fas fa-home"></i><span>Inicio</span></a>
+                    <a class="menu-item" href="#" data-section="hub-datos"><i class="fas fa-database"></i><span>Hub de Datos</span></a>
                     <a class="menu-item" href="#" data-section="parte-operaciones"><i class="fas fa-file-invoice"></i><span>Parte de Operaciones</span></a>
                     <a class="menu-item" href="#" data-section="inicio"><i class="fas fa-calendar-day"></i><span>Itinerario diario</span></a>
                     <a class="menu-item" href="#" data-section="frecuencias-semana"><i class="fas fa-chart-bar"></i><span>Frecuencias semanales</span></a>
@@ -131,6 +132,38 @@
                     <strong>Advertencia:</strong> Estás abriendo el archivo directamente (file://). Para evitar errores CORS al cargar CSV/JSON, inicia el servidor local y abre: <a href="http://localhost:3000" target="_blank" rel="noopener">http://localhost:3000</a>.
                     
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+
+                <div id="hub-datos-section" class="content-section">
+                    <div class="card border-0 overflow-hidden shadow-sm">
+                        <div class="position-relative p-5 text-center text-white" style="background-image: url('images/fondo-aifa.jpg'); background-size: cover; background-position: center;">
+                            <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark opacity-50"></div>
+                            <div class="position-relative z-1">
+                                <h1 class="display-4 fw-bold mb-3">Hub de Datos del AIFA</h1>
+                                <p class="lead mb-4">Datos críticos y estadísticas maestras del Aeropuerto Internacional Felipe Ángeles</p>
+                            </div>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="row g-4">
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="card h-100 border-primary border-start border-4 shadow-sm">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center mb-3">
+                                                <div class="bg-primary bg-opacity-10 p-3 rounded-circle me-3">
+                                                    <i class="fas fa-users fa-2x text-primary"></i>
+                                                </div>
+                                                <h5 class="card-title mb-0 text-primary fw-bold">Récord de Pasajeros</h5>
+                                            </div>
+                                            <p class="card-text text-muted mb-2">Máximo histórico diario desde el inicio de operaciones.</p>
+                                            <h3 class="fw-bold mb-1">25,090</h3>
+                                            <p class="text-success small mb-0"><i class="fas fa-calendar-check me-1"></i>18 de diciembre del 2025</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Espacio para más datos críticos -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="inicio-section" class="content-section">
@@ -564,69 +597,6 @@
                             </ul>
                             <div class="tab-content pt-3" id="operationsTabContent">
                                 <div class="tab-pane fade show active" id="resumen1-pane">
-                                    <div id="ops-entry-panel" class="card border-primary-subtle mb-4 d-none">
-                                        <div class="card-body">
-                                            <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
-                                                <div>
-                                                    <h5 class="mb-1 d-flex align-items-center gap-2">
-                                                        <i class="fas fa-user-pen text-primary"></i>
-                                                        <span>Captura rápida del parte de operaciones</span>
-                                                    </h5>
-                                                    <p class="small text-muted mb-0">Solo Isaac López puede registrar llegadas y salidas manuales para complementar el resumen diario.</p>
-                                                </div>
-                                                <div class="text-lg-end">
-                                                    <span class="small text-muted d-block">Usuario activo</span>
-                                                    <span class="badge bg-primary-subtle text-primary" id="ops-entry-active-user">-</span>
-                                                </div>
-                                            </div>
-                                            <hr class="my-3">
-                                            <form id="ops-entry-form" class="ops-entry-form">
-                                                <div class="row g-3 align-items-end">
-                                                    <div class="col-12 col-md-4">
-                                                        <label for="ops-entry-date" class="form-label">Fecha del parte</label>
-                                                        <input type="date" class="form-control" id="ops-entry-date" required>
-                                                    </div>
-                                                    <div class="col-12 col-md-8 text-md-end d-flex flex-wrap justify-content-md-end gap-2">
-                                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="ops-entry-sync-summary"><i class="fas fa-link me-1"></i>Usar fecha del resumen</button>
-                                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="ops-entry-today"><i class="fas fa-calendar-day me-1"></i>Hoy</button>
-                                                        <button type="button" class="btn btn-outline-danger btn-sm" id="ops-entry-clear-day"><i class="fas fa-trash me-1"></i>Eliminar captura</button>
-                                                    </div>
-                                                </div>
-                                                <div class="table-responsive mt-3">
-                                                    <table class="table table-sm align-middle mb-0" id="ops-entry-table">
-                                                        <thead class="table-light">
-                                                            <tr>
-                                                                <th scope="col">Tipo de operación</th>
-                                                                <th scope="col" class="text-center">Llegadas</th>
-                                                                <th scope="col" class="text-center">Salidas</th>
-                                                                <th scope="col" class="text-center">Subtotal</th>
-                                                                <th scope="col" class="text-center w-48px"></th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody></tbody>
-                                                    </table>
-                                                </div>
-                                                <datalist id="ops-entry-type-suggestions">
-                                                    <option value="Aviación de pasajeros"></option>
-                                                    <option value="Aviación de carga"></option>
-                                                    <option value="Aviación general"></option>
-                                                    <option value="Militar"></option>
-                                                    <option value="Ambulancia aérea"></option>
-                                                    <option value="Servicios complementarios"></option>
-                                                </datalist>
-                                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
-                                                    <div class="d-flex flex-wrap gap-2">
-                                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="ops-entry-add-row"><i class="fas fa-plus me-1"></i>Agregar fila</button>
-                                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="ops-entry-reset-table"><i class="fas fa-broom me-1"></i>Vaciar tabla</button>
-                                                    </div>
-                                                    <div class="d-flex flex-wrap gap-2">
-                                                        <button type="button" class="btn btn-primary btn-sm" id="ops-entry-save"><i class="fas fa-save me-1"></i>Guardar y aplicar</button>
-                                                    </div>
-                                                </div>
-                                                <p id="ops-entry-feedback" class="small text-muted mt-2 mb-0" role="status"></p>
-                                            </form>
-                                        </div>
-                                    </div>
                                     <div class="alert alert-info d-flex align-items-center gap-2 ops-calendar-hint" role="note">
                                         <i class="fas fa-calendar-day" aria-hidden="true"></i>
                                         <span class="small mb-0">Elige cualquier día del 2025 con los controles o el calendario para consultar su parte operativo.</span>
