@@ -725,6 +725,31 @@ function deepCloneWeek(week) {
 
 const WEEKLY_OPERATIONS_DATASETS = [
 
+
+    {
+        id: '2025-12-15',
+        rango: {
+            inicio: '2025-12-22',
+            fin: '2025-12-28',
+            descripcion: describeWeekRange('2025-12-22', '2025-12-28'),
+            nota: 'Semana del (22 al 28 de diciembre de 2025).'
+        },
+        dias: [
+            
+
+                
+            {
+                fecha: '2025-12-22',
+                label: '22 Dic 2025',
+                comercial: { operaciones: 162, pasajeros: 24949},
+                general: { operaciones: 7, pasajeros: 21 },
+                carga: { operaciones: 22, toneladas: 636, corteFecha: '2025-12-21', corteNota: 'Cifras del 21 de diciembre de 2025.' }
+            }
+
+                  ]
+    },
+
+
        {
         id: '2025-12-15',
         rango: {
@@ -782,8 +807,28 @@ const WEEKLY_OPERATIONS_DATASETS = [
                 label: '20 Dic 2025',
                 comercial: { operaciones: 160, pasajeros: 23977},
                 general: { operaciones: 12, pasajeros: 28 },
-                carga: { operaciones: 33, toneladas: 1100, corteFecha: '0', corteNota: 'Cifras del 18 de diciembre de 2025.' }
+                carga: { operaciones: 33, toneladas: 1100, corteFecha: '2025-12-18', corteNota: 'Cifras del 18 de diciembre de 2025.' }
             },
+
+            {
+                fecha: '2025-12-21',
+                label: '21 Dic 2025',
+                comercial: { operaciones: 162, pasajeros: 21963},
+                general: { operaciones: 16, pasajeros: 28 },
+                carga: { operaciones: 33, toneladas: 1100, corteFecha: '2025-12-18', corteNota: 'Cifras del 18 de diciembre de 2025.' }
+            },
+
+
+
+        
+
+            
+
+
+
+
+
+
 
 
 
