@@ -7,7 +7,7 @@ const fs = require('fs');
 const fsp = fs.promises;
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT || process.argv[2]) || 3000;
 const ROOT = path.join(__dirname);
 const DEV = process.env.NODE_ENV !== 'production';
 const DATA_DIR = path.join(ROOT, 'data');

@@ -1,3 +1,20 @@
+// Provide a lightweight proxy so inline handlers can call `dataManagement.*` before
+// the real instance is ready. Calls are buffered and flushed when the real
+// instance is created.
+if (!window.dataManagement) {
+    window._dm_call_queue = [];
+    window.dataManagement = new Proxy({}, {
+        get(_, prop) {
+            return function(...args) {
+                if (window.__realDataManagement && typeof window.__realDataManagement[prop] === 'function') {
+                    return window.__realDataManagement[prop](...args);
+                }
+                window._dm_call_queue.push({ prop, args });
+            };
+        }
+    });
+}
+
 class DataManagement {
     constructor() {
         this.cache = {};
@@ -145,16 +162,23 @@ class DataManagement {
             });
         });
 
-        // Listen for filter changes
-        document.getElementById('filter-daily-ops-date').addEventListener('change', () => this.loadDailyOperations());
-        document.getElementById('filter-ops-breakdown-date').addEventListener('change', () => this.loadDailyOperationsBreakdown());
-        document.getElementById('filter-itinerary-date').addEventListener('change', () => this.loadItinerary());
-        document.getElementById('filter-delays-year').addEventListener('change', () => this.loadDelays());
-        document.getElementById('filter-delays-month').addEventListener('change', () => this.loadDelays());
-        document.getElementById('filter-punctuality-year').addEventListener('change', () => this.loadPunctuality());
-        document.getElementById('filter-punctuality-month').addEventListener('change', () => this.loadPunctuality());
-        document.getElementById('filter-aviation-year').addEventListener('change', () => this.loadAviationAnalytics());
-        document.getElementById('filter-aviation-category').addEventListener('change', () => this.loadAviationAnalytics());
+        // Helper to attach listeners safely
+        const attach = (id, ev, fn) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener(ev, fn);
+            else console.warn(`DataManagement: element not found: ${id}`);
+        };
+
+        // Listen for filter changes (attach safely)
+        attach('filter-daily-ops-date', 'change', () => this.loadDailyOperations());
+        attach('filter-ops-breakdown-date', 'change', () => this.loadDailyOperationsBreakdown());
+        attach('filter-itinerary-date', 'change', () => this.loadItinerary());
+        attach('filter-delays-year', 'change', () => this.loadDelays());
+        attach('filter-delays-month', 'change', () => this.loadDelays());
+        attach('filter-punctuality-year', 'change', () => this.loadPunctuality());
+        attach('filter-punctuality-month', 'change', () => this.loadPunctuality());
+        attach('filter-aviation-year', 'change', () => this.loadAviationAnalytics());
+        attach('filter-aviation-category', 'change', () => this.loadAviationAnalytics());
 
         // Listen for data updates to refresh tables
         window.addEventListener('data-updated', (e) => {
@@ -613,4 +637,28 @@ class DataManagement {
     }
 }
 
-window.dataManagement = new DataManagement();
+// Instantiate after DOM is ready to ensure elements exist
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        const inst = new DataManagement();
+        // mark real instance and flush queue
+        window.__realDataManagement = inst;
+        window.dataManagement = inst;
+        if (window._dm_call_queue && window._dm_call_queue.length) {
+            window._dm_call_queue.forEach(call => {
+                try { window.__realDataManagement[call.prop](...call.args); } catch (e) { console.warn('Buffered call failed', call.prop, e); }
+            });
+            window._dm_call_queue = [];
+        }
+    });
+} else {
+    const inst = new DataManagement();
+    window.__realDataManagement = inst;
+    window.dataManagement = inst;
+    if (window._dm_call_queue && window._dm_call_queue.length) {
+        window._dm_call_queue.forEach(call => {
+            try { window.__realDataManagement[call.prop](...call.args); } catch (e) { console.warn('Buffered call failed', call.prop, e); }
+        });
+        window._dm_call_queue = [];
+    }
+}

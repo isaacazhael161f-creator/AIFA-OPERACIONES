@@ -723,123 +723,587 @@ function deepCloneWeek(week) {
     return clone;
 }
 
-let WEEKLY_OPERATIONS_DATASETS = [];
+const WEEKLY_OPERATIONS_DATASETS = [
 
-function formatDateLabel(dateStr) {
-    if (!dateStr) return '';
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const date = new Date(y, m - 1, d);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = SPANISH_MONTH_ABBRS[date.getMonth()];
-    const year = date.getFullYear();
-    return `${day} ${month} ${year}`;
-}
+       {
+        id: '2025-12-15',
+        rango: {
+            inicio: '2025-12-15',
+            fin: '2025-12-21',
+            descripcion: describeWeekRange('2025-12-15', '2025-12-21'),
+            nota: 'Semana del (15 al 21 de diciembre de 2025).'
+        },
+        dias: [
+            {
+                fecha: '2025-12-15',
+                label: '15 Dic 2025',
+                comercial: { operaciones: 153, pasajeros: 21651},
+                general: { operaciones: 15, pasajeros: 21 },
+                carga: { operaciones: 18, toneladas: 479, corteFecha: '2025-12-14', corteNota: 'Cifras del 14 de diciembre de 2025.' }
+            },
 
-function formatDateShort(dateStr) {
-    if (!dateStr) return '';
-    const [y, m, d] = dateStr.split('-').map(Number);
-    return `${d} de ${SPANISH_MONTH_NAMES[m-1]}`;
-}
+            {
+                fecha: '2025-12-16',
+                label: '16 Dic 2025',
+                comercial: { operaciones: 155, pasajeros: 22401},
+                general: { operaciones: 12, pasajeros: 33 },
+                carga: { operaciones: 18, toneladas: 479, corteFecha: '2025-12-14', corteNota: 'Cifras del 14 de diciembre de 2025.' }
+            },
 
-async function loadWeeklyOperationsFromDB() {
-    if (!window.dataManager) {
-        console.warn('DataManager not available, retrying in 500ms');
-        setTimeout(loadWeeklyOperationsFromDB, 500);
-        return;
-    }
 
-    try {
-        const dailyOps = await window.dataManager.getDailyOperations(365);
+            {
+                fecha: '2025-12-17',
+                label: '17 Dic 2025',
+                comercial: { operaciones: 150, pasajeros: 19080},
+                general: { operaciones: 7, pasajeros: 11 },
+                carga: { operaciones: 19, toneladas: 547, corteFecha: '2025-12-16', corteNota: 'Cifras del 16 de diciembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-12-18',
+                label: '18 Dic 2025',
+                comercial: { operaciones: 164, pasajeros: 22709},
+                general: { operaciones: 17, pasajeros: 90 },
+                carga: { operaciones: 19, toneladas: 547, corteFecha: '2025-12-16', corteNota: 'Cifras del 16 de diciembre de 2025.' }
+            },
+
+
+            {
+                fecha: '2025-12-19',
+                label: '19 Dic 2025',
+                comercial: { operaciones: 0, pasajeros: 0},
+                general: { operaciones: 0, pasajeros: 0 },
+                carga: { operaciones: 0, toneladas: 0, corteFecha: '2025-12-16', corteNota: 'Cifras del 16 de diciembre de 2025.' }
+            },
+
+
+            {
+                fecha: '2025-12-20',
+                label: '20 Dic 2025',
+                comercial: { operaciones: 160, pasajeros: 23977},
+                general: { operaciones: 12, pasajeros: 28 },
+                carga: { operaciones: 33, toneladas: 1100, corteFecha: '0', corteNota: 'Cifras del 18 de diciembre de 2025.' }
+            },
+
+
+
+
+
+            ]
+    },
+
         
-        if (!dailyOps || dailyOps.length === 0) {
-            console.warn('No daily operations found in DB');
-            return;
-        }
+    {
+        id: '2025-12-08',
+        rango: {
+            inicio: '2025-12-08',
+            fin: '2025-12-14',
+            descripcion: describeWeekRange('2025-12-08', '2025-12-14'),
+            nota: 'Semana del (8 al 14 de diciembre de 2025).'
+        },
+        dias: [
+            {
+                fecha: '2025-12-08',
+                label: '08 Dic 2025',
+                comercial: { operaciones: 159, pasajeros: 21818},
+                general: { operaciones: 10, pasajeros: 33 },
+                carga: { operaciones: 25, toneladas: 670, corteFecha: '2025-12-07', corteNota: 'Cifras del 07 de diciembre de 2025.' }
+            },
 
-        const weeksMap = new Map();
-        
-        dailyOps.forEach(op => {
-            const dateParts = op.date.split('-').map(Number);
-            const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
-            
-            // Get Monday
-            const day = date.getDay();
-            const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-            const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-            monday.setDate(diff);
-            
-            const mondayStr = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
-            
-            if (!weeksMap.has(mondayStr)) {
-                weeksMap.set(mondayStr, []);
+            {
+                fecha: '2025-12-09',
+                label: '09 Dic 2025',
+                comercial: { operaciones: 132, pasajeros: 17657},
+                general: { operaciones: 11, pasajeros: 11 },
+                carga: { operaciones: 25, toneladas: 670, corteFecha: '2025-12-07', corteNota: 'Cifras del 07 de diciembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-12-10',
+                label: '10 Dic 2025',
+                comercial: { operaciones: 147, pasajeros: 19397},
+                general: { operaciones: 11, pasajeros: 11 },
+                carga: { operaciones: 28, toneladas: 786, corteFecha: '2025-12-09', corteNota: 'Cifras del 09 de diciembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-12-11',
+                label: '11 Dic 2025',
+                comercial: { operaciones: 157, pasajeros: 21867},
+                general: { operaciones: 17, pasajeros: 42 },
+                carga: { operaciones: 26, toneladas: 697, corteFecha: '2025-12-11', corteNota: 'Cifras del 11 de diciembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-12-12',
+                label: '12 Dic 2025',
+                comercial: { operaciones: 157, pasajeros: 22461},
+                general: { operaciones: 7, pasajeros: 106 },
+                carga: { operaciones: 26, toneladas: 697, corteFecha: '2025-12-11', corteNota: 'Cifras del 11 de diciembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-12-13',
+                label: '13 Dic 2025',
+                comercial: { operaciones: 148, pasajeros: 21547},
+                general: { operaciones: 8, pasajeros: 18 },
+                carga: { operaciones: 26, toneladas: 697, corteFecha: '2025-12-11', corteNota: 'Cifras del 11 de diciembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-12-14',
+                label: '14 Dic 2025',
+                comercial: { operaciones: 147, pasajeros: 22012},
+                general: { operaciones: 10, pasajeros: 14 },
+                carga: { operaciones: 26, toneladas: 697, corteFecha: '2025-12-11', corteNota: 'Cifras del 11 de diciembre de 2025.' }
             }
-            weeksMap.get(mondayStr).push(op);
-        });
 
-        const newDatasets = [];
-        
-        for (const [mondayStr, days] of weeksMap) {
-            days.sort((a, b) => a.date.localeCompare(b.date));
+
+
+
+
+
+
+
+
+
+
+
+
+
+        ]
+    },
+
+
+
+
+
+    {
+        id: '2025-12-01',
+        rango: {
+            inicio: '2025-12-01',
+            fin: '2025-12-07',
+            descripcion: describeWeekRange('2025-12-01', '2025-12-07'),
+            nota: 'Semana del (1 al 7 de diciembre de 2025).'
+        },
+        dias: [
+            {
+                fecha: '2025-12-01',
+                label: '01 Dic 2025',
+                comercial: { operaciones: 154, pasajeros: 22766},
+                general: { operaciones: 8, pasajeros: 27 },
+                carga: { operaciones: 22, toneladas: 872, corteFecha: '2025-11-30', corteNota: 'Cifras del 30 de noviembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-12-02',
+                label: '02 Dic 2025',
+                comercial: { operaciones: 130, pasajeros: 17667},
+                general: { operaciones: 3, pasajeros: 4 },
+                carga: { operaciones: 22, toneladas: 872, corteFecha: '2025-11-30', corteNota: 'Cifras del 30 de noviembre de 2025.' }
+            },
+
+
+            {
+                fecha: '2025-12-03',
+                label: '03 Dic 2025',
+                comercial: { operaciones: 145, pasajeros: 19149},
+                general: { operaciones: 9, pasajeros: 332 },
+                carga: { operaciones: 6, toneladas: 40, corteFecha: '2025-12-03', corteNota: 'Cifras del 03 de diciembre de 2025.' }
+            },
+
+             {
+                fecha: '2025-12-04',
+                label: '04 Dic 2025',
+                comercial: { operaciones: 153, pasajeros: 20412},
+                general: { operaciones: 13, pasajeros: 280 },
+                carga: { operaciones: 6, toneladas: 40, corteFecha: '2025-12-03', corteNota: 'Cifras del 03 de diciembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-12-05',
+                label: '05 Dic 2025',
+                comercial: { operaciones: 160, pasajeros: 23006},
+                general: { operaciones: 7, pasajeros: 12 },
+                carga: { operaciones: 24, toneladas: 801, corteFecha: '2025-12-04', corteNota: 'Cifras del 04 de diciembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-12-06',
+                label: '06 Dic 2025',
+                comercial: { operaciones: 142, pasajeros: 19586},
+                general: { operaciones: 10, pasajeros: 50 },
+                carga: { operaciones: 24, toneladas: 801, corteFecha: '2025-12-04', corteNota: 'Cifras del 04 de diciembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-12-07',
+                label: '07 Dic 2025',
+                comercial: { operaciones: 157, pasajeros: 21788},
+                general: { operaciones: 6, pasajeros: 50 },
+                carga: { operaciones: 24, toneladas: 801, corteFecha: '2025-12-04', corteNota: 'Cifras del 04 de diciembre de 2025.' }
+            }
+
+
+
+
+
+
+
+
+
+
+        ]
+    },
+
+    {
+        id: '2025-11-24',
+        rango: {
+            inicio: '2025-11-24',
+            fin: '2025-11-30',
+            descripcion: describeWeekRange('2025-11-24', '2025-11-30'),
+            nota: 'Semana del (24 al 30 de noviembre de 2025).'
+        },
+        dias: [
+            {
+                fecha: '2025-11-24',
+                label: '24 Nov 2025',
+                comercial: { operaciones: 145, pasajeros: 16066 },
+                general: { operaciones: 7, pasajeros: 16 },
+                carga: { operaciones: 31, toneladas: 802, corteFecha: '2025-11-23', corteNota: 'Cifras del 23 de noviembre de 2025.' }
+            },
+
+         
+{
+                fecha: '2025-11-25',
+                label: '25 Nov 2025',
+                comercial: { operaciones: 143, pasajeros: 20441},
+                general: { operaciones: 8, pasajeros: 18 },
+                carga: { operaciones: 26, toneladas: 690, corteFecha: '2025-11-25', corteNota: 'Cifras del 25 de noviembre de 2025.' }
+            },
+
+
+            {
+                fecha: '2025-11-26',
+                label: '26 Nov 2025',
+                comercial: { operaciones: 149, pasajeros: 20080},
+                general: { operaciones: 23, pasajeros: 44 },
+                carga: { operaciones: 26, toneladas: 690, corteFecha: '2025-11-25', corteNota: 'Cifras del 25 de noviembre de 2025.' }
+            },
+
             
-            // Calculate end date (Sunday)
-            const startParts = mondayStr.split('-').map(Number);
-            const startObj = new Date(startParts[0], startParts[1] - 1, startParts[2]);
-            const endObj = new Date(startObj);
-            endObj.setDate(startObj.getDate() + 6);
-            const endDateStr = `${endObj.getFullYear()}-${String(endObj.getMonth()+1).padStart(2,'0')}-${String(endObj.getDate()).padStart(2,'0')}`;
 
-            const weekObj = {
-                id: mondayStr,
-                rango: {
-                    inicio: mondayStr,
-                    fin: endDateStr,
-                    descripcion: describeWeekRange(mondayStr, endDateStr),
-                    nota: `Semana del (${formatDateShort(mondayStr)} al ${formatDateShort(endDateStr)}).`
-                },
-                dias: days.map(d => ({
-                    fecha: d.date,
-                    label: formatDateLabel(d.date),
-                    comercial: { operaciones: d.comercial_ops, pasajeros: d.comercial_pax },
-                    general: { operaciones: d.general_ops, pasajeros: d.general_pax },
-                    carga: { 
-                        operaciones: d.carga_ops, 
-                        toneladas: d.carga_tons, 
-                        corteFecha: d.carga_cutoff_date, 
-                        corteNota: d.carga_cutoff_note 
-                    }
-                }))
-            };
-            newDatasets.push(weekObj);
-        }
+{
+                fecha: '2025-11-27',
+                label: '27 Nov 2025',
+                comercial: { operaciones: 146, pasajeros: 21113},
+                general: { operaciones: 0, pasajeros: 0 },
+                carga: { operaciones: 26, toneladas: 690, corteFecha: '2025-11-25', corteNota: 'Cifras del 25 de noviembre de 2025.' }
+            },
 
-        newDatasets.sort((a, b) => b.id.localeCompare(a.id));
-        
-        WEEKLY_OPERATIONS_DATASETS = newDatasets;
-        
-        // Update staticData
-        staticData.operacionesSemanasCatalogo = WEEKLY_OPERATIONS_DATASETS.map(deepCloneWeek);
-        staticData.operacionesSemanaActual = resolveCurrentOperationsWeek();
-        
-        // Update Metadata
-        const newMetadata = buildWeeklyOrdinalMetadata();
-        for (const key in WEEKLY_ORDINAL_METADATA) delete WEEKLY_ORDINAL_METADATA[key];
-        Object.assign(WEEKLY_ORDINAL_METADATA, newMetadata);
+            {
+                fecha: '2025-11-28',
+                label: '28 Nov 2025',
+                comercial: { operaciones: 146, pasajeros: 21241},
+                general: { operaciones: 6, pasajeros: 57 },
+                carga: { operaciones: 30, toneladas: 957, corteFecha: '2025-11-27', corteNota: 'Cifras del 27 de noviembre de 2025.' }
+            },
 
-        console.log('Weekly operations loaded from DB:', WEEKLY_OPERATIONS_DATASETS.length, 'weeks');
-        console.log('DB Data Sample (First Week):', WEEKLY_OPERATIONS_DATASETS[0]);
+            {
+                fecha: '2025-11-29',
+                label: '29 Nov 2025',
+                comercial: { operaciones: 135, pasajeros: 18639},
+                general: { operaciones: 4, pasajeros: 18 },
+                carga: { operaciones: 30, toneladas: 957, corteFecha: '2025-11-27', corteNota: 'Cifras del 27 de noviembre de 2025.' }
+            }
 
-        // Trigger UI updates
-        if (typeof window.updateOpsFiltersAfterDataLoad === 'function') {
-            window.updateOpsFiltersAfterDataLoad();
-        }
-        if (typeof renderOperacionesTotales === 'function') {
-             renderOperacionesTotales();
-        }
+
+
+
+        ]
+    },
+
+    {
+        id: '2025-11-17',
+        rango: {
+            inicio: '2025-11-17',
+            fin: '2025-11-23',
+            descripcion: describeWeekRange('2025-11-17', '2025-11-23'),
+            nota: 'Semana del (17 al 23 de noviembre de 2025). Datos en Integración.'
+        },
+        dias: [
+            {
+                fecha: '2025-11-17',
+                label: '17 Nov 2025',
+                comercial: { operaciones: 156, pasajeros: 21082 },
+                general: { operaciones: 6, pasajeros: 19 },
+                carga: { operaciones: 21, toneladas: 706, corteFecha: '2025-11-13', corteNota: 'Cifras del 13 de noviembre de 2025.' }
+            },
+
+
+            {
+                fecha: '2025-11-18',
+                label: '18 Nov 2025',
+                comercial: { operaciones: 146, pasajeros: 21670},
+                general: { operaciones: 17, pasajeros: 36 },
+                carga: { operaciones: 17, toneladas: 654, corteFecha: '2025-11-17', corteNota: 'Cifras del 17 de noviembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-11-19',
+                label: '19 Nov 2025',
+                comercial: { operaciones: 151, pasajeros: 19479},
+                general: { operaciones: 10, pasajeros: 31 },
+                carga: { operaciones: 12, toneladas: 423, corteFecha: '2025-11-19', corteNota: 'Cifras del 19 de noviembre de 2025.' }
+            },
+
         
-    } catch (e) {
-        console.error("Error loading daily operations:", e);
+            {
+                fecha: '2025-11-20',
+                label: '20 Nov 2025',
+                comercial: { operaciones: 150, pasajeros: 19728},
+                general: { operaciones: 19, pasajeros: 39 },
+                carga: { operaciones: 12, toneladas: 423, corteFecha: '2025-11-19', corteNota: 'Cifras del 19 de noviembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-11-21',
+                label: '21 Nov 2025',
+                comercial: { operaciones: 150, pasajeros: 20384},
+                general: { operaciones: 7, pasajeros: 29 },
+                carga: { operaciones: 31, toneladas: 802, corteFecha: '2025-11-20', corteNota: 'Cifras del 20 de noviembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-11-22',
+                label: '22 Nov 2025',
+                comercial: { operaciones: 143, pasajeros: 19503},
+                general: { operaciones: 5, pasajeros: 13 },
+                carga: { operaciones: 31, toneladas: 802, corteFecha: '2025-11-20', corteNota: 'Cifras del 20 de noviembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-11-23',
+                label: '23 Nov 2025',
+                comercial: { operaciones: 158, pasajeros: 18222},
+                general: { operaciones: 2, pasajeros: 7 },
+                carga: { operaciones: 31, toneladas: 802, corteFecha: '2025-11-20', corteNota: 'Cifras del 20 de noviembre de 2025.' }
+            }
+        ]
+    },
+
+    
+
+
+    {
+        id: '2025-11-10',
+        rango: {
+            inicio: '2025-11-10',
+            fin: '2025-11-16',
+            descripcion: describeWeekRange('2025-11-10', '2025-11-16'),
+            nota: 'Semana del (10 al 16 de noviembre de 2025).'
+        },
+        dias: [
+            {
+                fecha: '2025-11-10',
+                label: '10 Nov 2025',
+                comercial: { operaciones: 152, pasajeros: 22119 },
+                general: { operaciones: 9, pasajeros: 19 },
+                carga: { operaciones: 31, toneladas: 1079, corteFecha: '2025-11-09', corteNota: 'Cifras del 09 de noviembre de 2025.' }
+            },
+            {
+                fecha: '2025-11-11',
+                label: '11 Nov 2025',
+                comercial: { operaciones: 139, pasajeros: 18904 },
+                general: { operaciones: 5, pasajeros: 14 },
+                carga: { operaciones: 31, toneladas: 1079, corteFecha: '2025-11-09', corteNota: 'Cifras del 09 de noviembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-11-12',
+                label: '12 Nov 2025',
+                comercial: { operaciones: 149, pasajeros: 20757},
+                general: { operaciones: 9, pasajeros: 31 },
+                carga: { operaciones: 20, toneladas: 636, corteFecha: '2025-11-11', corteNota: 'Cifras del 11 de noviembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-11-13',
+                label: '13 Nov 2025',
+                comercial: { operaciones: 161, pasajeros: 22643},
+                general: { operaciones: 9, pasajeros: 59 },
+                carga: { operaciones: 20, toneladas: 636, corteFecha: '2025-11-11', corteNota: 'Cifras del 11 de noviembre de 2025.' }
+            },
+           
+{
+                fecha: '2025-11-14',
+                label: '14 Nov 2025',
+                comercial: { operaciones: 156, pasajeros: 23383},
+                general: { operaciones: 7, pasajeros: 10 },
+                carga: { operaciones: 21, toneladas: 706, corteFecha: '2025-11-13', corteNota: 'Cifras del 13 de noviembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-11-15',
+                label: '15 Nov 2025',
+                comercial: { operaciones: 145, pasajeros: 20880},
+                general: { operaciones: 6, pasajeros: 59 },
+                carga: { operaciones: 21, toneladas: 706, corteFecha: '2025-11-13', corteNota: 'Cifras del 13 de noviembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-11-16',
+                label: '16 Nov 2025',
+                comercial: { operaciones: 149, pasajeros: 19802},
+                general: { operaciones: 12, pasajeros: 28 },
+                carga: { operaciones: 21, toneladas: 706, corteFecha: '2025-11-13', corteNota: 'Cifras del 13 de noviembre de 2025.' }
+            }
+
+
+
+
+        ]
+    },
+
+    
+    {
+        id: '2025-11-03',
+        rango: {
+            inicio: '2025-11-03',
+            fin: '2025-11-09',
+            descripcion: describeWeekRange('2025-11-03', '2025-11-09'),
+            nota: 'Semana del (3 al 9 de noviembre de 2025)'
+        },
+        dias: [
+            {
+                fecha: '2025-11-03',
+                label: '03 Nov 2025',
+                comercial: { operaciones: 150, pasajeros: 21525 },
+                general: { operaciones: 18, pasajeros: 44 },
+                carga: { operaciones: 32, toneladas: 1121, corteFecha: '2025-10-30', corteNota: 'Cifras del 30 de octubre de 2025.' }
+            },
+            {
+                fecha: '2025-11-04',
+                label: '04 Nov 2025',
+                comercial: { operaciones: 142, pasajeros: 18746 },
+                general: { operaciones: 14, pasajeros: 81 },
+                carga: { operaciones: 22, toneladas: 753, corteFecha: '2025-11-02', corteNota: 'Cifras del 02 de noviembre de 2025.' }
+            },
+            {
+                fecha: '2025-11-05',
+                label: '05 Nov 2025',
+                comercial: { operaciones: 154, pasajeros: 21097 },
+                general: { operaciones: 8, pasajeros: 23 },
+                carga: { operaciones: 23, toneladas: 747, corteFecha: '2025-11-04', corteNota: 'Cifras del 04 de noviembre de 2025.' }
+            },
+
+{
+                fecha: '2025-11-06',
+                label: '06 Nov 2025',
+                comercial: { operaciones: 154, pasajeros: 21458},
+                general: { operaciones: 14, pasajeros: 21 },
+                carga: { operaciones: 23, toneladas: 775, corteFecha: '2025-11-04', corteNota: 'Cifras del 04 de noviembre de 2025.' }
+            },
+
+{
+                fecha: '2025-11-07',
+                label: '07 Nov 2025',
+                comercial: { operaciones: 148, pasajeros: 21548},
+                general: { operaciones: 8, pasajeros: 18 },
+                carga: { operaciones: 16, toneladas: 424, corteFecha: '2025-11-06', corteNota: 'Cifras del 06 de noviembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-11-08',
+                label: '08 Nov 2025',
+                comercial: { operaciones: 136, pasajeros: 17658},
+                general: { operaciones: 10, pasajeros: 23 },
+                carga: { operaciones: 16, toneladas: 424, corteFecha: '2025-11-06', corteNota: 'Cifras del 06 de noviembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-11-09',
+                label: '09 Nov 2025',
+                comercial: { operaciones: 154, pasajeros: 22170},
+                general: { operaciones: 5, pasajeros: 14 },
+                carga: { operaciones: 16, toneladas: 424, corteFecha: '2025-11-06', corteNota: 'Cifras del 06 de noviembre de 2025.' }
+            }
+
+
+
+        ]
+    },
+    {
+        id: '2025-10-27',
+        rango: {
+            inicio: '2025-10-27',
+            fin: '2025-11-02',
+            descripcion: describeWeekRange('2025-10-27', '2025-11-02'),
+            nota: ''
+        },
+        dias: [
+            {
+                fecha: '2025-10-27',
+                label: '27 Oct 2025',
+                comercial: { operaciones: 142, pasajeros: 20580},
+                general: { operaciones: 18, pasajeros: 121},
+                carga: { operaciones: 21, toneladas: 620, corteFecha: '2025-10-23', corteNota: 'Cifras del 26 de octubre de 2025.' }
+            },
+            {
+                fecha: '2025-10-28',
+                label: '28 Oct 2025',
+                comercial: { operaciones: 121, pasajeros: 16962 },
+                general: { operaciones: 11, pasajeros: 27 },
+                carga: { operaciones: 21, toneladas: 620, corteFecha: '2025-10-26', corteNota: 'Toneladas actualizadas al 26 de octubre de 2025 (ultimo corte disponible).' }
+            },
+            {
+                fecha: '2025-10-29',
+                label: '29 Oct 2025',
+                comercial: { operaciones: 136, pasajeros: 18143 },
+                general: { operaciones: 3, pasajeros: 6 },
+                carga: { operaciones: 14, toneladas: 379, corteFecha: '2025-10-28', corteNota: 'Toneladas actualizadas al 28 de octubre de 2025 (ultimo corte disponible).' }
+            },
+            {
+                fecha: '2025-10-30',
+                label: '30 Oct 2025',
+                comercial: { operaciones: 146, pasajeros: 20253},
+                general: { operaciones: 9, pasajeros: 233},
+                carga: { operaciones: 14, toneladas: 379, corteFecha: '2025-10-28', corteNota: 'Cifras del 28 de octubre de 2025' }
+            },
+            {
+                fecha: '2025-10-31',
+                label: '31 Oct 2025',
+                comercial: { operaciones: 161, pasajeros: 21611 },
+                general: { operaciones: 14, pasajeros: 31 },
+                carga: { operaciones: 32, toneladas: 1121, corteFecha: '2025-10-30', corteNota: 'Cifras del 30 de octubre de 2025.' }
+            },
+            {
+                fecha: '2025-11-01',
+                label: '01 Nov 2025',
+                comercial: { operaciones: 145, pasajeros: 17186 },
+                general: { operaciones: 3, pasajeros: 47 },
+                carga: { operaciones: 32, toneladas: 1121, corteFecha: '2025-10-30', corteNota: 'Cifras del 30 de octubre de 2025.' }
+            },
+            {
+                fecha: '2025-11-02',
+                label: '02 Nov 2025',
+                comercial: { operaciones: 160, pasajeros: 20977},
+                general: { operaciones: 17, pasajeros: 209 },
+                carga: { operaciones: 32, toneladas: 1121, corteFecha: '2025-10-30', corteNota: 'Cifras del 30 de octubre de 2025.' }
+            }
+        ]
+    },
+    {
+        id: '2025-10-20',
+        rango: {
+            inicio: '2025-10-20',
+            fin: '2025-10-26',
+            descripcion: describeWeekRange('2025-10-20', '2025-10-26'),
+            nota: 'Datos consolidados al 26 de octubre de 2025.'
+        },
+        dias: []
     }
-}
+];
 
 function getWeekStartDate(week) {
     if (!week) return null;
@@ -1876,11 +2340,6 @@ function applySectionPermissions(userName) {
         ? user.allowedSections.map((section) => normalizeSectionKey(section)).filter(Boolean)
         : [];
 
-    // Permitir siempre la sección de historia si el usuario está autenticado
-    if (rawWhitelist.length && !rawWhitelist.includes('historia')) {
-        rawWhitelist.push('historia');
-    }
-
     if (rawWhitelist.length) {
         userSectionWhitelist = [...new Set(rawWhitelist)];
         const preferred = normalizeSectionKey(user?.defaultSection);
@@ -2916,28 +3375,6 @@ async function makeToken(username){
 
 async function verifyToken(token){
     if (!token) return false;
-
-    // Validación Supabase
-    if (window.supabaseClient) {
-        const { data: { session }, error } = await window.supabaseClient.auth.getSession();
-        
-        // Si no hay sesión pero tenemos token, intentamos restaurarla
-        if (!session && token && token.length > 50) { // Simple check to distinguish from legacy hash
-             const { data: restoreData, error: restoreError } = await window.supabaseClient.auth.setSession({
-                access_token: token,
-                refresh_token: token
-            });
-            if (!restoreError && restoreData.session) {
-                return true;
-            }
-        }
-
-        if (error || !session) return false;
-        // Si hay sesión activa en Supabase, consideramos el token válido
-        return true;
-    }
-
-    // Validación Legacy (Hash local)
     const parts = token.split('.');
     if (parts.length !== 3) return false;
     const [u, ts, sig] = parts;
@@ -2961,76 +3398,51 @@ async function handleLogin(e) {
     e.preventDefault();
     const loginButton = document.getElementById('login-button');
     const errorDiv = document.getElementById('login-error');
-    if (errorDiv) errorDiv.textContent = '';
-    if (loginButton) loginButton.classList.add('loading');
+    errorDiv.textContent = '';
+    loginButton.classList.add('loading');
     showGlobalLoader('Verificando credenciales...');
 
-    try {
-        let emailOrUsername = document.getElementById('username').value;
+    try{
+        await ensureAuthHashes();
+        const { count, until } = getLockInfo();
+        const now = Date.now();
+        if (until && now < until) {
+            const secs = Math.ceil((until-now)/1000);
+            throw new Error(`Demasiados intentos. Intenta en ${secs}s`);
+        }
+
+        const usernameInput = (document.getElementById('username').value || '').toString();
         const password = document.getElementById('password').value;
+        const normalized = usernameInput.trim().toLowerCase();
+        const matchedKey = Object.keys(dashboardData.users).find(k => (k || '').toString().trim().toLowerCase() === normalized);
+        const user = matchedKey ? dashboardData.users[matchedKey] : undefined;
 
-        if (!window.supabaseClient) throw new Error('Supabase no inicializado');
-
-        // Si no es un email, asumimos que es un nombre de usuario y agregamos el dominio interno
-        if (!emailOrUsername.includes('@')) {
-            // Normalizar: quitar espacios, acentos y convertir a minúsculas
-            // Ejemplo: "Isaac López" -> "isaac.lopez"
-            const normalized = emailOrUsername
-                .trim()
-                .toLowerCase()
-                .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quitar acentos
-                .replace(/\s+/g, '.'); // Espacios a puntos
-
-            emailOrUsername = `${normalized}@aifa.operaciones`;
+        // Comparar hash de la contraseña ingresada contra el hash inicializado
+        let passOk = false;
+        if (matchedKey) {
+            const inputHash = await sha256(password + '|' + normalized + '|' + SECRET_PW_SALT);
+            const storedHash = AUTH_HASHES[matchedKey];
+            passOk = !!(storedHash && storedHash === inputHash);
+        }
+        if (!passOk) {
+            // incrementar lock con backoff exponencial
+            const nextCount = Math.min(8, (count||0)+1);
+            const waitMs = Math.min(300000, Math.pow(2, nextCount) * 1000); // hasta 5 min
+            setLockInfo(nextCount, Date.now() + waitMs);
+            throw new Error('Usuario o contraseña incorrectos');
         }
 
-        const { data, error } = await window.supabaseClient.auth.signInWithPassword({
-            email: emailOrUsername,
-            password: password,
-        });
-
-        if (error) throw error;
-
-        // Éxito
-        sessionStorage.setItem(SESSION_USER, data.user.email);
-        sessionStorage.setItem(SESSION_TOKEN, data.session.access_token);
-
-        // Obtener nombre completo (metadata o tabla profiles)
-        let fullName = data.user.user_metadata?.full_name;
-        if (!fullName) {
-            try {
-                const { data: profile } = await window.supabaseClient
-                    .from('profiles')
-                    .select('full_name')
-                    .eq('id', data.user.id)
-                    .single();
-                if (profile) fullName = profile.full_name;
-            } catch (_) {}
-        }
-        sessionStorage.setItem('user_fullname', fullName || data.user.email);
-
-        // Obtener rol del usuario
-        let role = 'viewer';
-        try {
-            const { data: roleData } = await window.supabaseClient
-                .from('user_roles')
-                .select('role')
-                .eq('user_id', data.user.id)
-                .single();
-            
-            if (roleData && roleData.role) {
-                role = roleData.role;
-            }
-        } catch (e) {
-            console.warn('No se pudo obtener el rol del usuario, asignando viewer por defecto', e);
-        }
-        sessionStorage.setItem('user_role', role);
-
+        // Éxito: limpiar lockout y emitir token firmado
+        setLockInfo(0, 0);
+        const token = await makeToken(matchedKey);
+        sessionStorage.setItem(SESSION_USER, matchedKey);
+        sessionStorage.setItem(SESSION_TOKEN, token);
         showMainApp();
-
     } catch(err){
         const msg = (err && err.message) ? err.message : 'Error de autenticación';
+        const errorDiv = document.getElementById('login-error');
         if (errorDiv) errorDiv.textContent = msg;
+        const loginButton = document.getElementById('login-button');
         if (loginButton) loginButton.classList.remove('loading');
     } finally {
         hideGlobalLoader();
@@ -5091,19 +5503,6 @@ function showSection(sectionKey, linkEl) {
         if (linkEl) linkEl.classList.add('active');
         // Actualizar hash
         try { history.replaceState(null, '', `#${targetKey}`); } catch(_) {}
-        
-        // Hook específico para Historia
-        if (targetKey === 'historia') {
-            console.log('Activando sección Historia...');
-            setTimeout(() => {
-                if (typeof loadHistory === 'function') {
-                    loadHistory();
-                } else {
-                    console.error('loadHistory no está definida');
-                }
-            }, 100);
-        }
-
         // Cerrar sidebar en móvil
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebar-overlay');
@@ -5180,9 +5579,6 @@ function handleNavigation(e) {
                     }
                 }, 60);
             } catch(_) {}
-        }
-        if (section === 'historia') {
-            try { loadHistory(); } catch(_) {}
         }
     }
 }
@@ -9088,14 +9484,7 @@ function showMainApp() {
         if (login) login.classList.add('hidden');
         if (main) main.classList.remove('hidden');
         // Usuario actual
-        const userEl = document.getElementById('current-user'); 
-        if (userEl) {
-            const fullName = sessionStorage.getItem('user_fullname') || name;
-            const role = sessionStorage.getItem('user_role') || 'viewer';
-            // Capitalizar rol
-            const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1);
-            userEl.innerHTML = `<div>${fullName}</div><div style="font-size: 0.8em; font-weight: 400; opacity: 0.9;">${roleDisplay}</div>`;
-        }
+        const userEl = document.getElementById('current-user'); if (userEl) userEl.textContent = name;
         applySectionPermissions(name);
         // Permisos: Itinerario mensual
         const menu = document.getElementById('itinerario-mensual-menu');
@@ -10047,25 +10436,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (toggleMonthly) toggleMonthly.checked = opsUIState.mode === 'monthly';
             if (toggleYearly) toggleYearly.checked = opsUIState.mode === 'yearly';
         }
-
-        // Expose update function for dynamic data loading
-        window.updateOpsFiltersAfterDataLoad = function() {
-            const availability = populateWeeklyWeekOptions();
-            populateWeeklyDayOptions();
-            
-            // Restore weekly mode if data is available (overriding any fallback that happened during init)
-            if (availability && availability.hasAny) {
-                opsUIState.mode = 'weekly';
-                if (toggleWeekly) toggleWeekly.disabled = false;
-                refreshDisabledYears(true);
-                if (monthsPanel) monthsPanel.style.display = 'none';
-            }
-
-            syncToggleStates();
-            refreshOpsYearFilters();
-            refreshOpsMonthlyYearLabels();
-            refreshOpsMonthsSelectionUI();
-        };
 
         let adjustingMode = false;
 
@@ -11299,247 +11669,38 @@ function normalizeParteOperacionesType(value){
 }
 
 function shouldUseParteOperacionesRemoteBackend(){
-    return !!window.supabaseClient;
-}
-
-// --- HISTORIAL DE CAMBIOS ---
-
-async function logHistory(action, entity, recordId, details) {
-    if (!window.supabaseClient) {
-        console.warn('logHistory: Supabase client not initialized');
-        return;
-    }
-    try {
-        // 1. Ensure session is active
-        let { data: { session } } = await window.supabaseClient.auth.getSession();
-        
-        if (!session) {
-             const token = sessionStorage.getItem('token');
-             if (token) {
-                 const { data: restoreData } = await window.supabaseClient.auth.setSession({ 
-                    access_token: token, 
-                    refresh_token: token 
-                 });
-                 session = restoreData.session;
-             }
-        }
-
-        if (!session || !session.user) {
-            console.warn('logHistory: No active session found. Cannot log history.');
-            return; 
-        }
-
-        const userId = session.user.id;
-        const userEmail = session.user.email || sessionStorage.getItem('user_fullname') || 'Usuario';
-
-        console.log('Logging history:', { action, entity, recordId, details, userId });
-
-        const { error } = await window.supabaseClient.from('change_history').insert({
-            user_id: userId,
-            user_email: userEmail,
-            action_type: action,
-            entity_type: entity,
-            record_id: recordId,
-            details: details
-        });
-
-        if (error) {
-            console.error('Error inserting history:', error);
-        } else {
-            console.log('History logged successfully');
-        }
-    } catch (err) {
-        console.warn('Error logging history:', err);
-    }
-}
-
-async function loadHistory() {
-    const tableBody = document.getElementById('history-table-body');
-    if (!tableBody) {
-        console.warn('loadHistory: table body not found');
-        return;
-    }
-    
-    tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted"><div class="spinner-border spinner-border-sm text-primary" role="status"></div> Cargando...</td></tr>';
-
-    if (!window.supabaseClient) {
-        tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error: Supabase no conectado.</td></tr>';
-        return;
-    }
-
-    try {
-        // Ensure session is active for RLS
-        const { data: { session } } = await window.supabaseClient.auth.getSession();
-        if (!session) {
-             const token = sessionStorage.getItem('token');
-             if (token) {
-                 await window.supabaseClient.auth.setSession({ access_token: token, refresh_token: token });
-             }
-        }
-
-        const { data, error } = await window.supabaseClient
-            .from('change_history')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(50);
-
-        if (error) {
-            console.error('Supabase history error:', error);
-            if (error.code === '42P01') { // undefined_table
-                throw new Error('La tabla "change_history" no existe. Ejecuta el script SQL.');
+    if (typeof window === 'undefined') return false;
+    if (window.location && window.location.protocol === 'file:') return false;
+    if (window.location) {
+        const { hostname, port } = window.location;
+        if (isLikelyLocalDevelopmentHost(hostname, port)) {
+            if (!parteOperacionesRemoteLocalBlockLogged) {
+                parteOperacionesRemoteLocalBlockLogged = true;
+                console.info('Sincronización remota de parte de operaciones desactivada en este entorno local (sin API disponible).');
             }
-            throw error;
+            return false;
         }
-
-        if (!data || data.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No hay historial de cambios registrado.</td></tr>';
-            return;
-        }
-
-        tableBody.innerHTML = '';
-        data.forEach(log => {
-            const date = new Date(log.created_at).toLocaleString('es-MX');
-            let badgeClass = 'bg-secondary';
-            if (log.action_type === 'CREAR' || log.action_type === 'AGREGAR') badgeClass = 'bg-success';
-            if (log.action_type === 'EDITAR' || log.action_type === 'ACTUALIZAR') badgeClass = 'bg-warning text-dark';
-            if (log.action_type === 'ELIMINAR') badgeClass = 'bg-danger';
-
-            let detailsText = '';
-            if (log.details) {
-                if (typeof log.details === 'string') {
-                    detailsText = log.details;
-                } else if (typeof log.details === 'object') {
-                    // Handle structured object
-                    const parts = [];
-                    if (log.details.mode === 'auto-sync') parts.push('<span class="badge bg-light text-dark border">Sincronización Auto</span>');
-                    
-                    if (log.details.diff) {
-                        parts.push(log.details.diff);
-                    } else {
-                        if (log.details.total_ops !== undefined) parts.push(`<strong>Total:</strong> ${log.details.total_ops} ops`);
-                        if (log.details.types) parts.push(`<strong>Tipos:</strong> ${log.details.types}`);
-                        if (log.details.count && !log.details.total_ops) parts.push(`${log.details.count} registros`);
-                    }
-                    
-                    if (parts.length > 0) detailsText = parts.join('<br>');
-                    else detailsText = JSON.stringify(log.details);
-                }
-            }
-
-            const userInitial = (log.user_email || '?').charAt(0).toUpperCase();
-            const userEmail = log.user_email || 'Desconocido';
-
-            const row = `
-                <tr>
-                    <td><small>${date}</small></td>
-                    <td>
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-circle bg-primary text-white me-2" style="width: 24px; height: 24px; font-size: 10px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
-                                ${userInitial}
-                            </div>
-                            <span class="text-truncate" style="max-width: 150px;" title="${userEmail}">${userEmail}</span>
-                        </div>
-                    </td>
-                    <td><span class="badge ${badgeClass}">${log.action_type}</span></td>
-                    <td>${log.entity_type}</td>
-                    <td class="text-wrap" style="min-width: 300px;"><small class="text-muted">${detailsText}</small></td>
-                </tr>
-            `;
-            tableBody.insertAdjacentHTML('beforeend', row);
-        });
-
-    } catch (err) {
-        console.error('Error loading history:', err);
-        tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Error al cargar historial: ${err.message}</td></tr>`;
     }
+    if (typeof fetch !== 'function') return false;
+    return parteOperacionesRemoteState.enabled;
 }
-
-// Expose globally
-window.loadHistory = loadHistory;
-
-async function testHistoryConnection() {
-    if (!window.supabaseClient) {
-        alert('❌ Error: Supabase no está inicializado.');
-        return;
-    }
-    try {
-        const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
-        console.log('Test Connection - Session:', session);
-        
-        if (!session) {
-            alert('⚠️ Advertencia: No hay sesión activa en Supabase. El historial requiere autenticación.');
-            // Attempt to restore from sessionStorage if available (hacky fallback)
-            const token = sessionStorage.getItem('token');
-            if (token) {
-                console.log('Attempting to restore session from token...');
-                const { error: restoreError } = await window.supabaseClient.auth.setSession({
-                    access_token: token,
-                    refresh_token: token // This might fail if it's not a refresh token, but worth a try or just use access_token
-                });
-                if (restoreError) console.warn('Restore session failed:', restoreError);
-            }
-        }
-
-        const user = JSON.parse(sessionStorage.getItem('user') || '{}');
-        const userId = user.id || session?.user?.id;
-
-        if (!userId) {
-            alert('❌ Error: No se encontró ID de usuario. Inicia sesión.');
-            return;
-        }
-
-        const { error } = await window.supabaseClient.from('change_history').insert({
-            user_id: userId,
-            user_email: 'test@connection.check',
-            action_type: 'PRUEBA',
-            entity_type: 'Sistema',
-            details: 'Verificación de conexión manual'
-        });
-
-        if (error) {
-            console.error('Test connection error:', error);
-            alert(`❌ Error al insertar en change_history:\n${error.message}\nCódigo: ${error.code}\nHint: ${error.hint || 'Posible error de permisos (RLS)'}`);
-        } else {
-            alert('✅ ¡Conexión exitosa! Se insertó un registro de prueba.');
-            loadHistory();
-        }
-    } catch (err) {
-        alert(`❌ Error inesperado: ${err.message}`);
-    }
-}
-window.testHistoryConnection = testHistoryConnection;
 
 async function upsertParteOperacionesRemoteEntries(date, rows, options = {}){
     if (!isValidParteOperacionesDate(date)) return false;
-    if (!shouldUseParteOperacionesRemoteBackend()) {
-        console.warn('upsertParteOperacionesRemoteEntries: Remote backend not available');
-        return false;
-    }
+    if (!shouldUseParteOperacionesRemoteBackend()) return false;
     try {
-        const { error } = await window.supabaseClient
-            .from('custom_parte_operaciones')
-            .upsert({ date: date, entries: rows }, { onConflict: 'date' });
-
-        if (error) throw error;
-
-        // Log history with more details
-        let historyDetails = options.historyDetails;
-        
-        if (!historyDetails) {
-             // Fallback for auto-sync or calls without explicit diff
-             historyDetails = {
-                mode: 'auto-sync',
-                count: rows.length,
-                types: rows.map(r => r.tipo).filter(Boolean).join(', '),
-                total_ops: rows.reduce((acc, r) => acc + (Number(r.subtotal)||0), 0)
-            };
-        } else if (typeof historyDetails === 'string') {
-            // Wrap string diff in object for consistent rendering
-            historyDetails = { diff: historyDetails };
+        const res = await fetch(PARTE_OPERACIONES_REMOTE_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date, entries: rows })
+        });
+        if (res.status === 404) {
+            parteOperacionesRemoteState.enabled = false;
+            throw new Error('Endpoint no disponible (404)');
         }
-        
-        await logHistory('ACTUALIZAR', 'Parte Operaciones', date, historyDetails);
-
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
         parteOperacionesRemoteState.healthy = true;
         parteOperacionesRemoteState.lastError = null;
         parteOperacionesRemoteState.lastSync = 0;
@@ -11558,16 +11719,15 @@ async function deleteParteOperacionesRemoteEntries(date, options = {}){
     if (!isValidParteOperacionesDate(date)) return false;
     if (!shouldUseParteOperacionesRemoteBackend()) return false;
     try {
-        const { error } = await window.supabaseClient
-            .from('custom_parte_operaciones')
-            .delete()
-            .eq('date', date);
-        
-        if (error) throw error;
-
-        // Log history
-        await logHistory('ELIMINAR', 'Parte Operaciones', date, { description: 'Eliminación completa del día' });
-
+        const endpoint = `${PARTE_OPERACIONES_REMOTE_ENDPOINT}/${encodeURIComponent(date)}`;
+        const res = await fetch(endpoint, { method: 'DELETE' });
+        if (res.status === 404) {
+            parteOperacionesRemoteState.enabled = false;
+            throw new Error('Endpoint no disponible (404)');
+        }
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
         parteOperacionesRemoteState.healthy = true;
         parteOperacionesRemoteState.lastError = null;
         parteOperacionesRemoteState.lastSync = 0;
@@ -11627,19 +11787,19 @@ async function syncParteOperacionesRemoteStore(options = {}){
             }
         }
         try {
-            const { data, error } = await window.supabaseClient
-                .from('custom_parte_operaciones')
-                .select('date, entries');
-
-            if (error) throw error;
-
-            const remoteDates = {};
-            if (data) {
-                data.forEach(row => {
-                    remoteDates[row.date] = row.entries;
-                });
+            const res = await fetch(PARTE_OPERACIONES_REMOTE_ENDPOINT, {
+                headers: { Accept: 'application/json' },
+                cache: 'no-store'
+            });
+            if (res.status === 404) {
+                parteOperacionesRemoteState.enabled = false;
+                throw new Error('Endpoint no disponible (404)');
             }
-
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+            const payload = await res.json();
+            const remoteDates = payload?.dates && typeof payload.dates === 'object' ? payload.dates : {};
             const dirtyLedger = ensureParteOperacionesDirtyLedger();
             const currentStore = ensureParteOperacionesCustomStore();
             const safeDates = {};
@@ -11682,46 +11842,6 @@ async function syncParteOperacionesRemoteStore(options = {}){
     })();
     parteOperacionesRemoteState.syncPromise = runner;
     return runner;
-}
-
-function normalizeParteOperacionesFromDB(rows) {
-    const byDate = {};
-    const datesSet = new Set();
-
-    if (!Array.isArray(rows)) return { dates: [], byDate: {}, isLegacy: false, availableRange: null };
-
-    rows.forEach(row => {
-        // Ensure date is YYYY-MM-DD
-        let dateKey = row.date;
-        if (dateKey && dateKey.includes('T')) {
-            dateKey = dateKey.split('T')[0];
-        }
-        
-        if (!dateKey) return;
-
-        if (!byDate[dateKey]) {
-            byDate[dateKey] = {
-                operaciones: [],
-                total_general: 0
-            };
-            datesSet.add(dateKey);
-        }
-        
-        const op = {
-            tipo: row.operation_type,
-            llegada: Number(row.arrivals) || 0,
-            salida: Number(row.departures) || 0,
-            subtotal: Number(row.subtotal) || 0
-        };
-        
-        byDate[dateKey].operaciones.push(op);
-        byDate[dateKey].total_general += op.subtotal;
-    });
-    
-    const dates = Array.from(datesSet).sort();
-    const availableRange = dates.length ? { inicio: dates[0], fin: dates[dates.length - 1] } : null;
-    
-    return { dates, byDate, isLegacy: false, availableRange };
 }
 
 function normalizeParteOperacionesSummary(raw){
@@ -11862,14 +11982,173 @@ function formatParteOperacionesPdfFilename(dateStr){
     return `Operaciones ${day} ${monthLabel} ${jsDate.getFullYear()}`;
 }
 
+let parteOperacionesPdfManifest = null;
+let parteOperacionesPdfManifestLoaded = false;
+
+async function loadParteOperacionesPdfManifest(){
+    // If we've already successfully loaded the manifest, return it.
+    if (parteOperacionesPdfManifestLoaded && Array.isArray(parteOperacionesPdfManifest)) return parteOperacionesPdfManifest;
+    try {
+        const res = await fetch(`${PARTE_OPERACIONES_PDF_BASE_PATH}/index.json`, { cache: 'no-store' });
+        if (!res.ok) {
+            console.warn('loadParteOperacionesPdfManifest: manifest fetch returned non-ok status', res.status);
+            return null;
+        }
+        const payload = await res.json();
+        if (Array.isArray(payload)) {
+            parteOperacionesPdfManifest = payload.slice();
+            parteOperacionesPdfManifestLoaded = true;
+            return parteOperacionesPdfManifest;
+        }
+        // If payload isn't an array, keep manifest unloaded so we can retry later
+        console.warn('loadParteOperacionesPdfManifest: invalid payload format');
+    } catch (err) {
+        console.warn('loadParteOperacionesPdfManifest failed:', err);
+    }
+    return null;
+}
+
+function _normalizeForPdfMatch(text){
+    if (!text) return '';
+    return text.toString()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9]+/g, ' ')
+        .trim()
+        .toLowerCase();
+}
+
+async function findParteOperacionesPdfFilename(dateStr){
+    if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
+    const jsDate = new Date(`${dateStr}T00:00:00`);
+    if (Number.isNaN(jsDate.getTime())) return null;
+    const day = String(jsDate.getDate());
+    const dayPadded = day.padStart(2, '0');
+    const monthName = SPANISH_MONTH_NAMES[jsDate.getMonth()] || '';
+    const monthShort = monthName.slice(0,3);
+    const year = String(jsDate.getFullYear());
+    const dayRe = new RegExp('\\b' + dayPadded + '\\b');
+    const monthRe = new RegExp('\\b' + monthName + '\\b');
+    const monthShortRe = new RegExp('\\b' + monthShort + '\\b');
+    const yearRe = new RegExp('\\b' + year + '\\b');
+
+    const manifest = await loadParteOperacionesPdfManifest();
+    if (!Array.isArray(manifest) || !manifest.length) return null;
+
+    // score candidates: prefer ones containing day, month (full or short), year
+    let best = null;
+    let bestScore = -1;
+    for (const candidate of manifest){
+        if (!candidate || typeof candidate !== 'string') continue;
+        // only consider pdf files
+        if (!/\.pdf$/i.test(candidate)) continue;
+        const norm = _normalizeForPdfMatch(candidate.replace(/\.pdf$/i, ''));
+        let score = 0;
+        if (dayRe.test(norm)) score += 6;
+        if (monthRe.test(norm)) score += 5;
+        if (monthShortRe.test(norm)) score += 2;
+        if (yearRe.test(norm)) score += 8;
+        if (norm.includes('operaciones')) score += 1;
+        if (score > bestScore){
+            bestScore = score;
+            best = candidate;
+        }
+    }
+    // require at least a minimal score (day + year or month + year)
+    if (bestScore >= 7) return best;
+
+    // Second pass: looser matching — prefer day+year, or day+month, or month+year
+    for (const candidate of manifest){
+        if (!candidate || typeof candidate !== 'string') continue;
+        if (!/\.pdf$/i.test(candidate)) continue;
+        const norm = _normalizeForPdfMatch(candidate.replace(/\.pdf$/i, ''));
+        // day + year
+        if (dayRe.test(norm) && yearRe.test(norm)) return candidate;
+        // day + month
+        if (dayRe.test(norm) && (monthRe.test(norm) || monthShortRe.test(norm))) return candidate;
+        // month + year
+        if ((monthRe.test(norm) || monthShortRe.test(norm)) && yearRe.test(norm)) return candidate;
+    }
+
+    // Third pass: match day only (last resort)
+    for (const candidate of manifest){
+        if (!candidate || typeof candidate !== 'string') continue;
+        if (!/\.pdf$/i.test(candidate)) continue;
+        const norm = _normalizeForPdfMatch(candidate.replace(/\.pdf$/i, ''));
+        if (dayRe.test(norm)) return candidate;
+    }
+
+    return null;
+}
+
 function buildParteOperacionesPdfPath(dateStr){
+    // Attempt to build a fallback path using the old deterministic filename
     const filename = formatParteOperacionesPdfFilename(dateStr);
     if (!filename) return null;
     const encoded = encodeURIComponent(`${filename}${PARTE_OPERACIONES_PDF_EXTENSION}`);
     return `${PARTE_OPERACIONES_PDF_BASE_PATH}/${encoded}`;
 }
 
-function updateParteOperacionesPdfViewer(metadata = {}){
+async function _urlExists(url){
+    try {
+        const res = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+        if (res.ok) return true;
+        // Some servers don't support HEAD; try GET lightly
+        if (res.status === 405 || res.status === 501) {
+            const r2 = await fetch(url, { method: 'GET', cache: 'no-store' });
+            return r2.ok;
+        }
+        return false;
+    } catch (err){
+        return false;
+    }
+}
+
+// Try multiple candidate paths (encoded/raw/normalized) and return the first that exists
+async function resolveParteOperacionesPdfPath(matchedFilename, fallbackFilename){
+    const base = PARTE_OPERACIONES_PDF_BASE_PATH;
+    const candidates = [];
+    if (matchedFilename) {
+        candidates.push(`${base}/${encodeURIComponent(matchedFilename)}`);
+        candidates.push(`${base}/${matchedFilename}`);
+    }
+    if (fallbackFilename) {
+        const fb = `${fallbackFilename}${PARTE_OPERACIONES_PDF_EXTENSION}`;
+        candidates.push(`${base}/${encodeURIComponent(fb)}`);
+        candidates.push(`${base}/${fb}`);
+    }
+
+    // add sanitized variants (collapse multiple spaces, remove stray space before dot, remove unexpected dots)
+    const sanitizers = [
+        s => s.replace(/\s+/g, ' ').trim(),
+        s => s.replace(/\s+\./g, '.'),
+        s => s.replace(/\.\s+/g, '.').replace(/\.{2,}/g, '.')
+    ];
+    const seen = new Set(candidates);
+    for (const c of [...candidates]){
+        const rawName = c.replace(`${base}/`, '');
+        for (const san of sanitizers){
+            const variant = `${base}/${encodeURIComponent(san(decodeURIComponent(rawName)))}`;
+            if (!seen.has(variant)) { seen.add(variant); candidates.push(variant); }
+            const variantRaw = `${base}/${san(decodeURIComponent(rawName))}`;
+            if (!seen.has(variantRaw)) { seen.add(variantRaw); candidates.push(variantRaw); }
+        }
+    }
+
+    for (const url of candidates){
+        if (!url) continue;
+        try {
+            // Try checking availability
+            // If running file:// this will likely fail; callers should handle null
+            // Use absolute URL if environment provides location origin
+            const abs = (typeof window !== 'undefined' && window.location && window.location.origin) ? `${window.location.origin}/${url}`.replace(/([^:])\/\//g,'$1/') : url;
+            if (await _urlExists(abs)) return url;
+        } catch (_) {}
+    }
+    return null;
+}
+
+async function updateParteOperacionesPdfViewer(metadata = {}){
     const wrapper = document.getElementById('operations-pdf-viewer');
     if (!wrapper) return;
     const iframe = document.getElementById('operations-pdf-frame');
@@ -11894,29 +12173,60 @@ function updateParteOperacionesPdfViewer(metadata = {}){
         return;
     }
 
-    const filename = formatParteOperacionesPdfFilename(isoDate);
-    const pdfPath = buildParteOperacionesPdfPath(isoDate);
-    if (!filename || !pdfPath){
+    // show placeholder until we resolve the actual PDF path
+    placeholder.classList.remove('d-none');
+    iframe.classList.add('d-none');
+    if (iframe.getAttribute('src')) iframe.removeAttribute('src');
+    downloadBtn.classList.add('d-none');
+    downloadBtn.removeAttribute('href');
+    downloadBtn.removeAttribute('download');
+
+    // Build a sensible friendly label while we try to find the actual file
+    const friendly = metadata?.friendlyDate || formatParteOperacionesDate(isoDate) || isoDate;
+    label.textContent = `Buscando documento correspondiente al ${friendly}...`;
+
+    // Try to find a file in the manifest (if available) or fall back to deterministic filename
+    let matchedFilename = null;
+    try {
+        matchedFilename = await findParteOperacionesPdfFilename(isoDate);
+    } catch (err) {
+        console.warn('findParteOperacionesPdfFilename failed:', err);
+    }
+
+    const fallbackFilename = formatParteOperacionesPdfFilename(isoDate);
+    let pdfPath = null;
+    let downloadName = null;
+    try {
+        const resolved = await resolveParteOperacionesPdfPath(matchedFilename, fallbackFilename);
+        if (resolved) {
+            pdfPath = resolved;
+            const leaf = (resolved || '').split('/').pop() || '';
+            downloadName = decodeURIComponent(leaf).replace(/\.pdf$/i, '');
+        } else if (matchedFilename) {
+            pdfPath = `${PARTE_OPERACIONES_PDF_BASE_PATH}/${encodeURIComponent(matchedFilename)}`;
+            downloadName = matchedFilename.replace(/\.pdf$/i, '');
+        } else if (fallbackFilename) {
+            pdfPath = buildParteOperacionesPdfPath(isoDate);
+            downloadName = `${fallbackFilename}${PARTE_OPERACIONES_PDF_EXTENSION}`.replace(/\.pdf$/i, '');
+        }
+    } catch (err) {
+        console.warn('resolveParteOperacionesPdfPath failed:', err);
+    }
+
+    if (!pdfPath){
         placeholder.classList.remove('d-none');
         iframe.classList.add('d-none');
-        if (iframe.getAttribute('src')){
-            iframe.removeAttribute('src');
-        }
-        downloadBtn.classList.add('d-none');
-        downloadBtn.removeAttribute('href');
-        downloadBtn.removeAttribute('download');
         label.textContent = 'No fue posible construir la ruta del documento para esta fecha.';
         return;
     }
 
-    const friendly = metadata?.friendlyDate || formatParteOperacionesDate(isoDate) || isoDate;
     label.textContent = `Documento correspondiente al ${friendly}.`;
     placeholder.classList.add('d-none');
     iframe.classList.remove('d-none');
     iframe.setAttribute('src', pdfPath);
     downloadBtn.classList.remove('d-none');
     downloadBtn.href = pdfPath;
-    downloadBtn.download = `${filename}${PARTE_OPERACIONES_PDF_EXTENSION}`;
+    downloadBtn.download = downloadName || (`${fallbackFilename}${PARTE_OPERACIONES_PDF_EXTENSION}`);
 }
 
 function getDefaultParteOperacionesDate(summary){
@@ -11944,8 +12254,9 @@ function getDefaultParteOperacionesDate(summary){
 }
 
 function canCurrentUserEditParteOperaciones(){
-    const role = sessionStorage.getItem('user_role');
-    return role === 'admin' || role === 'editor';
+    const name = (sessionStorage.getItem(SESSION_USER) || '').toLowerCase();
+    if (!name) return false;
+    return PARTE_OPERACIONES_EDITORS.includes(name);
 }
 
 function getCurrentParteOperacionesEditor(){
@@ -12158,10 +12469,6 @@ async function saveParteOperacionesEntriesForCurrentDate(){
         return;
     }
     const store = ensureParteOperacionesCustomStore();
-    
-    // Capture old state for history diff
-    const oldRows = store.dates[date] ? JSON.parse(JSON.stringify(store.dates[date])) : [];
-    
     store.dates[date] = rows;
     saveParteOperacionesCustomStore();
     const useRemote = shouldUseParteOperacionesRemoteBackend();
@@ -12171,9 +12478,7 @@ async function saveParteOperacionesEntriesForCurrentDate(){
     setParteOperacionesFeedback('Guardando captura...', 'muted');
     let remoteSynced = false;
     if (useRemote) {
-        // Calculate diff
-        const diff = calculateParteOperacionesDiff(oldRows, rows);
-        remoteSynced = await upsertParteOperacionesRemoteEntries(date, rows, { historyDetails: diff });
+        remoteSynced = await upsertParteOperacionesRemoteEntries(date, rows);
         if (remoteSynced) {
             clearParteOperacionesDateDirty(date);
             await syncParteOperacionesRemoteStore({ force: true, silent: true, skipFlush: true }).catch(() => {});
@@ -12187,33 +12492,6 @@ async function saveParteOperacionesEntriesForCurrentDate(){
     );
     rebuildParteOperacionesCacheFromLocal();
     loadParteOperacionesSummary({ force: true, silent: true, skipRemoteSync: remoteSynced }).catch(() => {});
-}
-
-function calculateParteOperacionesDiff(oldRows, newRows) {
-    const changes = [];
-    const oldMap = new Map(oldRows.map(r => [r.tipo, r]));
-    const newMap = new Map(newRows.map(r => [r.tipo, r]));
-    
-    const allTypes = new Set([...oldMap.keys(), ...newMap.keys()]);
-    
-    for (const type of allTypes) {
-        const oldRow = oldMap.get(type);
-        const newRow = newMap.get(type);
-        
-        if (!oldRow) {
-            changes.push(`Agregado: ${type} (${newRow.subtotal} ops)`);
-        } else if (!newRow) {
-            changes.push(`Eliminado: ${type} (${oldRow.subtotal} ops)`);
-        } else {
-            // Check for changes
-            if (oldRow.subtotal !== newRow.subtotal || oldRow.llegada !== newRow.llegada || oldRow.salida !== newRow.salida) {
-                changes.push(`Modificado: ${type} (${oldRow.subtotal} -> ${newRow.subtotal} ops)`);
-            }
-        }
-    }
-    
-    if (changes.length === 0) return 'Sin cambios detectados (Guardado idéntico)';
-    return changes.join(', ');
 }
 
 function setParteOperacionesFeedback(message, tone = 'muted'){
@@ -12604,26 +12882,10 @@ async function loadParteOperacionesSummary(options = {}){
         return;
     }
     try {
-        let normalized;
-        try {
-            // Try fetching from DB via DataManager
-            const dbData = await window.dataManager.getDailyOperationsBreakdown();
-            if (dbData && Array.isArray(dbData) && dbData.length > 0) {
-                normalized = normalizeParteOperacionesFromDB(dbData);
-                console.log('Loaded Operations Summary from DB');
-            }
-        } catch (dbErr) {
-            console.warn('DB fetch for Operations Summary failed, falling back to JSON:', dbErr);
-        }
-
-        if (!normalized) {
-            const res = await fetch('data/resumen_parte_operaciones.json', { cache: 'no-store' });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const raw = await res.json();
-            normalized = normalizeParteOperacionesSummary(raw);
-            console.log('Loaded Operations Summary from JSON');
-        }
-
+        const res = await fetch('data/resumen_parte_operaciones.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const raw = await res.json();
+        const normalized = normalizeParteOperacionesSummary(raw);
         parteOperacionesSummaryBaseCache = normalized;
         const merged = mergeParteOperacionesCustomEntries(normalized);
         const previousSelection = parteOperacionesSummarySelectedDate;
@@ -13413,14 +13675,9 @@ if (isAndroidDevice) {
             }
 
             try {
-                if (isAndroidDevice) { startAndroidAutoRefreshTimer(); }
+                if (isAndroidDevice) startAndroidAutoRefreshTimer();
             } catch (err) {
                 console.warn('Android auto-refresh timer init failed:', err);
             }
-
-            // Load dynamic data
-            loadWeeklyOperationsFromDB();
         });
 
-// End of script
-// Verified clean

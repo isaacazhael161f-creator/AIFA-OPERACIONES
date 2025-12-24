@@ -9,6 +9,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     try {
+        // Ensure Supabase client is ready before using DataManager
+        if (window.ensureSupabaseClient) await window.ensureSupabaseClient();
+
         // 1. Check Auth
         const isAdmin = await window.dataManager.checkAuth();
         console.log('User is admin:', isAdmin);

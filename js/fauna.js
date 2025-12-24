@@ -35,7 +35,7 @@
       return window.dataManager.getWildlifeIncidents()
         .catch(err => {
           console.warn('Error loading fauna from DB, fallback to JSON', err);
-          return fetch('data/fauna.json').then(r => r.json());
+          return fetch('data/fauna.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : []);
         })
         .catch(() => []);
     }
@@ -46,7 +46,7 @@
         return Promise.resolve([]);
       }
     } catch(_) {}
-    return fetch('data/fauna.json').then(r => r.json()).catch(()=>[]);
+    return fetch('data/fauna.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(()=>[]);
   }
 
   // Normalizar claves de fauna.json con guiones bajos y variaciones a formato de UI
