@@ -366,6 +366,13 @@ class DataManagement {
                 displayData = allData.filter(d => String(d.year) === selectedYear);
             }
 
+            // Sort by Year Descending, then Month Ascending (Jan -> Dec)
+            displayData.sort((a, b) => {
+                const yearDiff = Number(b.year) - Number(a.year);
+                if (yearDiff !== 0) return yearDiff;
+                return Number(a.month) - Number(b.month);
+            });
+
             // 5. Render table
             const tbody = document.querySelector('#table-monthly-ops tbody');
             tbody.innerHTML = '';
