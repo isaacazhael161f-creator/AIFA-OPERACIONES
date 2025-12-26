@@ -927,107 +927,76 @@ function resolveCurrentOperationsWeek(referenceDate = new Date()) {
 }
 
 
-// Datos Anuales
+// staticData placeholder; real data will be synced from the DB
 const staticData = {
-    operacionesTotales: {
-        comercial: [ { periodo: '2022', operaciones: 8996, pasajeros: 912415 }, { periodo: '2023', operaciones: 23211, pasajeros: 2631261 }, { periodo: '2024', operaciones: 51734, pasajeros: 6318454 }, { periodo: '2025', operaciones: 49160, pasajeros: 6547109} ],
-        carga: [ { periodo: '2022', operaciones: 8, toneladas: 5.19 }, { periodo: '2023', operaciones: 5578, toneladas: 186319.83}, { periodo: '2024', operaciones: 13219, toneladas: 447341.17 }, { periodo: '2025', operaciones: 11168, toneladas: 377761.43} ],
-        general: [ { periodo: '2022', operaciones: 458, pasajeros: 1385 }, { periodo: '2023', operaciones: 2212, pasajeros: 8160 }, { periodo: '2024', operaciones: 2777, pasajeros: 29637 }, { periodo: '2025', operaciones: 2891, pasajeros: 20577} ]
-    },
-    operacionesSemanasCatalogo: WEEKLY_OPERATIONS_DATASETS.map(deepCloneWeek),
-    operacionesSemanaActual: resolveCurrentOperationsWeek(),
-    // Datos mensuales 2025 (hasta septiembre): Comercial y Carga
+    operacionesTotales: { comercial: [], carga: [], general: [] },
+    operacionesSemanasCatalogo: Array.isArray(WEEKLY_OPERATIONS_DATASETS) ? WEEKLY_OPERATIONS_DATASETS.map(deepCloneWeek) : [],
+    operacionesSemanaActual: typeof resolveCurrentOperationsWeek === 'function' ? resolveCurrentOperationsWeek() : null,
     mensual2025: {
-        comercial: [
-            { mes: '01', label: 'Enero', operaciones: 4488 },
-            { mes: '02', label: 'Febrero', operaciones: 4016 },
-            { mes: '03', label: 'Marzo', operaciones: 4426 },
-            { mes: '04', label: 'Abril', operaciones: 4575 },
-            { mes: '05', label: 'Mayo', operaciones: 4443 },
-            { mes: '06', label: 'Junio', operaciones: 4129 },
-            { mes: '07', label: 'Julio', operaciones: 4430 },
-            { mes: '08', label: 'Agosto', operaciones: 4500 },
-            { mes: '09', label: 'Septiembre', operaciones: 4135 },
-            { mes: '10', label: 'Octubre', operaciones: 4291 },
-            { mes: '11', label: 'Noviembre', operaciones: 4458 }
-        ],
-        // Pasajeros de aviación comercial por mes (con proyección conservadora 81% donde indica)
-        comercialPasajeros: [
-            { mes: '01', label: 'Enero', pasajeros: 565716 },
-            { mes: '02', label: 'Febrero', pasajeros: 488440 },
-            { mes: '03', label: 'Marzo', pasajeros: 570097 },
-            { mes: '04', label: 'Abril', pasajeros: 621197 },
-            { mes: '05', label: 'Mayo', pasajeros: 586299 },
-            { mes: '06', label: 'Junio', pasajeros: 541400 },
-            { mes: '07', label: 'Julio', pasajeros: 604758 },
-            { mes: '08', label: 'Agosto', pasajeros: 630952 },
-            { mes: '09', label: 'Septiembre', pasajeros: 546457 },
-            { mes: '10', label: 'Octubre', pasajeros: 584629 },
-            { mes: '11', label: 'Noviembre', pasajeros: 632853 },
-            { mes: '12', label: 'Diciembre (Proy.)', pasajeros: 704718 }
-        ],
-        carga: [
-            { mes: '01', label: 'Enero', operaciones: 880 },
-            { mes: '02', label: 'Febrero', operaciones: 803 },
-            { mes: '03', label: 'Marzo', operaciones: 916 },
-            { mes: '04', label: 'Abril', operaciones: 902 },
-            { mes: '05', label: 'Mayo', operaciones: 1006 },
-            { mes: '06', label: 'Junio', operaciones: 1014 },
-            { mes: '07', label: 'Julio', operaciones: 1021 },
-            { mes: '08', label: 'Agosto', operaciones: 1082 },
-            { mes: '09', label: 'Septiembre', operaciones: 992},
-            { mes: '10', label: 'Octubre', operaciones: 1155 },
-            { mes: '11', label: 'Noviembre', operaciones: 1127 }
-        ],
-        // Toneladas por mes (con nulos cuando no hay datos)
-        cargaToneladas: [
-            { mes: '01', label: 'Enero', toneladas: 27764.47},
-            { mes: '02', label: 'Febrero', toneladas: 26628.78},
-            { mes: '03', label: 'Marzo', toneladas: 33154.97},
-            { mes: '04', label: 'Abril', toneladas: 30785.67 },
-            { mes: '05', label: 'Mayo', toneladas: 34190.60 },
-            { mes: '06', label: 'Junio', toneladas: 37708.07 },
-            { mes: '07', label: 'Julio', toneladas: 35649.92 },
-            { mes: '08', label: 'Agosto', toneladas: 35737.78 },
-            { mes: '09', label: 'Septiembre', toneladas: 31076.71 },
-            { mes: '10', label: 'Octubre', toneladas: 37273.41},
-            { mes: '11', label: 'Noviembre', toneladas: 38433.81 },
-            { mes: '12', label: 'Diciembre', toneladas: null }
-        ],
-        // Aviación general (operaciones y pasajeros)
-        general: {
-            operaciones: [
-                { mes: '01', label: 'Enero', operaciones: 251 },
-                { mes: '02', label: 'Febrero', operaciones: 242 },
-                { mes: '03', label: 'Marzo', operaciones: 272 },
-                { mes: '04', label: 'Abril', operaciones: 249 },
-                { mes: '05', label: 'Mayo', operaciones: 226 },
-                { mes: '06', label: 'Junio', operaciones: 209 },
-                { mes: '07', label: 'Julio', operaciones: 234 },
-                { mes: '08', label: 'Agosto', operaciones: 282 },
-                { mes: '09', label: 'Septiembre', operaciones: 249 },
-                { mes: '10', label: 'Octubre', operaciones: 315 },
-                { mes: '11', label: 'Noviembre', operaciones: 285 },
-                { mes: '12', label: 'Diciembre', operaciones: null }
-            ],
-            pasajeros: [
-                { mes: '01', label: 'Enero', pasajeros: 2353 },
-                { mes: '02', label: 'Febrero', pasajeros: 1348 },
-                { mes: '03', label: 'Marzo', pasajeros: 1601 },
-                { mes: '04', label: 'Abril', pasajeros: 1840 },
-                { mes: '05', label: 'Mayo', pasajeros: 1576 },
-                { mes: '06', label: 'Junio', pasajeros: 3177 },
-                { mes: '07', label: 'Julio', pasajeros: 1515 },
-                { mes: '08', label: 'Agosto', pasajeros: 3033 },
-                { mes: '09', label: 'Septiembre', pasajeros: 948 },
-                { mes: '10', label: 'Octubre', pasajeros: 1298},
-                { mes: '11', label: 'Noviembre', pasajeros: 1089 },
-                { mes: '12', label: 'Diciembre', pasajeros: null }
-            ]
-        }
+        comercial: [],
+        comercialPasajeros: [],
+        carga: [],
+        cargaToneladas: [],
+        general: { operaciones: [], pasajeros: [] }
     },
-    mensualYear: '2025'
+    mensualYear: String(new Date().getFullYear())
 };
+
+async function syncStaticDataFromDB() {
+    try {
+        if (!window.dataManager) return;
+        const [annualRows, monthlyRows] = await Promise.all([
+            window.dataManager.getAnnualOperations(),
+            window.dataManager.getMonthlyOperations()
+        ]);
+
+        staticData.operacionesTotales = { comercial: [], carga: [], general: [] };
+        (annualRows || []).forEach(row => {
+            const y = String(row.year || '');
+            staticData.operacionesTotales.comercial.push({ periodo: y, operaciones: Number(row.comercial_ops_total) || 0, pasajeros: Number(row.comercial_pax_total) || 0 });
+            staticData.operacionesTotales.carga.push({ periodo: y, operaciones: Number(row.carga_ops_total) || 0, toneladas: row.carga_tons_total == null ? null : Number(row.carga_tons_total) });
+            staticData.operacionesTotales.general.push({ periodo: y, operaciones: Number(row.general_ops_total) || 0, pasajeros: Number(row.general_pax_total) || 0 });
+        });
+
+        const years = Array.from(new Set((monthlyRows || []).map(r => Number(r.year))).values()).filter(y => Number.isFinite(y)).sort((a,b)=>a-b);
+        const latestYear = years.length ? years[years.length-1] : (new Date()).getFullYear();
+        staticData.mensualYear = String(latestYear);
+
+        const months = OPS_ALL_MONTH_CODES.slice();
+        const makeEmptyMonthly = (propName) => months.map((m, idx) => ({ mes: m, label: AVIATION_ANALYTICS_MONTH_LABELS[idx] || m, [propName]: null }));
+        staticData.mensual2025 = {
+            comercial: makeEmptyMonthly('operaciones'),
+            comercialPasajeros: makeEmptyMonthly('pasajeros'),
+            carga: makeEmptyMonthly('operaciones'),
+            cargaToneladas: makeEmptyMonthly('toneladas'),
+            general: { operaciones: makeEmptyMonthly('operaciones'), pasajeros: makeEmptyMonthly('pasajeros') }
+        };
+
+        (monthlyRows || []).forEach(row => {
+            if (Number(row.year) !== Number(latestYear)) return;
+            const m = String(row.month).padStart(2, '0');
+            const idx = months.indexOf(m);
+            if (idx === -1) return;
+            staticData.mensual2025.comercial[idx].operaciones = row.comercial_ops == null ? null : Number(row.comercial_ops);
+            staticData.mensual2025.comercialPasajeros[idx].pasajeros = row.comercial_pax == null ? null : Number(row.comercial_pax);
+            staticData.mensual2025.carga[idx].operaciones = row.carga_ops == null ? null : Number(row.carga_ops);
+            staticData.mensual2025.cargaToneladas[idx].toneladas = row.carga_tons == null ? null : Number(row.carga_tons);
+            staticData.mensual2025.general.operaciones[idx].operaciones = row.general_ops == null ? null : Number(row.general_ops);
+            staticData.mensual2025.general.pasajeros[idx].pasajeros = row.general_pax == null ? null : Number(row.general_pax);
+        });
+
+        try { if (typeof window.renderOperacionesTotales === 'function') window.renderOperacionesTotales(); } catch (_) {}
+        try { if (typeof window.renderMonthlyCharts === 'function') window.renderMonthlyCharts(); } catch (_) {}
+        window.dispatchEvent(new CustomEvent('static-data-synced', { detail: { year: staticData.mensualYear } }));
+    } catch (err) {
+        console.error('syncStaticDataFromDB error:', err);
+    }
+}
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('DOMContentLoaded', () => { setTimeout(() => { syncStaticDataFromDB().catch(() => {}); }, 50); });
+    window.addEventListener('data-updated', () => { syncStaticDataFromDB().catch(() => {}); });
+}
 
 function getOpsAvailableYearsFromTotals(source = staticData?.operacionesTotales) {
     const groups = ['comercial', 'carga', 'general'];
@@ -11912,242 +11881,31 @@ function getCurrentParteOperacionesEditor(){
     return sessionStorage.getItem(SESSION_USER) || '';
 }
 
+// Parte de operaciones quick-capture functionality removed — stubs to keep integrations safe
 function ensureOpsEntryPanel(){
-    if (parteOperacionesEntryState.initialized) return parteOperacionesEntryState;
+    if (!parteOperacionesEntryState) return {};
     parteOperacionesEntryState.initialized = true;
-    parteOperacionesEntryState.panel = document.getElementById('ops-entry-panel');
-    parteOperacionesEntryState.tableBody = document.querySelector('#ops-entry-table tbody');
-    parteOperacionesEntryState.dateInput = document.getElementById('ops-entry-date');
-    parteOperacionesEntryState.feedback = document.getElementById('ops-entry-feedback');
-    parteOperacionesEntryState.addBtn = document.getElementById('ops-entry-add-row');
-    parteOperacionesEntryState.resetBtn = document.getElementById('ops-entry-reset-table');
-    parteOperacionesEntryState.saveBtn = document.getElementById('ops-entry-save');
-    parteOperacionesEntryState.clearDayBtn = document.getElementById('ops-entry-clear-day');
-    parteOperacionesEntryState.todayBtn = document.getElementById('ops-entry-today');
-    parteOperacionesEntryState.syncBtn = document.getElementById('ops-entry-sync-summary');
-    if (parteOperacionesEntryState.addBtn && !parteOperacionesEntryState.addBtn._wired) {
-        parteOperacionesEntryState.addBtn._wired = 1;
-        parteOperacionesEntryState.addBtn.addEventListener('click', () => addParteOperacionesEntryRow());
-    }
-    if (parteOperacionesEntryState.resetBtn && !parteOperacionesEntryState.resetBtn._wired) {
-        parteOperacionesEntryState.resetBtn._wired = 1;
-        parteOperacionesEntryState.resetBtn.addEventListener('click', () => resetParteOperacionesEntryTable());
-    }
-    if (parteOperacionesEntryState.saveBtn && !parteOperacionesEntryState.saveBtn._wired) {
-        parteOperacionesEntryState.saveBtn._wired = 1;
-        parteOperacionesEntryState.saveBtn.addEventListener('click', () => {
-            saveParteOperacionesEntriesForCurrentDate().catch((err) => {
-                console.warn('saveParteOperacionesEntriesForCurrentDate failed:', err);
-            });
-        });
-    }
-    if (parteOperacionesEntryState.clearDayBtn && !parteOperacionesEntryState.clearDayBtn._wired) {
-        parteOperacionesEntryState.clearDayBtn._wired = 1;
-        parteOperacionesEntryState.clearDayBtn.addEventListener('click', () => {
-            clearParteOperacionesEntriesForCurrentDate().catch((err) => {
-                console.warn('clearParteOperacionesEntriesForCurrentDate failed:', err);
-            });
-        });
-    }
-    if (parteOperacionesEntryState.todayBtn) parteOperacionesEntryState.todayBtn.addEventListener('click', () => setParteOperacionesEntryDate(new Date()));
-    if (parteOperacionesEntryState.syncBtn) parteOperacionesEntryState.syncBtn.addEventListener('click', () => {
-        if (parteOperacionesSummarySelectedDate) {
-            setParteOperacionesEntryDate(parteOperacionesSummarySelectedDate);
-        } else {
-            setParteOperacionesEntryDate(new Date());
-        }
-    });
-    document.addEventListener('click', (event) => {
-        if (event.target.closest('.ops-entry-remove-row')) {
-            const tr = event.target.closest('tr');
-            if (tr && parteOperacionesEntryState.tableBody) {
-                tr.remove();
-                updateParteOperacionesEntryTotals(tr.closest('table'));
-            }
-        }
-    });
-    document.addEventListener('input', (event) => {
-        const table = event.target.closest('#ops-entry-table');
-        if (table) {
-            if (event.target.matches('#ops-entry-table tbody tr td:nth-child(4) input')) {
-                event.target.dataset.manual = event.target.value ? '1' : '';
-            }
-            updateParteOperacionesEntryTotals(table);
-        }
-    });
-    if (parteOperacionesEntryState.dateInput && !parteOperacionesEntryState.dateInput.value) {
-        setParteOperacionesEntryDate(new Date());
-    }
+    parteOperacionesEntryState.panel = null;
+    parteOperacionesEntryState.tableBody = null;
+    parteOperacionesEntryState.dateInput = null;
+    parteOperacionesEntryState.feedback = null;
+    parteOperacionesEntryState.addBtn = null;
+    parteOperacionesEntryState.resetBtn = null;
+    parteOperacionesEntryState.saveBtn = null;
+    parteOperacionesEntryState.clearDayBtn = null;
+    parteOperacionesEntryState.todayBtn = null;
+    parteOperacionesEntryState.syncBtn = null;
     return parteOperacionesEntryState;
 }
 
-function setParteOperacionesEntryDate(value){
-    const st = ensureOpsEntryPanel();
-    if (!st.dateInput) return;
-    if (value instanceof Date) {
-        const copy = new Date(value.getTime());
-        copy.setHours(0,0,0,0);
-        st.dateInput.value = copy.toISOString().slice(0,10);
-    } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-        st.dateInput.value = value;
-    }
-    loadParteOperacionesEntriesForDate(st.dateInput.value);
-}
-
-function addParteOperacionesEntryRow(data = {}){
-    const st = ensureOpsEntryPanel();
-    if (!st.tableBody) return;
-    const tr = document.createElement('tr');
-    const llegada = Number(data.llegada);
-    const salida = Number(data.salida);
-    const subtotalValue = Number.isFinite(Number(data.subtotal)) ? Number(data.subtotal) : '';
-    const autoSubtotal = (Number.isFinite(llegada) ? llegada : 0) + (Number.isFinite(salida) ? salida : 0);
-    const manualAttr = subtotalValue !== '' && subtotalValue !== autoSubtotal ? 'data-manual="1"' : '';
-    tr.innerHTML = `
-        <td>
-            <input type="text" class="form-control form-control-sm" list="ops-entry-type-suggestions" value="${data.tipo || ''}" placeholder="Ej. Aviación de pasajeros" required>
-        </td>
-        <td><input type="number" min="0" class="form-control form-control-sm" value="${data.llegada ?? ''}" aria-label="Llegadas"></td>
-        <td><input type="number" min="0" class="form-control form-control-sm" value="${data.salida ?? ''}" aria-label="Salidas"></td>
-        <td><input type="number" min="0" class="form-control form-control-sm" value="${subtotalValue === '' ? '' : subtotalValue}" aria-label="Subtotal" ${manualAttr}></td>
-        <td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm ops-entry-remove-row" title="Eliminar fila"><i class="fas fa-times"></i></button></td>`;
-    st.tableBody.appendChild(tr);
-    updateParteOperacionesEntryTotals(st.tableBody.closest('table'));
-}
-
-function resetParteOperacionesEntryTable(){
-    const st = ensureOpsEntryPanel();
-    if (!st.tableBody) return;
-    st.tableBody.innerHTML = '';
-    addParteOperacionesEntryRow();
-}
-
-function readParteOperacionesEntryTable(){
-    const st = ensureOpsEntryPanel();
-    if (!st.tableBody) return [];
-    const rows = Array.from(st.tableBody.querySelectorAll('tr'));
-    return rows.map(row => {
-        const inputs = row.querySelectorAll('input');
-        const tipo = inputs[0]?.value || '';
-        const llegada = Number(inputs[1]?.value) || 0;
-        const salida = Number(inputs[2]?.value) || 0;
-        let subtotal = Number(inputs[3]?.value);
-        if (!Number.isFinite(subtotal) || subtotal <= 0) {
-            subtotal = llegada + salida;
-        }
-        return sanitizeParteOperacionesItem({ tipo, llegada, salida, subtotal, __custom: true });
-    }).filter(item => item.tipo);
-}
-
-function updateParteOperacionesEntryTotals(table){
-    if (!table) return;
-    const rows = table.querySelectorAll('tbody tr');
-    rows.forEach(row => {
-        const inputs = row.querySelectorAll('input');
-        if (inputs.length < 4) return;
-        const llegada = Number(inputs[1].value) || 0;
-        const salida = Number(inputs[2].value) || 0;
-        const subtotalInput = inputs[3];
-        if (!subtotalInput.dataset.manual) {
-            subtotalInput.value = llegada + salida;
-        }
-    });
-}
-
-function loadParteOperacionesEntriesForDate(date){
-    const st = ensureOpsEntryPanel();
-    if (!st.tableBody) return;
-    const store = ensureParteOperacionesCustomStore();
-    const entries = Array.isArray(store?.dates?.[date]) ? store.dates[date] : [];
-    st.tableBody.innerHTML = '';
-    if (!entries.length) {
-        addParteOperacionesEntryRow();
-        return;
-    }
-    entries.forEach(entry => addParteOperacionesEntryRow(entry));
-    if (st.feedback) st.feedback.textContent = entries.length ? `Se cargaron ${entries.length} filas guardadas para ${date}` : '';
-}
-
-async function clearParteOperacionesEntriesForCurrentDate(){
-    const st = ensureOpsEntryPanel();
-    if (!st.dateInput) return;
-    const date = (st.dateInput.value || '').trim();
-    if (!isValidParteOperacionesDate(date)) {
-        setParteOperacionesFeedback('Selecciona una fecha válida para eliminar.', 'danger');
-        return;
-    }
-    const store = ensureParteOperacionesCustomStore();
-    if (store.dates[date]) {
-        delete store.dates[date];
-        saveParteOperacionesCustomStore();
-    }
-    const useRemote = shouldUseParteOperacionesRemoteBackend();
-    if (useRemote) {
-        markParteOperacionesDateDirty(date);
-    }
-    loadParteOperacionesEntriesForDate(date);
-    setParteOperacionesFeedback('Eliminando captura...', 'muted');
-    let remoteSynced = false;
-    if (useRemote) {
-        remoteSynced = await deleteParteOperacionesRemoteEntries(date);
-        if (remoteSynced) {
-            clearParteOperacionesDateDirty(date);
-            await syncParteOperacionesRemoteStore({ force: true, silent: true, skipFlush: true }).catch(() => {});
-        }
-    }
-    setParteOperacionesFeedback(
-        remoteSynced ? 'Se eliminaron las capturas y se sincronizaron con el servidor.'
-            : (useRemote ? 'Captura eliminada localmente. Pendiente de sincronizar con el servidor.' : 'Captura eliminada.'),
-        remoteSynced ? 'success' : (useRemote ? 'warning' : 'success')
-    );
-    rebuildParteOperacionesCacheFromLocal();
-    loadParteOperacionesSummary({ force: true, silent: true, skipRemoteSync: remoteSynced }).catch(() => {});
-}
-
-async function saveParteOperacionesEntriesForCurrentDate(){
-    const st = ensureOpsEntryPanel();
-    if (!st.dateInput) return;
-    const date = (st.dateInput.value || '').trim();
-    if (!isValidParteOperacionesDate(date)) {
-        setParteOperacionesFeedback('Selecciona una fecha válida para guardar.', 'danger');
-        return;
-    }
-    const rows = readParteOperacionesEntryTable();
-    if (!rows.length) {
-        setParteOperacionesFeedback('Agrega al menos una fila para guardar.', 'danger');
-        return;
-    }
-    const store = ensureParteOperacionesCustomStore();
-    
-    // Capture old state for history diff
-    const oldRows = store.dates[date] ? JSON.parse(JSON.stringify(store.dates[date])) : [];
-    
-    store.dates[date] = rows;
-    saveParteOperacionesCustomStore();
-    const useRemote = shouldUseParteOperacionesRemoteBackend();
-    if (useRemote) {
-        markParteOperacionesDateDirty(date);
-    }
-    setParteOperacionesFeedback('Guardando captura...', 'muted');
-    let remoteSynced = false;
-    if (useRemote) {
-        // Calculate diff
-        const diff = calculateParteOperacionesDiff(oldRows, rows);
-        remoteSynced = await upsertParteOperacionesRemoteEntries(date, rows, { historyDetails: diff });
-        if (remoteSynced) {
-            clearParteOperacionesDateDirty(date);
-            await syncParteOperacionesRemoteStore({ force: true, silent: true, skipFlush: true }).catch(() => {});
-        }
-    }
-    setParteOperacionesFeedback(
-        remoteSynced ? `Captura guardada y sincronizada (${rows.length} filas).`
-            : (useRemote ? `Captura guardada localmente (${rows.length} filas). Se sincronizará cuando haya conexión.`
-                : `Captura guardada (${rows.length} filas).`),
-        remoteSynced ? 'success' : (useRemote ? 'warning' : 'success')
-    );
-    rebuildParteOperacionesCacheFromLocal();
-    loadParteOperacionesSummary({ force: true, silent: true, skipRemoteSync: remoteSynced }).catch(() => {});
-}
+function setParteOperacionesEntryDate(_) { /* removed */ }
+function addParteOperacionesEntryRow() { /* removed */ }
+function resetParteOperacionesEntryTable() { /* removed */ }
+function readParteOperacionesEntryTable(){ return []; }
+function updateParteOperacionesEntryTotals() { /* removed */ }
+function loadParteOperacionesEntriesForDate() { /* removed */ }
+async function clearParteOperacionesEntriesForCurrentDate(){ /* removed */ }
+async function saveParteOperacionesEntriesForCurrentDate(){ /* removed */ }
 
 function calculateParteOperacionesDiff(oldRows, newRows) {
     const changes = [];

@@ -28,6 +28,32 @@ class DataManagement {
                 { name: 'carga_cutoff_date', label: 'Carga - Fecha Corte', type: 'date' },
                 { name: 'carga_cutoff_note', label: 'Carga - Nota Corte', type: 'text' }
             ],
+            // Monthly operations (per month per year)
+            monthly_operations: [
+                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'month', label: 'Mes', type: 'select', options: [
+                    { value: '01', label: 'Enero' }, { value: '02', label: 'Febrero' }, { value: '03', label: 'Marzo' },
+                    { value: '04', label: 'Abril' }, { value: '05', label: 'Mayo' }, { value: '06', label: 'Junio' },
+                    { value: '07', label: 'Julio' }, { value: '08', label: 'Agosto' }, { value: '09', label: 'Septiembre' },
+                    { value: '10', label: 'Octubre' }, { value: '11', label: 'Noviembre' }, { value: '12', label: 'Diciembre' }
+                ]},
+                { name: 'comercial_ops', label: 'Comercial - Operaciones', type: 'number' },
+                { name: 'comercial_pax', label: 'Comercial - Pasajeros', type: 'number' },
+                { name: 'general_ops', label: 'General - Operaciones', type: 'number' },
+                { name: 'general_pax', label: 'General - Pasajeros', type: 'number' },
+                { name: 'carga_ops', label: 'Carga - Operaciones', type: 'number' },
+                { name: 'carga_tons', label: 'Carga - Toneladas', type: 'number', step: '0.01' }
+            ],
+            // Annual aggregated operations (calculated from monthly)
+            annual_operations: [
+                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'comercial_ops_total', label: 'Comercial - Operaciones (Total)', type: 'number' },
+                { name: 'comercial_pax_total', label: 'Comercial - Pasajeros (Total)', type: 'number' },
+                { name: 'general_ops_total', label: 'General - Operaciones (Total)', type: 'number' },
+                { name: 'general_pax_total', label: 'General - Pasajeros (Total)', type: 'number' },
+                { name: 'carga_ops_total', label: 'Carga - Operaciones (Total)', type: 'number' },
+                { name: 'carga_tons_total', label: 'Carga - Toneladas (Total)', type: 'number', step: '0.01' }
+            ],
             flight_itinerary: [
                 { name: 'flight_number', label: 'No. Vuelo', type: 'text' },
                 { name: 'airline', label: 'Aerolínea', type: 'text' },
@@ -150,6 +176,14 @@ class DataManagement {
         document.getElementById('filter-punctuality-year').addEventListener('change', () => this.loadPunctuality());
         document.getElementById('filter-punctuality-month').addEventListener('change', () => this.loadPunctuality());
 
+        // Monthly / Annual UI listeners
+        const monthlyYearSel = document.getElementById('monthly-ops-year');
+        if (monthlyYearSel) monthlyYearSel.addEventListener('change', () => this.loadMonthlyOperations());
+        const monthlyAddBtn = document.getElementById('monthly-ops-add');
+        if (monthlyAddBtn) monthlyAddBtn.addEventListener('click', () => this.addItem('monthly_operations'));
+        const annualRefreshBtn = document.getElementById('annual-ops-refresh');
+        if (annualRefreshBtn) annualRefreshBtn.addEventListener('click', () => this.loadAnnualOperations());
+
         // Listen for data updates to refresh tables
         window.addEventListener('data-updated', (e) => {
             // Refresh the current active tab or specific table
@@ -169,8 +203,16 @@ class DataManagement {
     }
 
     loadTabContent(targetId) {
-        if (targetId === '#pane-ops-summary') this.loadOperationsSummary();
-        if (targetId === '#pane-daily-ops') this.loadDailyOperations();
+        if (targetId === '#pane-ops-summary') {
+            this.loadOperationsSummary();
+            // Load the monthly/annual tables when showing the summary pane
+            this.loadMonthlyOperations();
+            this.loadAnnualOperations();
+        }
+        if (targetId === '#pane-daily-ops') {
+            // Daily operations only
+            this.loadDailyOperations();
+        }
         if (targetId === '#pane-itinerary') this.loadItinerary();
         if (targetId === '#pane-wildlife') this.loadWildlife();
         if (targetId === '#pane-medical') this.loadMedical();
@@ -273,6 +315,71 @@ class DataManagement {
         }
     }
 
+    async loadMonthlyOperations() {
+        try {
+            const year = (document.getElementById('monthly-ops-year') || {}).value || '';
+            const data = await window.dataManager.getMonthlyOperations(year || undefined);
+            // Render using generic renderer
+            this.renderTable('table-monthly-ops', data, ['year','month','comercial_ops','comercial_pax','general_ops','general_pax','carga_ops','carga_tons'], 'monthly_operations');
+            // Populate year select with available years
+            const years = Array.from(new Set((data || []).map(r => String(r.year)))).sort((a,b) => Number(b)-Number(a));
+            const yearSel = document.getElementById('monthly-ops-year');
+            if (yearSel) {
+                const current = yearSel.value;
+                yearSel.innerHTML = '';
+                const optAll = document.createElement('option'); optAll.value = ''; optAll.innerText = 'Todos'; yearSel.appendChild(optAll);
+                years.forEach(y => {
+                    const o = document.createElement('option'); o.value = y; o.innerText = y; yearSel.appendChild(o);
+                });
+                if (current) yearSel.value = current;
+            }
+        } catch (err) {
+            console.error('Error loading monthly operations:', err);
+        }
+    }
+
+    async loadAnnualOperations() {
+        try {
+            // Prefer stored annual aggregates but also include aggregated monthly years
+            const [monthly, annualRows] = await Promise.all([
+                window.dataManager.getMonthlyOperations(),
+                window.dataManager.getAnnualOperations()
+            ]);
+
+            const byYear = {};
+            // Start from monthly aggregation (works if annual table missing years)
+            (monthly || []).forEach(row => {
+                const y = String(row.year || '');
+                if (!byYear[y]) byYear[y] = { year: y, comercial_ops_total: 0, comercial_pax_total: 0, general_ops_total: 0, general_pax_total: 0, carga_ops_total: 0, carga_tons_total: 0 };
+                byYear[y].comercial_ops_total += Number(row.comercial_ops) || 0;
+                byYear[y].comercial_pax_total += Number(row.comercial_pax) || 0;
+                byYear[y].general_ops_total += Number(row.general_ops) || 0;
+                byYear[y].general_pax_total += Number(row.general_pax) || 0;
+                byYear[y].carga_ops_total += Number(row.carga_ops) || 0;
+                byYear[y].carga_tons_total += Number(row.carga_tons) || 0;
+            });
+
+            // Merge/override with explicit annual rows if present (these may be authoritative)
+            (annualRows || []).forEach(r => {
+                const y = String(r.year || '');
+                byYear[y] = {
+                    year: y,
+                    comercial_ops_total: Number(r.comercial_ops_total) || 0,
+                    comercial_pax_total: Number(r.comercial_pax_total) || 0,
+                    general_ops_total: Number(r.general_ops_total) || 0,
+                    general_pax_total: Number(r.general_pax_total) || 0,
+                    carga_ops_total: Number(r.carga_ops_total) || 0,
+                    carga_tons_total: Number(r.carga_tons_total) || 0
+                };
+            });
+
+            const annualData = Object.values(byYear).sort((a,b) => Number(b.year) - Number(a.year));
+            this.renderTable('table-annual-ops', annualData, ['year','comercial_ops_total','comercial_pax_total','general_ops_total','general_pax_total','carga_ops_total','carga_tons_total'], 'annual_operations');
+        } catch (err) {
+            console.error('Error loading annual operations:', err);
+        }
+    }
+
     async loadWildlife() {
         try {
             const data = await window.dataManager.getWildlifeIncidents();
@@ -324,16 +431,70 @@ class DataManagement {
             columns.forEach(col => {
                 const td = document.createElement('td');
                 const raw = item[col];
+
+                // Alignment: center for year/month, right for numeric, left otherwise
+                if (col === 'year' || col === 'month') {
+                    td.classList.add('text-center');
+                } else if (raw != null && raw !== '' && Number.isFinite(Number(raw))) {
+                    td.classList.add('text-end');
+                }
+
+                // If column is month, try to show the label (01 -> Enero) using schema options when available
+                if (col === 'month') {
+                    let display = raw == null ? '' : String(raw);
+                    try {
+                        const schema = this.schemas[tableName] || [];
+                        const fld = schema.find(f => f.name === 'month');
+                        if (fld && fld.options) {
+                            const opt = fld.options.find(o => o.value === display || o.value === String(Number(display)).padStart(2,'0'));
+                            if (opt) display = opt.label || opt.value;
+                        } else {
+                            // Fallback: map numeric month '01'..'12' to Spanish names
+                            const map = { '01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Septiembre','10':'Octubre','11':'Noviembre','12':'Diciembre' };
+                            if (map[display]) display = map[display];
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
+                    td.textContent = display;
+                }
                 // Format any date-like column (name contains 'date' or is exactly 'date')
-                if (col && String(col).toLowerCase().includes('date')) {
+                else if (col && String(col).toLowerCase().includes('date')) {
                     td.textContent = this.formatDisplayDate(raw);
+                } else if (col === 'year') {
+                    // Do not apply thousands separator to year values
+                    td.textContent = raw == null ? '' : String(raw);
+                }
+                // Operations summary: show aviation type icon in category column
+                else if (tableName === 'operations_summary' && col === 'category') {
+                    const v = raw == null ? '' : String(raw);
+                    let icon = '<i class="fas fa-plane text-primary" aria-hidden="true"></i>';
+                    // Normalize
+                    const lv = v.toLowerCase();
+                    if (lv.includes('carga')) icon = '<i class="fas fa-boxes text-warning" aria-hidden="true"></i>';
+                    else if (lv.includes('general') || lv.includes('operacion') || lv.includes('operaciones')) icon = '<i class="fas fa-helicopter text-success" aria-hidden="true"></i>';
+                    else icon = '<i class="fas fa-plane text-primary" aria-hidden="true"></i>';
+                    td.innerHTML = `${icon} <span class="ms-1">${v}</span>`;
                 } else if (raw != null && raw !== '' && Number.isFinite(Number(raw))) {
                     td.textContent = this.formatNumber(raw, col);
                 } else {
                     td.textContent = raw == null ? '' : raw;
                 }
+
                 tr.appendChild(td);
             });
+
+            // Apply row color based on category (operations_summary)
+            try {
+                if (tableName === 'operations_summary') {
+                    const catVal = String((item.category || '')).toLowerCase();
+                    if (catVal.includes('carga')) tr.classList.add('table-warning');
+                    else if (catVal.includes('general') || catVal.includes('operacion')) tr.classList.add('table-success');
+                    else tr.classList.add('table-primary');
+                }
+            } catch (e) {
+                // ignore
+            }
 
             // Actions column
             const tdActions = document.createElement('td');

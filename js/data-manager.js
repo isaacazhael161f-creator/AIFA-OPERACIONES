@@ -102,6 +102,23 @@ class DataManager {
         if (error) throw error;
         return data;
     }
+
+    // --- Monthly / Annual Operations ---
+    async getMonthlyOperations(year) {
+        let query = this.client.from('monthly_operations').select('*').order('year', { ascending: false }).order('month', { ascending: false });
+        if (year) query = query.eq('year', year);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data;
+    }
+
+    async getAnnualOperations(year) {
+        let query = this.client.from('annual_operations').select('*').order('year', { ascending: false });
+        if (year) query = query.eq('year', year);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data;
+    }
     
     // Generic update
     async updateTable(table, id, updates) {

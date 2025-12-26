@@ -132,11 +132,30 @@ class AdminUI {
                 input.type = 'date';
                 input.className = 'form-control';
             } else if (field.type === 'number') {
+                // Use text input to allow formatted display (commas) while typing
                 input = document.createElement('input');
-                input.type = 'number';
-                input.className = 'form-control';
-                if (field.step) input.step = field.step;
+                input.type = 'text';
+                input.className = 'form-control format-number';
+                if (field.step) input.dataset.step = field.step;
                 input.placeholder = field.placeholder || '0';
+                // Add formatting listener to show thousands separators as user types
+                input.addEventListener('input', (e) => {
+                    const el = e.target;
+                    const raw = el.value;
+                    const caret = el.selectionStart || 0;
+                    const clean = AdminUI.unformatNumberString(raw);
+                    if (clean === '') {
+                        el.value = '';
+                        return;
+                    }
+                    const hasDecimal = clean.indexOf('.') >= 0;
+                    // Format integer part with thousands separators
+                    let parts = clean.split('.');
+                    parts[0] = Number(parts[0]).toLocaleString('en-US');
+                    el.value = hasDecimal ? parts.join('.') : parts[0];
+                    // Try to restore caret near the end (simple strategy)
+                    try { el.setSelectionRange(el.value.length, el.value.length); } catch (err) {}
+                });
             } else {
                 input = document.createElement('input');
                 input.type = field.type || 'text';
@@ -145,7 +164,20 @@ class AdminUI {
             }
 
             if (record && field.type !== 'select') {
-                input.value = record[field.name] || '';
+                const rawVal = record[field.name] == null ? '' : record[field.name];
+                if (field.type === 'number' && rawVal !== '') {
+                    // Format existing numeric value for display
+                    try {
+                        const n = Number(rawVal);
+                        // Respect decimal step if provided
+                        const decimals = (field.step && field.step.indexOf('.') >= 0) ? field.step.split('.')[1].length : 0;
+                        input.value = Number.isFinite(n) ? n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) : String(rawVal);
+                    } catch (e) {
+                        input.value = String(rawVal);
+                    }
+                } else {
+                    input.value = rawVal || '';
+                }
             }
             input.name = field.name;
             if (field.readonly && record) input.disabled = true;
@@ -186,8 +218,14 @@ class AdminUI {
         
         this.currentSchema.forEach(field => {
             if (!field.readonly || !this.currentRecord) { // Include readonly fields if it's a new record (unless auto-generated)
-                 // Handle different input types if needed
-                 updates[field.name] = formData.get(field.name);
+                 let val = formData.get(field.name);
+                 // If the field is numeric, unformat and convert to number (or null if empty)
+                 if (field.type === 'number') {
+                     const clean = AdminUI.unformatNumberString(val || '');
+                     if (clean === '' || clean === null) val = null;
+                     else val = (clean.indexOf('.') >= 0) ? Number(clean) : Number(clean);
+                 }
+                 updates[field.name] = val;
             }
         });
 
@@ -236,5 +274,16 @@ class AdminUI {
         return btn;
     }
 }
+
+// Utility: remove thousands separators and leave a clean numeric string
+AdminUI.unformatNumberString = function(s) {
+    if (s == null) return '';
+    // Remove all non-digit, non-dot, non-minus characters
+    const cleaned = String(s).replace(/[^0-9.\-]/g, '');
+    // If multiple dots, keep first and remove others
+    const parts = cleaned.split('.');
+    if (parts.length <= 1) return parts[0] === '' ? '' : parts[0];
+    return parts.shift() + '.' + parts.join('');
+};
 
 window.adminUI = new AdminUI();

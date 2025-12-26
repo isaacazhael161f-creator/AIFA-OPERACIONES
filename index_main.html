@@ -15,6 +15,8 @@
     <link rel="icon" type="image/png" sizes="192x192" href="images/icons/aifa-app-icon-192.png?v=20251126">
     <link rel="icon" type="image/png" sizes="512x512" href="images/icons/aifa-app-icon-512.png?v=20251126">
     <link rel="apple-touch-icon" sizes="180x180" href="images/icons/aifa-app-icon-512.png?v=20251126">
+    <!-- Standard apple-touch-icon at site root for compatibility with tools/validators -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="manifest" href="manifest.webmanifest?v=20251126">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-client.js"></script>
@@ -194,65 +196,13 @@
                                                     <th>Categoría</th>
                                                     <th>Métrica</th>
                                                     <th>Valor</th>
+                                                    <th>Acciones</th>
                                                 </tr>
                                             </thead>
                                             <tbody></tbody>
                                         </table>
                                     </div>
-
-                                    <!-- Base Mensual -->
-                                    <div class="mb-3">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <h5 class="mb-0">Base Mensual</h5>
-                                            <div class="d-flex gap-2">
-                                                <select id="monthly-ops-year" class="form-select form-select-sm" style="width:120px;" aria-label="Seleccionar año (base mensual)"></select>
-                                                <button class="btn btn-primary btn-sm" id="monthly-ops-add">Agregar Mes</button>
-                                            </div>
-                                        </div>
-                                        <div class="table-responsive">
-                                            <table class="table table-sm table-striped" id="table-monthly-ops">
-                                                <thead class="table-light">
-                                                    <tr>
-                                                        <th class="text-center">Año</th>
-                                                        <th class="text-center">Mes</th>
-                                                        <th class="text-end">Comercial Ops</th>
-                                                        <th class="text-end">Comercial Pax</th>
-                                                        <th class="text-end">General Ops</th>
-                                                        <th class="text-end">General Pax</th>
-                                                        <th class="text-end">Carga Ops</th>
-                                                        <th class="text-end">Toneladas</th>
-                                                        <th></th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody></tbody>
-                                            </table>
-                                        </div>
-
-                                        <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
-                                            <h5 class="mb-0">Base Anual (calculada)</h5>
-                                            <button class="btn btn-outline-secondary btn-sm" id="annual-ops-refresh">Recalcular</button>
-                                        </div>
-                                        <div class="table-responsive">
-                                            <table class="table table-sm table-striped" id="table-annual-ops">
-                                                <thead class="table-light">
-                                                    <tr>
-                                                        <th class="text-center">Año</th>
-                                                        <th class="text-end">Comercial Ops</th>
-                                                        <th class="text-end">Comercial Pax</th>
-                                                        <th class="text-end">General Ops</th>
-                                                        <th class="text-end">General Pax</th>
-                                                        <th class="text-end">Carga Ops</th>
-                                                        <th class="text-end">Toneladas</th>
-                                                        <th></th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody></tbody>
-                                            </table>
-                                        </div>
-                                    </div>
                                 </div>
-
-                                
 
                                 <!-- Daily Operations Pane -->
                                 <div class="tab-pane fade" id="pane-daily-ops" role="tabpanel">
@@ -268,16 +218,15 @@
                                             <thead>
                                                 <tr>
                                                     <th>Fecha</th>
-                                                    <th><span class="text-primary"><i class="fas fa-plane"></i></span> Comercial (Ops/Pax)</th>
-                                                    <th><span class="text-success"><i class="fas fa-helicopter"></i></span> General (Ops/Pax)</th>
-                                                    <th><span class="text-warning"><i class="fas fa-boxes"></i></span> Carga (Ops/Ton)</th>
+                                                    <th>Comercial (Ops/Pax)</th>
+                                                    <th>General (Ops/Pax)</th>
+                                                    <th>Carga (Ops/Ton)</th>
                                                     <th>Acciones</th>
                                                 </tr>
                                             </thead>
                                             <tbody></tbody>
                                         </table>
                                     </div>
-                                </div>
                                 </div>
 
                                 <!-- Itinerary Pane -->
@@ -499,19 +448,19 @@
                                                     </div>
                                                     <div class="chip">
                                                         <label for="position-filter"><i class="fas fa-map-pin me-1"></i>Posición</label>
-                                                        <select id="position-filter" class="form-select" aria-label="Filtrar por posición">
+                                                        <select id="position-filter" class="form-select">
                                                             <option value="all" selected>Todas las posiciones</option>
                                                         </select>
                                                     </div>
                                                     <div class="chip">
                                                         <label for="origin-filter"><i class="fas fa-plane-arrival me-1"></i>Origen</label>
-                                                        <select id="origin-filter" class="form-select" aria-label="Filtrar por origen">
+                                                        <select id="origin-filter" class="form-select">
                                                             <option value="all" selected>Todos los orígenes</option>
                                                         </select>
                                                     </div>
                                                     <div class="chip">
                                                         <label for="destination-filter"><i class="fas fa-plane-departure me-1"></i>Destino</label>
-                                                        <select id="destination-filter" class="form-select" aria-label="Filtrar por destino">
+                                                        <select id="destination-filter" class="form-select">
                                                             <option value="all" selected>Todos los destinos</option>
                                                         </select>
                                                     </div>
@@ -525,7 +474,7 @@
                                                     </div>
                                                     <div class="chip">
                                                         <label for="hour-filter"><i class="fas fa-clock me-1"></i>Hora</label>
-                                                        <select id="hour-filter" class="form-select" aria-label="Filtrar por hora">
+                                                        <select id="hour-filter" class="form-select">
                                                             <option value="all" selected>Todas</option>
                                                             <option value="00">00</option>
                                                             <option value="01">01</option>
@@ -555,7 +504,7 @@
                                                     </div>
                                                     <div class="chip">
                                                         <label for="hour-type-filter"><i class="fas fa-exchange-alt me-1"></i>Tipo de hora</label>
-                                                        <select id="hour-type-filter" class="form-select" aria-label="Filtrar por tipo de hora">
+                                                        <select id="hour-type-filter" class="form-select">
                                                             <option value="both" selected>Ambas</option>
                                                             <option value="arr">Llegada</option>
                                                             <option value="dep">Salida</option>
@@ -569,7 +518,7 @@
                                             <div class="itinerary-airline-toolbar">
                                                 <div class="itinerary-airline-picker">
                                                     <label for="airline-filter" class="airline-picker-label"><i class="fas fa-plane me-1"></i>Aerolínea</label>
-                                                    <select id="airline-filter" class="form-select" aria-label="Filtrar por aerolínea">
+                                                    <select id="airline-filter" class="form-select">
                                                         <option value="all" selected>Todas las Aerolíneas</option>
                                                     </select>
                                                 </div>
@@ -638,7 +587,7 @@
                                                                     </div>
                                                                     <div class="top-hours-controls">
                                                                         <label for="pax-topN" class="top-hours-label text-muted mb-0">Mostrar</label>
-                                                                        <select id="pax-topN" class="form-select form-select-sm top-hours-select" aria-label="Seleccionar top N pasajeros">
+                                                                        <select id="pax-topN" class="form-select form-select-sm top-hours-select">
                                                                             <option value="3">Top 3</option>
                                                                             <option value="5" selected>Top 5</option>
                                                                             <option value="10">Top 10</option>
@@ -695,7 +644,7 @@
                                                                     </div>
                                                                     <div class="top-hours-controls">
                                                                         <label for="cargo-topN" class="top-hours-label text-muted mb-0">Mostrar</label>
-                                                                        <select id="cargo-topN" class="form-select form-select-sm top-hours-select" aria-label="Seleccionar top N carga">
+                                                                        <select id="cargo-topN" class="form-select form-select-sm top-hours-select">
                                                                             <option value="3">Top 3</option>
                                                                             <option value="5" selected>Top 5</option>
                                                                             <option value="10">Top 10</option>
@@ -888,6 +837,69 @@
                             </ul>
                             <div class="tab-content pt-3" id="operationsTabContent">
                                 <div class="tab-pane fade show active" id="resumen1-pane">
+                                    <div id="ops-entry-panel" class="card border-primary-subtle mb-4 d-none">
+                                        <div class="card-body">
+                                            <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+                                                <div>
+                                                    <h5 class="mb-1 d-flex align-items-center gap-2">
+                                                        <i class="fas fa-user-pen text-primary"></i>
+                                                        <span>Captura rápida del parte de operaciones</span>
+                                                    </h5>
+                                                    <p class="small text-muted mb-0">Solo Isaac López puede registrar llegadas y salidas manuales para complementar el resumen diario.</p>
+                                                </div>
+                                                <div class="text-lg-end">
+                                                    <span class="small text-muted d-block">Usuario activo</span>
+                                                    <span class="badge bg-primary-subtle text-primary" id="ops-entry-active-user">-</span>
+                                                </div>
+                                            </div>
+                                            <hr class="my-3">
+                                            <form id="ops-entry-form" class="ops-entry-form">
+                                                <div class="row g-3 align-items-end">
+                                                    <div class="col-12 col-md-4">
+                                                        <label for="ops-entry-date" class="form-label">Fecha del parte</label>
+                                                        <input type="date" class="form-control" id="ops-entry-date" required>
+                                                    </div>
+                                                    <div class="col-12 col-md-8 text-md-end d-flex flex-wrap justify-content-md-end gap-2">
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="ops-entry-sync-summary"><i class="fas fa-link me-1"></i>Usar fecha del resumen</button>
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="ops-entry-today"><i class="fas fa-calendar-day me-1"></i>Hoy</button>
+                                                        <button type="button" class="btn btn-outline-danger btn-sm" id="ops-entry-clear-day"><i class="fas fa-trash me-1"></i>Eliminar captura</button>
+                                                    </div>
+                                                </div>
+                                                <div class="table-responsive mt-3">
+                                                    <table class="table table-sm align-middle mb-0" id="ops-entry-table">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th scope="col">Tipo de operación</th>
+                                                                <th scope="col" class="text-center">Llegadas</th>
+                                                                <th scope="col" class="text-center">Salidas</th>
+                                                                <th scope="col" class="text-center">Subtotal</th>
+                                                                <th scope="col" class="text-center w-48px"></th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody></tbody>
+                                                    </table>
+                                                </div>
+                                                <datalist id="ops-entry-type-suggestions">
+                                                    <option value="Aviación de pasajeros"></option>
+                                                    <option value="Aviación de carga"></option>
+                                                    <option value="Aviación general"></option>
+                                                    <option value="Militar"></option>
+                                                    <option value="Ambulancia aérea"></option>
+                                                    <option value="Servicios complementarios"></option>
+                                                </datalist>
+                                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+                                                    <div class="d-flex flex-wrap gap-2">
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="ops-entry-add-row"><i class="fas fa-plus me-1"></i>Agregar fila</button>
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="ops-entry-reset-table"><i class="fas fa-broom me-1"></i>Vaciar tabla</button>
+                                                    </div>
+                                                    <div class="d-flex flex-wrap gap-2">
+                                                        <button type="button" class="btn btn-primary btn-sm" id="ops-entry-save"><i class="fas fa-save me-1"></i>Guardar y aplicar</button>
+                                                    </div>
+                                                </div>
+                                                <p id="ops-entry-feedback" class="small text-muted mt-2 mb-0" role="status"></p>
+                                            </form>
+                                        </div>
+                                    </div>
                                     <div class="alert alert-info d-flex align-items-center gap-2 ops-calendar-hint" role="note">
                                         <i class="fas fa-calendar-day" aria-hidden="true"></i>
                                         <span class="small mb-0">Elige cualquier día del 2025 con los controles o el calendario para consultar su parte operativo.</span>
@@ -1009,7 +1021,7 @@
                                                 </div>
                                                 <div class="chip">
                                                     <label class="me-1" for="fauna-month"><i class="fas fa-calendar me-1"></i>Mes</label>
-                                                    <select id="fauna-month" class="form-select form-select-sm" aria-label="Filtrar fauna por mes">
+                                                    <select id="fauna-month" class="form-select form-select-sm">
                                                         <option value="all" selected>Todos</option>
                                                         <option value="01">Enero</option>
                                                         <option value="02">Febrero</option>
@@ -1027,19 +1039,19 @@
                                                 </div>
                                                 <div class="chip">
                                                     <label class="me-1" for="fauna-species"><i class="fas fa-paw me-1"></i>Especie</label>
-                                                    <select id="fauna-species" class="form-select form-select-sm" aria-label="Filtrar fauna por especie"><option value="all" selected>Todas</option></select>
+                                                    <select id="fauna-species" class="form-select form-select-sm"><option value="all" selected>Todas</option></select>
                                                 </div>
                                                 <div class="chip">
                                                     <label class="me-1" for="fauna-size"><i class="fas fa-arrows-to-dot me-1"></i>Tamaño</label>
-                                                    <select id="fauna-size" class="form-select form-select-sm" aria-label="Filtrar fauna por tamaño"><option value="all" selected>Todos</option></select>
+                                                    <select id="fauna-size" class="form-select form-select-sm"><option value="all" selected>Todos</option></select>
                                                 </div>
                                                 <div class="chip">
                                                     <label class="me-1" for="fauna-phase"><i class="fas fa-plane-departure me-1"></i>Fase</label>
-                                                    <select id="fauna-phase" class="form-select form-select-sm" aria-label="Filtrar fauna por fase"><option value="all" selected>Todas</option></select>
+                                                    <select id="fauna-phase" class="form-select form-select-sm"><option value="all" selected>Todas</option></select>
                                                 </div>
                                                     <div class="chip">
                                                         <label class="me-1" for="fauna-airline"><i class="fas fa-plane me-1"></i>Aerolínea</label>
-                                                        <select id="fauna-airline" class="form-select form-select-sm" aria-label="Filtrar fauna por aerolínea"><option value="all" selected>Todas</option></select>
+                                                        <select id="fauna-airline" class="form-select form-select-sm"><option value="all" selected>Todas</option></select>
                                                     </div>
                                                 <div class="chip chip-actions">
                                                     <label class="me-1"><i class="fas fa-broom me-1"></i>Acciones</label>
@@ -1124,31 +1136,31 @@
                                                 </div>
                                                 <div class="chip">
                                                     <label class="me-1" for="fauna-rescate-month"><i class="fas fa-calendar-alt me-1"></i>Mes</label>
-                                                    <select id="fauna-rescate-month" class="form-select form-select-sm" aria-label="Filtrar rescates por mes">
+                                                    <select id="fauna-rescate-month" class="form-select form-select-sm">
                                                         <option value="all" selected>Todos</option>
                                                     </select>
                                                 </div>
                                                 <div class="chip">
                                                     <label class="me-1" for="fauna-rescate-class"><i class="fas fa-paw me-1"></i>Clase</label>
-                                                    <select id="fauna-rescate-class" class="form-select form-select-sm" aria-label="Filtrar rescates por clase">
+                                                    <select id="fauna-rescate-class" class="form-select form-select-sm">
                                                         <option value="all" selected>Todas</option>
                                                     </select>
                                                 </div>
                                                 <div class="chip">
                                                     <label class="me-1" for="fauna-rescate-method"><i class="fas fa-tools me-1"></i>Método</label>
-                                                    <select id="fauna-rescate-method" class="form-select form-select-sm" aria-label="Filtrar rescates por método">
+                                                    <select id="fauna-rescate-method" class="form-select form-select-sm">
                                                         <option value="all" selected>Todos</option>
                                                     </select>
                                                 </div>
                                                 <div class="chip">
                                                     <label class="me-1" for="fauna-rescate-quadrant"><i class="fas fa-route me-1"></i>Cuadrante</label>
-                                                    <select id="fauna-rescate-quadrant" class="form-select form-select-sm" aria-label="Filtrar rescates por cuadrante">
+                                                    <select id="fauna-rescate-quadrant" class="form-select form-select-sm">
                                                         <option value="all" selected>Todos</option>
                                                     </select>
                                                 </div>
                                                 <div class="chip">
                                                     <label class="me-1" for="fauna-rescate-disposal"><i class="fas fa-warehouse me-1"></i>Disposición</label>
-                                                    <select id="fauna-rescate-disposal" class="form-select form-select-sm" aria-label="Filtrar rescates por disposición">
+                                                    <select id="fauna-rescate-disposal" class="form-select form-select-sm">
                                                         <option value="all" selected>Todas</option>
                                                     </select>
                                                 </div>
@@ -1499,7 +1511,7 @@
                                                     </div>
                                                     <div id="weekly-day-filter" class="d-none d-flex align-items-center gap-2">
                                                         <label for="weekly-day-select" class="small text-muted fw-semibold mb-0">Día</label>
-                                                            <select id="weekly-day-select" class="form-select form-select-sm" aria-label="Seleccionar día de la semana"></select>
+                                                        <select id="weekly-day-select" class="form-select form-select-sm"></select>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1632,25 +1644,25 @@
                                                         </div>
                                                         <div class="mb-3">
                                                             <label for="ag-metric-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-chart-column me-1"></i>Indicador</label>
-                                                            <select id="ag-metric-select" class="form-select form-select-sm" aria-label="Seleccionar métrica (agregados)">
+                                                            <select id="ag-metric-select" class="form-select form-select-sm">
                                                                 <option value="operaciones" selected>Operaciones</option>
                                                                 <option value="pasajeros">Pasajeros</option>
                                                             </select>
                                                         </div>
                                                         <div class="mb-3">
                                                             <label for="ag-view-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-layer-group me-1"></i>Detalle</label>
-                                                            <select id="ag-view-select" class="form-select form-select-sm" aria-label="Seleccionar vista (agregados)">
+                                                            <select id="ag-view-select" class="form-select form-select-sm">
                                                                 <option value="anual" selected>Vista anual</option>
                                                                 <option value="mensual">Detalle mensual</option>
                                                             </select>
                                                         </div>
                                                         <div class="mb-3 d-none" id="ag-year-group">
                                                             <label for="ag-year-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-calendar me-1"></i>Año base</label>
-                                                            <select id="ag-year-select" class="form-select form-select-sm" aria-label="Seleccionar año (agregados)"></select>
+                                                            <select id="ag-year-select" class="form-select form-select-sm"></select>
                                                         </div>
                                                         <div class="mb-0 d-none" id="ag-comparison-group">
                                                             <label for="ag-comparison-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-balance-scale me-1"></i>Comparar con</label>
-                                                            <select id="ag-comparison-select" class="form-select form-select-sm" aria-label="Seleccionar comparación (agregados)"></select>
+                                                            <select id="ag-comparison-select" class="form-select form-select-sm"></select>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1734,25 +1746,25 @@
                                                         </div>
                                                         <div class="mb-3">
                                                             <label for="gen-metric-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-chart-column me-1"></i>Indicador</label>
-                                                            <select id="gen-metric-select" class="form-select form-select-sm" aria-label="Seleccionar métrica (general)">
+                                                            <select id="gen-metric-select" class="form-select form-select-sm">
                                                                 <option value="operaciones" selected>Operaciones</option>
                                                                 <option value="pasajeros">Pasajeros</option>
                                                             </select>
                                                         </div>
                                                         <div class="mb-3">
                                                             <label for="gen-view-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-layer-group me-1"></i>Detalle</label>
-                                                            <select id="gen-view-select" class="form-select form-select-sm" aria-label="Seleccionar vista (general)">
+                                                            <select id="gen-view-select" class="form-select form-select-sm">
                                                                 <option value="anual" selected>Vista anual</option>
                                                                 <option value="mensual">Detalle mensual</option>
                                                             </select>
                                                         </div>
                                                         <div class="mb-3 d-none" id="gen-year-group">
                                                             <label for="gen-year-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-calendar me-1"></i>Año base</label>
-                                                            <select id="gen-year-select" class="form-select form-select-sm" aria-label="Seleccionar año (general)"></select>
+                                                            <select id="gen-year-select" class="form-select form-select-sm"></select>
                                                         </div>
                                                         <div class="mb-0 d-none" id="gen-comparison-group">
                                                             <label for="gen-comparison-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-balance-scale me-1"></i>Comparar con</label>
-                                                            <select id="gen-comparison-select" class="form-select form-select-sm" aria-label="Seleccionar comparación (general)"></select>
+                                                            <select id="gen-comparison-select" class="form-select form-select-sm"></select>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1836,25 +1848,25 @@
                                                         </div>
                                                         <div class="mb-3">
                                                             <label for="cargo-metric-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-chart-column me-1"></i>Indicador</label>
-                                                            <select id="cargo-metric-select" class="form-select form-select-sm" aria-label="Seleccionar métrica (carga)">
+                                                            <select id="cargo-metric-select" class="form-select form-select-sm">
                                                                 <option value="operaciones" selected>Operaciones</option>
                                                                 <option value="tons_transportadas">Toneladas transportadas</option>
                                                             </select>
                                                         </div>
                                                         <div class="mb-3">
                                                             <label for="cargo-view-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-layer-group me-1"></i>Detalle</label>
-                                                            <select id="cargo-view-select" class="form-select form-select-sm" aria-label="Seleccionar vista (carga)">
+                                                            <select id="cargo-view-select" class="form-select form-select-sm">
                                                                 <option value="anual" selected>Vista anual</option>
                                                                 <option value="mensual">Detalle mensual</option>
                                                             </select>
                                                         </div>
                                                         <div class="mb-3 d-none" id="cargo-year-group">
                                                             <label for="cargo-year-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-calendar me-1"></i>Año base</label>
-                                                            <select id="cargo-year-select" class="form-select form-select-sm" aria-label="Seleccionar año (carga)"></select>
+                                                            <select id="cargo-year-select" class="form-select form-select-sm"></select>
                                                         </div>
                                                         <div class="mb-0 d-none" id="cargo-comparison-group">
                                                             <label for="cargo-comparison-select" class="form-label text-uppercase small fw-semibold"><i class="fas fa-balance-scale me-1"></i>Comparar con</label>
-                                                            <select id="cargo-comparison-select" class="form-select form-select-sm" aria-label="Seleccionar comparación (carga)"></select>
+                                                            <select id="cargo-comparison-select" class="form-select form-select-sm"></select>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -2051,15 +2063,15 @@
                                                     <div class="row g-3 align-items-end">
                                                         <div class="col-12 col-lg-3">
                                                             <label for="frecuencias-airline-filter" class="form-label small text-uppercase text-muted">Filtrar por aerolínea</label>
-                                                            <select id="frecuencias-airline-filter" class="form-select form-select-sm" aria-label="Filtrar frecuencias por aerolínea"></select>
+                                                            <select id="frecuencias-airline-filter" class="form-select form-select-sm"></select>
                                                         </div>
                                                         <div class="col-12 col-lg-3">
                                                             <label for="frecuencias-destination-filter" class="form-label small text-uppercase text-muted">Filtrar por destino</label>
-                                                            <select id="frecuencias-destination-filter" class="form-select form-select-sm" aria-label="Filtrar frecuencias por destino"></select>
+                                                            <select id="frecuencias-destination-filter" class="form-select form-select-sm"></select>
                                                         </div>
                                                         <div class="col-12 col-lg-3">
                                                             <label for="frecuencias-day-filter" class="form-label small text-uppercase text-muted">Día con operación</label>
-                                                            <select id="frecuencias-day-filter" class="form-select form-select-sm" aria-label="Filtrar frecuencias por día"></select>
+                                                            <select id="frecuencias-day-filter" class="form-select form-select-sm"></select>
                                                         </div>
                                                         <div class="col-12 col-lg-3">
                                                             <label for="frecuencias-search" class="form-label small text-uppercase text-muted">Buscar</label>
@@ -2162,7 +2174,7 @@
                                             <label for="puntualidad-minflights" class="small text-muted m-0">Mín. vuelos
                                                 <i id="minflights-help" class="fas fa-circle-question ms-1 text-muted" data-bs-toggle="tooltip" data-bs-placement="top" title="Sólo afecta los TOPs: excluye aerolíneas con menos vuelos que este mínimo."></i>
                                             </label>
-                                            <select id="puntualidad-minflights" class="form-select form-select-sm w-auto" aria-label="Seleccionar mínimo vuelos para puntualidad">
+                                            <select id="puntualidad-minflights" class="form-select form-select-sm w-auto">
                                                 <option value="1">1</option>
                                                 <option value="3">3</option>
                                                 <option value="5" selected>5</option>
@@ -2263,7 +2275,7 @@
                                         </div>
                                         <button id="manifest-scan-ocr" class="btn btn-outline-secondary btn-sm"><i class="fas fa-magic me-1"></i>Escaneo alternativo (OCR)</button>
                                         <label for="manifest-ocr-pages" class="visually-hidden">Páginas a escanear</label>
-                                        <select id="manifest-ocr-pages" class="form-select form-select-sm w-auto d-inline-block" aria-label="Seleccionar páginas OCR del manifiesto">
+                                        <select id="manifest-ocr-pages" class="form-select form-select-sm w-auto d-inline-block">
                                             <option value="1">1 pág</option>
                                             <option value="2" selected>2 págs</option>
                                             <option value="3">3 págs</option>
