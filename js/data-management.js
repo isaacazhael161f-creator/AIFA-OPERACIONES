@@ -136,7 +136,7 @@ class DataManagement {
 
     // Formatea números con separadores de miles (ej. 21323 -> 21,323)
     formatNumber(value, colName) {
-        if (value == null || value === '') return '';
+        if (value == null || value === '') value = 0;
         const n = Number(value);
         if (!Number.isFinite(n)) return String(value);
 
