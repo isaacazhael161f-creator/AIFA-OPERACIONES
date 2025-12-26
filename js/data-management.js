@@ -164,7 +164,7 @@ class DataManagement {
         });
 
         // Listen for filter changes
-        document.getElementById('filter-ops-year').addEventListener('change', () => this.loadOperationsSummary());
+        // document.getElementById('filter-ops-year').addEventListener('change', () => this.loadOperationsSummary());
         document.getElementById('filter-daily-ops-date').addEventListener('change', () => this.loadDailyOperations());
         const monthEl = document.getElementById('filter-daily-ops-month');
         if (monthEl) monthEl.addEventListener('change', () => this.loadDailyOperations());
@@ -233,9 +233,9 @@ class DataManagement {
     }
 
     async loadOperationsSummary() {
-        const year = document.getElementById('filter-ops-year').value;
+        // const year = document.getElementById('filter-ops-year').value;
         try {
-            const data = await window.dataManager.getOperationsSummary(year);
+            const data = await window.dataManager.getOperationsSummary();
             this.renderTable('table-ops-summary', data, ['year', 'month', 'category', 'metric', 'value'], 'operations_summary');
         } catch (error) {
             console.error('Error loading operations summary:', error);
@@ -330,14 +330,47 @@ class DataManagement {
 
     async loadMonthlyOperations() {
         try {
-            const year = (document.getElementById('monthly-ops-year') || {}).value || '';
-            const data = await window.dataManager.getMonthlyOperations(year || undefined);
+            // 1. Get current selection
+            const yearSel = document.getElementById('monthly-ops-year');
+            const selectedYear = yearSel ? yearSel.value : '';
+
+            // 2. Fetch ALL data to ensure we have all years for the dropdown
+            const allData = await window.dataManager.getMonthlyOperations();
             
-            // Custom render for monthly operations
+            // 3. Populate year select with available years from ALL data
+            const years = Array.from(new Set((allData || []).map(r => String(r.year)))).sort((a,b) => Number(b)-Number(a));
+            
+            if (yearSel) {
+                // Rebuild options
+                yearSel.innerHTML = '';
+                const optAll = document.createElement('option'); optAll.value = ''; optAll.innerText = 'Todos'; yearSel.appendChild(optAll);
+                
+                years.forEach(y => {
+                    const opt = document.createElement('option');
+                    opt.value = y;
+                    opt.innerText = y;
+                    yearSel.appendChild(opt);
+                });
+                
+                // Restore selection if it still exists in the new list (or if it was empty/Todos)
+                if (selectedYear && years.includes(selectedYear)) {
+                    yearSel.value = selectedYear;
+                } else if (selectedYear === '') {
+                    yearSel.value = '';
+                }
+            }
+
+            // 4. Filter data for display based on selection
+            let displayData = allData;
+            if (selectedYear) {
+                displayData = allData.filter(d => String(d.year) === selectedYear);
+            }
+
+            // 5. Render table
             const tbody = document.querySelector('#table-monthly-ops tbody');
             tbody.innerHTML = '';
 
-            data.forEach(item => {
+            displayData.forEach(item => {
                 const tr = document.createElement('tr');
 
                 // Year
@@ -391,18 +424,6 @@ class DataManagement {
                 tbody.appendChild(tr);
             });
 
-            // Populate year select with available years
-            const years = Array.from(new Set((data || []).map(r => String(r.year)))).sort((a,b) => Number(b)-Number(a));
-            const yearSel = document.getElementById('monthly-ops-year');
-            if (yearSel) {
-                const current = yearSel.value;
-                yearSel.innerHTML = '';
-                const optAll = document.createElement('option'); optAll.value = ''; optAll.innerText = 'Todos'; yearSel.appendChild(optAll);
-                years.forEach(y => {
-                    const o = document.createElement('option'); o.value = y; o.innerText = y; yearSel.appendChild(o);
-                });
-                if (current) yearSel.value = current;
-            }
         } catch (err) {
             console.error('Error loading monthly operations:', err);
         }
