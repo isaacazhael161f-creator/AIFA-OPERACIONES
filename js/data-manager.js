@@ -1,7 +1,10 @@
 class DataManager {
     constructor() {
-        this.client = window.supabaseClient;
         this.isAdmin = false; // Will be set based on auth
+    }
+
+    get client() {
+        return window.supabaseClient;
     }
 
     async checkAuth() {

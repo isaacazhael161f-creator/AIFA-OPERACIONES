@@ -1,5 +1,12 @@
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Initializing Data from Supabase...');
+    // Ensure Supabase client is initialized
+    try {
+        await window.ensureSupabaseClient?.();
+    } catch (err) {
+        console.error('Supabase client failed to initialize:', err);
+        // Let subsequent code handle missing client
+    }
     
     // Wrap renderOperacionesTotales to inject buttons after render
     const originalRender = window.renderOperacionesTotales;
