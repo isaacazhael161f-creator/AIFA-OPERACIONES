@@ -120,6 +120,16 @@ class DataManager {
         return data;
     }
     
+    async upsertAnnualOperation(year, data) {
+        const existing = await this.getAnnualOperations(year);
+        if (existing && existing.length > 0) {
+            const id = existing[0].id;
+            return this.updateTable('annual_operations', id, data);
+        } else {
+            return this.insertTable('annual_operations', { year, ...data });
+        }
+    }
+
     // Generic update
     async updateTable(table, id, updates) {
         const { data, error } = await this.client

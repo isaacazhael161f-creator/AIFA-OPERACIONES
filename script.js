@@ -928,7 +928,7 @@ function resolveCurrentOperationsWeek(referenceDate = new Date()) {
 
 
 // staticData placeholder; real data will be synced from the DB
-const staticData = {
+window.staticData = {
     operacionesTotales: { comercial: [], carga: [], general: [] },
     operacionesSemanasCatalogo: Array.isArray(WEEKLY_OPERATIONS_DATASETS) ? WEEKLY_OPERATIONS_DATASETS.map(deepCloneWeek) : [],
     operacionesSemanaActual: typeof resolveCurrentOperationsWeek === 'function' ? resolveCurrentOperationsWeek() : null,

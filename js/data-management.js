@@ -196,10 +196,22 @@ class DataManagement {
             if (table === 'medical_attentions') this.loadMedical();
             if (table === 'delays') this.loadDelays();
             if (table === 'punctuality') this.loadPunctuality();
+            
+            if (table === 'monthly_operations') {
+                this.loadMonthlyOperations();
+                this.updateAnnualDataAndCharts();
+            }
+            if (table === 'annual_operations') {
+                this.loadAnnualOperations();
+                this.syncChartsData();
+            }
         });
 
         // Initial load if section is active (or just load the first tab)
         // this.loadOperationsSummary();
+        this.loadMonthlyOperations();
+        this.loadAnnualOperations();
+        this.syncChartsData();
     }
 
     loadTabContent(targetId) {
@@ -258,22 +270,23 @@ class DataManagement {
 
                     // Date
                     const tdDate = document.createElement('td');
+                    tdDate.className = 'text-center';
                     tdDate.textContent = this.formatDisplayDate(item.date);
                     tr.appendChild(tdDate);
 
                 // Commercial
                 const tdCom = document.createElement('td');
-                tdCom.innerHTML = `<div class="d-flex align-items-center gap-2"><i class="fas fa-plane text-primary" aria-hidden="true"></i><div>Ops: ${this.formatNumber(item.comercial_ops, 'comercial_ops')}<br><small class="text-muted">Pax: ${this.formatNumber(item.comercial_pax, 'comercial_pax')}</small></div></div>`;
+                tdCom.innerHTML = `<div class="d-flex align-items-center justify-content-center gap-2"><div><span class="text-primary fw-bold">Ops:</span> ${this.formatNumber(item.comercial_ops, 'comercial_ops')}<br><small class="text-muted"><span class="text-primary">Pax:</span> ${this.formatNumber(item.comercial_pax, 'comercial_pax')}</small></div></div>`;
                 tr.appendChild(tdCom);
 
                 // General
                 const tdGen = document.createElement('td');
-                tdGen.innerHTML = `<div class="d-flex align-items-center gap-2"><i class="fas fa-helicopter text-success" aria-hidden="true"></i><div>Ops: ${this.formatNumber(item.general_ops, 'general_ops')}<br><small class="text-muted">Pax: ${this.formatNumber(item.general_pax, 'general_pax')}</small></div></div>`;
+                tdGen.innerHTML = `<div class="d-flex align-items-center justify-content-center gap-2"><div><span class="text-success fw-bold">Ops:</span> ${this.formatNumber(item.general_ops, 'general_ops')}<br><small class="text-muted"><span class="text-success">Pax:</span> ${this.formatNumber(item.general_pax, 'general_pax')}</small></div></div>`;
                 tr.appendChild(tdGen);
 
                 // Cargo
                 const tdCargo = document.createElement('td');
-                tdCargo.innerHTML = `<div class="d-flex align-items-center gap-2"><i class="fas fa-boxes text-warning" aria-hidden="true"></i><div>Ops: ${this.formatNumber(item.carga_ops, 'carga_ops')}<br><small class="text-muted">Ton: ${this.formatNumber(item.carga_tons, 'carga_tons')}</small></div></div>`;
+                tdCargo.innerHTML = `<div class="d-flex align-items-center justify-content-center gap-2"><div><span class="text-warning fw-bold">Ops:</span> ${this.formatNumber(item.carga_ops, 'carga_ops')}<br><small class="text-muted"><span class="text-warning">Ton:</span> ${this.formatNumber(item.carga_tons, 'carga_tons')}</small></div></div>`;
                 tr.appendChild(tdCargo);
 
                 // Actions
@@ -319,8 +332,65 @@ class DataManagement {
         try {
             const year = (document.getElementById('monthly-ops-year') || {}).value || '';
             const data = await window.dataManager.getMonthlyOperations(year || undefined);
-            // Render using generic renderer
-            this.renderTable('table-monthly-ops', data, ['year','month','comercial_ops','comercial_pax','general_ops','general_pax','carga_ops','carga_tons'], 'monthly_operations');
+            
+            // Custom render for monthly operations
+            const tbody = document.querySelector('#table-monthly-ops tbody');
+            tbody.innerHTML = '';
+
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+
+                // Year
+                const tdYear = document.createElement('td');
+                tdYear.className = 'text-center';
+                tdYear.textContent = item.year;
+                tr.appendChild(tdYear);
+
+                // Month
+                const tdMonth = document.createElement('td');
+                tdMonth.className = 'text-center';
+                // Map numeric month to name
+                let displayMonth = item.month;
+                // Ensure two-digit string for mapping
+                const monthKey = String(displayMonth).padStart(2, '0');
+                const map = { '01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Septiembre','10':'Octubre','11':'Noviembre','12':'Diciembre' };
+                if (map[monthKey]) displayMonth = map[monthKey];
+                tdMonth.textContent = displayMonth;
+                tr.appendChild(tdMonth);
+
+                // Comercial
+                const tdCom = document.createElement('td');
+                tdCom.innerHTML = `<div class="d-flex align-items-center justify-content-center gap-2"><div><span class="text-primary fw-bold">Ops:</span> ${this.formatNumber(item.comercial_ops, 'comercial_ops')}<br><small class="text-muted"><span class="text-primary">Pax:</span> ${this.formatNumber(item.comercial_pax, 'comercial_pax')}</small></div></div>`;
+                tr.appendChild(tdCom);
+
+                // General
+                const tdGen = document.createElement('td');
+                tdGen.innerHTML = `<div class="d-flex align-items-center justify-content-center gap-2"><div><span class="text-success fw-bold">Ops:</span> ${this.formatNumber(item.general_ops, 'general_ops')}<br><small class="text-muted"><span class="text-success">Pax:</span> ${this.formatNumber(item.general_pax, 'general_pax')}</small></div></div>`;
+                tr.appendChild(tdGen);
+
+                // Cargo
+                const tdCargo = document.createElement('td');
+                tdCargo.innerHTML = `<div class="d-flex align-items-center justify-content-center gap-2"><div><span class="text-warning fw-bold">Ops:</span> ${this.formatNumber(item.carga_ops, 'carga_ops')}<br><small class="text-muted"><span class="text-warning">Ton:</span> ${this.formatNumber(item.carga_tons, 'carga_tons')}</small></div></div>`;
+                tr.appendChild(tdCargo);
+
+                // Actions
+                const tdActions = document.createElement('td');
+                const btnEdit = document.createElement('button');
+                btnEdit.className = 'btn btn-sm btn-outline-primary me-1';
+                btnEdit.innerHTML = '<i class="fas fa-edit"></i>';
+                btnEdit.onclick = () => this.editItem('monthly_operations', item);
+                tdActions.appendChild(btnEdit);
+
+                const btnDelete = document.createElement('button');
+                btnDelete.className = 'btn btn-sm btn-outline-danger';
+                btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
+                btnDelete.onclick = () => this.deleteItem('monthly_operations', item.id);
+                tdActions.appendChild(btnDelete);
+
+                tr.appendChild(tdActions);
+                tbody.appendChild(tr);
+            });
+
             // Populate year select with available years
             const years = Array.from(new Set((data || []).map(r => String(r.year)))).sort((a,b) => Number(b)-Number(a));
             const yearSel = document.getElementById('monthly-ops-year');
@@ -374,10 +444,57 @@ class DataManagement {
             });
 
             const annualData = Object.values(byYear).sort((a,b) => Number(b.year) - Number(a.year));
-            this.renderTable('table-annual-ops', annualData, ['year','comercial_ops_total','comercial_pax_total','general_ops_total','general_pax_total','carga_ops_total','carga_tons_total'], 'annual_operations');
+            this.renderAnnualTableFromData(annualData);
         } catch (err) {
             console.error('Error loading annual operations:', err);
         }
+    }
+
+    renderAnnualTableFromData(annualData) {
+        const tbody = document.querySelector('#table-annual-ops tbody');
+        tbody.innerHTML = '';
+        
+        annualData.forEach(item => {
+            const tr = document.createElement('tr');
+            
+            // Year
+            const tdYear = document.createElement('td');
+            tdYear.className = 'text-center';
+            tdYear.textContent = item.year;
+            tr.appendChild(tdYear);
+            
+            // Commercial
+            const tdCom = document.createElement('td');
+            tdCom.innerHTML = `<div class="d-flex align-items-center justify-content-center gap-2"><div><span class="text-primary fw-bold">Ops:</span> ${this.formatNumber(item.comercial_ops_total, 'comercial_ops_total')}<br><small class="text-muted"><span class="text-primary">Pax:</span> ${this.formatNumber(item.comercial_pax_total, 'comercial_pax_total')}</small></div></div>`;
+            tr.appendChild(tdCom);
+            
+            // General
+            const tdGen = document.createElement('td');
+            tdGen.innerHTML = `<div class="d-flex align-items-center justify-content-center gap-2"><div><span class="text-success fw-bold">Ops:</span> ${this.formatNumber(item.general_ops_total, 'general_ops_total')}<br><small class="text-muted"><span class="text-success">Pax:</span> ${this.formatNumber(item.general_pax_total, 'general_pax_total')}</small></div></div>`;
+            tr.appendChild(tdGen);
+            
+            // Cargo
+            const tdCargo = document.createElement('td');
+            tdCargo.innerHTML = `<div class="d-flex align-items-center justify-content-center gap-2"><div><span class="text-warning fw-bold">Ops:</span> ${this.formatNumber(item.carga_ops_total, 'carga_ops_total')}<br><small class="text-muted"><span class="text-warning">Ton:</span> ${this.formatNumber(item.carga_tons_total, 'carga_tons_total')}</small></div></div>`;
+            tr.appendChild(tdCargo);
+            
+            // Actions
+            const tdActions = document.createElement('td');
+            const btnEdit = document.createElement('button');
+            btnEdit.className = 'btn btn-sm btn-outline-primary me-1';
+            btnEdit.innerHTML = '<i class="fas fa-edit"></i>';
+            btnEdit.onclick = () => this.editItem('annual_operations', item);
+            tdActions.appendChild(btnEdit);
+
+            const btnDelete = document.createElement('button');
+            btnDelete.className = 'btn btn-sm btn-outline-danger';
+            btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
+            btnDelete.onclick = () => this.deleteItem('annual_operations', item.id);
+            tdActions.appendChild(btnDelete);
+            
+            tr.appendChild(tdActions);
+            tbody.appendChild(tr);
+        });
     }
 
     async loadWildlife() {
@@ -534,6 +651,140 @@ class DataManagement {
 
     deleteItem(tableName, id) {
         window.adminUI.deleteRecord(tableName, id);
+    }
+
+    async updateAnnualDataAndCharts() {
+        try {
+            // 1. Fetch latest monthly data
+            const monthly = await window.dataManager.getMonthlyOperations();
+            
+            // 2. Calculate Annual Data in memory
+            const byYear = {};
+            monthly.forEach(row => {
+                const y = String(row.year || '');
+                if (!byYear[y]) byYear[y] = { 
+                    year: y,
+                    comercial_ops_total: 0, comercial_pax_total: 0, 
+                    general_ops_total: 0, general_pax_total: 0, 
+                    carga_ops_total: 0, carga_tons_total: 0 
+                };
+                byYear[y].comercial_ops_total += Number(row.comercial_ops) || 0;
+                byYear[y].comercial_pax_total += Number(row.comercial_pax) || 0;
+                byYear[y].general_ops_total += Number(row.general_ops) || 0;
+                byYear[y].general_pax_total += Number(row.general_pax) || 0;
+                byYear[y].carga_ops_total += Number(row.carga_ops) || 0;
+                byYear[y].carga_tons_total += Number(row.carga_tons) || 0;
+            });
+            
+            // 3. Update UI (Charts) IMMEDIATELY using in-memory data
+            if (!window.staticData) window.staticData = {};
+            
+            // Map Monthly for Charts
+            const mappedMonthly = {
+                comercial: [], comercialPasajeros: [],
+                carga: [], cargaToneladas: [],
+                general: { operaciones: [], pasajeros: [] }
+            };
+            const getMonthName = (monthCode) => {
+                const map = { '01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Septiembre','10':'Octubre','11':'Noviembre','12':'Diciembre' };
+                const key = String(monthCode).padStart(2, '0');
+                return map[key] || key;
+            };
+            monthly.forEach(m => {
+                const label = getMonthName(m.month);
+                mappedMonthly.comercial.push({ mes: m.month, operaciones: m.comercial_ops, label });
+                mappedMonthly.comercialPasajeros.push({ mes: m.month, pasajeros: m.comercial_pax, label });
+                mappedMonthly.carga.push({ mes: m.month, operaciones: m.carga_ops, label });
+                mappedMonthly.cargaToneladas.push({ mes: m.month, toneladas: m.carga_tons, label });
+                mappedMonthly.general.operaciones.push({ mes: m.month, operaciones: m.general_ops, label });
+                mappedMonthly.general.pasajeros.push({ mes: m.month, pasajeros: m.general_pax, label });
+            });
+            window.staticData.mensual2025 = mappedMonthly;
+
+            // Map Annual for Charts (using calculated byYear)
+            const annualDataList = Object.values(byYear).sort((a,b) => Number(b.year) - Number(a.year));
+            const mappedAnnual = { comercial: [], carga: [], general: [] };
+            annualDataList.forEach(a => {
+                mappedAnnual.comercial.push({ periodo: a.year, operaciones: a.comercial_ops_total, pasajeros: a.comercial_pax_total });
+                mappedAnnual.carga.push({ periodo: a.year, operaciones: a.carga_ops_total, toneladas: a.carga_tons_total });
+                mappedAnnual.general.push({ periodo: a.year, operaciones: a.general_ops_total, pasajeros: a.general_pax_total });
+            });
+            window.staticData.operacionesTotales = mappedAnnual;
+
+            // Render Charts
+            if (typeof window.renderOperacionesTotales === 'function') {
+                window.renderOperacionesTotales();
+            }
+            
+            // 4. Update Annual Table UI (using calculated data directly to be fast)
+            this.renderAnnualTableFromData(annualDataList);
+
+            // 5. Persist to DB (Background)
+            const updatePromises = Object.keys(byYear).map(year => 
+                window.dataManager.upsertAnnualOperation(year, byYear[year])
+            );
+            
+            // Optional: Log when done
+            Promise.all(updatePromises).then(() => {
+                console.log('Annual data synced to DB');
+            }).catch(err => console.error('Error saving annual data:', err));
+
+        } catch (e) {
+            console.error('Error updating charts and annual data:', e);
+        }
+    }
+
+    async syncChartsData() {
+        try {
+            const monthly = await window.dataManager.getMonthlyOperations();
+            const annual = await window.dataManager.getAnnualOperations();
+
+            if (!window.staticData) window.staticData = {};
+            
+            const mappedMonthly = {
+                comercial: [], comercialPasajeros: [],
+                carga: [], cargaToneladas: [],
+                general: { operaciones: [], pasajeros: [] }
+            };
+            
+            const getMonthName = (monthCode) => {
+                const map = { '01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Septiembre','10':'Octubre','11':'Noviembre','12':'Diciembre' };
+                const key = String(monthCode).padStart(2, '0');
+                return map[key] || key;
+            };
+
+            monthly.forEach(m => {
+                const label = getMonthName(m.month);
+                mappedMonthly.comercial.push({ mes: m.month, operaciones: m.comercial_ops, label });
+                mappedMonthly.comercialPasajeros.push({ mes: m.month, pasajeros: m.comercial_pax, label });
+                mappedMonthly.carga.push({ mes: m.month, operaciones: m.carga_ops, label });
+                mappedMonthly.cargaToneladas.push({ mes: m.month, toneladas: m.carga_tons, label });
+                mappedMonthly.general.operaciones.push({ mes: m.month, operaciones: m.general_ops, label });
+                mappedMonthly.general.pasajeros.push({ mes: m.month, pasajeros: m.general_pax, label });
+            });
+            
+            window.staticData.mensual2025 = mappedMonthly;
+            
+            const mappedAnnual = {
+                comercial: [],
+                carga: [],
+                general: []
+            };
+            
+            annual.forEach(a => {
+                mappedAnnual.comercial.push({ periodo: a.year, operaciones: a.comercial_ops_total, pasajeros: a.comercial_pax_total });
+                mappedAnnual.carga.push({ periodo: a.year, operaciones: a.carga_ops_total, toneladas: a.carga_tons_total });
+                mappedAnnual.general.push({ periodo: a.year, operaciones: a.general_ops_total, pasajeros: a.general_pax_total });
+            });
+            
+            window.staticData.operacionesTotales = mappedAnnual;
+            
+            if (typeof window.renderOperacionesTotales === 'function') {
+                window.renderOperacionesTotales();
+            }
+        } catch (e) {
+            console.error('Error syncing charts data:', e);
+        }
     }
 }
 
