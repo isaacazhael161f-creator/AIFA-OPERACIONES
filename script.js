@@ -744,7 +744,37 @@ const WEEKLY_OPERATIONS_DATASETS = [
                 comercial: { operaciones: 162, pasajeros: 24949},
                 general: { operaciones: 7, pasajeros: 21 },
                 carga: { operaciones: 22, toneladas: 636, corteFecha: '2025-12-21', corteNota: 'Cifras del 21 de diciembre de 2025.' }
-            }
+            },
+
+            {
+                fecha: '2025-12-23',
+                label: '23 Dic 2025',
+                comercial: { operaciones: 155, pasajeros: 24454},
+                general: { operaciones: 6, pasajeros: 14 },
+                carga: { operaciones: 22, toneladas: 636, corteFecha: '2025-12-21', corteNota: 'Cifras del 21 de diciembre de 2025.' }
+            },
+{
+                fecha: '2025-12-24',
+                label: '24 Dic 2025',
+                comercial: { operaciones: 132, pasajeros: 17415},
+                general: { operaciones: 0, pasajeros: 0 },
+                carga: { operaciones: 22, toneladas: 636, corteFecha: '2025-12-21', corteNota: 'Cifras del 21 de diciembre de 2025.' }
+            },
+
+
+            {
+                fecha: '2025-12-25',
+                label: '25 Dic 2025',
+                comercial: { operaciones: 148, pasajeros: 18943},
+                general: { operaciones: 5, pasajeros: 18 },
+                carga: { operaciones: 22, toneladas: 636, corteFecha: '2025-12-21', corteNota: 'Cifras del 21 de diciembre de 2025.' }
+            },
+
+
+
+
+
+
 
                   ]
     },
@@ -7791,7 +7821,7 @@ function renderOperacionesTotales() {
                         const ds = chart.data && chart.data.datasets && chart.data.datasets[0];
                         if (!ds) return;
                         const meta = chart.getDatasetMeta(0);
-                        const values = (ds.data||[]).map(v => Number(v)||0);
+                        const values = (ds.data||[]).map(v => Number.isFinite(Number(v)) ? Number(v) : NaN);
                         const points = meta && meta.data ? meta.data : [];
                         const ctx = chart.ctx;
                         const labels = (chart.data && chart.data.labels) || [];
@@ -7821,7 +7851,7 @@ function renderOperacionesTotales() {
 
                         for (let i=0;i<points.length;i++){
                             if (onlyMax && i!==maxIdx) continue;
-                            const v = values[i]; if (!isFinite(v) || v===0) continue;
+                            const v = values[i]; if (!isFinite(v)) continue;
                             const p = points[i]; if (!p) continue;
 
                             // Evitar encimado entre etiquetas en modo "small"
@@ -11469,15 +11499,15 @@ function setupManifestsUI() {
             const rows = loadRecords();
             tableBody.innerHTML = rows.map(r => `
                 <tr>
-                    <td>${r.direction||''}</td>
-                    <td>${(r.carrier3L? (r.carrier3L.toUpperCase()+ ' - ') : '') + (r.airline||r.operatorName||'')}</td>
-                    <td>${r.flight||''}</td>
-                    <td>${r.tail||''}</td>
+                        <td>${r.direction ?? ''}</td>
+                            <td>${(r.carrier3L? (r.carrier3L.toUpperCase()+ ' - ') : '') + (r.airline ?? r.operatorName ?? '')}</td>
+                            <td>${r.flight ?? ''}</td>
+                            <td>${r.tail ?? ''}</td>
                     <td></td>
                     <td></td>
-                    <td>${(r.originCode||'')}/${r.finalDest||''}</td>
-                    <td>${r.pax||''}</td>
-                    <td>${r.cargoKg||''}/${r.mailKg||''}</td>
+                    <td>${(r.originCode ?? '')}/${r.finalDest ?? ''}</td>
+                    <td>${r.pax ?? ''}</td>
+                    <td>${r.cargoKg ?? ''}/${r.mailKg ?? ''}</td>
                     <td>${r.image?'<img src="'+r.image+'" style="height:30px">':''}</td>
                 </tr>`).join('');
         }
@@ -11507,9 +11537,9 @@ function setupManifestsUI() {
             if (!demoraTbody) return;
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><input type="text" class="form-control form-control-sm demora-codigo" value="${data.codigo||''}"></td>
-                <td><input type="number" min="0" class="form-control form-control-sm demora-minutos" value="${data.minutos||''}"></td>
-                <td><input type="text" class="form-control form-control-sm demora-descripcion" value="${data.descripcion||''}"></td>
+                <td><input type="text" class="form-control form-control-sm demora-codigo" value="${data.codigo ?? ''}"></td>
+                <td><input type="number" min="0" class="form-control form-control-sm demora-minutos" value="${data.minutos ?? ''}"></td>
+                <td><input type="text" class="form-control form-control-sm demora-descripcion" value="${data.descripcion ?? ''}"></td>
                 <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-demora-row"><i class="fas fa-times"></i></button></td>`;
             demoraTbody.appendChild(tr);
         }
@@ -11556,12 +11586,12 @@ function setupManifestsUI() {
             if (!embarqueTbody) return;
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><input type="text" class="form-control form-control-sm embarque-estacion" value="${data.estacion||''}"></td>
-                <td><input type="number" min="0" class="form-control form-control-sm embarque-pax-nacional" value="${data.paxNacional||''}"></td>
-                <td><input type="number" min="0" class="form-control form-control-sm embarque-pax-internacional" value="${data.paxInternacional||''}"></td>
-                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm embarque-equipaje" value="${data.equipaje||''}"></td>
-                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm embarque-carga" value="${data.carga||''}"></td>
-                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm embarque-correo" value="${data.correo||''}"></td>
+                <td><input type="text" class="form-control form-control-sm embarque-estacion" value="${data.estacion ?? ''}"></td>
+                <td><input type="number" min="0" class="form-control form-control-sm embarque-pax-nacional" value="${data.paxNacional ?? ''}"></td>
+                <td><input type="number" min="0" class="form-control form-control-sm embarque-pax-internacional" value="${data.paxInternacional ?? ''}"></td>
+                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm embarque-equipaje" value="${data.equipaje ?? ''}"></td>
+                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm embarque-carga" value="${data.carga ?? ''}"></td>
+                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm embarque-correo" value="${data.correo ?? ''}"></td>
                 <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-embarque-row"><i class="fas fa-times"></i></button></td>`;
             embarqueTbody.appendChild(tr);
             calculateTotals();
