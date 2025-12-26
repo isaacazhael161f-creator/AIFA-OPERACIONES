@@ -204,10 +204,31 @@
 
                                 <!-- Daily Operations Pane -->
                                 <div class="tab-pane fade" id="pane-daily-ops" role="tabpanel">
-                                    <div class="d-flex justify-content-between mb-3">
-                                        <div class="input-group w-auto">
-                                            <span class="input-group-text">Semana</span>
-                                            <input type="date" class="form-control" id="filter-daily-ops-date" aria-label="Filtrar por fecha">
+                                    <div class="d-flex justify-content-between mb-3 align-items-center">
+                                        <div class="d-flex gap-2 align-items-center">
+                                            <div class="input-group">
+                                                <span class="input-group-text">Fecha</span>
+                                                <input type="date" class="form-control" id="filter-daily-ops-date" aria-label="Filtrar por fecha">
+                                            </div>
+                                            <div class="input-group">
+                                                <span class="input-group-text">Mes</span>
+                                                <select id="filter-daily-ops-month" class="form-select" aria-label="Filtrar por mes">
+                                                    <option value="">Todos</option>
+                                                    <option value="01">Enero</option>
+                                                    <option value="02">Febrero</option>
+                                                    <option value="03">Marzo</option>
+                                                    <option value="04">Abril</option>
+                                                    <option value="05">Mayo</option>
+                                                    <option value="06">Junio</option>
+                                                    <option value="07">Julio</option>
+                                                    <option value="08">Agosto</option>
+                                                    <option value="09">Septiembre</option>
+                                                    <option value="10">Octubre</option>
+                                                    <option value="11">Noviembre</option>
+                                                    <option value="12">Diciembre</option>
+                                                </select>
+                                            </div>
+                                            <!-- Categoría filter removed per request -->
                                         </div>
                                         <button class="btn btn-primary btn-sm" onclick="dataManagement.addItem('daily_operations')"><i class="fas fa-plus"></i> Agregar Día</button>
                                     </div>

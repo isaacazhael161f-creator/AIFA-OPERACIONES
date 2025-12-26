@@ -11,18 +11,19 @@ class AdminUI {
         // Create modal HTML
         const modalHtml = `
             <div id="admin-modal" class="modal fade" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Editar Datos</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content shadow-sm border-0">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title d-flex align-items-center gap-2"><i class="fas fa-edit"></i><span id="admin-modal-title">Editar Datos</span></h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                         </div>
                         <div class="modal-body">
-                            <form id="admin-form"></form>
+                            <p class="small text-muted mb-3" id="admin-modal-help">Selecciona el tipo de registro y completa los campos. Los campos obligatorios están marcados.</p>
+                            <form id="admin-form" class="row g-3"></form>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="button" class="btn btn-primary" id="admin-save-btn">Guardar</button>
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-success" id="admin-save-btn"><i class="fas fa-save me-1"></i> Guardar</button>
                         </div>
                     </div>
                 </div>
@@ -57,26 +58,68 @@ class AdminUI {
 
         const form = document.getElementById('admin-form');
         form.innerHTML = '';
-        
-        const modalTitle = document.querySelector('#admin-modal .modal-title');
-        modalTitle.innerText = record ? 'Editar Datos' : 'Agregar Nuevo Registro';
+        const modalTitle = document.getElementById('admin-modal-title');
+        modalTitle.innerText = record ? 'Editar Registro' : 'Agregar Nuevo Registro';
 
-        schema.forEach(field => {
-            const div = document.createElement('div');
-            div.className = 'mb-3';
+        // Build form with nicer layout: two-column grid for compactness
+        // For specific tables, allow reordering to match UX expectations
+        let fieldsToRender = Array.isArray(schema) ? [...schema] : [];
+        if (this.currentTable === 'daily_operations') {
+            const preferredOrder = [
+                'date',
+                'comercial_ops', 'comercial_pax',
+                'general_ops', 'general_pax',
+                'carga_ops', 'carga_tons', 'carga_cutoff_date', 'carga_cutoff_note'
+            ];
+            const ordered = [];
+            preferredOrder.forEach(name => {
+                const f = fieldsToRender.find(s => s.name === name);
+                if (f) ordered.push(f);
+            });
+            // Append any remaining fields that were not explicitly ordered
+            fieldsToRender.filter(f => !preferredOrder.includes(f.name)).forEach(f => ordered.push(f));
+            fieldsToRender = ordered;
+        }
+
+        fieldsToRender.forEach((field, idx) => {
+            const col = document.createElement('div');
+            // Special layout for the date field: full-width and centered
+            if (field.name === 'date') {
+                col.className = 'col-12 d-flex flex-column align-items-center';
+            } else {
+                col.className = field.type === 'textarea' ? 'col-12' : 'col-md-6';
+            }
+
             const label = document.createElement('label');
-            label.className = 'form-label';
-            label.innerText = field.label || field.name;
-            div.appendChild(label);
+            label.className = 'form-label fw-medium d-flex align-items-center gap-2';
+            // Add category icon for visual guidance
+            const iconSpan = document.createElement('span');
+            iconSpan.setAttribute('aria-hidden', 'true');
+            if (String(field.name).toLowerCase().includes('comercial')) {
+                iconSpan.innerHTML = '<i class="fas fa-plane text-primary"></i>';
+            } else if (String(field.name).toLowerCase().includes('general')) {
+                iconSpan.innerHTML = '<i class="fas fa-helicopter text-success"></i>';
+            } else if (String(field.name).toLowerCase().includes('carga')) {
+                iconSpan.innerHTML = '<i class="fas fa-boxes text-warning"></i>';
+            } else {
+                iconSpan.innerHTML = '';
+            }
+            const labelText = document.createElement('span');
+            labelText.innerText = field.label || field.name;
+            label.appendChild(iconSpan);
+            label.appendChild(labelText);
 
             let input;
             if (field.type === 'textarea') {
                 input = document.createElement('textarea');
                 input.className = 'form-control';
                 input.rows = 3;
+                input.placeholder = field.placeholder || '';
             } else if (field.type === 'select') {
                 input = document.createElement('select');
                 input.className = 'form-select';
+                const defaultOpt = document.createElement('option'); defaultOpt.value = ''; defaultOpt.innerText = '— Selecciona —';
+                input.appendChild(defaultOpt);
                 field.options.forEach(opt => {
                     const option = document.createElement('option');
                     option.value = opt.value;
@@ -93,24 +136,47 @@ class AdminUI {
                 input.type = 'number';
                 input.className = 'form-control';
                 if (field.step) input.step = field.step;
+                input.placeholder = field.placeholder || '0';
             } else {
                 input = document.createElement('input');
                 input.type = field.type || 'text';
                 input.className = 'form-control';
+                input.placeholder = field.placeholder || '';
             }
 
             if (record && field.type !== 'select') {
                 input.value = record[field.name] || '';
             }
-            
             input.name = field.name;
-            if (field.readonly && record) input.disabled = true; // Only disable readonly fields on edit
-            
-            div.appendChild(input);
-            form.appendChild(div);
+            if (field.readonly && record) input.disabled = true;
+
+            // If date field, center the input and constrain width for nicer appearance
+            if (field.name === 'date') {
+                label.classList.add('text-center', 'w-100');
+                input.classList.add('text-center', 'mx-auto');
+                input.style.maxWidth = '220px';
+            }
+
+            col.appendChild(label);
+            col.appendChild(input);
+
+            // Add small helper for numeric/date fields
+            if (field.type === 'number' || field.type === 'date') {
+                const help = document.createElement('div');
+                help.className = 'form-text text-muted';
+                help.innerText = field.help || '';
+                if (help.innerText) col.appendChild(help);
+            }
+
+            form.appendChild(col);
         });
 
+        // Autofocus first input after show
         this.modal.show();
+        setTimeout(() => {
+            const firstInput = document.querySelector('#admin-form .form-control:not([disabled])');
+            if (firstInput) firstInput.focus();
+        }, 200);
     }
 
     async saveChanges() {

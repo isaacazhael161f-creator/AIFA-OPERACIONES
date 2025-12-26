@@ -96,6 +96,37 @@ class DataManagement {
         this.init();
     }
 
+    // Formatea fechas ISO (YYYY-MM-DD) a DD-MM-YY para mostrar en tablas
+    formatDisplayDate(value) {
+        if (!value) return '';
+        const s = String(value).trim();
+        const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+        if (m) {
+            const [, yyyy, mm, dd] = m;
+            return `${dd}-${mm}-${yyyy.slice(2)}`;
+        }
+        return s;
+    }
+
+    // Formatea números con separadores de miles (ej. 21323 -> 21,323)
+    formatNumber(value, colName) {
+        if (value == null || value === '') return '';
+        const n = Number(value);
+        if (!Number.isFinite(n)) return String(value);
+
+        // Decide decimales según la columna
+        let options = {};
+        if (colName === 'carga_tons') {
+            options = { minimumFractionDigits: 0, maximumFractionDigits: 2 };
+        }
+        // Use en-US to produce commas as thousands separators
+        try {
+            return n.toLocaleString('en-US', options);
+        } catch (e) {
+            return String(value);
+        }
+    }
+
     init() {
         // Listen for tab changes to load data
         const tabEls = document.querySelectorAll('button[data-bs-toggle="tab"]');
@@ -109,6 +140,9 @@ class DataManagement {
         // Listen for filter changes
         document.getElementById('filter-ops-year').addEventListener('change', () => this.loadOperationsSummary());
         document.getElementById('filter-daily-ops-date').addEventListener('change', () => this.loadDailyOperations());
+        const monthEl = document.getElementById('filter-daily-ops-month');
+        if (monthEl) monthEl.addEventListener('change', () => this.loadDailyOperations());
+        // Category filter removed — no listener required
         document.getElementById('filter-itinerary-date').addEventListener('change', () => this.loadItinerary());
         document.getElementById('filter-medical-year').addEventListener('change', () => this.loadMedical());
         document.getElementById('filter-delays-year').addEventListener('change', () => this.loadDelays());
@@ -158,37 +192,46 @@ class DataManagement {
         try {
             const data = await window.dataManager.getDailyOperations();
             const dateFilter = document.getElementById('filter-daily-ops-date').value;
+            const monthFilter = (document.getElementById('filter-daily-ops-month') || {}).value || '';
             let filteredData = data;
             if (dateFilter) {
-                // Assuming data has 'date' field in YYYY-MM-DD format
+                // Exact date selected (YYYY-MM-DD)
                 filteredData = data.filter(item => item.date === dateFilter);
+            } else if (monthFilter) {
+                // Filter by month (MM)
+                filteredData = data.filter(item => {
+                    if (!item || !item.date) return false;
+                    const m = String(item.date).slice(5,7);
+                    return m === monthFilter;
+                });
             }
+            // Category filtering removed — show all rows matching date/month filters
             
             // Custom render for complex columns
             const tbody = document.querySelector('#table-daily-ops tbody');
             tbody.innerHTML = '';
 
             filteredData.forEach(item => {
-                const tr = document.createElement('tr');
-                
-                // Date
-                const tdDate = document.createElement('td');
-                tdDate.textContent = item.date;
-                tr.appendChild(tdDate);
+                    const tr = document.createElement('tr');
+
+                    // Date
+                    const tdDate = document.createElement('td');
+                    tdDate.textContent = this.formatDisplayDate(item.date);
+                    tr.appendChild(tdDate);
 
                 // Commercial
                 const tdCom = document.createElement('td');
-                tdCom.innerHTML = `Ops: ${item.comercial_ops}<br><small class="text-muted">Pax: ${item.comercial_pax}</small>`;
+                tdCom.innerHTML = `<div class="d-flex align-items-center gap-2"><i class="fas fa-plane text-primary" aria-hidden="true"></i><div>Ops: ${this.formatNumber(item.comercial_ops, 'comercial_ops')}<br><small class="text-muted">Pax: ${this.formatNumber(item.comercial_pax, 'comercial_pax')}</small></div></div>`;
                 tr.appendChild(tdCom);
 
                 // General
                 const tdGen = document.createElement('td');
-                tdGen.innerHTML = `Ops: ${item.general_ops}<br><small class="text-muted">Pax: ${item.general_pax}</small>`;
+                tdGen.innerHTML = `<div class="d-flex align-items-center gap-2"><i class="fas fa-helicopter text-success" aria-hidden="true"></i><div>Ops: ${this.formatNumber(item.general_ops, 'general_ops')}<br><small class="text-muted">Pax: ${this.formatNumber(item.general_pax, 'general_pax')}</small></div></div>`;
                 tr.appendChild(tdGen);
 
                 // Cargo
                 const tdCargo = document.createElement('td');
-                tdCargo.innerHTML = `Ops: ${item.carga_ops}<br><small class="text-muted">Ton: ${item.carga_tons}</small>`;
+                tdCargo.innerHTML = `<div class="d-flex align-items-center gap-2"><i class="fas fa-boxes text-warning" aria-hidden="true"></i><div>Ops: ${this.formatNumber(item.carga_ops, 'carga_ops')}<br><small class="text-muted">Ton: ${this.formatNumber(item.carga_tons, 'carga_tons')}</small></div></div>`;
                 tr.appendChild(tdCargo);
 
                 // Actions
@@ -280,7 +323,15 @@ class DataManagement {
             
             columns.forEach(col => {
                 const td = document.createElement('td');
-                td.textContent = item[col];
+                const raw = item[col];
+                // Format any date-like column (name contains 'date' or is exactly 'date')
+                if (col && String(col).toLowerCase().includes('date')) {
+                    td.textContent = this.formatDisplayDate(raw);
+                } else if (raw != null && raw !== '' && Number.isFinite(Number(raw))) {
+                    td.textContent = this.formatNumber(raw, col);
+                } else {
+                    td.textContent = raw == null ? '' : raw;
+                }
                 tr.appendChild(td);
             });
 
