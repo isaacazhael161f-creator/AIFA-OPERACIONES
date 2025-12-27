@@ -42,6 +42,15 @@ class DataManager {
         return data;
     }
 
+    // --- Aviation Analytics ---
+    async getAviationAnalytics(year) {
+        let query = this.client.from('aviation_analytics').select('*').order('year', { ascending: false }).order('month', { ascending: true });
+        if (year) query = query.eq('year', year);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data;
+    }
+
     // --- Daily Operations ---
     async getDailyOperations(limit = 100) {
         const { data, error } = await this.client
@@ -98,6 +107,15 @@ class DataManager {
         let query = this.client.from('punctuality').select('*');
         if (year) query = query.eq('year', year);
         if (month) query = query.eq('month', month);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data;
+    }
+
+    // --- Aviation Analytics ---
+    async getAviationAnalytics(year) {
+        let query = this.client.from('aviation_analytics').select('*').order('year', { ascending: false }).order('month', { ascending: true });
+        if (year) query = query.eq('year', year);
         const { data, error } = await query;
         if (error) throw error;
         return data;

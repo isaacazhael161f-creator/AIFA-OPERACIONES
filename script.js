@@ -942,6 +942,72 @@ window.staticData = {
     mensualYear: String(new Date().getFullYear())
 };
 
+function buildAviationAnalyticsFromDB(monthlyRows) {
+    const months = AVIATION_ANALYTICS_MONTH_KEYS.slice();
+    const monthLabels = AVIATION_ANALYTICS_MONTH_LABELS.slice();
+    const result = {
+        comercial: { months, monthLabels, years: [], metrics: ['operaciones', 'pasajeros'] },
+        carga: { months, monthLabels, years: [], metrics: ['operaciones', 'tons_transportadas'] },
+        general: { months, monthLabels, years: [], metrics: ['operaciones', 'pasajeros'] }
+    };
+
+    // Initialize metrics structures
+    ['comercial', 'carga', 'general'].forEach(scope => {
+        result[scope].metrics.forEach(metric => {
+            result[scope][metric] = { years: {}, acumulado: 0 };
+        });
+    });
+
+    const yearsSet = new Set();
+
+    (monthlyRows || []).forEach(row => {
+        const year = String(row.year);
+        yearsSet.add(year);
+        const monthIdx = Number(row.month) - 1;
+        if (monthIdx < 0 || monthIdx >= months.length) return;
+        const monthKey = months[monthIdx];
+
+        // Helper to update metric
+        const updateMetric = (scope, metric, value) => {
+            if (!result[scope][metric].years[year]) {
+                result[scope][metric].years[year] = { total: 0, months: {} };
+                months.forEach(m => result[scope][metric].years[year].months[m] = null);
+            }
+            const val = value == null ? null : Number(value);
+            result[scope][metric].years[year].months[monthKey] = val;
+        };
+
+        updateMetric('comercial', 'operaciones', row.comercial_ops);
+        updateMetric('comercial', 'pasajeros', row.comercial_pax);
+        updateMetric('carga', 'operaciones', row.carga_ops);
+        updateMetric('carga', 'tons_transportadas', row.carga_tons);
+        updateMetric('general', 'operaciones', row.general_ops);
+        updateMetric('general', 'pasajeros', row.general_pax);
+    });
+
+    const sortedYears = Array.from(yearsSet).sort((a, b) => Number(a) - Number(b));
+
+    // Calculate totals
+    ['comercial', 'carga', 'general'].forEach(scope => {
+        result[scope].years = sortedYears;
+        result[scope].metrics.forEach(metric => {
+            let grandTotal = 0;
+            sortedYears.forEach(year => {
+                if (!result[scope][metric].years[year]) return;
+                let yearTotal = 0;
+                Object.values(result[scope][metric].years[year].months).forEach(val => {
+                    if (val !== null && Number.isFinite(val)) yearTotal += val;
+                });
+                result[scope][metric].years[year].total = yearTotal;
+                grandTotal += yearTotal;
+            });
+            result[scope][metric].acumulado = grandTotal;
+        });
+    });
+
+    return result;
+}
+
 async function syncStaticDataFromDB() {
     try {
         if (!window.dataManager) return;
@@ -985,8 +1051,26 @@ async function syncStaticDataFromDB() {
             staticData.mensual2025.general.pasajeros[idx].pasajeros = row.general_pax == null ? null : Number(row.general_pax);
         });
 
+        // Populate AVIATION_ANALYTICS_DATA for the tabs
+        AVIATION_ANALYTICS_DATA = buildAviationAnalyticsFromDB(monthlyRows);
+        AVIATION_ANALYTICS_CUTOFF_YEAR = String(latestYear);
+        
+        // Determine cutoff month index based on data availability for the latest year
+        let lastClosedMonth = -1;
+        const latestYearStr = String(latestYear);
+        if (AVIATION_ANALYTICS_DATA.comercial.operaciones.years[latestYearStr]) {
+             const monthsData = AVIATION_ANALYTICS_DATA.comercial.operaciones.years[latestYearStr].months;
+             AVIATION_ANALYTICS_MONTH_KEYS.forEach((key, idx) => {
+                 if (monthsData[key] !== null) lastClosedMonth = idx;
+             });
+        }
+        AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX = lastClosedMonth;
+
+
         try { if (typeof window.renderOperacionesTotales === 'function') window.renderOperacionesTotales(); } catch (_) {}
         try { if (typeof window.renderMonthlyCharts === 'function') window.renderMonthlyCharts(); } catch (_) {}
+        try { if (typeof window.rerenderAviationAnalyticsModules === 'function') window.rerenderAviationAnalyticsModules(true); } catch (_) {}
+        
         window.dispatchEvent(new CustomEvent('static-data-synced', { detail: { year: staticData.mensualYear } }));
     } catch (err) {
         console.error('syncStaticDataFromDB error:', err);
@@ -1375,32 +1459,8 @@ function ensureAviationAnalyticsData() {
     if (AVIATION_ANALYTICS_DATA) {
         return Promise.resolve(AVIATION_ANALYTICS_DATA);
     }
-    if (aviationAnalyticsDataPromise) {
-        return aviationAnalyticsDataPromise;
-    }
-    aviationAnalyticsDataPromise = fetch(AVIATION_ANALYTICS_DATA_PATH, { cache: 'no-store' })
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            return response.json();
-        })
-        .then((rawPayload) => setAviationAnalyticsDatasetFromPayload(rawPayload))
-        .then((dataset) => {
-            aviationAnalyticsLoadError = null;
-            return dataset;
-        })
-        .catch((err) => {
-            aviationAnalyticsLoadError = err;
-            console.warn('Failed to load aviation analytics data:', err);
-            return null;
-        })
-        .finally(() => {
-            if (!AVIATION_ANALYTICS_DATA) {
-                aviationAnalyticsDataPromise = null;
-            }
-        });
-    return aviationAnalyticsDataPromise;
+    // Redirect to DB sync instead of JSON fetch
+    return syncStaticDataFromDB().then(() => AVIATION_ANALYTICS_DATA);
 }
 
 function refreshAviationAnalyticsDataIfChanged(options = {}) {

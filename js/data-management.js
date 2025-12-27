@@ -28,6 +28,26 @@ class DataManagement {
                 { name: 'carga_cutoff_date', label: 'Carga - Fecha Corte', type: 'date' },
                 { name: 'carga_cutoff_note', label: 'Carga - Nota Corte', type: 'text' }
             ],
+            aviation_analytics: [
+                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'month', label: 'Mes', type: 'select', options: [
+                    { value: 'enero', label: 'Enero' }, { value: 'febrero', label: 'Febrero' }, { value: 'marzo', label: 'Marzo' },
+                    { value: 'abril', label: 'Abril' }, { value: 'mayo', label: 'Mayo' }, { value: 'junio', label: 'Junio' },
+                    { value: 'julio', label: 'Julio' }, { value: 'agosto', label: 'Agosto' }, { value: 'septiembre', label: 'Septiembre' },
+                    { value: 'octubre', label: 'Octubre' }, { value: 'noviembre', label: 'Noviembre' }, { value: 'diciembre', label: 'Diciembre' }
+                ]},
+                { name: 'category', label: 'Categoría', type: 'select', options: [
+                    { value: 'comercial', label: 'Comercial' },
+                    { value: 'general', label: 'General' },
+                    { value: 'carga', label: 'Carga' }
+                ]},
+                { name: 'metric', label: 'Métrica', type: 'select', options: [
+                    { value: 'operaciones', label: 'Operaciones' },
+                    { value: 'pasajeros', label: 'Pasajeros' },
+                    { value: 'toneladas', label: 'Toneladas' }
+                ]},
+                { name: 'value', label: 'Valor', type: 'number' }
+            ],
             // Monthly operations (per month per year)
             monthly_operations: [
                 { name: 'year', label: 'Año', type: 'number' },
@@ -122,14 +142,16 @@ class DataManagement {
         this.init();
     }
 
-    // Formatea fechas ISO (YYYY-MM-DD) a DD-MM-YY para mostrar en tablas
+    // Formatea fechas ISO (YYYY-MM-DD) a formato largo (27 de Diciembre de 2025)
     formatDisplayDate(value) {
         if (!value) return '';
         const s = String(value).trim();
         const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
         if (m) {
             const [, yyyy, mm, dd] = m;
-            return `${dd}-${mm}-${yyyy.slice(2)}`;
+            const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            const monthName = months[parseInt(mm, 10) - 1];
+            return `${parseInt(dd, 10)} de ${monthName} de ${yyyy}`;
         }
         return s;
     }
@@ -175,6 +197,11 @@ class DataManagement {
         document.getElementById('filter-delays-month').addEventListener('change', () => this.loadDelays());
         document.getElementById('filter-punctuality-year').addEventListener('change', () => this.loadPunctuality());
         document.getElementById('filter-punctuality-month').addEventListener('change', () => this.loadPunctuality());
+        
+        const analyticsYear = document.getElementById('filter-analytics-year');
+        if (analyticsYear) analyticsYear.addEventListener('change', () => this.loadAviationAnalytics());
+        const analyticsMonth = document.getElementById('filter-analytics-month');
+        if (analyticsMonth) analyticsMonth.addEventListener('change', () => this.loadAviationAnalytics());
 
         // Monthly / Annual UI listeners
         const monthlyYearSel = document.getElementById('monthly-ops-year');
@@ -196,6 +223,7 @@ class DataManagement {
             if (table === 'medical_attentions') this.loadMedical();
             if (table === 'delays') this.loadDelays();
             if (table === 'punctuality') this.loadPunctuality();
+            if (table === 'aviation_analytics') this.loadAviationAnalytics();
             
             if (table === 'monthly_operations') {
                 this.loadMonthlyOperations();
@@ -230,6 +258,90 @@ class DataManagement {
         if (targetId === '#pane-medical') this.loadMedical();
         if (targetId === '#pane-delays') this.loadDelays();
         if (targetId === '#pane-punctuality') this.loadPunctuality();
+        if (targetId === '#pane-aviation-analytics') this.loadAviationAnalytics();
+    }
+
+    async loadAviationAnalytics() {
+        try {
+            const yearSelect = document.getElementById('filter-analytics-year');
+            const year = yearSelect ? yearSelect.value : '';
+            const monthSelect = document.getElementById('filter-analytics-month');
+            const monthFilter = monthSelect ? monthSelect.value : '';
+            
+            // Use monthly_operations instead of aviation_analytics
+            const data = await window.dataManager.getMonthlyOperations(year);
+            
+            const tbody = document.querySelector('#table-aviation-analytics tbody');
+            tbody.innerHTML = '';
+
+            // Filter by month if selected
+            const filteredData = data.filter(item => {
+                if (!monthFilter) return true;
+                // item.month is '01', '02', etc.
+                // monthFilter is 'enero', 'febrero', etc.
+                const map = { 'enero':'01','febrero':'02','marzo':'03','abril':'04','mayo':'05','junio':'06','julio':'07','agosto':'08','septiembre':'09','octubre':'10','noviembre':'11','diciembre':'12' };
+                return item.month === map[monthFilter.toLowerCase()];
+            });
+
+            filteredData.forEach(item => {
+                const tr = document.createElement('tr');
+                
+                // Year
+                const tdYear = document.createElement('td');
+                tdYear.className = 'text-center align-middle';
+                tdYear.textContent = item.year;
+                tr.appendChild(tdYear);
+
+                // Month
+                const tdMonth = document.createElement('td');
+                tdMonth.className = 'text-center align-middle';
+                const map = { '01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Septiembre','10':'Octubre','11':'Noviembre','12':'Diciembre' };
+                tdMonth.textContent = map[item.month] || item.month;
+                tr.appendChild(tdMonth);
+
+                // Comercial
+                const tdCom = document.createElement('td');
+                tdCom.className = 'text-center align-middle';
+                tdCom.innerHTML = `<div><span class="fw-bold">${this.formatNumber(item.comercial_ops)} Ops</span></div><div class="text-muted small">${this.formatNumber(item.comercial_pax)} Pax</div>`;
+                tr.appendChild(tdCom);
+
+                // General
+                const tdGen = document.createElement('td');
+                tdGen.className = 'text-center align-middle';
+                tdGen.innerHTML = `<div><span class="fw-bold">${this.formatNumber(item.general_ops)} Ops</span></div><div class="text-muted small">${this.formatNumber(item.general_pax)} Pax</div>`;
+                tr.appendChild(tdGen);
+
+                // Carga
+                const tdCarga = document.createElement('td');
+                tdCarga.className = 'text-center align-middle';
+                tdCarga.innerHTML = `<div><span class="fw-bold">${this.formatNumber(item.carga_ops)} Ops</span></div><div class="text-muted small">${this.formatNumber(item.carga_tons)} Ton</div>`;
+                tr.appendChild(tdCarga);
+
+                // Actions
+                const tdActions = document.createElement('td');
+                tdActions.className = 'text-center align-middle';
+                
+                const btnEdit = document.createElement('button');
+                btnEdit.className = 'btn btn-sm btn-outline-primary me-1';
+                btnEdit.innerHTML = '<i class="fas fa-edit"></i>';
+                // Use monthly_operations schema for editing
+                btnEdit.onclick = () => this.editItem('monthly_operations', item);
+                tdActions.appendChild(btnEdit);
+
+                const btnDelete = document.createElement('button');
+                btnDelete.className = 'btn btn-sm btn-outline-danger';
+                btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
+                btnDelete.title = 'Eliminar registro mensual';
+                btnDelete.onclick = () => this.deleteItem('monthly_operations', item.id);
+                tdActions.appendChild(btnDelete);
+
+                tr.appendChild(tdActions);
+                tbody.appendChild(tr);
+            });
+
+        } catch (error) {
+            console.error('Error loading aviation analytics (from monthly ops):', error);
+        }
     }
 
     async loadOperationsSummary() {
