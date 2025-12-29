@@ -10097,12 +10097,16 @@ document.addEventListener('DOMContentLoaded', () => {
             // Restore weekly mode if data is available (overriding any fallback that happened during init)
             if (availability && availability.hasAny) {
                 opsUIState.mode = 'weekly';
-                if (toggleWeekly) toggleWeekly.disabled = false;
+                if (toggleWeekly) {
+                    toggleWeekly.disabled = false;
+                    toggleWeekly.checked = true;
+                }
                 refreshDisabledYears(true);
                 if (monthsPanel) monthsPanel.style.display = 'none';
             }
 
             syncToggleStates();
+            syncWeeklyControls();
             refreshOpsYearFilters();
             refreshOpsMonthlyYearLabels();
             refreshOpsMonthsSelectionUI();
@@ -10295,8 +10299,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function syncWeeklyControls(){
             const isWeekly = opsUIState.mode === 'weekly';
-            if (weeklyWeekFilter) weeklyWeekFilter.classList.toggle('d-none', !isWeekly);
-            if (weeklyDayFilter) weeklyDayFilter.classList.toggle('d-none', !isWeekly);
+            if (weeklyWeekFilter) {
+                weeklyWeekFilter.classList.remove('d-none');
+                weeklyWeekFilter.style.display = isWeekly ? 'flex' : 'none';
+            }
+            if (weeklyDayFilter) {
+                weeklyDayFilter.classList.remove('d-none');
+                weeklyDayFilter.style.display = isWeekly ? 'flex' : 'none';
+            }
             if (!isWeekly) {
                 opsUIState.weeklyDay = 'all';
                 if (weeklyDaySelect) weeklyDaySelect.value = 'all';
@@ -11328,6 +11338,10 @@ function sanitizeParteOperacionesItem(item){
     if (!item || typeof item !== 'object') {
         return { tipo: 'Sin clasificar', llegada: 0, salida: 0, subtotal: 0 };
     }
+    // Filter out 'Aviación de pasajeros' explicitly
+    if (item?.tipo && item.tipo.toString().toLowerCase().includes('pasajeros')) {
+        return null; // Mark for filtering
+    }
     const sanitized = {
         tipo: (item?.tipo ?? 'Sin clasificar').toString().trim(),
         llegada: Number(item?.llegada) || 0,
@@ -11743,7 +11757,7 @@ function normalizeParteOperacionesSummary(raw){
             .sort((a, b) => a[0].localeCompare(b[0]));
         const byDate = {};
         for (const [dateKey, value] of entries){
-            const operaciones = Array.isArray(value?.operaciones) ? value.operaciones.map(sanitizeParteOperacionesItem) : [];
+            const operaciones = Array.isArray(value?.operaciones) ? value.operaciones.map(sanitizeParteOperacionesItem).filter(Boolean) : [];
             const totalGeneral = Number(value?.total_general) || 0;
             byDate[dateKey] = { operaciones, total_general: totalGeneral };
         }
@@ -11753,7 +11767,7 @@ function normalizeParteOperacionesSummary(raw){
     }
 
     if (Array.isArray(raw?.operaciones)){
-        const operaciones = raw.operaciones.map(sanitizeParteOperacionesItem);
+        const operaciones = raw.operaciones.map(sanitizeParteOperacionesItem).filter(Boolean);
         const totalGeneral = Number(raw?.total_general) || 0;
         return { dates: ['legacy'], byDate: { legacy: { operaciones, total_general: totalGeneral } }, isLegacy: true, availableRange: null };
     }
@@ -11797,10 +11811,11 @@ function mergeParteOperacionesCustomEntries(summary){
         }
         const target = combined.byDate[dateKey];
         const baseOps = Array.isArray(target.operaciones) ? target.operaciones : [];
-        const normalizedBase = baseOps.map(sanitizeParteOperacionesItem);
-        const normalizedCustom = entries.map(entry => Object.assign({}, sanitizeParteOperacionesItem(entry), { __custom: true }));
+        const normalizedBase = baseOps.map(sanitizeParteOperacionesItem).filter(Boolean);
+        const normalizedCustom = entries.map(entry => Object.assign({}, sanitizeParteOperacionesItem(entry), { __custom: true })).filter(item => item && item.tipo);
         const merged = [...normalizedBase];
         normalizedCustom.forEach(customItem => {
+            if (!customItem) return;
             const baseKey = normalizeParteOperacionesType(customItem.tipo);
             const existingIdx = merged.findIndex(it => normalizeParteOperacionesType(it.tipo) === baseKey);
             if (existingIdx === -1) {
@@ -11888,6 +11903,8 @@ function updateParteOperacionesPdfViewer(metadata = {}){
     if (!iframe || !placeholder || !label || !downloadBtn) return;
 
     const isoDate = metadata?.isoDate;
+    const pdfUrl = metadata?.pdfUrl;
+
     if (!isoDate || metadata?.isLegacy){
         placeholder.classList.remove('d-none');
         iframe.classList.add('d-none');
@@ -11903,9 +11920,19 @@ function updateParteOperacionesPdfViewer(metadata = {}){
         return;
     }
 
-    const filename = formatParteOperacionesPdfFilename(isoDate);
-    const pdfPath = buildParteOperacionesPdfPath(isoDate);
-    if (!filename || !pdfPath){
+    let finalPdfPath = pdfUrl;
+    let finalFilename = `parte_operaciones_${isoDate}`;
+
+    if (!finalPdfPath) {
+        const filename = formatParteOperacionesPdfFilename(isoDate);
+        const pdfPath = buildParteOperacionesPdfPath(isoDate);
+        if (filename && pdfPath) {
+            finalPdfPath = pdfPath;
+            finalFilename = filename;
+        }
+    }
+
+    if (!finalPdfPath){
         placeholder.classList.remove('d-none');
         iframe.classList.add('d-none');
         if (iframe.getAttribute('src')){
@@ -11914,7 +11941,7 @@ function updateParteOperacionesPdfViewer(metadata = {}){
         downloadBtn.classList.add('d-none');
         downloadBtn.removeAttribute('href');
         downloadBtn.removeAttribute('download');
-        label.textContent = 'No fue posible construir la ruta del documento para esta fecha.';
+        label.textContent = 'No hay documento PDF disponible para esta fecha.';
         return;
     }
 
@@ -11922,10 +11949,15 @@ function updateParteOperacionesPdfViewer(metadata = {}){
     label.textContent = `Documento correspondiente al ${friendly}.`;
     placeholder.classList.add('d-none');
     iframe.classList.remove('d-none');
-    iframe.setAttribute('src', pdfPath);
+    iframe.setAttribute('src', finalPdfPath);
     downloadBtn.classList.remove('d-none');
-    downloadBtn.href = pdfPath;
-    downloadBtn.download = `${filename}${PARTE_OPERACIONES_PDF_EXTENSION}`;
+    downloadBtn.href = finalPdfPath;
+    downloadBtn.download = finalFilename.endsWith('.pdf') ? finalFilename : `${finalFilename}.pdf`;
+    if (pdfUrl) {
+        downloadBtn.target = '_blank'; // Open in new tab if it's a remote URL
+    } else {
+        downloadBtn.removeAttribute('target');
+    }
 }
 
 function getDefaultParteOperacionesDate(summary){
@@ -12370,6 +12402,61 @@ function handleParteOperacionesDateChange(dateStr, options = {}){
     refreshParteOperacionesNavState();
 }
 
+async function fetchParteOperacionesFromDB() {
+    if (!window.supabaseClient) throw new Error('Supabase client not initialized');
+    
+    const { data, error } = await window.supabaseClient
+        .from('parte_operations')
+        .select('*')
+        .order('fecha', { ascending: true });
+        
+    if (error) throw error;
+    
+    const dias = {};
+    
+    data.forEach(row => {
+        const ops = [];
+        
+        // Aviación Comercial
+        if (row.comercial_llegada > 0 || row.comercial_salida > 0) {
+            ops.push({
+                tipo: 'Aviación Comercial',
+                llegada: row.comercial_llegada,
+                salida: row.comercial_salida,
+                subtotal: row.comercial_llegada + row.comercial_salida
+            });
+        }
+        
+        // Aviación de Carga
+        if (row.carga_llegada > 0 || row.carga_salida > 0) {
+            ops.push({
+                tipo: 'Aviación de Carga',
+                llegada: row.carga_llegada,
+                salida: row.carga_salida,
+                subtotal: row.carga_llegada + row.carga_salida
+            });
+        }
+        
+        // Aviación General
+        if (row.general_llegada > 0 || row.general_salida > 0) {
+            ops.push({
+                tipo: 'Aviación General',
+                llegada: row.general_llegada,
+                salida: row.general_salida,
+                subtotal: row.general_llegada + row.general_salida
+            });
+        }
+        
+        dias[row.fecha] = {
+            operaciones: ops,
+            total_general: row.total_general,
+            pdf_url: row.pdf_url
+        };
+    });
+    
+    return { dias };
+}
+
 async function loadParteOperacionesSummary(options = {}){
     const { force = false, silent = false, skipRemoteSync = false } = options;
     const container = document.getElementById('operations-summary-table');
@@ -12397,14 +12484,27 @@ async function loadParteOperacionesSummary(options = {}){
             </div>
         `;
     }
-    if (typeof location !== 'undefined' && location.protocol === 'file:'){
-        container.innerHTML = '<div class="alert alert-info mb-0">Inicia el servidor local para visualizar el resumen.</div>';
-        return;
-    }
+    
     try {
-        const res = await fetch('data/resumen_parte_operaciones.json', { cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const raw = await res.json();
+        let raw;
+        // Try fetching from DB first if client exists
+        if (window.supabaseClient) {
+            try {
+                raw = await fetchParteOperacionesFromDB();
+            } catch (dbErr) {
+                console.warn('Failed to fetch from DB, falling back to JSON:', dbErr);
+                // Fallback to JSON if DB fails
+                const res = await fetch('data/resumen_parte_operaciones.json', { cache: 'no-store' });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                raw = await res.json();
+            }
+        } else {
+             // Local dev or no supabase
+             const res = await fetch('data/resumen_parte_operaciones.json', { cache: 'no-store' });
+             if (!res.ok) throw new Error(`HTTP ${res.status}`);
+             raw = await res.json();
+        }
+
         const normalized = normalizeParteOperacionesSummary(raw);
         parteOperacionesSummaryBaseCache = normalized;
         const merged = mergeParteOperacionesCustomEntries(normalized);
@@ -12838,7 +12938,11 @@ function renderParteOperacionesSummary(data, metadata = {}){
     hideParteOperacionesLoader();
     const container = document.getElementById('operations-summary-table');
     if (!container) return;
-    updateParteOperacionesPdfViewer(metadata);
+    
+    // Pass pdfUrl from data to metadata for the viewer
+    const extendedMetadata = { ...metadata, pdfUrl: data?.pdf_url };
+    updateParteOperacionesPdfViewer(extendedMetadata);
+    
     updateParteOperacionesAvailabilityBanner(parteOperacionesSummaryCache);
     if (!data){
         updateParteOperacionesTitle(metadata?.isoDate);
@@ -12855,6 +12959,12 @@ function renderParteOperacionesSummary(data, metadata = {}){
             .toLowerCase();
     };
     const typeConfig = {
+        'aviacion comercial': {
+            cardClass: 'ops-mini-card--comercial',
+            iconClass: 'ops-type-icon--comercial',
+            icon: 'fas fa-plane',
+            progressClass: 'bg-primary'
+        },
         'aviacion de pasajeros': {
             cardClass: 'ops-mini-card--comercial',
             iconClass: 'ops-type-icon--comercial',
