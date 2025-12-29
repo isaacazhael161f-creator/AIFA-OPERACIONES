@@ -942,7 +942,7 @@ window.staticData = {
     mensualYear: String(new Date().getFullYear())
 };
 
-function buildAviationAnalyticsFromDB(monthlyRows) {
+function buildAviationAnalyticsFromDB(monthlyRows, annualRows) {
     const months = AVIATION_ANALYTICS_MONTH_KEYS.slice();
     const monthLabels = AVIATION_ANALYTICS_MONTH_LABELS.slice();
     const result = {
@@ -960,6 +960,14 @@ function buildAviationAnalyticsFromDB(monthlyRows) {
 
     const yearsSet = new Set();
 
+    // Helper to ensure year structure exists
+    const ensureYear = (scope, metric, year) => {
+        if (!result[scope][metric].years[year]) {
+            result[scope][metric].years[year] = { total: 0, months: {}, dbTotal: 0 };
+            months.forEach(m => result[scope][metric].years[year].months[m] = null);
+        }
+    };
+
     (monthlyRows || []).forEach(row => {
         const year = String(row.year);
         yearsSet.add(year);
@@ -967,12 +975,8 @@ function buildAviationAnalyticsFromDB(monthlyRows) {
         if (monthIdx < 0 || monthIdx >= months.length) return;
         const monthKey = months[monthIdx];
 
-        // Helper to update metric
         const updateMetric = (scope, metric, value) => {
-            if (!result[scope][metric].years[year]) {
-                result[scope][metric].years[year] = { total: 0, months: {} };
-                months.forEach(m => result[scope][metric].years[year].months[m] = null);
-            }
+            ensureYear(scope, metric, year);
             const val = value == null ? null : Number(value);
             result[scope][metric].years[year].months[monthKey] = val;
         };
@@ -985,6 +989,25 @@ function buildAviationAnalyticsFromDB(monthlyRows) {
         updateMetric('general', 'pasajeros', row.general_pax);
     });
 
+    // Process annualRows to fill gaps and totals
+    (annualRows || []).forEach(row => {
+        const year = String(row.year);
+        yearsSet.add(year);
+
+        const updateAnnual = (scope, metric, value) => {
+            ensureYear(scope, metric, year);
+            const val = value == null ? 0 : Number(value);
+            result[scope][metric].years[year].dbTotal = val;
+        };
+
+        updateAnnual('comercial', 'operaciones', row.comercial_ops_total);
+        updateAnnual('comercial', 'pasajeros', row.comercial_pax_total);
+        updateAnnual('carga', 'operaciones', row.carga_ops_total);
+        updateAnnual('carga', 'tons_transportadas', row.carga_tons_total);
+        updateAnnual('general', 'operaciones', row.general_ops_total);
+        updateAnnual('general', 'pasajeros', row.general_pax_total);
+    });
+
     const sortedYears = Array.from(yearsSet).sort((a, b) => Number(a) - Number(b));
 
     // Calculate totals
@@ -995,9 +1018,19 @@ function buildAviationAnalyticsFromDB(monthlyRows) {
             sortedYears.forEach(year => {
                 if (!result[scope][metric].years[year]) return;
                 let yearTotal = 0;
+                let hasMonthly = false;
                 Object.values(result[scope][metric].years[year].months).forEach(val => {
-                    if (val !== null && Number.isFinite(val)) yearTotal += val;
+                    if (val !== null && Number.isFinite(val)) {
+                        yearTotal += val;
+                        hasMonthly = true;
+                    }
                 });
+                
+                // Use dbTotal if no monthly data found
+                if (!hasMonthly && result[scope][metric].years[year].dbTotal) {
+                    yearTotal = result[scope][metric].years[year].dbTotal;
+                }
+
                 result[scope][metric].years[year].total = yearTotal;
                 grandTotal += yearTotal;
             });
@@ -1010,11 +1043,18 @@ function buildAviationAnalyticsFromDB(monthlyRows) {
 
 async function syncStaticDataFromDB() {
     try {
-        if (!window.dataManager) return;
+        if (!window.dataManager) {
+            console.warn('DataManager no listo, reintentando syncStaticDataFromDB en 500ms...');
+            setTimeout(syncStaticDataFromDB, 500);
+            return;
+        }
+        
+        console.log('Iniciando sincronización de datos estáticos desde DB...');
         const [annualRows, monthlyRows] = await Promise.all([
             window.dataManager.getAnnualOperations(),
             window.dataManager.getMonthlyOperations()
         ]);
+        console.log('Datos estáticos obtenidos:', { annualRows, monthlyRows });
 
         staticData.operacionesTotales = { comercial: [], carga: [], general: [] };
         (annualRows || []).forEach(row => {
@@ -1052,7 +1092,7 @@ async function syncStaticDataFromDB() {
         });
 
         // Populate AVIATION_ANALYTICS_DATA for the tabs
-        AVIATION_ANALYTICS_DATA = buildAviationAnalyticsFromDB(monthlyRows);
+        AVIATION_ANALYTICS_DATA = buildAviationAnalyticsFromDB(monthlyRows, annualRows);
         AVIATION_ANALYTICS_CUTOFF_YEAR = String(latestYear);
         
         // Determine cutoff month index based on data availability for the latest year
@@ -1468,32 +1508,18 @@ function refreshAviationAnalyticsDataIfChanged(options = {}) {
     if (aviationAnalyticsRefreshInFlight) {
         return aviationAnalyticsRefreshInFlight;
     }
-    const requestPromise = fetch(resolveAviationAnalyticsDataUrl(true), { cache: 'no-store' })
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            return response.json();
-        })
-        .then((rawPayload) => {
-            const signature = computeAviationAnalyticsSignature(rawPayload);
-            if (!force && signature && signature === AVIATION_ANALYTICS_DATA_SIGNATURE) {
-                return false;
-            }
-            setAviationAnalyticsDatasetFromPayload(rawPayload);
-            rerenderAviationAnalyticsModules(true);
-            if (notifyOnChange) {
-                showNotification('Los datos de aviación se actualizaron automáticamente.', 'success');
-            }
-            return true;
-        })
-        .catch((err) => {
-            console.warn('refreshAviationAnalyticsDataIfChanged failed:', err);
-            return false;
-        })
-        .finally(() => {
-            aviationAnalyticsRefreshInFlight = null;
-        });
+    
+    // Use DB sync instead of JSON fetch
+    const requestPromise = syncStaticDataFromDB().then(() => {
+         // syncStaticDataFromDB already updates AVIATION_ANALYTICS_DATA and triggers rerenders
+         return true;
+    }).catch(err => {
+        console.warn('refreshAviationAnalyticsDataIfChanged (DB) failed:', err);
+        return false;
+    }).finally(() => {
+        aviationAnalyticsRefreshInFlight = null;
+    });
+    
     aviationAnalyticsRefreshInFlight = requestPromise;
     return requestPromise;
 }
@@ -6042,22 +6068,8 @@ function computeStaticMonthlyCutoff() {
 }
 
 function getAllowedMonthsForYear(year) {
-    const codes = OPS_ALL_MONTH_CODES.slice();
-    if (!year) return codes;
-    if (String(year) !== String(AVIATION_ANALYTICS_CUTOFF_YEAR)) return codes;
-    let cutoffIndex = Number.isFinite(AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX)
-        ? AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX
-        : null;
-    if (!Number.isFinite(cutoffIndex) || cutoffIndex < 0) {
-        const fallback = computeStaticMonthlyCutoff();
-        if (Number.isFinite(fallback) && fallback > 0) {
-            cutoffIndex = fallback - 1;
-        }
-    }
-    if (!Number.isFinite(cutoffIndex) || cutoffIndex < 0) return [];
-    const normalizedCutoff = Math.min(cutoffIndex, codes.length - 1);
-    if (normalizedCutoff < 0) return [];
-    return codes.slice(0, normalizedCutoff + 1);
+    // Always return all months to allow full comparison/selection freedom
+    return OPS_ALL_MONTH_CODES.slice();
 }
 
 function createAllowedMonthsSet(year) {
@@ -6114,12 +6126,12 @@ function refreshOpsYearFilters(availableYears) {
         </div>`;
     }).join('');
     container.innerHTML = markup;
-    const disableYears = opsUIState.mode !== 'yearly';
+    // Always enable year filters, regardless of mode
     container.querySelectorAll('input[type="checkbox"]').forEach((input) => {
-        input.disabled = disableYears;
+        input.disabled = false;
     });
     const yearsHint = document.getElementById('years-disabled-hint');
-    if (yearsHint) yearsHint.classList.toggle('d-none', !disableYears);
+    if (yearsHint) yearsHint.classList.add('d-none');
 }
 
 function syncOpsYearSelection(availableYears) {
@@ -6128,7 +6140,9 @@ function syncOpsYearSelection(availableYears) {
         .sort((a, b) => Number(a) - Number(b));
     const normalizedSet = new Set(normalized);
     let selection = opsUIState?.years instanceof Set ? new Set(Array.from(opsUIState.years).map((year) => String(year))) : new Set();
-    if (!selection.size) {
+    
+    // If we have significantly more years now than selected (e.g. data loaded), and the selection was small (likely default), expand to all.
+    if (normalized.length > selection.size && selection.size <= 1) {
         selection = new Set(normalized);
     } else {
         const next = new Set();
@@ -6137,13 +6151,10 @@ function syncOpsYearSelection(availableYears) {
         });
         if (!next.size) {
             normalized.forEach((year) => next.add(year));
-        } else {
-            normalized.forEach((year) => {
-                if (!next.has(year)) next.add(year);
-            });
         }
         selection = next;
     }
+    
     opsUIState.years = selection;
     refreshOpsYearFilters(normalized);
 }
@@ -10064,8 +10075,9 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshOpsMonthsSelectionUI();
 
         function refreshDisabledYears(disabled){
-            yearsBox?.querySelectorAll('input[type="checkbox"]').forEach(inp => { inp.disabled = disabled; });
-            if (yearsHint) yearsHint.classList.toggle('d-none', !disabled);
+            // Always enable years
+            yearsBox?.querySelectorAll('input[type="checkbox"]').forEach(inp => { inp.disabled = false; });
+            if (yearsHint) yearsHint.classList.add('d-none');
         }
 
         function syncToggleStates(){
@@ -10301,8 +10313,16 @@ document.addEventListener('DOMContentLoaded', () => {
             adjustingMode = true;
             let availability = { weeks: [], hasAny: true, currentHasData: false };
             try {
+                if (newMode === 'yearly') {
+                    const allYears = getOpsAvailableYearsFromTotals();
+                    if (allYears.length) {
+                        opsUIState.years = new Set(allYears.map(y => String(y)));
+                        refreshOpsYearFilters(allYears);
+                    }
+                }
                 opsUIState.mode = newMode;
-                refreshDisabledYears(newMode !== 'yearly');
+                // refreshDisabledYears(newMode !== 'yearly'); // Removed to keep years always enabled
+                refreshDisabledYears(false);
                 if (monthsPanel) monthsPanel.style.display = newMode === 'monthly' ? '' : 'none';
                 syncToggleStates();
                 availability = populateWeeklyWeekOptions();
