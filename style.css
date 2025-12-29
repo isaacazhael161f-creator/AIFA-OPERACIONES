@@ -5408,3 +5408,26 @@ body.dark-mode .ops-pdf-placeholder {
     object-fit: cover;
 }
 
+
+/* Upload Drop Zone */
+.upload-drop-zone {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.upload-drop-zone:hover,
+.upload-drop-zone.dragover {
+    background-color: var(--primary-color-light) !important;
+    border-color: var(--primary-color) !important;
+    transform: scale(1.02);
+}
+
+.upload-drop-zone i {
+    transition: transform 0.3s ease;
+}
+
+.upload-drop-zone:hover i,
+.upload-drop-zone.dragover i {
+    transform: translateY(-10px);
+}
+

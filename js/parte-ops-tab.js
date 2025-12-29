@@ -6,10 +6,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateFilter = document.getElementById('filter-parte-ops-date');
     const monthFilter = document.getElementById('filter-parte-ops-month');
     const tbody = document.getElementById('tbody-parte-ops');
-    const pdfInput = document.getElementById('parte-ops-pdf-input');
+    
+    // Modal elements
+    const uploadModalEl = document.getElementById('pdfUploadModal');
+    const dropZone = document.getElementById('drop-zone');
+    const btnBrowseFiles = document.getElementById('btn-browse-files');
+    const modalPdfInput = document.getElementById('modal-pdf-input');
+    const fileInfo = document.getElementById('file-info');
+    const selectedFilename = document.getElementById('selected-filename');
+    const btnClearFile = document.getElementById('btn-clear-file');
+    const btnConfirmUpload = document.getElementById('btn-confirm-upload');
+    const uploadModalDateDisplay = document.getElementById('upload-modal-date-display');
+    
+    let uploadModal = null;
+    if (uploadModalEl) {
+        uploadModal = new bootstrap.Modal(uploadModalEl);
+    }
 
     let currentUploadId = null;
     let currentUploadDate = null;
+    let selectedFile = null;
 
     const SPANISH_MONTHS = [
         'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -21,6 +37,140 @@ document.addEventListener('DOMContentLoaded', () => {
         const [year, month, day] = dateStr.split('-');
         const monthName = SPANISH_MONTHS[parseInt(month, 10) - 1];
         return `${day} de ${monthName} ${year}`;
+    }
+
+    // Reset modal state
+    function resetUploadModal() {
+        selectedFile = null;
+        if (modalPdfInput) modalPdfInput.value = '';
+        if (fileInfo) fileInfo.classList.add('d-none');
+        if (selectedFilename) selectedFilename.textContent = '';
+        if (btnConfirmUpload) btnConfirmUpload.disabled = true;
+        if (dropZone) dropZone.classList.remove('dragover');
+    }
+
+    // Handle file selection
+    function handleFileSelect(file) {
+        if (file && file.type === 'application/pdf') {
+            selectedFile = file;
+            if (selectedFilename) selectedFilename.textContent = file.name;
+            if (fileInfo) fileInfo.classList.remove('d-none');
+            if (btnConfirmUpload) btnConfirmUpload.disabled = false;
+        } else {
+            alert('Por favor selecciona un archivo PDF válido.');
+            resetUploadModal();
+        }
+    }
+
+    // Drag and Drop Events
+    if (dropZone) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            dropZone.classList.add('dragover');
+        }
+
+        function unhighlight(e) {
+            dropZone.classList.remove('dragover');
+        }
+
+        dropZone.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        }
+    }
+
+    if (btnBrowseFiles && modalPdfInput) {
+        btnBrowseFiles.addEventListener('click', () => modalPdfInput.click());
+    }
+
+    if (modalPdfInput) {
+        modalPdfInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+    }
+
+    if (btnClearFile) {
+        btnClearFile.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent triggering drop zone click if nested
+            resetUploadModal();
+        });
+    }
+
+    if (btnConfirmUpload) {
+        btnConfirmUpload.addEventListener('click', async () => {
+            if (!selectedFile || !currentUploadId) return;
+
+            const fileExt = selectedFile.name.split('.').pop();
+            const fileName = `parte_operaciones_${currentUploadDate}_${Date.now()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            // Show loading state
+            const originalBtnText = btnConfirmUpload.innerHTML;
+            btnConfirmUpload.disabled = true;
+            btnConfirmUpload.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Subiendo...';
+
+            try {
+                // 1. Upload to Storage
+                const { data: uploadData, error: uploadError } = await window.supabaseClient
+                    .storage
+                    .from('parte-operaciones')
+                    .upload(filePath, selectedFile);
+
+                if (uploadError) throw uploadError;
+
+                // 2. Get Public URL
+                const { data: { publicUrl } } = window.supabaseClient
+                    .storage
+                    .from('parte-operaciones')
+                    .getPublicUrl(filePath);
+
+                // 3. Update Record
+                const { error: updateError } = await window.supabaseClient
+                    .from('parte_operations')
+                    .update({ pdf_url: publicUrl })
+                    .eq('id', currentUploadId);
+
+                if (updateError) throw updateError;
+
+                // Success
+                if (uploadModal) uploadModal.hide();
+                alert('PDF subido correctamente');
+                loadParteOpsData();
+
+            } catch (error) {
+                console.error('Error uploading PDF:', error);
+                alert('Error al subir el PDF: ' + error.message);
+            } finally {
+                btnConfirmUpload.innerHTML = originalBtnText;
+                btnConfirmUpload.disabled = false; // Will be disabled by resetUploadModal next time
+                currentUploadId = null;
+                currentUploadDate = null;
+                selectedFile = null;
+            }
+        });
     }
 
     async function loadParteOpsData() {
@@ -132,9 +282,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 const btnEl = e.currentTarget;
                 currentUploadId = btnEl.getAttribute('data-id');
                 currentUploadDate = btnEl.getAttribute('data-date');
-                if (pdfInput) {
-                    pdfInput.value = ''; // Reset input
-                    pdfInput.click();
+                
+                // Update date display
+                if (uploadModalDateDisplay) {
+                    uploadModalDateDisplay.textContent = formatDate(currentUploadDate);
+                }
+
+                // Open Modal
+                resetUploadModal();
+                if (uploadModal) {
+                    uploadModal.show();
+                } else {
+                    // Fallback if modal not initialized
+                    console.error('Upload modal not initialized');
                 }
             });
         });
@@ -177,57 +337,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert('Error al eliminar el PDF: ' + err.message);
                 }
             });
-        });
-    }
-
-    if (pdfInput) {
-        pdfInput.addEventListener('change', async (e) => {
-            if (!e.target.files || e.target.files.length === 0) return;
-            if (!currentUploadId) return;
-
-            const file = e.target.files[0];
-            const fileExt = file.name.split('.').pop();
-            const fileName = `parte_operaciones_${currentUploadDate}_${Date.now()}.${fileExt}`;
-            const filePath = `${fileName}`;
-
-            // Show loading state (optional, maybe a toast or change cursor)
-            document.body.style.cursor = 'wait';
-
-            try {
-                // 1. Upload to Storage
-                const { data: uploadData, error: uploadError } = await window.supabaseClient
-                    .storage
-                    .from('parte-operaciones')
-                    .upload(filePath, file);
-
-                if (uploadError) throw uploadError;
-
-                // 2. Get Public URL
-                const { data: { publicUrl } } = window.supabaseClient
-                    .storage
-                    .from('parte-operaciones')
-                    .getPublicUrl(filePath);
-
-                // 3. Update Record
-                const { error: updateError } = await window.supabaseClient
-                    .from('parte_operations')
-                    .update({ pdf_url: publicUrl })
-                    .eq('id', currentUploadId);
-
-                if (updateError) throw updateError;
-
-                // Refresh table
-                alert('PDF subido correctamente');
-                loadParteOpsData();
-
-            } catch (error) {
-                console.error('Error uploading PDF:', error);
-                alert('Error al subir el PDF: ' + error.message);
-            } finally {
-                document.body.style.cursor = 'default';
-                currentUploadId = null;
-                currentUploadDate = null;
-            }
         });
     }
 
