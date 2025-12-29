@@ -767,6 +767,31 @@ const WEEKLY_OPERATIONS_DATASETS = [
                 label: '25 Dic 2025',
                 comercial: { operaciones: 148, pasajeros: 18943},
                 general: { operaciones: 5, pasajeros: 18 },
+                carga: { operaciones: 21, toneladas: 727, corteFecha: '2025-12-25', corteNota: 'Cifras del 25 de diciembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-12-26',
+                label: '26 Dic 2025',
+                comercial: { operaciones: 169, pasajeros: 23534},
+                general: { operaciones: 9, pasajeros: 27 },
+                carga: { operaciones: 21, toneladas: 727, corteFecha: '2025-12-25', corteNota: 'Cifras del 25 de diciembre de 2025.' }
+            },
+
+
+            {
+                fecha: '2025-12-27',
+                label: '27 Dic 2025',
+                comercial: { operaciones: 154, pasajeros: 23254},
+                general: { operaciones: 5, pasajeros: 33 },
+                carga: { operaciones: 21, toneladas: 727, corteFecha: '2025-12-25', corteNota: 'Cifras del 25 de diciembre de 2025.' }
+            },
+
+            {
+                fecha: '2025-12-28',
+                label: '28 Dic 2025',
+                comercial: { operaciones: 148, pasajeros: 18943},
+                general: { operaciones: 5, pasajeros: 18 },
                 carga: { operaciones: 22, toneladas: 636, corteFecha: '2025-12-21', corteNota: 'Cifras del 21 de diciembre de 2025.' }
             },
 
