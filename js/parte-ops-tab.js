@@ -12,10 +12,110 @@ document.addEventListener('DOMContentLoaded', () => {
     const editModalEl = document.getElementById('editParteOpsModal');
     const editForm = document.getElementById('form-parte-ops');
     const btnSaveParteOps = document.getElementById('btn-save-parte-ops');
+    const btnCalcFromItinerary = document.getElementById('btn-calc-from-itinerary');
     
     let editModal = null;
     if (editModalEl) {
         editModal = new bootstrap.Modal(editModalEl);
+    }
+
+    // Helper for normalization
+    const norm = (str) => (str || '').toString().trim().toLowerCase();
+    
+    // Helper to classify flight
+    const classifyFlight = (f) => {
+        const cat = norm(f.categoria);
+        const airline = norm(f.aerolinea || f.aerolínea || f.airline);
+        
+        // Explicit categories
+        if (cat === 'carga') return 'carga';
+        if (cat === 'general' || cat === 'privada') return 'general';
+        if (cat === 'pasajeros' || cat === 'comercial') return 'comercial';
+        
+        // Airline based heuristics (simplified from itinerario.js)
+        const cargoAirlines = ['atlas air','aero union','aerounion','masair','mas','estafeta','dhl','cargolux','cathay pacific','ups','turkish','amerijet','air canada cargo','kalitta','ethiopian'];
+        if (cargoAirlines.some(c => airline.includes(c))) return 'carga';
+        
+        // Default to comercial if it looks like an airline, or general if not? 
+        // Let's assume comercial for now if not cargo.
+        return 'comercial';
+    };
+
+    if (btnCalcFromItinerary) {
+        btnCalcFromItinerary.addEventListener('click', async () => {
+            const dateInput = document.getElementById('edit-parte-ops-date');
+            const dateVal = dateInput.value;
+            
+            if (!dateVal) {
+                alert('Por favor selecciona una fecha primero.');
+                return;
+            }
+
+            if (!window.supabaseClient) {
+                alert('Error: Cliente Supabase no disponible.');
+                return;
+            }
+
+            // Show loading state on button
+            const originalHtml = btnCalcFromItinerary.innerHTML;
+            btnCalcFromItinerary.disabled = true;
+            btnCalcFromItinerary.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            try {
+                // Fetch flights for this date (arrivals or departures)
+                const { data, error } = await window.supabaseClient
+                    .from('flights')
+                    .select('*')
+                    .or(`fecha_llegada.eq.${dateVal},fecha_salida.eq.${dateVal}`);
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    alert('No se encontraron vuelos en el Itinerario para esta fecha.');
+                    return; // Keep existing values or reset? Let's keep.
+                }
+
+                let counts = {
+                    comercial: { llegada: 0, salida: 0 },
+                    carga: { llegada: 0, salida: 0 },
+                    general: { llegada: 0, salida: 0 }
+                };
+
+                data.forEach(f => {
+                    const type = classifyFlight(f);
+                    
+                    // Check Arrival
+                    if (f.fecha_llegada === dateVal) {
+                        if (counts[type]) counts[type].llegada++;
+                    }
+                    
+                    // Check Departure
+                    if (f.fecha_salida === dateVal) {
+                        if (counts[type]) counts[type].salida++;
+                    }
+                });
+
+                // Update inputs
+                document.getElementById('edit-comercial-llegada').value = counts.comercial.llegada;
+                document.getElementById('edit-comercial-salida').value = counts.comercial.salida;
+                
+                document.getElementById('edit-carga-llegada').value = counts.carga.llegada;
+                document.getElementById('edit-carga-salida').value = counts.carga.salida;
+                
+                document.getElementById('edit-general-llegada').value = counts.general.llegada;
+                document.getElementById('edit-general-salida').value = counts.general.salida;
+
+                // Optional: Show a toast or small success message
+                // alert('Datos calculados desde el Itinerario.');
+
+            } catch (err) {
+                console.error('Error calculating from itinerary:', err);
+                alert('Error al calcular: ' + err.message);
+            } finally {
+                btnCalcFromItinerary.disabled = false;
+                btnCalcFromItinerary.innerHTML = originalHtml;
+            }
+        });
     }
 
     const SPANISH_MONTHS = [

@@ -2408,7 +2408,7 @@ function setupEventListeners() {
     const hourSelect = document.getElementById('hour-filter'); if (hourSelect) hourSelect.addEventListener('change', (window.AIFA?.throttle||((f)=>f))(applyFilters, 120));
     const hourTypeSelect = document.getElementById('hour-type-filter'); if (hourTypeSelect) hourTypeSelect.addEventListener('change', (window.AIFA?.throttle||((f)=>f))(applyFilters, 120));
     // date filter (Inicio)
-    const dateFilter = document.getElementById('date-filter'); if (dateFilter) dateFilter.addEventListener('change', (window.AIFA?.throttle||((f)=>f))(applyFilters, 120));
+    const dateFilter = document.getElementById('date-filter'); if (dateFilter) dateFilter.addEventListener('change', () => loadItineraryData({ preserveFilters: true }));
     // Botón de tema eliminado: no enlazar listener si no existe
     const themeBtnEl = document.getElementById('theme-toggler');
     if (themeBtnEl) themeBtnEl.addEventListener('click', toggleTheme);
@@ -3218,10 +3218,7 @@ function restoreItineraryFilterSelections(state = {}) {
 async function loadItineraryData(options = {}) {
     const preserveFilters = !!options.preserveFilters;
     const previousFilters = preserveFilters ? captureItineraryFilterSelections() : null;
-    try {
-        const response = await fetch('data/itinerario.json', { cache: 'no-store' });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        allFlightsData = await response.json();
+    
     // Pre-cargar filtro de fecha con 'hoy' si está vacío
     try {
         const dateInput = document.getElementById('date-filter');
@@ -3231,6 +3228,24 @@ async function loadItineraryData(options = {}) {
             dateInput.value = ymd;
         }
     } catch (_) {}
+
+    try {
+        if (window.supabaseClient) {
+            const dateInput = document.getElementById('date-filter');
+            const selectedDate = dateInput ? dateInput.value : null;
+            let query = window.supabaseClient.from('flights').select('*');
+            if (selectedDate) {
+                query = query.or(`fecha_llegada.eq.${selectedDate},fecha_salida.eq.${selectedDate}`);
+            }
+            const { data, error } = await query;
+            if (error) throw error;
+            allFlightsData = data || [];
+        } else {
+            const response = await fetch('data/itinerario.json', { cache: 'no-store' });
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            allFlightsData = await response.json();
+        }
+
     if (!preserveFilters) {
         displaySummaryTable(allFlightsData, { selectedAirline: 'all' });
     }
@@ -3436,6 +3451,16 @@ function renderItineraryAirlineDetail(config = {}) {
         if (aTime !== bTime) return aTime - bTime;
         return String(a?.vuelo_llegada || a?.vuelo_salida || '').localeCompare(String(b?.vuelo_llegada || b?.vuelo_salida || ''), undefined, { sensitivity: 'base' });
     });
+
+    const formatDateDMY = (isoDate) => {
+        if (!isoDate) return '-';
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(isoDate).trim());
+        if (match) {
+            return `${match[3]}-${match[2]}-${match[1]}`;
+        }
+        return isoDate;
+    };
+
     const rows = sortFlights.map((flight, index) => {
         const airlineName = (flight && flight.aerolinea) ? String(flight.aerolinea) : 'Sin aerolínea';
         const logoCandidates = getAirlineLogoCandidates(airlineName) || [];
@@ -3453,7 +3478,12 @@ function renderItineraryAirlineDetail(config = {}) {
         };
         const positionDisplay = normalizePositionValue(flight?.posicion || flight?.posición || flight?.stand || '');
         const positionCell = positionDisplay ? escapeHtml(positionDisplay) : '-';
-        return `<tr class="animated-row" style="--delay:${delay}s; --airline-color:${rowColor};"><td><div class="airline-cell">${logoHtml}<span class="airline-name">${escapeHtml(airlineName)}</span></div></td><td>${cell(flight?.aeronave)}</td><td>${cell(flight?.vuelo_llegada)}</td><td>${cell(flight?.fecha_llegada)}</td><td>${cell(flight?.hora_llegada)}</td><td class="col-origen">${cell(flight?.origen)}</td><td class="text-center">${cell(flight?.banda_reclamo)}</td><td>${positionCell}</td><td>${cell(flight?.vuelo_salida)}</td><td>${cell(flight?.fecha_salida)}</td><td>${cell(flight?.hora_salida)}</td><td class="col-destino">${cell(flight?.destino)}</td></tr>`;
+        
+        const aircraft = flight?.equipo || flight?.aeronave;
+        const dateArr = formatDateDMY(flight?.fecha_llegada);
+        const dateDep = formatDateDMY(flight?.fecha_salida);
+
+        return `<tr class="animated-row" style="--delay:${delay}s; --airline-color:${rowColor};"><td><div class="airline-cell">${logoHtml}<span class="airline-name">${escapeHtml(airlineName)}</span></div></td><td>${cell(aircraft)}</td><td>${cell(flight?.vuelo_llegada)}</td><td>${cell(dateArr)}</td><td>${cell(flight?.hora_llegada)}</td><td class="col-origen">${cell(flight?.origen)}</td><td class="text-center">${cell(flight?.banda_reclamo)}</td><td>${positionCell}</td><td>${cell(flight?.vuelo_salida)}</td><td>${cell(dateDep)}</td><td>${cell(flight?.hora_salida)}</td><td class="col-destino">${cell(flight?.destino)}</td></tr>`;
     }).join('');
 
     const breakdownChips = [
@@ -3564,8 +3594,14 @@ function applyFilters() {
     if (selectedDate) {
         const selYMD = selectedDate; // yyyy-mm-dd from input
         const matchDate = (f) => {
-            const ymdArr = (() => { const d = parseDMY(f.fecha_llegada); return d ? toYMD(d) : null; })();
-            const ymdDep = (() => { const d = parseDMY(f.fecha_salida); return d ? toYMD(d) : null; })();
+            const ymdArr = (() => { 
+                if (f.fecha_llegada && /^\d{4}-\d{2}-\d{2}$/.test(f.fecha_llegada)) return f.fecha_llegada;
+                const d = parseDMY(f.fecha_llegada); return d ? toYMD(d) : null; 
+            })();
+            const ymdDep = (() => { 
+                if (f.fecha_salida && /^\d{4}-\d{2}-\d{2}$/.test(f.fecha_salida)) return f.fecha_salida;
+                const d = parseDMY(f.fecha_salida); return d ? toYMD(d) : null; 
+            })();
             if (hourType === 'arr') return ymdArr === selYMD;
             if (hourType === 'dep') return ymdDep === selYMD;
             return (ymdArr === selYMD) || (ymdDep === selYMD);
@@ -4239,6 +4275,15 @@ function displaySummaryTable(flights, options = {}) {
         return hours * 60 + minutes;
     };
 
+    const formatDateDMY = (isoDate) => {
+        if (!isoDate) return '-';
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(isoDate).trim());
+        if (match) {
+            return `${match[3]}-${match[2]}-${match[1]}`;
+        }
+        return isoDate;
+    };
+
     const buildFlightRows = (flightList) => {
         if (!Array.isArray(flightList) || flightList.length === 0) return '';
         const sortedFlights = [...flightList].sort((a, b) => {
@@ -4264,7 +4309,12 @@ function displaySummaryTable(flights, options = {}) {
             const delay = (idx * 0.06).toFixed(2);
             const positionDisplay = normalizePositionValue(flight?.posicion || flight?.posición || flight?.stand || '');
             const positionCell = positionDisplay ? escapeHtml(positionDisplay) : '-';
-            return `<tr class="animated-row" style="--delay:${delay}s; --airline-color:${rowColor};"><td><div class="airline-cell">${rowLogoHtml}<span class="airline-name">${escapeHtml(airlineName)}</span></div></td><td>${cell(flight?.aeronave)}</td><td>${cell(flight?.vuelo_llegada)}</td><td>${cell(flight?.fecha_llegada)}</td><td>${cell(flight?.hora_llegada)}</td><td class="col-origen">${cell(flight?.origen)}</td><td class="text-center">${cell(flight?.banda_reclamo)}</td><td>${positionCell}</td><td>${cell(flight?.vuelo_salida)}</td><td>${cell(flight?.fecha_salida)}</td><td>${cell(flight?.hora_salida)}</td><td class="col-destino">${cell(flight?.destino)}</td></tr>`;
+            
+            const aircraft = flight?.equipo || flight?.aeronave;
+            const dateArr = formatDateDMY(flight?.fecha_llegada);
+            const dateDep = formatDateDMY(flight?.fecha_salida);
+
+            return `<tr class="animated-row" style="--delay:${delay}s; --airline-color:${rowColor};"><td><div class="airline-cell">${rowLogoHtml}<span class="airline-name">${escapeHtml(airlineName)}</span></div></td><td>${cell(aircraft)}</td><td>${cell(flight?.vuelo_llegada)}</td><td>${cell(dateArr)}</td><td>${cell(flight?.hora_llegada)}</td><td class="col-origen">${cell(flight?.origen)}</td><td class="text-center">${cell(flight?.banda_reclamo)}</td><td>${positionCell}</td><td>${cell(flight?.vuelo_salida)}</td><td>${cell(dateDep)}</td><td>${cell(flight?.hora_salida)}</td><td class="col-destino">${cell(flight?.destino)}</td></tr>`;
         }).join('');
     };
 
@@ -4850,6 +4900,15 @@ function displayPassengerTable(flights) {
         return raw ? escapeHTML(raw) : '-';
     };
 
+    const formatDateDMY = (isoDate) => {
+        if (!isoDate) return '-';
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(isoDate).trim());
+        if (match) {
+            return `${match[3]}-${match[2]}-${match[1]}`;
+        }
+        return isoDate;
+    };
+
     const rowsHtml = flightsList.map((flight, index) => {
         const airlineNameRaw = (flight?.aerolinea || '').toString().trim();
         const displayAirline = airlineNameRaw || 'Sin aerolínea';
@@ -4866,17 +4925,22 @@ function displayPassengerTable(flights) {
             ? `<img class="airline-logo ${sizeClass}" src="${escapeHTML(logoPath)}" alt="Logo ${escapeHTML(displayAirline)}" data-cands="${escapeHTML(dataCands)}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">`
             : '';
         const delay = (index * 0.05).toFixed(2);
+        
+        const aircraft = flight?.equipo || flight?.aeronave;
+        const dateArr = formatDateDMY(flight?.fecha_llegada);
+        const dateDep = formatDateDMY(flight?.fecha_salida);
+
         return `<tr class="animated-row" style="--delay:${delay}s; --airline-color:${rowColor}; --airline-row-hover:${rowHover}; --airline-row-hover-dark:${rowHoverDark};">
             <td><div class="airline-cell${logoHtml ? ' has-logo' : ''}">${logoHtml}<span class="airline-dot" style="background:${rowColor};"></span><span class="airline-name">${escapeHTML(displayAirline)}</span></div></td>
-            <td>${formatCell(flight?.aeronave)}</td>
+            <td>${formatCell(aircraft)}</td>
             <td>${formatCell(flight?.vuelo_llegada)}</td>
-            <td>${formatCell(flight?.fecha_llegada)}</td>
+            <td>${formatCell(dateArr)}</td>
             <td>${formatCell(flight?.hora_llegada)}</td>
             <td class="col-origen">${formatCell(flight?.origen)}</td>
             <td class="text-center">${formatCell(flight?.banda_reclamo)}</td>
             <td>${positionDisplay ? escapeHTML(positionDisplay) : '-'}</td>
             <td>${formatCell(flight?.vuelo_salida)}</td>
-            <td>${formatCell(flight?.fecha_salida)}</td>
+            <td>${formatCell(dateDep)}</td>
             <td>${formatCell(flight?.hora_salida)}</td>
             <td class="col-destino">${formatCell(flight?.destino)}</td>
         </tr>`;
@@ -4967,6 +5031,15 @@ function displayCargoTable(flights) {
         return raw ? escapeHTML(raw) : '-';
     };
 
+    const formatDateDMY = (isoDate) => {
+        if (!isoDate) return '-';
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(isoDate).trim());
+        if (match) {
+            return `${match[3]}-${match[2]}-${match[1]}`;
+        }
+        return isoDate;
+    };
+
     const rowsHtml = flightsList.map((flight, index) => {
         const airlineNameRaw = (flight?.aerolinea || '').toString().trim();
         const displayAirline = airlineNameRaw || 'Sin aerolínea';
@@ -4983,16 +5056,21 @@ function displayCargoTable(flights) {
             ? `<img class="airline-logo ${sizeClass}" src="${escapeHTML(logoPath)}" alt="Logo ${escapeHTML(displayAirline)}" data-cands="${escapeHTML(dataCands)}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">`
             : '';
         const delay = (index * 0.05).toFixed(2);
+        
+        const aircraft = flight?.equipo || flight?.aeronave;
+        const dateArr = formatDateDMY(flight?.fecha_llegada);
+        const dateDep = formatDateDMY(flight?.fecha_salida);
+
         return `<tr class="animated-row" style="--delay:${delay}s; --airline-color:${rowColor}; --airline-row-hover:${rowHover}; --airline-row-hover-dark:${rowHoverDark};">
             <td><div class="airline-cell${logoHtml ? ' has-logo' : ''}">${logoHtml}<span class="airline-dot" style="background:${rowColor};"></span><span class="airline-name">${escapeHTML(displayAirline)}</span></div></td>
-            <td>${formatCell(flight?.aeronave)}</td>
+            <td>${formatCell(aircraft)}</td>
             <td>${formatCell(flight?.vuelo_llegada)}</td>
-            <td>${formatCell(flight?.fecha_llegada)}</td>
+            <td>${formatCell(dateArr)}</td>
             <td>${formatCell(flight?.hora_llegada)}</td>
             <td class="col-origen">${formatCell(flight?.origen)}</td>
             <td>${positionDisplay ? escapeHTML(positionDisplay) : '-'}</td>
             <td>${formatCell(flight?.vuelo_salida)}</td>
-            <td>${formatCell(flight?.fecha_salida)}</td>
+            <td>${formatCell(dateDep)}</td>
             <td>${formatCell(flight?.hora_salida)}</td>
             <td class="col-destino">${formatCell(flight?.destino)}</td>
         </tr>`;
@@ -8660,19 +8738,31 @@ function computeDailyStats() {
         const today = new Date();
         const y = today.getFullYear(), m = String(today.getMonth()+1).padStart(2,'0'), d = String(today.getDate()).padStart(2,'0');
         const dmy = `${d}/${m}/${y}`;
+        const iso = `${y}-${m}-${d}`;
+
         const isPax = f => (String(f.categoria||'').toLowerCase()==='pasajeros');
         const isCargo = f => (String(f.categoria||'').toLowerCase()==='carga');
         let c = { ayer: 0, hoy: 0, trend: '=' }, k={ ayer:0, hoy:0, trend:'=' }, g={ ayer:0, hoy:0, trend:'=' };
-        const countFor = (ymd, pred) => allFlightsData.filter(f => (f.fecha_llegada===ymd || f.fecha_salida===ymd) && pred(f)).length;
-        c.hoy = countFor(dmy, isPax); k.hoy = countFor(dmy, isCargo);
+        
+        const matchDate = (f, targetDMY, targetISO) => {
+            const fArr = f.fecha_llegada;
+            const fDep = f.fecha_salida;
+            return (fArr === targetDMY || fArr === targetISO || fDep === targetDMY || fDep === targetISO);
+        };
+
+        const countFor = (targetDMY, targetISO, pred) => allFlightsData.filter(f => matchDate(f, targetDMY, targetISO) && pred(f)).length;
+        
+        c.hoy = countFor(dmy, iso, isPax); k.hoy = countFor(dmy, iso, isCargo);
         // Ayer
         const ay = new Date(today); ay.setDate(today.getDate()-1);
         const y2 = ay.getFullYear(), m2 = String(ay.getMonth()+1).padStart(2,'0'), d2 = String(ay.getDate()).padStart(2,'0');
         const dmy2 = `${d2}/${m2}/${y2}`;
-        c.ayer = countFor(dmy2, isPax); k.ayer = countFor(dmy2, isCargo);
+        const iso2 = `${y2}-${m2}-${d2}`;
+
+        c.ayer = countFor(dmy2, iso2, isPax); k.ayer = countFor(dmy2, iso2, isCargo);
         // General: lo que no cae en pax/carga
         const isGen = f => !isPax(f) && !isCargo(f);
-        g.hoy = countFor(dmy, isGen); g.ayer = countFor(dmy2, isGen);
+        g.hoy = countFor(dmy, iso, isGen); g.ayer = countFor(dmy2, iso2, isGen);
         const trend = (h,a) => h>a ? '↑' : h<a ? '↓' : '=';
         c.trend = trend(c.hoy, c.ayer); k.trend = trend(k.hoy, k.ayer); g.trend = trend(g.hoy, g.ayer);
         const set = (id,v) => { const el = document.getElementById(id); if (el) el.textContent = v; };

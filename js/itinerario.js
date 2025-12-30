@@ -54,8 +54,37 @@
   function parseDMY(s){ const m = /^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/.exec(s||''); if(!m) return null; return new Date(parseInt(m[3],10), parseInt(m[2],10)-1, parseInt(m[1],10)); }
   function hourFromHHMM(s){ const m = /^(\d{1,2}):(\d{2})$/.exec(s||''); return m ? Math.min(23, Math.max(0, parseInt(m[1],10))) : null; }
   function norm(str){ return (str||'').toString().trim().toLowerCase(); }
+  function toIsoDate(str) {
+    if (!str) return '';
+    const s = str.toString().trim();
+    // Already YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    // DD/MM/YYYY
+    const m = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/.exec(s);
+    if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    return s;
+  }
   function isPassenger(f){ if (norm(f.categoria) === 'pasajeros' || norm(f.categoria)==='comercial') return true; if (norm(f.categoria) === 'carga') return false; const a = norm(f.aerolinea||f.aerolínea||f.airline); if (!a) return true; if (cargoAirlines.has(a)) return false; if (passengerAirlines.has(a)) return true; if (a.includes('cargo')) return false; return true; }
-  async function loadItinerary() {
+  async function loadItinerary(date) {
+    // Modo Base de Datos (Supabase)
+    if (window.supabaseClient) {
+      const targetDate = date || toYMD(new Date());
+      try {
+        const { data, error } = await window.supabaseClient
+          .from('flights')
+          .select('*')
+          .or(`fecha_llegada.eq.${targetDate},fecha_salida.eq.${targetDate}`);
+        
+        if (error) throw error;
+        return data || [];
+      } catch (e) {
+        console.error('Error cargando itinerario desde BD:', e);
+        // En caso de error, podríamos intentar el fallback o retornar vacío
+        return [];
+      }
+    }
+
+    // Modo Fallback (JSON local)
     if (itData) return itData;
     try {
       const res = await fetch('data/itinerario.json', { cache:'no-store' });
@@ -76,11 +105,9 @@
       return [];
     }
   }
-  function pickBestDate(data){ const todayYMD = toYMD(new Date()); const todayDMY = ymdToDMY(todayYMD); const hasToday = data.some(f => norm(f.fecha_llegada)===norm(todayDMY) || norm(f.fecha_salida)===norm(todayDMY)); if (hasToday) return todayYMD; const freq = new Map(); for (const f of data){ const d1 = norm(f.fecha_llegada); const d2 = norm(f.fecha_salida); if (d1) freq.set(d1, (freq.get(d1)||0)+1); if (d2) freq.set(d2, (freq.get(d2)||0)+1); } let topDMY = null, topN = -1; for (const [d, n] of freq) { if (n>topN){ topN=n; topDMY=d; } } if (topDMY){ const dt = parseDMY(topDMY); if (dt) return toYMD(dt); } return todayYMD; }
-  function aggregateDay(data, ymd){ const dmy = ymdToDMY(ymd); const paxArr = Array(24).fill(0), paxDep = Array(24).fill(0); const carArr = Array(24).fill(0), carDep = Array(24).fill(0); for (const f of data){ if (norm(f.fecha_llegada) === norm(dmy)){ const h = hourFromHHMM(f.hora_llegada); if (h!=null){ if (isPassenger(f)) paxArr[h]++; else carArr[h]++; } } if (norm(f.fecha_salida) === norm(dmy)){ const h2 = hourFromHHMM(f.hora_salida); if (h2!=null){ if (isPassenger(f)) paxDep[h2]++; else carDep[h2]++; } } } return { paxArr, paxDep, carArr, carDep }; }
+  function pickBestDate(data){ const todayYMD = toYMD(new Date()); const hasToday = data.some(f => toIsoDate(f.fecha_llegada)===todayYMD || toIsoDate(f.fecha_salida)===todayYMD); if (hasToday) return todayYMD; const freq = new Map(); for (const f of data){ const d1 = toIsoDate(f.fecha_llegada); const d2 = toIsoDate(f.fecha_salida); if (d1) freq.set(d1, (freq.get(d1)||0)+1); if (d2) freq.set(d2, (freq.get(d2)||0)+1); } let topYMD = null, topN = -1; for (const [d, n] of freq) { if (n>topN){ topN=n; topYMD=d; } } return topYMD || todayYMD; }
+  function aggregateDay(data, ymd){ const paxArr = Array(24).fill(0), paxDep = Array(24).fill(0); const carArr = Array(24).fill(0), carDep = Array(24).fill(0); for (const f of data){ if (toIsoDate(f.fecha_llegada) === ymd){ const h = hourFromHHMM(f.hora_llegada); if (h!=null){ if (isPassenger(f)) paxArr[h]++; else carArr[h]++; } } if (toIsoDate(f.fecha_salida) === ymd){ const h2 = hourFromHHMM(f.hora_salida); if (h2!=null){ if (isPassenger(f)) paxDep[h2]++; else carDep[h2]++; } } } return { paxArr, paxDep, carArr, carDep }; }
   function computeItineraryInsights(data, ymd, scope){
-    const dmy = ymdToDMY(ymd);
-    const dmyNorm = norm(dmy);
     const isPassengerScope = scope === SCOPE_PAX;
     const totals = { operations:0, arrivals:0, departures:0, airlines:0 };
     const hourHistogram = Array(24).fill(0);
@@ -107,8 +134,8 @@
       const isPassengerFlight = isPassenger(flight);
       if (isPassengerFlight !== isPassengerScope) continue;
       const airlineStats = ensureAirline(flight.aerolinea || flight['aerolínea'] || flight.airline);
-      const arrivalMatch = norm(flight.fecha_llegada) === dmyNorm;
-      const departureMatch = norm(flight.fecha_salida) === dmyNorm;
+      const arrivalMatch = toIsoDate(flight.fecha_llegada) === ymd;
+      const departureMatch = toIsoDate(flight.fecha_salida) === ymd;
       if (arrivalMatch){
         totals.operations++; totals.arrivals++; airlineStats.total++; airlineStats.arrivals++;
         const h = hourFromHHMM(flight.hora_llegada);
@@ -538,14 +565,33 @@
     }
   }
   async function renderItineraryCharts() {
-    const base = await loadItinerary();
     // Sincronizar con filtros activos del Inicio si está habilitado (por defecto sí)
     const sync = (window.syncItineraryFiltersToCharts !== false);
     const fState = window.currentItineraryFilterState || {};
     const preHour = window.currentItineraryPreHour || {};
+
+    // Determinar fecha objetivo
+    let targetDate = selectedDate || fState.selectedDate;
+    if (!targetDate) {
+      // Si no hay fecha seleccionada, usar hoy
+      targetDate = toYMD(new Date());
+    }
+
+    // Cargar datos para esa fecha (o todo si es JSON legacy)
+    const base = await loadItinerary(targetDate);
+    
     let data = base;
-    // Determinar fecha
-    if (!selectedDate) selectedDate = (fState.selectedDate || pickBestDate(base));
+    // Determinar fecha final (si era legacy JSON, pickBestDate podría cambiarla)
+    if (!selectedDate) {
+        // Si estamos en modo DB, targetDate es la fecha.
+        // Si estamos en modo JSON, pickBestDate(base) podría ser mejor.
+        if (window.supabaseClient) {
+            selectedDate = targetDate;
+        } else {
+            selectedDate = (fState.selectedDate || pickBestDate(base));
+        }
+    }
+    
     // UI date control
     const input = document.getElementById('it-day-input');
     if (input && input.value !== selectedDate) input.value = selectedDate;
