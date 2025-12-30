@@ -11759,7 +11759,7 @@ function normalizeParteOperacionesSummary(raw){
         for (const [dateKey, value] of entries){
             const operaciones = Array.isArray(value?.operaciones) ? value.operaciones.map(sanitizeParteOperacionesItem).filter(Boolean) : [];
             const totalGeneral = Number(value?.total_general) || 0;
-            byDate[dateKey] = { operaciones, total_general: totalGeneral };
+            byDate[dateKey] = { operaciones, total_general: totalGeneral, pdf_url: value?.pdf_url };
         }
         const dates = entries.map(([date]) => date);
         const availableRange = dates.length ? { inicio: dates[0], fin: dates[dates.length - 1] } : null;
@@ -11923,14 +11923,8 @@ function updateParteOperacionesPdfViewer(metadata = {}){
     let finalPdfPath = pdfUrl;
     let finalFilename = `parte_operaciones_${isoDate}`;
 
-    if (!finalPdfPath) {
-        const filename = formatParteOperacionesPdfFilename(isoDate);
-        const pdfPath = buildParteOperacionesPdfPath(isoDate);
-        if (filename && pdfPath) {
-            finalPdfPath = pdfPath;
-            finalFilename = filename;
-        }
-    }
+    // Removed local file fallback as per user request to use only DB data
+
 
     if (!finalPdfPath){
         placeholder.classList.remove('d-none');
@@ -12559,7 +12553,7 @@ function resolveParteOperacionesSubtotal(item){
 function classifyParteOperacionesAnnualType(value){
     const normalized = normalizeParteOperacionesType(value);
     if (!normalized) return 'otros';
-    if (normalized.includes('pasaj')) return 'comercial';
+    if (normalized.includes('pasaj') || normalized.includes('comercial')) return 'comercial';
     if (normalized.includes('carga')) return 'carga';
     if (normalized.includes('general')) return 'general';
     return 'otros';

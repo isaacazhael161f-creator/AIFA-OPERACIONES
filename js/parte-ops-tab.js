@@ -3,29 +3,20 @@
 document.addEventListener('DOMContentLoaded', () => {
     const tabParteOps = document.getElementById('tab-parte-ops');
     const btnRefresh = document.getElementById('btn-refresh-parte-ops');
+    const btnNew = document.getElementById('btn-new-parte-ops');
     const dateFilter = document.getElementById('filter-parte-ops-date');
     const monthFilter = document.getElementById('filter-parte-ops-month');
     const tbody = document.getElementById('tbody-parte-ops');
     
-    // Modal elements
-    const uploadModalEl = document.getElementById('pdfUploadModal');
-    const dropZone = document.getElementById('drop-zone');
-    const btnBrowseFiles = document.getElementById('btn-browse-files');
-    const modalPdfInput = document.getElementById('modal-pdf-input');
-    const fileInfo = document.getElementById('file-info');
-    const selectedFilename = document.getElementById('selected-filename');
-    const btnClearFile = document.getElementById('btn-clear-file');
-    const btnConfirmUpload = document.getElementById('btn-confirm-upload');
-    const uploadModalDateDisplay = document.getElementById('upload-modal-date-display');
+    // Edit Modal elements
+    const editModalEl = document.getElementById('editParteOpsModal');
+    const editForm = document.getElementById('form-parte-ops');
+    const btnSaveParteOps = document.getElementById('btn-save-parte-ops');
     
-    let uploadModal = null;
-    if (uploadModalEl) {
-        uploadModal = new bootstrap.Modal(uploadModalEl);
+    let editModal = null;
+    if (editModalEl) {
+        editModal = new bootstrap.Modal(editModalEl);
     }
-
-    let currentUploadId = null;
-    let currentUploadDate = null;
-    let selectedFile = null;
 
     const SPANISH_MONTHS = [
         'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -37,140 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const [year, month, day] = dateStr.split('-');
         const monthName = SPANISH_MONTHS[parseInt(month, 10) - 1];
         return `${day} de ${monthName} ${year}`;
-    }
-
-    // Reset modal state
-    function resetUploadModal() {
-        selectedFile = null;
-        if (modalPdfInput) modalPdfInput.value = '';
-        if (fileInfo) fileInfo.classList.add('d-none');
-        if (selectedFilename) selectedFilename.textContent = '';
-        if (btnConfirmUpload) btnConfirmUpload.disabled = true;
-        if (dropZone) dropZone.classList.remove('dragover');
-    }
-
-    // Handle file selection
-    function handleFileSelect(file) {
-        if (file && file.type === 'application/pdf') {
-            selectedFile = file;
-            if (selectedFilename) selectedFilename.textContent = file.name;
-            if (fileInfo) fileInfo.classList.remove('d-none');
-            if (btnConfirmUpload) btnConfirmUpload.disabled = false;
-        } else {
-            alert('Por favor selecciona un archivo PDF válido.');
-            resetUploadModal();
-        }
-    }
-
-    // Drag and Drop Events
-    if (dropZone) {
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, preventDefaults, false);
-        });
-
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, highlight, false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, unhighlight, false);
-        });
-
-        function highlight(e) {
-            dropZone.classList.add('dragover');
-        }
-
-        function unhighlight(e) {
-            dropZone.classList.remove('dragover');
-        }
-
-        dropZone.addEventListener('drop', handleDrop, false);
-
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            if (files.length > 0) {
-                handleFileSelect(files[0]);
-            }
-        }
-    }
-
-    if (btnBrowseFiles && modalPdfInput) {
-        btnBrowseFiles.addEventListener('click', () => modalPdfInput.click());
-    }
-
-    if (modalPdfInput) {
-        modalPdfInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleFileSelect(e.target.files[0]);
-            }
-        });
-    }
-
-    if (btnClearFile) {
-        btnClearFile.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent triggering drop zone click if nested
-            resetUploadModal();
-        });
-    }
-
-    if (btnConfirmUpload) {
-        btnConfirmUpload.addEventListener('click', async () => {
-            if (!selectedFile || !currentUploadId) return;
-
-            const fileExt = selectedFile.name.split('.').pop();
-            const fileName = `parte_operaciones_${currentUploadDate}_${Date.now()}.${fileExt}`;
-            const filePath = `${fileName}`;
-
-            // Show loading state
-            const originalBtnText = btnConfirmUpload.innerHTML;
-            btnConfirmUpload.disabled = true;
-            btnConfirmUpload.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Subiendo...';
-
-            try {
-                // 1. Upload to Storage
-                const { data: uploadData, error: uploadError } = await window.supabaseClient
-                    .storage
-                    .from('parte-operaciones')
-                    .upload(filePath, selectedFile);
-
-                if (uploadError) throw uploadError;
-
-                // 2. Get Public URL
-                const { data: { publicUrl } } = window.supabaseClient
-                    .storage
-                    .from('parte-operaciones')
-                    .getPublicUrl(filePath);
-
-                // 3. Update Record
-                const { error: updateError } = await window.supabaseClient
-                    .from('parte_operations')
-                    .update({ pdf_url: publicUrl })
-                    .eq('id', currentUploadId);
-
-                if (updateError) throw updateError;
-
-                // Success
-                if (uploadModal) uploadModal.hide();
-                alert('PDF subido correctamente');
-                loadParteOpsData();
-
-            } catch (error) {
-                console.error('Error uploading PDF:', error);
-                alert('Error al subir el PDF: ' + error.message);
-            } finally {
-                btnConfirmUpload.innerHTML = originalBtnText;
-                btnConfirmUpload.disabled = false; // Will be disabled by resetUploadModal next time
-                currentUploadId = null;
-                currentUploadDate = null;
-                selectedFile = null;
-            }
-        });
     }
 
     async function loadParteOpsData() {
@@ -231,70 +88,57 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="btn btn-sm btn-outline-primary btn-preview-pdf" data-url="${row.pdf_url}" title="Ver PDF">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-secondary btn-upload-pdf" data-id="${row.id}" data-date="${row.fecha}" title="Reemplazar PDF">
-                            <i class="fas fa-upload"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger btn-delete-pdf" data-id="${row.id}" title="Eliminar PDF">
-                            <i class="fas fa-trash"></i>
+                        <button class="btn btn-sm btn-outline-secondary btn-edit-row" data-id="${row.id}" title="Editar Datos y PDF">
+                            <i class="fas fa-edit"></i>
                         </button>
                     </div>
                 `;
             } else {
                 pdfActionHtml = `
-                    <button class="btn btn-sm btn-outline-primary btn-upload-pdf" data-id="${row.id}" data-date="${row.fecha}">
-                        <i class="fas fa-plus"></i> Adjuntar PDF
+                    <button class="btn btn-sm btn-outline-primary btn-edit-row" data-id="${row.id}" title="Editar Datos y PDF">
+                        <i class="fas fa-edit"></i> Editar / Adjuntar
                     </button>
                 `;
             }
 
             tr.innerHTML = `
-                <td class="text-center font-monospace text-nowrap">${formatDate(row.fecha)}</td>
-                <td class="text-center text-primary">
-                    <div class="d-flex justify-content-center gap-3">
-                        <span><i class="fas fa-plane-arrival small me-1"></i>${row.comercial_llegada}</span>
-                        <span class="text-muted">|</span>
-                        <span><i class="fas fa-plane-departure small me-1"></i>${row.comercial_salida}</span>
+                <td class="text-center font-monospace text-nowrap align-middle">${formatDate(row.fecha)}</td>
+                <td class="text-center align-middle">
+                    <div class="d-flex justify-content-center align-items-center gap-3 text-primary">
+                        <span class="fw-semibold"><i class="fas fa-plane-arrival small me-1 opacity-50"></i>${row.comercial_llegada}</span>
+                        <span class="text-muted opacity-25">|</span>
+                        <span class="fw-semibold"><i class="fas fa-plane-departure small me-1 opacity-50"></i>${row.comercial_salida}</span>
                     </div>
                 </td>
-                <td class="text-center text-warning">
-                    <div class="d-flex justify-content-center gap-3">
-                        <span><i class="fas fa-plane-arrival small me-1"></i>${row.carga_llegada}</span>
-                        <span class="text-muted">|</span>
-                        <span><i class="fas fa-plane-departure small me-1"></i>${row.carga_salida}</span>
+                <td class="text-center align-middle">
+                    <div class="d-flex justify-content-center align-items-center gap-3 text-warning">
+                        <span class="fw-semibold"><i class="fas fa-plane-arrival small me-1 opacity-50"></i>${row.carga_llegada}</span>
+                        <span class="text-muted opacity-25">|</span>
+                        <span class="fw-semibold"><i class="fas fa-plane-departure small me-1 opacity-50"></i>${row.carga_salida}</span>
                     </div>
                 </td>
-                <td class="text-center text-success">
-                    <div class="d-flex justify-content-center gap-3">
-                        <span><i class="fas fa-plane-arrival small me-1"></i>${row.general_llegada}</span>
-                        <span class="text-muted">|</span>
-                        <span><i class="fas fa-plane-departure small me-1"></i>${row.general_salida}</span>
+                <td class="text-center align-middle">
+                    <div class="d-flex justify-content-center align-items-center gap-3 text-success">
+                        <span class="fw-semibold"><i class="fas fa-plane-arrival small me-1 opacity-50"></i>${row.general_llegada}</span>
+                        <span class="text-muted opacity-25">|</span>
+                        <span class="fw-semibold"><i class="fas fa-plane-departure small me-1 opacity-50"></i>${row.general_salida}</span>
                     </div>
                 </td>
-                <td class="text-center fw-bold">${row.total_general}</td>
-                <td class="text-center">${pdfActionHtml}</td>
+                <td class="text-center align-middle">
+                    <span class="badge bg-light text-dark border fs-6">${row.total_general}</span>
+                </td>
+                <td class="text-center align-middle">${pdfActionHtml}</td>
             `;
             tbody.appendChild(tr);
         });
 
-        // Add event listeners to new buttons
-        document.querySelectorAll('.btn-upload-pdf').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const btnEl = e.currentTarget;
-                currentUploadId = btnEl.getAttribute('data-id');
-                currentUploadDate = btnEl.getAttribute('data-date');
-                
-                // Update date display
-                if (uploadModalDateDisplay) {
-                    uploadModalDateDisplay.textContent = formatDate(currentUploadDate);
-                }
-
-                // Open Modal
-                resetUploadModal();
-                if (uploadModal) {
-                    uploadModal.show();
-                } else {
-                    // Fallback if modal not initialized
-                    console.error('Upload modal not initialized');
+        // Edit Row Event
+        document.querySelectorAll('.btn-edit-row').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = e.currentTarget.getAttribute('data-id');
+                const rowData = data.find(r => r.id == id);
+                if (rowData) {
+                    openEditModal(rowData);
                 }
             });
         });
@@ -315,28 +159,151 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         });
+    }
 
-        // Delete PDF
-        document.querySelectorAll('.btn-delete-pdf').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                if (!confirm('¿Estás seguro de que deseas eliminar el PDF asociado?')) return;
-                
-                const id = e.currentTarget.getAttribute('data-id');
-                try {
-                    const { error } = await window.supabaseClient
-                        .from('parte_operations')
-                        .update({ pdf_url: null })
-                        .eq('id', id);
+    function openEditModal(data) {
+        if (!editModal) return;
+        
+        const isNew = !data;
+        const modalTitle = document.getElementById('editParteOpsModalLabel');
+        if (modalTitle) modalTitle.textContent = isNew ? 'Nuevo Parte de Operaciones' : 'Editar Parte de Operaciones';
+
+        document.getElementById('edit-parte-ops-id').value = isNew ? '' : data.id;
+        
+        const dateInput = document.getElementById('edit-parte-ops-date');
+        dateInput.value = isNew ? new Date().toISOString().split('T')[0] : data.fecha;
+        dateInput.readOnly = !isNew; // Allow editing date only for new records
+
+        document.getElementById('edit-comercial-llegada').value = isNew ? 0 : data.comercial_llegada;
+        document.getElementById('edit-comercial-salida').value = isNew ? 0 : data.comercial_salida;
+        
+        document.getElementById('edit-carga-llegada').value = isNew ? 0 : data.carga_llegada;
+        document.getElementById('edit-carga-salida').value = isNew ? 0 : data.carga_salida;
+        
+        document.getElementById('edit-general-llegada').value = isNew ? 0 : data.general_llegada;
+        document.getElementById('edit-general-salida').value = isNew ? 0 : data.general_salida;
+        
+        const pdfInfo = document.getElementById('current-pdf-info');
+        const fileInput = document.getElementById('edit-parte-ops-pdf');
+        fileInput.dataset.deletePdf = 'false'; // Reset delete flag
+
+        if (!isNew && data.pdf_url) {
+            pdfInfo.innerHTML = `
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-success"><i class="fas fa-check-circle"></i> PDF disponible</span>
+                    <a href="${data.pdf_url}" target="_blank" class="btn btn-sm btn-outline-primary">Ver</a>
+                    <button type="button" class="btn btn-sm btn-outline-danger" id="btn-delete-pdf-modal">Eliminar</button>
+                </div>
+            `;
+            
+            // Add listener to the dynamically created button
+            const deleteBtn = document.getElementById('btn-delete-pdf-modal');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', () => {
+                    if(confirm('¿Estás seguro de que quieres eliminar el PDF de este registro? (Se aplicará al guardar)')) {
+                        fileInput.dataset.deletePdf = 'true';
+                        pdfInfo.innerHTML = '<span class="text-danger"><i class="fas fa-trash-alt"></i> PDF marcado para eliminar al guardar.</span>';
+                    }
+                });
+            }
+        } else {
+            pdfInfo.innerHTML = '<span class="text-muted">No hay PDF adjunto actualmente.</span>';
+        }
+        
+        fileInput.value = ''; // Reset file input
+        
+        editModal.show();
+    }
+
+    if (btnSaveParteOps) {
+        btnSaveParteOps.addEventListener('click', async () => {
+            const id = document.getElementById('edit-parte-ops-id').value;
+            const fecha = document.getElementById('edit-parte-ops-date').value;
+            
+            const comArr = parseInt(document.getElementById('edit-comercial-llegada').value) || 0;
+            const comDep = parseInt(document.getElementById('edit-comercial-salida').value) || 0;
+            
+            const carArr = parseInt(document.getElementById('edit-carga-llegada').value) || 0;
+            const carDep = parseInt(document.getElementById('edit-carga-salida').value) || 0;
+            
+            const genArr = parseInt(document.getElementById('edit-general-llegada').value) || 0;
+            const genDep = parseInt(document.getElementById('edit-general-salida').value) || 0;
+            
+            const total = comArr + comDep + carArr + carDep + genArr + genDep;
+            
+            const fileInput = document.getElementById('edit-parte-ops-pdf');
+            const file = fileInput.files[0];
+            const deletePdf = fileInput.dataset.deletePdf === 'true';
+
+            // Show loading
+            const originalBtnText = btnSaveParteOps.innerHTML;
+            btnSaveParteOps.disabled = true;
+            btnSaveParteOps.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...';
+
+            try {
+                let updateData = {
+                    comercial_llegada: comArr,
+                    comercial_salida: comDep,
+                    carga_llegada: carArr,
+                    carga_salida: carDep,
+                    general_llegada: genArr,
+                    general_salida: genDep,
+                    total_general: total
+                };
+
+                // Handle PDF Upload if selected
+                if (file) {
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `parte_operaciones_${fecha}_${Date.now()}.${fileExt}`;
+                    const filePath = `${fileName}`;
+
+                    const { data: uploadData, error: uploadError } = await window.supabaseClient
+                        .storage
+                        .from('parte-operaciones')
+                        .upload(filePath, file);
+
+                    if (uploadError) throw uploadError;
+
+                    const { data: { publicUrl } } = window.supabaseClient
+                        .storage
+                        .from('parte-operaciones')
+                        .getPublicUrl(filePath);
                     
-                    if (error) throw error;
-                    
-                    alert('PDF eliminado correctamente');
-                    loadParteOpsData();
-                } catch (err) {
-                    console.error('Error deleting PDF:', err);
-                    alert('Error al eliminar el PDF: ' + err.message);
+                    updateData.pdf_url = publicUrl;
+                } else if (deletePdf) {
+                    updateData.pdf_url = null;
                 }
-            });
+
+                let error;
+                if (id) {
+                    // Update Record
+                    const { error: updateError } = await window.supabaseClient
+                        .from('parte_operations')
+                        .update(updateData)
+                        .eq('id', id);
+                    error = updateError;
+                } else {
+                    // Create Record
+                    updateData.fecha = fecha; // Add date for new record
+                    const { error: insertError } = await window.supabaseClient
+                        .from('parte_operations')
+                        .insert([updateData]);
+                    error = insertError;
+                }
+
+                if (error) throw error;
+
+                alert(id ? 'Registro actualizado correctamente' : 'Registro creado correctamente');
+                editModal.hide();
+                loadParteOpsData();
+
+            } catch (error) {
+                console.error('Error saving parte_operations:', error);
+                alert('Error al guardar: ' + error.message);
+            } finally {
+                btnSaveParteOps.innerHTML = originalBtnText;
+                btnSaveParteOps.disabled = false;
+            }
         });
     }
 
@@ -346,6 +313,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnRefresh) {
         btnRefresh.addEventListener('click', loadParteOpsData);
+    }
+
+    if (btnNew) {
+        btnNew.addEventListener('click', () => openEditModal(null));
     }
 
     if (dateFilter) {

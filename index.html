@@ -308,19 +308,31 @@
                                                 <option value="12">Diciembre</option>
                                             </select>
                                         </div>
-                                        <button class="btn btn-primary btn-sm" id="btn-refresh-parte-ops"><i class="fas fa-sync-alt"></i> Actualizar</button>
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-primary btn-sm" id="btn-new-parte-ops"><i class="fas fa-plus"></i> Nuevo Registro</button>
+                                            <button class="btn btn-outline-secondary btn-sm" id="btn-refresh-parte-ops"><i class="fas fa-sync-alt"></i> Actualizar</button>
+                                        </div>
                                         <input type="file" id="parte-ops-pdf-input" accept="application/pdf" style="display: none;">
                                     </div>
                                     <div class="table-responsive">
                                         <table class="table table-striped table-hover" id="table-parte-ops">
                                             <thead>
                                                 <tr>
-                                                    <th class="text-center">Fecha</th>
-                                                    <th class="text-center text-primary">Comercial <br><small><i class="fas fa-plane-arrival"></i> Llegada / <i class="fas fa-plane-departure"></i> Salida</small></th>
-                                                    <th class="text-center text-warning">Carga <br><small><i class="fas fa-plane-arrival"></i> Llegada / <i class="fas fa-plane-departure"></i> Salida</small></th>
-                                                    <th class="text-center text-success">General <br><small><i class="fas fa-plane-arrival"></i> Llegada / <i class="fas fa-plane-departure"></i> Salida</small></th>
-                                                    <th class="text-center fw-bold">Total General</th>
-                                                    <th class="text-center">Reporte PDF</th>
+                                                    <th class="text-center align-middle">Fecha</th>
+                                                    <th class="text-center text-primary">
+                                                        <div class="mb-1"><i class="fas fa-user-friends fa-lg"></i></div>
+                                                        Comercial <br><small class="text-muted fw-normal"><i class="fas fa-plane-arrival"></i> Arr / <i class="fas fa-plane-departure"></i> Dep</small>
+                                                    </th>
+                                                    <th class="text-center text-warning">
+                                                        <div class="mb-1"><i class="fas fa-box-open fa-lg"></i></div>
+                                                        Carga <br><small class="text-muted fw-normal"><i class="fas fa-plane-arrival"></i> Arr / <i class="fas fa-plane-departure"></i> Dep</small>
+                                                    </th>
+                                                    <th class="text-center text-success">
+                                                        <div class="mb-1"><i class="fas fa-paper-plane fa-lg"></i></div>
+                                                        General <br><small class="text-muted fw-normal"><i class="fas fa-plane-arrival"></i> Arr / <i class="fas fa-plane-departure"></i> Dep</small>
+                                                    </th>
+                                                    <th class="text-center align-middle fw-bold">Total General</th>
+                                                    <th class="text-center align-middle">Reporte PDF</th>
                                                 </tr>
                                             </thead>
                                             <tbody id="tbody-parte-ops"></tbody>
@@ -3480,6 +3492,91 @@
                 });
             })();
         </script>
+    <!-- Edit Parte Operaciones Modal -->
+    <div class="modal fade" id="editParteOpsModal" tabindex="-1" aria-labelledby="editParteOpsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="editParteOpsModalLabel">
+                        <i class="fas fa-edit me-2"></i>Editar Parte de Operaciones
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted mb-4">Completa los campos a continuación para registrar las operaciones diarias. Los campos obligatorios están marcados.</p>
+                    <form id="form-parte-ops">
+                        <input type="hidden" id="edit-parte-ops-id">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="edit-parte-ops-date" class="form-label fw-semibold">Fecha</label>
+                                <input type="date" class="form-control" id="edit-parte-ops-date" readonly>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary fw-bold mb-3"><i class="fas fa-plane me-2"></i>Aviación Comercial</h6>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="edit-comercial-llegada" class="form-label text-muted small fw-semibold">Llegadas</label>
+                                <input type="number" class="form-control" id="edit-comercial-llegada" min="0" placeholder="0">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="edit-comercial-salida" class="form-label text-muted small fw-semibold">Salidas</label>
+                                <input type="number" class="form-control" id="edit-comercial-salida" min="0" placeholder="0">
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-warning fw-bold mb-3"><i class="fas fa-box-open me-2"></i>Aviación de Carga</h6>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="edit-carga-llegada" class="form-label text-muted small fw-semibold">Llegadas</label>
+                                <input type="number" class="form-control" id="edit-carga-llegada" min="0" placeholder="0">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="edit-carga-salida" class="form-label text-muted small fw-semibold">Salidas</label>
+                                <input type="number" class="form-control" id="edit-carga-salida" min="0" placeholder="0">
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-success fw-bold mb-3"><i class="fas fa-paper-plane me-2"></i>Aviación General</h6>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="edit-general-llegada" class="form-label text-muted small fw-semibold">Llegadas</label>
+                                <input type="number" class="form-control" id="edit-general-llegada" min="0" placeholder="0">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="edit-general-salida" class="form-label text-muted small fw-semibold">Salidas</label>
+                                <input type="number" class="form-control" id="edit-general-salida" min="0" placeholder="0">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <h6 class="text-secondary fw-bold mb-3"><i class="fas fa-file-pdf me-2"></i>Documento Adjunto</h6>
+                            </div>
+                            <div class="col-12">
+                                <label for="edit-parte-ops-pdf" class="form-label text-muted small fw-semibold">Reporte PDF</label>
+                                <input class="form-control" type="file" id="edit-parte-ops-pdf" accept="application/pdf">
+                                <div id="current-pdf-info" class="form-text mt-2"></div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success text-white" id="btn-save-parte-ops">
+                        <i class="fas fa-save me-1"></i> Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- PDF Upload Modal -->
     <div class="modal fade" id="pdfUploadModal" tabindex="-1" aria-labelledby="pdfUploadModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
