@@ -724,10 +724,42 @@ function deepCloneWeek(week) {
 }
 
 const WEEKLY_OPERATIONS_DATASETS = [
-
+    {
+        id: '2025-12-29',
+        rango: {
+            inicio: '2025-12-29',
+            fin: '2026-01-04',
+            descripcion: describeWeekRange('2025-12-29', '2026-01-04'),
+            nota: 'Semana del (29 de diciembre de 2025 al 4 de enero de 2026).'
+        },
+        dias: [
+            {
+                fecha: '2025-12-29',
+                label: '29 Dic 2025',
+                comercial: { operaciones: 169, pasajeros: 22648},
+                general: { operaciones: 4, pasajeros: 5 },
+                carga: { operaciones: 15, toneladas: 391, corteFecha: '2025-12-28', corteNota: 'Cifras del 28 de diciembre de 2025.' }
+            },
+            {
+                fecha: '2025-12-30',
+                label: '30 Dic 2025',
+                comercial: { operaciones: 156, pasajeros: 11737},
+                general: { operaciones: 3, pasajeros: 1 },
+                carga: { operaciones: 15, toneladas: 391, corteFecha: '2025-12-28', corteNota: 'Cifras del 28 de diciembre de 2025.' }
+            },
+            {
+                fecha: '2025-12-31',
+                label: '31 Dic 2025',
+                comercial: { operaciones: 122, pasajeros: 16587},
+                general: { operaciones: 0, pasajeros: 0 },
+                carga: { operaciones: 15, toneladas: 391, corteFecha: '2025-12-28', corteNota: 'Cifras del 28 de diciembre de 2025.' }
+            },
+            
+        ]
+    },
 
     {
-        id: '2025-12-15',
+        id: '2025-12-22',
         rango: {
             inicio: '2025-12-22',
             fin: '2025-12-28',
@@ -12144,11 +12176,24 @@ async function findParteOperacionesPdfFilename(dateStr){
         if (!/\.pdf$/i.test(candidate)) continue;
         const norm = _normalizeForPdfMatch(candidate.replace(/\.pdf$/i, ''));
         let score = 0;
-        if (dayRe.test(norm)) score += 6;
-        if (monthRe.test(norm)) score += 5;
-        if (monthShortRe.test(norm)) score += 2;
-        if (yearRe.test(norm)) score += 8;
+
+        const hasDay = dayRe.test(norm);
+        const hasMonth = monthRe.test(norm);
+        const hasMonthShort = monthShortRe.test(norm);
+        const hasYear = yearRe.test(norm);
+
+        if (hasDay) score += 6;
+        if (hasMonth) score += 5;
+        if (hasMonthShort) score += 2;
+        if (hasYear) score += 8;
         if (norm.includes('operaciones')) score += 1;
+
+        // Penalize matches that have the day number but NOT the month name
+        // This prevents "31 Agosto" from matching "31 Diciembre" just because of "31" and "Year"
+        if (hasDay && !hasMonth && !hasMonthShort) {
+            score = -100;
+        }
+
         if (score > bestScore){
             bestScore = score;
             best = candidate;
