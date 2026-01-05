@@ -42,15 +42,6 @@ class DataManager {
         return data;
     }
 
-    // --- Aviation Analytics ---
-    async getAviationAnalytics(year) {
-        let query = this.client.from('aviation_analytics').select('*').order('year', { ascending: false }).order('month', { ascending: true });
-        if (year) query = query.eq('year', year);
-        const { data, error } = await query;
-        if (error) throw error;
-        return data;
-    }
-
     // --- Daily Operations ---
     async getDailyOperations(limit = 100) {
         const { data, error } = await this.client
@@ -112,10 +103,23 @@ class DataManager {
         return data;
     }
 
-    // --- Aviation Analytics ---
-    async getAviationAnalytics(year) {
-        let query = this.client.from('aviation_analytics').select('*').order('year', { ascending: false }).order('month', { ascending: true });
-        if (year) query = query.eq('year', year);
+    // --- Weekly Frequencies ---
+    async getWeeklyFrequencies(weekLabel) {
+        let query = this.client.from('weekly_frequencies').select('*').order('valid_from', { ascending: false });
+        if (weekLabel) {
+            query = query.eq('week_label', weekLabel);
+        }
+        const { data, error } = await query;
+        if (error) throw error;
+        return data;
+    }
+
+    // --- Weekly Frequencies ---
+    async getWeeklyFrequencies(weekLabel) {
+        let query = this.client.from('weekly_frequencies').select('*').order('valid_from', { ascending: false });
+        if (weekLabel) {
+            query = query.eq('week_label', weekLabel);
+        }
         const { data, error } = await query;
         if (error) throw error;
         return data;

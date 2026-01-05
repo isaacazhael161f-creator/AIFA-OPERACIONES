@@ -79,6 +79,20 @@ class AdminUI {
             // Append any remaining fields that were not explicitly ordered
             fieldsToRender.filter(f => !preferredOrder.includes(f.name)).forEach(f => ordered.push(f));
             fieldsToRender = ordered;
+        } else if (this.currentTable === 'weekly_frequencies') {
+            const preferredOrder = [
+                'week_label', 'valid_from', 'valid_to',
+                'airline', 'route_id', 'iata', 'city', 'state',
+                'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+                'weekly_total'
+            ];
+            const ordered = [];
+            preferredOrder.forEach(name => {
+                const f = fieldsToRender.find(s => s.name === name);
+                if (f) ordered.push(f);
+            });
+            fieldsToRender.filter(f => !preferredOrder.includes(f.name)).forEach(f => ordered.push(f));
+            fieldsToRender = ordered;
         }
 
         fieldsToRender.forEach((field, idx) => {
@@ -86,6 +100,20 @@ class AdminUI {
             // Special layout for the date field: full-width and centered
             if (field.name === 'date') {
                 col.className = 'col-12 d-flex flex-column align-items-center';
+            } else if (this.currentTable === 'weekly_frequencies') {
+                if (['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].includes(field.name)) {
+                    col.className = 'col-6 col-md-auto'; // Auto width for days to fit in one row if possible
+                    col.style.flex = '1 0 auto';
+                    col.style.minWidth = '80px';
+                } else if (field.name === 'weekly_total') {
+                    col.className = 'col-12 col-md-2 fw-bold';
+                } else if (field.name === 'airline') {
+                    col.className = 'col-12 col-md-6';
+                } else if (['city', 'state', 'iata', 'route_id'].includes(field.name)) {
+                    col.className = 'col-6 col-md-3';
+                } else {
+                    col.className = 'col-12 col-md-6';
+                }
             } else {
                 col.className = field.type === 'textarea' ? 'col-12' : 'col-md-6';
             }
@@ -108,6 +136,15 @@ class AdminUI {
             labelText.innerText = field.label || field.name;
             label.appendChild(iconSpan);
             label.appendChild(labelText);
+
+            if (this.currentTable === 'weekly_frequencies' && field.name === 'airline') {
+                const img = document.createElement('img');
+                img.id = 'admin-airline-logo-preview';
+                img.style.height = '24px';
+                img.style.marginLeft = 'auto';
+                img.style.display = 'none';
+                label.appendChild(img);
+            }
 
             let input;
             if (field.type === 'textarea') {
@@ -180,6 +217,7 @@ class AdminUI {
                 }
             }
             input.name = field.name;
+            input.id = 'input-' + field.name;
             if (field.readonly && record) input.disabled = true;
 
             // If date field, center the input and constrain width for nicer appearance
@@ -203,12 +241,66 @@ class AdminUI {
             form.appendChild(col);
         });
 
+        if (this.currentTable === 'weekly_frequencies') {
+            this.setupWeeklyFrequenciesLogic();
+        }
+
         // Autofocus first input after show
         this.modal.show();
         setTimeout(() => {
             const firstInput = document.querySelector('#admin-form .form-control:not([disabled])');
             if (firstInput) firstInput.focus();
         }, 200);
+    }
+
+    setupWeeklyFrequenciesLogic() {
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        const inputs = days.map(d => document.getElementById(`input-${d}`));
+        const totalInput = document.getElementById('input-weekly_total');
+        const airlineInput = document.getElementById('input-airline');
+        const logoPreview = document.getElementById('admin-airline-logo-preview');
+
+        // Auto-calc
+        const calc = () => {
+            let sum = 0;
+            inputs.forEach(inp => {
+                if (inp) {
+                    const val = parseFloat(inp.value.replace(/,/g, '')) || 0;
+                    sum += val;
+                }
+            });
+            if (totalInput) {
+                totalInput.value = sum.toLocaleString('en-US');
+            }
+        };
+        inputs.forEach(inp => inp?.addEventListener('input', calc));
+
+        // Airline Logo
+        const updateLogo = () => {
+            if (!airlineInput || !logoPreview) return;
+            const val = airlineInput.value.trim();
+            if (!val) { 
+                logoPreview.style.display = 'none'; 
+                return; 
+            }
+            // Try to find logo
+            // Normalize: lowercase, replace spaces with underscores
+            const normalized = val.toLowerCase().replace(/\s+/g, '_');
+            const filename = `logo_${normalized}.png`;
+            logoPreview.src = `images/airlines/${filename}`;
+            logoPreview.style.display = 'inline-block';
+            
+            logoPreview.onerror = () => {
+                logoPreview.style.display = 'none';
+            };
+        };
+
+        if (airlineInput) {
+            airlineInput.addEventListener('input', updateLogo);
+            airlineInput.addEventListener('change', updateLogo);
+            // Initial check if editing
+            updateLogo();
+        }
     }
 
     async saveChanges() {

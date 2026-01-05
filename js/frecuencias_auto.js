@@ -122,7 +122,16 @@
     prepareFilterSkeletons();
     showLoading(true);
     try {
-      const data = await fetchJson(DATA_URL);
+      // const data = await fetchJson(DATA_URL);
+      let data;
+      try {
+        const dbData = await window.dataManager.getWeeklyFrequencies();
+        data = transformDBData(dbData);
+      } catch (e) {
+        console.warn('Database fetch failed, falling back to JSON', e);
+        data = await fetchJson(DATA_URL);
+      }
+
       state.raw = data;
       state.destinations = normalizeDestinations(data?.destinations || []);
       state.uniqueAirlines = collectAirlines(state.destinations);
@@ -137,10 +146,60 @@
       dom.content?.classList.remove('d-none');
     } catch (err) {
       console.error('Frecuencias automation error:', err);
-      showError('No se pudo cargar el archivo de frecuencias. Inicia el servidor local o verifica la ruta del JSON.');
+      showError('No se pudo cargar la información de frecuencias. Verifique la conexión a la base de datos.');
       showLoading(false);
     }
     wireInteractions();
+  }
+
+  function transformDBData(rows) {
+      if (!rows || rows.length === 0) return { weekLabel: '', validFrom: '', validTo: '', destinations: [] };
+      
+      // Assume all rows belong to the same week for now, or pick the latest one.
+      // Since getWeeklyFrequencies orders by valid_from desc, the first row has the latest week info.
+      const first = rows[0];
+      const weekLabel = first.week_label;
+      const validFrom = first.valid_from;
+      const validTo = first.valid_to;
+      
+      // Group by route_id or iata
+      const destinationsMap = {};
+      
+      rows.forEach(row => {
+          if (row.week_label !== weekLabel) return; // Only process the latest week
+          
+          if (!destinationsMap[row.iata]) {
+              destinationsMap[row.iata] = {
+                  routeId: row.route_id,
+                  city: row.city,
+                  state: row.state,
+                  iata: row.iata,
+                  airports: [row.iata],
+                  airlines: []
+              };
+          }
+          
+          destinationsMap[row.iata].airlines.push({
+              name: row.airline,
+              daily: {
+                  L: row.monday,
+                  M: row.tuesday,
+                  X: row.wednesday,
+                  J: row.thursday,
+                  V: row.friday,
+                  S: row.saturday,
+                  D: row.sunday
+              },
+              weeklyTotal: row.weekly_total
+          });
+      });
+      
+      return {
+          weekLabel,
+          validFrom,
+          validTo,
+          destinations: Object.values(destinationsMap)
+      };
   }
 
   function prepareFilterSkeletons(){

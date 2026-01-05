@@ -28,26 +28,7 @@ class DataManagement {
                 { name: 'carga_cutoff_date', label: 'Carga - Fecha Corte', type: 'date' },
                 { name: 'carga_cutoff_note', label: 'Carga - Nota Corte', type: 'text' }
             ],
-            aviation_analytics: [
-                { name: 'year', label: 'Año', type: 'number' },
-                { name: 'month', label: 'Mes', type: 'select', options: [
-                    { value: 'enero', label: 'Enero' }, { value: 'febrero', label: 'Febrero' }, { value: 'marzo', label: 'Marzo' },
-                    { value: 'abril', label: 'Abril' }, { value: 'mayo', label: 'Mayo' }, { value: 'junio', label: 'Junio' },
-                    { value: 'julio', label: 'Julio' }, { value: 'agosto', label: 'Agosto' }, { value: 'septiembre', label: 'Septiembre' },
-                    { value: 'octubre', label: 'Octubre' }, { value: 'noviembre', label: 'Noviembre' }, { value: 'diciembre', label: 'Diciembre' }
-                ]},
-                { name: 'category', label: 'Categoría', type: 'select', options: [
-                    { value: 'comercial', label: 'Comercial' },
-                    { value: 'general', label: 'General' },
-                    { value: 'carga', label: 'Carga' }
-                ]},
-                { name: 'metric', label: 'Métrica', type: 'select', options: [
-                    { value: 'operaciones', label: 'Operaciones' },
-                    { value: 'pasajeros', label: 'Pasajeros' },
-                    { value: 'toneladas', label: 'Toneladas' }
-                ]},
-                { name: 'value', label: 'Valor', type: 'number' }
-            ],
+
             // Monthly operations (per month per year)
             monthly_operations: [
                 { name: 'year', label: 'Año', type: 'number' },
@@ -121,7 +102,26 @@ class DataManagement {
                 ]},
                 { name: 'cause', label: 'Causa', type: 'text' },
                 { name: 'count', label: 'Cantidad', type: 'number' },
-                { name: 'description', label: 'Descripción', type: 'textarea' }
+                { name: 'description', label: 'Descripción', type: 'textarea' },
+                { name: 'observations', label: 'Observaciones', type: 'textarea' }
+            ],
+            weekly_frequencies: [
+                { name: 'week_label', label: 'Etiqueta Semana (ej. 08-14 Dic 2025)', type: 'text' },
+                { name: 'valid_from', label: 'Válido Desde', type: 'date' },
+                { name: 'valid_to', label: 'Válido Hasta', type: 'date' },
+                { name: 'route_id', label: 'ID Ruta', type: 'number' },
+                { name: 'city', label: 'Ciudad', type: 'text' },
+                { name: 'state', label: 'Estado', type: 'text' },
+                { name: 'iata', label: 'Código IATA', type: 'text' },
+                { name: 'airline', label: 'Aerolínea', type: 'text' },
+                { name: 'monday', label: 'Lunes', type: 'number' },
+                { name: 'tuesday', label: 'Martes', type: 'number' },
+                { name: 'wednesday', label: 'Miércoles', type: 'number' },
+                { name: 'thursday', label: 'Jueves', type: 'number' },
+                { name: 'friday', label: 'Viernes', type: 'number' },
+                { name: 'saturday', label: 'Sábado', type: 'number' },
+                { name: 'sunday', label: 'Domingo', type: 'number' },
+                { name: 'weekly_total', label: 'Total Semanal', type: 'number', readonly: true }
             ],
             punctuality: [
                 { name: 'year', label: 'Año', type: 'number' },
@@ -198,10 +198,8 @@ class DataManagement {
         document.getElementById('filter-punctuality-year').addEventListener('change', () => this.loadPunctuality());
         document.getElementById('filter-punctuality-month').addEventListener('change', () => this.loadPunctuality());
         
-        const analyticsYear = document.getElementById('filter-analytics-year');
-        if (analyticsYear) analyticsYear.addEventListener('change', () => this.loadAviationAnalytics());
-        const analyticsMonth = document.getElementById('filter-analytics-month');
-        if (analyticsMonth) analyticsMonth.addEventListener('change', () => this.loadAviationAnalytics());
+        const weeklyFreqLabel = document.getElementById('filter-weekly-freq-label');
+        if (weeklyFreqLabel) weeklyFreqLabel.addEventListener('change', () => this.loadWeeklyFrequencies());
 
         // Monthly / Annual UI listeners
         const monthlyYearSel = document.getElementById('monthly-ops-year');
@@ -223,7 +221,7 @@ class DataManagement {
             if (table === 'medical_attentions') this.loadMedical();
             if (table === 'delays') this.loadDelays();
             if (table === 'punctuality') this.loadPunctuality();
-            if (table === 'aviation_analytics') this.loadAviationAnalytics();
+            if (table === 'weekly_frequencies') this.loadWeeklyFrequencies();
             
             if (table === 'monthly_operations') {
                 this.loadMonthlyOperations();
@@ -258,91 +256,10 @@ class DataManagement {
         if (targetId === '#pane-medical') this.loadMedical();
         if (targetId === '#pane-delays') this.loadDelays();
         if (targetId === '#pane-punctuality') this.loadPunctuality();
-        if (targetId === '#pane-aviation-analytics') this.loadAviationAnalytics();
+        if (targetId === '#pane-weekly-frequencies') this.loadWeeklyFrequencies();
     }
 
-    async loadAviationAnalytics() {
-        try {
-            const yearSelect = document.getElementById('filter-analytics-year');
-            const year = yearSelect ? yearSelect.value : '';
-            const monthSelect = document.getElementById('filter-analytics-month');
-            const monthFilter = monthSelect ? monthSelect.value : '';
-            
-            // Use monthly_operations instead of aviation_analytics
-            const data = await window.dataManager.getMonthlyOperations(year);
-            
-            const tbody = document.querySelector('#table-aviation-analytics tbody');
-            tbody.innerHTML = '';
 
-            // Filter by month if selected
-            const filteredData = data.filter(item => {
-                if (!monthFilter) return true;
-                // item.month is '01', '02', etc.
-                // monthFilter is 'enero', 'febrero', etc.
-                const map = { 'enero':'01','febrero':'02','marzo':'03','abril':'04','mayo':'05','junio':'06','julio':'07','agosto':'08','septiembre':'09','octubre':'10','noviembre':'11','diciembre':'12' };
-                return item.month === map[monthFilter.toLowerCase()];
-            });
-
-            filteredData.forEach(item => {
-                const tr = document.createElement('tr');
-                
-                // Year
-                const tdYear = document.createElement('td');
-                tdYear.className = 'text-center align-middle';
-                tdYear.textContent = item.year;
-                tr.appendChild(tdYear);
-
-                // Month
-                const tdMonth = document.createElement('td');
-                tdMonth.className = 'text-center align-middle';
-                const map = { '01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Septiembre','10':'Octubre','11':'Noviembre','12':'Diciembre' };
-                tdMonth.textContent = map[item.month] || item.month;
-                tr.appendChild(tdMonth);
-
-                // Comercial
-                const tdCom = document.createElement('td');
-                tdCom.className = 'text-center align-middle';
-                tdCom.innerHTML = `<div><span class="fw-bold">${this.formatNumber(item.comercial_ops)} Ops</span></div><div class="text-muted small">${this.formatNumber(item.comercial_pax)} Pax</div>`;
-                tr.appendChild(tdCom);
-
-                // General
-                const tdGen = document.createElement('td');
-                tdGen.className = 'text-center align-middle';
-                tdGen.innerHTML = `<div><span class="fw-bold">${this.formatNumber(item.general_ops)} Ops</span></div><div class="text-muted small">${this.formatNumber(item.general_pax)} Pax</div>`;
-                tr.appendChild(tdGen);
-
-                // Carga
-                const tdCarga = document.createElement('td');
-                tdCarga.className = 'text-center align-middle';
-                tdCarga.innerHTML = `<div><span class="fw-bold">${this.formatNumber(item.carga_ops)} Ops</span></div><div class="text-muted small">${this.formatNumber(item.carga_tons)} Ton</div>`;
-                tr.appendChild(tdCarga);
-
-                // Actions
-                const tdActions = document.createElement('td');
-                tdActions.className = 'text-center align-middle';
-                
-                const btnEdit = document.createElement('button');
-                btnEdit.className = 'btn btn-sm btn-outline-primary me-1';
-                btnEdit.innerHTML = '<i class="fas fa-edit"></i>';
-                // Use monthly_operations schema for editing
-                btnEdit.onclick = () => this.editItem('monthly_operations', item);
-                tdActions.appendChild(btnEdit);
-
-                const btnDelete = document.createElement('button');
-                btnDelete.className = 'btn btn-sm btn-outline-danger';
-                btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
-                btnDelete.title = 'Eliminar registro mensual';
-                btnDelete.onclick = () => this.deleteItem('monthly_operations', item.id);
-                tdActions.appendChild(btnDelete);
-
-                tr.appendChild(tdActions);
-                tbody.appendChild(tr);
-            });
-
-        } catch (error) {
-            console.error('Error loading aviation analytics (from monthly ops):', error);
-        }
-    }
 
     async loadOperationsSummary() {
         // const year = document.getElementById('filter-ops-year').value;
@@ -791,6 +708,96 @@ class DataManagement {
 
     deleteItem(tableName, id) {
         window.adminUI.deleteRecord(tableName, id);
+    }
+
+    async loadWeeklyFrequencies() {
+        try {
+            const labelSelect = document.getElementById('filter-weekly-freq-label');
+            let selectedLabel = labelSelect ? labelSelect.value : '';
+
+            // Fetch all data to find distinct labels if not already populated or just fetch distinct
+            // For simplicity, fetch all and extract unique labels client-side or add a distinct query method
+            // Let's fetch all for now (assuming volume is manageable) or fetch distinct labels first
+            // Ideally, we should have a method getWeeklyFrequencyLabels()
+            
+            // Fetch data based on selection. If empty, fetch latest.
+            const data = await window.dataManager.getWeeklyFrequencies(selectedLabel);
+            
+            // Populate select if empty or just refresh it
+            if (labelSelect && (labelSelect.options.length <= 1 || !selectedLabel)) {
+                // Get all unique labels from DB (we might need a separate query for efficiency later)
+                // For now, let's assume we can get all distinct labels from a separate call or just use the current data if it contains all history (which getWeeklyFrequencies(null) does)
+                const allData = await window.dataManager.getWeeklyFrequencies(); 
+                const uniqueLabels = [...new Set(allData.map(item => item.week_label))];
+                
+                // Save current selection
+                const current = labelSelect.value;
+                labelSelect.innerHTML = '<option value="">Todas las semanas</option>';
+                uniqueLabels.forEach(label => {
+                    const opt = document.createElement('option');
+                    opt.value = label;
+                    opt.textContent = label;
+                    labelSelect.appendChild(opt);
+                });
+                if (current) labelSelect.value = current;
+            }
+
+            const tbody = document.querySelector('#table-weekly-frequencies tbody');
+            tbody.innerHTML = '';
+
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                
+                // Week
+                const tdWeek = document.createElement('td');
+                tdWeek.textContent = item.week_label;
+                tr.appendChild(tdWeek);
+
+                // Route (City - IATA)
+                const tdRoute = document.createElement('td');
+                tdRoute.innerHTML = `<div>${item.city}</div><small class="text-muted">${item.iata}</small>`;
+                tr.appendChild(tdRoute);
+
+                // Airline
+                const tdAirline = document.createElement('td');
+                tdAirline.textContent = item.airline;
+                tr.appendChild(tdAirline);
+
+                // Days
+                ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].forEach(day => {
+                    const td = document.createElement('td');
+                    td.className = 'text-center';
+                    td.textContent = item[day] || 0;
+                    tr.appendChild(td);
+                });
+
+                // Total
+                const tdTotal = document.createElement('td');
+                tdTotal.className = 'text-center fw-bold';
+                tdTotal.textContent = item.weekly_total;
+                tr.appendChild(tdTotal);
+
+                // Actions
+                const tdActions = document.createElement('td');
+                const btnEdit = document.createElement('button');
+                btnEdit.className = 'btn btn-sm btn-outline-primary me-1';
+                btnEdit.innerHTML = '<i class="fas fa-edit"></i>';
+                btnEdit.onclick = () => this.editItem('weekly_frequencies', item);
+                tdActions.appendChild(btnEdit);
+
+                const btnDelete = document.createElement('button');
+                btnDelete.className = 'btn btn-sm btn-outline-danger';
+                btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
+                btnDelete.onclick = () => this.deleteItem('weekly_frequencies', item.id);
+                tdActions.appendChild(btnDelete);
+
+                tr.appendChild(tdActions);
+                tbody.appendChild(tr);
+            });
+
+        } catch (error) {
+            console.error('Error loading weekly frequencies:', error);
+        }
     }
 
     async updateAnnualDataAndCharts() {
