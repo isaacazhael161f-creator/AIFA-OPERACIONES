@@ -286,7 +286,12 @@ class AdminUI {
             }
             input.name = field.name;
             input.id = 'input-' + field.name;
-            if (field.readonly && record) input.disabled = true;
+            
+            // Use readOnly instead of disabled so FormData includes the value
+            if (field.readonly && record) {
+                input.readOnly = true;
+                input.classList.add('bg-light');
+            }
 
             // Special case: Weekly Frequencies validity dates are auto-calculated and should be readonly
             if (this.currentTable === 'weekly_frequencies' && ['valid_from', 'valid_to'].includes(field.name)) {
@@ -439,7 +444,17 @@ class AdminUI {
                 totalInput.value = sum.toLocaleString('en-US');
             }
         };
-        inputs.forEach(inp => inp?.addEventListener('input', calc));
+        
+        // Attach listeners and run initial calc
+        inputs.forEach(inp => {
+            if (inp) {
+                inp.addEventListener('input', calc);
+                inp.addEventListener('change', calc); // Also on change for safety
+            }
+        });
+        
+        // Run once to ensure total is correct initially
+        calc();
 
         // Airline Logo
         const updateLogo = () => {
@@ -488,7 +503,13 @@ class AdminUI {
         const updates = {};
         
         this.currentSchema.forEach(field => {
-            if (!field.readonly || !this.currentRecord) { // Include readonly fields if it's a new record (unless auto-generated)
+            // Special case: Always include weekly_total for weekly_frequencies, even if readonly, 
+            // because it's a computed field that needs to be saved.
+            // Also include readonly fields if we are creating a new record (no ID).
+            const forceInclude = (this.currentTable === 'weekly_frequencies' && field.name === 'weekly_total');
+            const isNewRecord = !this.currentRecord || !this.currentRecord.id;
+
+            if (!field.readonly || isNewRecord || forceInclude) { 
                  let val = formData.get(field.name);
                  // If the field is numeric, unformat and convert to number (or null if empty)
                  if (field.type === 'number') {
@@ -501,7 +522,7 @@ class AdminUI {
         });
 
         try {
-            if (this.currentRecord) {
+            if (this.currentRecord && this.currentRecord.id) {
                 // Update
                 await window.dataManager.updateTable(this.currentTable, this.currentRecord.id, updates);
                 alert('Datos actualizados correctamente.');

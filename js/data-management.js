@@ -722,6 +722,27 @@ class DataManagement {
         }
     }
 
+    addAirlineToDestination(templateItem) {
+        // Create a new object with only the destination fields
+        const defaults = {
+            week_label: templateItem.week_label,
+            valid_from: templateItem.valid_from,
+            valid_to: templateItem.valid_to,
+            route_id: templateItem.route_id,
+            city: templateItem.city,
+            state: templateItem.state,
+            iata: templateItem.iata,
+            // Leave airline and counts empty
+            airline: '',
+            monday: 0, tuesday: 0, wednesday: 0, thursday: 0, friday: 0, saturday: 0, sunday: 0, weekly_total: 0
+        };
+        
+        const schema = this.schemas['weekly_frequencies'];
+        if (schema) {
+            window.adminUI.openEditModal('weekly_frequencies', defaults, schema);
+        }
+    }
+
     editItem(tableName, item) {
         const schema = this.schemas[tableName];
         if (schema) {
@@ -1256,6 +1277,17 @@ class DataManagement {
                         tdRoute.style.color = '#212529';
                         tdRoute.rowSpan = groupItems.length;
                         tdRoute.style.verticalAlign = 'middle';
+                        
+                        // Add "Add Airline" button
+                        const btnAdd = document.createElement('button');
+                        btnAdd.className = 'btn btn-sm btn-outline-success d-block mx-auto mt-2';
+                        btnAdd.style.fontSize = '0.7rem';
+                        btnAdd.style.padding = '2px 6px';
+                        btnAdd.innerHTML = '<i class="fas fa-plus"></i> Aerolínea';
+                        btnAdd.title = 'Agregar aerolínea a este destino';
+                        btnAdd.onclick = () => this.addAirlineToDestination(groupItem);
+                        tdRoute.appendChild(btnAdd);
+
                         tr.appendChild(tdRoute);
                     }
 

@@ -105,18 +105,12 @@ class DataManager {
 
     // --- Weekly Frequencies ---
     async getWeeklyFrequencies(weekLabel) {
-        let query = this.client.from('weekly_frequencies').select('*').order('valid_from', { ascending: false });
-        if (weekLabel) {
-            query = query.eq('week_label', weekLabel);
-        }
-        const { data, error } = await query;
-        if (error) throw error;
-        return data;
-    }
-
-    // --- Weekly Frequencies ---
-    async getWeeklyFrequencies(weekLabel) {
-        let query = this.client.from('weekly_frequencies').select('*').order('valid_from', { ascending: false });
+        let query = this.client.from('weekly_frequencies')
+            .select('*')
+            .order('valid_from', { ascending: false })
+            .order('route_id', { ascending: true })
+            .order('airline', { ascending: true });
+            
         if (weekLabel) {
             query = query.eq('week_label', weekLabel);
         }
