@@ -12224,6 +12224,16 @@ async function findParteOperacionesPdfFilename(dateStr){
             score = -100;
         }
 
+        // CRITICAL FIX: If the filename contains a year that is NOT the target year, disqualify it.
+        // This prevents "04 Enero 2025" from matching "04 Enero 2026".
+        const yearsInName = norm.match(/\b20\d{2}\b/g);
+        if (yearsInName) {
+            // If we found years, but none of them is the target year, it's a mismatch.
+            if (!yearsInName.includes(year)) {
+                score = -1000;
+            }
+        }
+
         if (score > bestScore){
             bestScore = score;
             best = candidate;
@@ -12237,6 +12247,11 @@ async function findParteOperacionesPdfFilename(dateStr){
         if (!candidate || typeof candidate !== 'string') continue;
         if (!/\.pdf$/i.test(candidate)) continue;
         const norm = _normalizeForPdfMatch(candidate.replace(/\.pdf$/i, ''));
+
+        // Check for year mismatch
+        const yearsInName = norm.match(/\b20\d{2}\b/g);
+        if (yearsInName && !yearsInName.includes(year)) continue;
+
         // day + year
         if (dayRe.test(norm) && yearRe.test(norm)) return candidate;
         // day + month
@@ -12250,6 +12265,11 @@ async function findParteOperacionesPdfFilename(dateStr){
         if (!candidate || typeof candidate !== 'string') continue;
         if (!/\.pdf$/i.test(candidate)) continue;
         const norm = _normalizeForPdfMatch(candidate.replace(/\.pdf$/i, ''));
+
+        // Check for year mismatch
+        const yearsInName = norm.match(/\b20\d{2}\b/g);
+        if (yearsInName && !yearsInName.includes(year)) continue;
+
         if (dayRe.test(norm)) return candidate;
     }
 
