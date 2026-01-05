@@ -12,6 +12,7 @@
     'aeromexico': { logo: 'logo_aeromexico.png', color: '#0b2161', text: '#ffffff' },
     'volaris': { logo: 'logo_volaris.png', color: '#a300e6', text: '#ffffff' },
     'viva-aerobus': { logo: 'logo_viva.png', color: '#00a850', text: '#ffffff' },
+    'viva': { logo: 'logo_viva.png', color: '#00a850', text: '#ffffff' },
     'mexicana': { logo: 'logo_mexicana.png', color: '#008375', text: '#ffffff' },
     'copa-airlines': { logo: 'logo_copa.png', color: '#00529b', text: '#ffffff' },
     'arajet': { logo: 'logo_arajet.png', color: '#632683', text: '#ffffff' },
@@ -113,7 +114,8 @@
     map: null,
     markerLayer: null,
     planeLayer: null,
-    animationFrameId: null
+    animationFrameId: null,
+    animationTimeoutId: null
   };
 
   document.addEventListener('DOMContentLoaded', init);
@@ -313,14 +315,14 @@
     if (dom.mapCol && dom.detailsCol) {
         if (isSingleDest) {
             dom.mapCol.classList.remove('col-12');
-            dom.mapCol.classList.add('col-lg-8');
+            dom.mapCol.classList.add('col-lg-7');
             dom.detailsCol.classList.remove('d-none');
             // Render details
             const dest = state.destinations.find(d => d.iata === state.filters.destination);
             if (dest) renderDestinationDetails(dest);
         } else {
             dom.mapCol.classList.add('col-12');
-            dom.mapCol.classList.remove('col-lg-8');
+            dom.mapCol.classList.remove('col-lg-7');
             dom.detailsCol.classList.add('d-none');
         }
         // Trigger map resize after transition
@@ -466,8 +468,12 @@
         tdAirline.style.borderLeft = `12px solid ${config.color}`;
         
         if (config.logo) {
+            let logoStyle = '';
+            if (['mexicana', 'volaris', 'aeromexico'].includes(airline.slug)) {
+                logoStyle = 'style="height: 50px; max-width: 140px;"';
+            }
             // Clase específica para personalizar tamaño por aerolínea
-            tdAirline.innerHTML = `<img src="images/airlines/${config.logo}" alt="${airline.name}" title="${airline.name}" class="frecuencias-airline-logo airline-${airline.slug}">`;
+            tdAirline.innerHTML = `<img src="images/airlines/${config.logo}" alt="${airline.name}" title="${airline.name}" class="frecuencias-airline-logo airline-${airline.slug}" ${logoStyle}>`;
         } else {
             tdAirline.textContent = airline.name;
         }
@@ -477,13 +483,13 @@
           const tdDay = document.createElement('td');
           tdDay.textContent = airline.daily?.[dayIdx] ?? 0;
           tdDay.style.backgroundColor = config.color;
-          tdDay.style.color = config.text;
+          tdDay.style.color = '#ffffff';
           tr.appendChild(tdDay);
         });
         const tdTotal = document.createElement('td');
         tdTotal.textContent = intlNumber.format(airline.weeklyTotal);
         tdTotal.style.backgroundColor = config.color;
-        tdTotal.style.color = config.text;
+        tdTotal.style.color = '#ffffff';
         tr.appendChild(tdTotal);
         dom.tableBody.appendChild(tr);
       });
@@ -505,9 +511,15 @@
     
     projected.viewAirlines.forEach(air => {
         const config = AIRLINE_CONFIG[air.slug] || AIRLINE_CONFIG['default'];
+        
+        let logoStyle = 'height: 32px; width: auto;';
+        if (['mexicana', 'volaris', 'aeromexico'].includes(air.slug)) {
+            logoStyle = 'height: 65px; width: auto;';
+        }
+
         // Si hay logo, mostrarlo más grande y sin texto. Si no, mostrar texto.
         const headerContent = config.logo 
-            ? `<img src="images/airlines/${config.logo}" alt="${air.name}" style="height: 32px; width: auto;" title="${air.name}">`
+            ? `<img src="images/airlines/${config.logo}" alt="${air.name}" style="${logoStyle}" title="${air.name}">`
             : `<strong style="color: #212529; font-size: 1.1rem;">${air.name}</strong>`;
         
         html += `
@@ -602,6 +614,7 @@
     if (!state.map || !state.planeLayer) return;
     state.planeLayer.clearLayers();
     if (state.animationFrameId) cancelAnimationFrame(state.animationFrameId);
+    if (state.animationTimeoutId) clearTimeout(state.animationTimeoutId);
 
     // Filtrar destinos válidos
     const validDestinations = dataset.filter(d => d.coords && (d.viewWeeklyTotal ?? d.weeklyTotal) > 0);
@@ -674,7 +687,7 @@
             state.animationFrameId = requestAnimationFrame((nextNow) => animate(nextNow, start, end));
         } else {
             // Vuelo terminado, esperar un poco y lanzar el siguiente
-            setTimeout(() => {
+            state.animationTimeoutId = setTimeout(() => {
                 if (currentPlane) state.planeLayer.removeLayer(currentPlane);
                 if (currentLine) state.planeLayer.removeLayer(currentLine);
                 currentIndex++;
@@ -709,6 +722,14 @@
     dom.tableBody.querySelectorAll('.frecuencias-row-highlight').forEach(r => r.classList.remove('frecuencias-row-highlight'));
     row.classList.add('frecuencias-row-highlight');
     row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // Also filter the map to show only this destination's plane
+    // We don't want to change the global filter state (which would hide the table rows),
+    // just the map visualization.
+    const dest = state.destinations.find(d => d.iata === iata);
+    if (dest) {
+        animatePlanes([dest]);
+    }
   }
 
   function fitMapToData(){
@@ -743,8 +764,8 @@
       const searchText = `${dest.city || ''} ${dest.state || ''} ${dest.iata || ''} ${airlines.map(a => a.name).join(' ')}`.toLowerCase();
       return {
         routeId: dest.routeId,
-        city: dest.city || 'Sin ciudad',
-        state: dest.state || '',
+        city: toTitleCase(dest.city) || 'Sin ciudad',
+        state: toTitleCase(dest.state) || '',
         iata: dest.iata || '—',
         airports: Array.isArray(dest.airports) ? dest.airports : [],
         airlines,
@@ -754,6 +775,11 @@
         searchText
       };
     });
+  }
+
+  function toTitleCase(str) {
+    if (!str) return '';
+    return str.toLowerCase().replace(/(?:^|\s)\S/g, function(a) { return a.toUpperCase(); });
   }
 
   function normalizeAirline(air){
@@ -811,7 +837,7 @@
   }
 
   function updateMeta(data){
-    if (dom.weekLabel) dom.weekLabel.textContent = data?.weekLabel ? `Semana ${data.weekLabel}` : 'Semana sin etiqueta';
+    if (dom.weekLabel) dom.weekLabel.textContent = data?.weekLabel ? data.weekLabel : 'Semana sin etiqueta';
     if (dom.weekRange) {
       if (data?.validFrom && data?.validTo) {
         dom.weekRange.textContent = `${formatDate(data.validFrom)} – ${formatDate(data.validTo)}`;
@@ -836,9 +862,9 @@
 
       let startDate;
 
-      // Try format: "08-14 Dic 2025"
-      const regexSameMonth = /^(\d{1,2})-(\d{1,2})\s+([A-Za-z]{3})\.?\s+(\d{4})$/;
-      const matchSame = weekLabel.match(regexSameMonth);
+      // Try format: "Semana del 08 al 14 Dic 2025" OR "08-14 Dic 2025"
+      let matchSame = weekLabel.match(/^Semana del (\d{1,2}) al (\d{1,2})\s+([A-Za-z]{3})\.?\s+(\d{4})$/);
+      if (!matchSame) matchSame = weekLabel.match(/^(\d{1,2})-(\d{1,2})\s+([A-Za-z]{3})\.?\s+(\d{4})$/);
 
       if (matchSame) {
           const day = parseInt(matchSame[1], 10);
@@ -849,9 +875,10 @@
               startDate = new Date(year, month, day);
           }
       } else {
-          // Try format: "29 Dic - 04 Ene 2026"
-          const regexDiffMonth = /^(\d{1,2})\s+([A-Za-z]{3})\.?\s+-\s+(\d{1,2})\s+([A-Za-z]{3})\.?\s+(\d{4})$/;
-          const matchDiff = weekLabel.match(regexDiffMonth);
+          // Try format: "Semana del 29 Dic al 04 Ene 2026" OR "29 Dic - 04 Ene 2026"
+          let matchDiff = weekLabel.match(/^Semana del (\d{1,2})\s+([A-Za-z]{3})\.?\s+al\s+(\d{1,2})\s+([A-Za-z]{3})\.?\s+(\d{4})$/);
+          if (!matchDiff) matchDiff = weekLabel.match(/^(\d{1,2})\s+([A-Za-z]{3})\.?\s+-\s+(\d{1,2})\s+([A-Za-z]{3})\.?\s+(\d{4})$/);
+
           if (matchDiff) {
               const day = parseInt(matchDiff[1], 10);
               const monthStr = matchDiff[2];
@@ -874,6 +901,11 @@
       const headers = dom.tableBody.closest('table').querySelectorAll('thead th');
       const days = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
       
+      // Set widths for fixed columns
+      if (headers[0]) headers[0].style.width = '20%'; // Destino
+      if (headers[1]) headers[1].style.width = '15%'; // Aerolínea
+      if (headers[9]) headers[9].style.width = '9%';  // Total
+
       for (let i = 0; i < 7; i++) {
           const current = new Date(startDate);
           current.setDate(startDate.getDate() + i);
@@ -882,6 +914,7 @@
           // Indices 2 to 8 correspond to Lun-Dom
           if (headers[i + 2]) {
               headers[i + 2].innerHTML = `${days[i]}<br><small class="text-muted fw-normal" style="font-size: 0.75rem;">${dayStr}</small>`;
+              headers[i + 2].style.width = '8%'; // Equal width for days
           }
       }
   }

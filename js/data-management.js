@@ -925,15 +925,15 @@ class DataManagement {
         const mon2Str = months[m2 - 1];
         
         // Logic: 
-        // Same month: "08-14 Dic 2025"
-        // Diff month: "29 Dic - 04 Ene 2026"
+        // Same month: "Semana del 08 al 14 Dic 2025"
+        // Diff month: "Semana del 29 Dic al 04 Ene 2026"
         
         if (m1 === m2 && y1 === y2) {
-            return `${day1Str}-${day2Str} ${mon1Str} ${y1}`;
+            return `Semana del ${day1Str} al ${day2Str} ${mon1Str} ${y1}`;
         } else {
             // If years are different, we usually append the year at the end.
             // But if it spans years, we might want "29 Dic - 04 Ene 2026" (end year)
-            return `${day1Str} ${mon1Str} - ${day2Str} ${mon2Str} ${y2}`;
+            return `Semana del ${day1Str} ${mon1Str} al ${day2Str} ${mon2Str} ${y2}`;
         }
     }
 
@@ -1296,9 +1296,15 @@ class DataManagement {
                     tdAirline.style.backgroundColor = '#ffffff';
                     tdAirline.style.color = config.color;
                     tdAirline.style.borderLeft = `8px solid ${config.color}`;
+                    tdAirline.style.verticalAlign = 'middle';
+                    tdAirline.className = 'text-center';
                     
                     if (config.logo) {
-                        tdAirline.innerHTML = `<img src="images/airlines/${config.logo}" alt="${groupItem.airline}" title="${groupItem.airline}" style="height: 24px; max-width: 100px; object-fit: contain;">`;
+                        let logoStyle = 'height: 24px; max-width: 100px; object-fit: contain;';
+                        if (['aeromexico', 'volaris', 'mexicana'].includes(slug)) {
+                            logoStyle = 'height: 55px; max-width: 140px; object-fit: contain;';
+                        }
+                        tdAirline.innerHTML = `<img src="images/airlines/${config.logo}" alt="${groupItem.airline}" title="${groupItem.airline}" style="${logoStyle}">`;
                     } else {
                         tdAirline.textContent = groupItem.airline;
                     }
@@ -1307,7 +1313,9 @@ class DataManagement {
                     // Days
                     ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].forEach(day => {
                         const td = document.createElement('td');
-                        td.className = 'text-center';
+                        td.className = 'text-center border-start';
+                        td.style.verticalAlign = 'middle';
+                        td.style.color = '#ffffff';
                         // Wrap in span for edit mode targeting
                         td.innerHTML = `<span class="weekly-freq-value" data-field="${day}" data-id="${groupItem.id}">${groupItem[day] || 0}</span>`;
                         // Inherit row color
@@ -1316,13 +1324,16 @@ class DataManagement {
 
                     // Total
                     const tdTotal = document.createElement('td');
-                    tdTotal.className = 'text-center fw-bold';
+                    tdTotal.className = 'text-center fw-bold border-start';
+                    tdTotal.style.verticalAlign = 'middle';
+                    tdTotal.style.color = '#ffffff';
                     tdTotal.textContent = groupItem.weekly_total;
                     tr.appendChild(tdTotal);
 
                     // Actions
                     const tdActions = document.createElement('td');
-                    tdActions.className = 'text-center';
+                    tdActions.className = 'text-center border-start';
+                    tdActions.style.verticalAlign = 'middle';
                     // Reset background for actions cell to be readable
                     tdActions.style.backgroundColor = '#ffffff';
                     
