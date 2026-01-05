@@ -777,7 +777,7 @@ const WEEKLY_OPERATIONS_DATASETS = [
                 comercial: { operaciones: 153, pasajeros: 22854},
                 general: { operaciones: 3, pasajeros: 18 },
                 carga: { operaciones: 15, toneladas: 391, corteFecha: '2025-12-28', corteNota: 'Cifras del 28 de diciembre de 2025.' }
-            },
+            }
 
 
 
