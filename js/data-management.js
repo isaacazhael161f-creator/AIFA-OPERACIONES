@@ -1,5 +1,19 @@
 class DataManagement {
     constructor() {
+        this.airlineConfig = {
+            'aeromexico': { logo: 'logo_aeromexico.png', color: '#0b2161', text: '#ffffff' },
+            'volaris': { logo: 'logo_volaris.png', color: '#a300e6', text: '#ffffff' },
+            'viva-aerobus': { logo: 'logo_viva.png', color: '#00a850', text: '#ffffff' },
+            'viva': { logo: 'logo_viva.png', color: '#00a850', text: '#ffffff' },
+            'mexicana': { logo: 'logo_mexicana.png', color: '#008375', text: '#ffffff' },
+            'copa-airlines': { logo: 'logo_copa.png', color: '#00529b', text: '#ffffff' },
+            'arajet': { logo: 'logo_arajet.png', color: '#632683', text: '#ffffff' },
+            'conviasa': { logo: 'logo_conviasa.png', color: '#e65300', text: '#ffffff' },
+            'magnicharters': { logo: 'logo_magnicharters.png', color: '#1d3c6e', text: '#ffffff' },
+            'aerus': { logo: 'logo_aerus.png', color: '#bed62f', text: '#000000' },
+            'default': { logo: null, color: '#ffffff', text: '#212529' }
+        };
+
         this.schemas = {
             operations_summary: [
                 { name: 'year', label: 'Año', type: 'number' },
@@ -154,6 +168,15 @@ class DataManagement {
             return `${parseInt(dd, 10)} de ${monthName} de ${yyyy}`;
         }
         return s;
+    }
+
+    slugify(text) {
+        return text.toString().toLowerCase()
+            .replace(/\s+/g, '-')           // Replace spaces with -
+            .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
+            .replace(/\-\-+/g, '-')         // Replace multiple - with single -
+            .replace(/^-+/, '')             // Trim - from start
+            .replace(/-+$/, '');            // Trim - from end
     }
 
     // Formatea números con separadores de miles (ej. 21323 -> 21,323)
@@ -706,32 +729,438 @@ class DataManagement {
         }
     }
 
+    parseDateFromWeekLabel(weekLabel) {
+        const months = {
+            'Ene': 0, 'Feb': 1, 'Mar': 2, 'Abr': 3, 'May': 4, 'Jun': 5,
+            'Jul': 6, 'Ago': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dic': 11,
+            'ene': 0, 'feb': 1, 'mar': 2, 'abr': 3, 'may': 4, 'jun': 5,
+            'jul': 6, 'ago': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dic': 11
+        };
+
+        // Try format: "08-14 Dic 2025"
+        const regexSameMonth = /^(\d{1,2})-(\d{1,2})\s+([A-Za-z]{3})\.?\s+(\d{4})$/;
+        const matchSame = weekLabel.match(regexSameMonth);
+
+        if (matchSame) {
+            const day = parseInt(matchSame[1], 10);
+            const monthStr = matchSame[3];
+            const year = parseInt(matchSame[4], 10);
+            const month = months[monthStr.substring(0, 3)];
+            if (month !== undefined) {
+                return new Date(year, month, day);
+            }
+        }
+
+        // Try format: "29 Dic - 04 Ene 2026"
+        const regexDiffMonth = /^(\d{1,2})\s+([A-Za-z]{3})\.?\s+-\s+(\d{1,2})\s+([A-Za-z]{3})\.?\s+(\d{4})$/;
+        const matchDiff = weekLabel.match(regexDiffMonth);
+        if (matchDiff) {
+            const day = parseInt(matchDiff[1], 10);
+            const monthStr = matchDiff[2];
+            let year = parseInt(matchDiff[5], 10);
+            const startMonth = months[monthStr.substring(0, 3)];
+            const endMonth = months[matchDiff[4].substring(0, 3)];
+            
+            if (startMonth === 11 && endMonth === 0) {
+                year -= 1;
+            }
+            
+            if (startMonth !== undefined) {
+                return new Date(year, startMonth, day);
+            }
+        }
+        return null;
+    }
+
+    updateWeeklyFreqHeaders(weekLabel) {
+        const startDate = this.parseDateFromWeekLabel(weekLabel);
+        if (!startDate) return;
+
+        const table = document.getElementById('table-weekly-frequencies');
+        if (!table) return;
+        const headers = table.querySelectorAll('thead th');
+        const days = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
+        
+        // Indices 3 to 9 correspond to L-D (0: Semana, 1: Ruta, 2: Aerolínea, 3: L, ..., 9: D)
+        for (let i = 0; i < 7; i++) {
+            const current = new Date(startDate);
+            current.setDate(startDate.getDate() + i);
+            const dayStr = current.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit' });
+            
+            if (headers[i + 3]) {
+                headers[i + 3].innerHTML = `${days[i]}<br><small class="text-muted fw-normal" style="font-size: 0.7rem;">${dayStr}</small>`;
+            }
+        }
+    }
+
     deleteItem(tableName, id) {
         window.adminUI.deleteRecord(tableName, id);
+    }
+
+    async deleteWeeklyTemplate() {
+        const labelSelect = document.getElementById('filter-weekly-freq-label');
+        const currentLabel = labelSelect ? labelSelect.value : '';
+
+        if (!currentLabel) {
+            alert('Por favor selecciona una semana para eliminar.');
+            return;
+        }
+
+        if (!confirm(`¿Estás seguro de que deseas ELIMINAR TODAS las frecuencias de la semana "${currentLabel}"?\n\nEsta acción no se puede deshacer.`)) {
+            return;
+        }
+
+        try {
+            const { error } = await window.dataManager.client
+                .from('weekly_frequencies')
+                .delete()
+                .eq('week_label', currentLabel);
+
+            if (error) throw error;
+
+            alert(`Semana "${currentLabel}" eliminada exitosamente.`);
+            
+            // Remove option from select
+            if (labelSelect) {
+                const option = labelSelect.querySelector(`option[value="${currentLabel}"]`);
+                if (option) option.remove();
+                labelSelect.value = ''; // Reset or select first
+                this.loadWeeklyFrequencies();
+            }
+
+        } catch (err) {
+            console.error('Error deleting week:', err);
+            alert('Error al eliminar la semana: ' + err.message);
+        }
+    }
+
+    openCopyWeekModal() {
+        const labelSelect = document.getElementById('filter-weekly-freq-label');
+        const sourceLabel = labelSelect ? labelSelect.value : '';
+        
+        if (!sourceLabel) {
+            alert('Por favor selecciona una semana origen primero.');
+            return;
+        }
+
+        document.getElementById('copy-source-week-label').textContent = sourceLabel;
+        
+        // Reset inputs
+        const startDateInput = document.getElementById('copy-start-date');
+        const endDateInput = document.getElementById('copy-end-date');
+        startDateInput.value = '';
+        endDateInput.value = '';
+        document.getElementById('copy-preview-label').textContent = '';
+
+        // Add listeners for preview
+        startDateInput.onchange = () => {
+            // Auto-calculate end date (Start + 6 days)
+            const startVal = startDateInput.value;
+            if (startVal) {
+                const [y, m, d] = startVal.split('-').map(Number);
+                const date = new Date(y, m - 1, d);
+                date.setDate(date.getDate() + 6);
+                
+                const yEnd = date.getFullYear();
+                const mEnd = String(date.getMonth() + 1).padStart(2, '0');
+                const dEnd = String(date.getDate()).padStart(2, '0');
+                
+                endDateInput.value = `${yEnd}-${mEnd}-${dEnd}`;
+            }
+            this.updateCopyPreview();
+        };
+        endDateInput.onchange = () => this.updateCopyPreview();
+
+        const modal = new bootstrap.Modal(document.getElementById('modal-copy-week'));
+        modal.show();
+    }
+
+    updateCopyPreview() {
+        const start = document.getElementById('copy-start-date').value;
+        const end = document.getElementById('copy-end-date').value;
+        const preview = document.getElementById('copy-preview-label');
+        
+        if (start && end) {
+            preview.textContent = this.generateWeekLabel(start, end);
+        } else {
+            preview.textContent = 'Selecciona ambas fechas...';
+        }
+    }
+
+    generateWeekLabel(startDateStr, endDateStr) {
+        // startDateStr: YYYY-MM-DD
+        const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        
+        // Create dates using local time components to avoid timezone shifts
+        const [y1, m1, d1] = startDateStr.split('-').map(Number);
+        const [y2, m2, d2] = endDateStr.split('-').map(Number);
+        
+        const date1 = new Date(y1, m1 - 1, d1);
+        const date2 = new Date(y2, m2 - 1, d2);
+
+        const day1Str = String(d1).padStart(2, '0');
+        const day2Str = String(d2).padStart(2, '0');
+        const mon1Str = months[m1 - 1];
+        const mon2Str = months[m2 - 1];
+        
+        // Logic: 
+        // Same month: "08-14 Dic 2025"
+        // Diff month: "29 Dic - 04 Ene 2026"
+        
+        if (m1 === m2 && y1 === y2) {
+            return `${day1Str}-${day2Str} ${mon1Str} ${y1}`;
+        } else {
+            // If years are different, we usually append the year at the end.
+            // But if it spans years, we might want "29 Dic - 04 Ene 2026" (end year)
+            return `${day1Str} ${mon1Str} - ${day2Str} ${mon2Str} ${y2}`;
+        }
+    }
+
+    async confirmCopyWeek() {
+        const labelSelect = document.getElementById('filter-weekly-freq-label');
+        const sourceLabel = labelSelect ? labelSelect.value : '';
+        const start = document.getElementById('copy-start-date').value;
+        const end = document.getElementById('copy-end-date').value;
+
+        if (!start || !end) {
+            alert('Debes seleccionar fecha de inicio y fin.');
+            return;
+        }
+
+        const newLabel = this.generateWeekLabel(start, end);
+        const newValidFrom = start; // YYYY-MM-DD
+
+        try {
+            // 1. Get source data
+            const sourceData = await window.dataManager.getWeeklyFrequencies(sourceLabel);
+            if (!sourceData || sourceData.length === 0) {
+                alert('No hay datos en la semana origen.');
+                return;
+            }
+
+            // 2. Prepare new data
+            const newData = sourceData.map(item => {
+                const { id, created_at, ...rest } = item;
+                return {
+                    ...rest,
+                    week_label: newLabel,
+                    valid_from: newValidFrom
+                };
+            });
+
+            // 3. Insert
+            const { error } = await window.dataManager.client.from('weekly_frequencies').insert(newData);
+            if (error) throw error;
+
+            // Close modal
+            const modalEl = document.getElementById('modal-copy-week');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+
+            alert(`Se copiaron ${newData.length} registros a la semana ${newLabel}.`);
+
+            // Refresh
+            if (labelSelect) {
+                const opt = document.createElement('option');
+                opt.value = newLabel;
+                opt.textContent = newLabel;
+                labelSelect.appendChild(opt);
+                labelSelect.value = newLabel;
+            }
+            this.loadWeeklyFrequencies();
+
+        } catch (err) {
+            console.error('Error copying:', err);
+            alert('Error: ' + err.message);
+        }
+    }
+
+    toggleWeeklyEditMode() {
+        const table = document.getElementById('table-weekly-frequencies');
+        const btnEdit = document.getElementById('btn-edit-weekly-mode');
+        const btnSave = document.getElementById('btn-save-weekly-changes');
+        
+        if (!table || !btnEdit || !btnSave) return;
+
+        const isEditing = btnEdit.classList.contains('active');
+
+        if (isEditing) {
+            // Cancel edit mode
+            btnEdit.classList.remove('active', 'btn-secondary');
+            btnEdit.classList.add('btn-outline-primary');
+            btnEdit.innerHTML = '<i class="fas fa-edit"></i> Editar Tabla';
+            btnSave.classList.add('d-none');
+            this.loadWeeklyFrequencies(); // Reload to discard changes
+        } else {
+            // Enter edit mode
+            btnEdit.classList.add('active', 'btn-secondary');
+            btnEdit.classList.remove('btn-outline-primary');
+            btnEdit.innerHTML = '<i class="fas fa-times"></i> Cancelar';
+            btnSave.classList.remove('d-none');
+
+            // Convert cells to inputs
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(tr => {
+                // Skip header rows (if any logic separates them, but here we have grouped rows)
+                // We need to find the cells that contain the daily counts.
+                // Based on loadWeeklyFrequencies, indices 3-9 are days (L-D) if it's a full row.
+                // BUT, rowSpan logic makes this tricky.
+                // Let's look at the data attributes or structure.
+                // The render logic adds cells sequentially.
+                
+                // Strategy: Identify cells by their content or position.
+                // The daily count cells are simple <td> with numbers.
+                // We can add a class during render to identify them easily, OR infer it.
+                // Let's modify loadWeeklyFrequencies to add a class 'editable-day-cell' to daily cells.
+                
+                // Since we can't easily modify loadWeeklyFrequencies right now without re-reading/writing a huge chunk,
+                // let's try to select them by index.
+                // However, rowSpan messes up column indices in subsequent rows.
+                
+                // Better approach: Re-render the table in "Edit Mode" explicitly.
+                // But that requires duplicating render logic.
+                
+                // Alternative: Iterate cells and check if they hold a number and are not the Total column.
+                // The daily cells have `airline.daily?.[dayIdx]` content.
+                
+                // Let's rely on the fact that we can attach data-id to the TR and data-field to the TD in loadWeeklyFrequencies.
+                // I will modify loadWeeklyFrequencies to add data attributes to make this robust.
+            });
+            
+            // Since I need to modify loadWeeklyFrequencies anyway to support robust editing, 
+            // I will do that first.
+            this.enableWeeklyTableEditing(table);
+        }
+    }
+
+    enableWeeklyTableEditing(table) {
+        const inputs = table.querySelectorAll('.weekly-freq-value');
+        inputs.forEach(span => {
+            const val = span.textContent;
+            const field = span.dataset.field; // e.g. 'monday', 'tuesday'...
+            const id = span.dataset.id;
+            
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.className = 'form-control form-control-sm p-1 text-center';
+            input.value = val;
+            input.style.width = '50px';
+            input.dataset.original = val;
+            input.dataset.id = id;
+            input.dataset.field = field;
+            
+            span.innerHTML = '';
+            span.appendChild(input);
+        });
+    }
+
+    async saveWeeklyChanges() {
+        const table = document.getElementById('table-weekly-frequencies');
+        const inputs = table.querySelectorAll('input[type="number"]');
+        const updates = {}; // Map<id, { field: value }>
+
+        inputs.forEach(input => {
+            if (input.value !== input.dataset.original) {
+                const id = input.dataset.id;
+                const field = input.dataset.field;
+                if (!updates[id]) updates[id] = {};
+                updates[id][field] = parseInt(input.value) || 0;
+            }
+        });
+
+        const ids = Object.keys(updates);
+        if (ids.length === 0) {
+            alert('No hay cambios para guardar.');
+            this.toggleWeeklyEditMode();
+            return;
+        }
+
+        try {
+            // Process updates sequentially (or Promise.all)
+            // Supabase doesn't support bulk update with different values easily.
+            // We'll do parallel requests.
+            const promises = ids.map(id => {
+                // Recalculate weekly_total
+                // We need the other days too. This is complex because we only have the changed value.
+                // Ideally, we should update the specific field and let the DB handle total, 
+                // OR we fetch the row, update, and save.
+                
+                // Simplified: Just update the changed fields. 
+                // WARNING: weekly_total will be out of sync if we don't update it.
+                // Let's calculate the new total in the UI or fetch-update.
+                
+                // Better: Update the specific day column.
+                // Then trigger a stored procedure or just update weekly_total in the same call?
+                // We don't have the other values here easily unless we read the row from the DOM.
+                
+                // Let's read the full row from DOM to calc total.
+                // Find the row (tr) containing this input.
+                // Actually, inputs are scattered.
+                
+                // Let's just update the fields. We can fix totals later or assume the user updates them?
+                // No, total should be auto.
+                
+                // Let's grab the row's inputs to sum them up.
+                // We need to find all inputs for a given ID.
+                const rowInputs = table.querySelectorAll(`input[data-id="${id}"]`);
+                let newTotal = 0;
+                const rowUpdates = { ...updates[id] };
+                
+                // If we are in edit mode, all days are inputs.
+                // We can sum all inputs for this ID.
+                rowInputs.forEach(inp => {
+                    newTotal += parseInt(inp.value) || 0;
+                    // Ensure all fields are in the update object if we want to be safe, 
+                    // but strictly we only need to send changed ones + total.
+                    // Actually, to be safe, let's send all day values for this ID.
+                    rowUpdates[inp.dataset.field] = parseInt(inp.value) || 0;
+                });
+                
+                rowUpdates.weekly_total = newTotal;
+                
+                return window.dataManager.client
+                    .from('weekly_frequencies')
+                    .update(rowUpdates)
+                    .eq('id', id);
+            });
+
+            await Promise.all(promises);
+            
+            alert('Cambios guardados exitosamente.');
+            this.toggleWeeklyEditMode(); // Exit edit mode and reload
+
+        } catch (err) {
+            console.error('Error saving changes:', err);
+            alert('Error al guardar cambios: ' + err.message);
+        }
     }
 
     async loadWeeklyFrequencies() {
         try {
             const labelSelect = document.getElementById('filter-weekly-freq-label');
-            let selectedLabel = labelSelect ? labelSelect.value : '';
+            const airlineSelect = document.getElementById('filter-weekly-freq-airline');
+            const destSelect = document.getElementById('filter-weekly-freq-destination');
 
-            // Fetch all data to find distinct labels if not already populated or just fetch distinct
-            // For simplicity, fetch all and extract unique labels client-side or add a distinct query method
-            // Let's fetch all for now (assuming volume is manageable) or fetch distinct labels first
-            // Ideally, we should have a method getWeeklyFrequencyLabels()
-            
+            let selectedLabel = labelSelect ? labelSelect.value : '';
+            let selectedAirline = airlineSelect ? airlineSelect.value : '';
+            let selectedDest = destSelect ? destSelect.value : '';
+
             // Fetch data based on selection. If empty, fetch latest.
-            const data = await window.dataManager.getWeeklyFrequencies(selectedLabel);
+            let data = await window.dataManager.getWeeklyFrequencies(selectedLabel);
             
-            // Populate select if empty or just refresh it
+            // Update headers with dates if data exists
+            if (data && data.length > 0 && data[0].week_label) {
+                this.updateWeeklyFreqHeaders(data[0].week_label);
+            }
+            
+            // Populate selects if empty or just refresh it
+            // We need all data to populate filters correctly across all history
             if (labelSelect && (labelSelect.options.length <= 1 || !selectedLabel)) {
-                // Get all unique labels from DB (we might need a separate query for efficiency later)
-                // For now, let's assume we can get all distinct labels from a separate call or just use the current data if it contains all history (which getWeeklyFrequencies(null) does)
                 const allData = await window.dataManager.getWeeklyFrequencies(); 
-                const uniqueLabels = [...new Set(allData.map(item => item.week_label))];
                 
-                // Save current selection
-                const current = labelSelect.value;
+                // 1. Week Labels
+                const uniqueLabels = [...new Set(allData.map(item => item.week_label))];
+                const currentLabel = labelSelect.value;
                 labelSelect.innerHTML = '<option value="">Todas las semanas</option>';
                 uniqueLabels.forEach(label => {
                     const opt = document.createElement('option');
@@ -739,60 +1168,147 @@ class DataManagement {
                     opt.textContent = label;
                     labelSelect.appendChild(opt);
                 });
-                if (current) labelSelect.value = current;
+                if (currentLabel) labelSelect.value = currentLabel;
+
+                // 2. Airlines
+                if (airlineSelect) {
+                    const uniqueAirlines = [...new Set(allData.map(item => item.airline))].sort();
+                    const currentAirline = airlineSelect.value;
+                    airlineSelect.innerHTML = '<option value="">Todas</option>';
+                    uniqueAirlines.forEach(airline => {
+                        const opt = document.createElement('option');
+                        opt.value = airline;
+                        opt.textContent = airline;
+                        airlineSelect.appendChild(opt);
+                    });
+                    if (currentAirline) airlineSelect.value = currentAirline;
+                }
+
+                // 3. Destinations (City)
+                if (destSelect) {
+                    const uniqueDest = [...new Set(allData.map(item => item.city))].sort();
+                    const currentDest = destSelect.value;
+                    destSelect.innerHTML = '<option value="">Todos</option>';
+                    uniqueDest.forEach(city => {
+                        const opt = document.createElement('option');
+                        opt.value = city;
+                        opt.textContent = city;
+                        destSelect.appendChild(opt);
+                    });
+                    if (currentDest) destSelect.value = currentDest;
+                }
+            }
+
+            // Client-side filtering for Airline and Destination
+            if (selectedAirline) {
+                data = data.filter(item => item.airline === selectedAirline);
+            }
+            if (selectedDest) {
+                data = data.filter(item => item.city === selectedDest);
             }
 
             const tbody = document.querySelector('#table-weekly-frequencies tbody');
             tbody.innerHTML = '';
 
+            // Group data by destination (City + IATA)
+            const grouped = {};
             data.forEach(item => {
-                const tr = document.createElement('tr');
-                
-                // Week
-                const tdWeek = document.createElement('td');
-                tdWeek.textContent = item.week_label;
-                tr.appendChild(tdWeek);
+                const key = `${item.week_label}||${item.city}||${item.iata}`;
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(item);
+            });
 
-                // Route (City - IATA)
-                const tdRoute = document.createElement('td');
-                tdRoute.innerHTML = `<div>${item.city}</div><small class="text-muted">${item.iata}</small>`;
-                tr.appendChild(tdRoute);
+            const processedKeys = new Set();
 
-                // Airline
-                const tdAirline = document.createElement('td');
-                tdAirline.textContent = item.airline;
-                tr.appendChild(tdAirline);
+            data.forEach(item => {
+                const key = `${item.week_label}||${item.city}||${item.iata}`;
+                if (processedKeys.has(key)) return;
+                processedKeys.add(key);
 
-                // Days
-                ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].forEach(day => {
-                    const td = document.createElement('td');
-                    td.className = 'text-center';
-                    td.textContent = item[day] || 0;
-                    tr.appendChild(td);
+                const groupItems = grouped[key];
+
+                groupItems.forEach((groupItem, index) => {
+                    const tr = document.createElement('tr');
+                    
+                    // Determine airline config
+                    const slug = this.slugify(groupItem.airline || 'default');
+                    const config = this.airlineConfig[slug] || this.airlineConfig['default'];
+
+                    // Apply row styles
+                    tr.style.backgroundColor = config.color;
+                    tr.style.color = config.text;
+                    tr.style.setProperty('--bs-table-bg', 'transparent');
+                    tr.style.setProperty('--bs-table-accent-bg', 'transparent');
+
+                    // Week & Route - Only for first item
+                    if (index === 0) {
+                        const tdWeek = document.createElement('td');
+                        tdWeek.textContent = groupItem.week_label;
+                        tdWeek.style.backgroundColor = '#ffffff';
+                        tdWeek.style.color = '#212529';
+                        tdWeek.rowSpan = groupItems.length;
+                        tdWeek.style.verticalAlign = 'middle';
+                        tr.appendChild(tdWeek);
+
+                        const tdRoute = document.createElement('td');
+                        tdRoute.innerHTML = `<div><strong>${groupItem.city}</strong></div><small>${groupItem.state || ''}</small>`;
+                        tdRoute.style.backgroundColor = '#ffffff';
+                        tdRoute.style.color = '#212529';
+                        tdRoute.rowSpan = groupItems.length;
+                        tdRoute.style.verticalAlign = 'middle';
+                        tr.appendChild(tdRoute);
+                    }
+
+                    // Airline
+                    const tdAirline = document.createElement('td');
+                    tdAirline.style.backgroundColor = '#ffffff';
+                    tdAirline.style.color = config.color;
+                    tdAirline.style.borderLeft = `8px solid ${config.color}`;
+                    
+                    if (config.logo) {
+                        tdAirline.innerHTML = `<img src="images/airlines/${config.logo}" alt="${groupItem.airline}" title="${groupItem.airline}" style="height: 24px; max-width: 100px; object-fit: contain;">`;
+                    } else {
+                        tdAirline.textContent = groupItem.airline;
+                    }
+                    tr.appendChild(tdAirline);
+
+                    // Days
+                    ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].forEach(day => {
+                        const td = document.createElement('td');
+                        td.className = 'text-center';
+                        // Wrap in span for edit mode targeting
+                        td.innerHTML = `<span class="weekly-freq-value" data-field="${day}" data-id="${groupItem.id}">${groupItem[day] || 0}</span>`;
+                        // Inherit row color
+                        tr.appendChild(td);
+                    });
+
+                    // Total
+                    const tdTotal = document.createElement('td');
+                    tdTotal.className = 'text-center fw-bold';
+                    tdTotal.textContent = groupItem.weekly_total;
+                    tr.appendChild(tdTotal);
+
+                    // Actions
+                    const tdActions = document.createElement('td');
+                    tdActions.className = 'text-center';
+                    // Reset background for actions cell to be readable
+                    tdActions.style.backgroundColor = '#ffffff';
+                    
+                    const btnEdit = document.createElement('button');
+                    btnEdit.className = 'btn btn-sm btn-outline-primary me-1';
+                    btnEdit.innerHTML = '<i class="fas fa-edit"></i>';
+                    btnEdit.onclick = () => this.editItem('weekly_frequencies', groupItem);
+                    tdActions.appendChild(btnEdit);
+
+                    const btnDelete = document.createElement('button');
+                    btnDelete.className = 'btn btn-sm btn-outline-danger';
+                    btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
+                    btnDelete.onclick = () => this.deleteItem('weekly_frequencies', groupItem.id);
+                    tdActions.appendChild(btnDelete);
+
+                    tr.appendChild(tdActions);
+                    tbody.appendChild(tr);
                 });
-
-                // Total
-                const tdTotal = document.createElement('td');
-                tdTotal.className = 'text-center fw-bold';
-                tdTotal.textContent = item.weekly_total;
-                tr.appendChild(tdTotal);
-
-                // Actions
-                const tdActions = document.createElement('td');
-                const btnEdit = document.createElement('button');
-                btnEdit.className = 'btn btn-sm btn-outline-primary me-1';
-                btnEdit.innerHTML = '<i class="fas fa-edit"></i>';
-                btnEdit.onclick = () => this.editItem('weekly_frequencies', item);
-                tdActions.appendChild(btnEdit);
-
-                const btnDelete = document.createElement('button');
-                btnDelete.className = 'btn btn-sm btn-outline-danger';
-                btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
-                btnDelete.onclick = () => this.deleteItem('weekly_frequencies', item.id);
-                tdActions.appendChild(btnDelete);
-
-                tr.appendChild(tdActions);
-                tbody.appendChild(tr);
             });
 
         } catch (error) {

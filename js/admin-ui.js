@@ -50,6 +50,45 @@ class AdminUI {
         editBtns.forEach(btn => btn.style.display = isAdmin ? 'inline-block' : 'none');
     }
 
+    generateWeekOptions() {
+        const options = [];
+        const year = new Date().getFullYear();
+        const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        
+        // Start from the first Monday of the year
+        let d = new Date(year, 0, 1);
+        while (d.getDay() !== 1) {
+            d.setDate(d.getDate() + 1);
+        }
+        
+        // Generate weeks for the whole year
+        while (d.getFullYear() === year) {
+            const start = new Date(d);
+            const end = new Date(d);
+            end.setDate(end.getDate() + 6);
+            
+            const startStr = `${String(start.getDate()).padStart(2, '0')} ${months[start.getMonth()]}`;
+            const endStr = `${String(end.getDate()).padStart(2, '0')} ${months[end.getMonth()]}`;
+            
+            let label;
+            if (start.getMonth() === end.getMonth()) {
+                label = `${String(start.getDate()).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')} ${months[start.getMonth()]} ${year}`;
+            } else {
+                label = `${startStr} - ${endStr} ${year}`;
+            }
+            
+            options.push({ 
+                value: label, 
+                label: label,
+                startDate: start.toISOString().split('T')[0],
+                endDate: end.toISOString().split('T')[0]
+            });
+            
+            d.setDate(d.getDate() + 7);
+        }
+        return options;
+    }
+
     // Generic method to open edit/add form for a record
     openEditModal(table, record, schema) {
         this.currentTable = table;
@@ -93,6 +132,33 @@ class AdminUI {
             });
             fieldsToRender.filter(f => !preferredOrder.includes(f.name)).forEach(f => ordered.push(f));
             fieldsToRender = ordered;
+
+            // Inject week options
+            const weekField = fieldsToRender.find(f => f.name === 'week_label');
+            if (weekField) {
+                const newField = { ...weekField, type: 'select', options: this.generateWeekOptions() };
+                const idx = fieldsToRender.indexOf(weekField);
+                fieldsToRender[idx] = newField;
+            }
+
+            // Inject airline options
+            const airlineField = fieldsToRender.find(f => f.name === 'airline');
+            if (airlineField) {
+                const airlines = [
+                    { value: 'Aeromexico', label: 'Aeromexico' },
+                    { value: 'Volaris', label: 'Volaris' },
+                    { value: 'Viva', label: 'Viva' },
+                    { value: 'Mexicana', label: 'Mexicana' },
+                    { value: 'Copa Airlines', label: 'Copa Airlines' },
+                    { value: 'Arajet', label: 'Arajet' },
+                    { value: 'Conviasa', label: 'Conviasa' },
+                    { value: 'Magnicharters', label: 'Magnicharters' },
+                    { value: 'Aerus', label: 'Aerus' }
+                ];
+                const newField = { ...airlineField, type: 'select', options: airlines };
+                const idx = fieldsToRender.indexOf(airlineField);
+                fieldsToRender[idx] = newField;
+            }
         }
 
         fieldsToRender.forEach((field, idx) => {
@@ -161,6 +227,8 @@ class AdminUI {
                     const option = document.createElement('option');
                     option.value = opt.value;
                     option.innerText = opt.label;
+                    if (opt.startDate) option.dataset.startDate = opt.startDate;
+                    if (opt.endDate) option.dataset.endDate = opt.endDate;
                     if (record && record[field.name] == opt.value) option.selected = true;
                     input.appendChild(option);
                 });
@@ -220,6 +288,13 @@ class AdminUI {
             input.id = 'input-' + field.name;
             if (field.readonly && record) input.disabled = true;
 
+            // Special case: Weekly Frequencies validity dates are auto-calculated and should be readonly
+            if (this.currentTable === 'weekly_frequencies' && ['valid_from', 'valid_to'].includes(field.name)) {
+                input.readOnly = true;
+                input.classList.add('bg-light');
+                input.tabIndex = -1;
+            }
+
             // If date field, center the input and constrain width for nicer appearance
             if (field.name === 'date') {
                 label.classList.add('text-center', 'w-100');
@@ -260,6 +335,97 @@ class AdminUI {
         const airlineInput = document.getElementById('input-airline');
         const logoPreview = document.getElementById('admin-airline-logo-preview');
 
+        // Auto-fill dates from week label
+        const weekLabelInput = document.getElementById('input-week_label');
+        const validFromInput = document.getElementById('input-valid_from');
+        const validToInput = document.getElementById('input-valid_to');
+
+        if (weekLabelInput && validFromInput && validToInput) {
+            weekLabelInput.addEventListener('change', () => {
+                const selectedOption = weekLabelInput.options[weekLabelInput.selectedIndex];
+                if (selectedOption && selectedOption.dataset.startDate) {
+                    validFromInput.value = selectedOption.dataset.startDate;
+                    validToInput.value = selectedOption.dataset.endDate;
+                }
+            });
+        }
+
+        // Airport Autocomplete Logic
+        const cityInput = document.getElementById('input-city');
+        const iataInput = document.getElementById('input-iata');
+        const stateInput = document.getElementById('input-state');
+
+        if (window.dataManager) {
+            window.dataManager.loadAirportsCatalog().then(airports => {
+                // 1. City Autocomplete
+                if (cityInput) {
+                    let cityList = document.getElementById('airport-city-list');
+                    if (!cityList) {
+                        cityList = document.createElement('datalist');
+                        cityList.id = 'airport-city-list';
+                        document.body.appendChild(cityList);
+                    }
+                    cityInput.setAttribute('list', 'airport-city-list');
+                    cityInput.setAttribute('autocomplete', 'off');
+
+                    cityList.innerHTML = '';
+                    airports.forEach(a => {
+                        if (!a.City || !a.IATA) return;
+                        const opt = document.createElement('option');
+                        opt.value = `${a.City} (${a.IATA})`;
+                        cityList.appendChild(opt);
+                    });
+
+                    cityInput.addEventListener('input', (e) => {
+                        const val = e.target.value;
+                        const match = val.match(/^(.*) \(([A-Z]{3})\)$/);
+                        if (match) {
+                            const city = match[1];
+                            const iata = match[2];
+                            cityInput.value = city;
+                            if (iataInput) {
+                                iataInput.value = iata;
+                                // Trigger IATA change logic manually if needed, or just fill state directly
+                                const state = window.dataManager.getMexicanState(iata);
+                                if (stateInput) stateInput.value = state;
+                            }
+                        }
+                    });
+                }
+
+                // 2. IATA Autocomplete & Auto-fill
+                if (iataInput) {
+                    let iataList = document.getElementById('airport-iata-list');
+                    if (!iataList) {
+                        iataList = document.createElement('datalist');
+                        iataList.id = 'airport-iata-list';
+                        document.body.appendChild(iataList);
+                    }
+                    iataInput.setAttribute('list', 'airport-iata-list');
+                    iataInput.setAttribute('autocomplete', 'off');
+
+                    iataList.innerHTML = '';
+                    airports.forEach(a => {
+                        if (!a.IATA) return;
+                        const opt = document.createElement('option');
+                        opt.value = a.IATA;
+                        opt.label = a.City; 
+                        iataList.appendChild(opt);
+                    });
+
+                    iataInput.addEventListener('input', (e) => {
+                        const val = e.target.value.trim().toUpperCase();
+                        // Find airport by IATA
+                        const airport = airports.find(a => a.IATA === val);
+                        if (airport) {
+                            if (cityInput) cityInput.value = airport.City;
+                            if (stateInput) stateInput.value = window.dataManager.getMexicanState(val);
+                        }
+                    });
+                }
+            });
+        }
+
         // Auto-calc
         const calc = () => {
             let sum = 0;
@@ -283,12 +449,25 @@ class AdminUI {
                 logoPreview.style.display = 'none'; 
                 return; 
             }
-            // Try to find logo
-            // Normalize: lowercase, replace spaces with underscores
-            const normalized = val.toLowerCase().replace(/\s+/g, '_');
-            const filename = `logo_${normalized}.png`;
-            logoPreview.src = `images/airlines/${filename}`;
-            logoPreview.style.display = 'inline-block';
+            
+            // Use DataManager config to resolve logo correctly (handling slugs and mappings)
+            if (window.dataManager && window.dataManager.slugify && window.dataManager.airlineConfig) {
+                const slug = window.dataManager.slugify(val);
+                const config = window.dataManager.airlineConfig[slug] || window.dataManager.airlineConfig['default'];
+                
+                if (config.logo) {
+                    logoPreview.src = `images/airlines/${config.logo}`;
+                    logoPreview.style.display = 'inline-block';
+                } else {
+                    logoPreview.style.display = 'none';
+                }
+            } else {
+                // Fallback if dataManager is not available
+                const normalized = val.toLowerCase().replace(/\s+/g, '_');
+                const filename = `logo_${normalized}.png`;
+                logoPreview.src = `images/airlines/${filename}`;
+                logoPreview.style.display = 'inline-block';
+            }
             
             logoPreview.onerror = () => {
                 logoPreview.style.display = 'none';

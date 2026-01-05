@@ -96,7 +96,12 @@
     fitButton: pane.querySelector('#frecuencias-fit-map'),
     tableBody: pane.querySelector('#frecuencias-destinos-table tbody'),
     tableCount: pane.querySelector('#frecuencias-table-count'),
-    tableEmpty: pane.querySelector('#frecuencias-empty')
+    tableEmpty: pane.querySelector('#frecuencias-empty'),
+    mapCol: pane.querySelector('#frecuencias-map-col'),
+    detailsCol: pane.querySelector('#frecuencias-details-col'),
+    detailsTitle: pane.querySelector('#frecuencias-details-title'),
+    detailsBody: pane.querySelector('#frecuencias-details-body'),
+    detailsClose: pane.querySelector('#frecuencias-details-close')
   };
 
   const state = {
@@ -114,7 +119,10 @@
   document.addEventListener('DOMContentLoaded', init);
   document.addEventListener('shown.bs.tab', evt => {
     if (evt.target && evt.target.id === 'frecuencias-auto-tab') {
-      setTimeout(() => state.map?.invalidateSize(), 200);
+      setTimeout(() => {
+        state.map?.invalidateSize();
+        fitMapToData();
+      }, 200);
     }
   });
 
@@ -244,7 +252,38 @@
       if (dom.filters.search) dom.filters.search.value = '';
       applyFilters();
     });
-    if (dom.fitButton) dom.fitButton.addEventListener('click', () => fitMapToData());
+    if (dom.fitButton) {
+      // Agrupar botones en un contenedor para mantener el layout
+      const header = dom.fitButton.parentNode;
+      const wrapper = document.createElement('div');
+      wrapper.className = 'd-flex gap-2';
+      
+      // Mover el botón existente al wrapper
+      header.insertBefore(wrapper, dom.fitButton);
+      wrapper.appendChild(dom.fitButton);
+
+      dom.fitButton.addEventListener('click', () => fitMapToData());
+      
+      // Botón para limpiar filtro de mapa
+      const resetMapBtn = document.createElement('button');
+      resetMapBtn.className = 'btn btn-outline-secondary btn-sm d-none';
+      resetMapBtn.innerHTML = '<i class="fas fa-undo me-1"></i>Mostrar todos';
+      resetMapBtn.addEventListener('click', () => {
+        state.filters.destination = 'all';
+        if (dom.filters.destination) dom.filters.destination.value = 'all';
+        applyFilters();
+      });
+      wrapper.appendChild(resetMapBtn);
+      dom.resetMapBtn = resetMapBtn;
+    }
+
+    if (dom.detailsClose) {
+      dom.detailsClose.addEventListener('click', () => {
+        state.filters.destination = 'all';
+        if (dom.filters.destination) dom.filters.destination.value = 'all';
+        applyFilters();
+      });
+    }
   }
 
   function applyFilters(){
@@ -264,6 +303,30 @@
       });
 
     state.filtered = list;
+    
+    if (dom.resetMapBtn) {
+      dom.resetMapBtn.classList.toggle('d-none', state.filters.destination === 'all');
+    }
+
+    // Toggle Side Panel
+    const isSingleDest = state.filters.destination !== 'all';
+    if (dom.mapCol && dom.detailsCol) {
+        if (isSingleDest) {
+            dom.mapCol.classList.remove('col-12');
+            dom.mapCol.classList.add('col-lg-8');
+            dom.detailsCol.classList.remove('d-none');
+            // Render details
+            const dest = state.destinations.find(d => d.iata === state.filters.destination);
+            if (dest) renderDestinationDetails(dest);
+        } else {
+            dom.mapCol.classList.add('col-12');
+            dom.mapCol.classList.remove('col-lg-8');
+            dom.detailsCol.classList.add('d-none');
+        }
+        // Trigger map resize after transition
+        setTimeout(() => state.map?.invalidateSize(), 300);
+    }
+
     updateActiveFiltersText();
     renderDowSummary();
     renderInsights();
@@ -381,8 +444,16 @@
           // Mantener la celda de destino legible (fondo blanco)
           tdDest.style.backgroundColor = '#ffffff';
           tdDest.style.color = '#212529';
+          
+          const total = dest.viewWeeklyTotal ?? dest.weeklyTotal;
+          
           // Eliminado el código IATA, solo ciudad y estado
-          tdDest.innerHTML = `<div class="frecuencias-dest-info"><strong>${dest.city}</strong><span>${dest.state}</span></div>`;
+          tdDest.innerHTML = `
+            <div class="frecuencias-dest-info">
+                <strong>${dest.city}</strong>
+                <span>${dest.state}</span>
+                <div class="badge bg-light text-dark border mt-1" style="font-weight: normal;">${total} frec/sem</div>
+            </div>`;
           tr.appendChild(tdDest);
         }
 
@@ -419,6 +490,69 @@
     });
   }
 
+  function renderDestinationDetails(dest) {
+    if (!dom.detailsTitle || !dom.detailsBody) return;
+    dom.detailsTitle.textContent = `${dest.city} (${dest.iata})`;
+    
+    const projected = projectDestination(dest);
+    if (!projected) {
+        dom.detailsBody.innerHTML = '<div class="p-3 text-muted">No hay vuelos con los filtros actuales.</div>';
+        return;
+    }
+
+    let html = '';
+    const abbrs = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
+    
+    projected.viewAirlines.forEach(air => {
+        const config = AIRLINE_CONFIG[air.slug] || AIRLINE_CONFIG['default'];
+        // Si hay logo, mostrarlo más grande y sin texto. Si no, mostrar texto.
+        const headerContent = config.logo 
+            ? `<img src="images/airlines/${config.logo}" alt="${air.name}" style="height: 32px; width: auto;" title="${air.name}">`
+            : `<strong style="color: #212529; font-size: 1.1rem;">${air.name}</strong>`;
+        
+        html += `
+            <div class="list-group-item p-3">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div>${headerContent}</div>
+                    <div class="text-end">
+                        <div class="badge bg-primary rounded-pill px-3 py-2" style="font-size: 0.9rem; font-weight: 500;">
+                            ${air.weeklyTotal} <span style="opacity: 0.8; font-weight: 400;">frecuencias/semana</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex gap-1 justify-content-between">
+                    ${DAY_CODES.map((code, idx) => {
+                        const count = air.daily[idx];
+                        const isActive = count > 0;
+                        // Estilos condicionales para resaltar días activos
+                        const bgClass = isActive ? 'bg-primary-subtle border border-primary-subtle' : 'bg-light border border-light';
+                        const textClass = isActive ? 'text-primary fw-bold' : 'text-muted opacity-25';
+                        
+                        return `
+                            <div class="text-center rounded p-1 flex-fill ${bgClass}" style="min-width: 35px;">
+                                <div class="small ${isActive ? 'text-primary fw-semibold' : 'text-muted opacity-50'}" style="font-size: 0.7rem; margin-bottom: 2px;">${abbrs[idx]}</div>
+                                <div class="${textClass}" style="font-size: 1rem; line-height: 1;">${count}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    });
+
+    html += `
+        <div class="p-3 mt-2 bg-light border-top small text-muted">
+            <div class="fw-bold mb-1">Notas:</div>
+            <ul class="mb-0 ps-3" style="list-style-type: disc;">
+                <li class="mb-1">Una frecuencia es cuantas veces va a un destino, se refiere a un aterrizaje y un despegue.</li>
+                <li>Esta programación esta sujeta a cambios con base en las necesidades de las aerolíneas.</li>
+            </ul>
+        </div>
+    `;
+
+    dom.detailsBody.innerHTML = html;
+  }
+
   function renderMap(){
     if (!state.map || !state.markerLayer) return;
     state.markerLayer.clearLayers();
@@ -439,16 +573,23 @@
       return;
     }
     dom.mapEmpty?.classList.add('d-none');
-    const bounds = [[AIFA_COORDS.lat, AIFA_COORDS.lng]]; // Incluir AIFA en bounds
+    
+    // Usar todos los destinos para calcular los límites del mapa, 
+    // así la vista se mantiene en "Enfocar país" incluso al filtrar.
+    const bounds = [[AIFA_COORDS.lat, AIFA_COORDS.lng]]; 
+    state.destinations.forEach(d => {
+        if (d.coords) bounds.push([d.coords.lat, d.coords.lng]);
+    });
+
     dataset.forEach(dest => {
       if (!dest.coords) return;
       const total = dest.viewWeeklyTotal ?? dest.weeklyTotal;
       const icon = buildMarkerIcon(total, dest.iata);
       const marker = L.marker([dest.coords.lat, dest.coords.lng], { icon }).addTo(state.markerLayer);
-      marker.bindTooltip(`${dest.city} (${dest.iata})\n${intlNumber.format(total)} vuelos/sem`);
-      marker.on('click', () => focusDestination(dest.iata));
-      bounds.push([dest.coords.lat, dest.coords.lng]);
+      marker.bindTooltip(`${dest.city} (${dest.iata})\n${intlNumber.format(total)} frecuencias/semana`);
+      marker.on('click', () => filterByDestination(dest.iata));
     });
+
     if (bounds.length) {
       const leafletBounds = L.latLngBounds(bounds);
       // Ajuste de padding para asegurar que se vean todos los destinos
@@ -556,6 +697,12 @@
     });
   }
 
+  function filterByDestination(iata){
+    state.filters.destination = iata;
+    if (dom.filters.destination) dom.filters.destination.value = iata;
+    applyFilters();
+  }
+
   function focusDestination(iata){
     const row = dom.tableBody?.querySelector(`[data-destination-row="${iata}"]`);
     if (!row) return;
@@ -565,11 +712,14 @@
   }
 
   function fitMapToData(){
-    if (!state.map || !state.markerLayer) return;
-    const markers = state.markerLayer.getLayers();
-    if (!markers.length) return;
-    const bounds = L.latLngBounds(markers.map(m => m.getLatLng()));
-    state.map.fitBounds(bounds, { padding: [30, 30], maxZoom: 8 });
+    if (!state.map || !state.destinations.length) return;
+    // Calcular bounds basados en TODOS los destinos, no solo los visibles
+    const bounds = [[AIFA_COORDS.lat, AIFA_COORDS.lng]];
+    state.destinations.forEach(d => {
+        if (d.coords) bounds.push([d.coords.lat, d.coords.lng]);
+    });
+    const leafletBounds = L.latLngBounds(bounds);
+    state.map.fitBounds(leafletBounds, { padding: [30, 30], maxZoom: 8 });
   }
 
   function updateActiveFiltersText(){
@@ -670,6 +820,70 @@
       }
     }
     if (dom.lastUpdated) dom.lastUpdated.textContent = `Generado el ${intlDate.format(new Date())}`;
+    
+    if (data?.weekLabel) {
+        updateTableHeaders(data.weekLabel);
+    }
+  }
+
+  function updateTableHeaders(weekLabel) {
+      const months = {
+          'Ene': 0, 'Feb': 1, 'Mar': 2, 'Abr': 3, 'May': 4, 'Jun': 5,
+          'Jul': 6, 'Ago': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dic': 11,
+          'ene': 0, 'feb': 1, 'mar': 2, 'abr': 3, 'may': 4, 'jun': 5,
+          'jul': 6, 'ago': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dic': 11
+      };
+
+      let startDate;
+
+      // Try format: "08-14 Dic 2025"
+      const regexSameMonth = /^(\d{1,2})-(\d{1,2})\s+([A-Za-z]{3})\.?\s+(\d{4})$/;
+      const matchSame = weekLabel.match(regexSameMonth);
+
+      if (matchSame) {
+          const day = parseInt(matchSame[1], 10);
+          const monthStr = matchSame[3];
+          const year = parseInt(matchSame[4], 10);
+          const month = months[monthStr.substring(0, 3)];
+          if (month !== undefined) {
+              startDate = new Date(year, month, day);
+          }
+      } else {
+          // Try format: "29 Dic - 04 Ene 2026"
+          const regexDiffMonth = /^(\d{1,2})\s+([A-Za-z]{3})\.?\s+-\s+(\d{1,2})\s+([A-Za-z]{3})\.?\s+(\d{4})$/;
+          const matchDiff = weekLabel.match(regexDiffMonth);
+          if (matchDiff) {
+              const day = parseInt(matchDiff[1], 10);
+              const monthStr = matchDiff[2];
+              let year = parseInt(matchDiff[5], 10);
+              const startMonth = months[monthStr.substring(0, 3)];
+              const endMonth = months[matchDiff[4].substring(0, 3)];
+              
+              if (startMonth === 11 && endMonth === 0) {
+                  year -= 1;
+              }
+              
+              if (startMonth !== undefined) {
+                  startDate = new Date(year, startMonth, day);
+              }
+          }
+      }
+
+      if (!startDate) return;
+
+      const headers = dom.tableBody.closest('table').querySelectorAll('thead th');
+      const days = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
+      
+      for (let i = 0; i < 7; i++) {
+          const current = new Date(startDate);
+          current.setDate(startDate.getDate() + i);
+          const dayStr = current.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit' });
+          
+          // Indices 2 to 8 correspond to Lun-Dom
+          if (headers[i + 2]) {
+              headers[i + 2].innerHTML = `${days[i]}<br><small class="text-muted fw-normal" style="font-size: 0.75rem;">${dayStr}</small>`;
+          }
+      }
   }
 
   function formatDate(input){

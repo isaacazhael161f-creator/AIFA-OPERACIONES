@@ -5431,3 +5431,19 @@ body.dark-mode .ops-pdf-placeholder {
     transform: translateY(-10px);
 }
 
+.transition-all { transition: all 0.3s ease-in-out; }
+
+/* Sticky headers for public frequencies table */
+#frecuencias-destinos-table thead th {
+    position: sticky;
+    top: 0;
+    background-color: #ffffff;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+/* Dark mode support */
+body.dark-mode #frecuencias-destinos-table thead th {
+    background-color: var(--card-bg, #1e2739);
+    color: var(--text-color, #e8eaed);
+}
+

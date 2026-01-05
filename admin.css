@@ -25,3 +25,24 @@ body.admin-enabled .admin-only {
 #admin-toggle-test:hover {
     opacity: 1;
 }
+
+/* Sticky Headers for Weekly Frequencies Table */
+#pane-weekly-frequencies .table-responsive {
+    max-height: 75vh;
+    overflow-y: auto;
+    border-bottom: 1px solid var(--border-color);
+}
+
+#table-weekly-frequencies thead th {
+    position: sticky;
+    top: 0;
+    background-color: #ffffff; /* Match light theme card bg */
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Dark mode support for sticky headers */
+body.dark-mode #table-weekly-frequencies thead th {
+    background-color: var(--card-bg, #1e2739);
+    color: var(--text-color, #e8eaed);
+}

@@ -180,6 +180,49 @@ class DataManager {
         if (error) throw error;
         return true;
     }
+
+    async loadAirportsCatalog() {
+        if (this.airportsCatalog) return this.airportsCatalog;
+        try {
+            const response = await fetch('data/master/airports.csv');
+            const text = await response.text();
+            const lines = text.split('\n').filter(l => l.trim());
+            const headers = lines[0].split(',').map(h => h.trim());
+            
+            this.airportsCatalog = lines.slice(1).map(line => {
+                // Handle CSV parsing (simple split, assuming no commas in values for now or simple quotes)
+                // A robust parser would be better but for this specific file simple split might suffice if no quoted commas
+                const values = line.split(','); 
+                const entry = {};
+                headers.forEach((h, i) => entry[h] = values[i] ? values[i].trim() : '');
+                return entry;
+            });
+            return this.airportsCatalog;
+        } catch (e) {
+            console.error('Error loading airports catalog:', e);
+            return [];
+        }
+    }
+
+    getMexicanState(iata) {
+        const mapping = {
+            'ACA': 'Guerrero', 'AGU': 'Aguascalientes', 'BJX': 'Guanajuato', 'CEN': 'Sonora', 'CJS': 'Chihuahua',
+            'CME': 'Campeche', 'CPE': 'Campeche', 'CTM': 'Quintana Roo', 'CUL': 'Sinaloa', 'CUN': 'Quintana Roo',
+            'CUU': 'Chihuahua', 'CVM': 'Tamaulipas', 'CYW': 'Guanajuato', 'CZM': 'Quintana Roo', 'DGO': 'Durango',
+            'GDL': 'Jalisco', 'GYM': 'Sonora', 'HMO': 'Sonora', 'HUX': 'Oaxaca', 'ICD': 'Baja California',
+            'IZT': 'Oaxaca', 'JJC': 'Estado de México', 'LAP': 'Baja California Sur', 'LMM': 'Sinaloa',
+            'LTO': 'Baja California Sur', 'MAM': 'Tamaulipas', 'MEX': 'Ciudad de México', 'MID': 'Yucatán',
+            'MLM': 'Michoacán', 'MTT': 'Veracruz', 'MTY': 'Nuevo León', 'MXL': 'Baja California', 'MZT': 'Sinaloa',
+            'NLD': 'Tamaulipas', 'NLU': 'Estado de México', 'OAX': 'Oaxaca', 'PAZ': 'Veracruz', 'PBC': 'Puebla',
+            'PCA': 'Hidalgo', 'PDS': 'Coahuila', 'PPE': 'Sonora', 'PQM': 'Chiapas', 'PVR': 'Jalisco',
+            'PXM': 'Oaxaca', 'QRO': 'Querétaro', 'REX': 'Tamaulipas', 'SJD': 'Baja California Sur',
+            'SLP': 'San Luis Potosí', 'SLW': 'Coahuila', 'TAM': 'Tamaulipas', 'TAP': 'Chiapas', 'TGZ': 'Chiapas',
+            'TIJ': 'Baja California', 'TLC': 'Estado de México', 'TPQ': 'Nayarit', 'TQO': 'Quintana Roo',
+            'TRC': 'Coahuila', 'UPN': 'Michoacán', 'VER': 'Veracruz', 'VSA': 'Tabasco', 'ZCL': 'Zacatecas',
+            'ZIH': 'Guerrero', 'ZLO': 'Colima'
+        };
+        return mapping[iata] || '';
+    }
 }
 
 window.dataManager = new DataManager();
