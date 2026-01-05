@@ -8464,14 +8464,110 @@
         }
       ],
       "total_general": 197
-    }
+    },
 
+     "2026-01-01": {
+      "operaciones": [
+        {
+          "tipo": "Aviación de Pasajeros",
+          "llegada": 70,
+          "salida": 72,
+          "subtotal": 142
+        },
+        {
+          "tipo": "Aviación de Carga",
+          "llegada": 11,
+          "salida": 10,
+          "subtotal": 21
+        },
+        {
+          "tipo": "Aviación General",
+          "llegada": 1,
+          "salida": 1,
+          "subtotal": 2
+        }
+      ],
+      "total_general": 165
+    },
+
+    "2026-01-02": {
+      "operaciones": [
+        {
+          "tipo": "Aviación de Pasajeros",
+          "llegada": 81,
+          "salida": 81,
+          "subtotal": 162
+        },
+        {
+          "tipo": "Aviación de Carga",
+          "llegada": 12,
+          "salida": 14,
+          "subtotal": 26
+        },
+        {
+          "tipo": "Aviación General",
+          "llegada": 4,
+          "salida": 3,
+          "subtotal": 7
+        }
+      ],
+      "total_general": 195  
 
   },
 
+    "2026-01-03": {
+      "operaciones": [
+        {
+          "tipo": "Aviación de Pasajeros",
+          "llegada": 77,
+          "salida": 48,
+          "subtotal": 125
+        },
+        {
+          "tipo": "Aviación de Carga",
+          "llegada": 14,
+          "salida": 14,
+          "subtotal": 28
+        },
+        {
+          "tipo": "Aviación General",
+          "llegada": 2,
+          "salida": 1,
+          "subtotal": 3
+        }
+      ],
+      "total_general": 156
+    },
+
+    "2026-01-04": {
+      "operaciones": [
+        {
+          "tipo": "Aviación de Pasajeros",
+          "llegada": 78,
+          "salida": 81,
+          "subtotal": 159
+        },
+        {
+          "tipo": "Aviación de Carga",
+          "llegada": 10,
+          "salida": 9,
+          "subtotal": 19
+        },
+        {
+          "tipo": "Aviación General",
+          "llegada": 3,
+          "salida": 1,
+          "subtotal": 4
+        }
+      ],
+      "total_general": 182
+    }
+
+    },
+
   "metadata": {
     "version": 1,
-    "ultima_actualizacion": "2025-12-31",
+    "ultima_actualizacion": "2026-01-04",
     "descripcion": "Plantilla diaria para parte de operaciones 2025"
   }
 }
