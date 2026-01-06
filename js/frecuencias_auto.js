@@ -905,10 +905,21 @@
     const map = new Map();
     destinations.forEach(dest => {
       dest.airlines.forEach(air => {
-        if (!map.has(air.slug)) map.set(air.slug, air.name);
+        if (!map.has(air.slug)) {
+          map.set(air.slug, { name: air.name, total: 0 });
+        }
+        const entry = map.get(air.slug);
+        entry.total += (air.weeklyTotal || 0);
       });
     });
-    return [...map.entries()].map(([slug, name]) => ({ slug, name })).sort((a, b) => a.name.localeCompare(b.name, 'es-MX'));
+    return [...map.entries()]
+      .map(([slug, data]) => ({ slug, name: data.name, total: data.total }))
+      .sort((a, b) => {
+        // Sort by Total Descending, then Alphabetical
+        const diff = b.total - a.total;
+        if (diff !== 0) return diff;
+        return a.name.localeCompare(b.name, 'es-MX');
+      });
   }
 
   function populateFilters(){

@@ -920,14 +920,14 @@ class DataManagement {
         const headers = table.querySelectorAll('thead th');
         const days = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
         
-        // Indices 3 to 9 correspond to L-D (0: Semana, 1: Ruta, 2: Aerolínea, 3: L, ..., 9: D)
+        // Indices 4 to 10 correspond to L-D (0: Semana, 1: Id, 2: Ruta, 3: Aerolínea, 4: L, ..., 10: D)
         for (let i = 0; i < 7; i++) {
             const current = new Date(startDate);
             current.setDate(startDate.getDate() + i);
             const dayStr = current.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit' });
             
-            if (headers[i + 3]) {
-                headers[i + 3].innerHTML = `${days[i]}<br><small class="text-muted fw-normal" style="font-size: 0.7rem;">${dayStr}</small>`;
+            if (headers[i + 4]) {
+                headers[i + 4].innerHTML = `${days[i]}<br><small class="text-muted fw-normal" style="font-size: 0.7rem;">${dayStr}</small>`;
             }
         }
     }
