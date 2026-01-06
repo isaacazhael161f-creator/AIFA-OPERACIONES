@@ -159,6 +159,51 @@ class AdminUI {
                 const idx = fieldsToRender.indexOf(airlineField);
                 fieldsToRender[idx] = newField;
             }
+        } else if (this.currentTable === 'weekly_frequencies_int') {
+            const preferredOrder = [
+                'week_label', 'valid_from', 'valid_to',
+                'airline', 'route_id', 'iata', 'city', 'state',
+                'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+                'weekly_total'
+            ];
+            const ordered = [];
+            preferredOrder.forEach(name => {
+                const f = fieldsToRender.find(s => s.name === name);
+                if (f) ordered.push(f);
+            });
+            fieldsToRender.filter(f => !preferredOrder.includes(f.name)).forEach(f => ordered.push(f));
+            fieldsToRender = ordered;
+
+             // Inject week options
+            const weekField = fieldsToRender.find(f => f.name === 'week_label');
+            if (weekField) {
+                const newField = { ...weekField, type: 'select', options: this.generateWeekOptions() };
+                const idx = fieldsToRender.indexOf(weekField);
+                fieldsToRender[idx] = newField;
+            }
+
+            // Inject airline options (Predictive)
+            const airlineField = fieldsToRender.find(f => f.name === 'airline');
+            if (airlineField) {
+                let options = [];
+                 if (window.dataManagement && window.dataManagement.airlineCatalog && window.dataManagement.airlineCatalog.length > 0) {
+                     options = window.dataManagement.airlineCatalog.map(a => ({ value: a.name, label: a.name }));
+                 } else {
+                     // International airlines fallback
+                    options = [
+                        { value: 'Aeromexico', label: 'Aeromexico' }, { value: 'Volaris', label: 'Volaris' },
+                        { value: 'Copa Airlines', label: 'Copa Airlines' }, { value: 'Arajet', label: 'Arajet' },
+                        { value: 'Conviasa', label: 'Conviasa' }, { value: 'Avianca', label: 'Avianca' },
+                        { value: 'American Airlines', label: 'American Airlines' }, { value: 'Delta', label: 'Delta' },
+                        { value: 'United', label: 'United' }, { value: 'Iberia', label: 'Iberia' },
+                        { value: 'Qatar Airways', label: 'Qatar Airways' }
+                    ];
+                 }
+                const newField = { ...airlineField, type: 'datalist', options: options };
+                const idx = fieldsToRender.indexOf(airlineField);
+                fieldsToRender[idx] = newField;
+            }
+        
         } else if (this.currentTable === 'punctuality_stats') {
              // Inject airline options from loaded catalog
              const airlineField = fieldsToRender.find(f => f.name === 'airline');
@@ -189,7 +234,7 @@ class AdminUI {
             // Special layout for the date field: full-width and centered
             if (field.name === 'date') {
                 col.className = 'col-12 d-flex flex-column align-items-center';
-            } else if (this.currentTable === 'weekly_frequencies') {
+            } else if (this.currentTable === 'weekly_frequencies' || this.currentTable === 'weekly_frequencies_int') {
                 if (['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].includes(field.name)) {
                     col.className = 'col-6 col-md-auto'; // Auto width for days to fit in one row if possible
                     col.style.flex = '1 0 auto';
@@ -227,6 +272,15 @@ class AdminUI {
             label.appendChild(labelText);
 
             if (this.currentTable === 'weekly_frequencies' && field.name === 'airline') {
+                const img = document.createElement('img');
+                img.id = 'admin-airline-logo-preview';
+                img.style.height = '24px';
+                img.style.marginLeft = 'auto';
+                img.style.display = 'none';
+                label.appendChild(img);
+            }
+
+            if (this.currentTable === 'weekly_frequencies_int' && field.name === 'airline') {
                 const img = document.createElement('img');
                 img.id = 'admin-airline-logo-preview';
                 img.style.height = '24px';
@@ -345,7 +399,7 @@ class AdminUI {
             }
 
             // Special case: Weekly Frequencies validity dates are auto-calculated and should be readonly
-            if (this.currentTable === 'weekly_frequencies' && ['valid_from', 'valid_to'].includes(field.name)) {
+            if ((this.currentTable === 'weekly_frequencies' || this.currentTable === 'weekly_frequencies_int') && ['valid_from', 'valid_to'].includes(field.name)) {
                 input.readOnly = true;
                 input.classList.add('bg-light');
                 input.tabIndex = -1;
@@ -410,6 +464,10 @@ class AdminUI {
             this.setupWeeklyFrequenciesLogic();
         }
 
+        if (this.currentTable === 'weekly_frequencies_int') {
+            this.setupWeeklyFrequenciesLogic('int');
+        }
+
         // Autofocus first input after show
         this.modal.show();
         setTimeout(() => {
@@ -418,7 +476,7 @@ class AdminUI {
         }, 200);
     }
 
-    setupWeeklyFrequenciesLogic() {
+    setupWeeklyFrequenciesLogic(mode = 'domestic') {
         const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
         const inputs = days.map(d => document.getElementById(`input-${d}`));
         const totalInput = document.getElementById('input-weekly_total');
@@ -460,6 +518,9 @@ class AdminUI {
 
                     cityList.innerHTML = '';
                     airports.forEach(a => {
+                        // Filter for international if mode is 'int' ? 
+                        // The user said "International", so likely non-MX or general list. 
+                        // But usually the catalog contains all. 
                         if (!a.City || !a.IATA) return;
                         const opt = document.createElement('option');
                         opt.value = `${a.City} (${a.IATA})`;
@@ -477,7 +538,17 @@ class AdminUI {
                                 iataInput.value = iata;
                                 // Trigger IATA change logic manually if needed, or just fill state directly
                                 const state = window.dataManager.getMexicanState(iata);
-                                if (stateInput) stateInput.value = state;
+                                if (stateInput) stateInput.value = state || ''; 
+                                
+                                // For International, "State" is often "Country" or "Region"
+                                // If getMexicanState returns something, use it, else try Country
+                                if (mode === 'int') {
+                                     // Find airport again to get Country
+                                     const ap = airports.find(x => x.IATA === iata);
+                                     if (ap && ap.Country && ap.Country !== 'Mexico') {
+                                         stateInput.value = ap.Country;
+                                     }
+                                }
                             }
                         }
                     });
@@ -509,7 +580,16 @@ class AdminUI {
                         const airport = airports.find(a => a.IATA === val);
                         if (airport) {
                             if (cityInput) cityInput.value = airport.City;
-                            if (stateInput) stateInput.value = window.dataManager.getMexicanState(val);
+                            
+                            let region = window.dataManager.getMexicanState(val);
+                            if (mode === 'int' && (!region || region === 'N/A')) {
+                                if (airport.Country && airport.Country !== 'Mexico') {
+                                    region = airport.Country;
+                                } else {
+                                    region = 'Internacional';
+                                }
+                            }
+                            if (stateInput) stateInput.value = region;
                         }
                     });
                 }
