@@ -46,3 +46,59 @@ body.dark-mode #table-weekly-frequencies thead th {
     background-color: var(--card-bg, #1e2739);
     color: var(--text-color, #e8eaed);
 }
+
+/* Autocomplete Styles */
+.autocomplete-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.autocomplete-items {
+    position: absolute;
+    border: 1px solid #d4d4d4;
+    border-bottom: none;
+    border-top: none;
+    z-index: 1050; /* Higher than modal */
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: #fff;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border-radius: 0 0 4px 4px;
+}
+
+.autocomplete-item {
+    padding: 10px;
+    cursor: pointer;
+    background-color: #fff;
+    border-bottom: 1px solid #d4d4d4;
+    color: #212529;
+}
+
+.autocomplete-item:hover {
+    background-color: #e9e9e9;
+}
+
+.autocomplete-active {
+    background-color: #0d6efd !important;
+    color: #ffffff !important;
+}
+
+/* Dark mode overrides (assuming based on body class or media query used in project) */
+/* Adjust based on typical Bootstrap dark mode classes if present, or media query */
+@media (prefers-color-scheme: dark) {
+    .autocomplete-items {
+        background-color: #2b3035;
+        border-color: #495057;
+    }
+    .autocomplete-item {
+        background-color: #2b3035;
+        border-color: #495057;
+        color: #fff;
+    }
+    .autocomplete-item:hover {
+        background-color: #343a40;
+    }
+}

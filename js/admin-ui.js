@@ -159,6 +159,29 @@ class AdminUI {
                 const idx = fieldsToRender.indexOf(airlineField);
                 fieldsToRender[idx] = newField;
             }
+        } else if (this.currentTable === 'punctuality_stats') {
+             // Inject airline options from loaded catalog
+             const airlineField = fieldsToRender.find(f => f.name === 'airline');
+             if (airlineField) {
+                 let options = [];
+                 if (window.dataManagement && window.dataManagement.airlineCatalog && window.dataManagement.airlineCatalog.length > 0) {
+                     options = window.dataManagement.airlineCatalog.map(a => ({ value: a.name, label: a.name }));
+                 } else {
+                    // Fallback options if catalog not loaded
+                    options = [
+                        { value: 'Aeromexico', label: 'Aeromexico' }, { value: 'Volaris', label: 'Volaris' },
+                        { value: 'Viva', label: 'Viva' }, { value: 'Mexicana', label: 'Mexicana' },
+                        { value: 'Copa Airlines', label: 'Copa Airlines' }, { value: 'Arajet', label: 'Arajet' },
+                        { value: 'Conviasa', label: 'Conviasa' }, { value: 'Magnicharters', label: 'Magnicharters' },
+                        { value: 'Qatar Airways', label: 'Qatar Airways' }, { value: 'China Southern', label: 'China Southern' },
+                        { value: 'Emirates SkyCargo', label: 'Emirates SkyCargo' }, { value: 'FedEx', label: 'FedEx' },
+                        { value: 'DHL', label: 'DHL' }, { value: 'Mas', label: 'Mas' }, { value: 'Air Canada', label: 'Air Canada' }
+                    ];
+                 }
+                 const newField = { ...airlineField, type: 'datalist', options: options };
+                 const idx = fieldsToRender.indexOf(airlineField);
+                 fieldsToRender[idx] = newField;
+             }
         }
 
         fieldsToRender.forEach((field, idx) => {
@@ -232,35 +255,48 @@ class AdminUI {
                     if (record && record[field.name] == opt.value) option.selected = true;
                     input.appendChild(option);
                 });
+            } else if (field.type === 'datalist') {
+                input = document.createElement('input');
+                input.className = 'form-control';
+                input.setAttribute('autocomplete', 'off'); // Disable browser history for cleaner search
+                input.placeholder = field.placeholder || 'Escribe para buscar...';
+                
+                // Attach custom autocomplete logic
+                this.setupAutocomplete(input, field.options || []);
             } else if (field.type === 'date') {
                 input = document.createElement('input');
                 input.type = 'date';
                 input.className = 'form-control';
             } else if (field.type === 'number') {
-                // Use text input to allow formatted display (commas) while typing
-                input = document.createElement('input');
-                input.type = 'text';
-                input.className = 'form-control format-number';
-                if (field.step) input.dataset.step = field.step;
-                input.placeholder = field.placeholder || '0';
-                // Add formatting listener to show thousands separators as user types
-                input.addEventListener('input', (e) => {
-                    const el = e.target;
-                    const raw = el.value;
-                    const caret = el.selectionStart || 0;
-                    const clean = AdminUI.unformatNumberString(raw);
-                    if (clean === '') {
-                        el.value = '';
-                        return;
-                    }
-                    const hasDecimal = clean.indexOf('.') >= 0;
-                    // Format integer part with thousands separators
-                    let parts = clean.split('.');
-                    parts[0] = Number(parts[0]).toLocaleString('en-US');
-                    el.value = hasDecimal ? parts.join('.') : parts[0];
-                    // Try to restore caret near the end (simple strategy)
-                    try { el.setSelectionRange(el.value.length, el.value.length); } catch (err) {}
-                });
+                if (field.name === 'year') {
+                    // Year field: plain simple number input, no thousands separators
+                    input = document.createElement('input');
+                    input.type = 'number';
+                    input.className = 'form-control';
+                    input.placeholder = field.placeholder || '2025';
+                } else {
+                    // Use text input to allow formatted display (commas) while typing
+                    input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'form-control format-number';
+                    if (field.step) input.dataset.step = field.step;
+                    input.placeholder = field.placeholder || '0';
+                    // Add formatting listener to show thousands separators as user types
+                    input.addEventListener('input', (e) => {
+                        const el = e.target;
+                        const raw = el.value;
+                        const clean = AdminUI.unformatNumberString(raw);
+                        if (clean === '') {
+                            el.value = '';
+                            return;
+                        }
+                        const hasDecimal = clean.indexOf('.') >= 0;
+                        // Format integer part with thousands separators
+                        let parts = clean.split('.');
+                        parts[0] = Number(parts[0]).toLocaleString('en-US');
+                        el.value = hasDecimal ? parts.join('.') : parts[0];
+                    });
+                }
             } else {
                 input = document.createElement('input');
                 input.type = field.type || 'text';
@@ -287,6 +323,21 @@ class AdminUI {
             input.name = field.name;
             input.id = 'input-' + field.name;
             
+            // Auto-fill Category based on Airline (Punctuality Stats)
+            if (this.currentTable === 'punctuality_stats' && field.name === 'airline' && (field.type === 'select' || field.type === 'datalist')) {
+                const eventType = field.type === 'datalist' ? 'input' : 'change';
+                input.addEventListener(eventType, (e) => {
+                    const val = (e.target.value || '').toLowerCase();
+                    const catSelect = document.getElementById('input-category');
+                    if (catSelect) {
+                        const cargoKeywords = ['cargo', 'fedex', 'dhl', 'ups', 'mas', 'estafeta', 'cathay', 'emirates', 'atlas', 'tws', 'kalitta', 'national', 'cargolux', 'air france', 'china southern', 'lufthansa'];
+                        // Very rough heuristic since catalog lacks type
+                        const isCargo = cargoKeywords.some(k => val.includes(k));
+                        catSelect.value = isCargo ? 'Carga' : 'Pasajeros';
+                    }
+                });
+            }
+
             // Use readOnly instead of disabled so FormData includes the value
             if (field.readonly && record) {
                 input.readOnly = true;
@@ -306,9 +357,43 @@ class AdminUI {
                 input.classList.add('text-center', 'mx-auto');
                 input.style.maxWidth = '220px';
             }
+            
+            // Auto-calc Total Flights for Punctuality Stats
+            if (this.currentTable === 'punctuality_stats' && ['on_time', 'delayed', 'cancelled'].includes(field.name)) {
+                input.addEventListener('input', () => {
+                     const onTime = Number(AdminUI.unformatNumberString(document.getElementById('input-on_time')?.value || '0'));
+                     const delayed = Number(AdminUI.unformatNumberString(document.getElementById('input-delayed')?.value || '0'));
+                     const cancelled = Number(AdminUI.unformatNumberString(document.getElementById('input-cancelled')?.value || '0'));
+                     const total = onTime + delayed + cancelled;
+                     
+                     const totalInput = document.getElementById('input-total_flights');
+                     if (totalInput) {
+                         totalInput.value = total.toLocaleString('en-US');
+                     }
+                });
+            }
 
             col.appendChild(label);
-            col.appendChild(input);
+            
+            // For datalist, wrap in input-group with search icon and handle custom autocomplete
+            if (field.type === 'datalist') {
+                const group = document.createElement('div');
+                group.className = 'input-group autocomplete-wrapper';
+                const icon = document.createElement('span');
+                icon.className = 'input-group-text bg-white text-muted';
+                icon.innerHTML = '<i class="fas fa-search"></i>';
+                group.appendChild(icon);
+                group.appendChild(input);
+                
+                // Append the list container which was attached to input in setupAutocomplete
+                if (input._listContainer) {
+                    group.appendChild(input._listContainer);
+                }
+                
+                col.appendChild(group);
+            } else {
+                col.appendChild(input);
+            }
 
             // Add small helper for numeric/date fields
             if (field.type === 'number' || field.type === 'date') {
@@ -495,6 +580,102 @@ class AdminUI {
             // Initial check if editing
             updateLogo();
         }
+    }
+
+    setupAutocomplete(input, options) {
+        let currentFocus = -1;
+        const listContainer = document.createElement('div');
+        listContainer.className = 'autocomplete-items';
+        listContainer.style.display = 'none';
+        
+        // Attach to input for retrieval later
+        input._listContainer = listContainer;
+
+        input.addEventListener('input', function(e) {
+            const val = this.value;
+            closeAllLists();
+            if (!val) return false;
+            currentFocus = -1;
+
+            const matches = options.filter(opt => 
+                String(opt.label || opt.value).toLowerCase().includes(val.toLowerCase())
+            );
+
+            if (matches.length === 0) return;
+
+            listContainer.style.display = 'block';
+            
+            // Limit to top 10 matches for performance
+            matches.slice(0, 10).forEach(match => {
+                const div = document.createElement('div');
+                div.className = 'autocomplete-item';
+                
+                const text = String(match.label || match.value);
+                // Highlight match
+                const idx = text.toLowerCase().indexOf(val.toLowerCase());
+                if (idx >= 0) {
+                     div.innerHTML = text.substring(0, idx) + "<strong>" + text.substring(idx, idx + val.length) + "</strong>" + text.substring(idx + val.length);
+                } else {
+                    div.innerHTML = text;
+                }
+                
+                div.addEventListener('click', function(e) {
+                    input.value = match.value;
+                    closeAllLists();
+                    // Trigger change events manually
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+                
+                listContainer.appendChild(div);
+            });
+        });
+
+        input.addEventListener('keydown', function(e) {
+            let x = listContainer.getElementsByClassName('autocomplete-item'); // Get current list
+            if (e.keyCode === 40) { // DOWN
+                currentFocus++;
+                addActive(x);
+            } else if (e.keyCode === 38) { // UP
+                currentFocus--;
+                addActive(x);
+            } else if (e.keyCode === 13) { // ENTER
+                e.preventDefault();
+                if (currentFocus > -1) {
+                    if (x) x[currentFocus].click();
+                } else if (x.length === 1) {
+                    // Try to auto-select if only 1 match
+                    x[0].click();
+                }
+            }
+        });
+
+        function addActive(x) {
+            if (!x) return false;
+            removeActive(x);
+            if (currentFocus >= x.length) currentFocus = 0;
+            if (currentFocus < 0) currentFocus = (x.length - 1);
+            x[currentFocus].classList.add('autocomplete-active');
+            // Scroll to view
+            x[currentFocus].scrollIntoView({ block: 'nearest' });
+        }
+
+        function removeActive(x) {
+            for (let i = 0; i < x.length; i++) {
+                x[i].classList.remove('autocomplete-active');
+            }
+        }
+
+        function closeAllLists(elmnt) {
+            if (elmnt !== input) {
+                listContainer.innerHTML = '';
+                listContainer.style.display = 'none';
+            }
+        }
+
+        document.addEventListener('click', function (e) {
+            closeAllLists(e.target);
+        });
     }
 
     async saveChanges() {

@@ -217,6 +217,48 @@ class DataManager {
         };
         return mapping[iata] || '';
     }
+
+    // --- Punctuality Stats ---
+    async getPunctualityStats(month, year) {
+        let query = this.client.from('punctuality_stats').select('*').order('airline', { ascending: true });
+        
+        // Fix: Ensure month is treated correctly regardless of string/number type in DB
+        // The UI sends '11', '12', check if usage is correct.
+        if (month && month !== '') query = query.eq('month', month);
+        if (year && year !== '') query = query.eq('year', year);
+        
+        const { data, error } = await query;
+        if (error) throw error;
+        return data;
+    }
+
+    async addPunctualityStat(stat) {
+        const { data, error } = await this.client
+            .from('punctuality_stats')
+            .insert(stat)
+            .select();
+        if (error) throw error;
+        return data;
+    }
+
+    async updatePunctualityStat(id, updates) {
+        const { data, error } = await this.client
+            .from('punctuality_stats')
+            .update(updates)
+            .eq('id', id)
+            .select();
+        if (error) throw error;
+        return data;
+    }
+
+    async deletePunctualityStat(id) {
+        const { data, error } = await this.client
+            .from('punctuality_stats')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+        return data;
+    }
 }
 
 window.dataManager = new DataManager();

@@ -6,8 +6,8 @@ CX,CPA,Cathay Pacific
 PQ,PPQ,Personas Y Paquetes Por Air
 RE,RER,Aeroregional
 5D,SLI,Aeromexico Connect
-FX,FDX,FedEx Express
-VB,VIV,VivaAerobús
+FX,FDX,FEDEX
+VB,VIV,Viva
 V0,VCV,Conviasa
 CA,CCA,Air China
 LZ,DVY,Legend Airways LLC
@@ -75,7 +75,7 @@ FP,PVV,Fly Pro
 TK,THY,Turkish Airlines
 CM,CMP,Copa Airlines
 PU,PUE,Plus Ultra
-AM,AMX,Aeroméxico
+AM,AMX,Aeromexico
 KD,WGN,Western Global Airlines
 AV,AVA,Avianca
 XL,LNE,LATAM Ecuador
@@ -90,7 +90,7 @@ WS,WJA,WestJet
 CV,CLX,Cargolux
 GN,GAA,General aviation
 AF,AFR,Air France
-XN,MXA,Mexicana de Aviación
+XN,MXA,Mexicana
 M6,AJT,Amerijet International
 7L,AZQ,Silk Way West Airlines
 M7,MAA,MasAir

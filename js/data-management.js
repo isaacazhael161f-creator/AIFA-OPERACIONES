@@ -69,6 +69,24 @@ class DataManagement {
                 { name: 'carga_ops_total', label: 'Carga - Operaciones (Total)', type: 'number' },
                 { name: 'carga_tons_total', label: 'Carga - Toneladas (Total)', type: 'number', step: '0.01' }
             ],
+            punctuality_stats: [
+                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'month', label: 'Mes', type: 'select', options: [
+                    { value: '1', label: 'Enero' }, { value: '2', label: 'Febrero' }, { value: '3', label: 'Marzo' },
+                    { value: '4', label: 'Abril' }, { value: '5', label: 'Mayo' }, { value: '6', label: 'Junio' },
+                    { value: '7', label: 'Julio' }, { value: '8', label: 'Agosto' }, { value: '9', label: 'Septiembre' },
+                    { value: '10', label: 'Octubre' }, { value: '11', label: 'Noviembre' }, { value: '12', label: 'Diciembre' }
+                ]},
+                { name: 'airline', label: 'Aerolínea', type: 'text' },
+                { name: 'category', label: 'Categoría', type: 'select', options: [
+                    { value: 'Pasajeros', label: 'Pasajeros' },
+                    { value: 'Carga', label: 'Carga' }
+                ]},
+                { name: 'on_time', label: 'A Tiempo', type: 'number' },
+                { name: 'delayed', label: 'Demorados', type: 'number' },
+                { name: 'cancelled', label: 'Cancelados', type: 'number' },
+                { name: 'total_flights', label: 'Total Vuelos', type: 'number' }
+            ],
             flight_itinerary: [
                 { name: 'flight_number', label: 'No. Vuelo', type: 'text' },
                 { name: 'airline', label: 'Aerolínea', type: 'text' },
@@ -137,23 +155,70 @@ class DataManagement {
                 { name: 'sunday', label: 'Domingo', type: 'number' },
                 { name: 'weekly_total', label: 'Total Semanal', type: 'number', readonly: true }
             ],
-            punctuality: [
+            punctuality_stats: [
                 { name: 'year', label: 'Año', type: 'number' },
                 { name: 'month', label: 'Mes', type: 'select', options: [
-                    { value: 'Enero', label: 'Enero' }, { value: 'Febrero', label: 'Febrero' }, { value: 'Marzo', label: 'Marzo' },
-                    { value: 'Abril', label: 'Abril' }, { value: 'Mayo', label: 'Mayo' }, { value: 'Junio', label: 'Junio' },
-                    { value: 'Julio', label: 'Julio' }, { value: 'Agosto', label: 'Agosto' }, { value: 'Septiembre', label: 'Septiembre' },
-                    { value: 'Octubre', label: 'Octubre' }, { value: 'Noviembre', label: 'Noviembre' }, { value: 'Diciembre', label: 'Diciembre' }
+                    { value: '1', label: 'Enero' }, { value: '2', label: 'Febrero' }, { value: '3', label: 'Marzo' },
+                    { value: '4', label: 'Abril' }, { value: '5', label: 'Mayo' }, { value: '6', label: 'Junio' },
+                    { value: '7', label: 'Julio' }, { value: '8', label: 'Agosto' }, { value: '9', label: 'Septiembre' },
+                    { value: '10', label: 'Octubre' }, { value: '11', label: 'Noviembre' }, { value: '12', label: 'Diciembre' }
                 ]},
-                { name: 'airline', label: 'Aerolínea', type: 'text' },
+                { name: 'airline', label: 'Aerolínea', type: 'select', options: [] }, // Populated dynamically
+                { name: 'category', label: 'Categoría', type: 'select', options: [
+                    { value: 'Pasajeros', label: 'Pasajeros' },
+                    { value: 'Carga', label: 'Carga' }
+                ]},
                 { name: 'on_time', label: 'A Tiempo', type: 'number' },
-                { name: 'delayed', label: 'Demorado', type: 'number' },
-                { name: 'cancelled', label: 'Cancelado', type: 'number' },
-                { name: 'total_flights', label: 'Total Vuelos', type: 'number' }
+                { name: 'delayed', label: 'Demorados', type: 'number' },
+                { name: 'cancelled', label: 'Cancelados', type: 'number' },
+                { name: 'total_flights', label: 'Total Vuelos', type: 'number', readonly: true }
+            ],
+            flight_itinerary: [
+                { name: 'flight_number', label: 'No. Vuelo', type: 'text' },
+                { name: 'airline', label: 'Aerolínea', type: 'text' },
+                { name: 'origin_destination', label: 'Origen/Destino', type: 'text' },
+                { name: 'arrival_date', label: 'Fecha', type: 'date' },
+                { name: 'arrival_time', label: 'Hora', type: 'time' },
+                { name: 'status', label: 'Estado', type: 'select', options: [
+                    { value: 'Programado', label: 'Programado' },
+                    { value: 'Aterrizó', label: 'Aterrizó' },
+                    { value: 'Demorado', label: 'Demorado' },
+                    { value: 'Cancelado', label: 'Cancelado' }
+                ]},
+                { name: 'gate', label: 'Puerta', type: 'text' },
+                { name: 'terminal', label: 'Terminal', type: 'text' }
             ]
         };
 
+        this.airlineCatalog = [];
+        this.loadAirlineCatalog();
         this.init();
+    }
+
+    async loadAirlineCatalog() {
+        try {
+            const response = await fetch('data/master/airlines.csv');
+            const text = await response.text();
+            // Parse CSV: IATA,ICAO,Name
+            const lines = text.split('\n').slice(1); // Skip header
+            this.airlineCatalog = lines
+                .map(line => {
+                    // Simple CSV split (assuming no commas in fields for now)
+                    const parts = line.split(',');
+                    if (parts.length >= 3) {
+                        return { 
+                            iata: parts[0].trim(), 
+                            icao: parts[1].trim(), 
+                            name: parts[2].trim() 
+                        };
+                    }
+                    return null;
+                })
+                .filter(item => item && item.name)
+                .sort((a,b) => a.name.localeCompare(b.name));
+        } catch (e) {
+            console.error('Failed to load airline catalog:', e);
+        }
     }
 
     // Formatea fechas ISO (YYYY-MM-DD) a formato largo (27 de Diciembre de 2025)
@@ -218,8 +283,12 @@ class DataManagement {
         document.getElementById('filter-medical-year').addEventListener('change', () => this.loadMedical());
         document.getElementById('filter-delays-year').addEventListener('change', () => this.loadDelays());
         document.getElementById('filter-delays-month').addEventListener('change', () => this.loadDelays());
-        document.getElementById('filter-punctuality-year').addEventListener('change', () => this.loadPunctuality());
-        document.getElementById('filter-punctuality-month').addEventListener('change', () => this.loadPunctuality());
+        
+        const puncYear = document.getElementById('filter-punctuality-year');
+        if (puncYear) puncYear.addEventListener('change', () => this.loadPunctualityStats());
+        
+        const puncMonth = document.getElementById('filter-punctuality-month');
+        if (puncMonth) puncMonth.addEventListener('change', () => this.loadPunctualityStats());
         
         const weeklyFreqLabel = document.getElementById('filter-weekly-freq-label');
         if (weeklyFreqLabel) weeklyFreqLabel.addEventListener('change', () => this.loadWeeklyFrequencies());
@@ -243,7 +312,7 @@ class DataManagement {
             if (table === 'wildlife_incidents') this.loadWildlife();
             if (table === 'medical_attentions') this.loadMedical();
             if (table === 'delays') this.loadDelays();
-            if (table === 'punctuality') this.loadPunctuality();
+            if (table === 'punctuality_stats') this.loadPunctualityStats();
             if (table === 'weekly_frequencies') this.loadWeeklyFrequencies();
             
             if (table === 'monthly_operations') {
@@ -278,7 +347,7 @@ class DataManagement {
         if (targetId === '#pane-wildlife') this.loadWildlife();
         if (targetId === '#pane-medical') this.loadMedical();
         if (targetId === '#pane-delays') this.loadDelays();
-        if (targetId === '#pane-punctuality') this.loadPunctuality();
+        if (targetId === '#pane-punctuality-table') this.loadPunctualityStats();
         if (targetId === '#pane-weekly-frequencies') this.loadWeeklyFrequencies();
     }
 
@@ -607,14 +676,43 @@ class DataManagement {
         }
     }
 
-    async loadPunctuality() {
-        const year = document.getElementById('filter-punctuality-year').value;
-        const month = document.getElementById('filter-punctuality-month').value;
+    async loadPunctualityStats() {
+        const yearInput = document.getElementById('filter-punctuality-year');
+        const monthInput = document.getElementById('filter-punctuality-month');
+        
+        // Ensure values are clean strings or numbers
+        const year = yearInput ? yearInput.value : null;
+        const month = monthInput ? monthInput.value : null;
+
         try {
-            const data = await window.dataManager.getPunctuality(year, month);
-            this.renderTable('table-punctuality', data, ['month', 'airline', 'on_time', 'delayed', 'cancelled', 'total_flights'], 'punctuality');
+            // Pass null if empty string to avoid incorrect filtering query
+            let data = await window.dataManager.getPunctualityStats(
+                (month === "" ? null : month), 
+                (year === "" ? null : year)
+            );
+            
+            // Sort: Passengers first, then Cargo, then by Airline name
+            data.sort((a, b) => {
+                const catA = String(a.category || '').toLowerCase();
+                const catB = String(b.category || '').toLowerCase();
+                
+                const isPaxA = catA.includes('pasajero') || catA.includes('comercial');
+                const isPaxB = catB.includes('pasajero') || catB.includes('comercial');
+                
+                if (isPaxA && !isPaxB) return -1; // A (Pax) comes before B (Non-Pax)
+                if (!isPaxA && isPaxB) return 1;  // B (Pax) comes before A (Non-Pax)
+                
+                // If same category type, sort by airline name
+                const airA = String(a.airline || '').toLowerCase();
+                const airB = String(b.airline || '').toLowerCase();
+                if (airA < airB) return -1;
+                if (airA > airB) return 1;
+                return 0;
+            });
+
+            this.renderTable('table-punctuality-stats', data, ['year', 'month', 'airline', 'category', 'on_time', 'delayed', 'cancelled', 'total_flights'], 'punctuality_stats');
         } catch (error) {
-            console.error('Error loading punctuality:', error);
+            console.error('Error loading punctuality stats:', error);
         }
     }
 
@@ -662,8 +760,8 @@ class DataManagement {
                     // Do not apply thousands separator to year values
                     td.textContent = raw == null ? '' : String(raw);
                 }
-                // Operations summary: show aviation type icon in category column
-                else if (tableName === 'operations_summary' && col === 'category') {
+                // Operations summary & Punctuality: show aviation type icon in category column
+                else if ((tableName === 'operations_summary' || tableName === 'punctuality_stats') && col === 'category') {
                     const v = raw == null ? '' : String(raw);
                     let icon = '<i class="fas fa-plane text-primary" aria-hidden="true"></i>';
                     // Normalize
@@ -681,9 +779,9 @@ class DataManagement {
                 tr.appendChild(td);
             });
 
-            // Apply row color based on category (operations_summary)
+            // Apply row color based on category (operations_summary & punctuality_stats)
             try {
-                if (tableName === 'operations_summary') {
+                if (tableName === 'operations_summary' || tableName === 'punctuality_stats') {
                     const catVal = String((item.category || '')).toLowerCase();
                     if (catVal.includes('carga')) tr.classList.add('table-warning');
                     else if (catVal.includes('general') || catVal.includes('operacion')) tr.classList.add('table-success');
