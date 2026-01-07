@@ -10,9 +10,11 @@
 
   const AIRLINE_CONFIG = {
     'aeromexico': { logo: 'logo_aeromexico.png', color: '#0b2161', text: '#ffffff' },
+    'aeromexico-connect': { logo: 'logo_aeromexico.png', color: '#0b2161', text: '#ffffff' },
     'volaris': { logo: 'logo_volaris.png', color: '#a300e6', text: '#ffffff' },
     'viva-aerobus': { logo: 'logo_viva.png', color: '#00a850', text: '#ffffff' },
     'viva': { logo: 'logo_viva.png', color: '#00a850', text: '#ffffff' },
+    'vivaaerobus': { logo: 'logo_viva.png', color: '#00a850', text: '#ffffff' },
     'mexicana': { logo: 'logo_mexicana.png', color: '#008375', text: '#ffffff' },
     'copa-airlines': { logo: 'logo_copa.png', color: '#00529b', text: '#ffffff' },
     'copa': { logo: 'logo_copa.png', color: '#00529b', text: '#ffffff' },
@@ -395,11 +397,24 @@
 
     const busiestDest = [...state.destinations].sort((a, b) => b.weeklyTotal - a.weeklyTotal)[0];
     if (busiestDest && dom.kpiNotes.flights) {
-      dom.kpiNotes.flights.textContent = `${busiestDest.city} (${busiestDest.iata}) lidera con ${intlNumber.format(busiestDest.weeklyTotal)} vuelos.`;
+      dom.kpiNotes.flights.textContent = `${busiestDest.city} (${busiestDest.iata}) lidera con ${intlNumber.format(busiestDest.weeklyTotal)} frecuencias.`;
     }
     if (dom.kpiNotes.destinations) dom.kpiNotes.destinations.textContent = 'Cobertura basada en rutas activas durante la semana.';
     if (dom.kpiNotes.airlines && state.uniqueAirlines[0]) {
-      dom.kpiNotes.airlines.textContent = `Top: ${state.uniqueAirlines[0].name}`;
+       const top = state.uniqueAirlines[0];
+       const config = AIRLINE_CONFIG[top.slug] || AIRLINE_CONFIG['default'];
+       
+       if (config.logo) {
+         // Diseño más grande y estilizado tipo badge/tarjeta
+         const logoHtml = `
+            <div class="d-inline-flex align-items-center justify-content-center bg-white border rounded-3 px-3 py-1 ms-2 shadow-sm" style="height: 45px; vertical-align: middle;">
+                <img src="images/airlines/${config.logo}" alt="${top.name}" title="${top.name}" style="height: 100%; width: auto; max-width: 110px; object-fit: contain;">
+            </div>
+         `;
+         dom.kpiNotes.airlines.innerHTML = `<div class="d-flex align-items-center justify-content-center mt-2"><span class="fw-bold text-muted me-1">Top:</span> ${logoHtml}</div>`;
+       } else {
+         dom.kpiNotes.airlines.textContent = `Top: ${top.name}`;
+       }
     }
   }
 
@@ -409,9 +424,43 @@
     dom.dowList.innerHTML = '';
     DAY_CODES.forEach((code, idx) => {
       const total = dataset.reduce((sum, dest) => sum + (dest.viewDailyTotals?.[idx] ?? dest.dailyTotals?.[idx] ?? 0), 0);
+      
       const card = document.createElement('div');
-      card.className = 'frecuencias-dow-chip';
-      card.innerHTML = `<strong>${DAY_LABELS[code]}</strong><span>${intlNumber.format(total)}</span>`;
+      
+      // Improved card design - Consistent with National tab
+      card.className = 'frecuencias-dow-card';
+      card.style.cssText = `
+        display: flex; 
+        flex-direction: column; 
+        align-items: flex-start; 
+        justify-content: center;
+        background: #fff; 
+        border: 1px solid #e9ecef; 
+        border-radius: 8px; 
+        padding: 12px 16px; 
+        min-width: 140px; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        transition: transform 0.2s, box-shadow 0.2s;
+        flex: 1;
+      `;
+      card.onmouseover = () => {
+          card.style.transform = 'translateY(-2px)';
+          card.style.boxShadow = '0 6px 12px rgba(0,0,0,0.06)';
+          card.style.borderColor = '#dee2e6';
+      };
+      card.onmouseout = () => {
+          card.style.transform = 'translateY(0)';
+          card.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)';
+          card.style.borderColor = '#e9ecef';
+      };
+
+      const dayLabel = DAY_LABELS[code].toUpperCase();
+      
+      card.innerHTML = `
+        <div style="font-size: 0.7rem; font-weight: 700; color: #6c757d; margin-bottom: 4px; letter-spacing: 0.5px;">${dayLabel}</div>
+        <div style="font-size: 1.5rem; font-weight: 800; color: #212529; line-height: 1;">${intlNumber.format(total)}</div>
+      `;
+
       dom.dowList.appendChild(card);
     });
   }
@@ -424,33 +473,60 @@
 
     const topDestination = [...dataset].sort((a, b) => (b.viewWeeklyTotal ?? b.weeklyTotal) - (a.viewWeeklyTotal ?? a.weeklyTotal))[0];
     if (topDestination) {
-      dom.insights.appendChild(buildInsight('fa-location-dot', `${topDestination.city} (${topDestination.iata}) concentra ${intlNumber.format(topDestination.viewWeeklyTotal ?? topDestination.weeklyTotal)} vuelos.`));
+      dom.insights.appendChild(buildInsight('fa-location-dot', `${topDestination.city} (${topDestination.iata}) concentra ${intlNumber.format(topDestination.viewWeeklyTotal ?? topDestination.weeklyTotal)} frecuencias.`));
     }
 
     const airlineTotals = new Map();
     dataset.forEach(dest => {
       const source = dest.viewAirlines?.length ? dest.viewAirlines : dest.airlines;
       source.forEach(air => {
-        airlineTotals.set(air.name, (airlineTotals.get(air.name) || 0) + air.weeklyTotal);
+        if (!airlineTotals.has(air.name)) {
+            airlineTotals.set(air.name, { total: 0, slug: air.slug });
+        }
+        airlineTotals.get(air.name).total += air.weeklyTotal;
       });
     });
-    const topAirline = [...airlineTotals.entries()].sort((a, b) => b[1] - a[1])[0];
-    if (topAirline) {
-      dom.insights.appendChild(buildInsight('fa-plane', `${topAirline[0]} aporta ${intlNumber.format(topAirline[1])} vuelos semanales.`));
+    const topAirlineEntry = [...airlineTotals.entries()].sort((a, b) => b[1].total - a[1].total)[0];
+    
+    if (topAirlineEntry) {
+      const [name, data] = topAirlineEntry;
+      const config = AIRLINE_CONFIG[data.slug] || AIRLINE_CONFIG['default'];
+      let airlineDisplay = name;
+
+      if (config.logo) {
+          let logoStyle = 'height: 24px; width: auto; vertical-align: middle; margin-right: 4px;';
+          if (['mexicana', 'volaris', 'aeromexico'].includes(data.slug)) {
+              logoStyle = 'height: 40px; width: auto; vertical-align: middle; margin-right: 4px;';
+          }
+          airlineDisplay = `<img src="images/airlines/${config.logo}" alt="${name}" title="${name}" style="${logoStyle}">`;
+      }
+      
+      dom.insights.appendChild(buildInsight('fa-plane', `${airlineDisplay} aporta ${intlNumber.format(data.total)} frecuencias semanales.`));
     }
 
     const dayTotals = DAY_CODES.map((code, idx) => ({ code, value: dataset.reduce((sum, dest) => sum + (dest.viewDailyTotals?.[idx] ?? dest.dailyTotals?.[idx] ?? 0), 0) }));
     const hottestDay = dayTotals.sort((a, b) => b.value - a.value)[0];
     if (hottestDay) {
-      dom.insights.appendChild(buildInsight('fa-calendar-day', `${DAY_LABELS[hottestDay.code]} es el día con más operaciones (${intlNumber.format(hottestDay.value)}).`));
+      dom.insights.appendChild(buildInsight('fa-calendar-day', `${DAY_LABELS[hottestDay.code]} es el día con más frecuencias (${intlNumber.format(hottestDay.value)}).`));
     }
   }
 
-  function buildInsight(icon, text){
+  function buildInsight(icon, htmlContent){
     const div = document.createElement('div');
-    div.className = 'frecuencias-insight';
-    div.innerHTML = `<i class="fas ${icon}" aria-hidden="true"></i><span>${text}</span>`;
+    div.className = 'frecuencias-insight-card';
+    div.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 10px 16px;
+        margin-bottom: 8px;
+        border-left: 4px solid #0d6efd;
+    `;
+    div.innerHTML = `<i class="fas ${icon} text-primary" aria-hidden="true"></i><span style="font-weight: 500; font-size: 0.9rem; color: #495057; display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">${htmlContent}</span>`;
     return div;
+
   }
 
   function renderTable(){
@@ -882,15 +958,50 @@
   }
 
   function populateFilters(){
+    // Airline Options -> Logo Grid
     if (dom.filters.airline) {
-      dom.filters.airline.innerHTML = '<option value="all">Todas las aerolíneas</option>';
-      state.uniqueAirlines.forEach(air => {
-        const opt = document.createElement('option');
-        opt.value = air.slug;
-        opt.textContent = air.name;
-        dom.filters.airline.appendChild(opt);
-      });
+        dom.filters.airline.style.display = 'none'; // ocultar select original
+        
+        let logoContainer = pane.querySelector('#frecuencias-int-airline-logos');
+        if (!logoContainer) {
+            logoContainer = document.createElement('div');
+            logoContainer.id = 'frecuencias-int-airline-logos';
+            logoContainer.className = 'airline-filter-toolbar mb-3';
+            dom.filters.airline.parentNode.insertBefore(logoContainer, dom.filters.airline.nextSibling);
+        }
+        logoContainer.innerHTML = '';
+
+        // Botón "Todas"
+        const btnAll = document.createElement('button');
+        btnAll.className = 'airline-filter-btn active';
+        btnAll.textContent = 'Todas';
+        btnAll.dataset.airline = 'all';
+        btnAll.onclick = () => selectAirlineFilter('all', btnAll);
+        logoContainer.appendChild(btnAll);
+
+        const sortedAirlines = [...state.uniqueAirlines].sort((a,b) => a.name.localeCompare(b.name));
+        sortedAirlines.forEach(air => {
+            const config = AIRLINE_CONFIG[air.slug] || AIRLINE_CONFIG['default'];
+            const btn = document.createElement('button');
+            btn.className = 'airline-filter-btn'; 
+            btn.dataset.airline = air.slug;
+            btn.title = air.name;
+            
+            if (config.logo) {
+                let logoStyle = 'height: 20px; width: auto; object-fit: contain;';
+                if (['mexicana', 'volaris', 'aeromexico'].includes(air.slug)) {
+                    logoStyle = 'height: 28px; width: auto; object-fit: contain;';
+                }
+                 btn.innerHTML = `<img src="images/airlines/${config.logo}" alt="${air.name}" style="${logoStyle}">`;
+            } else {
+                btn.textContent = air.name;
+            }
+
+            btn.onclick = () => selectAirlineFilter(air.slug, btn);
+            logoContainer.appendChild(btn);
+        });
     }
+
     if (dom.filters.destination) {
       dom.filters.destination.innerHTML = '<option value="all">Todos los destinos</option>';
       [...state.destinations]
@@ -902,6 +1013,20 @@
           dom.filters.destination.appendChild(opt);
         });
     }
+  }
+
+  function selectAirlineFilter(slug, btnElement) {
+      state.filters.airline = slug;
+      if (dom.filters.airline) dom.filters.airline.value = slug; 
+      
+      const container = pane.querySelector('#frecuencias-int-airline-logos');
+      if (container) {
+          const buttons = container.querySelectorAll('.airline-filter-btn');
+          buttons.forEach(b => b.classList.remove('active'));
+
+          btnElement.classList.add('active');
+      }
+      applyFilters();
   }
 
   function updateMeta(data){

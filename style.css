@@ -5040,6 +5040,12 @@ body.dark-mode .ops-pdf-placeholder {
    background: linear-gradient(135deg, rgba(13,110,253,0.08), rgba(13,110,253,0.02));
    border: 1px solid rgba(13,110,253,0.15);
    box-shadow: 0 12px 32px -22px rgba(13,110,253,0.55);
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   text-align: center;
+   height: 100%;
 }
 .frecuencia-kpi-card .kpi-label {
    display: block;
@@ -5447,3 +5453,84 @@ body.dark-mode #frecuencias-destinos-table thead th {
     color: var(--text-color, #e8eaed);
 }
 
+#frecuencias-destinos-table thead th, #frecuencias-int-destinos-table thead th { 
+    position: sticky; 
+    top: 0; 
+    z-index: 10; 
+    background-color: #ffffff; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Sombra para distinguir el header al hacer scroll */
+}
+
+/* Ensure the table container handles vertical scrolling so sticky headers work nicely */
+#frecuencias-auto-pane .table-responsive,
+#frecuencias-auto-int-pane .table-responsive {
+    max-height: 70vh;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
+/* Airline Filter Toolbar */
+.airline-filter-toolbar {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    background: #f1f3f5;
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+}
+
+.airline-filter-btn {
+    background: #ffffff;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+
+.airline-filter-btn:hover {
+    background: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    border-color: #dee2e6;
+}
+
+.airline-filter-btn.active {
+    background: white;
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.15);
+    z-index: 1;
+}
+
+/* Grayscale for unselected logos for cleaner look */
+.airline-filter-btn:not(.active) img {
+    filter: grayscale(100%); 
+    opacity: 0.7;
+    transition: filter 0.2s, opacity 0.2s;
+}
+
+.airline-filter-btn:hover img,
+.airline-filter-btn.active img {
+    filter: grayscale(0%);
+    opacity: 1;
+}
+
+/* "Todas" text button adjustments */
+.airline-filter-btn[data-airline="all"] {
+    font-weight: 600;
+    color: #495057;
+    padding: 0 16px;
+    font-size: 0.9rem;
+}
+
+.airline-filter-btn[data-airline="all"].active {
+    background: #0d6efd;
+    color: white;
+}
