@@ -17,6 +17,13 @@
     <link rel="apple-touch-icon" sizes="180x180" href="images/icons/aifa-app-icon-512.png?v=20251126">
     <link rel="manifest" href="manifest.webmanifest?v=20251126">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- PDF.js (CDN for stability) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    
     <script src="js/supabase-client.js"></script>
 </head>
 
@@ -171,10 +178,19 @@
                                     <button class="nav-link" id="tab-wildlife" data-bs-toggle="tab" data-bs-target="#pane-wildlife" type="button" role="tab">Fauna</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="tab-rescued-wildlife" data-bs-toggle="tab" data-bs-target="#pane-rescued-wildlife" type="button" role="tab">Fauna Rescatada</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="tab-daily-flights-ops" data-bs-toggle="tab" data-bs-target="#pane-daily-flights-ops" type="button" role="tab">Vuelos (Ops)</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="tab-medical" data-bs-toggle="tab" data-bs-target="#pane-medical" type="button" role="tab">Atenciones Médicas</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="tab-delays" data-bs-toggle="tab" data-bs-target="#pane-delays" type="button" role="tab">Demoras</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="tab-comparativa" data-bs-toggle="tab" data-bs-target="#pane-comparativa" type="button" role="tab">Comparativa</button>
                                 </li>
                             </ul>
                         </div>
@@ -533,8 +549,9 @@
 
                                 <!-- Wildlife Pane -->
                                 <div class="tab-pane fade" id="pane-wildlife" role="tabpanel">
+                                    <h5 class="mb-3">Impactos de Fauna</h5>
                                     <div class="d-flex justify-content-end mb-3">
-                                        <button class="btn btn-primary btn-sm" onclick="dataManagement.addItem('wildlife_incidents')"><i class="fas fa-plus"></i> Agregar Reporte</button>
+                                        <button class="btn btn-primary btn-sm" onclick="dataManagement.addItem('wildlife_strikes')"><i class="fas fa-plus"></i> Agregar Reporte</button>
                                     </div>
                                     <div class="table-responsive">
                                         <table class="table table-striped table-hover" id="table-wildlife">
@@ -544,6 +561,70 @@
                                                     <th>Hora</th>
                                                     <th>Especie</th>
                                                     <th>Ubicación</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Rescued Wildlife Pane -->
+                                <div class="tab-pane fade" id="pane-rescued-wildlife" role="tabpanel">
+                                    <h5 class="mb-3">Fauna Rescatada</h5>
+                                    <div class="d-flex justify-content-end mb-3">
+                                        <button class="btn btn-primary btn-sm" onclick="dataManagement.addItem('rescued_wildlife')"><i class="fas fa-plus"></i> Agregar Rescate</button>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover" id="table-rescued-wildlife">
+                                            <thead>
+                                                <tr>
+                                                    <th>Fecha</th>
+                                                    <th>Hora</th>
+                                                    <th>Nombre común</th>
+                                                    <th>Clase</th>
+                                                    <th>Disposición final</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Daily Flights Ops Pane -->
+                                <div class="tab-pane fade" id="pane-daily-flights-ops" role="tabpanel">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="mb-0">Vuelos (Itinerario Operaciones)</h5>
+                                        <div class="d-flex gap-2">
+                                            <input type="date" class="form-control form-control-sm" id="filter-daily-flights-date" onchange="dataManagement.loadDailyFlightsOps()">
+                                            <button class="btn btn-outline-danger btn-sm" onclick="dataManagement.deleteDailyOpsByDate()" title="Eliminar todos los vuelos de la fecha seleccionada"><i class="fas fa-trash-alt"></i></button>
+                                            
+                                            <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#loadOpsItineraryJsonModal"><i class="fas fa-file-code me-1"></i> Importar JSON</button>
+                                            <input type="file" id="daily-ops-json-input" accept=".json" style="display: none;" onchange="window.opsFlights.importJson(this)">
+                                            
+                                            <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#uploadOpsItineraryModal"><i class="fas fa-file-pdf me-1"></i> Importar PDF</button>
+                                            <button class="btn btn-primary btn-sm" onclick="dataManagement.addItem('daily_flights_ops')"><i class="fas fa-plus"></i> Agregar Vuelo</button>
+                                        </div>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover" id="table-daily-flights-ops">
+                                            <thead>
+                                                <tr>
+                                                    <th>Fecha</th>
+                                                    <th>No</th>
+                                                    <th>Aerolínea</th>
+                                                    <th>Vuelo Arr</th>
+                                                    <th>Origen</th>
+                                                    <th>Prog Arr</th>
+                                                    <th>Real Arr</th>
+                                                    <th>Pax Arr</th>
+                                                    <th>Vuelo Dep</th>
+                                                    <th>Destino</th>
+                                                    <th>Prog Dep</th>
+                                                    <th>Real Dep</th>
+                                                    <th>Pax Dep</th>
+                                                    <th>Matrícula</th>
                                                     <th>Acciones</th>
                                                 </tr>
                                             </thead>
@@ -608,6 +689,28 @@
                                             </thead>
                                             <tbody></tbody>
                                         </table>
+                                    </div>
+                                </div>
+
+                                <!-- Comparativa Pane -->
+                                <div class="tab-pane fade" id="pane-comparativa" role="tabpanel">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-6">
+                                             <h5 class="mb-3">Reporte de Análisis Comparativo</h5>
+                                             <p class="text-muted small">Sube aquí el archivo PDF actualizado para la sección de Análisis Comparativo.</p>
+                                             <div class="mb-3">
+                                                 <label for="comparativa-pdf-upload" class="form-label">Archivo PDF</label>
+                                                 <input class="form-control" type="file" id="comparativa-pdf-upload" accept="application/pdf">
+                                             </div>
+                                             <button id="btn-upload-comparativa" class="btn btn-primary"><i class="fas fa-cloud-upload-alt me-2"></i>Subir y Actualizar</button>
+                                             <div id="comparativa-upload-status" class="mt-2"></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6 class="text-muted mb-2">Vista Previa Actual</h6>
+                                            <div class="ratio ratio-16x9 border rounded bg-light">
+                                                 <iframe id="preview-comparativa-admin" src=""></iframe>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1109,6 +1212,7 @@
                         <div class="card-body">
                             <ul class="nav nav-tabs" id="operationsTab" role="tablist">
                                 <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#resumen1-pane" type="button" role="tab">Parte de Operaciones</button></li>
+                                <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#vuelos-ops-pane" type="button" role="tab" id="tab-vuelos-ops">Vuelos</button></li>
                                 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#analisis-anual-pane" type="button" role="tab">Análisis anual</button></li>
                             </ul>
                             <div class="tab-content pt-3" id="operationsTabContent">
@@ -1159,6 +1263,58 @@
                                             </div>
                                             <iframe id="operations-pdf-frame" class="ops-pdf-iframe d-none" title="PDF del parte de operaciones" loading="lazy"></iframe>
                                         </div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="vuelos-ops-pane" role="tabpanel">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="mb-0 text-primary"><i class="fas fa-plane me-2"></i>Itinerario de Vuelos del Día</h5>
+                                        <div class="d-flex gap-2">
+                                            <input type="date" class="form-control form-control-sm" id="vuelos-ops-date" style="max-width: 140px;" aria-label="Seleccionar fecha de itinerario de vuelos">
+                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#uploadOpsItineraryModal"><i class="fas fa-file-upload me-1"></i>Cargar JSON</button>
+                                            <button class="btn btn-sm btn-outline-secondary" onclick="window.opsFlights && window.opsFlights.loadFlights()"><i class="fas fa-sync-alt me-1"></i>Actualizar</button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Charts Row -->
+                                    <div class="row mb-4">
+                                        <div class="col-12">
+                                            <div class="card shadow-sm border-0">
+                                                <div class="card-header bg-white border-bottom-0">
+                                                    <h6 class="mb-0 text-muted small text-uppercase">Horarios Pico (Salidas vs Llegadas)</h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div style="height: 250px; width: 100%;">
+                                                        <canvas id="chart-peak-hours-ops"></canvas>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Table -->
+                                    <div class="table-responsive shadow-sm rounded">
+                                        <table class="table table-hover table-bordered table-sm align-middle mb-0" id="table-ops-flights">
+                                            <thead class="table-light">
+                                                <tr class="text-center small text-muted text-uppercase">
+                                                    <th>No.</th>
+                                                    <th>Aerolínea</th>
+                                                    <th>Vuelo Llegada</th>
+                                                    <th>Origen</th>
+                                                    <th>H. Prog</th>
+                                                    <th>H. Llegada</th>
+                                                    <th>Pax (Arr)</th>
+                                                    <th>Vuelo Salida</th>
+                                                    <th>Destino</th>
+                                                    <th>H. Prog</th>
+                                                    <th>H. Salida</th>
+                                                    <th>Pax (Dep)</th>
+                                                    <th>Matrícula</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="text-center bg-white" id="tbody-ops-flights">
+                                                <tr><td colspan="13" class="text-muted py-4">Selecciona una fecha para ver los vuelos.</td></tr>
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                                 <div class="tab-pane fade" id="analisis-anual-pane">
@@ -2761,7 +2917,7 @@
                         </div>
                         <div class="card-body">
                             <div class="pdf-preview-container shadow-sm">
-                                <iframe id="pdf-preview-2" title="Análisis Comparativo" src="pdfs/operatividad_aerolineas.pdf"></iframe>
+                                <iframe id="pdf-preview-2" title="Análisis Comparativo" src=""></iframe>
                             </div>
                             <button class="btn btn-outline-primary w-100 mt-2" data-fullscreen-target="#pdf-preview-2"><i class="fas fa-expand me-2"></i>Ver en Pantalla Completa</button>
                         </div>
@@ -3662,6 +3818,8 @@
     <script src="js/data-management.js"></script>
     <script src="js/parte-ops-tab.js"></script>
     <script src="js/itinerario-tab.js"></script>
+    <script src="js/comparativa.js"></script>
+    <script src="js/parte-ops-flights.js"></script>
     <script src="script.js"></script>
         <script src="js/puntualidad.js"></script>
         <script>
@@ -4144,6 +4302,63 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-primary" onclick="dataManagement.confirmCopyWeek()">Copiar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cargar JSON Itinerario (Parte de Operaciones) -->
+    <div class="modal fade" id="uploadOpsItineraryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Cargar Parte de Operaciones (PDF)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="ops-itinerary-pdf-file" class="form-label">Cargar PDF (Parte de Operaciones)</label>
+                        <input type="file" class="form-control mb-2" id="ops-itinerary-pdf-file" accept=".pdf">
+                        <div class="text-muted small mb-3">Sube el archivo PDF del Parte de Operaciones para extraer los vuelos automáticamente.</div>
+                        
+                        <div class="text-center text-muted my-2">- O -</div>
+
+                        <label for="ops-itinerary-json-text" class="form-label">Pegar JSON de Itinerario</label>
+                        <textarea class="form-control font-monospace" id="ops-itinerary-json-text" rows="5" placeholder='[{"flight_number":"AI101","airline":"..."}, ...]'></textarea>
+                    </div>
+                    <div class="progress d-none mb-3" id="ops-itinerary-upload-progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%">Procesando...</div>
+                    </div>
+                    <div class="alert alert-info small">
+                        <i class="fas fa-info-circle me-1"></i> Este proceso sobrescribirá los vuelos existentes para las fechas detectadas.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-save-ops-itinerary-json">Guardar Itinerario</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Cargar Itinerario (JSON) -->
+    <div class="modal fade" id="loadOpsItineraryJsonModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-code me-2"></i>Cargar Itinerario (JSON)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">Pega el contenido JSON del itinerario a continuación. El sistema procesará y guardará los vuelos automáticamente.</p>
+                    <div class="mb-3">
+                        <label for="ops-json-textarea" class="form-label fw-bold">Contenido JSON</label>
+                        <textarea class="form-control font-monospace small" id="ops-json-textarea" rows="10" placeholder='[{"fecha_llegada": "...", ...}]'></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" id="btn-process-ops-json"><i class="fas fa-save me-2"></i>Procesar y Guardar</button>
                 </div>
             </div>
         </div>

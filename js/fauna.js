@@ -30,14 +30,61 @@
     return isNaN(dt.getTime()) ? null : dt;
   }
 
-  function loadFauna(){
-    try {
-      if (location.protocol === 'file:') {
-        console.warn('fauna: saltando carga por file:// (CORS).');
-        return Promise.resolve([]);
+  async function loadFauna(){
+      try {
+          const supabase = await window.ensureSupabaseClient();
+          const { data, error } = await supabase
+              .from('wildlife_strikes')
+              .select('*')
+              .order('date', { ascending: false });
+          
+          if (error) {
+              console.warn('Error fetching wildlife_strikes, falling back to JSON or empty.', error);
+              throw error; 
+          }
+
+          // Map snake_case DB fields to the Keys expected by the existing UI logic (Spanish, as in fauna.json)
+          // Also format Date YYYY-MM-DD to DD/MM/YYYY
+          return (data || []).map(item => {
+              let fDate = '';
+              if (item.date) {
+                  const parts = item.date.split('-'); // YYYY-MM-DD
+                  if (parts.length === 3) fDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+              }
+              let fTime = '';
+              if (item.time) {
+                  // HH:MM:SS -> HH:MM
+                  fTime = item.time.substring(0, 5);
+              }
+
+              return {
+                  "No.": String(item.id || ''),
+                  "Fecha": fDate,
+                  "Hora": fTime,
+                  "Ubicación": item.location || '',
+                  "Zona de impacto": item.impact_zone || '',
+                  "Fase de la operación": item.operation_phase || '',
+                  "Aerolineas": item.airline || '',       // Note: logic below normalizes "Aerolineas" -> "Aerolínea"
+                  "Aeronave": item.aircraft || '',
+                  "Matricula": item.registration || '',
+                  "Zona de impacto resto": item.impact_zone_remains || '',
+                  "Cantidad de restos": item.remains_count || '',
+                  "Tamaño": item.size || '',
+                  "Especie": item.species || '',
+                  "Nombre común": item.common_name || '',
+                  "Personal que reporta": item.reporter || '',
+                  "Medidas proactivas": item.proactive_measures || '',
+                  "Condiciones meteorológicas": item.weather_conditions || '',
+                  "Resultados de las medidas": item.measure_results || ''
+              };
+          });
+
+      } catch(err) {
+          // Fallback to local JSON if DB fails (e.g. table not created yet)
+          console.log('Falling back to local fauna.json');
+          if (location.protocol === 'file:') return Promise.resolve([]);
+          return fetch('data/fauna.json').then(r => r.json()).catch(()=>[]);
       }
-    } catch(_) {}
-    return fetch('data/fauna.json').then(r => r.json()).catch(()=>[]);
   }
 
   // Normalizar claves de fauna.json con guiones bajos y variaciones a formato de UI
@@ -755,33 +802,69 @@
     return [];
   }
 
-  function loadDataset(){
+  async function loadDataset(){
     try {
-      if (location.protocol === 'file:') {
-        console.warn('fauna-rescate: saltando carga por file:// (CORS).');
-        return Promise.resolve([]);
+      const supabase = await window.ensureSupabaseClient();
+      const { data, error } = await supabase
+        .from('rescued_wildlife')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) {
+        console.warn('fauna-rescate: error al cargar de supabase', error);
+        throw error;
       }
-    } catch(_) {}
-    const sources = ['data/fauna_rescatada.json', 'data/fauna_rescatada'];
-    const trySource = (index)=>{
-      if (index >= sources.length) {
-        return Promise.resolve([]);
-      }
-      const url = sources[index];
-      return fetch(url).then(resp => {
-        if (!resp.ok) {
-          throw new Error(`HTTP ${resp.status}`);
+
+      // Map Supabase fields to the keys expected by fauna.js
+      return (data || []).map(item => {
+        let fDate = '';
+        let yearVal = '';
+        let monthVal = '';
+
+        if (item.date) {
+            // item.date is YYYY-MM-DD
+            const [y, m, d] = item.date.split('-');
+            fDate = `${d}/${m}/${y}`;
+            yearVal = y;
+            monthVal = MONTH_NAMES[parseInt(m,10)-1] || '';
         }
-        return resp.json();
-      }).then(flattenDatasetPayload).catch(err => {
-        console.warn(`fauna-rescate: fallo al cargar ${url}`, err);
-        return trySource(index + 1);
+
+        return {
+          'No. captura': item.capture_number,
+          'Fecha': fDate,
+          'Hora': item.time || '',
+          'Año': yearVal,
+          'Mes': monthVal,
+          'Clase': item.class || '',
+          'Nombre común': item.common_name || '',
+          'Nombre científico': item.scientific_name || '',
+          'No. individuos': item.quantity,
+          'Método de captura': item.capture_method || '',
+          'Cuadrante': item.quadrant || '',
+          'Disposición final': item.final_disposition || ''
+        };
       });
-    };
-    return trySource(0).catch(err => {
-      console.warn('fauna-rescate: error al cargar dataset', err);
-      return [];
-    });
+
+    } catch (e) {
+      console.warn('fauna-rescate: error loading data, falling back to JSON if available', e);
+      // Fallback
+      const sources = ['data/fauna_rescatada.json', 'data/fauna_rescatada'];
+      const trySource = (index)=>{
+        if (index >= sources.length) {
+          return Promise.resolve([]);
+        }
+        const url = sources[index];
+        return fetch(url).then(resp => {
+          if (!resp.ok) {
+            throw new Error(`HTTP ${resp.status}`);
+          }
+          return resp.json();
+        }).then(flattenDatasetPayload).catch(err => {
+          return trySource(index + 1);
+        });
+      };
+      return trySource(0);
+    }
   }
 
   function parseDMY(str){

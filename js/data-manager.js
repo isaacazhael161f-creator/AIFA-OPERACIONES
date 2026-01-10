@@ -274,6 +274,83 @@ class DataManager {
         if (error) throw error;
         return data;
     }
+
+    // --- Wildlife Strikes ---
+    async getWildlifeStrikes() {
+        // Fetch all, ordered by date desc
+        const { data, error } = await this.client
+            .from('wildlife_strikes')
+            .select('*')
+            .order('date', { ascending: false });
+        if (error) throw error;
+        return data;
+    }
+
+    async addWildlifeStrike(item) {
+        const { data, error } = await this.client
+            .from('wildlife_strikes')
+            .insert(item)
+            .select();
+        if (error) throw error;
+        return data;
+    }
+
+    async updateWildlifeStrike(id, updates) {
+        const { data, error } = await this.client
+            .from('wildlife_strikes')
+            .update(updates)
+            .eq('id', id)
+            .select();
+        if (error) throw error;
+        return data;
+    }
+
+    async deleteWildlifeStrike(id) {
+        const { data, error } = await this.client
+            .from('wildlife_strikes')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+        return data;
+    }
+
+    // --- Rescued Wildlife ---
+    async getRescuedWildlife() {
+        const { data, error } = await this.client
+            .from('rescued_wildlife')
+            .select('*')
+            .order('date', { ascending: false });
+        if (error) throw error;
+        return data;
+    }
+
+    async addRescuedWildlife(item) {
+        const { data, error } = await this.client
+            .from('rescued_wildlife')
+            .insert(item)
+            .select();
+        if (error) throw error;
+        return data;
+    }
+
+    async updateRescuedWildlife(id, updates) {
+        const { data, error } = await this.client
+            .from('rescued_wildlife')
+            .update(updates)
+            .eq('id', id)
+            .select();
+        if (error) throw error;
+        return data;
+    }
+
+    async deleteRescuedWildlife(id) {
+        const { data, error } = await this.client
+            .from('rescued_wildlife')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+        return data;
+    }
 }
 
 window.dataManager = new DataManager();

@@ -5534,3 +5534,28 @@ body.dark-mode #frecuencias-destinos-table thead th {
     background: #0d6efd;
     color: white;
 }
+
+/* Custom striping for Ops Flights table for better visibility */
+#table-daily-flights-ops tbody tr:nth-of-type(odd),
+#table-parte-ops tbody tr:nth-of-type(odd),
+#table-ops-flights tbody tr:nth-of-type(odd) {
+    background-color: #eef2f7 !important; /* Light blue-gray for odd rows */
+}
+
+#table-daily-flights-ops tbody tr:nth-of-type(even),
+#table-parte-ops tbody tr:nth-of-type(even),
+#table-ops-flights tbody tr:nth-of-type(even) {
+    background-color: #ffffff !important; /* White for even rows */
+}
+
+/* Dark mode support */
+body.dark-mode #table-daily-flights-ops tbody tr:nth-of-type(odd),
+body.dark-mode #table-parte-ops tbody tr:nth-of-type(odd),
+body.dark-mode #table-ops-flights tbody tr:nth-of-type(odd) {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+body.dark-mode #table-daily-flights-ops tbody tr:nth-of-type(even),
+body.dark-mode #table-parte-ops tbody tr:nth-of-type(even),
+body.dark-mode #table-ops-flights tbody tr:nth-of-type(even) {
+    background-color: transparent !important;
+}

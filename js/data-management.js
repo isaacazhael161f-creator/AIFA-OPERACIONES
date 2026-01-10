@@ -1,5 +1,6 @@
 class DataManagement {
     constructor() {
+        this.client = window.supabaseClient; // Initialize Supabase Client
         this.airlineConfig = {
             'aeromexico': { logo: 'logo_aeromexico.png', color: '#0b2161', text: '#ffffff' },
             'volaris': { logo: 'logo_volaris.png', color: '#a300e6', text: '#ffffff' },
@@ -102,13 +103,28 @@ class DataManagement {
                 { name: 'gate', label: 'Puerta', type: 'text' },
                 { name: 'terminal', label: 'Terminal', type: 'text' }
             ],
-            wildlife_incidents: [
+            wildlife_strikes: [
                 { name: 'date', label: 'Fecha', type: 'date' },
                 { name: 'time', label: 'Hora', type: 'time' },
-                { name: 'species', label: 'Especie', type: 'text' },
                 { name: 'location', label: 'Ubicación', type: 'text' },
-                { name: 'action_taken', label: 'Acción Tomada', type: 'text' },
-                { name: 'remarks', label: 'Observaciones', type: 'textarea' }
+                { name: 'impact_zone', label: 'Zona de impacto', type: 'text' },
+                { name: 'operation_phase', label: 'Fase de la operación', type: 'text' },
+                { name: 'airline', label: 'Aerolínea', type: 'text' },
+                { name: 'aircraft', label: 'Aeronave', type: 'text' },
+                { name: 'registration', label: 'Matrícula', type: 'text' },
+                { name: 'impact_zone_remains', label: 'Zona de impacto resto', type: 'text' },
+                { name: 'remains_count', label: 'Cantidad de restos', type: 'number' },
+                { name: 'size', label: 'Tamaño', type: 'select', options: [
+                    { value: 'Pequeño', label: 'Pequeño' },
+                    { value: 'Mediano', label: 'Mediano' },
+                    { value: 'Grande', label: 'Grande' }
+                ]},
+                { name: 'species', label: 'Especie', type: 'text' },
+                { name: 'common_name', label: 'Nombre común', type: 'text' },
+                { name: 'reporter', label: 'Personal que reporta', type: 'text' },
+                { name: 'proactive_measures', label: 'Medidas proactivas', type: 'textarea' },
+                { name: 'weather_conditions', label: 'Condiciones meteorológicas', type: 'text' },
+                { name: 'measure_results', label: 'Resultados de las medidas', type: 'textarea' }
             ],
             medical_attentions: [
                 { name: 'year', label: 'Año', type: 'number' },
@@ -205,6 +221,34 @@ class DataManagement {
                 ]},
                 { name: 'gate', label: 'Puerta', type: 'text' },
                 { name: 'terminal', label: 'Terminal', type: 'text' }
+            ],
+            rescued_wildlife: [
+                { name: 'date', label: 'Fecha', type: 'date' },
+                { name: 'time', label: 'Hora', type: 'time' },
+                { name: 'capture_number', label: 'No. Captura', type: 'number' },
+                { name: 'class', label: 'Clase', type: 'text' },
+                { name: 'common_name', label: 'Nombre común', type: 'text' },
+                { name: 'scientific_name', label: 'Nombre científico', type: 'text' },
+                { name: 'quantity', label: 'No. Individuos', type: 'number' },
+                { name: 'capture_method', label: 'Método de captura', type: 'text' },
+                { name: 'quadrant', label: 'Cuadrante', type: 'text' },
+                { name: 'final_disposition', label: 'Disposición final', type: 'text' }
+            ],
+            daily_flights_ops: [
+                { name: 'fecha', label: 'Fecha', type: 'date' },
+                { name: 'seq_no', label: 'No.', type: 'number' },
+                { name: 'aerolinea', label: 'Aerolínea', type: 'text' },
+                { name: 'vuelo_llegada', label: 'Vuelo Arr', type: 'text' },
+                { name: 'origen', label: 'Origen', type: 'text' },
+                { name: 'fecha_hora_prog_llegada', label: 'H. Prog Arr', type: 'text' },
+                { name: 'fecha_hora_real_llegada', label: 'H. Real Arr', type: 'text' },
+                { name: 'pasajeros_llegada', label: 'Pax Arr', type: 'number' },
+                { name: 'vuelo_salida', label: 'Vuelo Dep', type: 'text' },
+                { name: 'destino', label: 'Destino', type: 'text' },
+                { name: 'fecha_hora_prog_salida', label: 'H. Prog Dep', type: 'text' },
+                { name: 'fecha_hora_real_salida', label: 'H. Real Dep', type: 'text' },
+                { name: 'pasajeros_salida', label: 'Pax Dep', type: 'number' },
+                { name: 'matricula', label: 'Matrícula', type: 'text' }
             ]
         };
 
@@ -327,7 +371,9 @@ class DataManagement {
             if (table === 'operations_summary') this.loadOperationsSummary();
             if (table === 'daily_operations') this.loadDailyOperations();
             if (table === 'flight_itinerary') this.loadItinerary();
-            if (table === 'wildlife_incidents') this.loadWildlife();
+            if (table === 'wildlife_strikes') this.loadWildlifeStrikes();
+            if (table === 'rescued_wildlife') this.loadRescuedWildlife();
+            if (table === 'daily_flights_ops') this.loadDailyFlightsOps();
             if (table === 'medical_attentions') this.loadMedical();
             if (table === 'delays') this.loadDelays();
             if (table === 'punctuality_stats') this.loadPunctualityStats();
@@ -363,7 +409,9 @@ class DataManagement {
             this.loadDailyOperations();
         }
         if (targetId === '#pane-itinerary') this.loadItinerary();
-        if (targetId === '#pane-wildlife') this.loadWildlife();
+        if (targetId === '#pane-wildlife') this.loadWildlifeStrikes();
+        if (targetId === '#pane-rescued-wildlife') this.loadRescuedWildlife();
+        if (targetId === '#pane-daily-flights-ops') this.loadDailyFlightsOps();
         if (targetId === '#pane-medical') this.loadMedical();
         if (targetId === '#pane-delays') this.loadDelays();
         if (targetId === '#pane-punctuality-table') this.loadPunctualityStats();
@@ -666,12 +714,146 @@ class DataManagement {
         });
     }
 
-    async loadWildlife() {
+    async loadWildlifeStrikes() {
         try {
-            const data = await window.dataManager.getWildlifeIncidents();
-            this.renderTable('table-wildlife', data, ['date', 'time', 'species', 'location'], 'wildlife_incidents');
+            const data = await window.dataManager.getWildlifeStrikes();
+            this.renderTable('table-wildlife', data, ['date', 'time', 'species', 'location', 'common_name', 'action_taken'], 'wildlife_strikes');
         } catch (error) {
-            console.error('Error loading wildlife:', error);
+            console.error('Error loading wildlife strikes:', error);
+        }
+    }
+
+    async loadRescuedWildlife() {
+        try {
+            const data = await window.dataManager.getRescuedWildlife();
+            this.renderTable('table-rescued-wildlife', data, ['date', 'time', 'common_name', 'class', 'final_disposition'], 'rescued_wildlife');
+        } catch (error) {
+            console.error('Error loading rescued wildlife:', error);
+        }
+    }
+
+    async loadDailyFlightsOps() {
+        const tbody = document.querySelector('#table-daily-flights-ops tbody');
+        if (!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="14" class="text-center">Cargando...</td></tr>';
+        
+        const filterDateEl = document.getElementById('filter-daily-flights-date');
+        const filterDate = filterDateEl ? filterDateEl.value : null;
+
+        try {
+            const supabase = this.client || window.supabaseClient;
+            if (!supabase) throw new Error("Cliente Supabase no inicializado");
+
+            let query = supabase
+                .from('vuelos_parte_operaciones')
+                .select('*')
+                .order('date', { ascending: false });
+            
+            if (filterDate) {
+                query = query.eq('date', filterDate);
+            } else {
+                query = query.limit(20); // Limit chunks to avoid massive JSON load
+            }
+
+            const { data: rows, error } = await query;
+            if (error) throw error;
+            
+            // Flatten operations
+            let allOps = [];
+            if (rows && rows.length > 0) {
+                rows.forEach(row => {
+                    const dateStr = row.date;
+                    if (Array.isArray(row.data)) {
+                        row.data.forEach(op => {
+                            // Normalize explicitly for Admin Table in case stored data is raw
+                            const normalized = { ...op };
+                            
+                            if (op['Hora programada_llegada']) normalized.fecha_hora_prog_llegada = op['Hora programada_llegada'];
+                            if (op['Hora de salida_llegada']) normalized.fecha_hora_real_llegada = op['Hora de salida_llegada'];
+                            if (op['Hora programada_salida']) normalized.fecha_hora_prog_salida = op['Hora programada_salida'];
+                            if (op['Hora de salida_salida']) normalized.fecha_hora_real_salida = op['Hora de salida_salida'];
+                            
+                            if (op['Vuelo de llegada']) normalized.vuelo_llegada = op['Vuelo de llegada'];
+                            if (op['Vuelo de salida']) normalized.vuelo_salida = op['Vuelo de salida'];
+                            if (op['Pasajeros llegada']) normalized.pasajeros_llegada = op['Pasajeros llegada'];
+                            if (op['Pasajeros salida']) normalized.pasajeros_salida = op['Pasajeros salida'];
+                            if (op['Matrícula']) normalized.matricula = op['Matrícula'];
+                            if (op['Origen']) normalized.origen = op['Origen'];
+                            if (op['Destino']) normalized.destino = op['Destino'];
+                            if (op['aerolinea']) normalized.aerolinea = op['aerolinea']; 
+
+                            // Map 'no' to 'seq_no'
+                            if (normalized.seq_no === undefined && normalized.no !== undefined) {
+                                normalized.seq_no = normalized.no;
+                            }
+
+                            allOps.push({
+                                ...normalized,
+                                fecha: dateStr
+                            });
+                        });
+                    }
+                });
+            }
+
+            // Sort by date desc then seq_no asc
+            allOps.sort((a,b) => {
+                if (a.fecha !== b.fecha) return b.fecha.localeCompare(a.fecha);
+                return (a.seq_no || 0) - (b.seq_no || 0);
+            });
+
+            const cols = ['fecha', 'seq_no', 'aerolinea', 'vuelo_llegada', 'origen', 'fecha_hora_prog_llegada', 'fecha_hora_real_llegada', 'pasajeros_llegada', 'vuelo_salida', 'destino', 'fecha_hora_prog_salida', 'fecha_hora_real_salida', 'pasajeros_salida', 'matricula'];
+            
+            this.renderTable('table-daily-flights-ops', allOps, cols, 'daily_flights_ops');
+        } catch (error) {
+            console.error('Error loading daily flights ops:', error);
+            tbody.innerHTML = '<tr><td colspan="14" class="text-center text-danger">Error cargando datos: ' + error.message + '</td></tr>';
+        }
+    }
+
+    async deleteDailyOpsByDate() {
+        const filterDateEl = document.getElementById('filter-daily-flights-date');
+        const filterDate = filterDateEl ? filterDateEl.value : null;
+
+        if (!filterDate) {
+            alert('Por favor selecciona una fecha específica para eliminar.');
+            return;
+        }
+
+        if (!confirm(`¿Estás SEGURO de que deseas ELIMINAR TODOS los vuelos del día ${filterDate}?\n\nEsta acción borrará el itinerario completo de esa fecha y no se puede deshacer.`)) {
+            return;
+        }
+
+        try {
+            const supabase = this.client || window.supabaseClient;
+            if (!supabase) throw new Error("Cliente Supabase no inicializado");
+
+            // Check count first
+            const { count, error: countErr } = await supabase
+                .from('vuelos_parte_operaciones')
+                .select('*', { count: 'exact', head: true })
+                .eq('date', filterDate);
+
+            if (countErr) throw countErr;
+
+            if (count === 0) {
+                alert('No hay registros para borrar en esa fecha.');
+                return;
+            }
+
+            const { error } = await supabase
+                .from('vuelos_parte_operaciones')
+                .delete()
+                .eq('date', filterDate);
+
+            if (error) throw error;
+
+            alert(`Se eliminaron los registros correctamente.`);
+            this.loadDailyFlightsOps();
+
+        } catch (error) {
+            console.error('Error deleting daily flights:', error);
+            alert('Error al eliminar: ' + error.message);
         }
     }
 
