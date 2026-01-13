@@ -62,6 +62,204 @@
         return pane && pane.classList.contains('active');
     }
 
+    // --- CONCILIACION MODAL ---
+    window.openConciliacionHistory = function(dateRef, seqNo, type, currentStatus, user, time, flightCode) {
+        // Elements
+        const modalEl = document.getElementById('modalConciliacionHistory');
+        const iconEl = document.getElementById('conci-modal-icon');
+        const statusEl = document.getElementById('conci-modal-status');
+        const flightEl = document.getElementById('conci-modal-flight-info');
+        const detailsEl = document.getElementById('conci-modal-details');
+        const btnAction = document.getElementById('btn-conci-action');
+        const warnEl = document.getElementById('conci-modal-action-warn');
+
+        // Reset
+        warnEl.classList.add('d-none');
+        btnAction.disabled = false; // Reset disabled state from previous actions
+        
+        // Flight Info
+        const flightInfo = `Vuelo: <strong>${flightCode}</strong> | Fecha: ${dateRef} | Secuencia: ${seqNo}`;
+        flightEl.innerHTML = flightInfo;
+
+        // Current Status UI
+        if (currentStatus) {
+            // Is Conciliated
+            iconEl.innerHTML = '<i class="fas fa-check-circle text-success"></i>';
+            statusEl.className = 'fw-bold mb-1 text-success';
+            statusEl.innerText = 'CONCILIADO';
+            
+            // History Details
+            if (user && user !== 'undefined' && user !== 'null') {
+                detailsEl.innerHTML = `
+                    <p class="mb-1"><strong>Realizado por:</strong> ${user}</p>
+                    <p class="mb-0"><strong>Fecha/Hora:</strong> ${time}</p>
+                `;
+            } else {
+                detailsEl.innerHTML = '<p class="text-muted fst-italic">Registro histórico sin detalles de usuario.</p>';
+            }
+
+            // Action Button -> Cancel
+            btnAction.className = 'btn btn-danger';
+            btnAction.innerHTML = '<i class="fas fa-times me-2"></i>Cancelar Conciliación';
+            btnAction.onclick = () => {
+                 executeToggleConciliacion(dateRef, seqNo, type, true, modalEl);
+            };
+
+        } else {
+             // Is NOT Conciliated
+            iconEl.innerHTML = '<i class="fas fa-times-circle text-danger opacity-50"></i>';
+            statusEl.className = 'fw-bold mb-1 text-danger';
+            statusEl.innerText = 'NO CONCILIADO';
+            
+            detailsEl.innerHTML = '<p class="text-muted">Esperando validación por parte del área correspondiente.</p>';
+            
+             // Action Button -> Validate
+            btnAction.className = 'btn btn-success';
+            btnAction.innerHTML = '<i class="fas fa-check me-2"></i>Validar / Conciliar';
+            btnAction.onclick = () => {
+                 executeToggleConciliacion(dateRef, seqNo, type, false, modalEl);
+            };
+        }
+
+        // Show Modal
+        let modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) {
+            modal.show();
+        } else {
+            modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        }
+    };
+
+    async function executeToggleConciliacion(dateRef, seqNo, type, currentStatus, modalEl) {
+        // Disable button immediately to show feedback
+        const btn = document.getElementById('btn-conci-action');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
+        }
+
+        try {
+            const supabase = window.supabaseClient;
+            if (!supabase) throw new Error("Cliente Supabase no disponible");
+
+            // Get Current User - Reliable Method (Supabase Auth)
+            let userName = 'Usuario Sistema';
+            try {
+                // 1. Session Storage
+                const userStr = sessionStorage.getItem('user');
+                if (userStr) {
+                    const u = JSON.parse(userStr);
+                    userName = u.user_metadata?.full_name || u.email || userName;
+                }
+                
+                // 2. Refresh from Auth if needed
+                if (userName === 'Usuario Sistema' || userName.includes('Usuario (')) {
+                    // Don't block purely on this if it fails
+                    const { data, error } = await supabase.auth.getUser();
+                    if (data && data.user) {
+                         userName = data.user.user_metadata?.full_name || data.user.email || userName;
+                         sessionStorage.setItem('user', JSON.stringify(data.user));
+                    }
+                }
+            } catch(uErr) {
+                console.warn("Error resolviendo usuario:", uErr);
+            }
+
+            // Fallback for manual role override
+            if (userName === 'Usuario Sistema') {
+                 const role = sessionStorage.getItem('user_role');
+                 if (role) userName = `Usuario (${role})`; 
+            }
+
+            const now = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City', hour12: false });
+            
+
+            // 1. Fetch current JSON
+            const { data: rowData, error: fetchError } = await supabase
+                .from('vuelos_parte_operaciones')
+                .select('data')
+                .eq('date', dateRef)
+                .single();
+            
+            if (fetchError) throw fetchError;
+            
+            let flights = rowData.data;
+            if (!Array.isArray(flights)) throw new Error("Formato de datos inválido en DB");
+
+            // 2. Find row
+            const index = flights.findIndex(f => (f.seq_no || f.no) == seqNo);
+            if (index === -1) throw new Error("No se encontró el vuelo");
+
+            // 3. Update fields
+            const field = type === 'arrival' ? 'conciliado_llegada' : 'conciliado_salida';
+            const fieldBy = type === 'arrival' ? 'conciliado_llegada_by' : 'conciliado_salida_by';
+            const fieldTime = type === 'arrival' ? 'conciliado_llegada_at' : 'conciliado_salida_at';
+            
+            const newState = !currentStatus;
+            
+            flights[index][field] = newState;
+            
+            if (newState) {
+                flights[index][fieldBy] = userName;
+                flights[index][fieldTime] = now;
+            } else {
+                delete flights[index][fieldBy];
+                delete flights[index][fieldTime];
+            }
+
+            // 4. Save
+            const { error: updateError } = await supabase
+                .from('vuelos_parte_operaciones')
+                .update({ data: flights })
+                .eq('date', dateRef);
+
+            if (updateError) throw updateError;
+
+            // --- LOG HISTORY (Global History) ---
+            if (window.logHistory) {
+                const fRow = flights[index];
+                const flightCode = type === 'arrival' 
+                    ? (fRow.vuelo_llegada || fRow['Vuelo de llegada'] || 'Vuelo Llegada')
+                    : (fRow.vuelo_salida || fRow['Vuelo de salida'] || 'Vuelo Salida');
+                
+                const actionType = newState ? 'CONCILIACION' : 'CANCELACION';
+                const actionVerb = newState ? 'concilió' : 'canceló la conciliación de';
+                const direction = type === 'arrival' ? 'Llegada' : 'Salida';
+                
+                // Format Date from YYYY-MM-DD to DD-MM-YYYY
+                let dateFormatted = dateRef;
+                try {
+                    const [y, m, d] = dateRef.split('-');
+                    if (y && m && d) dateFormatted = `${d}-${m}-${y}`;
+                } catch(e) {}
+
+                const friendlyDetails = `El usuario <strong>${userName}</strong> ${actionVerb} el vuelo <strong>${flightCode}</strong> (${direction}) del día ${dateFormatted}.`;
+                
+                // Fire and forget log
+                window.logHistory(actionType, 'Parte Operaciones', `${dateRef}-${seqNo}`, friendlyDetails);
+            }
+            
+            // Hide Modal
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
+
+            // Refresh Table
+            loadFlights();
+
+        } catch (err) {
+            console.error("Error toggling conciliacion:", err);
+            alert("Error: " + err.message);
+            // Re-enable button
+            const btn = document.getElementById('btn-conci-action');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = 'Reintentar';
+            }
+        }
+    }
+
+
     // --- LOAD FROM DB ---
     async function loadFlights() {
         // Use local date input first, fall back to main
@@ -79,11 +277,13 @@
         if (!dateInput || !dateInput.value) return;
 
         const dateVal = dateInput.value;
-        const tbody = document.getElementById('tbody-ops-flights');
+        const tbodyArr = document.getElementById('tbody-ops-flights-arrivals');
+        const tbodyDep = document.getElementById('tbody-ops-flights-departures');
         
         console.log(`[parte-ops] Loading flights for ${dateVal}...`);
         
-        tbody.innerHTML = '<tr><td colspan="13" class="text-center py-4"><div class="spinner-border text-primary"></div><div class="small mt-2">Buscando operaciones...</div></td></tr>';
+        if (tbodyArr) tbodyArr.innerHTML = '<tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-success spinner-border-sm"></div><div class="small mt-2">Buscando llegadas...</div></td></tr>';
+        if (tbodyDep) tbodyDep.innerHTML = '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm"></div><div class="small mt-2">Buscando salidas...</div></td></tr>';
 
         try {
             const supabase = window.supabaseClient;
@@ -111,22 +311,21 @@
 
             if (!error && flights.length === 0) {
                  // Fallback: Check for latest available date
-                 await suggestOtherDate(supabase, tbody, dateVal, 'No se encontró información');
+                 await suggestOtherDate(supabase, dateVal, 'No se encontró información');
                  return;
             }
-            // else if (flights.length > 0 && flights.length < 5) ... // Warning logic slightly changes but concept is similar
+            // else if (flights.length > 0 && flights.length < 5) ... 
 
-            renderData(flights);
+            renderData(flights, null, dateVal);
 
         } catch (err) {
             console.error(err);
-            tbody.innerHTML = `<tr><td colspan="13" class="text-center text-danger">
-                <i class="fas fa-exclamation-triangle me-2"></i> Error al cargar datos: ${err.message}
-            </td></tr>`;
+            const errorMsg = `<div class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i> Error al cargar datos: ${err.message}</div>`;
+            renderData(null, errorMsg);
         }
     }
 
-    async function suggestOtherDate(supabase, tbody, currentVal, msgPrefix) {
+    async function suggestOtherDate(supabase, currentVal, msgPrefix) {
          const { data: latestData } = await supabase
              .from('vuelos_parte_operaciones')
              .select('date')
@@ -136,8 +335,7 @@
          if (latestData && latestData.length > 0) {
              const lastDate = latestData[0].date;
              if (lastDate !== currentVal) {
-                 tbody.innerHTML = `<tr><td colspan="13" class="text-center py-4">
-                     <div class="alert alert-warning d-inline-block shadow-sm mb-0">
+                 const warningHtml = `<div class="alert alert-warning d-inline-block shadow-sm mb-0">
                         <h6 class="alert-heading"><i class="fas fa-search me-2"></i>${msgPrefix} para el ${currentVal}</h6>
                         <p class="mb-2 small">Es posible que los datos estén en otra fecha.</p>
                         <hr>
@@ -147,9 +345,13 @@
                                 <i class="fas fa-calendar-alt me-1"></i> Ir a ${lastDate}
                             </button>
                         </p>
-                     </div>
-                 </td></tr>`;
+                     </div>`;
+                 renderData(null, warningHtml);
+             } else {
+                 renderData(null);
              }
+         } else {
+             renderData(null);
          }
     }
 
@@ -797,11 +999,11 @@
         if (logoFile) {
             // Logic to visually equalize logo sizes
             // Standard size
-            let style = "max-height: 35px; max-width: 120px;";
+            let style = "max-height: 25px; max-width: 70px;";
             
             // Reduce size for notably bulky/square logos
             if (logoFile === 'logo_viva.png') {
-                 style = "max-height: 25px; max-width: 90px;";
+                 style = "max-height: 20px; max-width: 60px;";
             }
 
             // Boost size for logos that naturally look small (horizontal/text-heavy)
@@ -823,13 +1025,13 @@
             ];
 
             if (boostLogos.includes(logoFile)) {
-                 style = "max-height: 50px; max-width: 180px;"; 
+                 style = "max-height: 28px; max-width: 80px;"; 
             } else if (megaLogos.includes(logoFile)) {
-                 style = "max-height: 60px; max-width: 200px;";
+                 style = "max-height: 30px; max-width: 85px;";
             } else if (giganticLogos.includes(logoFile)) {
-                 style = "max-height: 70px; max-width: 250px;";
+                 style = "max-height: 32px; max-width: 90px;";
             } else if (logoFile === 'logo_atlas_air.png') {
-                 style = "max-height: 90px; max-width: 280px;";
+                 style = "max-height: 35px; max-width: 95px;";
             }
             
             return `<img src="images/airlines/${logoFile}" alt="${airlineName}" title="${airlineName}" class="img-fluid" style="${style}">`;
@@ -839,25 +1041,50 @@
     }
 
     // --- RENDER TABLE ---
-    function renderData(data, warningHtml = null) {
-        const tbody = document.getElementById('tbody-ops-flights');
+    function renderData(data, warningHtml = null, dateRef = null) {
+        const tbodyArr = document.getElementById('tbody-ops-flights-arrivals');
+        const tbodyDep = document.getElementById('tbody-ops-flights-departures');
         
-        // Reset and optionally add warning
-        tbody.innerHTML = '';
+        // Check Permissions for Conciliacion
+        const userRole = sessionStorage.getItem('user_role');
+        const canConciliate = ['admin', 'conciliacion', 'superadmin'].includes(userRole);
+
+        // Toggle Headers visibility
+        document.querySelectorAll('.col-conciliacion').forEach(el => {
+            if (canConciliate) el.classList.remove('d-none');
+            else el.classList.add('d-none');
+        });
+
+        // Reset 
+        if(tbodyArr) tbodyArr.innerHTML = '';
+        if(tbodyDep) tbodyDep.innerHTML = '';
+
+        // Handle Warnings
         if (warningHtml) {
-             const row = document.createElement('tr');
-             row.innerHTML = warningHtml;
-             tbody.appendChild(row);
+             // If we have a specific warning, show it in the Arrivals table (or both)
+             // We'll show it in the first available table (Arrivals)
+             if(tbodyArr) {
+                tbodyArr.innerHTML = `<tr><td colspan="8" class="text-center p-3">${warningHtml}</td></tr>`;   
+             }
+             if(tbodyDep && !tbodyArr) {
+                 tbodyDep.innerHTML = `<tr><td colspan="8" class="text-center p-3">${warningHtml}</td></tr>`;  
+             }
+             return; 
         }
 
         if (!data || data.length === 0) {
-            if (!warningHtml) tbody.innerHTML = '<tr><td colspan="13" class="text-center text-muted">No hay datos</tr>';
+            if(tbodyArr) tbodyArr.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No hay llegadas registradas</td></tr>';
+            if(tbodyDep) tbodyDep.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No hay salidas registradas</td></tr>';
             return;
         }
         
         // Build table rows
-        const rowsHtml = data.map(r => {
+        let rowsArr = '';
+        let rowsDep = '';
+
+        data.forEach(r => {
              // Fallback for missing normalized keys, try to use raw keys if present
+             const id = r.id; // Needed for updates but likely undefined here, use seq
              const seq = r.seq_no || r.no || '';
              const airlineName = r.aerolinea || r.Aerolinea || '';
              const airlineHtml = getAirlineHtml(airlineName);
@@ -867,6 +1094,9 @@
              const progArr = r.fecha_hora_prog_llegada || r['Hora programada_llegada'] || '';
              const realArr = r.fecha_hora_real_llegada || r['Hora de salida_llegada'] || '';
              const paxArr = r.pasajeros_llegada || r['Pasajeros llegada'] || 0;
+             const concArr = r.conciliado_llegada === true;
+             const concArrBy = r.conciliado_llegada_by || '';
+             const concArrAt = r.conciliado_llegada_at || '';
              
              const depFlight = r.vuelo_salida || r['Vuelo de salida'] || '';
              const dest = r.destino || r.Destino || '';
@@ -874,30 +1104,79 @@
              const realDep = r.fecha_hora_real_salida || r['Hora de salida_salida'] || '';
              const paxDep = r.pasajeros_salida || r['Pasajeros salida'] || 0;
              const mat = r.matricula || r['Matrícula'] || '';
+             const concDep = r.conciliado_salida === true;
+             const concDepBy = r.conciliado_salida_by || '';
+             const concDepAt = r.conciliado_salida_at || '';
+             
+             // Escape helper for onclick Strings
+             const escapeStr = (str) => {
+                 if (!str) return '';
+                 return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+             };
 
-             return `
-                <tr>
-                    <td class="fw-bold">${seq}</td>
-                    <td class="text-center">${airlineHtml}</td>
-                    <td class="text-success fw-bold">${arrFlight}</td>
-                    <td>${origin}</td>
-                    <td class="small opacity-75 text-nowrap">${progArr}</td>
-                    <td class="fw-bold text-nowrap">${realArr}</td>
-                    <td>${paxArr}</td>
-                    
-                    <td class="text-primary fw-bold">${depFlight}</td>
-                    <td>${dest}</td>
-                    <td class="small opacity-75 text-nowrap">${progDep}</td>
-                    <td class="fw-bold text-nowrap">${realDep}</td>
-                    <td>${paxDep}</td>
-                    
-                    <td class="font-monospace small">${mat}</td>
+             // Conciliacion Cell Generation - MODAL MODE
+             const getConciliacionCell = (type, status, user, time, flightCode) => {
+                 if (!canConciliate) return '';
+                 
+                 let iconClass = '';
+                 
+                 if (status) { // Conciliado (True)
+                     iconClass = 'fas fa-check-circle text-success fa-lg hover-scale';
+                 } else { // No Conciliado (False)
+                     iconClass = 'fas fa-times-circle text-danger opacity-75 fa-lg hover-scale';
+                 }
+                 
+                 // Safe parameters
+                 const sUser = escapeStr(user);
+                 const sCode = escapeStr(flightCode);
+                 
+                 return `
+                    <td class="text-center align-middle" style="width: 40px; cursor: pointer;" 
+                        onclick="window.openConciliacionHistory('${dateRef}', ${seq}, '${type}', ${status}, '${sUser}', '${time}', '${sCode}')">
+                        <i class="${iconClass}"></i>
+                    </td>
+                 `;
+             };
+
+             // Populate Arrivals - Always populate to maintain row alignment
+             rowsArr += `
+                <tr style="height: 48px;">
+                    <td class="fw-bold text-secondary">${seq}</td>
+                    <td class="text-center text-truncate" style="max-width: 75px;" title="${airlineName}">${airlineHtml}</td>
+                    <td class="text-success fw-bold text-nowrap">${arrFlight}</td>
+                    <td class="text-truncate" style="max-width: 85px;" title="${origin}">${origin}</td>
+                    <td class="small opacity-75 lh-1">${progArr.replace(' ', '<br>')}</td>
+                    <td class="fw-bold lh-1">${realArr.replace(' ', '<br>')}</td>
+                    <td class="fw-bold small lh-1">${paxArr}</td>
+                    ${getConciliacionCell('arrival', concArr, concArrBy, concArrAt, arrFlight)}
                 </tr>
-            `
-        }).join('');
+             `;
+
+             // Populate Departures - Always populate to maintain row alignment
+             rowsDep += `
+                <tr style="height: 48px;">
+                    <td class="text-center text-truncate" style="max-width: 75px;" title="${airlineName}">${airlineHtml}</td>
+                    <td class="text-primary fw-bold text-nowrap">${depFlight}</td>
+                    <td class="text-truncate" style="max-width: 85px;" title="${dest}">${dest}</td>
+                    <td class="small opacity-75 lh-1">${progDep.replace(' ', '<br>')}</td>
+                    <td class="fw-bold lh-1">${realDep.replace(' ', '<br>')}</td>
+                    <td class="fw-bold small lh-1">${paxDep}</td>
+                    <td class="font-monospace small text-nowrap text-truncate" style="max-width: 75px;">${mat}</td>
+                    ${getConciliacionCell('departure', concDep, concDepBy, concDepAt, depFlight)}
+                </tr>
+             `;
+        });
         
-        // Use insertAdjacentHTML to append without overwriting the warning row
-        tbody.insertAdjacentHTML('beforeend', rowsHtml);
+        // Append data
+        if(tbodyArr) {
+            if (rowsArr) tbodyArr.innerHTML = rowsArr;
+            else tbodyArr.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No hay llegadas para mostrar</td></tr>';
+        }
+        
+        if(tbodyDep) {
+            if (rowsDep) tbodyDep.innerHTML = rowsDep;
+            else tbodyDep.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No hay salidas para mostrar</td></tr>';
+        }
         
         // Render Chart (Simplified - using Dep Time or Arr Time)
         updateChart(data);

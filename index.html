@@ -151,51 +151,30 @@
                     </div>
                     
                     <div class="card">
-                        <div class="card-header">
-                            <ul class="nav nav-tabs card-header-tabs" id="dataTabs" role="tablist">
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="tab-ops-summary" data-bs-toggle="tab" data-bs-target="#pane-ops-summary" type="button" role="tab">Resumen Mensual</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="tab-daily-ops" data-bs-toggle="tab" data-bs-target="#pane-daily-ops" type="button" role="tab">Operaciones Diarias</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="tab-parte-ops" data-bs-toggle="tab" data-bs-target="#pane-parte-ops" type="button" role="tab">Parte de Operaciones</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="tab-itinerary" data-bs-toggle="tab" data-bs-target="#pane-itinerary" type="button" role="tab">Itinerario</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="tab-weekly-frequencies" data-bs-toggle="tab" data-bs-target="#pane-weekly-frequencies" type="button" role="tab">Frecuencias Nacionales</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="tab-weekly-frequencies-int" data-bs-toggle="tab" data-bs-target="#pane-weekly-frequencies-int" type="button" role="tab">Frecuencias Internacionales</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="tab-punctuality-table" data-bs-toggle="tab" data-bs-target="#pane-punctuality-table" type="button" role="tab">Puntualidad</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="tab-wildlife" data-bs-toggle="tab" data-bs-target="#pane-wildlife" type="button" role="tab">Fauna</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="tab-rescued-wildlife" data-bs-toggle="tab" data-bs-target="#pane-rescued-wildlife" type="button" role="tab">Fauna Rescatada</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="tab-daily-flights-ops" data-bs-toggle="tab" data-bs-target="#pane-daily-flights-ops" type="button" role="tab">Vuelos (Ops)</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="tab-medical" data-bs-toggle="tab" data-bs-target="#pane-medical" type="button" role="tab">Atenciones Médicas</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="tab-delays" data-bs-toggle="tab" data-bs-target="#pane-delays" type="button" role="tab">Demoras</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="tab-comparativa" data-bs-toggle="tab" data-bs-target="#pane-comparativa" type="button" role="tab">Comparativa</button>
-                                </li>
-                            </ul>
-                        </div>
                         <div class="card-body">
-                            <div class="tab-content" id="dataTabsContent">
+                            <div class="row">
+                                <div class="col-md-3 border-end" id="dm-sidebar">
+                                    <div class="nav flex-column nav-pills me-3" id="dataTabs" role="tablist" aria-orientation="vertical">
+                                        <button class="nav-link active text-start" id="tab-ops-summary" data-bs-toggle="pill" data-bs-target="#pane-ops-summary" type="button" role="tab">Resumen Mensual</button>
+                                        <button class="nav-link text-start" id="tab-daily-ops" data-bs-toggle="pill" data-bs-target="#pane-daily-ops" type="button" role="tab">Operaciones Diarias</button>
+                                        <button class="nav-link text-start" id="tab-parte-ops" data-bs-toggle="pill" data-bs-target="#pane-parte-ops" type="button" role="tab">Parte de Operaciones</button>
+                                        <button class="nav-link text-start" id="tab-itinerary" data-bs-toggle="pill" data-bs-target="#pane-itinerary" type="button" role="tab">Itinerario</button>
+                                        <button class="nav-link text-start" id="tab-weekly-frequencies" data-bs-toggle="pill" data-bs-target="#pane-weekly-frequencies" type="button" role="tab">Frecuencias Nacionales</button>
+                                        <button class="nav-link text-start" id="tab-weekly-frequencies-int" data-bs-toggle="pill" data-bs-target="#pane-weekly-frequencies-int" type="button" role="tab">Frecuencias Internacionales</button>
+                                        <button class="nav-link text-start" id="tab-punctuality-table" data-bs-toggle="pill" data-bs-target="#pane-punctuality-table" type="button" role="tab">Puntualidad</button>
+                                        <button class="nav-link text-start" id="tab-wildlife" data-bs-toggle="pill" data-bs-target="#pane-wildlife" type="button" role="tab">Fauna</button>
+                                        <button class="nav-link text-start" id="tab-rescued-wildlife" data-bs-toggle="pill" data-bs-target="#pane-rescued-wildlife" type="button" role="tab">Fauna Rescatada</button>
+                                        <button class="nav-link text-start" id="tab-daily-flights-ops" data-bs-toggle="pill" data-bs-target="#pane-daily-flights-ops" type="button" role="tab">Vuelos (Ops)</button>
+                                        <!-- <button class="nav-link text-start" id="tab-medical" data-bs-toggle="pill" data-bs-target="#pane-medical" type="button" role="tab">Atenciones Médicas</button> -->
+                                        <button class="nav-link text-start" id="tab-delays" data-bs-toggle="pill" data-bs-target="#pane-delays" type="button" role="tab">Demoras</button>
+                                        <button class="nav-link text-start" id="tab-comparativa" data-bs-toggle="pill" data-bs-target="#pane-comparativa" type="button" role="tab">Comparativa</button>
+                                    </div>
+                                </div>
+                                <div class="col-md-9" id="dm-content">
+                                    <button class="btn btn-outline-secondary mb-3 d-none" id="dm-sidebar-toggle" onclick="toggleDmSidebar()">
+                                        <i class="fas fa-bars me-1"></i> Mostrar Menú
+                                    </button>
+                                    <div class="tab-content" id="dataTabsContent">
                                 <!-- Operations Summary Pane -->
                                 <div class="tab-pane fade show active" id="pane-ops-summary" role="tabpanel">
                                     <div class="table-responsive">
@@ -607,29 +586,65 @@
                                             <button class="btn btn-primary btn-sm" onclick="dataManagement.addItem('daily_flights_ops')"><i class="fas fa-plus"></i> Agregar Vuelo</button>
                                         </div>
                                     </div>
-                                    <div class="table-responsive">
-                                        <table class="table table-striped table-hover" id="table-daily-flights-ops">
-                                            <thead>
-                                                <tr>
-                                                    <th>Fecha</th>
-                                                    <th>No</th>
-                                                    <th>Aerolínea</th>
-                                                    <th>Vuelo Arr</th>
-                                                    <th>Origen</th>
-                                                    <th>Prog Arr</th>
-                                                    <th>Real Arr</th>
-                                                    <th>Pax Arr</th>
-                                                    <th>Vuelo Dep</th>
-                                                    <th>Destino</th>
-                                                    <th>Prog Dep</th>
-                                                    <th>Real Dep</th>
-                                                    <th>Pax Dep</th>
-                                                    <th>Matrícula</th>
-                                                    <th>Acciones</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody></tbody>
-                                        </table>
+                                    
+                                    <div class="row g-3">
+                                        <!-- Arrivals Column -->
+                                        <div class="col-lg-6">
+                                            <div class="card h-100 border-0 shadow-sm">
+                                                <div class="card-header bg-primary text-white py-2">
+                                                    <h6 class="mb-0"><i class="fas fa-plane-arrival me-2"></i>Llegadas</h6>
+                                                </div>
+                                                <div class="card-body p-0">
+                                                    <div class="table-responsive">
+                                                        <table class="table table-striped table-hover table-sm mb-0" id="table-daily-flights-arrivals">
+                                                            <thead class="table-light">
+                                                                <tr>
+                                                                    <th>No</th>
+                                                                    <th>Aerolínea</th>
+                                                                    <th>Vuelo</th>
+                                                                    <th>Origen</th>
+                                                                    <th>Hora</th>
+                                                                    <th>Real</th>
+                                                                    <th>Pax</th>
+                                                                    <th>Matrícula</th>
+                                                                    <th></th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody></tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Departures Column -->
+                                        <div class="col-lg-6">
+                                            <div class="card h-100 border-0 shadow-sm">
+                                                <div class="card-header bg-success text-white py-2">
+                                                    <h6 class="mb-0"><i class="fas fa-plane-departure me-2"></i>Salidas</h6>
+                                                </div>
+                                                <div class="card-body p-0">
+                                                    <div class="table-responsive">
+                                                        <table class="table table-striped table-hover table-sm mb-0" id="table-daily-flights-departures">
+                                                            <thead class="table-light">
+                                                                <tr>
+                                                                    <th>No</th>
+                                                                    <th>Aerolínea</th>
+                                                                    <th>Vuelo</th>
+                                                                    <th>Destino</th>
+                                                                    <th>Hora</th>
+                                                                    <th>Real</th>
+                                                                    <th>Pax</th>
+                                                                    <th>Matrícula</th>
+                                                                    <th></th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody></tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -747,6 +762,8 @@
                                     </div>
                                 </div>
 
+                            </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1270,7 +1287,6 @@
                                         <h5 class="mb-0 text-primary"><i class="fas fa-plane me-2"></i>Itinerario de Vuelos del Día</h5>
                                         <div class="d-flex gap-2">
                                             <input type="date" class="form-control form-control-sm" id="vuelos-ops-date" style="max-width: 140px;" aria-label="Seleccionar fecha de itinerario de vuelos">
-                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#uploadOpsItineraryModal"><i class="fas fa-file-upload me-1"></i>Cargar JSON</button>
                                             <button class="btn btn-sm btn-outline-secondary" onclick="window.opsFlights && window.opsFlights.loadFlights()"><i class="fas fa-sync-alt me-1"></i>Actualizar</button>
                                         </div>
                                     </div>
@@ -1291,30 +1307,63 @@
                                         </div>
                                     </div>
 
-                                    <!-- Table -->
-                                    <div class="table-responsive shadow-sm rounded">
-                                        <table class="table table-hover table-bordered table-sm align-middle mb-0" id="table-ops-flights">
-                                            <thead class="table-light">
-                                                <tr class="text-center small text-muted text-uppercase">
-                                                    <th>No.</th>
-                                                    <th>Aerolínea</th>
-                                                    <th>Vuelo Llegada</th>
-                                                    <th>Origen</th>
-                                                    <th>H. Prog</th>
-                                                    <th>H. Llegada</th>
-                                                    <th>Pax (Arr)</th>
-                                                    <th>Vuelo Salida</th>
-                                                    <th>Destino</th>
-                                                    <th>H. Prog</th>
-                                                    <th>H. Salida</th>
-                                                    <th>Pax (Dep)</th>
-                                                    <th>Matrícula</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody class="text-center bg-white" id="tbody-ops-flights">
-                                                <tr><td colspan="13" class="text-muted py-4">Selecciona una fecha para ver los vuelos.</td></tr>
-                                            </tbody>
-                                        </table>
+                                    <!-- Tables Config: Arrivals and Departures Split -->
+                                    <div class="row">
+                                        <!-- Arrivals Column -->
+                                        <div class="col-lg-6 mb-4">
+                                            <div class="card shadow-sm border-0 h-100">
+                                                <div class="card-header bg-success text-white py-2">
+                                                    <h6 class="mb-0 small text-uppercase"><i class="fas fa-plane-arrival me-2"></i>Llegadas</h6>
+                                                </div>
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover table-bordered table-sm align-middle mb-0" id="table-ops-flights-arrivals" style="font-size: 0.75rem; table-layout: fixed;">
+                                                        <thead class="table-light">
+                                                            <tr class="text-center small text-muted text-uppercase">
+                                                                <th style="width: 30px;">No.</th>
+                                                                <th style="width: 75px;">Aerolínea</th>
+                                                                <th style="width: 60px;">Vuelo</th>
+                                                                <th style="width: 85px;">Origen</th>
+                                                                <th>Prog</th>
+                                                                <th>Real</th>
+                                                                <th style="width: 65px;">Pax</th>
+                                                                <th style="width: 40px;" class="col-conciliacion d-none"><i class="fas fa-check-circle"></i></th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody class="text-center bg-white" id="tbody-ops-flights-arrivals">
+                                                            <tr><td colspan="8" class="text-muted py-4">Cargando llegadas...</td></tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Departures Column -->
+                                        <div class="col-lg-6 mb-4">
+                                            <div class="card shadow-sm border-0 h-100">
+                                                <div class="card-header bg-primary text-white py-2">
+                                                    <h6 class="mb-0 small text-uppercase"><i class="fas fa-plane-departure me-2"></i>Salidas</h6>
+                                                </div>
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover table-bordered table-sm align-middle mb-0" id="table-ops-flights-departures" style="font-size: 0.75rem; table-layout: fixed;">
+                                                        <thead class="table-light">
+                                                            <tr class="text-center small text-muted text-uppercase">
+                                                                <th style="width: 75px;">Aerolínea</th>
+                                                                <th style="width: 60px;">Vuelo</th>
+                                                                <th style="width: 85px;">Destino</th>
+                                                                <th>Prog</th>
+                                                                <th>Real</th>
+                                                                <th style="width: 50px;">Pax</th>
+                                                                <th style="width: 75px;">Matrícula</th>
+                                                                <th style="width: 40px;" class="col-conciliacion d-none"><i class="fas fa-check-circle"></i></th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody class="text-center bg-white" id="tbody-ops-flights-departures">
+                                                            <tr><td colspan="8" class="text-muted py-4">Cargando salidas...</td></tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="tab-pane fade" id="analisis-anual-pane">
@@ -4387,6 +4436,50 @@
                 <img src="images/logo_aifa.jpg" alt="AIFA" class="loader-aifa-logo" />
             </div>
             <div class="loader-text" id="global-loader-text">Cargando...</div>
+        </div>
+    </div>
+
+    <!-- MODAL: HISTORIAL DE CONCILIACIÓN -->
+    <div class="modal fade" id="modalConciliacionHistory" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title"><i class="fas fa-history me-2"></i>Historial de Conciliación</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Info actual -->
+                    <div class="text-center mb-4">
+                        <div id="conci-modal-icon" class="mb-2 display-4"></div>
+                        <h4 id="conci-modal-status" class="fw-bold mb-1"></h4>
+                        <div id="conci-modal-flight-info" class="text-muted small"></div>
+                    </div>
+
+                    <!-- Detalles -->
+                    <div class="card bg-light border-0 mb-3">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted text-uppercase small fw-bold">Última Acción</h6>
+                            <div id="conci-modal-details">
+                                <!-- JS llenará esto -->
+                                <p class="mb-0 text-muted">Sin información de historial.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Warn for Action -->
+                    <div id="conci-modal-action-warn" class="alert alert-warning d-none">
+                        <i class="fas fa-exclamation-triangle me-2"></i> ¿Estás seguro de cambiar el estado de este vuelo?
+                    </div>
+
+                </div>
+                <div class="modal-footer justify-content-between p-3 bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <!-- El botón de acción se configurará dinámicamente -->
+                    <button type="button" class="btn btn-primary" id="btn-conci-action">
+                        <i class="fas fa-sync-alt me-2"></i>Cambiar Estado
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 

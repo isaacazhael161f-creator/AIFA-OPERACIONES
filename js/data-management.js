@@ -327,11 +327,14 @@ class DataManagement {
 
     init() {
         // Listen for tab changes to load data
-        const tabEls = document.querySelectorAll('button[data-bs-toggle="tab"]');
+        const tabEls = document.querySelectorAll('button[data-bs-toggle="tab"], button[data-bs-toggle="pill"]');
         tabEls.forEach(tabEl => {
             tabEl.addEventListener('shown.bs.tab', event => {
                 const targetId = event.target.getAttribute('data-bs-target');
                 this.loadTabContent(targetId);
+                
+                // Hide sidebar on selection if screen is not extra large (or always as requested)
+                hideDmSidebar();
             });
         });
 
@@ -733,9 +736,11 @@ class DataManagement {
     }
 
     async loadDailyFlightsOps() {
-        const tbody = document.querySelector('#table-daily-flights-ops tbody');
-        if (!tbody) return;
-        tbody.innerHTML = '<tr><td colspan="14" class="text-center">Cargando...</td></tr>';
+        const tbodyArr = document.querySelector('#table-daily-flights-arrivals tbody');
+        const tbodyDep = document.querySelector('#table-daily-flights-departures tbody');
+        
+        if (tbodyArr) tbodyArr.innerHTML = '<tr><td colspan="9" class="text-center">Cargando...</td></tr>';
+        if (tbodyDep) tbodyDep.innerHTML = '<tr><td colspan="9" class="text-center">Cargando...</td></tr>';
         
         const filterDateEl = document.getElementById('filter-daily-flights-date');
         const filterDate = filterDateEl ? filterDateEl.value : null;
@@ -759,13 +764,15 @@ class DataManagement {
             if (error) throw error;
             
             // Flatten operations
-            let allOps = [];
+            let arrivals = [];
+            let departures = [];
+
             if (rows && rows.length > 0) {
                 rows.forEach(row => {
                     const dateStr = row.date;
                     if (Array.isArray(row.data)) {
                         row.data.forEach(op => {
-                            // Normalize explicitly for Admin Table in case stored data is raw
+                            // Normalize explicitly
                             const normalized = { ...op };
                             
                             if (op['Hora programada_llegada']) normalized.fecha_hora_prog_llegada = op['Hora programada_llegada'];
@@ -786,28 +793,46 @@ class DataManagement {
                             if (normalized.seq_no === undefined && normalized.no !== undefined) {
                                 normalized.seq_no = normalized.no;
                             }
+                            
+                            const baseOp = { ...normalized, fecha: dateStr };
 
-                            allOps.push({
-                                ...normalized,
-                                fecha: dateStr
-                            });
+                            // Add to arrivals if valid
+                            if (baseOp.vuelo_llegada || baseOp.fecha_hora_prog_llegada) {
+                                arrivals.push(baseOp);
+                            }
+                            
+                            // Add to departures if valid
+                            if (baseOp.vuelo_salida || baseOp.fecha_hora_prog_salida) {
+                                departures.push(baseOp);
+                            }
                         });
                     }
                 });
             }
 
-            // Sort by date desc then seq_no asc
-            allOps.sort((a,b) => {
-                if (a.fecha !== b.fecha) return b.fecha.localeCompare(a.fecha);
+            // Sort helper
+            const sorter = (a,b) => {
+                // if (a.fecha !== b.fecha) return b.fecha.localeCompare(a.fecha);
                 return (a.seq_no || 0) - (b.seq_no || 0);
-            });
+            };
 
-            const cols = ['fecha', 'seq_no', 'aerolinea', 'vuelo_llegada', 'origen', 'fecha_hora_prog_llegada', 'fecha_hora_real_llegada', 'pasajeros_llegada', 'vuelo_salida', 'destino', 'fecha_hora_prog_salida', 'fecha_hora_real_salida', 'pasajeros_salida', 'matricula'];
-            
-            this.renderTable('table-daily-flights-ops', allOps, cols, 'daily_flights_ops');
+            arrivals.sort(sorter);
+            departures.sort(sorter);
+
+            // Render Arrivals
+            this.renderTable('table-daily-flights-arrivals', arrivals, 
+                ['seq_no', 'aerolinea', 'vuelo_llegada', 'origen', 'fecha_hora_prog_llegada', 'fecha_hora_real_llegada', 'pasajeros_llegada', 'matricula'], 
+                'daily_flights_ops_arr');
+                
+            // Render Departures
+            this.renderTable('table-daily-flights-departures', departures, 
+                ['seq_no', 'aerolinea', 'vuelo_salida', 'destino', 'fecha_hora_prog_salida', 'fecha_hora_real_salida', 'pasajeros_salida', 'matricula'], 
+                'daily_flights_ops_dep');
+
         } catch (error) {
             console.error('Error loading daily flights ops:', error);
-            tbody.innerHTML = '<tr><td colspan="14" class="text-center text-danger">Error cargando datos: ' + error.message + '</td></tr>';
+            if(tbodyArr) tbodyArr.innerHTML = '<tr><td colspan="9" class="text-center text-danger">Error: ' + error.message + '</td></tr>';
+            if(tbodyDep) tbodyDep.innerHTML = '<tr><td colspan="9" class="text-center text-danger">Error: ' + error.message + '</td></tr>';
         }
     }
 
@@ -2225,3 +2250,43 @@ class DataManagement {
 }
 
 window.dataManagement = new DataManagement();
+
+// Helper functions for Data Management Sidebar
+function showDmSidebar() {
+    const sidebar = document.getElementById('dm-sidebar');
+    const content = document.getElementById('dm-content');
+    const toggleBtn = document.getElementById('dm-sidebar-toggle');
+    
+    if (sidebar) sidebar.classList.remove('d-none');
+    if (content) {
+        content.classList.remove('col-md-12');
+        content.classList.add('col-md-9');
+    }
+    if (toggleBtn) toggleBtn.classList.add('d-none');
+}
+
+function hideDmSidebar() {
+    const sidebar = document.getElementById('dm-sidebar');
+    const content = document.getElementById('dm-content');
+    const toggleBtn = document.getElementById('dm-sidebar-toggle');
+    
+    if (sidebar) sidebar.classList.add('d-none');
+    if (content) {
+        content.classList.remove('col-md-9');
+        content.classList.add('col-md-12');
+    }
+    if (toggleBtn) toggleBtn.classList.remove('d-none');
+}
+
+function toggleDmSidebar() {
+    const sidebar = document.getElementById('dm-sidebar');
+    if (sidebar && sidebar.classList.contains('d-none')) {
+        showDmSidebar();
+    } else {
+        hideDmSidebar();
+    }
+}
+window.showDmSidebar = showDmSidebar;
+window.hideDmSidebar = hideDmSidebar;
+window.toggleDmSidebar = toggleDmSidebar;
+

@@ -11457,7 +11457,7 @@ function shouldUseParteOperacionesRemoteBackend(){
 
 // --- HISTORIAL DE CAMBIOS ---
 
-async function logHistory(action, entity, recordId, details) {
+window.logHistory = async function(action, entity, recordId, details) {
     if (!window.supabaseClient) {
         console.warn('logHistory: Supabase client not initialized');
         return;
@@ -11551,7 +11551,16 @@ async function loadHistory() {
 
         tableBody.innerHTML = '';
         data.forEach(log => {
-            const date = new Date(log.created_at).toLocaleString('es-MX');
+            // Check if log.created_at contains T/Z for standard parsing
+            const dObj = new Date(log.created_at);
+            // Format DD-MM-YYYY HH:mm
+            const dd = String(dObj.getDate()).padStart(2, '0');
+            const mm = String(dObj.getMonth() + 1).padStart(2, '0');
+            const yyyy = dObj.getFullYear();
+            const time = dObj.toLocaleTimeString('es-MX', { hour: '2-digit', minute:'2-digit', hour12: false });
+            
+            const date = `${dd}-${mm}-${yyyy} ${time}`;
+
             let badgeClass = 'bg-secondary';
             if (log.action_type === 'CREAR' || log.action_type === 'AGREGAR') badgeClass = 'bg-success';
             if (log.action_type === 'EDITAR' || log.action_type === 'ACTUALIZAR') badgeClass = 'bg-warning text-dark';
