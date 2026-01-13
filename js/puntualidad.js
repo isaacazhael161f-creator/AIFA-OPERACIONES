@@ -1,9 +1,65 @@
 (function(){
-  const DATA_URL = 'data/puntualidad.json';
+  // Removed JSON usage. Now fetching from DB
   const THRESHOLD = 85; // % threshold for punctual vs not punctual
   const TOP_N = 3; // Mostrar Top 3 por solicitud
   let _data = null;
   let _minFlights = 5;
+
+  async function loadData() {
+      try {
+          // Get current month/year for default view, or last available
+          // For now, let's fetch everything or a specific range. 
+          // Since the view usually shows a snapshot, we might want the latest month available.
+          // Let's assume for now we want everything to filter client-side or implement a month selector later.
+           
+          // Fetch from Supabase via DataManager
+          if (window.dataManager) {
+              const currentDate = new Date();
+              // Try to fetch current month data first
+              // Note: Adjust logic as needed if you want specific default month
+              let year = currentDate.getFullYear();
+              let month = currentDate.getMonth() + 1; // 1-12
+              
+              // Simple strategy: Fetch all for now or the latest known period? 
+              // The original module loaded a JSON which had a snapshot.
+              // Let's fetch all stats for the current year to start with.
+              _data = await window.dataManager.getPunctualityStats(null, year);
+              
+              if ((!_data || _data.length === 0) && month === 1) {
+                  // If Jan and empty, try Dec previous year
+                  _data = await window.dataManager.getPunctualityStats(null, year - 1);
+              }
+              
+              // Normalize data structure to match previous JSON usage
+              // DB columns: airline, category, on_time, delayed, cancelled, total_flights
+              // JSON expected: aerolinea, categoria, a_tiempo, demora, cancelado, total, puntualidad (string %)
+              
+              _data = (_data || []).map(row => {
+                  const total = row.total_flights || 0;
+                  const onTime = row.on_time || 0;
+                  const pct = total > 0 ? ((onTime / total) * 100).toFixed(1) : 0;
+                  return {
+                      aerolinea: row.airline,
+                      categoria: row.category, // Pasajeros / Carga
+                      a_tiempo: row.on_time,
+                      demora: row.delayed,
+                      cancelado: row.cancelled,
+                      total: row.total_flights,
+                      puntualidad: pct + '%'
+                  };
+              });
+
+          } else {
+             console.error('DataManager not ready');
+          }
+      } catch (err) {
+          console.error('Error loading punctuality data', err);
+          _data = []; 
+      }
+      
+      renderTopLists();
+      renderTable();
+  }
 
   function normalizeAirlineName(name){
     return (name || '').toString().trim().toLowerCase();
@@ -128,80 +184,90 @@
     if (!_data) return;
     const container = document.getElementById('puntualidad-table-container');
     if (!container) return;
-
-    // Build table
-    const table = document.createElement('table');
-    table.className = 'table table-hover align-middle';
-    table.innerHTML = `
-      <thead>
-        <tr>
-          <th>Categoría</th>
-          <th>Aerolínea</th>
-          <th class="text-end">A tiempo</th>
-          <th class="text-end">Demora</th>
-          <th class="text-end">Cancelado</th>
-          <th class="text-end">Total</th>
-          <th style="min-width:160px;">Puntualidad</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    `;
-    const tbody = table.querySelector('tbody');
-
-    _data.forEach(r => {
-      const pct = parsePercent(r.puntualidad);
-      const tr = document.createElement('tr');
-      // Logo en columna Aerolínea
-      let logoHtml = '';
-      try {
-        if (typeof window.getAirlineLogoCandidates === 'function') {
-          const raw = window.getAirlineLogoCandidates(r.aerolinea || '') || [];
-          const cands = raw.filter(path => !/default-airline-logo/i.test(path));
-          const logoPath = cands[0];
-          if (logoPath) {
-            const dataCands = cands.join('|');
-          const sizeClass = (typeof window.getLogoSizeClass === 'function') ? window.getLogoSizeClass(r.aerolinea || '', 'table') : 'lg';
-            logoHtml = `<img class="airline-logo ${sizeClass}" src="${logoPath}" alt="Logo ${r.aerolinea || ''}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">`;
-          }
-        }
-      } catch(_) {}
-
-      tr.innerHTML = `
-        <td>${r.categoria || ''}</td>
-        <td><div class="airline-cell">${logoHtml}<span class="airline-name">${r.aerolinea || ''}</span></div></td>
-        <td class="text-end">${Number(r.a_tiempo || 0)}</td>
-        <td class="text-end">${Number(r.demora || 0)}</td>
-        <td class="text-end">${Number(r.cancelado || 0)}</td>
-        <td class="text-end">${Number(r.total || 0)}</td>
-        <td>
-          <div class="progress" style="height: 18px;">
-            <div class="progress-bar ${clsForPct(pct)}" role="progressbar" style="width: ${Math.max(0, Math.min(100, pct))}%">${pct.toFixed(0)}%</div>
-          </div>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-
     container.innerHTML = '';
-    container.appendChild(table);
+
+    const categories = ['Pasajeros', 'Carga'];
+    
+    categories.forEach(cat => {
+        const filtered = byCategory(_data, cat);
+        // Always render table, even if empty, to show structure
+        // if (filtered.length === 0) return;
+
+        // Header for category
+        const header = document.createElement('h5');
+        header.className = 'section-subheading mb-3 mt-4 text-primary';
+        header.innerHTML = `<i class="fas fa-${cat === 'Pasajeros' ? 'plane-departure' : 'boxes'} me-2"></i>Aerolíneas de ${cat}`;
+        container.appendChild(header);
+
+        // Build table
+        const table = document.createElement('table');
+        table.className = 'table table-hover align-middle mb-4';
+        table.innerHTML = `
+          <thead class="table-light">
+            <tr>
+              <th>Aerolínea</th>
+              <th class="text-end">A tiempo</th>
+              <th class="text-end">Demora</th>
+              <th class="text-end">Cancelado</th>
+              <th class="text-end">Total</th>
+              <th style="min-width:160px;">Puntualidad</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        `;
+        const tbody = table.querySelector('tbody');
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted p-3">No hay registros de ${cat} para este periodo</td></tr>`;
+        } else {
+            filtered.forEach(r => {
+              const pct = parsePercent(r.puntualidad);
+              const tr = document.createElement('tr');
+              
+              let logoHtml = '';
+              try {
+                if (typeof window.getAirlineLogoCandidates === 'function') {
+                    // ... existing logo logic ...
+                    const raw = window.getAirlineLogoCandidates(r.aerolinea || '') || [];
+                    const cands = raw.filter(path => !/default-airline-logo/i.test(path));
+                    const logoPath = cands[0];
+                    if (logoPath) {
+                        const dataCands = cands.join('|');
+                        const sizeClass = (typeof window.getLogoSizeClass === 'function') ? window.getLogoSizeClass(r.aerolinea || '', 'table') : 'lg';
+                        logoHtml = `<img class="airline-logo ${sizeClass}" src="${logoPath}" alt="Logo ${r.aerolinea || ''}" data-cands="${dataCands}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">`;
+                    }
+                }
+              } catch(_) {}
+
+              tr.innerHTML = `
+                <td><div class="airline-cell">${logoHtml}<span class="airline-name">${r.aerolinea || ''}</span></div></td>
+                <td class="text-end">${Number(r.a_tiempo || 0)}</td>
+                <td class="text-end">${Number(r.demora || 0)}</td>
+                <td class="text-end">${Number(r.cancelado || 0)}</td>
+                <td class="text-end">${Number(r.total || 0)}</td>
+                <td>
+                  <div class="progress" style="height: 18px;">
+                    <div class="progress-bar ${clsForPct(pct)}" role="progressbar" style="width: ${Math.max(0, Math.min(100, pct))}%">${pct.toFixed(0)}%</div>
+                  </div>
+                </td>
+              `;
+              tbody.appendChild(tr);
+            });
+        }
+
+        container.appendChild(table);
+    });
   }
 
+/*
+  // Old function replaced by DB loader at top of file
   async function loadData(){
     try {
       const res = await fetch(DATA_URL, { cache: 'no-store' });
-      if (!res.ok) throw new Error('HTTP '+res.status);
-      const json = await res.json();
-      _data = Array.isArray(json) ? json : [];
-      renderTopLists();
-      renderTable();
-    } catch (err) {
-      console.error('No se pudo cargar puntualidad.json', err);
-      const container = document.getElementById('puntualidad-table-container');
-      if (container) {
-        container.innerHTML = '<div class="alert alert-warning">No se pudo cargar puntualidad.json. Verifica que estás usando el servidor local (no file://).</div>';
-      }
-    }
+      // ...
+    } catch (err) { ... }
   }
+*/
 
   document.addEventListener('DOMContentLoaded', function(){
     // Init only once
@@ -241,4 +307,8 @@
       loadData();
     }
   });
+
+  window.initPunctuality = function(){
+    loadData();
+  };
 })();

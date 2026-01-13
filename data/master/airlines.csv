@@ -1,13 +1,13 @@
 ﻿IATA,ICAO,Name
-YQ,LCT,TAR AEROLINEAS
-DM,DWI,ARAJET S.A.
+YQ,LCT,TAR
+DM,DWI,Arajet
 GB,ABX,ABX Air
 CX,CPA,Cathay Pacific
 PQ,PPQ,Personas Y Paquetes Por Air
 RE,RER,Aeroregional
 5D,SLI,Aeromexico Connect
-FX,FDX,FedEx Express
-VB,VIV,VivaAerobús
+FX,FDX,FEDEX
+VB,VIV,Viva
 V0,VCV,Conviasa
 CA,CCA,Air China
 LZ,DVY,Legend Airways LLC
@@ -17,14 +17,15 @@ OK,CSA,Czech Airlines
 JU,JUS,USA Jet Airlines
 YA,BYA,Berry Aviation
 GA,GIA,Garuda Indonesia
-A8,AMF,AMERIFLIGHT
+A8,AMF,Ameriflight
+
 U7,UCG,Uniworld Air Cargo
 Y8,YZR,Suparna Airlines
 LX,SWR,Swiss International Air Lines
-MI,MTI,"Taxi Aéreo Monterrey, SA DE CV"
+MI,MTI,Taxi Aéreo Monterrey, SA DE CV"
 TE,IGA,Sky Taxi
 NZ,ANZ,Air New Zealand
-2D,EAL,EASTERN AIRLINES
+2D,EAL,Eastern Airlines
 AU,CJL,Canada Jetlines
 G3,CJX,City Connexion Airlines
 GH,GTR,Galistair Trading Limited
@@ -75,7 +76,7 @@ FP,PVV,Fly Pro
 TK,THY,Turkish Airlines
 CM,CMP,Copa Airlines
 PU,PUE,Plus Ultra
-AM,AMX,Aeroméxico
+AM,AMX,Aeromexico
 KD,WGN,Western Global Airlines
 AV,AVA,Avianca
 XL,LNE,LATAM Ecuador
@@ -90,7 +91,7 @@ WS,WJA,WestJet
 CV,CLX,Cargolux
 GN,GAA,General aviation
 AF,AFR,Air France
-XN,MXA,Mexicana de Aviación
+XN,MXA,Mexicana
 M6,AJT,Amerijet International
 7L,AZQ,Silk Way West Airlines
 M7,MAA,MasAir

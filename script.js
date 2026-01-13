@@ -723,749 +723,123 @@ function deepCloneWeek(week) {
     return clone;
 }
 
-const WEEKLY_OPERATIONS_DATASETS = [
-    {
-        id: '2025-12-29',
-        rango: {
-            inicio: '2025-12-29',
-            fin: '2026-01-04',
-            descripcion: describeWeekRange('2025-12-29', '2026-01-04'),
-            nota: 'Semana del (29 de diciembre de 2025 al 4 de enero de 2026).'
-        },
-        dias: [
-            {
-                fecha: '2025-12-29',
-                label: '29 Dic 2025',
-                comercial: { operaciones: 169, pasajeros: 22648},
-                general: { operaciones: 4, pasajeros: 5 },
-                carga: { operaciones: 15, toneladas: 391, corteFecha: '2025-12-28', corteNota: 'Cifras del 28 de diciembre de 2025.' }
-            },
-            {
-                fecha: '2025-12-30',
-                label: '30 Dic 2025',
-                comercial: { operaciones: 156, pasajeros: 11737},
-                general: { operaciones: 3, pasajeros: 1 },
-                carga: { operaciones: 15, toneladas: 391, corteFecha: '2025-12-28', corteNota: 'Cifras del 28 de diciembre de 2025.' }
-            },
-            {
-                fecha: '2025-12-31',
-                label: '31 Dic 2025',
-                comercial: { operaciones: 122, pasajeros: 16587},
-                general: { operaciones: 0, pasajeros: 0 },
-                carga: { operaciones: 15, toneladas: 391, corteFecha: '2025-12-28', corteNota: 'Cifras del 28 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2026-01-01',
-                label: '1 Ene 2026',
-                comercial: { operaciones: 142, pasajeros: 16817},
-                general: { operaciones: 2, pasajeros: 3 },
-                carga: { operaciones: 15, toneladas: 391, corteFecha: '2025-12-28', corteNota: 'Cifras del 28 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2026-01-02',
-                label: '2 Ene 2026',
-                comercial: { operaciones: 162, pasajeros: 21457},
-                general: { operaciones: 7, pasajeros: 20 },
-                carga: { operaciones: 15, toneladas: 391, corteFecha: '2025-12-28', corteNota: 'Cifras del 28 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2026-01-03',
-                label: '3 Ene 2026',
-                comercial: { operaciones: 153, pasajeros: 22854},
-                general: { operaciones: 3, pasajeros: 18 },
-                carga: { operaciones: 15, toneladas: 391, corteFecha: '2025-12-28', corteNota: 'Cifras del 28 de diciembre de 2025.' }
-            }
-
-
-
-
-
-
-            
-        ]
-    },
-
-    {
-        id: '2025-12-22',
-        rango: {
-            inicio: '2025-12-22',
-            fin: '2025-12-28',
-            descripcion: describeWeekRange('2025-12-22', '2025-12-28'),
-            nota: 'Semana del (22 al 28 de diciembre de 2025).'
-        },
-        dias: [
-            
-
-                
-            {
-                fecha: '2025-12-22',
-                label: '22 Dic 2025',
-                comercial: { operaciones: 162, pasajeros: 24949},
-                general: { operaciones: 7, pasajeros: 21 },
-                carga: { operaciones: 22, toneladas: 636, corteFecha: '2025-12-21', corteNota: 'Cifras del 21 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-23',
-                label: '23 Dic 2025',
-                comercial: { operaciones: 155, pasajeros: 24454},
-                general: { operaciones: 6, pasajeros: 14 },
-                carga: { operaciones: 22, toneladas: 636, corteFecha: '2025-12-21', corteNota: 'Cifras del 21 de diciembre de 2025.' }
-            },
-{
-                fecha: '2025-12-24',
-                label: '24 Dic 2025',
-                comercial: { operaciones: 132, pasajeros: 17415},
-                general: { operaciones: 0, pasajeros: 0 },
-                carga: { operaciones: 22, toneladas: 636, corteFecha: '2025-12-21', corteNota: 'Cifras del 21 de diciembre de 2025.' }
-            },
-
-
-            {
-                fecha: '2025-12-25',
-                label: '25 Dic 2025',
-                comercial: { operaciones: 148, pasajeros: 18943},
-                general: { operaciones: 5, pasajeros: 18 },
-                carga: { operaciones: 21, toneladas: 727, corteFecha: '2025-12-25', corteNota: 'Cifras del 25 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-26',
-                label: '26 Dic 2025',
-                comercial: { operaciones: 169, pasajeros: 23534},
-                general: { operaciones: 9, pasajeros: 27 },
-                carga: { operaciones: 21, toneladas: 727, corteFecha: '2025-12-25', corteNota: 'Cifras del 25 de diciembre de 2025.' }
-            },
-
-
-            {
-                fecha: '2025-12-27',
-                label: '27 Dic 2025',
-                comercial: { operaciones: 154, pasajeros: 23254},
-                general: { operaciones: 5, pasajeros: 33 },
-                carga: { operaciones: 21, toneladas: 727, corteFecha: '2025-12-25', corteNota: 'Cifras del 25 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-28',
-                label: '28 Dic 2025',
-                comercial: { operaciones: 148, pasajeros: 18943},
-                general: { operaciones: 5, pasajeros: 18 },
-                carga: { operaciones: 22, toneladas: 636, corteFecha: '2025-12-21', corteNota: 'Cifras del 21 de diciembre de 2025.' }
-            },
-
-
-
-
-
-
-
-                  ]
-    },
-
-
-       {
-        id: '2025-12-15',
-        rango: {
-            inicio: '2025-12-15',
-            fin: '2025-12-21',
-            descripcion: describeWeekRange('2025-12-15', '2025-12-21'),
-            nota: 'Semana del (15 al 21 de diciembre de 2025).'
-        },
-        dias: [
-            {
-                fecha: '2025-12-15',
-                label: '15 Dic 2025',
-                comercial: { operaciones: 153, pasajeros: 21651},
-                general: { operaciones: 15, pasajeros: 21 },
-                carga: { operaciones: 18, toneladas: 479, corteFecha: '2025-12-14', corteNota: 'Cifras del 14 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-16',
-                label: '16 Dic 2025',
-                comercial: { operaciones: 155, pasajeros: 22401},
-                general: { operaciones: 12, pasajeros: 33 },
-                carga: { operaciones: 18, toneladas: 479, corteFecha: '2025-12-14', corteNota: 'Cifras del 14 de diciembre de 2025.' }
-            },
-
-
-            {
-                fecha: '2025-12-17',
-                label: '17 Dic 2025',
-                comercial: { operaciones: 150, pasajeros: 19080},
-                general: { operaciones: 7, pasajeros: 11 },
-                carga: { operaciones: 19, toneladas: 547, corteFecha: '2025-12-16', corteNota: 'Cifras del 16 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-18',
-                label: '18 Dic 2025',
-                comercial: { operaciones: 164, pasajeros: 25090},
-                general: { operaciones: 17, pasajeros: 90 },
-                carga: { operaciones: 19, toneladas: 547, corteFecha: '2025-12-16', corteNota: 'Cifras del 16 de diciembre de 2025.' }
-            },
-
-
-            {
-                fecha: '2025-12-19',
-                label: '19 Dic 2025',
-                comercial: { operaciones: 162, pasajeros: 24410},
-                general: { operaciones: 9, pasajeros: 13 },
-                carga: { operaciones: 33, toneladas: 1100, corteFecha: '2025-12-18', corteNota: 'Cifras del 18 de diciembre de 2025.' }
-            },
-
-
-            {
-                fecha: '2025-12-20',
-                label: '20 Dic 2025',
-                comercial: { operaciones: 160, pasajeros: 23977},
-                general: { operaciones: 12, pasajeros: 28 },
-                carga: { operaciones: 33, toneladas: 1100, corteFecha: '2025-12-18', corteNota: 'Cifras del 18 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-21',
-                label: '21 Dic 2025',
-                comercial: { operaciones: 162, pasajeros: 21963},
-                general: { operaciones: 16, pasajeros: 28 },
-                carga: { operaciones: 33, toneladas: 1100, corteFecha: '2025-12-18', corteNota: 'Cifras del 18 de diciembre de 2025.' }
-            },
-
-
-
-        
-
-            
-
-
-
-
-
-
-
-
-
-
-
-            ]
-    },
-
-        
-    {
-        id: '2025-12-08',
-        rango: {
-            inicio: '2025-12-08',
-            fin: '2025-12-14',
-            descripcion: describeWeekRange('2025-12-08', '2025-12-14'),
-            nota: 'Semana del (8 al 14 de diciembre de 2025).'
-        },
-        dias: [
-            {
-                fecha: '2025-12-08',
-                label: '08 Dic 2025',
-                comercial: { operaciones: 159, pasajeros: 21818},
-                general: { operaciones: 10, pasajeros: 33 },
-                carga: { operaciones: 25, toneladas: 670, corteFecha: '2025-12-07', corteNota: 'Cifras del 07 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-09',
-                label: '09 Dic 2025',
-                comercial: { operaciones: 132, pasajeros: 17657},
-                general: { operaciones: 11, pasajeros: 11 },
-                carga: { operaciones: 25, toneladas: 670, corteFecha: '2025-12-07', corteNota: 'Cifras del 07 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-10',
-                label: '10 Dic 2025',
-                comercial: { operaciones: 147, pasajeros: 19397},
-                general: { operaciones: 11, pasajeros: 11 },
-                carga: { operaciones: 28, toneladas: 786, corteFecha: '2025-12-09', corteNota: 'Cifras del 09 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-11',
-                label: '11 Dic 2025',
-                comercial: { operaciones: 157, pasajeros: 21867},
-                general: { operaciones: 17, pasajeros: 42 },
-                carga: { operaciones: 26, toneladas: 697, corteFecha: '2025-12-11', corteNota: 'Cifras del 11 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-12',
-                label: '12 Dic 2025',
-                comercial: { operaciones: 157, pasajeros: 22461},
-                general: { operaciones: 7, pasajeros: 106 },
-                carga: { operaciones: 26, toneladas: 697, corteFecha: '2025-12-11', corteNota: 'Cifras del 11 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-13',
-                label: '13 Dic 2025',
-                comercial: { operaciones: 148, pasajeros: 21547},
-                general: { operaciones: 8, pasajeros: 18 },
-                carga: { operaciones: 26, toneladas: 697, corteFecha: '2025-12-11', corteNota: 'Cifras del 11 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-14',
-                label: '14 Dic 2025',
-                comercial: { operaciones: 147, pasajeros: 22012},
-                general: { operaciones: 10, pasajeros: 14 },
-                carga: { operaciones: 26, toneladas: 697, corteFecha: '2025-12-11', corteNota: 'Cifras del 11 de diciembre de 2025.' }
-            }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        ]
-    },
-
-
-
-
-
-    {
-        id: '2025-12-01',
-        rango: {
-            inicio: '2025-12-01',
-            fin: '2025-12-07',
-            descripcion: describeWeekRange('2025-12-01', '2025-12-07'),
-            nota: 'Semana del (1 al 7 de diciembre de 2025).'
-        },
-        dias: [
-            {
-                fecha: '2025-12-01',
-                label: '01 Dic 2025',
-                comercial: { operaciones: 154, pasajeros: 22766},
-                general: { operaciones: 8, pasajeros: 27 },
-                carga: { operaciones: 22, toneladas: 872, corteFecha: '2025-11-30', corteNota: 'Cifras del 30 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-02',
-                label: '02 Dic 2025',
-                comercial: { operaciones: 130, pasajeros: 17667},
-                general: { operaciones: 3, pasajeros: 4 },
-                carga: { operaciones: 22, toneladas: 872, corteFecha: '2025-11-30', corteNota: 'Cifras del 30 de noviembre de 2025.' }
-            },
-
-
-            {
-                fecha: '2025-12-03',
-                label: '03 Dic 2025',
-                comercial: { operaciones: 145, pasajeros: 19149},
-                general: { operaciones: 9, pasajeros: 332 },
-                carga: { operaciones: 6, toneladas: 40, corteFecha: '2025-12-03', corteNota: 'Cifras del 03 de diciembre de 2025.' }
-            },
-
-             {
-                fecha: '2025-12-04',
-                label: '04 Dic 2025',
-                comercial: { operaciones: 153, pasajeros: 20412},
-                general: { operaciones: 13, pasajeros: 280 },
-                carga: { operaciones: 6, toneladas: 40, corteFecha: '2025-12-03', corteNota: 'Cifras del 03 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-05',
-                label: '05 Dic 2025',
-                comercial: { operaciones: 160, pasajeros: 23006},
-                general: { operaciones: 7, pasajeros: 12 },
-                carga: { operaciones: 24, toneladas: 801, corteFecha: '2025-12-04', corteNota: 'Cifras del 04 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-06',
-                label: '06 Dic 2025',
-                comercial: { operaciones: 142, pasajeros: 19586},
-                general: { operaciones: 10, pasajeros: 50 },
-                carga: { operaciones: 24, toneladas: 801, corteFecha: '2025-12-04', corteNota: 'Cifras del 04 de diciembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-12-07',
-                label: '07 Dic 2025',
-                comercial: { operaciones: 157, pasajeros: 21788},
-                general: { operaciones: 6, pasajeros: 50 },
-                carga: { operaciones: 24, toneladas: 801, corteFecha: '2025-12-04', corteNota: 'Cifras del 04 de diciembre de 2025.' }
-            }
-
-
-
-
-
-
-
-
-
-
-        ]
-    },
-
-    {
-        id: '2025-11-24',
-        rango: {
-            inicio: '2025-11-24',
-            fin: '2025-11-30',
-            descripcion: describeWeekRange('2025-11-24', '2025-11-30'),
-            nota: 'Semana del (24 al 30 de noviembre de 2025).'
-        },
-        dias: [
-            {
-                fecha: '2025-11-24',
-                label: '24 Nov 2025',
-                comercial: { operaciones: 145, pasajeros: 16066 },
-                general: { operaciones: 7, pasajeros: 16 },
-                carga: { operaciones: 31, toneladas: 802, corteFecha: '2025-11-23', corteNota: 'Cifras del 23 de noviembre de 2025.' }
-            },
-
-         
-{
-                fecha: '2025-11-25',
-                label: '25 Nov 2025',
-                comercial: { operaciones: 143, pasajeros: 20441},
-                general: { operaciones: 8, pasajeros: 18 },
-                carga: { operaciones: 26, toneladas: 690, corteFecha: '2025-11-25', corteNota: 'Cifras del 25 de noviembre de 2025.' }
-            },
-
-
-            {
-                fecha: '2025-11-26',
-                label: '26 Nov 2025',
-                comercial: { operaciones: 149, pasajeros: 20080},
-                general: { operaciones: 23, pasajeros: 44 },
-                carga: { operaciones: 26, toneladas: 690, corteFecha: '2025-11-25', corteNota: 'Cifras del 25 de noviembre de 2025.' }
-            },
-
-            
-
-{
-                fecha: '2025-11-27',
-                label: '27 Nov 2025',
-                comercial: { operaciones: 146, pasajeros: 21113},
-                general: { operaciones: 0, pasajeros: 0 },
-                carga: { operaciones: 26, toneladas: 690, corteFecha: '2025-11-25', corteNota: 'Cifras del 25 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-28',
-                label: '28 Nov 2025',
-                comercial: { operaciones: 146, pasajeros: 21241},
-                general: { operaciones: 6, pasajeros: 57 },
-                carga: { operaciones: 30, toneladas: 957, corteFecha: '2025-11-27', corteNota: 'Cifras del 27 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-29',
-                label: '29 Nov 2025',
-                comercial: { operaciones: 135, pasajeros: 18639},
-                general: { operaciones: 4, pasajeros: 18 },
-                carga: { operaciones: 30, toneladas: 957, corteFecha: '2025-11-27', corteNota: 'Cifras del 27 de noviembre de 2025.' }
-            }
-
-
-
-
-        ]
-    },
-
-    {
-        id: '2025-11-17',
-        rango: {
-            inicio: '2025-11-17',
-            fin: '2025-11-23',
-            descripcion: describeWeekRange('2025-11-17', '2025-11-23'),
-            nota: 'Semana del (17 al 23 de noviembre de 2025). Datos en Integración.'
-        },
-        dias: [
-            {
-                fecha: '2025-11-17',
-                label: '17 Nov 2025',
-                comercial: { operaciones: 156, pasajeros: 21082 },
-                general: { operaciones: 6, pasajeros: 19 },
-                carga: { operaciones: 21, toneladas: 706, corteFecha: '2025-11-13', corteNota: 'Cifras del 13 de noviembre de 2025.' }
-            },
-
-
-            {
-                fecha: '2025-11-18',
-                label: '18 Nov 2025',
-                comercial: { operaciones: 146, pasajeros: 21670},
-                general: { operaciones: 17, pasajeros: 36 },
-                carga: { operaciones: 17, toneladas: 654, corteFecha: '2025-11-17', corteNota: 'Cifras del 17 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-19',
-                label: '19 Nov 2025',
-                comercial: { operaciones: 151, pasajeros: 19479},
-                general: { operaciones: 10, pasajeros: 31 },
-                carga: { operaciones: 12, toneladas: 423, corteFecha: '2025-11-19', corteNota: 'Cifras del 19 de noviembre de 2025.' }
-            },
-
-        
-            {
-                fecha: '2025-11-20',
-                label: '20 Nov 2025',
-                comercial: { operaciones: 150, pasajeros: 19728},
-                general: { operaciones: 19, pasajeros: 39 },
-                carga: { operaciones: 12, toneladas: 423, corteFecha: '2025-11-19', corteNota: 'Cifras del 19 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-21',
-                label: '21 Nov 2025',
-                comercial: { operaciones: 150, pasajeros: 20384},
-                general: { operaciones: 7, pasajeros: 29 },
-                carga: { operaciones: 31, toneladas: 802, corteFecha: '2025-11-20', corteNota: 'Cifras del 20 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-22',
-                label: '22 Nov 2025',
-                comercial: { operaciones: 143, pasajeros: 19503},
-                general: { operaciones: 5, pasajeros: 13 },
-                carga: { operaciones: 31, toneladas: 802, corteFecha: '2025-11-20', corteNota: 'Cifras del 20 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-23',
-                label: '23 Nov 2025',
-                comercial: { operaciones: 158, pasajeros: 18222},
-                general: { operaciones: 2, pasajeros: 7 },
-                carga: { operaciones: 31, toneladas: 802, corteFecha: '2025-11-20', corteNota: 'Cifras del 20 de noviembre de 2025.' }
-            }
-        ]
-    },
-
-    
-
-
-    {
-        id: '2025-11-10',
-        rango: {
-            inicio: '2025-11-10',
-            fin: '2025-11-16',
-            descripcion: describeWeekRange('2025-11-10', '2025-11-16'),
-            nota: 'Semana del (10 al 16 de noviembre de 2025).'
-        },
-        dias: [
-            {
-                fecha: '2025-11-10',
-                label: '10 Nov 2025',
-                comercial: { operaciones: 152, pasajeros: 22119 },
-                general: { operaciones: 9, pasajeros: 19 },
-                carga: { operaciones: 31, toneladas: 1079, corteFecha: '2025-11-09', corteNota: 'Cifras del 09 de noviembre de 2025.' }
-            },
-            {
-                fecha: '2025-11-11',
-                label: '11 Nov 2025',
-                comercial: { operaciones: 139, pasajeros: 18904 },
-                general: { operaciones: 5, pasajeros: 14 },
-                carga: { operaciones: 31, toneladas: 1079, corteFecha: '2025-11-09', corteNota: 'Cifras del 09 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-12',
-                label: '12 Nov 2025',
-                comercial: { operaciones: 149, pasajeros: 20757},
-                general: { operaciones: 9, pasajeros: 31 },
-                carga: { operaciones: 20, toneladas: 636, corteFecha: '2025-11-11', corteNota: 'Cifras del 11 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-13',
-                label: '13 Nov 2025',
-                comercial: { operaciones: 161, pasajeros: 22643},
-                general: { operaciones: 9, pasajeros: 59 },
-                carga: { operaciones: 20, toneladas: 636, corteFecha: '2025-11-11', corteNota: 'Cifras del 11 de noviembre de 2025.' }
-            },
-           
-{
-                fecha: '2025-11-14',
-                label: '14 Nov 2025',
-                comercial: { operaciones: 156, pasajeros: 23383},
-                general: { operaciones: 7, pasajeros: 10 },
-                carga: { operaciones: 21, toneladas: 706, corteFecha: '2025-11-13', corteNota: 'Cifras del 13 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-15',
-                label: '15 Nov 2025',
-                comercial: { operaciones: 145, pasajeros: 20880},
-                general: { operaciones: 6, pasajeros: 59 },
-                carga: { operaciones: 21, toneladas: 706, corteFecha: '2025-11-13', corteNota: 'Cifras del 13 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-16',
-                label: '16 Nov 2025',
-                comercial: { operaciones: 149, pasajeros: 19802},
-                general: { operaciones: 12, pasajeros: 28 },
-                carga: { operaciones: 21, toneladas: 706, corteFecha: '2025-11-13', corteNota: 'Cifras del 13 de noviembre de 2025.' }
-            }
-
-
-
-
-        ]
-    },
-
-    
-    {
-        id: '2025-11-03',
-        rango: {
-            inicio: '2025-11-03',
-            fin: '2025-11-09',
-            descripcion: describeWeekRange('2025-11-03', '2025-11-09'),
-            nota: 'Semana del (3 al 9 de noviembre de 2025)'
-        },
-        dias: [
-            {
-                fecha: '2025-11-03',
-                label: '03 Nov 2025',
-                comercial: { operaciones: 150, pasajeros: 21525 },
-                general: { operaciones: 18, pasajeros: 44 },
-                carga: { operaciones: 32, toneladas: 1121, corteFecha: '2025-10-30', corteNota: 'Cifras del 30 de octubre de 2025.' }
-            },
-            {
-                fecha: '2025-11-04',
-                label: '04 Nov 2025',
-                comercial: { operaciones: 142, pasajeros: 18746 },
-                general: { operaciones: 14, pasajeros: 81 },
-                carga: { operaciones: 22, toneladas: 753, corteFecha: '2025-11-02', corteNota: 'Cifras del 02 de noviembre de 2025.' }
-            },
-            {
-                fecha: '2025-11-05',
-                label: '05 Nov 2025',
-                comercial: { operaciones: 154, pasajeros: 21097 },
-                general: { operaciones: 8, pasajeros: 23 },
-                carga: { operaciones: 23, toneladas: 747, corteFecha: '2025-11-04', corteNota: 'Cifras del 04 de noviembre de 2025.' }
-            },
-
-{
-                fecha: '2025-11-06',
-                label: '06 Nov 2025',
-                comercial: { operaciones: 154, pasajeros: 21458},
-                general: { operaciones: 14, pasajeros: 21 },
-                carga: { operaciones: 23, toneladas: 775, corteFecha: '2025-11-04', corteNota: 'Cifras del 04 de noviembre de 2025.' }
-            },
-
-{
-                fecha: '2025-11-07',
-                label: '07 Nov 2025',
-                comercial: { operaciones: 148, pasajeros: 21548},
-                general: { operaciones: 8, pasajeros: 18 },
-                carga: { operaciones: 16, toneladas: 424, corteFecha: '2025-11-06', corteNota: 'Cifras del 06 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-08',
-                label: '08 Nov 2025',
-                comercial: { operaciones: 136, pasajeros: 17658},
-                general: { operaciones: 10, pasajeros: 23 },
-                carga: { operaciones: 16, toneladas: 424, corteFecha: '2025-11-06', corteNota: 'Cifras del 06 de noviembre de 2025.' }
-            },
-
-            {
-                fecha: '2025-11-09',
-                label: '09 Nov 2025',
-                comercial: { operaciones: 154, pasajeros: 22170},
-                general: { operaciones: 5, pasajeros: 14 },
-                carga: { operaciones: 16, toneladas: 424, corteFecha: '2025-11-06', corteNota: 'Cifras del 06 de noviembre de 2025.' }
-            }
-
-
-
-        ]
-    },
-    {
-        id: '2025-10-27',
-        rango: {
-            inicio: '2025-10-27',
-            fin: '2025-11-02',
-            descripcion: describeWeekRange('2025-10-27', '2025-11-02'),
-            nota: ''
-        },
-        dias: [
-            {
-                fecha: '2025-10-27',
-                label: '27 Oct 2025',
-                comercial: { operaciones: 142, pasajeros: 20580},
-                general: { operaciones: 18, pasajeros: 121},
-                carga: { operaciones: 21, toneladas: 620, corteFecha: '2025-10-23', corteNota: 'Cifras del 26 de octubre de 2025.' }
-            },
-            {
-                fecha: '2025-10-28',
-                label: '28 Oct 2025',
-                comercial: { operaciones: 121, pasajeros: 16962 },
-                general: { operaciones: 11, pasajeros: 27 },
-                carga: { operaciones: 21, toneladas: 620, corteFecha: '2025-10-26', corteNota: 'Toneladas actualizadas al 26 de octubre de 2025 (ultimo corte disponible).' }
-            },
-            {
-                fecha: '2025-10-29',
-                label: '29 Oct 2025',
-                comercial: { operaciones: 136, pasajeros: 18143 },
-                general: { operaciones: 3, pasajeros: 6 },
-                carga: { operaciones: 14, toneladas: 379, corteFecha: '2025-10-28', corteNota: 'Toneladas actualizadas al 28 de octubre de 2025 (ultimo corte disponible).' }
-            },
-            {
-                fecha: '2025-10-30',
-                label: '30 Oct 2025',
-                comercial: { operaciones: 146, pasajeros: 20253},
-                general: { operaciones: 9, pasajeros: 233},
-                carga: { operaciones: 14, toneladas: 379, corteFecha: '2025-10-28', corteNota: 'Cifras del 28 de octubre de 2025' }
-            },
-            {
-                fecha: '2025-10-31',
-                label: '31 Oct 2025',
-                comercial: { operaciones: 161, pasajeros: 21611 },
-                general: { operaciones: 14, pasajeros: 31 },
-                carga: { operaciones: 32, toneladas: 1121, corteFecha: '2025-10-30', corteNota: 'Cifras del 30 de octubre de 2025.' }
-            },
-            {
-                fecha: '2025-11-01',
-                label: '01 Nov 2025',
-                comercial: { operaciones: 145, pasajeros: 17186 },
-                general: { operaciones: 3, pasajeros: 47 },
-                carga: { operaciones: 32, toneladas: 1121, corteFecha: '2025-10-30', corteNota: 'Cifras del 30 de octubre de 2025.' }
-            },
-            {
-                fecha: '2025-11-02',
-                label: '02 Nov 2025',
-                comercial: { operaciones: 160, pasajeros: 20977},
-                general: { operaciones: 17, pasajeros: 209 },
-                carga: { operaciones: 32, toneladas: 1121, corteFecha: '2025-10-30', corteNota: 'Cifras del 30 de octubre de 2025.' }
-            }
-        ]
-    },
-    {
-        id: '2025-10-20',
-        rango: {
-            inicio: '2025-10-20',
-            fin: '2025-10-26',
-            descripcion: describeWeekRange('2025-10-20', '2025-10-26'),
-            nota: 'Datos consolidados al 26 de octubre de 2025.'
-        },
-        dias: []
+let WEEKLY_OPERATIONS_DATASETS = [];
+
+function formatDateLabel(dateStr) {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = SPANISH_MONTH_ABBRS[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
+}
+
+function formatDateShort(dateStr) {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return `${d} de ${SPANISH_MONTH_NAMES[m-1]}`;
+}
+
+async function loadWeeklyOperationsFromDB() {
+    if (!window.dataManager) {
+        console.warn('DataManager not available, retrying in 500ms');
+        setTimeout(loadWeeklyOperationsFromDB, 500);
+        return;
     }
-];
+
+    try {
+        const dailyOps = await window.dataManager.getDailyOperations(365);
+        
+        if (!dailyOps || dailyOps.length === 0) {
+            console.warn('No daily operations found in DB');
+            return;
+        }
+
+        const weeksMap = new Map();
+        
+        dailyOps.forEach(op => {
+            const dateParts = op.date.split('-').map(Number);
+            const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+            
+            // Get Monday
+            const day = date.getDay();
+            const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+            const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            monday.setDate(diff);
+            
+            const mondayStr = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
+            
+            if (!weeksMap.has(mondayStr)) {
+                weeksMap.set(mondayStr, []);
+            }
+            weeksMap.get(mondayStr).push(op);
+        });
+
+        const newDatasets = [];
+        
+        for (const [mondayStr, days] of weeksMap) {
+            days.sort((a, b) => a.date.localeCompare(b.date));
+            
+            // Calculate end date (Sunday)
+            const startParts = mondayStr.split('-').map(Number);
+            const startObj = new Date(startParts[0], startParts[1] - 1, startParts[2]);
+            const endObj = new Date(startObj);
+            endObj.setDate(startObj.getDate() + 6);
+            const endDateStr = `${endObj.getFullYear()}-${String(endObj.getMonth()+1).padStart(2,'0')}-${String(endObj.getDate()).padStart(2,'0')}`;
+
+            const weekObj = {
+                id: mondayStr,
+                rango: {
+                    inicio: mondayStr,
+                    fin: endDateStr,
+                    descripcion: describeWeekRange(mondayStr, endDateStr),
+                    nota: `Semana del (${formatDateShort(mondayStr)} al ${formatDateShort(endDateStr)}).`
+                },
+                dias: days.map(d => ({
+                    fecha: d.date,
+                    label: formatDateLabel(d.date),
+                    comercial: { operaciones: d.comercial_ops, pasajeros: d.comercial_pax },
+                    general: { operaciones: d.general_ops, pasajeros: d.general_pax },
+                    carga: { 
+                        operaciones: d.carga_ops, 
+                        toneladas: d.carga_tons, 
+                        corteFecha: d.carga_cutoff_date, 
+                        corteNota: d.carga_cutoff_note 
+                    }
+                }))
+            };
+            newDatasets.push(weekObj);
+        }
+
+        newDatasets.sort((a, b) => b.id.localeCompare(a.id));
+        
+        WEEKLY_OPERATIONS_DATASETS = newDatasets;
+        
+        // Update staticData
+        staticData.operacionesSemanasCatalogo = WEEKLY_OPERATIONS_DATASETS.map(deepCloneWeek);
+        staticData.operacionesSemanaActual = resolveCurrentOperationsWeek();
+        
+        // Update Metadata
+        const newMetadata = buildWeeklyOrdinalMetadata();
+        for (const key in WEEKLY_ORDINAL_METADATA) delete WEEKLY_ORDINAL_METADATA[key];
+        Object.assign(WEEKLY_ORDINAL_METADATA, newMetadata);
+
+        console.log('Weekly operations loaded from DB:', WEEKLY_OPERATIONS_DATASETS.length, 'weeks');
+        console.log('DB Data Sample (First Week):', WEEKLY_OPERATIONS_DATASETS[0]);
+
+        // Trigger UI updates
+        if (typeof window.updateOpsFiltersAfterDataLoad === 'function') {
+            window.updateOpsFiltersAfterDataLoad();
+        }
+        if (typeof renderOperacionesTotales === 'function') {
+             renderOperacionesTotales();
+        }
+        
+    } catch (e) {
+        console.error("Error loading daily operations:", e);
+    }
+}
 
 function getWeekStartDate(week) {
     if (!week) return null;
@@ -1553,107 +927,200 @@ function resolveCurrentOperationsWeek(referenceDate = new Date()) {
 }
 
 
-// Datos Anuales
-const staticData = {
-    operacionesTotales: {
-        comercial: [ { periodo: '2022', operaciones: 8996, pasajeros: 912415 }, { periodo: '2023', operaciones: 23211, pasajeros: 2631261 }, { periodo: '2024', operaciones: 51734, pasajeros: 6318454 }, { periodo: '2025', operaciones: 49160, pasajeros: 6547109} ],
-        carga: [ { periodo: '2022', operaciones: 8, toneladas: 5.19 }, { periodo: '2023', operaciones: 5578, toneladas: 186319.83}, { periodo: '2024', operaciones: 13219, toneladas: 447341.17 }, { periodo: '2025', operaciones: 11168, toneladas: 377761.43} ],
-        general: [ { periodo: '2022', operaciones: 458, pasajeros: 1385 }, { periodo: '2023', operaciones: 2212, pasajeros: 8160 }, { periodo: '2024', operaciones: 2777, pasajeros: 29637 }, { periodo: '2025', operaciones: 2891, pasajeros: 20577} ]
-    },
-    operacionesSemanasCatalogo: WEEKLY_OPERATIONS_DATASETS.map(deepCloneWeek),
-    operacionesSemanaActual: resolveCurrentOperationsWeek(),
-    // Datos mensuales 2025 (hasta septiembre): Comercial y Carga
+// staticData placeholder; real data will be synced from the DB
+window.staticData = {
+    operacionesTotales: { comercial: [], carga: [], general: [] },
+    operacionesSemanasCatalogo: Array.isArray(WEEKLY_OPERATIONS_DATASETS) ? WEEKLY_OPERATIONS_DATASETS.map(deepCloneWeek) : [],
+    operacionesSemanaActual: typeof resolveCurrentOperationsWeek === 'function' ? resolveCurrentOperationsWeek() : null,
     mensual2025: {
-        comercial: [
-            { mes: '01', label: 'Enero', operaciones: 4488 },
-            { mes: '02', label: 'Febrero', operaciones: 4016 },
-            { mes: '03', label: 'Marzo', operaciones: 4426 },
-            { mes: '04', label: 'Abril', operaciones: 4575 },
-            { mes: '05', label: 'Mayo', operaciones: 4443 },
-            { mes: '06', label: 'Junio', operaciones: 4129 },
-            { mes: '07', label: 'Julio', operaciones: 4430 },
-            { mes: '08', label: 'Agosto', operaciones: 4500 },
-            { mes: '09', label: 'Septiembre', operaciones: 4135 },
-            { mes: '10', label: 'Octubre', operaciones: 4291 },
-            { mes: '11', label: 'Noviembre', operaciones: 4458 }
-        ],
-        // Pasajeros de aviación comercial por mes (con proyección conservadora 81% donde indica)
-        comercialPasajeros: [
-            { mes: '01', label: 'Enero', pasajeros: 565716 },
-            { mes: '02', label: 'Febrero', pasajeros: 488440 },
-            { mes: '03', label: 'Marzo', pasajeros: 570097 },
-            { mes: '04', label: 'Abril', pasajeros: 621197 },
-            { mes: '05', label: 'Mayo', pasajeros: 586299 },
-            { mes: '06', label: 'Junio', pasajeros: 541400 },
-            { mes: '07', label: 'Julio', pasajeros: 604758 },
-            { mes: '08', label: 'Agosto', pasajeros: 630952 },
-            { mes: '09', label: 'Septiembre', pasajeros: 546457 },
-            { mes: '10', label: 'Octubre', pasajeros: 584629 },
-            { mes: '11', label: 'Noviembre', pasajeros: 632853 },
-            { mes: '12', label: 'Diciembre (Proy.)', pasajeros: 704718 }
-        ],
-        carga: [
-            { mes: '01', label: 'Enero', operaciones: 880 },
-            { mes: '02', label: 'Febrero', operaciones: 803 },
-            { mes: '03', label: 'Marzo', operaciones: 916 },
-            { mes: '04', label: 'Abril', operaciones: 902 },
-            { mes: '05', label: 'Mayo', operaciones: 1006 },
-            { mes: '06', label: 'Junio', operaciones: 1014 },
-            { mes: '07', label: 'Julio', operaciones: 1021 },
-            { mes: '08', label: 'Agosto', operaciones: 1082 },
-            { mes: '09', label: 'Septiembre', operaciones: 992},
-            { mes: '10', label: 'Octubre', operaciones: 1155 },
-            { mes: '11', label: 'Noviembre', operaciones: 1127 }
-        ],
-        // Toneladas por mes (con nulos cuando no hay datos)
-        cargaToneladas: [
-            { mes: '01', label: 'Enero', toneladas: 27764.47},
-            { mes: '02', label: 'Febrero', toneladas: 26628.78},
-            { mes: '03', label: 'Marzo', toneladas: 33154.97},
-            { mes: '04', label: 'Abril', toneladas: 30785.67 },
-            { mes: '05', label: 'Mayo', toneladas: 34190.60 },
-            { mes: '06', label: 'Junio', toneladas: 37708.07 },
-            { mes: '07', label: 'Julio', toneladas: 35649.92 },
-            { mes: '08', label: 'Agosto', toneladas: 35737.78 },
-            { mes: '09', label: 'Septiembre', toneladas: 31076.71 },
-            { mes: '10', label: 'Octubre', toneladas: 37273.41},
-            { mes: '11', label: 'Noviembre', toneladas: 38433.81 },
-            { mes: '12', label: 'Diciembre', toneladas: null }
-        ],
-        // Aviación general (operaciones y pasajeros)
-        general: {
-            operaciones: [
-                { mes: '01', label: 'Enero', operaciones: 251 },
-                { mes: '02', label: 'Febrero', operaciones: 242 },
-                { mes: '03', label: 'Marzo', operaciones: 272 },
-                { mes: '04', label: 'Abril', operaciones: 249 },
-                { mes: '05', label: 'Mayo', operaciones: 226 },
-                { mes: '06', label: 'Junio', operaciones: 209 },
-                { mes: '07', label: 'Julio', operaciones: 234 },
-                { mes: '08', label: 'Agosto', operaciones: 282 },
-                { mes: '09', label: 'Septiembre', operaciones: 249 },
-                { mes: '10', label: 'Octubre', operaciones: 315 },
-                { mes: '11', label: 'Noviembre', operaciones: 285 },
-                { mes: '12', label: 'Diciembre', operaciones: null }
-            ],
-            pasajeros: [
-                { mes: '01', label: 'Enero', pasajeros: 2353 },
-                { mes: '02', label: 'Febrero', pasajeros: 1348 },
-                { mes: '03', label: 'Marzo', pasajeros: 1601 },
-                { mes: '04', label: 'Abril', pasajeros: 1840 },
-                { mes: '05', label: 'Mayo', pasajeros: 1576 },
-                { mes: '06', label: 'Junio', pasajeros: 3177 },
-                { mes: '07', label: 'Julio', pasajeros: 1515 },
-                { mes: '08', label: 'Agosto', pasajeros: 3033 },
-                { mes: '09', label: 'Septiembre', pasajeros: 948 },
-                { mes: '10', label: 'Octubre', pasajeros: 1298},
-                { mes: '11', label: 'Noviembre', pasajeros: 1089 },
-                { mes: '12', label: 'Diciembre', pasajeros: null }
-            ]
-        }
+        comercial: [],
+        comercialPasajeros: [],
+        carga: [],
+        cargaToneladas: [],
+        general: { operaciones: [], pasajeros: [] }
     },
-    mensualYear: '2025'
+    mensualYear: String(new Date().getFullYear())
 };
+
+function buildAviationAnalyticsFromDB(monthlyRows, annualRows) {
+    const months = AVIATION_ANALYTICS_MONTH_KEYS.slice();
+    const monthLabels = AVIATION_ANALYTICS_MONTH_LABELS.slice();
+    const result = {
+        comercial: { months, monthLabels, years: [], metrics: ['operaciones', 'pasajeros'] },
+        carga: { months, monthLabels, years: [], metrics: ['operaciones', 'tons_transportadas'] },
+        general: { months, monthLabels, years: [], metrics: ['operaciones', 'pasajeros'] }
+    };
+
+    // Initialize metrics structures
+    ['comercial', 'carga', 'general'].forEach(scope => {
+        result[scope].metrics.forEach(metric => {
+            result[scope][metric] = { years: {}, acumulado: 0 };
+        });
+    });
+
+    const yearsSet = new Set();
+
+    // Helper to ensure year structure exists
+    const ensureYear = (scope, metric, year) => {
+        if (!result[scope][metric].years[year]) {
+            result[scope][metric].years[year] = { total: 0, months: {}, dbTotal: 0 };
+            months.forEach(m => result[scope][metric].years[year].months[m] = null);
+        }
+    };
+
+    (monthlyRows || []).forEach(row => {
+        const year = String(row.year);
+        yearsSet.add(year);
+        const monthIdx = Number(row.month) - 1;
+        if (monthIdx < 0 || monthIdx >= months.length) return;
+        const monthKey = months[monthIdx];
+
+        const updateMetric = (scope, metric, value) => {
+            ensureYear(scope, metric, year);
+            const val = value == null ? null : Number(value);
+            result[scope][metric].years[year].months[monthKey] = val;
+        };
+
+        updateMetric('comercial', 'operaciones', row.comercial_ops);
+        updateMetric('comercial', 'pasajeros', row.comercial_pax);
+        updateMetric('carga', 'operaciones', row.carga_ops);
+        updateMetric('carga', 'tons_transportadas', row.carga_tons);
+        updateMetric('general', 'operaciones', row.general_ops);
+        updateMetric('general', 'pasajeros', row.general_pax);
+    });
+
+    // Process annualRows to fill gaps and totals
+    (annualRows || []).forEach(row => {
+        const year = String(row.year);
+        yearsSet.add(year);
+
+        const updateAnnual = (scope, metric, value) => {
+            ensureYear(scope, metric, year);
+            const val = value == null ? 0 : Number(value);
+            result[scope][metric].years[year].dbTotal = val;
+        };
+
+        updateAnnual('comercial', 'operaciones', row.comercial_ops_total);
+        updateAnnual('comercial', 'pasajeros', row.comercial_pax_total);
+        updateAnnual('carga', 'operaciones', row.carga_ops_total);
+        updateAnnual('carga', 'tons_transportadas', row.carga_tons_total);
+        updateAnnual('general', 'operaciones', row.general_ops_total);
+        updateAnnual('general', 'pasajeros', row.general_pax_total);
+    });
+
+    const sortedYears = Array.from(yearsSet).sort((a, b) => Number(a) - Number(b));
+
+    // Calculate totals
+    ['comercial', 'carga', 'general'].forEach(scope => {
+        result[scope].years = sortedYears;
+        result[scope].metrics.forEach(metric => {
+            let grandTotal = 0;
+            sortedYears.forEach(year => {
+                if (!result[scope][metric].years[year]) return;
+                let yearTotal = 0;
+                let hasMonthly = false;
+                Object.values(result[scope][metric].years[year].months).forEach(val => {
+                    if (val !== null && Number.isFinite(val)) {
+                        yearTotal += val;
+                        hasMonthly = true;
+                    }
+                });
+                
+                // Use dbTotal if no monthly data found
+                if (!hasMonthly && result[scope][metric].years[year].dbTotal) {
+                    yearTotal = result[scope][metric].years[year].dbTotal;
+                }
+
+                result[scope][metric].years[year].total = yearTotal;
+                grandTotal += yearTotal;
+            });
+            result[scope][metric].acumulado = grandTotal;
+        });
+    });
+
+    return result;
+}
+
+async function syncStaticDataFromDB() {
+    try {
+        if (!window.dataManager) {
+            console.warn('DataManager no listo, reintentando syncStaticDataFromDB en 500ms...');
+            setTimeout(syncStaticDataFromDB, 500);
+            return;
+        }
+        
+        console.log('Iniciando sincronización de datos estáticos desde DB...');
+        const [annualRows, monthlyRows] = await Promise.all([
+            window.dataManager.getAnnualOperations(),
+            window.dataManager.getMonthlyOperations()
+        ]);
+        console.log('Datos estáticos obtenidos:', { annualRows, monthlyRows });
+
+        staticData.operacionesTotales = { comercial: [], carga: [], general: [] };
+        (annualRows || []).forEach(row => {
+            const y = String(row.year || '');
+            staticData.operacionesTotales.comercial.push({ periodo: y, operaciones: Number(row.comercial_ops_total) || 0, pasajeros: Number(row.comercial_pax_total) || 0 });
+            staticData.operacionesTotales.carga.push({ periodo: y, operaciones: Number(row.carga_ops_total) || 0, toneladas: row.carga_tons_total == null ? null : Number(row.carga_tons_total) });
+            staticData.operacionesTotales.general.push({ periodo: y, operaciones: Number(row.general_ops_total) || 0, pasajeros: Number(row.general_pax_total) || 0 });
+        });
+
+        const years = Array.from(new Set((monthlyRows || []).map(r => Number(r.year))).values()).filter(y => Number.isFinite(y)).sort((a,b)=>a-b);
+        const latestYear = years.length ? years[years.length-1] : (new Date()).getFullYear();
+        staticData.mensualYear = String(latestYear);
+
+        const months = OPS_ALL_MONTH_CODES.slice();
+        const makeEmptyMonthly = (propName) => months.map((m, idx) => ({ mes: m, label: AVIATION_ANALYTICS_MONTH_LABELS[idx] || m, [propName]: null }));
+        staticData.mensual2025 = {
+            comercial: makeEmptyMonthly('operaciones'),
+            comercialPasajeros: makeEmptyMonthly('pasajeros'),
+            carga: makeEmptyMonthly('operaciones'),
+            cargaToneladas: makeEmptyMonthly('toneladas'),
+            general: { operaciones: makeEmptyMonthly('operaciones'), pasajeros: makeEmptyMonthly('pasajeros') }
+        };
+
+        (monthlyRows || []).forEach(row => {
+            if (Number(row.year) !== Number(latestYear)) return;
+            const m = String(row.month).padStart(2, '0');
+            const idx = months.indexOf(m);
+            if (idx === -1) return;
+            staticData.mensual2025.comercial[idx].operaciones = row.comercial_ops == null ? null : Number(row.comercial_ops);
+            staticData.mensual2025.comercialPasajeros[idx].pasajeros = row.comercial_pax == null ? null : Number(row.comercial_pax);
+            staticData.mensual2025.carga[idx].operaciones = row.carga_ops == null ? null : Number(row.carga_ops);
+            staticData.mensual2025.cargaToneladas[idx].toneladas = row.carga_tons == null ? null : Number(row.carga_tons);
+            staticData.mensual2025.general.operaciones[idx].operaciones = row.general_ops == null ? null : Number(row.general_ops);
+            staticData.mensual2025.general.pasajeros[idx].pasajeros = row.general_pax == null ? null : Number(row.general_pax);
+        });
+
+        // Populate AVIATION_ANALYTICS_DATA for the tabs
+        AVIATION_ANALYTICS_DATA = buildAviationAnalyticsFromDB(monthlyRows, annualRows);
+        AVIATION_ANALYTICS_CUTOFF_YEAR = String(latestYear);
+        
+        // Determine cutoff month index based on data availability for the latest year
+        let lastClosedMonth = -1;
+        const latestYearStr = String(latestYear);
+        if (AVIATION_ANALYTICS_DATA.comercial.operaciones.years[latestYearStr]) {
+             const monthsData = AVIATION_ANALYTICS_DATA.comercial.operaciones.years[latestYearStr].months;
+             AVIATION_ANALYTICS_MONTH_KEYS.forEach((key, idx) => {
+                 if (monthsData[key] !== null) lastClosedMonth = idx;
+             });
+        }
+        AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX = lastClosedMonth;
+
+
+        try { if (typeof window.renderOperacionesTotales === 'function') window.renderOperacionesTotales(); } catch (_) {}
+        try { if (typeof window.renderMonthlyCharts === 'function') window.renderMonthlyCharts(); } catch (_) {}
+        try { if (typeof window.rerenderAviationAnalyticsModules === 'function') window.rerenderAviationAnalyticsModules(true); } catch (_) {}
+        
+        window.dispatchEvent(new CustomEvent('static-data-synced', { detail: { year: staticData.mensualYear } }));
+    } catch (err) {
+        console.error('syncStaticDataFromDB error:', err);
+    }
+}
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('DOMContentLoaded', () => { setTimeout(() => { syncStaticDataFromDB().catch(() => {}); }, 50); });
+    window.addEventListener('data-updated', () => { syncStaticDataFromDB().catch(() => {}); });
+}
 
 function getOpsAvailableYearsFromTotals(source = staticData?.operacionesTotales) {
     const groups = ['comercial', 'carga', 'general'];
@@ -2032,32 +1499,8 @@ function ensureAviationAnalyticsData() {
     if (AVIATION_ANALYTICS_DATA) {
         return Promise.resolve(AVIATION_ANALYTICS_DATA);
     }
-    if (aviationAnalyticsDataPromise) {
-        return aviationAnalyticsDataPromise;
-    }
-    aviationAnalyticsDataPromise = fetch(AVIATION_ANALYTICS_DATA_PATH, { cache: 'no-store' })
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            return response.json();
-        })
-        .then((rawPayload) => setAviationAnalyticsDatasetFromPayload(rawPayload))
-        .then((dataset) => {
-            aviationAnalyticsLoadError = null;
-            return dataset;
-        })
-        .catch((err) => {
-            aviationAnalyticsLoadError = err;
-            console.warn('Failed to load aviation analytics data:', err);
-            return null;
-        })
-        .finally(() => {
-            if (!AVIATION_ANALYTICS_DATA) {
-                aviationAnalyticsDataPromise = null;
-            }
-        });
-    return aviationAnalyticsDataPromise;
+    // Redirect to DB sync instead of JSON fetch
+    return syncStaticDataFromDB().then(() => AVIATION_ANALYTICS_DATA);
 }
 
 function refreshAviationAnalyticsDataIfChanged(options = {}) {
@@ -2065,32 +1508,18 @@ function refreshAviationAnalyticsDataIfChanged(options = {}) {
     if (aviationAnalyticsRefreshInFlight) {
         return aviationAnalyticsRefreshInFlight;
     }
-    const requestPromise = fetch(resolveAviationAnalyticsDataUrl(true), { cache: 'no-store' })
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            return response.json();
-        })
-        .then((rawPayload) => {
-            const signature = computeAviationAnalyticsSignature(rawPayload);
-            if (!force && signature && signature === AVIATION_ANALYTICS_DATA_SIGNATURE) {
-                return false;
-            }
-            setAviationAnalyticsDatasetFromPayload(rawPayload);
-            rerenderAviationAnalyticsModules(true);
-            if (notifyOnChange) {
-                showNotification('Los datos de aviación se actualizaron automáticamente.', 'success');
-            }
-            return true;
-        })
-        .catch((err) => {
-            console.warn('refreshAviationAnalyticsDataIfChanged failed:', err);
-            return false;
-        })
-        .finally(() => {
-            aviationAnalyticsRefreshInFlight = null;
-        });
+    
+    // Use DB sync instead of JSON fetch
+    const requestPromise = syncStaticDataFromDB().then(() => {
+         // syncStaticDataFromDB already updates AVIATION_ANALYTICS_DATA and triggers rerenders
+         return true;
+    }).catch(err => {
+        console.warn('refreshAviationAnalyticsDataIfChanged (DB) failed:', err);
+        return false;
+    }).finally(() => {
+        aviationAnalyticsRefreshInFlight = null;
+    });
+    
     aviationAnalyticsRefreshInFlight = requestPromise;
     return requestPromise;
 }
@@ -2501,6 +1930,11 @@ function applySectionPermissions(userName) {
     const rawWhitelist = Array.isArray(user?.allowedSections)
         ? user.allowedSections.map((section) => normalizeSectionKey(section)).filter(Boolean)
         : [];
+
+    // Permitir siempre la sección de historia si el usuario está autenticado
+    if (rawWhitelist.length && !rawWhitelist.includes('historia')) {
+        rawWhitelist.push('historia');
+    }
 
     if (rawWhitelist.length) {
         userSectionWhitelist = [...new Set(rawWhitelist)];
@@ -2974,7 +2408,7 @@ function setupEventListeners() {
     const hourSelect = document.getElementById('hour-filter'); if (hourSelect) hourSelect.addEventListener('change', (window.AIFA?.throttle||((f)=>f))(applyFilters, 120));
     const hourTypeSelect = document.getElementById('hour-type-filter'); if (hourTypeSelect) hourTypeSelect.addEventListener('change', (window.AIFA?.throttle||((f)=>f))(applyFilters, 120));
     // date filter (Inicio)
-    const dateFilter = document.getElementById('date-filter'); if (dateFilter) dateFilter.addEventListener('change', (window.AIFA?.throttle||((f)=>f))(applyFilters, 120));
+    const dateFilter = document.getElementById('date-filter'); if (dateFilter) dateFilter.addEventListener('change', () => loadItineraryData({ preserveFilters: true }));
     // Botón de tema eliminado: no enlazar listener si no existe
     const themeBtnEl = document.getElementById('theme-toggler');
     if (themeBtnEl) themeBtnEl.addEventListener('click', toggleTheme);
@@ -3537,6 +2971,28 @@ async function makeToken(username){
 
 async function verifyToken(token){
     if (!token) return false;
+
+    // Validación Supabase
+    if (window.supabaseClient) {
+        const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+        
+        // Si no hay sesión pero tenemos token, intentamos restaurarla
+        if (!session && token && token.length > 50) { // Simple check to distinguish from legacy hash
+             const { data: restoreData, error: restoreError } = await window.supabaseClient.auth.setSession({
+                access_token: token,
+                refresh_token: token
+            });
+            if (!restoreError && restoreData.session) {
+                return true;
+            }
+        }
+
+        if (error || !session) return false;
+        // Si hay sesión activa en Supabase, consideramos el token válido
+        return true;
+    }
+
+    // Validación Legacy (Hash local)
     const parts = token.split('.');
     if (parts.length !== 3) return false;
     const [u, ts, sig] = parts;
@@ -3560,51 +3016,76 @@ async function handleLogin(e) {
     e.preventDefault();
     const loginButton = document.getElementById('login-button');
     const errorDiv = document.getElementById('login-error');
-    errorDiv.textContent = '';
-    loginButton.classList.add('loading');
+    if (errorDiv) errorDiv.textContent = '';
+    if (loginButton) loginButton.classList.add('loading');
     showGlobalLoader('Verificando credenciales...');
 
-    try{
-        await ensureAuthHashes();
-        const { count, until } = getLockInfo();
-        const now = Date.now();
-        if (until && now < until) {
-            const secs = Math.ceil((until-now)/1000);
-            throw new Error(`Demasiados intentos. Intenta en ${secs}s`);
-        }
-
-        const usernameInput = (document.getElementById('username').value || '').toString();
+    try {
+        let emailOrUsername = document.getElementById('username').value;
         const password = document.getElementById('password').value;
-        const normalized = usernameInput.trim().toLowerCase();
-        const matchedKey = Object.keys(dashboardData.users).find(k => (k || '').toString().trim().toLowerCase() === normalized);
-        const user = matchedKey ? dashboardData.users[matchedKey] : undefined;
 
-        // Comparar hash de la contraseña ingresada contra el hash inicializado
-        let passOk = false;
-        if (matchedKey) {
-            const inputHash = await sha256(password + '|' + normalized + '|' + SECRET_PW_SALT);
-            const storedHash = AUTH_HASHES[matchedKey];
-            passOk = !!(storedHash && storedHash === inputHash);
-        }
-        if (!passOk) {
-            // incrementar lock con backoff exponencial
-            const nextCount = Math.min(8, (count||0)+1);
-            const waitMs = Math.min(300000, Math.pow(2, nextCount) * 1000); // hasta 5 min
-            setLockInfo(nextCount, Date.now() + waitMs);
-            throw new Error('Usuario o contraseña incorrectos');
+        if (!window.supabaseClient) throw new Error('Supabase no inicializado');
+
+        // Si no es un email, asumimos que es un nombre de usuario y agregamos el dominio interno
+        if (!emailOrUsername.includes('@')) {
+            // Normalizar: quitar espacios, acentos y convertir a minúsculas
+            // Ejemplo: "Isaac López" -> "isaac.lopez"
+            const normalized = emailOrUsername
+                .trim()
+                .toLowerCase()
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+                .replace(/\s+/g, '.'); // Espacios a puntos
+
+            emailOrUsername = `${normalized}@aifa.operaciones`;
         }
 
-        // Éxito: limpiar lockout y emitir token firmado
-        setLockInfo(0, 0);
-        const token = await makeToken(matchedKey);
-        sessionStorage.setItem(SESSION_USER, matchedKey);
-        sessionStorage.setItem(SESSION_TOKEN, token);
+        const { data, error } = await window.supabaseClient.auth.signInWithPassword({
+            email: emailOrUsername,
+            password: password,
+        });
+
+        if (error) throw error;
+
+        // Éxito
+        sessionStorage.setItem(SESSION_USER, data.user.email);
+        sessionStorage.setItem(SESSION_TOKEN, data.session.access_token);
+
+        // Obtener nombre completo (metadata o tabla profiles)
+        let fullName = data.user.user_metadata?.full_name;
+        if (!fullName) {
+            try {
+                const { data: profile } = await window.supabaseClient
+                    .from('profiles')
+                    .select('full_name')
+                    .eq('id', data.user.id)
+                    .single();
+                if (profile) fullName = profile.full_name;
+            } catch (_) {}
+        }
+        sessionStorage.setItem('user_fullname', fullName || data.user.email);
+
+        // Obtener rol del usuario
+        let role = 'viewer';
+        try {
+            const { data: roleData } = await window.supabaseClient
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', data.user.id)
+                .single();
+            
+            if (roleData && roleData.role) {
+                role = roleData.role;
+            }
+        } catch (e) {
+            console.warn('No se pudo obtener el rol del usuario, asignando viewer por defecto', e);
+        }
+        sessionStorage.setItem('user_role', role);
+
         showMainApp();
+
     } catch(err){
         const msg = (err && err.message) ? err.message : 'Error de autenticación';
-        const errorDiv = document.getElementById('login-error');
         if (errorDiv) errorDiv.textContent = msg;
-        const loginButton = document.getElementById('login-button');
         if (loginButton) loginButton.classList.remove('loading');
     } finally {
         hideGlobalLoader();
@@ -3737,10 +3218,7 @@ function restoreItineraryFilterSelections(state = {}) {
 async function loadItineraryData(options = {}) {
     const preserveFilters = !!options.preserveFilters;
     const previousFilters = preserveFilters ? captureItineraryFilterSelections() : null;
-    try {
-        const response = await fetch('data/itinerario.json', { cache: 'no-store' });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        allFlightsData = await response.json();
+    
     // Pre-cargar filtro de fecha con 'hoy' si está vacío
     try {
         const dateInput = document.getElementById('date-filter');
@@ -3750,6 +3228,24 @@ async function loadItineraryData(options = {}) {
             dateInput.value = ymd;
         }
     } catch (_) {}
+
+    try {
+        if (window.supabaseClient) {
+            const dateInput = document.getElementById('date-filter');
+            const selectedDate = dateInput ? dateInput.value : null;
+            let query = window.supabaseClient.from('flights').select('*');
+            if (selectedDate) {
+                query = query.or(`fecha_llegada.eq.${selectedDate},fecha_salida.eq.${selectedDate}`);
+            }
+            const { data, error } = await query;
+            if (error) throw error;
+            allFlightsData = data || [];
+        } else {
+            const response = await fetch('data/itinerario.json', { cache: 'no-store' });
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            allFlightsData = await response.json();
+        }
+
     if (!preserveFilters) {
         displaySummaryTable(allFlightsData, { selectedAirline: 'all' });
     }
@@ -3955,6 +3451,16 @@ function renderItineraryAirlineDetail(config = {}) {
         if (aTime !== bTime) return aTime - bTime;
         return String(a?.vuelo_llegada || a?.vuelo_salida || '').localeCompare(String(b?.vuelo_llegada || b?.vuelo_salida || ''), undefined, { sensitivity: 'base' });
     });
+
+    const formatDateDMY = (isoDate) => {
+        if (!isoDate) return '-';
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(isoDate).trim());
+        if (match) {
+            return `${match[3]}-${match[2]}-${match[1]}`;
+        }
+        return isoDate;
+    };
+
     const rows = sortFlights.map((flight, index) => {
         const airlineName = (flight && flight.aerolinea) ? String(flight.aerolinea) : 'Sin aerolínea';
         const logoCandidates = getAirlineLogoCandidates(airlineName) || [];
@@ -3972,7 +3478,12 @@ function renderItineraryAirlineDetail(config = {}) {
         };
         const positionDisplay = normalizePositionValue(flight?.posicion || flight?.posición || flight?.stand || '');
         const positionCell = positionDisplay ? escapeHtml(positionDisplay) : '-';
-        return `<tr class="animated-row" style="--delay:${delay}s; --airline-color:${rowColor};"><td><div class="airline-cell">${logoHtml}<span class="airline-name">${escapeHtml(airlineName)}</span></div></td><td>${cell(flight?.aeronave)}</td><td>${cell(flight?.vuelo_llegada)}</td><td>${cell(flight?.fecha_llegada)}</td><td>${cell(flight?.hora_llegada)}</td><td class="col-origen">${cell(flight?.origen)}</td><td class="text-center">${cell(flight?.banda_reclamo)}</td><td>${positionCell}</td><td>${cell(flight?.vuelo_salida)}</td><td>${cell(flight?.fecha_salida)}</td><td>${cell(flight?.hora_salida)}</td><td class="col-destino">${cell(flight?.destino)}</td></tr>`;
+        
+        const aircraft = flight?.equipo || flight?.aeronave;
+        const dateArr = formatDateDMY(flight?.fecha_llegada);
+        const dateDep = formatDateDMY(flight?.fecha_salida);
+
+        return `<tr class="animated-row" style="--delay:${delay}s; --airline-color:${rowColor};"><td><div class="airline-cell">${logoHtml}<span class="airline-name">${escapeHtml(airlineName)}</span></div></td><td>${cell(aircraft)}</td><td>${cell(flight?.vuelo_llegada)}</td><td>${cell(dateArr)}</td><td>${cell(flight?.hora_llegada)}</td><td class="col-origen">${cell(flight?.origen)}</td><td class="text-center">${cell(flight?.banda_reclamo)}</td><td>${positionCell}</td><td>${cell(flight?.vuelo_salida)}</td><td>${cell(dateDep)}</td><td>${cell(flight?.hora_salida)}</td><td class="col-destino">${cell(flight?.destino)}</td></tr>`;
     }).join('');
 
     const breakdownChips = [
@@ -4083,8 +3594,14 @@ function applyFilters() {
     if (selectedDate) {
         const selYMD = selectedDate; // yyyy-mm-dd from input
         const matchDate = (f) => {
-            const ymdArr = (() => { const d = parseDMY(f.fecha_llegada); return d ? toYMD(d) : null; })();
-            const ymdDep = (() => { const d = parseDMY(f.fecha_salida); return d ? toYMD(d) : null; })();
+            const ymdArr = (() => { 
+                if (f.fecha_llegada && /^\d{4}-\d{2}-\d{2}$/.test(f.fecha_llegada)) return f.fecha_llegada;
+                const d = parseDMY(f.fecha_llegada); return d ? toYMD(d) : null; 
+            })();
+            const ymdDep = (() => { 
+                if (f.fecha_salida && /^\d{4}-\d{2}-\d{2}$/.test(f.fecha_salida)) return f.fecha_salida;
+                const d = parseDMY(f.fecha_salida); return d ? toYMD(d) : null; 
+            })();
             if (hourType === 'arr') return ymdArr === selYMD;
             if (hourType === 'dep') return ymdDep === selYMD;
             return (ymdArr === selYMD) || (ymdDep === selYMD);
@@ -4758,6 +4275,15 @@ function displaySummaryTable(flights, options = {}) {
         return hours * 60 + minutes;
     };
 
+    const formatDateDMY = (isoDate) => {
+        if (!isoDate) return '-';
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(isoDate).trim());
+        if (match) {
+            return `${match[3]}-${match[2]}-${match[1]}`;
+        }
+        return isoDate;
+    };
+
     const buildFlightRows = (flightList) => {
         if (!Array.isArray(flightList) || flightList.length === 0) return '';
         const sortedFlights = [...flightList].sort((a, b) => {
@@ -4783,7 +4309,12 @@ function displaySummaryTable(flights, options = {}) {
             const delay = (idx * 0.06).toFixed(2);
             const positionDisplay = normalizePositionValue(flight?.posicion || flight?.posición || flight?.stand || '');
             const positionCell = positionDisplay ? escapeHtml(positionDisplay) : '-';
-            return `<tr class="animated-row" style="--delay:${delay}s; --airline-color:${rowColor};"><td><div class="airline-cell">${rowLogoHtml}<span class="airline-name">${escapeHtml(airlineName)}</span></div></td><td>${cell(flight?.aeronave)}</td><td>${cell(flight?.vuelo_llegada)}</td><td>${cell(flight?.fecha_llegada)}</td><td>${cell(flight?.hora_llegada)}</td><td class="col-origen">${cell(flight?.origen)}</td><td class="text-center">${cell(flight?.banda_reclamo)}</td><td>${positionCell}</td><td>${cell(flight?.vuelo_salida)}</td><td>${cell(flight?.fecha_salida)}</td><td>${cell(flight?.hora_salida)}</td><td class="col-destino">${cell(flight?.destino)}</td></tr>`;
+            
+            const aircraft = flight?.equipo || flight?.aeronave;
+            const dateArr = formatDateDMY(flight?.fecha_llegada);
+            const dateDep = formatDateDMY(flight?.fecha_salida);
+
+            return `<tr class="animated-row" style="--delay:${delay}s; --airline-color:${rowColor};"><td><div class="airline-cell">${rowLogoHtml}<span class="airline-name">${escapeHtml(airlineName)}</span></div></td><td>${cell(aircraft)}</td><td>${cell(flight?.vuelo_llegada)}</td><td>${cell(dateArr)}</td><td>${cell(flight?.hora_llegada)}</td><td class="col-origen">${cell(flight?.origen)}</td><td class="text-center">${cell(flight?.banda_reclamo)}</td><td>${positionCell}</td><td>${cell(flight?.vuelo_salida)}</td><td>${cell(dateDep)}</td><td>${cell(flight?.hora_salida)}</td><td class="col-destino">${cell(flight?.destino)}</td></tr>`;
         }).join('');
     };
 
@@ -5369,6 +4900,15 @@ function displayPassengerTable(flights) {
         return raw ? escapeHTML(raw) : '-';
     };
 
+    const formatDateDMY = (isoDate) => {
+        if (!isoDate) return '-';
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(isoDate).trim());
+        if (match) {
+            return `${match[3]}-${match[2]}-${match[1]}`;
+        }
+        return isoDate;
+    };
+
     const rowsHtml = flightsList.map((flight, index) => {
         const airlineNameRaw = (flight?.aerolinea || '').toString().trim();
         const displayAirline = airlineNameRaw || 'Sin aerolínea';
@@ -5385,17 +4925,22 @@ function displayPassengerTable(flights) {
             ? `<img class="airline-logo ${sizeClass}" src="${escapeHTML(logoPath)}" alt="Logo ${escapeHTML(displayAirline)}" data-cands="${escapeHTML(dataCands)}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">`
             : '';
         const delay = (index * 0.05).toFixed(2);
+        
+        const aircraft = flight?.equipo || flight?.aeronave;
+        const dateArr = formatDateDMY(flight?.fecha_llegada);
+        const dateDep = formatDateDMY(flight?.fecha_salida);
+
         return `<tr class="animated-row" style="--delay:${delay}s; --airline-color:${rowColor}; --airline-row-hover:${rowHover}; --airline-row-hover-dark:${rowHoverDark};">
             <td><div class="airline-cell${logoHtml ? ' has-logo' : ''}">${logoHtml}<span class="airline-dot" style="background:${rowColor};"></span><span class="airline-name">${escapeHTML(displayAirline)}</span></div></td>
-            <td>${formatCell(flight?.aeronave)}</td>
+            <td>${formatCell(aircraft)}</td>
             <td>${formatCell(flight?.vuelo_llegada)}</td>
-            <td>${formatCell(flight?.fecha_llegada)}</td>
+            <td>${formatCell(dateArr)}</td>
             <td>${formatCell(flight?.hora_llegada)}</td>
             <td class="col-origen">${formatCell(flight?.origen)}</td>
             <td class="text-center">${formatCell(flight?.banda_reclamo)}</td>
             <td>${positionDisplay ? escapeHTML(positionDisplay) : '-'}</td>
             <td>${formatCell(flight?.vuelo_salida)}</td>
-            <td>${formatCell(flight?.fecha_salida)}</td>
+            <td>${formatCell(dateDep)}</td>
             <td>${formatCell(flight?.hora_salida)}</td>
             <td class="col-destino">${formatCell(flight?.destino)}</td>
         </tr>`;
@@ -5486,6 +5031,15 @@ function displayCargoTable(flights) {
         return raw ? escapeHTML(raw) : '-';
     };
 
+    const formatDateDMY = (isoDate) => {
+        if (!isoDate) return '-';
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(isoDate).trim());
+        if (match) {
+            return `${match[3]}-${match[2]}-${match[1]}`;
+        }
+        return isoDate;
+    };
+
     const rowsHtml = flightsList.map((flight, index) => {
         const airlineNameRaw = (flight?.aerolinea || '').toString().trim();
         const displayAirline = airlineNameRaw || 'Sin aerolínea';
@@ -5502,16 +5056,21 @@ function displayCargoTable(flights) {
             ? `<img class="airline-logo ${sizeClass}" src="${escapeHTML(logoPath)}" alt="Logo ${escapeHTML(displayAirline)}" data-cands="${escapeHTML(dataCands)}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">`
             : '';
         const delay = (index * 0.05).toFixed(2);
+        
+        const aircraft = flight?.equipo || flight?.aeronave;
+        const dateArr = formatDateDMY(flight?.fecha_llegada);
+        const dateDep = formatDateDMY(flight?.fecha_salida);
+
         return `<tr class="animated-row" style="--delay:${delay}s; --airline-color:${rowColor}; --airline-row-hover:${rowHover}; --airline-row-hover-dark:${rowHoverDark};">
             <td><div class="airline-cell${logoHtml ? ' has-logo' : ''}">${logoHtml}<span class="airline-dot" style="background:${rowColor};"></span><span class="airline-name">${escapeHTML(displayAirline)}</span></div></td>
-            <td>${formatCell(flight?.aeronave)}</td>
+            <td>${formatCell(aircraft)}</td>
             <td>${formatCell(flight?.vuelo_llegada)}</td>
-            <td>${formatCell(flight?.fecha_llegada)}</td>
+            <td>${formatCell(dateArr)}</td>
             <td>${formatCell(flight?.hora_llegada)}</td>
             <td class="col-origen">${formatCell(flight?.origen)}</td>
             <td>${positionDisplay ? escapeHTML(positionDisplay) : '-'}</td>
             <td>${formatCell(flight?.vuelo_salida)}</td>
-            <td>${formatCell(flight?.fecha_salida)}</td>
+            <td>${formatCell(dateDep)}</td>
             <td>${formatCell(flight?.hora_salida)}</td>
             <td class="col-destino">${formatCell(flight?.destino)}</td>
         </tr>`;
@@ -5665,6 +5224,19 @@ function showSection(sectionKey, linkEl) {
         if (linkEl) linkEl.classList.add('active');
         // Actualizar hash
         try { history.replaceState(null, '', `#${targetKey}`); } catch(_) {}
+        
+        // Hook específico para Historia
+        if (targetKey === 'historia') {
+            console.log('Activando sección Historia...');
+            setTimeout(() => {
+                if (typeof loadHistory === 'function') {
+                    loadHistory();
+                } else {
+                    console.error('loadHistory no está definida');
+                }
+            }, 100);
+        }
+
         // Cerrar sidebar en móvil
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebar-overlay');
@@ -5741,6 +5313,9 @@ function handleNavigation(e) {
                     }
                 }, 60);
             } catch(_) {}
+        }
+        if (section === 'historia') {
+            try { loadHistory(); } catch(_) {}
         }
     }
 }
@@ -6571,22 +6146,8 @@ function computeStaticMonthlyCutoff() {
 }
 
 function getAllowedMonthsForYear(year) {
-    const codes = OPS_ALL_MONTH_CODES.slice();
-    if (!year) return codes;
-    if (String(year) !== String(AVIATION_ANALYTICS_CUTOFF_YEAR)) return codes;
-    let cutoffIndex = Number.isFinite(AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX)
-        ? AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX
-        : null;
-    if (!Number.isFinite(cutoffIndex) || cutoffIndex < 0) {
-        const fallback = computeStaticMonthlyCutoff();
-        if (Number.isFinite(fallback) && fallback > 0) {
-            cutoffIndex = fallback - 1;
-        }
-    }
-    if (!Number.isFinite(cutoffIndex) || cutoffIndex < 0) return [];
-    const normalizedCutoff = Math.min(cutoffIndex, codes.length - 1);
-    if (normalizedCutoff < 0) return [];
-    return codes.slice(0, normalizedCutoff + 1);
+    // Always return all months to allow full comparison/selection freedom
+    return OPS_ALL_MONTH_CODES.slice();
 }
 
 function createAllowedMonthsSet(year) {
@@ -6643,12 +6204,12 @@ function refreshOpsYearFilters(availableYears) {
         </div>`;
     }).join('');
     container.innerHTML = markup;
-    const disableYears = opsUIState.mode !== 'yearly';
+    // Always enable year filters, regardless of mode
     container.querySelectorAll('input[type="checkbox"]').forEach((input) => {
-        input.disabled = disableYears;
+        input.disabled = false;
     });
     const yearsHint = document.getElementById('years-disabled-hint');
-    if (yearsHint) yearsHint.classList.toggle('d-none', !disableYears);
+    if (yearsHint) yearsHint.classList.add('d-none');
 }
 
 function syncOpsYearSelection(availableYears) {
@@ -6657,7 +6218,9 @@ function syncOpsYearSelection(availableYears) {
         .sort((a, b) => Number(a) - Number(b));
     const normalizedSet = new Set(normalized);
     let selection = opsUIState?.years instanceof Set ? new Set(Array.from(opsUIState.years).map((year) => String(year))) : new Set();
-    if (!selection.size) {
+    
+    // If we have significantly more years now than selected (e.g. data loaded), and the selection was small (likely default), expand to all.
+    if (normalized.length > selection.size && selection.size <= 1) {
         selection = new Set(normalized);
     } else {
         const next = new Set();
@@ -6666,13 +6229,10 @@ function syncOpsYearSelection(availableYears) {
         });
         if (!next.size) {
             normalized.forEach((year) => next.add(year));
-        } else {
-            normalized.forEach((year) => {
-                if (!next.has(year)) next.add(year);
-            });
         }
         selection = next;
     }
+    
     opsUIState.years = selection;
     refreshOpsYearFilters(normalized);
 }
@@ -7908,7 +7468,7 @@ function renderOperacionesTotales() {
                         const ds = chart.data && chart.data.datasets && chart.data.datasets[0];
                         if (!ds) return;
                         const meta = chart.getDatasetMeta(0);
-                        const values = (ds.data||[]).map(v => Number.isFinite(Number(v)) ? Number(v) : NaN);
+                        const values = (ds.data||[]).map(v => Number(v)||0);
                         const points = meta && meta.data ? meta.data : [];
                         const ctx = chart.ctx;
                         const labels = (chart.data && chart.data.labels) || [];
@@ -7938,7 +7498,7 @@ function renderOperacionesTotales() {
 
                         for (let i=0;i<points.length;i++){
                             if (onlyMax && i!==maxIdx) continue;
-                            const v = values[i]; if (!isFinite(v)) continue;
+                            const v = values[i]; if (!isFinite(v) || v===0) continue;
                             const p = points[i]; if (!p) continue;
 
                             // Evitar encimado entre etiquetas en modo "small"
@@ -9178,19 +8738,31 @@ function computeDailyStats() {
         const today = new Date();
         const y = today.getFullYear(), m = String(today.getMonth()+1).padStart(2,'0'), d = String(today.getDate()).padStart(2,'0');
         const dmy = `${d}/${m}/${y}`;
+        const iso = `${y}-${m}-${d}`;
+
         const isPax = f => (String(f.categoria||'').toLowerCase()==='pasajeros');
         const isCargo = f => (String(f.categoria||'').toLowerCase()==='carga');
         let c = { ayer: 0, hoy: 0, trend: '=' }, k={ ayer:0, hoy:0, trend:'=' }, g={ ayer:0, hoy:0, trend:'=' };
-        const countFor = (ymd, pred) => allFlightsData.filter(f => (f.fecha_llegada===ymd || f.fecha_salida===ymd) && pred(f)).length;
-        c.hoy = countFor(dmy, isPax); k.hoy = countFor(dmy, isCargo);
+        
+        const matchDate = (f, targetDMY, targetISO) => {
+            const fArr = f.fecha_llegada;
+            const fDep = f.fecha_salida;
+            return (fArr === targetDMY || fArr === targetISO || fDep === targetDMY || fDep === targetISO);
+        };
+
+        const countFor = (targetDMY, targetISO, pred) => allFlightsData.filter(f => matchDate(f, targetDMY, targetISO) && pred(f)).length;
+        
+        c.hoy = countFor(dmy, iso, isPax); k.hoy = countFor(dmy, iso, isCargo);
         // Ayer
         const ay = new Date(today); ay.setDate(today.getDate()-1);
         const y2 = ay.getFullYear(), m2 = String(ay.getMonth()+1).padStart(2,'0'), d2 = String(ay.getDate()).padStart(2,'0');
         const dmy2 = `${d2}/${m2}/${y2}`;
-        c.ayer = countFor(dmy2, isPax); k.ayer = countFor(dmy2, isCargo);
+        const iso2 = `${y2}-${m2}-${d2}`;
+
+        c.ayer = countFor(dmy2, iso2, isPax); k.ayer = countFor(dmy2, iso2, isCargo);
         // General: lo que no cae en pax/carga
         const isGen = f => !isPax(f) && !isCargo(f);
-        g.hoy = countFor(dmy, isGen); g.ayer = countFor(dmy2, isGen);
+        g.hoy = countFor(dmy, iso, isGen); g.ayer = countFor(dmy2, iso2, isGen);
         const trend = (h,a) => h>a ? '↑' : h<a ? '↓' : '=';
         c.trend = trend(c.hoy, c.ayer); k.trend = trend(k.hoy, k.ayer); g.trend = trend(g.hoy, g.ayer);
         const set = (id,v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
@@ -9646,7 +9218,14 @@ function showMainApp() {
         if (login) login.classList.add('hidden');
         if (main) main.classList.remove('hidden');
         // Usuario actual
-        const userEl = document.getElementById('current-user'); if (userEl) userEl.textContent = name;
+        const userEl = document.getElementById('current-user'); 
+        if (userEl) {
+            const fullName = sessionStorage.getItem('user_fullname') || name;
+            const role = sessionStorage.getItem('user_role') || 'viewer';
+            // Capitalizar rol
+            const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1);
+            userEl.innerHTML = `<div>${fullName}</div><div style="font-size: 0.8em; font-weight: 400; opacity: 0.9;">${roleDisplay}</div>`;
+        }
         applySectionPermissions(name);
         // Permisos: Itinerario mensual
         const menu = document.getElementById('itinerario-mensual-menu');
@@ -10586,8 +10165,9 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshOpsMonthsSelectionUI();
 
         function refreshDisabledYears(disabled){
-            yearsBox?.querySelectorAll('input[type="checkbox"]').forEach(inp => { inp.disabled = disabled; });
-            if (yearsHint) yearsHint.classList.toggle('d-none', !disabled);
+            // Always enable years
+            yearsBox?.querySelectorAll('input[type="checkbox"]').forEach(inp => { inp.disabled = false; });
+            if (yearsHint) yearsHint.classList.add('d-none');
         }
 
         function syncToggleStates(){
@@ -10598,6 +10178,29 @@ document.addEventListener('DOMContentLoaded', () => {
             if (toggleMonthly) toggleMonthly.checked = opsUIState.mode === 'monthly';
             if (toggleYearly) toggleYearly.checked = opsUIState.mode === 'yearly';
         }
+
+        // Expose update function for dynamic data loading
+        window.updateOpsFiltersAfterDataLoad = function() {
+            const availability = populateWeeklyWeekOptions();
+            populateWeeklyDayOptions();
+            
+            // Restore weekly mode if data is available (overriding any fallback that happened during init)
+            if (availability && availability.hasAny) {
+                opsUIState.mode = 'weekly';
+                if (toggleWeekly) {
+                    toggleWeekly.disabled = false;
+                    toggleWeekly.checked = true;
+                }
+                refreshDisabledYears(true);
+                if (monthsPanel) monthsPanel.style.display = 'none';
+            }
+
+            syncToggleStates();
+            syncWeeklyControls();
+            refreshOpsYearFilters();
+            refreshOpsMonthlyYearLabels();
+            refreshOpsMonthsSelectionUI();
+        };
 
         let adjustingMode = false;
 
@@ -10786,8 +10389,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function syncWeeklyControls(){
             const isWeekly = opsUIState.mode === 'weekly';
-            if (weeklyWeekFilter) weeklyWeekFilter.classList.toggle('d-none', !isWeekly);
-            if (weeklyDayFilter) weeklyDayFilter.classList.toggle('d-none', !isWeekly);
+            if (weeklyWeekFilter) {
+                weeklyWeekFilter.classList.remove('d-none');
+                weeklyWeekFilter.style.display = isWeekly ? 'flex' : 'none';
+            }
+            if (weeklyDayFilter) {
+                weeklyDayFilter.classList.remove('d-none');
+                weeklyDayFilter.style.display = isWeekly ? 'flex' : 'none';
+            }
             if (!isWeekly) {
                 opsUIState.weeklyDay = 'all';
                 if (weeklyDaySelect) weeklyDaySelect.value = 'all';
@@ -10804,8 +10413,16 @@ document.addEventListener('DOMContentLoaded', () => {
             adjustingMode = true;
             let availability = { weeks: [], hasAny: true, currentHasData: false };
             try {
+                if (newMode === 'yearly') {
+                    const allYears = getOpsAvailableYearsFromTotals();
+                    if (allYears.length) {
+                        opsUIState.years = new Set(allYears.map(y => String(y)));
+                        refreshOpsYearFilters(allYears);
+                    }
+                }
                 opsUIState.mode = newMode;
-                refreshDisabledYears(newMode !== 'yearly');
+                // refreshDisabledYears(newMode !== 'yearly'); // Removed to keep years always enabled
+                refreshDisabledYears(false);
                 if (monthsPanel) monthsPanel.style.display = newMode === 'monthly' ? '' : 'none';
                 syncToggleStates();
                 availability = populateWeeklyWeekOptions();
@@ -11586,15 +11203,15 @@ function setupManifestsUI() {
             const rows = loadRecords();
             tableBody.innerHTML = rows.map(r => `
                 <tr>
-                        <td>${r.direction ?? ''}</td>
-                            <td>${(r.carrier3L? (r.carrier3L.toUpperCase()+ ' - ') : '') + (r.airline ?? r.operatorName ?? '')}</td>
-                            <td>${r.flight ?? ''}</td>
-                            <td>${r.tail ?? ''}</td>
+                    <td>${r.direction||''}</td>
+                    <td>${(r.carrier3L? (r.carrier3L.toUpperCase()+ ' - ') : '') + (r.airline||r.operatorName||'')}</td>
+                    <td>${r.flight||''}</td>
+                    <td>${r.tail||''}</td>
                     <td></td>
                     <td></td>
-                    <td>${(r.originCode ?? '')}/${r.finalDest ?? ''}</td>
-                    <td>${r.pax ?? ''}</td>
-                    <td>${r.cargoKg ?? ''}/${r.mailKg ?? ''}</td>
+                    <td>${(r.originCode||'')}/${r.finalDest||''}</td>
+                    <td>${r.pax||''}</td>
+                    <td>${r.cargoKg||''}/${r.mailKg||''}</td>
                     <td>${r.image?'<img src="'+r.image+'" style="height:30px">':''}</td>
                 </tr>`).join('');
         }
@@ -11624,9 +11241,9 @@ function setupManifestsUI() {
             if (!demoraTbody) return;
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><input type="text" class="form-control form-control-sm demora-codigo" value="${data.codigo ?? ''}"></td>
-                <td><input type="number" min="0" class="form-control form-control-sm demora-minutos" value="${data.minutos ?? ''}"></td>
-                <td><input type="text" class="form-control form-control-sm demora-descripcion" value="${data.descripcion ?? ''}"></td>
+                <td><input type="text" class="form-control form-control-sm demora-codigo" value="${data.codigo||''}"></td>
+                <td><input type="number" min="0" class="form-control form-control-sm demora-minutos" value="${data.minutos||''}"></td>
+                <td><input type="text" class="form-control form-control-sm demora-descripcion" value="${data.descripcion||''}"></td>
                 <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-demora-row"><i class="fas fa-times"></i></button></td>`;
             demoraTbody.appendChild(tr);
         }
@@ -11673,12 +11290,12 @@ function setupManifestsUI() {
             if (!embarqueTbody) return;
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><input type="text" class="form-control form-control-sm embarque-estacion" value="${data.estacion ?? ''}"></td>
-                <td><input type="number" min="0" class="form-control form-control-sm embarque-pax-nacional" value="${data.paxNacional ?? ''}"></td>
-                <td><input type="number" min="0" class="form-control form-control-sm embarque-pax-internacional" value="${data.paxInternacional ?? ''}"></td>
-                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm embarque-equipaje" value="${data.equipaje ?? ''}"></td>
-                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm embarque-carga" value="${data.carga ?? ''}"></td>
-                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm embarque-correo" value="${data.correo ?? ''}"></td>
+                <td><input type="text" class="form-control form-control-sm embarque-estacion" value="${data.estacion||''}"></td>
+                <td><input type="number" min="0" class="form-control form-control-sm embarque-pax-nacional" value="${data.paxNacional||''}"></td>
+                <td><input type="number" min="0" class="form-control form-control-sm embarque-pax-internacional" value="${data.paxInternacional||''}"></td>
+                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm embarque-equipaje" value="${data.equipaje||''}"></td>
+                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm embarque-carga" value="${data.carga||''}"></td>
+                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm embarque-correo" value="${data.correo||''}"></td>
                 <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-embarque-row"><i class="fas fa-times"></i></button></td>`;
             embarqueTbody.appendChild(tr);
             calculateTotals();
@@ -11811,6 +11428,10 @@ function sanitizeParteOperacionesItem(item){
     if (!item || typeof item !== 'object') {
         return { tipo: 'Sin clasificar', llegada: 0, salida: 0, subtotal: 0 };
     }
+    // Filter out 'Aviación de pasajeros' explicitly
+    if (item?.tipo && item.tipo.toString().toLowerCase().includes('pasajeros')) {
+        return null; // Mark for filtering
+    }
     const sanitized = {
         tipo: (item?.tipo ?? 'Sin clasificar').toString().trim(),
         llegada: Number(item?.llegada) || 0,
@@ -11831,38 +11452,256 @@ function normalizeParteOperacionesType(value){
 }
 
 function shouldUseParteOperacionesRemoteBackend(){
-    if (typeof window === 'undefined') return false;
-    if (window.location && window.location.protocol === 'file:') return false;
-    if (window.location) {
-        const { hostname, port } = window.location;
-        if (isLikelyLocalDevelopmentHost(hostname, port)) {
-            if (!parteOperacionesRemoteLocalBlockLogged) {
-                parteOperacionesRemoteLocalBlockLogged = true;
-                console.info('Sincronización remota de parte de operaciones desactivada en este entorno local (sin API disponible).');
-            }
-            return false;
-        }
-    }
-    if (typeof fetch !== 'function') return false;
-    return parteOperacionesRemoteState.enabled;
+    return !!window.supabaseClient;
 }
+
+// --- HISTORIAL DE CAMBIOS ---
+
+window.logHistory = async function(action, entity, recordId, details) {
+    if (!window.supabaseClient) {
+        console.warn('logHistory: Supabase client not initialized');
+        return;
+    }
+    try {
+        // 1. Ensure session is active
+        let { data: { session } } = await window.supabaseClient.auth.getSession();
+        
+        if (!session) {
+             const token = sessionStorage.getItem('token');
+             if (token) {
+                 const { data: restoreData } = await window.supabaseClient.auth.setSession({ 
+                    access_token: token, 
+                    refresh_token: token 
+                 });
+                 session = restoreData.session;
+             }
+        }
+
+        if (!session || !session.user) {
+            console.warn('logHistory: No active session found. Cannot log history.');
+            return; 
+        }
+
+        const userId = session.user.id;
+        const userEmail = session.user.email || sessionStorage.getItem('user_fullname') || 'Usuario';
+
+        console.log('Logging history:', { action, entity, recordId, details, userId });
+
+        const { error } = await window.supabaseClient.from('change_history').insert({
+            user_id: userId,
+            user_email: userEmail,
+            action_type: action,
+            entity_type: entity,
+            record_id: recordId,
+            details: details
+        });
+
+        if (error) {
+            console.error('Error inserting history:', error);
+        } else {
+            console.log('History logged successfully');
+        }
+    } catch (err) {
+        console.warn('Error logging history:', err);
+    }
+}
+
+async function loadHistory() {
+    const tableBody = document.getElementById('history-table-body');
+    if (!tableBody) {
+        console.warn('loadHistory: table body not found');
+        return;
+    }
+    
+    tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted"><div class="spinner-border spinner-border-sm text-primary" role="status"></div> Cargando...</td></tr>';
+
+    if (!window.supabaseClient) {
+        tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error: Supabase no conectado.</td></tr>';
+        return;
+    }
+
+    try {
+        // Ensure session is active for RLS
+        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        if (!session) {
+             const token = sessionStorage.getItem('token');
+             if (token) {
+                 await window.supabaseClient.auth.setSession({ access_token: token, refresh_token: token });
+             }
+        }
+
+        const { data, error } = await window.supabaseClient
+            .from('change_history')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+        if (error) {
+            console.error('Supabase history error:', error);
+            if (error.code === '42P01') { // undefined_table
+                throw new Error('La tabla "change_history" no existe. Ejecuta el script SQL.');
+            }
+            throw error;
+        }
+
+        if (!data || data.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No hay historial de cambios registrado.</td></tr>';
+            return;
+        }
+
+        tableBody.innerHTML = '';
+        data.forEach(log => {
+            // Check if log.created_at contains T/Z for standard parsing
+            const dObj = new Date(log.created_at);
+            // Format DD-MM-YYYY HH:mm
+            const dd = String(dObj.getDate()).padStart(2, '0');
+            const mm = String(dObj.getMonth() + 1).padStart(2, '0');
+            const yyyy = dObj.getFullYear();
+            const time = dObj.toLocaleTimeString('es-MX', { hour: '2-digit', minute:'2-digit', hour12: false });
+            
+            const date = `${dd}-${mm}-${yyyy} ${time}`;
+
+            let badgeClass = 'bg-secondary';
+            if (log.action_type === 'CREAR' || log.action_type === 'AGREGAR') badgeClass = 'bg-success';
+            if (log.action_type === 'EDITAR' || log.action_type === 'ACTUALIZAR') badgeClass = 'bg-warning text-dark';
+            if (log.action_type === 'ELIMINAR') badgeClass = 'bg-danger';
+
+            let detailsText = '';
+            if (log.details) {
+                if (typeof log.details === 'string') {
+                    detailsText = log.details;
+                } else if (typeof log.details === 'object') {
+                    // Handle structured object
+                    const parts = [];
+                    if (log.details.mode === 'auto-sync') parts.push('<span class="badge bg-light text-dark border">Sincronización Auto</span>');
+                    
+                    if (log.details.diff) {
+                        parts.push(log.details.diff);
+                    } else {
+                        if (log.details.total_ops !== undefined) parts.push(`<strong>Total:</strong> ${log.details.total_ops} ops`);
+                        if (log.details.types) parts.push(`<strong>Tipos:</strong> ${log.details.types}`);
+                        if (log.details.count && !log.details.total_ops) parts.push(`${log.details.count} registros`);
+                    }
+                    
+                    if (parts.length > 0) detailsText = parts.join('<br>');
+                    else detailsText = JSON.stringify(log.details);
+                }
+            }
+
+            const userInitial = (log.user_email || '?').charAt(0).toUpperCase();
+            const userEmail = log.user_email || 'Desconocido';
+
+            const row = `
+                <tr>
+                    <td><small>${date}</small></td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-circle bg-primary text-white me-2" style="width: 24px; height: 24px; font-size: 10px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+                                ${userInitial}
+                            </div>
+                            <span class="text-truncate" style="max-width: 150px;" title="${userEmail}">${userEmail}</span>
+                        </div>
+                    </td>
+                    <td><span class="badge ${badgeClass}">${log.action_type}</span></td>
+                    <td>${log.entity_type}</td>
+                    <td class="text-wrap" style="min-width: 300px;"><small class="text-muted">${detailsText}</small></td>
+                </tr>
+            `;
+            tableBody.insertAdjacentHTML('beforeend', row);
+        });
+
+    } catch (err) {
+        console.error('Error loading history:', err);
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Error al cargar historial: ${err.message}</td></tr>`;
+    }
+}
+
+// Expose globally
+window.loadHistory = loadHistory;
+
+async function testHistoryConnection() {
+    if (!window.supabaseClient) {
+        alert('❌ Error: Supabase no está inicializado.');
+        return;
+    }
+    try {
+        const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
+        console.log('Test Connection - Session:', session);
+        
+        if (!session) {
+            alert('⚠️ Advertencia: No hay sesión activa en Supabase. El historial requiere autenticación.');
+            // Attempt to restore from sessionStorage if available (hacky fallback)
+            const token = sessionStorage.getItem('token');
+            if (token) {
+                console.log('Attempting to restore session from token...');
+                const { error: restoreError } = await window.supabaseClient.auth.setSession({
+                    access_token: token,
+                    refresh_token: token // This might fail if it's not a refresh token, but worth a try or just use access_token
+                });
+                if (restoreError) console.warn('Restore session failed:', restoreError);
+            }
+        }
+
+        const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+        const userId = user.id || session?.user?.id;
+
+        if (!userId) {
+            alert('❌ Error: No se encontró ID de usuario. Inicia sesión.');
+            return;
+        }
+
+        const { error } = await window.supabaseClient.from('change_history').insert({
+            user_id: userId,
+            user_email: 'test@connection.check',
+            action_type: 'PRUEBA',
+            entity_type: 'Sistema',
+            details: 'Verificación de conexión manual'
+        });
+
+        if (error) {
+            console.error('Test connection error:', error);
+            alert(`❌ Error al insertar en change_history:\n${error.message}\nCódigo: ${error.code}\nHint: ${error.hint || 'Posible error de permisos (RLS)'}`);
+        } else {
+            alert('✅ ¡Conexión exitosa! Se insertó un registro de prueba.');
+            loadHistory();
+        }
+    } catch (err) {
+        alert(`❌ Error inesperado: ${err.message}`);
+    }
+}
+window.testHistoryConnection = testHistoryConnection;
 
 async function upsertParteOperacionesRemoteEntries(date, rows, options = {}){
     if (!isValidParteOperacionesDate(date)) return false;
-    if (!shouldUseParteOperacionesRemoteBackend()) return false;
+    if (!shouldUseParteOperacionesRemoteBackend()) {
+        console.warn('upsertParteOperacionesRemoteEntries: Remote backend not available');
+        return false;
+    }
     try {
-        const res = await fetch(PARTE_OPERACIONES_REMOTE_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ date, entries: rows })
-        });
-        if (res.status === 404) {
-            parteOperacionesRemoteState.enabled = false;
-            throw new Error('Endpoint no disponible (404)');
+        const { error } = await window.supabaseClient
+            .from('custom_parte_operaciones')
+            .upsert({ date: date, entries: rows }, { onConflict: 'date' });
+
+        if (error) throw error;
+
+        // Log history with more details
+        let historyDetails = options.historyDetails;
+        
+        if (!historyDetails) {
+             // Fallback for auto-sync or calls without explicit diff
+             historyDetails = {
+                mode: 'auto-sync',
+                count: rows.length,
+                types: rows.map(r => r.tipo).filter(Boolean).join(', '),
+                total_ops: rows.reduce((acc, r) => acc + (Number(r.subtotal)||0), 0)
+            };
+        } else if (typeof historyDetails === 'string') {
+            // Wrap string diff in object for consistent rendering
+            historyDetails = { diff: historyDetails };
         }
-        if (!res.ok) {
-            throw new Error(`HTTP ${res.status}`);
-        }
+        
+        await logHistory('ACTUALIZAR', 'Parte Operaciones', date, historyDetails);
+
         parteOperacionesRemoteState.healthy = true;
         parteOperacionesRemoteState.lastError = null;
         parteOperacionesRemoteState.lastSync = 0;
@@ -11881,15 +11720,16 @@ async function deleteParteOperacionesRemoteEntries(date, options = {}){
     if (!isValidParteOperacionesDate(date)) return false;
     if (!shouldUseParteOperacionesRemoteBackend()) return false;
     try {
-        const endpoint = `${PARTE_OPERACIONES_REMOTE_ENDPOINT}/${encodeURIComponent(date)}`;
-        const res = await fetch(endpoint, { method: 'DELETE' });
-        if (res.status === 404) {
-            parteOperacionesRemoteState.enabled = false;
-            throw new Error('Endpoint no disponible (404)');
-        }
-        if (!res.ok) {
-            throw new Error(`HTTP ${res.status}`);
-        }
+        const { error } = await window.supabaseClient
+            .from('custom_parte_operaciones')
+            .delete()
+            .eq('date', date);
+        
+        if (error) throw error;
+
+        // Log history
+        await logHistory('ELIMINAR', 'Parte Operaciones', date, { description: 'Eliminación completa del día' });
+
         parteOperacionesRemoteState.healthy = true;
         parteOperacionesRemoteState.lastError = null;
         parteOperacionesRemoteState.lastSync = 0;
@@ -11949,19 +11789,19 @@ async function syncParteOperacionesRemoteStore(options = {}){
             }
         }
         try {
-            const res = await fetch(PARTE_OPERACIONES_REMOTE_ENDPOINT, {
-                headers: { Accept: 'application/json' },
-                cache: 'no-store'
-            });
-            if (res.status === 404) {
-                parteOperacionesRemoteState.enabled = false;
-                throw new Error('Endpoint no disponible (404)');
+            const { data, error } = await window.supabaseClient
+                .from('custom_parte_operaciones')
+                .select('date, entries');
+
+            if (error) throw error;
+
+            const remoteDates = {};
+            if (data) {
+                data.forEach(row => {
+                    remoteDates[row.date] = row.entries;
+                });
             }
-            if (!res.ok) {
-                throw new Error(`HTTP ${res.status}`);
-            }
-            const payload = await res.json();
-            const remoteDates = payload?.dates && typeof payload.dates === 'object' ? payload.dates : {};
+
             const dirtyLedger = ensureParteOperacionesDirtyLedger();
             const currentStore = ensureParteOperacionesCustomStore();
             const safeDates = {};
@@ -12016,9 +11856,9 @@ function normalizeParteOperacionesSummary(raw){
             .sort((a, b) => a[0].localeCompare(b[0]));
         const byDate = {};
         for (const [dateKey, value] of entries){
-            const operaciones = Array.isArray(value?.operaciones) ? value.operaciones.map(sanitizeParteOperacionesItem) : [];
+            const operaciones = Array.isArray(value?.operaciones) ? value.operaciones.map(sanitizeParteOperacionesItem).filter(Boolean) : [];
             const totalGeneral = Number(value?.total_general) || 0;
-            byDate[dateKey] = { operaciones, total_general: totalGeneral };
+            byDate[dateKey] = { operaciones, total_general: totalGeneral, pdf_url: value?.pdf_url };
         }
         const dates = entries.map(([date]) => date);
         const availableRange = dates.length ? { inicio: dates[0], fin: dates[dates.length - 1] } : null;
@@ -12026,7 +11866,7 @@ function normalizeParteOperacionesSummary(raw){
     }
 
     if (Array.isArray(raw?.operaciones)){
-        const operaciones = raw.operaciones.map(sanitizeParteOperacionesItem);
+        const operaciones = raw.operaciones.map(sanitizeParteOperacionesItem).filter(Boolean);
         const totalGeneral = Number(raw?.total_general) || 0;
         return { dates: ['legacy'], byDate: { legacy: { operaciones, total_general: totalGeneral } }, isLegacy: true, availableRange: null };
     }
@@ -12070,10 +11910,11 @@ function mergeParteOperacionesCustomEntries(summary){
         }
         const target = combined.byDate[dateKey];
         const baseOps = Array.isArray(target.operaciones) ? target.operaciones : [];
-        const normalizedBase = baseOps.map(sanitizeParteOperacionesItem);
-        const normalizedCustom = entries.map(entry => Object.assign({}, sanitizeParteOperacionesItem(entry), { __custom: true }));
+        const normalizedBase = baseOps.map(sanitizeParteOperacionesItem).filter(Boolean);
+        const normalizedCustom = entries.map(entry => Object.assign({}, sanitizeParteOperacionesItem(entry), { __custom: true })).filter(item => item && item.tipo);
         const merged = [...normalizedBase];
         normalizedCustom.forEach(customItem => {
+            if (!customItem) return;
             const baseKey = normalizeParteOperacionesType(customItem.tipo);
             const existingIdx = merged.findIndex(it => normalizeParteOperacionesType(it.tipo) === baseKey);
             if (existingIdx === -1) {
@@ -12144,206 +11985,14 @@ function formatParteOperacionesPdfFilename(dateStr){
     return `Operaciones ${day} ${monthLabel} ${jsDate.getFullYear()}`;
 }
 
-let parteOperacionesPdfManifest = null;
-let parteOperacionesPdfManifestLoaded = false;
-
-async function loadParteOperacionesPdfManifest(){
-    // If we've already successfully loaded the manifest, return it.
-    if (parteOperacionesPdfManifestLoaded && Array.isArray(parteOperacionesPdfManifest)) return parteOperacionesPdfManifest;
-    try {
-        const res = await fetch(`${PARTE_OPERACIONES_PDF_BASE_PATH}/index.json`, { cache: 'no-store' });
-        if (!res.ok) {
-            console.warn('loadParteOperacionesPdfManifest: manifest fetch returned non-ok status', res.status);
-            return null;
-        }
-        const payload = await res.json();
-        if (Array.isArray(payload)) {
-            parteOperacionesPdfManifest = payload.slice();
-            parteOperacionesPdfManifestLoaded = true;
-            return parteOperacionesPdfManifest;
-        }
-        // If payload isn't an array, keep manifest unloaded so we can retry later
-        console.warn('loadParteOperacionesPdfManifest: invalid payload format');
-    } catch (err) {
-        console.warn('loadParteOperacionesPdfManifest failed:', err);
-    }
-    return null;
-}
-
-function _normalizeForPdfMatch(text){
-    if (!text) return '';
-    return text.toString()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-zA-Z0-9]+/g, ' ')
-        .trim()
-        .toLowerCase();
-}
-
-async function findParteOperacionesPdfFilename(dateStr){
-    if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
-    const jsDate = new Date(`${dateStr}T00:00:00`);
-    if (Number.isNaN(jsDate.getTime())) return null;
-    const day = String(jsDate.getDate());
-    const dayPadded = day.padStart(2, '0');
-    const monthName = SPANISH_MONTH_NAMES[jsDate.getMonth()] || '';
-    const monthShort = monthName.slice(0,3);
-    const year = String(jsDate.getFullYear());
-    const dayRe = new RegExp('\\b' + dayPadded + '\\b');
-    const monthRe = new RegExp('\\b' + monthName + '\\b');
-    const monthShortRe = new RegExp('\\b' + monthShort + '\\b');
-    const yearRe = new RegExp('\\b' + year + '\\b');
-
-    const manifest = await loadParteOperacionesPdfManifest();
-    if (!Array.isArray(manifest) || !manifest.length) return null;
-
-    // score candidates: prefer ones containing day, month (full or short), year
-    let best = null;
-    let bestScore = -1;
-    for (const candidate of manifest){
-        if (!candidate || typeof candidate !== 'string') continue;
-        // only consider pdf files
-        if (!/\.pdf$/i.test(candidate)) continue;
-        const norm = _normalizeForPdfMatch(candidate.replace(/\.pdf$/i, ''));
-        let score = 0;
-
-        const hasDay = dayRe.test(norm);
-        const hasMonth = monthRe.test(norm);
-        const hasMonthShort = monthShortRe.test(norm);
-        const hasYear = yearRe.test(norm);
-
-        if (hasDay) score += 6;
-        if (hasMonth) score += 5;
-        if (hasMonthShort) score += 2;
-        if (hasYear) score += 8;
-        if (norm.includes('operaciones')) score += 1;
-
-        // Penalize matches that have the day number but NOT the month name
-        // This prevents "31 Agosto" from matching "31 Diciembre" just because of "31" and "Year"
-        if (hasDay && !hasMonth && !hasMonthShort) {
-            score = -100;
-        }
-
-        // CRITICAL FIX: If the filename contains a year that is NOT the target year, disqualify it.
-        // This prevents "04 Enero 2025" from matching "04 Enero 2026".
-        const yearsInName = norm.match(/\b20\d{2}\b/g);
-        if (yearsInName) {
-            // If we found years, but none of them is the target year, it's a mismatch.
-            if (!yearsInName.includes(year)) {
-                score = -1000;
-            }
-        }
-
-        if (score > bestScore){
-            bestScore = score;
-            best = candidate;
-        }
-    }
-    // require at least a minimal score (day + year or month + year)
-    if (bestScore >= 7) return best;
-
-    // Second pass: looser matching — prefer day+year, or day+month, or month+year
-    for (const candidate of manifest){
-        if (!candidate || typeof candidate !== 'string') continue;
-        if (!/\.pdf$/i.test(candidate)) continue;
-        const norm = _normalizeForPdfMatch(candidate.replace(/\.pdf$/i, ''));
-
-        // Check for year mismatch
-        const yearsInName = norm.match(/\b20\d{2}\b/g);
-        if (yearsInName && !yearsInName.includes(year)) continue;
-
-        // day + year
-        if (dayRe.test(norm) && yearRe.test(norm)) return candidate;
-        // day + month
-        if (dayRe.test(norm) && (monthRe.test(norm) || monthShortRe.test(norm))) return candidate;
-        // month + year
-        if ((monthRe.test(norm) || monthShortRe.test(norm)) && yearRe.test(norm)) return candidate;
-    }
-
-    // Third pass: match day only (last resort)
-    for (const candidate of manifest){
-        if (!candidate || typeof candidate !== 'string') continue;
-        if (!/\.pdf$/i.test(candidate)) continue;
-        const norm = _normalizeForPdfMatch(candidate.replace(/\.pdf$/i, ''));
-
-        // Check for year mismatch
-        const yearsInName = norm.match(/\b20\d{2}\b/g);
-        if (yearsInName && !yearsInName.includes(year)) continue;
-
-        if (dayRe.test(norm)) return candidate;
-    }
-
-    return null;
-}
-
 function buildParteOperacionesPdfPath(dateStr){
-    // Attempt to build a fallback path using the old deterministic filename
     const filename = formatParteOperacionesPdfFilename(dateStr);
     if (!filename) return null;
     const encoded = encodeURIComponent(`${filename}${PARTE_OPERACIONES_PDF_EXTENSION}`);
     return `${PARTE_OPERACIONES_PDF_BASE_PATH}/${encoded}`;
 }
 
-async function _urlExists(url){
-    try {
-        const res = await fetch(url, { method: 'HEAD', cache: 'no-store' });
-        if (res.ok) return true;
-        // Some servers don't support HEAD; try GET lightly
-        if (res.status === 405 || res.status === 501) {
-            const r2 = await fetch(url, { method: 'GET', cache: 'no-store' });
-            return r2.ok;
-        }
-        return false;
-    } catch (err){
-        return false;
-    }
-}
-
-// Try multiple candidate paths (encoded/raw/normalized) and return the first that exists
-async function resolveParteOperacionesPdfPath(matchedFilename, fallbackFilename){
-    const base = PARTE_OPERACIONES_PDF_BASE_PATH;
-    const candidates = [];
-    if (matchedFilename) {
-        candidates.push(`${base}/${encodeURIComponent(matchedFilename)}`);
-        candidates.push(`${base}/${matchedFilename}`);
-    }
-    if (fallbackFilename) {
-        const fb = `${fallbackFilename}${PARTE_OPERACIONES_PDF_EXTENSION}`;
-        candidates.push(`${base}/${encodeURIComponent(fb)}`);
-        candidates.push(`${base}/${fb}`);
-    }
-
-    // add sanitized variants (collapse multiple spaces, remove stray space before dot, remove unexpected dots)
-    const sanitizers = [
-        s => s.replace(/\s+/g, ' ').trim(),
-        s => s.replace(/\s+\./g, '.'),
-        s => s.replace(/\.\s+/g, '.').replace(/\.{2,}/g, '.')
-    ];
-    const seen = new Set(candidates);
-    for (const c of [...candidates]){
-        const rawName = c.replace(`${base}/`, '');
-        for (const san of sanitizers){
-            const variant = `${base}/${encodeURIComponent(san(decodeURIComponent(rawName)))}`;
-            if (!seen.has(variant)) { seen.add(variant); candidates.push(variant); }
-            const variantRaw = `${base}/${san(decodeURIComponent(rawName))}`;
-            if (!seen.has(variantRaw)) { seen.add(variantRaw); candidates.push(variantRaw); }
-        }
-    }
-
-    for (const url of candidates){
-        if (!url) continue;
-        try {
-            // Try checking availability
-            // If running file:// this will likely fail; callers should handle null
-            // Use absolute URL if environment provides location origin
-            const abs = (typeof window !== 'undefined' && window.location && window.location.origin) ? `${window.location.origin}/${url}`.replace(/([^:])\/\//g,'$1/') : url;
-            if (await _urlExists(abs)) return url;
-        } catch (_) {}
-    }
-    return null;
-}
-
-async function updateParteOperacionesPdfViewer(metadata = {}){
+function updateParteOperacionesPdfViewer(metadata = {}){
     const wrapper = document.getElementById('operations-pdf-viewer');
     if (!wrapper) return;
     const iframe = document.getElementById('operations-pdf-frame');
@@ -12353,6 +12002,8 @@ async function updateParteOperacionesPdfViewer(metadata = {}){
     if (!iframe || !placeholder || !label || !downloadBtn) return;
 
     const isoDate = metadata?.isoDate;
+    const pdfUrl = metadata?.pdfUrl;
+
     if (!isoDate || metadata?.isLegacy){
         placeholder.classList.remove('d-none');
         iframe.classList.add('d-none');
@@ -12368,60 +12019,38 @@ async function updateParteOperacionesPdfViewer(metadata = {}){
         return;
     }
 
-    // show placeholder until we resolve the actual PDF path
-    placeholder.classList.remove('d-none');
-    iframe.classList.add('d-none');
-    if (iframe.getAttribute('src')) iframe.removeAttribute('src');
-    downloadBtn.classList.add('d-none');
-    downloadBtn.removeAttribute('href');
-    downloadBtn.removeAttribute('download');
+    let finalPdfPath = pdfUrl;
+    let finalFilename = `parte_operaciones_${isoDate}`;
 
-    // Build a sensible friendly label while we try to find the actual file
-    const friendly = metadata?.friendlyDate || formatParteOperacionesDate(isoDate) || isoDate;
-    label.textContent = `Buscando documento correspondiente al ${friendly}...`;
+    // Removed local file fallback as per user request to use only DB data
 
-    // Try to find a file in the manifest (if available) or fall back to deterministic filename
-    let matchedFilename = null;
-    try {
-        matchedFilename = await findParteOperacionesPdfFilename(isoDate);
-    } catch (err) {
-        console.warn('findParteOperacionesPdfFilename failed:', err);
-    }
 
-    const fallbackFilename = formatParteOperacionesPdfFilename(isoDate);
-    let pdfPath = null;
-    let downloadName = null;
-    try {
-        const resolved = await resolveParteOperacionesPdfPath(matchedFilename, fallbackFilename);
-        if (resolved) {
-            pdfPath = resolved;
-            const leaf = (resolved || '').split('/').pop() || '';
-            downloadName = decodeURIComponent(leaf).replace(/\.pdf$/i, '');
-        } else if (matchedFilename) {
-            pdfPath = `${PARTE_OPERACIONES_PDF_BASE_PATH}/${encodeURIComponent(matchedFilename)}`;
-            downloadName = matchedFilename.replace(/\.pdf$/i, '');
-        } else if (fallbackFilename) {
-            pdfPath = buildParteOperacionesPdfPath(isoDate);
-            downloadName = `${fallbackFilename}${PARTE_OPERACIONES_PDF_EXTENSION}`.replace(/\.pdf$/i, '');
-        }
-    } catch (err) {
-        console.warn('resolveParteOperacionesPdfPath failed:', err);
-    }
-
-    if (!pdfPath){
+    if (!finalPdfPath){
         placeholder.classList.remove('d-none');
         iframe.classList.add('d-none');
-        label.textContent = 'No fue posible construir la ruta del documento para esta fecha.';
+        if (iframe.getAttribute('src')){
+            iframe.removeAttribute('src');
+        }
+        downloadBtn.classList.add('d-none');
+        downloadBtn.removeAttribute('href');
+        downloadBtn.removeAttribute('download');
+        label.textContent = 'No hay documento PDF disponible para esta fecha.';
         return;
     }
 
+    const friendly = metadata?.friendlyDate || formatParteOperacionesDate(isoDate) || isoDate;
     label.textContent = `Documento correspondiente al ${friendly}.`;
     placeholder.classList.add('d-none');
     iframe.classList.remove('d-none');
-    iframe.setAttribute('src', pdfPath);
+    iframe.setAttribute('src', finalPdfPath);
     downloadBtn.classList.remove('d-none');
-    downloadBtn.href = pdfPath;
-    downloadBtn.download = downloadName || (`${fallbackFilename}${PARTE_OPERACIONES_PDF_EXTENSION}`);
+    downloadBtn.href = finalPdfPath;
+    downloadBtn.download = finalFilename.endsWith('.pdf') ? finalFilename : `${finalFilename}.pdf`;
+    if (pdfUrl) {
+        downloadBtn.target = '_blank'; // Open in new tab if it's a remote URL
+    } else {
+        downloadBtn.removeAttribute('target');
+    }
 }
 
 function getDefaultParteOperacionesDate(summary){
@@ -12449,244 +12078,65 @@ function getDefaultParteOperacionesDate(summary){
 }
 
 function canCurrentUserEditParteOperaciones(){
-    const name = (sessionStorage.getItem(SESSION_USER) || '').toLowerCase();
-    if (!name) return false;
-    return PARTE_OPERACIONES_EDITORS.includes(name);
+    const role = sessionStorage.getItem('user_role');
+    return role === 'admin' || role === 'editor';
 }
 
 function getCurrentParteOperacionesEditor(){
     return sessionStorage.getItem(SESSION_USER) || '';
 }
 
+// Parte de operaciones quick-capture functionality removed — stubs to keep integrations safe
 function ensureOpsEntryPanel(){
-    if (parteOperacionesEntryState.initialized) return parteOperacionesEntryState;
+    if (!parteOperacionesEntryState) return {};
     parteOperacionesEntryState.initialized = true;
-    parteOperacionesEntryState.panel = document.getElementById('ops-entry-panel');
-    parteOperacionesEntryState.tableBody = document.querySelector('#ops-entry-table tbody');
-    parteOperacionesEntryState.dateInput = document.getElementById('ops-entry-date');
-    parteOperacionesEntryState.feedback = document.getElementById('ops-entry-feedback');
-    parteOperacionesEntryState.addBtn = document.getElementById('ops-entry-add-row');
-    parteOperacionesEntryState.resetBtn = document.getElementById('ops-entry-reset-table');
-    parteOperacionesEntryState.saveBtn = document.getElementById('ops-entry-save');
-    parteOperacionesEntryState.clearDayBtn = document.getElementById('ops-entry-clear-day');
-    parteOperacionesEntryState.todayBtn = document.getElementById('ops-entry-today');
-    parteOperacionesEntryState.syncBtn = document.getElementById('ops-entry-sync-summary');
-    if (parteOperacionesEntryState.addBtn && !parteOperacionesEntryState.addBtn._wired) {
-        parteOperacionesEntryState.addBtn._wired = 1;
-        parteOperacionesEntryState.addBtn.addEventListener('click', () => addParteOperacionesEntryRow());
-    }
-    if (parteOperacionesEntryState.resetBtn && !parteOperacionesEntryState.resetBtn._wired) {
-        parteOperacionesEntryState.resetBtn._wired = 1;
-        parteOperacionesEntryState.resetBtn.addEventListener('click', () => resetParteOperacionesEntryTable());
-    }
-    if (parteOperacionesEntryState.saveBtn && !parteOperacionesEntryState.saveBtn._wired) {
-        parteOperacionesEntryState.saveBtn._wired = 1;
-        parteOperacionesEntryState.saveBtn.addEventListener('click', () => {
-            saveParteOperacionesEntriesForCurrentDate().catch((err) => {
-                console.warn('saveParteOperacionesEntriesForCurrentDate failed:', err);
-            });
-        });
-    }
-    if (parteOperacionesEntryState.clearDayBtn && !parteOperacionesEntryState.clearDayBtn._wired) {
-        parteOperacionesEntryState.clearDayBtn._wired = 1;
-        parteOperacionesEntryState.clearDayBtn.addEventListener('click', () => {
-            clearParteOperacionesEntriesForCurrentDate().catch((err) => {
-                console.warn('clearParteOperacionesEntriesForCurrentDate failed:', err);
-            });
-        });
-    }
-    if (parteOperacionesEntryState.todayBtn) parteOperacionesEntryState.todayBtn.addEventListener('click', () => setParteOperacionesEntryDate(new Date()));
-    if (parteOperacionesEntryState.syncBtn) parteOperacionesEntryState.syncBtn.addEventListener('click', () => {
-        if (parteOperacionesSummarySelectedDate) {
-            setParteOperacionesEntryDate(parteOperacionesSummarySelectedDate);
-        } else {
-            setParteOperacionesEntryDate(new Date());
-        }
-    });
-    document.addEventListener('click', (event) => {
-        if (event.target.closest('.ops-entry-remove-row')) {
-            const tr = event.target.closest('tr');
-            if (tr && parteOperacionesEntryState.tableBody) {
-                tr.remove();
-                updateParteOperacionesEntryTotals(tr.closest('table'));
-            }
-        }
-    });
-    document.addEventListener('input', (event) => {
-        const table = event.target.closest('#ops-entry-table');
-        if (table) {
-            if (event.target.matches('#ops-entry-table tbody tr td:nth-child(4) input')) {
-                event.target.dataset.manual = event.target.value ? '1' : '';
-            }
-            updateParteOperacionesEntryTotals(table);
-        }
-    });
-    if (parteOperacionesEntryState.dateInput && !parteOperacionesEntryState.dateInput.value) {
-        setParteOperacionesEntryDate(new Date());
-    }
+    parteOperacionesEntryState.panel = null;
+    parteOperacionesEntryState.tableBody = null;
+    parteOperacionesEntryState.dateInput = null;
+    parteOperacionesEntryState.feedback = null;
+    parteOperacionesEntryState.addBtn = null;
+    parteOperacionesEntryState.resetBtn = null;
+    parteOperacionesEntryState.saveBtn = null;
+    parteOperacionesEntryState.clearDayBtn = null;
+    parteOperacionesEntryState.todayBtn = null;
+    parteOperacionesEntryState.syncBtn = null;
     return parteOperacionesEntryState;
 }
 
-function setParteOperacionesEntryDate(value){
-    const st = ensureOpsEntryPanel();
-    if (!st.dateInput) return;
-    if (value instanceof Date) {
-        const copy = new Date(value.getTime());
-        copy.setHours(0,0,0,0);
-        st.dateInput.value = copy.toISOString().slice(0,10);
-    } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-        st.dateInput.value = value;
-    }
-    loadParteOperacionesEntriesForDate(st.dateInput.value);
-}
+function setParteOperacionesEntryDate(_) { /* removed */ }
+function addParteOperacionesEntryRow() { /* removed */ }
+function resetParteOperacionesEntryTable() { /* removed */ }
+function readParteOperacionesEntryTable(){ return []; }
+function updateParteOperacionesEntryTotals() { /* removed */ }
+function loadParteOperacionesEntriesForDate() { /* removed */ }
+async function clearParteOperacionesEntriesForCurrentDate(){ /* removed */ }
+async function saveParteOperacionesEntriesForCurrentDate(){ /* removed */ }
 
-function addParteOperacionesEntryRow(data = {}){
-    const st = ensureOpsEntryPanel();
-    if (!st.tableBody) return;
-    const tr = document.createElement('tr');
-    const llegada = Number(data.llegada);
-    const salida = Number(data.salida);
-    const subtotalValue = Number.isFinite(Number(data.subtotal)) ? Number(data.subtotal) : '';
-    const autoSubtotal = (Number.isFinite(llegada) ? llegada : 0) + (Number.isFinite(salida) ? salida : 0);
-    const manualAttr = subtotalValue !== '' && subtotalValue !== autoSubtotal ? 'data-manual="1"' : '';
-    tr.innerHTML = `
-        <td>
-            <input type="text" class="form-control form-control-sm" list="ops-entry-type-suggestions" value="${data.tipo || ''}" placeholder="Ej. Aviación de pasajeros" required>
-        </td>
-        <td><input type="number" min="0" class="form-control form-control-sm" value="${data.llegada ?? ''}" aria-label="Llegadas"></td>
-        <td><input type="number" min="0" class="form-control form-control-sm" value="${data.salida ?? ''}" aria-label="Salidas"></td>
-        <td><input type="number" min="0" class="form-control form-control-sm" value="${subtotalValue === '' ? '' : subtotalValue}" aria-label="Subtotal" ${manualAttr}></td>
-        <td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm ops-entry-remove-row" title="Eliminar fila"><i class="fas fa-times"></i></button></td>`;
-    st.tableBody.appendChild(tr);
-    updateParteOperacionesEntryTotals(st.tableBody.closest('table'));
-}
-
-function resetParteOperacionesEntryTable(){
-    const st = ensureOpsEntryPanel();
-    if (!st.tableBody) return;
-    st.tableBody.innerHTML = '';
-    addParteOperacionesEntryRow();
-}
-
-function readParteOperacionesEntryTable(){
-    const st = ensureOpsEntryPanel();
-    if (!st.tableBody) return [];
-    const rows = Array.from(st.tableBody.querySelectorAll('tr'));
-    return rows.map(row => {
-        const inputs = row.querySelectorAll('input');
-        const tipo = inputs[0]?.value || '';
-        const llegada = Number(inputs[1]?.value) || 0;
-        const salida = Number(inputs[2]?.value) || 0;
-        let subtotal = Number(inputs[3]?.value);
-        if (!Number.isFinite(subtotal) || subtotal <= 0) {
-            subtotal = llegada + salida;
-        }
-        return sanitizeParteOperacionesItem({ tipo, llegada, salida, subtotal, __custom: true });
-    }).filter(item => item.tipo);
-}
-
-function updateParteOperacionesEntryTotals(table){
-    if (!table) return;
-    const rows = table.querySelectorAll('tbody tr');
-    rows.forEach(row => {
-        const inputs = row.querySelectorAll('input');
-        if (inputs.length < 4) return;
-        const llegada = Number(inputs[1].value) || 0;
-        const salida = Number(inputs[2].value) || 0;
-        const subtotalInput = inputs[3];
-        if (!subtotalInput.dataset.manual) {
-            subtotalInput.value = llegada + salida;
-        }
-    });
-}
-
-function loadParteOperacionesEntriesForDate(date){
-    const st = ensureOpsEntryPanel();
-    if (!st.tableBody) return;
-    const store = ensureParteOperacionesCustomStore();
-    const entries = Array.isArray(store?.dates?.[date]) ? store.dates[date] : [];
-    st.tableBody.innerHTML = '';
-    if (!entries.length) {
-        addParteOperacionesEntryRow();
-        return;
-    }
-    entries.forEach(entry => addParteOperacionesEntryRow(entry));
-    if (st.feedback) st.feedback.textContent = entries.length ? `Se cargaron ${entries.length} filas guardadas para ${date}` : '';
-}
-
-async function clearParteOperacionesEntriesForCurrentDate(){
-    const st = ensureOpsEntryPanel();
-    if (!st.dateInput) return;
-    const date = (st.dateInput.value || '').trim();
-    if (!isValidParteOperacionesDate(date)) {
-        setParteOperacionesFeedback('Selecciona una fecha válida para eliminar.', 'danger');
-        return;
-    }
-    const store = ensureParteOperacionesCustomStore();
-    if (store.dates[date]) {
-        delete store.dates[date];
-        saveParteOperacionesCustomStore();
-    }
-    const useRemote = shouldUseParteOperacionesRemoteBackend();
-    if (useRemote) {
-        markParteOperacionesDateDirty(date);
-    }
-    loadParteOperacionesEntriesForDate(date);
-    setParteOperacionesFeedback('Eliminando captura...', 'muted');
-    let remoteSynced = false;
-    if (useRemote) {
-        remoteSynced = await deleteParteOperacionesRemoteEntries(date);
-        if (remoteSynced) {
-            clearParteOperacionesDateDirty(date);
-            await syncParteOperacionesRemoteStore({ force: true, silent: true, skipFlush: true }).catch(() => {});
+function calculateParteOperacionesDiff(oldRows, newRows) {
+    const changes = [];
+    const oldMap = new Map(oldRows.map(r => [r.tipo, r]));
+    const newMap = new Map(newRows.map(r => [r.tipo, r]));
+    
+    const allTypes = new Set([...oldMap.keys(), ...newMap.keys()]);
+    
+    for (const type of allTypes) {
+        const oldRow = oldMap.get(type);
+        const newRow = newMap.get(type);
+        
+        if (!oldRow) {
+            changes.push(`Agregado: ${type} (${newRow.subtotal} ops)`);
+        } else if (!newRow) {
+            changes.push(`Eliminado: ${type} (${oldRow.subtotal} ops)`);
+        } else {
+            // Check for changes
+            if (oldRow.subtotal !== newRow.subtotal || oldRow.llegada !== newRow.llegada || oldRow.salida !== newRow.salida) {
+                changes.push(`Modificado: ${type} (${oldRow.subtotal} -> ${newRow.subtotal} ops)`);
+            }
         }
     }
-    setParteOperacionesFeedback(
-        remoteSynced ? 'Se eliminaron las capturas y se sincronizaron con el servidor.'
-            : (useRemote ? 'Captura eliminada localmente. Pendiente de sincronizar con el servidor.' : 'Captura eliminada.'),
-        remoteSynced ? 'success' : (useRemote ? 'warning' : 'success')
-    );
-    rebuildParteOperacionesCacheFromLocal();
-    loadParteOperacionesSummary({ force: true, silent: true, skipRemoteSync: remoteSynced }).catch(() => {});
-}
-
-async function saveParteOperacionesEntriesForCurrentDate(){
-    const st = ensureOpsEntryPanel();
-    if (!st.dateInput) return;
-    const date = (st.dateInput.value || '').trim();
-    if (!isValidParteOperacionesDate(date)) {
-        setParteOperacionesFeedback('Selecciona una fecha válida para guardar.', 'danger');
-        return;
-    }
-    const rows = readParteOperacionesEntryTable();
-    if (!rows.length) {
-        setParteOperacionesFeedback('Agrega al menos una fila para guardar.', 'danger');
-        return;
-    }
-    const store = ensureParteOperacionesCustomStore();
-    store.dates[date] = rows;
-    saveParteOperacionesCustomStore();
-    const useRemote = shouldUseParteOperacionesRemoteBackend();
-    if (useRemote) {
-        markParteOperacionesDateDirty(date);
-    }
-    setParteOperacionesFeedback('Guardando captura...', 'muted');
-    let remoteSynced = false;
-    if (useRemote) {
-        remoteSynced = await upsertParteOperacionesRemoteEntries(date, rows);
-        if (remoteSynced) {
-            clearParteOperacionesDateDirty(date);
-            await syncParteOperacionesRemoteStore({ force: true, silent: true, skipFlush: true }).catch(() => {});
-        }
-    }
-    setParteOperacionesFeedback(
-        remoteSynced ? `Captura guardada y sincronizada (${rows.length} filas).`
-            : (useRemote ? `Captura guardada localmente (${rows.length} filas). Se sincronizará cuando haya conexión.`
-                : `Captura guardada (${rows.length} filas).`),
-        remoteSynced ? 'success' : (useRemote ? 'warning' : 'success')
-    );
-    rebuildParteOperacionesCacheFromLocal();
-    loadParteOperacionesSummary({ force: true, silent: true, skipRemoteSync: remoteSynced }).catch(() => {});
+    
+    if (changes.length === 0) return 'Sin cambios detectados (Guardado idéntico)';
+    return changes.join(', ');
 }
 
 function setParteOperacionesFeedback(message, tone = 'muted'){
@@ -13045,6 +12495,61 @@ function handleParteOperacionesDateChange(dateStr, options = {}){
     refreshParteOperacionesNavState();
 }
 
+async function fetchParteOperacionesFromDB() {
+    if (!window.supabaseClient) throw new Error('Supabase client not initialized');
+    
+    const { data, error } = await window.supabaseClient
+        .from('parte_operations')
+        .select('*')
+        .order('fecha', { ascending: true });
+        
+    if (error) throw error;
+    
+    const dias = {};
+    
+    data.forEach(row => {
+        const ops = [];
+        
+        // Aviación Comercial
+        if (row.comercial_llegada > 0 || row.comercial_salida > 0) {
+            ops.push({
+                tipo: 'Aviación Comercial',
+                llegada: row.comercial_llegada,
+                salida: row.comercial_salida,
+                subtotal: row.comercial_llegada + row.comercial_salida
+            });
+        }
+        
+        // Aviación de Carga
+        if (row.carga_llegada > 0 || row.carga_salida > 0) {
+            ops.push({
+                tipo: 'Aviación de Carga',
+                llegada: row.carga_llegada,
+                salida: row.carga_salida,
+                subtotal: row.carga_llegada + row.carga_salida
+            });
+        }
+        
+        // Aviación General
+        if (row.general_llegada > 0 || row.general_salida > 0) {
+            ops.push({
+                tipo: 'Aviación General',
+                llegada: row.general_llegada,
+                salida: row.general_salida,
+                subtotal: row.general_llegada + row.general_salida
+            });
+        }
+        
+        dias[row.fecha] = {
+            operaciones: ops,
+            total_general: row.total_general,
+            pdf_url: row.pdf_url
+        };
+    });
+    
+    return { dias };
+}
+
 async function loadParteOperacionesSummary(options = {}){
     const { force = false, silent = false, skipRemoteSync = false } = options;
     const container = document.getElementById('operations-summary-table');
@@ -13072,14 +12577,27 @@ async function loadParteOperacionesSummary(options = {}){
             </div>
         `;
     }
-    if (typeof location !== 'undefined' && location.protocol === 'file:'){
-        container.innerHTML = '<div class="alert alert-info mb-0">Inicia el servidor local para visualizar el resumen.</div>';
-        return;
-    }
+    
     try {
-        const res = await fetch('data/resumen_parte_operaciones.json', { cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const raw = await res.json();
+        let raw;
+        // Try fetching from DB first if client exists
+        if (window.supabaseClient) {
+            try {
+                raw = await fetchParteOperacionesFromDB();
+            } catch (dbErr) {
+                console.warn('Failed to fetch from DB, falling back to JSON:', dbErr);
+                // Fallback to JSON if DB fails
+                const res = await fetch('data/resumen_parte_operaciones.json', { cache: 'no-store' });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                raw = await res.json();
+            }
+        } else {
+             // Local dev or no supabase
+             const res = await fetch('data/resumen_parte_operaciones.json', { cache: 'no-store' });
+             if (!res.ok) throw new Error(`HTTP ${res.status}`);
+             raw = await res.json();
+        }
+
         const normalized = normalizeParteOperacionesSummary(raw);
         parteOperacionesSummaryBaseCache = normalized;
         const merged = mergeParteOperacionesCustomEntries(normalized);
@@ -13134,7 +12652,7 @@ function resolveParteOperacionesSubtotal(item){
 function classifyParteOperacionesAnnualType(value){
     const normalized = normalizeParteOperacionesType(value);
     if (!normalized) return 'otros';
-    if (normalized.includes('pasaj')) return 'comercial';
+    if (normalized.includes('pasaj') || normalized.includes('comercial')) return 'comercial';
     if (normalized.includes('carga')) return 'carga';
     if (normalized.includes('general')) return 'general';
     return 'otros';
@@ -13513,7 +13031,11 @@ function renderParteOperacionesSummary(data, metadata = {}){
     hideParteOperacionesLoader();
     const container = document.getElementById('operations-summary-table');
     if (!container) return;
-    updateParteOperacionesPdfViewer(metadata);
+    
+    // Pass pdfUrl from data to metadata for the viewer
+    const extendedMetadata = { ...metadata, pdfUrl: data?.pdf_url };
+    updateParteOperacionesPdfViewer(extendedMetadata);
+    
     updateParteOperacionesAvailabilityBanner(parteOperacionesSummaryCache);
     if (!data){
         updateParteOperacionesTitle(metadata?.isoDate);
@@ -13530,6 +13052,12 @@ function renderParteOperacionesSummary(data, metadata = {}){
             .toLowerCase();
     };
     const typeConfig = {
+        'aviacion comercial': {
+            cardClass: 'ops-mini-card--comercial',
+            iconClass: 'ops-type-icon--comercial',
+            icon: 'fas fa-plane',
+            progressClass: 'bg-primary'
+        },
         'aviacion de pasajeros': {
             cardClass: 'ops-mini-card--comercial',
             iconClass: 'ops-type-icon--comercial',
@@ -13870,9 +13398,13 @@ if (isAndroidDevice) {
             }
 
             try {
-                if (isAndroidDevice) startAndroidAutoRefreshTimer();
+                if (isAndroidDevice) { startAndroidAutoRefreshTimer(); }
             } catch (err) {
                 console.warn('Android auto-refresh timer init failed:', err);
             }
+
+            // Load dynamic data
+            loadWeeklyOperationsFromDB();
         });
 
+// End of script
