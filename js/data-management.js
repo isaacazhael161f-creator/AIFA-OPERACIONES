@@ -800,9 +800,10 @@ class DataManagement {
                 });
             }
 
-            const sorter = (a,b) => (a.seq_no || 0) - (b.seq_no || 0);
-            arrivals.sort(sorter);
-            departures.sort(sorter);
+            // Mantener el orden original del JSON (suele ser Pasajeros -> Carga -> General)
+            // No ordenar por SEQ_NO porque reinicia en cada sección.
+            // arrivals.sort(sorter);
+            // departures.sort(sorter);
 
             this.renderDailyOpsFancy(arrivals, 'arrival', '#table-daily-flights-arrivals');
             this.renderDailyOpsFancy(departures, 'departure', '#table-daily-flights-departures');
