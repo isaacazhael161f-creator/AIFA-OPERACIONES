@@ -1871,8 +1871,8 @@
                                         <div class="col-lg-6 mb-4">
                                             <div class="card shadow-sm border-0 h-100">
                                                 <div class="card-header bg-success text-white py-2">
-                                                    <h6 class="mb-0 small text-uppercase"><i
-                                                            class="fas fa-plane-arrival me-2"></i>Llegadas</h6>
+                                                    <h6 class="mb-0 fw-bold"><i
+                                                            class="fas fa-plane-arrival me-2"></i>LLEGADAS</h6>
                                                 </div>
                                                 <div class="table-responsive">
                                                     <table
@@ -1880,17 +1880,28 @@
                                                         id="table-ops-flights-arrivals"
                                                         style="font-size: 0.75rem; table-layout: fixed;">
                                                         <thead class="table-light">
-                                                            <tr class="text-center small text-muted text-uppercase">
-                                                                <th style="width: 30px;">No.</th>
-                                                                <th style="width: 75px;">Aerolínea</th>
-                                                                <th style="width: 60px;">Vuelo</th>
-                                                                <th style="width: 85px;">Origen</th>
+                                                            <tr class="text-center small text-muted text-uppercase fw-bold">
+                                                                <th style="width: 35px;">No.</th>
+                                                                <th style="width: 80px;">Aerolínea</th>
+                                                                <th style="width: 65px;">Vuelo</th>
+                                                                <th style="width: 90px;">Origen</th>
                                                                 <th>Prog</th>
                                                                 <th>Real</th>
-                                                                <th style="width: 65px;">Pax</th>
-                                                                <th style="width: 40px;"
-                                                                    class="col-conciliacion d-none"><i
-                                                                        class="fas fa-check-circle"></i></th>
+                                                                <th style="width: 50px;">Pax</th>
+                                                                <th style="width: 30px;"><i class="fas fa-check-circle"></i></th>
+                                                                <th style="width: 30px;"></th>
+                                                            </tr>
+                                                            <!-- Filter Row -->
+                                                            <tr class="bs-filters-row">
+                                                                <td class="p-1"><input type="text" class="form-control form-control-sm border-0 bg-light p-1" style="font-size: 0.7rem;" placeholder="B..." disabled></td>
+                                                                <td class="p-1"><input type="text" class="form-control form-control-sm p-1" style="font-size: 0.7rem;" placeholder="Buscar..." data-filter-col="aerolinea"></td>
+                                                                <td class="p-1"><input type="text" class="form-control form-control-sm p-1" style="font-size: 0.7rem;" placeholder="Buscar..." data-filter-col="vuelo"></td>
+                                                                <td class="p-1"><input type="text" class="form-control form-control-sm p-1" style="font-size: 0.7rem;" placeholder="Buscar..." data-filter-col="origen"></td>
+                                                                <td class="p-1"></td>
+                                                                <td class="p-1"><input type="text" class="form-control form-control-sm p-1" style="font-size: 0.7rem;" placeholder="Buscar..." data-filter-col="real"></td>
+                                                                <td class="p-1"><input type="text" class="form-control form-control-sm p-1" style="font-size: 0.7rem;" placeholder="Buscar..." data-filter-col="pax"></td>
+                                                                <td class="p-1"></td>
+                                                                <td class="p-1"></td>
                                                             </tr>
                                                         </thead>
                                                         <tbody class="text-center bg-white"
@@ -1909,8 +1920,8 @@
                                         <div class="col-lg-6 mb-4">
                                             <div class="card shadow-sm border-0 h-100">
                                                 <div class="card-header bg-primary text-white py-2">
-                                                    <h6 class="mb-0 small text-uppercase"><i
-                                                            class="fas fa-plane-departure me-2"></i>Salidas</h6>
+                                                    <h6 class="mb-0 fw-bold"><i
+                                                            class="fas fa-plane-departure me-2"></i>SALIDAS</h6>
                                                 </div>
                                                 <div class="table-responsive">
                                                     <table
@@ -1918,17 +1929,28 @@
                                                         id="table-ops-flights-departures"
                                                         style="font-size: 0.75rem; table-layout: fixed;">
                                                         <thead class="table-light">
-                                                            <tr class="text-center small text-muted text-uppercase">
-                                                                <th style="width: 75px;">Aerolínea</th>
-                                                                <th style="width: 60px;">Vuelo</th>
-                                                                <th style="width: 85px;">Destino</th>
+                                                            <tr class="text-center small text-muted text-uppercase fw-bold">
+                                                                <th style="width: 80px;">Aerolínea</th>
+                                                                <th style="width: 65px;">Vuelo</th>
+                                                                <th style="width: 90px;">Destino</th>
                                                                 <th>Prog</th>
                                                                 <th>Real</th>
                                                                 <th style="width: 50px;">Pax</th>
                                                                 <th style="width: 75px;">Matrícula</th>
-                                                                <th style="width: 40px;"
-                                                                    class="col-conciliacion d-none"><i
-                                                                        class="fas fa-check-circle"></i></th>
+                                                                <th style="width: 30px;"><i class="fas fa-check-circle"></i></th>
+                                                                <th style="width: 30px;"></th>
+                                                            </tr>
+                                                            <!-- Filter Row -->
+                                                            <tr class="bs-filters-row">
+                                                                <td class="p-1"><input type="text" class="form-control form-control-sm p-1" style="font-size: 0.7rem;" placeholder="Buscar..." data-filter-col="aerolinea"></td>
+                                                                <td class="p-1"><input type="text" class="form-control form-control-sm p-1" style="font-size: 0.7rem;" placeholder="Buscar..." data-filter-col="vuelo"></td>
+                                                                <td class="p-1"><input type="text" class="form-control form-control-sm p-1" style="font-size: 0.7rem;" placeholder="Buscar..." data-filter-col="destino"></td>
+                                                                <td class="p-1"></td>
+                                                                <td class="p-1"><input type="text" class="form-control form-control-sm p-1" style="font-size: 0.7rem;" placeholder="Buscar..." data-filter-col="real"></td>
+                                                                <td class="p-1"><input type="text" class="form-control form-control-sm p-1" style="font-size: 0.7rem;" placeholder="Buscar..." data-filter-col="pax"></td>
+                                                                <td class="p-1"><input type="text" class="form-control form-control-sm p-1" style="font-size: 0.7rem;" placeholder="Buscar..." data-filter-col="matricula"></td>
+                                                                <td class="p-1"></td>
+                                                                <td class="p-1"></td>
                                                             </tr>
                                                         </thead>
                                                         <tbody class="text-center bg-white"
