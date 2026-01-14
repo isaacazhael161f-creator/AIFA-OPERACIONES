@@ -182,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const tr = document.createElement('tr');
             
             let pdfActionHtml = '';
+            // Determine button grouping based on state
             if (row.pdf_url) {
                 pdfActionHtml = `
                     <div class="btn-group" role="group">
@@ -191,13 +192,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="btn btn-sm btn-outline-secondary btn-edit-row" data-id="${row.id}" title="Editar Datos y PDF">
                             <i class="fas fa-edit"></i>
                         </button>
+                        <button class="btn btn-sm btn-outline-danger btn-delete-row" data-id="${row.id}" title="Eliminar Registro">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </div>
                 `;
             } else {
                 pdfActionHtml = `
-                    <button class="btn btn-sm btn-outline-primary btn-edit-row" data-id="${row.id}" title="Editar Datos y PDF">
-                        <i class="fas fa-edit"></i> Editar / Adjuntar
-                    </button>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-primary btn-edit-row" data-id="${row.id}" title="Editar Datos y PDF">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger btn-delete-row" data-id="${row.id}" title="Eliminar Registro">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 `;
             }
 
@@ -243,6 +252,29 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
+        // Delete Row Event
+        document.querySelectorAll('.btn-delete-row').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = e.currentTarget.getAttribute('data-id');
+                if (confirm('¿Estás seguro de que deseas eliminar este registro permanentemente?')) {
+                    try {
+                        const { error } = await window.supabaseClient
+                            .from('parte_operations')
+                            .delete()
+                            .eq('id', id);
+                        
+                        if (error) throw error;
+                        
+                        alert('Registro eliminado correctamente.');
+                        loadParteOpsData();
+                    } catch (err) {
+                        console.error('Error al eliminar:', err);
+                        alert('Error al eliminar registro: ' + err.message);
+                    }
+                }
+            });
+        });
+
         // Preview PDF
         document.querySelectorAll('.btn-preview-pdf').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -272,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const dateInput = document.getElementById('edit-parte-ops-date');
         dateInput.value = isNew ? new Date().toISOString().split('T')[0] : data.fecha;
-        dateInput.readOnly = !isNew; // Allow editing date only for new records
+        dateInput.readOnly = false; // Always allow editing date
 
         document.getElementById('edit-comercial-llegada').value = isNew ? 0 : data.comercial_llegada;
         document.getElementById('edit-comercial-salida').value = isNew ? 0 : data.comercial_salida;
@@ -375,6 +407,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 let error;
+                // Always include fecha in update data to support date editing
+                updateData.fecha = fecha;
+
                 if (id) {
                     // Update Record
                     const { error: updateError } = await window.supabaseClient

@@ -410,6 +410,9 @@ class AdminUI {
                 label.classList.add('text-center', 'w-100');
                 input.classList.add('text-center', 'mx-auto');
                 input.style.maxWidth = '220px';
+                // Force editable even if it looks like a PK
+                input.readOnly = false;
+                input.classList.remove('bg-light'); 
             }
             
             // Auto-calc Total Flights for Punctuality Stats
