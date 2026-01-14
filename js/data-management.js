@@ -740,8 +740,8 @@ class DataManagement {
         const tbodyArr = document.querySelector('#table-daily-flights-arrivals tbody');
         const tbodyDep = document.querySelector('#table-daily-flights-departures tbody');
         
-        if (tbodyArr) tbodyArr.innerHTML = '<tr><td colspan="9" class="text-center">Cargando...</td></tr>';
-        if (tbodyDep) tbodyDep.innerHTML = '<tr><td colspan="9" class="text-center">Cargando...</td></tr>';
+        if (tbodyArr) tbodyArr.innerHTML = '<tr><td colspan="9" class="text-center py-4">Cargando...</td></tr>';
+        if (tbodyDep) tbodyDep.innerHTML = '<tr><td colspan="9" class="text-center py-4">Cargando...</td></tr>';
         
         const filterDateEl = document.getElementById('filter-daily-flights-date');
         const filterDate = filterDateEl ? filterDateEl.value : null;
@@ -758,13 +758,12 @@ class DataManagement {
             if (filterDate) {
                 query = query.eq('date', filterDate);
             } else {
-                query = query.limit(20); // Limit chunks to avoid massive JSON load
+                query = query.limit(20); 
             }
 
             const { data: rows, error } = await query;
             if (error) throw error;
             
-            // Flatten operations
             let arrivals = [];
             let departures = [];
 
@@ -773,9 +772,9 @@ class DataManagement {
                     const dateStr = row.date;
                     if (Array.isArray(row.data)) {
                         row.data.forEach(op => {
-                            // Normalize explicitly
                             const normalized = { ...op };
                             
+                            // Normalization
                             if (op['Hora programada_llegada']) normalized.fecha_hora_prog_llegada = op['Hora programada_llegada'];
                             if (op['Hora de salida_llegada']) normalized.fecha_hora_real_llegada = op['Hora de salida_llegada'];
                             if (op['Hora programada_salida']) normalized.fecha_hora_prog_salida = op['Hora programada_salida'];
@@ -790,50 +789,189 @@ class DataManagement {
                             if (op['Destino']) normalized.destino = op['Destino'];
                             if (op['aerolinea']) normalized.aerolinea = op['aerolinea']; 
 
-                            // Map 'no' to 'seq_no'
-                            if (normalized.seq_no === undefined && normalized.no !== undefined) {
-                                normalized.seq_no = normalized.no;
-                            }
+                            if (normalized.seq_no === undefined && normalized.no !== undefined) normalized.seq_no = normalized.no;
                             
                             const baseOp = { ...normalized, fecha: dateStr };
 
-                            // Add to arrivals if valid
-                            if (baseOp.vuelo_llegada || baseOp.fecha_hora_prog_llegada) {
-                                arrivals.push(baseOp);
-                            }
-                            
-                            // Add to departures if valid
-                            if (baseOp.vuelo_salida || baseOp.fecha_hora_prog_salida) {
-                                departures.push(baseOp);
-                            }
+                            if (baseOp.vuelo_llegada || baseOp.fecha_hora_prog_llegada) arrivals.push(baseOp);
+                            if (baseOp.vuelo_salida || baseOp.fecha_hora_prog_salida) departures.push(baseOp);
                         });
                     }
                 });
             }
 
-            // Sort helper
-            const sorter = (a,b) => {
-                // if (a.fecha !== b.fecha) return b.fecha.localeCompare(a.fecha);
-                return (a.seq_no || 0) - (b.seq_no || 0);
-            };
-
+            const sorter = (a,b) => (a.seq_no || 0) - (b.seq_no || 0);
             arrivals.sort(sorter);
             departures.sort(sorter);
 
-            // Render Arrivals
-            this.renderTable('table-daily-flights-arrivals', arrivals, 
-                ['seq_no', 'aerolinea', 'vuelo_llegada', 'origen', 'fecha_hora_prog_llegada', 'fecha_hora_real_llegada', 'pasajeros_llegada', 'matricula'], 
-                'daily_flights_ops_arr');
-                
-            // Render Departures
-            this.renderTable('table-daily-flights-departures', departures, 
-                ['seq_no', 'aerolinea', 'vuelo_salida', 'destino', 'fecha_hora_prog_salida', 'fecha_hora_real_salida', 'pasajeros_salida', 'matricula'], 
-                'daily_flights_ops_dep');
+            this.renderDailyOpsFancy(arrivals, 'arrival', '#table-daily-flights-arrivals');
+            this.renderDailyOpsFancy(departures, 'departure', '#table-daily-flights-departures');
 
         } catch (error) {
             console.error('Error loading daily flights ops:', error);
             if(tbodyArr) tbodyArr.innerHTML = '<tr><td colspan="9" class="text-center text-danger">Error: ' + error.message + '</td></tr>';
             if(tbodyDep) tbodyDep.innerHTML = '<tr><td colspan="9" class="text-center text-danger">Error: ' + error.message + '</td></tr>';
+        }
+    }
+
+    getAirlineConfigByName(name) {
+        if (!name) return this.airlineConfig['default'];
+        const slug = this.slugify(name);
+        for (const key in this.airlineConfig) {
+            if (slug.includes(key) || key.includes(slug)) return this.airlineConfig[key];
+        }
+        return this.airlineConfig['default'];
+    }
+
+    renderDailyOpsFancy(data, type, tableSelector) {
+        const table = document.querySelector(tableSelector);
+        if (!table) return;
+        const tbody = table.querySelector('tbody');
+        const thead = table.querySelector('thead');
+
+        // Inject Filter
+        let filterRow = thead.querySelector('.filter-row');
+        if (!filterRow) {
+            filterRow = document.createElement('tr');
+            filterRow.className = 'filter-row text-center bg-light';
+            const headers = thead.querySelectorAll('tr:not(.filter-row) th');
+            
+            headers.forEach((th, idx) => {
+                const td = document.createElement('td');
+                td.className = 'p-1';
+                // Skip filter for empty headers or action headers if desired, but adding all for alignment
+                if (idx < headers.length) {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'form-control form-control-sm border-0 bg-white text-center shadow-sm';
+                    input.style.fontSize = '0.75rem';
+                    input.placeholder = 'Filtrar...';
+                    
+                    input.addEventListener('keyup', function() {
+                        const term = this.value.toLowerCase();
+                        const rows = tbody.querySelectorAll('tr');
+                        rows.forEach(r => {
+                            const cell = r.cells[idx];
+                            if (cell) {
+                                const txt = cell.textContent.toLowerCase();
+                                r.style.display = txt.includes(term) ? '' : 'none';
+                            }
+                        });
+                    });
+                    
+                    td.appendChild(input);
+                }
+                filterRow.appendChild(td);
+            });
+            thead.appendChild(filterRow);
+        }
+
+        // Render Data
+        tbody.innerHTML = '';
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">Sin registros</td></tr>`;
+            return;
+        }
+
+        data.forEach(row => {
+            const tr = document.createElement('tr');
+            
+            const airlineName = row.aerolinea || 'N/A';
+            const config = this.getAirlineConfigByName(airlineName);
+            const airlineHtml = config.logo 
+                ? `<div class="d-flex align-items-center justify-content-center gap-2" title="${airlineName}">
+                     <img src="images/airlines/${config.logo}" alt="${airlineName}" style="height: 20px; width: auto; max-width: 60px;">
+                   </div>`
+                : `<span class="small fw-bold">${airlineName}</span>`;
+
+            const flightNum = type === 'arrival' ? (row.vuelo_llegada || '') : (row.vuelo_salida || '');
+            const timeProg = type === 'arrival' ? (row.fecha_hora_prog_llegada || '') : (row.fecha_hora_prog_salida || '');
+            const timeReal = type === 'arrival' ? (row.fecha_hora_real_llegada || '') : (row.fecha_hora_real_salida || '');
+            const loc = type === 'arrival' ? (row.origen || '') : (row.destino || '');
+            const pax = type === 'arrival' ? (row.pasajeros_llegada || '') : (row.pasajeros_salida || '');
+            
+            const fmtTime = (t) => {
+                if (!t) return '';
+                if (t.includes('T')) return t.split('T')[1].substring(0,5);
+                return t.substring(0,5);
+            };
+
+            const paxHtml = `<span class="fw-bold text-dark">${pax}</span>`;
+            const flightHtml = `<span class="fw-bold text-primary">${flightNum}</span>`;
+
+            // Delete Action
+            const deleteBtn = `<button class="btn btn-sm btn-link text-danger opacity-75 p-0" title="Eliminar vuelo" onclick="dataManagement.deleteSingleFlight('${row.fecha}', '${row.seq_no}', '${type}')">
+                <i class="fas fa-times-circle"></i>
+            </button>`;
+
+            // Columns matching index.html structure
+            if (type === 'arrival') {
+                // No, Aerolinea, Vuelo, Origen, Prog, Real, Pax, Conci(empty), Action
+                tr.innerHTML = `
+                    <td class="fw-bold text-muted small">${row.seq_no || '-'}</td>
+                    <td class="text-start ps-3">${airlineHtml}</td>
+                    <td>${flightHtml}</td>
+                    <td>${loc}</td>
+                    <td class="small">${fmtTime(timeProg)}</td>
+                    <td class="small fw-bold">${fmtTime(timeReal)}</td>
+                    <td>${paxHtml}</td>
+                    <td></td>
+                    <td>${deleteBtn}</td>
+                `;
+            } else {
+                tr.innerHTML = `
+                    <td class="text-start ps-3">${airlineHtml}</td>
+                    <td>${flightHtml}</td>
+                    <td>${loc}</td>
+                    <td class="small">${fmtTime(timeProg)}</td>
+                    <td class="small fw-bold">${fmtTime(timeReal)}</td>
+                    <td>${paxHtml}</td>
+                    <td class="small font-monospace">${row.matricula || ''}</td>
+                    <td></td>
+                    <td>${deleteBtn}</td>
+                `;
+            }
+            tbody.appendChild(tr);
+        });
+    }
+
+    async deleteSingleFlight(dateStr, seqNo, type) {
+        if (!confirm('¿Eliminar este vuelo?')) return;
+        try {
+            const { data, error } = await this.client
+                .from('vuelos_parte_operaciones')
+                .select('data')
+                .eq('date', dateStr)
+                .single();
+            
+            if (error || !data) throw new Error('No se encontró el registro del día.');
+            
+            let flights = data.data || [];
+            const initialLen = flights.length;
+            
+            // Filter by sequence number primarily
+            flights = flights.filter(f => {
+                const fSeq = (f.seq_no !== undefined) ? f.seq_no : f.no;
+                return String(fSeq) !== String(seqNo);
+            });
+            
+            if (flights.length === initialLen) {
+                alert('No se pudo localizar el vuelo específico para eliminar (ID no coincide).');
+                return;
+            }
+
+            const { error: updateErr } = await this.client
+                .from('vuelos_parte_operaciones')
+                .update({ data: flights })
+                .eq('date', dateStr);
+            
+            if (updateErr) throw updateErr;
+            
+            this.loadDailyFlightsOps();
+
+        } catch(e) {
+            console.error(e);
+            alert('Error al eliminar: ' + e.message);
         }
     }
 
