@@ -492,7 +492,7 @@ class DataManagement {
                 const btnDelete = document.createElement('button');
                 btnDelete.className = 'btn btn-sm btn-outline-danger';
                 btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
-                btnDelete.onclick = () => this.deleteItem('daily_operations', item.id);
+                btnDelete.onclick = () => this.deleteItem('daily_operations', item.date);
                 tdActions.appendChild(btnDelete);
 
                 tr.appendChild(tdActions);
@@ -616,7 +616,8 @@ class DataManagement {
                 const btnDelete = document.createElement('button');
                 btnDelete.className = 'btn btn-sm btn-outline-danger';
                 btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
-                btnDelete.onclick = () => this.deleteItem('monthly_operations', item.id);
+                // Pass the whole item so we can determine ID or fallback to keys
+                btnDelete.onclick = () => this.deleteItem('monthly_operations', item);
                 tdActions.appendChild(btnDelete);
 
                 tr.appendChild(tdActions);
@@ -1140,7 +1141,26 @@ class DataManagement {
     }
 
     deleteItem(tableName, id) {
-        window.adminUI.deleteRecord(tableName, id);
+        let pkField = 'id';
+        let recordId = id;
+
+        if (tableName === 'daily_operations') {
+            pkField = 'date';
+        } else if (tableName === 'monthly_operations') {
+            // If passed an object (item), try to extract ID or use composite key
+            if (typeof id === 'object' && id !== null) {
+                if (id.id) {
+                    recordId = id.id;
+                    pkField = 'id';
+                } else {
+                    // Start of fallback for missing ID
+                    recordId = { year: id.year, month: id.month };
+                    pkField = null; // Use composite match
+                }
+            }
+        }
+        
+        window.adminUI.deleteRecord(tableName, recordId, pkField);
     }
 
     async deleteWeeklyTemplate() {

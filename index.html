@@ -2659,7 +2659,7 @@
                                             <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal"
                                                 data-bs-target="#opsFiltersModal"><i
                                                     class="fas fa-sliders-h me-1"></i>Configurar vista</button>
-                                            <button class="btn btn-outline-primary btn-sm" id="ops-export-all-btn"
+                                            <button class="btn btn-outline-primary btn-sm" id="ops-export-all-btn" type="button"
                                                 title="Descargar todas las gráficas en PDF"><i
                                                     class="fas fa-file-pdf me-1"></i>Descargar todas</button>
                                         </div>
@@ -2688,15 +2688,24 @@
                                                                 <label class="form-check-label small"
                                                                     for="toggle-weekly-view">Semanal</label>
                                                             </div>
+                                                        <div class="d-flex align-items-center gap-2">
                                                             <div class="form-check form-switch m-0"
-                                                                title="Activa los filtros por meses del año 2025">
+                                                                title="Activa los filtros por meses del año seleccionado">
                                                                 <input class="form-check-input" type="checkbox"
-                                                                    id="toggle-monthly-2025">
+                                                                    id="toggle-monthly-view">
                                                                 <label class="form-check-label small"
-                                                                    for="toggle-monthly-2025">Mensual 2025</label>
-                                                                <span class="badge bg-info text-dark ms-2 d-none"
-                                                                    id="years-disabled-hint">Años inactivos</span>
+                                                                    for="toggle-monthly-view">Mensual</label>
                                                             </div>
+                                                            <select id="ops-filter-year" class="form-select form-select-sm d-none" style="width: auto;" aria-label="Año a visualizar">
+                                                                <option value="2022">2022</option>
+                                                                <option value="2023">2023</option>
+                                                                <option value="2024">2024</option>
+                                                                <option value="2025">2025</option>
+                                                                <option value="2026">2026</option>
+                                                            </select>
+                                                            <span class="badge bg-info text-dark ms-2 d-none"
+                                                                id="years-disabled-hint">Años inactivos</span>
+                                                        </div>
                                                             <div class="form-check form-switch m-0"
                                                                 title="Vista acumulada por año">
                                                                 <input class="form-check-input" type="checkbox"
@@ -2810,7 +2819,7 @@
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div class="mt-4 d-none" id="ops-months-2025">
+                                                    <div class="mt-4 d-none" id="ops-months-panel">
                                                         <h6 class="text-muted">Meses <span
                                                                 id="ops-months-year-label">2025</span></h6>
                                                         <p class="small text-muted mb-2" id="ops-months-year-helper">
@@ -2877,11 +2886,11 @@
                                     <h5 class="text-uppercase text-muted fw-bold mb-3" id="commercial-heading"><span
                                             class="section-icon icon-commercial">✈</span>Aviación Comercial</h5>
                                     <div class="row g-3 mb-4" id="commercial-group">
-                                        <div class="col-12 col-xxl-6">
+                                        <div class="col-12">
                                             <div class="chart-container ops-chart"><canvas
                                                     id="commercialOpsChart"></canvas></div>
                                         </div>
-                                        <div class="col-12 col-xxl-6">
+                                        <div class="col-12">
                                             <div class="chart-container ops-chart"><canvas
                                                     id="commercialPaxChart"></canvas></div>
                                         </div>
@@ -2893,11 +2902,11 @@
                                         <small>Datos actualizados al <strong>31 de octubre 2025</strong></small>
                                     </div>
                                     <div class="row g-3 mb-4" id="cargo-group">
-                                        <div class="col-12 col-xxl-6">
+                                        <div class="col-12">
                                             <div class="chart-container ops-chart"><canvas id="cargoOpsChart"></canvas>
                                             </div>
                                         </div>
-                                        <div class="col-12 col-xxl-6">
+                                        <div class="col-12">
                                             <div class="chart-container ops-chart"><canvas id="cargoTonsChart"></canvas>
                                             </div>
                                         </div>
@@ -2905,11 +2914,11 @@
                                     <h5 class="text-uppercase text-muted fw-bold mb-3 mt-4" id="general-heading"><span
                                             class="section-icon icon-general">🛩</span>Aviación General</h5>
                                     <div class="row g-3 mb-4" id="general-group">
-                                        <div class="col-12 col-xxl-6">
+                                        <div class="col-12">
                                             <div class="chart-container ops-chart"><canvas
                                                     id="generalOpsChart"></canvas></div>
                                         </div>
-                                        <div class="col-12 col-xxl-6">
+                                        <div class="col-12">
                                             <div class="chart-container ops-chart"><canvas
                                                     id="generalPaxChart"></canvas></div>
                                         </div>

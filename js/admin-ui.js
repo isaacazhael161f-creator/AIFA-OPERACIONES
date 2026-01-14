@@ -783,9 +783,23 @@ class AdminUI {
         });
 
         try {
-            if (this.currentRecord && this.currentRecord.id) {
+            let pkField = 'id';
+            let recordId = this.currentRecord ? this.currentRecord.id : null;
+
+            if (this.currentTable === 'daily_operations') {
+                pkField = 'date';
+                if (this.currentRecord) recordId = this.currentRecord.date;
+            } else if (this.currentTable === 'monthly_operations') {
+                if (!recordId && this.currentRecord) {
+                    // Fallback to composite key if ID is missing
+                    recordId = { year: this.currentRecord.year, month: this.currentRecord.month };
+                    pkField = null; 
+                }
+            }
+
+            if (recordId) {
                 // Update
-                await window.dataManager.updateTable(this.currentTable, this.currentRecord.id, updates);
+                await window.dataManager.updateTable(this.currentTable, recordId, updates, pkField);
                 alert('Datos actualizados correctamente.');
             } else {
                 // Insert
@@ -801,10 +815,10 @@ class AdminUI {
         }
     }
 
-    async deleteRecord(table, id) {
+    async deleteRecord(table, id, pkField = 'id') {
         if (confirm('¿Estás seguro de que deseas eliminar este registro?')) {
             try {
-                await window.dataManager.deleteTable(table, id);
+                await window.dataManager.deleteTable(table, id, pkField);
                 alert('Registro eliminado correctamente.');
                 window.dispatchEvent(new CustomEvent('data-updated', { detail: { table: table } }));
             } catch (err) {

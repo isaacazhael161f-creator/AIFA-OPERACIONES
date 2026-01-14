@@ -1041,20 +1041,30 @@ function buildAviationAnalyticsFromDB(monthlyRows, annualRows) {
     return result;
 }
 
-async function syncStaticDataFromDB() {
+window.cachedStaticRows = { annual: [], monthly: [] };
+
+async function syncStaticDataFromDB(targetYear = null) {
     try {
         if (!window.dataManager) {
             console.warn('DataManager no listo, reintentando syncStaticDataFromDB en 500ms...');
-            setTimeout(syncStaticDataFromDB, 500);
+            setTimeout(() => syncStaticDataFromDB(targetYear), 500);
             return;
         }
         
-        console.log('Iniciando sincronización de datos estáticos desde DB...');
-        const [annualRows, monthlyRows] = await Promise.all([
-            window.dataManager.getAnnualOperations(),
-            window.dataManager.getMonthlyOperations()
-        ]);
-        console.log('Datos estáticos obtenidos:', { annualRows, monthlyRows });
+        let annualRows, monthlyRows;
+        if (window.cachedStaticRows.annual.length > 0 && window.cachedStaticRows.monthly.length > 0) {
+             console.log('Usando datos estáticos en caché');
+             annualRows = window.cachedStaticRows.annual;
+             monthlyRows = window.cachedStaticRows.monthly;
+        } else {
+            console.log('Iniciando sincronización de datos estáticos desde DB...');
+            [annualRows, monthlyRows] = await Promise.all([
+                window.dataManager.getAnnualOperations(),
+                window.dataManager.getMonthlyOperations()
+            ]);
+            window.cachedStaticRows = { annual: annualRows, monthly: monthlyRows };
+            console.log('Datos estáticos obtenidos y cacheados:', { annualRows, monthlyRows });
+        }
 
         staticData.operacionesTotales = { comercial: [], carga: [], general: [] };
         (annualRows || []).forEach(row => {
@@ -1065,8 +1075,25 @@ async function syncStaticDataFromDB() {
         });
 
         const years = Array.from(new Set((monthlyRows || []).map(r => Number(r.year))).values()).filter(y => Number.isFinite(y)).sort((a,b)=>a-b);
-        const latestYear = years.length ? years[years.length-1] : (new Date()).getFullYear();
+        
+        let latestYear;
+        if (targetYear) {
+            latestYear = Number(targetYear);
+        } else {
+            latestYear = years.length ? years[years.length-1] : (new Date()).getFullYear();
+        }
         staticData.mensualYear = String(latestYear);
+
+        // Sync UI select if exists
+        const opsFilterYear = document.getElementById('ops-filter-year');
+        if (opsFilterYear) {
+            if (!opsFilterYear.value || targetYear) {
+                 opsFilterYear.value = String(latestYear);
+            }
+        }
+
+        refreshOpsMonthlyYearLabels(latestYear);
+        refreshOpsMonthsSelectionUI(); 
 
         const months = OPS_ALL_MONTH_CODES.slice();
         const makeEmptyMonthly = (propName) => months.map((m, idx) => ({ mes: m, label: AVIATION_ANALYTICS_MONTH_LABELS[idx] || m, [propName]: null }));
@@ -1109,6 +1136,7 @@ async function syncStaticDataFromDB() {
 
         try { if (typeof window.renderOperacionesTotales === 'function') window.renderOperacionesTotales(); } catch (_) {}
         try { if (typeof window.renderMonthlyCharts === 'function') window.renderMonthlyCharts(); } catch (_) {}
+        try { if (typeof window.refreshOpsMonthlyYearLabels === 'function') window.refreshOpsMonthlyYearLabels(staticData.mensualYear); } catch (_) {}
         try { if (typeof window.rerenderAviationAnalyticsModules === 'function') window.rerenderAviationAnalyticsModules(true); } catch (_) {}
         
         window.dispatchEvent(new CustomEvent('static-data-synced', { detail: { year: staticData.mensualYear } }));
@@ -2416,7 +2444,12 @@ function setupEventListeners() {
     document.getElementById('sidebar-toggler').addEventListener('click', toggleSidebar);
     // Exportar todas las gráficas (Operaciones Totales)
     const opsExportAllBtn = document.getElementById('ops-export-all-btn');
-    if (opsExportAllBtn) opsExportAllBtn.addEventListener('click', exportAllChartsPDF);
+    if (opsExportAllBtn) {
+        opsExportAllBtn.addEventListener('click', (e) => {
+            if (e) e.preventDefault();
+            exportAllChartsPDF();
+        });
+    }
 
     const opsTooltipsToggleBtn = document.getElementById('ops-tooltips-toggle-btn');
     if (opsTooltipsToggleBtn && !opsTooltipsToggleBtn._wired) {
@@ -6239,7 +6272,7 @@ function syncOpsYearSelection(availableYears) {
 
 function refreshOpsMonthsSelectionUI() {
     if (typeof document === 'undefined') return;
-    const panel = document.getElementById('ops-months-2025');
+    const panel = document.getElementById('ops-months-panel');
     if (!panel) return;
     const activeYear = opsUIState?.activeMonthlyYear ? String(opsUIState.activeMonthlyYear) : getOpsActiveMonthlyYear();
     const allowed = createAllowedMonthsSet(activeYear);
@@ -6275,7 +6308,7 @@ function refreshOpsMonthsSelectionUI() {
 
 function refreshOpsMonthlyYearLabels(year) {
     if (typeof document === 'undefined') return;
-    const container = document.getElementById('ops-months-2025');
+    const container = document.getElementById('ops-months-panel');
     if (!container) return;
     const activeYear = year ? String(year) : getOpsActiveMonthlyYear();
     const headingYear = container.querySelector('#ops-months-year-label');
@@ -8906,15 +8939,20 @@ function enableTwoAxisTableScroll(hAreaId, tableContainerId) {
 async function exportAllChartsPDF() {
     try {
         if (!window.jspdf || !window.jspdf.jsPDF) { console.warn('jsPDF no disponible'); return; }
+
+        // Resolver año para títulos
+        const activeYear = opsUIState?.activeMonthlyYear ? String(opsUIState.activeMonthlyYear) : getOpsActiveMonthlyYear();
+        const suffix = activeYear ? ` ${activeYear}` : '';
+
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('p','mm','a4');
         const chartMeta = [
-            { id:'commercialOpsChart', title:'Operaciones - Aviación Comercial' },
-            { id:'commercialPaxChart', title:'Pasajeros - Aviación Comercial' },
-            { id:'cargoOpsChart', title:'Operaciones - Carga Aérea' },
-            { id:'cargoTonsChart', title:'Toneladas - Carga Aérea' },
-            { id:'generalOpsChart', title:'Operaciones - Aviación General' },
-            { id:'generalPaxChart', title:'Pasajeros - Aviación General' }
+            { id:'commercialOpsChart', title:`Operaciones - Aviación Comercial${suffix}` },
+            { id:'commercialPaxChart', title:`Pasajeros - Aviación Comercial${suffix}` },
+            { id:'cargoOpsChart', title:`Operaciones - Carga Aérea${suffix}` },
+            { id:'cargoTonsChart', title:`Toneladas - Carga Aérea${suffix}` },
+            { id:'generalOpsChart', title:`Operaciones - Aviación General${suffix}` },
+            { id:'generalPaxChart', title:`Pasajeros - Aviación General${suffix}` }
         ];
 
         const visibleCharts = [];
@@ -8928,14 +8966,14 @@ async function exportAllChartsPDF() {
 
         const pageW = doc.internal.pageSize.getWidth();
         const pageH = doc.internal.pageSize.getHeight();
-        const marginX = 14;
-        const marginTop = 18;
-        const slotGap = 10;
+        const marginX = 8;
+        const marginTop = 15;
+        const slotGap = 8;
         const slotsPerPage = 2;
         const slotHeight = (pageH - marginTop * 2 - slotGap) / slotsPerPage;
-        const titleFontSize = 12;
-        const titleOffset = 4;
-        const imagePadding = 6;
+        const titleFontSize = 14;
+        const titleOffset = 5;
+        const imagePadding = 4;
 
         visibleCharts.forEach(({ canvas, title }, index) => {
             const slotIndex = index % slotsPerPage;
@@ -10140,9 +10178,10 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         // Inicializar hashes de autenticación lo antes posible
     ensureAuthHashes();
-    const toggleMonthly = document.getElementById('toggle-monthly-2025');
+    const toggleMonthly = document.getElementById('toggle-monthly-view');
     const toggleWeekly = document.getElementById('toggle-weekly-view');
     const toggleYearly = document.getElementById('toggle-yearly-view');
+    const opsFilterYear = document.getElementById('ops-filter-year');
         const weeklyWeekFilter = document.getElementById('weekly-week-filter');
         const weeklyWeekSelect = document.getElementById('weekly-week-select');
         const weeklyWeekPicker = document.getElementById('weekly-week-picker');
@@ -10150,7 +10189,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const weeklyDayFilter = document.getElementById('weekly-day-filter');
         const weeklyDaySelect = document.getElementById('weekly-day-select');
         const yearsHint = document.getElementById('years-disabled-hint');
-        const monthsPanel = document.getElementById('ops-months-2025');
+        const monthsPanel = document.getElementById('ops-months-panel');
         const monthsAll = document.getElementById('months-select-all');
         const monthsNone = document.getElementById('months-select-none');
         const sectionsBox = document.getElementById('ops-sections-filters');
@@ -10423,7 +10462,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 opsUIState.mode = newMode;
                 // refreshDisabledYears(newMode !== 'yearly'); // Removed to keep years always enabled
                 refreshDisabledYears(false);
-                if (monthsPanel) monthsPanel.style.display = newMode === 'monthly' ? '' : 'none';
+                if (monthsPanel) {
+                    if (newMode === 'monthly') {
+                        monthsPanel.classList.remove('d-none');
+                        monthsPanel.style.display = '';
+                    } else {
+                        monthsPanel.classList.add('d-none');
+                        monthsPanel.style.display = 'none';
+                    }
+                }
+                if (opsFilterYear) {
+                    opsFilterYear.classList.toggle('d-none', newMode !== 'monthly');
+                    // Ensure select shows current cached/active year
+                    if (newMode === 'monthly' && staticData.mensualYear) {
+                         opsFilterYear.value = staticData.mensualYear;
+                    }
+                }
                 syncToggleStates();
                 availability = populateWeeklyWeekOptions();
                 if (opsUIState.mode === 'weekly' && opsUIState.weeklyWeekId === 'auto' && !availability.currentHasData && availability.weeks.length) {
@@ -10505,12 +10559,29 @@ document.addEventListener('DOMContentLoaded', () => {
             toggleYearly.addEventListener('change', () => forceMode('yearly'));
         }
 
+        if (opsFilterYear && !opsFilterYear._wired) {
+            opsFilterYear._wired = 1;
+            opsFilterYear.addEventListener('change', () => {
+                 const year = opsFilterYear.value;
+                 if (year) {
+                     syncStaticDataFromDB(year);
+                 }
+            });
+        }
+
         // Inicial: sincronizar modo actual
         const initialAvailability = populateWeeklyWeekOptions();
         populateWeeklyDayOptions();
         syncWeeklyControls();
         refreshDisabledYears(opsUIState.mode !== 'yearly');
-        if (monthsPanel) monthsPanel.style.display = opsUIState.mode === 'monthly' ? '' : 'none';
+        if (monthsPanel) {
+             if (opsUIState.mode === 'monthly') {
+                 monthsPanel.classList.remove('d-none');
+                 monthsPanel.style.display = '';
+             } else {
+                 monthsPanel.classList.add('d-none');
+             }
+        }
         syncToggleStates();
         if (opsUIState.mode === 'weekly' && !initialAvailability.hasAny) {
             const fallback = (toggleMonthly && !toggleMonthly.disabled) ? 'monthly' : 'yearly';

@@ -162,12 +162,16 @@ class DataManager {
     }
 
     // Generic update
-    async updateTable(table, id, updates) {
-        const { data, error } = await this.client
-            .from(table)
-            .update(updates)
-            .eq('id', id)
-            .select();
+    async updateTable(table, id, updates, pkField = 'id') {
+        let query = this.client.from(table).update(updates);
+        
+        if (pkField === null && typeof id === 'object') {
+             query = query.match(id);
+        } else {
+             query = query.eq(pkField, id);
+        }
+
+        const { data, error } = await query.select();
         if (error) throw error;
         return data;
     }
@@ -181,11 +185,18 @@ class DataManager {
         return data;
     }
 
-    async deleteTable(table, id) {
-        const { error } = await this.client
-            .from(table)
-            .delete()
-            .eq('id', id);
+    async deleteTable(table, id, pkField = 'id') {
+        let query = this.client.from(table).delete();
+        
+        if (pkField === null && typeof id === 'object') {
+             // Composite key delete using match
+             query = query.match(id);
+        } else {
+             // Standard key delete
+             query = query.eq(pkField, id);
+        }
+
+        const { data, error } = await query;
         if (error) throw error;
         return true;
     }
