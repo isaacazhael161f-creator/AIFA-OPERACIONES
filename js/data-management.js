@@ -816,12 +816,106 @@ class DataManagement {
     }
 
     getAirlineConfigByName(name) {
-        if (!name) return this.airlineConfig['default'];
-        const slug = this.slugify(name);
-        for (const key in this.airlineConfig) {
-            if (slug.includes(key) || key.includes(slug)) return this.airlineConfig[key];
+        if (!name) return this.airlineConfig['default']; // Fallback only if really empty
+        
+        // This helper returns HTML, but the caller might expect a config object or we change the rendering logic.
+        // Let's adopt the full logic from parte-ops-flights.js directly into the renderer, 
+        // or helper. Since the renderDailyOpsFancy calls "this.getAirlineConfigByName" and uses "config.logo",
+        // we should probably refactor renderDailyOpsFancy to use the new "getAirlineHtml" logic instead of the config object.
+        // OR, we make this function return a "config-like" object that has the HTML or URL.
+        
+        // Let's implement the FULL MAPPING here to be safe and consistent.
+        
+        const lower = name.toLowerCase().trim();
+        const logoMap = {
+            'aeromexico': 'logo_aeromexico.png',
+            'aeroméxico': 'logo_aeromexico.png',
+            'volaris': 'logo_volaris.png',
+            'viva': 'logo_viva.png',
+            'viva aerobus': 'logo_viva.png',
+            'mexicana': 'logo_mexicana.png',
+            'mexicana de aviación': 'logo_mexicana.png',
+            'copa': 'logo_copa.png',
+            'copa airlines': 'logo_copa.png',
+            'arajet': 'logo_arajet.png',
+            'conviasa': 'logo_conviasa.png',
+            'magnicharters': 'logo_magnicharters.png',
+            'aerus': 'logo_aerus.png',
+            'estafeta': 'logo_estafeta.jpg',
+            'ups': 'logo_united_parcel_service.png',
+            'united parcel service': 'logo_united_parcel_service.png',
+            'fedex': 'logo_fedex_express.png',
+            'dhl': 'logo_dhl_guatemala_.png',
+            'mas': 'logo_mas.png',
+            'mas air': 'logo_mas.png',
+            'air canada': 'logo_air_canada_.png',
+            'air france': 'logo_air_france_.png',
+            'air china': 'logo_air_china.png',
+            'china southern': 'logo_china_southern.png',
+            'qatar': 'logo_qatar.png',
+            'qatar airways': 'logo_qatar.png',
+            'turkish': 'logo_turkish_airlines.png',
+            'turkish airlines': 'logo_turkish_airlines.png',
+            'lufthansa': 'logo_lufthansa.png',
+            'emirates': 'logo_emirates_airlines.png',
+            'cargojet': 'logo_cargojet.png',
+            'atlas air': 'logo_atlas_air.png',
+            'atlas': 'logo_atlas_air.png',
+            'kalitta': 'logo_kalitta_air.jpg',
+            'national': 'logo_national_airlines_cargo.png',
+            'tsm': 'logo_tsm_airlines.png',
+            'aerounion': 'logo_aero_union.png',
+            'aerounión': 'logo_aero_union.png',
+            'aero union': 'logo_aero_union.png',
+            'aero unión': 'logo_aero_union.png',
+            'cargolux': 'logo_cargolux.png',
+            'cathay': 'logo_cathay_pacific.png',
+            'cathay pacific': 'logo_cathay_pacific.png',
+            'suparna': 'logo_suparna.png',
+            'suparna airlines': 'logo_suparna.png',
+            'awesome': 'logo_awesome_cargo.png',
+            'awesome cargo': 'logo_awesome_cargo.png'
+        };
+
+        let logoFile = null;
+        for (const [key, val] of Object.entries(logoMap)) {
+            if (lower.includes(key) || lower === key) {
+                logoFile = val;
+            }
         }
-        return this.airlineConfig['default'];
+        if (logoMap[lower]) logoFile = logoMap[lower]; // Exact match priority
+        
+        // Fallback search
+        if (!logoFile) {
+            for (const [key, val] of Object.entries(logoMap)) {
+                if (lower.includes(key)) {
+                    logoFile = val;
+                    break;
+                }
+            }
+        }
+
+        if (logoFile) {
+            // Logic to visually equalize logo sizes
+            let style = "max-height: 25px; max-width: 70px;";
+            // Reduce size for notably bulky/square logos
+            if (logoFile === 'logo_viva.png') {
+                style = "max-height: 20px; max-width: 60px;";
+            }
+            // Boost
+            const boostLogos = ['logo_aeromexico.png', 'logo_volaris.png', 'logo_mexicana.png', 'logo_air_china.png', 'logo_tsm_airlines.png', 'logo_kalitta_air.jpg'];
+            const megaLogos = ['logo_estafeta.jpg', 'logo_cargojet.png', 'logo_cargolux.png', 'logo_suparna.png', 'logo_awesome_cargo.png'];
+            const giganticLogos = ['logo_cathay_pacific.png'];
+
+            if (boostLogos.includes(logoFile)) style = "max-height: 28px; max-width: 80px;";
+            else if (megaLogos.includes(logoFile)) style = "max-height: 30px; max-width: 85px;";
+            else if (giganticLogos.includes(logoFile)) style = "max-height: 32px; max-width: 90px;";
+            else if (logoFile === 'logo_atlas_air.png') style = "max-height: 35px; max-width: 95px;";
+
+            return { isHtml: true, html: `<img src="images/airlines/${logoFile}" alt="${name}" title="${name}" class="img-fluid" style="${style}">` };
+        }
+
+        return { isHtml: true, html: `<span class="fw-bold text-dark">${name}</span>` };
     }
 
     renderDailyOpsFancy(data, type, tableSelector) {
@@ -879,17 +973,24 @@ class DataManagement {
             
             const airlineName = row.aerolinea || 'N/A';
             const config = this.getAirlineConfigByName(airlineName);
-            const airlineHtml = config.logo 
-                ? `<div class="d-flex align-items-center justify-content-center gap-2" title="${airlineName}">
+            
+            let airlineHtml = '';
+            if (config.isHtml) {
+                airlineHtml = config.html;
+            } else if (config.logo) {
+                 airlineHtml = `<div class="d-flex align-items-center justify-content-center gap-2" title="${airlineName}">
                      <img src="images/airlines/${config.logo}" alt="${airlineName}" style="height: 20px; width: auto; max-width: 60px;">
-                   </div>`
-                : `<span class="small fw-bold">${airlineName}</span>`;
+                   </div>`;
+            } else {
+                 airlineHtml = `<span class="small fw-bold">${airlineName}</span>`;
+            }
 
             const flightNum = type === 'arrival' ? (row.vuelo_llegada || '') : (row.vuelo_salida || '');
             const timeProg = type === 'arrival' ? (row.fecha_hora_prog_llegada || '') : (row.fecha_hora_prog_salida || '');
             const timeReal = type === 'arrival' ? (row.fecha_hora_real_llegada || '') : (row.fecha_hora_real_salida || '');
             const loc = type === 'arrival' ? (row.origen || '') : (row.destino || '');
             const pax = type === 'arrival' ? (row.pasajeros_llegada || '') : (row.pasajeros_salida || '');
+            const mat = row.matricula || '';
             
             const fmtTime = (t) => {
                 if (!t) return '';
@@ -898,7 +999,13 @@ class DataManagement {
             };
 
             const paxHtml = `<span class="fw-bold text-dark">${pax}</span>`;
-            const flightHtml = `<span class="fw-bold text-primary">${flightNum}</span>`;
+            const flightHtml = `<span class="fw-bold ${type === 'arrival' ? 'text-success' : 'text-primary'}">${flightNum}</span>`;
+
+            // Conciliation
+            const isConciliated = type === 'arrival' ? (row.conciliado_llegada === true) : (row.conciliado_salida === true);
+            const concIcon = isConciliated 
+                ? '<i class="fas fa-check-circle text-success" title="Conciliado"></i>' 
+                : '<i class="fas fa-times-circle text-danger opacity-25" title="No conciliado"></i>';
 
             // Delete Action
             const deleteBtn = `<button class="btn btn-sm btn-link text-danger opacity-75 p-0" title="Eliminar vuelo" onclick="dataManagement.deleteSingleFlight('${row.fecha}', '${row.seq_no}', '${type}')">
@@ -907,28 +1014,30 @@ class DataManagement {
 
             // Columns matching index.html structure
             if (type === 'arrival') {
-                // No, Aerolinea, Vuelo, Origen, Prog, Real, Pax, Conci(empty), Action
+                // No, Aerolinea, Vuelo, Origen, Prog, Real, Pax, Matrícula, Conciliación, Acciones
                 tr.innerHTML = `
                     <td class="fw-bold text-muted small">${row.seq_no || '-'}</td>
                     <td class="text-start ps-3">${airlineHtml}</td>
                     <td>${flightHtml}</td>
-                    <td>${loc}</td>
-                    <td class="small">${fmtTime(timeProg)}</td>
+                    <td class="text-truncate" style="max-width: 90px;" title="${loc}">${loc}</td>
+                    <td class="small opacity-75">${fmtTime(timeProg)}</td>
                     <td class="small fw-bold">${fmtTime(timeReal)}</td>
                     <td>${paxHtml}</td>
-                    <td></td>
+                    <td class="small font-monospace text-muted">${mat}</td>
+                    <td class="text-center">${concIcon}</td>
                     <td>${deleteBtn}</td>
                 `;
             } else {
+                // Aerolinea, Vuelo, Destino, Prog, Real, Pax, Matrícula, Conciliación, Acciones
                 tr.innerHTML = `
                     <td class="text-start ps-3">${airlineHtml}</td>
                     <td>${flightHtml}</td>
-                    <td>${loc}</td>
-                    <td class="small">${fmtTime(timeProg)}</td>
+                    <td class="text-truncate" style="max-width: 90px;" title="${loc}">${loc}</td>
+                    <td class="small opacity-75">${fmtTime(timeProg)}</td>
                     <td class="small fw-bold">${fmtTime(timeReal)}</td>
                     <td>${paxHtml}</td>
-                    <td class="small font-monospace">${row.matricula || ''}</td>
-                    <td></td>
+                    <td class="small font-monospace text-muted">${mat}</td>
+                    <td class="text-center">${concIcon}</td>
                     <td>${deleteBtn}</td>
                 `;
             }
