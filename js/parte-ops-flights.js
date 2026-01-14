@@ -45,6 +45,19 @@
                 }
                 loadFlights();
             });
+
+            // Check if active on load (since I just made it default)
+            if (tabEl.classList.contains('active')) {
+                // Small delay to allow main script to populate the initial date
+                setTimeout(() => {
+                    const mainDate = document.getElementById('operations-summary-date');
+                    const myDate = document.getElementById('vuelos-ops-date');
+                    if (mainDate && myDate && !myDate.value) {
+                        myDate.value = mainDate.value;
+                    }
+                    loadFlights();
+                }, 800);
+            }
         }
 
         // Date Change Event for MAIN calendar
