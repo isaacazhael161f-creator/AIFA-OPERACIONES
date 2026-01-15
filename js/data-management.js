@@ -12,6 +12,37 @@ class DataManagement {
             'conviasa': { logo: 'logo_conviasa.png', color: '#e65300', text: '#ffffff' },
             'magnicharters': { logo: 'logo_magnicharters.png', color: '#1d3c6e', text: '#ffffff' },
             'aerus': { logo: 'logo_aerus.png', color: '#bed62f', text: '#000000' },
+            
+            // Cargo & International
+            'estafeta': { logo: 'logo_estafeta.jpg', color: '#c41230', text: '#ffffff' },
+            'ups': { logo: 'logo_united_parcel_service.png', color: '#351c15', text: '#ffffff' },
+            'united-parcel-service': { logo: 'logo_united_parcel_service.png', color: '#351c15', text: '#ffffff' },
+            'fedex': { logo: 'logo_fedex_express.png', color: '#4d148c', text: '#ffffff' },
+            'dhl': { logo: 'logo_dhl_guatemala_.png', color: '#d40511', text: '#ffffff' },
+            'mas': { logo: 'logo_mas.png', color: '#00a550', text: '#ffffff' },
+            'mas-air': { logo: 'logo_mas.png', color: '#00a550', text: '#ffffff' },
+            'air-canada': { logo: 'logo_air_canada_.png', color: '#ef3340', text: '#ffffff' },
+            'air-france': { logo: 'logo_air_france_.png', color: '#00266e', text: '#ffffff' },
+            'air-china': { logo: 'logo_air_china.png', color: '#ff0000', text: '#ffffff' },
+            'china-southern': { logo: 'logo_china_southern.png', color: '#002a5c', text: '#ffffff' },
+            'qatar': { logo: 'logo_qatar.png', color: '#5b0e2d', text: '#ffffff' },
+            'turkish': { logo: 'logo_turkish_airlines.png', color: '#c8102e', text: '#ffffff' },
+            'lufthansa': { logo: 'logo_lufthansa.png', color: '#05164d', text: '#ffffff' },
+            'emirates': { logo: 'logo_emirates_airlines.png', color: '#d71920', text: '#ffffff' },
+            'cargojet': { logo: 'logo_cargojet.png', color: '#000000', text: '#ffffff' },
+            'atlas': { logo: 'logo_atlas_air.png', color: '#003366', text: '#ffffff' },
+            'atlas-air': { logo: 'logo_atlas_air.png', color: '#003366', text: '#ffffff' },
+            'kalitta': { logo: 'logo_kalitta_air.jpg', color: '#cf0a2c', text: '#ffffff' },
+            'national': { logo: 'logo_national_airlines_cargo.png', color: '#001f3f', text: '#ffffff' },
+            'tsm': { logo: 'logo_tsm_airlines.png', color: '#000000', text: '#ffffff' },
+            'aerounion': { logo: 'logo_aero_union.png', color: '#00529b', text: '#ffffff' },
+            'aero-union': { logo: 'logo_aero_union.png', color: '#00529b', text: '#ffffff' },
+            'cargolux': { logo: 'logo_cargolux.png', color: '#00a0dc', text: '#ffffff' },
+            'cathay': { logo: 'logo_cathay_pacific.png', color: '#006564', text: '#ffffff' },
+            'cathay-pacific': { logo: 'logo_cathay_pacific.png', color: '#006564', text: '#ffffff' },
+            'suparna': { logo: 'logo_suparna.png', color: '#b22222', text: '#ffffff' },
+            'awesome': { logo: 'logo_awesome_cargo.png', color: '#000000', text: '#ffffff' },
+
             'default': { logo: null, color: '#ffffff', text: '#212529' }
         };
 
@@ -824,115 +855,6 @@ class DataManagement {
         return this.airlineConfig['default'];
     }
 
-    getAirlineLogoHtml(airlineName) {
-        if (!airlineName) return '';
-        const lower = airlineName.toLowerCase().trim();
-
-        const logoMap = {
-            'aeromexico': 'logo_aeromexico.png',
-            'aeroméxico': 'logo_aeromexico.png',
-            'volaris': 'logo_volaris.png',
-            'viva': 'logo_viva.png',
-            'viva aerobus': 'logo_viva.png',
-            'mexicana': 'logo_mexicana.png',
-            'mexicana de aviación': 'logo_mexicana.png',
-            'copa': 'logo_copa.png',
-            'copa airlines': 'logo_copa.png',
-            'arajet': 'logo_arajet.png',
-            'conviasa': 'logo_conviasa.png',
-            'magnicharters': 'logo_magnicharters.png',
-            'aerus': 'logo_aerus.png',
-            'estafeta': 'logo_estafeta.jpg',
-            'ups': 'logo_united_parcel_service.png',
-            'united parcel service': 'logo_united_parcel_service.png',
-            'fedex': 'logo_fedex_express.png',
-            'dhl': 'logo_dhl_guatemala_.png',
-            'mas': 'logo_mas.png',
-            'mas air': 'logo_mas.png',
-            'air canada': 'logo_air_canada_.png',
-            'air france': 'logo_air_france_.png',
-            'air china': 'logo_air_china.png',
-            'china southern': 'logo_china_southern.png',
-            'qatar': 'logo_qatar.png',
-            'qatar airways': 'logo_qatar.png',
-            'turkish': 'logo_turkish_airlines.png',
-            'turkish airlines': 'logo_turkish_airlines.png',
-            'lufthansa': 'logo_lufthansa.png',
-            'emirates': 'logo_emirates_airlines.png',
-            'cargojet': 'logo_cargojet.png',
-            'atlas air': 'logo_atlas_air.png',
-            'atlas': 'logo_atlas_air.png',
-            'kalitta': 'logo_kalitta_air.jpg',
-            'national': 'logo_national_airlines_cargo.png',
-            'tsm': 'logo_tsm_airlines.png',
-            'aerounion': 'logo_aero_union.png',
-            'aerounión': 'logo_aero_union.png',
-            'aero union': 'logo_aero_union.png',
-            'aero unión': 'logo_aero_union.png',
-            'cargolux': 'logo_cargolux.png',
-            'cathay': 'logo_cathay_pacific.png',
-            'cathay pacific': 'logo_cathay_pacific.png',
-            'suparna': 'logo_suparna.png',
-            'suparna airlines': 'logo_suparna.png',
-            'awesome': 'logo_awesome_cargo.png',
-            'awesome cargo': 'logo_awesome_cargo.png'
-        };
-
-        // Find match
-        let logoFile = null;
-        for (const [key, val] of Object.entries(logoMap)) {
-            if (lower.includes(key) || lower === key) {
-                logoFile = val;
-            }
-        }
-
-        if (logoMap[lower]) logoFile = logoMap[lower];
-
-        if (!logoFile) {
-             // Fallback to existing catalog if not found in map
-             const config = this.getAirlineConfigByName(airlineName);
-             if (config && config.logo) logoFile = config.logo;
-        }
-
-        if (logoFile) {
-            // Logic to visually equalize logo sizes
-            let style = "max-height: 25px; max-width: 70px;";
-
-            if (logoFile === 'logo_viva.png') {
-                style = "max-height: 20px; max-width: 60px;";
-            }
-
-            const boostLogos = [
-                'logo_aeromexico.png', 'logo_volaris.png', 'logo_mexicana.png',
-                'logo_air_china.png', 'logo_tsm_airlines.png', 'logo_kalitta_air.jpg'
-            ];
-
-            const megaLogos = [
-                'logo_estafeta.jpg', 'logo_cargojet.png',
-                'logo_cargolux.png',
-                'logo_suparna.png', 'logo_awesome_cargo.png'
-            ];
-
-            const giganticLogos = [
-                'logo_cathay_pacific.png'
-            ];
-
-            if (boostLogos.includes(logoFile)) {
-                style = "max-height: 28px; max-width: 80px;";
-            } else if (megaLogos.includes(logoFile)) {
-                style = "max-height: 30px; max-width: 85px;";
-            } else if (giganticLogos.includes(logoFile)) {
-                style = "max-height: 32px; max-width: 90px;";
-            }
-
-            return `<div class="d-flex align-items-center justify-content-center" style="width: 90px; height: 100%;" title="${airlineName}">
-                        <img src="images/airlines/${logoFile}" alt="${airlineName}" style="${style} object-fit: contain;">
-                    </div>`;
-        }
-
-        return `<span class="small fw-bold text-truncate" style="display:block; max-width: 90px;">${airlineName}</span>`;
-    }
-
     renderDailyOpsFancy(data, type, tableSelector) {
         const table = document.querySelector(tableSelector);
         if (!table) return;
@@ -987,7 +909,12 @@ class DataManagement {
             const tr = document.createElement('tr');
             
             const airlineName = row.aerolinea || 'N/A';
-            const airlineHtml = this.getAirlineLogoHtml(airlineName);
+            const config = this.getAirlineConfigByName(airlineName);
+            const airlineHtml = config.logo 
+                ? `<div class="d-flex align-items-center justify-content-center gap-2" title="${airlineName}">
+                     <img src="images/airlines/${config.logo}" alt="${airlineName}" style="max-height: 30px; max-width: 90px; width: auto; object-fit: contain;">
+                   </div>`
+                : `<span class="small fw-bold">${airlineName}</span>`;
 
             const flightNum = type === 'arrival' ? (row.vuelo_llegada || '') : (row.vuelo_salida || '');
             const timeProg = type === 'arrival' ? (row.fecha_hora_prog_llegada || '') : (row.fecha_hora_prog_salida || '');
