@@ -312,7 +312,8 @@
                 if (btnSave) btnSave.classList.add('d-none');
             }
         }
-        applyFilters();
+        // applyFilters(); << This function didn't exist
+        renderData(currentData);
     }
 
     async function saveEditedData() {

@@ -45,6 +45,8 @@ class DataManagement {
 
             'default': { logo: null, color: '#ffffff', text: '#212529' }
         };
+        this.isEditMode = false;
+        this.currentDailyData = []; // Store raw data for edits
 
         this.schemas = {
             operations_summary: [
@@ -846,6 +848,130 @@ class DataManagement {
         }
     }
 
+    toggleEditMode() {
+        this.isEditMode = !this.isEditMode;
+        
+        const btnEdit = document.getElementById('btn-dm-toggle-edit');
+        const btnSave = document.getElementById('btn-dm-save-edit');
+        
+        if (this.isEditMode) {
+            if (btnEdit) {
+                btnEdit.classList.remove('btn-outline-primary');
+                btnEdit.classList.add('btn-primary');
+                btnEdit.innerHTML = '<i class="fas fa-edit me-1"></i> Cancelar';
+            }
+            if (btnSave) btnSave.classList.remove('d-none');
+        } else {
+            if (btnEdit) {
+                btnEdit.classList.add('btn-outline-primary');
+                btnEdit.classList.remove('btn-primary');
+                btnEdit.innerHTML = '<i class="fas fa-edit me-1"></i> Editar';
+            }
+            if (btnSave) btnSave.classList.add('d-none');
+        }
+        
+        this.loadDailyFlightsOps();
+    }
+
+    async saveEditedData() {
+        if (!confirm("¿Guardar cambios en Gestión de Datos?")) return;
+        
+        const inputs = document.querySelectorAll('.dm-input-edit');
+        if (inputs.length === 0) {
+            this.toggleEditMode();
+            return;
+        }
+
+        // We need to group updates by Date because Supabase stores data per day row
+        // Structure needed: Map<Date, ArrayOfFlights>
+        
+        // However, we don't have the full original array in memory easily unless we stored it.
+        // We can fetch the specific days involved.
+        
+        try {
+            const supabase = this.client || window.supabaseClient;
+            
+            // 1. Identify distinct dates being edited
+            const distinctDates = new Set();
+            inputs.forEach(input => {
+                if (input.dataset.date) distinctDates.add(input.dataset.date);
+            });
+
+            for (const dateStr of distinctDates) {
+                // Fetch current state from DB (to avoid overwriting concurrent changes or missing items)
+                const { data: rowData, error: fetchErr } = await supabase
+                    .from('vuelos_parte_operaciones')
+                    .select('data')
+                    .eq('date', dateStr)
+                    .single();
+
+                if (fetchErr) throw fetchErr;
+
+                let flights = rowData.data || [];
+                let modified = false;
+
+                // Apply changes for this date
+                const dateInputs = document.querySelectorAll(`.dm-input-edit[data-date="${dateStr}"]`);
+                
+                dateInputs.forEach(input => {
+                    const seq = input.dataset.seq; // this is actually seq_no or 'no'
+                    const field = input.dataset.field;
+                    // Handle numbers
+                    let newVal = input.value;
+                    if (input.type === 'number') newVal = newVal ? parseFloat(newVal) : 0;
+
+                    // Find flight in array
+                    const fIndex = flights.findIndex(f => String(f.seq_no || f.no) === String(seq));
+                    
+                    if (fIndex >= 0) {
+                        flights[fIndex][field] = newVal;
+                        
+                        // Special Handling: Synchronize redundant fields
+                        // If updating 'vuelo_llegada', also update keys that might be aliased like 'Vuelo de llegada' if they exist?
+                        // For now we persist to the normalized field names mainly, 
+                        // but if the JSON structure uses specific keys, we might be adding new keys. 
+                        // The original loadDailyFlightsOps normalized them. 
+                        // If we save, we are saving back to the JSON column.
+                        
+                        // We should ensure we update the main key used.
+                        // based on data-management normalization:
+                        // op['Vuelo de llegada'] mapped to normalized.vuelo_llegada
+                        
+                        // Let's update common aliases to be safe
+                        if (field === 'vuelo_llegada') flights[fIndex]['Vuelo de llegada'] = newVal;
+                        if (field === 'vuelo_salida') flights[fIndex]['Vuelo de salida'] = newVal;
+                        if (field === 'pasajeros_llegada') flights[fIndex]['Pasajeros llegada'] = newVal;
+                        if (field === 'pasajeros_salida') flights[fIndex]['Pasajeros salida'] = newVal;
+                        if (field === 'matricula') flights[fIndex]['Matrícula'] = newVal;
+                        if (field === 'fecha_hora_prog_llegada') flights[fIndex]['Hora programada_llegada'] = newVal;
+                        if (field === 'fecha_hora_real_llegada') flights[fIndex]['Hora de salida_llegada'] = newVal; // Note: bad naming in original DB?
+                        // etc... for simplicity just updating the target field + aliases logic
+                        
+                        modified = true;
+                    }
+                });
+
+                if (modified) {
+                    const { error: updateErr } = await supabase
+                        .from('vuelos_parte_operaciones')
+                        .update({ data: flights })
+                        .eq('date', dateStr);
+                    
+                    if (updateErr) throw updateErr;
+                }
+            }
+
+            // Success
+            this.toggleEditMode(); // Exit edit mode
+            alert('Cambios guardados correctamente.');
+            // loadDailyFlightsOps handles re-render inside toggleEditMode if needed, but we called toggle which calls load.
+
+        } catch (e) {
+            console.error(e);
+            alert('Error al guardar: ' + e.message);
+        }
+    }
+
     getAirlineConfigByName(name) {
         if (!name) return this.airlineConfig['default'];
         const slug = this.slugify(name);
@@ -968,15 +1094,41 @@ class DataManagement {
             const timeReal = type === 'arrival' ? (row.fecha_hora_real_llegada || '') : (row.fecha_hora_real_salida || '');
             const loc = type === 'arrival' ? (row.origen || '') : (row.destino || '');
             const pax = type === 'arrival' ? (row.pasajeros_llegada || '') : (row.pasajeros_salida || '');
-            
+            const mat = row.matricula || '';
+
             const fmtTime = (t) => {
                 if (!t) return '';
                 if (t.includes('T')) return t.split('T')[1].substring(0,5);
                 return t.substring(0,5);
             };
 
-            const paxHtml = `<span class="fw-bold text-dark">${pax}</span>`;
-            const flightHtml = `<span class="fw-bold text-primary">${flightNum}</span>`;
+            const getInput = (val, field, width = '100%', inputType='text') => {
+                if (!this.isEditMode) return null;
+                return `<input type="${inputType}" class="form-control form-control-sm p-1 text-center dm-input-edit" 
+                   style="min-width: ${width}; font-size: 0.75rem;" 
+                   value="${val !== undefined && val !== null ? val : ''}"
+                   data-date="${row.fecha}"
+                   data-seq="${row.seq_no}"
+                   data-field="${field}">`;
+           };
+
+            // Display Values
+            let displayFlight = `<span class="fw-bold text-primary">${flightNum}</span>`;
+            let displayLoc = `<span class="text-truncate" style="max-width: 100px; display: block;">${loc}</span>`;
+            let displayProg = `<span class="small">${fmtTime(timeProg)}</span>`;
+            let displayReal = `<span class="small fw-bold">${fmtTime(timeReal)}</span>`;
+            let displayPax = `<span class="fw-bold text-dark">${pax}</span>`;
+            let displayMat = `<span class="small font-monospace">${mat}</span>`;
+
+            // Edit Inputs overrides
+            if (this.isEditMode) {
+                displayFlight = getInput(flightNum, type === 'arrival' ? 'vuelo_llegada' : 'vuelo_salida', '60px');
+                displayLoc = getInput(loc, type === 'arrival' ? 'origen' : 'destino', '60px');
+                displayProg = getInput(timeProg, type === 'arrival' ? 'fecha_hora_prog_llegada' : 'fecha_hora_prog_salida', '60px');
+                displayReal = getInput(timeReal, type === 'arrival' ? 'fecha_hora_real_llegada' : 'fecha_hora_real_salida', '60px');
+                displayPax = getInput(pax, type === 'arrival' ? 'pasajeros_llegada' : 'pasajeros_salida', '40px', 'number');
+                displayMat = getInput(mat, 'matricula', '60px');
+            }
 
             // Delete Action
             const deleteBtn = `<button class="btn btn-sm btn-link text-danger opacity-75 p-0" title="Eliminar vuelo" onclick="dataManagement.deleteSingleFlight('${row.fecha}', '${row.seq_no}', '${type}')">
@@ -988,26 +1140,26 @@ class DataManagement {
                 // No, Aerolinea, Vuelo, Origen, Prog, Real, Pax, Conci(empty), Action
                 tr.innerHTML = `
                     <td class="fw-bold text-muted small">${row.seq_no || '-'}</td>
-                    <td class="text-start ps-3">${airlineHtml}</td>
-                    <td>${flightHtml}</td>
-                    <td>${loc}</td>
-                    <td class="small">${fmtTime(timeProg)}</td>
-                    <td class="small fw-bold">${fmtTime(timeReal)}</td>
-                    <td>${paxHtml}</td>
+                    <td class="text-start ps-3 align-middle">${airlineHtml}</td>
+                    <td class="align-middle">${displayFlight}</td>
+                    <td class="align-middle">${displayLoc}</td>
+                    <td class="align-middle">${displayProg}</td>
+                    <td class="align-middle">${displayReal}</td>
+                    <td class="align-middle">${displayPax}</td>
                     <td></td>
-                    <td>${deleteBtn}</td>
+                    <td class="align-middle">${deleteBtn}</td>
                 `;
             } else {
                 tr.innerHTML = `
-                    <td class="text-start ps-3">${airlineHtml}</td>
-                    <td>${flightHtml}</td>
-                    <td>${loc}</td>
-                    <td class="small">${fmtTime(timeProg)}</td>
-                    <td class="small fw-bold">${fmtTime(timeReal)}</td>
-                    <td>${paxHtml}</td>
-                    <td class="small font-monospace">${row.matricula || ''}</td>
+                    <td class="text-start ps-3 align-middle">${airlineHtml}</td>
+                    <td class="align-middle">${displayFlight}</td>
+                    <td class="align-middle">${displayLoc}</td>
+                    <td class="align-middle">${displayProg}</td>
+                    <td class="align-middle">${displayReal}</td>
+                    <td class="align-middle">${displayPax}</td>
+                    <td class="align-middle">${displayMat}</td>
                     <td></td>
-                    <td>${deleteBtn}</td>
+                    <td class="align-middle">${deleteBtn}</td>
                 `;
             }
             tbody.appendChild(tr);

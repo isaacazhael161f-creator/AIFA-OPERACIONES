@@ -883,6 +883,14 @@
                                                     <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal"
                                                         data-bs-target="#uploadOpsItineraryModal"><i
                                                             class="fas fa-file-pdf me-1"></i> Importar PDF</button>
+                                                    
+                                                    <button class="btn btn-outline-primary btn-sm" id="btn-dm-toggle-edit" onclick="dataManagement.toggleEditMode()">
+                                                        <i class="fas fa-edit me-1"></i> Editar
+                                                    </button>
+                                                    <button class="btn btn-success btn-sm d-none" id="btn-dm-save-edit" onclick="dataManagement.saveEditedData()">
+                                                        <i class="fas fa-save me-1"></i> Guardar
+                                                    </button>
+
                                                     <button class="btn btn-primary btn-sm"
                                                         onclick="dataManagement.addItem('daily_flights_ops')"><i
                                                             class="fas fa-plus"></i> Agregar Vuelo</button>
