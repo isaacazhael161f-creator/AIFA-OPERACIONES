@@ -1953,6 +1953,17 @@ function getDefaultAllowedSection() {
 
 function applySectionPermissions(userName) {
     resetSectionPermissions();
+
+    // SUPERADMIN / ADMIN / EDITOR BYPASS
+    const role = sessionStorage.getItem('user_role');
+    if (['admin', 'editor', 'superadmin'].includes(role)) {
+        // If admin/editor, do not hide anything via permissions
+        // But we must ensure 'data-management' is visible if it was hidden by 'd-none' class?
+        // No, 'd-none' is handled by AdminUI. 
+        // We just ensure 'perm-hidden' is not added.
+        return;
+    }
+
     const users = dashboardData?.users || {};
     const user = users[userName];
     const rawWhitelist = Array.isArray(user?.allowedSections)

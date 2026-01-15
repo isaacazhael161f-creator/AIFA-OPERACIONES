@@ -10,16 +10,29 @@ class DataManager {
     async checkAuth() {
         const { data: { session } } = await this.client.auth.getSession();
         if (session) {
-            // Check role or just assume authenticated user is admin/editor for now
-            // In a real app, we'd check a 'profiles' table or custom claims
-            this.isAdmin = true;
-            document.body.classList.add('is-admin');
-            window.dispatchEvent(new CustomEvent('admin-mode-changed', { detail: { isAdmin: true } }));
+            // Check role in user_roles table
+            try {
+                const { data: roleData, error } = await this.client
+                    .from('user_roles')
+                    .select('role')
+                    .eq('user_id', session.user.id)
+                    .single();
+                
+                if (roleData && ['admin', 'editor', 'superadmin'].includes(roleData.role)) {
+                    this.isAdmin = true;
+                } else {
+                    this.isAdmin = false;
+                }
+            } catch (e) {
+                console.error('Error checking role:', e);
+                this.isAdmin = false;
+            }
         } else {
             this.isAdmin = false;
-            document.body.classList.remove('is-admin');
-            window.dispatchEvent(new CustomEvent('admin-mode-changed', { detail: { isAdmin: false } }));
         }
+
+        document.body.classList.toggle('is-admin', this.isAdmin);
+        window.dispatchEvent(new CustomEvent('admin-mode-changed', { detail: { isAdmin: this.isAdmin } }));
         return this.isAdmin;
     }
 

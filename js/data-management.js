@@ -916,38 +916,57 @@ class DataManagement {
                 dateInputs.forEach(input => {
                     const seq = input.dataset.seq; // this is actually seq_no or 'no'
                     const field = input.dataset.field;
+                    const rowType = input.dataset.rowType; // 'arrival' or 'departure'
                     // Handle numbers
                     let newVal = input.value;
                     if (input.type === 'number') newVal = newVal ? parseFloat(newVal) : 0;
 
-                    // Find flight in array
-                    const fIndex = flights.findIndex(f => String(f.seq_no || f.no) === String(seq));
+                    // Find flight in array with Robust Logic (Seq + Type Check)
+                    const fIndex = flights.findIndex(f => {
+                        const matchesSeq = String(f.seq_no || f.no) === String(seq);
+                        if (!matchesSeq) return false;
+                        
+                        // If we have a rowType, try to disambiguate
+                        if (rowType === 'arrival') {
+                            // Valid if it looks like an arrival (has arrival flight or arrival time)
+                            if (f.vuelo_llegada || f['Vuelo de llegada'] || f.fecha_hora_prog_llegada || f['Hora programada_llegada']) return true;
+                            // Fallback: if it has NO departure info, assume it's arrival? Risk.
+                            return false; 
+                        }
+                        if (rowType === 'departure') {
+                            if (f.vuelo_salida || f['Vuelo de salida'] || f.fecha_hora_prog_salida || f['Hora programada_salida']) return true;
+                            return false;
+                        }
+                        return true; // No type info? match purely on seq
+                    });
                     
                     if (fIndex >= 0) {
                         flights[fIndex][field] = newVal;
                         
                         // Special Handling: Synchronize redundant fields
-                        // If updating 'vuelo_llegada', also update keys that might be aliased like 'Vuelo de llegada' if they exist?
-                        // For now we persist to the normalized field names mainly, 
-                        // but if the JSON structure uses specific keys, we might be adding new keys. 
-                        // The original loadDailyFlightsOps normalized them. 
-                        // If we save, we are saving back to the JSON column.
+                        // Ensure we update both "Normalized" and "Original" keys to handle casing/legacy quirks
                         
-                        // We should ensure we update the main key used.
-                        // based on data-management normalization:
-                        // op['Vuelo de llegada'] mapped to normalized.vuelo_llegada
+                        // ARRIVAL ALIASES
+                        if (field === 'vuelo_llegada') { flights[fIndex]['Vuelo de llegada'] = newVal; flights[fIndex]['vuelo_llegada'] = newVal; }
+                        if (field === 'pasajeros_llegada') { flights[fIndex]['Pasajeros llegada'] = newVal; flights[fIndex]['pasajeros_llegada'] = newVal; }
+                        if (field === 'fecha_hora_prog_llegada') { flights[fIndex]['Hora programada_llegada'] = newVal; flights[fIndex]['fecha_hora_prog_llegada'] = newVal; }
+                        if (field === 'fecha_hora_real_llegada') { flights[fIndex]['Hora de salida_llegada'] = newVal; flights[fIndex]['fecha_hora_real_llegada'] = newVal; }
+                        if (field === 'origen') { flights[fIndex]['Origen'] = newVal; flights[fIndex]['origen'] = newVal; }
                         
-                        // Let's update common aliases to be safe
-                        if (field === 'vuelo_llegada') flights[fIndex]['Vuelo de llegada'] = newVal;
-                        if (field === 'vuelo_salida') flights[fIndex]['Vuelo de salida'] = newVal;
-                        if (field === 'pasajeros_llegada') flights[fIndex]['Pasajeros llegada'] = newVal;
-                        if (field === 'pasajeros_salida') flights[fIndex]['Pasajeros salida'] = newVal;
-                        if (field === 'matricula') flights[fIndex]['Matrícula'] = newVal;
-                        if (field === 'fecha_hora_prog_llegada') flights[fIndex]['Hora programada_llegada'] = newVal;
-                        if (field === 'fecha_hora_real_llegada') flights[fIndex]['Hora de salida_llegada'] = newVal; // Note: bad naming in original DB?
-                        // etc... for simplicity just updating the target field + aliases logic
-                        
+                        // DEPARTURE ALIASES
+                        if (field === 'vuelo_salida') { flights[fIndex]['Vuelo de salida'] = newVal; flights[fIndex]['vuelo_salida'] = newVal; }
+                        if (field === 'pasajeros_salida') { flights[fIndex]['Pasajeros salida'] = newVal; flights[fIndex]['pasajeros_salida'] = newVal; }
+                        if (field === 'matricula') { flights[fIndex]['Matrícula'] = newVal; flights[fIndex]['matricula'] = newVal; }
+                        if (field === 'fecha_hora_prog_salida') { flights[fIndex]['Hora programada_salida'] = newVal; flights[fIndex]['fecha_hora_prog_salida'] = newVal; }
+                        if (field === 'fecha_hora_real_salida') { flights[fIndex]['Hora de salida_salida'] = newVal; flights[fIndex]['fecha_hora_real_salida'] = newVal; }
+                        if (field === 'destino') { flights[fIndex]['Destino'] = newVal; flights[fIndex]['destino'] = newVal; }
+
+                        // Common
+                        if (field === 'aerolinea') { flights[fIndex]['aerolinea'] = newVal; flights[fIndex]['Aerolinea'] = newVal; }
+
                         modified = true;
+                    } else {
+                        console.warn(`Could not find flight for update: Date=${dateStr}, Seq=${seq}, Type=${rowType}`);
                     }
                 });
 
@@ -1113,6 +1132,7 @@ class DataManagement {
                    value="${safeVal}"
                    data-date="${row.fecha}"
                    data-seq="${row.seq_no || row.no}"
+                   data-row-type="${type}"
                    data-field="${field}">`;
            };
 

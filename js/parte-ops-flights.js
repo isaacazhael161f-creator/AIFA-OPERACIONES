@@ -323,18 +323,47 @@
 
         // Update internal data from inputs
         inputs.forEach(input => {
-            const seq = parseInt(input.dataset.seq);
+            const seqStr = String(input.dataset.seq);
             const field = input.dataset.field;
+            const rowType = input.dataset.rowType;
             let val = input.value;
 
             if (input.type === 'number') {
                 val = val ? parseInt(val) : 0;
             }
 
-            const row = currentData.find(r => (r.seq_no || r.no) === seq);
+            const row = currentData.find(r => {
+                const matchesSeq = String(r.seq_no || r.no) === seqStr;
+                if (!matchesSeq) return false;
+                
+                // Disambiguate if seq is reused
+                if (rowType === 'arrival') {
+                     return (r.vuelo_llegada || r.fecha_hora_prog_llegada || r['Vuelo de llegada']);
+                }
+                if (rowType === 'departure') {
+                     return (r.vuelo_salida || r.fecha_hora_prog_salida || r['Vuelo de salida']);
+                }
+                return true;
+            });
+
             if (row) {
                 row[field] = val;
                 if (field === 'seq_no') row.no = val;
+
+                // Sync Aliases
+                if (field === 'vuelo_llegada') { row['Vuelo de llegada'] = val; row['vuelo_llegada'] = val; }
+                if (field === 'vuelo_salida') { row['Vuelo de salida'] = val; row['vuelo_salida'] = val; }
+                if (field === 'pasajeros_llegada') { row['Pasajeros llegada'] = val; row['pasajeros_llegada'] = val; }
+                if (field === 'pasajeros_salida') { row['Pasajeros salida'] = val; row['pasajeros_salida'] = val; }
+                if (field === 'matricula') { row['Matrícula'] = val; row['matricula'] = val; }
+                if (field === 'origen') { row['Origen'] = val; row['origen'] = val; }
+                if (field === 'destino') { row['Destino'] = val; row['destino'] = val; }
+                if (field === 'aerolinea') { row['Aerolinea'] = val; row['aerolinea'] = val; }
+                // Time fields
+                if (field === 'fecha_hora_prog_llegada') { row['Hora programada_llegada'] = val; row['fecha_hora_prog_llegada'] = val; }
+                if (field === 'fecha_hora_real_llegada') { row['Hora de salida_llegada'] = val; row['fecha_hora_real_llegada'] = val; }
+                if (field === 'fecha_hora_prog_salida') { row['Hora programada_salida'] = val; row['fecha_hora_prog_salida'] = val; }
+                if (field === 'fecha_hora_real_salida') { row['Hora de salida_salida'] = val; row['fecha_hora_real_salida'] = val; }
             }
         });
 
@@ -1414,7 +1443,7 @@
             return true;
         };
 
-    const getInput = (val, field, seq, type = 'text', width = '100%') => {
+    const getInput = (val, field, seq, type = 'text', width = '100%', rowType = '') => {
         // Always return raw value if not in edit mode
         if (!isEditMode) return val;
         
@@ -1424,7 +1453,7 @@
 
         return `<input type="${type}" class="form-control form-control-sm p-1 ops-input-edit" 
                 style="min-width: ${width}; font-size: 0.8rem; height: 30px;"
-                data-seq="${seq}" data-field="${field}" value="${safeVal}">`;
+                data-seq="${seq}" data-field="${field}" data-row-type="${rowType}" value="${safeVal}">`;
     };
 
         let rowsArr = '';
@@ -1443,11 +1472,11 @@
                 const realArr = r.fecha_hora_real_llegada || '';
                 const paxArr = r.pasajeros_llegada || 0;
 
-                let displayFlight = getInput(arrFlight, 'vuelo_llegada', seq, 'text', '60px');
-                let displayOrigin = getInput(origin, 'origen', seq, 'text', '80px');
-                let displayProg = getInput(progArr, 'fecha_hora_prog_llegada', seq, 'text', '80px');
-                let displayReal = getInput(realArr, 'fecha_hora_real_llegada', seq, 'text', '80px');
-                let displayPax = getInput(paxArr, 'pasajeros_llegada', seq, 'number', '50px');
+                let displayFlight = getInput(arrFlight, 'vuelo_llegada', seq, 'text', '60px', 'arrival');
+                let displayOrigin = getInput(origin, 'origen', seq, 'text', '80px', 'arrival');
+                let displayProg = getInput(progArr, 'fecha_hora_prog_llegada', seq, 'text', '80px', 'arrival');
+                let displayReal = getInput(realArr, 'fecha_hora_real_llegada', seq, 'text', '80px', 'arrival');
+                let displayPax = getInput(paxArr, 'pasajeros_llegada', seq, 'number', '50px', 'arrival');
 
                 if (!isEditMode) {
                     displayFlight = `<span class="text-success fw-bold text-nowrap">${arrFlight}</span>`;
@@ -1483,12 +1512,12 @@
                 const paxDep = r.pasajeros_salida || 0;
                 const mat = r.matricula || '';
 
-                let displayFlight = getInput(depFlight, 'vuelo_salida', seq, 'text', '60px');
-                let displayDest = getInput(dest, 'destino', seq, 'text', '80px');
-                let displayProg = getInput(progDep, 'fecha_hora_prog_salida', seq, 'text', '80px');
-                let displayReal = getInput(realDep, 'fecha_hora_real_salida', seq, 'text', '80px');
-                let displayPax = getInput(paxDep, 'pasajeros_salida', seq, 'number', '50px');
-                let displayMat = getInput(mat, 'matricula', seq, 'text', '60px');
+                let displayFlight = getInput(depFlight, 'vuelo_salida', seq, 'text', '60px', 'departure');
+                let displayDest = getInput(dest, 'destino', seq, 'text', '80px', 'departure');
+                let displayProg = getInput(progDep, 'fecha_hora_prog_salida', seq, 'text', '80px', 'departure');
+                let displayReal = getInput(realDep, 'fecha_hora_real_salida', seq, 'text', '80px', 'departure');
+                let displayPax = getInput(paxDep, 'pasajeros_salida', seq, 'number', '50px', 'departure');
+                let displayMat = getInput(mat, 'matricula', seq, 'text', '60px', 'departure');
 
                 if (!isEditMode) {
                     displayFlight = `<span class="text-primary fw-bold text-nowrap">${depFlight}</span>`;
