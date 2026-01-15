@@ -1104,11 +1104,15 @@ class DataManagement {
 
             const getInput = (val, field, width = '100%', inputType='text') => {
                 if (!this.isEditMode) return null;
+                
+                let safeVal = (val !== undefined && val !== null) ? String(val) : '';
+                safeVal = safeVal.replace(/"/g, '&quot;');
+
                 return `<input type="${inputType}" class="form-control form-control-sm p-1 text-center dm-input-edit" 
-                   style="min-width: ${width}; font-size: 0.75rem;" 
-                   value="${val !== undefined && val !== null ? val : ''}"
+                   style="min-width: ${width}; font-size: 0.75rem; height: 30px;" 
+                   value="${safeVal}"
                    data-date="${row.fecha}"
-                   data-seq="${row.seq_no}"
+                   data-seq="${row.seq_no || row.no}"
                    data-field="${field}">`;
            };
 

@@ -1414,13 +1414,18 @@
             return true;
         };
 
-        const getInput = (val, field, seq, type = 'text', width = '100%') => {
-            if (!isEditMode) return val;
-            const safeVal = val !== undefined ? val : '';
-            return `<input type="${type}" class="form-control form-control-sm p-1 ops-input-edit" 
-                    style="min-width: ${width}; font-size: 0.8rem;"
-                    data-seq="${seq}" data-field="${field}" value="${safeVal}">`;
-        };
+    const getInput = (val, field, seq, type = 'text', width = '100%') => {
+        // Always return raw value if not in edit mode
+        if (!isEditMode) return val;
+        
+        // Ensure value is safe string
+        let safeVal = (val !== undefined && val !== null) ? String(val) : '';
+        safeVal = safeVal.replace(/"/g, '&quot;'); // Simple escape for quotes
+
+        return `<input type="${type}" class="form-control form-control-sm p-1 ops-input-edit" 
+                style="min-width: ${width}; font-size: 0.8rem; height: 30px;"
+                data-seq="${seq}" data-field="${field}" value="${safeVal}">`;
+    };
 
         let rowsArr = '';
         let rowsDep = '';
