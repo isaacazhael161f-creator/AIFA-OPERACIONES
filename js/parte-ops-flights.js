@@ -1350,11 +1350,11 @@
         }
 
         const userRole = sessionStorage.getItem('user_role');
-        const canConciliate = ['admin', 'conciliacion', 'superadmin'].includes(userRole);
+        // Force conciliation to be visible for everyone as requested
+        const canConciliate = true; // ['admin', 'conciliacion', 'superadmin'].includes(userRole);
 
         document.querySelectorAll('.col-conciliacion').forEach(el => {
-            if (canConciliate) el.classList.remove('d-none');
-            else el.classList.add('d-none');
+           el.classList.remove('d-none');
         });
 
         if (tbodyArr) tbodyArr.innerHTML = '';
