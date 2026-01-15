@@ -910,11 +910,58 @@ class DataManagement {
             
             const airlineName = row.aerolinea || 'N/A';
             const config = this.getAirlineConfigByName(airlineName);
-            const airlineHtml = config.logo 
-                ? `<div class="d-flex align-items-center justify-content-center gap-2" title="${airlineName}">
-                     <img src="images/airlines/${config.logo}" alt="${airlineName}" style="max-height: 30px; max-width: 90px; width: auto; object-fit: contain;">
-                   </div>`
-                : `<span class="small fw-bold">${airlineName}</span>`;
+            
+            let logoHtml = `<span class="small fw-bold">${airlineName}</span>`;
+            
+            if (config.logo) {
+                const logoFile = config.logo;
+                
+                // Logic to visually equalize logo sizes (Ported from parte-ops-flights.js)
+                // Standard size
+                let style = "max-height: 25px; max-width: 70px;";
+
+                // Reduce size for notably bulky/square logos
+                if (logoFile.includes('viva')) {
+                    style = "max-height: 20px; max-width: 60px;";
+                }
+
+                // Boost size for logos that naturally look small (horizontal/text-heavy)
+                const boostLogos = [
+                    'logo_aeromexico.png', 'logo_volaris.png', 'logo_mexicana.png',
+                    'logo_air_china.png', 'logo_tsm_airlines.png', 'logo_kalitta_air.jpg',
+                    'logo_conviasa.png', 'logo_mas.png'
+                ];
+
+                // Mega size for specific cargo/wide logos requested to be bigger
+                const megaLogos = [
+                    'logo_estafeta.jpg', 'logo_cargojet.png',
+                    'logo_cargolux.png',
+                    'logo_suparna.png', 'logo_awesome_cargo.png',
+                    'logo_atlas_air.png', 'logo_fedex_express.png', 'logo_dhl_guatemala_.png'
+                ];
+                
+                // Specific Overrides for User reported issues (Viva, Conviasa, Mas Air)
+                if (logoFile === 'logo_conviasa.png') {
+                    // Conviasa is long, needs height restriction but allow width
+                    style = "max-height: 25px; max-width: 85px;"; 
+                }
+                if (logoFile === 'logo_mas.png') {
+                    style = "max-height: 25px; max-width: 70px;";
+                }
+                if (logoFile.includes('viva')) { // Redirect Viva strictly
+                    style = "max-height: 18px; max-width: 60px;";
+                }
+
+                if (megaLogos.includes(logoFile)) {
+                    style = "max-height: 28px; max-width: 85px;";
+                }
+
+                logoHtml = `<div class="d-flex align-items-center justify-content-center gap-2" title="${airlineName}">
+                     <img src="images/airlines/${config.logo}" alt="${airlineName}" class="img-fluid" style="${style} width: auto; object-fit: contain;">
+                   </div>`;
+            }
+            
+            const airlineHtml = logoHtml;
 
             const flightNum = type === 'arrival' ? (row.vuelo_llegada || '') : (row.vuelo_salida || '');
             const timeProg = type === 'arrival' ? (row.fecha_hora_prog_llegada || '') : (row.fecha_hora_prog_salida || '');
