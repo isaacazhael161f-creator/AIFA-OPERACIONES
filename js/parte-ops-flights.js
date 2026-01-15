@@ -1106,21 +1106,27 @@
         let skippedCount = 0;
 
         rows.forEach((r, index) => {
-            // NORMALIZE SPANISH KEYS (Explicit mapping based on user JSON)
-            if (r['Hora programada_llegada']) r.fecha_hora_prog_llegada = r['Hora programada_llegada'];
-            if (r['Hora de salida_llegada']) r.fecha_hora_real_llegada = r['Hora de salida_llegada'];
-            if (r['Hora programada_salida']) r.fecha_hora_prog_salida = r['Hora programada_salida'];
-            if (r['Hora de salida_salida']) r.fecha_hora_real_salida = r['Hora de salida_salida'];
+            // NORMALIZE SPANISH KEYS & SNAKE_CASE (Explicit mapping based on user JSON variants)
+            // Time/Date Fields
+            if (!r.fecha_hora_prog_llegada) r.fecha_hora_prog_llegada = r['Hora programada_llegada'] || r.hora_programada_llegada || r.hora_prog_llegada;
+            if (!r.fecha_hora_real_llegada) r.fecha_hora_real_llegada = r['Hora de salida_llegada'] || r.hora_real_llegada || r.hora_llegada;
+            if (!r.fecha_hora_prog_salida) r.fecha_hora_prog_salida = r['Hora programada_salida'] || r.hora_programada_salida || r.hora_prog_salida;
+            if (!r.fecha_hora_real_salida) r.fecha_hora_real_salida = r['Hora de salida_salida'] || r.hora_real_salida || r.hora_salida;
 
-            if (r['Vuelo de llegada']) r.vuelo_llegada = r['Vuelo de llegada'];
-            if (r['Vuelo de salida']) r.vuelo_salida = r['Vuelo de salida'];
-            if (r['Pasajeros llegada']) r.pasajeros_llegada = r['Pasajeros llegada'];
-            if (r['Pasajeros salida']) r.pasajeros_salida = r['Pasajeros salida'];
-            if (r['Matrícula']) r.matricula = r['Matrícula'];
-            if (r['Origen']) r.origen = r['Origen'];
-            if (r['Destino']) r.destino = r['Destino'];
-            if (r['aerolinea']) r.aerolinea = r['aerolinea'];
-            if (r['categoría']) r.categoria = r['categoría'];
+            // Flight Info
+            if (!r.vuelo_llegada) r.vuelo_llegada = r['Vuelo de llegada'];
+            if (!r.vuelo_salida) r.vuelo_salida = r['Vuelo de salida'];
+            
+            // Pax
+            if (r.pasajeros_llegada === undefined) r.pasajeros_llegada = r['Pasajeros llegada'];
+            if (r.pasajeros_salida === undefined) r.pasajeros_salida = r['Pasajeros salida'];
+
+            // Others
+            if (!r.matricula) r.matricula = r['Matrícula'];
+            if (!r.origen) r.origen = r['Origen'];
+            if (!r.destino) r.destino = r['Destino'];
+            if (!r.aerolinea) r.aerolinea = r['aerolinea']; // Ensure copy if needed
+            if (!r.categoria) r.categoria = r['categoría'];
 
             // Normalize Data for Table Display
             if (!r.fecha_hora_real_llegada && r.fecha_llegada && r.hora_llegada) {
@@ -1141,6 +1147,16 @@
 
             // Determine grouping date
             let dateVal = r.date || r.fecha || null;
+
+            // Simple normalize for DD/MM/YYYY to YYYY-MM-DD
+            if (dateVal && typeof dateVal === 'string' && dateVal.includes('/')) {
+                const parts = dateVal.trim().split(' ')[0].split('/');
+                if (parts.length === 3) {
+                    // Start from end (Year) if standard DD/MM/YYYY or MM/DD/YYYY? 
+                    // Usually DD/MM/YYYY in Mexico (User locale implied by Spanish keys)
+                    dateVal = `${parts[2]}-${parts[1]}-${parts[0]}`; 
+                }
+            }
 
             // Try explicit new fields with robust cleaning
             if (!dateVal) {
