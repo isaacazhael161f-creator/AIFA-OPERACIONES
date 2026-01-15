@@ -5559,3 +5559,63 @@ body.dark-mode #table-parte-ops tbody tr:nth-of-type(even),
 body.dark-mode #table-ops-flights tbody tr:nth-of-type(even) {
     background-color: transparent !important;
 }
+
+/* Styling for Weekly Frequencies Admin Table */
+.freq-row-hover {
+    transition: all 0.2s ease;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+.freq-row-hover:hover {
+    filter: brightness(0.95);
+    /* Removed outline on tr to avoid crossing rowspan cells */
+    z-index: 10;
+    position: relative;
+    cursor: default;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+/* Outline cells instead to respect rowspans */
+.freq-row-hover:hover td {
+    border-top: 2px solid #666;
+    border-bottom: 2px solid #666;
+}
+.freq-row-hover:hover td:first-child {
+    border-left: 2px solid #666;
+}
+.freq-row-hover:hover td:last-child {
+    border-right: 2px solid #666;
+}
+/* Ensure shared cells don't get double borders from this rule if they are first-child in row 1 
+   Actually, for row 1, we want borders around everything including shared cells.
+   Row 1 has shared cells as first children. So they get borders. 
+   BUT we also have .group-hover .shared-info-cell putting an outline. 
+   The outline is usually better for the shared block.
+   Let's disable the left-border on the row hover if it's a shared cell & relying on group outline?
+   No, let's keep it simple. The user just wants to avoid the "line crossing". 
+   By moving from TR outline to TD borders, the line won't cross the empty space of rowspan.
+*/
+.freq-total-cell {
+    background-color: rgba(0, 0, 0, 0.2) !important;
+    font-weight: 800 !important;
+    font-size: 1.05em;
+}
+
+/* Active state for shared cells in frequencies table */
+.freq-shared-cell {
+    transition: background-color 0.2s ease;
+}
+.freq-shared-cell.active-group {
+    background-color: #e2e6ea !important; /* Highlight color */
+    color: #000 !important;
+    border-right: 3px solid #666;
+    font-weight: bold;
+}
+
+.group-hover .shared-info-cell {
+    background-color: #f8f9fa !important;
+    color: #000 !important;
+    outline: 2px solid #666;
+    z-index: 15; /* Higher than row to sit on top if needed */
+    position: relative;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1); /* Subtle shadow to separate from airline list */
+}

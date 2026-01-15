@@ -208,16 +208,22 @@
           if (!groups[key]) {
               groups[key] = {
                   rows: [],
-                  validFrom: new Date(row.valid_from),
-                  validTo: new Date(row.valid_to || row.valid_from) // Fallback if null
+                  validFrom: new Date(row.valid_from + 'T00:00:00'),
+                  // Force validTo to be 6 days after validFrom to ensure title coherence
+                  // validTo: new Date(row.valid_to || row.valid_from) 
               };
-              // Adjust validTo if strict equality with validFrom (single day?) usually validTo is end of week
+              // Calculate validTo
+              const vTo = new Date(groups[key].validFrom);
+              vTo.setDate(vTo.getDate() + 6);
+              groups[key].validTo = vTo;
           }
           groups[key].rows.push(row);
       });
 
       const today = new Date();
-      today.setHours(0,0,0,0); // Normalize today
+      // today.setHours(0,0,0,0); // Normalize today - ALREADY DONE by Date object if we compare timestamps? 
+      // safer:
+      today.setHours(0,0,0,0);
 
       let selectedKey = null;
       let minDiff = Infinity;
@@ -253,7 +259,17 @@
 
       const weekLabel = first.week_label;
       const validFrom = first.valid_from;
-      const validTo = first.valid_to;
+      
+      // Force validTo calculation related to validFrom + 6 days
+      // Avoid relying on DB valid_to which might be incorrect
+      const dFrom = new Date(validFrom + 'T00:00:00');
+      const dTo = new Date(dFrom);
+      dTo.setDate(dFrom.getDate() + 6);
+      
+      const year = dTo.getFullYear();
+      const month = String(dTo.getMonth() + 1).padStart(2, '0');
+      const day = String(dTo.getDate()).padStart(2, '0');
+      const validTo = `${year}-${month}-${day}`;
       
       // Group by route_id or iata
       const destinationsMap = {};
@@ -670,6 +686,19 @@
     let html = '';
     const abbrs = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
     
+    // Calcular fechas específicas si existen
+    const dateLabels = abbrs.map((d, i) => {
+        if (state.raw?.validFrom) {
+            const date = new Date(state.raw.validFrom + 'T00:00:00');
+            date.setDate(date.getDate() + i);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = String(date.getFullYear()).slice(-2);
+            return `${d}<br><span style="font-size: 0.65rem; font-weight: normal; opacity: 0.8;">${day}/${month}/${year}</span>`;
+        }
+        return d;
+    });
+
     projected.viewAirlines.forEach(air => {
         const config = AIRLINE_CONFIG[air.slug] || AIRLINE_CONFIG['default'];
         
@@ -703,7 +732,7 @@
                         
                         return `
                             <div class="text-center rounded p-1 flex-fill ${bgClass}" style="min-width: 35px;">
-                                <div class="small ${isActive ? 'text-primary fw-semibold' : 'text-muted opacity-50'}" style="font-size: 0.7rem; margin-bottom: 2px;">${abbrs[idx]}</div>
+                                <div class="small ${isActive ? 'text-primary fw-semibold' : 'text-muted opacity-50'}" style="font-size: 0.7rem; margin-bottom: 2px; line-height: 1.1;">${dateLabels[idx]}</div>
                                 <div class="${textClass}" style="font-size: 1rem; line-height: 1;">${count}</div>
                             </div>
                         `;
@@ -796,9 +825,14 @@
         const start = L.latLng(AIFA_COORDS.lat, AIFA_COORDS.lng);
         const end = L.latLng(dest.coords.lat, dest.coords.lng);
 
+        // Calculate Geodesic Path (Great Circle roughly)
+        // Basic Bezier control point strategy for visual arc
+        // Or spherical interpolation points
+        const pathPoints = getGeodesicPath(start, end);
+
         // Dibujar línea de trayectoria (trayectoria real visual)
         if (currentLine) state.planeLayer.removeLayer(currentLine);
-        currentLine = L.polyline([start, end], {
+        currentLine = L.polyline(pathPoints, {
             color: '#0d6efd',
             weight: 2,
             opacity: 0.4,
@@ -817,36 +851,60 @@
         currentPlane = L.marker(start, { icon, zIndexOffset: 500, interactive: false }).addTo(state.planeLayer);
 
         startTime = performance.now();
-        requestAnimationFrame((now) => animate(now, start, end));
+        requestAnimationFrame((now) => animate(now, pathPoints));
     }
 
-    function animate(now, start, end){
+    function animate(now, pathPoints){
         const elapsed = now - startTime;
         const t = Math.min(elapsed / duration, 1);
 
-        // Interpolación lineal
-        const lat = start.lat + (end.lat - start.lat) * t;
-        const lng = start.lng + (end.lng - start.lng) * t;
+        // Interpolación along path
+        // Find segment index
+        const totalSegments = pathPoints.length - 1;
+        const segmentFloat = t * totalSegments;
+        const segmentIndex = Math.floor(segmentFloat);
+        const segmentT = segmentFloat - segmentIndex;
+
+        let lat, lng, nextLat, nextLng;
+
+        if (segmentIndex >= totalSegments) {
+             lat = pathPoints[totalSegments].lat;
+             lng = pathPoints[totalSegments].lng;
+             nextLat = lat; // No movement
+             nextLng = lng;
+        } else {
+             const p1 = pathPoints[segmentIndex];
+             const p2 = pathPoints[segmentIndex + 1];
+             lat = p1.lat + (p2.lat - p1.lat) * segmentT;
+             lng = p1.lng + (p2.lng - p1.lng) * segmentT;
+             nextLat = p2.lat;
+             nextLng = p2.lng;
+        }
+        
         currentPlane.setLatLng([lat, lng]);
 
         // Rotación
-        const dy = end.lat - start.lat;
-        const dx = end.lng - start.lng;
-        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        // Calculate heading based on current segment or immediate derivative
+        // Simple: Heading to next point
+        // Better: derivative at t
+        let angle = 0;
+        if (segmentIndex < totalSegments) {
+            const p1 = pathPoints[segmentIndex];
+            const p2 = pathPoints[segmentIndex + 1];
+            const dy = p2.lat - p1.lat;
+            const dx = p2.lng - p1.lng;
+            angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        } else {
+           // Keep last angle or 0
+        }
         
         const iconEl = currentPlane.getElement()?.querySelector('i');
         if (iconEl) {
-            // Ajuste de rotación: 
-            // Análisis de intentos previos:
-            // 1. "270 - angle" -> Avión de espalda (180 grados opuesto).
-            // 2. "90 - angle" -> Ala izquierda al destino (90 grados desfasado).
-            // Conclusión: El icono base apunta a la DERECHA (Este).
-            // Solución: "-angle" rota desde el Este hacia el Norte (anti-horario en CSS negativo).
             iconEl.style.transform = `rotate(${-angle}deg)`;
         }
 
         if (t < 1) {
-            state.animationFrameId = requestAnimationFrame((nextNow) => animate(nextNow, start, end));
+            state.animationFrameId = requestAnimationFrame((nextNow) => animate(nextNow, pathPoints));
         } else {
             // Vuelo terminado, esperar un poco y lanzar el siguiente
             state.animationTimeoutId = setTimeout(() => {
@@ -856,6 +914,31 @@
                 startNextFlight();
             }, 500);
         }
+    }
+
+    // Helper for Great Circle Approximation
+    function getGeodesicPath(start, end, numPoints = 100) {
+        const lat1 = start.lat * Math.PI / 180;
+        const lon1 = start.lng * Math.PI / 180;
+        const lat2 = end.lat * Math.PI / 180;
+        const lon2 = end.lng * Math.PI / 180;
+        
+        const d = 2 * Math.asin(Math.sqrt(Math.pow(Math.sin((lat2 - lat1) / 2), 2) +
+        Math.cos(lat1) * Math.cos(lat2) * Math.pow(Math.sin((lon2 - lon1) / 2), 2)));
+        
+        const path = [];
+        for (let i = 0; i <= numPoints; i++) {
+            const f = i / numPoints;
+            const A = Math.sin((1 - f) * d) / Math.sin(d);
+            const B = Math.sin(f * d) / Math.sin(d);
+            const x = A * Math.cos(lat1) * Math.cos(lon1) + B * Math.cos(lat2) * Math.cos(lon2);
+            const y = A * Math.cos(lat1) * Math.sin(lon1) + B * Math.cos(lat2) * Math.sin(lon2);
+            const z = A * Math.sin(lat1) + B * Math.sin(lat2);
+            const lat = Math.atan2(z, Math.sqrt(x * x + y * y));
+            const lon = Math.atan2(y, x);
+            path.push(L.latLng(lat * 180 / Math.PI, lon * 180 / Math.PI));
+        }
+        return path;
     }
 
     startNextFlight();
@@ -1148,15 +1231,19 @@
           const colIndex = i + 3; // Shift by 1
           if (headers[colIndex]) {
               const current = new Date(startDate);
-              current.setDate(startDate.getDate() + i);
-              
-              const dayName = DAY_LABELS[code].substring(0, 3);
-              const dayNameCap = dayName.charAt(0).toUpperCase() + dayName.slice(1);
-              const dateNum = current.getDate();
-              const monthName = current.toLocaleString('es-MX', { month: 'short' }).replace('.', '');
+              current.setDate(current.getDate() + i); // Add days
 
-              headers[colIndex].innerHTML = `${dayNameCap}<br><small class="text-muted fw-normal" style="font-size: 0.75rem;">${dateNum} ${monthName}</small>`;
-              headers[colIndex].style.width = '7%';
+              // Format
+              const day = current.getDate().toString().padStart(2, '0');
+              const month = (current.getMonth() + 1).toString().padStart(2, '0');
+              const year = current.getFullYear().toString().slice(-2);
+              const dateStr = `${day}/${month}/${year}`;
+
+              const label = DAY_LABELS[code];
+              headers[colIndex].innerHTML = `<div class="d-flex flex-column align-items-center" style="line-height:1.1;">
+                <span>${label}</span>
+                <span class="text-muted fw-normal mt-1" style="font-size: 0.75rem;">${dateStr}</span>
+              </div>`;
           }
       });
   }

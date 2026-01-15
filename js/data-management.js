@@ -1988,7 +1988,23 @@ class DataManagement {
 
                 groupItems.forEach((groupItem, index) => {
                     const tr = document.createElement('tr');
+                    tr.classList.add('freq-row-hover'); // Add hover class for better UX
                     
+                    // Group Hover Logic
+                    const groupId = key.replace(/[^a-zA-Z0-9]/g, '_');
+                    tr.dataset.groupId = groupId;
+                    
+                    tr.onmouseenter = function() {
+                        const gid = this.dataset.groupId;
+                        const rows = this.closest('tbody').querySelectorAll(`tr[data-group-id="${gid}"]`);
+                        rows.forEach(r => r.classList.add('group-hover'));
+                    };
+                    tr.onmouseleave = function() {
+                        const gid = this.dataset.groupId;
+                        const rows = this.closest('tbody').querySelectorAll(`tr[data-group-id="${gid}"]`);
+                        rows.forEach(r => r.classList.remove('group-hover'));
+                    };
+
                     // Determine airline config
                     const slug = this.slugify(groupItem.airline || 'default');
                     const config = this.airlineConfig[slug] || this.airlineConfig['default'];
@@ -2007,6 +2023,7 @@ class DataManagement {
                         tdWeek.style.color = '#212529';
                         tdWeek.rowSpan = groupItems.length;
                         tdWeek.style.verticalAlign = 'middle';
+                        tdWeek.classList.add('shared-info-cell'); // ADDED CLASS
                         tr.appendChild(tdWeek);
 
                         const tdRouteId = document.createElement('td');
@@ -2015,6 +2032,7 @@ class DataManagement {
                         tdRouteId.style.color = '#212529';
                         tdRouteId.rowSpan = groupItems.length;
                         tdRouteId.style.verticalAlign = 'middle';
+                        tdRouteId.classList.add('shared-info-cell'); // ADDED CLASS
                         tr.appendChild(tdRouteId);
 
                         const tdRoute = document.createElement('td');
@@ -2023,6 +2041,7 @@ class DataManagement {
                         tdRoute.style.color = '#212529';
                         tdRoute.rowSpan = groupItems.length;
                         tdRoute.style.verticalAlign = 'middle';
+                        tdRoute.classList.add('shared-info-cell'); // ADDED CLASS
                         
                         // Add "Add Airline" button
                         const btnAdd = document.createElement('button');
@@ -2070,7 +2089,7 @@ class DataManagement {
 
                     // Total
                     const tdTotal = document.createElement('td');
-                    tdTotal.className = 'text-center fw-bold border-start';
+                    tdTotal.className = 'text-center fw-bold border-start freq-total-cell'; // Custom class for total column styling
                     tdTotal.style.verticalAlign = 'middle';
                     tdTotal.style.color = '#ffffff';
                     tdTotal.textContent = groupItem.weekly_total;
@@ -2328,7 +2347,23 @@ class DataManagement {
 
                 groupItems.forEach((groupItem, index) => {
                     const tr = document.createElement('tr');
+                    tr.classList.add('freq-row-hover'); // Add hover class for better UX
                     
+                    // Group Hover Logic
+                    const groupId = key.replace(/[^a-zA-Z0-9]/g, '_');
+                    tr.dataset.groupId = groupId;
+                    
+                    tr.onmouseenter = function() {
+                        const gid = this.dataset.groupId;
+                        const rows = this.closest('tbody').querySelectorAll(`tr[data-group-id="${gid}"]`);
+                        rows.forEach(r => r.classList.add('group-hover'));
+                    };
+                    tr.onmouseleave = function() {
+                        const gid = this.dataset.groupId;
+                        const rows = this.closest('tbody').querySelectorAll(`tr[data-group-id="${gid}"]`);
+                        rows.forEach(r => r.classList.remove('group-hover'));
+                    };
+
                     const slug = this.slugify(groupItem.airline || 'default');
                     const config = this.airlineConfig[slug] || this.airlineConfig['default'];
 
@@ -2344,6 +2379,7 @@ class DataManagement {
                         tdWeek.style.color = '#212529';
                         tdWeek.rowSpan = groupItems.length;
                         tdWeek.style.verticalAlign = 'middle';
+                        tdWeek.classList.add('shared-info-cell'); // ADDED CLASS
                         tr.appendChild(tdWeek);
 
                         const tdRouteId = document.createElement('td');
@@ -2352,6 +2388,7 @@ class DataManagement {
                         tdRouteId.style.color = '#212529';
                         tdRouteId.rowSpan = groupItems.length;
                         tdRouteId.style.verticalAlign = 'middle';
+                        tdRouteId.classList.add('shared-info-cell'); // ADDED CLASS
                         tr.appendChild(tdRouteId);
 
                         const tdRoute = document.createElement('td');
@@ -2360,6 +2397,7 @@ class DataManagement {
                         tdRoute.style.color = '#212529';
                         tdRoute.rowSpan = groupItems.length;
                         tdRoute.style.verticalAlign = 'middle';
+                        tdRoute.classList.add('shared-info-cell'); // ADDED CLASS
                         
                         const btnAdd = document.createElement('button');
                         btnAdd.className = 'btn btn-sm btn-outline-success d-block mx-auto mt-2';
@@ -2401,7 +2439,7 @@ class DataManagement {
                     });
 
                     const tdTotal = document.createElement('td');
-                    tdTotal.className = 'text-center fw-bold border-start';
+                    tdTotal.className = 'text-center fw-bold border-start freq-total-cell'; // Custom class for total column styling
                     tdTotal.style.verticalAlign = 'middle';
                     tdTotal.style.color = '#ffffff';
                     tdTotal.textContent = groupItem.weekly_total;
