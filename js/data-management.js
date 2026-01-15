@@ -942,21 +942,21 @@ class DataManagement {
                 
                 // Specific Overrides for User reported issues (Viva, Conviasa, Mas Air)
                 if (logoFile === 'logo_conviasa.png') {
-                    // Conviasa is long, needs strict height restriction
-                    style = "max-height: 25px; max-width: 80px;"; 
+                    // Conviasa is long, needs height restriction but allow width
+                    style = "max-height: 25px; max-width: 75px;"; 
                 }
                 if (logoFile === 'logo_mas.png') {
-                    style = "max-height: 25px; max-width: 60px;";
+                    style = "max-height: 25px; max-width: 70px;";
                 }
                 if (logoFile.includes('viva')) { // Redirect Viva strictly
                     style = "max-height: 18px; max-width: 60px;";
                 }
 
                 if (megaLogos.includes(logoFile)) {
-                    style = "max-height: 25px; max-width: 80px;";
+                    style = "max-height: 28px; max-width: 85px;";
                 }
 
-                logoHtml = `<div class="d-flex align-items-center justify-content-center gap-2" title="${airlineName}" style="width: 100px; overflow: hidden;">
+                logoHtml = `<div class="d-flex align-items-center justify-content-center gap-2" title="${airlineName}">
                      <img src="images/airlines/${config.logo}" alt="${airlineName}" class="img-fluid" style="${style} width: auto; object-fit: contain;">
                    </div>`;
             }

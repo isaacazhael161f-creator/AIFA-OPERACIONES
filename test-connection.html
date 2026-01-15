@@ -92,15 +92,19 @@
                             <div class="tab-pane fade" id="pills-register" role="tabpanel">
                                 <div class="form-floating mb-3">
                                     <input type="text" class="form-control bg-light border-0" id="reg-username" placeholder="Usuario">
-                                    <label for="reg-username" class="text-muted">Nuevo Usuario</label>
+                                    <label for="reg-username" class="text-muted"><i class="fas fa-user me-2"></i>Usuario</label>
+                                </div>
+                                <div class="form-floating mb-3">
+                                    <input type="email" class="form-control bg-light border-0" id="reg-email" placeholder="Correo electrónico (Opcional)">
+                                    <label for="reg-email" class="text-muted"><i class="fas fa-envelope me-2"></i>Correo (Opcional)</label>
                                 </div>
                                 <div class="form-floating mb-3">
                                     <input type="text" class="form-control bg-light border-0" id="reg-fullname" placeholder="Nombre Completo">
-                                    <label for="reg-fullname" class="text-muted">Nombre Completo</label>
+                                    <label for="reg-fullname" class="text-muted"><i class="fas fa-id-card me-2"></i>Nombre Completo</label>
                                 </div>
                                 <div class="form-floating mb-4">
                                     <input type="password" class="form-control bg-light border-0" id="reg-password" placeholder="Contraseña">
-                                    <label for="reg-password" class="text-muted">Contraseña</label>
+                                    <label for="reg-password" class="text-muted"><i class="fas fa-lock me-2"></i>Contraseña</label>
                                 </div>
                                 <button class="btn btn-success w-100 py-3 rounded-3 fw-bold shadow-sm" onclick="testRegister()">
                                     <i class="fas fa-user-check me-2"></i>CREAR CUENTA
@@ -205,6 +209,7 @@
 
         async function testRegister() {
             let username = document.getElementById('reg-username').value;
+            const emailInput = document.getElementById('reg-email').value;
             const fullName = document.getElementById('reg-fullname').value;
             const password = document.getElementById('reg-password').value;
 
@@ -216,8 +221,11 @@
             updateStatus('info', 'Registrando nuevo tripulante...');
 
             try {
-                let email = username;
-                if (!username.includes('@')) {
+                // If explicit email provided, use it. Otherwise generate dummy.
+                let email = emailInput ? emailInput.trim() : username;
+                
+                // If username is not an email and no email provided, create dummy
+                if (!email.includes('@')) {
                     const normalized = username.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '.');
                     email = `${normalized}@aifa.operaciones`;
                 }
@@ -225,7 +233,12 @@
                 const { data, error } = await window.supabaseClient.auth.signUp({
                     email: email,
                     password: password,
-                    options: { data: { full_name: fullName } }
+                    options: { 
+                        data: { 
+                            full_name: fullName,
+                            username: username // Store the display username 
+                        } 
+                    }
                 });
 
                 if (error) throw error;
