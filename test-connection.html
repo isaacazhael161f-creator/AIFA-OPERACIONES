@@ -221,22 +221,22 @@
             updateStatus('info', 'Registrando nuevo tripulante...');
 
             try {
-                // If explicit email provided, use it. Otherwise generate dummy.
-                let email = emailInput ? emailInput.trim() : username;
-                
-                // If username is not an email and no email provided, create dummy
-                if (!email.includes('@')) {
+                // Generar SIEMPRE el email de autenticación basado en el Usuario
+                // Esto garantiza que el login siempre funcione con el Usuario, independientemente del correo de contacto.
+                let authEmail = username;
+                if (!authEmail.includes('@')) {
                     const normalized = username.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '.');
-                    email = `${normalized}@aifa.operaciones`;
+                    authEmail = `${normalized}@aifa.operaciones`;
                 }
 
                 const { data, error } = await window.supabaseClient.auth.signUp({
-                    email: email,
+                    email: authEmail, // Usamos el email generado del usuario para Auth
                     password: password,
                     options: { 
                         data: { 
                             full_name: fullName,
-                            username: username // Store the display username 
+                            username: username,
+                            contact_email: emailInput || '' // Guardamos el correo real en metadatos para recuperación
                         } 
                     }
                 });
