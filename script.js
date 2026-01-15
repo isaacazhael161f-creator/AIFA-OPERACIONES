@@ -1955,14 +1955,32 @@ function applySectionPermissions(userName) {
     resetSectionPermissions();
 
     // SUPERADMIN / ADMIN / EDITOR BYPASS
-    const role = sessionStorage.getItem('user_role');
-    if (['admin', 'editor', 'superadmin'].includes(role)) {
+    const role = sessionStorage.getItem('user_role') || 'viewer';
+    const isPowerUser = ['admin', 'editor', 'superadmin'].includes(role);
+
+    if (isPowerUser) {
         // If admin/editor, do not hide anything via permissions
-        // But we must ensure 'data-management' is visible if it was hidden by 'd-none' class?
-        // No, 'd-none' is handled by AdminUI. 
-        // We just ensure 'perm-hidden' is not added.
+        // Data Management is visible (d-none removed by AdminUI)
         return;
     }
+
+    // Force hide sensitive sections for non-power users (Viewers)
+    // This adds a second layer of security beyond AdminUI's d-none
+    const sensitive = ['data-management'];
+    
+    sensitive.forEach(secKey => {
+        const item = document.querySelector(`.menu-item[data-section="${secKey}"]`);
+        if (item) item.classList.add('perm-hidden');
+        
+        const content = document.getElementById(`${secKey}-section`);
+        // The Data Management section might not be a standard content-section div if handled dynamically
+        // but if it exists, hide it.
+        // Actually, in index.html, it's a tab-pane usually or similar? 
+        // No, it's <section id="data-management-section" class="content-section d-none">
+        
+        // Wait, let's find the section via ID in index.html
+        if (content) content.classList.add('perm-hidden');
+    });
 
     const users = dashboardData?.users || {};
     const user = users[userName];

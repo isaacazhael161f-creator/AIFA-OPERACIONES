@@ -21,7 +21,8 @@ class DataManager {
                 if (roleData && ['admin', 'editor', 'superadmin'].includes(roleData.role)) {
                     this.isAdmin = true;
                 } else {
-                    this.isAdmin = false;
+                    this.isAdmin = false; 
+                    // Ensure viewer/other roles are explicitly non-admin
                 }
             } catch (e) {
                 console.error('Error checking role:', e);
@@ -31,6 +32,7 @@ class DataManager {
             this.isAdmin = false;
         }
 
+        // Apply visual state
         document.body.classList.toggle('is-admin', this.isAdmin);
         window.dispatchEvent(new CustomEvent('admin-mode-changed', { detail: { isAdmin: this.isAdmin } }));
         return this.isAdmin;
