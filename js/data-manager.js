@@ -1,6 +1,12 @@
 class DataManager {
     constructor() {
         this.isAdmin = false; // Will be set based on auth
+        // Listen for session changes to re-check
+        if (this.client) {
+             this.client.auth.onAuthStateChange((event, session) => {
+                 this.checkAuth().catch(console.error);
+             });
+        }
     }
 
     get client() {
@@ -34,7 +40,15 @@ class DataManager {
 
         // Apply visual state
         document.body.classList.toggle('is-admin', this.isAdmin);
-        window.dispatchEvent(new CustomEvent('admin-mode-changed', { detail: { isAdmin: this.isAdmin } }));
+        
+        // Dispatch detailed event for AdminUI
+        window.dispatchEvent(new CustomEvent('admin-mode-changed', { 
+            detail: { 
+                isAdmin: this.isAdmin,
+                timestamp: Date.now() 
+            } 
+        }));
+        
         return this.isAdmin;
     }
 
