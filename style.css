@@ -10445,6 +10445,8 @@ body.dark-mode #table-ops-flights tbody tr:nth-of-type(even) {
 .aero-alert {
    display: flex;
    align-items: stretch;
+   pointer-events: auto;
+   /* Enable clicks */
    background: #f8f9fa;
    /* Clean white/grey background */
    border-radius: 4px;
@@ -10505,59 +10507,61 @@ body.dark-mode #table-ops-flights tbody tr:nth-of-type(even) {
 
 /* The Body/Fuselage */
 .aero-body {
-    flex-grow: 1;
-    /* Top, Right (Reserved for Logo), Bottom, Left */
-    padding: 10px 80px 10px 15px; 
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    background: white;
-    position: relative;
-    z-index: 1;
+   flex-grow: 1;
+   /* Top, Right (Reserved for Logo), Bottom, Left */
+   padding: 10px 80px 10px 15px;
+   display: flex;
+   flex-direction: column;
+   justify-content: center;
+   background: white;
+   position: relative;
+   z-index: 1;
 }
 
 /* Visible Logo on the Right */
 .aero-body::after {
-    content: '';
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 60px;
-    height: 60px;
-    background-image: url('images/logo-aifa-obscuro.jpg');
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    opacity: 1;
-    z-index: 0;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+   content: '';
+   position: absolute;
+   right: 10px;
+   top: 50%;
+   transform: translateY(-50%);
+   width: 60px;
+   height: 60px;
+   background-image: url('images/logo-aifa-obscuro.jpg');
+   background-size: contain;
+   background-repeat: no-repeat;
+   background-position: center;
+   opacity: 1;
+   z-index: 0;
+   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 /* Ensure text z-index */
-.aero-body .aero-title, 
+.aero-body .aero-title,
 .aero-body .aero-message {
-    padding-right: 0; 
-    position: relative;
-    z-index: 2;
+   padding-right: 0;
+   position: relative;
+   z-index: 2;
 }
 
 .aero-title {
-    font-size: 1.1rem;
-    letter-spacing: 0.5px;
-    color: #0B231E; /* AIFA Green Text */
-    font-weight: 800;
-    text-transform: uppercase;
-    font-family: 'Montserrat', sans-serif; 
-    border-bottom: 2px solid #B38E5D; /* Gold underline */
-    padding-bottom: 2px;
-    margin-bottom: 4px;
-    display: inline-block;
-    align-self: flex-start;
+   font-size: 1.1rem;
+   letter-spacing: 0.5px;
+   color: #0B231E;
+   /* AIFA Green Text */
+   font-weight: 800;
+   text-transform: uppercase;
+   font-family: 'Montserrat', sans-serif;
+   border-bottom: 2px solid #B38E5D;
+   /* Gold underline */
+   padding-bottom: 2px;
+   margin-bottom: 4px;
+   display: inline-block;
+   align-self: flex-start;
 }
 
 .aero-message {
-    color: #333;
-    font-size: 0.9rem;
-    z-index: 1;
+   color: #333;
+   font-size: 0.9rem;
+   z-index: 1;
 }
