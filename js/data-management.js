@@ -3381,7 +3381,10 @@
             return;
         }
 
-        container.style.display = 'block';
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.alignItems = 'flex-end';
+        container.style.paddingRight = '20px';
 
         alerts.forEach(alert => {
             const el = document.createElement('div');
