@@ -3,9 +3,9 @@ class DataManager {
         this.isAdmin = false; // Will be set based on auth
         // Listen for session changes to re-check
         if (this.client) {
-             this.client.auth.onAuthStateChange((event, session) => {
-                 this.checkAuth().catch(console.error);
-             });
+            this.client.auth.onAuthStateChange((event, session) => {
+                this.checkAuth().catch(console.error);
+            });
         }
     }
 
@@ -23,11 +23,11 @@ class DataManager {
                     .select('role')
                     .eq('user_id', session.user.id)
                     .single();
-                
+
                 if (roleData && ['admin', 'editor', 'superadmin'].includes(roleData.role)) {
                     this.isAdmin = true;
                 } else {
-                    this.isAdmin = false; 
+                    this.isAdmin = false;
                     // Ensure viewer/other roles are explicitly non-admin
                 }
             } catch (e) {
@@ -40,15 +40,15 @@ class DataManager {
 
         // Apply visual state
         document.body.classList.toggle('is-admin', this.isAdmin);
-        
+
         // Dispatch detailed event for AdminUI
-        window.dispatchEvent(new CustomEvent('admin-mode-changed', { 
-            detail: { 
+        window.dispatchEvent(new CustomEvent('admin-mode-changed', {
+            detail: {
                 isAdmin: this.isAdmin,
-                timestamp: Date.now() 
-            } 
+                timestamp: Date.now()
+            }
         }));
-        
+
         return this.isAdmin;
     }
 
@@ -158,7 +158,7 @@ class DataManager {
             .order('valid_from', { ascending: false })
             .order('route_id', { ascending: true })
             .order('airline', { ascending: true });
-            
+
         if (weekLabel) {
             query = query.eq('week_label', weekLabel);
         }
@@ -173,7 +173,7 @@ class DataManager {
             .order('valid_from', { ascending: false })
             .order('route_id', { ascending: true })
             .order('airline', { ascending: true });
-            
+
         if (weekLabel) {
             query = query.eq('week_label', weekLabel);
         }
@@ -198,7 +198,7 @@ class DataManager {
         if (error) throw error;
         return data;
     }
-    
+
     async upsertAnnualOperation(year, data) {
         const existing = await this.getAnnualOperations(year);
         if (existing && existing.length > 0) {
@@ -212,11 +212,11 @@ class DataManager {
     // Generic update
     async updateTable(table, id, updates, pkField = 'id') {
         let query = this.client.from(table).update(updates);
-        
+
         if (pkField === null && typeof id === 'object') {
-             query = query.match(id);
+            query = query.match(id);
         } else {
-             query = query.eq(pkField, id);
+            query = query.eq(pkField, id);
         }
 
         const { data, error } = await query.select();
@@ -235,13 +235,13 @@ class DataManager {
 
     async deleteTable(table, id, pkField = 'id') {
         let query = this.client.from(table).delete();
-        
+
         if (pkField === null && typeof id === 'object') {
-             // Composite key delete using match
-             query = query.match(id);
+            // Composite key delete using match
+            query = query.match(id);
         } else {
-             // Standard key delete
-             query = query.eq(pkField, id);
+            // Standard key delete
+            query = query.eq(pkField, id);
         }
 
         const { data, error } = await query;
@@ -256,11 +256,11 @@ class DataManager {
             const text = await response.text();
             const lines = text.split('\n').filter(l => l.trim());
             const headers = lines[0].split(',').map(h => h.trim());
-            
+
             this.airportsCatalog = lines.slice(1).map(line => {
                 // Handle CSV parsing (simple split, assuming no commas in values for now or simple quotes)
                 // A robust parser would be better but for this specific file simple split might suffice if no quoted commas
-                const values = line.split(','); 
+                const values = line.split(',');
                 const entry = {};
                 headers.forEach((h, i) => entry[h] = values[i] ? values[i].trim() : '');
                 return entry;
@@ -295,12 +295,12 @@ class DataManager {
     // --- Punctuality Stats ---
     async getPunctualityStats(month, year) {
         let query = this.client.from('punctuality_stats').select('*').order('airline', { ascending: true });
-        
+
         // Fix: Ensure month is treated correctly regardless of string/number type in DB
         // The UI sends '11', '12', check if usage is correct.
         if (month && month !== '') query = query.eq('month', month);
         if (year && year !== '') query = query.eq('year', year);
-        
+
         const { data, error } = await query;
         if (error) throw error;
         return data;
@@ -407,6 +407,25 @@ class DataManager {
             .from('rescued_wildlife')
             .delete()
             .eq('id', id);
+        if (error) throw error;
+        return data;
+    }
+
+    // --- Library ---
+    async getLibraryCategories() {
+        const { data, error } = await this.client
+            .from('library_categories')
+            .select('*')
+            .order('order_index', { ascending: true });
+        if (error) throw error;
+        return data;
+    }
+
+    async getLibraryItems() {
+        const { data, error } = await this.client
+            .from('library_items')
+            .select('*')
+            .order('order_index', { ascending: true });
         if (error) throw error;
         return data;
     }

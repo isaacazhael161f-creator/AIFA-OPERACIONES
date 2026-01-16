@@ -1,6 +1,7 @@
 class AdminUI {
     constructor() {
         this.modal = null;
+        this.currentRecordFiles = {}; // Stores existing files that haven't been removed
         this.initModal();
         window.addEventListener('admin-mode-changed', (e) => {
             this.toggleAdminControls(e.detail.isAdmin);
@@ -31,13 +32,13 @@ class AdminUI {
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         this.modal = new bootstrap.Modal(document.getElementById('admin-modal'));
-        
+
         document.getElementById('admin-save-btn').addEventListener('click', () => this.saveChanges());
     }
 
     toggleAdminControls(isAdmin) {
         document.body.classList.toggle('admin-enabled', isAdmin);
-        
+
         // Toggle Data Management menu item
         const dataMenu = document.getElementById('data-management-menu');
         if (dataMenu) {
@@ -59,36 +60,36 @@ class AdminUI {
         const options = [];
         const year = new Date().getFullYear();
         const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-        
+
         // Start from the first Monday of the year
         let d = new Date(year, 0, 1);
         while (d.getDay() !== 1) {
             d.setDate(d.getDate() + 1);
         }
-        
+
         // Generate weeks for the whole year
         while (d.getFullYear() === year) {
             const start = new Date(d);
             const end = new Date(d);
             end.setDate(end.getDate() + 6);
-            
+
             const startStr = `${String(start.getDate()).padStart(2, '0')} ${months[start.getMonth()]}`;
             const endStr = `${String(end.getDate()).padStart(2, '0')} ${months[end.getMonth()]}`;
-            
+
             let label;
             if (start.getMonth() === end.getMonth()) {
                 label = `${String(start.getDate()).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')} ${months[start.getMonth()]} ${year}`;
             } else {
                 label = `${startStr} - ${endStr} ${year}`;
             }
-            
-            options.push({ 
-                value: label, 
+
+            options.push({
+                value: label,
                 label: label,
                 startDate: start.toISOString().split('T')[0],
                 endDate: end.toISOString().split('T')[0]
             });
-            
+
             d.setDate(d.getDate() + 7);
         }
         return options;
@@ -99,6 +100,7 @@ class AdminUI {
         this.currentTable = table;
         this.currentRecord = record; // If null, it's an ADD operation
         this.currentSchema = schema; // Array of field definitions { name, type, label }
+        this.currentRecordFiles = {};
 
         const form = document.getElementById('admin-form');
         form.innerHTML = '';
@@ -179,7 +181,7 @@ class AdminUI {
             fieldsToRender.filter(f => !preferredOrder.includes(f.name)).forEach(f => ordered.push(f));
             fieldsToRender = ordered;
 
-             // Inject week options
+            // Inject week options
             const weekField = fieldsToRender.find(f => f.name === 'week_label');
             if (weekField) {
                 const newField = { ...weekField, type: 'select', options: this.generateWeekOptions() };
@@ -191,10 +193,10 @@ class AdminUI {
             const airlineField = fieldsToRender.find(f => f.name === 'airline');
             if (airlineField) {
                 let options = [];
-                 if (window.dataManagement && window.dataManagement.airlineCatalog && window.dataManagement.airlineCatalog.length > 0) {
-                     options = window.dataManagement.airlineCatalog.map(a => ({ value: a.name, label: a.name }));
-                 } else {
-                     // International airlines fallback
+                if (window.dataManagement && window.dataManagement.airlineCatalog && window.dataManagement.airlineCatalog.length > 0) {
+                    options = window.dataManagement.airlineCatalog.map(a => ({ value: a.name, label: a.name }));
+                } else {
+                    // International airlines fallback
                     options = [
                         { value: 'Aeromexico', label: 'Aeromexico' }, { value: 'Volaris', label: 'Volaris' },
                         { value: 'Copa Airlines', label: 'Copa Airlines' }, { value: 'Arajet', label: 'Arajet' },
@@ -203,20 +205,20 @@ class AdminUI {
                         { value: 'United', label: 'United' }, { value: 'Iberia', label: 'Iberia' },
                         { value: 'Qatar Airways', label: 'Qatar Airways' }
                     ];
-                 }
+                }
                 const newField = { ...airlineField, type: 'datalist', options: options };
                 const idx = fieldsToRender.indexOf(airlineField);
                 fieldsToRender[idx] = newField;
             }
-        
+
         } else if (this.currentTable === 'punctuality_stats') {
-             // Inject airline options from loaded catalog
-             const airlineField = fieldsToRender.find(f => f.name === 'airline');
-             if (airlineField) {
-                 let options = [];
-                 if (window.dataManagement && window.dataManagement.airlineCatalog && window.dataManagement.airlineCatalog.length > 0) {
-                     options = window.dataManagement.airlineCatalog.map(a => ({ value: a.name, label: a.name }));
-                 } else {
+            // Inject airline options from loaded catalog
+            const airlineField = fieldsToRender.find(f => f.name === 'airline');
+            if (airlineField) {
+                let options = [];
+                if (window.dataManagement && window.dataManagement.airlineCatalog && window.dataManagement.airlineCatalog.length > 0) {
+                    options = window.dataManagement.airlineCatalog.map(a => ({ value: a.name, label: a.name }));
+                } else {
                     // Fallback options if catalog not loaded
                     options = [
                         { value: 'Aeromexico', label: 'Aeromexico' }, { value: 'Volaris', label: 'Volaris' },
@@ -227,11 +229,11 @@ class AdminUI {
                         { value: 'Emirates SkyCargo', label: 'Emirates SkyCargo' }, { value: 'FedEx', label: 'FedEx' },
                         { value: 'DHL', label: 'DHL' }, { value: 'Mas', label: 'Mas' }, { value: 'Air Canada', label: 'Air Canada' }
                     ];
-                 }
-                 const newField = { ...airlineField, type: 'datalist', options: options };
-                 const idx = fieldsToRender.indexOf(airlineField);
-                 fieldsToRender[idx] = newField;
-             }
+                }
+                const newField = { ...airlineField, type: 'datalist', options: options };
+                const idx = fieldsToRender.indexOf(airlineField);
+                fieldsToRender[idx] = newField;
+            }
         }
 
         fieldsToRender.forEach((field, idx) => {
@@ -319,7 +321,7 @@ class AdminUI {
                 input.className = 'form-control';
                 input.setAttribute('autocomplete', 'off'); // Disable browser history for cleaner search
                 input.placeholder = field.placeholder || 'Escribe para buscar...';
-                
+
                 // Attach custom autocomplete logic
                 this.setupAutocomplete(input, field.options || []);
             } else if (field.type === 'date') {
@@ -356,6 +358,19 @@ class AdminUI {
                         el.value = hasDecimal ? parts.join('.') : parts[0];
                     });
                 }
+            } else if (field.type === 'file') {
+                input = document.createElement('input');
+                input.type = 'file';
+                input.className = 'form-control';
+                if (field.multiple) input.multiple = true;
+                if (record && record.type) {
+                    if (record.type === 'pdf') input.accept = '.pdf';
+                    else if (record.type === 'excel') input.accept = '.xls,.xlsx,.csv';
+                    else if (record.type === 'word') input.accept = '.doc,.docx';
+                }
+            } else if (field.type === 'icon') {
+                input = document.createElement('input');
+                input.type = 'hidden';
             } else {
                 input = document.createElement('input');
                 input.type = field.type || 'text';
@@ -366,10 +381,8 @@ class AdminUI {
             if (record && field.type !== 'select') {
                 const rawVal = record[field.name] == null ? '' : record[field.name];
                 if (field.type === 'number' && rawVal !== '') {
-                    // Format existing numeric value for display
                     try {
                         const n = Number(rawVal);
-                        // Respect decimal step if provided
                         const decimals = (field.step && field.step.indexOf('.') >= 0) ? field.step.split('.')[1].length : 0;
                         input.value = Number.isFinite(n) ? n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) : String(rawVal);
                     } catch (e) {
@@ -381,8 +394,7 @@ class AdminUI {
             }
             input.name = field.name;
             input.id = 'input-' + field.name;
-            
-            // Auto-fill Category based on Airline (Punctuality Stats)
+
             if (this.currentTable === 'punctuality_stats' && field.name === 'airline' && (field.type === 'select' || field.type === 'datalist')) {
                 const eventType = field.type === 'datalist' ? 'input' : 'change';
                 input.addEventListener(eventType, (e) => {
@@ -390,53 +402,101 @@ class AdminUI {
                     const catSelect = document.getElementById('input-category');
                     if (catSelect) {
                         const cargoKeywords = ['cargo', 'fedex', 'dhl', 'ups', 'mas', 'estafeta', 'cathay', 'emirates', 'atlas', 'tws', 'kalitta', 'national', 'cargolux', 'air france', 'china southern', 'lufthansa'];
-                        // Very rough heuristic since catalog lacks type
                         const isCargo = cargoKeywords.some(k => val.includes(k));
                         catSelect.value = isCargo ? 'Carga' : 'Pasajeros';
                     }
                 });
             }
 
-            // Use readOnly instead of disabled so FormData includes the value
             if (field.readonly && record) {
                 input.readOnly = true;
                 input.classList.add('bg-light');
             }
 
-            // Special case: Weekly Frequencies validity dates are auto-calculated and should be readonly
             if ((this.currentTable === 'weekly_frequencies' || this.currentTable === 'weekly_frequencies_int') && ['valid_from', 'valid_to'].includes(field.name)) {
                 input.readOnly = true;
                 input.classList.add('bg-light');
                 input.tabIndex = -1;
             }
 
-            // If date field, center the input and constrain width for nicer appearance
             if (field.name === 'date') {
                 label.classList.add('text-center', 'w-100');
                 input.classList.add('text-center', 'mx-auto');
                 input.style.maxWidth = '220px';
-                // Force editable even if it looks like a PK
                 input.readOnly = false;
-                input.classList.remove('bg-light'); 
+                input.classList.remove('bg-light');
             }
-            
-            // Auto-calc Total Flights for Punctuality Stats
+
+            if (field.type === 'file' && record) {
+                const existing = record[field.name];
+                if (existing) {
+                    let files = [];
+                    try {
+                        files = typeof existing === 'string' && existing.startsWith('[') ? JSON.parse(existing) : (Array.isArray(existing) ? existing : [{ url: existing, name: existing.split('/').pop() }]);
+                    } catch (e) {
+                        files = [{ url: existing, name: existing.split('/').pop() }];
+                    }
+                    this.currentRecordFiles[field.name] = files;
+
+                    const filesContainer = document.createElement('div');
+                    filesContainer.id = `existing-files-${field.name}`;
+                    filesContainer.className = 'mt-2 d-flex flex-column gap-1';
+
+                    const renderFiles = () => {
+                        filesContainer.innerHTML = '';
+                        this.currentRecordFiles[field.name].forEach((file, idx) => {
+                            const url = typeof file === 'string' ? file : file.url;
+                            const name = file.name || url.split('/').pop();
+
+                            const div = document.createElement('div');
+                            div.className = 'd-flex align-items-center justify-content-between p-2 rounded border bg-light small';
+                            div.innerHTML = `
+                                <span class="text-truncate me-2"><i class="fas fa-file me-1"></i> ${name}</span>
+                                <div class="btn-group">
+                                    <a href="${url}" target="_blank" class="btn btn-sm btn-link text-primary p-0 px-2"><i class="fas fa-external-link-alt"></i></a>
+                                    <button type="button" class="btn btn-sm btn-link text-danger p-0 px-2 remove-file-btn" data-field="${field.name}" data-index="${idx}"><i class="fas fa-trash"></i></button>
+                                </div>
+                            `;
+                            filesContainer.appendChild(div);
+                        });
+
+                        // Attach remove listeners
+                        filesContainer.querySelectorAll('.remove-file-btn').forEach(btn => {
+                            btn.onclick = () => {
+                                const f = btn.dataset.field;
+                                const i = parseInt(btn.dataset.index);
+                                this.currentRecordFiles[f].splice(i, 1);
+                                renderFiles();
+                            };
+                        });
+                    };
+
+                    renderFiles();
+                    col.appendChild(filesContainer);
+                }
+            }
+
             if (this.currentTable === 'punctuality_stats' && ['on_time', 'delayed', 'cancelled'].includes(field.name)) {
                 input.addEventListener('input', () => {
-                     const onTime = Number(AdminUI.unformatNumberString(document.getElementById('input-on_time')?.value || '0'));
-                     const delayed = Number(AdminUI.unformatNumberString(document.getElementById('input-delayed')?.value || '0'));
-                     const cancelled = Number(AdminUI.unformatNumberString(document.getElementById('input-cancelled')?.value || '0'));
-                     const total = onTime + delayed + cancelled;
-                     
-                     const totalInput = document.getElementById('input-total_flights');
-                     if (totalInput) {
-                         totalInput.value = total.toLocaleString('en-US');
-                     }
+                    const onTime = Number(AdminUI.unformatNumberString(document.getElementById('input-on_time')?.value || '0'));
+                    const delayed = Number(AdminUI.unformatNumberString(document.getElementById('input-delayed')?.value || '0'));
+                    const cancelled = Number(AdminUI.unformatNumberString(document.getElementById('input-cancelled')?.value || '0'));
+                    const total = onTime + delayed + cancelled;
+
+                    const totalInput = document.getElementById('input-total_flights');
+                    if (totalInput) {
+                        totalInput.value = total.toLocaleString('en-US');
+                    }
                 });
             }
 
             col.appendChild(label);
-            
+
+            if (field.type === 'icon') {
+                const currentVal = record ? record[field.name] : '';
+                this.renderIconPicker(field, currentVal, col, input);
+            }
+
             // For datalist, wrap in input-group with search icon and handle custom autocomplete
             if (field.type === 'datalist') {
                 const group = document.createElement('div');
@@ -446,12 +506,12 @@ class AdminUI {
                 icon.innerHTML = '<i class="fas fa-search"></i>';
                 group.appendChild(icon);
                 group.appendChild(input);
-                
+
                 // Append the list container which was attached to input in setupAutocomplete
                 if (input._listContainer) {
                     group.appendChild(input._listContainer);
                 }
-                
+
                 col.appendChild(group);
             } else {
                 col.appendChild(input);
@@ -546,16 +606,16 @@ class AdminUI {
                                 iataInput.value = iata;
                                 // Trigger IATA change logic manually if needed, or just fill state directly
                                 const state = window.dataManager.getMexicanState(iata);
-                                if (stateInput) stateInput.value = state || ''; 
-                                
+                                if (stateInput) stateInput.value = state || '';
+
                                 // For International, "State" is often "Country" or "Region"
                                 // If getMexicanState returns something, use it, else try Country
                                 if (mode === 'int') {
-                                     // Find airport again to get Country
-                                     const ap = airports.find(x => x.IATA === iata);
-                                     if (ap && ap.Country && ap.Country !== 'Mexico') {
-                                         stateInput.value = ap.Country;
-                                     }
+                                    // Find airport again to get Country
+                                    const ap = airports.find(x => x.IATA === iata);
+                                    if (ap && ap.Country && ap.Country !== 'Mexico') {
+                                        stateInput.value = ap.Country;
+                                    }
                                 }
                             }
                         }
@@ -578,7 +638,7 @@ class AdminUI {
                         if (!a.IATA) return;
                         const opt = document.createElement('option');
                         opt.value = a.IATA;
-                        opt.label = a.City; 
+                        opt.label = a.City;
                         iataList.appendChild(opt);
                     });
 
@@ -588,7 +648,7 @@ class AdminUI {
                         const airport = airports.find(a => a.IATA === val);
                         if (airport) {
                             if (cityInput) cityInput.value = airport.City;
-                            
+
                             let region = window.dataManager.getMexicanState(val);
                             if (mode === 'int' && (!region || region === 'N/A')) {
                                 if (airport.Country && airport.Country !== 'Mexico') {
@@ -617,7 +677,7 @@ class AdminUI {
                 totalInput.value = sum.toLocaleString('en-US');
             }
         };
-        
+
         // Attach listeners and run initial calc
         inputs.forEach(inp => {
             if (inp) {
@@ -625,7 +685,7 @@ class AdminUI {
                 inp.addEventListener('change', calc); // Also on change for safety
             }
         });
-        
+
         // Run once to ensure total is correct initially
         calc();
 
@@ -633,16 +693,16 @@ class AdminUI {
         const updateLogo = () => {
             if (!airlineInput || !logoPreview) return;
             const val = airlineInput.value.trim();
-            if (!val) { 
-                logoPreview.style.display = 'none'; 
-                return; 
+            if (!val) {
+                logoPreview.style.display = 'none';
+                return;
             }
-            
+
             // Use DataManager config to resolve logo correctly (handling slugs and mappings)
             if (window.dataManager && window.dataManager.slugify && window.dataManager.airlineConfig) {
                 const slug = window.dataManager.slugify(val);
                 const config = window.dataManager.airlineConfig[slug] || window.dataManager.airlineConfig['default'];
-                
+
                 if (config.logo) {
                     logoPreview.src = `images/airlines/${config.logo}`;
                     logoPreview.style.display = 'inline-block';
@@ -656,7 +716,7 @@ class AdminUI {
                 logoPreview.src = `images/airlines/${filename}`;
                 logoPreview.style.display = 'inline-block';
             }
-            
+
             logoPreview.onerror = () => {
                 logoPreview.style.display = 'none';
             };
@@ -670,56 +730,118 @@ class AdminUI {
         }
     }
 
+    renderIconPicker(field, currentVal, container, hiddenInput) {
+        const icons = [
+            'fas fa-book', 'fas fa-plane', 'fas fa-plane-arrival', 'fas fa-plane-departure',
+            'fas fa-cloud', 'fas fa-cloud-sun', 'fas fa-folder', 'fas fa-folder-open',
+            'fas fa-file-pdf', 'fas fa-file-excel', 'fas fa-file-word', 'fas fa-file-alt',
+            'fas fa-link', 'fas fa-info-circle', 'fas fa-database', 'fas fa-user',
+            'fas fa-hospital', 'fas fa-shield-alt', 'fas fa-map', 'fas fa-map-marked-alt',
+            'fas fa-calendar-alt', 'fas fa-chart-bar', 'fas fa-chart-line', 'fas fa-cogs',
+            'fas fa-exclamation-triangle', 'fas fa-check-circle', 'fas fa-times-circle',
+            'fas fa-bell', 'fas fa-envelope', 'fas fa-phone', 'fas fa-globe',
+            'fas fa-home', 'fas fa-search', 'fas fa-star', 'fas fa-heart',
+            'fas fa-camera', 'fas fa-image', 'fas fa-video', 'fas fa-music',
+            'fas fa-shopping-cart', 'fas fa-briefcase', 'fas fa-graduation-cap',
+            'fas fa-flag', 'fas fa-anchor', 'fas fa-truck', 'fas fa-bus', 'fas fa-car',
+            'fas fa-wrench', 'fas fa-tools', 'fas fa-hammer', 'fas fa-paint-roller',
+            'fas fa-brush', 'fas fa-pen', 'fas fa-list', 'fas fa-tasks', 'fas fa-history'
+        ];
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'icon-picker-wrapper border rounded p-3 bg-white';
+
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.className = 'form-control form-control-sm mb-3';
+        searchInput.placeholder = '🔍 Buscar icono (ej. book, plane, folder)...';
+
+        hiddenInput.value = currentVal || icons[0];
+
+        const grid = document.createElement('div');
+        grid.className = 'icon-grid d-flex flex-wrap gap-2 overflow-auto';
+        grid.style.maxHeight = '200px';
+
+        const renderGrid = (filter = '') => {
+            grid.innerHTML = '';
+            icons.forEach(icon => {
+                if (filter && !icon.includes(filter)) return;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-outline-secondary ' + (hiddenInput.value === icon ? 'active text-white' : '');
+                btn.innerHTML = `<i class="${icon} fa-lg"></i>`;
+                btn.title = icon;
+                btn.onclick = (e) => {
+                    e.preventDefault();
+                    hiddenInput.value = icon;
+                    grid.querySelectorAll('.btn').forEach(b => b.classList.remove('active', 'text-white'));
+                    btn.classList.add('active', 'text-white');
+                };
+                grid.appendChild(btn);
+            });
+            if (grid.children.length === 0) {
+                grid.innerHTML = '<div class="w-100 text-center py-3 text-muted small">No se encontraron iconos</div>';
+            }
+        };
+
+        searchInput.oninput = (e) => renderGrid(e.target.value.toLowerCase());
+
+        renderGrid();
+        wrapper.appendChild(searchInput);
+        wrapper.appendChild(grid);
+        container.appendChild(wrapper);
+    }
+
     setupAutocomplete(input, options) {
         let currentFocus = -1;
         const listContainer = document.createElement('div');
         listContainer.className = 'autocomplete-items';
         listContainer.style.display = 'none';
-        
+
         // Attach to input for retrieval later
         input._listContainer = listContainer;
 
-        input.addEventListener('input', function(e) {
+        input.addEventListener('input', function (e) {
             const val = this.value;
             closeAllLists();
             if (!val) return false;
             currentFocus = -1;
 
-            const matches = options.filter(opt => 
+            const matches = options.filter(opt =>
                 String(opt.label || opt.value).toLowerCase().includes(val.toLowerCase())
             );
 
             if (matches.length === 0) return;
 
             listContainer.style.display = 'block';
-            
+
             // Limit to top 10 matches for performance
             matches.slice(0, 10).forEach(match => {
                 const div = document.createElement('div');
                 div.className = 'autocomplete-item';
-                
+
                 const text = String(match.label || match.value);
                 // Highlight match
                 const idx = text.toLowerCase().indexOf(val.toLowerCase());
                 if (idx >= 0) {
-                     div.innerHTML = text.substring(0, idx) + "<strong>" + text.substring(idx, idx + val.length) + "</strong>" + text.substring(idx + val.length);
+                    div.innerHTML = text.substring(0, idx) + "<strong>" + text.substring(idx, idx + val.length) + "</strong>" + text.substring(idx + val.length);
                 } else {
                     div.innerHTML = text;
                 }
-                
-                div.addEventListener('click', function(e) {
+
+                div.addEventListener('click', function (e) {
                     input.value = match.value;
                     closeAllLists();
                     // Trigger change events manually
                     input.dispatchEvent(new Event('input', { bubbles: true }));
                     input.dispatchEvent(new Event('change', { bubbles: true }));
                 });
-                
+
                 listContainer.appendChild(div);
             });
         });
 
-        input.addEventListener('keydown', function(e) {
+        input.addEventListener('keydown', function (e) {
             let x = listContainer.getElementsByClassName('autocomplete-item'); // Get current list
             if (e.keyCode === 40) { // DOWN
                 currentFocus++;
@@ -770,7 +892,7 @@ class AdminUI {
         const form = document.getElementById('admin-form');
         const formData = new FormData(form);
         const updates = {};
-        
+
         this.currentSchema.forEach(field => {
             // Special case: Always include weekly_total for weekly_frequencies, even if readonly, 
             // because it's a computed field that needs to be saved.
@@ -778,15 +900,23 @@ class AdminUI {
             const forceInclude = (this.currentTable === 'weekly_frequencies' && field.name === 'weekly_total');
             const isNewRecord = !this.currentRecord || !this.currentRecord.id;
 
-            if (!field.readonly || isNewRecord || forceInclude) { 
-                 let val = formData.get(field.name);
-                 // If the field is numeric, unformat and convert to number (or null if empty)
-                 if (field.type === 'number') {
-                     const clean = AdminUI.unformatNumberString(val || '');
-                     if (clean === '' || clean === null) val = null;
-                     else val = (clean.indexOf('.') >= 0) ? Number(clean) : Number(clean);
-                 }
-                 updates[field.name] = val;
+            if (!field.readonly || isNewRecord || forceInclude) {
+                let val = formData.get(field.name);
+
+                // Handle File uploads first
+                if (field.type === 'file') {
+                    const fileInput = document.getElementById('input-' + field.name);
+                    if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                        updates[`__file_${field.name}`] = Array.from(fileInput.files);
+                    }
+                } else if (field.type === 'number') {
+                    const clean = AdminUI.unformatNumberString(val || '');
+                    if (clean === '' || clean === null) val = null;
+                    else val = (clean.indexOf('.') >= 0) ? Number(clean) : Number(clean);
+                    updates[field.name] = val;
+                } else {
+                    updates[field.name] = val;
+                }
             }
         });
 
@@ -801,9 +931,85 @@ class AdminUI {
                 if (!recordId && this.currentRecord) {
                     // Fallback to composite key if ID is missing
                     recordId = { year: this.currentRecord.year, month: this.currentRecord.month };
-                    pkField = null; 
+                    pkField = null;
                 }
             }
+
+            // Handle File Uploads to Storage
+            const fileFields = Object.keys(updates).filter(k => k.startsWith('__file_'));
+            for (const key of fileFields) {
+                const fieldName = key.replace('__file_', '');
+                const filesToUpload = updates[key];
+                delete updates[key];
+
+                const newlyUploaded = [];
+
+                for (const file of filesToUpload) {
+                    try {
+                        let bucketName = 'library-files';
+                        if (this.currentTable === 'medical_directory') bucketName = 'medical-files';
+                        else if (this.currentTable === 'vuelos_parte_operaciones') bucketName = 'parte-operaciones';
+
+                        const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+                        const filePath = `${this.currentTable}/${Date.now()}_${cleanName}`;
+
+                        const { data: uploadData, error: uploadError } = await window.dataManager.client
+                            .storage
+                            .from(bucketName)
+                            .upload(filePath, file);
+
+                        if (uploadError) {
+                            // If bucket not found, try 'files' as generic fallback
+                            if (uploadError.message && (uploadError.message.includes('not found') || uploadError.error === 'not_found')) {
+                                const { data: retryData, error: retryError } = await window.dataManager.client
+                                    .storage
+                                    .from('files')
+                                    .upload(filePath, file);
+
+                                if (retryError) {
+                                    if (retryError.message && (retryError.message.includes('not found') || retryError.error === 'not_found')) {
+                                        throw new Error(`El baúl de almacenamiento (bucket) "${bucketName}" no existe en Supabase. Por favor, crea un bucket llamado "library-files" o "files" en tu panel de Supabase Storage.`);
+                                    }
+                                    throw retryError;
+                                }
+                                bucketName = 'files';
+                            } else {
+                                throw uploadError;
+                            }
+                        }
+
+                        const { data: { publicUrl } } = window.dataManager.client
+                            .storage
+                            .from(bucketName)
+                            .getPublicUrl(filePath);
+
+                        newlyUploaded.push({ url: publicUrl, name: file.name });
+                    } catch (err) {
+                        console.error('File upload failed:', err);
+                        throw new Error(`Error al subir "${file.name}": ${err.message}`);
+                    }
+                }
+
+                // Merge with kept existing files
+                const kept = this.currentRecordFiles[fieldName] || [];
+                const final = [...kept, ...newlyUploaded];
+
+                updates[fieldName] = (this.currentTable === 'library_items' || this.currentTable === 'medical_directory') ? final : (final.length === 1 ? final[0].url : final);
+
+                // For library_items, also update the main 'url' if it's empty
+                if (this.currentTable === 'library_items' && !updates['url'] && final.length > 0) {
+                    updates['url'] = final[0].url;
+                }
+            }
+
+            // Handle cases where files were only REMOVED (no new uploads)
+            this.currentSchema.filter(f => f.type === 'file' && !updates[`__file_${f.name}`]).forEach(f => {
+                if (this.currentRecordFiles[f.name]) {
+                    updates[f.name] = (this.currentTable === 'library_items' || this.currentTable === 'medical_directory')
+                        ? this.currentRecordFiles[f.name]
+                        : (this.currentRecordFiles[f.name].length === 1 ? this.currentRecordFiles[f.name][0].url : this.currentRecordFiles[f.name]);
+                }
+            });
 
             if (recordId) {
                 // Update
@@ -835,7 +1041,7 @@ class AdminUI {
             }
         }
     }
-    
+
     // Helper to create an edit button
     createEditButton(table, record, schema) {
         const btn = document.createElement('button');
@@ -851,7 +1057,7 @@ class AdminUI {
 }
 
 // Utility: remove thousands separators and leave a clean numeric string
-AdminUI.unformatNumberString = function(s) {
+AdminUI.unformatNumberString = function (s) {
     if (s == null) return '';
     // Remove all non-digit, non-dot, non-minus characters
     const cleaned = String(s).replace(/[^0-9.\-]/g, '');

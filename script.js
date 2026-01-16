@@ -3,9 +3,9 @@
  * CONFIGURACIÓN DE DATOS ESTÁTICOS
  * =================================================================================
  */
-const SPANISH_MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-const SPANISH_MONTH_ABBRS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-const SPANISH_WEEKDAY_NAMES = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const SPANISH_MONTH_NAMES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const SPANISH_MONTH_ABBRS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const SPANISH_WEEKDAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
 function normalizeDate(date) {
     if (!(date instanceof Date)) return null;
@@ -28,7 +28,7 @@ function resolveDefaultInstallTabId() {
         if (/macintosh/.test(ua) && /safari/.test(ua) && !/chrome|crios|fxios/.test(ua)) {
             return 'install-desktop-safari-pane';
         }
-    } catch (_) {}
+    } catch (_) { }
     return 'install-desktop-chrome-pane';
 }
 
@@ -104,8 +104,8 @@ function registerServiceWorkerIfNeeded() {
 function scheduleAppReload(reason) {
     if (appReloadScheduled) return;
     appReloadScheduled = true;
-    try { console.info('Scheduling app reload:', reason); } catch (_) {}
-    try { showGlobalLoader('Actualizando Operaciones AIFA...'); } catch (_) {}
+    try { console.info('Scheduling app reload:', reason); } catch (_) { }
+    try { showGlobalLoader('Actualizando Operaciones AIFA...'); } catch (_) { }
     setTimeout(() => {
         window.location.reload();
     }, 400);
@@ -146,14 +146,14 @@ async function checkForAppUpdates(force = false) {
             try { return localStorage.getItem(APP_SIGNATURE_STORAGE_KEY); } catch (_) { return null; }
         })();
         if (stored && stored !== signature) {
-            try { localStorage.setItem(APP_SIGNATURE_STORAGE_KEY, signature); } catch (_) {}
+            try { localStorage.setItem(APP_SIGNATURE_STORAGE_KEY, signature); } catch (_) { }
             scheduleAppReload('asset-signature-change');
             return;
         }
         if (!stored || force) {
-            try { localStorage.setItem(APP_SIGNATURE_STORAGE_KEY, signature); } catch (_) {}
+            try { localStorage.setItem(APP_SIGNATURE_STORAGE_KEY, signature); } catch (_) { }
         } else {
-            try { localStorage.setItem(APP_SIGNATURE_STORAGE_KEY, signature); } catch (_) {}
+            try { localStorage.setItem(APP_SIGNATURE_STORAGE_KEY, signature); } catch (_) { }
         }
     } catch (err) {
         console.warn('checkForAppUpdates failed:', err);
@@ -162,19 +162,19 @@ async function checkForAppUpdates(force = false) {
 
 function startAppUpdatePolling() {
     if (appUpdateCheckTimer) clearInterval(appUpdateCheckTimer);
-    checkForAppUpdates().catch(() => {});
+    checkForAppUpdates().catch(() => { });
     appUpdateCheckTimer = setInterval(() => {
-        checkForAppUpdates().catch(() => {});
+        checkForAppUpdates().catch(() => { });
     }, APP_UPDATE_CHECK_INTERVAL);
     if (!appUpdateWatchersBound) {
         appUpdateWatchersBound = true;
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) {
-                checkForAppUpdates().catch(() => {});
+                checkForAppUpdates().catch(() => { });
             }
         });
         window.addEventListener('focus', () => {
-            checkForAppUpdates().catch(() => {});
+            checkForAppUpdates().catch(() => { });
         });
     }
 }
@@ -194,7 +194,7 @@ function setupServiceWorkerLifecycle(registrationPromise) {
     navigator.serviceWorker.addEventListener('message', (event) => {
         if (!event || !event.data) return;
         if (event.data.type === 'SW_ACTIVATED') {
-            checkForAppUpdates(true).catch(() => {});
+            checkForAppUpdates(true).catch(() => { });
         }
     });
 
@@ -205,7 +205,7 @@ function setupServiceWorkerLifecycle(registrationPromise) {
                 if (worker && typeof worker.postMessage === 'function') {
                     worker.postMessage({ type: 'SKIP_WAITING' });
                 }
-            } catch (_) {}
+            } catch (_) { }
         };
         if (registration.waiting) {
             requestSkipWaiting(registration.waiting);
@@ -349,7 +349,7 @@ function setupPwaInstallExperience() {
             if (installAppModalInstance && typeof installAppModalInstance.hide === 'function') {
                 installAppModalInstance.hide();
             }
-            checkForAppUpdates(true).catch(() => {});
+            checkForAppUpdates(true).catch(() => { });
         });
 
         if (typeof window !== 'undefined') {
@@ -461,7 +461,8 @@ const LANDSCAPE_HINT_SECTIONS = new Set([
     'puntualidad-agosto',
     'demoras',
     'comparativa',
-    'manifiestos'
+    'manifiestos',
+    'biblioteca'
 ]);
 
 const LANDSCAPE_HINT_MESSAGES = {
@@ -473,8 +474,9 @@ const LANDSCAPE_HINT_MESSAGES = {
     'frecuencias-semana': 'Gira tu teléfono para comparar las frecuencias semanales cómodamente.',
     'puntualidad-agosto': 'La vista de puntualidad se muestra completa en horizontal.',
     'demoras': 'Gira tu dispositivo para ver todos los detalles de las demoras.',
-    'comparativa': 'Gira tu teléfono para analizar la comparativa completa.',
-    'manifiestos': 'Los manifiestos se leen mejor con el dispositivo en horizontal.'
+    'comparativa': 'El reporte comparativo se visualiza mejor en horizontal.',
+    'manifiestos': 'Los manifiestos se leen mejor con el dispositivo en horizontal.',
+    'biblioteca': 'La biblioteca digital se visualiza mejor en modo horizontal.'
 };
 
 let currentSectionKey = 'operaciones-totales';
@@ -570,7 +572,7 @@ async function attemptOrientationLock() {
     }
     const exitFullscreenIfNeeded = () => {
         if (document.fullscreenElement) {
-            document.exitFullscreen().catch(() => {});
+            document.exitFullscreen().catch(() => { });
         }
     };
     if (fullscreenRequested && document.exitFullscreen) {
@@ -738,7 +740,7 @@ function formatDateLabel(dateStr) {
 function formatDateShort(dateStr) {
     if (!dateStr) return '';
     const [y, m, d] = dateStr.split('-').map(Number);
-    return `${d} de ${SPANISH_MONTH_NAMES[m-1]}`;
+    return `${d} de ${SPANISH_MONTH_NAMES[m - 1]}`;
 }
 
 async function loadWeeklyOperationsFromDB() {
@@ -750,26 +752,26 @@ async function loadWeeklyOperationsFromDB() {
 
     try {
         const dailyOps = await window.dataManager.getDailyOperations(365);
-        
+
         if (!dailyOps || dailyOps.length === 0) {
             console.warn('No daily operations found in DB');
             return;
         }
 
         const weeksMap = new Map();
-        
+
         dailyOps.forEach(op => {
             const dateParts = op.date.split('-').map(Number);
             const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
-            
+
             // Get Monday
             const day = date.getDay();
             const diff = date.getDate() - day + (day === 0 ? -6 : 1);
             const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate());
             monday.setDate(diff);
-            
-            const mondayStr = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
-            
+
+            const mondayStr = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+
             if (!weeksMap.has(mondayStr)) {
                 weeksMap.set(mondayStr, []);
             }
@@ -777,16 +779,16 @@ async function loadWeeklyOperationsFromDB() {
         });
 
         const newDatasets = [];
-        
+
         for (const [mondayStr, days] of weeksMap) {
             days.sort((a, b) => a.date.localeCompare(b.date));
-            
+
             // Calculate end date (Sunday)
             const startParts = mondayStr.split('-').map(Number);
             const startObj = new Date(startParts[0], startParts[1] - 1, startParts[2]);
             const endObj = new Date(startObj);
             endObj.setDate(startObj.getDate() + 6);
-            const endDateStr = `${endObj.getFullYear()}-${String(endObj.getMonth()+1).padStart(2,'0')}-${String(endObj.getDate()).padStart(2,'0')}`;
+            const endDateStr = `${endObj.getFullYear()}-${String(endObj.getMonth() + 1).padStart(2, '0')}-${String(endObj.getDate()).padStart(2, '0')}`;
 
             const weekObj = {
                 id: mondayStr,
@@ -801,11 +803,11 @@ async function loadWeeklyOperationsFromDB() {
                     label: formatDateLabel(d.date),
                     comercial: { operaciones: d.comercial_ops, pasajeros: d.comercial_pax },
                     general: { operaciones: d.general_ops, pasajeros: d.general_pax },
-                    carga: { 
-                        operaciones: d.carga_ops, 
-                        toneladas: d.carga_tons, 
-                        corteFecha: d.carga_cutoff_date, 
-                        corteNota: d.carga_cutoff_note 
+                    carga: {
+                        operaciones: d.carga_ops,
+                        toneladas: d.carga_tons,
+                        corteFecha: d.carga_cutoff_date,
+                        corteNota: d.carga_cutoff_note
                     }
                 }))
             };
@@ -813,13 +815,13 @@ async function loadWeeklyOperationsFromDB() {
         }
 
         newDatasets.sort((a, b) => b.id.localeCompare(a.id));
-        
+
         WEEKLY_OPERATIONS_DATASETS = newDatasets;
-        
+
         // Update staticData
         staticData.operacionesSemanasCatalogo = WEEKLY_OPERATIONS_DATASETS.map(deepCloneWeek);
         staticData.operacionesSemanaActual = resolveCurrentOperationsWeek();
-        
+
         // Update Metadata
         const newMetadata = buildWeeklyOrdinalMetadata();
         for (const key in WEEKLY_ORDINAL_METADATA) delete WEEKLY_ORDINAL_METADATA[key];
@@ -833,9 +835,9 @@ async function loadWeeklyOperationsFromDB() {
             window.updateOpsFiltersAfterDataLoad();
         }
         if (typeof renderOperacionesTotales === 'function') {
-             renderOperacionesTotales();
+            renderOperacionesTotales();
         }
-        
+
     } catch (e) {
         console.error("Error loading daily operations:", e);
     }
@@ -1025,7 +1027,7 @@ function buildAviationAnalyticsFromDB(monthlyRows, annualRows) {
                         hasMonthly = true;
                     }
                 });
-                
+
                 // Use dbTotal if no monthly data found
                 if (!hasMonthly && result[scope][metric].years[year].dbTotal) {
                     yearTotal = result[scope][metric].years[year].dbTotal;
@@ -1050,12 +1052,12 @@ async function syncStaticDataFromDB(targetYear = null) {
             setTimeout(() => syncStaticDataFromDB(targetYear), 500);
             return;
         }
-        
+
         let annualRows, monthlyRows;
         if (window.cachedStaticRows.annual.length > 0 && window.cachedStaticRows.monthly.length > 0) {
-             console.log('Usando datos estáticos en caché');
-             annualRows = window.cachedStaticRows.annual;
-             monthlyRows = window.cachedStaticRows.monthly;
+            console.log('Usando datos estáticos en caché');
+            annualRows = window.cachedStaticRows.annual;
+            monthlyRows = window.cachedStaticRows.monthly;
         } else {
             console.log('Iniciando sincronización de datos estáticos desde DB...');
             [annualRows, monthlyRows] = await Promise.all([
@@ -1074,13 +1076,13 @@ async function syncStaticDataFromDB(targetYear = null) {
             staticData.operacionesTotales.general.push({ periodo: y, operaciones: Number(row.general_ops_total) || 0, pasajeros: Number(row.general_pax_total) || 0 });
         });
 
-        const years = Array.from(new Set((monthlyRows || []).map(r => Number(r.year))).values()).filter(y => Number.isFinite(y)).sort((a,b)=>a-b);
-        
+        const years = Array.from(new Set((monthlyRows || []).map(r => Number(r.year))).values()).filter(y => Number.isFinite(y)).sort((a, b) => a - b);
+
         let latestYear;
         if (targetYear) {
             latestYear = Number(targetYear);
         } else {
-            latestYear = years.length ? years[years.length-1] : (new Date()).getFullYear();
+            latestYear = years.length ? years[years.length - 1] : (new Date()).getFullYear();
         }
         staticData.mensualYear = String(latestYear);
 
@@ -1088,12 +1090,12 @@ async function syncStaticDataFromDB(targetYear = null) {
         const opsFilterYear = document.getElementById('ops-filter-year');
         if (opsFilterYear) {
             if (!opsFilterYear.value || targetYear) {
-                 opsFilterYear.value = String(latestYear);
+                opsFilterYear.value = String(latestYear);
             }
         }
 
         refreshOpsMonthlyYearLabels(latestYear);
-        refreshOpsMonthsSelectionUI(); 
+        refreshOpsMonthsSelectionUI();
 
         const months = OPS_ALL_MONTH_CODES.slice();
         const makeEmptyMonthly = (propName) => months.map((m, idx) => ({ mes: m, label: AVIATION_ANALYTICS_MONTH_LABELS[idx] || m, [propName]: null }));
@@ -1121,24 +1123,24 @@ async function syncStaticDataFromDB(targetYear = null) {
         // Populate AVIATION_ANALYTICS_DATA for the tabs
         AVIATION_ANALYTICS_DATA = buildAviationAnalyticsFromDB(monthlyRows, annualRows);
         AVIATION_ANALYTICS_CUTOFF_YEAR = String(latestYear);
-        
+
         // Determine cutoff month index based on data availability for the latest year
         let lastClosedMonth = -1;
         const latestYearStr = String(latestYear);
         if (AVIATION_ANALYTICS_DATA.comercial.operaciones.years[latestYearStr]) {
-             const monthsData = AVIATION_ANALYTICS_DATA.comercial.operaciones.years[latestYearStr].months;
-             AVIATION_ANALYTICS_MONTH_KEYS.forEach((key, idx) => {
-                 if (monthsData[key] !== null) lastClosedMonth = idx;
-             });
+            const monthsData = AVIATION_ANALYTICS_DATA.comercial.operaciones.years[latestYearStr].months;
+            AVIATION_ANALYTICS_MONTH_KEYS.forEach((key, idx) => {
+                if (monthsData[key] !== null) lastClosedMonth = idx;
+            });
         }
         AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX = lastClosedMonth;
 
 
-        try { if (typeof window.renderOperacionesTotales === 'function') window.renderOperacionesTotales(); } catch (_) {}
-        try { if (typeof window.renderMonthlyCharts === 'function') window.renderMonthlyCharts(); } catch (_) {}
-        try { if (typeof window.refreshOpsMonthlyYearLabels === 'function') window.refreshOpsMonthlyYearLabels(staticData.mensualYear); } catch (_) {}
-        try { if (typeof window.rerenderAviationAnalyticsModules === 'function') window.rerenderAviationAnalyticsModules(true); } catch (_) {}
-        
+        try { if (typeof window.renderOperacionesTotales === 'function') window.renderOperacionesTotales(); } catch (_) { }
+        try { if (typeof window.renderMonthlyCharts === 'function') window.renderMonthlyCharts(); } catch (_) { }
+        try { if (typeof window.refreshOpsMonthlyYearLabels === 'function') window.refreshOpsMonthlyYearLabels(staticData.mensualYear); } catch (_) { }
+        try { if (typeof window.rerenderAviationAnalyticsModules === 'function') window.rerenderAviationAnalyticsModules(true); } catch (_) { }
+
         window.dispatchEvent(new CustomEvent('static-data-synced', { detail: { year: staticData.mensualYear } }));
     } catch (err) {
         console.error('syncStaticDataFromDB error:', err);
@@ -1146,8 +1148,8 @@ async function syncStaticDataFromDB(targetYear = null) {
 }
 
 if (typeof window !== 'undefined') {
-    window.addEventListener('DOMContentLoaded', () => { setTimeout(() => { syncStaticDataFromDB().catch(() => {}); }, 50); });
-    window.addEventListener('data-updated', () => { syncStaticDataFromDB().catch(() => {}); });
+    window.addEventListener('DOMContentLoaded', () => { setTimeout(() => { syncStaticDataFromDB().catch(() => { }); }, 50); });
+    window.addEventListener('data-updated', () => { syncStaticDataFromDB().catch(() => { }); });
 }
 
 function getOpsAvailableYearsFromTotals(source = staticData?.operacionesTotales) {
@@ -1169,7 +1171,7 @@ function deriveLatestOpsYearFromStaticData() {
     try {
         const years = getOpsAvailableYearsFromTotals();
         if (years.length) return years[years.length - 1];
-    } catch (_) {}
+    } catch (_) { }
     return String(new Date().getFullYear());
 }
 
@@ -1178,8 +1180,8 @@ function getOpsActiveMonthlyYear() {
     return deriveLatestOpsYearFromStaticData();
 }
 
-const AVIATION_ANALYTICS_SCOPES = ['comercial','general','carga'];
-const AVIATION_ANALYTICS_MONTH_KEYS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const AVIATION_ANALYTICS_SCOPES = ['comercial', 'general', 'carga'];
+const AVIATION_ANALYTICS_MONTH_KEYS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const AVIATION_ANALYTICS_MONTH_LABELS = AVIATION_ANALYTICS_MONTH_KEYS.map((m) => m.charAt(0).toUpperCase() + m.slice(1));
 const DEFAULT_AVIATION_ANALYTICS_CUTOFF_INDEX = AVIATION_ANALYTICS_MONTH_KEYS.length - 1;
 const AVIATION_ANALYTICS_DATA_PATH = 'data/aviacion_analytics.json';
@@ -1536,18 +1538,18 @@ function refreshAviationAnalyticsDataIfChanged(options = {}) {
     if (aviationAnalyticsRefreshInFlight) {
         return aviationAnalyticsRefreshInFlight;
     }
-    
+
     // Use DB sync instead of JSON fetch
     const requestPromise = syncStaticDataFromDB().then(() => {
-         // syncStaticDataFromDB already updates AVIATION_ANALYTICS_DATA and triggers rerenders
-         return true;
+        // syncStaticDataFromDB already updates AVIATION_ANALYTICS_DATA and triggers rerenders
+        return true;
     }).catch(err => {
         console.warn('refreshAviationAnalyticsDataIfChanged (DB) failed:', err);
         return false;
     }).finally(() => {
         aviationAnalyticsRefreshInFlight = null;
     });
-    
+
     aviationAnalyticsRefreshInFlight = requestPromise;
     return requestPromise;
 }
@@ -1558,7 +1560,7 @@ function startAviationAnalyticsAutoRefresh() {
         clearInterval(aviationAnalyticsAutoRefreshTimer);
     }
     const poll = (notify = true) => {
-        refreshAviationAnalyticsDataIfChanged({ notifyOnChange: notify }).catch(() => {});
+        refreshAviationAnalyticsDataIfChanged({ notifyOnChange: notify }).catch(() => { });
     };
     poll(false);
     aviationAnalyticsAutoRefreshTimer = window.setInterval(() => poll(true), AVIATION_ANALYTICS_AUTO_REFRESH_INTERVAL);
@@ -1595,7 +1597,7 @@ const aviationAnalyticsCharts = { comercial: null, general: null, carga: null };
 
 const AVIATION_ANALYTICS_UI = {
     comercial: {
-        metrics: ['operaciones','pasajeros'],
+        metrics: ['operaciones', 'pasajeros'],
         metricSelectId: 'ag-metric-select',
         viewSelectId: 'ag-view-select',
         yearSelectId: 'ag-year-select',
@@ -1619,7 +1621,7 @@ const AVIATION_ANALYTICS_UI = {
         elements: null
     },
     general: {
-        metrics: ['operaciones','pasajeros'],
+        metrics: ['operaciones', 'pasajeros'],
         metricSelectId: 'gen-metric-select',
         viewSelectId: 'gen-view-select',
         yearSelectId: 'gen-year-select',
@@ -1643,7 +1645,7 @@ const AVIATION_ANALYTICS_UI = {
         elements: null
     },
     carga: {
-        metrics: ['operaciones','tons_transportadas'],
+        metrics: ['operaciones', 'tons_transportadas'],
         metricSelectId: 'cargo-metric-select',
         viewSelectId: 'cargo-view-select',
         yearSelectId: 'cargo-year-select',
@@ -1807,11 +1809,11 @@ function renderServicioMedicoDirectorio(entries) {
                 const isObject = typeof doc === 'object' && doc !== null;
                 const rawUrl = isObject ? doc.url : doc;
                 const rawName = isObject ? (doc.name || 'Documento') : doc;
-                
+
                 const safeLabel = escapeHtml(rawName);
                 // If it's a full URL (Supabase), use it directly. If it's a relative path, build it.
                 // buildDirectorioDocUrl handles relative paths well, but we need to check if it's absolute first
-                
+
                 let docUrl;
                 if (/^(https?:|data:)/i.test(rawUrl)) {
                     docUrl = rawUrl;
@@ -1875,7 +1877,7 @@ async function loadServicioMedicoDirectorio(options = {}) {
         if (window.dataManager) {
             console.log('Fetching Medical Directory from DB...');
             const dbData = await window.dataManager.getMedicalDirectory();
-            
+
             if (dbData && dbData.length > 0) {
                 // Map DB columns to UI format
                 const entries = dbData.map(row => ({
@@ -2011,17 +2013,17 @@ function applySectionPermissions(userName) {
     // Force hide sensitive sections for non-power users (Viewers)
     // This adds a second layer of security beyond AdminUI's d-none
     const sensitive = ['data-management'];
-    
+
     sensitive.forEach(secKey => {
         const item = document.querySelector(`.menu-item[data-section="${secKey}"]`);
         if (item) item.classList.add('perm-hidden');
-        
+
         const content = document.getElementById(`${secKey}-section`);
         // The Data Management section might not be a standard content-section div if handled dynamically
         // but if it exists, hide it.
         // Actually, in index.html, it's a tab-pane usually or similar? 
         // No, it's <section id="data-management-section" class="content-section d-none">
-        
+
         // Wait, let's find the section via ID in index.html
         if (content) content.classList.add('perm-hidden');
     });
@@ -2032,9 +2034,10 @@ function applySectionPermissions(userName) {
         ? user.allowedSections.map((section) => normalizeSectionKey(section)).filter(Boolean)
         : [];
 
-    // Permitir siempre la sección de historia si el usuario está autenticado
-    if (rawWhitelist.length && !rawWhitelist.includes('historia')) {
-        rawWhitelist.push('historia');
+    // Permitir siempre la sección de historia y biblioteca si el usuario está autenticado
+    if (rawWhitelist.length) {
+        if (!rawWhitelist.includes('historia')) rawWhitelist.push('historia');
+        if (!rawWhitelist.includes('biblioteca')) rawWhitelist.push('biblioteca');
     }
 
     if (rawWhitelist.length) {
@@ -2069,25 +2072,25 @@ function applySectionPermissions(userName) {
 const AUTH_HASHES = Object.create(null);
 const SECRET_PW_SALT = 'aifa.ops.local.pw.v1';
 
-async function initAuthHashes(){
+async function initAuthHashes() {
     try {
         const entries = Object.entries(dashboardData.users || {});
-        for (const [name, info] of entries){
+        for (const [name, info] of entries) {
             if (!info) continue;
             const pw = typeof info.password === 'string' ? info.password : '';
-            const norm = (name||'').toString().trim().toLowerCase();
+            const norm = (name || '').toString().trim().toLowerCase();
             if (pw) {
                 const h = await sha256(pw + '|' + norm + '|' + SECRET_PW_SALT);
                 AUTH_HASHES[name] = h;
             }
             // eliminar password en claro para evitar abusos posteriores
-            try { delete info.password; } catch(_) { info.password = undefined; }
+            try { delete info.password; } catch (_) { info.password = undefined; }
         }
-    } catch(_){ /* noop */ }
+    } catch (_) { /* noop */ }
 }
 let authHashesInitPromise = null;
-function ensureAuthHashes(){
-    if (!authHashesInitPromise){
+function ensureAuthHashes() {
+    if (!authHashesInitPromise) {
         authHashesInitPromise = initAuthHashes().catch(err => {
             authHashesInitPromise = null;
             throw err;
@@ -2103,23 +2106,23 @@ const passengerAirlinesNormalized = new Set(passengerAirlines.map(normalizeAirli
 const cargoAirlinesNormalized = new Set(cargoAirlines.map(normalizeAirlineName));
 
 const cargoPositionCodes = new Set([
-    '601','602','603','604','605','606',
-    '601A','602A','603A','604A','605A',
-    '601B','602B','603B','604B'
+    '601', '602', '603', '604', '605', '606',
+    '601A', '602A', '603A', '604A', '605A',
+    '601B', '602B', '603B', '604B'
 ]);
 
 const semicontactoPositionCodes = new Set([
-    '501','502','503','504','505'
+    '501', '502', '503', '504', '505'
 ]);
 
 const remotePositionCodes = new Set([
-    '506','507','508','509','510','511','512','513','514',
-    '506A','507A','508A','506B','507B'
+    '506', '507', '508', '509', '510', '511', '512', '513', '514',
+    '506A', '507A', '508A', '506B', '507B'
 ]);
 
 const cobusAttentionPositions = new Set([
-    '115','115A','115B','116','116A','116B',
-    '509','510','511','512','513','514'
+    '115', '115A', '115B', '116', '116A', '116B',
+    '509', '510', '511', '512', '513', '514'
 ]);
 
 const positionCategoryLabels = {
@@ -2153,32 +2156,32 @@ const airlineLogoFileMap = {
     'viva aerobus': ['logo_viva.png'],
     'volaris': ['logo_volaris.png'],
     // usar primero archivos que EXISTEN en /images/airlines para evitar 404
-    'aeromexico': ['logo_aeromexico.png','logo_aeromexico.jpg'],
-    'aeroméxico': ['logo_aeromexico.png','logo_aeromexico.jpg'],
-    'mexicana de aviacion': ['logo_mexicana.png','logo_mexicana_de_aviacion.png'],
-    'mexicana de aviación': ['logo_mexicana.png','logo_mexicana_de_aviacion.png'],
+    'aeromexico': ['logo_aeromexico.png', 'logo_aeromexico.jpg'],
+    'aeroméxico': ['logo_aeromexico.png', 'logo_aeromexico.jpg'],
+    'mexicana de aviacion': ['logo_mexicana.png', 'logo_mexicana_de_aviacion.png'],
+    'mexicana de aviación': ['logo_mexicana.png', 'logo_mexicana_de_aviacion.png'],
     'aerus': ['logo_aerus.png'],
     'aeurus': ['logo_aerus.png'],
-    'arajet': ['logo_arajet.png','logo_arajet.jpg'],
+    'arajet': ['logo_arajet.png', 'logo_arajet.jpg'],
     // Air China (archivo no sigue prefijo logo_)
     'air china': ['logo_air_china.png'],
     // Carga y otras
-    'masair': ['logo_mas.png','logo_masair.png'],
+    'masair': ['logo_mas.png', 'logo_masair.png'],
     'amerijet international': ['logo_amerijet_international.png'],
     'cargojet': ['logo_cargojet.png'],
     'cargolux': ['logo_cargolux.png'],
-    'cathay pacific': ['logo_cathay_pacific.png','logo_cathay.png'],
+    'cathay pacific': ['logo_cathay_pacific.png', 'logo_cathay.png'],
     'conviasa': ['logo_conviasa.png'],
     'estafeta': ['logo_estafeta.jpg'],
     'ethiopian airlines': ['logo_ethiopian_airlines.png'],
-    'kalitta air': ['logo_kalitta_air.jpg','logo_kalitta.png'],
+    'kalitta air': ['logo_kalitta_air.jpg', 'logo_kalitta.png'],
     'lufthansa': ['logo_lufthansa.png'],
     'lufthansa cargo': ['logo_lufthansa.png'],
-    'silk way west airlines': ['logo_silk_way_west_airlines.png','logo_silkway.png'],
+    'silk way west airlines': ['logo_silk_way_west_airlines.png', 'logo_silkway.png'],
     'sun country airlines': ['logo_sun_country_airlines.png'],
-    'omni air': ['logo_omni_air.png','logo_omni_air1.png'],
-    'omni air international': ['logo_omni_air.png','logo_omni_air1.png'],
-    'omni air internacional': ['logo_omni_air.png','logo_omni_air1.png'],
+    'omni air': ['logo_omni_air.png', 'logo_omni_air1.png'],
+    'omni air international': ['logo_omni_air.png', 'logo_omni_air1.png'],
+    'omni air internacional': ['logo_omni_air.png', 'logo_omni_air1.png'],
     'united parcel service': ['logo_united_parcel_service.png'],
     'ups': ['logo_united_parcel_service.png'],
     'ifl group': ['lofo_ifl_group.png'],
@@ -2265,12 +2268,12 @@ function getLogoSizeClass(airlineName, context = 'table') {
     return 'lg';
 }
 
-function normalizeAirlineName(name = ''){
+function normalizeAirlineName(name = '') {
     const s = (name || '').toString().trim().toLowerCase();
     // quitar acentos simples
     return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
-function getAirlineAccentColor(name){
+function getAirlineAccentColor(name) {
     if (!name) return '#0d6efd';
     if (airlineColors && Object.prototype.hasOwnProperty.call(airlineColors, name)) {
         return airlineColors[name];
@@ -2284,12 +2287,12 @@ function getAirlineAccentColor(name){
     }
     return '#0d6efd';
 }
-function getAirlineLogoCandidates(airline){
+function getAirlineLogoCandidates(airline) {
     const key = normalizeAirlineName(airline);
     const files = airlineLogoFileMap[key];
     const candidates = [];
     if (Array.isArray(files) && files.length) {
-        files.forEach(f=>{ candidates.push(`images/airlines/${f}`); });
+        files.forEach(f => { candidates.push(`images/airlines/${f}`); });
     } else {
         // Generar a partir del nombre normalizado
         const base = 'logo_' + key.replace(/\s+/g, '_');
@@ -2308,12 +2311,12 @@ function getAirlineLogoCandidates(airline){
     // quitar duplicados conservando orden
     return [...new Set(candidates)];
 }
-function getAirlineLogoPath(airline){
+function getAirlineLogoPath(airline) {
     const cands = getAirlineLogoCandidates(airline);
     return cands.length ? cands[0] : null;
 }
-function hexToRgba(hex, alpha){
-    const match = /^#?([0-9a-f]{6})$/i.exec((hex||'').trim());
+function hexToRgba(hex, alpha) {
+    const match = /^#?([0-9a-f]{6})$/i.exec((hex || '').trim());
     if (!match) return `rgba(13,110,253,${alpha})`;
     const value = parseInt(match[1], 16);
     const r = (value >> 16) & 255;
@@ -2322,11 +2325,11 @@ function hexToRgba(hex, alpha){
     return `rgba(${r},${g},${b},${alpha})`;
 }
 // Fallback para logos: si .png falla probamos .svg una vez; si también falla, ocultamos el <img>
-function handleLogoError(imgEl){
-    try{
+function handleLogoError(imgEl) {
+    try {
         const list = (imgEl.dataset.cands || '').split('|').filter(Boolean);
         let idx = parseInt(imgEl.dataset.candIdx || '0', 10);
-        if (list.length && idx < list.length - 1){
+        if (list.length && idx < list.length - 1) {
             idx += 1;
             imgEl.dataset.candIdx = String(idx);
             imgEl.src = list[idx];
@@ -2335,8 +2338,8 @@ function handleLogoError(imgEl){
         // última oportunidad: alternar extensión png<->jpg<->svg en el mismo nombre
         const current = imgEl.getAttribute('src') || '';
         const nextByExt = current.endsWith('.png') ? current.replace(/\.png$/i, '.jpg')
-                          : current.endsWith('.jpg') ? current.replace(/\.jpg$/i, '.svg')
-                          : null;
+            : current.endsWith('.jpg') ? current.replace(/\.jpg$/i, '.svg')
+                : null;
         if (nextByExt) { imgEl.src = nextByExt; return; }
         // sin recurso: ocultar img y mantener visible el texto/color
         imgEl.style.display = 'none';
@@ -2346,72 +2349,76 @@ function handleLogoError(imgEl){
         if (row) row.style.removeProperty('--airline-color');
         const header = imgEl.closest('.airline-header');
         if (header) header.classList.remove('airline-has-logo');
-    }catch(_){ imgEl.style.display = 'none'; }
+    } catch (_) { imgEl.style.display = 'none'; }
 }
 // Marcar celdas/headers cuando el logo carga correctamente para ocultar texto/color
-function logoLoaded(imgEl){
-    try{
+function logoLoaded(imgEl) {
+    try {
         const cell = imgEl.closest('.airline-cell');
         if (cell) cell.classList.add('has-logo');
         // Marcar el header para ocultar el nombre cuando hay logo, sin aplicar fondos adicionales
         const header = imgEl.closest('.airline-header');
         if (header) header.classList.add('airline-has-logo');
-    }catch(_){ }
+    } catch (_) { }
 }
-function formatYMDToDMY(ymd){
+function formatYMDToDMY(ymd) {
     if (!ymd) return '';
     const parts = String(ymd).split('-');
     if (parts.length !== 3) return '';
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
-function flightsToCSV(rows, type){
+function flightsToCSV(rows, type) {
     const headers = type === 'pax'
-        ? ['Aerolínea','Aeronave','Vuelo Lleg.','Fecha Lleg.','Hora Lleg.','Origen','Banda','Posición','Vuelo Sal.','Fecha Sal.','Hora Sal.','Destino']
-        : ['Aerolínea','Aeronave','Vuelo Lleg.','Fecha Lleg.','Hora Lleg.','Origen','Posición','Vuelo Sal.','Fecha Sal.','Hora Sal.','Destino'];
+        ? ['Aerolínea', 'Aeronave', 'Vuelo Lleg.', 'Fecha Lleg.', 'Hora Lleg.', 'Origen', 'Banda', 'Posición', 'Vuelo Sal.', 'Fecha Sal.', 'Hora Sal.', 'Destino']
+        : ['Aerolínea', 'Aeronave', 'Vuelo Lleg.', 'Fecha Lleg.', 'Hora Lleg.', 'Origen', 'Posición', 'Vuelo Sal.', 'Fecha Sal.', 'Hora Sal.', 'Destino'];
     const esc = (v) => {
-        const s = (v==null?'':String(v));
-        if (/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+        const s = (v == null ? '' : String(v));
+        if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
         return s;
     };
     const lines = [headers.join(',')];
-    for (const f of rows){
+    for (const f of rows) {
         if (type === 'pax') {
             lines.push([
-                f.aerolinea||'', f.aeronave||'', f.vuelo_llegada||'', f.fecha_llegada||'', f.hora_llegada||'', f.origen||'', f.banda_reclamo||'', f.posicion||'', f.vuelo_salida||'', f.fecha_salida||'', f.hora_salida||'', f.destino||''
+                f.aerolinea || '', f.aeronave || '', f.vuelo_llegada || '', f.fecha_llegada || '', f.hora_llegada || '', f.origen || '', f.banda_reclamo || '', f.posicion || '', f.vuelo_salida || '', f.fecha_salida || '', f.hora_salida || '', f.destino || ''
             ].map(esc).join(','));
         } else {
             lines.push([
-                f.aerolinea||'', f.aeronave||'', f.vuelo_llegada||'', f.fecha_llegada||'', f.hora_llegada||'', f.origen||'', f.posicion||'', f.vuelo_salida||'', f.fecha_salida||'', f.hora_salida||'', f.destino||''
+                f.aerolinea || '', f.aeronave || '', f.vuelo_llegada || '', f.fecha_llegada || '', f.hora_llegada || '', f.origen || '', f.posicion || '', f.vuelo_salida || '', f.fecha_salida || '', f.hora_salida || '', f.destino || ''
             ].map(esc).join(','));
         }
     }
     return lines.join('\n');
 }
-function downloadCSV(name, content){
+function downloadCSV(name, content) {
     try {
         // Prepend UTF-8 BOM for better compatibility with Excel on Windows
         const blob = new Blob(["\uFEFF" + content], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url; a.download = name; document.body.appendChild(a); a.click();
-        setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
-    } catch(_) {}
+        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+    } catch (_) { }
 }
-function wireItineraryExports(){
+function wireItineraryExports() {
     const btnP = document.getElementById('export-pax-full');
     const btnC = document.getElementById('export-cargo-full');
     const btnPdfP = document.getElementById('export-pax-pdf');
     const btnPdfC = document.getElementById('export-cargo-pdf');
-    if (btnP && !btnP._wired){ btnP._wired = 1; btnP.addEventListener('click', ()=>{
-        const rows = (allFlightsData||[]).filter(f=> (String(f.categoria||'').toLowerCase()==='pasajeros') || passengerAirlines.includes(f.aerolinea));
-        const csv = flightsToCSV(rows, 'pax');
-        downloadCSV('itinerario_pasajeros.csv', csv);
-    }); }
-    if (btnC && !btnC._wired){ btnC._wired = 1; btnC.addEventListener('click', ()=>{
-        const rows = (allFlightsData||[]).filter(f=> (String(f.categoria||'').toLowerCase()==='carga') || cargoAirlines.includes(f.aerolinea));
-        const csv = flightsToCSV(rows, 'cargo');
-        downloadCSV('itinerario_carga.csv', csv);
-    }); }
+    if (btnP && !btnP._wired) {
+        btnP._wired = 1; btnP.addEventListener('click', () => {
+            const rows = (allFlightsData || []).filter(f => (String(f.categoria || '').toLowerCase() === 'pasajeros') || passengerAirlines.includes(f.aerolinea));
+            const csv = flightsToCSV(rows, 'pax');
+            downloadCSV('itinerario_pasajeros.csv', csv);
+        });
+    }
+    if (btnC && !btnC._wired) {
+        btnC._wired = 1; btnC.addEventListener('click', () => {
+            const rows = (allFlightsData || []).filter(f => (String(f.categoria || '').toLowerCase() === 'carga') || cargoAirlines.includes(f.aerolinea));
+            const csv = flightsToCSV(rows, 'cargo');
+            downloadCSV('itinerario_carga.csv', csv);
+        });
+    }
     // PDF (como se ve en pantalla)
     const captureToPDF = async (containerId, fileName) => {
         try {
@@ -2448,7 +2455,7 @@ function wireItineraryExports(){
             const pageH = pdf.internal.pageSize.getHeight();
             const margin = 10;
             // Escalar imagen al ancho de página
-            const imgW = pageW - margin*2;
+            const imgW = pageW - margin * 2;
             const imgH = canvas.height * (imgW / canvas.width);
             let y = margin;
             let x = margin;
@@ -2457,7 +2464,7 @@ function wireItineraryExports(){
             // Añadir título
             pdf.setFont('helvetica', 'bold');
             pdf.setFontSize(12);
-            const title = (fileName || '').replace(/\.pdf$/i,'');
+            const title = (fileName || '').replace(/\.pdf$/i, '');
             pdf.text(title, margin, y);
             y += 6;
             // Si la imagen es más alta que la página, partirla en slices verticales
@@ -2486,28 +2493,28 @@ function wireItineraryExports(){
                     toastEl.querySelector('.toast-body').textContent = 'No se pudo generar el PDF. Intenta de nuevo.';
                     const t = new bootstrap.Toast(toastEl); t.show();
                 }
-            } catch(_){}
+            } catch (_) { }
         }
     };
-    if (btnPdfP && !btnPdfP._wired) { btnPdfP._wired = 1; btnPdfP.addEventListener('click', ()=> captureToPDF('passenger-itinerary-container', 'itinerario_pasajeros.pdf')); }
-    if (btnPdfC && !btnPdfC._wired) { btnPdfC._wired = 1; btnPdfC.addEventListener('click', ()=> captureToPDF('cargo-itinerary-container', 'itinerario_carga.pdf')); }
+    if (btnPdfP && !btnPdfP._wired) { btnPdfP._wired = 1; btnPdfP.addEventListener('click', () => captureToPDF('passenger-itinerary-container', 'itinerario_pasajeros.pdf')); }
+    if (btnPdfC && !btnPdfC._wired) { btnPdfC._wired = 1; btnPdfC.addEventListener('click', () => captureToPDF('cargo-itinerary-container', 'itinerario_carga.pdf')); }
 }
 document.addEventListener('DOMContentLoaded', wireItineraryExports);
 
 function setupEventListeners() {
     document.getElementById('login-form').addEventListener('submit', handleLogin);
     document.getElementById('sidebar-nav').addEventListener('click', handleNavigation);
-    document.getElementById('airline-filter').addEventListener('change', (window.AIFA?.throttle||((f)=>f))(applyFilters, 120));
+    document.getElementById('airline-filter').addEventListener('change', (window.AIFA?.throttle || ((f) => f))(applyFilters, 120));
     // search input for banda de reclamo (specific) and a global search box
-    const claimInput = document.getElementById('claim-filter'); if (claimInput) claimInput.addEventListener('input', (window.AIFA?.debounce||((f)=>f))(applyFilters, 200));
-    const globalSearch = document.getElementById('global-search'); if (globalSearch) globalSearch.addEventListener('input', (window.AIFA?.debounce||((f)=>f))(applyFilters, 200));
+    const claimInput = document.getElementById('claim-filter'); if (claimInput) claimInput.addEventListener('input', (window.AIFA?.debounce || ((f) => f))(applyFilters, 200));
+    const globalSearch = document.getElementById('global-search'); if (globalSearch) globalSearch.addEventListener('input', (window.AIFA?.debounce || ((f) => f))(applyFilters, 200));
     // position select (populated from JSON)
-    const posSelect = document.getElementById('position-filter'); if (posSelect) posSelect.addEventListener('change', (window.AIFA?.throttle||((f)=>f))(applyFilters, 120));
-    const originSelect = document.getElementById('origin-filter'); if (originSelect) originSelect.addEventListener('change', (window.AIFA?.throttle||((f)=>f))(applyFilters, 120));
-    const destinationSelect = document.getElementById('destination-filter'); if (destinationSelect) destinationSelect.addEventListener('change', (window.AIFA?.throttle||((f)=>f))(applyFilters, 120));
+    const posSelect = document.getElementById('position-filter'); if (posSelect) posSelect.addEventListener('change', (window.AIFA?.throttle || ((f) => f))(applyFilters, 120));
+    const originSelect = document.getElementById('origin-filter'); if (originSelect) originSelect.addEventListener('change', (window.AIFA?.throttle || ((f) => f))(applyFilters, 120));
+    const destinationSelect = document.getElementById('destination-filter'); if (destinationSelect) destinationSelect.addEventListener('change', (window.AIFA?.throttle || ((f) => f))(applyFilters, 120));
     // hour filters (Inicio)
-    const hourSelect = document.getElementById('hour-filter'); if (hourSelect) hourSelect.addEventListener('change', (window.AIFA?.throttle||((f)=>f))(applyFilters, 120));
-    const hourTypeSelect = document.getElementById('hour-type-filter'); if (hourTypeSelect) hourTypeSelect.addEventListener('change', (window.AIFA?.throttle||((f)=>f))(applyFilters, 120));
+    const hourSelect = document.getElementById('hour-filter'); if (hourSelect) hourSelect.addEventListener('change', (window.AIFA?.throttle || ((f) => f))(applyFilters, 120));
+    const hourTypeSelect = document.getElementById('hour-type-filter'); if (hourTypeSelect) hourTypeSelect.addEventListener('change', (window.AIFA?.throttle || ((f) => f))(applyFilters, 120));
     // date filter (Inicio)
     const dateFilter = document.getElementById('date-filter'); if (dateFilter) dateFilter.addEventListener('change', () => loadItineraryData({ preserveFilters: true }));
     // Botón de tema eliminado: no enlazar listener si no existe
@@ -2534,28 +2541,28 @@ function setupEventListeners() {
         });
         updateOpsTooltipToggleButton();
     }
-    
+
     // Botón de reinicialización de gráficas global
     const chartsResetBtn = document.getElementById('charts-reset-btn');
     if (chartsResetBtn) {
         chartsResetBtn.addEventListener('click', resetAllCharts);
-        
+
         // Hacer el botón siempre visible para pruebas (opcional)
         chartsResetBtn.style.display = 'inline-block';
     }
-    
+
     // Botones específicos de reinicialización por sección
     const resetOperacionesBtn = document.getElementById('reset-operaciones-btn');
     if (resetOperacionesBtn) resetOperacionesBtn.addEventListener('click', resetOperacionesCharts);
-    
+
     const resetItinerarioBtn = document.getElementById('reset-itinerario-btn');
     if (resetItinerarioBtn) resetItinerarioBtn.addEventListener('click', resetItinerarioCharts);
-    
+
     const resetDemorasBtn = document.getElementById('reset-demoras-btn');
     if (resetDemorasBtn) resetDemorasBtn.addEventListener('click', resetDemorasCharts);
-    
+
     // Atajos de teclado para reinicializar gráficas
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
@@ -2567,7 +2574,7 @@ function setupEventListeners() {
         }
         if (e.ctrlKey && e.shiftKey) {
             const sectionId = getActiveSectionKey();
-            
+
             if (e.key === 'R') {
                 e.preventDefault();
                 console.log('🔄 Reinicialización forzada por atajo de teclado');
@@ -2592,94 +2599,94 @@ function setupEventListeners() {
     const mobileLogoutBtn = document.querySelector('.logout-button-mobile');
     if (mobileLogoutBtn && !mobileLogoutBtn._wired) {
         mobileLogoutBtn._wired = 1;
-        mobileLogoutBtn.addEventListener('click', function(e){ e.preventDefault(); performLogout(); });
+        mobileLogoutBtn.addEventListener('click', function (e) { e.preventDefault(); performLogout(); });
     }
-    document.addEventListener('click', function(e){
+    document.addEventListener('click', function (e) {
         const a = e.target && e.target.closest && e.target.closest('[data-action="logout"]');
         if (a) { e.preventDefault(); performLogout(); }
     });
 
-// Función de diagnóstico global (para usar en consola)
-window.diagnoseCharts = function() {
-    console.log('🔍 === DIAGNÓSTICO DE GRÁFICAS ===');
-    
-    const activeSection = document.querySelector('.content-section.active');
-    console.log('Sección activa:', getActiveSectionKey() || activeSection?.id || 'ninguna');
-    
-    console.log('📊 Gráficas de Operaciones Totales:');
-    console.log('opsCharts:', Object.keys(opsCharts));
-    
-    console.log('📈 Instancias de Chart.js:');
-    if (window.Chart && window.Chart.instances) {
-        console.log('Chart instances:', Object.keys(window.Chart.instances));
-    }
-    
-    console.log('🎯 Canvas elements:');
-    const canvases = ['commercial-ops-chart', 'commercial-pax-chart', 'cargo-ops-chart', 'cargo-tons-chart', 'general-ops-chart', 'general-pax-chart', 'paxArrivalsChart', 'paxDeparturesChart', 'cargoArrivalsChart', 'cargoDeparturesChart', 'delaysPieChart'];
-    canvases.forEach(id => {
-        const canvas = document.getElementById(id);
-        const chart = canvas ? Chart.getChart(canvas) : null;
-        console.log(`${id}: canvas=${!!canvas}, chart=${!!chart}`);
-    });
-    
-    console.log('🔧 Funciones globales:');
-    console.log('renderOperacionesTotales:', typeof window.renderOperacionesTotales);
-    console.log('renderItineraryCharts:', typeof window.renderItineraryCharts);
-    console.log('renderDemoras:', typeof window.renderDemoras);
-    console.log('destroyItinerarioCharts:', typeof window.destroyItinerarioCharts);
-    
-    console.log('=== FIN DIAGNÓSTICO ===');
-};
-    
+    // Función de diagnóstico global (para usar en consola)
+    window.diagnoseCharts = function () {
+        console.log('🔍 === DIAGNÓSTICO DE GRÁFICAS ===');
+
+        const activeSection = document.querySelector('.content-section.active');
+        console.log('Sección activa:', getActiveSectionKey() || activeSection?.id || 'ninguna');
+
+        console.log('📊 Gráficas de Operaciones Totales:');
+        console.log('opsCharts:', Object.keys(opsCharts));
+
+        console.log('📈 Instancias de Chart.js:');
+        if (window.Chart && window.Chart.instances) {
+            console.log('Chart instances:', Object.keys(window.Chart.instances));
+        }
+
+        console.log('🎯 Canvas elements:');
+        const canvases = ['commercial-ops-chart', 'commercial-pax-chart', 'cargo-ops-chart', 'cargo-tons-chart', 'general-ops-chart', 'general-pax-chart', 'paxArrivalsChart', 'paxDeparturesChart', 'cargoArrivalsChart', 'cargoDeparturesChart', 'delaysPieChart'];
+        canvases.forEach(id => {
+            const canvas = document.getElementById(id);
+            const chart = canvas ? Chart.getChart(canvas) : null;
+            console.log(`${id}: canvas=${!!canvas}, chart=${!!chart}`);
+        });
+
+        console.log('🔧 Funciones globales:');
+        console.log('renderOperacionesTotales:', typeof window.renderOperacionesTotales);
+        console.log('renderItineraryCharts:', typeof window.renderItineraryCharts);
+        console.log('renderDemoras:', typeof window.renderDemoras);
+        console.log('destroyItinerarioCharts:', typeof window.destroyItinerarioCharts);
+
+        console.log('=== FIN DIAGNÓSTICO ===');
+    };
+
     setupBodyEventListeners();
     setupLightboxListeners();
     // Inicializar UI de Manifiestos (desacoplado al módulo)
-    try { if (typeof window.setupManifestsUI === 'function') window.setupManifestsUI(); } catch(_) {}
+    try { if (typeof window.setupManifestsUI === 'function') window.setupManifestsUI(); } catch (_) { }
     // Frecuencias: navegación de semana
-    const prevW = document.getElementById('freq-prev-week'); if (prevW) prevW.addEventListener('click', ()=> changeFreqWeek(-7));
-    const nextW = document.getElementById('freq-next-week'); if (nextW) nextW.addEventListener('click', ()=> changeFreqWeek(7));
+    const prevW = document.getElementById('freq-prev-week'); if (prevW) prevW.addEventListener('click', () => changeFreqWeek(-7));
+    const nextW = document.getElementById('freq-next-week'); if (nextW) nextW.addEventListener('click', () => changeFreqWeek(7));
     // Picos diarios: listeners
     const peakDate = document.getElementById('peak-date'); if (peakDate) peakDate.addEventListener('change', renderDailyPeaks);
-    const prevD = document.getElementById('peak-prev-day'); if (prevD) prevD.addEventListener('click', ()=> shiftPeakDate(-1));
-    const nextD = document.getElementById('peak-next-day'); if (nextD) nextD.addEventListener('click', ()=> shiftPeakDate(1));
+    const prevD = document.getElementById('peak-prev-day'); if (prevD) prevD.addEventListener('click', () => shiftPeakDate(-1));
+    const nextD = document.getElementById('peak-next-day'); if (nextD) nextD.addEventListener('click', () => shiftPeakDate(1));
     // Itinerario tabs: re-render heatmaps when switching into them
     const itineraryTab = document.getElementById('itineraryTab');
     // PDFs restaurados en Itinerario: no es necesario recalcular heatmaps al cambiar de pestaña
     if (itineraryTab) {
-        itineraryTab.addEventListener('click', ()=>{});
+        itineraryTab.addEventListener('click', () => { });
     }
 }
 function animateLoginTitle() {
     const titleElement = document.getElementById('login-title');
     if (!titleElement) return;
-        // Mantener el título solicitado
-        titleElement.textContent = "OPERACIONES AIFA";
+    // Mantener el título solicitado
+    titleElement.textContent = "OPERACIONES AIFA";
 }
 
 // Funciones específicas para reinicializar gráficas por sección
 function resetOperacionesCharts() {
     console.log('🔄 Reinicializando gráficas de Operaciones Totales...');
-    
+
     const btn = document.getElementById('reset-operaciones-btn');
     const originalHTML = btn ? btn.innerHTML : '';
-    
+
     try {
         // Mostrar indicador de carga
         if (btn) {
             btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Reiniciando...';
             btn.disabled = true;
         }
-        
+
         // Destruir gráficas existentes
         destroyOpsCharts();
-        
+
         // Limpiar canvas específicos
         const canvasIds = [
             'commercial-ops-chart', 'commercial-pax-chart',
             'cargo-ops-chart', 'cargo-tons-chart',
             'general-ops-chart', 'general-pax-chart'
         ];
-        
+
         canvasIds.forEach(id => {
             const canvas = document.getElementById(id);
             if (canvas) {
@@ -2689,7 +2696,7 @@ function resetOperacionesCharts() {
                 canvas.height = canvas.offsetHeight;
             }
         });
-        
+
         // Recrear después de un breve delay
         setTimeout(() => {
             try {
@@ -2707,7 +2714,7 @@ function resetOperacionesCharts() {
                 }
             }
         }, 200);
-        
+
     } catch (error) {
         console.error('❌ Error crítico en resetOperacionesCharts:', error);
         if (btn) {
@@ -2719,22 +2726,22 @@ function resetOperacionesCharts() {
 
 function resetItinerarioCharts() {
     console.log('🔄 Reinicializando gráficas de Itinerario...');
-    
+
     const btn = document.getElementById('reset-itinerario-btn');
     const originalHTML = btn ? btn.innerHTML : '';
-    
+
     try {
         // Mostrar indicador de carga
         if (btn) {
             btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Reiniciando...';
             btn.disabled = true;
         }
-        
+
         // Destruir gráficas de itinerario
         if (window.destroyItinerarioCharts && typeof window.destroyItinerarioCharts === 'function') {
             window.destroyItinerarioCharts();
         }
-        
+
         // Limpiar canvas específicos del itinerario
         const canvasIds = ['paxArrivalsChart', 'paxDeparturesChart', 'cargoArrivalsChart', 'cargoDeparturesChart'];
         canvasIds.forEach(id => {
@@ -2746,7 +2753,7 @@ function resetItinerarioCharts() {
                 canvas.height = canvas.offsetHeight;
             }
         });
-        
+
         // Recrear después de un breve delay
         setTimeout(() => {
             try {
@@ -2767,7 +2774,7 @@ function resetItinerarioCharts() {
                 }
             }
         }, 200);
-        
+
     } catch (error) {
         console.error('❌ Error crítico en resetItinerarioCharts:', error);
         if (btn) {
@@ -2779,25 +2786,25 @@ function resetItinerarioCharts() {
 
 function resetDemorasCharts() {
     console.log('🔄 Reinicializando gráfica de Demoras...');
-    
+
     const btn = document.getElementById('reset-demoras-btn');
     const originalHTML = btn ? btn.innerHTML : '';
-    
+
     try {
         // Mostrar indicador de carga
         if (btn) {
             btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Reiniciando...';
             btn.disabled = true;
         }
-        
+
         // Destruir gráfica de demoras existente
         if (window.opsCharts && window.opsCharts.delaysPieChart) {
-            try { 
-                window.opsCharts.delaysPieChart.destroy(); 
+            try {
+                window.opsCharts.delaysPieChart.destroy();
                 delete window.opsCharts.delaysPieChart;
-            } catch(_) {}
+            } catch (_) { }
         }
-        
+
         // Limpiar canvas de demoras
         const canvas = document.getElementById('delaysPieChart');
         if (canvas) {
@@ -2806,7 +2813,7 @@ function resetDemorasCharts() {
             canvas.width = canvas.offsetWidth;
             canvas.height = canvas.offsetHeight;
         }
-        
+
         // Recrear después de un breve delay
         setTimeout(() => {
             try {
@@ -2827,7 +2834,7 @@ function resetDemorasCharts() {
                 }
             }
         }, 200);
-        
+
     } catch (error) {
         console.error('❌ Error crítico en resetDemorasCharts:', error);
         if (btn) {
@@ -2838,20 +2845,20 @@ function resetDemorasCharts() {
 }
 
 // Función de diagnóstico global (para usar en consola)
-window.diagnoseCharts = function() {
+window.diagnoseCharts = function () {
     console.log('🔍 === DIAGNÓSTICO DE GRÁFICAS ===');
-    
+
     const activeSection = document.querySelector('.content-section.active');
     console.log('Sección activa:', activeSection?.id || 'ninguna');
-    
+
     console.log('📊 Gráficas de Operaciones Totales:');
     console.log('opsCharts:', Object.keys(opsCharts));
-    
+
     console.log('📈 Instancias de Chart.js:');
     if (window.Chart && window.Chart.instances) {
         console.log('Chart instances:', Object.keys(window.Chart.instances));
     }
-    
+
     console.log('🎯 Canvas elements:');
     const canvases = ['commercial-ops-chart', 'commercial-pax-chart', 'cargo-ops-chart', 'cargo-tons-chart', 'general-ops-chart', 'general-pax-chart', 'paxArrivalsChart', 'paxDeparturesChart', 'cargoArrivalsChart', 'cargoDeparturesChart', 'delaysPieChart'];
     canvases.forEach(id => {
@@ -2859,13 +2866,13 @@ window.diagnoseCharts = function() {
         const chart = canvas ? Chart.getChart(canvas) : null;
         console.log(`${id}: canvas=${!!canvas}, chart=${!!chart}`);
     });
-    
+
     console.log('🔧 Funciones globales:');
     console.log('renderOperacionesTotales:', typeof window.renderOperacionesTotales);
     console.log('renderItineraryCharts:', typeof window.renderItineraryCharts);
     console.log('renderDemoras:', typeof window.renderDemoras);
     console.log('destroyItinerarioCharts:', typeof window.destroyItinerarioCharts);
-    
+
     console.log('=== FIN DIAGNÓSTICO ===');
 };
 
@@ -2875,7 +2882,7 @@ window.resetItinerarioCharts = resetItinerarioCharts;
 window.resetDemorasCharts = resetDemorasCharts;
 
 // Función de ayuda para mostrar atajos de teclado
-window.showChartShortcuts = function() {
+window.showChartShortcuts = function () {
     console.log('⌨️ ATAJOS DE TECLADO PARA GRÁFICAS:');
     console.log('Ctrl+Shift+R: Reinicializar TODAS las gráficas');
     console.log('Ctrl+Shift+O: Reinicializar gráficas de Operaciones (en sección activa)');
@@ -2899,7 +2906,7 @@ function animateCounter(elementId, endValue, duration = 2500, isDecimal = false)
         const progress = Math.min((timestamp - startTimestamp) / duration, 1);
         const currentValue = progress * endValue;
         if (isDecimal) {
-            element.textContent = new Intl.NumberFormat('es-MX', {maximumFractionDigits: 2, minimumFractionDigits: 2}).format(currentValue);
+            element.textContent = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(currentValue);
         } else {
             element.textContent = new Intl.NumberFormat('es-MX').format(Math.floor(currentValue));
         }
@@ -2909,10 +2916,10 @@ function animateCounter(elementId, endValue, duration = 2500, isDecimal = false)
 }
 // --- Seguridad de login en cliente (mejor esfuerzo, no sustituye backend) ---
 const LOGIN_LOCK_KEY = 'aifa.lock.count';
-const LOGIN_LOCK_TS  = 'aifa.lock.until';
-const SESSION_TOKEN  = 'aifa.session.token';
-const SESSION_USER   = 'currentUser';
-const SECRET_SALT    = 'aifa.ops.local.salt.v1'; // cambia en prod
+const LOGIN_LOCK_TS = 'aifa.lock.until';
+const SESSION_TOKEN = 'aifa.session.token';
+const SESSION_USER = 'currentUser';
+const SECRET_SALT = 'aifa.ops.local.salt.v1'; // cambia en prod
 
 // Fallback SHA-256 for contexts without crypto.subtle
 const SHA256_FALLBACK_INIT = [
@@ -3059,32 +3066,32 @@ function sha256Fallback(str) {
     return result;
 }
 
-async function sha256(str){
+async function sha256(str) {
     const cryptoObj = (typeof window !== 'undefined' && (window.crypto || window.msCrypto)) || null;
     if (cryptoObj && cryptoObj.subtle && typeof TextEncoder !== 'undefined') {
         const enc = new TextEncoder().encode(str);
         const buf = await cryptoObj.subtle.digest('SHA-256', enc);
-        return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
     return sha256Fallback(str);
 }
 
-async function makeToken(username){
+async function makeToken(username) {
     const ts = Date.now().toString();
     const sign = await sha256(username + '|' + ts + '|' + SECRET_SALT);
     return `${username}.${ts}.${sign}`;
 }
 
-async function verifyToken(token){
+async function verifyToken(token) {
     if (!token) return false;
 
     // Validación Supabase
     if (window.supabaseClient) {
         const { data: { session }, error } = await window.supabaseClient.auth.getSession();
-        
+
         // Si no hay sesión pero tenemos token, intentamos restaurarla
         if (!session && token && token.length > 50) { // Simple check to distinguish from legacy hash
-             const { data: restoreData, error: restoreError } = await window.supabaseClient.auth.setSession({
+            const { data: restoreData, error: restoreError } = await window.supabaseClient.auth.setSession({
                 access_token: token,
                 refresh_token: token
             });
@@ -3104,16 +3111,16 @@ async function verifyToken(token){
     const [u, ts, sig] = parts;
     const expect = await sha256(u + '|' + ts + '|' + SECRET_SALT);
     // expira en 12h
-    const expired = (Date.now() - Number(ts)) > (12*60*60*1000);
+    const expired = (Date.now() - Number(ts)) > (12 * 60 * 60 * 1000);
     return (!expired && sig === expect);
 }
 
-function getLockInfo(){
-    const count = parseInt(localStorage.getItem(LOGIN_LOCK_KEY)||'0',10) || 0;
-    const until = parseInt(localStorage.getItem(LOGIN_LOCK_TS)||'0',10) || 0;
+function getLockInfo() {
+    const count = parseInt(localStorage.getItem(LOGIN_LOCK_KEY) || '0', 10) || 0;
+    const until = parseInt(localStorage.getItem(LOGIN_LOCK_TS) || '0', 10) || 0;
     return { count, until };
 }
-function setLockInfo(count, until){
+function setLockInfo(count, until) {
     localStorage.setItem(LOGIN_LOCK_KEY, String(count));
     localStorage.setItem(LOGIN_LOCK_TS, String(until));
 }
@@ -3166,7 +3173,7 @@ async function handleLogin(e) {
                     .eq('id', data.user.id)
                     .single();
                 if (profile) fullName = profile.full_name;
-            } catch (_) {}
+            } catch (_) { }
         }
         sessionStorage.setItem('user_fullname', fullName || data.user.email);
 
@@ -3178,7 +3185,7 @@ async function handleLogin(e) {
                 .select('role')
                 .eq('user_id', data.user.id)
                 .single();
-            
+
             if (roleData && roleData.role) {
                 role = roleData.role;
             }
@@ -3189,7 +3196,7 @@ async function handleLogin(e) {
 
         showMainApp();
 
-    } catch(err){
+    } catch (err) {
         const msg = (err && err.message) ? err.message : 'Error de autenticación';
         if (errorDiv) errorDiv.textContent = msg;
         if (loginButton) loginButton.classList.remove('loading');
@@ -3202,7 +3209,7 @@ function resetLoginFormState() {
     try {
         const form = document.getElementById('login-form');
         if (form && typeof form.reset === 'function') form.reset();
-    } catch (_) {}
+    } catch (_) { }
     const loginButton = document.getElementById('login-button');
     if (loginButton) loginButton.classList.remove('loading');
     const errorDiv = document.getElementById('login-error');
@@ -3215,16 +3222,16 @@ function updateClock() {
         const now = new Date();
         clockElement.textContent = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
-        const utcElement = document.getElementById('utc-clock');
-        if (utcElement) {
-            const nowUtc = new Date();
-            utcElement.textContent = nowUtc.toLocaleTimeString('es-ES', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'UTC' });
-        }
+    const utcElement = document.getElementById('utc-clock');
+    if (utcElement) {
+        const nowUtc = new Date();
+        utcElement.textContent = nowUtc.toLocaleTimeString('es-ES', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'UTC' });
+    }
 }
 function initializeTheme() {
     // Forzar tema claro permanentemente
     document.body.classList.remove('dark-mode');
-    try { localStorage.setItem('theme', 'light'); } catch(_) {}
+    try { localStorage.setItem('theme', 'light'); } catch (_) { }
 }
 function toggleTheme() {
     // No-op: tema fijo claro
@@ -3324,16 +3331,16 @@ function restoreItineraryFilterSelections(state = {}) {
 async function loadItineraryData(options = {}) {
     const preserveFilters = !!options.preserveFilters;
     const previousFilters = preserveFilters ? captureItineraryFilterSelections() : null;
-    
+
     // Pre-cargar filtro de fecha con 'hoy' si está vacío
     try {
         const dateInput = document.getElementById('date-filter');
         if (dateInput && !dateInput.value) {
             const d = new Date();
-            const ymd = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             dateInput.value = ymd;
         }
-    } catch (_) {}
+    } catch (_) { }
 
     try {
         if (window.supabaseClient) {
@@ -3352,25 +3359,25 @@ async function loadItineraryData(options = {}) {
             allFlightsData = await response.json();
         }
 
-    if (!preserveFilters) {
-        displaySummaryTable(allFlightsData, { selectedAirline: 'all' });
-    }
-    populateAirlineFilter();
-    populatePositionFilter();
-    populateOriginFilter();
-    populateDestinationFilter();
-    if (preserveFilters && previousFilters) {
-        restoreItineraryFilterSelections(previousFilters);
-    }
-    applyFilters(); 
-    // actualizar estadísticas diarias una vez cargado el itinerario
-    computeDailyStats();
-    try { renderFrecuenciasSemana(); } catch(_) {}
-    try { ensurePeakDate(); renderDailyPeaks(); } catch(_) {}
+        if (!preserveFilters) {
+            displaySummaryTable(allFlightsData, { selectedAirline: 'all' });
+        }
+        populateAirlineFilter();
+        populatePositionFilter();
+        populateOriginFilter();
+        populateDestinationFilter();
+        if (preserveFilters && previousFilters) {
+            restoreItineraryFilterSelections(previousFilters);
+        }
+        applyFilters();
+        // actualizar estadísticas diarias una vez cargado el itinerario
+        computeDailyStats();
+        try { renderFrecuenciasSemana(); } catch (_) { }
+        try { ensurePeakDate(); renderDailyPeaks(); } catch (_) { }
     } catch (error) {
         console.error("Error al cargar itinerario:", error);
         const passengerContainer = document.getElementById('passenger-itinerary-container');
-        if(passengerContainer && !preserveFilters) { passengerContainer.innerHTML = `<div class="alert alert-danger">Error al cargar datos del itinerario.</div>`; }
+        if (passengerContainer && !preserveFilters) { passengerContainer.innerHTML = `<div class="alert alert-danger">Error al cargar datos del itinerario.</div>`; }
     }
     return allFlightsData;
 }
@@ -3378,7 +3385,7 @@ function updateAirlineQuickSummary(options = {}) {
     const card = document.getElementById('airline-summary-card');
     if (!card) return;
     const clearStyles = () => {
-        ['--airline-summary-accent','--airline-summary-bg-strong','--airline-summary-bg-soft','--airline-summary-border','--airline-summary-shadow'].forEach(prop => card.style.removeProperty(prop));
+        ['--airline-summary-accent', '--airline-summary-bg-strong', '--airline-summary-bg-soft', '--airline-summary-border', '--airline-summary-shadow'].forEach(prop => card.style.removeProperty(prop));
     };
     const airlineNameRaw = (options.airline || '').toString().trim();
     const isAllAirlines = !airlineNameRaw || airlineNameRaw === 'all';
@@ -3584,7 +3591,7 @@ function renderItineraryAirlineDetail(config = {}) {
         };
         const positionDisplay = normalizePositionValue(flight?.posicion || flight?.posición || flight?.stand || '');
         const positionCell = positionDisplay ? escapeHtml(positionDisplay) : '-';
-        
+
         const aircraft = flight?.equipo || flight?.aeronave;
         const dateArr = formatDateDMY(flight?.fecha_llegada);
         const dateDep = formatDateDMY(flight?.fecha_salida);
@@ -3672,26 +3679,26 @@ function applyFilters() {
     const originFilterVal = document.getElementById('origin-filter') ? document.getElementById('origin-filter').value : 'all';
     const destinationFilterVal = document.getElementById('destination-filter') ? document.getElementById('destination-filter').value : 'all';
     // helpers for robust parsing
-    const toYMD = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const toYMD = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const parseDMY = (s) => {
         if (!s) return null;
         const m = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/.exec(String(s).trim());
         if (!m) return null;
-        const dd = parseInt(m[1],10), mm = parseInt(m[2],10), yy = parseInt(m[3],10);
-        return new Date(yy, mm-1, dd);
+        const dd = parseInt(m[1], 10), mm = parseInt(m[2], 10), yy = parseInt(m[3], 10);
+        return new Date(yy, mm - 1, dd);
     };
     const getHourInt = (s) => {
-        const m = /^(\s*)(\d{1,2})\s*:\s*(\d{2})/.exec((s||'').toString());
+        const m = /^(\s*)(\d{1,2})\s*:\s*(\d{2})/.exec((s || '').toString());
         if (!m) return null;
-        const h = Math.max(0, Math.min(23, parseInt(m[2],10)));
+        const h = Math.max(0, Math.min(23, parseInt(m[2], 10)));
         return h;
     };
     const getMinutes = (s) => {
-        const m = /^(\s*)(\d{1,2})\s*:\s*(\d{2})/.exec((s||'').toString());
+        const m = /^(\s*)(\d{1,2})\s*:\s*(\d{2})/.exec((s || '').toString());
         if (!m) return Number.MAX_SAFE_INTEGER;
-        const h = Math.max(0, Math.min(23, parseInt(m[2],10)));
-        const mi = Math.max(0, Math.min(59, parseInt(m[3],10)));
-        return h*60 + mi;
+        const h = Math.max(0, Math.min(23, parseInt(m[2], 10)));
+        const mi = Math.max(0, Math.min(59, parseInt(m[3], 10)));
+        return h * 60 + mi;
     };
 
     let filteredData = allFlightsData;
@@ -3700,13 +3707,13 @@ function applyFilters() {
     if (selectedDate) {
         const selYMD = selectedDate; // yyyy-mm-dd from input
         const matchDate = (f) => {
-            const ymdArr = (() => { 
+            const ymdArr = (() => {
                 if (f.fecha_llegada && /^\d{4}-\d{2}-\d{2}$/.test(f.fecha_llegada)) return f.fecha_llegada;
-                const d = parseDMY(f.fecha_llegada); return d ? toYMD(d) : null; 
+                const d = parseDMY(f.fecha_llegada); return d ? toYMD(d) : null;
             })();
-            const ymdDep = (() => { 
+            const ymdDep = (() => {
                 if (f.fecha_salida && /^\d{4}-\d{2}-\d{2}$/.test(f.fecha_salida)) return f.fecha_salida;
-                const d = parseDMY(f.fecha_salida); return d ? toYMD(d) : null; 
+                const d = parseDMY(f.fecha_salida); return d ? toYMD(d) : null;
             })();
             if (hourType === 'arr') return ymdArr === selYMD;
             if (hourType === 'dep') return ymdDep === selYMD;
@@ -3718,14 +3725,14 @@ function applyFilters() {
     if (selectedDate && filteredData.length === 0) {
         // Find the date with most flights in allFlightsData
         const freq = new Map();
-        const inc = (d)=>{ if (!d) return; const k = String(d).trim(); if (!k) return; freq.set(k, (freq.get(k)||0)+1); };
-        for (const f of (allFlightsData||[])) { inc(f.fecha_llegada); inc(f.fecha_salida); }
-        let bestDMY=null, bestN=-1; for (const [dmy,n] of freq) { if (n>bestN) { bestN=n; bestDMY=dmy; } }
+        const inc = (d) => { if (!d) return; const k = String(d).trim(); if (!k) return; freq.set(k, (freq.get(k) || 0) + 1); };
+        for (const f of (allFlightsData || [])) { inc(f.fecha_llegada); inc(f.fecha_salida); }
+        let bestDMY = null, bestN = -1; for (const [dmy, n] of freq) { if (n > bestN) { bestN = n; bestDMY = dmy; } }
         const dateElFix = document.getElementById('date-filter');
         if (bestDMY) {
             const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(bestDMY);
             if (m) {
-                const ymd = `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+                const ymd = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
                 if (dateElFix) dateElFix.value = ymd;
                 return applyFilters();
             }
@@ -3770,11 +3777,11 @@ function applyFilters() {
     // Snapshot del subconjunto antes del filtro por hora (para sincronizar gráficas)
     try {
         window.currentItineraryPreHour = {
-            pax: [...(passengerFlights||[])],
-            cargo: [...(cargoFlights||[])],
-            combined: [...(passengerFlights||[]), ...(cargoFlights||[])]
+            pax: [...(passengerFlights || [])],
+            cargo: [...(cargoFlights || [])],
+            combined: [...(passengerFlights || []), ...(cargoFlights || [])]
         };
-    } catch(_) {}
+    } catch (_) { }
     // hour filter: ensure hour is associated to the same date side that matched
     if (selectedHour && selectedHour !== 'all') {
         const hhNum = parseInt(selectedHour, 10);
@@ -3784,9 +3791,9 @@ function applyFilters() {
             const hs = getHourInt(f.hora_salida);
             // derive dates in yyyy-mm-dd for each side
             const toYMD = (s) => {
-                const m = /^([0-9]{1,2})\/(\d{1,2})\/(\d{4})$/.exec((s||'').toString().trim());
+                const m = /^([0-9]{1,2})\/(\d{1,2})\/(\d{4})$/.exec((s || '').toString().trim());
                 if (!m) return null;
-                return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+                return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
             };
             const ymdArr = toYMD(f.fecha_llegada);
             const ymdDep = toYMD(f.fecha_salida);
@@ -3823,15 +3830,15 @@ function applyFilters() {
 
     // If an hour is selected, sort results ascending by the chosen time field
     if (selectedHour && selectedHour !== 'all') {
-        const byArr = (a,b)=> getMinutes(a.hora_llegada) - getMinutes(b.hora_llegada);
-        const byDep = (a,b)=> getMinutes(a.hora_salida) - getMinutes(b.hora_salida);
+        const byArr = (a, b) => getMinutes(a.hora_llegada) - getMinutes(b.hora_llegada);
+        const byDep = (a, b) => getMinutes(a.hora_salida) - getMinutes(b.hora_salida);
         if (hourType === 'arr') {
             passengerFlights.sort(byArr); cargoFlights.sort(byArr);
         } else if (hourType === 'dep') {
             passengerFlights.sort(byDep); cargoFlights.sort(byDep);
         } else {
             // both: sort by min of arr/dep time
-            const byEither = (a,b)=> {
+            const byEither = (a, b) => {
                 const aMin = Math.min(getMinutes(a.hora_llegada), getMinutes(a.hora_salida));
                 const bMin = Math.min(getMinutes(b.hora_llegada), getMinutes(b.hora_salida));
                 return aMin - bMin;
@@ -3843,7 +3850,7 @@ function applyFilters() {
     displayPassengerTable(passengerFlights);
     displayCargoTable(cargoFlights);
     // update summary based on currently visible (fully filtered) data
-    displaySummaryTable([...(passengerFlights||[]), ...(cargoFlights||[])], { selectedAirline });
+    displaySummaryTable([...(passengerFlights || []), ...(cargoFlights || [])], { selectedAirline });
     updateAirlineQuickSummary({
         airline: selectedAirline,
         flights: Array.isArray(filteredData) ? filteredData : [],
@@ -3870,42 +3877,42 @@ function applyFilters() {
         window.currentItineraryFiltered = {
             flightsPax: passengerFlights,
             flightsCargo: cargoFlights,
-            flightsCombined: [...(passengerFlights||[]), ...(cargoFlights||[])]
+            flightsCombined: [...(passengerFlights || []), ...(cargoFlights || [])]
         };
         const sync = (window.syncItineraryFiltersToCharts !== false); // default true
         if (sync && isItineraryChartsPaneActive() && typeof window.renderItineraryCharts === 'function') {
             clearTimeout(window._itSyncTimer);
-            window._itSyncTimer = setTimeout(() => { try { window.renderItineraryCharts(); } catch(_) {} }, 80);
+            window._itSyncTimer = setTimeout(() => { try { window.renderItineraryCharts(); } catch (_) { } }, 80);
         }
-    } catch(_) {}
-    console.log(`[perf] filtros itinerario: ${(performance.now()-t0).toFixed(1)}ms · pax=${passengerFlights.length} carga=${cargoFlights.length}`);
+    } catch (_) { }
+    console.log(`[perf] filtros itinerario: ${(performance.now() - t0).toFixed(1)}ms · pax=${passengerFlights.length} carga=${cargoFlights.length}`);
     // Nota: el resumen diario por aerolínea fue removido del UI; no renderizamos conteos aquí.
     // Si se requiere reinstalar, reimplementar renderItinerarioSummary y descomentar la línea siguiente:
     // renderItinerarioSummary(filteredData);
 }
 
 function populateAirlineFilter(flights = []) {
-  const sel = document.getElementById('airline-filter');
-  if (!sel) return;
+    const sel = document.getElementById('airline-filter');
+    if (!sel) return;
     const data = Array.isArray(flights) && flights.length ? flights : allFlightsData;
     const names = data
-    .map(f => (f.aerolinea || f.aerolínea || f.airline || '').trim())
-    .filter(Boolean);
-  const unique = Array.from(new Set(names)).sort((a,b)=>a.localeCompare(b,'es',{sensitivity:'base'}));
-  sel.innerHTML = '<option value="all" selected>Todas las Aerolíneas</option>' +
-    unique.map(a => `<option value="${a}">${a}</option>`).join('');
+        .map(f => (f.aerolinea || f.aerolínea || f.airline || '').trim())
+        .filter(Boolean);
+    const unique = Array.from(new Set(names)).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    sel.innerHTML = '<option value="all" selected>Todas las Aerolíneas</option>' +
+        unique.map(a => `<option value="${a}">${a}</option>`).join('');
 }
 
 function populatePositionFilter(flights = []) {
-  const sel = document.getElementById('position-filter');
-  if (!sel) return;
+    const sel = document.getElementById('position-filter');
+    if (!sel) return;
     const data = Array.isArray(flights) && flights.length ? flights : allFlightsData;
-        const vals = data
+    const vals = data
         .map((f) => normalizePositionValue(f.posicion || f.posición || f.stand || ''))
         .filter(Boolean);
-  const unique = Array.from(new Set(vals)).sort();
-  sel.innerHTML = '<option value="all" selected>Todas las posiciones</option>' +
-    unique.map(v => `<option value="${v}">${v}</option>`).join('');
+    const unique = Array.from(new Set(vals)).sort();
+    sel.innerHTML = '<option value="all" selected>Todas las posiciones</option>' +
+        unique.map(v => `<option value="${v}">${v}</option>`).join('');
 }
 
 // Nuevos: llenar selects de Origen/Destino
@@ -3913,8 +3920,8 @@ function populateOriginFilter(flights = []) {
     const sel = document.getElementById('origin-filter');
     if (!sel) return;
     const data = Array.isArray(flights) && flights.length ? flights : allFlightsData;
-    const vals = data.map(f => (f.origen||'').toString().trim()).filter(Boolean);
-    const unique = Array.from(new Set(vals)).sort((a,b)=>a.localeCompare(b,'es',{sensitivity:'base'}));
+    const vals = data.map(f => (f.origen || '').toString().trim()).filter(Boolean);
+    const unique = Array.from(new Set(vals)).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
     sel.innerHTML = '<option value="all" selected>Todos los orígenes</option>' +
         unique.map(v => `<option value="${v}">${v}</option>`).join('');
 }
@@ -3923,8 +3930,8 @@ function populateDestinationFilter(flights = []) {
     const sel = document.getElementById('destination-filter');
     if (!sel) return;
     const data = Array.isArray(flights) && flights.length ? flights : allFlightsData;
-    const vals = data.map(f => (f.destino||'').toString().trim()).filter(Boolean);
-    const unique = Array.from(new Set(vals)).sort((a,b)=>a.localeCompare(b,'es',{sensitivity:'base'}));
+    const vals = data.map(f => (f.destino || '').toString().trim()).filter(Boolean);
+    const unique = Array.from(new Set(vals)).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
     sel.innerHTML = '<option value="all" selected>Todos los destinos</option>' +
         unique.map(v => `<option value="${v}">${v}</option>`).join('');
 }
@@ -3947,7 +3954,7 @@ function clearFilters() {
     }
     const toastEl = document.getElementById('action-toast');
     if (toastEl && typeof bootstrap !== 'undefined' && bootstrap.Toast) {
-        try { const t = new bootstrap.Toast(toastEl); t.show(); } catch(e) { /* ignore */ }
+        try { const t = new bootstrap.Toast(toastEl); t.show(); } catch (e) { /* ignore */ }
     }
 }
 
@@ -3958,7 +3965,7 @@ function viewFlightsForAirline(airline) {
         summarySelectedAirline = airline;
         summarySelectedPosition = null;
         summarySelectionLocked = true;
-    } catch(_) {}
+    } catch (_) { }
     const select = document.getElementById('airline-filter');
     if (!select) return;
     // ensure option exists
@@ -4025,8 +4032,8 @@ function displaySummaryTable(flights, options = {}) {
         entry.flights.push(flight);
         totals.flights += 1;
 
-    const hasArrival = !!String(flight?.vuelo_llegada || flight?.hora_llegada || '').trim();
-    const hasDeparture = !!String(flight?.vuelo_salida || flight?.hora_salida || '').trim();
+        const hasArrival = !!String(flight?.vuelo_llegada || flight?.hora_llegada || '').trim();
+        const hasDeparture = !!String(flight?.vuelo_salida || flight?.hora_salida || '').trim();
         if (hasArrival) {
             entry.arrivals += 1;
             totals.arrivals += 1;
@@ -4346,7 +4353,7 @@ function displaySummaryTable(flights, options = {}) {
     if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
         const tooltipEls = container.querySelectorAll('[data-bs-toggle="tooltip"]');
         tooltipEls.forEach((el) => {
-            try { new bootstrap.Tooltip(el); } catch (_) {}
+            try { new bootstrap.Tooltip(el); } catch (_) { }
         });
     }
 
@@ -4415,7 +4422,7 @@ function displaySummaryTable(flights, options = {}) {
             const delay = (idx * 0.06).toFixed(2);
             const positionDisplay = normalizePositionValue(flight?.posicion || flight?.posición || flight?.stand || '');
             const positionCell = positionDisplay ? escapeHtml(positionDisplay) : '-';
-            
+
             const aircraft = flight?.equipo || flight?.aeronave;
             const dateArr = formatDateDMY(flight?.fecha_llegada);
             const dateDep = formatDateDMY(flight?.fecha_salida);
@@ -5031,7 +5038,7 @@ function displayPassengerTable(flights) {
             ? `<img class="airline-logo ${sizeClass}" src="${escapeHTML(logoPath)}" alt="Logo ${escapeHTML(displayAirline)}" data-cands="${escapeHTML(dataCands)}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">`
             : '';
         const delay = (index * 0.05).toFixed(2);
-        
+
         const aircraft = flight?.equipo || flight?.aeronave;
         const dateArr = formatDateDMY(flight?.fecha_llegada);
         const dateDep = formatDateDMY(flight?.fecha_salida);
@@ -5106,7 +5113,7 @@ function displayPassengerTable(flights) {
         setupDynamicTableHeader(tableEl, 'passenger-itinerary');
     }
     wireItineraryExports();
-    console.log(`[perf] pasajeros tabla: ${(performance.now()-t0).toFixed(1)}ms, filas=${flightsList.length}`);
+    console.log(`[perf] pasajeros tabla: ${(performance.now() - t0).toFixed(1)}ms, filas=${flightsList.length}`);
 }
 function displayCargoTable(flights) {
     const t0 = performance.now();
@@ -5162,7 +5169,7 @@ function displayCargoTable(flights) {
             ? `<img class="airline-logo ${sizeClass}" src="${escapeHTML(logoPath)}" alt="Logo ${escapeHTML(displayAirline)}" data-cands="${escapeHTML(dataCands)}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">`
             : '';
         const delay = (index * 0.05).toFixed(2);
-        
+
         const aircraft = flight?.equipo || flight?.aeronave;
         const dateArr = formatDateDMY(flight?.fecha_llegada);
         const dateDep = formatDateDMY(flight?.fecha_salida);
@@ -5235,23 +5242,23 @@ function displayCargoTable(flights) {
         setupDynamicTableHeader(tableEl, 'cargo-itinerary');
     }
     wireItineraryExports();
-    console.log(`[perf] carga tabla: ${(performance.now()-t0).toFixed(1)}ms, filas=${flightsList.length}`);
+    console.log(`[perf] carga tabla: ${(performance.now() - t0).toFixed(1)}ms, filas=${flightsList.length}`);
 }
 
 // FIX: Loader global
-function showGlobalLoader(text='Cargando...') {
-  const el = document.getElementById('global-loader'); if (!el) return;
-  const t = document.getElementById('global-loader-text'); if (t) t.textContent = text;
-  el.dataset.startedAt = String(Date.now());
-  el.classList.remove('hidden');
+function showGlobalLoader(text = 'Cargando...') {
+    const el = document.getElementById('global-loader'); if (!el) return;
+    const t = document.getElementById('global-loader-text'); if (t) t.textContent = text;
+    el.dataset.startedAt = String(Date.now());
+    el.classList.remove('hidden');
 }
 function hideGlobalLoader() {
-  const el = document.getElementById('global-loader'); if (!el) return;
-  const minVisible = 300;
-  const started = parseInt(el.dataset.startedAt || '0', 10);
-  const elapsed = Date.now() - started;
-  const doHide = () => el.classList.add('hidden');
-  if (elapsed < minVisible) setTimeout(doHide, minVisible - elapsed); else doHide();
+    const el = document.getElementById('global-loader'); if (!el) return;
+    const minVisible = 300;
+    const started = parseInt(el.dataset.startedAt || '0', 10);
+    const elapsed = Date.now() - started;
+    const doHide = () => el.classList.add('hidden');
+    if (elapsed < minVisible) setTimeout(doHide, minVisible - elapsed); else doHide();
 }
 
 // [extraído] Itinerario charts moved to js/itinerario.js
@@ -5329,8 +5336,8 @@ function showSection(sectionKey, linkEl) {
         document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
         if (linkEl) linkEl.classList.add('active');
         // Actualizar hash
-        try { history.replaceState(null, '', `#${targetKey}`); } catch(_) {}
-        
+        try { history.replaceState(null, '', `#${targetKey}`); } catch (_) { }
+
         // Hook específico para Historia
         if (targetKey === 'historia') {
             console.log('Activando sección Historia...');
@@ -5380,33 +5387,33 @@ function handleNavigation(e) {
             const overlay = document.getElementById('sidebar-overlay');
             if (sidebar && overlay) { sidebar.classList.remove('visible'); overlay.classList.remove('active'); }
             const isMobile = window.innerWidth <= 991.98;
-            if (!isMobile) { document.body.classList.add('sidebar-collapsed'); try { localStorage.setItem('sidebarState','collapsed'); } catch(_) {} }
-        } catch(_) {}
+            if (!isMobile) { document.body.classList.add('sidebar-collapsed'); try { localStorage.setItem('sidebarState', 'collapsed'); } catch (_) { } }
+        } catch (_) { }
         // Hooks ligeros al entrar a ciertas vistas
-        if (section === 'operaciones-totales') { 
-            try { 
-                updateOpsSummary(); 
-                renderOperacionesTotales(); 
+        if (section === 'operaciones-totales') {
+            try {
+                updateOpsSummary();
+                renderOperacionesTotales();
                 // Detectar errores en gráficas después de un momento
                 setTimeout(detectChartErrors, 500);
-            } catch(_) {} 
+            } catch (_) { }
         }
-        else { try { stopOpsAnim(); } catch(_) {} }
-        if (section === 'itinerario') { 
-            try { 
+        else { try { stopOpsAnim(); } catch (_) { } }
+        if (section === 'itinerario') {
+            try {
                 if (typeof window.renderItineraryCharts === 'function') {
                     setTimeout(() => window.renderItineraryCharts(), 50);
                 }
                 setTimeout(detectChartErrors, 500);
-            } catch(_) {} 
+            } catch (_) { }
         }
-        if (section === 'demoras') { 
-            try { 
-                setTimeout(()=>{
+        if (section === 'demoras') {
+            try {
+                setTimeout(() => {
                     renderDemoras();
                     setTimeout(detectChartErrors, 500);
-                }, 50); 
-            } catch(_) {} 
+                }, 50);
+            } catch (_) { }
         }
         if (section === 'fauna') {
             try {
@@ -5418,31 +5425,31 @@ function handleNavigation(e) {
                         window.dispatchEvent(ev);
                     }
                 }, 60);
-            } catch(_) {}
+            } catch (_) { }
         }
         if (section === 'historia') {
-            try { loadHistory(); } catch(_) {}
+            try { loadHistory(); } catch (_) { }
         }
     }
 }
 
 // Logout centralizado
-function performLogout(){
+function performLogout() {
     hideGlobalLoader();
     resetLoginFormState();
     resetSectionPermissions();
-    try { destroyOpsCharts(); } catch(_){ }
+    try { destroyOpsCharts(); } catch (_) { }
     try {
         if (typeof window.destroyItinerarioCharts === 'function') {
             window.destroyItinerarioCharts();
         }
-    } catch (_) {}
-    try { window._itineraryChartsOk = false; } catch (_) {}
-    try { window._delaysPieDrawn = false; } catch (_) {}
-    checkForAppUpdates(true).catch(() => {});
+    } catch (_) { }
+    try { window._itineraryChartsOk = false; } catch (_) { }
+    try { window._delaysPieDrawn = false; } catch (_) { }
+    checkForAppUpdates(true).catch(() => { });
     startAppUpdatePolling();
-    try { sessionStorage.removeItem('currentUser'); } catch(_) {}
-    try { sessionStorage.removeItem('aifa.user'); } catch(_) {}
+    try { sessionStorage.removeItem('currentUser'); } catch (_) { }
+    try { sessionStorage.removeItem('aifa.user'); } catch (_) { }
     const mainApp = document.getElementById('main-app');
     const login = document.getElementById('login-screen');
     if (mainApp) mainApp.classList.add('hidden');
@@ -5454,24 +5461,24 @@ function performLogout(){
         const overlay = document.getElementById('sidebar-overlay');
         if (sidebar) sidebar.classList.remove('visible');
         if (overlay) overlay.classList.remove('active');
-    } catch(_) {}
+    } catch (_) { }
     try {
         document.body.classList.remove('sidebar-open');
         document.body.classList.remove('sidebar-collapsed');
-    } catch (_) {}
+    } catch (_) { }
     try {
         currentSectionKey = 'operaciones-totales';
         orientationHintMuteUntil = 0;
         refreshOrientationHint(currentSectionKey);
-    } catch (_) {}
+    } catch (_) { }
     try {
         updateParteOperacionesAvailabilityBanner(undefined, { skipBanner: true });
-    } catch (_) {}
+    } catch (_) { }
 }
 
 let gsoNavVisibilityController = null;
 
-function showGsoContent(){
+function showGsoContent() {
     try {
         const hero = document.querySelector('#fauna-section .gso-media-wrapper');
         const quick = document.querySelector('#fauna-section .gso-quick-links');
@@ -5490,7 +5497,7 @@ function showGsoContent(){
     }
 }
 
-function showGsoMenu(){
+function showGsoMenu() {
     try {
         const hero = document.querySelector('#fauna-section .gso-media-wrapper');
         const quick = document.querySelector('#fauna-section .gso-quick-links');
@@ -5522,12 +5529,12 @@ function showGsoMenu(){
     }
 }
 
-function initializeGsoQuickLinks(){
+function initializeGsoQuickLinks() {
     try {
         const quickButtons = document.querySelectorAll('.gso-nav-btn[data-nav-button]');
         if (!quickButtons.length) return;
 
-        const triggerNavById = (id)=>{
+        const triggerNavById = (id) => {
             if (!id) return;
             const navBtn = document.getElementById(id);
             if (!navBtn) return;
@@ -5539,7 +5546,7 @@ function initializeGsoQuickLinks(){
         };
 
         quickButtons.forEach(btn => {
-            btn.addEventListener('click', (ev)=>{
+            btn.addEventListener('click', (ev) => {
                 ev.preventDefault();
                 const navId = btn.getAttribute('data-nav-button');
                 showGsoContent();
@@ -5554,7 +5561,7 @@ function initializeGsoQuickLinks(){
         const gsoNavLinks = gsoTab ? Array.from(gsoTab.querySelectorAll('.nav-link')) : [];
         if (gsoNavLinks.length) {
             gsoNavVisibilityController = {
-                update(activeId){
+                update(activeId) {
                     const targetId = activeId || (gsoNavLinks.find(link => link.classList.contains('active'))?.id || '');
                     if (!targetId) {
                         gsoNavVisibilityController.reset();
@@ -5570,7 +5577,7 @@ function initializeGsoQuickLinks(){
                         }
                     });
                 },
-                reset(){
+                reset() {
                     gsoNavLinks.forEach(link => {
                         link.classList.remove('d-none');
                         link.removeAttribute('aria-hidden');
@@ -5580,7 +5587,7 @@ function initializeGsoQuickLinks(){
             gsoNavVisibilityController.reset();
         }
         if (gsoTab) {
-            gsoTab.addEventListener('shown.bs.tab', (event)=>{
+            gsoTab.addEventListener('shown.bs.tab', (event) => {
                 const activeId = event?.target?.id || '';
                 quickButtons.forEach(btn => {
                     btn.classList.toggle('active', btn.getAttribute('data-nav-button') === activeId);
@@ -5599,14 +5606,14 @@ function initializeGsoQuickLinks(){
                         if (typeof window.dispatchEvent === 'function') {
                             window.dispatchEvent(new Event('fauna:visible'));
                         }
-                    } catch (_) {}
+                    } catch (_) { }
                 }, 90);
             });
         }
 
         const backButtons = document.querySelectorAll('#gsoTabContent .gso-return-btn');
         backButtons.forEach(btn => {
-            btn.addEventListener('click', (ev)=>{
+            btn.addEventListener('click', (ev) => {
                 ev.preventDefault();
                 showGsoMenu();
                 const hero = document.querySelector('#fauna-section .gso-media-wrapper');
@@ -5635,19 +5642,19 @@ function updateDate() {
 }
 
 // Close sidebar when tapping overlay on mobile
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', function () {
     try {
         const overlay = document.getElementById('sidebar-overlay');
         const sidebar = document.getElementById('sidebar');
-        if (overlay && sidebar && !overlay._wired){
+        if (overlay && sidebar && !overlay._wired) {
             overlay._wired = 1;
-            overlay.addEventListener('click', function(){
+            overlay.addEventListener('click', function () {
                 sidebar.classList.remove('visible');
                 overlay.classList.remove('active');
                 document.body.classList.remove('sidebar-open');
             });
         }
-    } catch(_) {}
+    } catch (_) { }
 });
 
 // Resumen y gráficas de Operaciones Totales (restauración completa con filtros, animaciones y colores)
@@ -5750,88 +5757,88 @@ const opsPersistentTooltipPlugin = {
             const variationLabel = cfg.variationLabel || 'Δ%';
 
             ctx.save();
-                const sizeHint = String(cfg.sizeHint || 'default');
-                const tooltipStyles = {
-                    micro: {
-                        headerFont: '600 7px "Roboto", "Segoe UI", Arial, sans-serif',
-                        bodyFont: '500 7px "Roboto", "Segoe UI", Arial, sans-serif',
-                        headerLineHeight: 8,
-                        bodyLineHeight: 8,
-                        headerPadX: 4,
-                        headerPadY: 2,
-                        bodyPadX: 4,
-                        bodyPadY: 3,
-                        pointerWidth: 8,
-                        pointerHeight: 4,
-                        cornerRadius: 6,
-                        preferredOffset: 8,
-                        shadowBlur: 4,
-                        shadowOffsetY: 1
-                    },
-                    mini: {
-                        headerFont: '600 9px "Roboto", "Segoe UI", Arial, sans-serif',
-                        bodyFont: '500 9px "Roboto", "Segoe UI", Arial, sans-serif',
-                        headerLineHeight: 11,
-                        bodyLineHeight: 12,
-                        headerPadX: 8,
-                        headerPadY: 4,
-                        bodyPadX: 8,
-                        bodyPadY: 6,
-                        pointerWidth: 12,
-                        pointerHeight: 5,
-                        cornerRadius: 8,
-                        preferredOffset: 12,
-                        shadowBlur: 8,
-                        shadowOffsetY: 2
-                    },
-                    compact: {
-                        headerFont: '600 10px "Roboto", "Segoe UI", Arial, sans-serif',
-                        bodyFont: '500 10px "Roboto", "Segoe UI", Arial, sans-serif',
-                        headerLineHeight: 12,
-                        bodyLineHeight: 13,
-                        headerPadX: 10,
-                        headerPadY: 5,
-                        bodyPadX: 10,
-                        bodyPadY: 8,
-                        pointerWidth: 14,
-                        pointerHeight: 6,
-                        cornerRadius: 10,
-                        preferredOffset: 14,
-                        shadowBlur: 10,
-                        shadowOffsetY: 3
-                    },
-                    default: {
-                        headerFont: '600 11px "Roboto", "Segoe UI", Arial, sans-serif',
-                        bodyFont: '500 11px "Roboto", "Segoe UI", Arial, sans-serif',
-                        headerLineHeight: 14,
-                        bodyLineHeight: 15,
-                        headerPadX: 12,
-                        headerPadY: 7,
-                        bodyPadX: 14,
-                        bodyPadY: 10,
-                        pointerWidth: 16,
-                        pointerHeight: 8,
-                        cornerRadius: 12,
-                        preferredOffset: 18,
-                        shadowBlur: 12,
-                        shadowOffsetY: 4
-                    }
-                };
-                const style = tooltipStyles[sizeHint] || tooltipStyles.default;
-                const isMicro = sizeHint === 'micro';
-                const placedRects = [];
-                const headerFont = style.headerFont;
-                const bodyFont = style.bodyFont;
-                const headerLineHeight = style.headerLineHeight;
-                const bodyLineHeight = style.bodyLineHeight;
-                const headerPadX = style.headerPadX;
-                const headerPadY = style.headerPadY;
-                const bodyPadX = style.bodyPadX;
-                const bodyPadY = style.bodyPadY;
-                const pointerWidth = style.pointerWidth;
-                const pointerHeight = style.pointerHeight;
-                const cornerRadius = style.cornerRadius;
-                const preferredOffset = style.preferredOffset;
+            const sizeHint = String(cfg.sizeHint || 'default');
+            const tooltipStyles = {
+                micro: {
+                    headerFont: '600 7px "Roboto", "Segoe UI", Arial, sans-serif',
+                    bodyFont: '500 7px "Roboto", "Segoe UI", Arial, sans-serif',
+                    headerLineHeight: 8,
+                    bodyLineHeight: 8,
+                    headerPadX: 4,
+                    headerPadY: 2,
+                    bodyPadX: 4,
+                    bodyPadY: 3,
+                    pointerWidth: 8,
+                    pointerHeight: 4,
+                    cornerRadius: 6,
+                    preferredOffset: 8,
+                    shadowBlur: 4,
+                    shadowOffsetY: 1
+                },
+                mini: {
+                    headerFont: '600 9px "Roboto", "Segoe UI", Arial, sans-serif',
+                    bodyFont: '500 9px "Roboto", "Segoe UI", Arial, sans-serif',
+                    headerLineHeight: 11,
+                    bodyLineHeight: 12,
+                    headerPadX: 8,
+                    headerPadY: 4,
+                    bodyPadX: 8,
+                    bodyPadY: 6,
+                    pointerWidth: 12,
+                    pointerHeight: 5,
+                    cornerRadius: 8,
+                    preferredOffset: 12,
+                    shadowBlur: 8,
+                    shadowOffsetY: 2
+                },
+                compact: {
+                    headerFont: '600 10px "Roboto", "Segoe UI", Arial, sans-serif',
+                    bodyFont: '500 10px "Roboto", "Segoe UI", Arial, sans-serif',
+                    headerLineHeight: 12,
+                    bodyLineHeight: 13,
+                    headerPadX: 10,
+                    headerPadY: 5,
+                    bodyPadX: 10,
+                    bodyPadY: 8,
+                    pointerWidth: 14,
+                    pointerHeight: 6,
+                    cornerRadius: 10,
+                    preferredOffset: 14,
+                    shadowBlur: 10,
+                    shadowOffsetY: 3
+                },
+                default: {
+                    headerFont: '600 11px "Roboto", "Segoe UI", Arial, sans-serif',
+                    bodyFont: '500 11px "Roboto", "Segoe UI", Arial, sans-serif',
+                    headerLineHeight: 14,
+                    bodyLineHeight: 15,
+                    headerPadX: 12,
+                    headerPadY: 7,
+                    bodyPadX: 14,
+                    bodyPadY: 10,
+                    pointerWidth: 16,
+                    pointerHeight: 8,
+                    cornerRadius: 12,
+                    preferredOffset: 18,
+                    shadowBlur: 12,
+                    shadowOffsetY: 4
+                }
+            };
+            const style = tooltipStyles[sizeHint] || tooltipStyles.default;
+            const isMicro = sizeHint === 'micro';
+            const placedRects = [];
+            const headerFont = style.headerFont;
+            const bodyFont = style.bodyFont;
+            const headerLineHeight = style.headerLineHeight;
+            const bodyLineHeight = style.bodyLineHeight;
+            const headerPadX = style.headerPadX;
+            const headerPadY = style.headerPadY;
+            const bodyPadX = style.bodyPadX;
+            const bodyPadY = style.bodyPadY;
+            const pointerWidth = style.pointerWidth;
+            const pointerHeight = style.pointerHeight;
+            const cornerRadius = style.cornerRadius;
+            const preferredOffset = style.preferredOffset;
             const isDark = document.body.classList.contains('dark-mode');
             const defaultCardBg = isDark ? 'rgba(17,27,39,0.94)' : '#ffffff';
             const bodyTextDefault = isDark ? '#e2e8f0' : '#1f2937';
@@ -6156,9 +6163,9 @@ function adjustOpsChartViewport(chart) {
         const containerWidth = container.clientWidth || viewport || 360;
         const isMobile = viewport <= 640;
         const isTablet = viewport > 640 && viewport <= 992;
-    const unit = isMobile ? 68 : (isTablet ? 58 : 50);
-    const approxWidth = labelCount > 1 ? Math.min(1400, Math.max(containerWidth, labelCount * unit)) : containerWidth;
-    const shouldScroll = approxWidth > containerWidth * 1.05 && labelCount > 9;
+        const unit = isMobile ? 68 : (isTablet ? 58 : 50);
+        const approxWidth = labelCount > 1 ? Math.min(1400, Math.max(containerWidth, labelCount * unit)) : containerWidth;
+        const shouldScroll = approxWidth > containerWidth * 1.05 && labelCount > 9;
         const prevMode = container.getAttribute('data-scroll-mode') || 'off';
         const prevWidth = parseInt(container.getAttribute('data-scroll-width') || '0', 10);
 
@@ -6171,12 +6178,12 @@ function adjustOpsChartViewport(chart) {
             container.style.overflowX = 'auto';
             canvas.style.maxWidth = 'none';
             requestAnimationFrame(() => {
-                try { chart.resize(); } catch (_) {}
+                try { chart.resize(); } catch (_) { }
             });
         } else if (prevMode !== 'off') {
             resetOpsChartViewport(chart);
             requestAnimationFrame(() => {
-                try { chart.resize(); } catch (_) {}
+                try { chart.resize(); } catch (_) { }
             });
         }
     } catch (err) {
@@ -6194,43 +6201,43 @@ function scheduleOpsViewportUpdate() {
 
 window.addEventListener('resize', () => scheduleOpsViewportUpdate(), { passive: true });
 
-function drawLineChart(canvasId, labels, values, opts){
+function drawLineChart(canvasId, labels, values, opts) {
     const c = document.getElementById(canvasId); if (!c) return;
-    const dpr=window.devicePixelRatio||1; const w=c.clientWidth||640, h=c.clientHeight||380;
-    c.width=Math.max(1,Math.floor(w*dpr)); c.height=Math.max(1,Math.floor(h*dpr));
-    const g=c.getContext('2d'); if (!g) return; g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,w,h);
+    const dpr = window.devicePixelRatio || 1; const w = c.clientWidth || 640, h = c.clientHeight || 380;
+    c.width = Math.max(1, Math.floor(w * dpr)); c.height = Math.max(1, Math.floor(h * dpr));
+    const g = c.getContext('2d'); if (!g) return; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
     const title = opts?.title || ''; const color = opts?.color || '#1e88e5'; const fillColor = opts?.fillColor || 'rgba(30,136,229,0.15)'; const xTitle = opts?.xTitle || ''; const yTitle = opts?.yTitle || '';
     const margin = { top: 48, right: 16, bottom: 32, left: 44 };
-    const innerW = Math.max(1,w-margin.left-margin.right), innerH = Math.max(1,h-margin.top-margin.bottom);
-    const x0 = margin.left, y0=h-margin.bottom;
+    const innerW = Math.max(1, w - margin.left - margin.right), innerH = Math.max(1, h - margin.top - margin.bottom);
+    const x0 = margin.left, y0 = h - margin.bottom;
     // Título
-    if (title){ g.fillStyle='#495057'; g.font='600 14px Roboto, Arial'; g.textAlign='left'; g.textBaseline='top'; g.fillText(title, margin.left, 10); }
+    if (title) { g.fillStyle = '#495057'; g.font = '600 14px Roboto, Arial'; g.textAlign = 'left'; g.textBaseline = 'top'; g.fillText(title, margin.left, 10); }
     // Escalas
-    const maxV = Math.max(0, ...values); const nice = (function(m){ if(m<=5) return 5; if(m<=10) return 10; if(m<=20) return 20; if(m<=50) return 50; if(m<=100) return 100; const p=Math.pow(10, Math.floor(Math.log10(m))); return Math.ceil(m/p)*p; })(maxV);
+    const maxV = Math.max(0, ...values); const nice = (function (m) { if (m <= 5) return 5; if (m <= 10) return 10; if (m <= 20) return 20; if (m <= 50) return 50; if (m <= 100) return 100; const p = Math.pow(10, Math.floor(Math.log10(m))); return Math.ceil(m / p) * p; })(maxV);
     // Ejes y grid
-    g.strokeStyle='rgba(0,0,0,0.2)'; g.lineWidth=1; g.beginPath(); g.moveTo(x0,y0); g.lineTo(x0+innerW,y0); g.moveTo(x0,y0); g.lineTo(x0,y0-innerH); g.stroke();
+    g.strokeStyle = 'rgba(0,0,0,0.2)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x0 + innerW, y0); g.moveTo(x0, y0); g.lineTo(x0, y0 - innerH); g.stroke();
     // Grid Y
-    g.font='10px Roboto, Arial'; g.textAlign='right'; g.textBaseline='middle'; g.fillStyle='#6c757d';
-    const tickCount=4; const step=nice/tickCount;
-    for(let i=0;i<=tickCount;i++){ const v=i*step; const y=y0-(v/nice)*innerH; g.strokeStyle='rgba(0,0,0,0.06)'; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+innerW,y); g.stroke(); g.fillText(String(Math.round(v)), x0-6, y); }
+    g.font = '10px Roboto, Arial'; g.textAlign = 'right'; g.textBaseline = 'middle'; g.fillStyle = '#6c757d';
+    const tickCount = 4; const step = nice / tickCount;
+    for (let i = 0; i <= tickCount; i++) { const v = i * step; const y = y0 - (v / nice) * innerH; g.strokeStyle = 'rgba(0,0,0,0.06)'; g.beginPath(); g.moveTo(x0, y); g.lineTo(x0 + innerW, y); g.stroke(); g.fillText(String(Math.round(v)), x0 - 6, y); }
     // Eje X labels
-    g.textAlign='center'; g.textBaseline='top';
-    const n=labels.length; const stepX = innerW/(Math.max(1,n-1));
-    const labelEvery = n>12 ? Math.ceil(n/12) : 1;
-    for(let i=0;i<n;i+=labelEvery){ const x = x0 + i*stepX; g.fillStyle='#6c757d'; g.fillText(labels[i], x, y0+6); }
+    g.textAlign = 'center'; g.textBaseline = 'top';
+    const n = labels.length; const stepX = innerW / (Math.max(1, n - 1));
+    const labelEvery = n > 12 ? Math.ceil(n / 12) : 1;
+    for (let i = 0; i < n; i += labelEvery) { const x = x0 + i * stepX; g.fillStyle = '#6c757d'; g.fillText(labels[i], x, y0 + 6); }
     // Serie
-    const points = values.map((v,i)=>({ x: x0 + i*stepX, y: y0 - ( (v/nice)*innerH ) }));
+    const points = values.map((v, i) => ({ x: x0 + i * stepX, y: y0 - ((v / nice) * innerH) }));
     // Área
-    g.beginPath(); g.moveTo(points[0]?.x||x0, y0); points.forEach(p=> g.lineTo(p.x,p.y)); g.lineTo(points[points.length-1]?.x||x0, y0); g.closePath(); g.fillStyle=fillColor; g.fill();
+    g.beginPath(); g.moveTo(points[0]?.x || x0, y0); points.forEach(p => g.lineTo(p.x, p.y)); g.lineTo(points[points.length - 1]?.x || x0, y0); g.closePath(); g.fillStyle = fillColor; g.fill();
     // Línea
-    g.beginPath(); points.forEach((p,i)=>{ if(i===0) g.moveTo(p.x,p.y); else g.lineTo(p.x,p.y); }); g.strokeStyle=color; g.lineWidth=2; g.stroke();
+    g.beginPath(); points.forEach((p, i) => { if (i === 0) g.moveTo(p.x, p.y); else g.lineTo(p.x, p.y); }); g.strokeStyle = color; g.lineWidth = 2; g.stroke();
     // Puntos
-    g.fillStyle=color; points.forEach(p=>{ g.beginPath(); g.arc(p.x,p.y,2.5,0,Math.PI*2); g.fill(); });
+    g.fillStyle = color; points.forEach(p => { g.beginPath(); g.arc(p.x, p.y, 2.5, 0, Math.PI * 2); g.fill(); });
     // Títulos de ejes
-    if (yTitle){ g.save(); g.translate(12, margin.top + innerH/2); g.rotate(-Math.PI/2); g.textAlign='center'; g.textBaseline='middle'; g.fillStyle='#495057'; g.font='600 12px Roboto, Arial'; g.fillText(yTitle, 0, 0); g.restore(); }
-    if (xTitle){ g.fillStyle='#495057'; g.font='600 12px Roboto, Arial'; g.textAlign='center'; g.textBaseline='top'; g.fillText(xTitle, x0 + innerW/2, h-16); }
+    if (yTitle) { g.save(); g.translate(12, margin.top + innerH / 2); g.rotate(-Math.PI / 2); g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#495057'; g.font = '600 12px Roboto, Arial'; g.fillText(yTitle, 0, 0); g.restore(); }
+    if (xTitle) { g.fillStyle = '#495057'; g.font = '600 12px Roboto, Arial'; g.textAlign = 'center'; g.textBaseline = 'top'; g.fillText(xTitle, x0 + innerW / 2, h - 16); }
 }
-const OPS_ALL_MONTH_CODES = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+const OPS_ALL_MONTH_CODES = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
 
 function computeStaticMonthlyCutoff() {
     try {
@@ -6324,7 +6331,7 @@ function syncOpsYearSelection(availableYears) {
         .sort((a, b) => Number(a) - Number(b));
     const normalizedSet = new Set(normalized);
     let selection = opsUIState?.years instanceof Set ? new Set(Array.from(opsUIState.years).map((year) => String(year))) : new Set();
-    
+
     // If we have significantly more years now than selected (e.g. data loaded), and the selection was small (likely default), expand to all.
     if (normalized.length > selection.size && selection.size <= 1) {
         selection = new Set(normalized);
@@ -6338,7 +6345,7 @@ function syncOpsYearSelection(availableYears) {
         }
         selection = next;
     }
-    
+
     opsUIState.years = selection;
     refreshOpsYearFilters(normalized);
 }
@@ -6994,118 +7001,118 @@ function destroyOpsCharts() {
 function resetAllCharts() {
     const btn = document.getElementById('charts-reset-btn');
     let originalHTML = '';
-    
+
     try {
         console.log('🔄 REINICIALIZACIÓN COMPLETA DE GRÁFICAS...');
-        
+
         // Mostrar indicador de carga
         if (btn) {
             originalHTML = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i><span class="d-none d-md-inline">Reiniciando...</span>';
             btn.disabled = true;
         }
-        
+
         // FASE 1: DESTRUCCIÓN COMPLETA
         console.log('🗑️ FASE 1: Destrucción completa de gráficas...');
-        
+
         // Destruir gráficas de Operaciones Totales
         destroyOpsCharts();
-        
+
         // Destruir gráficas de Itinerario
         if (window.destroyItinerarioCharts && typeof window.destroyItinerarioCharts === 'function') {
             window.destroyItinerarioCharts();
         }
-        
+
         // Destruir todas las instancias de Chart.js globalmente
         if (window.Chart && Chart.instances) {
             Object.values(Chart.instances).forEach(chart => {
                 if (chart && typeof chart.destroy === 'function') {
-                    try { chart.destroy(); } catch(_) {}
+                    try { chart.destroy(); } catch (_) { }
                 }
             });
         }
-        
+
         // Limpiar completamente window.opsCharts
         if (window.opsCharts) {
             Object.keys(window.opsCharts).forEach(key => {
-                try { 
+                try {
                     if (window.opsCharts[key] && typeof window.opsCharts[key].destroy === 'function') {
-                        window.opsCharts[key].destroy(); 
+                        window.opsCharts[key].destroy();
                     }
                     delete window.opsCharts[key];
-                } catch(_) {}
+                } catch (_) { }
             });
         }
-        
+
         // Limpiar animaciones pendientes
         stopOpsAnim();
-        
+
         // FASE 2: LIMPIEZA DE CANVAS
         console.log('🧹 FASE 2: Limpieza de canvas...');
         const canvasIds = [
             'commercial-ops-chart', 'commercial-pax-chart',
-            'cargo-ops-chart', 'cargo-tons-chart', 
+            'cargo-ops-chart', 'cargo-tons-chart',
             'general-ops-chart', 'general-pax-chart',
-            'paxArrivalsChart', 'paxDeparturesChart', 
+            'paxArrivalsChart', 'paxDeparturesChart',
             'cargoArrivalsChart', 'cargoDeparturesChart',
             'delaysPieChart'
         ];
-        
+
         canvasIds.forEach(id => {
             const canvas = document.getElementById(id);
             if (canvas) {
                 // Limpiar completamente el canvas
                 const ctx = canvas.getContext('2d');
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
+
                 // Resetear dimensiones del canvas
                 const rect = canvas.getBoundingClientRect();
                 canvas.width = rect.width;
                 canvas.height = rect.height;
-                
+
                 // Remover cualquier referencia de Chart.js
                 if (canvas.chart) {
                     delete canvas.chart;
                 }
             }
         });
-        
+
         // FASE 3: RECREACIÓN COMPLETA
         console.log('🏗️ FASE 3: Esperando para recreación completa...');
-        
+
         setTimeout(() => {
             try {
                 const activeSection = document.querySelector('.content-section.active');
                 console.log('Sección activa detectada:', activeSection?.id);
-                
+
                 if (!activeSection) {
                     throw new Error('No se detectó sección activa');
                 }
-                
+
                 const sectionId = getActiveSectionKey() || activeSection.id.replace('-section', '');
                 console.log(`🔨 Recreando gráficas para sección: ${sectionId}`);
-                
+
                 // Recrear según la sección activa
                 if (sectionId === 'operaciones-totales') {
                     console.log('📊 Recreando Operaciones Totales...');
-                    
+
                     // Forzar re-carga completa de datos y gráficas
                     try {
                         updateOpsSummary();
                     } catch (e) {
                         console.warn('Error en updateOpsSummary:', e);
                     }
-                    
+
                     try {
                         renderOperacionesTotales();
                     } catch (e) {
                         console.error('Error en renderOperacionesTotales:', e);
                         throw e;
                     }
-                    
+
                 } else if (sectionId === 'itinerario') {
                     console.log('📈 Recreando Itinerario...');
-                    
+
                     if (window.renderItineraryCharts && typeof window.renderItineraryCharts === 'function') {
                         try {
                             // Forzar re-carga de datos del itinerario
@@ -7117,10 +7124,10 @@ function resetAllCharts() {
                     } else {
                         throw new Error('Función renderItineraryCharts no disponible');
                     }
-                    
+
                 } else if (sectionId === 'demoras') {
                     console.log('🕒 Recreando Demoras...');
-                    
+
                     if (window.renderDemoras && typeof window.renderDemoras === 'function') {
                         try {
                             window.renderDemoras();
@@ -7134,14 +7141,14 @@ function resetAllCharts() {
                 } else {
                     console.log(`ℹ️ Sección ${sectionId} no requiere gráficas especiales`);
                 }
-                
+
                 // FASE 4: VERIFICACIÓN FINAL
                 setTimeout(() => {
                     console.log('🔍 FASE 4: Verificación final...');
-                    
+
                     // Verificar que las gráficas se crearon correctamente
                     const success = verifyChartsCreated(sectionId);
-                    
+
                     if (success) {
                         console.log('✅ REINICIALIZACIÓN COMPLETA EXITOSA');
                         showNotification('Gráficas completamente reinicializadas', 'success');
@@ -7149,10 +7156,10 @@ function resetAllCharts() {
                         console.warn('⚠️ Algunas gráficas no se crearon correctamente');
                         showNotification('Reinicialización parcial - algunas gráficas pueden tener problemas', 'warning');
                     }
-                    
+
                     detectChartErrors();
                 }, 800);
-                
+
             } catch (error) {
                 console.error('❌ ERROR EN RECREACIÓN:', error);
                 showNotification('Error al recrear gráficas: ' + error.message, 'error');
@@ -7166,11 +7173,11 @@ function resetAllCharts() {
                 }, 1000);
             }
         }, 500); // Aumentado el tiempo de espera
-        
+
     } catch (error) {
         console.error('❌ ERROR CRÍTICO EN REINICIALIZACIÓN:', error);
         showNotification('Error crítico: ' + error.message, 'error');
-        
+
         // Restaurar botón en caso de error inmediato
         if (btn && originalHTML) {
             btn.innerHTML = originalHTML;
@@ -7186,16 +7193,16 @@ function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `alert alert-${alertType} alert-dismissible fade show position-fixed`;
     notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 350px;';
-    
+
     const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle';
-    
+
     notification.innerHTML = `
         <i class="fas fa-${icon} me-2"></i>${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
-    
+
     document.body.appendChild(notification);
-    
+
     // Auto-remove after 5 seconds
     setTimeout(() => {
         if (notification && notification.parentNode) {
@@ -7208,27 +7215,27 @@ function showNotification(message, type = 'info') {
 function detectChartErrors() {
     const btn = document.getElementById('charts-reset-btn');
     if (!btn) return;
-    
+
     try {
         const activeSection = document.querySelector('.content-section.active');
         if (!activeSection) {
             btn.style.display = 'none';
             return;
         }
-        
+
         const sectionId = getActiveSectionKey() || activeSection.id.replace('-section', '');
         let hasErrors = false;
         let errorInfo = '';
-        
+
         console.log(`🔍 Detectando errores en sección: ${sectionId}`);
-        
+
         if (sectionId === 'operaciones-totales') {
             const expectedCanvases = [
                 'commercial-ops-chart', 'commercial-pax-chart',
                 'cargo-ops-chart', 'cargo-tons-chart',
                 'general-ops-chart', 'general-pax-chart'
             ];
-            
+
             const missingCharts = [];
             expectedCanvases.forEach(canvasId => {
                 const canvas = document.getElementById(canvasId);
@@ -7240,17 +7247,17 @@ function detectChartErrors() {
                     hasErrors = true;
                 }
             });
-            
+
             if (missingCharts.length > 0) {
                 errorInfo = `Operaciones: ${missingCharts.length} gráficas con problemas`;
             }
-            
+
         } else if (sectionId === 'itinerario') {
             const expectedCanvases = [
-                'paxArrivalsChart', 'paxDeparturesChart', 
+                'paxArrivalsChart', 'paxDeparturesChart',
                 'cargoArrivalsChart', 'cargoDeparturesChart'
             ];
-            
+
             const missingCharts = [];
             expectedCanvases.forEach(canvasId => {
                 const canvas = document.getElementById(canvasId);
@@ -7268,7 +7275,7 @@ function detectChartErrors() {
             if (missingCharts.length > 0) {
                 errorInfo = `Itinerario: ${missingCharts.length} gráficas con problemas`;
             }
-            
+
         } else if (sectionId === 'demoras') {
             const canvas = document.getElementById('delaysPieChart');
             if (!canvas) {
@@ -7279,7 +7286,7 @@ function detectChartErrors() {
                 errorInfo = 'Demoras: Gráfica no dibujada';
             }
         }
-        
+
         // Mostrar/ocultar botón según el estado
         if (hasErrors) {
             btn.style.display = 'inline-block';
@@ -7289,7 +7296,7 @@ function detectChartErrors() {
             btn.style.display = 'none';
             console.log(`✅ Todas las gráficas de ${sectionId} están funcionando`);
         }
-        
+
     } catch (error) {
         console.error('Error en detectChartErrors:', error);
         // En caso de error, mostrar el botón por seguridad
@@ -7343,935 +7350,935 @@ function renderOperacionesTotales() {
         });
 
         // Helpers de colores con gradientes por canvas
-            function makeGradient(canvas, c1, c2){
+        function makeGradient(canvas, c1, c2) {
             const ctx = canvas.getContext('2d');
             const g = ctx.createLinearGradient(0, 0, 0, canvas.height || 300);
             g.addColorStop(0, c1);
             g.addColorStop(1, c2);
             return g;
         }
-            function shouldEnableTraveler(opts){
-                return opts !== false;
+        function shouldEnableTraveler(opts) {
+            return opts !== false;
+        }
+        function normalizeTravelerOpts(raw) {
+            const base = { speed: 24000, scale: 1, type: 'plane', alpha: 0.9 };
+            if (!raw || typeof raw !== 'object') return { ...base };
+            const parsed = { ...base };
+            if (Number.isFinite(raw.speed) && raw.speed > 500) parsed.speed = raw.speed;
+            if (Number.isFinite(raw.scale) && raw.scale > 0) parsed.scale = Math.max(0.4, Math.min(raw.scale, 3));
+            if (typeof raw.type === 'string') parsed.type = raw.type;
+            if (Number.isFinite(raw.alpha) && raw.alpha >= 0 && raw.alpha <= 1) parsed.alpha = raw.alpha;
+            return parsed;
+        }
+        function getTravelerPointXY(point) {
+            if (!point) return null;
+            if (typeof point.x === 'number' && typeof point.y === 'number') {
+                return { x: point.x, y: point.y };
             }
-            function normalizeTravelerOpts(raw){
-                const base = { speed: 24000, scale: 1, type: 'plane', alpha: 0.9 };
-                if (!raw || typeof raw !== 'object') return { ...base };
-                const parsed = { ...base };
-                if (Number.isFinite(raw.speed) && raw.speed > 500) parsed.speed = raw.speed;
-                if (Number.isFinite(raw.scale) && raw.scale > 0) parsed.scale = Math.max(0.4, Math.min(raw.scale, 3));
-                if (typeof raw.type === 'string') parsed.type = raw.type;
-                if (Number.isFinite(raw.alpha) && raw.alpha >= 0 && raw.alpha <= 1) parsed.alpha = raw.alpha;
-                return parsed;
+            if (typeof point.tooltipPosition === 'function') {
+                return point.tooltipPosition();
             }
-            function getTravelerPointXY(point){
-                if (!point) return null;
-                if (typeof point.x === 'number' && typeof point.y === 'number') {
-                    return { x: point.x, y: point.y };
-                }
-                if (typeof point.tooltipPosition === 'function') {
-                    return point.tooltipPosition();
-                }
-                const model = point._model || point.$context;
-                if (model && typeof model.x === 'number' && typeof model.y === 'number') {
-                    return { x: model.x, y: model.y };
-                }
+            const model = point._model || point.$context;
+            if (model && typeof model.x === 'number' && typeof model.y === 'number') {
+                return { x: model.x, y: model.y };
+            }
+            return null;
+        }
+        function drawTravelerIcon(ctx, type) {
+            ctx.font = '14px system-ui, Segoe UI, Roboto';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            if (type === 'person') {
+                const isDark = document.body.classList.contains('dark-mode');
+                const tone = isDark ? '#e9ecef' : '#1f2937';
+                ctx.strokeStyle = tone;
+                ctx.fillStyle = tone;
+                ctx.lineWidth = 2.0;
+                ctx.beginPath(); ctx.arc(0, -5, 2.6, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(0, 5); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -0.5); ctx.lineTo(5, 2.5); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -0.5); ctx.lineTo(-3.5, 0.8); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, 5); ctx.lineTo(5.5, 9); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, 5); ctx.lineTo(-2.8, 10.2); ctx.stroke();
+            } else {
+                const emoji = type === 'suitcase' ? '🧳' : type === 'box' ? '📦' : '✈';
+                ctx.fillText(emoji, 0, 0);
+            }
+        }
+        function resizeTravelerOverlay(chart, state) {
+            if (!state || !state.overlay) return;
+            const canvas = chart.canvas;
+            const width = chart.width || (canvas && canvas.clientWidth) || 0;
+            const height = chart.height || (canvas && canvas.clientHeight) || 0;
+            if (!width || !height) return;
+            const ratio = chart.currentDevicePixelRatio || window.devicePixelRatio || 1;
+            if (state.width === width && state.height === height && state.ratio === ratio) return;
+            state.width = width;
+            state.height = height;
+            state.ratio = ratio;
+            const overlay = state.overlay;
+            overlay.width = Math.max(1, Math.round(width * ratio));
+            overlay.height = Math.max(1, Math.round(height * ratio));
+            overlay.style.width = `${width}px`;
+            overlay.style.height = `${height}px`;
+            const ctx = overlay.getContext('2d');
+            if (ctx && ctx.resetTransform) ctx.resetTransform();
+            ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+            state.ctx = ctx;
+        }
+        function destroyTravelerState(chart) {
+            const state = chart.$traveler;
+            if (!state) return;
+            if (state.stop) state.stop();
+            if (state.overlay && state.overlay.parentNode) {
+                state.overlay.parentNode.removeChild(state.overlay);
+            }
+            if (state.autoPosition && state.parent) {
+                state.parent.style.position = state.parentOriginalPosition;
+            }
+            delete chart.$traveler;
+        }
+        function ensureTravelerState(chart, opts) {
+            if (!shouldEnableTraveler(opts)) {
+                destroyTravelerState(chart);
                 return null;
             }
-            function drawTravelerIcon(ctx, type){
-                ctx.font = '14px system-ui, Segoe UI, Roboto';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                if (type === 'person') {
-                    const isDark = document.body.classList.contains('dark-mode');
-                    const tone = isDark ? '#e9ecef' : '#1f2937';
-                    ctx.strokeStyle = tone;
-                    ctx.fillStyle = tone;
-                    ctx.lineWidth = 2.0;
-                    ctx.beginPath(); ctx.arc(0, -5, 2.6, 0, Math.PI * 2); ctx.fill();
-                    ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(0, 5); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(0, -0.5); ctx.lineTo(5, 2.5); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(0, -0.5); ctx.lineTo(-3.5, 0.8); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(0, 5); ctx.lineTo(5.5, 9); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(0, 5); ctx.lineTo(-2.8, 10.2); ctx.stroke();
-                } else {
-                    const emoji = type === 'suitcase' ? '🧳' : type === 'box' ? '📦' : '✈';
-                    ctx.fillText(emoji, 0, 0);
+            let state = chart.$traveler;
+            const canvas = chart.canvas;
+            if (!canvas || !canvas.parentNode) return null;
+            const parent = canvas.parentNode;
+            if (!state) {
+                const overlay = document.createElement('canvas');
+                overlay.className = 'traveler-overlay';
+                overlay.style.position = 'absolute';
+                overlay.style.left = '0';
+                overlay.style.top = '0';
+                overlay.style.pointerEvents = 'none';
+                overlay.style.zIndex = '3';
+                parent.appendChild(overlay);
+                let autoPosition = false;
+                let parentOriginalPosition = parent.style.position || '';
+                if (window.getComputedStyle(parent).position === 'static') {
+                    parent.style.position = 'relative';
+                    autoPosition = true;
                 }
+                state = chart.$traveler = {
+                    overlay,
+                    parent,
+                    ctx: overlay.getContext('2d'),
+                    running: false,
+                    raf: 0,
+                    startTs: 0,
+                    width: 0,
+                    height: 0,
+                    ratio: 1,
+                    opts: normalizeTravelerOpts(opts),
+                    autoPosition,
+                    parentOriginalPosition,
+                    loop: null,
+                    start: null,
+                    stop: null
+                };
+                state.loop = function loop(ts) {
+                    if (!state.running) return;
+                    if (!chart.canvas || !chart.canvas.isConnected) {
+                        state.stop();
+                        return;
+                    }
+                    resizeTravelerOverlay(chart, state);
+                    renderTravelerFrame(chart, state, ts);
+                    state.raf = requestAnimationFrame(loop);
+                };
+                state.start = function () {
+                    if (state.running) return;
+                    state.running = true;
+                    state.startTs = performance.now();
+                    cancelAnimationFrame(state.raf);
+                    state.raf = requestAnimationFrame(state.loop);
+                };
+                state.stop = function () {
+                    if (!state.running && !state.raf) return;
+                    state.running = false;
+                    if (state.raf) cancelAnimationFrame(state.raf);
+                    state.raf = 0;
+                    if (state.ctx) {
+                        state.ctx.clearRect(0, 0, state.width || 0, state.height || 0);
+                    }
+                };
+            } else {
+                state.opts = normalizeTravelerOpts(opts);
             }
-            function resizeTravelerOverlay(chart, state){
-                if (!state || !state.overlay) return;
-                const canvas = chart.canvas;
-                const width = chart.width || (canvas && canvas.clientWidth) || 0;
-                const height = chart.height || (canvas && canvas.clientHeight) || 0;
-                if (!width || !height) return;
-                const ratio = chart.currentDevicePixelRatio || window.devicePixelRatio || 1;
-                if (state.width === width && state.height === height && state.ratio === ratio) return;
-                state.width = width;
-                state.height = height;
-                state.ratio = ratio;
-                const overlay = state.overlay;
-                overlay.width = Math.max(1, Math.round(width * ratio));
-                overlay.height = Math.max(1, Math.round(height * ratio));
-                overlay.style.width = `${width}px`;
-                overlay.style.height = `${height}px`;
-                const ctx = overlay.getContext('2d');
-                if (ctx && ctx.resetTransform) ctx.resetTransform();
-                ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-                state.ctx = ctx;
-            }
-            function destroyTravelerState(chart){
+            resizeTravelerOverlay(chart, state);
+            return state;
+        }
+        function renderTravelerFrame(chart, state, ts) {
+            const ctx = state.ctx;
+            if (!ctx) return;
+            const meta = chart.getDatasetMeta ? chart.getDatasetMeta(0) : null;
+            const points = meta && meta.data ? meta.data : null;
+            const area = chart.chartArea;
+            ctx.clearRect(0, 0, state.width || chart.width || 0, state.height || chart.height || 0);
+            if (!points || points.length < 2 || !area) return;
+            const opts = state.opts || {};
+            const speed = Math.max(600, opts.speed || 24000);
+            const duration = speed;
+            if (!state.startTs) state.startTs = ts;
+            const cycle = ((ts - state.startTs) % duration) / duration;
+            const total = points.length;
+            const fracIndex = cycle * (total - 1);
+            const idx0 = Math.floor(fracIndex);
+            const idx1 = Math.min(total - 1, idx0 + 1);
+            const p0 = getTravelerPointXY(points[idx0]);
+            const p1 = getTravelerPointXY(points[idx1]);
+            if (!p0 || !p1) return;
+            const localT = fracIndex - idx0;
+            const x = p0.x + (p1.x - p0.x) * localT;
+            const y = p0.y + (p1.y - p0.y) * localT;
+            ctx.save();
+            ctx.globalAlpha = Number.isFinite(opts.alpha) ? opts.alpha : 0.9;
+            ctx.translate(x, y);
+            const scale = opts.scale || 1;
+            ctx.scale(scale, scale);
+            drawTravelerIcon(ctx, opts.type || 'plane');
+            ctx.restore();
+        }
+        const TravelerPlugin = {
+            id: 'travelerPlugin',
+            afterInit(chart, args, opts) {
+                const state = ensureTravelerState(chart, opts);
+                if (state && window._opsAnim && window._opsAnim.running) {
+                    state.start();
+                }
+            },
+            afterUpdate(chart, args, opts) {
+                const state = ensureTravelerState(chart, opts);
+                if (state && window._opsAnim && window._opsAnim.running) {
+                    state.start();
+                }
+            },
+            afterResize(chart) {
                 const state = chart.$traveler;
-                if (!state) return;
-                if (state.stop) state.stop();
-                if (state.overlay && state.overlay.parentNode) {
-                    state.overlay.parentNode.removeChild(state.overlay);
+                if (state) {
+                    resizeTravelerOverlay(chart, state);
                 }
-                if (state.autoPosition && state.parent) {
-                    state.parent.style.position = state.parentOriginalPosition;
-                }
-                delete chart.$traveler;
-            }
-            function ensureTravelerState(chart, opts){
-                if (!shouldEnableTraveler(opts)) {
-                    destroyTravelerState(chart);
-                    return null;
-                }
-                let state = chart.$traveler;
-                const canvas = chart.canvas;
-                if (!canvas || !canvas.parentNode) return null;
-                const parent = canvas.parentNode;
-                if (!state) {
-                    const overlay = document.createElement('canvas');
-                    overlay.className = 'traveler-overlay';
-                    overlay.style.position = 'absolute';
-                    overlay.style.left = '0';
-                    overlay.style.top = '0';
-                    overlay.style.pointerEvents = 'none';
-                    overlay.style.zIndex = '3';
-                    parent.appendChild(overlay);
-                    let autoPosition = false;
-                    let parentOriginalPosition = parent.style.position || '';
-                    if (window.getComputedStyle(parent).position === 'static') {
-                        parent.style.position = 'relative';
-                        autoPosition = true;
-                    }
-                    state = chart.$traveler = {
-                        overlay,
-                        parent,
-                        ctx: overlay.getContext('2d'),
-                        running: false,
-                        raf: 0,
-                        startTs: 0,
-                        width: 0,
-                        height: 0,
-                        ratio: 1,
-                        opts: normalizeTravelerOpts(opts),
-                        autoPosition,
-                        parentOriginalPosition,
-                        loop: null,
-                        start: null,
-                        stop: null
-                    };
-                    state.loop = function loop(ts){
-                        if (!state.running) return;
-                        if (!chart.canvas || !chart.canvas.isConnected) {
-                            state.stop();
-                            return;
-                        }
-                        resizeTravelerOverlay(chart, state);
-                        renderTravelerFrame(chart, state, ts);
-                        state.raf = requestAnimationFrame(loop);
-                    };
-                    state.start = function(){
-                        if (state.running) return;
-                        state.running = true;
-                        state.startTs = performance.now();
-                        cancelAnimationFrame(state.raf);
-                        state.raf = requestAnimationFrame(state.loop);
-                    };
-                    state.stop = function(){
-                        if (!state.running && !state.raf) return;
-                        state.running = false;
-                        if (state.raf) cancelAnimationFrame(state.raf);
-                        state.raf = 0;
-                        if (state.ctx) {
-                            state.ctx.clearRect(0, 0, state.width || 0, state.height || 0);
-                        }
-                    };
-                } else {
-                    state.opts = normalizeTravelerOpts(opts);
-                }
-                resizeTravelerOverlay(chart, state);
-                return state;
-            }
-            function renderTravelerFrame(chart, state, ts){
-                const ctx = state.ctx;
-                if (!ctx) return;
-                const meta = chart.getDatasetMeta ? chart.getDatasetMeta(0) : null;
-                const points = meta && meta.data ? meta.data : null;
-                const area = chart.chartArea;
-                ctx.clearRect(0, 0, state.width || chart.width || 0, state.height || chart.height || 0);
-                if (!points || points.length < 2 || !area) return;
-                const opts = state.opts || {};
-                const speed = Math.max(600, opts.speed || 24000);
-                const duration = speed;
-                if (!state.startTs) state.startTs = ts;
-                const cycle = ((ts - state.startTs) % duration) / duration;
-                const total = points.length;
-                const fracIndex = cycle * (total - 1);
-                const idx0 = Math.floor(fracIndex);
-                const idx1 = Math.min(total - 1, idx0 + 1);
-                const p0 = getTravelerPointXY(points[idx0]);
-                const p1 = getTravelerPointXY(points[idx1]);
-                if (!p0 || !p1) return;
-                const localT = fracIndex - idx0;
-                const x = p0.x + (p1.x - p0.x) * localT;
-                const y = p0.y + (p1.y - p0.y) * localT;
-                ctx.save();
-                ctx.globalAlpha = Number.isFinite(opts.alpha) ? opts.alpha : 0.9;
-                ctx.translate(x, y);
-                const scale = opts.scale || 1;
-                ctx.scale(scale, scale);
-                drawTravelerIcon(ctx, opts.type || 'plane');
-                ctx.restore();
-            }
-            const TravelerPlugin = {
-                id: 'travelerPlugin',
-                afterInit(chart, args, opts){
-                    const state = ensureTravelerState(chart, opts);
-                    if (state && window._opsAnim && window._opsAnim.running) {
-                        state.start();
-                    }
-                },
-                afterUpdate(chart, args, opts){
-                    const state = ensureTravelerState(chart, opts);
-                    if (state && window._opsAnim && window._opsAnim.running) {
-                        state.start();
-                    }
-                },
-                afterResize(chart){
-                    const state = chart.$traveler;
-                    if (state) {
-                        resizeTravelerOverlay(chart, state);
-                    }
-                },
-                beforeDraw(chart, args, opts){
-                    if (opts === false) {
-                        destroyTravelerState(chart);
-                    }
-                },
-                beforeDestroy(chart){
+            },
+            beforeDraw(chart, args, opts) {
+                if (opts === false) {
                     destroyTravelerState(chart);
                 }
-            };
+            },
+            beforeDestroy(chart) {
+                destroyTravelerState(chart);
+            }
+        };
 
-            // Etiquetas rectangulares con período y valor completo (con anti-encimado)
-            const DataBubblePlugin = {
-                id: 'dataBubble',
-                afterDatasetsDraw(chart, args, opts){
-                    try{
-                        if (!opts || opts.show === false) return;
-                        const ds = chart.data && chart.data.datasets && chart.data.datasets[0];
-                        if (!ds) return;
-                        const meta = chart.getDatasetMeta(0);
-                        const values = (ds.data||[]).map(v => Number(v)||0);
-                        const points = meta && meta.data ? meta.data : [];
-                        const ctx = chart.ctx;
-                        const labels = (chart.data && chart.data.labels) || [];
-                        const borderColor = (opts.borderColor || ds.borderColor || '#0d6efd');
-                        const fillColor = (opts.fillColor || ds.borderColor || '#0d6efd');
-                        const textColor = (opts.textColor || '#ffffff');
-                        const corner = 10;
-                        const onlyMax = !!opts.onlyMax;
-                        const area = chart.chartArea;
-                        const small = !!opts.small;
-                        const minGapX = Number(opts.minGapX || 16);
+        // Etiquetas rectangulares con período y valor completo (con anti-encimado)
+        const DataBubblePlugin = {
+            id: 'dataBubble',
+            afterDatasetsDraw(chart, args, opts) {
+                try {
+                    if (!opts || opts.show === false) return;
+                    const ds = chart.data && chart.data.datasets && chart.data.datasets[0];
+                    if (!ds) return;
+                    const meta = chart.getDatasetMeta(0);
+                    const values = (ds.data || []).map(v => Number(v) || 0);
+                    const points = meta && meta.data ? meta.data : [];
+                    const ctx = chart.ctx;
+                    const labels = (chart.data && chart.data.labels) || [];
+                    const borderColor = (opts.borderColor || ds.borderColor || '#0d6efd');
+                    const fillColor = (opts.fillColor || ds.borderColor || '#0d6efd');
+                    const textColor = (opts.textColor || '#ffffff');
+                    const corner = 10;
+                    const onlyMax = !!opts.onlyMax;
+                    const area = chart.chartArea;
+                    const small = !!opts.small;
+                    const minGapX = Number(opts.minGapX || 16);
 
-                        // hallar índice máximo si aplica
-                        let maxIdx = -1; if (onlyMax) { let mv=-Infinity; values.forEach((v,i)=>{ if(v>mv){ mv=v; maxIdx=i; } }); }
+                    // hallar índice máximo si aplica
+                    let maxIdx = -1; if (onlyMax) { let mv = -Infinity; values.forEach((v, i) => { if (v > mv) { mv = v; maxIdx = i; } }); }
 
-                        ctx.save();
-                        ctx.font = `${small ? '600 10px' : '600 12px'} system-ui, Segoe UI, Roboto, Arial`;
-                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                        let lastShownX = -Infinity;
-                        let lastPlacedBelow = false;
-                        const placed = [];
-                        const offsetUp = Number(opts.offsetY || 40);
-                        const defaultOffsetBelow = small ? 30 : 26;
-                        const offsetBelow = Number(opts.offsetBelow || defaultOffsetBelow);
+                    ctx.save();
+                    ctx.font = `${small ? '600 10px' : '600 12px'} system-ui, Segoe UI, Roboto, Arial`;
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    let lastShownX = -Infinity;
+                    let lastPlacedBelow = false;
+                    const placed = [];
+                    const offsetUp = Number(opts.offsetY || 40);
+                    const defaultOffsetBelow = small ? 30 : 26;
+                    const offsetBelow = Number(opts.offsetBelow || defaultOffsetBelow);
 
-                        const intersects = (a, b) => !(a.x + a.w < b.x || b.x + b.w < a.x || a.y + a.h < b.y || b.y + b.h < a.y);
+                    const intersects = (a, b) => !(a.x + a.w < b.x || b.x + b.w < a.x || a.y + a.h < b.y || b.y + b.h < a.y);
 
-                        for (let i=0;i<points.length;i++){
-                            if (onlyMax && i!==maxIdx) continue;
-                            const v = values[i]; if (!isFinite(v) || v===0) continue;
-                            const p = points[i]; if (!p) continue;
+                    for (let i = 0; i < points.length; i++) {
+                        if (onlyMax && i !== maxIdx) continue;
+                        const v = values[i]; if (!isFinite(v) || v === 0) continue;
+                        const p = points[i]; if (!p) continue;
 
-                            // Evitar encimado entre etiquetas en modo "small"
-                            if (!onlyMax && minGapX > 0) {
-                                const prevVal = i>0 ? values[i-1] : -Infinity;
-                                const nextVal = i<values.length-1 ? values[i+1] : -Infinity;
-                                const isPeakLocal = v>=prevVal && v>=nextVal;
-                                if ((p.x - lastShownX) < minGapX && !isPeakLocal) { continue; }
+                        // Evitar encimado entre etiquetas en modo "small"
+                        if (!onlyMax && minGapX > 0) {
+                            const prevVal = i > 0 ? values[i - 1] : -Infinity;
+                            const nextVal = i < values.length - 1 ? values[i + 1] : -Infinity;
+                            const isPeakLocal = v >= prevVal && v >= nextVal;
+                            if ((p.x - lastShownX) < minGapX && !isPeakLocal) { continue; }
+                        }
+
+                        const period = (labels[i] != null) ? String(labels[i]) : '';
+                        const valueTxt = formatFull(v, (opts.format || 'int'));
+                        const line1 = period;
+                        const line2 = valueTxt;
+                        const padX = small ? 8 : 10;
+                        const padY = small ? 4 : 6;
+                        const maxLineW = Math.max(ctx.measureText(line1).width, ctx.measureText(line2).width);
+                        const w = Math.ceil(maxLineW) + padX * 2;
+                        const lineH = 12 + 2; // font size + spacing
+                        const h = (small ? 6 : 8) + lineH * 2; // dos líneas con padding
+                        let x = p.x; let y = p.y - offsetUp; // por defecto arriba del punto
+                        let rx = Math.round(x - w / 2), ry = Math.round(y - h / 2);
+                        // Decidir ubicación arriba/abajo: evita encimado alternando cuando están muy cerca
+                        let placeBelow = false;
+                        if (area && ry < area.top + 2) {
+                            placeBelow = true;
+                        } else if (minGapX > 0 && (p.x - lastShownX) < minGapX) {
+                            placeBelow = !lastPlacedBelow; // alternar
+                        }
+                        if (placeBelow) { y = p.y + offsetBelow; rx = Math.round(x - w / 2); ry = Math.round(y - h / 2); }
+                        // Limitar horizontalmente dentro del área del gráfico
+                        if (area) {
+                            if (rx < area.left + 2) rx = Math.round(area.left + 2);
+                            if (rx + w > area.right - 2) rx = Math.round(area.right - 2 - w);
+                        }
+
+                        // Evitar encimado mediante detección de colisiones con otras etiquetas colocadas
+                        let rect = { x: rx, y: ry, w, h };
+                        let tries = 0;
+                        while (placed.some(r => intersects(r, rect)) && tries < 6) {
+                            tries++;
+                            if (tries === 1) {
+                                // primer intento: alternar arriba/abajo
+                                placeBelow = !placeBelow;
+                                y = placeBelow ? (p.y + offsetBelow) : (p.y - offsetUp);
+                            } else if (tries === 2) {
+                                // segundo: pequeño empuje vertical adicional
+                                const bump = small ? 10 : 12;
+                                y += placeBelow ? bump : -bump;
+                            } else if (tries === 3) {
+                                // tercero: pequeño corrimiento horizontal hacia la izquierda
+                                x -= Math.min(12, Math.max(0, x - (area ? area.left + 10 : 10)));
+                            } else {
+                                // cuarto: corrimiento horizontal hacia la derecha si es posible
+                                x += 12;
                             }
-
-                            const period = (labels[i] != null) ? String(labels[i]) : '';
-                            const valueTxt = formatFull(v, (opts.format||'int'));
-                            const line1 = period;
-                            const line2 = valueTxt;
-                            const padX = small ? 8 : 10;
-                            const padY = small ? 4 : 6;
-                            const maxLineW = Math.max(ctx.measureText(line1).width, ctx.measureText(line2).width);
-                            const w = Math.ceil(maxLineW) + padX*2;
-                            const lineH = 12 + 2; // font size + spacing
-                            const h = (small ? 6 : 8) + lineH*2; // dos líneas con padding
-                            let x = p.x; let y = p.y - offsetUp; // por defecto arriba del punto
-                            let rx = Math.round(x - w/2), ry = Math.round(y - h/2);
-                            // Decidir ubicación arriba/abajo: evita encimado alternando cuando están muy cerca
-                            let placeBelow = false;
-                            if (area && ry < area.top + 2) {
-                                placeBelow = true;
-                            } else if (minGapX > 0 && (p.x - lastShownX) < minGapX) {
-                                placeBelow = !lastPlacedBelow; // alternar
-                            }
-                            if (placeBelow) { y = p.y + offsetBelow; rx = Math.round(x - w/2); ry = Math.round(y - h/2); }
-                            // Limitar horizontalmente dentro del área del gráfico
+                            rx = Math.round(x - w / 2);
+                            ry = Math.round(y - h / 2);
                             if (area) {
                                 if (rx < area.left + 2) rx = Math.round(area.left + 2);
                                 if (rx + w > area.right - 2) rx = Math.round(area.right - 2 - w);
+                                if (ry < area.top + 2) ry = Math.round(area.top + 2);
+                                if (ry + h > area.bottom - 2) ry = Math.round(area.bottom - 2 - h);
                             }
-
-                            // Evitar encimado mediante detección de colisiones con otras etiquetas colocadas
-                            let rect = { x: rx, y: ry, w, h };
-                            let tries = 0;
-                            while (placed.some(r => intersects(r, rect)) && tries < 6) {
-                                tries++;
-                                if (tries === 1) {
-                                    // primer intento: alternar arriba/abajo
-                                    placeBelow = !placeBelow;
-                                    y = placeBelow ? (p.y + offsetBelow) : (p.y - offsetUp);
-                                } else if (tries === 2) {
-                                    // segundo: pequeño empuje vertical adicional
-                                    const bump = small ? 10 : 12;
-                                    y += placeBelow ? bump : -bump;
-                                } else if (tries === 3) {
-                                    // tercero: pequeño corrimiento horizontal hacia la izquierda
-                                    x -= Math.min(12, Math.max(0, x - (area ? area.left + 10 : 10)));
-                                } else {
-                                    // cuarto: corrimiento horizontal hacia la derecha si es posible
-                                    x += 12;
-                                }
-                                rx = Math.round(x - w/2);
-                                ry = Math.round(y - h/2);
-                                if (area) {
-                                    if (rx < area.left + 2) rx = Math.round(area.left + 2);
-                                    if (rx + w > area.right - 2) rx = Math.round(area.right - 2 - w);
-                                    if (ry < area.top + 2) ry = Math.round(area.top + 2);
-                                    if (ry + h > area.bottom - 2) ry = Math.round(area.bottom - 2 - h);
-                                }
-                                rect = { x: rx, y: ry, w, h };
-                            }
-                            // sombra sutil
-                            ctx.save();
-                            ctx.shadowColor = 'rgba(0,0,0,0.18)';
-                            ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;
-                            // rect redondeado relleno con color de serie
-                            const r = corner;
-                            ctx.fillStyle = fillColor;
-                            ctx.beginPath();
-                            ctx.moveTo(rx + r, ry);
-                            ctx.lineTo(rx + w - r, ry);
-                            ctx.quadraticCurveTo(rx + w, ry, rx + w, ry + r);
-                            ctx.lineTo(rx + w, ry + h - r);
-                            ctx.quadraticCurveTo(rx + w, ry + h, rx + w - r, ry + h);
-                            ctx.lineTo(rx + r, ry + h);
-                            ctx.quadraticCurveTo(rx, ry + h, rx, ry + h - r);
-                            ctx.lineTo(rx, ry + r);
-                            ctx.quadraticCurveTo(rx, ry, rx + r, ry);
-                            ctx.closePath();
-                            ctx.fill();
-                            ctx.restore();
-                            // borde
-                            ctx.beginPath();
-                            ctx.strokeStyle = borderColor; ctx.lineWidth = 2;
-                            ctx.moveTo(rx + r, ry);
-                            ctx.lineTo(rx + w - r, ry);
-                            ctx.quadraticCurveTo(rx + w, ry, rx + w, ry + r);
-                            ctx.lineTo(rx + w, ry + h - r);
-                            ctx.quadraticCurveTo(rx + w, ry + h, rx + w - r, ry + h);
-                            ctx.lineTo(rx + r, ry + h);
-                            ctx.quadraticCurveTo(rx, ry + h, rx, ry + h - r);
-                            ctx.lineTo(rx, ry + r);
-                            ctx.quadraticCurveTo(rx, ry, rx + r, ry);
-                            ctx.closePath();
-                            ctx.stroke();
-                            // texto
-                            ctx.fillStyle = textColor;
-                            const cx = rx + w/2, cy = ry + h/2;
-                            ctx.fillText(line1, cx, cy - 5);
-                            ctx.fillText(line2, cx, cy + 9);
-                            lastShownX = cx;
-                            lastPlacedBelow = placeBelow;
-                            placed.push(rect);
+                            rect = { x: rx, y: ry, w, h };
                         }
-                        ctx.restore();
-                    } catch(_){ /* noop */ }
-                }
-            };
-
-            // Renderizado manual de todas las etiquetas del eje X para evitar auto-salto
-            const CustomXAxisLabelsPlugin = {
-                id: 'customXAxisLabels',
-                afterDraw(chart, args, opts){
-                    try {
-                        if (!opts || opts.enabled !== true) return;
-                        const scale = chart.scales?.x;
-                        if (!scale) return;
-                        const rawLabels = Array.isArray(opts.labels) ? opts.labels : [];
-                        if (!rawLabels.length) return;
-
-                        const sanitized = rawLabels.map((entry) => {
-                            if (Array.isArray(entry)) {
-                                return entry.map((line) => (line == null ? '' : String(line)));
-                            }
-                            return [(entry == null ? '' : String(entry))];
-                        });
-
-                        const ctx = chart.ctx;
+                        // sombra sutil
                         ctx.save();
-                        const fontSize = Math.max(8, Number(opts.fontSize) || 12);
-                        const fontFamily = opts.fontFamily || 'system-ui, Segoe UI, Roboto, Arial';
-                        const fontWeight = opts.fontWeight || '500';
-                        ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
-                        ctx.fillStyle = opts.color || '#6b7280';
-                        const lineHeight = Math.max(10, Number(opts.lineHeight) || Math.round(fontSize * 1.18));
-                        const rotationDeg = Number.isFinite(opts.rotationDegrees) ? opts.rotationDegrees : 0;
-                        const rotationRad = rotationDeg * (Math.PI / 180);
-                        const align = rotationDeg > 0 ? 'right' : rotationDeg < 0 ? 'left' : 'center';
-                        ctx.textAlign = align;
-                        ctx.textBaseline = 'top';
-                        const baseOffset = Number.isFinite(opts.baseOffset) ? opts.baseOffset : 8;
-                        const capLeft = scale.left + 4;
-                        const capRight = scale.right - 4;
-
-                        sanitized.forEach((tickLines, idx) => {
-                            if (!tickLines || !tickLines.length) return;
-                            const xBase = scale.getPixelForTick(idx);
-                            if (!Number.isFinite(xBase)) return;
-                            const yBase = scale.bottom + baseOffset;
-                            ctx.save();
-                            let drawX = xBase;
-                            if (!rotationRad && align === 'center') {
-                                const widest = tickLines.reduce((acc, text) => Math.max(acc, ctx.measureText(text).width), 0);
-                                const overflowLeft = drawX - widest / 2 - capLeft;
-                                if (overflowLeft < 0) drawX -= overflowLeft;
-                                const overflowRight = (drawX + widest / 2) - capRight;
-                                if (overflowRight > 0) drawX -= overflowRight;
-                            } else {
-                                if (drawX < capLeft) drawX = capLeft;
-                                if (drawX > capRight) drawX = capRight;
-                            }
-                            ctx.translate(drawX, yBase);
-                            if (rotationRad) ctx.rotate(rotationRad);
-                            tickLines.forEach((text, lineIdx) => {
-                                ctx.fillText(text, 0, lineIdx * lineHeight);
-                            });
-                            ctx.restore();
-                        });
-
-                        ctx.restore();
-                    } catch (_) { /* noop */ }
-                }
-            };
-
-            // Resalta el pico máximo con un glow sutil (debajo de etiquetas)
-            const PeakGlowPlugin = {
-                id: 'peakGlow',
-                beforeDatasetsDraw(chart, args, opts){
-                    try {
-                        const ds = chart.data && chart.data.datasets && chart.data.datasets[0];
-                        if (!ds) return;
-                        const meta = chart.getDatasetMeta(0);
-                        const data = (ds.data||[]).map(v => Number(v)||0);
-                        if (!meta || !meta.data || !meta.data.length) return;
-                        let maxVal = -Infinity, maxIdx = -1;
-                        for (let i=0;i<data.length;i++){ if (data[i] > maxVal){ maxVal=data[i]; maxIdx=i; } }
-                        if (maxIdx < 0) return;
-                        const pt = meta.data[maxIdx]; if (!pt) return;
-                        const ctx = chart.ctx;
-                        ctx.save();
-                        ctx.fillStyle = (opts && opts.color) ? hexToRgba(opts.color, 0.14) : 'rgba(0,0,0,0.10)';
+                        ctx.shadowColor = 'rgba(0,0,0,0.18)';
+                        ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;
+                        // rect redondeado relleno con color de serie
+                        const r = corner;
+                        ctx.fillStyle = fillColor;
                         ctx.beginPath();
-                        ctx.arc(pt.x, pt.y, 10, 0, Math.PI*2);
+                        ctx.moveTo(rx + r, ry);
+                        ctx.lineTo(rx + w - r, ry);
+                        ctx.quadraticCurveTo(rx + w, ry, rx + w, ry + r);
+                        ctx.lineTo(rx + w, ry + h - r);
+                        ctx.quadraticCurveTo(rx + w, ry + h, rx + w - r, ry + h);
+                        ctx.lineTo(rx + r, ry + h);
+                        ctx.quadraticCurveTo(rx, ry + h, rx, ry + h - r);
+                        ctx.lineTo(rx, ry + r);
+                        ctx.quadraticCurveTo(rx, ry, rx + r, ry);
+                        ctx.closePath();
                         ctx.fill();
                         ctx.restore();
-                    } catch(_) { /* noop */ }
-                }
-            };
-
-            function makePeakCfg(canvas, labels, data, label, stroke, fillTop, fillBottom, animProfile, fmtType='int', traveler, xTitle='Periodo', titleText, extraTooltip, tickDetails=null){
-                const bg = makeGradient(canvas, fillTop, fillBottom);
-                const border = stroke;
-                const processedData = Array.isArray(data)
-                    ? data.map((value) => {
-                        const num = Number(value);
-                        return Number.isFinite(num) ? num : null;
-                    })
-                    : [];
-                const numericData = processedData.filter((value) => value !== null);
-                const maxVal = numericData.length ? Math.max(...numericData) : 0;
-                const minVal = numericData.length ? Math.min(...numericData) : 0;
-                const range = Math.max(0, maxVal - minVal);
-                const lowerBand = range > 0
-                    ? Math.max(range * 0.55, maxVal * 0.04)
-                    : (maxVal > 0 ? maxVal * 0.25 : 10);
-                const upperBand = range > 0
-                    ? Math.max(range * 0.18, maxVal * 0.06)
-                    : (maxVal > 0 ? maxVal * 0.18 : 10);
-                let yAxisMin = Math.max(0, minVal - lowerBand);
-                let yAxisMax = maxVal + upperBand;
-                if (!Number.isFinite(yAxisMin)) yAxisMin = 0;
-                if (!Number.isFinite(yAxisMax) || yAxisMax <= yAxisMin) {
-                    const fallbackRange = maxVal > 0 ? Math.abs(maxVal) * 0.25 : 10;
-                    yAxisMax = yAxisMin + fallbackRange;
-                }
-                const isDark = document.body.classList.contains('dark-mode');
-                const emoji = fmtType==='pax' ? '🚶' : (fmtType==='ton' ? '🧳' : '✈');
-                const finalTitle = titleText || `${emoji} ${label}`;
-                const anim = Object.assign({ duration: 2600, easing: 'easeInOutCubic', stagger: 50 }, animProfile||{});
-                const disableMotion = !!anim.disableMotion;
-                if (disableMotion) {
-                    anim.duration = 0;
-                    anim.stagger = 0;
-                }
-                delete anim.disableMotion;
-                const labelCount = Array.isArray(labels) ? labels.length : 0;
-                const viewportWidth = Math.max(window.innerWidth || 0, document.documentElement?.clientWidth || 0, 0);
-                const isMobile = viewportWidth < 576;
-                const isTablet = !isMobile && viewportWidth < 992;
-                const smallMode = labelCount > 8;
-                const canvasBaseWidth = (canvas && canvas.clientWidth) ? canvas.clientWidth : (canvas && canvas.width ? canvas.width : viewportWidth || 1024);
-                const densityUnit = isMobile ? 64 : (isTablet ? 56 : 48);
-                const denseThreshold = isMobile ? 8 : (isTablet ? 12 : 16);
-                const targetWidth = labelCount > denseThreshold
-                    ? Math.min(1300, Math.max(canvasBaseWidth, labelCount * densityUnit))
-                    : canvasBaseWidth;
-                const widthForSpacing = Math.max(canvasBaseWidth, targetWidth);
-                const isYearAxis = Array.isArray(labels) && labels.length>0 && labels.every(l => /^\d{4}$/.test(String(l)));
-                const steps = Math.max(1, (labelCount || 1) - 1);
-                const approxStep = Math.max(1, (widthForSpacing - 60) / steps);
-                const dynMinGapX = Math.max(16, smallMode ? approxStep * (isMobile ? 0.8 : 0.68) : approxStep * (isMobile ? 0.7 : 0.5));
-                const dynOffsetY = isYearAxis ? (isMobile ? 44 : 40) : (isMobile ? 34 : (isTablet ? 38 : 44));
-                const dynOffsetBelow = isYearAxis ? (isMobile ? 28 : 26) : (isMobile ? 24 : (isTablet ? 26 : 28));
-                const xTickFont = isMobile ? 10 : (isTablet ? 11 : 12);
-                const yTickFont = isMobile ? 10 : (isTablet ? 11 : 12);
-                const yTickPadding = isMobile ? 6 : (isTablet ? 8 : 10);
-                const maxTicks = isMobile ? 6 : (isTablet ? 8 : 12);
-                let padTop = isMobile ? 52 : (isTablet ? 60 : 68);
-                const padRight = isMobile ? 12 : (isTablet ? 14 : 16);
-                let padBottom = isMobile ? 28 : (isTablet ? 24 : 22);
-                const padLeft = isMobile ? 8 : 10;
-
-                const radiusScale = isMobile ? 0.7 : (isTablet ? 0.85 : 1);
-                const pointRadius = processedData.map((v) => {
-                    const safeValue = Number.isFinite(v) ? v : 0;
-                    const t = maxVal>0 ? (safeValue/maxVal) : 0;
-                    const base = (2 + Math.min(3, t*2.5)) * radiusScale;
-                    const baseline = Math.max(2.5 * radiusScale, base);
-                    if (safeValue === maxVal && maxVal>0) {
-                        return Math.max(baseline, 5.5 * radiusScale);
+                        // borde
+                        ctx.beginPath();
+                        ctx.strokeStyle = borderColor; ctx.lineWidth = 2;
+                        ctx.moveTo(rx + r, ry);
+                        ctx.lineTo(rx + w - r, ry);
+                        ctx.quadraticCurveTo(rx + w, ry, rx + w, ry + r);
+                        ctx.lineTo(rx + w, ry + h - r);
+                        ctx.quadraticCurveTo(rx + w, ry + h, rx + w - r, ry + h);
+                        ctx.lineTo(rx + r, ry + h);
+                        ctx.quadraticCurveTo(rx, ry + h, rx, ry + h - r);
+                        ctx.lineTo(rx, ry + r);
+                        ctx.quadraticCurveTo(rx, ry, rx + r, ry);
+                        ctx.closePath();
+                        ctx.stroke();
+                        // texto
+                        ctx.fillStyle = textColor;
+                        const cx = rx + w / 2, cy = ry + h / 2;
+                        ctx.fillText(line1, cx, cy - 5);
+                        ctx.fillText(line2, cx, cy + 9);
+                        lastShownX = cx;
+                        lastPlacedBelow = placeBelow;
+                        placed.push(rect);
                     }
-                    return baseline;
-                });
-                const pointHoverRadius = processedData.map((v) => {
-                    const safeValue = Number.isFinite(v) ? v : 0;
-                    const isPeak = safeValue === maxVal && maxVal > 0;
-                    return isPeak ? Math.max(5, 6 * radiusScale) : Math.max(3, 4 * radiusScale);
-                });
+                    ctx.restore();
+                } catch (_) { /* noop */ }
+            }
+        };
 
-                if (isYearAxis) {
-                    padTop += isMobile ? 18 : 12;
-                    padBottom += isMobile ? 12 : 8;
-                }
+        // Renderizado manual de todas las etiquetas del eje X para evitar auto-salto
+        const CustomXAxisLabelsPlugin = {
+            id: 'customXAxisLabels',
+            afterDraw(chart, args, opts) {
+                try {
+                    if (!opts || opts.enabled !== true) return;
+                    const scale = chart.scales?.x;
+                    if (!scale) return;
+                    const rawLabels = Array.isArray(opts.labels) ? opts.labels : [];
+                    if (!rawLabels.length) return;
 
-                const denseXAxis = !isYearAxis && labelCount >= 10;
-                if (denseXAxis) {
-                    padBottom = Math.max(padBottom, isMobile ? 62 : (isTablet ? 54 : 46));
-                }
-                const xMaxRotation = isYearAxis ? 0 : (denseXAxis ? (isMobile ? 48 : (isTablet ? 30 : 22)) : (isMobile ? 36 : (isTablet ? 20 : 0)));
-                const xMinRotation = isYearAxis ? 0 : (denseXAxis ? (isMobile ? 24 : (isTablet ? 14 : 10)) : (isMobile ? 12 : 0));
-                const tickPadding = isYearAxis ? 0 : (isMobile ? 8 : (isTablet ? 7 : (denseXAxis ? 4 : 6)));
-
-                const monthLookup = {
-                    'enero': 'Ene', 'febrero': 'Feb', 'marzo': 'Mar', 'abril': 'Abr',
-                    'mayo': 'May', 'junio': 'Jun', 'julio': 'Jul', 'agosto': 'Ago',
-                    'septiembre': 'Sep', 'setiembre': 'Sep', 'octubre': 'Oct', 'noviembre': 'Nov', 'diciembre': 'Dic'
-                };
-                const normalizeMonthToken = (token) => {
-                    if (!token) return '';
-                    try {
-                        return token
-                            .toString()
-                            .normalize('NFD')
-                            .replace(/[\u0300-\u036f]/g, '')
-                            .replace(/[^a-z]/gi, '')
-                            .toLowerCase();
-                    } catch (_) {
-                        return token.toString().replace(/[^a-z]/gi, '').toLowerCase();
-                    }
-                };
-                const formatTickLabel = (value) => {
-                    if (value == null) return value;
-                    const raw = typeof value === 'string' ? value : String(value);
-                    const trimmed = raw.trim();
-                    if (!trimmed) return trimmed;
-                    if (/^\d{4}$/.test(trimmed)) return trimmed;
-                    const rawTokens = trimmed.split(/\s+/).filter(Boolean);
-                    const primaryToken = rawTokens.length ? rawTokens[0] : trimmed;
-                    const normalizedPrimary = normalizeMonthToken(primaryToken);
-                    let monthAbbr = monthLookup[normalizedPrimary];
-                    if (!monthAbbr) {
-                        const normalizedFull = normalizeMonthToken(trimmed.replace(/\s*\(.+\)$/, ''));
-                        if (normalizedFull && monthLookup[normalizedFull]) {
-                            monthAbbr = monthLookup[normalizedFull];
+                    const sanitized = rawLabels.map((entry) => {
+                        if (Array.isArray(entry)) {
+                            return entry.map((line) => (line == null ? '' : String(line)));
                         }
-                    }
-                    if (!monthAbbr && rawTokens.length > 1) {
-                        const fallbackPrimary = normalizeMonthToken(rawTokens[0]);
-                        if (fallbackPrimary && monthLookup[fallbackPrimary]) {
-                            monthAbbr = monthLookup[fallbackPrimary];
-                        }
-                    }
-                    if (monthAbbr) {
-                        if (rawTokens.length > 1) {
-                            const remainder = rawTokens.slice(1).join(' ');
-                            return remainder ? [monthAbbr, remainder] : monthAbbr;
-                        }
-                        return monthAbbr;
-                    }
-                    if (isMobile && trimmed.length > 10){
-                        const tokens = trimmed.split(/\s+/).filter(Boolean);
-                        if (tokens.length > 1){
-                            const mid = Math.ceil(tokens.length / 2);
-                            return [tokens.slice(0, mid).join(' '), tokens.slice(mid).join(' ')];
-                        }
-                        return trimmed.length > 12 ? `${trimmed.slice(0, 9)}...` : trimmed;
-                    }
-                    if (isTablet && trimmed.length > 14){
-                        const tokens = trimmed.split(/\s+/).filter(Boolean);
-                        if (tokens.length > 1){
-                            const mid = Math.ceil(tokens.length / 2);
-                            return [tokens.slice(0, mid).join(' '), tokens.slice(mid).join(' ')];
-                        }
-                    }
-                    if (denseXAxis && !/\s/.test(trimmed) && trimmed.length > (isMobile ? 5 : 6)){
-                        const mid = Math.ceil(trimmed.length / 2);
-                        const first = trimmed.slice(0, mid);
-                        const second = trimmed.slice(mid);
-                        return second ? [first, second] : [trimmed];
-                    }
-                    return trimmed;
-                };
+                        return [(entry == null ? '' : String(entry))];
+                    });
 
-                const resolvedTitle = (()=>{
-                    if (!isMobile || typeof finalTitle !== 'string') return finalTitle;
-                    const clean = finalTitle.trim();
-                    if (clean.length <= 24) return clean;
-                    const parts = clean.split(/\s+/).filter(Boolean);
-                    if (parts.length <= 1) return clean.length > 26 ? `${clean.slice(0, 24)}...` : clean;
-                    const half = Math.ceil(parts.length / 2);
-                    return [parts.slice(0, half).join(' '), parts.slice(half).join(' ')];
-                })();
+                    const ctx = chart.ctx;
+                    ctx.save();
+                    const fontSize = Math.max(8, Number(opts.fontSize) || 12);
+                    const fontFamily = opts.fontFamily || 'system-ui, Segoe UI, Roboto, Arial';
+                    const fontWeight = opts.fontWeight || '500';
+                    ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+                    ctx.fillStyle = opts.color || '#6b7280';
+                    const lineHeight = Math.max(10, Number(opts.lineHeight) || Math.round(fontSize * 1.18));
+                    const rotationDeg = Number.isFinite(opts.rotationDegrees) ? opts.rotationDegrees : 0;
+                    const rotationRad = rotationDeg * (Math.PI / 180);
+                    const align = rotationDeg > 0 ? 'right' : rotationDeg < 0 ? 'left' : 'center';
+                    ctx.textAlign = align;
+                    ctx.textBaseline = 'top';
+                    const baseOffset = Number.isFinite(opts.baseOffset) ? opts.baseOffset : 8;
+                    const capLeft = scale.left + 4;
+                    const capRight = scale.right - 4;
 
-                // Opciones específicas para las burbujas en ejes de años (4-5 puntos)
-                const bubbleShow = !isMobile || labelCount <= 12;
-                const bubbleOpts = {
-                    show: bubbleShow,
-                    defaultShow: bubbleShow,
-                    borderColor: border,
-                    fillColor: border,
-                    textColor: '#ffffff',
-                    format: fmtType,
-                    minGapX: Math.min(140, dynMinGapX),
-                    small: isYearAxis ? true : (isMobile ? true : smallMode),
-                    offsetY: dynOffsetY,
-                    offsetBelow: dynOffsetBelow,
-                    onlyMax: isMobile && labelCount > 12
-                };
+                    sanitized.forEach((tickLines, idx) => {
+                        if (!tickLines || !tickLines.length) return;
+                        const xBase = scale.getPixelForTick(idx);
+                        if (!Number.isFinite(xBase)) return;
+                        const yBase = scale.bottom + baseOffset;
+                        ctx.save();
+                        let drawX = xBase;
+                        if (!rotationRad && align === 'center') {
+                            const widest = tickLines.reduce((acc, text) => Math.max(acc, ctx.measureText(text).width), 0);
+                            const overflowLeft = drawX - widest / 2 - capLeft;
+                            if (overflowLeft < 0) drawX -= overflowLeft;
+                            const overflowRight = (drawX + widest / 2) - capRight;
+                            if (overflowRight > 0) drawX -= overflowRight;
+                        } else {
+                            if (drawX < capLeft) drawX = capLeft;
+                            if (drawX > capRight) drawX = capRight;
+                        }
+                        ctx.translate(drawX, yBase);
+                        if (rotationRad) ctx.rotate(rotationRad);
+                        tickLines.forEach((text, lineIdx) => {
+                            ctx.fillText(text, 0, lineIdx * lineHeight);
+                        });
+                        ctx.restore();
+                    });
 
-                const resolvedTickDetails = (Array.isArray(tickDetails) && tickDetails.length === labelCount)
-                    ? tickDetails
-                    : null;
-                const useCustomXAxis = !isYearAxis && (denseXAxis || labelCount >= 6 || !!resolvedTickDetails);
-                if (useCustomXAxis) {
-                    padBottom = Math.max(padBottom, isMobile ? 70 : (isTablet ? 60 : 52));
+                    ctx.restore();
+                } catch (_) { /* noop */ }
+            }
+        };
+
+        // Resalta el pico máximo con un glow sutil (debajo de etiquetas)
+        const PeakGlowPlugin = {
+            id: 'peakGlow',
+            beforeDatasetsDraw(chart, args, opts) {
+                try {
+                    const ds = chart.data && chart.data.datasets && chart.data.datasets[0];
+                    if (!ds) return;
+                    const meta = chart.getDatasetMeta(0);
+                    const data = (ds.data || []).map(v => Number(v) || 0);
+                    if (!meta || !meta.data || !meta.data.length) return;
+                    let maxVal = -Infinity, maxIdx = -1;
+                    for (let i = 0; i < data.length; i++) { if (data[i] > maxVal) { maxVal = data[i]; maxIdx = i; } }
+                    if (maxIdx < 0) return;
+                    const pt = meta.data[maxIdx]; if (!pt) return;
+                    const ctx = chart.ctx;
+                    ctx.save();
+                    ctx.fillStyle = (opts && opts.color) ? hexToRgba(opts.color, 0.14) : 'rgba(0,0,0,0.10)';
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, 10, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                } catch (_) { /* noop */ }
+            }
+        };
+
+        function makePeakCfg(canvas, labels, data, label, stroke, fillTop, fillBottom, animProfile, fmtType = 'int', traveler, xTitle = 'Periodo', titleText, extraTooltip, tickDetails = null) {
+            const bg = makeGradient(canvas, fillTop, fillBottom);
+            const border = stroke;
+            const processedData = Array.isArray(data)
+                ? data.map((value) => {
+                    const num = Number(value);
+                    return Number.isFinite(num) ? num : null;
+                })
+                : [];
+            const numericData = processedData.filter((value) => value !== null);
+            const maxVal = numericData.length ? Math.max(...numericData) : 0;
+            const minVal = numericData.length ? Math.min(...numericData) : 0;
+            const range = Math.max(0, maxVal - minVal);
+            const lowerBand = range > 0
+                ? Math.max(range * 0.55, maxVal * 0.04)
+                : (maxVal > 0 ? maxVal * 0.25 : 10);
+            const upperBand = range > 0
+                ? Math.max(range * 0.18, maxVal * 0.06)
+                : (maxVal > 0 ? maxVal * 0.18 : 10);
+            let yAxisMin = Math.max(0, minVal - lowerBand);
+            let yAxisMax = maxVal + upperBand;
+            if (!Number.isFinite(yAxisMin)) yAxisMin = 0;
+            if (!Number.isFinite(yAxisMax) || yAxisMax <= yAxisMin) {
+                const fallbackRange = maxVal > 0 ? Math.abs(maxVal) * 0.25 : 10;
+                yAxisMax = yAxisMin + fallbackRange;
+            }
+            const isDark = document.body.classList.contains('dark-mode');
+            const emoji = fmtType === 'pax' ? '🚶' : (fmtType === 'ton' ? '🧳' : '✈');
+            const finalTitle = titleText || `${emoji} ${label}`;
+            const anim = Object.assign({ duration: 2600, easing: 'easeInOutCubic', stagger: 50 }, animProfile || {});
+            const disableMotion = !!anim.disableMotion;
+            if (disableMotion) {
+                anim.duration = 0;
+                anim.stagger = 0;
+            }
+            delete anim.disableMotion;
+            const labelCount = Array.isArray(labels) ? labels.length : 0;
+            const viewportWidth = Math.max(window.innerWidth || 0, document.documentElement?.clientWidth || 0, 0);
+            const isMobile = viewportWidth < 576;
+            const isTablet = !isMobile && viewportWidth < 992;
+            const smallMode = labelCount > 8;
+            const canvasBaseWidth = (canvas && canvas.clientWidth) ? canvas.clientWidth : (canvas && canvas.width ? canvas.width : viewportWidth || 1024);
+            const densityUnit = isMobile ? 64 : (isTablet ? 56 : 48);
+            const denseThreshold = isMobile ? 8 : (isTablet ? 12 : 16);
+            const targetWidth = labelCount > denseThreshold
+                ? Math.min(1300, Math.max(canvasBaseWidth, labelCount * densityUnit))
+                : canvasBaseWidth;
+            const widthForSpacing = Math.max(canvasBaseWidth, targetWidth);
+            const isYearAxis = Array.isArray(labels) && labels.length > 0 && labels.every(l => /^\d{4}$/.test(String(l)));
+            const steps = Math.max(1, (labelCount || 1) - 1);
+            const approxStep = Math.max(1, (widthForSpacing - 60) / steps);
+            const dynMinGapX = Math.max(16, smallMode ? approxStep * (isMobile ? 0.8 : 0.68) : approxStep * (isMobile ? 0.7 : 0.5));
+            const dynOffsetY = isYearAxis ? (isMobile ? 44 : 40) : (isMobile ? 34 : (isTablet ? 38 : 44));
+            const dynOffsetBelow = isYearAxis ? (isMobile ? 28 : 26) : (isMobile ? 24 : (isTablet ? 26 : 28));
+            const xTickFont = isMobile ? 10 : (isTablet ? 11 : 12);
+            const yTickFont = isMobile ? 10 : (isTablet ? 11 : 12);
+            const yTickPadding = isMobile ? 6 : (isTablet ? 8 : 10);
+            const maxTicks = isMobile ? 6 : (isTablet ? 8 : 12);
+            let padTop = isMobile ? 52 : (isTablet ? 60 : 68);
+            const padRight = isMobile ? 12 : (isTablet ? 14 : 16);
+            let padBottom = isMobile ? 28 : (isTablet ? 24 : 22);
+            const padLeft = isMobile ? 8 : 10;
+
+            const radiusScale = isMobile ? 0.7 : (isTablet ? 0.85 : 1);
+            const pointRadius = processedData.map((v) => {
+                const safeValue = Number.isFinite(v) ? v : 0;
+                const t = maxVal > 0 ? (safeValue / maxVal) : 0;
+                const base = (2 + Math.min(3, t * 2.5)) * radiusScale;
+                const baseline = Math.max(2.5 * radiusScale, base);
+                if (safeValue === maxVal && maxVal > 0) {
+                    return Math.max(baseline, 5.5 * radiusScale);
                 }
-                const multilineLabels = labels.map((labelValue, idx) => {
-                    if (resolvedTickDetails) {
-                        const detail = resolvedTickDetails[idx];
-                        if (Array.isArray(detail)) return detail.map((entry) => (entry == null ? '' : String(entry)));
-                        return [detail == null ? '' : String(detail)];
-                    }
-                    const formatted = formatTickLabel(labelValue);
-                    if (Array.isArray(formatted)) {
-                        return formatted.map((entry) => (entry == null ? '' : String(entry)));
-                    }
-                    const text = formatted == null ? '' : String(formatted);
-                    return [text];
-                });
-                const xAxisRotationDegrees = useCustomXAxis ? (denseXAxis ? (isMobile ? 38 : (isTablet ? 28 : 20)) : 0) : 0;
-                const xAxisLineHeight = Math.round((xTickFont || 12) * (isMobile ? 1.28 : 1.18));
-                const xAxisBaseOffset = useCustomXAxis ? (denseXAxis ? (isMobile ? 20 : 16) : (isMobile ? 14 : 12)) : 8;
-                const xAxisLabelPluginConfig = useCustomXAxis ? {
-                    enabled: true,
-                    labels: multilineLabels,
-                    fontSize: xTickFont,
-                    fontFamily: 'system-ui, Segoe UI, Roboto, Arial',
-                    fontWeight: '500',
-                    color: theme.ticks,
-                    rotationDegrees: xAxisRotationDegrees,
-                    lineHeight: xAxisLineHeight,
-                    baseOffset: xAxisBaseOffset
-                } : false;
+                return baseline;
+            });
+            const pointHoverRadius = processedData.map((v) => {
+                const safeValue = Number.isFinite(v) ? v : 0;
+                const isPeak = safeValue === maxVal && maxVal > 0;
+                return isPeak ? Math.max(5, 6 * radiusScale) : Math.max(3, 4 * radiusScale);
+            });
 
-                // Plugin ligero para dar un extra de alto a la escala X en ejes anuales y evitar cortes
-                const YearAxisFitPlugin = isYearAxis ? {
-                    id: 'yearAxisFit',
-                    afterFit(scale) {
-                        try {
-                            if (scale && scale.isHorizontal && scale.isHorizontal()) {
-                                scale.height += isMobile ? 10 : 6;
-                            }
-                        } catch(_) {}
-                    }
-                } : null;
-                const travelerEnabled = traveler && typeof traveler === 'object';
-                const tooltipSizeHint = (() => {
-                    const xTitleString = typeof xTitle === 'string' ? xTitle.toLowerCase() : '';
-                    const isMonthlyAxis = xTitleString.includes('mes');
-                    const isWeeklyAxis = xTitleString.includes('semana') || xTitleString.includes('sem ') || xTitleString.includes('día') || xTitleString.includes('dia');
-                    const weeklyDense = isWeeklyAxis && labelCount >= 6;
-                    const preferMicro = (isMonthlyAxis && opsTooltipsAlwaysOn) || weeklyDense;
-                    if (preferMicro) return 'micro';
-                    if (labelCount >= 30 || (isMonthlyAxis && labelCount >= 24)) return 'micro';
-                    if (labelCount >= 22 || (isMonthlyAxis && labelCount >= 18)) return 'mini';
-                    if (labelCount >= 16 || isMonthlyAxis) return 'compact';
-                    return 'default';
-                })();
-                const variationAccessor = Array.isArray(extraTooltip?.variations)
-                    ? (idx) => extraTooltip.variations[idx]
-                    : () => null;
-                const variationLabelText = extraTooltip?.variationLabel || 'Δ% vs período anterior';
-                const formatYAxisTick = (value) => {
-                    if (!Number.isFinite(value)) return value;
-                    try {
-                        return formatCompact ? formatCompact(value, fmtType) : value;
-                    } catch (_) {
-                        return value;
-                    }
-                };
-                return {
-                    type: 'line',
-                    data: {
-                        labels,
-                        datasets: [{
-                            label,
-                            data: processedData,
-                            borderColor: border,
-                            backgroundColor: bg,
-                            borderWidth: 3,
-                            pointBackgroundColor: border,
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 1,
-                            pointRadius,
-                            pointHoverRadius,
-                            tension: 0.25,
-                            fill: true,
-                            clip: false,
-                            aifaTooltipConfig: {
-                                theme: theme.tooltip,
-                                formatValue: (value) => formatFull(value, fmtType),
-                                getVariation: variationAccessor,
-                                variationLabel: variationLabelText,
-                                formatVariation: formatPercentDelta,
-                                sizeHint: tooltipSizeHint
-                            }
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        layout: { padding: { top: padTop, right: padRight, bottom: padBottom, left: padLeft } },
-                        animation: disableMotion ? false : {
-                            duration: anim.duration,
-                            easing: anim.easing,
-                            delay: (ctx) => ctx.type === 'data' ? (ctx.dataIndex * (anim.stagger||0)) : 0
-                        },
-                        animations: disableMotion ? {} : {
-                            y: { easing: anim.easing, duration: anim.duration },
-                            tension: { from: 0.6, to: 0.25, duration: Math.min(1200, anim.duration), easing: 'easeOutQuad' }
-                        },
-                        plugins: {
-                            legend: { display: false },
-                            title: {
-                                display: true,
-                                text: resolvedTitle,
-                                align: 'start',
-                                color: theme.labels,
-                                padding: { top: 6, bottom: 8 },
-                                font: { size: isMobile ? 13 : 14, weight: '600' }
-                            },
-                            tooltip: {
-                                enabled: !opsTooltipsAlwaysOn,
-                                backgroundColor: theme.tooltip.backgroundColor,
-                                titleColor: theme.tooltip.titleColor,
-                                bodyColor: theme.tooltip.bodyColor,
-                                callbacks: {
-                                    label: (ctx) => {
-                                        const v = ctx.parsed.y;
-                                        let line = `${ctx.dataset.label}: ${formatFull(v, fmtType)}`;
-                                        const variationData = Array.isArray(extraTooltip?.variations) ? extraTooltip.variations : null;
-                                        if (variationData) {
-                                            const delta = variationData[ctx.dataIndex];
-                                            if (delta != null) {
-                                                const labelTxt = extraTooltip?.variationLabel || 'Δ% vs período anterior';
-                                                const formattedDelta = formatPercentDelta(delta);
-                                                if (formattedDelta) {
-                                                    line += ` (${labelTxt}: ${formattedDelta})`;
-                                                }
-                                            }
-                                        }
-                                        return line;
-                                    }
-                                }
-                            },
-                            // Desactivamos completamente chartjs-plugin-datalabels
-                            datalabels: false,
-                            travelerPlugin: travelerEnabled ? traveler : false,
-                            dataBubble: bubbleOpts,
-                            customXAxisLabels: xAxisLabelPluginConfig
-                        },
-                        scales: {
-                            x: {
-                                grid: { display: false },
-                                offset: false,
-                                ticks: {
-                                    display: !useCustomXAxis,
-                                    color: theme.ticks,
-                                    // No omitir etiquetas; las partimos en varias líneas si es necesario.
-                                    autoSkip: false,
-                                    maxTicksLimit: labels?.length || maxTicks,
-                                    autoSkipPadding: tickPadding,
-                                    stepSize: 1,
-                                    source: 'labels',
-                                    font: { size: xTickFont },
-                                    minRotation: xMinRotation,
-                                    maxRotation: xMaxRotation,
-                                    callback: (val, index) => {
-                                        let rawValue = val;
-                                        if (typeof val === 'number' && Array.isArray(labels) && labels[val] != null) {
-                                            rawValue = labels[val];
-                                        } else if (labels && typeof index === 'number' && labels[index] != null && rawValue == null) {
-                                            rawValue = labels[index];
-                                        }
-                                        if (Array.isArray(tickDetails)) {
-                                            let detail = null;
-                                            if (typeof index === 'number' && index >= 0) {
-                                                detail = tickDetails[index];
-                                            }
-                                            if ((!detail || !detail.length) && typeof val === 'number' && val >= 0) {
-                                                detail = tickDetails[val];
-                                            }
-                                            if ((!detail || !detail.length) && rawValue != null) {
-                                                const lookupIndex = Array.isArray(labels) ? labels.indexOf(rawValue) : -1;
-                                                if (lookupIndex >= 0) detail = tickDetails[lookupIndex];
-                                            }
-                                            if (detail && detail.length) return detail;
-                                        }
-                                        return formatTickLabel(rawValue);
-                                    }
-                                },
-                                title: { display: true, text: xTitle, color: theme.labels, font: { weight: '600' } },
-                                afterBuildTicks(scale){
-                                    try {
-                                        if (!Array.isArray(labels) || !labels.length) return;
-                                        const normalized = labels.map((labelText, idx) => ({ value: idx, label: labelText }));
-                                        if (Array.isArray(tickDetails) && tickDetails.length === normalized.length) {
-                                            scale.ticks = normalized.map((tick, idx) => ({
-                                                value: tick.value,
-                                                label: tickDetails[idx]
-                                            }));
-                                        } else {
-                                            scale.ticks = normalized;
-                                        }
-                                        if (scale?.options?.ticks) {
-                                            scale.options.ticks.autoSkip = false;
-                                            scale.options.ticks.maxTicksLimit = normalized.length;
-                                            scale.options.ticks.sampleSize = normalized.length;
-                                            scale.options.ticks.stepSize = 1;
-                                            scale.options.ticks.display = !useCustomXAxis;
-                                        }
-                                        if (typeof scale.autoSkip === 'boolean') {
-                                            scale.autoSkip = false;
-                                        }
-                                        if (typeof scale.tickAutoSkip === 'boolean') {
-                                            scale.tickAutoSkip = false;
-                                        }
-                                        if (typeof scale.ticksLength === 'number') {
-                                            scale.ticksLength = normalized.length;
-                                        }
-                                        if (typeof scale.tickAutoSkipEnabled === 'function') {
-                                            scale.tickAutoSkipEnabled = () => false;
-                                        }
-                                        if (scale._cache && typeof scale._cache === 'object') {
-                                            scale._cache.ticks = normalized;
-                                            scale._cache.labels = labels;
-                                        }
-                                        if (typeof scale.min === 'number') scale.min = 0;
-                                        if (typeof scale.max === 'number') scale.max = normalized.length ? normalized.length - 1 : scale.max;
-                                    } catch (_) { /* noop */ }
-                                }
-                            },
-                            y: {
-                                beginAtZero: false,
-                                min: yAxisMin,
-                                max: yAxisMax,
-                                grid: {
-                                    color: theme.grid,
-                                    drawBorder: false,
-                                    borderDash: [4, 4],
-                                    zeroLineColor: theme.grid
-                                },
-                                ticks: {
-                                    color: theme.ticks,
-                                    font: { size: yTickFont },
-                                    padding: yTickPadding,
-                                    maxTicksLimit: isMobile ? 5 : 8,
-                                    callback: formatYAxisTick
-                                }
-                            }
-                        }
-                    },
-                    plugins: [opsPersistentTooltipPlugin, PeakGlowPlugin]
-                        .concat(travelerEnabled ? [TravelerPlugin] : [])
-                        .concat([DataBubblePlugin])
-                        .concat(useCustomXAxis ? [CustomXAxisLabelsPlugin] : [])
-                        .concat(YearAxisFitPlugin ? [YearAxisFitPlugin] : [])
-                };
+            if (isYearAxis) {
+                padTop += isMobile ? 18 : 12;
+                padBottom += isMobile ? 12 : 8;
             }
 
+            const denseXAxis = !isYearAxis && labelCount >= 10;
+            if (denseXAxis) {
+                padBottom = Math.max(padBottom, isMobile ? 62 : (isTablet ? 54 : 46));
+            }
+            const xMaxRotation = isYearAxis ? 0 : (denseXAxis ? (isMobile ? 48 : (isTablet ? 30 : 22)) : (isMobile ? 36 : (isTablet ? 20 : 0)));
+            const xMinRotation = isYearAxis ? 0 : (denseXAxis ? (isMobile ? 24 : (isTablet ? 14 : 10)) : (isMobile ? 12 : 0));
+            const tickPadding = isYearAxis ? 0 : (isMobile ? 8 : (isTablet ? 7 : (denseXAxis ? 4 : 6)));
+
+            const monthLookup = {
+                'enero': 'Ene', 'febrero': 'Feb', 'marzo': 'Mar', 'abril': 'Abr',
+                'mayo': 'May', 'junio': 'Jun', 'julio': 'Jul', 'agosto': 'Ago',
+                'septiembre': 'Sep', 'setiembre': 'Sep', 'octubre': 'Oct', 'noviembre': 'Nov', 'diciembre': 'Dic'
+            };
+            const normalizeMonthToken = (token) => {
+                if (!token) return '';
+                try {
+                    return token
+                        .toString()
+                        .normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, '')
+                        .replace(/[^a-z]/gi, '')
+                        .toLowerCase();
+                } catch (_) {
+                    return token.toString().replace(/[^a-z]/gi, '').toLowerCase();
+                }
+            };
+            const formatTickLabel = (value) => {
+                if (value == null) return value;
+                const raw = typeof value === 'string' ? value : String(value);
+                const trimmed = raw.trim();
+                if (!trimmed) return trimmed;
+                if (/^\d{4}$/.test(trimmed)) return trimmed;
+                const rawTokens = trimmed.split(/\s+/).filter(Boolean);
+                const primaryToken = rawTokens.length ? rawTokens[0] : trimmed;
+                const normalizedPrimary = normalizeMonthToken(primaryToken);
+                let monthAbbr = monthLookup[normalizedPrimary];
+                if (!monthAbbr) {
+                    const normalizedFull = normalizeMonthToken(trimmed.replace(/\s*\(.+\)$/, ''));
+                    if (normalizedFull && monthLookup[normalizedFull]) {
+                        monthAbbr = monthLookup[normalizedFull];
+                    }
+                }
+                if (!monthAbbr && rawTokens.length > 1) {
+                    const fallbackPrimary = normalizeMonthToken(rawTokens[0]);
+                    if (fallbackPrimary && monthLookup[fallbackPrimary]) {
+                        monthAbbr = monthLookup[fallbackPrimary];
+                    }
+                }
+                if (monthAbbr) {
+                    if (rawTokens.length > 1) {
+                        const remainder = rawTokens.slice(1).join(' ');
+                        return remainder ? [monthAbbr, remainder] : monthAbbr;
+                    }
+                    return monthAbbr;
+                }
+                if (isMobile && trimmed.length > 10) {
+                    const tokens = trimmed.split(/\s+/).filter(Boolean);
+                    if (tokens.length > 1) {
+                        const mid = Math.ceil(tokens.length / 2);
+                        return [tokens.slice(0, mid).join(' '), tokens.slice(mid).join(' ')];
+                    }
+                    return trimmed.length > 12 ? `${trimmed.slice(0, 9)}...` : trimmed;
+                }
+                if (isTablet && trimmed.length > 14) {
+                    const tokens = trimmed.split(/\s+/).filter(Boolean);
+                    if (tokens.length > 1) {
+                        const mid = Math.ceil(tokens.length / 2);
+                        return [tokens.slice(0, mid).join(' '), tokens.slice(mid).join(' ')];
+                    }
+                }
+                if (denseXAxis && !/\s/.test(trimmed) && trimmed.length > (isMobile ? 5 : 6)) {
+                    const mid = Math.ceil(trimmed.length / 2);
+                    const first = trimmed.slice(0, mid);
+                    const second = trimmed.slice(mid);
+                    return second ? [first, second] : [trimmed];
+                }
+                return trimmed;
+            };
+
+            const resolvedTitle = (() => {
+                if (!isMobile || typeof finalTitle !== 'string') return finalTitle;
+                const clean = finalTitle.trim();
+                if (clean.length <= 24) return clean;
+                const parts = clean.split(/\s+/).filter(Boolean);
+                if (parts.length <= 1) return clean.length > 26 ? `${clean.slice(0, 24)}...` : clean;
+                const half = Math.ceil(parts.length / 2);
+                return [parts.slice(0, half).join(' '), parts.slice(half).join(' ')];
+            })();
+
+            // Opciones específicas para las burbujas en ejes de años (4-5 puntos)
+            const bubbleShow = !isMobile || labelCount <= 12;
+            const bubbleOpts = {
+                show: bubbleShow,
+                defaultShow: bubbleShow,
+                borderColor: border,
+                fillColor: border,
+                textColor: '#ffffff',
+                format: fmtType,
+                minGapX: Math.min(140, dynMinGapX),
+                small: isYearAxis ? true : (isMobile ? true : smallMode),
+                offsetY: dynOffsetY,
+                offsetBelow: dynOffsetBelow,
+                onlyMax: isMobile && labelCount > 12
+            };
+
+            const resolvedTickDetails = (Array.isArray(tickDetails) && tickDetails.length === labelCount)
+                ? tickDetails
+                : null;
+            const useCustomXAxis = !isYearAxis && (denseXAxis || labelCount >= 6 || !!resolvedTickDetails);
+            if (useCustomXAxis) {
+                padBottom = Math.max(padBottom, isMobile ? 70 : (isTablet ? 60 : 52));
+            }
+            const multilineLabels = labels.map((labelValue, idx) => {
+                if (resolvedTickDetails) {
+                    const detail = resolvedTickDetails[idx];
+                    if (Array.isArray(detail)) return detail.map((entry) => (entry == null ? '' : String(entry)));
+                    return [detail == null ? '' : String(detail)];
+                }
+                const formatted = formatTickLabel(labelValue);
+                if (Array.isArray(formatted)) {
+                    return formatted.map((entry) => (entry == null ? '' : String(entry)));
+                }
+                const text = formatted == null ? '' : String(formatted);
+                return [text];
+            });
+            const xAxisRotationDegrees = useCustomXAxis ? (denseXAxis ? (isMobile ? 38 : (isTablet ? 28 : 20)) : 0) : 0;
+            const xAxisLineHeight = Math.round((xTickFont || 12) * (isMobile ? 1.28 : 1.18));
+            const xAxisBaseOffset = useCustomXAxis ? (denseXAxis ? (isMobile ? 20 : 16) : (isMobile ? 14 : 12)) : 8;
+            const xAxisLabelPluginConfig = useCustomXAxis ? {
+                enabled: true,
+                labels: multilineLabels,
+                fontSize: xTickFont,
+                fontFamily: 'system-ui, Segoe UI, Roboto, Arial',
+                fontWeight: '500',
+                color: theme.ticks,
+                rotationDegrees: xAxisRotationDegrees,
+                lineHeight: xAxisLineHeight,
+                baseOffset: xAxisBaseOffset
+            } : false;
+
+            // Plugin ligero para dar un extra de alto a la escala X en ejes anuales y evitar cortes
+            const YearAxisFitPlugin = isYearAxis ? {
+                id: 'yearAxisFit',
+                afterFit(scale) {
+                    try {
+                        if (scale && scale.isHorizontal && scale.isHorizontal()) {
+                            scale.height += isMobile ? 10 : 6;
+                        }
+                    } catch (_) { }
+                }
+            } : null;
+            const travelerEnabled = traveler && typeof traveler === 'object';
+            const tooltipSizeHint = (() => {
+                const xTitleString = typeof xTitle === 'string' ? xTitle.toLowerCase() : '';
+                const isMonthlyAxis = xTitleString.includes('mes');
+                const isWeeklyAxis = xTitleString.includes('semana') || xTitleString.includes('sem ') || xTitleString.includes('día') || xTitleString.includes('dia');
+                const weeklyDense = isWeeklyAxis && labelCount >= 6;
+                const preferMicro = (isMonthlyAxis && opsTooltipsAlwaysOn) || weeklyDense;
+                if (preferMicro) return 'micro';
+                if (labelCount >= 30 || (isMonthlyAxis && labelCount >= 24)) return 'micro';
+                if (labelCount >= 22 || (isMonthlyAxis && labelCount >= 18)) return 'mini';
+                if (labelCount >= 16 || isMonthlyAxis) return 'compact';
+                return 'default';
+            })();
+            const variationAccessor = Array.isArray(extraTooltip?.variations)
+                ? (idx) => extraTooltip.variations[idx]
+                : () => null;
+            const variationLabelText = extraTooltip?.variationLabel || 'Δ% vs período anterior';
+            const formatYAxisTick = (value) => {
+                if (!Number.isFinite(value)) return value;
+                try {
+                    return formatCompact ? formatCompact(value, fmtType) : value;
+                } catch (_) {
+                    return value;
+                }
+            };
+            return {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label,
+                        data: processedData,
+                        borderColor: border,
+                        backgroundColor: bg,
+                        borderWidth: 3,
+                        pointBackgroundColor: border,
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 1,
+                        pointRadius,
+                        pointHoverRadius,
+                        tension: 0.25,
+                        fill: true,
+                        clip: false,
+                        aifaTooltipConfig: {
+                            theme: theme.tooltip,
+                            formatValue: (value) => formatFull(value, fmtType),
+                            getVariation: variationAccessor,
+                            variationLabel: variationLabelText,
+                            formatVariation: formatPercentDelta,
+                            sizeHint: tooltipSizeHint
+                        }
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: { top: padTop, right: padRight, bottom: padBottom, left: padLeft } },
+                    animation: disableMotion ? false : {
+                        duration: anim.duration,
+                        easing: anim.easing,
+                        delay: (ctx) => ctx.type === 'data' ? (ctx.dataIndex * (anim.stagger || 0)) : 0
+                    },
+                    animations: disableMotion ? {} : {
+                        y: { easing: anim.easing, duration: anim.duration },
+                        tension: { from: 0.6, to: 0.25, duration: Math.min(1200, anim.duration), easing: 'easeOutQuad' }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: resolvedTitle,
+                            align: 'start',
+                            color: theme.labels,
+                            padding: { top: 6, bottom: 8 },
+                            font: { size: isMobile ? 13 : 14, weight: '600' }
+                        },
+                        tooltip: {
+                            enabled: !opsTooltipsAlwaysOn,
+                            backgroundColor: theme.tooltip.backgroundColor,
+                            titleColor: theme.tooltip.titleColor,
+                            bodyColor: theme.tooltip.bodyColor,
+                            callbacks: {
+                                label: (ctx) => {
+                                    const v = ctx.parsed.y;
+                                    let line = `${ctx.dataset.label}: ${formatFull(v, fmtType)}`;
+                                    const variationData = Array.isArray(extraTooltip?.variations) ? extraTooltip.variations : null;
+                                    if (variationData) {
+                                        const delta = variationData[ctx.dataIndex];
+                                        if (delta != null) {
+                                            const labelTxt = extraTooltip?.variationLabel || 'Δ% vs período anterior';
+                                            const formattedDelta = formatPercentDelta(delta);
+                                            if (formattedDelta) {
+                                                line += ` (${labelTxt}: ${formattedDelta})`;
+                                            }
+                                        }
+                                    }
+                                    return line;
+                                }
+                            }
+                        },
+                        // Desactivamos completamente chartjs-plugin-datalabels
+                        datalabels: false,
+                        travelerPlugin: travelerEnabled ? traveler : false,
+                        dataBubble: bubbleOpts,
+                        customXAxisLabels: xAxisLabelPluginConfig
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            offset: false,
+                            ticks: {
+                                display: !useCustomXAxis,
+                                color: theme.ticks,
+                                // No omitir etiquetas; las partimos en varias líneas si es necesario.
+                                autoSkip: false,
+                                maxTicksLimit: labels?.length || maxTicks,
+                                autoSkipPadding: tickPadding,
+                                stepSize: 1,
+                                source: 'labels',
+                                font: { size: xTickFont },
+                                minRotation: xMinRotation,
+                                maxRotation: xMaxRotation,
+                                callback: (val, index) => {
+                                    let rawValue = val;
+                                    if (typeof val === 'number' && Array.isArray(labels) && labels[val] != null) {
+                                        rawValue = labels[val];
+                                    } else if (labels && typeof index === 'number' && labels[index] != null && rawValue == null) {
+                                        rawValue = labels[index];
+                                    }
+                                    if (Array.isArray(tickDetails)) {
+                                        let detail = null;
+                                        if (typeof index === 'number' && index >= 0) {
+                                            detail = tickDetails[index];
+                                        }
+                                        if ((!detail || !detail.length) && typeof val === 'number' && val >= 0) {
+                                            detail = tickDetails[val];
+                                        }
+                                        if ((!detail || !detail.length) && rawValue != null) {
+                                            const lookupIndex = Array.isArray(labels) ? labels.indexOf(rawValue) : -1;
+                                            if (lookupIndex >= 0) detail = tickDetails[lookupIndex];
+                                        }
+                                        if (detail && detail.length) return detail;
+                                    }
+                                    return formatTickLabel(rawValue);
+                                }
+                            },
+                            title: { display: true, text: xTitle, color: theme.labels, font: { weight: '600' } },
+                            afterBuildTicks(scale) {
+                                try {
+                                    if (!Array.isArray(labels) || !labels.length) return;
+                                    const normalized = labels.map((labelText, idx) => ({ value: idx, label: labelText }));
+                                    if (Array.isArray(tickDetails) && tickDetails.length === normalized.length) {
+                                        scale.ticks = normalized.map((tick, idx) => ({
+                                            value: tick.value,
+                                            label: tickDetails[idx]
+                                        }));
+                                    } else {
+                                        scale.ticks = normalized;
+                                    }
+                                    if (scale?.options?.ticks) {
+                                        scale.options.ticks.autoSkip = false;
+                                        scale.options.ticks.maxTicksLimit = normalized.length;
+                                        scale.options.ticks.sampleSize = normalized.length;
+                                        scale.options.ticks.stepSize = 1;
+                                        scale.options.ticks.display = !useCustomXAxis;
+                                    }
+                                    if (typeof scale.autoSkip === 'boolean') {
+                                        scale.autoSkip = false;
+                                    }
+                                    if (typeof scale.tickAutoSkip === 'boolean') {
+                                        scale.tickAutoSkip = false;
+                                    }
+                                    if (typeof scale.ticksLength === 'number') {
+                                        scale.ticksLength = normalized.length;
+                                    }
+                                    if (typeof scale.tickAutoSkipEnabled === 'function') {
+                                        scale.tickAutoSkipEnabled = () => false;
+                                    }
+                                    if (scale._cache && typeof scale._cache === 'object') {
+                                        scale._cache.ticks = normalized;
+                                        scale._cache.labels = labels;
+                                    }
+                                    if (typeof scale.min === 'number') scale.min = 0;
+                                    if (typeof scale.max === 'number') scale.max = normalized.length ? normalized.length - 1 : scale.max;
+                                } catch (_) { /* noop */ }
+                            }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            min: yAxisMin,
+                            max: yAxisMax,
+                            grid: {
+                                color: theme.grid,
+                                drawBorder: false,
+                                borderDash: [4, 4],
+                                zeroLineColor: theme.grid
+                            },
+                            ticks: {
+                                color: theme.ticks,
+                                font: { size: yTickFont },
+                                padding: yTickPadding,
+                                maxTicksLimit: isMobile ? 5 : 8,
+                                callback: formatYAxisTick
+                            }
+                        }
+                    }
+                },
+                plugins: [opsPersistentTooltipPlugin, PeakGlowPlugin]
+                    .concat(travelerEnabled ? [TravelerPlugin] : [])
+                    .concat([DataBubblePlugin])
+                    .concat(useCustomXAxis ? [CustomXAxisLabelsPlugin] : [])
+                    .concat(YearAxisFitPlugin ? [YearAxisFitPlugin] : [])
+            };
+        }
+
         // Preparar datos según modo
-    const opsAggregated = getOpsAggregatedData();
-    const yearly = opsAggregated.yearly;
-    const monthly = opsAggregated.monthly;
-    const weekly = getActiveWeeklyDataset();
+        const opsAggregated = getOpsAggregatedData();
+        const yearly = opsAggregated.yearly;
+        const monthly = opsAggregated.monthly;
+        const weekly = getActiveWeeklyDataset();
         const mode = opsUIState.mode || 'yearly';
         const useMonthly = mode === 'monthly';
         const useWeekly = mode === 'weekly';
 
         // Construir labels y series
-    let labels = [];
-    let tickDetails = null;
+        let labels = [];
+        let tickDetails = null;
         const series = {
             comercialOps: [], comercialPax: [],
             cargaOps: [], cargaTon: [],
@@ -8335,19 +8342,19 @@ function renderOperacionesTotales() {
         } else if (!useMonthly) {
             const selYears = Array.from(opsUIState.years).sort();
             labels = selYears;
-            const pick = (arr, key) => selYears.map(y => (arr.find(d=> String(d.periodo)===y)?.[key] ?? 0));
+            const pick = (arr, key) => selYears.map(y => (arr.find(d => String(d.periodo) === y)?.[key] ?? 0));
             series.comercialOps = pick(yearly.comercial, 'operaciones');
             series.comercialPax = pick(yearly.comercial, 'pasajeros');
-            series.cargaOps     = pick(yearly.carga, 'operaciones');
-            series.cargaTon     = pick(yearly.carga, 'toneladas');
-            series.generalOps   = pick(yearly.general, 'operaciones');
-            series.generalPax   = pick(yearly.general, 'pasajeros');
+            series.cargaOps = pick(yearly.carga, 'operaciones');
+            series.cargaTon = pick(yearly.carga, 'toneladas');
+            series.generalOps = pick(yearly.general, 'operaciones');
+            series.generalPax = pick(yearly.general, 'pasajeros');
             variations.comercialOps = computeSequentialPercent(series.comercialOps);
             variations.comercialPax = computeSequentialPercent(series.comercialPax);
-            variations.cargaOps     = computeSequentialPercent(series.cargaOps);
-            variations.cargaTon     = computeSequentialPercent(series.cargaTon);
-            variations.generalOps   = computeSequentialPercent(series.generalOps);
-            variations.generalPax   = computeSequentialPercent(series.generalPax);
+            variations.cargaOps = computeSequentialPercent(series.cargaOps);
+            variations.cargaTon = computeSequentialPercent(series.cargaTon);
+            variations.generalOps = computeSequentialPercent(series.generalOps);
+            variations.generalPax = computeSequentialPercent(series.generalPax);
         } else {
             const selMonths = Array.from(opsUIState.months2025).sort();
             labels = monthly.comercial.filter(m => selMonths.includes(m.mes)).map(m => m.label);
@@ -8362,22 +8369,22 @@ function renderOperacionesTotales() {
             series.generalPax = monthly.general.pasajeros.filter(m => selMonths.includes(m.mes)).map(m => m.pasajeros || 0);
             variations.comercialOps = computeSequentialPercent(series.comercialOps);
             variations.comercialPax = computeSequentialPercent(series.comercialPax);
-            variations.cargaOps     = computeSequentialPercent(series.cargaOps);
-            variations.cargaTon     = computeSequentialPercent(series.cargaTon);
-            variations.generalOps   = computeSequentialPercent(series.generalOps);
-            variations.generalPax   = computeSequentialPercent(series.generalPax);
-    }
+            variations.cargaOps = computeSequentialPercent(series.cargaOps);
+            variations.cargaTon = computeSequentialPercent(series.cargaTon);
+            variations.generalOps = computeSequentialPercent(series.generalOps);
+            variations.generalPax = computeSequentialPercent(series.generalPax);
+        }
 
-    const periodLabel = useWeekly ? 'Día' : (useMonthly ? 'Mes' : 'Año');
+        const periodLabel = useWeekly ? 'Día' : (useMonthly ? 'Mes' : 'Año');
 
-    let variationLabel;
-    if (useWeekly) variationLabel = 'Δ% vs día previo';
-    else if (useMonthly) variationLabel = 'Δ% vs mes previo';
-    else variationLabel = 'Δ% vs año previo';
+        let variationLabel;
+        if (useWeekly) variationLabel = 'Δ% vs día previo';
+        else if (useMonthly) variationLabel = 'Δ% vs mes previo';
+        else variationLabel = 'Δ% vs año previo';
 
-    const getVariationPayload = (arr) => (Array.isArray(arr) && arr.length ? { variations: arr, variationLabel } : null);
+        const getVariationPayload = (arr) => (Array.isArray(arr) && arr.length ? { variations: arr, variationLabel } : null);
 
-    // Destruir charts previos y renderizar visibles
+        // Destruir charts previos y renderizar visibles
         destroyOpsCharts();
         const showComBase = !!opsUIState.sections.comercial;
         const showCarBase = !!opsUIState.sections.carga;
@@ -8408,81 +8415,81 @@ function renderOperacionesTotales() {
         setVisible('#general-group canvas#generalOpsChart', showGeneralSection && showOpsCharts);
         setVisible('#general-group canvas#generalPaxChart', showGeneralSection && showPassengerCharts);
 
-            // Comercial
+        // Comercial
         if (showCommercialSection) {
             const c1 = document.getElementById('commercialOpsChart');
             const c2 = document.getElementById('commercialPaxChart');
             if (showOpsCharts && c1) opsCharts.commercialOpsChart = new Chart(c1, makePeakCfg(
                 c1, labels, series.comercialOps,
                 'Operaciones', '#1e88e5', 'rgba(66,165,245,0.35)', 'rgba(21,101,192,0.05)',
-                { easing:'easeOutQuart', duration: 4800, stagger: 110, disableMotion: true },
-                'int', { type:'plane', speed: 20000, scale: 1.25 }, periodLabel, '✈ Operaciones (Comercial)',
+                { easing: 'easeOutQuart', duration: 4800, stagger: 110, disableMotion: true },
+                'int', { type: 'plane', speed: 20000, scale: 1.25 }, periodLabel, '✈ Operaciones (Comercial)',
                 getVariationPayload(variations.comercialOps),
                 tickDetails
             ));
             if (showPassengerCharts && c2) opsCharts.commercialPaxChart = new Chart(c2, makePeakCfg(
                 c2, labels, series.comercialPax,
                 'Pasajeros', '#1565c0', 'rgba(33,150,243,0.35)', 'rgba(13,71,161,0.05)',
-                { easing:'easeOutElastic', duration: 5200, stagger: 160, disableMotion: true },
-                'pax', { type:'person', speed: 22000, scale: 0.9 }, periodLabel, '🚶 Pasajeros (Comercial)',
+                { easing: 'easeOutElastic', duration: 5200, stagger: 160, disableMotion: true },
+                'pax', { type: 'person', speed: 22000, scale: 0.9 }, periodLabel, '🚶 Pasajeros (Comercial)',
                 getVariationPayload(variations.comercialPax),
                 tickDetails
             ));
         }
-            // Carga
+        // Carga
         if (showCargoSection) {
             const k1 = document.getElementById('cargoOpsChart');
             const k2 = document.getElementById('cargoTonsChart');
             if (showOpsCharts && k1) opsCharts.cargoOpsChart = new Chart(k1, makePeakCfg(
                 k1, labels, series.cargaOps,
                 'Operaciones', '#fb8c00', 'rgba(255,183,77,0.35)', 'rgba(239,108,0,0.05)',
-                { easing:'easeOutBack', duration: 5000, stagger: 140, disableMotion: true },
-                'int', { type:'plane', speed: 24000, scale: 1.35 }, periodLabel, '✈ Operaciones (Carga)',
+                { easing: 'easeOutBack', duration: 5000, stagger: 140, disableMotion: true },
+                'int', { type: 'plane', speed: 24000, scale: 1.35 }, periodLabel, '✈ Operaciones (Carga)',
                 getVariationPayload(variations.cargaOps),
                 tickDetails
             ));
             if (showCargoTonCharts && k2) opsCharts.cargoTonsChart = new Chart(k2, makePeakCfg(
                 k2, labels, series.cargaTon,
                 'Toneladas', '#f57c00', 'rgba(255,204,128,0.35)', 'rgba(230,81,0,0.05)',
-                { easing:'easeOutCubic', duration: 5600, stagger: 170, disableMotion: true },
-                'ton', { type:'suitcase', speed: 26000, scale: 1.5 }, periodLabel, '🧳 Toneladas (Carga)',
+                { easing: 'easeOutCubic', duration: 5600, stagger: 170, disableMotion: true },
+                'ton', { type: 'suitcase', speed: 26000, scale: 1.5 }, periodLabel, '🧳 Toneladas (Carga)',
                 getVariationPayload(variations.cargaTon),
                 tickDetails
             ));
         }
-            // General
+        // General
         if (showGeneralSection) {
             const g1 = document.getElementById('generalOpsChart');
             const g2 = document.getElementById('generalPaxChart');
             if (showOpsCharts && g1) opsCharts.generalOpsChart = new Chart(g1, makePeakCfg(
                 g1, labels, series.generalOps,
                 'Operaciones', '#2e7d32', 'rgba(129,199,132,0.35)', 'rgba(27,94,32,0.05)',
-                { easing:'easeOutQuart', duration: 4800, stagger: 130, disableMotion: true },
-                'int', { type:'plane', speed: 22000, scale: 1.3 }, periodLabel, '✈ Operaciones (General)',
+                { easing: 'easeOutQuart', duration: 4800, stagger: 130, disableMotion: true },
+                'int', { type: 'plane', speed: 22000, scale: 1.3 }, periodLabel, '✈ Operaciones (General)',
                 getVariationPayload(variations.generalOps),
                 tickDetails
             ));
             if (showPassengerCharts && g2) opsCharts.generalPaxChart = new Chart(g2, makePeakCfg(
                 g2, labels, series.generalPax,
                 'Pasajeros', '#1b5e20', 'rgba(165,214,167,0.35)', 'rgba(27,94,32,0.05)',
-                { easing:'easeOutElastic', duration: 5200, stagger: 160, disableMotion: true },
-                'pax', { type:'person', speed: 23000, scale: 0.9 }, periodLabel, '🚶 Pasajeros (General)',
+                { easing: 'easeOutElastic', duration: 5200, stagger: 160, disableMotion: true },
+                'pax', { type: 'person', speed: 23000, scale: 0.9 }, periodLabel, '🚶 Pasajeros (General)',
                 getVariationPayload(variations.generalPax),
                 tickDetails
             ));
         }
 
-    updateCargoLegend(useWeekly ? weekly : getActiveWeeklyDataset());
+        updateCargoLegend(useWeekly ? weekly : getActiveWeeklyDataset());
 
-    // Iniciar animación de viajeros
-    startOpsAnim();
-    applyOpsTooltipsStateToCharts();
+        // Iniciar animación de viajeros
+        startOpsAnim();
+        applyOpsTooltipsStateToCharts();
 
-    // Actualizar resumen en función del modo/filtros
-        try { updateOpsSummary(); } catch(_) {}
+        // Actualizar resumen en función del modo/filtros
+        try { updateOpsSummary(); } catch (_) { }
         scheduleOpsViewportUpdate();
     } catch (e) { console.warn('renderOperacionesTotales error:', e); }
-    
+
     // Detectar errores después de renderizar
     setTimeout(detectChartErrors, 300);
 }
@@ -8601,7 +8608,7 @@ function updateOpsSummary() {
                 container.innerHTML = `<div class="ops-summary-empty text-muted">Selecciona al menos un mes de ${activeMonthlyYear} para ver el resumen.</div>`;
                 return;
             }
-            const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+            const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
             const entriesForMonth = (code) => [
                 monthly.comercial.find(entry => entry.mes === code),
                 monthly.comercialPasajeros.find(entry => entry.mes === code),
@@ -8765,7 +8772,7 @@ window.updateOpsSummary = updateOpsSummary;
 // Función para verificar que las gráficas se crearon correctamente
 function verifyChartsCreated(sectionId) {
     console.log(`🔍 Verificando gráficas de sección: ${sectionId}`);
-    
+
     if (sectionId === 'operaciones-totales') {
         const sections = opsUIState.sections || {};
         const showCom = sections.comercial !== false;
@@ -8800,13 +8807,13 @@ function verifyChartsCreated(sectionId) {
         });
 
         return createdCount === expectedCharts.length;
-        
+
     } else if (sectionId === 'itinerario') {
         const expectedCanvases = [
             'paxArrivalsChart', 'paxDeparturesChart',
             'cargoArrivalsChart', 'cargoDeparturesChart'
         ];
-        
+
         let createdCount = 0;
         expectedCanvases.forEach(canvasId => {
             const canvas = document.getElementById(canvasId);
@@ -8818,9 +8825,9 @@ function verifyChartsCreated(sectionId) {
                 console.warn(`❌ ${canvasId} NO se creó`);
             }
         });
-        
+
         return createdCount === expectedCanvases.length;
-        
+
     } else if (sectionId === 'demoras') {
         const hasChart = window.opsCharts && window.opsCharts.delaysPieChart;
         if (hasChart) {
@@ -8830,7 +8837,7 @@ function verifyChartsCreated(sectionId) {
         }
         return hasChart;
     }
-    
+
     return true; // Para otras secciones sin gráficas específicas
 }
 
@@ -8842,14 +8849,14 @@ function computeDailyStats() {
     try {
         // Heurística: usa flights del día "hoy" y cuenta por categoría
         const today = new Date();
-        const y = today.getFullYear(), m = String(today.getMonth()+1).padStart(2,'0'), d = String(today.getDate()).padStart(2,'0');
+        const y = today.getFullYear(), m = String(today.getMonth() + 1).padStart(2, '0'), d = String(today.getDate()).padStart(2, '0');
         const dmy = `${d}/${m}/${y}`;
         const iso = `${y}-${m}-${d}`;
 
-        const isPax = f => (String(f.categoria||'').toLowerCase()==='pasajeros');
-        const isCargo = f => (String(f.categoria||'').toLowerCase()==='carga');
-        let c = { ayer: 0, hoy: 0, trend: '=' }, k={ ayer:0, hoy:0, trend:'=' }, g={ ayer:0, hoy:0, trend:'=' };
-        
+        const isPax = f => (String(f.categoria || '').toLowerCase() === 'pasajeros');
+        const isCargo = f => (String(f.categoria || '').toLowerCase() === 'carga');
+        let c = { ayer: 0, hoy: 0, trend: '=' }, k = { ayer: 0, hoy: 0, trend: '=' }, g = { ayer: 0, hoy: 0, trend: '=' };
+
         const matchDate = (f, targetDMY, targetISO) => {
             const fArr = f.fecha_llegada;
             const fDep = f.fecha_salida;
@@ -8857,11 +8864,11 @@ function computeDailyStats() {
         };
 
         const countFor = (targetDMY, targetISO, pred) => allFlightsData.filter(f => matchDate(f, targetDMY, targetISO) && pred(f)).length;
-        
+
         c.hoy = countFor(dmy, iso, isPax); k.hoy = countFor(dmy, iso, isCargo);
         // Ayer
-        const ay = new Date(today); ay.setDate(today.getDate()-1);
-        const y2 = ay.getFullYear(), m2 = String(ay.getMonth()+1).padStart(2,'0'), d2 = String(ay.getDate()).padStart(2,'0');
+        const ay = new Date(today); ay.setDate(today.getDate() - 1);
+        const y2 = ay.getFullYear(), m2 = String(ay.getMonth() + 1).padStart(2, '0'), d2 = String(ay.getDate()).padStart(2, '0');
         const dmy2 = `${d2}/${m2}/${y2}`;
         const iso2 = `${y2}-${m2}-${d2}`;
 
@@ -8869,14 +8876,14 @@ function computeDailyStats() {
         // General: lo que no cae en pax/carga
         const isGen = f => !isPax(f) && !isCargo(f);
         g.hoy = countFor(dmy, iso, isGen); g.ayer = countFor(dmy2, iso2, isGen);
-        const trend = (h,a) => h>a ? '↑' : h<a ? '↓' : '=';
+        const trend = (h, a) => h > a ? '↑' : h < a ? '↓' : '=';
         c.trend = trend(c.hoy, c.ayer); k.trend = trend(k.hoy, k.ayer); g.trend = trend(g.hoy, g.ayer);
-        const set = (id,v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+        const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
         set('daily-comercial-hoy', c.hoy); set('daily-comercial-ayer', c.ayer); set('daily-comercial-trend', c.trend);
         set('daily-carga-hoy', k.hoy); set('daily-carga-ayer', k.ayer); set('daily-carga-trend', k.trend);
         set('daily-general-hoy', g.hoy); set('daily-general-ayer', g.ayer); set('daily-general-trend', g.trend);
         return { comercial: c, carga: k, general: g };
-    } catch (e) { console.warn('computeDailyStats error:', e); return { comercial:{ayer:0,hoy:0,trend:'='}, carga:{ayer:0,hoy:0,trend:'='}, general:{ayer:0,hoy:0,trend:'='} }; }
+    } catch (e) { console.warn('computeDailyStats error:', e); return { comercial: { ayer: 0, hoy: 0, trend: '=' }, carga: { ayer: 0, hoy: 0, trend: '=' }, general: { ayer: 0, hoy: 0, trend: '=' } }; }
 }
 
 // Lightbox para PDFs
@@ -8906,7 +8913,7 @@ function setupLightboxListeners() {
         });
         const hide = () => lb.classList.add('hidden');
         if (closeBtn) closeBtn.addEventListener('click', hide);
-        lb.addEventListener('click', (e)=>{ if (e.target === lb) hide(); });
+        lb.addEventListener('click', (e) => { if (e.target === lb) hide(); });
     } catch (e) { /* ignore */ }
 }
 
@@ -8927,12 +8934,12 @@ function updateScrollControlsFor(containerId) {
         if (rightBtn) rightBtn.disabled = area.scrollLeft >= m - 5;
     };
     const scrollBy = (dx) => { area.scrollBy({ left: dx, behavior: 'smooth' }); setTimeout(setState, 120); };
-    if (leftBtn && !leftBtn._wired) { leftBtn._wired = 1; leftBtn.addEventListener('click', ()=> scrollBy(-240)); }
-    if (rightBtn && !rightBtn._wired) { rightBtn._wired = 1; rightBtn.addEventListener('click', ()=> scrollBy(240)); }
-    if (range && !range._wired) { range._wired = 1; range.addEventListener('input', ()=> area.scrollTo({ left: Number(range.value)||0 })); }
+    if (leftBtn && !leftBtn._wired) { leftBtn._wired = 1; leftBtn.addEventListener('click', () => scrollBy(-240)); }
+    if (rightBtn && !rightBtn._wired) { rightBtn._wired = 1; rightBtn.addEventListener('click', () => scrollBy(240)); }
+    if (range && !range._wired) { range._wired = 1; range.addEventListener('input', () => area.scrollTo({ left: Number(range.value) || 0 })); }
     if (!area._wheelWired) {
         area._wheelWired = 1;
-        area.addEventListener('wheel', (ev)=>{
+        area.addEventListener('wheel', (ev) => {
             // Sólo desplazar horizontalmente si el usuario mantiene Shift o si hay deltaX notable
             const horiz = Math.abs(ev.deltaX) > Math.abs(ev.deltaY);
             if (ev.shiftKey || horiz) {
@@ -8941,7 +8948,7 @@ function updateScrollControlsFor(containerId) {
                 // Si estamos forzando scroll horizontal por Shift, prevenimos el vertical
                 if (ev.shiftKey) ev.preventDefault();
             }
-        }, { passive:false });
+        }, { passive: false });
     }
     setState();
 }
@@ -8950,15 +8957,17 @@ function setupBodyEventListeners() {
     try {
         // Sidebar overlay click
         const overlay = document.getElementById('sidebar-overlay');
-        if (overlay && !overlay._wired) { overlay._wired = 1; overlay.addEventListener('click', ()=> {
-            const sidebar = document.getElementById('sidebar');
-            if (sidebar) sidebar.classList.remove('visible');
-            overlay.classList.remove('active');
-            document.body.classList.remove('sidebar-open');
-        }); }
+        if (overlay && !overlay._wired) {
+            overlay._wired = 1; overlay.addEventListener('click', () => {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar) sidebar.classList.remove('visible');
+                overlay.classList.remove('active');
+                document.body.classList.remove('sidebar-open');
+            });
+        }
         // Scroll controls ranges
         document.querySelectorAll('.itinerary-horizontal .h-scroll-area').forEach(area => {
-            try { updateScrollControlsFor(area.id); } catch(_) {}
+            try { updateScrollControlsFor(area.id); } catch (_) { }
         });
     } catch (e) { /* ignore */ }
 }
@@ -8979,7 +8988,7 @@ function enableTwoAxisTableScroll(hAreaId, tableContainerId) {
             try {
                 const t = ev.touches && ev.touches[0] ? ev.touches[0] : ev;
                 startX = lastX = t.clientX; startY = t.clientY; deciding = true; horiz = false;
-            } catch(_) {}
+            } catch (_) { }
         };
         const onMove = (ev) => {
             try {
@@ -8995,9 +9004,9 @@ function enableTwoAxisTableScroll(hAreaId, tableContainerId) {
                     ev.preventDefault();
                     hArea.scrollLeft -= dx;
                     lastX = t.clientX;
-                    try { updateScrollControlsFor(hAreaId); } catch(_) {}
+                    try { updateScrollControlsFor(hAreaId); } catch (_) { }
                 }
-            } catch(_) {}
+            } catch (_) { }
         };
         const onEnd = () => { deciding = true; horiz = false; };
 
@@ -9005,7 +9014,7 @@ function enableTwoAxisTableScroll(hAreaId, tableContainerId) {
         vScroll.addEventListener('touchmove', onMove, { passive: false });
         vScroll.addEventListener('touchend', onEnd, { passive: true });
         vScroll.addEventListener('touchcancel', onEnd, { passive: true });
-    } catch(_) {}
+    } catch (_) { }
 }
 
 // Exportar todas las gráficas en un solo PDF (dos por página, centradas)
@@ -9018,14 +9027,14 @@ async function exportAllChartsPDF() {
         const suffix = activeYear ? ` ${activeYear}` : '';
 
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('p','mm','a4');
+        const doc = new jsPDF('p', 'mm', 'a4');
         const chartMeta = [
-            { id:'commercialOpsChart', title:`Operaciones - Aviación Comercial${suffix}` },
-            { id:'commercialPaxChart', title:`Pasajeros - Aviación Comercial${suffix}` },
-            { id:'cargoOpsChart', title:`Operaciones - Carga Aérea${suffix}` },
-            { id:'cargoTonsChart', title:`Toneladas - Carga Aérea${suffix}` },
-            { id:'generalOpsChart', title:`Operaciones - Aviación General${suffix}` },
-            { id:'generalPaxChart', title:`Pasajeros - Aviación General${suffix}` }
+            { id: 'commercialOpsChart', title: `Operaciones - Aviación Comercial${suffix}` },
+            { id: 'commercialPaxChart', title: `Pasajeros - Aviación Comercial${suffix}` },
+            { id: 'cargoOpsChart', title: `Operaciones - Carga Aérea${suffix}` },
+            { id: 'cargoTonsChart', title: `Toneladas - Carga Aérea${suffix}` },
+            { id: 'generalOpsChart', title: `Operaciones - Aviación General${suffix}` },
+            { id: 'generalPaxChart', title: `Pasajeros - Aviación General${suffix}` }
         ];
 
         const visibleCharts = [];
@@ -9078,7 +9087,7 @@ async function exportAllChartsPDF() {
 }
 
 // Login sky animation (dawn / day / dusk / night)
-const LOGIN_SKY_STATE_CLASSES = ['night','dawn','day','dusk'];
+const LOGIN_SKY_STATE_CLASSES = ['night', 'dawn', 'day', 'dusk'];
 const LOGIN_PLANE_REFRESH_MS = 45000;
 let loginSkyCurrentState = null;
 let loginSkyIntervalId = null;
@@ -9213,7 +9222,7 @@ function initLoginSkyScene() {
                 osc.appendChild(trail);
 
                 plane.appendChild(osc);
-                ['nav-red','nav-green','beacon','strobe','landing'].forEach(cls => {
+                ['nav-red', 'nav-green', 'beacon', 'strobe', 'landing'].forEach(cls => {
                     const light = document.createElement('span');
                     light.className = `light ${cls}`;
                     light.setAttribute('aria-hidden', 'true');
@@ -9319,17 +9328,17 @@ function showMainApp() {
     // Si no hay token válido, volver a login
     verifyToken(token).then(valid => {
         if (!valid) {
-            try { sessionStorage.removeItem(SESSION_USER); sessionStorage.removeItem(SESSION_TOKEN); } catch(_) {}
+            try { sessionStorage.removeItem(SESSION_USER); sessionStorage.removeItem(SESSION_TOKEN); } catch (_) { }
             if (main) main.classList.add('hidden');
             if (login) login.classList.remove('hidden');
             return;
         }
-        checkForAppUpdates().catch(() => {});
+        checkForAppUpdates().catch(() => { });
         const mainWasHidden = main ? main.classList.contains('hidden') : false;
         if (login) login.classList.add('hidden');
         if (main) main.classList.remove('hidden');
         // Usuario actual
-        const userEl = document.getElementById('current-user'); 
+        const userEl = document.getElementById('current-user');
         if (userEl) {
             const fullName = sessionStorage.getItem('user_fullname') || name;
             const role = sessionStorage.getItem('user_role') || 'viewer';
@@ -9349,14 +9358,14 @@ function showMainApp() {
             ensureOpsEntryPanel();
             const hasSummary = !!(parteOperacionesSummaryCache && Array.isArray(parteOperacionesSummaryCache.dates));
             updateParteOperacionesAvailabilityBanner(parteOperacionesSummaryCache, { skipBanner: !hasSummary });
-        } catch (_) {}
+        } catch (_) { }
         if (mainWasHidden) {
             try {
                 const startLink = document.querySelector('.menu-item[data-section="operaciones-totales"]');
                 if (startLink && startLink.dataset?.section) {
                     showSection(startLink.dataset.section, startLink);
                 }
-            } catch (_) {}
+            } catch (_) { }
             try {
                 const sidebar = document.getElementById('sidebar');
                 const overlay = document.getElementById('sidebar-overlay');
@@ -9368,9 +9377,9 @@ function showMainApp() {
                     document.body.classList.remove('sidebar-open');
                 } else {
                     document.body.classList.add('sidebar-collapsed');
-                    try { localStorage.setItem('sidebarState', 'collapsed'); } catch (_) {}
+                    try { localStorage.setItem('sidebarState', 'collapsed'); } catch (_) { }
                 }
-            } catch (_) {}
+            } catch (_) { }
         }
 
         const refreshOpsAfterLogin = () => {
@@ -9378,13 +9387,13 @@ function showMainApp() {
             if (!opsSection || !opsSection.classList.contains('active')) return;
             try { updateOpsSummary(); } catch (err) { console.warn('updateOpsSummary after login failed:', err); }
             try { renderOperacionesTotales(); } catch (err) { console.warn('renderOperacionesTotales after login failed:', err); }
-            try { setTimeout(() => { try { detectChartErrors(); } catch (_) {} }, 400); } catch (_) {}
+            try { setTimeout(() => { try { detectChartErrors(); } catch (_) { } }, 400); } catch (_) { }
         };
         const shouldRefreshOps = mainWasHidden || !Object.keys(opsCharts || {}).length;
         if (shouldRefreshOps) {
             setTimeout(refreshOpsAfterLogin, 120);
         }
-    }).catch(()=>{
+    }).catch(() => {
         if (main) main.classList.add('hidden');
         if (login) login.classList.remove('hidden');
     });
@@ -9396,7 +9405,7 @@ function checkSession() {
         const name = sessionStorage.getItem(SESSION_USER);
         if (!token || !name) return;
         // Validar token antes de mostrar
-        verifyToken(token).then(valid => { if (valid) showMainApp(); }).catch(()=>{});
+        verifyToken(token).then(valid => { if (valid) showMainApp(); }).catch(() => { });
     } catch (e) { /* ignore */ }
 }
 
@@ -9415,12 +9424,12 @@ function createPdfSections() {
 }
 
 // Placeholders seguros para funciones referenciadas
-function initFrecuenciasSemana() {}
-function renderFrecuenciasSemana() {}
-function changeFreqWeek(_delta) {}
-function ensurePeakDate() {}
-function renderDailyPeaks() {}
-function initPeakDateControls() {}
+function initFrecuenciasSemana() { }
+function renderFrecuenciasSemana() { }
+function changeFreqWeek(_delta) { }
+function ensurePeakDate() { }
+function renderDailyPeaks() { }
+function initPeakDateControls() { }
 
 // ================== Aviación General: comparativo dinámico ==================
 function isFiniteNumber(value) {
@@ -9711,7 +9720,7 @@ function renderAviationAnalyticsChart(moduleKey, canvas, { view, metricMeta, ann
     if (!canvas) return;
     const chartRef = aviationAnalyticsCharts[moduleKey];
     if (chartRef) {
-        try { chartRef.destroy(); } catch (_) {}
+        try { chartRef.destroy(); } catch (_) { }
         aviationAnalyticsCharts[moduleKey] = null;
     }
 
@@ -9830,7 +9839,7 @@ function renderAviationAnalyticsChart(moduleKey, canvas, { view, metricMeta, ann
 
     if (aviationAnalyticsCharts[moduleKey] && forceResize) {
         setTimeout(() => {
-            try { aviationAnalyticsCharts[moduleKey].resize(); } catch (_) {}
+            try { aviationAnalyticsCharts[moduleKey].resize(); } catch (_) { }
         }, 120);
     }
 }
@@ -10247,14 +10256,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!loginSkyIntervalId) {
             loginSkyIntervalId = window.setInterval(() => updateLoginSkyScene(), 60000);
         }
-    } catch (_) {}
+    } catch (_) { }
     try {
         // Inicializar hashes de autenticación lo antes posible
-    ensureAuthHashes();
-    const toggleMonthly = document.getElementById('toggle-monthly-view');
-    const toggleWeekly = document.getElementById('toggle-weekly-view');
-    const toggleYearly = document.getElementById('toggle-yearly-view');
-    const opsFilterYear = document.getElementById('ops-filter-year');
+        ensureAuthHashes();
+        const toggleMonthly = document.getElementById('toggle-monthly-view');
+        const toggleWeekly = document.getElementById('toggle-weekly-view');
+        const toggleYearly = document.getElementById('toggle-yearly-view');
+        const opsFilterYear = document.getElementById('ops-filter-year');
         const weeklyWeekFilter = document.getElementById('weekly-week-filter');
         const weeklyWeekSelect = document.getElementById('weekly-week-select');
         const weeklyWeekPicker = document.getElementById('weekly-week-picker');
@@ -10267,22 +10276,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const monthsNone = document.getElementById('months-select-none');
         const sectionsBox = document.getElementById('ops-sections-filters');
         const yearsBox = document.getElementById('ops-years-filters');
-    const presetOps = document.getElementById('preset-ops');
-    const presetPassengers = document.getElementById('preset-passengers');
-    const presetCargoTon = document.getElementById('preset-cargo-ton');
-    const presetFull = document.getElementById('preset-full');
+        const presetOps = document.getElementById('preset-ops');
+        const presetPassengers = document.getElementById('preset-passengers');
+        const presetCargoTon = document.getElementById('preset-cargo-ton');
+        const presetFull = document.getElementById('preset-full');
 
         refreshOpsYearFilters();
         refreshOpsMonthlyYearLabels();
         refreshOpsMonthsSelectionUI();
 
-        function refreshDisabledYears(disabled){
+        function refreshDisabledYears(disabled) {
             // Always enable years
             yearsBox?.querySelectorAll('input[type="checkbox"]').forEach(inp => { inp.disabled = false; });
             if (yearsHint) yearsHint.classList.add('d-none');
         }
 
-        function syncToggleStates(){
+        function syncToggleStates() {
             if (toggleWeekly) {
                 const usable = !toggleWeekly.disabled;
                 toggleWeekly.checked = usable && opsUIState.mode === 'weekly';
@@ -10292,10 +10301,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Expose update function for dynamic data loading
-        window.updateOpsFiltersAfterDataLoad = function() {
+        window.updateOpsFiltersAfterDataLoad = function () {
             const availability = populateWeeklyWeekOptions();
             populateWeeklyDayOptions();
-            
+
             // Restore weekly mode if data is available (overriding any fallback that happened during init)
             if (availability && availability.hasAny) {
                 opsUIState.mode = 'weekly';
@@ -10316,7 +10325,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let adjustingMode = false;
 
-        function getSortedWeeklyCatalog(withDataOnly = false){
+        function getSortedWeeklyCatalog(withDataOnly = false) {
             const catalog = getWeeklyDatasetsCatalog();
             if (!Array.isArray(catalog)) return [];
             const sorted = catalog.slice().sort((a, b) => {
@@ -10335,7 +10344,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .trim();
         }
 
-        function buildWeekGroupsByMonth(weeks){
+        function buildWeekGroupsByMonth(weeks) {
             const groups = [];
             weeks.forEach((week) => {
                 const startDate = getWeekStartDate(week) || parseIsoDay(week?.rango?.fin || '') || parseIsoDay(week?.dias?.[0]?.fecha || '');
@@ -10435,7 +10444,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        function populateWeeklyWeekOptions(){
+        function populateWeeklyWeekOptions() {
             if (!weeklyWeekSelect) return { weeks: [], hasAny: false, currentHasData: false };
             const currentWeekRaw = staticData?.operacionesSemanaActual || null;
             const currentWeek = currentWeekRaw ? deepCloneWeek(currentWeekRaw) : null;
@@ -10475,7 +10484,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return { weeks: distinctWeeks, hasAny, currentHasData };
         }
 
-        function populateWeeklyDayOptions(){
+        function populateWeeklyDayOptions() {
             if (!weeklyDaySelect) return { hasDays: false };
             const activeWeek = getActiveWeeklyDataset();
             const days = Array.isArray(activeWeek?.dias) ? activeWeek.dias : [];
@@ -10499,7 +10508,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return { hasDays: days.length > 0, week: activeWeek };
         }
 
-        function syncWeeklyControls(){
+        function syncWeeklyControls() {
             const isWeekly = opsUIState.mode === 'weekly';
             if (weeklyWeekFilter) {
                 weeklyWeekFilter.classList.remove('d-none');
@@ -10516,8 +10525,8 @@ document.addEventListener('DOMContentLoaded', () => {
             syncToggleStates();
         }
 
-        function forceMode(newMode){
-            if (!['weekly','monthly','yearly'].includes(newMode)) return;
+        function forceMode(newMode) {
+            if (!['weekly', 'monthly', 'yearly'].includes(newMode)) return;
             if (newMode === 'weekly' && toggleWeekly && toggleWeekly.disabled) {
                 newMode = 'monthly';
                 if (!toggleMonthly || toggleMonthly.disabled) newMode = 'yearly';
@@ -10548,7 +10557,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     opsFilterYear.classList.toggle('d-none', newMode !== 'monthly');
                     // Ensure select shows current cached/active year
                     if (newMode === 'monthly' && staticData.mensualYear) {
-                         opsFilterYear.value = staticData.mensualYear;
+                        opsFilterYear.value = staticData.mensualYear;
                     }
                 }
                 syncToggleStates();
@@ -10635,10 +10644,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (opsFilterYear && !opsFilterYear._wired) {
             opsFilterYear._wired = 1;
             opsFilterYear.addEventListener('change', () => {
-                 const year = opsFilterYear.value;
-                 if (year) {
-                     syncStaticDataFromDB(year);
-                 }
+                const year = opsFilterYear.value;
+                if (year) {
+                    syncStaticDataFromDB(year);
+                }
             });
         }
 
@@ -10648,12 +10657,12 @@ document.addEventListener('DOMContentLoaded', () => {
         syncWeeklyControls();
         refreshDisabledYears(opsUIState.mode !== 'yearly');
         if (monthsPanel) {
-             if (opsUIState.mode === 'monthly') {
-                 monthsPanel.classList.remove('d-none');
-                 monthsPanel.style.display = '';
-             } else {
-                 monthsPanel.classList.add('d-none');
-             }
+            if (opsUIState.mode === 'monthly') {
+                monthsPanel.classList.remove('d-none');
+                monthsPanel.style.display = '';
+            } else {
+                monthsPanel.classList.add('d-none');
+            }
         }
         syncToggleStates();
         if (opsUIState.mode === 'weekly' && !initialAvailability.hasAny) {
@@ -10681,7 +10690,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        function readMonths(){
+        function readMonths() {
             const sel = new Set();
             const activeYear = opsUIState?.activeMonthlyYear ? String(opsUIState.activeMonthlyYear) : getOpsActiveMonthlyYear();
             const allowed = createAllowedMonthsSet(activeYear);
@@ -10729,11 +10738,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-    if (presetOps && !presetOps._wired) { presetOps._wired = 1; presetOps.addEventListener('click', ()=>{ opsUIState.preset='ops'; renderOperacionesTotales(); }); }
-    if (presetPassengers && !presetPassengers._wired) { presetPassengers._wired = 1; presetPassengers.addEventListener('click', ()=>{ opsUIState.preset='pax'; renderOperacionesTotales(); }); }
-    if (presetCargoTon && !presetCargoTon._wired) { presetCargoTon._wired = 1; presetCargoTon.addEventListener('click', ()=>{ opsUIState.preset='cargoTon'; renderOperacionesTotales(); }); }
-    if (presetFull && !presetFull._wired) { presetFull._wired = 1; presetFull.addEventListener('click', ()=>{ opsUIState.preset='full'; renderOperacionesTotales(); }); }
-    } catch (_) {}
+        if (presetOps && !presetOps._wired) { presetOps._wired = 1; presetOps.addEventListener('click', () => { opsUIState.preset = 'ops'; renderOperacionesTotales(); }); }
+        if (presetPassengers && !presetPassengers._wired) { presetPassengers._wired = 1; presetPassengers.addEventListener('click', () => { opsUIState.preset = 'pax'; renderOperacionesTotales(); }); }
+        if (presetCargoTon && !presetCargoTon._wired) { presetCargoTon._wired = 1; presetCargoTon.addEventListener('click', () => { opsUIState.preset = 'cargoTon'; renderOperacionesTotales(); }); }
+        if (presetFull && !presetFull._wired) { presetFull._wired = 1; presetFull.addEventListener('click', () => { opsUIState.preset = 'full'; renderOperacionesTotales(); }); }
+    } catch (_) { }
 });
 
 // Manifiestos: UI mínima (preview de imagen y tabla local)
@@ -10743,60 +10752,60 @@ function setupManifestsUI() {
         const prevImg = document.getElementById('manifest-preview');
         const placeholder = document.getElementById('manifest-preview-placeholder');
         const runBtn = document.getElementById('manifest-run-ocr');
-    const loadEx = document.getElementById('manifest-load-example');
+        const loadEx = document.getElementById('manifest-load-example');
         const tableBody = document.querySelector('#manifest-records-table tbody');
         const saveBtn = document.getElementById('manifest-save');
         const clearBtn = document.getElementById('manifest-clear');
         const exportBtn = document.getElementById('manifest-export-json');
         const dirArr = document.getElementById('mf-dir-arr');
-    const dirDep = document.getElementById('mf-dir-dep');
-    const form = document.getElementById('manifest-form');
-    // Estado: imagen actual (solo imágenes)
-    let currentImageURL = '';
+        const dirDep = document.getElementById('mf-dir-dep');
+        const form = document.getElementById('manifest-form');
+        // Estado: imagen actual (solo imágenes)
+        let currentImageURL = '';
         // Carga de catálogo: airlines.csv (IATA,ICAO,Name)
         let airlinesCatalog = [];
-    let iataToIcao = new Map();
-    let icaoSet = new Set();
-    // Catálogos de aeronaves
-    let aircraftByReg = new Map(); // reg -> { type, ownerIATA }
-    let typeByCode = new Map();    // IATA code -> { ICAO, Name }
-    // Aeropuertos
-    let airportByIATA = new Map(); // IATA -> Name
-    let airportByName = new Map(); // lowercase Name -> IATA
-    let iataSet = new Set();
+        let iataToIcao = new Map();
+        let icaoSet = new Set();
+        // Catálogos de aeronaves
+        let aircraftByReg = new Map(); // reg -> { type, ownerIATA }
+        let typeByCode = new Map();    // IATA code -> { ICAO, Name }
+        // Aeropuertos
+        let airportByIATA = new Map(); // IATA -> Name
+        let airportByName = new Map(); // lowercase Name -> IATA
+        let iataSet = new Set();
         // OCR helpers locales
-        function hasWordFactory(text){ const U=(text||'').toUpperCase(); return (w)=> U.includes(String(w||'').toUpperCase()); }
-        function tokenizeUpper(text){ return (text||'').toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean); }
+        function hasWordFactory(text) { const U = (text || '').toUpperCase(); return (w) => U.includes(String(w || '').toUpperCase()); }
+        function tokenizeUpper(text) { return (text || '').toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean); }
         const timeRx = /\b(?:([01]?\d|2[0-3])[:hH\.]\s?([0-5]\d))(?:\s?(?:hrs|hr|h))?\b/;
-        function findNearLabelValue(labels, valueRegex, text){
-            try{
-                const lines = (text||'').split(/\r?\n/);
-                for (let i=0;i<lines.length;i++){
+        function findNearLabelValue(labels, valueRegex, text) {
+            try {
+                const lines = (text || '').split(/\r?\n/);
+                for (let i = 0; i < lines.length; i++) {
                     const u = lines[i].toUpperCase();
-                    if (labels.some(lbl => u.includes(String(lbl||'').toUpperCase()))){
+                    if (labels.some(lbl => u.includes(String(lbl || '').toUpperCase()))) {
                         const m0 = lines[i].match(valueRegex); if (m0) return m0[0];
-                        const n = lines[i+1]||''; const m1 = n.match(valueRegex); if (m1) return m1[0];
+                        const n = lines[i + 1] || ''; const m1 = n.match(valueRegex); if (m1) return m1[0];
                     }
                 }
-            }catch(_){ }
+            } catch (_) { }
             return '';
         }
-        function findNearLabelIATACode(labels, text){
+        function findNearLabelIATACode(labels, text) {
             const rxIATA = /\b[A-Z]{3}\b/g;
-            try{
-                const lines = (text||'').split(/\r?\n/);
-                for (let i=0;i<lines.length;i++){
+            try {
+                const lines = (text || '').split(/\r?\n/);
+                for (let i = 0; i < lines.length; i++) {
                     const u = lines[i].toUpperCase();
-                    if (labels.some(lbl => u.includes(String(lbl||'').toUpperCase()))){
-                        const search = (s)=>{ const arr = s.match(rxIATA)||[]; return arr.find(c=> iataSet.has(c)); };
-                        const hit = search(lines[i]) || search(lines[i+1]||'');
+                    if (labels.some(lbl => u.includes(String(lbl || '').toUpperCase()))) {
+                        const search = (s) => { const arr = s.match(rxIATA) || []; return arr.find(c => iataSet.has(c)); };
+                        const hit = search(lines[i]) || search(lines[i + 1] || '');
                         if (hit) return hit;
                     }
                 }
-            }catch(_){ }
+            } catch (_) { }
             return '';
         }
-        function preprocessImage(imgEl){
+        function preprocessImage(imgEl) {
             try {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
@@ -10804,44 +10813,44 @@ function setupManifestsUI() {
                 const h = imgEl.naturalHeight || imgEl.height;
                 canvas.width = w; canvas.height = h;
                 ctx.drawImage(imgEl, 0, 0, w, h);
-                const imgData = ctx.getImageData(0,0,w,h);
+                const imgData = ctx.getImageData(0, 0, w, h);
                 const d = imgData.data;
                 let sum = 0;
-                for (let i=0;i<d.length;i+=4){
-                    const r=d[i], g=d[i+1], b=d[i+2];
-                    let y = 0.299*r + 0.587*g + 0.114*b;
-                    y = (y-128)*1.1 + 128; // contraste
+                for (let i = 0; i < d.length; i += 4) {
+                    const r = d[i], g = d[i + 1], b = d[i + 2];
+                    let y = 0.299 * r + 0.587 * g + 0.114 * b;
+                    y = (y - 128) * 1.1 + 128; // contraste
                     sum += y;
-                    d[i]=d[i+1]=d[i+2]=y;
+                    d[i] = d[i + 1] = d[i + 2] = y;
                 }
-                const avg = sum / (d.length/4);
+                const avg = sum / (d.length / 4);
                 const thresh = Math.max(96, Math.min(160, avg));
-                for (let i=0;i<d.length;i+=4){
+                for (let i = 0; i < d.length; i += 4) {
                     const y = d[i];
                     const v = y > thresh ? 255 : 0;
-                    d[i]=d[i+1]=d[i+2]=v; d[i+3]=255;
+                    d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255;
                 }
-                ctx.putImageData(imgData,0,0);
+                ctx.putImageData(imgData, 0, 0);
                 return canvas.toDataURL('image/png');
-            } catch(e){ console.warn('preprocessImage failed:', e); return imgEl.src; }
+            } catch (e) { console.warn('preprocessImage failed:', e); return imgEl.src; }
         }
-        async function loadAirlinesCatalog(){
+        async function loadAirlinesCatalog() {
             try {
-                const res = await fetch('data/master/airlines.csv', { cache:'no-store' });
+                const res = await fetch('data/master/airlines.csv', { cache: 'no-store' });
                 const text = await res.text();
-                const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
+                const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
                 // Esperado: header IATA,ICAO,Name
                 const out = [];
-                for (let i=1;i<lines.length;i++){
+                for (let i = 1; i < lines.length; i++) {
                     const raw = lines[i];
                     const parts = raw.split(',');
                     if (parts.length < 3) continue;
-                    const IATA = (parts[0]||'').trim();
-                    const ICAO = (parts[1]||'').trim();
-                    const Name = parts.slice(2).join(',').trim().replace(/^"|"$/g,'');
+                    const IATA = (parts[0] || '').trim();
+                    const ICAO = (parts[1] || '').trim();
+                    const Name = parts.slice(2).join(',').trim().replace(/^"|"$/g, '');
                     if (ICAO && /^[A-Za-z]{3}$/.test(ICAO)) {
                         const icao = ICAO.toUpperCase();
-                        const iata = (IATA||'').toUpperCase();
+                        const iata = (IATA || '').toUpperCase();
                         out.push({ IATA: iata, ICAO: icao, Name });
                         icaoSet.add(icao);
                         if (iata && /^[A-Z0-9]{2}$/.test(iata)) iataToIcao.set(iata, icao);
@@ -10850,63 +10859,63 @@ function setupManifestsUI() {
                 airlinesCatalog = out;
                 // Poblar datalist
                 const dl = document.getElementById('airlines-icao-list');
-                if (dl){ dl.innerHTML = out.map(r=>`<option value="${r.ICAO}">${r.Name}</option>`).join(''); }
+                if (dl) { dl.innerHTML = out.map(r => `<option value="${r.ICAO}">${r.Name}</option>`).join(''); }
             } catch (e) { console.warn('No se pudo cargar airlines.csv', e); }
         }
-        async function loadAircraftCatalog(){
+        async function loadAircraftCatalog() {
             try {
                 // aircraft.csv: Registration,Aircraft Type,Aircraft Owner,Max Capacity,Usage,MTOW,Winglets,Aircraft Groups
-                const resA = await fetch('data/master/aircraft.csv', { cache:'no-store' });
+                const resA = await fetch('data/master/aircraft.csv', { cache: 'no-store' });
                 const textA = await resA.text();
-                const linesA = textA.split(/\r?\n/).filter(l=>l.trim());
+                const linesA = textA.split(/\r?\n/).filter(l => l.trim());
                 const regOptions = [];
-                for (let i=1;i<linesA.length;i++){
+                for (let i = 1; i < linesA.length; i++) {
                     const row = linesA[i];
                     const parts = row.split(',');
                     if (parts.length < 3) continue;
-                    const reg = (parts[0]||'').trim().toUpperCase();
-                    const type = (parts[1]||'').trim().toUpperCase(); // IATA code (e.g., 32N, E90, 77F)
-                    const ownerIATA = (parts[2]||'').trim().toUpperCase();
+                    const reg = (parts[0] || '').trim().toUpperCase();
+                    const type = (parts[1] || '').trim().toUpperCase(); // IATA code (e.g., 32N, E90, 77F)
+                    const ownerIATA = (parts[2] || '').trim().toUpperCase();
                     if (reg) { aircraftByReg.set(reg, { type, ownerIATA }); regOptions.push(`<option value="${reg}"></option>`); }
                 }
                 const dlReg = document.getElementById('aircraft-reg-list');
                 if (dlReg) dlReg.innerHTML = regOptions.join('');
-            } catch(e){ console.warn('No se pudo cargar aircraft.csv', e); }
+            } catch (e) { console.warn('No se pudo cargar aircraft.csv', e); }
             try {
                 // aircraft type.csv: IATA code, ICAO Code, Name, ...
-                const resT = await fetch('data/master/aircraft type.csv', { cache:'no-store' });
+                const resT = await fetch('data/master/aircraft type.csv', { cache: 'no-store' });
                 const textT = await resT.text();
-                const linesT = textT.split(/\r?\n/).filter(l=>l.trim());
+                const linesT = textT.split(/\r?\n/).filter(l => l.trim());
                 const typeOptions = [];
-                for (let i=1;i<linesT.length;i++){
+                for (let i = 1; i < linesT.length; i++) {
                     const row = linesT[i];
                     // split conservando posibles comas en Name entre comillas simples: el dataset parece simple; usamos split directo
                     const parts = row.split(',');
                     if (parts.length < 2) continue;
-                    const codeIATA = (parts[0]||'').trim().toUpperCase();
-                    const icao = (parts[1]||'').trim().toUpperCase();
-                    const name = (parts[2]||'').trim();
+                    const codeIATA = (parts[0] || '').trim().toUpperCase();
+                    const icao = (parts[1] || '').trim().toUpperCase();
+                    const name = (parts[2] || '').trim();
                     if (codeIATA) { typeByCode.set(codeIATA, { ICAO: icao, Name: name }); }
-                    if (icao) typeOptions.push(`<option value="${icao}">${name?name:''}</option>`);
+                    if (icao) typeOptions.push(`<option value="${icao}">${name ? name : ''}</option>`);
                 }
                 const dlType = document.getElementById('aircraft-type-icao-list');
                 if (dlType) dlType.innerHTML = typeOptions.join('');
-            } catch(e){ console.warn('No se pudo cargar aircraft type.csv', e); }
+            } catch (e) { console.warn('No se pudo cargar aircraft type.csv', e); }
         }
-        async function loadAirportsCatalog(){
+        async function loadAirportsCatalog() {
             try {
-                const res = await fetch('data/master/airports.csv', { cache:'no-store' });
+                const res = await fetch('data/master/airports.csv', { cache: 'no-store' });
                 const text = await res.text();
-                const lines = text.split(/\r?\n/).filter(l=>l.trim());
+                const lines = text.split(/\r?\n/).filter(l => l.trim());
                 // Pequeño parser CSV que respeta comillas para obtener columnas exactas
-                function parseCSVLine(line){
+                function parseCSVLine(line) {
                     const cols = [];
                     let cur = '';
                     let inQuotes = false;
-                    for (let idx = 0; idx < line.length; idx++){
+                    for (let idx = 0; idx < line.length; idx++) {
                         const ch = line[idx];
-                        if (ch === '"'){
-                            if (inQuotes && line[idx+1] === '"') { cur += '"'; idx++; }
+                        if (ch === '"') {
+                            if (inQuotes && line[idx + 1] === '"') { cur += '"'; idx++; }
                             else { inQuotes = !inQuotes; }
                         } else if (ch === ',' && !inQuotes) {
                             cols.push(cur); cur = '';
@@ -10919,14 +10928,14 @@ function setupManifestsUI() {
                 }
                 const optsIATA = [];
                 const optsName = [];
-                for (let i=1; i<lines.length; i++){
+                for (let i = 1; i < lines.length; i++) {
                     const row = lines[i];
                     const parts = parseCSVLine(row);
                     // Esperado: IATA, ICAO, Name, Country, City, Security level
                     if (parts.length < 3) continue;
-                    const IATA = (parts[0]||'').trim().toUpperCase();
+                    const IATA = (parts[0] || '').trim().toUpperCase();
                     // const ICAO = (parts[1]||'').trim().toUpperCase(); // no usado aquí
-                    const Name = (parts[2]||'').trim().replace(/^"|"$/g,''); // SOLO Name
+                    const Name = (parts[2] || '').trim().replace(/^"|"$/g, ''); // SOLO Name
                     if (!IATA || !Name) continue;
                     airportByIATA.set(IATA, Name);
                     airportByName.set(Name.toLowerCase(), IATA);
@@ -10938,7 +10947,7 @@ function setupManifestsUI() {
                 const dlName = document.getElementById('airports-name-list');
                 if (dlIATA) dlIATA.innerHTML = optsIATA.join('');
                 if (dlName) dlName.innerHTML = optsName.join('');
-            } catch(e){ console.warn('No se pudo cargar airports.csv', e); }
+            } catch (e) { console.warn('No se pudo cargar airports.csv', e); }
         }
 
         // Toggle de campos según tipo (Llegada/Salida)
@@ -10984,23 +10993,25 @@ function setupManifestsUI() {
         // Ejecutar una vez al cargar
         applyManifestDirection();
 
-    // Cargar catálogo al entrar a la sección (solo cuando se sirve por http/https)
-    if (location.protocol !== 'file:') {
-        loadAirlinesCatalog();
-        loadAircraftCatalog();
-        loadAirportsCatalog();
-    }
+        // Cargar catálogo al entrar a la sección (solo cuando se sirve por http/https)
+        if (location.protocol !== 'file:') {
+            loadAirlinesCatalog();
+            loadAircraftCatalog();
+            loadAirportsCatalog();
+        }
 
-    function setPreview(src){ if (prevImg){ prevImg.src = src; prevImg.style.display = 'block'; } if (placeholder) placeholder.style.display = 'none'; if (runBtn) runBtn.disabled = false; currentImageURL = src; }
-        if (up && !up._wired) { up._wired = 1; up.addEventListener('change', async (e)=>{
-            const f = e.target.files && e.target.files[0]; if (!f) return;
-            const url = URL.createObjectURL(f);
-            setPreview(url);
-        }); }
-        if (loadEx && !loadEx._wired) { loadEx._wired = 1; loadEx.addEventListener('click', (e)=>{ e.preventDefault(); setPreview('examples/manifiesto1.jpg'); }); }
+        function setPreview(src) { if (prevImg) { prevImg.src = src; prevImg.style.display = 'block'; } if (placeholder) placeholder.style.display = 'none'; if (runBtn) runBtn.disabled = false; currentImageURL = src; }
+        if (up && !up._wired) {
+            up._wired = 1; up.addEventListener('change', async (e) => {
+                const f = e.target.files && e.target.files[0]; if (!f) return;
+                const url = URL.createObjectURL(f);
+                setPreview(url);
+            });
+        }
+        if (loadEx && !loadEx._wired) { loadEx._wired = 1; loadEx.addEventListener('click', (e) => { e.preventDefault(); setPreview('examples/manifiesto1.jpg'); }); }
         if (runBtn && !runBtn._wired) {
             runBtn._wired = 1;
-            runBtn.addEventListener('click', async ()=>{
+            runBtn.addEventListener('click', async () => {
                 const s = document.getElementById('manifest-ocr-status');
                 try {
                     if (!prevImg || !prevImg.src) { if (s) s.textContent = 'Cargue una imagen primero.'; return; }
@@ -11008,9 +11019,9 @@ function setupManifestsUI() {
                     const processed = preprocessImage(prevImg);
                     if (!window.Tesseract) { if (s) s.textContent = 'OCR no disponible (Tesseract.js no cargado).'; return; }
                     if (s) s.textContent = 'Reconociendo texto (OCR spa+eng)...';
-                    const { data } = await Tesseract.recognize(processed, 'spa+eng', { logger: m => {}, tessedit_pageseg_mode: 6, user_defined_dpi: 300 });
+                    const { data } = await Tesseract.recognize(processed, 'spa+eng', { logger: m => { }, tessedit_pageseg_mode: 6, user_defined_dpi: 300 });
                     const text = (data && data.text) ? data.text.trim() : '';
-                    if (s) s.textContent = text ? ('Texto detectado (resumen):\n' + (text.slice(0,600)) + (text.length>600?'...':'')) : 'No se detectó texto.';
+                    if (s) s.textContent = text ? ('Texto detectado (resumen):\n' + (text.slice(0, 600)) + (text.length > 600 ? '...' : '')) : 'No se detectó texto.';
                     const hasWord = hasWordFactory(text);
                     const upperTokens = tokenizeUpper(text);
 
@@ -11027,21 +11038,21 @@ function setupManifestsUI() {
                         let carrierICAO = '';
                         const foundICAO = upperTokens.find(t => t.length === 3 && /^[A-Z]{3}$/.test(t) && icaoSet.has(t));
                         if (foundICAO) carrierICAO = foundICAO;
-                        let flightStr = findNearLabelValue(['vuelo','n° vuelo','no. vuelo','flight','flt'], /[A-Z]{2,3}\s?-?\s?\d{2,5}[A-Z]?/i, text);
-                        if (!flightStr){
+                        let flightStr = findNearLabelValue(['vuelo', 'n° vuelo', 'no. vuelo', 'flight', 'flt'], /[A-Z]{2,3}\s?-?\s?\d{2,5}[A-Z]?/i, text);
+                        if (!flightStr) {
                             const m = text.match(/\b[A-Z]{2,3}\s?-?\s?\d{2,5}[A-Z]?\b/);
                             if (m) flightStr = m[0];
                         }
-                        if (flightStr){
-                            const cleaned = flightStr.replace(/\s|-/g,'');
-                            const pref3 = cleaned.slice(0,3).toUpperCase();
-                            const pref2 = cleaned.slice(0,2).toUpperCase();
+                        if (flightStr) {
+                            const cleaned = flightStr.replace(/\s|-/g, '');
+                            const pref3 = cleaned.slice(0, 3).toUpperCase();
+                            const pref2 = cleaned.slice(0, 2).toUpperCase();
                             if (!carrierICAO && icaoSet.has(pref3)) carrierICAO = pref3;
                             if (!carrierICAO && iataToIcao.has(pref2)) carrierICAO = iataToIcao.get(pref2) || '';
                             setVal('mf-flight', flightStr.trim());
                         }
                         if (carrierICAO) setVal('mf-carrier-3l', carrierICAO);
-                    } catch(_){ }
+                    } catch (_) { }
 
                     // 3) Matrícula (varios formatos comunes)
                     try {
@@ -11060,17 +11071,17 @@ function setupManifestsUI() {
                             /\bXA[A-Z0-9]{0,}\b/gi            // fallback México
                         ];
                         let foundTail = '';
-                        for (const rx of tailPatterns){ const m = text.match(rx); if (m && m.length){ foundTail = m[0].toUpperCase().replace(/\s+/g,''); break; } }
+                        for (const rx of tailPatterns) { const m = text.match(rx); if (m && m.length) { foundTail = m[0].toUpperCase().replace(/\s+/g, ''); break; } }
                         if (foundTail) setVal('mf-tail', foundTail);
-                    } catch(_){}
+                    } catch (_) { }
 
                     // 4) Aeropuertos (por código IATA reconocido y/o por nombre) y horarios
                     try {
                         // Proximidad a etiquetas
-                        const originCandLbl = findNearLabelIATACode(['origen','procedencia','from','procedencia del vuelo'], text);
-                        const lastStopCandLbl = findNearLabelIATACode(['ultima escala','escala anterior','last stop','escala'], text);
-                        const finalDestCandLbl = findNearLabelIATACode(['destino','to','destino del vuelo'], text);
-                        const arrivalMainCandLbl = currentIsArrival ? findNearLabelIATACode(['aeropuerto de llegada','aeropuerto destino','aeropuerto de arribo','aeropuerto destino del vuelo'], text) : '';
+                        const originCandLbl = findNearLabelIATACode(['origen', 'procedencia', 'from', 'procedencia del vuelo'], text);
+                        const lastStopCandLbl = findNearLabelIATACode(['ultima escala', 'escala anterior', 'last stop', 'escala'], text);
+                        const finalDestCandLbl = findNearLabelIATACode(['destino', 'to', 'destino del vuelo'], text);
+                        const arrivalMainCandLbl = currentIsArrival ? findNearLabelIATACode(['aeropuerto de llegada', 'aeropuerto destino', 'aeropuerto de arribo', 'aeropuerto destino del vuelo'], text) : '';
                         // Buscar candidatos por tokens de 3 letras que existan en catálogo
                         const airportCodes = upperTokens.filter(t => t.length === 3 && /^[A-Z]{3}$/.test(t) && iataSet.has(t));
                         // Heurística por palabras clave en líneas
@@ -11079,20 +11090,20 @@ function setupManifestsUI() {
                         let lastStopCand = '';
                         let finalDestCand = '';
                         let forcedLastStopFromOrigin = false;
-                        for (const line of rawLines){
+                        for (const line of rawLines) {
                             const u = line.toUpperCase();
                             // Origen/Procedencia
-                            if (/ORIGEN|PROCEDENCIA|FROM\b/.test(u)){
+                            if (/ORIGEN|PROCEDENCIA|FROM\b/.test(u)) {
                                 const code = Array.from(iataSet).find(c => u.includes(c));
                                 if (code) originCand = code;
                             }
                             // Última escala
-                            if (/ULTIMA\s+ESCALA|LAST\s+STOP|ESCALA\b/.test(u)){
+                            if (/ULTIMA\s+ESCALA|LAST\s+STOP|ESCALA\b/.test(u)) {
                                 const code = Array.from(iataSet).find(c => u.includes(c));
                                 if (code) lastStopCand = code;
                             }
                             // Destino
-                            if (/DESTINO|TO\b/.test(u)){
+                            if (/DESTINO|TO\b/.test(u)) {
                                 const code = Array.from(iataSet).find(c => u.includes(c));
                                 if (code) finalDestCand = code;
                             }
@@ -11106,25 +11117,25 @@ function setupManifestsUI() {
                         if (!lastStopCand && airportCodes[1]) lastStopCand = airportCodes[1];
                         if (!finalDestCand && airportCodes[2]) finalDestCand = airportCodes[2];
 
-                        const airportCounts = airportCodes.reduce((acc, code)=>{
+                        const airportCounts = airportCodes.reduce((acc, code) => {
                             acc[code] = (acc[code] || 0) + 1;
                             return acc;
                         }, {});
                         const uniqueAirports = Object.keys(airportCounts);
                         const lastStopFromLabel = !!lastStopCandLbl;
 
-                        if (currentIsArrival && !lastStopFromLabel){
+                        if (currentIsArrival && !lastStopFromLabel) {
                             const originCandidate = originCand || airportCodes[0] || '';
                             const arrivalMainGuess = arrivalMainCandLbl || '';
                             const isLikelyDirect = uniqueAirports.length <= 2;
-                            if (!lastStopCand && originCandidate){
+                            if (!lastStopCand && originCandidate) {
                                 lastStopCand = originCandidate;
                                 forcedLastStopFromOrigin = true;
-                            } else if (originCandidate){
+                            } else if (originCandidate) {
                                 const alignsWithArrivalAirport = arrivalMainGuess && lastStopCand && lastStopCand === arrivalMainGuess;
                                 const looksLikeDirect = isLikelyDirect && lastStopCand && lastStopCand !== originCandidate;
-                                if (alignsWithArrivalAirport || looksLikeDirect){
-                                    if (lastStopCand !== originCandidate){
+                                if (alignsWithArrivalAirport || looksLikeDirect) {
+                                    if (lastStopCand !== originCandidate) {
                                         lastStopCand = originCandidate;
                                     }
                                     forcedLastStopFromOrigin = true;
@@ -11132,14 +11143,14 @@ function setupManifestsUI() {
                             }
                         }
 
-                        if (currentIsArrival){
+                        if (currentIsArrival) {
                             if (originCand) setVal('mf-arr-origin-code', originCand);
                             if (lastStopCand) {
                                 setVal('mf-arr-last-stop-code', lastStopCand);
-                                if (forcedLastStopFromOrigin){
+                                if (forcedLastStopFromOrigin) {
                                     const nameEl = document.getElementById('mf-arr-last-stop');
                                     const hasName = ((nameEl && nameEl.value) || '').trim();
-                                    if (!hasName){
+                                    if (!hasName) {
                                         const originNameEl = document.getElementById('mf-arr-origin-name');
                                         const fallbackName = airportByIATA.get(lastStopCand) || ((originNameEl && originNameEl.value) || '');
                                         if (fallbackName) setVal('mf-arr-last-stop', fallbackName);
@@ -11149,7 +11160,7 @@ function setupManifestsUI() {
                         } else {
                             if (originCand) setVal('mf-origin-code', originCand);
                             if (lastStopCand) setVal('mf-next-stop-code', lastStopCand);
-                            if (finalDestCand){
+                            if (finalDestCand) {
                                 setVal('mf-final-dest-code', finalDestCand);
                                 const name = airportByIATA.get(finalDestCand) || '';
                                 if (name) setVal('mf-final-dest', name);
@@ -11157,116 +11168,116 @@ function setupManifestsUI() {
                         }
                         // Horarios cercanos a etiquetas
                         const setTimeIf = (id, labels) => { const v = findNearLabelValue(labels, timeRx, text); if (v) setVal(id, v); };
-                        if (currentIsArrival){
+                        if (currentIsArrival) {
                             setTimeIf('mf-arr-slot-assigned', ['slot asignado']);
                             setTimeIf('mf-arr-slot-coordinated', ['slot coordinado']);
-                            setTimeIf('mf-arr-arribo-posicion', ['entrada a la posicion','arribo a la posicion','arribo posicion']);
-                            setTimeIf('mf-arr-inicio-desembarque', ['termino maniobras de desembarque','inicio de desembarque','inicio desembarque']);
-                            setTimeIf('mf-arr-inicio-pernocta', ['inicio de pernocta','inicio pernocta']);
+                            setTimeIf('mf-arr-arribo-posicion', ['entrada a la posicion', 'arribo a la posicion', 'arribo posicion']);
+                            setTimeIf('mf-arr-inicio-desembarque', ['termino maniobras de desembarque', 'inicio de desembarque', 'inicio desembarque']);
+                            setTimeIf('mf-arr-inicio-pernocta', ['inicio de pernocta', 'inicio pernocta']);
                         } else {
                             setTimeIf('mf-slot-assigned', ['slot asignado']);
                             setTimeIf('mf-slot-coordinated', ['slot coordinado']);
-                            setTimeIf('mf-inicio-embarque', ['inicio de maniobras de embarque','inicio de embarque']);
-                            setTimeIf('mf-salida-posicion', ['salida de la posicion','salida posicion']);
-                            setTimeIf('mf-termino-pernocta', ['termino de pernocta','término de pernocta','fin pernocta']);
+                            setTimeIf('mf-inicio-embarque', ['inicio de maniobras de embarque', 'inicio de embarque']);
+                            setTimeIf('mf-salida-posicion', ['salida de la posicion', 'salida posicion']);
+                            setTimeIf('mf-termino-pernocta', ['termino de pernocta', 'término de pernocta', 'fin pernocta']);
                         }
-                    } catch(_){}
+                    } catch (_) { }
 
                     if (s) s.textContent += '\n\nAutorrelleno aplicado (si hubo coincidencias).';
-                } catch(err){ if (s) s.textContent = 'Error en OCR: ' + (err?.message || err); }
+                } catch (err) { if (s) s.textContent = 'Error en OCR: ' + (err?.message || err); }
             });
         }
 
         // Validación y autofill del transportista por OACI (3 letras)
-        (function wireCarrierAutofill(){
+        (function wireCarrierAutofill() {
             const carrier = document.getElementById('mf-carrier-3l');
             if (!carrier || carrier._wired) return; carrier._wired = 1;
             const opName = document.getElementById('mf-operator-name');
             const airlineName = document.getElementById('mf-airline');
             const setFromICAO = (val) => {
-                const code = (val||'').toString().trim().toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
+                const code = (val || '').toString().trim().toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
                 if (carrier.value !== code) carrier.value = code;
                 if (code.length !== 3) return;
-                const rec = airlinesCatalog.find(a=> a.ICAO === code);
-                if (rec){
+                const rec = airlinesCatalog.find(a => a.ICAO === code);
+                if (rec) {
                     if (opName && !opName.value) opName.value = rec.Name;
                     if (airlineName && !airlineName.value) airlineName.value = rec.Name;
                 }
             };
-            carrier.addEventListener('input', ()=> setFromICAO(carrier.value));
-            carrier.addEventListener('change', ()=> setFromICAO(carrier.value));
+            carrier.addEventListener('input', () => setFromICAO(carrier.value));
+            carrier.addEventListener('change', () => setFromICAO(carrier.value));
             // Si el usuario selecciona desde datalist
-            carrier.addEventListener('blur', ()=> setFromICAO(carrier.value));
+            carrier.addEventListener('blur', () => setFromICAO(carrier.value));
         })();
 
         // Autofill por Matrícula -> Equipo (Registration) y posible transportista via owner IATA
-        (function wireTailAutofill(){
+        (function wireTailAutofill() {
             const tail = document.getElementById('mf-tail');
             if (!tail || tail._wired) return; tail._wired = 1;
             const equipo = document.getElementById('mf-aircraft'); // Equipo (texto)
             const carrier = document.getElementById('mf-carrier-3l');
-            const setFromTail = (val)=>{
-                const reg = (val||'').toString().trim().toUpperCase();
+            const setFromTail = (val) => {
+                const reg = (val || '').toString().trim().toUpperCase();
                 if (!reg) return;
                 const rec = aircraftByReg.get(reg);
                 if (!rec) return;
                 // Equipo desde Aircraft Type -> preferir ICAO de 'aircraft type.csv', luego nombre, luego IATA type
                 const t = typeByCode.get(rec.type);
-                if (t){
+                if (t) {
                     const preferred = t.ICAO || t.Name || rec.type;
                     if (equipo) equipo.value = preferred;
                 } else {
                     if (equipo && !equipo.value) equipo.value = rec.type; // fallback
                 }
                 // Si el carrier (OACI 3 letras) está vacío, podemos intentar inferir vía airlines.csv por owner IATA -> ICAO
-                if (carrier && !carrier.value && rec.ownerIATA){
+                if (carrier && !carrier.value && rec.ownerIATA) {
                     // Buscar primer airline cuyo IATA coincida para inferir su ICAO (no siempre exacto, pero ayuda)
-                    const cand = airlinesCatalog.find(a => (a.IATA||'').toUpperCase() === rec.ownerIATA);
+                    const cand = airlinesCatalog.find(a => (a.IATA || '').toUpperCase() === rec.ownerIATA);
                     if (cand && cand.ICAO && /^[A-Z]{3}$/.test(cand.ICAO)) carrier.value = cand.ICAO;
                 }
             };
-            tail.addEventListener('input', ()=> setFromTail(tail.value));
-            tail.addEventListener('change', ()=> setFromTail(tail.value));
-            tail.addEventListener('blur', ()=> setFromTail(tail.value));
+            tail.addEventListener('input', () => setFromTail(tail.value));
+            tail.addEventListener('change', () => setFromTail(tail.value));
+            tail.addEventListener('blur', () => setFromTail(tail.value));
             // Permitir que el usuario elija manualmente el Equipo (ICAO) desde datalist sin bloquear su decisión
-            if (equipo && !equipo._wired){ equipo._wired = 1; equipo.addEventListener('input', ()=> { equipo.value = (equipo.value||'').toUpperCase(); }); }
+            if (equipo && !equipo._wired) { equipo._wired = 1; equipo.addEventListener('input', () => { equipo.value = (equipo.value || '').toUpperCase(); }); }
         })();
 
         // Auto-vincular campos de aeropuertos (código y nombre, ida y vuelta)
-        (function wireAirportFields(){
-            function link(nameId, codeId){
+        (function wireAirportFields() {
+            function link(nameId, codeId) {
                 const nameEl = document.getElementById(nameId);
                 const codeEl = document.getElementById(codeId);
                 if (!nameEl || !codeEl) return;
-                if (!nameEl._wired){
+                if (!nameEl._wired) {
                     nameEl._wired = 1;
-                    nameEl.addEventListener('input', ()=>{
-                        const s = (nameEl.value||'').trim().toLowerCase();
+                    nameEl.addEventListener('input', () => {
+                        const s = (nameEl.value || '').trim().toLowerCase();
                         const iata = airportByName.get(s);
                         if (iata && !codeEl.value) codeEl.value = iata;
                     });
                 }
-                if (!codeEl._wired){
+                if (!codeEl._wired) {
                     codeEl._wired = 1;
-                    codeEl.addEventListener('input', ()=>{
-                        const c = (codeEl.value||'').trim().toUpperCase();
-                        codeEl.value = c.replace(/[^A-Z]/g,'').slice(0,3);
+                    codeEl.addEventListener('input', () => {
+                        const c = (codeEl.value || '').trim().toUpperCase();
+                        codeEl.value = c.replace(/[^A-Z]/g, '').slice(0, 3);
                         const name = airportByIATA.get(codeEl.value);
                         if (name && !nameEl.value) nameEl.value = name;
                     });
                 }
             }
             // Salida
-            link('mf-origin-name','mf-origin-code');
-            link('mf-next-stop','mf-next-stop-code');
+            link('mf-origin-name', 'mf-origin-code');
+            link('mf-next-stop', 'mf-next-stop-code');
             // Destino final: vincular nombre <-> código (nuevo campo)
-            link('mf-final-dest','mf-final-dest-code');
+            link('mf-final-dest', 'mf-final-dest-code');
             // Llegada
-            link('mf-arr-origin-name','mf-arr-origin-code');
-            link('mf-arr-last-stop','mf-arr-last-stop-code');
+            link('mf-arr-origin-name', 'mf-arr-origin-code');
+            link('mf-arr-last-stop', 'mf-arr-last-stop-code');
         })();
 
-        function readForm(){
+        function readForm() {
             const g = id => document.getElementById(id)?.value || '';
             const direction = (dirArr && dirArr.checked) ? 'Llegada' : 'Salida';
             return {
@@ -11337,88 +11348,88 @@ function setupManifestsUI() {
                 signCoordinator: g('mf-sign-coordinator'),
                 signAdmin: g('mf-sign-admin'),
                 signAdminDate: g('mf-sign-admin-date'),
-                image: (function(){ try { const cv=document.getElementById('manifest-preview-canvas'); if (cv && !cv.classList.contains('d-none')) return cv.toDataURL('image/png'); const im=document.getElementById('manifest-preview'); return (im && !im.classList.contains('d-none')) ? (im.src||'') : ''; } catch(_){ return ''; } })()
+                image: (function () { try { const cv = document.getElementById('manifest-preview-canvas'); if (cv && !cv.classList.contains('d-none')) return cv.toDataURL('image/png'); const im = document.getElementById('manifest-preview'); return (im && !im.classList.contains('d-none')) ? (im.src || '') : ''; } catch (_) { return ''; } })()
             };
         }
-    function loadRecords(){ try { return JSON.parse(localStorage.getItem('aifa.manifests')||'[]'); } catch(_) { return []; } }
-        function saveRecords(arr){ try { localStorage.setItem('aifa.manifests', JSON.stringify(arr)); } catch(_) {} }
-        function renderTable(){
+        function loadRecords() { try { return JSON.parse(localStorage.getItem('aifa.manifests') || '[]'); } catch (_) { return []; } }
+        function saveRecords(arr) { try { localStorage.setItem('aifa.manifests', JSON.stringify(arr)); } catch (_) { } }
+        function renderTable() {
             if (!tableBody) return;
             const rows = loadRecords();
             tableBody.innerHTML = rows.map(r => `
                 <tr>
-                    <td>${r.direction||''}</td>
-                    <td>${(r.carrier3L? (r.carrier3L.toUpperCase()+ ' - ') : '') + (r.airline||r.operatorName||'')}</td>
-                    <td>${r.flight||''}</td>
-                    <td>${r.tail||''}</td>
+                    <td>${r.direction || ''}</td>
+                    <td>${(r.carrier3L ? (r.carrier3L.toUpperCase() + ' - ') : '') + (r.airline || r.operatorName || '')}</td>
+                    <td>${r.flight || ''}</td>
+                    <td>${r.tail || ''}</td>
                     <td></td>
                     <td></td>
-                    <td>${(r.originCode||'')}/${r.finalDest||''}</td>
-                    <td>${r.pax||''}</td>
-                    <td>${r.cargoKg||''}/${r.mailKg||''}</td>
-                    <td>${r.image?'<img src="'+r.image+'" style="height:30px">':''}</td>
+                    <td>${(r.originCode || '')}/${r.finalDest || ''}</td>
+                    <td>${r.pax || ''}</td>
+                    <td>${r.cargoKg || ''}/${r.mailKg || ''}</td>
+                    <td>${r.image ? '<img src="' + r.image + '" style="height:30px">' : ''}</td>
                 </tr>`).join('');
         }
         // Auto-cálculo de Total de pasajeros por categoría
-        function recalcPaxTotal(){
-            const ids = ['pax-tua','pax-diplomaticos','pax-comision','pax-infantes','pax-transitos','pax-conexiones','pax-exentos'];
-            const sum = ids.reduce((a,id)=> a + (parseInt(document.getElementById(id)?.value||'0',10)||0), 0);
+        function recalcPaxTotal() {
+            const ids = ['pax-tua', 'pax-diplomaticos', 'pax-comision', 'pax-infantes', 'pax-transitos', 'pax-conexiones', 'pax-exentos'];
+            const sum = ids.reduce((a, id) => a + (parseInt(document.getElementById(id)?.value || '0', 10) || 0), 0);
             const out = document.getElementById('pax-total');
             if (out) out.value = String(sum);
         }
-        ['pax-tua','pax-diplomaticos','pax-comision','pax-infantes','pax-transitos','pax-conexiones','pax-exentos'].forEach(id=>{
+        ['pax-tua', 'pax-diplomaticos', 'pax-comision', 'pax-infantes', 'pax-transitos', 'pax-conexiones', 'pax-exentos'].forEach(id => {
             const el = document.getElementById(id);
-            if (el && !el._wired){ el._wired = 1; el.addEventListener('input', recalcPaxTotal); }
+            if (el && !el._wired) { el._wired = 1; el.addEventListener('input', recalcPaxTotal); }
         });
         recalcPaxTotal();
 
-        if (saveBtn && !saveBtn._wired) { saveBtn._wired = 1; saveBtn.addEventListener('click', ()=>{ recalcPaxTotal(); const recs = loadRecords(); recs.unshift(readForm()); saveRecords(recs.slice(0,200)); renderTable(); }); }
-        if (clearBtn && !clearBtn._wired) { clearBtn._wired = 1; clearBtn.addEventListener('click', ()=>{ document.getElementById('manifest-form')?.reset(); applyManifestDirection(); clearDynamicTables(); calculateTotals(); updateDemorasTotal(); }); }
-        if (exportBtn && !exportBtn._wired) { exportBtn._wired = 1; exportBtn.addEventListener('click', ()=>{ const data = JSON.stringify(loadRecords(), null, 2); const blob = new Blob([data], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'manifiestos.json'; a.click(); }); }
+        if (saveBtn && !saveBtn._wired) { saveBtn._wired = 1; saveBtn.addEventListener('click', () => { recalcPaxTotal(); const recs = loadRecords(); recs.unshift(readForm()); saveRecords(recs.slice(0, 200)); renderTable(); }); }
+        if (clearBtn && !clearBtn._wired) { clearBtn._wired = 1; clearBtn.addEventListener('click', () => { document.getElementById('manifest-form')?.reset(); applyManifestDirection(); clearDynamicTables(); calculateTotals(); updateDemorasTotal(); }); }
+        if (exportBtn && !exportBtn._wired) { exportBtn._wired = 1; exportBtn.addEventListener('click', () => { const data = JSON.stringify(loadRecords(), null, 2); const blob = new Blob([data], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'manifiestos.json'; a.click(); }); }
         renderTable();
 
         // Tabla de demoras
         const demoraTbody = document.querySelector('#tabla-demoras tbody');
         const addDemoraBtn = document.getElementById('add-demora-row');
         const clearDemorasBtn = document.getElementById('clear-demoras');
-        function addDemoraRow(data={}){
+        function addDemoraRow(data = {}) {
             if (!demoraTbody) return;
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><input type="text" class="form-control form-control-sm demora-codigo" value="${data.codigo||''}"></td>
-                <td><input type="number" min="0" class="form-control form-control-sm demora-minutos" value="${data.minutos||''}"></td>
-                <td><input type="text" class="form-control form-control-sm demora-descripcion" value="${data.descripcion||''}"></td>
+                <td><input type="text" class="form-control form-control-sm demora-codigo" value="${data.codigo || ''}"></td>
+                <td><input type="number" min="0" class="form-control form-control-sm demora-minutos" value="${data.minutos || ''}"></td>
+                <td><input type="text" class="form-control form-control-sm demora-descripcion" value="${data.descripcion || ''}"></td>
                 <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-demora-row"><i class="fas fa-times"></i></button></td>`;
             demoraTbody.appendChild(tr);
         }
-        function updateDemorasTotal(){
-            const total = Array.from(document.querySelectorAll('.demora-minutos')).reduce((acc, inp)=> acc + (parseFloat(inp.value)||0), 0);
+        function updateDemorasTotal() {
+            const total = Array.from(document.querySelectorAll('.demora-minutos')).reduce((acc, inp) => acc + (parseFloat(inp.value) || 0), 0);
             const out = document.getElementById('total-demora-minutos');
             if (out) out.value = String(total);
         }
-        function clearDemoras(){ if (demoraTbody) demoraTbody.innerHTML = ''; updateDemorasTotal(); }
-        if (addDemoraBtn && !addDemoraBtn._wired){ addDemoraBtn._wired = 1; addDemoraBtn.addEventListener('click', ()=> addDemoraRow()); }
-        if (clearDemorasBtn && !clearDemorasBtn._wired){ clearDemorasBtn._wired = 1; clearDemorasBtn.addEventListener('click', clearDemoras); }
+        function clearDemoras() { if (demoraTbody) demoraTbody.innerHTML = ''; updateDemorasTotal(); }
+        if (addDemoraBtn && !addDemoraBtn._wired) { addDemoraBtn._wired = 1; addDemoraBtn.addEventListener('click', () => addDemoraRow()); }
+        if (clearDemorasBtn && !clearDemorasBtn._wired) { clearDemorasBtn._wired = 1; clearDemorasBtn.addEventListener('click', clearDemoras); }
         // Evitar listeners globales duplicados si la UI se inicializa más de una vez
         window._manifListeners = window._manifListeners || { clicks: false, inputs: false };
-        if (!window._manifListeners.clicks){
+        if (!window._manifListeners.clicks) {
             window._manifListeners.clicks = true;
-            document.addEventListener('click', (e)=>{
+            document.addEventListener('click', (e) => {
                 const btn = e.target.closest('.remove-demora-row');
                 if (btn) { const tr = btn.closest('tr'); if (tr) tr.remove(); updateDemorasTotal(); }
                 const btn2 = e.target.closest('.remove-embarque-row');
                 if (btn2) { const tr2 = btn2.closest('tr'); if (tr2) tr2.remove(); calculateTotals(); }
             });
         }
-        if (!window._manifListeners.inputs){
+        if (!window._manifListeners.inputs) {
             window._manifListeners.inputs = true;
-            document.addEventListener('input', (e)=>{
+            document.addEventListener('input', (e) => {
                 if (e.target && e.target.classList && e.target.classList.contains('demora-minutos')) { updateDemorasTotal(); }
                 if (e.target && e.target.closest && e.target.closest('#tabla-embarque')) { calculateTotals(); }
             });
         }
 
-        function readDemorasFromTable(){
+        function readDemorasFromTable() {
             const rows = Array.from(document.querySelectorAll('#tabla-demoras tbody tr'));
             return rows.map(tr => ({
                 causa: tr.querySelector('.demora-descripcion')?.value || tr.children[2]?.textContent || '',
@@ -11430,29 +11441,29 @@ function setupManifestsUI() {
         const embarqueTbody = document.querySelector('#tabla-embarque tbody');
         const addEmbarqueBtn = document.getElementById('add-embarque-row');
         const clearEmbarqueBtn = document.getElementById('clear-embarque');
-        function addEmbarqueRow(data={}){
+        function addEmbarqueRow(data = {}) {
             if (!embarqueTbody) return;
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><input type="text" class="form-control form-control-sm embarque-estacion" value="${data.estacion||''}"></td>
-                <td><input type="number" min="0" class="form-control form-control-sm embarque-pax-nacional" value="${data.paxNacional||''}"></td>
-                <td><input type="number" min="0" class="form-control form-control-sm embarque-pax-internacional" value="${data.paxInternacional||''}"></td>
-                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm embarque-equipaje" value="${data.equipaje||''}"></td>
-                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm embarque-carga" value="${data.carga||''}"></td>
-                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm embarque-correo" value="${data.correo||''}"></td>
+                <td><input type="text" class="form-control form-control-sm embarque-estacion" value="${data.estacion || ''}"></td>
+                <td><input type="number" min="0" class="form-control form-control-sm embarque-pax-nacional" value="${data.paxNacional || ''}"></td>
+                <td><input type="number" min="0" class="form-control form-control-sm embarque-pax-internacional" value="${data.paxInternacional || ''}"></td>
+                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm embarque-equipaje" value="${data.equipaje || ''}"></td>
+                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm embarque-carga" value="${data.carga || ''}"></td>
+                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm embarque-correo" value="${data.correo || ''}"></td>
                 <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-embarque-row"><i class="fas fa-times"></i></button></td>`;
             embarqueTbody.appendChild(tr);
             calculateTotals();
         }
-        function clearEmbarque(){ if (embarqueTbody) embarqueTbody.innerHTML = ''; calculateTotals(); }
-        if (addEmbarqueBtn && !addEmbarqueBtn._wired){ addEmbarqueBtn._wired = 1; addEmbarqueBtn.addEventListener('click', ()=> addEmbarqueRow()); }
-        if (clearEmbarqueBtn && !clearEmbarqueBtn._wired){ clearEmbarqueBtn._wired = 1; clearEmbarqueBtn.addEventListener('click', clearEmbarque); }
-        document.addEventListener('click', (e)=>{
+        function clearEmbarque() { if (embarqueTbody) embarqueTbody.innerHTML = ''; calculateTotals(); }
+        if (addEmbarqueBtn && !addEmbarqueBtn._wired) { addEmbarqueBtn._wired = 1; addEmbarqueBtn.addEventListener('click', () => addEmbarqueRow()); }
+        if (clearEmbarqueBtn && !clearEmbarqueBtn._wired) { clearEmbarqueBtn._wired = 1; clearEmbarqueBtn.addEventListener('click', clearEmbarque); }
+        document.addEventListener('click', (e) => {
             const btn = e.target.closest('.remove-embarque-row');
             if (btn) { const tr = btn.closest('tr'); if (tr) tr.remove(); calculateTotals(); }
         });
 
-        function clearDynamicTables(){
+        function clearDynamicTables() {
             clearDemoras();
             clearEmbarque();
         }
@@ -11526,11 +11537,11 @@ function isLikelyLocalDevelopmentHost(hostname = '', port = '') {
     return false;
 }
 
-function isValidParteOperacionesDate(value){
+function isValidParteOperacionesDate(value) {
     return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
-function ensureParteOperacionesDirtyLedger(){
+function ensureParteOperacionesDirtyLedger() {
     if (parteOperacionesDirtyLedgerLoaded) return parteOperacionesDirtyDates;
     parteOperacionesDirtyLedgerLoaded = true;
     try {
@@ -11541,26 +11552,26 @@ function ensureParteOperacionesDirtyLedger(){
                 parteOperacionesDirtyDates = new Set(parsed.filter(isValidParteOperacionesDate));
             }
         }
-    } catch (_) {}
+    } catch (_) { }
     return parteOperacionesDirtyDates;
 }
 
-function persistParteOperacionesDirtyLedger(){
+function persistParteOperacionesDirtyLedger() {
     if (!parteOperacionesDirtyLedgerLoaded) return;
     try {
         const payload = JSON.stringify(Array.from(parteOperacionesDirtyDates));
         localStorage.setItem(PARTE_OPERACIONES_DIRTY_KEY, payload);
-    } catch (_) {}
+    } catch (_) { }
 }
 
-function markParteOperacionesDateDirty(date){
+function markParteOperacionesDateDirty(date) {
     if (!isValidParteOperacionesDate(date)) return;
     ensureParteOperacionesDirtyLedger();
     parteOperacionesDirtyDates.add(date);
     persistParteOperacionesDirtyLedger();
 }
 
-function clearParteOperacionesDateDirty(date){
+function clearParteOperacionesDateDirty(date) {
     if (!isValidParteOperacionesDate(date)) return;
     ensureParteOperacionesDirtyLedger();
     if (parteOperacionesDirtyDates.delete(date)) {
@@ -11568,7 +11579,7 @@ function clearParteOperacionesDateDirty(date){
     }
 }
 
-function sanitizeParteOperacionesItem(item){
+function sanitizeParteOperacionesItem(item) {
     if (!item || typeof item !== 'object') {
         return { tipo: 'Sin clasificar', llegada: 0, salida: 0, subtotal: 0 };
     }
@@ -11586,7 +11597,7 @@ function sanitizeParteOperacionesItem(item){
     return sanitized;
 }
 
-function normalizeParteOperacionesType(value){
+function normalizeParteOperacionesType(value) {
     return (value || '')
         .toString()
         .trim()
@@ -11595,7 +11606,7 @@ function normalizeParteOperacionesType(value){
         .toLowerCase();
 }
 
-function shouldUseParteOperacionesRemoteBackend(){
+function shouldUseParteOperacionesRemoteBackend() {
     return !!window.supabaseClient;
 }
 
@@ -11604,7 +11615,7 @@ function shouldUseParteOperacionesRemoteBackend(){
 function generateObjectDiff(oldObj, newObj, ignoreKeys = []) {
     const diffs = [];
     const allKeys = new Set([...Object.keys(oldObj || {}), ...Object.keys(newObj || {})]);
-    
+
     allKeys.forEach(key => {
         if (ignoreKeys.includes(key)) return;
         const oldVal = oldObj ? oldObj[key] : undefined;
@@ -11614,7 +11625,7 @@ function generateObjectDiff(oldObj, newObj, ignoreKeys = []) {
         if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
             // Check if both are undefined/null (fuzzy match)
             if (!oldVal && !newVal) return;
-            
+
             diffs.push({
                 field: key,
                 old: oldVal,
@@ -11625,47 +11636,47 @@ function generateObjectDiff(oldObj, newObj, ignoreKeys = []) {
     return diffs;
 }
 
-window.logHistory = async function(action, entity, recordId, payload) {
+window.logHistory = async function (action, entity, recordId, payload) {
     if (!window.supabaseClient) return;
 
     try {
         let { data: { session } } = await window.supabaseClient.auth.getSession();
-        
+
         // Auto-restore session if missing
         if (!session) {
-             const token = sessionStorage.getItem('token');
-             if (token) {
-                 const { data: restoreData } = await window.supabaseClient.auth.setSession({ 
-                    access_token: token, 
-                    refresh_token: token 
-                 });
-                 session = restoreData.session;
-             }
+            const token = sessionStorage.getItem('token');
+            if (token) {
+                const { data: restoreData } = await window.supabaseClient.auth.setSession({
+                    access_token: token,
+                    refresh_token: token
+                });
+                session = restoreData.session;
+            }
         }
 
         if (!session || !session.user) {
             console.warn('logHistory skipped: No session.');
-            return; 
+            return;
         }
 
         const userId = session.user.id;
         const userEmail = session.user.email || 'Usuario';
-        
+
         // Intelligent Payload Processing
         let finalDetails = payload;
-        
+
         // If payload contains old/new states, calculate diff automatically
         if (payload && typeof payload === 'object' && ('old' in payload || 'new' in payload)) {
-             const diffs = generateObjectDiff(payload.old, payload.new, ['id', 'created_at', 'updated_at']);
-             if (diffs.length === 0 && action === 'EDITAR') {
-                 console.log('No changes detected for log');
-                 return; // Don't log empty edits
-             }
-             finalDetails = {
-                 mode: 'diff',
-                 changes: diffs,
-                 summary: payload.summary || `${diffs.length} campos modificados`
-             };
+            const diffs = generateObjectDiff(payload.old, payload.new, ['id', 'created_at', 'updated_at']);
+            if (diffs.length === 0 && action === 'EDITAR') {
+                console.log('No changes detected for log');
+                return; // Don't log empty edits
+            }
+            finalDetails = {
+                mode: 'diff',
+                changes: diffs,
+                summary: payload.summary || `${diffs.length} campos modificados`
+            };
         }
 
         console.log('Auditing:', { action, entity, details: finalDetails });
@@ -11688,7 +11699,7 @@ window.logHistory = async function(action, entity, recordId, payload) {
 async function loadHistory() {
     const tableBody = document.getElementById('history-table-body');
     if (!tableBody) return;
-    
+
     tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 text-muted">Analizando bitácora de seguridad...</div></td></tr>';
 
     if (!window.supabaseClient) {
@@ -11714,22 +11725,22 @@ async function loadHistory() {
         data.forEach(log => {
             const dObj = new Date(log.created_at);
             const dateStr = dObj.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
-            const timeStr = dObj.toLocaleTimeString('es-MX', { hour: '2-digit', minute:'2-digit' });
+            const timeStr = dObj.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
 
             let badgeClass = 'bg-secondary';
             let icon = 'fa-info-circle';
-            
+
             if (['CREAR', 'AGREGAR', 'IMPORTAR'].includes(log.action_type)) {
-                 badgeClass = 'bg-success'; 
-                 icon = 'fa-plus-circle'; 
+                badgeClass = 'bg-success';
+                icon = 'fa-plus-circle';
             }
             if (['EDITAR', 'ACTUALIZAR', 'MODIFICAR'].includes(log.action_type)) {
-                 badgeClass = 'bg-warning text-dark'; 
-                 icon = 'fa-pencil-alt'; 
+                badgeClass = 'bg-warning text-dark';
+                icon = 'fa-pencil-alt';
             }
             if (['ELIMINAR', 'BORRAR'].includes(log.action_type)) {
-                 badgeClass = 'bg-danger'; 
-                 icon = 'fa-trash-alt'; 
+                badgeClass = 'bg-danger';
+                icon = 'fa-trash-alt';
             }
 
             // Render Diff/Details with Intelligence
@@ -11750,7 +11761,7 @@ async function loadHistory() {
                     detailsHtml += '</ul>';
                 } else {
                     // Fallback generic object
-                   detailsHtml = `<code class="small text-muted">${JSON.stringify(log.details).substring(0, 100)}...</code>`;
+                    detailsHtml = `<code class="small text-muted">${JSON.stringify(log.details).substring(0, 100)}...</code>`;
                 }
             }
 
@@ -11769,7 +11780,7 @@ async function loadHistory() {
                             </div>
                             <div class="d-flex flex-column" style="line-height:1.2;">
                                 <span class="fw-bold text-dark" style="font-size: 0.9rem;">${log.user_email?.split('@')[0]}</span>
-                                <small class="text-muted" style="font-size: 0.75rem;">${log.user_id?.substring(0,8)}...</small>
+                                <small class="text-muted" style="font-size: 0.75rem;">${log.user_id?.substring(0, 8)}...</small>
                             </div>
                         </div>
                     </td>
@@ -11807,7 +11818,7 @@ async function testHistoryConnection() {
     try {
         const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
         console.log('Test Connection - Session:', session);
-        
+
         if (!session) {
             alert('⚠️ Advertencia: No hay sesión activa en Supabase. El historial requiere autenticación.');
             // Attempt to restore from sessionStorage if available (hacky fallback)
@@ -11851,7 +11862,7 @@ async function testHistoryConnection() {
 }
 window.testHistoryConnection = testHistoryConnection;
 
-async function upsertParteOperacionesRemoteEntries(date, rows, options = {}){
+async function upsertParteOperacionesRemoteEntries(date, rows, options = {}) {
     if (!isValidParteOperacionesDate(date)) return false;
     if (!shouldUseParteOperacionesRemoteBackend()) {
         console.warn('upsertParteOperacionesRemoteEntries: Remote backend not available');
@@ -11866,20 +11877,20 @@ async function upsertParteOperacionesRemoteEntries(date, rows, options = {}){
 
         // Log history with more details
         let historyDetails = options.historyDetails;
-        
+
         if (!historyDetails) {
-             // Fallback for auto-sync or calls without explicit diff
-             historyDetails = {
+            // Fallback for auto-sync or calls without explicit diff
+            historyDetails = {
                 mode: 'auto-sync',
                 count: rows.length,
                 types: rows.map(r => r.tipo).filter(Boolean).join(', '),
-                total_ops: rows.reduce((acc, r) => acc + (Number(r.subtotal)||0), 0)
+                total_ops: rows.reduce((acc, r) => acc + (Number(r.subtotal) || 0), 0)
             };
         } else if (typeof historyDetails === 'string') {
             // Wrap string diff in object for consistent rendering
             historyDetails = { diff: historyDetails };
         }
-        
+
         await logHistory('ACTUALIZAR', 'Parte Operaciones', date, historyDetails);
 
         parteOperacionesRemoteState.healthy = true;
@@ -11896,7 +11907,7 @@ async function upsertParteOperacionesRemoteEntries(date, rows, options = {}){
     }
 }
 
-async function deleteParteOperacionesRemoteEntries(date, options = {}){
+async function deleteParteOperacionesRemoteEntries(date, options = {}) {
     if (!isValidParteOperacionesDate(date)) return false;
     if (!shouldUseParteOperacionesRemoteBackend()) return false;
     try {
@@ -11904,7 +11915,7 @@ async function deleteParteOperacionesRemoteEntries(date, options = {}){
             .from('custom_parte_operaciones')
             .delete()
             .eq('date', date);
-        
+
         if (error) throw error;
 
         // Log history
@@ -11924,7 +11935,7 @@ async function deleteParteOperacionesRemoteEntries(date, options = {}){
     }
 }
 
-async function flushParteOperacionesDirtyDates(options = {}){
+async function flushParteOperacionesDirtyDates(options = {}) {
     if (!shouldUseParteOperacionesRemoteBackend()) return false;
     const ledger = ensureParteOperacionesDirtyLedger();
     if (!ledger.size) return false;
@@ -11951,7 +11962,7 @@ async function flushParteOperacionesDirtyDates(options = {}){
     return flushed;
 }
 
-async function syncParteOperacionesRemoteStore(options = {}){
+async function syncParteOperacionesRemoteStore(options = {}) {
     if (!shouldUseParteOperacionesRemoteBackend()) return false;
     const now = Date.now();
     if (!options.force && parteOperacionesRemoteState.lastSync && (now - parteOperacionesRemoteState.lastSync) < PARTE_OPERACIONES_REMOTE_SYNC_TTL) {
@@ -12026,16 +12037,16 @@ async function syncParteOperacionesRemoteStore(options = {}){
     return runner;
 }
 
-function normalizeParteOperacionesSummary(raw){
+function normalizeParteOperacionesSummary(raw) {
     const empty = { dates: [], byDate: {}, isLegacy: false, availableRange: null };
     if (!raw) return empty;
 
-    if (raw?.dias && typeof raw.dias === 'object'){
+    if (raw?.dias && typeof raw.dias === 'object') {
         const entries = Object.entries(raw.dias)
             .filter(([key]) => /^\d{4}-\d{2}-\d{2}$/.test(key))
             .sort((a, b) => a[0].localeCompare(b[0]));
         const byDate = {};
-        for (const [dateKey, value] of entries){
+        for (const [dateKey, value] of entries) {
             const operaciones = Array.isArray(value?.operaciones) ? value.operaciones.map(sanitizeParteOperacionesItem).filter(Boolean) : [];
             const totalGeneral = Number(value?.total_general) || 0;
             byDate[dateKey] = { operaciones, total_general: totalGeneral, pdf_url: value?.pdf_url };
@@ -12045,7 +12056,7 @@ function normalizeParteOperacionesSummary(raw){
         return { dates, byDate, isLegacy: false, availableRange };
     }
 
-    if (Array.isArray(raw?.operaciones)){
+    if (Array.isArray(raw?.operaciones)) {
         const operaciones = raw.operaciones.map(sanitizeParteOperacionesItem).filter(Boolean);
         const totalGeneral = Number(raw?.total_general) || 0;
         return { dates: ['legacy'], byDate: { legacy: { operaciones, total_general: totalGeneral } }, isLegacy: true, availableRange: null };
@@ -12054,7 +12065,7 @@ function normalizeParteOperacionesSummary(raw){
     return empty;
 }
 
-function ensureParteOperacionesCustomStore(){
+function ensureParteOperacionesCustomStore() {
     if (parteOperacionesCustomEntriesStore) return parteOperacionesCustomEntriesStore;
     parteOperacionesCustomEntriesStore = { dates: {} };
     try {
@@ -12065,18 +12076,18 @@ function ensureParteOperacionesCustomStore(){
                 parteOperacionesCustomEntriesStore = parsed;
             }
         }
-    } catch (_) {}
+    } catch (_) { }
     return parteOperacionesCustomEntriesStore;
 }
 
-function saveParteOperacionesCustomStore(){
+function saveParteOperacionesCustomStore() {
     if (!parteOperacionesCustomEntriesStore) return;
     try {
         localStorage.setItem(PARTE_OPERACIONES_CUSTOM_KEY, JSON.stringify(parteOperacionesCustomEntriesStore));
-    } catch (_) {}
+    } catch (_) { }
 }
 
-function mergeParteOperacionesCustomEntries(summary){
+function mergeParteOperacionesCustomEntries(summary) {
     if (!summary || !summary.byDate) return summary;
     const store = ensureParteOperacionesCustomStore();
     const combined = JSON.parse(JSON.stringify(summary));
@@ -12124,7 +12135,7 @@ function mergeParteOperacionesCustomEntries(summary){
     return combined;
 }
 
-function rebuildParteOperacionesCacheFromLocal(){
+function rebuildParteOperacionesCacheFromLocal() {
     if (!parteOperacionesSummaryBaseCache && !parteOperacionesSummaryCache) return;
     const source = parteOperacionesSummaryBaseCache || parteOperacionesSummaryCache;
     parteOperacionesSummaryCache = mergeParteOperacionesCustomEntries(source);
@@ -12132,7 +12143,7 @@ function rebuildParteOperacionesCacheFromLocal(){
     renderParteOperacionesSummaryForCurrentSelection();
 }
 
-function formatParteOperacionesDate(dateStr){
+function formatParteOperacionesDate(dateStr) {
     if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return '';
     const jsDate = new Date(`${dateStr}T00:00:00`);
     if (Number.isNaN(jsDate.getTime())) return dateStr;
@@ -12143,7 +12154,7 @@ function formatParteOperacionesDate(dateStr){
     return formatted;
 }
 
-function formatParteOperacionesDateForTitle(dateStr){
+function formatParteOperacionesDateForTitle(dateStr) {
     if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return '';
     const jsDate = new Date(`${dateStr}T00:00:00`);
     if (Number.isNaN(jsDate.getTime())) return '';
@@ -12154,7 +12165,7 @@ function formatParteOperacionesDateForTitle(dateStr){
     return formatted;
 }
 
-function formatParteOperacionesPdfFilename(dateStr){
+function formatParteOperacionesPdfFilename(dateStr) {
     if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
     const jsDate = new Date(`${dateStr}T00:00:00`);
     if (Number.isNaN(jsDate.getTime())) return null;
@@ -12165,14 +12176,14 @@ function formatParteOperacionesPdfFilename(dateStr){
     return `Operaciones ${day} ${monthLabel} ${jsDate.getFullYear()}`;
 }
 
-function buildParteOperacionesPdfPath(dateStr){
+function buildParteOperacionesPdfPath(dateStr) {
     const filename = formatParteOperacionesPdfFilename(dateStr);
     if (!filename) return null;
     const encoded = encodeURIComponent(`${filename}${PARTE_OPERACIONES_PDF_EXTENSION}`);
     return `${PARTE_OPERACIONES_PDF_BASE_PATH}/${encoded}`;
 }
 
-function updateParteOperacionesPdfViewer(metadata = {}){
+function updateParteOperacionesPdfViewer(metadata = {}) {
     const wrapper = document.getElementById('operations-pdf-viewer');
     if (!wrapper) return;
     const iframe = document.getElementById('operations-pdf-frame');
@@ -12184,10 +12195,10 @@ function updateParteOperacionesPdfViewer(metadata = {}){
     const isoDate = metadata?.isoDate;
     const pdfUrl = metadata?.pdfUrl;
 
-    if (!isoDate || metadata?.isLegacy){
+    if (!isoDate || metadata?.isLegacy) {
         placeholder.classList.remove('d-none');
         iframe.classList.add('d-none');
-        if (iframe.getAttribute('src')){
+        if (iframe.getAttribute('src')) {
             iframe.removeAttribute('src');
         }
         downloadBtn.classList.add('d-none');
@@ -12205,10 +12216,10 @@ function updateParteOperacionesPdfViewer(metadata = {}){
     // Removed local file fallback as per user request to use only DB data
 
 
-    if (!finalPdfPath){
+    if (!finalPdfPath) {
         placeholder.classList.remove('d-none');
         iframe.classList.add('d-none');
-        if (iframe.getAttribute('src')){
+        if (iframe.getAttribute('src')) {
             iframe.removeAttribute('src');
         }
         downloadBtn.classList.add('d-none');
@@ -12233,23 +12244,23 @@ function updateParteOperacionesPdfViewer(metadata = {}){
     }
 }
 
-function getDefaultParteOperacionesDate(summary){
+function getDefaultParteOperacionesDate(summary) {
     if (!summary || !Array.isArray(summary.dates) || !summary.dates.length) return null;
     const { dates, byDate } = summary;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const yesterdayTime = today.getTime() - 24 * 60 * 60 * 1000;
 
-    for (let i = dates.length - 1; i >= 0; i -= 1){
+    for (let i = dates.length - 1; i >= 0; i -= 1) {
         const iso = dates[i];
         if (!byDate?.[iso]) continue;
         const parsed = new Date(`${iso}T00:00:00`);
-        if (!Number.isNaN(parsed.getTime()) && parsed.getTime() <= yesterdayTime){
+        if (!Number.isNaN(parsed.getTime()) && parsed.getTime() <= yesterdayTime) {
             return iso;
         }
     }
 
-    for (let i = dates.length - 1; i >= 0; i -= 1){
+    for (let i = dates.length - 1; i >= 0; i -= 1) {
         const iso = dates[i];
         if (byDate?.[iso]) return iso;
     }
@@ -12257,17 +12268,17 @@ function getDefaultParteOperacionesDate(summary){
     return dates[dates.length - 1];
 }
 
-function canCurrentUserEditParteOperaciones(){
+function canCurrentUserEditParteOperaciones() {
     const role = sessionStorage.getItem('user_role');
     return role === 'admin' || role === 'editor';
 }
 
-function getCurrentParteOperacionesEditor(){
+function getCurrentParteOperacionesEditor() {
     return sessionStorage.getItem(SESSION_USER) || '';
 }
 
 // Parte de operaciones quick-capture functionality removed — stubs to keep integrations safe
-function ensureOpsEntryPanel(){
+function ensureOpsEntryPanel() {
     if (!parteOperacionesEntryState) return {};
     parteOperacionesEntryState.initialized = true;
     parteOperacionesEntryState.panel = null;
@@ -12286,23 +12297,23 @@ function ensureOpsEntryPanel(){
 function setParteOperacionesEntryDate(_) { /* removed */ }
 function addParteOperacionesEntryRow() { /* removed */ }
 function resetParteOperacionesEntryTable() { /* removed */ }
-function readParteOperacionesEntryTable(){ return []; }
+function readParteOperacionesEntryTable() { return []; }
 function updateParteOperacionesEntryTotals() { /* removed */ }
 function loadParteOperacionesEntriesForDate() { /* removed */ }
-async function clearParteOperacionesEntriesForCurrentDate(){ /* removed */ }
-async function saveParteOperacionesEntriesForCurrentDate(){ /* removed */ }
+async function clearParteOperacionesEntriesForCurrentDate() { /* removed */ }
+async function saveParteOperacionesEntriesForCurrentDate() { /* removed */ }
 
 function calculateParteOperacionesDiff(oldRows, newRows) {
     const changes = [];
     const oldMap = new Map(oldRows.map(r => [r.tipo, r]));
     const newMap = new Map(newRows.map(r => [r.tipo, r]));
-    
+
     const allTypes = new Set([...oldMap.keys(), ...newMap.keys()]);
-    
+
     for (const type of allTypes) {
         const oldRow = oldMap.get(type);
         const newRow = newMap.get(type);
-        
+
         if (!oldRow) {
             changes.push(`Agregado: ${type} (${newRow.subtotal} ops)`);
         } else if (!newRow) {
@@ -12314,12 +12325,12 @@ function calculateParteOperacionesDiff(oldRows, newRows) {
             }
         }
     }
-    
+
     if (changes.length === 0) return 'Sin cambios detectados (Guardado idéntico)';
     return changes.join(', ');
 }
 
-function setParteOperacionesFeedback(message, tone = 'muted'){
+function setParteOperacionesFeedback(message, tone = 'muted') {
     const st = ensureOpsEntryPanel();
     if (!st.feedback) return;
     st.feedback.textContent = message || '';
@@ -12331,14 +12342,14 @@ const PARTE_OPERACIONES_LOADER_DEFAULT_MESSAGE = 'Preparando el total de vuelos 
 let parteOperacionesLoaderTimer = null;
 let parteOperacionesLoaderPendingCallback = null;
 
-function setParteOperacionesLoaderMessage(message){
+function setParteOperacionesLoaderMessage(message) {
     const textEl = document.getElementById('operations-summary-loader-text');
     if (textEl) {
         textEl.textContent = message || PARTE_OPERACIONES_LOADER_DEFAULT_MESSAGE;
     }
 }
 
-function showParteOperacionesLoader(message){
+function showParteOperacionesLoader(message) {
     const loader = document.getElementById('operations-summary-loader');
     const container = document.getElementById('operations-summary-table');
     setParteOperacionesLoaderMessage(message);
@@ -12354,7 +12365,7 @@ function showParteOperacionesLoader(message){
     }
 }
 
-function hideParteOperacionesLoader(){
+function hideParteOperacionesLoader() {
     const loader = document.getElementById('operations-summary-loader');
     const container = document.getElementById('operations-summary-table');
     if (container) {
@@ -12370,7 +12381,7 @@ function hideParteOperacionesLoader(){
     setParteOperacionesLoaderMessage(PARTE_OPERACIONES_LOADER_DEFAULT_MESSAGE);
 }
 
-function scheduleParteOperacionesRender(callback, loaderMessage){
+function scheduleParteOperacionesRender(callback, loaderMessage) {
     if (parteOperacionesLoaderTimer) {
         clearTimeout(parteOperacionesLoaderTimer);
         parteOperacionesLoaderTimer = null;
@@ -12407,7 +12418,7 @@ function scheduleParteOperacionesRender(callback, loaderMessage){
     }, delay);
 }
 
-function updateParteOperacionesAvailabilityBanner(summary, options = {}){
+function updateParteOperacionesAvailabilityBanner(summary, options = {}) {
     const bannerWrapper = document.querySelector('.ops-worknote');
     const panelState = ensureOpsEntryPanel();
     const canEdit = canCurrentUserEditParteOperaciones();
@@ -12429,7 +12440,7 @@ function updateParteOperacionesAvailabilityBanner(summary, options = {}){
     bannerWrapper.classList.remove('d-none');
 }
 
-function updateParteOperacionesTitle(isoDate){
+function updateParteOperacionesTitle(isoDate) {
     const titleEl = document.getElementById('operations-summary-title');
     if (!titleEl) return;
     if (parteOperacionesSummaryTitleDefault === null) {
@@ -12454,19 +12465,19 @@ function updateParteOperacionesTitle(isoDate){
     titleEl.textContent = parteOperacionesSummaryTitleDefault;
 }
 
-function isParteOperacionesPrimaryPaneActive(){
+function isParteOperacionesPrimaryPaneActive() {
     const pane = document.getElementById('resumen1-pane');
     if (!pane) return true;
     return pane.classList.contains('active');
 }
 
-function isParteOperacionesAnnualPaneActive(){
+function isParteOperacionesAnnualPaneActive() {
     const pane = document.getElementById('analisis-anual-pane');
     if (!pane) return false;
     return pane.classList.contains('active');
 }
 
-function attachParteOperacionesTabListeners(){
+function attachParteOperacionesTabListeners() {
     const tabs = document.getElementById('operationsTab');
     if (!tabs || tabs._parteOpsTabsWired) return;
     tabs._parteOpsTabsWired = true;
@@ -12483,18 +12494,18 @@ function attachParteOperacionesTabListeners(){
     });
 }
 
-function attachParteOperacionesCalendarListeners(){
+function attachParteOperacionesCalendarListeners() {
     const dateInput = document.getElementById('operations-summary-date');
-    if (dateInput && !dateInput._wired){
+    if (dateInput && !dateInput._wired) {
         dateInput._wired = true;
-        dateInput.addEventListener('change', (event)=>{
+        dateInput.addEventListener('change', (event) => {
             handleParteOperacionesDateChange(event.target.value, { source: 'input' });
         });
     }
     const prevBtn = document.getElementById('operations-summary-prev');
-    if (prevBtn && !prevBtn._wired){
+    if (prevBtn && !prevBtn._wired) {
         prevBtn._wired = true;
-        prevBtn.addEventListener('click', ()=>{
+        prevBtn.addEventListener('click', () => {
             if (!parteOperacionesSummaryCache || parteOperacionesSummaryCache.isLegacy) return;
             const idx = parteOperacionesSummaryAvailableDates.indexOf(parteOperacionesSummarySelectedDate);
             if (idx > 0) {
@@ -12503,9 +12514,9 @@ function attachParteOperacionesCalendarListeners(){
         });
     }
     const nextBtn = document.getElementById('operations-summary-next');
-    if (nextBtn && !nextBtn._wired){
+    if (nextBtn && !nextBtn._wired) {
         nextBtn._wired = true;
-        nextBtn.addEventListener('click', ()=>{
+        nextBtn.addEventListener('click', () => {
             if (!parteOperacionesSummaryCache || parteOperacionesSummaryCache.isLegacy) return;
             const idx = parteOperacionesSummaryAvailableDates.indexOf(parteOperacionesSummarySelectedDate);
             if (idx >= 0 && idx < parteOperacionesSummaryAvailableDates.length - 1) {
@@ -12514,9 +12525,9 @@ function attachParteOperacionesCalendarListeners(){
         });
     }
     const todayBtn = document.getElementById('operations-summary-today');
-    if (todayBtn && !todayBtn._wired){
+    if (todayBtn && !todayBtn._wired) {
         todayBtn._wired = true;
-        todayBtn.addEventListener('click', ()=>{
+        todayBtn.addEventListener('click', () => {
             if (!parteOperacionesSummaryCache || parteOperacionesSummaryCache.isLegacy) return;
             if (parteOperacionesSummaryAvailableDates.length) {
                 const latest = parteOperacionesSummaryAvailableDates[parteOperacionesSummaryAvailableDates.length - 1];
@@ -12526,7 +12537,7 @@ function attachParteOperacionesCalendarListeners(){
     }
 }
 
-function getParteOperacionesAvailableYears(summary){
+function getParteOperacionesAvailableYears(summary) {
     if (!summary || !Array.isArray(summary.dates)) return [];
     const years = summary.dates
         .map((date) => {
@@ -12538,7 +12549,7 @@ function getParteOperacionesAvailableYears(summary){
     return Array.from(new Set(years));
 }
 
-function resolveParteOperacionesCalendarRange(summary){
+function resolveParteOperacionesCalendarRange(summary) {
     const years = getParteOperacionesAvailableYears(summary);
     if (!years.length) return null;
     const sortedYears = [...years].sort();
@@ -12553,7 +12564,7 @@ function resolveParteOperacionesCalendarRange(summary){
         : { min: `${firstYear}-01-01`, max: `${lastYear}-12-31` };
 }
 
-function syncParteOperacionesCalendarControls(summary){
+function syncParteOperacionesCalendarControls(summary) {
     attachParteOperacionesCalendarListeners();
     attachParteOperacionesTabListeners();
     const controlsWrapper = document.querySelector('[data-ops-calendar-controls]');
@@ -12594,11 +12605,11 @@ function syncParteOperacionesCalendarControls(summary){
     }
 }
 
-function refreshParteOperacionesNavState(){
+function refreshParteOperacionesNavState() {
     const prevBtn = document.getElementById('operations-summary-prev');
     const nextBtn = document.getElementById('operations-summary-next');
     if (!prevBtn && !nextBtn) return;
-    if (!parteOperacionesSummaryAvailableDates.length || (parteOperacionesSummaryCache && parteOperacionesSummaryCache.isLegacy)){
+    if (!parteOperacionesSummaryAvailableDates.length || (parteOperacionesSummaryCache && parteOperacionesSummaryCache.isLegacy)) {
         if (prevBtn) prevBtn.disabled = true;
         if (nextBtn) nextBtn.disabled = true;
         return;
@@ -12608,7 +12619,7 @@ function refreshParteOperacionesNavState(){
     if (nextBtn) nextBtn.disabled = idx === -1 || idx >= parteOperacionesSummaryAvailableDates.length - 1;
 }
 
-function renderParteOperacionesSummaryForCurrentSelection(){
+function renderParteOperacionesSummaryForCurrentSelection() {
     renderParteOperacionesAnnualAnalysis(parteOperacionesSummaryCache);
     if (!parteOperacionesSummaryCache) {
         renderParteOperacionesSummary(null, {});
@@ -12645,7 +12656,7 @@ function renderParteOperacionesSummaryForCurrentSelection(){
     refreshParteOperacionesNavState();
 }
 
-function handleParteOperacionesDateChange(dateStr, options = {}){
+function handleParteOperacionesDateChange(dateStr, options = {}) {
     if (!parteOperacionesSummaryCache || parteOperacionesSummaryCache.isLegacy) return;
     if (!Array.isArray(parteOperacionesSummaryAvailableDates) || !parteOperacionesSummaryAvailableDates.length) return;
     let target = (dateStr || '').slice(0, 10);
@@ -12677,19 +12688,19 @@ function handleParteOperacionesDateChange(dateStr, options = {}){
 
 async function fetchParteOperacionesFromDB() {
     if (!window.supabaseClient) throw new Error('Supabase client not initialized');
-    
+
     const { data, error } = await window.supabaseClient
         .from('parte_operations')
         .select('*')
         .order('fecha', { ascending: true });
-        
+
     if (error) throw error;
-    
+
     const dias = {};
-    
+
     data.forEach(row => {
         const ops = [];
-        
+
         // Aviación Comercial
         if (row.comercial_llegada > 0 || row.comercial_salida > 0) {
             ops.push({
@@ -12699,7 +12710,7 @@ async function fetchParteOperacionesFromDB() {
                 subtotal: row.comercial_llegada + row.comercial_salida
             });
         }
-        
+
         // Aviación de Carga
         if (row.carga_llegada > 0 || row.carga_salida > 0) {
             ops.push({
@@ -12709,7 +12720,7 @@ async function fetchParteOperacionesFromDB() {
                 subtotal: row.carga_llegada + row.carga_salida
             });
         }
-        
+
         // Aviación General
         if (row.general_llegada > 0 || row.general_salida > 0) {
             ops.push({
@@ -12719,18 +12730,18 @@ async function fetchParteOperacionesFromDB() {
                 subtotal: row.general_llegada + row.general_salida
             });
         }
-        
+
         dias[row.fecha] = {
             operaciones: ops,
             total_general: row.total_general,
             pdf_url: row.pdf_url
         };
     });
-    
+
     return { dias };
 }
 
-async function loadParteOperacionesSummary(options = {}){
+async function loadParteOperacionesSummary(options = {}) {
     const { force = false, silent = false, skipRemoteSync = false } = options;
     const container = document.getElementById('operations-summary-table');
     if (!container) return;
@@ -12741,7 +12752,7 @@ async function loadParteOperacionesSummary(options = {}){
             console.warn('syncParteOperacionesRemoteStore before load failed:', err);
         }
     }
-    if (!force && parteOperacionesSummaryCache){
+    if (!force && parteOperacionesSummaryCache) {
         const isStale = parteOperacionesSummaryCacheFetchedAt && (Date.now() - parteOperacionesSummaryCacheFetchedAt > OPERATIONAL_REFRESH_INTERVAL);
         if (!isStale) {
             syncParteOperacionesCalendarControls(parteOperacionesSummaryCache);
@@ -12757,7 +12768,7 @@ async function loadParteOperacionesSummary(options = {}){
             </div>
         `;
     }
-    
+
     try {
         let raw;
         // Try fetching from DB first if client exists
@@ -12772,10 +12783,10 @@ async function loadParteOperacionesSummary(options = {}){
                 raw = await res.json();
             }
         } else {
-             // Local dev or no supabase
-             const res = await fetch('data/resumen_parte_operaciones.json', { cache: 'no-store' });
-             if (!res.ok) throw new Error(`HTTP ${res.status}`);
-             raw = await res.json();
+            // Local dev or no supabase
+            const res = await fetch('data/resumen_parte_operaciones.json', { cache: 'no-store' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            raw = await res.json();
         }
 
         const normalized = normalizeParteOperacionesSummary(raw);
@@ -12790,7 +12801,7 @@ async function loadParteOperacionesSummary(options = {}){
         } else if (previousSelection && merged.byDate[previousSelection]) {
             parteOperacionesSummarySelectedDate = previousSelection;
         } else if (parteOperacionesSummaryAvailableDates.length) {
-        parteOperacionesSummarySelectedDate = getDefaultParteOperacionesDate(merged) || parteOperacionesSummaryAvailableDates[parteOperacionesSummaryAvailableDates.length - 1];
+            parteOperacionesSummarySelectedDate = getDefaultParteOperacionesDate(merged) || parteOperacionesSummaryAvailableDates[parteOperacionesSummaryAvailableDates.length - 1];
         } else {
             parteOperacionesSummarySelectedDate = null;
         }
@@ -12803,7 +12814,7 @@ async function loadParteOperacionesSummary(options = {}){
     }
 }
 
-function formatParteOperacionesMonthLabel(monthKey){
+function formatParteOperacionesMonthLabel(monthKey) {
     if (!PARTE_OPERACIONES_MONTH_KEY_PATTERN.test(monthKey)) return monthKey;
     const [yearStr, monthStr] = monthKey.split('-');
     const monthIndex = Number(monthStr) - 1;
@@ -12812,14 +12823,14 @@ function formatParteOperacionesMonthLabel(monthKey){
     return monthName ? `${capitalizeFirst(monthName)} ${yearStr}` : monthKey;
 }
 
-function formatParteOperacionesMonthShortLabel(monthKey){
+function formatParteOperacionesMonthShortLabel(monthKey) {
     if (!PARTE_OPERACIONES_MONTH_KEY_PATTERN.test(monthKey)) return monthKey;
     const monthIndex = Number(monthKey.slice(5, 7)) - 1;
     if (monthIndex < 0 || monthIndex > 11) return monthKey;
     return SPANISH_MONTH_ABBRS[monthIndex] || monthKey;
 }
 
-function resolveParteOperacionesSubtotal(item){
+function resolveParteOperacionesSubtotal(item) {
     const llegada = Number(item?.llegada) || 0;
     const salida = Number(item?.salida) || 0;
     const rawSubtotal = Number(item?.subtotal);
@@ -12829,7 +12840,7 @@ function resolveParteOperacionesSubtotal(item){
     return llegada + salida;
 }
 
-function classifyParteOperacionesAnnualType(value){
+function classifyParteOperacionesAnnualType(value) {
     const normalized = normalizeParteOperacionesType(value);
     if (!normalized) return 'otros';
     if (normalized.includes('pasaj') || normalized.includes('comercial')) return 'comercial';
@@ -12838,7 +12849,7 @@ function classifyParteOperacionesAnnualType(value){
     return 'otros';
 }
 
-function computeParteOperacionesAnnualDataset(summary, options = {}){
+function computeParteOperacionesAnnualDataset(summary, options = {}) {
     if (!summary || !summary.byDate) return null;
     const referenceSummary = options.referenceSummary || (options.preferBaseCache ? parteOperacionesSummaryBaseCache : null);
     const entries = Object.entries(summary.byDate)
@@ -12993,7 +13004,7 @@ function computeParteOperacionesAnnualDataset(summary, options = {}){
     };
 }
 
-function updateParteOperacionesAnnualChart(dataset, formatter){
+function updateParteOperacionesAnnualChart(dataset, formatter) {
     const canvas = document.getElementById('ops-annual-averages-chart');
     if (!canvas || typeof Chart !== 'function') return;
     if (parteOperacionesAnnualState.chart) {
@@ -13063,7 +13074,7 @@ function updateParteOperacionesAnnualChart(dataset, formatter){
     });
 }
 
-function renderParteOperacionesAnnualAnalysis(summary){
+function renderParteOperacionesAnnualAnalysis(summary) {
     const cardsHost = document.getElementById('ops-annual-averages-cards');
     const tableHost = document.getElementById('ops-annual-averages-table');
     const chartCanvas = document.getElementById('ops-annual-averages-chart');
@@ -13202,7 +13213,7 @@ function renderParteOperacionesAnnualAnalysis(summary){
     updateParteOperacionesAnnualChart(dataset, numberFormatter);
 }
 
-function renderParteOperacionesSummary(data, metadata = {}){
+function renderParteOperacionesSummary(data, metadata = {}) {
     if (parteOperacionesLoaderTimer) {
         clearTimeout(parteOperacionesLoaderTimer);
         parteOperacionesLoaderTimer = null;
@@ -13211,20 +13222,20 @@ function renderParteOperacionesSummary(data, metadata = {}){
     hideParteOperacionesLoader();
     const container = document.getElementById('operations-summary-table');
     if (!container) return;
-    
+
     // Pass pdfUrl from data to metadata for the viewer
     const extendedMetadata = { ...metadata, pdfUrl: data?.pdf_url };
     updateParteOperacionesPdfViewer(extendedMetadata);
-    
+
     updateParteOperacionesAvailabilityBanner(parteOperacionesSummaryCache);
-    if (!data){
+    if (!data) {
         updateParteOperacionesTitle(metadata?.isoDate);
         container.innerHTML = '<div class="alert alert-info mb-0">No hay información disponible.</div>';
         return;
     }
     const ops = Array.isArray(data?.operaciones) ? data.operaciones : [];
     const formatter = new Intl.NumberFormat('es-MX');
-    const normalizeKey = (value)=> {
+    const normalizeKey = (value) => {
         return (value || '')
             .toString()
             .normalize('NFD')
@@ -13263,7 +13274,7 @@ function renderParteOperacionesSummary(data, metadata = {}){
             progressClass: 'bg-secondary'
         }
     };
-    const totals = ops.reduce((acc, item)=>{
+    const totals = ops.reduce((acc, item) => {
         const llegada = Number(item?.llegada) || 0;
         const salida = Number(item?.salida) || 0;
         const rawSubtotal = Number(item?.subtotal);
@@ -13277,7 +13288,7 @@ function renderParteOperacionesSummary(data, metadata = {}){
     const totalGeneral = Number.isFinite(totalGeneralFallback) && totalGeneralFallback >= 0 ? totalGeneralFallback : (totals.subtotal || (totals.llegada + totals.salida));
     const friendlyDate = metadata?.friendlyDate || '';
 
-    if (!ops.length){
+    if (!ops.length) {
         updateParteOperacionesTitle(metadata?.isoDate);
         container.innerHTML = `
             <div class="card shadow-sm border-0 ops-summary-table">
@@ -13421,7 +13432,7 @@ async function refreshOperationalData(options = {}) {
     const preserveFilters = options.preserveFilters !== false;
     const silentSummary = options.silentSummary !== false;
     const reason = options.reason || 'auto';
-    try { console.info(`[auto-refresh] Actualizando datos (${reason})`); } catch (_) {}
+    try { console.info(`[auto-refresh] Actualizando datos (${reason})`); } catch (_) { }
     lastOperationalAutoRefresh = Date.now();
     const runner = (async () => {
         const tasks = [];
@@ -13500,91 +13511,97 @@ if (isAndroidDevice) {
     }
 }
 
-        // Inicialización principal de la aplicación cuando el DOM está listo
-        document.addEventListener('DOMContentLoaded', () => {
-            try {
-                setupEventListeners();
-            } catch (err) {
-                console.warn('setupEventListeners failed:', err);
-            }
+// Inicialización principal de la aplicación cuando el DOM está listo
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        setupEventListeners();
+    } catch (err) {
+        console.warn('setupEventListeners failed:', err);
+    }
 
-            try {
-                animateLoginTitle();
-            } catch (err) {
-                console.warn('animateLoginTitle failed:', err);
-            }
+    try {
+        animateLoginTitle();
+    } catch (err) {
+        console.warn('animateLoginTitle failed:', err);
+    }
 
-            try {
-                initializeTheme();
-                initializeSidebarState();
-            } catch (err) {
-                console.warn('Theme/sidebar init failed:', err);
-            }
+    try {
+        initializeTheme();
+        initializeSidebarState();
+    } catch (err) {
+        console.warn('Theme/sidebar init failed:', err);
+    }
 
-            try {
-                setupPwaInstallExperience();
-            } catch (err) {
-                console.warn('setupPwaInstallExperience failed:', err);
-            }
+    try {
+        setupPwaInstallExperience();
+    } catch (err) {
+        console.warn('setupPwaInstallExperience failed:', err);
+    }
 
-            try {
-                updateDate();
-                updateClock();
-                setInterval(updateClock, 1000);
-            } catch (err) {
-                console.warn('Clock/date init failed:', err);
-            }
+    try {
+        updateDate();
+        updateClock();
+        setInterval(updateClock, 1000);
+    } catch (err) {
+        console.warn('Clock/date init failed:', err);
+    }
 
-            try {
-                ensureAuthHashes();
-            } catch (err) {
-                console.warn('ensureAuthHashes eager init failed:', err);
-            }
+    try {
+        ensureAuthHashes();
+    } catch (err) {
+        console.warn('ensureAuthHashes eager init failed:', err);
+    }
 
-            try {
-                loadItineraryData();
-            } catch (err) {
-                console.warn('loadItineraryData failed:', err);
-            }
+    try {
+        loadItineraryData();
+    } catch (err) {
+        console.warn('loadItineraryData failed:', err);
+    }
 
-            try {
-                createPdfSections();
-            } catch (err) {
-                console.warn('createPdfSections failed:', err);
-            }
+    try {
+        createPdfSections();
+    } catch (err) {
+        console.warn('createPdfSections failed:', err);
+    }
 
-            try {
-                loadParteOperacionesSummary();
-            } catch (err) {
-                console.warn('loadParteOperacionesSummary failed:', err);
-            }
+    try {
+        loadParteOperacionesSummary();
+    } catch (err) {
+        console.warn('loadParteOperacionesSummary failed:', err);
+    }
 
-            try {
-                checkSession();
-            } catch (err) {
-                console.warn('checkSession failed:', err);
-            }
+    try {
+        checkSession();
+    } catch (err) {
+        console.warn('checkSession failed:', err);
+    }
 
-            try {
-                initializeGsoQuickLinks();
-            } catch (err) {
-                console.warn('initializeGsoQuickLinks init failed:', err);
-            }
+    try {
+        initializeGsoQuickLinks();
+    } catch (err) {
+        console.warn('initializeGsoQuickLinks init failed:', err);
+    }
 
-            try {
-                showGsoMenu();
-            } catch (err) {
-                console.warn('showGsoMenu init failed:', err);
-            }
+    try {
+        showGsoMenu();
+    } catch (err) {
+        console.warn('showGsoMenu init failed:', err);
+    }
 
-            try {
-                if (isAndroidDevice) { startAndroidAutoRefreshTimer(); }
-            } catch (err) {
-                console.warn('Android auto-refresh timer init failed:', err);
-            }
+    try {
+        if (window.dataManagement) window.dataManagement.renderLibraryPublic();
+    } catch (err) {
+        console.warn('Library public render failed:', err);
+    }
 
-            // Load dynamic data
-            loadWeeklyOperationsFromDB();
-        });
+    try {
+        if (isAndroidDevice) { startAndroidAutoRefreshTimer(); }
+    } catch (err) {
+        console.warn('Android auto-refresh timer init failed:', err);
+    }
+
+    // Load dynamic data
+    loadWeeklyOperationsFromDB();
+});
 
 // End of script
