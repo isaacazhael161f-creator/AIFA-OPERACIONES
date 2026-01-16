@@ -173,6 +173,25 @@ class DataManagement {
                 { name: 'visitors', label: 'Visitantes', type: 'number' },
                 { name: 'total', label: 'Total', type: 'number', readonly: true } // Often calculated, but let's keep it for now
             ],
+            medical_types: [
+                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'month', label: 'Mes', type: 'select', options: [
+                    { value: 'ABRIL', label: 'Abril' }, { value: 'MAYO', label: 'Mayo' }, { value: 'JUNIO', label: 'Junio' },
+                    { value: 'JULIO', label: 'Julio' }, { value: 'AGOSTO', label: 'Agosto' }, { value: 'SEPTIEMBRE', label: 'Septiembre' },
+                    { value: 'OCTUBRE', label: 'Octubre' }, { value: 'NOVIEMBRE', label: 'Noviembre' }, { value: 'DICIEMBRE', label: 'Diciembre' },
+                    { value: 'ENERO', label: 'Enero' }, { value: 'FEBRERO', label: 'Febrero' }, { value: 'MARZO', label: 'Marzo' }
+                ]},
+                { name: 'traslado', label: 'Traslado', type: 'number' },
+                { name: 'ambulatorio', label: 'Ambulatorio', type: 'number' },
+                { name: 'total', label: 'Total', type: 'number', readonly: true }
+            ],
+            medical_directory: [
+                { name: 'asunto', label: 'Asunto', type: 'text' },
+                { name: 'responsable', label: 'Responsable', type: 'text' },
+                { name: 'estado', label: 'Estado', type: 'number' },
+                // Documentos is handled specially via a custom renderer or just not edited inline easily for files
+                { name: 'documentos', label: 'Documentos', type: 'text', readonly: true } 
+            ],
             delays: [
                 { name: 'year', label: 'Año', type: 'number' },
                 { name: 'month', label: 'Mes', type: 'select', options: [
@@ -378,7 +397,14 @@ class DataManagement {
         if (monthEl) monthEl.addEventListener('change', () => this.loadDailyOperations());
         // Category filter removed — no listener required
         document.getElementById('filter-itinerary-date').addEventListener('change', () => this.loadItinerary());
-        document.getElementById('filter-medical-year').addEventListener('change', () => this.loadMedical());
+        
+        // Medical Filters
+        const medYear = document.getElementById('filter-medical-year');
+        if (medYear) medYear.addEventListener('change', () => this.loadMedicalAttentions());
+        
+        const medTypeYear = document.getElementById('filter-medical-types-year');
+        if(medTypeYear) medTypeYear.addEventListener('change', () => this.loadMedicalTypes());
+
         document.getElementById('filter-delays-year').addEventListener('change', () => this.loadDelays());
         document.getElementById('filter-delays-month').addEventListener('change', () => this.loadDelays());
         
@@ -448,7 +474,15 @@ class DataManagement {
         if (targetId === '#pane-wildlife') this.loadWildlifeStrikes();
         if (targetId === '#pane-rescued-wildlife') this.loadRescuedWildlife();
         if (targetId === '#pane-daily-flights-ops') this.loadDailyFlightsOps();
-        if (targetId === '#pane-medical') this.loadMedical();
+        if (targetId === '#pane-medical') {
+            this.loadMedicalAttentions();
+            this.loadMedicalTypes();
+            this.loadMedicalDirectory();
+        }
+        if (targetId === '#pane-medical-attentions') this.loadMedicalAttentions();
+        if (targetId === '#pane-medical-types') this.loadMedicalTypes();
+        if (targetId === '#pane-medical-directory') this.loadMedicalDirectory();
+
         if (targetId === '#pane-delays') this.loadDelays();
         if (targetId === '#pane-punctuality-table') this.loadPunctualityStats();
         if (targetId === '#pane-weekly-frequencies') this.loadWeeklyFrequencies();
@@ -1304,15 +1338,318 @@ class DataManagement {
         }
     }
 
-    async loadMedical() {
+    async loadMedicalAttentions() {
         const year = document.getElementById('filter-medical-year').value;
         try {
             const data = await window.dataManager.getMedicalAttentions(year);
             this.renderTable('table-medical', data, ['month', 'aifa_personnel', 'other_companies', 'passengers', 'visitors', 'total'], 'medical_attentions');
         } catch (error) {
-            console.error('Error loading medical:', error);
+            console.error('Error loading medical attentions:', error);
         }
     }
+
+    async loadMedicalTypes() {
+        const year = document.getElementById('filter-medical-types-year').value;
+        try {
+            const data = await window.dataManager.getMedicalTypes(year);
+            this.renderTable('table-medical-types', data, ['month', 'traslado', 'ambulatorio', 'total'], 'medical_types');
+        } catch (error) {
+            console.error('Error loading medical types:', error);
+        }
+    }
+
+    async loadMedicalDirectory() {
+        try {
+            const data = await window.dataManager.getMedicalDirectory();
+            // Custom renderer for directory to handle Documents array
+            const tbody = document.querySelector('#table-medical-directory tbody');
+            tbody.innerHTML = '';
+
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                
+                // Asunto
+                const tdSubject = document.createElement('td');
+                tdSubject.textContent = item.asunto;
+                tr.appendChild(tdSubject);
+                
+                // Responsable
+                const tdResp = document.createElement('td');
+                tdResp.textContent = item.responsable;
+                tr.appendChild(tdResp);
+                
+                // Estado
+                const tdStatus = document.createElement('td');
+                tdStatus.textContent = item.estado;
+                tr.appendChild(tdStatus);
+                
+                // Documentos
+                const tdDocs = document.createElement('td');
+                // Assume documents is JSONB array of strings (filenames)
+                let docs = [];
+                if (Array.isArray(item.documentos)) {
+                    docs = item.documentos;
+                } else if (typeof item.documentos === 'string') {
+                    try { docs = JSON.parse(item.documentos); } catch(e){}
+                }
+                
+                if (docs.length > 0) {
+                    tdDocs.className = "d-flex flex-column gap-1";
+                    
+                    docs.forEach((d, idx) => {
+                        const fileRow = document.createElement('div');
+                        fileRow.className = "d-flex align-items-center justify-content-between p-1 border rounded bg-light";
+                        
+                        // Resolve URL and Name
+                        let url = '', name = '';
+                        if (typeof d === 'object' && d !== null) {
+                            url = d.url;
+                            name = d.name || 'Documento';
+                        } else {
+                            const isUrl = typeof d === 'string' && (d.startsWith('http') || d.startsWith('//'));
+                            url = isUrl ? d : `pdfs/directorio/${d}`;
+                            name = isUrl ? (d.split('/').pop().split('_').pop() || 'Documento') : d;
+                        }
+
+                        // Link
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.target = "_blank";
+                        link.className = "text-decoration-none text-truncate small me-2";
+                        link.style.maxWidth = "150px";
+                        link.innerHTML = `<i class="fas fa-file-pdf text-danger me-1"></i> ${name}`;
+                        link.title = name;
+                        
+                        // Controls container
+                        const controls = document.createElement('div');
+                        controls.className = "d-flex gap-1";
+
+                        // Edit Name Button
+                        const btnRename = document.createElement('button');
+                        btnRename.className = "btn btn-xs btn-link text-secondary p-0";
+                        btnRename.innerHTML = '<i class="fas fa-pen"></i>';
+                        btnRename.title = "Cambiar nombre";
+                        btnRename.onclick = () => this.renameMedicalDoc(item.id, idx, name);
+
+                        // Delete Button
+                        const btnRemove = document.createElement('button');
+                        btnRemove.className = "btn btn-xs btn-link text-danger p-0";
+                        btnRemove.innerHTML = '<i class="fas fa-times"></i>';
+                        btnRemove.title = "Eliminar documento";
+                        btnRemove.onclick = () => this.deleteMedicalDoc(item.id, idx);
+
+                        controls.appendChild(btnRename);
+                        controls.appendChild(btnRemove);
+                        
+                        fileRow.appendChild(link);
+                        fileRow.appendChild(controls);
+                        tdDocs.appendChild(fileRow);
+                    });
+                } else {
+                    tdDocs.textContent = '-';
+                }
+                // Add upload button
+                 const btnUpload = document.createElement('button');
+                 btnUpload.className = 'btn btn-sm btn-link mt-1';
+                 btnUpload.innerHTML = '<i class="fas fa-upload"></i> Agregar PDF';
+                 btnUpload.onclick = () => this.uploadMedicalPdf(item.id);
+                 tdDocs.appendChild(btnUpload);
+
+                tr.appendChild(tdDocs);
+                
+                // Order Column Input
+                const tdOrder = document.createElement('td');
+                const inputOrder = document.createElement('input');
+                inputOrder.type = 'number';
+                inputOrder.className = 'form-control form-control-sm';
+                inputOrder.style.width = '60px'; 
+                inputOrder.value = item.order_index !== undefined ? item.order_index : 1000;
+                inputOrder.onchange = async (e) => {
+                    try {
+                        await window.dataManager.updateTable('medical_directory', item.id, { order_index: Number(e.target.value) });
+                        e.target.style.borderColor = 'green';
+                    } catch (err) { alert('Error actualizando orden'); }
+                };
+                tdOrder.appendChild(inputOrder);
+                // Prepend to row (making it the first column visually, user needs to update header in HTML manually or we do it here if possible)
+                tr.insertBefore(tdOrder, tr.firstChild); 
+                
+
+                // Actions
+                const tdActions = document.createElement('td');
+                const btnEdit = document.createElement('button');
+                btnEdit.className = 'btn btn-sm btn-outline-primary me-1';
+                btnEdit.innerHTML = '<i class="fas fa-edit"></i>';
+                btnEdit.onclick = () => this.editItem('medical_directory', item);
+                tdActions.appendChild(btnEdit);
+
+                const btnDelete = document.createElement('button');
+                btnDelete.className = 'btn btn-sm btn-outline-danger';
+                btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
+                btnDelete.onclick = () => this.deleteItem('medical_directory', item.id);
+                tdActions.appendChild(btnDelete);
+                
+                tr.appendChild(tdActions);
+                tbody.appendChild(tr);
+            });
+
+        } catch (error) {
+            console.error('Error loading medical directory:', error);
+        }
+    }
+    
+    async renameMedicalDoc(id, docIndex, currentName) {
+        const newName = prompt("Nuevo nombre para el documento:", currentName);
+        if (!newName || newName.trim() === currentName) return;
+
+        try {
+            const { data: currentData, error: fetchError } = await this.client
+                .from('medical_directory')
+                .select('documentos')
+                .eq('id', id)
+                .single();
+            if (fetchError) throw fetchError;
+
+            let docs = [];
+            if (currentData.documentos) {
+                 docs = typeof currentData.documentos === 'string' ? JSON.parse(currentData.documentos) : currentData.documentos;
+            }
+            
+            if (docIndex >= 0 && docIndex < docs.length) {
+                const doc = docs[docIndex];
+                // Convert to object if legacy string
+                if (typeof doc === 'string') {
+                    docs[docIndex] = { url: doc, name: newName.trim() };
+                } else if (typeof doc === 'object') {
+                    docs[docIndex].name = newName.trim();
+                }
+
+                const { error: updateError } = await this.client
+                    .from('medical_directory')
+                    .update({ documentos: docs })
+                    .eq('id', id);
+                if (updateError) throw updateError;
+                
+                this.loadMedicalDirectory();
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error al renombrar: ' + e.message);
+        }
+    }
+
+    async deleteMedicalDoc(id, docIndex) {
+        if (!confirm("¿Eliminar este documento?")) return;
+        try {
+            const { data: currentData, error: fetchError } = await this.client
+                .from('medical_directory')
+                .select('documentos')
+                .eq('id', id)
+                .single();
+            if (fetchError) throw fetchError;
+
+             let docs = [];
+            if (currentData.documentos) {
+                 docs = typeof currentData.documentos === 'string' ? JSON.parse(currentData.documentos) : currentData.documentos;
+            }
+
+            if (docIndex >= 0 && docIndex < docs.length) {
+                docs.splice(docIndex, 1); // Remove item
+                
+                const { error: updateError } = await this.client
+                    .from('medical_directory')
+                    .update({ documentos: docs })
+                    .eq('id', id);
+                if (updateError) throw updateError;
+                
+                this.loadMedicalDirectory();
+            }
+
+        } catch (e) {
+            console.error(e);
+            alert('Error al eliminar documento: ' + e.message);
+        }
+    }
+
+    async uploadMedicalPdf(id) {
+        // Create file input dynamically
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/pdf';
+        
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Ask user for a display name
+            let displayName = prompt("Ingrese el nombre que desea mostrar para este archivo:", file.name.replace('.pdf',''));
+            if (displayName === null) return; // User cancelled
+            if (!displayName.trim()) displayName = file.name;
+
+            try {
+                // 1. Upload to Supabase Storage
+                // Generate a unique path: medical_docs/recordId/timestamp_filename
+                const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+                const filePath = `medical_docs/${id}/${Date.now()}_${cleanName}`;
+                
+                // Show loading state (global spinner or alert for now)
+                document.body.style.cursor = 'wait';
+                
+                const { data: uploadData, error: uploadError } = await this.client
+                    .storage
+                    .from('medical-files')
+                    .upload(filePath, file);
+
+                if (uploadError) throw new Error('Error subiendo archivo: ' + uploadError.message);
+
+                // 2. Get Public URL
+                const { data: { publicUrl } } = this.client
+                    .storage
+                    .from('medical-files')
+                    .getPublicUrl(filePath);
+
+                // 3. Update Record
+                // First get current doc list to append
+                const { data: currentData, error: fetchError } = await this.client
+                    .from('medical_directory')
+                    .select('documentos')
+                    .eq('id', id)
+                    .single();
+
+                if (fetchError) throw new Error('Error leyendo registro actual');
+
+                let docs = [];
+                if (currentData.documentos) {
+                    docs = typeof currentData.documentos === 'string' 
+                        ? JSON.parse(currentData.documentos) 
+                        : currentData.documentos;
+                }
+                if (!Array.isArray(docs)) docs = [];
+                
+                // Store object with url and name
+                docs.push({ url: publicUrl, name: displayName.trim() });
+
+                const { error: updateError } = await this.client
+                    .from('medical_directory')
+                    .update({ documentos: docs })
+                    .eq('id', id);
+
+                if (updateError) throw new Error('Error actualizando base de datos');
+                
+                alert('Documento subido correctamente');
+                this.loadMedicalDirectory();
+
+            } catch (err) {
+                console.error('Upload failed:', err);
+                alert('Fallo la carga: ' + err.message);
+            } finally {
+                document.body.style.cursor = 'default';
+            }
+        };
+
+        input.click();
+    }
+
 
     async loadDelays() {
         const year = document.getElementById('filter-delays-year').value;

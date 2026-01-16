@@ -1724,8 +1724,11 @@ function sanitizeDirectorioEntry(raw) {
     }
     const documentos = Array.isArray(raw.documentos)
         ? raw.documentos
-            .filter(item => typeof item === 'string' && item.trim().length)
-            .map(item => item.trim())
+            .filter(item => (typeof item === 'string' && item.trim().length) || (typeof item === 'object' && item !== null && item.url))
+            .map(item => {
+                if (typeof item === 'string') return item.trim();
+                return { url: item.url.trim(), name: (item.name || '').trim() };
+            })
         : [];
     return {
         asunto: (raw.asunto || 'Sin asunto').toString().trim() || 'Sin asunto',
@@ -1800,18 +1803,32 @@ function renderServicioMedicoDirectorio(entries) {
     const markup = entries.map((entry) => {
         const docs = entry.documentos.length
             ? entry.documentos.map((doc, docIndex) => {
-                const safeLabel = escapeHtml(doc);
-                const docUrl = buildDirectorioDocUrl(doc);
+                // Support both legacy string URLs and new object {url, name} format
+                const isObject = typeof doc === 'object' && doc !== null;
+                const rawUrl = isObject ? doc.url : doc;
+                const rawName = isObject ? (doc.name || 'Documento') : doc;
+                
+                const safeLabel = escapeHtml(rawName);
+                // If it's a full URL (Supabase), use it directly. If it's a relative path, build it.
+                // buildDirectorioDocUrl handles relative paths well, but we need to check if it's absolute first
+                
+                let docUrl;
+                if (/^(https?:|data:)/i.test(rawUrl)) {
+                    docUrl = rawUrl;
+                } else {
+                    docUrl = buildDirectorioDocUrl(rawUrl);
+                }
+
                 const docNumber = docIndex + 1;
                 if (docUrl) {
                     return `
-                        <a class="btn btn-outline-primary btn-sm directorio-doc-link" href="${escapeHtml(docUrl)}" target="_blank" rel="noopener noreferrer" data-directorio-doc="${escapeHtml(doc)}">
+                        <a class="btn btn-outline-primary btn-sm directorio-doc-link" href="${escapeHtml(docUrl)}" target="_blank" rel="noopener noreferrer" data-directorio-doc="${escapeHtml(rawUrl)}">
                             <i class="fas fa-file-pdf me-1" aria-hidden="true"></i>${safeLabel}
                             <span class="visually-hidden">(Documento ${docNumber})</span>
                         </a>`;
                 }
                 return `
-                    <button type="button" class="btn btn-outline-secondary btn-sm directorio-doc-fallback" data-directorio-doc="${escapeHtml(doc)}">
+                    <button type="button" class="btn btn-outline-secondary btn-sm directorio-doc-fallback" data-directorio-doc="${escapeHtml(rawUrl)}">
                         <i class="fas fa-file-circle-xmark me-1" aria-hidden="true"></i>${safeLabel}
                     </button>`;
             }).join('')
@@ -1852,6 +1869,33 @@ async function loadServicioMedicoDirectorio(options = {}) {
         return;
     }
     toggleDirectorioLoader(true);
+
+    // Try fetching from DB first via dataManager
+    try {
+        if (window.dataManager) {
+            console.log('Fetching Medical Directory from DB...');
+            const dbData = await window.dataManager.getMedicalDirectory();
+            
+            if (dbData && dbData.length > 0) {
+                // Map DB columns to UI format
+                const entries = dbData.map(row => ({
+                    asunto: row.asunto || 'Sin asunto',
+                    responsable: row.responsable || '',
+                    estado: row.estado || '',
+                    documentos: Array.isArray(row.documentos) ? row.documentos : (typeof row.documentos === 'string' ? JSON.parse(row.documentos) : [])
+                }));
+
+                servicioMedicoDirectorioState.cache = entries;
+                servicioMedicoDirectorioState.lastFetch = Date.now();
+                renderServicioMedicoDirectorio(entries);
+                return; // Success, exit
+            }
+        }
+    } catch (dbError) {
+        console.warn('DB fetch for Medical Directory failed, falling back to JSON:', dbError);
+    }
+
+
     try {
         if (servicioMedicoDirectorioState.inFlight && !force) {
             await servicioMedicoDirectorioState.inFlight;

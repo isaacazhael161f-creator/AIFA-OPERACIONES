@@ -91,6 +91,25 @@ class DataManager {
         return data;
     }
 
+    async getMedicalTypes(year) {
+        let query = this.client.from('medical_types').select('*').order('id', { ascending: true });
+        if (year) query = query.eq('year', year);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data;
+    }
+
+    async getMedicalDirectory() {
+        const { data, error } = await this.client
+            .from('medical_directory')
+            .select('*')
+            // Sort by order_index first, then by Creation date
+            .order('order_index', { ascending: true, nullsFirst: false })
+            .order('created_at', { ascending: true });
+        if (error) throw error;
+        return data;
+    }
+
     // --- Wildlife Incidents ---
     async getWildlifeIncidents(limit = 100) {
         const { data, error } = await this.client

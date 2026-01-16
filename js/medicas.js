@@ -913,6 +913,49 @@
     }
   }
 
+  // Use DataManager to fetch data from Supabase
+  async function loadDataFromDB() {
+    try {
+        if (!window.dataManager) return { atenciones: [], tipos: [], comp: [] };
+        
+        // 1. Atenciones Mensuales
+        const atenciones = await window.dataManager.getMedicalAttentions();
+        const mappedAtenciones = atenciones.map(a => ({
+            anio: a.year,
+            mes: a.month, 
+            aifa: a.aifa_personnel, 
+            otra_empresa: a.other_companies,
+            pasajeros: a.passengers,
+            visitantes: a.visitors, 
+            total: a.total
+        }));
+
+        // 2. Tipos de Atencion
+        const tipos = await window.dataManager.getMedicalTypes();
+        const mappedTipos = tipos.map(t => ({
+            anio: t.year,
+            mes: t.month,
+            traslado: t.traslado,
+            ambulatorio: t.ambulatorio,
+            total: t.total
+        }));
+
+        // 3. Comparativa (derived from Atenciones if not exists in DB separately, or we can use the same data)
+        // Historically "atenciones_medicas_año.json" matched structure of "atenciones_medicas.json"
+        // So we can reuse mappedAtenciones for rawComp
+        
+        return { 
+            atenciones: mappedAtenciones.filter(i => i.anio && i.mes), 
+            tipos: mappedTipos.filter(i => i.anio && i.mes),
+            comp: mappedAtenciones.filter(i => i.anio && i.mes)
+        };
+
+    } catch (e) {
+        console.error("Error loading medical data from DB:", e);
+        return { atenciones: [], tipos: [], comp: [] };
+    }
+  }
+
   function bindEvents(){
     if (eventsBound) return;
     eventsBound = true;
@@ -998,36 +1041,67 @@
         currentViewportMode = newMode;
       }
     });
+
+    // Listen for data updates to refresh visualizations
+    window.addEventListener('data-updated', (e) => {
+        const table = e.detail && e.detail.table;
+        if (table === 'medical_attentions' || table === 'medical_types') {
+            console.log('Reloading medical visualisations from DB...');
+            init(true);
+        }
+    });
   }
 
-  async function init(){
-    const [atencionesData, tipoData, compData] = await Promise.all([
-      loadJSON(ATENCIONES_URL),
-      loadJSON(TIPO_URL),
-      loadJSON(COMP_URL)
-    ]);
+  async function init(forceReload = false){
+    try {
+        if (rawAtenciones.length === 0 || forceReload) {
+            
+            // 1. Try DB
+            let result = await loadDataFromDB();
+            
+            // 2. Fallback to JSON if DB returned empty data (safety net)
+            if (result.atenciones.length === 0 && !forceReload) {
+                 const [d1, d2, d3] = await Promise.all([
+                    loadJSON(ATENCIONES_URL),
+                    loadJSON(TIPO_URL),
+                    loadJSON(COMP_URL)
+                 ]);
+                 rawAtenciones = d1;
+                 rawTipo = d2;
+                 rawComp = d3;
+            } else {
+                 rawAtenciones = result.atenciones;
+                 rawTipo = result.tipos;
+                 rawComp = result.comp;
+            }
 
-    rawAtenciones = atencionesData;
-    rawTipo = tipoData;
-    rawComp = compData;
+            populateYearOptions('medicas-atenciones-year', uniqueYears(rawAtenciones));
+            populateYearOptions('medicas-tipo-year', uniqueYears(rawTipo));
 
-    populateYearOptions('medicas-atenciones-year', uniqueYears(rawAtenciones));
-    populateYearOptions('medicas-tipo-year', uniqueYears(rawTipo));
+            prepareCompIndex();
+            
+            // Populate checkboxes for comparison years
+            const years = Array.from(compByYear.keys()).sort((a,b)=>a-b);
+            populateCompYears(years);
+            
+            // Default select all if first load or logic requires
+            compActiveYears = new Set(years.map(String));
+        }
 
-    prepareCompIndex();
-    compActiveYears = new Set();
-    if (rawComp.length){
-      populateCompYears(uniqueYears(rawComp));
-    } else {
-      const summaryEl = document.getElementById('medicas-comp-resumen');
-      if (summaryEl) summaryEl.textContent = 'Sin datos disponibles para comparar.';
+        bindEvents();
+        renderAtenciones();
+        renderTipo();
+        renderComp(); // Ensure comparison tab also renders
+
+    } catch (e) {
+        console.error("Error initializing Medical module:", e);
     }
-
-    currentViewportMode = getViewportMode();
-    bindEvents();
-    renderAtenciones();
-    renderTipo();
   }
 
-  document.addEventListener('DOMContentLoaded', () => { init(); });
+  // Hook initialization
+  if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => init());
+  } else {
+      setTimeout(() => init(), 250); // Small delay to let dataManager init
+  }
 })();
