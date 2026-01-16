@@ -3383,8 +3383,8 @@
 
         container.style.display = 'flex';
         container.style.flexDirection = 'column';
-        container.style.alignItems = 'flex-end';
-        container.style.paddingRight = '20px';
+        container.style.alignItems = 'flex-start';
+        container.style.paddingLeft = '20px';
 
         alerts.forEach(alert => {
             const el = document.createElement('div');
