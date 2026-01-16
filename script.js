@@ -11555,17 +11555,39 @@ function shouldUseParteOperacionesRemoteBackend(){
     return !!window.supabaseClient;
 }
 
-// --- HISTORIAL DE CAMBIOS ---
+// --- HISTORIAL DE CAMBIOS INTELIGENTE ---
 
-window.logHistory = async function(action, entity, recordId, details) {
-    if (!window.supabaseClient) {
-        console.warn('logHistory: Supabase client not initialized');
-        return;
-    }
+function generateObjectDiff(oldObj, newObj, ignoreKeys = []) {
+    const diffs = [];
+    const allKeys = new Set([...Object.keys(oldObj || {}), ...Object.keys(newObj || {})]);
+    
+    allKeys.forEach(key => {
+        if (ignoreKeys.includes(key)) return;
+        const oldVal = oldObj ? oldObj[key] : undefined;
+        const newVal = newObj ? newObj[key] : undefined;
+
+        // Simple comparison (can function for primitives)
+        if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+            // Check if both are undefined/null (fuzzy match)
+            if (!oldVal && !newVal) return;
+            
+            diffs.push({
+                field: key,
+                old: oldVal,
+                new: newVal
+            });
+        }
+    });
+    return diffs;
+}
+
+window.logHistory = async function(action, entity, recordId, payload) {
+    if (!window.supabaseClient) return;
+
     try {
-        // 1. Ensure session is active
         let { data: { session } } = await window.supabaseClient.auth.getSession();
         
+        // Auto-restore session if missing
         if (!session) {
              const token = sessionStorage.getItem('token');
              if (token) {
@@ -11578,133 +11600,147 @@ window.logHistory = async function(action, entity, recordId, details) {
         }
 
         if (!session || !session.user) {
-            console.warn('logHistory: No active session found. Cannot log history.');
+            console.warn('logHistory skipped: No session.');
             return; 
         }
 
         const userId = session.user.id;
-        const userEmail = session.user.email || sessionStorage.getItem('user_fullname') || 'Usuario';
+        const userEmail = session.user.email || 'Usuario';
+        
+        // Intelligent Payload Processing
+        let finalDetails = payload;
+        
+        // If payload contains old/new states, calculate diff automatically
+        if (payload && typeof payload === 'object' && ('old' in payload || 'new' in payload)) {
+             const diffs = generateObjectDiff(payload.old, payload.new, ['id', 'created_at', 'updated_at']);
+             if (diffs.length === 0 && action === 'EDITAR') {
+                 console.log('No changes detected for log');
+                 return; // Don't log empty edits
+             }
+             finalDetails = {
+                 mode: 'diff',
+                 changes: diffs,
+                 summary: payload.summary || `${diffs.length} campos modificados`
+             };
+        }
 
-        console.log('Logging history:', { action, entity, recordId, details, userId });
+        console.log('Auditing:', { action, entity, details: finalDetails });
 
-        const { error } = await window.supabaseClient.from('change_history').insert({
+        await window.supabaseClient.from('change_history').insert({
             user_id: userId,
             user_email: userEmail,
             action_type: action,
             entity_type: entity,
             record_id: recordId,
-            details: details
+            details: finalDetails, // Stores JSON
+            ip_address: 'client-side' // Placeholder as JS can't reliably get IP without service
         });
 
-        if (error) {
-            console.error('Error inserting history:', error);
-        } else {
-            console.log('History logged successfully');
-        }
     } catch (err) {
-        console.warn('Error logging history:', err);
+        console.warn('Audit Log Error:', err);
     }
 }
 
 async function loadHistory() {
     const tableBody = document.getElementById('history-table-body');
-    if (!tableBody) {
-        console.warn('loadHistory: table body not found');
-        return;
-    }
+    if (!tableBody) return;
     
-    tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted"><div class="spinner-border spinner-border-sm text-primary" role="status"></div> Cargando...</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 text-muted">Analizando bitácora de seguridad...</div></td></tr>';
 
     if (!window.supabaseClient) {
-        tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error: Supabase no conectado.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Sistema desconectado.</td></tr>';
         return;
     }
 
     try {
-        // Ensure session is active for RLS
-        const { data: { session } } = await window.supabaseClient.auth.getSession();
-        if (!session) {
-             const token = sessionStorage.getItem('token');
-             if (token) {
-                 await window.supabaseClient.auth.setSession({ access_token: token, refresh_token: token });
-             }
-        }
-
         const { data, error } = await window.supabaseClient
             .from('change_history')
             .select('*')
             .order('created_at', { ascending: false })
-            .limit(50);
+            .limit(100);
 
-        if (error) {
-            console.error('Supabase history error:', error);
-            if (error.code === '42P01') { // undefined_table
-                throw new Error('La tabla "change_history" no existe. Ejecuta el script SQL.');
-            }
-            throw error;
-        }
+        if (error) throw error;
 
         if (!data || data.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No hay historial de cambios registrado.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-shield-alt fa-3x mb-3 text-light"></i><br>No se han detectado eventos de seguridad recientes.</td></tr>';
             return;
         }
 
         tableBody.innerHTML = '';
         data.forEach(log => {
-            // Check if log.created_at contains T/Z for standard parsing
             const dObj = new Date(log.created_at);
-            // Format DD-MM-YYYY HH:mm
-            const dd = String(dObj.getDate()).padStart(2, '0');
-            const mm = String(dObj.getMonth() + 1).padStart(2, '0');
-            const yyyy = dObj.getFullYear();
-            const time = dObj.toLocaleTimeString('es-MX', { hour: '2-digit', minute:'2-digit', hour12: false });
-            
-            const date = `${dd}-${mm}-${yyyy} ${time}`;
+            const dateStr = dObj.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+            const timeStr = dObj.toLocaleTimeString('es-MX', { hour: '2-digit', minute:'2-digit' });
 
             let badgeClass = 'bg-secondary';
-            if (log.action_type === 'CREAR' || log.action_type === 'AGREGAR') badgeClass = 'bg-success';
-            if (log.action_type === 'EDITAR' || log.action_type === 'ACTUALIZAR') badgeClass = 'bg-warning text-dark';
-            if (log.action_type === 'ELIMINAR') badgeClass = 'bg-danger';
+            let icon = 'fa-info-circle';
+            
+            if (['CREAR', 'AGREGAR', 'IMPORTAR'].includes(log.action_type)) {
+                 badgeClass = 'bg-success'; 
+                 icon = 'fa-plus-circle'; 
+            }
+            if (['EDITAR', 'ACTUALIZAR', 'MODIFICAR'].includes(log.action_type)) {
+                 badgeClass = 'bg-warning text-dark'; 
+                 icon = 'fa-pencil-alt'; 
+            }
+            if (['ELIMINAR', 'BORRAR'].includes(log.action_type)) {
+                 badgeClass = 'bg-danger'; 
+                 icon = 'fa-trash-alt'; 
+            }
 
-            let detailsText = '';
+            // Render Diff/Details with Intelligence
+            let detailsHtml = '';
             if (log.details) {
                 if (typeof log.details === 'string') {
-                    detailsText = log.details;
-                } else if (typeof log.details === 'object') {
-                    // Handle structured object
-                    const parts = [];
-                    if (log.details.mode === 'auto-sync') parts.push('<span class="badge bg-light text-dark border">Sincronización Auto</span>');
-                    
-                    if (log.details.diff) {
-                        parts.push(log.details.diff);
-                    } else {
-                        if (log.details.total_ops !== undefined) parts.push(`<strong>Total:</strong> ${log.details.total_ops} ops`);
-                        if (log.details.types) parts.push(`<strong>Tipos:</strong> ${log.details.types}`);
-                        if (log.details.count && !log.details.total_ops) parts.push(`${log.details.count} registros`);
+                    detailsHtml = `<span class="text-muted">${log.details}</span>`;
+                } else if (log.details.mode === 'diff') {
+                    // Render Diffs
+                    detailsHtml = '<ul class="list-unstyled mb-0 small">';
+                    if (log.details.changes) {
+                        log.details.changes.forEach(c => {
+                            const valOld = c.old === undefined || c.old === null ? '<em class="text-muted">vacío</em>' : `<span class="text-danger text-decoration-line-through">${c.old}</span>`;
+                            const valNew = c.new === undefined || c.new === null ? '<em class="text-muted">vacío</em>' : `<span class="text-success fw-bold">${c.new}</span>`;
+                            detailsHtml += `<li><strong class="text-dark">${c.field}:</strong> ${valOld} <i class="fas fa-arrow-right mx-1 text-muted" style="font-size: 0.8em;"></i> ${valNew}</li>`;
+                        });
                     }
-                    
-                    if (parts.length > 0) detailsText = parts.join('<br>');
-                    else detailsText = JSON.stringify(log.details);
+                    detailsHtml += '</ul>';
+                } else {
+                    // Fallback generic object
+                   detailsHtml = `<code class="small text-muted">${JSON.stringify(log.details).substring(0, 100)}...</code>`;
                 }
             }
 
-            const userInitial = (log.user_email || '?').charAt(0).toUpperCase();
-            const userEmail = log.user_email || 'Desconocido';
+            const userAvatar = (log.user_email || 'U').charAt(0).toUpperCase();
 
             const row = `
-                <tr>
-                    <td><small>${date}</small></td>
+                <tr style="vertical-align: middle;">
+                    <td class="text-nowrap">
+                        <div class="fw-bold">${dateStr}</div>
+                        <div class="small text-muted">${timeStr}</div>
+                    </td>
                     <td>
                         <div class="d-flex align-items-center">
-                            <div class="avatar-circle bg-primary text-white me-2" style="width: 24px; height: 24px; font-size: 10px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
-                                ${userInitial}
+                            <div class="avatar-circle bg-dark text-white me-2 shadow-sm" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: bold;">
+                                ${userAvatar}
                             </div>
-                            <span class="text-truncate" style="max-width: 150px;" title="${userEmail}">${userEmail}</span>
+                            <div class="d-flex flex-column" style="line-height:1.2;">
+                                <span class="fw-bold text-dark" style="font-size: 0.9rem;">${log.user_email?.split('@')[0]}</span>
+                                <small class="text-muted" style="font-size: 0.75rem;">${log.user_id?.substring(0,8)}...</small>
+                            </div>
                         </div>
                     </td>
-                    <td><span class="badge ${badgeClass}">${log.action_type}</span></td>
-                    <td>${log.entity_type}</td>
-                    <td class="text-wrap" style="min-width: 300px;"><small class="text-muted">${detailsText}</small></td>
+                    <td>
+                        <span class="badge ${badgeClass} rounded-pill px-3 py-2">
+                            <i class="fas ${icon} me-1"></i> ${log.action_type}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="fw-bold text-secondary">${log.entity_type}</div>
+                        <div class="small text-muted font-monospace">${log.record_id || '#'}</div>
+                    </td>
+                    <td class="bg-light border rounded">
+                        ${detailsHtml}
+                    </td>
                 </tr>
             `;
             tableBody.insertAdjacentHTML('beforeend', row);
@@ -11712,7 +11748,7 @@ async function loadHistory() {
 
     } catch (err) {
         console.error('Error loading history:', err);
-        tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Error al cargar historial: ${err.message}</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> Error de conexión: ${err.message}</td></tr>`;
     }
 }
 

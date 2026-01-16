@@ -939,8 +939,10 @@ class DataManagement {
                         }
                         return true; // No type info? match purely on seq
                     });
-                    
-                    if (fIndex >= 0) {
+
+                    if (fIndex > -1) {
+                        // Found flight
+                        const oldFlightState = { ...flights[fIndex] }; // Clone for audit
                         flights[fIndex][field] = newVal;
                         
                         // Special Handling: Synchronize redundant fields
@@ -965,6 +967,15 @@ class DataManagement {
                         if (field === 'aerolinea') { flights[fIndex]['aerolinea'] = newVal; flights[fIndex]['Aerolinea'] = newVal; }
 
                         modified = true;
+
+                        // Security Audit Log
+                        if (typeof window.logHistory === 'function') {
+                            window.logHistory('EDITAR', 'Vuelo Diario', `${dateStr} #${seq}`, {
+                                old: oldFlightState,
+                                new: flights[fIndex],
+                                summary: `Edición de campo '${field}' en vuelo ${oldFlightState.vuelo_llegada || oldFlightState.vuelo_salida}`
+                            });
+                        }
                     } else {
                         console.warn(`Could not find flight for update: Date=${dateStr}, Seq=${seq}, Type=${rowType}`);
                     }
@@ -1202,6 +1213,13 @@ class DataManagement {
             if (error || !data) throw new Error('No se encontró el registro del día.');
             
             let flights = data.data || [];
+
+            // Audit: Find the flight before deleting
+            const flightToDelete = flights.find(f => {
+                const fSeq = (f.seq_no !== undefined) ? f.seq_no : f.no;
+                return String(fSeq) === String(seqNo);
+            });
+
             const initialLen = flights.length;
             
             // Filter by sequence number primarily
@@ -1221,6 +1239,16 @@ class DataManagement {
                 .eq('date', dateStr);
             
             if (updateErr) throw updateErr;
+
+            // Security Audit Log
+            if (typeof window.logHistory === 'function' && flightToDelete) {
+                const flightLabel = flightToDelete.vuelo_llegada || flightToDelete.vuelo_salida || 'Desc.';
+                window.logHistory('ELIMINAR', 'Vuelo Diario', `${dateStr} #${seqNo}`, {
+                    old: flightToDelete,
+                    new: null, // Deletion
+                    summary: `Se eliminó el vuelo ${flightLabel} de ${flightToDelete.aerolinea || 'N/A'}`
+                });
+            }
             
             this.loadDailyFlightsOps();
 

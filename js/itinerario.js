@@ -52,17 +52,23 @@
   function toYMD(d){ return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-'); }
   function ymdToDMY(ymd){ const [y,m,d]=ymd.split('-'); return `${d}/${m}/${y}`; }
   function parseDMY(s){ const m = /^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/.exec(s||''); if(!m) return null; return new Date(parseInt(m[3],10), parseInt(m[2],10)-1, parseInt(m[1],10)); }
-  function hourFromHHMM(s){ const m = /^(\d{1,2}):(\d{2})$/.exec(s||''); return m ? Math.min(23, Math.max(0, parseInt(m[1],10))) : null; }
+  function hourFromHHMM(s){ 
+      if (!s) return null;
+      // Handle HH:MM:SS or HH:MM
+      const m = /^(\d{1,2}):(\d{2})(?::\d{2})?/.exec(s.toString().trim()); 
+      return m ? Math.min(23, Math.max(0, parseInt(m[1],10))) : null; 
+  }
   function norm(str){ return (str||'').toString().trim().toLowerCase(); }
   function toIsoDate(str) {
     if (!str) return '';
     const s = str.toString().trim();
     // Already YYYY-MM-DD
     if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-    // DD/MM/YYYY
-    const m = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/.exec(s);
+    // DD/MM/YYYY or DD/MM/YYYY HH:MM
+    const datePart = s.split(' ')[0];
+    const m = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/.exec(datePart);
     if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
-    return s;
+    return s.split(' ')[0]; // Fallback to first part
   }
   function isPassenger(f){ if (norm(f.categoria) === 'pasajeros' || norm(f.categoria)==='comercial') return true; if (norm(f.categoria) === 'carga') return false; const a = norm(f.aerolinea||f.aerolínea||f.airline); if (!a) return true; if (cargoAirlines.has(a)) return false; if (passengerAirlines.has(a)) return true; if (a.includes('cargo')) return false; return true; }
   async function loadItinerary(date) {
@@ -70,6 +76,61 @@
     if (window.supabaseClient) {
       const targetDate = date || toYMD(new Date());
       try {
+        let flights = [];
+        
+        // 1. Intentar cargar desde 'vuelos_parte_operaciones' (nueva tabla JSON)
+        const { data: opsData, error: opsError } = await window.supabaseClient
+            .from('vuelos_parte_operaciones')
+            .select('data')
+            .eq('date', targetDate)
+            .maybeSingle();
+
+        if (!opsError && opsData && Array.isArray(opsData.data)) {
+            console.log('Itinerario: cargado desde vuelos_parte_operaciones', opsData.data.length);
+            // Normalizar datos para compatibilidad
+            flights = opsData.data.map(f => {
+                const copy = { ...f };
+                
+                // Helper to extract HH:MM from various date/time/datetime strings
+                const extractTime = (val) => {
+                    if (!val) return null;
+                    const s = val.toString().trim();
+                    // Just time?
+                     if (/^\d{1,2}:\d{2}/.test(s) && !s.includes('/')) return s;
+                    // Datetime? 2026-01-14 14:30 or 14/01/2026 14:30
+                    if (s.includes(' ')) {
+                        const parts = s.split(/\s+/);
+                        // Usually last part, but check if it looks like time
+                        const last = parts[parts.length-1];
+                        if (/^\d{1,2}:\d{2}/.test(last)) return last;
+                        // Or second part
+                        if (parts.length > 1 && /^\d{1,2}:\d{2}/.test(parts[1])) return parts[1];
+                    }
+                    return null;
+                };
+
+                // Asegurar fecha_llegada / hora_llegada
+                if (!copy.hora_llegada) {
+                     copy.hora_llegada = extractTime(copy.fecha_hora_prog_llegada) || extractTime(copy.fecha_hora_real_llegada);
+                }
+                if (!copy.fecha_llegada) {
+                    copy.fecha_llegada = toIsoDate(copy.fecha_hora_prog_llegada) || toIsoDate(copy.fecha_hora_real_llegada) || copy.fecha || copy.date;
+                }
+
+                // Asegurar fecha_salida / hora_salida
+                if (!copy.hora_salida) {
+                     copy.hora_salida = extractTime(copy.fecha_hora_prog_salida) || extractTime(copy.fecha_hora_real_salida);
+                }
+                if (!copy.fecha_salida) {
+                    copy.fecha_salida = toIsoDate(copy.fecha_hora_prog_salida) || toIsoDate(copy.fecha_hora_real_salida) || copy.fecha || copy.date;
+                }
+
+                return copy;
+            });
+            return flights;
+        }
+
+        // 2. Fallback a tabla 'flights' (anterior)
         const { data, error } = await window.supabaseClient
           .from('flights')
           .select('*')
@@ -79,7 +140,6 @@
         return data || [];
       } catch (e) {
         console.error('Error cargando itinerario desde BD:', e);
-        // En caso de error, podríamos intentar el fallback o retornar vacío
         return [];
       }
     }
@@ -599,10 +659,18 @@
     const dayDMY = ymdToDMY(selectedDate);
     if (sync && preHour.combined && Array.isArray(preHour.combined) && preHour.combined.length) {
       // Reducir al día seleccionado sin colapsar por hora
-      data = preHour.combined.filter(f => (norm(f.fecha_llegada)===norm(dayDMY)) || (norm(f.fecha_salida)===norm(dayDMY)));
+      data = preHour.combined.filter(f => (toIsoDate(f.fecha_llegada)===selectedDate) || (toIsoDate(f.fecha_salida)===selectedDate));
     } else {
       // Asegurar día desde la fuente base
-      data = base.filter(f => (norm(f.fecha_llegada)===norm(dayDMY)) || (norm(f.fecha_salida)===norm(dayDMY)));
+      // Nota: loadItinerary ya filtra por DB, pero este paso asegura consistencia si formats difieren
+      data = base.filter(f => (toIsoDate(f.fecha_llegada)===selectedDate) || (toIsoDate(f.fecha_salida)===selectedDate));
+       
+      // Si el filtro estricto vacía el array (ej. error de formato), pero base tiene datos y venía ya filtrado de DB
+      // podríamos usar base directamente como fallback.
+      if (base.length > 0 && data.length === 0 && window.supabaseClient) {
+          console.warn('Itinerario: El filtro estricto de fecha ocultó los datos cargados. Usando datos crudos de DB (fallback).');
+          data = base;
+      }
     }
     hidePeakResults();
     // Agregar por hora y dibujar

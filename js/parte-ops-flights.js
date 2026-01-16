@@ -1249,6 +1249,15 @@
                 alert(`Error al guardar fecha ${d}:\n${insError.message}\n\nDetalle: ${insError.details || ''}`);
                 return; // Stop on error
             }
+
+            // Audit
+            if (typeof window.logHistory === 'function') {
+                window.logHistory('IMPORTAR', 'Parte Operativo', d, {
+                    summary: `Importación masiva o reemplazo de día completo`,
+                    count: flightArray.length,
+                    activeTypes: [...new Set(flightArray.map(f => f.categoria || 'N/A'))].join(', ')
+                });
+            }
         }
 
         alert(`Información guardada correctamente para ${datesToUpdate.length} fecha(s): ${datesToUpdate.join(', ')}`);
