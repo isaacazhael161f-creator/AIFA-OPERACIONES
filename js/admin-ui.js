@@ -33,7 +33,17 @@ class AdminUI {
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         this.modal = new bootstrap.Modal(document.getElementById('admin-modal'));
 
-        document.getElementById('admin-save-btn').addEventListener('click', () => this.saveChanges());
+        const form = document.getElementById('admin-form');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.saveChanges();
+            });
+        }
+        document.getElementById('admin-save-btn').addEventListener('click', (e) => {
+            e.preventDefault(); // Just in case
+            this.saveChanges();
+        });
     }
 
     toggleAdminControls(isAdmin) {

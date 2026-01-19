@@ -525,6 +525,50 @@
         this.loadMonthlyOperations();
         this.loadAnnualOperations();
         this.syncChartsData();
+        this.setupGlobalRefresh();
+    }
+
+    setupGlobalRefresh() {
+        const btn = document.getElementById('btn-global-refresh');
+        if (!btn) return;
+
+        btn.addEventListener('click', async () => {
+            // Animation
+            const icon = btn.querySelector('i');
+            if (icon) icon.classList.add('fa-spin');
+
+            try {
+                // 1. Refresh Data Management Tab if active
+                const activeTab = document.querySelector('.tab-pane.active');
+                if (activeTab) {
+                    const tabId = '#' + activeTab.id;
+                    console.log('Refreshing tab:', tabId);
+                    await this.loadTabContent(tabId);
+                }
+
+                // 2. Refresh Main Dashboard Data (if functions are available)
+                if (typeof window.loadWeeklyOperationsFromDB === 'function') {
+                    window.loadWeeklyOperationsFromDB();
+                }
+
+                // Refresh Demoras if active
+                if (typeof window.ensureDemorasState === 'function') {
+                    // Force re-fetch? demoras module might need a 'force' flag
+                    // We can try dispatching an event that demoras.js listens to?
+                    // Or access the internal loader if exposed. 
+                    // Actually, let's just use the data-updated event which triggers most loaders
+                    window.dispatchEvent(new CustomEvent('data-updated', { detail: { table: 'all' } }));
+                }
+
+            } catch (err) {
+                console.error('Error refreshing data:', err);
+            } finally {
+                // Stop animation
+                setTimeout(() => {
+                    if (icon) icon.classList.remove('fa-spin');
+                }, 800);
+            }
+        });
     }
 
     loadTabContent(targetId) {
