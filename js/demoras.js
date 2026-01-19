@@ -1,9 +1,9 @@
-;(function(){
+; (function () {
   const sec = document.getElementById('demoras-section');
   if (!sec) return;
 
-  const DEMORAS_MONTH_ABBR = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  const DEMORAS_MONTH_FULL = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const DEMORAS_MONTH_ABBR = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const DEMORAS_MONTH_FULL = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
   const demorasState = {
     initialized: false,
     periods: [],
@@ -29,7 +29,7 @@
     ]
   };
 
-  function normalizeDetailValue(value){
+  function normalizeDetailValue(value) {
     if (value === null || value === undefined) return '';
     if (typeof value === 'string') return value.trim();
     if (typeof value === 'number' || typeof value === 'boolean') return String(value);
@@ -42,7 +42,7 @@
     if (typeof value === 'object') {
       const keys = Object.keys(value);
       if (!keys.length) return '';
-      const preferredOrder = ['vuelo','flight','fecha','hora','detalle','descripcion','motivo','observacion','nota','comentario','ubicacion','causa','accion','resultado','tiempo','aerolinea'];
+      const preferredOrder = ['vuelo', 'flight', 'fecha', 'hora', 'detalle', 'descripcion', 'motivo', 'observacion', 'nota', 'comentario', 'ubicacion', 'causa', 'accion', 'resultado', 'tiempo', 'aerolinea'];
       const used = new Set();
       const segments = [];
       preferredOrder.forEach((key) => {
@@ -65,7 +65,7 @@
     return String(value).trim();
   }
 
-  function normalizeDetailList(value){
+  function normalizeDetailList(value) {
     if (Array.isArray(value)) {
       return value.map((entry) => normalizeDetailValue(entry)).filter(Boolean);
     }
@@ -73,7 +73,7 @@
     return normalized ? [normalized] : [];
   }
 
-  function explodeDetailEntries(entries){
+  function explodeDetailEntries(entries) {
     const output = [];
     (Array.isArray(entries) ? entries : []).forEach((entry) => {
       if (typeof entry === 'string') {
@@ -89,7 +89,7 @@
     return output;
   }
 
-  function getReportMonthTarget(){
+  function getReportMonthTarget() {
     const today = new Date();
     const target = new Date(today.getFullYear(), today.getMonth() - 1, 1);
     const year = target.getFullYear();
@@ -107,7 +107,7 @@
     };
   }
 
-  function periodMatchesTarget(period, target){
+  function periodMatchesTarget(period, target) {
     if (!period || !target) return false;
     const sortOrder = Number(period.sortOrder);
     if (Number.isFinite(sortOrder) && sortOrder === target.sortStamp) return true;
@@ -118,12 +118,12 @@
     return false;
   }
 
-  function getCurrentMonthStamp(){
+  function getCurrentMonthStamp() {
     const today = new Date();
     return (today.getFullYear() * 100) + (today.getMonth() + 1);
   }
 
-  function shouldDisablePeriod(period){
+  function shouldDisablePeriod(period) {
     if (!period) return false;
     if (period.scope === 'annual' || period.scope === 'current') return false;
     const sortOrder = Number(period.sortOrder);
@@ -133,7 +133,7 @@
     return false;
   }
 
-  function resolveDemorasDataUrl(force){
+  function resolveDemorasDataUrl(force) {
     const base = DEMORAS_DATA_PATH;
     try {
       if (window.location && window.location.protocol === 'file:') {
@@ -146,42 +146,87 @@
     return `${base}${separator}v=${ts}`;
   }
 
-  function loadDemorasData(force = false){
+  function loadDemorasData(force = false) {
+    // If we have cached data and not forcing refresh, return it
     if (!force && demorasDataCache) return Promise.resolve(demorasDataCache);
     if (!force && demorasDataPromise) return demorasDataPromise;
+
     try {
-      const url = resolveDemorasDataUrl(force);
-      demorasDataPromise = fetch(url, { cache: force ? 'no-store' : 'default' })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`No se pudo cargar demoras (${response.status})`);
-          }
-          return response.json();
-        })
-        .then((json) => {
-          demorasDataCache = json;
-          demorasDataLoadError = null;
-          demorasDataPromise = null;
-          return json;
-        })
-        .catch((error) => {
-          demorasDataPromise = null;
-          demorasDataLoadError = error;
-          throw error;
-        });
-      return demorasDataPromise;
+      // Use DataManager if available to fetch from Supabase
+      if (window.dataManager) {
+        demorasDataPromise = window.dataManager.getDelays()
+          .then((data) => {
+            if (!data) return [];
+
+            // Group by "Month Year"
+            const grouped = {};
+            data.forEach(item => {
+              const periodKey = `${item.month} ${item.year}`;
+              if (!grouped[periodKey]) {
+                grouped[periodKey] = {
+                  periodo: periodKey,
+                  year: item.year,
+                  causas: []
+                };
+              }
+
+              // Add entry
+              grouped[periodKey].causas.push({
+                causa: item.cause,
+                demoras: item.count || 0,
+                descripcion: item.description || '',
+                observaciones: item.observations || ''
+              });
+            });
+
+            // Convert to array
+            const periods = Object.values(grouped);
+
+            // Sort causal list within each period by count desc
+            periods.forEach(p => {
+              p.causas.sort((a, b) => b.demoras - a.demoras);
+            });
+
+            const result = { periods: periods };
+            demorasDataCache = result;
+            demorasDataLoadError = null;
+            demorasDataPromise = null;
+            return result;
+          })
+          .catch((error) => {
+            console.error("Error loading delays from Supabase, falling back to local/JSON", error);
+            // Fallback to original JSON method if Supabase fails
+            return fetchOriginalJson(force);
+          });
+        return demorasDataPromise;
+      } else {
+        return fetchOriginalJson(force);
+      }
     } catch (error) {
       return Promise.reject(error);
     }
   }
 
-  function getDemorasBaseDataset(){
+  function fetchOriginalJson(force) {
+    const url = resolveDemorasDataUrl(force);
+    return fetch(url, { cache: force ? 'no-store' : 'default' })
+      .then((response) => {
+        if (!response.ok) throw new Error(`No se pudo cargar demoras (${response.status})`);
+        return response.json();
+      })
+      .then((json) => {
+        demorasDataCache = json;
+        return json;
+      });
+  }
+
+  function getDemorasBaseDataset() {
     if (demorasDataCache && typeof demorasDataCache === 'object') return demorasDataCache;
     if (window.staticData?.demoras) return window.staticData.demoras;
     return LOCAL_DEMORAS;
   }
 
-  function normalizeDemorasCausas(entries = []){
+  function normalizeDemorasCausas(entries = []) {
     return (Array.isArray(entries) ? entries : []).map((item) => {
       const incidentesSource = Array.isArray(item?.incidentesList) && item.incidentesList.length
         ? item.incidentesList
@@ -206,12 +251,12 @@
     });
   }
 
-  function extractYearFromString(value){
+  function extractYearFromString(value) {
     const match = /(?:(?:19|20)\d{2})/.exec((value || '').toString());
     return match ? match[0] : '';
   }
 
-  function extractMonthIndex(value){
+  function extractMonthIndex(value) {
     if (!value) return null;
     const isoMatch = /(?:-|\/)(\d{1,2})(?!.*\d)/.exec(value);
     if (isoMatch) {
@@ -223,7 +268,7 @@
     return nameIdx >= 0 ? nameIdx : null;
   }
 
-  function deriveShortLabel(label){
+  function deriveShortLabel(label) {
     if (!label) return 'Periodo';
     const lower = label.toString().toLowerCase();
     const idx = DEMORAS_MONTH_FULL.findIndex((name) => lower.includes(name));
@@ -231,7 +276,7 @@
     return label;
   }
 
-  function derivePeriodSortOrder(entry, fallbackOrder){
+  function derivePeriodSortOrder(entry, fallbackOrder) {
     const token = entry?.key || entry?.periodo || entry?.label || '';
     const iso = /((?:19|20)\d{2})[-/](\d{1,2})/.exec(token);
     if (iso) {
@@ -250,7 +295,7 @@
     return fallbackOrder;
   }
 
-  function normalizeDemorasPeriodEntry(entry, idx, dataset){
+  function normalizeDemorasPeriodEntry(entry, idx, dataset) {
     const causas = normalizeDemorasCausas(entry?.causas);
     if (!causas.length) return null;
     const key = entry?.key || entry?.id || entry?.code || entry?.periodo || `period-${idx}`;
@@ -271,7 +316,7 @@
     };
   }
 
-  function buildDemorasAnnualPeriod(periods, dataset){
+  function buildDemorasAnnualPeriod(periods, dataset) {
     if (!Array.isArray(periods) || !periods.length) return null;
     const totals = new Map();
     periods.forEach((period) => {
@@ -300,7 +345,7 @@
     };
   }
 
-  function buildCurrentSnapshotPeriod(dataset){
+  function buildCurrentSnapshotPeriod(dataset) {
     if (!dataset || !Array.isArray(dataset.causas) || !dataset.causas.length) return null;
     const baseKey = dataset.periodKey || dataset.currentKey || dataset.key || dataset.periodo || 'actual';
     const key = `current-${baseKey}`;
@@ -316,7 +361,7 @@
     return snapshotEntry;
   }
 
-  function buildDemorasPeriodsFromDataset(dataset = getDemorasBaseDataset()){
+  function buildDemorasPeriodsFromDataset(dataset = getDemorasBaseDataset()) {
     const safeDataset = dataset || {};
     const raw = Array.isArray(dataset.periods)
       ? dataset.periods
@@ -369,7 +414,7 @@
     return annual ? [annual, ...normalized] : normalized;
   }
 
-  function findDefaultDemorasPeriod(periods = demorasState.periods){
+  function findDefaultDemorasPeriod(periods = demorasState.periods) {
     const available = periods.filter((p) => p.scope !== 'annual');
     if (!available.length) return periods[0] || null;
     const allowed = available.filter((period) => !shouldDisablePeriod(period));
@@ -385,7 +430,7 @@
     }, pool[0]);
   }
 
-  function rebuildDemorasState(dataset){
+  function rebuildDemorasState(dataset) {
     const periods = buildDemorasPeriodsFromDataset(dataset);
     demorasState.periods = periods;
     demorasState.initialized = true;
@@ -396,7 +441,7 @@
     demorasState.activeKey = preferred?.key || periods[0]?.key || null;
   }
 
-  function ensureDemorasState(dataset){
+  function ensureDemorasState(dataset) {
     if (dataset) {
       rebuildDemorasState(dataset);
       return;
@@ -405,7 +450,7 @@
     rebuildDemorasState(getDemorasBaseDataset());
   }
 
-  function getActiveDemorasPeriodData(){
+  function getActiveDemorasPeriodData() {
     ensureDemorasState();
     if (!demorasState.periods.length) return null;
     if (!demorasState.activeKey) {
@@ -420,7 +465,7 @@
     return fallback;
   }
 
-  function syncDemorasActiveUI(activeKey, periodoLabel){
+  function syncDemorasActiveUI(activeKey, periodoLabel) {
     const container = document.getElementById('demoras-period-controls');
     if (container) {
       const buttons = container.querySelectorAll('.demoras-period-btn');
@@ -437,7 +482,7 @@
     }
   }
 
-  function renderDemorasPeriodControls(){
+  function renderDemorasPeriodControls() {
     ensureDemorasState();
     const container = document.getElementById('demoras-period-controls');
     if (!container) return;
@@ -480,7 +525,7 @@
     }
   }
 
-  function selectDemorasPeriod(key){
+  function selectDemorasPeriod(key) {
     ensureDemorasState();
     if (!key || demorasState.activeKey === key) return;
     const target = demorasState.periods.find((period) => period.key === key);
@@ -503,7 +548,7 @@
   let demorasPeriodo = '';
 
   // Función para destruir/limpiar la gráfica de demoras (canvas)
-  window.destroyDemorasCharts = function() {
+  window.destroyDemorasCharts = function () {
     console.log('🗑️ Limpiando gráfica de demoras (canvas)...');
     try {
       const c = document.getElementById('delaysPieChart');
@@ -514,12 +559,12 @@
         c.width = Math.max(1, Math.floor(w * dpr));
         c.height = Math.max(1, Math.floor(h * dpr));
         const g = c.getContext('2d');
-        if (g) { g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,w,h); }
+        if (g) { g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h); }
       }
-    } catch(e) { console.warn('Error limpiando canvas demoras:', e); }
+    } catch (e) { console.warn('Error limpiando canvas demoras:', e); }
   };
 
-  function drawPie(canvas, labels, values, colors, title, onSliceClick){
+  function drawPie(canvas, labels, values, colors, title, onSliceClick) {
     if (!canvas) return;
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.clientWidth || 480;
@@ -528,12 +573,12 @@
     canvas.height = Math.max(1, Math.floor(h * dpr));
     const g = canvas.getContext('2d');
     if (!g) return;
-    g.setTransform(dpr,0,0,dpr,0,0);
-    g.clearRect(0,0,w,h);
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
 
-    const total = (values||[]).reduce((a,b)=> a + (Number(b)||0), 0);
-    const cx = Math.floor(w*0.42), cy = Math.floor(h*0.55);
-    const r = Math.max(40, Math.min(w,h)*0.32);
+    const total = (values || []).reduce((a, b) => a + (Number(b) || 0), 0);
+    const cx = Math.floor(w * 0.42), cy = Math.floor(h * 0.55);
+    const r = Math.max(40, Math.min(w, h) * 0.32);
     const slices = [];
     let focusedSliceIndex = 0;
 
@@ -546,11 +591,11 @@
       g.fillText(title, 8, 8);
     }
 
-    let start = -Math.PI/2; // iniciar arriba
-    for (let i=0;i<labels.length;i++){
-      const v = Number(values[i]||0);
-      const frac = total>0 ? v/total : 0;
-      const end = start + frac * Math.PI*2;
+    let start = -Math.PI / 2; // iniciar arriba
+    for (let i = 0; i < labels.length; i++) {
+      const v = Number(values[i] || 0);
+      const frac = total > 0 ? v / total : 0;
+      const end = start + frac * Math.PI * 2;
       g.beginPath();
       g.moveTo(cx, cy);
       g.fillStyle = colors[i % colors.length];
@@ -561,10 +606,10 @@
       g.strokeStyle = '#ffffff'; g.lineWidth = 1; g.stroke();
       // etiqueta si el sector es suficientemente grande
       if (frac >= 0.08) {
-        const mid = (start + end)/2;
-        const lx = cx + (r*0.62) * Math.cos(mid);
-        const ly = cy + (r*0.62) * Math.sin(mid);
-        const pct = Math.round(frac*100) + '%';
+        const mid = (start + end) / 2;
+        const lx = cx + (r * 0.62) * Math.cos(mid);
+        const ly = cy + (r * 0.62) * Math.sin(mid);
+        const pct = Math.round(frac * 100) + '%';
         g.fillStyle = '#ffffff';
         g.font = '600 12px Roboto, Arial';
         g.textAlign = 'center';
@@ -592,10 +637,10 @@
         const ny = y / (canvas.height / (canvas.clientHeight || 1));
         const dx = nx - cx;
         const dy = ny - cy;
-        const dist = Math.sqrt(dx*dx + dy*dy);
+        const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist > r) return;
         let angle = Math.atan2(dy, dx);
-        if (angle < -Math.PI/2) angle += Math.PI*2;
+        if (angle < -Math.PI / 2) angle += Math.PI * 2;
         for (const slice of slices) {
           if (angle >= slice.start && angle <= slice.end) {
             focusedSliceIndex = slice.index;
@@ -630,11 +675,11 @@
     }
   }
 
-  function normalizeCausaKey(name){
+  function normalizeCausaKey(name) {
     return (name || '').toString().trim().toLowerCase();
   }
 
-  function renderDemorasLegend(data, colors){
+  function renderDemorasLegend(data, colors) {
     const legendEl = document.getElementById('demoras-chart-legend');
     if (!legendEl) return;
     legendEl.innerHTML = '';
@@ -669,7 +714,7 @@
     });
   }
 
-  function showDemorasDetail(causa, options = {}){
+  function showDemorasDetail(causa, options = {}) {
     const key = normalizeCausaKey(causa);
     const stats = demorasStatsMap[key];
     const detail = stats?.detail || null;
@@ -869,7 +914,7 @@
     }
   }
 
-  function resolveDemorasDataset(data){
+  function resolveDemorasDataset(data) {
     ensureDemorasState();
     if (Array.isArray(data)) {
       return {
@@ -902,89 +947,89 @@
   // Define global renderDemoras so other code can call it
   window.renderDemoras = function renderDemoras(data) {
     try {
-        const demorasData = resolveDemorasDataset(data);
-                const d = demorasData.causas || [];
-        const tbody = document.getElementById('demoras-tbody');
-        const tfoot = document.getElementById('demoras-tfoot');
-                const title = document.getElementById('demoras-title');
-    if (tbody) tbody.innerHTML = '';
-    demorasStatsMap = Object.create(null);
-    demorasPeriodo = demorasData.periodo || '';
-    if (demorasData.key && demorasState.periods.some((period) => period.key === demorasData.key)) {
-      demorasState.activeKey = demorasData.key;
-    }
-    const total = (d||[]).reduce((acc, r) => acc + (Number(r.demoras||0)), 0);
-                if (title) { title.textContent = `Análisis de Demoras${demorasData.periodo? ' · ' + demorasData.periodo : ''}`; }
-        (d||[]).forEach(r => {
-            if (tbody) {
-                const delays = Number(r.demoras||0);
-                const pct = ((delays / Math.max(1, total)) * 100).toFixed(1);
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${r.causa}</td><td>${r.demoras}</td><td>${pct}%</td>`;
-                tr.tabIndex = 0;
-                demorasStatsMap[normalizeCausaKey(r.causa)] = {
-                  demoras: delays,
-                  porcentaje: pct,
-                  detail: r
-                };
-                tr.addEventListener('click', () => showDemorasDetail(r.causa, { fromTable: true }));
-                tr.addEventListener('keydown', (ev) => {
-                  if (ev.key === 'Enter' || ev.key === ' ') {
-                    ev.preventDefault();
-                    showDemorasDetail(r.causa, { fromTable: true });
-                  }
-                });
-                tbody.appendChild(tr);
+      const demorasData = resolveDemorasDataset(data);
+      const d = demorasData.causas || [];
+      const tbody = document.getElementById('demoras-tbody');
+      const tfoot = document.getElementById('demoras-tfoot');
+      const title = document.getElementById('demoras-title');
+      if (tbody) tbody.innerHTML = '';
+      demorasStatsMap = Object.create(null);
+      demorasPeriodo = demorasData.periodo || '';
+      if (demorasData.key && demorasState.periods.some((period) => period.key === demorasData.key)) {
+        demorasState.activeKey = demorasData.key;
+      }
+      const total = (d || []).reduce((acc, r) => acc + (Number(r.demoras || 0)), 0);
+      if (title) { title.textContent = `Análisis de Demoras${demorasData.periodo ? ' · ' + demorasData.periodo : ''}`; }
+      (d || []).forEach(r => {
+        if (tbody) {
+          const delays = Number(r.demoras || 0);
+          const pct = ((delays / Math.max(1, total)) * 100).toFixed(1);
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${r.causa}</td><td>${r.demoras}</td><td>${pct}%</td>`;
+          tr.tabIndex = 0;
+          demorasStatsMap[normalizeCausaKey(r.causa)] = {
+            demoras: delays,
+            porcentaje: pct,
+            detail: r
+          };
+          tr.addEventListener('click', () => showDemorasDetail(r.causa, { fromTable: true }));
+          tr.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter' || ev.key === ' ') {
+              ev.preventDefault();
+              showDemorasDetail(r.causa, { fromTable: true });
             }
-        });
-        if (tfoot) tfoot.innerHTML = `<tr class="table-light"><th>Total</th><th>${total}</th><th>100%</th></tr>`;
-    // Pastel (canvas)
-    const pie = document.getElementById('delaysPieChart');
-    if (pie) {
-      const labels = Array.from(document.querySelectorAll('#demoras-tbody tr')).map(tr => tr.children[0]?.textContent || '');
-      const values = Array.from(document.querySelectorAll('#demoras-tbody tr')).map(tr => parseFloat(tr.children[1]?.textContent||'0')||0);
-      const baseColors = ['#0d6efd','#6610f2','#6f42c1','#d63384','#dc3545','#fd7e14','#ffc107','#198754','#20c997','#0dcaf0'];
-      const onSliceSelect = (label) => showDemorasDetail(label, { fromChart: true });
-      drawPie(pie, labels, values, baseColors, 'Demoras en vuelos de salida', onSliceSelect);
-      renderDemorasLegend(d, baseColors);
-      window._delaysPieDrawn = true;
-    }
-    const hintBar = document.getElementById('demoras-interactive-hint');
-    if (hintBar) hintBar.classList.remove('dismissed');
-    const chartWrapper = document.getElementById('demoras-chart-wrapper');
-    if (chartWrapper) chartWrapper.classList.remove('hint-dismissed');
-    if (d && d.length) {
-      const preferred = d.find((item) => {
-        const hasIncidentes = Array.isArray(item?.incidentes) && item.incidentes.some((value) => {
-          if (typeof value === 'string') return value.trim().length > 0;
-          return value !== null && value !== undefined;
-        });
-        const hasObservaciones = (Array.isArray(item?.observacionesList) && item.observacionesList.length > 0)
-          || (typeof item?.observaciones === 'string' && item.observaciones.trim().length > 0);
-        return hasIncidentes || hasObservaciones;
-      }) || d[0];
-      const autoCausa = preferred?.causa || d[0]?.causa || '';
-      showDemorasDetail(autoCausa, { skipHintDismiss: true, isAuto: true });
-    } else {
-      showDemorasDetail('', { skipHintDismiss: true, isAuto: true });
-    }
-
-    syncDemorasActiveUI(demorasState.activeKey, demorasPeriodo || demorasData.label);
-
-    const hintCTA = document.getElementById('demoras-hint-cta');
-    if (hintCTA) {
-      hintCTA.onclick = () => {
-        const firstRow = document.querySelector('#demoras-tbody tr');
-        if (firstRow) {
-          firstRow.focus();
-          firstRow.click();
+          });
+          tbody.appendChild(tr);
         }
-      };
-    }
+      });
+      if (tfoot) tfoot.innerHTML = `<tr class="table-light"><th>Total</th><th>${total}</th><th>100%</th></tr>`;
+      // Pastel (canvas)
+      const pie = document.getElementById('delaysPieChart');
+      if (pie) {
+        const labels = Array.from(document.querySelectorAll('#demoras-tbody tr')).map(tr => tr.children[0]?.textContent || '');
+        const values = Array.from(document.querySelectorAll('#demoras-tbody tr')).map(tr => parseFloat(tr.children[1]?.textContent || '0') || 0);
+        const baseColors = ['#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#dc3545', '#fd7e14', '#ffc107', '#198754', '#20c997', '#0dcaf0'];
+        const onSliceSelect = (label) => showDemorasDetail(label, { fromChart: true });
+        drawPie(pie, labels, values, baseColors, 'Demoras en vuelos de salida', onSliceSelect);
+        renderDemorasLegend(d, baseColors);
+        window._delaysPieDrawn = true;
+      }
+      const hintBar = document.getElementById('demoras-interactive-hint');
+      if (hintBar) hintBar.classList.remove('dismissed');
+      const chartWrapper = document.getElementById('demoras-chart-wrapper');
+      if (chartWrapper) chartWrapper.classList.remove('hint-dismissed');
+      if (d && d.length) {
+        const preferred = d.find((item) => {
+          const hasIncidentes = Array.isArray(item?.incidentes) && item.incidentes.some((value) => {
+            if (typeof value === 'string') return value.trim().length > 0;
+            return value !== null && value !== undefined;
+          });
+          const hasObservaciones = (Array.isArray(item?.observacionesList) && item.observacionesList.length > 0)
+            || (typeof item?.observaciones === 'string' && item.observaciones.trim().length > 0);
+          return hasIncidentes || hasObservaciones;
+        }) || d[0];
+        const autoCausa = preferred?.causa || d[0]?.causa || '';
+        showDemorasDetail(autoCausa, { skipHintDismiss: true, isAuto: true });
+      } else {
+        showDemorasDetail('', { skipHintDismiss: true, isAuto: true });
+      }
+
+      syncDemorasActiveUI(demorasState.activeKey, demorasPeriodo || demorasData.label);
+
+      const hintCTA = document.getElementById('demoras-hint-cta');
+      if (hintCTA) {
+        hintCTA.onclick = () => {
+          const firstRow = document.querySelector('#demoras-tbody tr');
+          if (firstRow) {
+            firstRow.focus();
+            firstRow.click();
+          }
+        };
+      }
     } catch (e) { console.warn('renderDemoras error:', e); }
   };
 
-  function refreshDemorasView(dataset){
+  function refreshDemorasView(dataset) {
     try {
       ensureDemorasState(dataset);
       renderDemorasPeriodControls();
@@ -994,7 +1039,7 @@
     }
   }
 
-  function safeRender(){
+  function safeRender() {
     loadDemorasData()
       .then((dataset) => refreshDemorasView(dataset))
       .catch((error) => {
@@ -1003,6 +1048,6 @@
       });
   }
   document.addEventListener('DOMContentLoaded', safeRender);
-  document.addEventListener('click', (e)=>{ if (e.target.closest('[data-section="demoras"]')) setTimeout(safeRender, 50); });
-    // Nota: evitamos observar cambios en tbody para no provocar bucles de re-render.
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-section="demoras"]')) setTimeout(safeRender, 50); });
+  // Nota: evitamos observar cambios en tbody para no provocar bucles de re-render.
 })();
