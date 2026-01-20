@@ -1171,6 +1171,7 @@
         const thead = table.querySelector('thead');
 
         // Inject Filter
+        // Inject Filter
         let filterRow = thead.querySelector('.filter-row');
         if (!filterRow) {
             filterRow = document.createElement('tr');
@@ -1180,7 +1181,7 @@
             headers.forEach((th, idx) => {
                 const td = document.createElement('td');
                 td.className = 'p-1';
-                // Skip filter for empty headers or action headers if desired, but adding all for alignment
+                // Only add filter inputs for columns that have data and aren't purely actions/empty
                 if (idx < headers.length) {
                     const input = document.createElement('input');
                     input.type = 'text';

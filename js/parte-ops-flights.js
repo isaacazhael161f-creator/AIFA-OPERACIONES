@@ -1106,27 +1106,48 @@
         let skippedCount = 0;
 
         rows.forEach((r, index) => {
-            // NORMALIZE SPANISH KEYS & SNAKE_CASE (Explicit mapping based on user JSON variants)
-            // Time/Date Fields
-            if (!r.fecha_hora_prog_llegada) r.fecha_hora_prog_llegada = r['Hora programada_llegada'] || r.hora_programada_llegada || r.hora_prog_llegada;
-            if (!r.fecha_hora_real_llegada) r.fecha_hora_real_llegada = r['Hora de salida_llegada'] || r.hora_real_llegada || r.hora_llegada;
-            if (!r.fecha_hora_prog_salida) r.fecha_hora_prog_salida = r['Hora programada_salida'] || r.hora_programada_salida || r.hora_prog_salida;
-            if (!r.fecha_hora_real_salida) r.fecha_hora_real_salida = r['Hora de salida_salida'] || r.hora_real_salida || r.hora_salida;
+            // --- ROBUST FIELD NORMALIZATION (AUTO-DETECT KEYS) ---
+            const normalizeKey = (k) => k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
 
-            // Flight Info
-            if (!r.vuelo_llegada) r.vuelo_llegada = r['Vuelo de llegada'];
-            if (!r.vuelo_salida) r.vuelo_salida = r['Vuelo de salida'];
-            
-            // Pax
-            if (r.pasajeros_llegada === undefined) r.pasajeros_llegada = r['Pasajeros llegada'];
-            if (r.pasajeros_salida === undefined) r.pasajeros_salida = r['Pasajeros salida'];
+            for (const k of Object.keys(r)) {
+                if (!Object.prototype.hasOwnProperty.call(r, k)) continue;
+                // Skip if key is already one of our target snake_case keys to avoid overwriting or redundancy if well-formed
+                if (['fecha_hora_prog_llegada', 'fecha_hora_real_llegada', 'fecha_hora_prog_salida', 'fecha_hora_real_salida', 
+                     'vuelo_llegada', 'vuelo_salida', 'pasajeros_llegada', 'pasajeros_salida', 'matricula', 'origen', 'destino', 
+                     'aerolinea', 'categoria', 'seq_no'].includes(k)) continue;
 
-            // Others
-            if (!r.matricula) r.matricula = r['Matrícula'];
-            if (!r.origen) r.origen = r['Origen'];
-            if (!r.destino) r.destino = r['Destino'];
-            if (!r.aerolinea) r.aerolinea = r['aerolinea']; // Ensure copy if needed
-            if (!r.categoria) r.categoria = r['categoría'];
+                const val = r[k];
+                const nk = normalizeKey(k);
+
+                // --- FLIGHT INFO ---
+                if (nk.includes('vuelo') && nk.includes('llegada')) r.vuelo_llegada = val;
+                else if (nk.includes('vuelo') && nk.includes('salida')) r.vuelo_salida = val;
+                
+                // --- PAX ---
+                else if (nk.includes('pasajero') && nk.includes('llegada')) r.pasajeros_llegada = val;
+                else if (nk.includes('pasajero') && nk.includes('salida')) r.pasajeros_salida = val;
+
+                // --- TIMES ARRIVAL ---
+                else if (nk.includes('llegada')) {
+                    if (nk.includes('programada') || nk.includes('prog')) r.fecha_hora_prog_llegada = val;
+                    else if (nk.includes('real') || nk.includes('salida') || nk === 'horallegada') r.fecha_hora_real_llegada = val;
+                }
+
+                // --- TIMES DEPARTURE ---
+                else if (nk.includes('salida')) {
+                    if (nk.includes('llegada')) continue; 
+                    if (nk.includes('programada') || nk.includes('prog')) r.fecha_hora_prog_salida = val;
+                    else if (nk.includes('real') || nk === 'horasalida' || nk.includes('salida')) r.fecha_hora_real_salida = val;
+                }
+
+                // --- GENERIC ---
+                else if (nk === 'matricula') r.matricula = val;
+                else if (nk === 'origen') r.origen = val;
+                else if (nk === 'destino') r.destino = val;
+                else if (nk === 'aerolinea') r.aerolinea = val;
+                else if (nk === 'categoria') r.categoria = val;
+                else if (nk === 'no' || nk === 'num' || nk === 'seq') r.seq_no = val;
+            }
 
             // Normalize Data for Table Display
             if (!r.fecha_hora_real_llegada && r.fecha_llegada && r.hora_llegada) {

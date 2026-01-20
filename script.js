@@ -2502,6 +2502,25 @@ function wireItineraryExports() {
 document.addEventListener('DOMContentLoaded', wireItineraryExports);
 
 function setupEventListeners() {
+    // Password Toggle
+    const togglePassword = document.getElementById('toggle-password');
+    if (togglePassword) {
+        togglePassword.addEventListener('click', function () {
+            const passwordInput = document.getElementById('password');
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+    }
+
     document.getElementById('login-form').addEventListener('submit', handleLogin);
     document.getElementById('sidebar-nav').addEventListener('click', handleNavigation);
     document.getElementById('airline-filter').addEventListener('change', (window.AIFA?.throttle || ((f) => f))(applyFilters, 120));
