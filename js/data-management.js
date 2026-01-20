@@ -50,7 +50,7 @@
 
         this.schemas = {
             operations_summary: [
-                { name: 'year', label: 'AÃ±o', type: 'number' },
+                { name: 'year', label: 'Año', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: 'Enero', label: 'Enero' }, { value: 'Febrero', label: 'Febrero' }, { value: 'Marzo', label: 'Marzo' },
@@ -60,13 +60,13 @@
                     ]
                 },
                 {
-                    name: 'category', label: 'CategorÃ­a', type: 'select', options: [
+                    name: 'category', label: 'Categoría', type: 'select', options: [
                         { value: 'Pasajeros', label: 'Pasajeros' },
                         { value: 'Operaciones', label: 'Operaciones' },
                         { value: 'Carga', label: 'Carga' }
                     ]
                 },
-                { name: 'metric', label: 'MÃ©trica', type: 'text' },
+                { name: 'metric', label: 'Métrica', type: 'text' },
                 { name: 'value', label: 'Valor', type: 'number' }
             ],
             daily_operations: [
@@ -83,7 +83,7 @@
 
             // Monthly operations (per month per year)
             monthly_operations: [
-                { name: 'year', label: 'AÃ±o', type: 'number' },
+                { name: 'year', label: 'Año', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: '01', label: 'Enero' }, { value: '02', label: 'Febrero' }, { value: '03', label: 'Marzo' },
@@ -101,7 +101,7 @@
             ],
             // Annual aggregated operations (calculated from monthly)
             annual_operations: [
-                { name: 'year', label: 'AÃ±o', type: 'number' },
+                { name: 'year', label: 'Año', type: 'number' },
                 { name: 'comercial_ops_total', label: 'Comercial - Operaciones (Total)', type: 'number' },
                 { name: 'comercial_pax_total', label: 'Comercial - Pasajeros (Total)', type: 'number' },
                 { name: 'general_ops_total', label: 'General - Operaciones (Total)', type: 'number' },
@@ -110,7 +110,7 @@
                 { name: 'carga_tons_total', label: 'Carga - Toneladas (Total)', type: 'number', step: '0.01' }
             ],
             punctuality_stats: [
-                { name: 'year', label: 'AÃ±o', type: 'number' },
+                { name: 'year', label: 'Año', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: '1', label: 'Enero' }, { value: '2', label: 'Febrero' }, { value: '3', label: 'Marzo' },
@@ -119,9 +119,9 @@
                         { value: '10', label: 'Octubre' }, { value: '11', label: 'Noviembre' }, { value: '12', label: 'Diciembre' }
                     ]
                 },
-                { name: 'airline', label: 'AerolÃ­nea', type: 'text' },
+                { name: 'airline', label: 'Aerolínea', type: 'text' },
                 {
-                    name: 'category', label: 'CategorÃ­a', type: 'select', options: [
+                    name: 'category', label: 'Categoría', type: 'select', options: [
                         { value: 'Pasajeros', label: 'Pasajeros' },
                         { value: 'Carga', label: 'Carga' }
                     ]
@@ -133,14 +133,14 @@
             ],
             flight_itinerary: [
                 { name: 'flight_number', label: 'No. Vuelo', type: 'text' },
-                { name: 'airline', label: 'AerolÃ­nea', type: 'text' },
+                { name: 'airline', label: 'Aerolínea', type: 'text' },
                 { name: 'origin_destination', label: 'Origen/Destino', type: 'text' },
                 { name: 'arrival_date', label: 'Fecha', type: 'date' },
                 { name: 'arrival_time', label: 'Hora', type: 'time' },
                 {
                     name: 'status', label: 'Estado', type: 'select', options: [
                         { value: 'Programado', label: 'Programado' },
-                        { value: 'AterrizÃ³', label: 'AterrizÃ³' },
+                        { value: 'Aterrizó', label: 'Aterrizó' },
                         { value: 'Demorado', label: 'Demorado' },
                         { value: 'Cancelado', label: 'Cancelado' }
                     ]
@@ -151,30 +151,30 @@
             wildlife_strikes: [
                 { name: 'date', label: 'Fecha', type: 'date' },
                 { name: 'time', label: 'Hora', type: 'time' },
-                { name: 'location', label: 'UbicaciÃ³n', type: 'text' },
+                { name: 'location', label: 'Ubicación', type: 'text' },
                 { name: 'impact_zone', label: 'Zona de impacto', type: 'text' },
-                { name: 'operation_phase', label: 'Fase de la operaciÃ³n', type: 'text' },
-                { name: 'airline', label: 'AerolÃ­nea', type: 'text' },
+                { name: 'operation_phase', label: 'Fase de la operación', type: 'text' },
+                { name: 'airline', label: 'Aerolínea', type: 'text' },
                 { name: 'aircraft', label: 'Aeronave', type: 'text' },
-                { name: 'registration', label: 'MatrÃ­cula', type: 'text' },
+                { name: 'registration', label: 'Matrícula', type: 'text' },
                 { name: 'impact_zone_remains', label: 'Zona de impacto resto', type: 'text' },
                 { name: 'remains_count', label: 'Cantidad de restos', type: 'number' },
                 {
-                    name: 'size', label: 'TamaÃ±o', type: 'select', options: [
-                        { value: 'PequeÃ±o', label: 'PequeÃ±o' },
+                    name: 'size', label: 'Tamaño', type: 'select', options: [
+                        { value: 'Pequeño', label: 'Pequeño' },
                         { value: 'Mediano', label: 'Mediano' },
                         { value: 'Grande', label: 'Grande' }
                     ]
                 },
                 { name: 'species', label: 'Especie', type: 'text' },
-                { name: 'common_name', label: 'Nombre comÃºn', type: 'text' },
+                { name: 'common_name', label: 'Nombre común', type: 'text' },
                 { name: 'reporter', label: 'Personal que reporta', type: 'text' },
                 { name: 'proactive_measures', label: 'Medidas proactivas', type: 'textarea' },
-                { name: 'weather_conditions', label: 'Condiciones meteorolÃ³gicas', type: 'text' },
+                { name: 'weather_conditions', label: 'Condiciones meteorológicas', type: 'text' },
                 { name: 'measure_results', label: 'Resultados de las medidas', type: 'textarea' }
             ],
             medical_attentions: [
-                { name: 'year', label: 'AÃ±o', type: 'number' },
+                { name: 'year', label: 'Año', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: 'Enero', label: 'Enero' }, { value: 'Febrero', label: 'Febrero' }, { value: 'Marzo', label: 'Marzo' },
@@ -190,7 +190,7 @@
                 { name: 'total', label: 'Total', type: 'number', readonly: true } // Often calculated, but let's keep it for now
             ],
             medical_types: [
-                { name: 'year', label: 'AÃ±o', type: 'number' },
+                { name: 'year', label: 'Año', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: 'ABRIL', label: 'Abril' }, { value: 'MAYO', label: 'Mayo' }, { value: 'JUNIO', label: 'Junio' },
@@ -210,7 +210,7 @@
                 { name: 'documentos', label: 'Documentos', type: 'file', multiple: true }
             ],
             delays: [
-                { name: 'year', label: 'AÃ±o', type: 'number' },
+                { name: 'year', label: 'Año', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: 'Enero', label: 'Enero' }, { value: 'Febrero', label: 'Febrero' }, { value: 'Marzo', label: 'Marzo' },
@@ -221,47 +221,47 @@
                 },
                 { name: 'cause', label: 'Causa', type: 'text' },
                 { name: 'count', label: 'Cantidad', type: 'number' },
-                { name: 'description', label: 'DescripciÃ³n', type: 'textarea' },
+                { name: 'description', label: 'Descripción', type: 'textarea' },
                 { name: 'observations', label: 'Observaciones', type: 'textarea' }
             ],
             weekly_frequencies: [
                 { name: 'week_label', label: 'Etiqueta Semana (ej. 08-14 Dic 2025)', type: 'text' },
-                { name: 'valid_from', label: 'VÃ¡lido Desde', type: 'date' },
-                { name: 'valid_to', label: 'VÃ¡lido Hasta', type: 'date' },
+                { name: 'valid_from', label: 'Válido Desde', type: 'date' },
+                { name: 'valid_to', label: 'Válido Hasta', type: 'date' },
                 { name: 'route_id', label: 'ID Ruta', type: 'number' },
                 { name: 'city', label: 'Ciudad', type: 'text' },
                 { name: 'state', label: 'Estado', type: 'text' },
-                { name: 'iata', label: 'CÃ³digo IATA', type: 'text' },
-                { name: 'airline', label: 'AerolÃ­nea', type: 'text' },
+                { name: 'iata', label: 'Código IATA', type: 'text' },
+                { name: 'airline', label: 'Aerolínea', type: 'text' },
                 { name: 'monday', label: 'Lunes', type: 'number' },
                 { name: 'tuesday', label: 'Martes', type: 'number' },
-                { name: 'wednesday', label: 'MiÃ©rcoles', type: 'number' },
+                { name: 'wednesday', label: 'Miércoles', type: 'number' },
                 { name: 'thursday', label: 'Jueves', type: 'number' },
                 { name: 'friday', label: 'Viernes', type: 'number' },
-                { name: 'saturday', label: 'SÃ¡bado', type: 'number' },
+                { name: 'saturday', label: 'Sábado', type: 'number' },
                 { name: 'sunday', label: 'Domingo', type: 'number' },
                 { name: 'weekly_total', label: 'Total Semanal', type: 'number', readonly: true }
             ],
             weekly_frequencies_int: [
                 { name: 'week_label', label: 'Etiqueta Semana (ej. 08-14 Dic 2025)', type: 'text' },
-                { name: 'valid_from', label: 'VÃ¡lido Desde', type: 'date' },
-                { name: 'valid_to', label: 'VÃ¡lido Hasta', type: 'date' },
+                { name: 'valid_from', label: 'Válido Desde', type: 'date' },
+                { name: 'valid_to', label: 'Válido Hasta', type: 'date' },
                 { name: 'route_id', label: 'ID Ruta', type: 'number' },
-                { name: 'city', label: 'Ciudad / PaÃ­s', type: 'text' },
-                { name: 'state', label: 'RegiÃ³n', type: 'text' },
-                { name: 'iata', label: 'CÃ³digo IATA', type: 'text' },
-                { name: 'airline', label: 'AerolÃ­nea', type: 'text' },
+                { name: 'city', label: 'Ciudad / País', type: 'text' },
+                { name: 'state', label: 'Región', type: 'text' },
+                { name: 'iata', label: 'Código IATA', type: 'text' },
+                { name: 'airline', label: 'Aerolínea', type: 'text' },
                 { name: 'monday', label: 'Lunes', type: 'number' },
                 { name: 'tuesday', label: 'Martes', type: 'number' },
-                { name: 'wednesday', label: 'MiÃ©rcoles', type: 'number' },
+                { name: 'wednesday', label: 'Miércoles', type: 'number' },
                 { name: 'thursday', label: 'Jueves', type: 'number' },
                 { name: 'friday', label: 'Viernes', type: 'number' },
-                { name: 'saturday', label: 'SÃ¡bado', type: 'number' },
+                { name: 'saturday', label: 'Sábado', type: 'number' },
                 { name: 'sunday', label: 'Domingo', type: 'number' },
                 { name: 'weekly_total', label: 'Total Semanal', type: 'number', readonly: true }
             ],
             punctuality_stats: [
-                { name: 'year', label: 'AÃ±o', type: 'number' },
+                { name: 'year', label: 'Año', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: '1', label: 'Enero' }, { value: '2', label: 'Febrero' }, { value: '3', label: 'Marzo' },
@@ -270,9 +270,9 @@
                         { value: '10', label: 'Octubre' }, { value: '11', label: 'Noviembre' }, { value: '12', label: 'Diciembre' }
                     ]
                 },
-                { name: 'airline', label: 'AerolÃ­nea', type: 'select', options: [] }, // Populated dynamically
+                { name: 'airline', label: 'Aerolínea', type: 'select', options: [] }, // Populated dynamically
                 {
-                    name: 'category', label: 'CategorÃ­a', type: 'select', options: [
+                    name: 'category', label: 'Categoría', type: 'select', options: [
                         { value: 'Pasajeros', label: 'Pasajeros' },
                         { value: 'Carga', label: 'Carga' }
                     ]
@@ -284,14 +284,14 @@
             ],
             flight_itinerary: [
                 { name: 'flight_number', label: 'No. Vuelo', type: 'text' },
-                { name: 'airline', label: 'AerolÃ­nea', type: 'text' },
+                { name: 'airline', label: 'Aerolínea', type: 'text' },
                 { name: 'origin_destination', label: 'Origen/Destino', type: 'text' },
                 { name: 'arrival_date', label: 'Fecha', type: 'date' },
                 { name: 'arrival_time', label: 'Hora', type: 'time' },
                 {
                     name: 'status', label: 'Estado', type: 'select', options: [
                         { value: 'Programado', label: 'Programado' },
-                        { value: 'AterrizÃ³', label: 'AterrizÃ³' },
+                        { value: 'Aterrizó', label: 'Aterrizó' },
                         { value: 'Demorado', label: 'Demorado' },
                         { value: 'Cancelado', label: 'Cancelado' }
                     ]
@@ -304,17 +304,17 @@
                 { name: 'time', label: 'Hora', type: 'time' },
                 { name: 'capture_number', label: 'No. Captura', type: 'number' },
                 { name: 'class', label: 'Clase', type: 'text' },
-                { name: 'common_name', label: 'Nombre comÃºn', type: 'text' },
-                { name: 'scientific_name', label: 'Nombre cientÃ­fico', type: 'text' },
+                { name: 'common_name', label: 'Nombre común', type: 'text' },
+                { name: 'scientific_name', label: 'Nombre científico', type: 'text' },
                 { name: 'quantity', label: 'No. Individuos', type: 'number' },
-                { name: 'capture_method', label: 'MÃ©todo de captura', type: 'text' },
+                { name: 'capture_method', label: 'Método de captura', type: 'text' },
                 { name: 'quadrant', label: 'Cuadrante', type: 'text' },
-                { name: 'final_disposition', label: 'DisposiciÃ³n final', type: 'text' }
+                { name: 'final_disposition', label: 'Disposición final', type: 'text' }
             ],
             daily_flights_ops: [
                 { name: 'fecha', label: 'Fecha', type: 'date' },
                 { name: 'seq_no', label: 'No.', type: 'number' },
-                { name: 'aerolinea', label: 'AerolÃ­nea', type: 'text' },
+                { name: 'aerolinea', label: 'Aerolínea', type: 'text' },
                 { name: 'vuelo_llegada', label: 'Vuelo Arr', type: 'text' },
                 { name: 'origen', label: 'Origen', type: 'text' },
                 { name: 'fecha_hora_prog_llegada', label: 'H. Prog Arr', type: 'text' },
@@ -325,17 +325,17 @@
                 { name: 'fecha_hora_prog_salida', label: 'H. Prog Dep', type: 'text' },
                 { name: 'fecha_hora_real_salida', label: 'H. Real Dep', type: 'text' },
                 { name: 'pasajeros_salida', label: 'Pax Dep', type: 'number' },
-                { name: 'matricula', label: 'MatrÃ­cula', type: 'text' }
+                { name: 'matricula', label: 'Matrícula', type: 'text' }
             ],
             library_categories: [
-                { name: 'title', label: 'TÃ­tulo del Cuadro', type: 'text' },
-                { name: 'description', label: 'DescripciÃ³n', type: 'textarea' },
+                { name: 'title', label: 'Título del Cuadro', type: 'text' },
+                { name: 'description', label: 'Descripción', type: 'textarea' },
                 { name: 'icon', label: 'Icono (Visual)', type: 'icon', placeholder: 'fas fa-book' },
                 { name: 'order_index', label: 'Orden', type: 'number' }
             ],
             library_items: [
-                { name: 'category_id', label: 'Cuadro / CategorÃ­a', type: 'select', options: [] },
-                { name: 'title', label: 'TÃ­tulo del Ãtem', type: 'text' },
+                { name: 'category_id', label: 'Cuadro / Categoría', type: 'select', options: [] },
+                { name: 'title', label: 'Título del Ítem', type: 'text' },
                 {
                     name: 'type', label: 'Tipo', type: 'select', options: [
                         { value: 'pdf', label: 'Archivo PDF' },
