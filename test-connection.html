@@ -70,6 +70,11 @@
                                     <i class="fas fa-user-plus me-2"></i>Registro
                                 </button>
                             </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link rounded-pill small fw-bold" id="pills-profile-tab" data-bs-toggle="pill" data-bs-target="#pills-profile" type="button" role="tab" aria-controls="pills-profile" aria-selected="false">
+                                    <i class="fas fa-user-edit me-2"></i>Perfil
+                                </button>
+                            </li>
                         </ul>
 
                         <div class="tab-content" id="pills-tabContent">
@@ -109,6 +114,22 @@
                                 <button class="btn btn-success w-100 py-3 rounded-3 fw-bold shadow-sm" onclick="testRegister()">
                                     <i class="fas fa-user-check me-2"></i>CREAR CUENTA
                                 </button>
+                            </div>
+
+                            <!-- Perfil -->
+                            <div class="tab-pane fade" id="pills-profile" role="tabpanel">
+                                <div class="alert alert-info small mb-3" id="profile-alert">
+                                    <i class="fas fa-info-circle me-1"></i> Inicia sesión para editar tus datos.
+                                </div>
+                                <fieldset id="profile-fieldset" disabled>
+                                    <div class="form-floating mb-3">
+                                        <input type="text" class="form-control bg-light border-0" id="profile-fullname" placeholder="Nombre Completo">
+                                        <label for="profile-fullname" class="text-muted"><i class="fas fa-id-card me-2"></i>Nombre Completo</label>
+                                    </div>
+                                    <button class="btn btn-warning w-100 py-3 rounded-3 fw-bold shadow-sm text-white" onclick="updateProfile()">
+                                        <i class="fas fa-save me-2"></i>ACTUALIZAR DATOS
+                                    </button>
+                                </fieldset>
                             </div>
                         </div>
                     </div>
@@ -268,6 +289,14 @@
             document.getElementById('user-email').textContent = user.email;
             document.getElementById('user-id').textContent = 'ID: ' + user.id.substring(0, 8) + '...';
 
+            // Enable Profile Tab
+            document.getElementById('profile-fieldset').disabled = false;
+            document.getElementById('profile-alert').classList.add('d-none');
+            
+            // Populate Profile Data
+            const meta = user.user_metadata || {};
+            document.getElementById('profile-fullname').value = meta.full_name || '';
+
             const roleBadge = document.getElementById('user-role');
             roleBadge.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Consultando rol...';
             
@@ -287,6 +316,35 @@
                 }
             } catch (e) {
                 roleBadge.textContent = 'Error consultando rol';
+            }
+        }
+
+        async function updateProfile() {
+            const fullName = document.getElementById('profile-fullname').value;
+            if(!fullName) {
+                alert("El nombre completo no puede estar vacío");
+                return;
+            }
+
+            updateStatus('info', 'Actualizando perfil...');
+
+            try {
+                const { data, error } = await window.supabaseClient.auth.updateUser({
+                    data: { full_name: fullName }
+                });
+
+                if (error) throw error;
+                
+                updateStatus('success', 'Perfil actualizado correctamente.');
+                
+                // Update local display if needed (though showUser relies on session object which might need refresh)
+                // data.user contains the updated user object
+                if(data.user) {
+                    showUser(data.user);
+                }
+
+            } catch (err) {
+                updateStatus('danger', 'Error al actualizar perfil: ' + err.message);
             }
         }
 
