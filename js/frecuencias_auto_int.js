@@ -39,6 +39,40 @@
 
   const AIFA_COORDS = { lat: 19.7456, lng: -99.0086 };
 
+  // Manual mapping for clean display names
+  const IATA_LOCATIONS = {
+      'HAV': { city: 'La Habana', country: 'Cuba' },
+      'PUJ': { city: 'Punta Cana', country: 'República Dominicana' },
+      'SDQ': { city: 'Santo Domingo', country: 'República Dominicana' },
+      'BOG': { city: 'Bogotá', country: 'Colombia' },
+      'CCS': { city: 'Caracas', country: 'Venezuela' },
+      'PTY': { city: 'Ciudad de Panamá', country: 'Panamá' },
+      'IAH': { city: 'Houston', country: 'Estados Unidos' },
+      'MIA': { city: 'Miami', country: 'Estados Unidos' },
+      'LAX': { city: 'Los Ángeles', country: 'Estados Unidos' },
+      'JFK': { city: 'Nueva York', country: 'Estados Unidos' },
+      'ORD': { city: 'Chicago', country: 'Estados Unidos' },
+      'DFW': { city: 'Dallas', country: 'Estados Unidos' },
+      'MAD': { city: 'Madrid', country: 'España' },
+      'CDG': { city: 'París', country: 'Francia' },
+      'AMS': { city: 'Ámsterdam', country: 'Países Bajos' },
+      'LHR': { city: 'Londres', country: 'Reino Unido' },
+      'FRA': { city: 'Fráncfort', country: 'Alemania' },
+      'DOH': { city: 'Doha', country: 'Catar' },
+      'ICN': { city: 'Seúl', country: 'Corea del Sur' },
+      'NRT': { city: 'Tokio', country: 'Japón' },
+      'HKG': { city: 'Hong Kong', country: 'China' },
+      'YYZ': { city: 'Toronto', country: 'Canadá' },
+      'YVR': { city: 'Vancouver', country: 'Canadá' },
+      'YUL': { city: 'Montreal', country: 'Canadá' },
+      'LIM': { city: 'Lima', country: 'Perú' },
+      'SCL': { city: 'Santiago', country: 'Chile' },
+      'EZE': { city: 'Buenos Aires', country: 'Argentina' },
+      'GRU': { city: 'São Paulo', country: 'Brasil' },
+      'GIG': { city: 'Río de Janeiro', country: 'Brasil' },
+      'MCALLEN': { city: 'McAllen', country: 'Estados Unidos' }
+  };
+
   // Extended coords for International
   const AIRPORT_COORDS = {
      // US & Canada
@@ -261,6 +295,8 @@
           
           destinationsMap[row.iata].airlines.push({
               name: row.airline,
+              logo: row.logo,   // NUEVO
+              color: row.color, // NUEVO
               daily: {
                   L: row.monday,
                   M: row.tuesday,
@@ -269,6 +305,15 @@
                   V: row.friday,
                   S: row.saturday,
                   D: row.sunday
+              },
+              dailyDetails: { // NUEVO
+                  L: row.monday_detail,
+                  M: row.tuesday_detail,
+                  X: row.wednesday_detail,
+                  J: row.thursday_detail,
+                  V: row.friday_detail,
+                  S: row.saturday_detail,
+                  D: row.sunday_detail
               },
               weeklyTotal: row.weekly_total
           });
@@ -559,7 +604,12 @@
         tr.dataset.destinationRow = dest.iata;
         
         // Configuración de aerolínea (logo y color)
-        const config = AIRLINE_CONFIG[airline.slug] || AIRLINE_CONFIG['default'];
+        const legacyConfig = AIRLINE_CONFIG[airline.slug] || AIRLINE_CONFIG['default'];
+        const config = {
+            logo: airline.logo || legacyConfig.logo,
+            color: airline.color || legacyConfig.color,
+            text: airline.color ? '#ffffff' : legacyConfig.text
+        };
         
         // Estilo de fila según aerolínea (fondo completo)
         tr.style.backgroundColor = config.color;
@@ -623,9 +673,28 @@
 
         DAY_CODES.forEach((code, dayIdx) => {
           const tdDay = document.createElement('td');
-          tdDay.textContent = airline.daily?.[dayIdx] ?? 0;
+          const count = airline.daily?.[dayIdx] ?? 0;
+          const detail = airline.dailyDetails?.[dayIdx];
+          
+          // Default: Show Count
+          tdDay.textContent = count > 0 ? count : '-';
+          
           tdDay.style.backgroundColor = config.color;
           tdDay.style.color = '#ffffff';
+          
+          // Interaction Logic
+          if (detail && count > 0) {
+              tdDay.style.cursor = 'pointer';
+              tdDay.title = 'Clic para ver horarios y números de vuelo';
+              // Add visual hint (small dotted underline)
+              tdDay.style.textDecoration = 'underline dotted rgba(255,255,255,0.7)';
+              
+              tdDay.addEventListener('click', (e) => {
+                  e.stopPropagation(); // Prevent row click (map zoom)
+                  toggleFlightDetailsInCell(tdDay, count, detail);
+              });
+          }
+
           tr.appendChild(tdDay);
         });
         const tdTotal = document.createElement('td');
@@ -638,6 +707,44 @@
     });
   }
 
+  function toggleFlightDetailsInCell(cell, count, detailHtml) {
+      if (cell.dataset.view === 'detail') {
+          // Revert to count view
+          cell.textContent = count;
+          cell.dataset.view = 'count';
+          cell.style.fontSize = '';
+          cell.style.whiteSpace = '';
+          cell.style.padding = '';
+      } else {
+          // Switch to detail view
+          // detailHtml is raw string like "VB102 14:00<br>VB405 19:30"
+          const flights = detailHtml.split('<br>');
+          
+          let html = '<div class="d-flex flex-column gap-1 text-start" style="min-width: 80px;">';
+          flights.forEach(f => {
+             const parts = f.trim().split(' ');
+             const flightNum = parts[0] || '';
+             const time = parts.slice(1).join(' ') || '';
+             
+             // Styled item: Flight Number Bold, Time Monospace
+             html += `
+                <div class="px-2 py-1 rounded d-flex justify-content-between align-items-center bg-white bg-opacity-25" style="font-size: 0.75rem; color: inherit;">
+                    <span class="fw-bold me-1">${flightNum}</span>
+                    <span class="font-monospace small opacity-75">${time}</span>
+                </div>
+             `;
+          });
+          html += '</div>';
+
+          cell.innerHTML = html;
+          cell.dataset.view = 'detail';
+          // Adjust cell for better content fit
+          cell.style.fontSize = '0.75rem';
+          cell.style.whiteSpace = 'normal';
+          cell.style.padding = '4px 6px';
+      }
+  }
+
   function renderDestinationDetails(dest) {
     if (!dom.detailsTitle || !dom.detailsBody) return;
     dom.detailsTitle.textContent = `${dest.city} (${dest.iata})`;
@@ -648,10 +755,11 @@
         return;
     }
 
-    let html = '';
-    const abbrs = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
+    dom.detailsBody.innerHTML = ''; // Clear previous content
 
-     // Calcular fechas específicas si existen
+    const abbrs = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
+    
+    // Calcular fechas específicas si existen
     const dateLabels = abbrs.map((d, i) => {
         if (state.raw?.validFrom) {
             const date = new Date(state.raw.validFrom + 'T00:00:00');
@@ -663,61 +771,126 @@
         }
         return d;
     });
-    
+
     projected.viewAirlines.forEach(air => {
-        const config = AIRLINE_CONFIG[air.slug] || AIRLINE_CONFIG['default'];
+        const legacyConfig = AIRLINE_CONFIG[air.slug] || AIRLINE_CONFIG['default'];
+        const config = {
+            logo: air.logo || legacyConfig.logo,
+            color: air.color || legacyConfig.color,
+            text: air.color ? '#ffffff' : legacyConfig.text
+        };
         
         let logoStyle = 'height: 32px; width: auto;';
         if (['mexicana', 'volaris', 'aeromexico'].includes(air.slug)) {
             logoStyle = 'height: 65px; width: auto;';
         }
 
-        // Si hay logo, mostrarlo más grande y sin texto. Si no, mostrar texto.
         const headerContent = config.logo 
             ? `<img src="images/airlines/${config.logo}" alt="${air.name}" style="${logoStyle}" title="${air.name}">`
             : `<strong style="color: #212529; font-size: 1.1rem;">${air.name}</strong>`;
         
-        html += `
-            <div class="list-group-item p-3">
-                <div class="d-flex align-items-center justify-content-between mb-3">
-                    <div>${headerContent}</div>
-                    <div class="text-end">
-                        <div class="badge bg-primary rounded-pill px-3 py-2" style="font-size: 0.9rem; font-weight: 500;">
-                            ${air.weeklyTotal} <span style="opacity: 0.8; font-weight: 400;">frecuencias/semana</span>
-                        </div>
-                    </div>
+        const card = document.createElement('div');
+        card.className = 'list-group-item p-3';
+
+        // Header Section
+        const header = document.createElement('div');
+        header.className = 'd-flex align-items-center justify-content-between mb-3';
+        header.innerHTML = `
+            <div>${headerContent}</div>
+            <div class="text-end">
+                <div class="badge bg-primary rounded-pill px-3 py-2" style="font-size: 0.9rem; font-weight: 500;">
+                    ${air.weeklyTotal} <span style="opacity: 0.8; font-weight: 400;">frecuencias/semana</span>
                 </div>
-                <div class="d-flex gap-1 justify-content-between">
-                    ${DAY_CODES.map((code, idx) => {
-                        const count = air.daily[idx];
-                        const isActive = count > 0;
-                        // Estilos condicionales para resaltar días activos
-                        const bgClass = isActive ? 'bg-primary-subtle border border-primary-subtle' : 'bg-light border border-light';
-                        const textClass = isActive ? 'text-primary fw-bold' : 'text-muted opacity-25';
+            </div>`;
+        card.appendChild(header);
+
+        // Days Grid
+        const grid = document.createElement('div');
+        grid.className = 'd-flex gap-1 justify-content-between';
+
+        DAY_CODES.forEach((code, idx) => {
+            const count = air.daily[idx];
+            const detail = air.dailyDetails?.[idx]; // Access by index, not code key
+            const isActive = count > 0;
+            
+            const cell = document.createElement('div');
+            // Base styles
+            cell.className = `text-center rounded p-1 flex-fill ${isActive ? 'bg-primary-subtle border border-primary-subtle' : 'bg-light border border-light'}`;
+            cell.style.minWidth = '35px';
+            cell.style.transition = 'all 0.2s ease';
+            
+            // Date Label
+            const dateDiv = document.createElement('div');
+            dateDiv.className = `small ${isActive ? 'text-primary fw-semibold' : 'text-muted opacity-50'}`;
+            dateDiv.style.fontSize = '0.7rem';
+            dateDiv.style.marginBottom = '4px';
+            dateDiv.style.lineHeight = '1.1';
+            dateDiv.innerHTML = dateLabels[idx];
+            cell.appendChild(dateDiv);
+
+            // Value/Content Div
+            const contentDiv = document.createElement('div');
+            contentDiv.className = isActive ? 'text-primary fw-bold' : 'text-muted opacity-25';
+            contentDiv.style.fontSize = '1.1rem'; // Large number by default
+            contentDiv.style.lineHeight = '1.2';
+            contentDiv.textContent = isActive ? count : '0';
+            cell.appendChild(contentDiv);
+
+            if (isActive && detail) {
+                cell.style.cursor = 'pointer';
+                cell.title = 'Ver vuelos y horarios';
+                
+                // Toggle Logic handled inline here for closure access
+                cell.onclick = (e) => {
+                    e.stopPropagation();
+                    const isExpanded = contentDiv.dataset.view === 'detail';
+                    
+                    if (isExpanded) {
+                        // Collapse
+                        contentDiv.textContent = count;
+                        contentDiv.dataset.view = 'count';
+                        contentDiv.style.fontSize = '1.1rem';
+                        contentDiv.style.textAlign = 'center';
+                    } else {
+                        // Expand
+                        const flights = detail.split('<br>');
+                        let listHtml = '<div class="d-flex flex-column gap-1 text-start mt-1">';
+                        flights.forEach(f => {
+                            const parts = f.trim().split(' ');
+                            const flightNum = parts[0] || '';
+                            const time = parts.slice(1).join(' ') || '';
+                            listHtml += `
+                                <div class="px-2 py-1 rounded bg-white border border-primary-subtle shadow-sm d-flex justify-content-between align-items-center" style="font-size: 0.7rem;">
+                                    <span class="fw-bold text-dark">${flightNum}</span>
+                                    <span class="font-monospace text-primary">${time}</span>
+                                </div>`;
+                        });
+                        listHtml += '</div>';
                         
-                        return `
-                            <div class="text-center rounded p-1 flex-fill ${bgClass}" style="min-width: 35px;">
-                                <div class="small ${isActive ? 'text-primary fw-semibold' : 'text-muted opacity-50'}" style="font-size: 0.7rem; margin-bottom: 2px; line-height: 1.1;">${dateLabels[idx]}</div>
-                                <div class="${textClass}" style="font-size: 1rem; line-height: 1;">${count}</div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-        `;
+                        contentDiv.innerHTML = listHtml;
+                        contentDiv.dataset.view = 'detail';
+                        contentDiv.style.fontSize = '1rem';
+                        contentDiv.style.textAlign = 'left';
+                    }
+                };
+            }
+
+            grid.appendChild(cell);
+        });
+
+        card.appendChild(grid);
+        dom.detailsBody.appendChild(card);
     });
 
-    html += `
-        <div class="p-3 mt-2 bg-light border-top small text-muted">
-            <div class="fw-bold mb-1">Notas:</div>
-            <ul class="mb-0 ps-3" style="list-style-type: disc;">
-                <li class="mb-1">Una frecuencia es cuantas veces va a un destino, se refiere a un aterrizaje y un despegue.</li>
-                <li>Esta programación esta sujeta a cambios con base en las necesidades de las aerolíneas.</li>
-            </ul>
-        </div>
-    `;
-
-    dom.detailsBody.innerHTML = html;
+    const notes = document.createElement('div');
+    notes.className = 'p-3 mt-2 bg-light border-top small text-muted';
+    notes.innerHTML = `
+        <div class="fw-bold mb-1">Notas:</div>
+        <ul class="mb-0 ps-3" style="list-style-type: disc;">
+            <li class="mb-1">Una frecuencia es cuantas veces va a un destino, se refiere a un aterrizaje y un despegue.</li>
+            <li>Esta programación esta sujeta a cambios con base en las necesidades de las aerolíneas.</li>
+        </ul>`;
+    dom.detailsBody.appendChild(notes);
   }
 
   function renderMap(){
@@ -961,11 +1134,21 @@
       const airlines = (dest.airlines || []).map(air => normalizeAirline(air)).filter(Boolean);
       const weeklyTotal = airlines.reduce((sum, air) => sum + air.weeklyTotal, 0);
       const dailyTotals = DAY_CODES.map((_, idx) => airlines.reduce((sum, air) => sum + (air.daily[idx] || 0), 0));
-      const searchText = `${dest.city || ''} ${dest.state || ''} ${dest.iata || ''} ${airlines.map(a => a.name).join(' ')}`.toLowerCase();
+      
+      let cityName = toTitleCase(dest.city) || 'Sin ciudad';
+      let stateName = toTitleCase(dest.state) || '';
+      
+      // Override with manual mapping if available (fixes pure IATA display)
+      if (IATA_LOCATIONS[dest.iata]) {
+          cityName = IATA_LOCATIONS[dest.iata].city;
+          stateName = IATA_LOCATIONS[dest.iata].country;
+      }
+
+      const searchText = `${cityName || ''} ${stateName || ''} ${dest.iata || ''} ${airlines.map(a => a.name).join(' ')}`.toLowerCase();
       return {
         routeId: dest.routeId,
-        city: toTitleCase(dest.city) || 'Sin ciudad',
-        state: toTitleCase(dest.state) || '',
+        city: cityName,
+        state: stateName,
         iata: dest.iata || '—',
         airports: Array.isArray(dest.airports) ? dest.airports : [],
         airlines,
@@ -984,11 +1167,15 @@
 
   function normalizeAirline(air){
     const daily = DAY_CODES.map(code => Number(air?.daily?.[code] ?? 0));
+    const dailyDetails = DAY_CODES.map(code => air?.dailyDetails?.[code] || ''); // Capture details
     const weeklyTotal = Number(air?.weeklyTotal) || daily.reduce((sum, val) => sum + val, 0);
     return {
       name: air?.name || 'Sin aerolínea',
       slug: slugify(air?.name || 'sin-aerolinea'),
+      logo: air?.logo,
+      color: air?.color,
       daily,
+      dailyDetails, // Store details
       weeklyTotal
     };
   }

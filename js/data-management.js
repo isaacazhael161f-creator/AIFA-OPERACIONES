@@ -2468,9 +2468,15 @@
                         rows.forEach(r => r.classList.remove('group-hover'));
                     };
 
-                    // Determine airline config
+                    // Determine airline config (Prioritize DB values over legacy config)
                     const slug = this.slugify(groupItem.airline || 'default');
-                    const config = this.airlineConfig[slug] || this.airlineConfig['default'];
+                    const legacyConfig = this.airlineConfig[slug] || this.airlineConfig['default'];
+                    
+                    const config = {
+                        color: groupItem.color || legacyConfig.color,
+                        logo: groupItem.logo || legacyConfig.logo,
+                        text: (groupItem.color) ? '#ffffff' : legacyConfig.text
+                    };
 
                     // Apply row styles
                     tr.style.backgroundColor = config.color;
@@ -2542,10 +2548,20 @@
                     ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].forEach(day => {
                         const td = document.createElement('td');
                         td.className = 'text-center border-start';
-                        td.style.verticalAlign = 'middle';
+                        td.style.verticalAlign = 'top'; // Align top for lists
                         td.style.color = '#ffffff';
-                        // Wrap in span for edit mode targeting
-                        td.innerHTML = `<span class="weekly-freq-value" data-field="${day}" data-id="${groupItem.id}">${groupItem[day] || 0}</span>`;
+                        td.style.fontSize = '0.85rem'; // Smaller font for details
+                        
+                        // Show count if simple, or detail if available
+                        const count = groupItem[day] || 0;
+                        const detail = groupItem[day + '_detail'];
+                        
+                        if (detail && count > 0) {
+                            td.innerHTML = `<span class="weekly-freq-value" data-field="${day}" data-id="${groupItem.id}">${detail}</span>`;
+                        } else {
+                            td.innerHTML = `<span class="weekly-freq-value" data-field="${day}" data-id="${groupItem.id}">${count > 0 ? count : '-'}</span>`;
+                        }
+                        
                         // Inherit row color
                         tr.appendChild(td);
                     });
@@ -2792,6 +2808,41 @@
             const tbody = document.querySelector('#table-weekly-frequencies-int tbody');
             tbody.innerHTML = '';
 
+            // Manual mapping for clean international names
+            const IATA_LOCATIONS = {
+                'HAV': { city: 'La Habana', country: 'Cuba' },
+                'PUJ': { city: 'Punta Cana', country: 'República Dominicana' },
+                'SDQ': { city: 'Santo Domingo', country: 'República Dominicana' },
+                'BOG': { city: 'Bogotá', country: 'Colombia' },
+                'CCS': { city: 'Caracas', country: 'Venezuela' },
+                'PTY': { city: 'Ciudad de Panamá', country: 'Panamá' },
+                'IAH': { city: 'Houston', country: 'Estados Unidos' },
+                'MIA': { city: 'Miami', country: 'Estados Unidos' },
+                'LAX': { city: 'Los Ángeles', country: 'Estados Unidos' },
+                'JFK': { city: 'Nueva York', country: 'Estados Unidos' },
+                'ORD': { city: 'Chicago', country: 'Estados Unidos' },
+                'DFW': { city: 'Dallas', country: 'Estados Unidos' },
+                'MAD': { city: 'Madrid', country: 'España' },
+                'CDG': { city: 'París', country: 'Francia' },
+                'AMS': { city: 'Ámsterdam', country: 'Países Bajos' },
+                'LHR': { city: 'Londres', country: 'Reino Unido' },
+                'FRA': { city: 'Fráncfort', country: 'Alemania' },
+                'DOH': { city: 'Doha', country: 'Catar' },
+                'ICN': { city: 'Seúl', country: 'Corea del Sur' },
+                'NRT': { city: 'Tokio', country: 'Japón' },
+                'HKG': { city: 'Hong Kong', country: 'China' },
+                'YYZ': { city: 'Toronto', country: 'Canadá' },
+                'YVR': { city: 'Vancouver', country: 'Canadá' },
+                'YUL': { city: 'Montreal', country: 'Canadá' },
+                'LIM': { city: 'Lima', country: 'Perú' },
+                'SCL': { city: 'Santiago', country: 'Chile' },
+                'EZE': { city: 'Buenos Aires', country: 'Argentina' },
+                'GRU': { city: 'São Paulo', country: 'Brasil' },
+                'GIG': { city: 'Río de Janeiro', country: 'Brasil' },
+                'MCALLEN': { city: 'McAllen', country: 'Estados Unidos' },
+                'MFE': { city: 'McAllen', country: 'Estados Unidos' }
+            };
+
             const grouped = {};
             data.forEach(item => {
                 const key = `${item.week_label}||${item.city}||${item.iata}`;
@@ -2854,8 +2905,16 @@
                         tdRouteId.classList.add('shared-info-cell'); // ADDED CLASS
                         tr.appendChild(tdRouteId);
 
+                        let cityName = groupItem.city;
+                        let stateName = groupItem.state;
+                        
+                        if (IATA_LOCATIONS[groupItem.iata]) {
+                             cityName = IATA_LOCATIONS[groupItem.iata].city;
+                             stateName = IATA_LOCATIONS[groupItem.iata].country;
+                        }
+
                         const tdRoute = document.createElement('td');
-                        tdRoute.innerHTML = `<div><strong>${groupItem.city}</strong></div><small>${groupItem.state || ''} (${groupItem.iata})</small>`;
+                        tdRoute.innerHTML = `<div><strong>${cityName}</strong></div><small>${stateName || ''} (${groupItem.iata})</small>`;
                         tdRoute.style.backgroundColor = '#ffffff';
                         tdRoute.style.color = '#212529';
                         tdRoute.rowSpan = groupItems.length;

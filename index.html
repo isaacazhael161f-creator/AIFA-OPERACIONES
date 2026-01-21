@@ -3879,6 +3879,12 @@
                                         aria-controls="frecuencias-auto-int-pane" aria-selected="false">Frecuencias
                                         Internacionales</button>
                                 </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="frecuencias-upload-tab" data-bs-toggle="tab"
+                                        data-bs-target="#frecuencias-upload-pane" type="button" role="tab"
+                                        aria-controls="frecuencias-upload-pane" aria-selected="false">Carga
+                                        (Prueba)</button>
+                                </li>
                             </ul>
                             <div class="tab-content pt-3" id="frecuenciasTabContent">
                                 <div class="tab-pane fade show active" id="frecuencias-auto-pane" role="tabpanel"
@@ -4315,6 +4321,81 @@
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="frecuencias-upload-pane" role="tabpanel" aria-labelledby="frecuencias-upload-tab" tabindex="0">
+                                    <div class="card shadow-sm mb-4">
+                                        <div class="card-body">
+                                            <h4 class="card-title"><i class="fas fa-upload me-2"></i>Cargar Frecuencias Semanales (CSV)</h4>
+                                            <p class="text-muted small">Sube el archivo CSV de visitas y selecciona la fecha de inicio de la semana para generar el reporte.</p>
+                                            <div class="row g-3 align-items-end">
+                                                <div class="col-md-5">
+                                                    <label for="frecuencias-csv-file" class="form-label">Archivo CSV (Visits)</label>
+                                                    <input class="form-control" type="file" id="frecuencias-csv-file" accept=".csv">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label for="frecuencias-week-start" class="form-label">Inicio de la Semana</label>
+                                                    <input type="date" class="form-control" id="frecuencias-week-start">
+                                                    <div class="form-text">Semana: <span id="frecuencias-week-display" class="fw-bold">-</span></div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <button class="btn btn-primary w-100" id="btn-process-frecuencias">
+                                                        <i class="fas fa-cog me-1"></i> Procesar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div id="frecuencias-upload-error" class="alert alert-danger mt-3 d-none"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Results Area -->
+                                    <div id="frecuencias-upload-results" class="d-none">
+                                         <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h5 class="mb-0">Resultados del Procesamiento</h5>
+                                            <span class="badge bg-info text-dark" id="total-ops-badge">0 Operaciones</span>
+                                         </div>
+                                         <div class="table-responsive">
+                                            <table class="table table-striped table-hover table-bordered align-middle" id="table-frecuencias-upload">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                         <th>Ruta (Destino)</th>
+                                                         <th>Aerolínea</th>
+                                                         <th class="text-center">Frecuencia Semanal</th>
+                                                         <th class="text-center">Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="tbody-frecuencias-upload">
+                                                    <!-- Content injected here -->
+                                                </tbody>
+                                            </table>
+                                         </div>
+                                    </div>
+                                    
+                                    <!-- Detail Modal -->
+                                    <div class="modal fade" id="modalFrecuenciasDetalle" tabindex="-1" aria-hidden="true">
+                                      <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                          <div class="modal-header">
+                                            <h5 class="modal-title">Detalle de Vuelos - <span id="modal-route-title"></span></h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                          </div>
+                                          <div class="modal-body">
+                                             <div class="table-responsive">
+                                                 <table class="table table-sm table-hover" id="table-frecuencias-detalle">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Fecha</th>
+                                                            <th>Hora (SOBT)</th>
+                                                            <th>Vuelo</th>
+                                                            <th>Aerolínea</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="tbody-frecuencias-detalle"></tbody>
+                                                 </table>
+                                             </div>
+                                          </div>
+                                        </div>
+                                      </div>
                                     </div>
                                 </div>
                                 <div class="tab-pane fade" id="frecuencias-auto-pane-legacy" role="tabpanel"
@@ -6093,6 +6174,7 @@
     <script src="js/itinerario-tab.js"></script>
     <script src="js/comparativa.js"></script>
     <script src="js/parte-ops-flights.js"></script>
+    <script src="js/frecuencias_upload_test.js"></script>
     <script src="script.js"></script>
     <script src="js/puntualidad.js"></script>
     <script>
