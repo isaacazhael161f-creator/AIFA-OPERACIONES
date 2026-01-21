@@ -124,6 +124,10 @@
   };
 
   document.addEventListener('DOMContentLoaded', init);
+
+  // Expose for global refresh
+  window.reloadFrecuenciasNational = init;
+
   document.addEventListener('shown.bs.tab', evt => {
     if (evt.target && evt.target.id === 'frecuencias-auto-tab') {
       // Force immediate resize with no delay for better perceived performance

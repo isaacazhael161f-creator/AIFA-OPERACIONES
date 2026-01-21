@@ -546,10 +546,24 @@
                     await this.loadTabContent(tabId);
                 }
 
+                const refreshPromises = [];
+
                 // 2. Refresh Main Dashboard Data (if functions are available)
                 if (typeof window.loadWeeklyOperationsFromDB === 'function') {
-                    window.loadWeeklyOperationsFromDB();
+                    refreshPromises.push(window.loadWeeklyOperationsFromDB());
                 }
+
+                // Refresh Frequencies (National & International)
+                if (typeof window.reloadFrecuenciasNational === 'function') {
+                    console.log('Reloading National Frequencies...');
+                    refreshPromises.push(window.reloadFrecuenciasNational());
+                }
+                if (typeof window.reloadFrecuenciasInt === 'function') {
+                    console.log('Reloading International Frequencies...');
+                    refreshPromises.push(window.reloadFrecuenciasInt());
+                }
+                
+                await Promise.all(refreshPromises);
 
                 // Refresh Demoras if active
                 if (typeof window.ensureDemorasState === 'function') {
@@ -2818,7 +2832,6 @@
                 'PTY': { city: 'Ciudad de Panamá', country: 'Panamá' },
                 'IAH': { city: 'Houston', country: 'Estados Unidos' },
                 'MIA': { city: 'Miami', country: 'Estados Unidos' },
-                'LAX': { city: 'Los Ángeles', country: 'Estados Unidos' },
                 'JFK': { city: 'Nueva York', country: 'Estados Unidos' },
                 'ORD': { city: 'Chicago', country: 'Estados Unidos' },
                 'DFW': { city: 'Dallas', country: 'Estados Unidos' },

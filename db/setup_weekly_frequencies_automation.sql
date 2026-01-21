@@ -62,13 +62,14 @@ BEGIN
         det.route_code as iata,
         COALESCE(al.nombre_aerolinea, det.airline_code) as airline,
         -- Conteo por día de la semana (PostgreSQL: 0=Domingo, 1=Lunes, ..., 6=Sábado)
-        COUNT(*) FILTER (WHERE EXTRACT(DOW FROM det.flight_date) = 1) as monday,
-        COUNT(*) FILTER (WHERE EXTRACT(DOW FROM det.flight_date) = 2) as tuesday,
-        COUNT(*) FILTER (WHERE EXTRACT(DOW FROM det.flight_date) = 3) as wednesday,
-        COUNT(*) FILTER (WHERE EXTRACT(DOW FROM det.flight_date) = 4) as thursday,
-        COUNT(*) FILTER (WHERE EXTRACT(DOW FROM det.flight_date) = 5) as friday,
-        COUNT(*) FILTER (WHERE EXTRACT(DOW FROM det.flight_date) = 6) as saturday,
-        COUNT(*) FILTER (WHERE EXTRACT(DOW FROM det.flight_date) = 0) as sunday,
+        -- Ajustamos a la zona horaria de México para que el conteo corresponda al día local
+        COUNT(*) FILTER (WHERE EXTRACT(DOW FROM det.flight_date AT TIME ZONE 'America/Mexico_City') = 1) as monday,
+        COUNT(*) FILTER (WHERE EXTRACT(DOW FROM det.flight_date AT TIME ZONE 'America/Mexico_City') = 2) as tuesday,
+        COUNT(*) FILTER (WHERE EXTRACT(DOW FROM det.flight_date AT TIME ZONE 'America/Mexico_City') = 3) as wednesday,
+        COUNT(*) FILTER (WHERE EXTRACT(DOW FROM det.flight_date AT TIME ZONE 'America/Mexico_City') = 4) as thursday,
+        COUNT(*) FILTER (WHERE EXTRACT(DOW FROM det.flight_date AT TIME ZONE 'America/Mexico_City') = 5) as friday,
+        COUNT(*) FILTER (WHERE EXTRACT(DOW FROM det.flight_date AT TIME ZONE 'America/Mexico_City') = 6) as saturday,
+        COUNT(*) FILTER (WHERE EXTRACT(DOW FROM det.flight_date AT TIME ZONE 'America/Mexico_City') = 0) as sunday,
         COUNT(*) as weekly_total
     FROM 
         weekly_flights_detailed det

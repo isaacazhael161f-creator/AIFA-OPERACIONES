@@ -49,7 +49,6 @@
       'PTY': { city: 'Ciudad de Panamá', country: 'Panamá' },
       'IAH': { city: 'Houston', country: 'Estados Unidos' },
       'MIA': { city: 'Miami', country: 'Estados Unidos' },
-      'LAX': { city: 'Los Ángeles', country: 'Estados Unidos' },
       'JFK': { city: 'Nueva York', country: 'Estados Unidos' },
       'ORD': { city: 'Chicago', country: 'Estados Unidos' },
       'DFW': { city: 'Dallas', country: 'Estados Unidos' },
@@ -77,7 +76,6 @@
   const AIRPORT_COORDS = {
      // US & Canada
     IAH: { lat: 29.9902, lng: -95.3368 },
-    LAX: { lat: 33.9416, lng: -118.4085 },
     DFW: { lat: 32.8998, lng: -97.0403 },
     MIA: { lat: 25.7959, lng: -80.2870 },
     ORD: { lat: 41.9742, lng: -87.9073 },
@@ -172,6 +170,10 @@
   };
 
   document.addEventListener('DOMContentLoaded', init);
+  
+  // Expose init for global refresh
+  window.reloadFrecuenciasInt = init;
+
   document.addEventListener('shown.bs.tab', evt => {
     if (evt.target && evt.target.id === 'frecuencias-auto-int-tab') {
       setTimeout(() => {
