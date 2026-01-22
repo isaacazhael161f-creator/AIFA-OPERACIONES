@@ -61,14 +61,18 @@
   function norm(str){ return (str||'').toString().trim().toLowerCase(); }
   function toIsoDate(str) {
     if (!str) return '';
-    const s = str.toString().trim();
+    let s = str.toString().trim();
+    // Handle ISO T explicitly
+    if (s.includes('T')) s = s.split('T')[0];
+    s = s.split(' ')[0]; // Remove time part if separated by space
+
     // Already YYYY-MM-DD
     if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-    // DD/MM/YYYY or DD/MM/YYYY HH:MM
-    const datePart = s.split(' ')[0];
-    const m = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/.exec(datePart);
+    
+    // DD/MM/YYYY
+    const m = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/.exec(s);
     if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
-    return s.split(' ')[0]; // Fallback to first part
+    return s; 
   }
   function isPassenger(f){ if (norm(f.categoria) === 'pasajeros' || norm(f.categoria)==='comercial') return true; if (norm(f.categoria) === 'carga') return false; const a = norm(f.aerolinea||f.aerolínea||f.airline); if (!a) return true; if (cargoAirlines.has(a)) return false; if (passengerAirlines.has(a)) return true; if (a.includes('cargo')) return false; return true; }
   async function loadItinerary(date) {
@@ -78,14 +82,25 @@
       try {
         let flights = [];
         
-        // 1. Intentar cargar desde 'vuelos_parte_operaciones' (nueva tabla JSON)
+        // 1. PRIORIDAD: Cargar desde tabla 'flights' (donde sube el usuario)
+        const { data: flightData, error: flightError } = await window.supabaseClient
+          .from('flights')
+          .select('*')
+          .or(`fecha_llegada.eq.${targetDate},fecha_salida.eq.${targetDate}`);
+        
+        if (!flightError && flightData && flightData.length > 0) {
+            console.log('Itinerario: cargado desde tabla flights', flightData.length);
+            return flightData;
+        }
+
+        // 2. FALLBACK: Intentar cargar desde 'vuelos_parte_operaciones' (tabla JSON consolidada)
         const { data: opsData, error: opsError } = await window.supabaseClient
             .from('vuelos_parte_operaciones')
             .select('data')
             .eq('date', targetDate)
             .maybeSingle();
 
-        if (!opsError && opsData && Array.isArray(opsData.data)) {
+        if (!opsError && opsData && Array.isArray(opsData.data) && opsData.data.length > 0) {
             console.log('Itinerario: cargado desde vuelos_parte_operaciones', opsData.data.length);
             // Normalizar datos para compatibilidad
             flights = opsData.data.map(f => {
@@ -130,14 +145,7 @@
             return flights;
         }
 
-        // 2. Fallback a tabla 'flights' (anterior)
-        const { data, error } = await window.supabaseClient
-          .from('flights')
-          .select('*')
-          .or(`fecha_llegada.eq.${targetDate},fecha_salida.eq.${targetDate}`);
-        
-        if (error) throw error;
-        return data || [];
+        return [];
       } catch (e) {
         console.error('Error cargando itinerario desde BD:', e);
         return [];

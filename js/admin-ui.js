@@ -4,7 +4,7 @@ class AdminUI {
         this.currentRecordFiles = {}; // Stores existing files that haven't been removed
         this.initModal();
         window.addEventListener('admin-mode-changed', (e) => {
-            this.toggleAdminControls(e.detail.isAdmin);
+            this.toggleAdminControls(e.detail.isAdmin, e.detail.role);
         });
     }
 
@@ -46,7 +46,7 @@ class AdminUI {
         });
     }
 
-    toggleAdminControls(isAdmin) {
+    toggleAdminControls(isAdmin, role) {
         document.body.classList.toggle('admin-enabled', isAdmin);
 
         // Toggle Data Management menu item
@@ -61,9 +61,88 @@ class AdminUI {
             }
         }
 
+        // --- Role Based Tab Visibility (Data Management) ---
+        if (isAdmin) {
+            const allTabs = [
+                'tab-ops-summary', 'tab-daily-ops', 'tab-parte-ops', 'tab-daily-flights-ops', 
+                'tab-library', 'tab-alerts', 'tab-itinerary', 'tab-weekly-frequencies', 
+                'tab-weekly-frequencies-int', 'tab-punctuality-table', 'tab-wildlife', 
+                'tab-rescued-wildlife', 'tab-medical', 'tab-delays', 'tab-comparativa',
+                'tab-visitors'
+            ];
+            
+            // Define visible tabs for specific roles
+            // If role is control_fauna, only show wildlife tabs
+            if (role === 'control_fauna') {
+                const faunaTabs = ['tab-wildlife', 'tab-rescued-wildlife'];
+                allTabs.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        if (faunaTabs.includes(id)) {
+                             el.parentElement.style.display = ''; // Show parent li or element
+                             el.style.display = ''; 
+                        } else {
+                             el.parentElement.style.display = 'none';
+                             el.style.display = 'none';
+                        }
+                    }
+                });
+                
+                // Also ensure we switch to a valid tab if current is hidden
+                const active = document.querySelector('.nav-link.active');
+                if (active && active.style.display === 'none') {
+                    const first = document.getElementById(faunaTabs[0]);
+                    if (first) {
+                        const tab = new bootstrap.Tab(first);
+                        tab.show();
+                    }
+                }
+            } else {
+                // Restore all tabs for other admins (or default behavior)
+                allTabs.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.parentElement.style.display = '';
+                        el.style.display = '';
+                    }
+                });
+            }
+        }
+
         // Re-render or show/hide edit buttons
         const editBtns = document.querySelectorAll('.admin-edit-btn');
         editBtns.forEach(btn => btn.style.display = isAdmin ? 'inline-block' : 'none');
+
+        // Handle ADD buttons in Data Management
+        // Default: hide all "Add" buttons in DM if not admin
+        // If control_fauna, show specific ones.
+        
+        const dmAddBtns = document.querySelectorAll('#pane-ops-summary button, #pane-monthly-ops button, #pane-wildlife button, #pane-rescued-wildlife button, #pane-medical button, #pane-delays button');
+        // This query is too broad, let's target the add buttons specifically if possible or iterate parent containers
+        
+        // Better approach: Since I added IDs to the toolbars of interest
+        const faunaToolbars = ['toolbar-wildlife', 'toolbar-rescued-wildlife'];
+        
+        // 1. Hide/Show Fauna Toolbars based on permission
+        faunaToolbars.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                // Determine visibility: Admin always yes? control_fauna yes.
+                const allowed = isAdmin && ( (role === 'control_fauna') || (role === 'admin') || (role === 'superadmin') || (role === 'editor') );
+                el.style.display = allowed ? '' : 'none';
+            }
+        });
+
+        // 2. Hide other toolbars if control_fauna
+        if (role === 'control_fauna') {
+             // Hide other specific buttons explicitly if needed, but since tab is hidden, button is hidden.
+             // But if we want to be safe:
+             const otherAddIds = ['monthly-ops-add', 'monthly-ops-refresh', 'annual-ops-refresh']; 
+             otherAddIds.forEach(id => {
+                 const el = document.getElementById(id);
+                 if (el) el.style.display = 'none';
+             });
+        }
     }
 
     generateWeekOptions() {

@@ -5,8 +5,34 @@
     filtered: [],
     columns: [],
     charts: { byMonth: null, bySpecies: null, byHour: null, byWeather: null, heatmap: null },
-    paging: { page: 1, perPage: 50, totalPages: 1 }
+    paging: { page: 1, perPage: 50, totalPages: 1 },
+    eventsBound: false,
+    isAdding: false,
+    isLoading: false
   };
+
+  const DB_MAPPING_IMPACTOS = {
+    "Fecha": "date",
+    "Hora": "time",
+    "Ubicación": "location",
+    "Zona de impacto": "impact_zone",
+    "Fase de la operación": "operation_phase",
+    "Aerolínea": "airline",
+    "Aerolineas": "airline",
+    "Aeronave": "aircraft",
+    "Matrícula": "registration",
+    "Matricula": "registration",
+    "Zona de impacto resto": "impact_zone_remains",
+    "Cantidad de restos": "remains_count",
+    "Tamaño": "size",
+    "Especie": "species",
+    "Nombre común": "common_name",
+    "Personal que reporta": "reporter",
+    "Medidas proactivas": "proactive_measures",
+    "Condiciones meteorológicas": "weather_conditions",
+    "Resultados de las medidas": "measure_results"
+  };
+
 
   const monthNames = ['01','02','03','04','05','06','07','08','09','10','11','12'];
   const monthNamesEs = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -36,7 +62,7 @@
           const { data, error } = await supabase
               .from('wildlife_strikes')
               .select('*')
-              .order('date', { ascending: false });
+              .order('id', { ascending: false });
           
           if (error) {
               console.warn('Error fetching wildlife_strikes, falling back to JSON or empty.', error);
@@ -48,9 +74,17 @@
           return (data || []).map(item => {
               let fDate = '';
               if (item.date) {
-                  const parts = item.date.split('-'); // YYYY-MM-DD
-                  if (parts.length === 3) fDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                  let dateOnly = String(item.date);
+                  if (dateOnly.includes('T')) dateOnly = dateOnly.split('T')[0];
+                  const parts = dateOnly.split('-'); // YYYY-MM-DD
+                  if (parts.length === 3) {
+                      fDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                  } else {
+                     // Check if it's already DD/MM/YYYY ?
+                     if (/\d{2}\/\d{2}\/\d{4}/.test(dateOnly)) fDate = dateOnly;
+                  }
               }
+              
               let fTime = '';
               if (item.time) {
                   // HH:MM:SS -> HH:MM
@@ -75,13 +109,14 @@
                   "Personal que reporta": item.reporter || '',
                   "Medidas proactivas": item.proactive_measures || '',
                   "Condiciones meteorológicas": item.weather_conditions || '',
-                  "Resultados de las medidas": item.measure_results || ''
+                  "Resultados de las medidas": item.measure_results || '',
+                  "_raw": item
               };
           });
 
       } catch(err) {
           // Fallback to local JSON if DB fails (e.g. table not created yet)
-          console.log('Falling back to local fauna.json');
+          // console.log('Falling back to local fauna.json');
           if (location.protocol === 'file:') return Promise.resolve([]);
           return fetch('data/fauna.json').then(r => r.json()).catch(()=>[]);
       }
@@ -102,6 +137,7 @@
       'Matricula': 'Matrícula'
     };
     for (const [k, v] of Object.entries(row || {})){
+      if (k === '_raw') { map['_raw'] = v; continue; }
       let nk = special[k];
       if (!nk){
         // Reemplazar guiones bajos por espacios y capitalizar acentos comunes si aplica
@@ -115,7 +151,10 @@
   function buildColumns(rows){
     // Union of keys, preserving first appearance order
     const set = new Set();
-    rows.forEach(r => Object.keys(r).forEach(k => set.add(k)));
+    // Start with "Acciones" if admin mode might be active, but we can just append it at the end in renderTable
+    rows.forEach(r => Object.keys(r).forEach(k => {
+        if (k !== '_raw') set.add(k);
+    }));
     return Array.from(set);
   }
 
@@ -141,20 +180,183 @@
   function renderTable(){
     const container = document.getElementById('fauna-table-container');
     if (!container) return;
-    if (!state.columns.length){ container.innerHTML = '<div class="text-muted">Sin datos</div>'; return; }
+    
+    // Allow empty table to show toolbar so user can add first row
+    const dm = window.dataManager;
+    const isAdmin = dm && dm.isAdmin && (dm.userRole === 'control_fauna' || dm.userRole === 'superadmin' || dm.userRole === 'admin');
+    if (!state.columns.length && !isAdmin && !state.isAdding){ container.innerHTML = '<div class="text-muted">Sin datos</div>'; return; }
 
-    // sin paginación: mostrar todo
+    // Fallback columns if adding to empty table
+    if (state.columns.length === 0) {
+        state.columns = ["Fecha", "Hora", "Ubicación", "Especie", "Aerolínea", "Aeronave"];
+    }
+
+    let finalColumns = [...state.columns];
+    if (isAdmin) {
+        if (!finalColumns.includes('Acciones')) finalColumns.push('Acciones');
+    }
+
+    let toolbar = '';
+    if (isAdmin) {
+       // If isAdding is true, hide the Add button? Or just leave it.
+       // User wants to add row. Button calls startAdd.
+       if (!state.isAdding) {
+           toolbar = `<div class="d-flex justify-content-end mb-2">
+                <button class="btn btn-sm btn-primary" onclick="window.faunaStartAdd()">
+                    <i class="fas fa-plus"></i> Agregar Fila
+                </button>
+           </div>`;
+       }
+    }
+
+    // Add row HTML
+    let addRowHtml = '';
+    if (state.isAdding) {
+        addRowHtml = '<tr class="table-primary">';
+        addRowHtml += finalColumns.map(col => {
+            if (col === 'Acciones') {
+                return `<td>
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-success" onclick="window.faunaSaveNew()" title="Guardar"><i class="fas fa-save"></i></button>
+                        <button class="btn btn-sm btn-secondary" onclick="window.faunaCancelAdd()" title="Cancelar"><i class="fas fa-times"></i></button>
+                    </div>
+                </td>`;
+            }
+            if (col === 'No.' || col === '_raw') return '<td>-</td>';
+            
+            const dbField = DB_MAPPING_IMPACTOS[col];
+            let type = 'text';
+            if (dbField === 'date') type = 'date';
+            if (dbField === 'time') type = 'time';
+            if (dbField === 'remains_count') type = 'number';
+            
+            return `<td><input type="${type}" class="form-control form-control-sm" data-new-col="${col}" placeholder="${col}"></td>`;
+        }).join('');
+        addRowHtml += '</tr>';
+    }
+
     const rowsWin = state.filtered;
-    const thead = '<thead><tr>' + state.columns.map(c => `<th class="text-nowrap">${escapeHtml(c)}</th>`).join('') + '</tr></thead>';
-    const tbody = '<tbody>' + rowsWin.map(row => {
-      return '<tr>' + state.columns.map(col => {
+    const thead = '<thead><tr>' + finalColumns.map(c => `<th class="text-nowrap">${escapeHtml(c)}</th>`).join('') + '</tr></thead>';
+    const tbody = '<tbody>' + addRowHtml + rowsWin.map(row => {
+      return '<tr>' + finalColumns.map(col => {
+        if (col === 'Acciones') {
+            if (!isAdmin) return '<td></td>';
+            // Store raw item in row for easy access, or reconstruct what we need.
+            // But JSON based rows might not have ID. DB rows have ID.
+            // We use 'No.' as ID if present, or look into _raw
+            let id = row['No.'] || (row._raw && row._raw.id);
+            if (!id) return '<td></td>';
+
+            // Create buttons HTML directly since innerHTML is used
+            // We need to pass the ID to global handlers. 
+            // BUT: dataManagement expects the original object structure for editing.
+            // If we have _raw, use it.
+            // We'll trust that window.dataManagement exists if isAdmin is true.
+            
+            // To pass object safely, we might need a lookup or just fetch by ID.
+            // Or simpler: put ID in attribute and let handler fetch or use row data.
+            // Since we can't easily stringify complex objects into onclick attribute without escaping hell,
+            // we will use the ID and let dataManagement fetch it if needed, OR 
+            // since we have the data right here, we can attach it to a temporary map if we want, 
+            // but let's try using the ID with deleteItem.
+            // For editItem, we need the object. 
+            // Let's rely on `row._raw` if available (from loadFauna mapping)
+            
+            // We can serialize row._raw to base64 or just put it in a global map by ID for this session?
+            // Actually, we can just use the ID and let the edit function find it in state.raw if we export it?
+            // BETTER: window.faunaModule.edit(id) -> which calls dataManagement.editItem
+            
+            return `<td>
+                <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-outline-primary" onclick="window.faunaEdit('${id}')" title="Editar"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="window.faunaDelete('${id}')" title="Eliminar"><i class="fas fa-trash"></i></button>
+                </div>
+            </td>`;
+        }
+
         let v = row[col];
         if (v === null || v === undefined) v = '';
         return `<td>${escapeHtml(String(v))}</td>`;
       }).join('') + '</tr>';
     }).join('') + '</tbody>';
-    container.innerHTML = `<div class="table-container-tech h-scroll-area"><table class="table table-striped table-hover table-sm align-middle fauna-table">${thead}${tbody}</table></div>`;
+    const tableHtml = `<div class="table-container-tech h-scroll-area"><table class="table table-striped table-hover table-sm align-middle fauna-table">${thead}${tbody}</table></div>`;
+    container.innerHTML = toolbar + tableHtml;
   }
+
+  window.faunaStartAdd = function() {
+      state.isAdding = true;
+      renderTable();
+  };
+
+  window.faunaCancelAdd = function() {
+      state.isAdding = false;
+      renderTable();
+  };
+
+  window.faunaSaveNew = async function() {
+      if (!window.dataManager || !window.dataManager.client) return;
+      
+      const inputs = document.querySelectorAll('#fauna-table-container input[data-new-col]');
+      const data = {};
+      let hasData = false;
+      
+      inputs.forEach(input => {
+          const col = input.getAttribute('data-new-col');
+          const val = input.value.trim();
+          const dbField = DB_MAPPING_IMPACTOS[col];
+          if (dbField && val) {
+              data[dbField] = val;
+              hasData = true;
+          }
+      });
+      
+      if (!hasData) {
+          alert('Ingresa al menos un dato');
+          return;
+      }
+      
+      try {
+          const { error } = await window.dataManager.client
+              .from('wildlife_strikes')
+              .insert([data]);
+          
+          if (error) throw error;
+          
+          state.isAdding = false;
+          window.dispatchEvent(new CustomEvent('data-updated', { detail: { table: 'wildlife_strikes' } }));
+      } catch(e) {
+          console.error("Error saving wildlife strike", e);
+          alert('Error al guardar: ' + e.message);
+      }
+  };
+  
+  // Expose these for inline onclick handlers
+  window.faunaEdit = function(id) {
+      if (!window.dataManagement) return;
+      // Find item in state.raw using ._raw.id or No.
+      const found = state.raw.find(r => String(r['No.']) === String(id));
+      if (found && found._raw) {
+          window.dataManagement.editItem('wildlife_strikes', found._raw);
+      } else {
+        console.warn('Registro no encontrado en memoria local:', id);
+      }
+  };
+
+  window.faunaDelete = function(id) {
+    if (!window.dataManagement) return;
+    if (!id) {
+        alert('Error: Identificador de registro inválido.');
+        return;
+    }
+    window.dataManagement.deleteItem('wildlife_strikes', id);
+  };
+  
+  // Listen for updates to refresh
+  window.addEventListener('data-updated', (e) => {
+      if (e.detail && e.detail.table === 'wildlife_strikes') {
+          init(); // Reload
+      }
+  });
 
   function escapeHtml(str){
     return str.replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[s]));
@@ -258,7 +460,8 @@
     const hours = new Array(24).fill(0);
     rows.forEach(r => {
       const h = String(r['Hora']||'').trim();
-      const m = h.match(/^(\d{1,2})\:(\d{2})$/);
+      // Match HH:MM or HH:MM:SS
+      const m = h.match(/^([01]?\d|2[0-3])\:(\d{2})(?::\d{2})?$/);
       if (!m) return;
       const hh = Math.max(0, Math.min(23, parseInt(m[1],10)));
       hours[hh] += 1;
@@ -521,6 +724,14 @@
   }
 
   function bindEvents(){
+    if (state.eventsBound) return;
+    state.eventsBound = true;
+
+    // Listen for admin mode changes to update add button visibility
+    window.addEventListener('admin-mode-changed', () => {
+        renderTable();
+    });
+
     document.getElementById('fauna-month')?.addEventListener('change', applyFilters);
     document.getElementById('fauna-date-from')?.addEventListener('change', applyFilters);
     document.getElementById('fauna-date-to')?.addEventListener('change', applyFilters);
@@ -554,30 +765,38 @@
         } catch(_) {}
       }, 120);
     });
+
+    // Re-render when section becomes visible to avoid zero-size canvas issues
+    window.addEventListener('fauna:visible', () => {
+      try { renderCharts(); } catch(_) {}
+    });
   }
 
-  function init(){
-    if (!document.getElementById('fauna-section')) return; // section not visible yet
-    loadFauna().then(rows => {
-      state.raw = (rows || []).map(normalizeFaunaRow);
-      state.columns = buildColumns(state.raw);
-      state.filtered = state.raw.slice();
-      populateFilters();
-  updateMonthFilterAvailability(state.raw);
-      updateBadges();
-      renderTable();
-      renderCharts();
-      renderAirlineSummary(state.filtered);
-      bindEvents();
-      // Re-render when section becomes visible to avoid zero-size canvas issues
-      window.addEventListener('fauna:visible', () => {
-        try { renderCharts(); } catch(_) {}
-      });
-    }).catch(err => {
+  async function init(){
+    if (state.isLoading) return;
+    state.isLoading = true;
+
+    if (!document.getElementById('fauna-section')) { state.isLoading = false; return; }
+    
+    try {
+        const rows = await loadFauna();
+        state.raw = (rows || []).map(normalizeFaunaRow);
+        state.columns = buildColumns(state.raw);
+        state.filtered = state.raw.slice();
+        populateFilters();
+        updateMonthFilterAvailability(state.raw);
+        updateBadges();
+        renderTable();
+        renderCharts();
+        renderAirlineSummary(state.filtered);
+        bindEvents();
+    } catch(err) {
       console.warn('fauna load error:', err);
       const c = document.getElementById('fauna-table-container');
       if (c) c.innerHTML = '<div class="text-danger">No se pudo cargar fauna.json</div>';
-    });
+    } finally {
+        state.isLoading = false;
+    }
   }
 
   document.addEventListener('DOMContentLoaded', init);
@@ -659,7 +878,7 @@
     html += '</div>';
     container.innerHTML = html;
     if (filteredByAirline) {
-      const resetBtn = container.querySelector('#fauna-summary-reset');
+      const resetBtn = document.getElementById('fauna-summary-reset');
       if (resetBtn) {
         resetBtn.addEventListener('click', (ev)=>{
           ev.preventDefault();
@@ -705,13 +924,32 @@
   const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const MONTH_ABBRS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const TABLE_COLUMNS = ['Año','No. captura','Fecha','Hora','Mes','Clase','Nombre común','Nombre científico','No. individuos','Método de captura','Cuadrante','Disposición final'];
+  
+  const DB_MAPPING_RESCATES = {
+    "No. captura": "capture_number",
+    "Fecha": "date",
+    "Hora": "time",
+    "Mes": "month",
+    "Clase": "class",
+    "Nombre común": "common_name",
+    "Nombre científico": "scientific_name",
+    "No. individuos": "quantity",
+    "Método de captura": "capture_method",
+    "Cuadrante": "quadrant",
+    "Disposición final": "final_disposition"
+  };
+  
   const state = {
     raw: [],
     filtered: [],
     charts: { month: null, class: null, relocation: null, hour: null, method: null },
     year: 'all',
-    years: []
+    years: [],
+    eventsBound: false,
+    isLoading: false,
+    isAdding: false
   };
+
 
   function normalizeYearValue(row){
     const year = row && (row['Año'] ?? row.Año);
@@ -808,7 +1046,7 @@
       const { data, error } = await supabase
         .from('rescued_wildlife')
         .select('*')
-        .order('date', { ascending: false });
+        .order('id', { ascending: false });
 
       if (error) {
         console.warn('fauna-rescate: error al cargar de supabase', error);
@@ -819,20 +1057,40 @@
       return (data || []).map(item => {
         let fDate = '';
         let yearVal = '';
-        let monthVal = '';
+        let derivedMonth = '';
 
         if (item.date) {
-            // item.date is YYYY-MM-DD
-            const [y, m, d] = item.date.split('-');
-            fDate = `${d}/${m}/${y}`;
-            yearVal = y;
-            monthVal = MONTH_NAMES[parseInt(m,10)-1] || '';
+            // item.date is YYYY-MM-DD or ISO
+            let dStr = String(item.date);
+            if (dStr.includes('T')) dStr = dStr.split('T')[0];
+            
+            const parts = dStr.split('-');
+            if (parts.length === 3) {
+              const [y, m, d] = parts;
+              fDate = `${d}/${m}/${y}`;
+              yearVal = y;
+              derivedMonth = MONTH_NAMES[parseInt(m,10)-1] || '';
+            } else if (/\d{2}\/\d{2}\/\d{4}/.test(dStr)) {
+               fDate = dStr;
+               // Try to extract year/month
+               const [d, m, y] = dStr.split('/');
+               yearVal = y;
+               derivedMonth = MONTH_NAMES[parseInt(m,10)-1] || '';
+            }
+        }
+        
+        let monthVal = item.month || derivedMonth || '';
+
+        let fTime = item.time || '';
+        // If time is HH:MM:SS, just keep it, the regex handles it now OR trim it for display consistency
+        if (fTime.length > 5 && fTime.indexOf(':') > -1) {
+             fTime = fTime.substring(0, 5); 
         }
 
         return {
           'No. captura': item.capture_number,
           'Fecha': fDate,
-          'Hora': item.time || '',
+          'Hora': fTime,
           'Año': yearVal,
           'Mes': monthVal,
           'Clase': item.class || '',
@@ -841,7 +1099,8 @@
           'No. individuos': item.quantity,
           'Método de captura': item.capture_method || '',
           'Cuadrante': item.quadrant || '',
-          'Disposición final': item.final_disposition || ''
+          'Disposición final': item.final_disposition || '',
+          '_raw': item
         };
       });
 
@@ -884,6 +1143,12 @@
 
   function normalizeRow(row){
     const normalized = {};
+    const dm = window.dataManager;
+    const isAdmin = dm && dm.isAdmin && (dm.userRole === 'control_fauna' || dm.userRole === 'superadmin' || dm.userRole === 'admin');
+    
+    // Use _raw storage for actions
+    normalized._raw = row._raw || row; // Ensure we have reference to raw object
+    
     TABLE_COLUMNS.forEach(col => {
       if (col === 'Año') {
         normalized[col] = normalizeYearValue(row);
@@ -891,6 +1156,10 @@
         normalized[col] = row[col] ?? '';
       }
     });
+
+    if (isAdmin) {
+       normalized['Acciones'] = 'actions_placeholder';
+    }
     return normalized;
   }
 
@@ -1080,7 +1349,8 @@
     const buckets = new Array(24).fill(0);
     rows.forEach(row => {
       const raw = String(row['Hora'] || '').trim();
-      const match = raw.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+      // Match HH:MM or HH:MM:SS
+      const match = raw.match(/^([01]?\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/);
       if (!match) return;
       const hour = Number(match[1]);
       buckets[hour] += 1;
@@ -1326,17 +1596,151 @@
   function renderTable(){
     const container = document.getElementById('fauna-rescate-table');
     if (!container) return;
-    if (!state.filtered.length){
-      container.innerHTML = '<div class="text-muted">Sin registros para los filtros seleccionados.</div>';
-      return;
+    
+    const columns = [...TABLE_COLUMNS];
+    const dm = window.dataManager;
+    const isAdmin = dm && dm.isAdmin && (dm.userRole === 'control_fauna' || dm.userRole === 'superadmin' || dm.userRole === 'admin');
+    
+    // Ensure Acciones column
+    if (isAdmin && !columns.includes('Acciones')) {
+        columns.push('Acciones');
     }
-    const thead = '<thead><tr>' + TABLE_COLUMNS.map(col => `<th class="text-nowrap">${escapeHtml(col)}</th>`).join('') + '</tr></thead>';
+
+    if (!state.filtered.length && !state.isAdding){
+       if (!isAdmin) {
+          container.innerHTML = '<div class="text-muted">Sin registros para los filtros seleccionados.</div>';
+          return;
+       }
+    }
+    
+    let toolbarHtml = '';
+    if (isAdmin) {
+       if (!state.isAdding) {
+            toolbarHtml = `<div class="d-flex justify-content-end mb-2">
+                    <button class="btn btn-sm btn-primary" onclick="window.faunaRescateStartAdd()">
+                        <i class="fas fa-plus"></i> Agregar Fila
+                    </button>
+            </div>`;
+       }
+    }
+
+    let addRowHtml = '';
+    if (state.isAdding) {
+        addRowHtml = '<tr class="table-primary">';
+        addRowHtml += columns.map(col => {
+            if (col === 'Acciones') {
+                return `<td>
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-success" onclick="window.faunaRescateSaveNew()" title="Guardar"><i class="fas fa-save"></i></button>
+                        <button class="btn btn-sm btn-secondary" onclick="window.faunaRescateCancelAdd()" title="Cancelar"><i class="fas fa-times"></i></button>
+                    </div>
+                </td>`;
+            }
+            if (col === 'Año' || col === 'Mes') return '<td>-</td>';
+            const dbField = DB_MAPPING_RESCATES[col];
+            let type = 'text';
+            if (dbField === 'date') type = 'date';
+            if (dbField === 'time') type = 'time';
+            if (dbField === 'quantity' || dbField === 'capture_number') type = 'number';
+            
+            return `<td><input type="${type}" class="form-control form-control-sm" data-new-col="${col}" placeholder="${col}"></td>`;
+        }).join('');
+        addRowHtml += '</tr>';
+    }
+
+    const thead = '<thead><tr>' + columns.map(col => `<th class="text-nowrap">${escapeHtml(col)}</th>`).join('') + '</tr></thead>';
     const rowsHtml = state.filtered.map(row => {
-      return '<tr>' + TABLE_COLUMNS.map(col => `<td>${escapeHtml(row[col])}</td>`).join('') + '</tr>';
+      return '<tr>' + columns.map(col => {
+          if (col === 'Acciones') {
+             let id = (row._raw && row._raw.id) || row['No. captura'];
+             if (!id) return '<td></td>';
+             return `<td>
+                <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-outline-primary" onclick="window.faunaRescateEdit('${id}')" title="Editar"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="window.faunaRescateDelete('${id}')" title="Eliminar"><i class="fas fa-trash"></i></button>
+                </div>
+            </td>`;
+          }
+          return `<td>${escapeHtml(row[col])}</td>`;
+      }).join('') + '</tr>';
     }).join('');
-    const table = `<div class="table-container-tech h-scroll-area"><table class="table table-striped table-hover table-sm align-middle">${thead}<tbody>${rowsHtml}</tbody></table></div>`;
+    
+    // Use toolbarHtml variable, fixed the bug where toolbar was injected into div tag
+    const table = `${toolbarHtml}<div class="table-container-tech h-scroll-area"><table class="table table-striped table-hover table-sm align-middle">${thead}<tbody>${addRowHtml}${rowsHtml}</tbody></table></div>`;
     container.innerHTML = table;
   }
+
+  window.faunaRescateStartAdd = function() {
+      state.isAdding = true;
+      renderTable();
+  };
+
+  window.faunaRescateCancelAdd = function() {
+      state.isAdding = false;
+      renderTable();
+  };
+
+  window.faunaRescateSaveNew = async function() {
+      if (!window.dataManager || !window.dataManager.client) return;
+
+      const inputs = document.querySelectorAll('#fauna-rescate-table input[data-new-col]');
+      const data = {};
+      let hasData = false;
+
+      inputs.forEach(input => {
+          const col = input.getAttribute('data-new-col');
+          const val = input.value.trim();
+          const dbField = DB_MAPPING_RESCATES[col];
+          if (dbField && val) {
+              data[dbField] = val;
+              hasData = true;
+          }
+      });
+
+      if (!hasData) {
+          alert('Ingresa al menos un dato');
+          return;
+      }
+
+      try {
+          // Auto fields like id are handled by DB
+          const { error } = await window.dataManager.client
+              .from('rescued_wildlife')
+              .insert([data]);
+          
+          if (error) throw error;
+          
+          state.isAdding = false;
+          // init();
+          // Rely on data-updated event
+          window.dispatchEvent(new CustomEvent('data-updated', { detail: { table: 'rescued_wildlife' } }));
+      } catch(e) {
+          console.error("Error saving rescued wildlife", e);
+          alert('Error al guardar: ' + e.message);
+      }
+  };
+
+  // Expose handlers closing over state
+  window.faunaRescateEdit = function(id) {
+        if (!window.dataManagement) return;
+        // Search in state.raw
+        const found = state.raw.find(r => {
+            const rid = (r._raw && r._raw.id) || r['No. captura'];
+            return String(rid) === String(id);
+        });
+        
+        if (found && found._raw) {
+             window.dataManagement.editItem('rescued_wildlife', found._raw);
+        } else {
+             // Fallback: maybe just pass what we have if _raw isn't there (should be though)
+             console.warn('Registro rescate no encontrado:', id);
+        }
+  };
+
+  window.faunaRescateDelete = function(id) {
+       if (!window.dataManagement) return;
+       window.dataManagement.deleteItem('rescued_wildlife', id);
+  };
 
   function exportCSV(){
     if (!state.filtered.length) return;
@@ -1375,6 +1779,13 @@
   }
 
   function bindEvents(){
+    if (state.eventsBound) return;
+    state.eventsBound = true;
+    
+    window.addEventListener('admin-mode-changed', () => {
+       renderTable();
+    });
+
     document.getElementById('fauna-rescate-month')?.addEventListener('change', applyFilters);
     document.getElementById('fauna-rescate-class')?.addEventListener('change', applyFilters);
     document.getElementById('fauna-rescate-method')?.addEventListener('change', applyFilters);
@@ -1404,12 +1815,23 @@
         }, 60);
       }
     });
+
+    // Listen for updates
+    window.addEventListener('data-updated', (e) => {
+      if (e.detail && e.detail.table === 'rescued_wildlife') {
+          init(); 
+      }
+    });
   }
 
-  function init(){
+  async function init(){
+    if (state.isLoading) return;
+    state.isLoading = true;
     const pane = document.getElementById('gso-fauna-rescate-pane');
-    if (!pane) return;
-    loadDataset().then(rows => {
+    if (!pane) { state.isLoading = false; return; }
+    
+    try {
+      const rows = await loadDataset();
       state.raw = (rows || []).map(normalizeRow);
       state.years = deriveYears(state.raw);
       if (!state.years.length) {
@@ -1422,11 +1844,13 @@
       populateFilters();
       bindEvents();
       applyFilters();
-    }).catch(err => {
+    } catch(err) {
       console.warn('fauna-rescate: init error', err);
       const table = document.getElementById('fauna-rescate-table');
       if (table) table.innerHTML = '<div class="text-danger">No se pudo cargar fauna_rescatada.</div>';
-    });
+    } finally {
+      state.isLoading = false;
+    }
   }
 
   document.addEventListener('DOMContentLoaded', init);

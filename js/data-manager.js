@@ -24,18 +24,22 @@ class DataManager {
                     .eq('user_id', session.user.id)
                     .single();
 
-                if (roleData && ['admin', 'editor', 'superadmin'].includes(roleData.role)) {
+                if (roleData && ['admin', 'editor', 'superadmin', 'control_fauna'].includes(roleData.role)) {
                     this.isAdmin = true;
+                    this.userRole = roleData.role;
                 } else {
                     this.isAdmin = false;
+                    this.userRole = null;
                     // Ensure viewer/other roles are explicitly non-admin
                 }
             } catch (e) {
                 console.error('Error checking role:', e);
                 this.isAdmin = false;
+                this.userRole = null;
             }
         } else {
             this.isAdmin = false;
+            this.userRole = null;
         }
 
         // Apply visual state
@@ -45,6 +49,7 @@ class DataManager {
         window.dispatchEvent(new CustomEvent('admin-mode-changed', {
             detail: {
                 isAdmin: this.isAdmin,
+                role: this.userRole,
                 timestamp: Date.now()
             }
         }));
@@ -244,8 +249,25 @@ class DataManager {
             query = query.eq(pkField, id);
         }
 
-        const { data, error } = await query;
+        const { data, error } = await query.select();
         if (error) throw error;
+        
+        // If data is empty, it means no rows were deleted (due to ID mismatch or RLS)
+        // NOTE: For 'wildlife_strikes' specifically, the ID type (String vs Int) matters. 
+        // Supabase usually handles it, but if it doesn't, we might need to cast.
+        // Also, if the user didn't refresh the page after applying RLS fix, the token might be stale? No, RLS is DB side.
+        
+        if (!data || data.length === 0) {
+             console.warn(`Delete ${table} id=${JSON.stringify(id)} returned 0 rows.`);
+             
+             // Check if it's likely a permission issue
+             if (this.isAdmin) {
+                 throw new Error(`Permisos insuficientes en base de datos para borrar en "${table}". Ejecute el script "fix_fauna_permissions_final.sql" en Supabase.`);
+             } else {
+                 throw new Error("No se pudo eliminar el registro (verifique permisos o si ya fue eliminado).");
+             }
+        }
+        
         return true;
     }
 

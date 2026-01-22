@@ -447,7 +447,7 @@
                                         <button class="nav-link text-start mb-2 border shadow-sm rounded"
                                             id="tab-wildlife" data-bs-toggle="pill" data-bs-target="#pane-wildlife"
                                             type="button" role="tab"><i
-                                                class="fas fa-dove me-2 text-success"></i>Fauna</button>
+                                                class="fas fa-dove me-2 text-success"></i>Impactos de Ave</button>
 
                                         <button class="nav-link text-start mb-2 border shadow-sm rounded"
                                             id="tab-rescued-wildlife" data-bs-toggle="pill"
@@ -953,9 +953,9 @@
 
                                         <!-- Wildlife Pane -->
                                         <div class="tab-pane fade" id="pane-wildlife" role="tabpanel">
-                                            <h5 class="mb-3">Impactos de Fauna</h5>
-                                            <div class="d-flex justify-content-end mb-3">
-                                                <button class="btn btn-primary btn-sm"
+                                            <h5 class="mb-3">Impactos de Ave</h5>
+                                            <div class="d-flex justify-content-end mb-3" id="toolbar-wildlife">
+                                                <button class="btn btn-primary btn-sm btn-add-item"
                                                     onclick="dataManagement.addItem('wildlife_strikes')"><i
                                                         class="fas fa-plus"></i>
                                                     Agregar Reporte</button>
@@ -1095,8 +1095,8 @@
                                         <!-- Rescued Wildlife Pane -->
                                         <div class="tab-pane fade" id="pane-rescued-wildlife" role="tabpanel">
                                             <h5 class="mb-3">Fauna Rescatada</h5>
-                                            <div class="d-flex justify-content-end mb-3">
-                                                <button class="btn btn-primary btn-sm"
+                                            <div class="d-flex justify-content-end mb-3" id="toolbar-rescued-wildlife">
+                                                <button class="btn btn-primary btn-sm btn-add-item"
                                                     onclick="dataManagement.addItem('rescued_wildlife')"><i
                                                         class="fas fa-plus"></i>
                                                     Agregar Rescate</button>
@@ -2537,6 +2537,11 @@
                                                         class="btn btn-outline-primary btn-sm"><i
                                                             class="fas fa-file-csv me-1"></i>CSV</button>
                                                 </div>
+                                                <div class="chip chip-actions ms-auto">
+                                                    <button class="btn btn-primary btn-sm admin-edit-btn" style="display:none;" onclick="dataManagement.addItem('wildlife_strikes')">
+                                                        <i class="fas fa-plus me-1"></i>Agregar Registro
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="card-body">
@@ -2697,6 +2702,11 @@
                                                             class="fas fa-broom me-1"></i>Acciones</label>
                                                     <button id="fauna-rescate-clear"
                                                         class="btn btn-outline-secondary btn-sm">Restablecer</button>
+                                                </div>
+                                                <div class="chip chip-actions ms-auto">
+                                                    <button class="btn btn-primary btn-sm admin-edit-btn" style="display:none;" onclick="dataManagement.addItem('rescued_wildlife')">
+                                                        <i class="fas fa-plus me-1"></i>Agregar Rescate
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>

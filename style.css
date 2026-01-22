@@ -10565,3 +10565,40 @@ body.dark-mode #table-ops-flights tbody tr:nth-of-type(even) {
    font-size: 0.9rem;
    z-index: 1;
 }
+/* ==========================================================================
+   Fauna Tables - Vertical Scroll (Sticky Header)
+   ========================================================================== */
+#fauna-section .table-container-tech.h-scroll-area, 
+#fauna-rescate-table .table-container-tech.h-scroll-area {
+    max-height: 600px;
+    overflow-y: auto !important;
+    position: relative;
+    /* Custom Scrollbar styling */
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary-color) var(--border-color);
+}
+
+#fauna-section .table-container-tech.h-scroll-area thead,
+#fauna-rescate-table .table-container-tech.h-scroll-area thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+#fauna-section .table-container-tech.h-scroll-area thead th,
+#fauna-rescate-table .table-container-tech.h-scroll-area thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    /* Ensure opacity so rows don't show behind header */
+    background-color: #f2f6fc; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Dark Mode support for sticky headers */
+body.dark-mode #fauna-section .table-container-tech.h-scroll-area thead th,
+body.dark-mode #fauna-rescate-table .table-container-tech.h-scroll-area thead th {
+    background-color: #1e2739; /* Matches --card-bg */
+    color: #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}

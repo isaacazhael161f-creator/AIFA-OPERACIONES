@@ -149,29 +149,66 @@
                 { name: 'terminal', label: 'Terminal', type: 'text' }
             ],
             wildlife_strikes: [
-                { name: 'date', label: 'Fecha', type: 'date' },
-                { name: 'time', label: 'Hora', type: 'time' },
-                { name: 'location', label: 'Ubicación', type: 'text' },
-                { name: 'impact_zone', label: 'Zona de impacto', type: 'text' },
-                { name: 'operation_phase', label: 'Fase de la operación', type: 'text' },
+                { name: 'date', label: 'Fecha del Evento', type: 'date' },
+                { name: 'time', label: 'Hora del Evento', type: 'time' },
+                { name: 'location', label: 'Ubicación General', type: 'text', placeholder: 'Ej. Aproximación Pista 04C' },
+                { name: 'impact_zone', label: 'Zona de Impacto (Aeronave)', type: 'text', placeholder: 'Ej. Radomo, Motor 1, Ala derecha' },
+                { name: 'operation_phase', label: 'Fase de la Operación', type: 'text', placeholder: 'Ej. Aterrizaje, Despegue, Rodaje' },
                 { name: 'airline', label: 'Aerolínea', type: 'text' },
-                { name: 'aircraft', label: 'Aeronave', type: 'text' },
+                { name: 'aircraft', label: 'Tipo de Aeronave', type: 'text', placeholder: 'Ej. B737-800' },
                 { name: 'registration', label: 'Matrícula', type: 'text' },
-                { name: 'impact_zone_remains', label: 'Zona de impacto resto', type: 'text' },
-                { name: 'remains_count', label: 'Cantidad de restos', type: 'number' },
+                { name: 'impact_zone_remains', label: 'Zona de Hallazgo de Restos', type: 'text', placeholder: 'Ej. Pista 04C cerca de calle Bravo' },
+                { name: 'remains_count', label: 'Cantidad de Restos', type: 'number' },
                 {
-                    name: 'size', label: 'Tamaño', type: 'select', options: [
+                    name: 'size', label: 'Tamaño de la Fauna', type: 'select', options: [
                         { value: 'Pequeño', label: 'Pequeño' },
                         { value: 'Mediano', label: 'Mediano' },
                         { value: 'Grande', label: 'Grande' }
                     ]
                 },
-                { name: 'species', label: 'Especie', type: 'text' },
-                { name: 'common_name', label: 'Nombre común', type: 'text' },
+                { name: 'species', label: 'Especie (Científico)', type: 'text', placeholder: 'Ej. Quiscalus mexicanus' },
+                { name: 'common_name', label: 'Nombre Común', type: 'text', placeholder: 'Ej. Zanate' },
                 { name: 'reporter', label: 'Personal que reporta', type: 'text' },
-                { name: 'proactive_measures', label: 'Medidas proactivas', type: 'textarea' },
-                { name: 'weather_conditions', label: 'Condiciones meteorológicas', type: 'text' },
-                { name: 'measure_results', label: 'Resultados de las medidas', type: 'textarea' }
+                { name: 'proactive_measures', label: 'Medidas Proactivas Previas', type: 'textarea', placeholder: 'Descripción de medidas tomadas antes del evento' },
+                { name: 'weather_conditions', label: 'Condiciones Meteorológicas', type: 'text', placeholder: 'Ej. Nublado, Lluvia ligera' },
+                { name: 'measure_results', label: 'Resultados de las Medidas', type: 'textarea' }
+            ],
+            rescued_wildlife: [
+                { name: 'date', label: 'Fecha de Captura', type: 'date' },
+                {
+                    name: 'month', label: 'Mes', type: 'select', options: [
+                        { value: 'Enero', label: 'Enero' }, { value: 'Febrero', label: 'Febrero' }, { value: 'Marzo', label: 'Marzo' },
+                        { value: 'Abril', label: 'Abril' }, { value: 'Mayo', label: 'Mayo' }, { value: 'Junio', label: 'Junio' },
+                        { value: 'Julio', label: 'Julio' }, { value: 'Agosto', label: 'Agosto' }, { value: 'Septiembre', label: 'Septiembre' },
+                        { value: 'Octubre', label: 'Octubre' }, { value: 'Noviembre', label: 'Noviembre' }, { value: 'Diciembre', label: 'Diciembre' }
+                    ]
+                },
+                { name: 'time', label: 'Hora', type: 'time' },
+                { name: 'capture_number', label: 'No. Captura', type: 'text', placeholder: 'Ej. GSO-2025-001' },
+                { name: 'common_name', label: 'Nombre Común', type: 'text', placeholder: 'Ej. Tlacuache' },
+                { name: 'scientific_name', label: 'Nombre Científico', type: 'text', placeholder: 'Ej. Didelphis marsupialis' },
+                { 
+                    name: 'class', label: 'Clase', type: 'select', 
+                    options: [
+                        { value: 'Aves', label: 'Aves' },
+                        { value: 'Mamíferos', label: 'Mamíferos' },
+                        { value: 'Reptiles', label: 'Reptiles' },
+                        { value: 'Anfibios', label: 'Anfibios' },
+                        { value: 'Insectos', label: 'Insectos' }
+                    ]
+                },
+                { name: 'quantity', label: 'No. Individuos', type: 'number' },
+                { name: 'capture_method', label: 'Método de Captura', type: 'text', placeholder: 'Ej. Trampa Tomahawk, Manual, Red' },
+                { name: 'quadrant', label: 'Cuadrante', type: 'text', placeholder: 'Ej. 14A' },
+                { 
+                    name: 'final_disposition', label: 'Disposición Final', type: 'select',
+                    options: [
+                        { value: 'Liberación', label: 'Liberación' },
+                        { value: 'Traslado', label: 'Traslado' },
+                        { value: 'Eutanasia', label: 'Eutanasia' },
+                        { value: 'Muerto', label: 'Encontrado Muerto' }
+                    ] 
+                }
             ],
             medical_attentions: [
                 { name: 'year', label: 'Año', type: 'number' },
@@ -920,8 +957,15 @@
 
     async loadWildlifeStrikes() {
         try {
+            // Reload the public fauna module if it's visible, otherwise just let it be loaded on demand
+            // But here "loadWildlifeStrikes" is likely used by the Data Management tab table itself.
+            // If the user wants the GSO tab to be the main management area, we should ensure dataManagement updates propagate.
+            
+            // Standard loading for Data Management Tab (if still used)
             const data = await window.dataManager.getWildlifeStrikes();
             this.renderTable('table-wildlife', data, ['date', 'time', 'species', 'location', 'common_name', 'action_taken'], 'wildlife_strikes');
+            
+            // Notification loop breaker: Do not dispatch 'data-updated' here as it triggers this function recursively
         } catch (error) {
             console.error('Error loading wildlife strikes:', error);
         }
@@ -931,6 +975,8 @@
         try {
             const data = await window.dataManager.getRescuedWildlife();
             this.renderTable('table-rescued-wildlife', data, ['date', 'time', 'common_name', 'class', 'final_disposition'], 'rescued_wildlife');
+
+            // Notification loop breaker: Do not dispatch 'data-updated' here as it triggers this function recursively
         } catch (error) {
             console.error('Error loading rescued wildlife:', error);
         }
@@ -1892,19 +1938,46 @@
             // Actions column
             const tdActions = document.createElement('td');
 
-            // Edit Button
-            const btnEdit = document.createElement('button');
-            btnEdit.className = 'btn btn-sm btn-outline-primary me-1';
-            btnEdit.innerHTML = '<i class="fas fa-edit"></i>';
-            btnEdit.onclick = () => this.editItem(tableName, item);
-            tdActions.appendChild(btnEdit);
+            // --- PERMISSION CHECK ---
+            // Determine if current user can edit this table
+            // Logic:
+            // 1. If admin -> can edit everything
+            // 2. If control_fauna -> can ONLY edit wildlife_strikes and rescued_wildlife
+            
+            const globalDm = window.dataManager;
+            const isAdmin = globalDm && globalDm.isAdmin;
+            const role = globalDm && globalDm.userRole;
 
-            // Delete Button
-            const btnDelete = document.createElement('button');
-            btnDelete.className = 'btn btn-sm btn-outline-danger';
-            btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
-            btnDelete.onclick = () => this.deleteItem(tableName, item.id);
-            tdActions.appendChild(btnDelete);
+            let canEdit = isAdmin; // Default base admin check
+            
+            // Refine based on Role
+            if (role === 'control_fauna') {
+                if (tableName === 'wildlife_strikes' || tableName === 'rescued_wildlife') {
+                    canEdit = true;
+                } else {
+                    canEdit = false;
+                }
+            } else if (role === 'admin' || role === 'superadmin' || role === 'editor') {
+                 canEdit = true;
+            } else if (!isAdmin) {
+                 canEdit = false;
+            }
+
+            if (canEdit) {
+                // Edit Button
+                const btnEdit = document.createElement('button');
+                btnEdit.className = 'btn btn-sm btn-outline-primary me-1';
+                btnEdit.innerHTML = '<i class="fas fa-edit"></i>';
+                btnEdit.onclick = () => this.editItem(tableName, item);
+                tdActions.appendChild(btnEdit);
+
+                // Delete Button
+                const btnDelete = document.createElement('button');
+                btnDelete.className = 'btn btn-sm btn-outline-danger';
+                btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
+                btnDelete.onclick = () => this.deleteItem(tableName, item.id); 
+                tdActions.appendChild(btnDelete);
+            }
 
             tr.appendChild(tdActions);
             tbody.appendChild(tr);
