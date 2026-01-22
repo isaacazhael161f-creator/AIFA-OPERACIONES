@@ -758,7 +758,7 @@ body.dark-mode .section-title small {
 }
 
 #login-button .spinner-plane::after {
-   content: "âœˆ";
+   content: "\2708";
    position: absolute;
    left: 50%;
    top: 50%;
