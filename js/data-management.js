@@ -957,29 +957,77 @@
 
     async loadWildlifeStrikes() {
         try {
-            // Reload the public fauna module if it's visible, otherwise just let it be loaded on demand
-            // But here "loadWildlifeStrikes" is likely used by the Data Management tab table itself.
-            // If the user wants the GSO tab to be the main management area, we should ensure dataManagement updates propagate.
-            
-            // Standard loading for Data Management Tab (if still used)
+            // Standard loading for Data Management Tab
             const data = await window.dataManager.getWildlifeStrikes();
-            this.renderTable('table-wildlife', data, ['date', 'time', 'species', 'location', 'common_name', 'action_taken'], 'wildlife_strikes');
-            
-            // Notification loop breaker: Do not dispatch 'data-updated' here as it triggers this function recursively
+            this.wildlifeData = data || []; // Cache data for filtering
+            this.filterWildlifeStrikes();
         } catch (error) {
             console.error('Error loading wildlife strikes:', error);
         }
     }
 
+    filterWildlifeStrikes() {
+        if (!this.wildlifeData) return;
+
+        const inputs = document.querySelectorAll('#table-wildlife .filter-row input');
+        
+        const filtered = this.wildlifeData.filter(item => {
+            let pass = true;
+            inputs.forEach(input => {
+                if (!pass) return;
+                const searchVal = (input.value || '').toLowerCase();
+                if (!searchVal) return; // ignore empty filter inputs
+
+                const col = input.getAttribute('data-column');
+                let itemVal = (item[col] || '');
+                
+                // Mapear campos si es necesario
+                // La tabla usa columnas: date, time, species, location
+                // item keys deberian coincidir, pero si no, ajustar aqui
+                
+                if (itemVal.toString().toLowerCase().indexOf(searchVal) === -1) {
+                    pass = false;
+                }
+            });
+            return pass;
+        });
+
+        this.renderTable('table-wildlife', filtered, ['date', 'time', 'species', 'location', 'common_name', 'action_taken'], 'wildlife_strikes');
+    }
+
     async loadRescuedWildlife() {
         try {
             const data = await window.dataManager.getRescuedWildlife();
-            this.renderTable('table-rescued-wildlife', data, ['date', 'time', 'common_name', 'class', 'final_disposition'], 'rescued_wildlife');
-
-            // Notification loop breaker: Do not dispatch 'data-updated' here as it triggers this function recursively
+            this.rescuedData = data || []; // Cache data for filtering
+            this.filterRescuedWildlife();
         } catch (error) {
             console.error('Error loading rescued wildlife:', error);
         }
+    }
+
+    filterRescuedWildlife() {
+        if (!this.rescuedData) return;
+        
+        const inputs = document.querySelectorAll('#table-rescued-wildlife .filter-row input');
+
+        const filtered = this.rescuedData.filter(item => {
+            let pass = true;
+            inputs.forEach(input => {
+                if (!pass) return;
+                const searchVal = (input.value || '').toLowerCase();
+                if (!searchVal) return;
+
+                const col = input.getAttribute('data-column');
+                let itemVal = (item[col] || '');
+
+                if (itemVal.toString().toLowerCase().indexOf(searchVal) === -1) {
+                    pass = false;
+                }
+            });
+            return pass;
+        });
+
+        this.renderTable('table-rescued-wildlife', filtered, ['date', 'time', 'common_name', 'class', 'final_disposition'], 'rescued_wildlife');
     }
 
     async loadDailyFlightsOps() {

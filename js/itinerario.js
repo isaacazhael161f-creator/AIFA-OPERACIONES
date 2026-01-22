@@ -75,6 +75,33 @@
     return s; 
   }
   function isPassenger(f){ if (norm(f.categoria) === 'pasajeros' || norm(f.categoria)==='comercial') return true; if (norm(f.categoria) === 'carga') return false; const a = norm(f.aerolinea||f.aerolínea||f.airline); if (!a) return true; if (cargoAirlines.has(a)) return false; if (passengerAirlines.has(a)) return true; if (a.includes('cargo')) return false; return true; }
+  
+  // Helper to remove duplicates based on user criteria
+  function removeItineraryDuplicates(items) {
+      if (!Array.isArray(items)) return [];
+      const seen = new Set();
+      return items.filter(item => {
+          // Identify key fields
+          const fNum = String(item.vuelo_llegada || item.vuelo_salida || item.vuelo || item.flight_number || item.identificador || '').trim();
+          const fTime = String(item.hora_llegada || item.hora_salida || item.time || item.hora || '').trim();
+          // Normalize date to YYYY-MM-DD if possible for better matching, though raw string might suffice if consistent
+          let fDate = String(item.fecha_llegada || item.fecha_salida || item.date || item.fecha || '').trim();
+          if (fDate.includes('T')) fDate = fDate.split('T')[0];
+          
+          const fLoc = String(item.origen || item.procedencia || item.origin || item.destino || item.destination || '').trim();
+          const fAir = String(item.aerolinea || item.airline || '').trim();
+          
+          // If essentially empty, keep it (or drop? usually keep to be safe, but duplicates of empty are bad. Let's assume valid rows have data)
+          if (!fNum && !fTime && !fLoc) return true; 
+
+          const sig = `${fNum}|${fTime}|${fDate}|${fLoc}|${fAir}`;
+          
+          if (seen.has(sig)) return false;
+          seen.add(sig);
+          return true;
+      });
+  }
+
   async function loadItinerary(date) {
     // Modo Base de Datos (Supabase)
     if (window.supabaseClient) {
@@ -90,7 +117,7 @@
         
         if (!flightError && flightData && flightData.length > 0) {
             console.log('Itinerario: cargado desde tabla flights', flightData.length);
-            return flightData;
+            return removeItineraryDuplicates(flightData);
         }
 
         // 2. FALLBACK: Intentar cargar desde 'vuelos_parte_operaciones' (tabla JSON consolidada)
@@ -142,7 +169,7 @@
 
                 return copy;
             });
-            return flights;
+            return removeItineraryDuplicates(flights);
         }
 
         return [];

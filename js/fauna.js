@@ -4,6 +4,7 @@
     raw: [],
     filtered: [],
     columns: [],
+    columnFilters: {}, // Added for column search
     charts: { byMonth: null, bySpecies: null, byHour: null, byWeather: null, heatmap: null },
     paging: { page: 1, perPage: 50, totalPages: 1 },
     eventsBound: false,
@@ -235,37 +236,22 @@
         addRowHtml += '</tr>';
     }
 
+    let filterRow = '<tr class="filter-row">';
+    filterRow += finalColumns.map(c => {
+        if (c === 'Acciones' || c === 'No.' || c === '_raw') return '<th></th>';
+        const val = (state.columnFilters && state.columnFilters[c]) || '';
+        return `<th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." value="${escapeHtml(val)}" onkeyup="window.faunaFilterColumn('${escapeHtml(c)}', this.value)"></th>`;
+    }).join('');
+    filterRow += '</tr>';
+
     const rowsWin = state.filtered;
-    const thead = '<thead><tr>' + finalColumns.map(c => `<th class="text-nowrap">${escapeHtml(c)}</th>`).join('') + '</tr></thead>';
-    const tbody = '<tbody>' + addRowHtml + rowsWin.map(row => {
+    const thead = '<thead><tr>' + finalColumns.map(c => `<th class="text-nowrap">${escapeHtml(c)}</th>`).join('') + '</tr>' + filterRow + '</thead>';
+    const tbodyBox = `${addRowHtml}` + rowsWin.map(row => {
       return '<tr>' + finalColumns.map(col => {
         if (col === 'Acciones') {
             if (!isAdmin) return '<td></td>';
-            // Store raw item in row for easy access, or reconstruct what we need.
-            // But JSON based rows might not have ID. DB rows have ID.
-            // We use 'No.' as ID if present, or look into _raw
             let id = row['No.'] || (row._raw && row._raw.id);
             if (!id) return '<td></td>';
-
-            // Create buttons HTML directly since innerHTML is used
-            // We need to pass the ID to global handlers. 
-            // BUT: dataManagement expects the original object structure for editing.
-            // If we have _raw, use it.
-            // We'll trust that window.dataManagement exists if isAdmin is true.
-            
-            // To pass object safely, we might need a lookup or just fetch by ID.
-            // Or simpler: put ID in attribute and let handler fetch or use row data.
-            // Since we can't easily stringify complex objects into onclick attribute without escaping hell,
-            // we will use the ID and let dataManagement fetch it if needed, OR 
-            // since we have the data right here, we can attach it to a temporary map if we want, 
-            // but let's try using the ID with deleteItem.
-            // For editItem, we need the object. 
-            // Let's rely on `row._raw` if available (from loadFauna mapping)
-            
-            // We can serialize row._raw to base64 or just put it in a global map by ID for this session?
-            // Actually, we can just use the ID and let the edit function find it in state.raw if we export it?
-            // BETTER: window.faunaModule.edit(id) -> which calls dataManagement.editItem
-            
             return `<td>
                 <div class="d-flex gap-1">
                     <button class="btn btn-sm btn-outline-primary" onclick="window.faunaEdit('${id}')" title="Editar"><i class="fas fa-edit"></i></button>
@@ -273,23 +259,45 @@
                 </div>
             </td>`;
         }
-
         let v = row[col];
         if (v === null || v === undefined) v = '';
         return `<td>${escapeHtml(String(v))}</td>`;
       }).join('') + '</tr>';
-    }).join('') + '</tbody>';
+    }).join('');
+
+    const existingTable = container.querySelector('table.fauna-table');
+    if (existingTable && !state.isAddingToggleChanged) {
+        // If table exists, just update tbody to preserve header inputs focus
+        // We use a specific ID or class for tbody if possible, or just queryselector
+        const tBodyEl = existingTable.querySelector('tbody');
+        if (tBodyEl) {
+            tBodyEl.innerHTML = tbodyBox;
+            return;
+        }
+    }
+    // Clear flag if set
+    state.isAddingToggleChanged = false;
+
+    const tbody = `<tbody>${tbodyBox}</tbody>`;
     const tableHtml = `<div class="table-container-tech h-scroll-area"><table class="table table-striped table-hover table-sm align-middle fauna-table">${thead}${tbody}</table></div>`;
     container.innerHTML = toolbar + tableHtml;
   }
 
+  window.faunaFilterColumn = function(col, val) {
+      if (!state.columnFilters) state.columnFilters = {};
+      state.columnFilters[col] = val;
+      applyFilters(); // Re-runs filtering and re-renders table
+  };
+
   window.faunaStartAdd = function() {
       state.isAdding = true;
+      state.isAddingToggleChanged = true; // Force full re-render to show input row in correct place or structure change
       renderTable();
   };
 
   window.faunaCancelAdd = function() {
       state.isAdding = false;
+      state.isAddingToggleChanged = true;
       renderTable();
   };
 
@@ -394,6 +402,16 @@
       if (airline !== 'all') {
         if (String(r['Aerolínea']||'').trim() !== airline) return false;
       }
+
+      // Column Filters (Text Search)
+      if (state.columnFilters && Object.keys(state.columnFilters).length > 0) {
+          for (const [col, val] of Object.entries(state.columnFilters)) {
+              if (!val) continue;
+              const cellVal = String(r[col] || '').toLowerCase();
+              if (cellVal.indexOf(val.toLowerCase()) === -1) return false;
+          }
+      }
+
       return true;
     });
   state.paging.page = 1; // reset page when filters change
@@ -942,6 +960,7 @@
   const state = {
     raw: [],
     filtered: [],
+    columnFilters: {}, // Added for column search
     charts: { month: null, class: null, relocation: null, hour: null, method: null },
     year: 'all',
     years: [],
@@ -1234,6 +1253,16 @@
       if (filters.method !== 'all' && String(row['Método de captura'] || '').trim() !== filters.method) return false;
       if (filters.quadrant !== 'all' && String(row['Cuadrante'] || '').trim() !== filters.quadrant) return false;
       if (filters.disposal !== 'all' && String(row['Disposición final'] || '').trim() !== filters.disposal) return false;
+
+      // Column Filters (Text Search)
+      if (state.columnFilters && Object.keys(state.columnFilters).length > 0) {
+          for (const [col, val] of Object.entries(state.columnFilters)) {
+              if (!val) continue;
+              const cellVal = String(row[col] || '').toLowerCase();
+              if (cellVal.indexOf(val.toLowerCase()) === -1) return false;
+          }
+      }
+
       return true;
     });
     updateBadges();
@@ -1648,7 +1677,15 @@
         addRowHtml += '</tr>';
     }
 
-    const thead = '<thead><tr>' + columns.map(col => `<th class="text-nowrap">${escapeHtml(col)}</th>`).join('') + '</tr></thead>';
+    let filterRow = '<tr class="filter-row">';
+    filterRow += columns.map(c => {
+        if (c === 'Acciones' || c === 'Mes' || c === 'Año' || c === '_raw') return '<th></th>';
+        const val = (state.columnFilters && state.columnFilters[c]) || '';
+        return `<th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." value="${escapeHtml(val)}" onkeyup="window.faunaRescateFilterColumn('${escapeHtml(c)}', this.value)"></th>`;
+    }).join('');
+    filterRow += '</tr>';
+
+    const thead = '<thead><tr>' + columns.map(col => `<th class="text-nowrap">${escapeHtml(col)}</th>`).join('') + '</tr>' + filterRow + '</thead>';
     const rowsHtml = state.filtered.map(row => {
       return '<tr>' + columns.map(col => {
           if (col === 'Acciones') {
@@ -1665,18 +1702,38 @@
       }).join('') + '</tr>';
     }).join('');
     
+    const existingTable = container.querySelector('table');
+    
+    // Partial Update
+    if (existingTable && !state.isAddingToggleChanged) {
+        const tBodyEl = existingTable.querySelector('tbody');
+        if (tBodyEl) {
+            tBodyEl.innerHTML = `${addRowHtml}${rowsHtml}`;
+            return;
+        }
+    }
+    state.isAddingToggleChanged = false;
+    
     // Use toolbarHtml variable, fixed the bug where toolbar was injected into div tag
     const table = `${toolbarHtml}<div class="table-container-tech h-scroll-area"><table class="table table-striped table-hover table-sm align-middle">${thead}<tbody>${addRowHtml}${rowsHtml}</tbody></table></div>`;
     container.innerHTML = table;
   }
 
+  window.faunaRescateFilterColumn = function(col, val) {
+      if (!state.columnFilters) state.columnFilters = {};
+      state.columnFilters[col] = val;
+      applyFilters();
+  };
+
   window.faunaRescateStartAdd = function() {
       state.isAdding = true;
+      state.isAddingToggleChanged = true;
       renderTable();
   };
 
   window.faunaRescateCancelAdd = function() {
       state.isAdding = false;
+      state.isAddingToggleChanged = true;
       renderTable();
   };
 

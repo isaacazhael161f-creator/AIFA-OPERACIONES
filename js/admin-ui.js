@@ -52,12 +52,14 @@ class AdminUI {
         // Toggle Data Management menu item
         const dataMenu = document.getElementById('data-management-menu');
         if (dataMenu) {
-            if (isAdmin) {
+            // Hide Data Management for control_fauna specifically, even if they are technically "admin"
+            if (isAdmin && role !== 'control_fauna') {
                 dataMenu.classList.remove('d-none');
                 dataMenu.classList.remove('perm-hidden'); // Force remove perm-hidden if it was added
                 dataMenu.style.display = 'flex'; // Ensure flex display
             } else {
                 dataMenu.classList.add('d-none');
+                dataMenu.style.display = 'none';
             }
         }
 

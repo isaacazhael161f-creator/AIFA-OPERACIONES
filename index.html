@@ -970,6 +970,25 @@
                                                             <th>Ubicación</th>
                                                             <th>Acciones</th>
                                                         </tr>
+                                                        <tr class="filter-row">
+                                                            <th><input type="text" class="form-control form-control-sm"
+                                                                    placeholder="Filtrar..."
+                                                                    data-column="date"
+                                                                    onkeyup="dataManagement.filterWildlifeStrikes()"></th>
+                                                            <th><input type="text" class="form-control form-control-sm"
+                                                                    placeholder="Filtrar..."
+                                                                    data-column="time"
+                                                                    onkeyup="dataManagement.filterWildlifeStrikes()"></th>
+                                                            <th><input type="text" class="form-control form-control-sm"
+                                                                    placeholder="Filtrar..."
+                                                                    data-column="species"
+                                                                    onkeyup="dataManagement.filterWildlifeStrikes()"></th>
+                                                            <th><input type="text" class="form-control form-control-sm"
+                                                                    placeholder="Filtrar..."
+                                                                    data-column="location"
+                                                                    onkeyup="dataManagement.filterWildlifeStrikes()"></th>
+                                                            <th></th>
+                                                        </tr>
                                                     </thead>
                                                     <tbody></tbody>
                                                 </table>
@@ -1112,6 +1131,29 @@
                                                             <th>Clase</th>
                                                             <th>Disposición final</th>
                                                             <th>Acciones</th>
+                                                        </tr>
+                                                        <tr class="filter-row">
+                                                            <th><input type="text" class="form-control form-control-sm"
+                                                                    placeholder="Filtrar..."
+                                                                    data-column="date"
+                                                                    onkeyup="dataManagement.filterRescuedWildlife()"></th>
+                                                            <th><input type="text" class="form-control form-control-sm"
+                                                                    placeholder="Filtrar..."
+                                                                    data-column="time"
+                                                                    onkeyup="dataManagement.filterRescuedWildlife()"></th>
+                                                            <th><input type="text" class="form-control form-control-sm"
+                                                                    placeholder="Filtrar..."
+                                                                    data-column="common_name"
+                                                                    onkeyup="dataManagement.filterRescuedWildlife()"></th>
+                                                            <th><input type="text" class="form-control form-control-sm"
+                                                                    placeholder="Filtrar..."
+                                                                    data-column="class"
+                                                                    onkeyup="dataManagement.filterRescuedWildlife()"></th>
+                                                            <th><input type="text" class="form-control form-control-sm"
+                                                                    placeholder="Filtrar..."
+                                                                    data-column="final_disposition"
+                                                                    onkeyup="dataManagement.filterRescuedWildlife()"></th>
+                                                            <th></th>
                                                         </tr>
                                                     </thead>
                                                     <tbody></tbody>
@@ -1553,6 +1595,17 @@
                             <div class="tab-content" id="inicioTabContent">
                                 <div class="tab-pane fade show active" id="interactivo-inicio-pane" role="tabpanel"
                                     aria-labelledby="interactivo-inicio-tab" tabindex="0">
+                                    <div class="alert shadow-sm border-0 d-flex align-items-center mb-4 p-3" role="alert" style="background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%); border-left: 5px solid #ffc107; border-radius: 12px;">
+                                        <div class="d-flex align-items-center justify-content-center flex-shrink-0 me-3" style="width: 50px; height: 50px; background-color: rgba(255, 193, 7, 0.2); border-radius: 50%; color: #856404;">
+                                            <i class="fas fa-tools fs-4"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="alert-heading mb-1 fw-bold" style="color: #856404;">Sección en Mantenimiento</h6>
+                                            <p class="mb-0 small" style="color: #856404; opacity: 0.9;">
+                                                Estamos implementando mejoras y actualizaciones en este módulo para optimizar la precisión de los datos.
+                                            </p>
+                                        </div>
+                                    </div>
                                     <div class="mb-3">
                                         <button class="btn btn-outline-primary w-100" data-bs-toggle="collapse"
                                             data-bs-target="#summary-collapse" aria-expanded="false"
@@ -2257,6 +2310,17 @@
                                     </div>
                                 </div>
                                 <div class="tab-pane fade" id="vuelos-ops-pane" role="tabpanel">
+                                    <div class="alert shadow-sm border-0 d-flex align-items-center mb-4 p-3" role="alert" style="background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%); border-left: 5px solid #ffc107; border-radius: 12px;">
+                                        <div class="d-flex align-items-center justify-content-center flex-shrink-0 me-3" style="width: 50px; height: 50px; background-color: rgba(255, 193, 7, 0.2); border-radius: 50%; color: #856404;">
+                                            <i class="fas fa-tools fs-4"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="alert-heading mb-1 fw-bold" style="color: #856404;">Sección en Mantenimiento</h6>
+                                            <p class="mb-0 small" style="color: #856404; opacity: 0.9;">
+                                                Estamos implementando mejoras y actualizaciones en este módulo para optimizar la precisión de los datos.
+                                            </p>
+                                        </div>
+                                    </div>
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <h5 class="mb-0 text-primary"><i class="fas fa-plane me-2"></i>Itinerario de
                                             Vuelos del Día</h5>
