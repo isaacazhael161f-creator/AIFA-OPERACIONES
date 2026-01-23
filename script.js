@@ -9367,6 +9367,14 @@ function showMainApp() {
             userEl.innerHTML = `<div>${fullName}</div><div style="font-size: 0.8em; font-weight: 400; opacity: 0.9;">${roleDisplay}</div>`;
         }
         applySectionPermissions(name);
+
+        // Notificar cambio de rol a AdminUI para actualizar menú gestión de datos
+        const currentRole = sessionStorage.getItem('user_role') || 'viewer';
+        const isAdmin = ['admin', 'superadmin', 'editor'].includes(currentRole);
+        window.dispatchEvent(new CustomEvent('admin-mode-changed', { 
+            detail: { isAdmin: isAdmin, role: currentRole } 
+        }));
+
         // Permisos: Itinerario mensual
         const menu = document.getElementById('itinerario-mensual-menu');
         if (menu) {
