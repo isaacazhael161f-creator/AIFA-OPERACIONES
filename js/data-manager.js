@@ -24,13 +24,14 @@ class DataManager {
                     .eq('user_id', session.user.id)
                     .single();
 
-                if (roleData && ['admin', 'editor', 'superadmin', 'control_fauna'].includes(roleData.role)) {
+                this.userEmail = session.user.email; // Store email for history logs
+
+                if (roleData && ['admin', 'editor', 'superadmin', 'control_fauna', 'servicio_medico'].includes(roleData.role)) {
                     this.isAdmin = true;
                     this.userRole = roleData.role;
                 } else {
                     this.isAdmin = false;
-                    this.userRole = null;
-                    // Ensure viewer/other roles are explicitly non-admin
+                    this.userRole = roleData ? roleData.role : null; // Keep role even if not admin, useful for UI checks
                 }
             } catch (e) {
                 console.error('Error checking role:', e);

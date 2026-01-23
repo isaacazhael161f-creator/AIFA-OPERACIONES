@@ -52,11 +52,15 @@ class AdminUI {
         // Toggle Data Management menu item
         const dataMenu = document.getElementById('data-management-menu');
         if (dataMenu) {
-            // Hide Data Management for control_fauna specifically, even if they are technically "admin"
-            if (isAdmin && role !== 'control_fauna') {
+            // Keep visible for service_medico too
+            // Admin, superadmin, editor, servicio_medico should see it.
+            // control_fauna sees it but only filtered tabs
+            
+            // Allow all authorized roles to see the container
+            if (isAdmin || ['servicio_medico', 'control_fauna'].includes(role)) {
                 dataMenu.classList.remove('d-none');
-                dataMenu.classList.remove('perm-hidden'); // Force remove perm-hidden if it was added
-                dataMenu.style.display = 'flex'; // Ensure flex display
+                dataMenu.classList.remove('perm-hidden'); 
+                dataMenu.style.display = 'flex'; 
             } else {
                 dataMenu.classList.add('d-none');
                 dataMenu.style.display = 'none';
@@ -64,7 +68,8 @@ class AdminUI {
         }
 
         // --- Role Based Tab Visibility (Data Management) ---
-        if (isAdmin) {
+        // If logged in at all (implied by this function call context usually, but checking isAdmin/role safely)
+        if (isAdmin || role) {
             const allTabs = [
                 'tab-ops-summary', 'tab-daily-ops', 'tab-parte-ops', 'tab-daily-flights-ops', 
                 'tab-library', 'tab-alerts', 'tab-itinerary', 'tab-weekly-frequencies', 
@@ -73,78 +78,52 @@ class AdminUI {
                 'tab-visitors'
             ];
             
-            // Define visible tabs for specific roles
-            // If role is control_fauna, only show wildlife tabs
+            let visibleTabs = [...allTabs]; // Default all
+
             if (role === 'control_fauna') {
-                const faunaTabs = ['tab-wildlife', 'tab-rescued-wildlife'];
-                allTabs.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) {
-                        if (faunaTabs.includes(id)) {
-                             el.parentElement.style.display = ''; // Show parent li or element
-                             el.style.display = ''; 
-                        } else {
-                             el.parentElement.style.display = 'none';
-                             el.style.display = 'none';
-                        }
-                    }
-                });
-                
-                // Also ensure we switch to a valid tab if current is hidden
-                const active = document.querySelector('.nav-link.active');
-                if (active && active.style.display === 'none') {
-                    const first = document.getElementById(faunaTabs[0]);
-                    if (first) {
-                        const tab = new bootstrap.Tab(first);
-                        tab.show();
+                visibleTabs = ['tab-wildlife', 'tab-rescued-wildlife'];
+            } else if (role === 'servicio_medico') {
+                visibleTabs = ['tab-medical'];
+            }
+            
+            // Apply logic
+            allTabs.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (visibleTabs.includes(id)) {
+                            el.parentElement.style.display = ''; 
+                            el.style.display = ''; 
+                    } else {
+                            el.parentElement.style.display = 'none';
+                            el.style.display = 'none';
                     }
                 }
-            } else {
-                // Restore all tabs for other admins (or default behavior)
-                allTabs.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) {
-                        el.parentElement.style.display = '';
-                        el.style.display = '';
-                    }
-                });
+            });
+            
+            // Auto switch if current tab is hidden
+            const active = document.querySelector('.nav-link.active');
+            let isCurrentHidden = false;
+            // Check if active tab is one of the hidden ones
+            if (active) {
+                if (active.offsetParent === null) isCurrentHidden = true; // Simple visibility check
+            }
+
+            if (isCurrentHidden || !active) {
+                 // Try to activate first visible
+                 const firstId = visibleTabs[0];
+                 const firstEl = document.getElementById(firstId);
+                 if (firstEl) {
+                     const tab = new bootstrap.Tab(firstEl);
+                     tab.show();
+                 }
             }
         }
 
         // Re-render or show/hide edit buttons
         const editBtns = document.querySelectorAll('.admin-edit-btn');
         editBtns.forEach(btn => btn.style.display = isAdmin ? 'inline-block' : 'none');
-
-        // Handle ADD buttons in Data Management
-        // Default: hide all "Add" buttons in DM if not admin
-        // If control_fauna, show specific ones.
         
-        const dmAddBtns = document.querySelectorAll('#pane-ops-summary button, #pane-monthly-ops button, #pane-wildlife button, #pane-rescued-wildlife button, #pane-medical button, #pane-delays button');
-        // This query is too broad, let's target the add buttons specifically if possible or iterate parent containers
-        
-        // Better approach: Since I added IDs to the toolbars of interest
-        const faunaToolbars = ['toolbar-wildlife', 'toolbar-rescued-wildlife'];
-        
-        // 1. Hide/Show Fauna Toolbars based on permission
-        faunaToolbars.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                // Determine visibility: Admin always yes? control_fauna yes.
-                const allowed = isAdmin && ( (role === 'control_fauna') || (role === 'admin') || (role === 'superadmin') || (role === 'editor') );
-                el.style.display = allowed ? '' : 'none';
-            }
-        });
-
-        // 2. Hide other toolbars if control_fauna
-        if (role === 'control_fauna') {
-             // Hide other specific buttons explicitly if needed, but since tab is hidden, button is hidden.
-             // But if we want to be safe:
-             const otherAddIds = ['monthly-ops-add', 'monthly-ops-refresh', 'annual-ops-refresh']; 
-             otherAddIds.forEach(id => {
-                 const el = document.getElementById(id);
-                 if (el) el.style.display = 'none';
-             });
-        }
+        // Note: data-management.js `renderTable` handles row-level buttons based on role now
     }
 
     generateWeekOptions() {
@@ -627,6 +606,14 @@ class AdminUI {
             this.setupWeeklyFrequenciesLogic('int');
         }
 
+        if (this.currentTable === 'medical_attentions') {
+            this.setupMedicalAttentionsLogic();
+        }
+
+        if (this.currentTable === 'medical_types') {
+            this.setupMedicalTypesLogic();
+        }
+
         // Autofocus first input after show
         this.modal.show();
         setTimeout(() => {
@@ -821,6 +808,66 @@ class AdminUI {
         }
     }
 
+    setupMedicalAttentionsLogic() {
+        const fields = ['aifa_personnel', 'other_companies', 'passengers', 'visitors'];
+        const inputs = fields.map(f => document.getElementById(`input-${f}`));
+        const totalInput = document.getElementById('input-total');
+
+        const calc = () => {
+            let sum = 0;
+            inputs.forEach(inp => {
+                if (inp) {
+                    // Handle formatted numbers (remove commas)
+                    const val = parseFloat(inp.value.replace(/,/g, '')) || 0;
+                    sum += val;
+                }
+            });
+            if (totalInput) {
+                totalInput.value = sum.toLocaleString('en-US');
+            }
+        };
+
+        inputs.forEach(inp => {
+            if (inp) {
+                inp.addEventListener('input', calc);
+                inp.addEventListener('change', calc);
+            }
+        });
+        
+        // Run initial calc
+        calc();
+    }
+
+    setupMedicalTypesLogic() {
+        const fields = ['traslado', 'ambulatorio'];
+        const inputs = fields.map(f => document.getElementById(`input-${f}`));
+        const totalInput = document.getElementById('input-total');
+
+        const calc = () => {
+            let sum = 0;
+            inputs.forEach(inp => {
+                if (inp) {
+                    // Handle formatted numbers (remove commas)
+                    const val = parseFloat(inp.value.replace(/,/g, '')) || 0;
+                    sum += val;
+                }
+            });
+            if (totalInput) {
+                totalInput.value = sum.toLocaleString('en-US');
+            }
+        };
+
+        inputs.forEach(inp => {
+            if (inp) {
+                inp.addEventListener('input', calc);
+                inp.addEventListener('change', calc);
+            }
+        });
+        
+        // Run initial calc
+        calc();
+    }
+
     renderIconPicker(field, currentVal, container, hiddenInput) {
         const icons = [
             'fas fa-book', 'fas fa-plane', 'fas fa-plane-arrival', 'fas fa-plane-departure',
@@ -989,9 +1036,15 @@ class AdminUI {
             // because it's a computed field that needs to be saved.
             // Also include readonly fields if we are creating a new record (no ID).
             const forceInclude = (this.currentTable === 'weekly_frequencies' && field.name === 'weekly_total');
-            const isNewRecord = !this.currentRecord || !this.currentRecord.id;
+            // Special case: valid_from/to in weekly_frequencies are readonly in UI (auto-set) but must be saved
+            const forceIncludeDates = (this.currentTable === 'weekly_frequencies' || this.currentTable === 'weekly_frequencies_int') && ['valid_from', 'valid_to'].includes(field.name);
 
-            if (!field.readonly || isNewRecord || forceInclude) {
+            // Special case: EXCLUDE 'total' in medical_attentions and medical_types because it is GENERATED ALWAYS in DB
+            const forceExclude = ((this.currentTable === 'medical_attentions' || this.currentTable === 'medical_types') && field.name === 'total');
+            
+            const isNewRecord = !this.currentRecord || (!this.currentRecord.id && this.currentTable !== 'daily_operations'); // daily_ops uses date as key
+
+            if ((!field.readonly || isNewRecord || forceInclude || forceIncludeDates) && !forceExclude) {
                 let val = formData.get(field.name);
 
                 // Handle File uploads first
@@ -1105,10 +1158,32 @@ class AdminUI {
             if (recordId) {
                 // Update
                 await window.dataManager.updateTable(this.currentTable, recordId, updates, pkField);
+                
+                // History Logging via Global Logger
+                if (window.logHistory) {
+                    await window.logHistory(
+                        'EDITAR', 
+                        this.currentTable, // Entity Type
+                        String(recordId), 
+                        { old: this.currentRecord, new: updates } // Payload for diffing
+                    );
+                }
+
                 alert('Datos actualizados correctamente.');
             } else {
                 // Insert
-                await window.dataManager.insertTable(this.currentTable, updates);
+                const { data: newRec } = await window.dataManager.insertTable(this.currentTable, updates);
+                const newId = newRec && newRec.length > 0 ? newRec[0].id : (updates.id || 'new');
+                
+                // History Logging via Global Logger
+                if (window.logHistory) {
+                     await window.logHistory(
+                        'CREAR', 
+                        this.currentTable, 
+                        String(newId), 
+                        { new: updates }
+                    );
+                }
                 alert('Registro agregado correctamente.');
             }
             this.modal.hide();
@@ -1123,7 +1198,26 @@ class AdminUI {
     async deleteRecord(table, id, pkField = 'id') {
         if (confirm('¿Estás seguro de que deseas eliminar este registro?')) {
             try {
+                // Fetch record before delete for history (approximate)
+                let recordToDelete = null;
+                // Try to fetch current record if not already available in cache or memory
+                 try {
+                    const { data } = await window.dataManager.client.from(table).select('*').eq(pkField, id).single();
+                    recordToDelete = data;
+                 } catch(e) {}
+
                 await window.dataManager.deleteTable(table, id, pkField);
+
+                // History Logging via Global Logger
+                if (window.logHistory && recordToDelete) {
+                    await window.logHistory(
+                        'ELIMINAR', 
+                        table, 
+                        String(id), 
+                        { old: recordToDelete }
+                    );
+                }
+
                 alert('Registro eliminado correctamente.');
                 window.dispatchEvent(new CustomEvent('data-updated', { detail: { table: table } }));
             } catch (err) {

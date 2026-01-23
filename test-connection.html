@@ -75,6 +75,11 @@
                                     <i class="fas fa-user-edit me-2"></i>Perfil
                                 </button>
                             </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link rounded-pill small fw-bold" id="pills-users-tab" data-bs-toggle="pill" data-bs-target="#pills-users" type="button" role="tab" aria-controls="pills-users" aria-selected="false" onclick="loadUsers()">
+                                    <i class="fas fa-users-cog me-2"></i>Usuarios
+                                </button>
+                            </li>
                         </ul>
 
                         <div class="tab-content" id="pills-tabContent">
@@ -130,6 +135,32 @@
                                         <i class="fas fa-save me-2"></i>ACTUALIZAR DATOS
                                     </button>
                                 </fieldset>
+                            </div>
+
+                            <!-- Usuarios -->
+                            <div class="tab-pane fade" id="pills-users" role="tabpanel">
+                                <div class="alert alert-info small mb-3">
+                                    <i class="fas fa-info-circle me-1"></i> Gestión de roles de usuario.
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover" id="users-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Usuario</th>
+                                                <th>Rol Actual</th>
+                                                <th>Acción</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td colspan="3" class="text-center text-muted">Cargando usuarios...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="loadUsers()">
+                                        <i class="fas fa-sync-alt me-1"></i> Recargar Lista
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -265,9 +296,9 @@
                 if (error) throw error;
 
                 if (data.user && !data.session) {
-                    updateStatus('warning', 'Usuario creado. Requiere confirmación de email en Supabase.');
+                    updateStatus('warning', `Usuario creado. ID: ${data.user.id}. Requiere confirmación.`);
                 } else {
-                    updateStatus('success', 'Usuario creado exitosamente.');
+                    updateStatus('success', `Usuario creado exitosamente. ID: ${data.user.id}`);
                     
                     // Limpiar campos
                     document.getElementById('reg-username').value = '';
@@ -367,6 +398,99 @@
         async function logout() {
             await window.supabaseClient.auth.signOut();
             location.reload();
+        }
+
+        async function loadUsers() {
+            const tbody = document.querySelector('#users-table tbody');
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Cargando...</td></tr>';
+            
+            try {
+                // 1. Get Profiles
+                const { data: profiles, error: errProfiles } = await window.supabaseClient
+                    .from('profiles')
+                    .select('*');
+                
+                if (errProfiles) throw errProfiles;
+
+                // 2. Get Roles
+                const { data: roles, error: errRoles } = await window.supabaseClient
+                    .from('user_roles')
+                    .select('*');
+                
+                const roleMap = {};
+                if (roles) {
+                    roles.forEach(r => roleMap[r.user_id] = r.role);
+                }
+
+                tbody.innerHTML = '';
+                
+                if (!profiles || profiles.length === 0) {
+                     tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No se encontraron perfiles.</td></tr>';
+                     return;
+                }
+
+                profiles.forEach(p => {
+                    const currentRole = roleMap[p.id] || 'viewer';
+                    const tr = document.createElement('tr');
+                    
+                    tr.innerHTML = `
+                        <td>
+                            <div class="fw-bold small text-truncate" style="max-width: 150px;" title="${p.username}">${p.username || 'Sin usuario'}</div>
+                            <div class="text-muted small text-truncate" style="font-size: 0.7rem; max-width: 150px;">${p.id}</div>
+                        </td>
+                        <td><span class="badge bg-secondary">${currentRole}</span></td>
+                        <td>
+                            <div class="input-group input-group-sm">
+                                <select class="form-select form-select-sm" id="role-select-${p.id}" style="font-size: 0.75rem;">
+                                    <option value="viewer">Viewer</option>
+                                    <option value="editor">Editor</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="superadmin">S.Admin</option>
+                                    <option value="control_fauna">Fauna</option>
+                                    <option value="servicio_medico">Servicio Médico</option>
+                                </select>
+                                <button class="btn btn-primary" onclick="assignRole('${p.id}')">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                    
+                    const sel = document.getElementById(`role-select-${p.id}`);
+                    if (sel && ['viewer','editor','admin','superadmin','control_fauna','servicio_medico'].includes(currentRole)) {
+                        sel.value = currentRole;
+                    }
+                });
+
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger small">Error: ${e.message}</td></tr>`;
+            }
+        }
+
+        async function assignRole(userId) {
+            const select = document.getElementById(`role-select-${userId}`);
+            const newRole = select.value;
+            
+            updateStatus('info', `Asignando rol ${newRole}...`);
+            
+            try {
+                const { error } = await window.supabaseClient
+                    .from('user_roles')
+                    .upsert({ user_id: userId, role: newRole }, { onConflict: 'user_id' });
+                
+                if (error) throw error;
+                
+                updateStatus('success', 'Rol actualizado correctamente.');
+                loadUsers();
+                
+            } catch (e) {
+                console.error(e);
+                let msg = e.message;
+                if (msg.includes('new row violates row-level security policy')) msg = 'Bloqueado por RLS. Necesitas permisos de admin en la BD.';
+                updateStatus('danger', 'Error: ' + msg);
+            }
         }
 
         checkSession();

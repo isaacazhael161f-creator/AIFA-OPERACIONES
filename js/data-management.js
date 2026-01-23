@@ -220,25 +220,25 @@
                         { value: 'Octubre', label: 'Octubre' }, { value: 'Noviembre', label: 'Noviembre' }, { value: 'Diciembre', label: 'Diciembre' }
                     ]
                 },
-                { name: 'aifa_personnel', label: 'Personal AIFA', type: 'number' },
-                { name: 'other_companies', label: 'Otras Empresas', type: 'number' },
-                { name: 'passengers', label: 'Pasajeros', type: 'number' },
-                { name: 'visitors', label: 'Visitantes', type: 'number' },
-                { name: 'total', label: 'Total', type: 'number', readonly: true } // Often calculated, but let's keep it for now
+                { name: 'aifa_personnel', label: 'Personal AIFA', type: 'number', placeholder: 'Ej. 15', help: 'Número de atenciones a personal militar o civil del AIFA' },
+                { name: 'other_companies', label: 'Otras Empresas', type: 'number', placeholder: 'Ej. 8', help: 'Atenciones a personal de aerolíneas, comercios, etc.' },
+                { name: 'passengers', label: 'Pasajeros', type: 'number', placeholder: 'Ej. 45', help: 'Atenciones a usuarios/viajeros del aeropuerto' },
+                { name: 'visitors', label: 'Visitantes', type: 'number', placeholder: 'Ej. 3', help: 'Atenciones a público general o visitantes externos' },
+                { name: 'total', label: 'Total', type: 'number', readonly: true, help: 'Calculado automáticamente: Personal + Otros + Pasajeros + Visitantes' } 
             ],
             medical_types: [
                 { name: 'year', label: 'Año', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
-                        { value: 'ABRIL', label: 'Abril' }, { value: 'MAYO', label: 'Mayo' }, { value: 'JUNIO', label: 'Junio' },
-                        { value: 'JULIO', label: 'Julio' }, { value: 'AGOSTO', label: 'Agosto' }, { value: 'SEPTIEMBRE', label: 'Septiembre' },
-                        { value: 'OCTUBRE', label: 'Octubre' }, { value: 'NOVIEMBRE', label: 'Noviembre' }, { value: 'DICIEMBRE', label: 'Diciembre' },
-                        { value: 'ENERO', label: 'Enero' }, { value: 'FEBRERO', label: 'Febrero' }, { value: 'MARZO', label: 'Marzo' }
+                        { value: 'Enero', label: 'Enero' }, { value: 'Febrero', label: 'Febrero' }, { value: 'Marzo', label: 'Marzo' },
+                        { value: 'Abril', label: 'Abril' }, { value: 'Mayo', label: 'Mayo' }, { value: 'Junio', label: 'Junio' },
+                        { value: 'Julio', label: 'Julio' }, { value: 'Agosto', label: 'Agosto' }, { value: 'Septiembre', label: 'Septiembre' },
+                        { value: 'Octubre', label: 'Octubre' }, { value: 'Noviembre', label: 'Noviembre' }, { value: 'Diciembre', label: 'Diciembre' }
                     ]
                 },
-                { name: 'traslado', label: 'Traslado', type: 'number' },
-                { name: 'ambulatorio', label: 'Ambulatorio', type: 'number' },
-                { name: 'total', label: 'Total', type: 'number', readonly: true }
+                { name: 'traslado', label: 'Traslado', type: 'number', placeholder: 'Ej. 5', help: 'Número de traslados a hospitales' },
+                { name: 'ambulatorio', label: 'Ambulatorio', type: 'number', placeholder: 'Ej. 12', help: 'Atenciones en consultorio o sitio' },
+                { name: 'total', label: 'Total', type: 'number', readonly: true, help: 'Calculado automáticamente: Traslado + Ambulatorio' }
             ],
             medical_directory: [
                 { name: 'asunto', label: 'Asunto', type: 'text' },
@@ -534,7 +534,8 @@
             if (table === 'wildlife_strikes') this.loadWildlifeStrikes();
             if (table === 'rescued_wildlife') this.loadRescuedWildlife();
             if (table === 'daily_flights_ops') this.loadDailyFlightsOps();
-            if (table === 'medical_attentions') this.loadMedical();
+            if (table === 'medical_attentions') this.loadMedicalAttentions();
+            if (table === 'medical_types') this.loadMedicalTypes();
             if (table === 'delays') this.loadDelays();
             if (table === 'punctuality_stats') this.loadPunctualityStats();
             if (table === 'weekly_frequencies') this.loadWeeklyFrequencies();
@@ -1567,23 +1568,169 @@
     }
 
     async loadMedicalAttentions() {
-        const year = document.getElementById('filter-medical-year').value;
+        // Dynamic Year Loading
+        const yearSel = document.getElementById('filter-medical-year');
+        const currentYearSelection = yearSel ? yearSel.value : '';
+
         try {
-            const data = await window.dataManager.getMedicalAttentions(year);
-            this.renderTable('table-medical', data, ['month', 'aifa_personnel', 'other_companies', 'passengers', 'visitors', 'total'], 'medical_attentions');
+            // Fetch ALL data to find available years
+            const allData = await window.dataManager.getMedicalAttentions();
+            
+            // Extract distinct years
+            const years = [...new Set(allData.map(item => item.year))].sort((a, b) => b - a);
+
+            // Populate Dropdown
+            if (yearSel) {
+                yearSel.innerHTML = '';
+                if (years.length === 0) {
+                     // Fallback
+                     const opt = document.createElement('option'); opt.value = new Date().getFullYear(); opt.innerText = new Date().getFullYear();
+                     yearSel.appendChild(opt);
+                } else {
+                    years.forEach(y => {
+                        const opt = document.createElement('option');
+                        opt.value = y;
+                        opt.innerText = y;
+                        yearSel.appendChild(opt);
+                    });
+                }
+                
+                // Restore selection or select newest
+                if (years.includes(Number(currentYearSelection))) {
+                    yearSel.value = currentYearSelection;
+                } else if (!currentYearSelection && years.length > 0) {
+                    yearSel.value = years[0];
+                }
+            }
+
+            // Filter data for the currently selected year
+            const selectedYear = yearSel ? yearSel.value : (years[0] || '');
+            const data = allData.filter(item => String(item.year) === String(selectedYear));
+            
+            // Sort by month
+            const monthOrder = {
+                'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4, 'Mayo': 5, 'Junio': 6,
+                'Julio': 7, 'Agosto': 8, 'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+            };
+            data.sort((a, b) => (monthOrder[a.month] || 99) - (monthOrder[b.month] || 99));
+
+            this.medicalData = data;
+            this.filterMedicalAttentions();
         } catch (error) {
             console.error('Error loading medical attentions:', error);
         }
     }
 
+    filterMedicalAttentions() {
+        if (!this.medicalData) return;
+        const columns = ['month', 'aifa_personnel', 'other_companies', 'passengers', 'visitors', 'total'];
+        const inputs = document.querySelectorAll('#table-medical .filter-row input');
+
+        const filtered = this.medicalData.filter(item => {
+            let pass = true;
+            inputs.forEach((input, index) => {
+                if (!pass) return;
+                const searchVal = (input.value || '').toLowerCase();
+                if (!searchVal) return;
+
+                const col = columns[index];
+                if (!col) return;
+
+                let itemVal = item[col];
+                if (itemVal === null || itemVal === undefined) itemVal = '';
+                
+                 if (String(itemVal).toLowerCase().indexOf(searchVal) === -1) {
+                    pass = false;
+                }
+            });
+            return pass;
+        });
+
+        this.renderTable('table-medical', filtered, columns, 'medical_attentions');
+    }
+
     async loadMedicalTypes() {
-        const year = document.getElementById('filter-medical-types-year').value;
+        // Dynamic Year Loading
+        const yearSel = document.getElementById('filter-medical-types-year');
+        const currentYearSelection = yearSel ? yearSel.value : '';
+
         try {
-            const data = await window.dataManager.getMedicalTypes(year);
-            this.renderTable('table-medical-types', data, ['month', 'traslado', 'ambulatorio', 'total'], 'medical_types');
+            // Fetch ALL data to find available years
+            const allData = await window.dataManager.getMedicalTypes();
+
+            // Extract distinct years
+            const years = [...new Set(allData.map(item => item.year))].sort((a, b) => b - a);
+
+            // Populate Dropdown
+            if (yearSel) {
+                yearSel.innerHTML = '';
+                if (years.length === 0) {
+                     // Fallback
+                     const opt = document.createElement('option'); opt.value = new Date().getFullYear(); opt.innerText = new Date().getFullYear();
+                     yearSel.appendChild(opt);
+                } else {
+                    years.forEach(y => {
+                        const opt = document.createElement('option');
+                        opt.value = y;
+                        opt.innerText = y;
+                        yearSel.appendChild(opt);
+                    });
+                }
+                
+                // Restore selection or select newest
+                if (years.includes(Number(currentYearSelection))) {
+                    yearSel.value = currentYearSelection;
+                } else if (!currentYearSelection && years.length > 0) {
+                    yearSel.value = years[0];
+                }
+            }
+
+            // Filter data for the currently selected year
+            const selectedYear = yearSel ? yearSel.value : (years[0] || '');
+            const data = allData.filter(item => String(item.year) === String(selectedYear));
+
+            // Sort by month (Uppercase for types)
+            const monthOrder = {
+                'ENERO': 1, 'FEBRERO': 2, 'MARZO': 3, 'ABRIL': 4, 'MAYO': 5, 'JUNIO': 6,
+                'JULIO': 7, 'AGOSTO': 8, 'SEPTIEMBRE': 9, 'OCTUBRE': 10, 'NOVIEMBRE': 11, 'DICIEMBRE': 12,
+                'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4, 'Mayo': 5, 'Junio': 6,
+                'Julio': 7, 'Agosto': 8, 'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+            };
+            data.sort((a, b) => (monthOrder[a.month] || 99) - (monthOrder[b.month] || 99));
+
+            this.medicalTypesData = data;
+            this.filterMedicalTypes();
         } catch (error) {
             console.error('Error loading medical types:', error);
         }
+    }
+
+    filterMedicalTypes() {
+        if (!this.medicalTypesData) return;
+        const columns = ['month', 'traslado', 'ambulatorio', 'total'];
+        const inputs = document.querySelectorAll('#table-medical-types .filter-row input');
+
+        const filtered = this.medicalTypesData.filter(item => {
+            let pass = true;
+            inputs.forEach((input, index) => {
+                if (!pass) return;
+                const searchVal = (input.value || '').toLowerCase();
+                if (!searchVal) return;
+
+                const col = columns[index];
+                if (!col) return;
+
+                let itemVal = item[col];
+                if (itemVal === null || itemVal === undefined) itemVal = '';
+
+                 if (String(itemVal).toLowerCase().indexOf(searchVal) === -1) {
+                    pass = false;
+                }
+            });
+            return pass;
+        });
+
+        this.renderTable('table-medical-types', filtered, columns, 'medical_types');
     }
 
     async loadMedicalDirectory() {
@@ -1945,17 +2092,21 @@
                 let display = raw == null ? '' : String(raw);
                 const schema = this.schemas[tableName] || [];
                 const fld = schema.find(f => f.name === col);
+                const isMedical = (tableName === 'medical_attentions' || tableName === 'medical_types');
+
                 if (fld && fld.options) {
                     const opt = fld.options.find(o => String(o.value) === display || (display !== '' && o.value === String(Number(display)).padStart(2, '0')));
                     if (opt) display = opt.label || opt.value;
                     td.textContent = display;
+                    if (isMedical) td.classList.add('text-center');
                 }
                 // Alignment: center for year/month, right for numeric, left otherwise
                 else if (col === 'year' || col === 'month') {
                     td.classList.add('text-center');
                     td.textContent = display;
                 } else if (raw != null && raw !== '' && Number.isFinite(Number(raw))) {
-                    td.classList.add('text-end');
+                    if (isMedical) td.classList.add('text-center');
+                    else td.classList.add('text-end');
                     td.textContent = this.formatNumber(raw, col);
                 }
                 // Format any date-like column (name contains 'date' or is exactly 'date')
@@ -1988,27 +2139,26 @@
 
             // --- PERMISSION CHECK ---
             // Determine if current user can edit this table
-            // Logic:
-            // 1. If admin -> can edit everything
-            // 2. If control_fauna -> can ONLY edit wildlife_strikes and rescued_wildlife
-            
             const globalDm = window.dataManager;
             const isAdmin = globalDm && globalDm.isAdmin;
             const role = globalDm && globalDm.userRole;
 
-            let canEdit = isAdmin; // Default base admin check
+            let canEdit = false;
             
-            // Refine based on Role
-            if (role === 'control_fauna') {
-                if (tableName === 'wildlife_strikes' || tableName === 'rescued_wildlife') {
-                    canEdit = true;
-                } else {
-                    canEdit = false;
-                }
-            } else if (role === 'admin' || role === 'superadmin' || role === 'editor') {
+            const isMedicalTable = ['medical_attentions', 'medical_types', 'medical_directory'].includes(tableName);
+            
+            if (role === 'admin' || role === 'superadmin') {
+                canEdit = true;
+            } else if (role === 'servicio_medico') {
+                canEdit = isMedicalTable;
+            } else if (role === 'control_fauna') {
+                 canEdit = (tableName === 'wildlife_strikes' || tableName === 'rescued_wildlife');
+            } else if (role === 'editor') {
+                 // Editor cannot edit medical tables (exclusive to medical/admin)
+                 canEdit = !isMedicalTable;
+            } else if (isAdmin) {
+                 // Fallback for logic where isAdmin is true but role might not be matched above
                  canEdit = true;
-            } else if (!isAdmin) {
-                 canEdit = false;
             }
 
             if (canEdit) {

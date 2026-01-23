@@ -999,27 +999,25 @@
                                         <div class="tab-pane fade" id="pane-medical" role="tabpanel">
                                             <ul class="nav nav-tabs mb-3" id="medicalTabs" role="tablist">
                                                 <li class="nav-item" role="presentation">
-                                                    <button class="nav-link active" id="tab-medical-attentions"
+                                                    <button class="nav-link active" id="tab-medical-directory"
+                                                        data-bs-toggle="tab" data-bs-target="#pane-medical-directory"
+                                                        type="button" role="tab">Directorio y Documentos</button>
+                                                </li>
+                                                <li class="nav-item" role="presentation">
+                                                    <button class="nav-link" id="tab-medical-attentions"
                                                         data-bs-toggle="tab" data-bs-target="#pane-medical-attentions"
                                                         type="button" role="tab">Atenciones Mensuales</button>
                                                 </li>
                                                 <li class="nav-item" role="presentation">
                                                     <button class="nav-link" id="tab-medical-types" data-bs-toggle="tab"
                                                         data-bs-target="#pane-medical-types" type="button"
-                                                        role="tab">Tipos de
-                                                        Atención</button>
-                                                </li>
-                                                <li class="nav-item" role="presentation">
-                                                    <button class="nav-link" id="tab-medical-directory"
-                                                        data-bs-toggle="tab" data-bs-target="#pane-medical-directory"
-                                                        type="button" role="tab">Directorio
-                                                        y Documentos</button>
+                                                        role="tab">Tipos de Atención</button>
                                                 </li>
                                             </ul>
 
                                             <div class="tab-content">
                                                 <!-- Atenciones Mensuales -->
-                                                <div class="tab-pane fade show active" id="pane-medical-attentions"
+                                                <div class="tab-pane fade" id="pane-medical-attentions"
                                                     role="tabpanel">
                                                     <div class="d-flex justify-content-between mb-3">
                                                         <div class="input-group w-auto">
@@ -1038,13 +1036,22 @@
                                                             id="table-medical">
                                                             <thead>
                                                                 <tr>
-                                                                    <th>Mes</th>
-                                                                    <th>Personal AIFA</th>
-                                                                    <th>Otras Empresas</th>
-                                                                    <th>Pasajeros</th>
-                                                                    <th>Visitantes</th>
-                                                                    <th>Total</th>
-                                                                    <th>Acciones</th>
+                                                                    <th class="text-center">Mes</th>
+                                                                    <th class="text-center">Personal AIFA</th>
+                                                                    <th class="text-center">Otras Empresas</th>
+                                                                    <th class="text-center">Pasajeros</th>
+                                                                    <th class="text-center">Visitantes</th>
+                                                                    <th class="text-center">Total</th>
+                                                                    <th class="text-center">Acciones</th>
+                                                                </tr>
+                                                                <tr class="filter-row">
+                                                                    <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="dataManagement.filterMedicalAttentions()"></th>
+                                                                    <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="dataManagement.filterMedicalAttentions()"></th>
+                                                                    <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="dataManagement.filterMedicalAttentions()"></th>
+                                                                    <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="dataManagement.filterMedicalAttentions()"></th>
+                                                                    <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="dataManagement.filterMedicalAttentions()"></th>
+                                                                    <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="dataManagement.filterMedicalAttentions()"></th>
+                                                                    <th></th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody></tbody>
@@ -1071,11 +1078,18 @@
                                                             id="table-medical-types">
                                                             <thead>
                                                                 <tr>
-                                                                    <th>Mes</th>
-                                                                    <th>Traslado</th>
-                                                                    <th>Ambulatorio</th>
-                                                                    <th>Total</th>
-                                                                    <th>Acciones</th>
+                                                                    <th class="text-center">Mes</th>
+                                                                    <th class="text-center">Traslado</th>
+                                                                    <th class="text-center">Ambulatorio</th>
+                                                                    <th class="text-center">Total</th>
+                                                                    <th class="text-center">Acciones</th>
+                                                                </tr>
+                                                                <tr class="filter-row">
+                                                                    <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="dataManagement.filterMedicalTypes()"></th>
+                                                                    <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="dataManagement.filterMedicalTypes()"></th>
+                                                                    <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="dataManagement.filterMedicalTypes()"></th>
+                                                                    <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." onkeyup="dataManagement.filterMedicalTypes()"></th>
+                                                                    <th></th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody></tbody>
@@ -1084,7 +1098,7 @@
                                                 </div>
 
                                                 <!-- Directorio -->
-                                                <div class="tab-pane fade" id="pane-medical-directory" role="tabpanel">
+                                                <div class="tab-pane fade show active" id="pane-medical-directory" role="tabpanel">
                                                     <div class="d-flex justify-content-end mb-3">
                                                         <button class="btn btn-primary btn-sm"
                                                             onclick="dataManagement.addItem('medical_directory')"><i
@@ -2877,10 +2891,11 @@
                                             class="fas fa-address-book me-2"></i>Directorio</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="medicas-atenciones-tab" data-bs-toggle="tab"
-                                        data-bs-target="#medicas-atenciones-pane" type="button" role="tab"
-                                        aria-controls="medicas-atenciones-pane" aria-selected="false"><i
-                                            class="fas fa-chart-column me-2"></i>Atenciones médicas AIFA</button>
+                                    <button class="nav-link" id="medicas-comp-tab" data-bs-toggle="tab"
+                                        data-bs-target="#medicas-comp-pane" type="button" role="tab"
+                                        aria-controls="medicas-comp-pane" aria-selected="false"><i
+                                            class="fas fa-chart-area me-2"></i>Atenciones Médicas (Comparación
+                                        Mensual)</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="medicas-tipo-tab" data-bs-toggle="tab"
@@ -2889,11 +2904,10 @@
                                             class="fas fa-user-nurse me-2"></i>Tipo de Atención</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="medicas-comp-tab" data-bs-toggle="tab"
-                                        data-bs-target="#medicas-comp-pane" type="button" role="tab"
-                                        aria-controls="medicas-comp-pane" aria-selected="false"><i
-                                            class="fas fa-chart-area me-2"></i>Atenciones Médicas (Comparación
-                                        Mensual)</button>
+                                    <button class="nav-link" id="medicas-atenciones-tab" data-bs-toggle="tab"
+                                        data-bs-target="#medicas-atenciones-pane" type="button" role="tab"
+                                        aria-controls="medicas-atenciones-pane" aria-selected="false"><i
+                                            class="fas fa-chart-column me-2"></i>Atenciones médicas AIFA</button>
                                 </li>
                             </ul>
                             <div class="tab-content" id="medicasTabsContent">

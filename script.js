@@ -2000,13 +2000,14 @@ function getDefaultAllowedSection() {
 function applySectionPermissions(userName) {
     resetSectionPermissions();
 
-    // SUPERADMIN / ADMIN / EDITOR BYPASS
+    // SUPERADMIN / ADMIN / EDITOR / CONTROL_FAUNA / SERVICIO_MEDICO BYPASS
     const role = sessionStorage.getItem('user_role') || 'viewer';
-    const isPowerUser = ['admin', 'editor', 'superadmin'].includes(role);
+    const isPowerUser = ['admin', 'editor', 'superadmin', 'control_fauna', 'servicio_medico'].includes(role);
 
     if (isPowerUser) {
-        // If admin/editor, do not hide anything via permissions
-        // Data Management is visible (d-none removed by AdminUI)
+        // If technical role, do not hide anything via permissions
+        // AdminUI will handle specific visibility (e.g. only showing wildlife for fauna)
+        // This function just ensures the *potential* to see sections isn't hard-blocked by "perm-hidden"
         return;
     }
 
@@ -11700,18 +11701,26 @@ window.logHistory = async function (action, entity, recordId, payload) {
 
         console.log('Auditing:', { action, entity, details: finalDetails });
 
-        await window.supabaseClient.from('change_history').insert({
+        const { error } = await window.supabaseClient.from('change_history').insert({
             user_id: userId,
             user_email: userEmail,
             action_type: action,
             entity_type: entity,
             record_id: recordId,
-            details: finalDetails, // Stores JSON
-            ip_address: 'client-side' // Placeholder as JS can't reliably get IP without service
+            details: finalDetails // Stores JSON
+            // ip_address removed as it does not exist in the table schema
         });
 
+        if (error) {
+            console.error('Audit Log Insert Error:', error);
+            // Optional: Notify user if it's a permission error, so they know why it's missing
+            if (error.code === '42501' || error.message.includes('permission')) {
+                console.warn('History Log Permission Denied: Please run allow_history_insert.sql in Supabase.');
+            }
+        }
+
     } catch (err) {
-        console.warn('Audit Log Error:', err);
+        console.error('Audit Log System Error:', err);
     }
 }
 
@@ -11786,6 +11795,20 @@ async function loadHistory() {
 
             const userAvatar = (log.user_email || 'U').charAt(0).toUpperCase();
 
+            // Friendly Entity Names
+            const entityMap = {
+                'daily_operations': 'Operaciones Diarias',
+                'monthly_operations': 'Operaciones Mensuales',
+                'medical_attentions': 'Atenciones Médicas',
+                'medical_types': 'Tipos de Atención',
+                'medical_directory': 'Directorio Médico',
+                'wildlife_strikes': 'Reporte de Fauna',
+                'rescued_wildlife': 'Fauna Rescatada',
+                'flights': 'Vuelos',
+                'flight_itinerary': 'Itinerario'
+            };
+            const friendlyEntity = entityMap[log.entity_type] || log.entity_type;
+
             const row = `
                 <tr style="vertical-align: middle;">
                     <td class="text-nowrap">
@@ -11809,7 +11832,7 @@ async function loadHistory() {
                         </span>
                     </td>
                     <td>
-                        <div class="fw-bold text-secondary">${log.entity_type}</div>
+                        <div class="fw-bold text-secondary">${friendlyEntity}</div>
                         <div class="small text-muted font-monospace">${log.record_id || '#'}</div>
                     </td>
                     <td class="bg-light border rounded">

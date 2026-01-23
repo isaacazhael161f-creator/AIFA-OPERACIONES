@@ -468,7 +468,13 @@
     const labels = dataset.map(formatLabel);
     const needsZoom = labels.length > 18;
     const zoomEnd = needsZoom ? Math.min(100, Math.round((18 / labels.length) * 100)) : 100;
-    const shareByIndex = dataset.map((item) => item.share);
+    
+    // Calculate raw counts and percentages for tooltip
+    const trasladoCounts = dataset.map(d => d.traslado || 0);
+    const ambulCounts = dataset.map(d => d.ambulatorio || 0);
+    const shareValues = dataset.map(d => d.share || 0);
+    
+    // Keep percent calculations for tooltip display
     const trasladoPercents = dataset.map((item) => {
       if (!Number.isFinite(item.total) || item.total <= 0) return 0;
       return Number(((item.traslado || 0) / item.total * 100).toFixed(2));
@@ -478,6 +484,7 @@
       if (!Number.isFinite(item.total) || item.total <= 0) return 0;
       return Number((100 - trasladoPct).toFixed(2));
     });
+
     const compact = isCompactViewport();
     const legendTop = compact ? (needsZoom ? 66 : 54) : (needsZoom ? 54 : 40);
     const legendFontSize = compact ? 11 : 12;
@@ -508,12 +515,14 @@
           const idx = params[0].dataIndex;
           const header = `${params[0].axisValueLabel.replace('\n', ' ')}<br>`;
           const row = dataset[idx] || {};
-          const trasladoLine = `${params.find((entry) => entry.seriesName === 'Traslado')?.marker || ''} Traslado: ${(row.traslado || 0).toLocaleString('es-MX')} (${trasladoPercents[idx]}%)`;
-          const ambLine = `${params.find((entry) => entry.seriesName === 'Ambulatorio')?.marker || ''} Ambulatorio: ${(row.ambulatorio || 0).toLocaleString('es-MX')} (${ambulatorioPercents[idx]}%)`;
+          
+          const trasladoLine = `${params.find((entry) => entry.seriesName === 'Traslado')?.marker || ''} Traslado: <strong>${(row.traslado || 0).toLocaleString('es-MX')}</strong> (${trasladoPercents[idx]}%)`;
+          const ambLine = `${params.find((entry) => entry.seriesName === 'Ambulatorio')?.marker || ''} Ambulatorio: <strong>${(row.ambulatorio || 0).toLocaleString('es-MX')}</strong> (${ambulatorioPercents[idx]}%)`;
+          
           const lines = [trasladoLine, ambLine];
-          const share = shareByIndex[idx];
+          const share = shareValues[idx];
           if (Number.isFinite(share)){
-            lines.push(`<span style="display:inline-block;margin-right:4px;width:10px;height:10px;border-radius:50%;background:#2563eb;"></span>% Traslados: ${share.toFixed(1)}%`);
+            lines.push(`<span style="display:inline-block;margin-right:4px;width:10px;height:10px;border-radius:50%;background:#2563eb;"></span>% Traslados: <strong>${share.toFixed(1)}%</strong>`);
           }
           const total = (row.total || 0).toLocaleString('es-MX');
           lines.push(`<strong>Total: ${total}</strong>`);
@@ -543,23 +552,42 @@
           margin: axisMargin
         }
       },
-      yAxis: {
-        type: 'value',
-        min: 0,
-        max: 100,
-        axisLabel: { color: '#475569', formatter: '{value}%', fontSize: compact ? 11 : 12 },
-        splitLine: { lineStyle: { color: 'rgba(15,23,42,0.08)' } }
-      },
+      yAxis: [
+        {
+          type: 'value',
+          name: 'Atenciones',
+          position: 'left',
+          axisLabel: { color: '#475569', fontSize: compact ? 11 : 12 },
+          splitLine: { lineStyle: { color: 'rgba(15,23,42,0.08)' } }
+        },
+        {
+          type: 'value',
+          name: '% Traslado',
+          min: 0,
+          max: 100,
+          position: 'right',
+          axisLabel: { formatter: '{value}%', color: '#2563eb', fontSize: compact ? 11 : 12 },
+          splitLine: { show: false }
+        }
+      ],
       series: [
         {
           name: 'Traslado',
           type: 'bar',
           stack: 'total',
+          barMinHeight: 15, // Force visible height approx 15px
           barGap: '12%',
           barCategoryGap: '32%',
           itemStyle: { color: createGradient(TIPO_COLORS.traslado[0], TIPO_COLORS.traslado[1]), borderRadius: 2 },
           emphasis: { focus: 'series' },
-          data: trasladoPercents
+          label: {
+            show: true,
+            position: 'inside', // Put number inside the expanded bar
+            color: '#fff',
+            fontSize: 10,
+            formatter: (params) => params.value > 0 ? params.value : '' // Validate >0
+          },
+          data: trasladoCounts
         },
         {
           name: 'Ambulatorio',
@@ -567,17 +595,18 @@
           stack: 'total',
           itemStyle: { color: createGradient(TIPO_COLORS.ambulatorio[0], TIPO_COLORS.ambulatorio[1]), borderRadius: 2 },
           emphasis: { focus: 'series' },
-          data: ambulatorioPercents
+          data: ambulCounts
         },
         {
           name: '% Traslado',
           type: 'line',
+          yAxisIndex: 1,
           smooth: true,
           symbol: 'circle',
           symbolSize: symbolSize,
           lineStyle: { width: 3, color: '#2563eb' },
           itemStyle: { color: '#2563eb' },
-          data: shareByIndex.map((value) => Number.isFinite(value) ? Number(value.toFixed(2)) : null)
+          data: shareValues.map((value) => Number.isFinite(value) ? Number(value.toFixed(2)) : null)
         }
       ]
     };
@@ -863,43 +892,86 @@
       container.innerHTML = '<div class="text-muted small">Selecciona al menos un año para visualizar la tabla comparativa.</div>';
       return;
     }
-    const headerCells = years.map((year) => `<th scope="col" class="text-end">${escapeHtml(String(year))}</th>`).join('');
+    const headerCells = years.map((year) => `<th scope="col" class="text-center">${escapeHtml(String(year))}</th>`).join('');
+    
+    // Create filter inputs row
+    const filterCells = years.map((year, index) => {
+        // We use index+1 because month is index 0
+        return `<th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." data-col-index="${index+1}" onkeyup="window.medicasCompFilter()"></th>`;
+    }).join('');
+
     const bodyRows = MONTH_ORDER.map((month) => {
       const monthLabel = escapeHtml(formatMonthTitle(month));
       const cells = years.map((year) => {
         const bucket = compByYear.get(year) || {};
         const value = bucket[month];
-        return `<td class="text-end">${formatNumber(value)}</td>`;
+        return `<td class="text-center">${formatNumber(value)}</td>`; // Centered content
       }).join('');
-      return `<tr><th scope="row">${monthLabel}</th>${cells}</tr>`;
+      return `<tr><th scope="row" class="text-center">${monthLabel}</th>${cells}</tr>`; // Centered Month label
     }).join('');
+
     const totalsRow = years.map((year) => {
       const bucket = compByYear.get(year) || {};
       const sum = MONTH_ORDER.reduce((acc, month) => {
         const value = bucket[month];
         return acc + (Number.isFinite(value) ? value : 0);
       }, 0);
-      return `<td class="text-end fw-semibold">${formatNumber(sum)}</td>`;
+      return `<td class="text-center fw-semibold">${formatNumber(sum)}</td>`; // Centered Total
     }).join('');
+
     container.innerHTML = `
       <div class="table-responsive">
-        <table class="table table-hover table-sm align-middle mb-0">
+        <table class="table table-hover table-sm align-middle mb-0" id="medicas-comp-inner-table">
           <thead class="table-light">
             <tr>
-              <th scope="col">Mes</th>
+              <th scope="col" class="text-center">Mes</th>
               ${headerCells}
+            </tr>
+            <tr class="filter-row">
+              <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." data-col-index="0" onkeyup="window.medicasCompFilter()"></th>
+              ${filterCells}
             </tr>
           </thead>
           <tbody>${bodyRows}</tbody>
           <tfoot>
             <tr>
-              <th scope="row">Total anual</th>
+              <th scope="row" class="text-center">Total anual</th>
               ${totalsRow}
             </tr>
           </tfoot>
         </table>
       </div>`;
   }
+
+  // Exposed filter function
+  window.medicasCompFilter = function() {
+      const table = document.getElementById('medicas-comp-inner-table');
+      if (!table) return;
+      const inputs = table.querySelectorAll('.filter-row input');
+      const tbody = table.querySelector('tbody');
+      const rows = tbody.querySelectorAll('tr');
+
+      rows.forEach(row => {
+          let show = true;
+          const cells = row.cells; // th (month) is cell 0, tds are next
+
+          inputs.forEach(input => {
+              if (!show) return;
+              const term = input.value.toLowerCase().trim();
+              if (!term) return;
+
+              const colIndex = parseInt(input.getAttribute('data-col-index'));
+              if (isNaN(colIndex) || colIndex >= cells.length) return;
+
+              let cellText = cells[colIndex].textContent.toLowerCase();
+              if (cellText.indexOf(term) === -1) {
+                  show = false;
+              }
+          });
+
+          row.style.display = show ? '' : 'none';
+      });
+  };
 
   async function loadJSON(url){
     try {
