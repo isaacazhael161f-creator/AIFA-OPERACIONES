@@ -2524,8 +2524,17 @@ function setupEventListeners() {
 
     document.getElementById('login-form').addEventListener('submit', handleLogin);
     document.getElementById('sidebar-nav').addEventListener('click', handleNavigation);
-    document.getElementById('airline-filter').addEventListener('change', (window.AIFA?.throttle || ((f) => f))(applyFilters, 120));
-    // search input for banda de reclamo (specific) and a global search box
+    const airlineFilterEl = document.getElementById('airline-filter');
+    if (airlineFilterEl) {
+        airlineFilterEl.addEventListener('change', (window.AIFA?.throttle || ((f) => f))(applyFilters, 120));
+    }
+    
+    // New Searchers Listeners
+    const searchAirline = document.getElementById('search-airline'); if (searchAirline) searchAirline.addEventListener('input', (window.AIFA?.debounce || ((f) => f))(applyFilters, 200));
+    const searchFlight = document.getElementById('search-flight'); if (searchFlight) searchFlight.addEventListener('input', (window.AIFA?.debounce || ((f) => f))(applyFilters, 200));
+    const searchRoute = document.getElementById('search-route'); if (searchRoute) searchRoute.addEventListener('input', (window.AIFA?.debounce || ((f) => f))(applyFilters, 200));
+
+    // Legacy / Hidden Inputs Support
     const claimInput = document.getElementById('claim-filter'); if (claimInput) claimInput.addEventListener('input', (window.AIFA?.debounce || ((f) => f))(applyFilters, 200));
     const globalSearch = document.getElementById('global-search'); if (globalSearch) globalSearch.addEventListener('input', (window.AIFA?.debounce || ((f) => f))(applyFilters, 200));
     // position select (populated from JSON)
@@ -2540,7 +2549,7 @@ function setupEventListeners() {
     // Botón de tema eliminado: no enlazar listener si no existe
     const themeBtnEl = document.getElementById('theme-toggler');
     if (themeBtnEl) themeBtnEl.addEventListener('click', toggleTheme);
-    const clearBtn = document.getElementById('clear-filters'); if (clearBtn) clearBtn.addEventListener('click', clearFilters);
+    const clearBtn = document.getElementById('clear-filters-btn') || document.getElementById('clear-filters'); if (clearBtn) clearBtn.addEventListener('click', clearFilters);
     document.getElementById('sidebar-toggler').addEventListener('click', toggleSidebar);
     // Exportar todas las gráficas (Operaciones Totales)
     const opsExportAllBtn = document.getElementById('ops-export-all-btn');
@@ -3401,6 +3410,45 @@ async function loadItineraryData(options = {}) {
     }
     return allFlightsData;
 }
+// Helper for client-side table filtering
+function applyClientSideTableFilter(tableContainer, searchState) {
+    if (!tableContainer || !searchState) return;
+    
+    const tbody = tableContainer.querySelector('tbody');
+    if (!tbody) return;
+    const rows = tbody.querySelectorAll('tr');
+    
+    rows.forEach(row => {
+        let visible = true;
+        // Check each criteria
+        for (const [col, val] of Object.entries(searchState)) {
+            if (!val) continue;
+            let cellText = '';
+            
+            // Map col key to cell index or class
+            // Columns: 0:Aerolínea, 1:Aeronave, 2:Vuelo Lleg, 3:Fecha, 4:Hora, 5:Origen, 6:Banda, 7:Pos, 8:Vuelo Sal, 9:Fecha, 10:Hora, 11:Destino
+            if (col === 'aerolinea') cellText = row.cells[0]?.textContent || '';
+            else if (col === 'aircraft') cellText = row.cells[1]?.textContent || '';
+            else if (col === 'vuelo_llegada') cellText = row.cells[2]?.textContent || '';
+            else if (col === 'fecha_llegada') cellText = row.cells[3]?.textContent || '';
+            else if (col === 'hora_llegada') cellText = row.cells[4]?.textContent || '';
+            else if (col === 'origen') cellText = row.cells[5]?.textContent || '';
+            else if (col === 'banda') cellText = row.cells[6]?.textContent || '';
+            else if (col === 'posicion') cellText = row.cells[7]?.textContent || '';
+            else if (col === 'vuelo_salida') cellText = row.cells[8]?.textContent || '';
+            else if (col === 'fecha_salida') cellText = row.cells[9]?.textContent || '';
+            else if (col === 'hora_salida') cellText = row.cells[10]?.textContent || '';
+            else if (col === 'destino') cellText = row.cells[11]?.textContent || '';
+            
+            if (!cellText.toUpperCase().includes(val)) {
+                visible = false;
+                break;
+            }
+        }
+        row.style.display = visible ? '' : 'none';
+    });
+}
+
 function updateAirlineQuickSummary(options = {}) {
     const card = document.getElementById('airline-summary-card');
     if (!card) return;
@@ -3647,19 +3695,33 @@ function renderItineraryAirlineDetail(config = {}) {
                 <div class="table-responsive itinerary-airline-table">
                     <table class="table table-hover align-middle mb-0">
                         <thead>
-                            <tr>
-                                <th>Aerolínea</th>
-                                <th>Aeronave</th>
-                                <th>Vuelo Lleg.</th>
-                                <th>Fecha Lleg.</th>
-                                <th>Hora Lleg.</th>
-                                <th class="col-origen">Origen</th>
-                                <th>Banda</th>
-                                <th>Posición</th>
-                                <th>Vuelo Sal.</th>
-                                <th>Fecha Sal.</th>
-                                <th>Hora Sal.</th>
-                                <th class="col-destino">Destino</th>
+                            <tr class="align-middle">
+                                <th class="text-center">Aerolínea</th>
+                                <th class="text-center">Aeronave</th>
+                                <th class="text-center">Vuelo Lleg.</th>
+                                <th class="text-center">Fecha Lleg.</th>
+                                <th class="text-center">Hora Lleg.</th>
+                                <th class="col-origen text-center">Origen</th>
+                                <th class="text-center">Banda</th>
+                                <th class="text-center">Posición</th>
+                                <th class="text-center">Vuelo Sal.</th>
+                                <th class="text-center">Fecha Sal.</th>
+                                <th class="text-center">Hora Sal.</th>
+                                <th class="col-destino text-center">Destino</th>
+                            </tr>
+                            <tr class="search-inputs-row">
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="aerolinea" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="aircraft" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="vuelo_llegada" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="fecha_llegada" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="hora_llegada" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="origen" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="banda" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="posicion" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="vuelo_salida" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="fecha_salida" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="hora_salida" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="destino" placeholder="Buscar..."></th>
                             </tr>
                         </thead>
                         <tbody>${rows || '<tr><td colspan="12" class="text-center text-muted">Sin vuelos disponibles.</td></tr>'}</tbody>
@@ -3667,6 +3729,40 @@ function renderItineraryAirlineDetail(config = {}) {
                 </div>
             </div>
         </div>`;
+
+    // Initialize search logic for daily itinerary table headers
+    setTimeout(() => {
+        const tableContainer = container.querySelector('.itinerary-airline-table');
+        if (!tableContainer) return;
+        
+        const inputs = tableContainer.querySelectorAll('.daily-it-search');
+        if (!inputs.length) return;
+
+        // Restore previous search values if any
+        if (window.dailyItinerarySearchState) {
+            inputs.forEach(inp => {
+                const col = inp.dataset.col;
+                if (window.dailyItinerarySearchState[col]) {
+                    inp.value = window.dailyItinerarySearchState[col];
+                }
+            });
+            // Apply filter immediately if state exists
+             applyClientSideTableFilter(tableContainer, window.dailyItinerarySearchState);
+        }
+
+        inputs.forEach(input => {
+            input.addEventListener('input', (e) => {
+                const val = e.target.value.trim().toUpperCase();
+                const col = e.target.dataset.col;
+                
+                // Save state
+                if (!window.dailyItinerarySearchState) window.dailyItinerarySearchState = {};
+                window.dailyItinerarySearchState[col] = val;
+
+                applyClientSideTableFilter(tableContainer, window.dailyItinerarySearchState);
+            });
+        });
+    }, 50);
 
     const clearBtn = container.querySelector('[data-action="clear-airline-filter"]');
     if (clearBtn) {
@@ -3681,8 +3777,14 @@ function renderItineraryAirlineDetail(config = {}) {
 }
 function applyFilters() {
     const t0 = performance.now();
-    const selectedAirlineRaw = document.getElementById('airline-filter').value;
+    const selectedAirlineRaw = document.getElementById('airline-filter') ? document.getElementById('airline-filter').value : '';
     const selectedAirline = (selectedAirlineRaw || '').toString().trim();
+    
+    // New Searchers
+    const searchAirlineVal = document.getElementById('search-airline') ? document.getElementById('search-airline').value.trim().toLowerCase() : '';
+    const searchFlightVal = document.getElementById('search-flight') ? document.getElementById('search-flight').value.trim().toLowerCase() : '';
+    const searchRouteVal = document.getElementById('search-route') ? document.getElementById('search-route').value.trim().toLowerCase() : '';
+
     const claimFilterValue = document.getElementById('claim-filter') ? document.getElementById('claim-filter').value.trim().toLowerCase() : '';
     const globalSearchValue = document.getElementById('global-search') ? document.getElementById('global-search').value.trim().toLowerCase() : '';
     // date filter (Inicio)
@@ -3723,6 +3825,28 @@ function applyFilters() {
 
     let filteredData = allFlightsData;
     if (selectedAirline && selectedAirline !== 'all') { filteredData = filteredData.filter(flight => (flight.aerolinea || '').toString().trim() === selectedAirline); }
+    
+    // Apply New Searchers
+    if (searchAirlineVal) {
+        filteredData = filteredData.filter(f => (f.aerolinea || '').toLowerCase().includes(searchAirlineVal));
+    }
+    if (searchFlightVal) {
+        filteredData = filteredData.filter(f => {
+            const arr = (f.vuelo_llegada || '').toLowerCase();
+            const dep = (f.vuelo_salida || '').toLowerCase();
+            const iden = (f.identificador || '').toLowerCase();
+            return arr.includes(searchFlightVal) || dep.includes(searchFlightVal) || iden.includes(searchFlightVal);
+        });
+    }
+    if (searchRouteVal) {
+        filteredData = filteredData.filter(f => {
+            const org = (f.origen || '').toLowerCase();
+            const dst = (f.destino || '').toLowerCase();
+            const proc = (f.procedencia || '').toLowerCase(); // Just in case
+            return org.includes(searchRouteVal) || dst.includes(searchRouteVal) || proc.includes(searchRouteVal);
+        });
+    }
+
     // date filter: match dd/mm/yyyy in data vs yyyy-mm-dd in input
     if (selectedDate) {
         const selYMD = selectedDate; // yyyy-mm-dd from input
@@ -3965,12 +4089,18 @@ function clearFilters() {
     const date = document.getElementById('date-filter'); if (date) date.value = '';
     const hourSel = document.getElementById('hour-filter'); if (hourSel) hourSel.value = 'all';
     const hourTypeSel = document.getElementById('hour-type-filter'); if (hourTypeSel) hourTypeSel.value = 'both';
+
+    // Clear new searchers
+    const sAirline = document.getElementById('search-airline'); if (sAirline) sAirline.value = '';
+    const sFlight = document.getElementById('search-flight'); if (sFlight) sFlight.value = '';
+    const sRoute = document.getElementById('search-route'); if (sRoute) sRoute.value = '';
+    
     applyFilters();
     // visual confirmation: temporary highlight and toast
-    const btn = document.getElementById('clear-filters');
+    const btn = document.getElementById('clear-filters-btn') || document.getElementById('clear-filters');
     if (btn) {
-        btn.classList.add('btn-success');
-        setTimeout(() => btn.classList.remove('btn-success'), 900);
+        btn.classList.add('bg-success', 'text-white');
+        setTimeout(() => btn.classList.remove('bg-success', 'text-white'), 900);
     }
     const toastEl = document.getElementById('action-toast');
     if (toastEl && typeof bootstrap !== 'undefined' && bootstrap.Toast) {
@@ -3986,19 +4116,33 @@ function viewFlightsForAirline(airline) {
         summarySelectedPosition = null;
         summarySelectionLocked = true;
     } catch (_) { }
-    const select = document.getElementById('airline-filter');
-    if (!select) return;
-    // ensure option exists
-    let exists = Array.from(select.options).find(o => o.value === airline);
-    if (!exists) {
-        const opt = document.createElement('option'); opt.value = airline; opt.textContent = airline; select.appendChild(opt);
+
+    // Try new table filter first
+    const passengerContainer = document.getElementById('passenger-itinerary-container');
+    if (passengerContainer) {
+        const airlineInput = passengerContainer.querySelector('.daily-it-search[data-col="aerolinea"]');
+        if (airlineInput) {
+            airlineInput.value = airline;
+            // Dispatch event to trigger filter logic
+            airlineInput.dispatchEvent(new Event('input', { bubbles: true }));
+            
+            // Scroll to table
+            passengerContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return;
+        }
     }
-    select.value = airline;
-    applyFilters();
-    // programmatically switch to interactive tab (itinerario section view already shows tables)
-    // scroll passenger table into view
-    const passengerEl = document.getElementById('passenger-itinerary-container');
-    if (passengerEl) passengerEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Fallback to legacy select if exists (but it is likely removed)
+    const select = document.getElementById('airline-filter');
+    if (select) {
+        // ensure option exists
+        let exists = Array.from(select.options).find(o => o.value === airline);
+        if (!exists) {
+            const opt = document.createElement('option'); opt.value = airline; opt.textContent = airline; select.appendChild(opt);
+        }
+        select.value = airline;
+        applyFilters();
+    }
 }
 function displaySummaryTableLegacy(flights, options) {
     // Legacy placeholder: delega a la nueva implementación modernizada.
@@ -4759,6 +4903,18 @@ function displaySummaryTable(flights, options = {}) {
                 summarySelectionLocked = false;
                 summarySelectedAirline = null;
                 summarySelectedPosition = null;
+                
+                 // Clear table filter (new method)
+                const passengerContainer = document.getElementById('passenger-itinerary-container');
+                if (passengerContainer) {
+                    const airlineInput = passengerContainer.querySelector('.daily-it-search[data-col="aerolinea"]');
+                    if (airlineInput && airlineInput.value) {
+                         airlineInput.value = '';
+                         airlineInput.dispatchEvent(new Event('input', { bubbles: true }));
+                         return;
+                    }
+                }
+
                 const select = document.getElementById('airline-filter');
                 if (select && select.value !== 'all') {
                     select.value = 'all';
@@ -4817,6 +4973,17 @@ function displaySummaryTable(flights, options = {}) {
             summaryDetailMode = 'airline';
             summarySelectedAirline = null;
             summarySelectedPosition = null;
+
+            // Clear table filter (new method)
+            const passengerContainer = document.getElementById('passenger-itinerary-container');
+            if (passengerContainer) {
+                const airlineInput = passengerContainer.querySelector('.daily-it-search[data-col="aerolinea"]');
+                if (airlineInput && airlineInput.value) {
+                        airlineInput.value = '';
+                        airlineInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+
             const select = document.getElementById('airline-filter');
             if (select && select.value !== 'all') {
                 select.value = 'all';
@@ -4903,8 +5070,51 @@ function createFloatingTableHeader(table, contextKey) {
     overlay.style.left = '0px';
     overlay.style.top = '0px';
     overlay.style.width = '0px';
-    overlayTable.style.pointerEvents = 'none';
+    overlayTable.style.pointerEvents = 'auto';
     document.body.appendChild(overlay);
+
+    // Wire up inputs in the floating header to control the original table's inputs
+    const originalInputs = table.querySelectorAll('.daily-it-search');
+    const cloneInputs = overlayTable.querySelectorAll('.daily-it-search');
+    let autoScrollTimeout = null;
+
+    if (originalInputs.length > 0 && originalInputs.length === cloneInputs.length) {
+        cloneInputs.forEach((cloneInput, index) => {
+            const originalInput = originalInputs[index];
+            // Sync initial value
+            cloneInput.value = originalInput.value;
+
+            // Forward input events to original
+            cloneInput.addEventListener('input', () => {
+                originalInput.value = cloneInput.value;
+                // Dispatch input event so the existing filter logic runs
+                originalInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+                // Debounce scroll-to-top logic
+                if (autoScrollTimeout) clearTimeout(autoScrollTimeout);
+                autoScrollTimeout = setTimeout(() => {
+                    // Only scroll if we are deep down (header is floating)
+                    // and the user is still focused on this input or one of its siblings
+                    const rect = table.getBoundingClientRect();
+                    const offset = getDynamicTableHeaderOffset();
+                    // Threshold: if top of table is significantly above offset
+                    if (rect.top < offset - 50) {
+                        // Transfer focus to original input to prevent losing context when overlay disappears
+                        originalInput.focus({preventScroll: true});
+                        const y = rect.top + window.pageYOffset - offset;
+                        window.scrollTo({ top: y, behavior: 'instant' });
+                    }
+                }, 600); // 600ms delay to let user finish typing
+            });
+
+            // Keep clone in sync if original changes
+            originalInput.addEventListener('input', () => {
+                if (document.body.contains(cloneInput) && cloneInput.value !== originalInput.value) {
+                    cloneInput.value = originalInput.value;
+                }
+            });
+        });
+    }
 
     const state = {
         table,
@@ -4944,6 +5154,7 @@ function createFloatingTableHeader(table, contextKey) {
         const rect = table.getBoundingClientRect();
         if (rect.width <= 0 || rect.height <= 0) {
             overlay.classList.remove('is-visible');
+            updateScrollHint(false);
             return;
         }
         const offset = getDynamicTableHeaderOffset();
@@ -4951,12 +5162,39 @@ function createFloatingTableHeader(table, contextKey) {
         const shouldShow = rect.top < offset && (rect.bottom - headerHeight) > offset;
         if (!shouldShow) {
             overlay.classList.remove('is-visible');
+            updateScrollHint(false);
             return;
         }
         overlay.classList.add('is-visible');
         overlay.style.top = `${offset}px`;
         overlay.style.left = `${Math.round(rect.left)}px`;
         overlay.style.width = `${Math.round(rect.width)}px`;
+        updateScrollHint(true);
+    };
+
+    const updateScrollHint = (visible) => {
+        let hint = document.getElementById('scroll-to-filter-hint');
+        if (!hint) {
+            hint = document.createElement('div');
+            hint.id = 'scroll-to-filter-hint';
+            hint.className = 'scroll-filter-hint';
+            hint.innerHTML = '<i class="fas fa-arrow-up"></i> Sube para filtrar';
+            hint.addEventListener('click', () => {
+                 const y = table.getBoundingClientRect().top + window.pageYOffset - getDynamicTableHeaderOffset() - 10;
+                 window.scrollTo({top: y, behavior: 'smooth'});
+            });
+            document.body.appendChild(hint);
+        }
+        // Only show if we have search inputs in the table
+        const hasInputs = table.querySelector('.daily-it-search');
+        if (visible && hasInputs) {
+            hint.classList.add('visible');
+            hint.style.pointerEvents = 'auto';
+            hint.style.cursor = 'pointer';
+        } else {
+            hint.classList.remove('visible');
+            hint.style.pointerEvents = 'none';
+        }
     };
 
     const scheduleSync = () => {
@@ -5065,17 +5303,17 @@ function displayPassengerTable(flights) {
 
         return `<tr class="animated-row" style="--delay:${delay}s; --airline-color:${rowColor}; --airline-row-hover:${rowHover}; --airline-row-hover-dark:${rowHoverDark};">
             <td><div class="airline-cell${logoHtml ? ' has-logo' : ''}">${logoHtml}<span class="airline-dot" style="background:${rowColor};"></span><span class="airline-name">${escapeHTML(displayAirline)}</span></div></td>
-            <td>${formatCell(aircraft)}</td>
-            <td>${formatCell(flight?.vuelo_llegada)}</td>
-            <td>${formatCell(dateArr)}</td>
-            <td>${formatCell(flight?.hora_llegada)}</td>
-            <td class="col-origen">${formatCell(flight?.origen)}</td>
+            <td class="text-center">${formatCell(aircraft)}</td>
+            <td class="text-center">${formatCell(flight?.vuelo_llegada)}</td>
+            <td class="text-center">${formatCell(dateArr)}</td>
+            <td class="text-center">${formatCell(flight?.hora_llegada)}</td>
+            <td class="col-origen text-center">${formatCell(flight?.origen)}</td>
             <td class="text-center">${formatCell(flight?.banda_reclamo)}</td>
-            <td>${positionDisplay ? escapeHTML(positionDisplay) : '-'}</td>
-            <td>${formatCell(flight?.vuelo_salida)}</td>
-            <td>${formatCell(dateDep)}</td>
-            <td>${formatCell(flight?.hora_salida)}</td>
-            <td class="col-destino">${formatCell(flight?.destino)}</td>
+            <td class="text-center">${positionDisplay ? escapeHTML(positionDisplay) : '-'}</td>
+            <td class="text-center">${formatCell(flight?.vuelo_salida)}</td>
+            <td class="text-center">${formatCell(dateDep)}</td>
+            <td class="text-center">${formatCell(flight?.hora_salida)}</td>
+            <td class="col-destino text-center">${formatCell(flight?.destino)}</td>
         </tr>`;
     }).join('');
 
@@ -5107,19 +5345,33 @@ function displayPassengerTable(flights) {
                 <div class="table-responsive itinerary-airline-table">
                     <table class="table table-hover align-middle mb-0">
                         <thead>
-                            <tr>
-                                <th>Aerolínea</th>
-                                <th>Aeronave</th>
-                                <th>Vuelo Lleg.</th>
-                                <th>Fecha Lleg.</th>
-                                <th>Hora Lleg.</th>
-                                <th class="col-origen">Origen</th>
-                                <th>Banda</th>
-                                <th>Posición</th>
-                                <th>Vuelo Sal.</th>
-                                <th>Fecha Sal.</th>
-                                <th>Hora Sal.</th>
-                                <th class="col-destino">Destino</th>
+                            <tr class="align-middle">
+                                <th class="text-center">Aerolínea</th>
+                                <th class="text-center">Aeronave</th>
+                                <th class="text-center">Vuelo Lleg.</th>
+                                <th class="text-center">Fecha Lleg.</th>
+                                <th class="text-center">Hora Lleg.</th>
+                                <th class="col-origen text-center">Origen</th>
+                                <th class="text-center">Banda</th>
+                                <th class="text-center">Posición</th>
+                                <th class="text-center">Vuelo Sal.</th>
+                                <th class="text-center">Fecha Sal.</th>
+                                <th class="text-center">Hora Sal.</th>
+                                <th class="col-destino text-center">Destino</th>
+                            </tr>
+                            <tr class="search-inputs-row">
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="aerolinea" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="aircraft" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="vuelo_llegada" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="fecha_llegada" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="hora_llegada" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="origen" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="banda" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="posicion" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="vuelo_salida" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="fecha_salida" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="hora_salida" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="destino" placeholder="Buscar..."></th>
                             </tr>
                         </thead>
                         <tbody>${rows}</tbody>
@@ -5132,6 +5384,36 @@ function displayPassengerTable(flights) {
     if (tableEl) {
         setupDynamicTableHeader(tableEl, 'passenger-itinerary');
     }
+
+    // Initialize search logic for passenger table
+    setTimeout(() => {
+        const inputs = container.querySelectorAll('.daily-it-search');
+        if (!inputs.length) return;
+        
+        const tableContainer = container.querySelector('.itinerary-airline-table');
+
+        // Restore state
+        if (window.dailyItinerarySearchState) {
+            inputs.forEach(inp => {
+                const col = inp.dataset.col;
+                if (window.dailyItinerarySearchState[col]) {
+                    inp.value = window.dailyItinerarySearchState[col];
+                }
+            });
+            applyClientSideTableFilter(tableContainer, window.dailyItinerarySearchState);
+        }
+
+        inputs.forEach(input => {
+            input.addEventListener('input', (e) => {
+                const val = e.target.value.trim().toUpperCase();
+                const col = e.target.dataset.col;
+                if (!window.dailyItinerarySearchState) window.dailyItinerarySearchState = {};
+                window.dailyItinerarySearchState[col] = val;
+                applyClientSideTableFilter(tableContainer, window.dailyItinerarySearchState);
+            });
+        });
+    }, 50);
+
     wireItineraryExports();
     console.log(`[perf] pasajeros tabla: ${(performance.now() - t0).toFixed(1)}ms, filas=${flightsList.length}`);
 }

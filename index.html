@@ -1621,17 +1621,15 @@
                                         </div>
                                     </div>
                                     <div class="mb-3">
-                                        <button class="btn btn-outline-primary w-100" data-bs-toggle="collapse"
+                                        <button class="btn btn-outline-primary w-100 fw-bold shadow-sm" data-bs-toggle="collapse"
                                             data-bs-target="#summary-collapse" aria-expanded="false"
                                             aria-controls="summary-collapse">
-                                            Resumen de Operaciones
+                                            <i class="fas fa-chart-line me-2"></i>Tablero de Aerolíneas
                                         </button>
-                                        <span class="d-block small text-muted mt-2">Cifras preliminares del
-                                            día.</span>
+                                        <span class="d-block small text-muted mt-2 text-center">Resultados disponibles al seleccionar una opción.</span>
                                     </div>
                                     <div class="collapse" id="summary-collapse">
-                                        <h4 class="section-subheading mb-3"><i class="fas fa-list-ul me-2"></i>Resumen
-                                            por Aerolínea</h4>
+                                        <h4 class="section-subheading mb-3"><i class="fas fa-list-ul me-2"></i>Detalle por Aerolínea</h4>
                                         <div id="summary-table-container" class="table-container-tech"></div>
                                     </div>
                                     <div class="row">
@@ -1642,92 +1640,28 @@
                                                     <h5 class="mb-0">Filtros de Búsqueda</h5>
                                                 </div>
                                                 <div class="filters-bar">
+                                                    <!-- Fecha (Único filtro original conservado) -->
                                                     <div class="chip">
-                                                        <label for="claim-filter"><i
-                                                                class="fas fa-suitcase me-1"></i>Banda</label>
-                                                        <input type="text" id="claim-filter" class="form-control"
-                                                            placeholder="Número/Nombre de banda...">
-                                                    </div>
-                                                    <div class="chip">
-                                                        <label for="position-filter"><i
-                                                                class="fas fa-map-pin me-1"></i>Posición</label>
-                                                        <select id="position-filter" class="form-select"
-                                                            aria-label="Filtrar por posición">
-                                                            <option value="all" selected>Todas las posiciones
-                                                            </option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="chip">
-                                                        <label for="origin-filter"><i
-                                                                class="fas fa-plane-arrival me-1"></i>Origen</label>
-                                                        <select id="origin-filter" class="form-select"
-                                                            aria-label="Filtrar por origen">
-                                                            <option value="all" selected>Todos los orígenes</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="chip">
-                                                        <label for="destination-filter"><i
-                                                                class="fas fa-plane-departure me-1"></i>Destino</label>
-                                                        <select id="destination-filter" class="form-select"
-                                                            aria-label="Filtrar por destino">
-                                                            <option value="all" selected>Todos los destinos</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="chip">
-                                                        <label for="global-search"><i
-                                                                class="fas fa-search me-1"></i>Buscar</label>
-                                                        <input type="text" id="global-search" class="form-control"
-                                                            placeholder="Aerolínea, origen, destino, vuelo...">
-                                                    </div>
-                                                    <div class="chip">
-                                                        <label for="date-filter"><i
-                                                                class="fas fa-calendar-day me-1"></i>Fecha</label>
+                                                        <label for="date-filter"><i class="fas fa-calendar-day me-1"></i>Fecha</label>
                                                         <input type="date" id="date-filter" class="form-control">
                                                     </div>
+
+                                                    <!-- Botón Limpiar (Opcional, pero útil) -->
                                                     <div class="chip">
-                                                        <label for="hour-filter"><i
-                                                                class="fas fa-clock me-1"></i>Hora</label>
-                                                        <select id="hour-filter" class="form-select"
-                                                            aria-label="Filtrar por hora">
-                                                            <option value="all" selected>Todas</option>
-                                                            <option value="00">00</option>
-                                                            <option value="01">01</option>
-                                                            <option value="02">02</option>
-                                                            <option value="03">03</option>
-                                                            <option value="04">04</option>
-                                                            <option value="05">05</option>
-                                                            <option value="06">06</option>
-                                                            <option value="07">07</option>
-                                                            <option value="08">08</option>
-                                                            <option value="09">09</option>
-                                                            <option value="10">10</option>
-                                                            <option value="11">11</option>
-                                                            <option value="12">12</option>
-                                                            <option value="13">13</option>
-                                                            <option value="14">14</option>
-                                                            <option value="15">15</option>
-                                                            <option value="16">16</option>
-                                                            <option value="17">17</option>
-                                                            <option value="18">18</option>
-                                                            <option value="19">19</option>
-                                                            <option value="20">20</option>
-                                                            <option value="21">21</option>
-                                                            <option value="22">22</option>
-                                                            <option value="23">23</option>
-                                                        </select>
+                                                        <button id="clear-filters-btn" class="btn btn-outline-secondary btn-sm h-100">
+                                                            <i class="fas fa-eraser"></i>
+                                                        </button>
                                                     </div>
-                                                    <div class="chip">
-                                                        <label for="hour-type-filter"><i
-                                                                class="fas fa-exchange-alt me-1"></i>Tipo
-                                                            de
-                                                            hora</label>
-                                                        <select id="hour-type-filter" class="form-select"
-                                                            aria-label="Filtrar por tipo de hora">
-                                                            <option value="both" selected>Ambas</option>
-                                                            <option value="arr">Llegada</option>
-                                                            <option value="dep">Salida</option>
-                                                        </select>
-                                                    </div>
+
+                                                    <!-- Hidden Legacy Inputs to prevent JS errors if referenced directly without check -->
+                                                    <input type="hidden" id="claim-filter">
+                                                    <input type="hidden" id="global-search"> 
+                                                    <select id="position-filter" class="d-none"><option value="all">Todas</option></select>
+                                                    <select id="origin-filter" class="d-none"><option value="all">Todos</option></select>
+                                                    <select id="destination-filter" class="d-none"><option value="all">Todos</option></select>
+                                                    <select id="hour-filter" class="d-none"><option value="all">Todas</option></select>
+                                                    <select id="hour-type-filter" class="d-none"><option value="both">Ambas</option></select>
+                                                </div>
                                                     <div class="filters-actions">
                                                         <button id="clear-filters"
                                                             class="btn btn-outline-secondary btn-sm">Limpiar</button>
@@ -1735,6 +1669,7 @@
                                                 </div>
                                             </div>
                                             <div class="itinerary-airline-toolbar">
+                                                <!--
                                                 <div class="itinerary-airline-picker">
                                                     <label for="airline-filter" class="airline-picker-label"><i
                                                             class="fas fa-plane me-1"></i>Aerolínea</label>
@@ -1743,6 +1678,7 @@
                                                         <option value="all" selected>Todas las Aerolíneas</option>
                                                     </select>
                                                 </div>
+                                                -->
                                                 <div class="airline-summary-card is-empty" id="airline-summary-card"
                                                     aria-live="polite">
                                                     <div class="airline-summary-placeholder"><i

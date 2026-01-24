@@ -4,7 +4,8 @@
   const ATENCIONES_URL = 'data/atenciones_medicas.json';
   const TIPO_URL = 'data/tipo_atencion_medica.json';
   const COMP_URL = 'data/atenciones_medicas_año.json';
-  const MONTH_ORDER = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  // Actualizado a Capitalized según solicitud (antes MAYÚSCULAS)
+  const MONTH_ORDER = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
   const ATENCIONES_KEYS = ['aifa', 'otra_empresa', 'pasajeros', 'visitantes'];
   const ATENCIONES_LABELS = {
@@ -24,13 +25,24 @@
     ambulatorio: ['#fbbf24', '#d97706']
   };
   const COMP_COLORS = ['#0284c7', '#ec4899', '#22c55e', '#f97316', '#8b5cf6', '#facc15'];
+  
+  // Normalization helper for months
+  const normalizeMonth = (m) => {
+      if (!m) return '';
+      const s = String(m).trim();
+      return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  };
+
   const MONTH_TITLE_MAP = MONTH_ORDER.reduce((acc, month) => {
-    acc[month] = month.charAt(0) + month.slice(1).toLowerCase();
+    acc[normalizeMonth(month)] = month; 
+    // Also map UPPERCASE if needed for fallback
+    acc[month.toUpperCase()] = month;
     return acc;
   }, {});
+
   const MONTH_ABBR_MAP = MONTH_ORDER.reduce((acc, month) => {
-    const lower = month.toLowerCase();
-    acc[month] = lower.charAt(0).toUpperCase() + lower.slice(1, 3);
+    const norm = normalizeMonth(month);
+    acc[norm] = norm.substring(0, 3) + '.'; // Ene.
     return acc;
   }, {});
 
@@ -110,7 +122,11 @@
   function sortRecords(list){
     return [...list].sort((a, b) => {
       if (a.anio !== b.anio) return a.anio - b.anio;
-      return MONTH_ORDER.indexOf(a.mes) - MONTH_ORDER.indexOf(b.mes);
+      
+      const idxA = MONTH_ORDER.findIndex(m => normalizeMonth(m) === normalizeMonth(a.mes));
+      const idxB = MONTH_ORDER.findIndex(m => normalizeMonth(m) === normalizeMonth(b.mes));
+      
+      return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
     });
   }
 
@@ -141,7 +157,8 @@
       if (!compByYear.has(year)) {
         compByYear.set(year, {});
       }
-      compByYear.get(year)[item.mes] = value;
+      // Normalize key to ensure it matches MONTH_ORDER
+      compByYear.get(year)[normalizeMonth(item.mes)] = value;
     });
   }
 
@@ -806,32 +823,46 @@
       container.innerHTML = '<div class="text-muted small">Sin datos disponibles para el periodo seleccionado.</div>';
       return;
     }
+    
+    // 7 columns
+    const colWidth = '14.28%'; 
+    
     const rows = dataset.map((item) => {
       const month = escapeHtml(formatMonthTitle(item.mes));
       const year = escapeHtml(String(item.anio || ''));
       return `
         <tr>
-          <th scope="row">${month}</th>
+          <th scope="row" class="text-center">${month}</th>
           <td class="text-center">${year}</td>
-          <td class="text-end">${formatNumber(item.aifa)}</td>
-          <td class="text-end">${formatNumber(item.otra_empresa)}</td>
-          <td class="text-end">${formatNumber(item.pasajeros)}</td>
-          <td class="text-end">${formatNumber(item.visitantes)}</td>
-          <td class="text-end fw-semibold">${formatNumber(item.total)}</td>
+          <td class="text-center">${formatNumber(item.aifa)}</td>
+          <td class="text-center">${formatNumber(item.otra_empresa)}</td>
+          <td class="text-center">${formatNumber(item.pasajeros)}</td>
+          <td class="text-center">${formatNumber(item.visitantes)}</td>
+          <td class="text-center fw-semibold">${formatNumber(item.total)}</td>
         </tr>`;
     }).join('');
+
     container.innerHTML = `
-      <div class="table-responsive">
-        <table class="table table-hover table-sm align-middle mb-0">
+      <div class="medicas-table-container">
+        <table class="table table-hover table-sm align-middle mb-0 table-fixed" id="medicas-atenciones-inner-table">
           <thead class="table-light">
             <tr>
-              <th scope="col">Mes</th>
-              <th scope="col" class="text-center">Año</th>
-              <th scope="col" class="text-end">AIFA</th>
-              <th scope="col" class="text-end">Otra empresa</th>
-              <th scope="col" class="text-end">Pasajeros</th>
-              <th scope="col" class="text-end">Visitantes</th>
-              <th scope="col" class="text-end">Total</th>
+              <th scope="col" class="text-center" style="width:${colWidth}">Mes</th>
+              <th scope="col" class="text-center" style="width:${colWidth}">Año</th>
+              <th scope="col" class="text-center" style="width:${colWidth}">AIFA</th>
+              <th scope="col" class="text-center" style="width:${colWidth}">Otra empresa</th>
+              <th scope="col" class="text-center" style="width:${colWidth}">Pasajeros</th>
+              <th scope="col" class="text-center" style="width:${colWidth}">Visitantes</th>
+              <th scope="col" class="text-center" style="width:${colWidth}">Total</th>
+            </tr>
+            <tr class="filter-row">
+              <th><input type="text" class="form-control form-control-sm text-center" placeholder="Buscar..." data-col-index="0" onkeyup="window.medicasTableFilter('medicas-atenciones-inner-table')"></th>
+              <th><input type="text" class="form-control form-control-sm text-center" placeholder="Buscar..." data-col-index="1" onkeyup="window.medicasTableFilter('medicas-atenciones-inner-table')"></th>
+              <th><input type="text" class="form-control form-control-sm text-center" placeholder="Buscar..." data-col-index="2" onkeyup="window.medicasTableFilter('medicas-atenciones-inner-table')"></th>
+              <th><input type="text" class="form-control form-control-sm text-center" placeholder="Buscar..." data-col-index="3" onkeyup="window.medicasTableFilter('medicas-atenciones-inner-table')"></th>
+              <th><input type="text" class="form-control form-control-sm text-center" placeholder="Buscar..." data-col-index="4" onkeyup="window.medicasTableFilter('medicas-atenciones-inner-table')"></th>
+              <th><input type="text" class="form-control form-control-sm text-center" placeholder="Buscar..." data-col-index="5" onkeyup="window.medicasTableFilter('medicas-atenciones-inner-table')"></th>
+              <th><input type="text" class="form-control form-control-sm text-center" placeholder="Buscar..." data-col-index="6" onkeyup="window.medicasTableFilter('medicas-atenciones-inner-table')"></th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -846,31 +877,44 @@
       container.innerHTML = '<div class="text-muted small">Sin datos disponibles para el periodo seleccionado.</div>';
       return;
     }
+    
+    // 6 columns
+    const colWidth = '16.66%';
+
     const rows = dataset.map((item) => {
       const month = escapeHtml(formatMonthTitle(item.mes));
       const year = escapeHtml(String(item.anio || ''));
       const shareText = Number.isFinite(item.share) ? `${(item.share || 0).toFixed(1)}%` : '—';
       return `
         <tr>
-          <th scope="row">${month}</th>
+          <th scope="row" class="text-center">${month}</th>
           <td class="text-center">${year}</td>
-          <td class="text-end">${formatNumber(item.traslado)}</td>
-          <td class="text-end">${formatNumber(item.ambulatorio)}</td>
-          <td class="text-end fw-semibold">${formatNumber(item.total)}</td>
-          <td class="text-end">${escapeHtml(shareText)}</td>
+          <td class="text-center">${formatNumber(item.traslado)}</td>
+          <td class="text-center">${formatNumber(item.ambulatorio)}</td>
+          <td class="text-center fw-semibold">${formatNumber(item.total)}</td>
+          <td class="text-center">${escapeHtml(shareText)}</td>
         </tr>`;
     }).join('');
+
     container.innerHTML = `
-      <div class="table-responsive">
-        <table class="table table-hover table-sm align-middle mb-0">
+      <div class="medicas-table-container">
+        <table class="table table-hover table-sm align-middle mb-0 table-fixed" id="medicas-tipo-inner-table">
           <thead class="table-light">
             <tr>
-              <th scope="col">Mes</th>
-              <th scope="col" class="text-center">Año</th>
-              <th scope="col" class="text-end">Traslado</th>
-              <th scope="col" class="text-end">Ambulatorio</th>
-              <th scope="col" class="text-end">Total</th>
-              <th scope="col" class="text-end">% Traslado</th>
+              <th scope="col" class="text-center" style="width:${colWidth}">Mes</th>
+              <th scope="col" class="text-center" style="width:${colWidth}">Año</th>
+              <th scope="col" class="text-center" style="width:${colWidth}">Traslado</th>
+              <th scope="col" class="text-center" style="width:${colWidth}">Ambulatorio</th>
+              <th scope="col" class="text-center" style="width:${colWidth}">Total</th>
+              <th scope="col" class="text-center" style="width:${colWidth}">% Traslado</th>
+            </tr>
+            <tr class="filter-row">
+              <th><input type="text" class="form-control form-control-sm text-center" placeholder="Buscar..." data-col-index="0" onkeyup="window.medicasTableFilter('medicas-tipo-inner-table')"></th>
+              <th><input type="text" class="form-control form-control-sm text-center" placeholder="Buscar..." data-col-index="1" onkeyup="window.medicasTableFilter('medicas-tipo-inner-table')"></th>
+              <th><input type="text" class="form-control form-control-sm text-center" placeholder="Buscar..." data-col-index="2" onkeyup="window.medicasTableFilter('medicas-tipo-inner-table')"></th>
+              <th><input type="text" class="form-control form-control-sm text-center" placeholder="Buscar..." data-col-index="3" onkeyup="window.medicasTableFilter('medicas-tipo-inner-table')"></th>
+              <th><input type="text" class="form-control form-control-sm text-center" placeholder="Buscar..." data-col-index="4" onkeyup="window.medicasTableFilter('medicas-tipo-inner-table')"></th>
+              <th><input type="text" class="form-control form-control-sm text-center" placeholder="Buscar..." data-col-index="5" onkeyup="window.medicasTableFilter('medicas-tipo-inner-table')"></th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -892,68 +936,67 @@
       container.innerHTML = '<div class="text-muted small">Selecciona al menos un año para visualizar la tabla comparativa.</div>';
       return;
     }
-    const headerCells = years.map((year) => `<th scope="col" class="text-center">${escapeHtml(String(year))}</th>`).join('');
+
+    // 14 columns: Year + 12 Months + Total
+    const colWidth = '7.14%'; 
+
+    const headerMonths = MONTH_ORDER.map(m => `<th scope="col" class="text-center" style="width:${colWidth}">${escapeHtml(m.substring(0,3))}</th>`).join('');
     
-    // Create filter inputs row
-    const filterCells = years.map((year, index) => {
-        // We use index+1 because month is index 0
-        return `<th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." data-col-index="${index+1}" onkeyup="window.medicasCompFilter()"></th>`;
-    }).join('');
+    // Filter Inputs - one for Year, one for each Month, one for Total
+    const filterInputs = MONTH_ORDER.map((_, i) => `<th><input type="text" class="form-control form-control-sm text-center" placeholder="Buscar..." data-col-index="${i+1}" onkeyup="window.medicasTableFilter('medicas-comp-inner-table')"></th>`).join('');
 
-    const bodyRows = MONTH_ORDER.map((month) => {
-      const monthLabel = escapeHtml(formatMonthTitle(month));
-      const cells = years.map((year) => {
-        const bucket = compByYear.get(year) || {};
-        const value = bucket[month];
-        return `<td class="text-center">${formatNumber(value)}</td>`; // Centered content
-      }).join('');
-      return `<tr><th scope="row" class="text-center">${monthLabel}</th>${cells}</tr>`; // Centered Month label
-    }).join('');
-
-    const totalsRow = years.map((year) => {
+    const bodyRows = years.map((year) => {
       const bucket = compByYear.get(year) || {};
+      const cells = MONTH_ORDER.map((month) => {
+        const value = bucket[month];
+        return `<td class="text-center">${Number.isFinite(value) ? formatNumber(value) : '-'}</td>`; 
+      }).join('');
+      
       const sum = MONTH_ORDER.reduce((acc, month) => {
         const value = bucket[month];
         return acc + (Number.isFinite(value) ? value : 0);
       }, 0);
-      return `<td class="text-center fw-semibold">${formatNumber(sum)}</td>`; // Centered Total
+
+      return `<tr>
+        <th scope="row" class="text-center">${escapeHtml(String(year))}</th>
+        ${cells}
+        <td class="text-center fw-bold">${formatNumber(sum)}</td>
+      </tr>`;
     }).join('');
 
     container.innerHTML = `
       <div class="table-responsive">
-        <table class="table table-hover table-sm align-middle mb-0" id="medicas-comp-inner-table">
+        <table class="table table-hover table-sm align-middle mb-0 table-bordered table-fixed" id="medicas-comp-inner-table">
           <thead class="table-light">
             <tr>
-              <th scope="col" class="text-center">Mes</th>
-              ${headerCells}
+              <th scope="col" class="text-center" style="width:${colWidth}">Año</th>
+              ${headerMonths}
+              <th scope="col" class="text-center" style="width:${colWidth}">Total</th>
             </tr>
             <tr class="filter-row">
-              <th><input type="text" class="form-control form-control-sm" placeholder="Filtrar..." data-col-index="0" onkeyup="window.medicasCompFilter()"></th>
-              ${filterCells}
+               <th><input type="text" class="form-control form-control-sm text-center" placeholder="Buscar..." data-col-index="0" onkeyup="window.medicasTableFilter('medicas-comp-inner-table')"></th>
+               ${filterInputs}
+               <th><input type="text" class="form-control form-control-sm text-center" placeholder="Buscar..." data-col-index="13" onkeyup="window.medicasTableFilter('medicas-comp-inner-table')"></th>
             </tr>
           </thead>
           <tbody>${bodyRows}</tbody>
-          <tfoot>
-            <tr>
-              <th scope="row" class="text-center">Total anual</th>
-              ${totalsRow}
-            </tr>
-          </tfoot>
         </table>
       </div>`;
   }
 
-  // Exposed filter function
-  window.medicasCompFilter = function() {
-      const table = document.getElementById('medicas-comp-inner-table');
+  // Generic filter function
+  window.medicasTableFilter = function(tableId) {
+      const table = document.getElementById(tableId);
       if (!table) return;
+      
       const inputs = table.querySelectorAll('.filter-row input');
       const tbody = table.querySelector('tbody');
+      if (!tbody) return;
       const rows = tbody.querySelectorAll('tr');
 
       rows.forEach(row => {
           let show = true;
-          const cells = row.cells; // th (month) is cell 0, tds are next
+          const cells = row.cells;
 
           inputs.forEach(input => {
               if (!show) return;
@@ -961,6 +1004,7 @@
               if (!term) return;
 
               const colIndex = parseInt(input.getAttribute('data-col-index'));
+              // Check bounds
               if (isNaN(colIndex) || colIndex >= cells.length) return;
 
               let cellText = cells[colIndex].textContent.toLowerCase();

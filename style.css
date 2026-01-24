@@ -5913,39 +5913,42 @@ body.dark-mode #ops-years-filters .form-check-input:checked+.form-check-label {
 }
 
 .ops-mini-card--comercial {
-   --ops-mini-bg: linear-gradient(135deg, rgba(30, 136, 229, 0.16), rgba(144, 202, 249, 0.32));
-   --ops-mini-border: rgba(25, 118, 210, 0.28);
-   --ops-mini-shadow: 0 16px 36px rgba(25, 118, 210, 0.16);
-   --ops-mini-shadow-hover: 0 24px 48px rgba(25, 118, 210, 0.24);
-   --ops-mini-icon-bg: rgba(21, 101, 192, 0.18);
-   --ops-mini-icon-color: #0d47a1;
-   --ops-mini-label: rgba(12, 51, 96, 0.8);
-   --ops-mini-value: #0a2b4c;
-   --ops-mini-meta: rgba(12, 51, 96, 0.75);
+   background: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.55)), url('images/Pasillo.jpeg') no-repeat center center / cover;
+   --ops-mini-border: rgba(255, 255, 255, 0.2);
+   --ops-mini-shadow: 0 16px 36px rgba(0, 0, 0, 0.3);
+   --ops-mini-shadow-hover: 0 24px 48px rgba(0, 0, 0, 0.4);
+   --ops-mini-icon-bg: rgba(255, 255, 255, 0.2);
+   --ops-mini-icon-color: #fff;
+   --ops-mini-label: rgba(255, 255, 255, 0.9);
+   --ops-mini-value: #fff;
+   --ops-mini-meta: rgba(255, 255, 255, 0.85);
+   text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
 .ops-mini-card--carga {
-   --ops-mini-bg: linear-gradient(135deg, rgba(255, 152, 0, 0.16), rgba(255, 213, 79, 0.32));
-   --ops-mini-border: rgba(255, 143, 0, 0.28);
-   --ops-mini-shadow: 0 16px 36px rgba(255, 152, 0, 0.14);
-   --ops-mini-shadow-hover: 0 24px 48px rgba(255, 152, 0, 0.22);
-   --ops-mini-icon-bg: rgba(255, 183, 77, 0.22);
-   --ops-mini-icon-color: #b25a00;
-   --ops-mini-label: rgba(123, 65, 0, 0.74);
-   --ops-mini-value: #6a3900;
-   --ops-mini-meta: rgba(123, 65, 0, 0.68);
+   background: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.55)), url('images/Cargolux.jpg') no-repeat center center / cover;
+   --ops-mini-border: rgba(255, 255, 255, 0.2);
+   --ops-mini-shadow: 0 16px 36px rgba(0, 0, 0, 0.3);
+   --ops-mini-shadow-hover: 0 24px 48px rgba(0, 0, 0, 0.4);
+   --ops-mini-icon-bg: rgba(255, 255, 255, 0.2);
+   --ops-mini-icon-color: #fff;
+   --ops-mini-label: rgba(255, 255, 255, 0.9);
+   --ops-mini-value: #fff;
+   --ops-mini-meta: rgba(255, 255, 255, 0.85);
+   text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
 .ops-mini-card--general {
-   --ops-mini-bg: linear-gradient(135deg, rgba(56, 142, 60, 0.16), rgba(165, 214, 167, 0.32));
-   --ops-mini-border: rgba(46, 125, 50, 0.24);
-   --ops-mini-shadow: 0 16px 36px rgba(46, 125, 50, 0.16);
-   --ops-mini-shadow-hover: 0 24px 48px rgba(46, 125, 50, 0.22);
-   --ops-mini-icon-bg: rgba(76, 175, 80, 0.2);
-   --ops-mini-icon-color: #225c33;
-   --ops-mini-label: rgba(16, 67, 41, 0.74);
-   --ops-mini-value: #0c3a24;
-   --ops-mini-meta: rgba(16, 67, 41, 0.7);
+   background: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.55)), url('images/Privado.jpeg') no-repeat center center / cover;
+   --ops-mini-border: rgba(255, 255, 255, 0.2);
+   --ops-mini-shadow: 0 16px 36px rgba(0, 0, 0, 0.3);
+   --ops-mini-shadow-hover: 0 24px 48px rgba(0, 0, 0, 0.4);
+   --ops-mini-icon-bg: rgba(255, 255, 255, 0.2);
+   --ops-mini-icon-color: #fff;
+   --ops-mini-label: rgba(255, 255, 255, 0.9);
+   --ops-mini-value: #fff;
+   --ops-mini-meta: rgba(255, 255, 255, 0.85);
+   text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
 .ops-mini-card--neutral {
@@ -10602,3 +10605,133 @@ body.dark-mode #fauna-rescate-table .table-container-tech.h-scroll-area thead th
     color: #e2e8f0;
     box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
+
+/* Styles for Modern Search Inputs in Itinerary Tables */
+.search-input-modern {
+    border-radius: 6px;
+    border: 1px solid #e0e6ed;
+    background-color: #f8fafc;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #334155;
+    transition: all 0.2s ease-in-out;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.search-input-modern:focus {
+    background-color: #ffffff;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+    outline: none;
+}
+
+.search-input-modern::placeholder {
+    color: #94a3b8;
+    font-weight: 400;
+    font-size: 0.68rem;
+    letter-spacing: 0.02em;
+}
+
+.search-inputs-row th {
+    vertical-align: middle;
+    background-color: #f1f5f9; /* Mild contrast for the search row */
+    padding: 0.25rem !important;
+}
+
+/* Adjust cell padding in the search row to be tight */
+.search-inputs-row th.p-1 {
+    padding: 0.25rem 0.35rem !important;
+}
+
+
+/* Sticky Header Interaction Fixes */
+.floating-table-header .daily-it-search {
+    pointer-events: auto !important;
+    cursor: text;
+}
+.floating-table-header .daily-it-search:focus {
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+}
+
+/* Zebra Striping & Centering */
+.itinerary-airline-table table tbody tr:nth-child(even) {
+    background-color: rgba(241, 245, 249, 0.5); /* Subtle stripe */
+}
+/* Ensure hover effect stays on top */
+.itinerary-airline-table table tbody tr:hover {
+    background-color: var(--airline-row-hover, rgba(0,0,0,0.05)) !important;
+}
+.itinerary-airline-table th, 
+.itinerary-airline-table td {
+    vertical-align: middle;
+}
+
+/* Scroll Hint Legend */
+.scroll-filter-hint {
+    position: fixed;
+    top: 90px; /* Below navbar */
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: rgba(15, 23, 42, 0.85);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    pointer-events: none; /* Just a label */
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 2200;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.scroll-filter-hint.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+
+ / *   M e d i c a l   T a b l e s   S c r o l l   F i x   * / 
+ . m e d i c a s - t a b l e - c o n t a i n e r   { 
+     m a x - h e i g h t :   4 5 0 p x ; 
+     o v e r f l o w - y :   a u t o ; 
+     b o r d e r :   1 p x   s o l i d   v a r ( - - b o r d e r - c o l o r ) ; 
+     b o r d e r - r a d i u s :   0 . 3 7 5 r e m ; 
+     s c r o l l b a r - w i d t h :   t h i n ; 
+ } 
+ . m e d i c a s - t a b l e - c o n t a i n e r   t h e a d   t h   { 
+     p o s i t i o n :   s t i c k y ; 
+     t o p :   0 ; 
+     b a c k g r o u n d - c o l o r :   # f 8 f 9 f a ; 
+     z - i n d e x :   2 ; 
+     b o x - s h a d o w :   0   2 p x   4 p x   r g b a ( 0 , 0 , 0 , 0 . 0 5 ) ; 
+ } 
+ / *   E n s u r e   i n n e r   t a b l e   d o e s n ' t   h a v e   d o u b l e   b o r d e r   * / 
+ . m e d i c a s - t a b l e - c o n t a i n e r   t a b l e   { 
+     m a r g i n - b o t t o m :   0 ; 
+ } 
+  
+ 
+ / *   F i x e d   L a y o u t   T a b l e s   * / 
+ . t a b l e - f i x e d   { 
+     t a b l e - l a y o u t :   f i x e d ; 
+     w i d t h :   1 0 0 % ; 
+ } 
+ . t a b l e - f i x e d   t h ,   . t a b l e - f i x e d   t d   { 
+     o v e r f l o w :   h i d d e n ; 
+     t e x t - o v e r f l o w :   e l l i p s i s ; 
+     w h i t e - s p a c e :   n o w r a p ; 
+     v e r t i c a l - a l i g n :   m i d d l e ; 
+ } 
+ / *   C e n t e r e d   I n p u t s   i n   F i l t e r   R o w   * / 
+ . f i l t e r - r o w   i n p u t   { 
+     t e x t - a l i g n :   c e n t e r ; 
+     f o n t - s i z e :   0 . 8 5 e m ; 
+     p a d d i n g :   0 . 2 5 r e m   0 . 5 r e m ; 
+ } 
+  
+ 
