@@ -1,4 +1,4 @@
-(function(){
+﻿(function(){
   const pane = document.getElementById('frecuencias-auto-int-pane');
   if (!pane) return;
 
@@ -140,6 +140,7 @@
       search: pane.querySelector('#frecuencias-int-search')
     },
     resetFilters: pane.querySelector('#frecuencias-int-reset-filters'),
+    excelButton: pane.querySelector('#frecuencias-int-download-excel'),
     // activeFilters: pane.querySelector('#frecuencias-active-filters'), // Not in int HTML
     dowList: pane.querySelector('#frecuencias-int-dow-list'),
     // insights: pane.querySelector('#frecuencias-insights'),
@@ -351,6 +352,7 @@
       if (dom.filters.search) dom.filters.search.value = '';
       applyFilters();
     });
+    if (dom.excelButton) dom.excelButton.addEventListener('click', downloadExcel);
     if (dom.fitButton) {
       // Agrupar botones en un contenedor para mantener el layout
       const header = dom.fitButton.parentNode;
@@ -1423,6 +1425,200 @@
       clearTimeout(timeout);
       timeout = setTimeout(() => fn.apply(this, args), wait);
     };
+  }
+
+  async function downloadExcel() {
+    if (!state.filtered || state.filtered.length === 0) {
+      alert('No hay datos para exportar.');
+      return;
+    }
+
+    // Dynamic Headers
+    let headers = ["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"];
+    if (state.raw && state.raw.validFrom) {
+        const start = new Date(state.raw.validFrom + 'T00:00:00');
+        headers = headers.map((day, idx) => {
+            const d = new Date(start);
+            d.setDate(d.getDate() + idx);
+            const span = `${d.getDate()}/${d.getMonth()+1}`;
+            return `${day} ${span}`;
+        });
+    }
+
+    // Initialize Workbook
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Frecuencias Internacionales');
+
+    // Define columns
+    worksheet.columns = [
+        { header: 'Id Ruta', key: 'id', width: 12 },
+        { header: 'Destino', key: 'dest', width: 25 },
+        { header: 'Aerolínea', key: 'airline', width: 50 }, // MUCH wider to allow logos to scale up
+        { header: headers[0], key: 'd1', width: 12 },
+        { header: headers[1], key: 'd2', width: 12 },
+        { header: headers[2], key: 'd3', width: 12 },
+        { header: headers[3], key: 'd4', width: 12 },
+        { header: headers[4], key: 'd5', width: 12 },
+        { header: headers[5], key: 'd6', width: 12 },
+        { header: headers[6], key: 'd7', width: 12 },
+        { header: 'Total', key: 'total', width: 12 }
+    ];
+
+    // Style Header Row
+    const headerRow = worksheet.getRow(1);
+    headerRow.eachCell((cell) => {
+        cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF0A1F44' }
+        };
+        cell.font = {
+            color: { argb: 'FFFFFFFF' },
+            bold: true
+        };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    });
+    headerRow.height = 30;
+
+    // Helper to fetch image
+    const imageCache = {};
+    const fetchImage = async (url) => {
+        if (imageCache[url]) return imageCache[url];
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const buffer = await blob.arrayBuffer();
+            imageCache[url] = buffer;
+            return buffer;
+        } catch (e) {
+            console.warn('Could not load image', url, e);
+            return null;
+        }
+    };
+
+    // Iterate Data
+    for (const dest of state.filtered) {
+        const airlines = (dest.viewAirlines?.length ? dest.viewAirlines : dest.airlines) || [];
+        const usedAirlines = airlines.length ? airlines : [{ name: 'Sin datos', daily: Array(7).fill(0), weeklyTotal: 0 }];
+        
+        const startRow = worksheet.rowCount + 1;
+
+        for (const airline of usedAirlines) {
+            const slug = airline.slug || slugify(airline.name || 'default');
+            const legacyConfig = AIRLINE_CONFIG[slug] || AIRLINE_CONFIG['default'];
+            const config = {
+                logo: airline.logo || legacyConfig.logo,
+                color: airline.color || legacyConfig.color,
+                text: airline.color ? '#ffffff' : legacyConfig.text
+            };
+            
+            const rowValues = {
+                id: dest.routeId || dest.iata || '',
+                dest: dest.city || dest.name,
+                airline: config.logo ? '' : airline.name,
+                d1: formatVal(airline.daily?.[0]),
+                d2: formatVal(airline.daily?.[1]),
+                d3: formatVal(airline.daily?.[2]),
+                d4: formatVal(airline.daily?.[3]),
+                d5: formatVal(airline.daily?.[4]),
+                d6: formatVal(airline.daily?.[5]),
+                d7: formatVal(airline.daily?.[6]),
+                total: airline.weeklyTotal
+            };
+
+            const row = worksheet.addRow(rowValues);
+            row.height = 60; // Adjusted height
+
+            // Styling
+            // Apply borders and alignment to all cells
+            row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                 cell.border = {
+                     top: { style: 'thin' },
+                     left: { style: 'thin' },
+                     bottom: { style: 'thin' },
+                     right: { style: 'thin' }
+                 };
+                 cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            });
+
+            // Specific overrides
+            const airlineColorHex = 'FF' + config.color.replace('#', '');
+            const airlineTextHex = 'FF' + config.text.replace('#', '');
+
+             // 1 (Id), 2 (Dest), 3 (Airline) -> White Background, Black Text
+            [1, 2, 3].forEach(c => {
+                const cell = row.getCell(c);
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
+                cell.font = { color: { argb: 'FF000000' }, bold: c === 1 }; 
+                cell.alignment = { 
+                    horizontal: c === 2 ? 'left' : 'center', 
+                    vertical: 'middle', 
+                    wrapText: true 
+                };
+            });
+
+            // 4 to 10: Days (Airline Color)
+            for (let c = 4; c <= 10; c++) {
+                const cell = row.getCell(c);
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: airlineColorHex } };
+                cell.font = { color: { argb: airlineTextHex }, bold: false };
+            }
+
+            // 11: Total (Light Gray)
+            const totalCell = row.getCell(11);
+            totalCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+            totalCell.font = { color: { argb: 'FF000000' }, bold: true };
+
+
+            // Insert Image Logo if exists
+            if (config.logo) {
+                const imageUrl = `images/airlines/${config.logo}`;
+                const imgBuffer = await fetchImage(imageUrl);
+                if (imgBuffer) {
+                    const imageId = workbook.addImage({
+                        buffer: imgBuffer,
+                        extension: 'png',
+                    });
+                    
+                    // Default padding for nice centering (20% W, 15% H padding)
+                    let tlCol = 2.20; 
+                    let brCol = 2.80;
+                    let tlRow = row.number - 0.85; 
+                    let brRow = row.number - 0.15;
+
+                    // Special case: Make specific airlines larger
+                    if (['aeromexico', 'aeromexico-connect', 'mexicana', 'volaris'].some(s => slug.includes(s))) {
+                        tlCol = 2.05; // Only 5% padding
+                        brCol = 2.95;
+                        tlRow = row.number - 0.95; // Only 5% vertical padding
+                        brRow = row.number - 0.05;
+                    }
+
+                    worksheet.addImage(imageId, {
+                        tl: { col: tlCol, row: tlRow }, 
+                        br: { col: brCol, row: brRow },
+                        editAs: 'oneCell'
+                    });
+                } else {
+                     row.getCell(3).value = airline.name;
+                }
+            }
+        }
+
+        // Merge ID and Dest columns if multiple airlines
+        if (usedAirlines.length > 1) {
+            const endRow = worksheet.rowCount;
+            worksheet.mergeCells(`A${startRow}:A${endRow}`);
+            worksheet.mergeCells(`B${startRow}:B${endRow}`);
+        }
+    }
+    
+    function formatVal(v) { return (v && v > 0) ? v : '-'; }
+
+    // Save
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, 'Frecuencias_Internacionales_AIFA.xlsx');
   }
 
   function slugify(str){

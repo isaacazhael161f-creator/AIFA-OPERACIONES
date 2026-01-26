@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -29,6 +29,8 @@
     </script>
 
     <script src="js/supabase-client.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
         /* Excel-like Filter Styles */
         .excel-filter-header {
@@ -4067,6 +4069,9 @@
                                                             id="frecuencias-reset-filters"><i
                                                                 class="fas fa-eraser me-1"></i>Limpiar
                                                             filtros</button>
+                                                        <button class="btn btn-outline-success btn-sm"
+                                                            id="frecuencias-download-excel"><i
+                                                                class="fas fa-file-excel me-1"></i>Descargar Excel</button>
                                                         <span class="small text-muted"
                                                             id="frecuencias-active-filters">Mostrando
                                                             todos los
@@ -4273,11 +4278,13 @@
                                                                 class="form-control form-control-sm"
                                                                 placeholder="Ciudad, país o aerolínea">
                                                         </div>
-                                                        <div class="col-12 col-lg-3">
-                                                            <button class="btn btn-outline-secondary btn-sm w-100"
+                                                        <div class="col-12 col-lg-3 d-flex gap-2">
+                                                            <button class="btn btn-outline-secondary btn-sm flex-fill"
                                                                 id="frecuencias-int-reset-filters"><i
-                                                                    class="fas fa-eraser me-1"></i>Limpiar
-                                                                filtros</button>
+                                                                    class="fas fa-eraser me-1"></i>Limpiar</button>
+                                                            <button class="btn btn-outline-success btn-sm flex-fill"
+                                                                id="frecuencias-int-download-excel"><i
+                                                                    class="fas fa-file-excel me-1"></i>Excel</button>
                                                         </div>
                                                     </div>
                                                 </div>
