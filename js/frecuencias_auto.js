@@ -229,30 +229,15 @@
       // safer:
       today.setHours(0,0,0,0);
 
-      let selectedKey = null;
-      let minDiff = Infinity;
+      // FORCE LATEST WEEK LOGIC (AS PER USER REQUEST)
+      // Instead of finding the "closest" week, we strictly find the week with the LATEST validFrom date.
+      // This ensures that as soon as a new week is uploaded (even if it's future), it becomes the default view.
+      
+      const sortedKeys = Object.keys(groups).sort((a, b) => {
+          return groups[b].validFrom - groups[a].validFrom; // Descending date
+      });
 
-      // Logic: 
-      // 1. Look for week containing today.
-      // 2. If not found, look for week starting closest to today.
-
-      for (const [key, group] of Object.entries(groups)) {
-          const from = group.validFrom;
-          const to = group.validTo;
-          
-          // Check if today is matching range
-          if (today >= from && today <= to) {
-              selectedKey = key;
-              break; // Found current week, stop searching
-          }
-
-          // Calculate distance to start date
-          const diff = Math.abs(today - from);
-          if (diff < minDiff) {
-              minDiff = diff;
-              selectedKey = key;
-          }
-      }
+      let selectedKey = sortedKeys[0];
 
       // If no valid week found? Should not happen if rows exist.
       if (!selectedKey) selectedKey = Object.keys(groups)[0];

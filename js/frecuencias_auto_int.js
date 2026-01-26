@@ -242,24 +242,13 @@
       const today = new Date();
       today.setHours(0,0,0,0);
 
-      let selectedKey = null;
-      let minDiff = Infinity;
+      // FORCE LATEST WEEK LOGIC (AS PER USER REQUEST)
+      // Sort by validFrom descending to always pick the newest week available in DB
+      const sortedKeys = Object.keys(groups).sort((a, b) => {
+          return groups[b].validFrom - groups[a].validFrom;
+      });
 
-      for (const [key, group] of Object.entries(groups)) {
-          const from = group.validFrom;
-          const to = group.validTo;
-          
-          if (today >= from && today <= to) {
-              selectedKey = key;
-              break;
-          }
-
-          const diff = Math.abs(today - from);
-          if (diff < minDiff) {
-              minDiff = diff;
-              selectedKey = key;
-          }
-      }
+      let selectedKey = sortedKeys[0];
 
       if (!selectedKey) selectedKey = Object.keys(groups)[0];
 
