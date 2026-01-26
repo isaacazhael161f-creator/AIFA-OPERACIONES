@@ -3414,6 +3414,10 @@ async function loadItineraryData(options = {}) {
 function applyClientSideTableFilter(tableContainer, searchState) {
     if (!tableContainer || !searchState) return;
     
+    // Detect Cargo context
+    const card = tableContainer.closest('.itinerary-general-card');
+    const isCargo = card && card.classList.contains('itinerary-general-card--cargo');
+
     const tbody = tableContainer.querySelector('tbody');
     if (!tbody) return;
     const rows = tbody.querySelectorAll('tr');
@@ -3426,19 +3430,37 @@ function applyClientSideTableFilter(tableContainer, searchState) {
             let cellText = '';
             
             // Map col key to cell index or class
-            // Columns: 0:Aerolínea, 1:Aeronave, 2:Vuelo Lleg, 3:Fecha, 4:Hora, 5:Origen, 6:Banda, 7:Pos, 8:Vuelo Sal, 9:Fecha, 10:Hora, 11:Destino
             if (col === 'aerolinea') cellText = row.cells[0]?.textContent || '';
             else if (col === 'aircraft') cellText = row.cells[1]?.textContent || '';
             else if (col === 'vuelo_llegada') cellText = row.cells[2]?.textContent || '';
             else if (col === 'fecha_llegada') cellText = row.cells[3]?.textContent || '';
             else if (col === 'hora_llegada') cellText = row.cells[4]?.textContent || '';
             else if (col === 'origen') cellText = row.cells[5]?.textContent || '';
-            else if (col === 'banda') cellText = row.cells[6]?.textContent || '';
-            else if (col === 'posicion') cellText = row.cells[7]?.textContent || '';
-            else if (col === 'vuelo_salida') cellText = row.cells[8]?.textContent || '';
-            else if (col === 'fecha_salida') cellText = row.cells[9]?.textContent || '';
-            else if (col === 'hora_salida') cellText = row.cells[10]?.textContent || '';
-            else if (col === 'destino') cellText = row.cells[11]?.textContent || '';
+            
+            else if (col === 'banda') {
+                // Cargo tables don't have banda usually, or it's skipped
+                if (!isCargo) cellText = row.cells[6]?.textContent || '';
+            }
+            else if (col === 'posicion') {
+                if (isCargo) cellText = row.cells[6]?.textContent || ''; // Pos is col 6 in cargo
+                else cellText = row.cells[7]?.textContent || '';       // Pos is col 7 in pax
+            }
+            else if (col === 'vuelo_salida') {
+                if (isCargo) cellText = row.cells[7]?.textContent || '';
+                else cellText = row.cells[8]?.textContent || '';
+            }
+            else if (col === 'fecha_salida') {
+                if (isCargo) cellText = row.cells[8]?.textContent || '';
+                else cellText = row.cells[9]?.textContent || '';
+            }
+            else if (col === 'hora_salida') {
+                if (isCargo) cellText = row.cells[9]?.textContent || '';
+                else cellText = row.cells[10]?.textContent || '';
+            }
+            else if (col === 'destino') {
+                if (isCargo) cellText = row.cells[10]?.textContent || '';
+                else cellText = row.cells[11]?.textContent || '';
+            }
             
             if (!cellText.toUpperCase().includes(val)) {
                 visible = false;
@@ -3448,6 +3470,58 @@ function applyClientSideTableFilter(tableContainer, searchState) {
         row.style.display = visible ? '' : 'none';
     });
 }
+
+// Improved Global Helper handling Scope
+window.setGlobalItineraryFilter = function(airlineName, scope) {
+    if (!airlineName) return;
+    const cleanName = airlineName.trim().toUpperCase();
+    
+    // scope is 'pax' or 'cargo' (values from js/itinerario.js)
+    // Map scope to container IDs
+    const containerId = (scope === 'cargo') ? 'cargo-itinerary-container' : 'passenger-itinerary-container';
+    
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    // Find input in this container
+    const input = container.querySelector('input[data-col="aerolinea"]');
+    if (input) {
+        input.value = cleanName;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        
+        // Scroll to the container so user sees result
+        // container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Optional: clear the OTHER table's filter to avoid confusion? 
+        // Or keep them independent. Let's keep independent.
+    } else {
+        console.warn(`Input filter not found in ${containerId}`);
+    }
+};
+
+// Global helper acting as bridge from onclick in generated HTML
+window.setItineraryAirlineFilter = function(airlineName, element) {
+    if (!airlineName) return;
+    const cleanName = airlineName.trim().toUpperCase();
+    
+    // Find the container of the clicked element
+    // Element is the div.airline-cell -> td -> tr -> tbody -> table -> .itinerary-airline-table -> .card-body -> .itinerary-general-card
+    // or closer: .itinerary-airline-table usually
+    
+    const container = element.closest('.itinerary-general-card');
+    if (!container) return;
+    
+    // Find the search input for 'aerolinea' within this container
+    const input = container.querySelector('input[data-col="aerolinea"]');
+    if (input) {
+        input.value = cleanName;
+        // Trigger input event to run the filter logic
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        
+        // Improve UX: Scroll to table thread so user sees the filter applied
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+};
 
 function updateAirlineQuickSummary(options = {}) {
     const card = document.getElementById('airline-summary-card');
@@ -5302,7 +5376,7 @@ function displayPassengerTable(flights) {
         const dateDep = formatDateDMY(flight?.fecha_salida);
 
         return `<tr class="animated-row" style="--delay:${delay}s; --airline-color:${rowColor}; --airline-row-hover:${rowHover}; --airline-row-hover-dark:${rowHoverDark};">
-            <td><div class="airline-cell${logoHtml ? ' has-logo' : ''}">${logoHtml}<span class="airline-dot" style="background:${rowColor};"></span><span class="airline-name">${escapeHTML(displayAirline)}</span></div></td>
+            <td><div class="airline-cell${logoHtml ? ' has-logo' : ''}" role="button" onclick="window.setItineraryAirlineFilter('${escapeHTML(displayAirline)}', this)" title="Filtrar por ${escapeHTML(displayAirline)}">${logoHtml}<span class="airline-dot" style="background:${rowColor};"></span><span class="airline-name">${escapeHTML(displayAirline)}</span></div></td>
             <td class="text-center">${formatCell(aircraft)}</td>
             <td class="text-center">${formatCell(flight?.vuelo_llegada)}</td>
             <td class="text-center">${formatCell(dateArr)}</td>
@@ -5477,7 +5551,7 @@ function displayCargoTable(flights) {
         const dateDep = formatDateDMY(flight?.fecha_salida);
 
         return `<tr class="animated-row" style="--delay:${delay}s; --airline-color:${rowColor}; --airline-row-hover:${rowHover}; --airline-row-hover-dark:${rowHoverDark};">
-            <td><div class="airline-cell${logoHtml ? ' has-logo' : ''}">${logoHtml}<span class="airline-dot" style="background:${rowColor};"></span><span class="airline-name">${escapeHTML(displayAirline)}</span></div></td>
+            <td><div class="airline-cell${logoHtml ? ' has-logo' : ''}" role="button" onclick="window.setItineraryAirlineFilter('${escapeHTML(displayAirline)}', this)" title="Filtrar por ${escapeHTML(displayAirline)}">${logoHtml}<span class="airline-dot" style="background:${rowColor};"></span><span class="airline-name">${escapeHTML(displayAirline)}</span></div></td>
             <td>${formatCell(aircraft)}</td>
             <td>${formatCell(flight?.vuelo_llegada)}</td>
             <td>${formatCell(dateArr)}</td>
@@ -5519,18 +5593,31 @@ function displayCargoTable(flights) {
                 <div class="table-responsive itinerary-airline-table">
                     <table class="table table-hover align-middle mb-0">
                         <thead>
-                            <tr>
-                                <th>Aerolínea</th>
-                                <th>Aeronave</th>
-                                <th>Vuelo Lleg.</th>
-                                <th>Fecha Lleg.</th>
-                                <th>Hora Lleg.</th>
-                                <th class="col-origen">Origen</th>
-                                <th>Posición</th>
-                                <th>Vuelo Sal.</th>
-                                <th>Fecha Sal.</th>
-                                <th>Hora Sal.</th>
-                                <th class="col-destino">Destino</th>
+                            <tr class="align-middle">
+                                <th class="text-center">Aerolínea</th>
+                                <th class="text-center">Aeronave</th>
+                                <th class="text-center">Vuelo Lleg.</th>
+                                <th class="text-center">Fecha Lleg.</th>
+                                <th class="text-center">Hora Lleg.</th>
+                                <th class="col-origen text-center">Origen</th>
+                                <th class="text-center">Posición</th>
+                                <th class="text-center">Vuelo Sal.</th>
+                                <th class="text-center">Fecha Sal.</th>
+                                <th class="text-center">Hora Sal.</th>
+                                <th class="col-destino text-center">Destino</th>
+                            </tr>
+                            <tr class="search-inputs-row">
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="aerolinea" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="aircraft" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="vuelo_llegada" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="fecha_llegada" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="hora_llegada" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="origen" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="posicion" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="vuelo_salida" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="fecha_salida" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="hora_salida" placeholder="Buscar..."></th>
+                                <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="destino" placeholder="Buscar..."></th>
                             </tr>
                         </thead>
                         <tbody>${rows}</tbody>
@@ -5543,6 +5630,35 @@ function displayCargoTable(flights) {
     if (tableEl) {
         setupDynamicTableHeader(tableEl, 'cargo-itinerary');
     }
+
+    // Initialize search logic for cargo table
+    setTimeout(() => {
+        const inputs = container.querySelectorAll('.daily-it-search');
+        if (!inputs.length) return;
+        const tableContainer = container.querySelector('.itinerary-airline-table');
+
+        // Restore state
+        if (window.dailyItinerarySearchState) {
+            inputs.forEach(inp => {
+                const col = inp.dataset.col;
+                if (window.dailyItinerarySearchState[col]) {
+                    inp.value = window.dailyItinerarySearchState[col];
+                }
+            });
+            applyClientSideTableFilter(tableContainer, window.dailyItinerarySearchState);
+        }
+
+        inputs.forEach(input => {
+            input.addEventListener('input', (e) => {
+                const val = e.target.value.trim().toUpperCase();
+                const col = e.target.dataset.col;
+                if (!window.dailyItinerarySearchState) window.dailyItinerarySearchState = {};
+                window.dailyItinerarySearchState[col] = val;
+                applyClientSideTableFilter(tableContainer, window.dailyItinerarySearchState);
+            });
+        });
+    }, 50);
+
     wireItineraryExports();
     console.log(`[perf] carga tabla: ${(performance.now() - t0).toFixed(1)}ms, filas=${flightsList.length}`);
 }

@@ -660,6 +660,7 @@
     }
   }
   async function renderItineraryCharts() {
+    try {
     // Sincronizar con filtros activos del Inicio si está habilitado (por defecto sí)
     const sync = (window.syncItineraryFiltersToCharts !== false);
     const fState = window.currentItineraryFilterState || {};
@@ -755,9 +756,15 @@
     bindChartClicks();
     // Marcar banderas de renderizado exitoso para diagnóstico externo
     window._itineraryChartsOk = true;
+    } catch (e) {
+      console.error('Error renderItineraryCharts:', e);
+    }
   }
   function renderInsightCards(scope, insights){
-    if (!insights || !insights.totals) return;
+    if (!insights || !insights.totals) {
+      console.warn('Radar: Sin insights para scope', scope);
+      return;
+    }
     const fmt = (n)=> typeof n === 'number' ? n.toLocaleString('es-MX') : '-';
     const setText = (id, text)=>{ const el = document.getElementById(id); if (el) el.textContent = text; };
     const share = (part, total)=>{
@@ -797,7 +804,15 @@
         ? '<span class="text-muted">Sin registros</span>'
         : `<button type="button" class="btn btn-link p-0" data-peak-flight data-scope="${scope}" data-airline="${escapeAttr(row.name)}" data-airline-key="${escapeAttr(row.key || norm(row.name))}" data-hour="${row.peakHour}"><strong>${String(row.peakHour).padStart(2,'0')}:00</strong> · ${fmt(row.peakCount)} ops</button>`;
       return `<tr>
-        <td class="text-center">${renderAirlineTableCell(row.name)}</td>
+        <td class="text-center">
+          <button type="button" class="btn btn-link p-0 border-0 text-decoration-none" 
+            onclick="if(window.setGlobalItineraryFilter && typeof window.setGlobalItineraryFilter === 'function'){ window.setGlobalItineraryFilter('${escapeAttr(row.name)}', '${scope}'); } else { console.warn('Filter function missing'); }"
+            data-scope="${scope}" 
+            data-airline="${escapeAttr(row.name)}" 
+            title="Ver todos los vuelos de ${escapeAttr(row.name)}">
+            ${renderAirlineTableCell(row.name)}
+          </button>
+        </td>
         <td class="text-center fw-semibold">${fmt(row.total)}</td>
         <td class="text-center text-success">${fmt(row.arrivals)}</td>
         <td class="text-center text-info">${fmt(row.departures)}</td>
@@ -935,7 +950,21 @@
     });
     ['graficas-itinerario-tab','radar-operativo-tab'].forEach(tabId => {
       const trigger = document.getElementById(tabId);
-      if (trigger) trigger.addEventListener('shown.bs.tab', ()=> renderItineraryCharts());
+      if (trigger) trigger.addEventListener('shown.bs.tab', (e) => {
+        renderItineraryCharts();
+        // Force hide sibling panes to prevent layout layout ghosts
+        if (tabId === 'radar-operativo-tab') {
+           const graficas = document.getElementById('graficas-itinerario-pane');
+           if(graficas) graficas.style.display = 'none';
+           const radar = document.getElementById('radar-operativo-pane');
+           if(radar) radar.style.display = 'block';
+        } else {
+           const graficas = document.getElementById('graficas-itinerario-pane');
+           if(graficas) graficas.style.display = ''; // Reset
+           const radar = document.getElementById('radar-operativo-pane');
+           if(radar) radar.style.display = ''; // Reset
+        }
+      });
     });
     const closeBtn = document.getElementById('it-peak-results-close');
     if (closeBtn) closeBtn.addEventListener('click', hidePeakResults);
