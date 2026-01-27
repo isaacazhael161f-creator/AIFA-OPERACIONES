@@ -167,19 +167,25 @@ class AdminUI {
 
     // Generic method to open edit/add form for a record
     openEditModal(table, record, schema) {
-        this.currentTable = table;
-        this.currentRecord = record; // If null, it's an ADD operation
-        this.currentSchema = schema; // Array of field definitions { name, type, label }
-        this.currentRecordFiles = {};
+        try {
+            this.currentTable = table;
+            this.currentRecord = record; // If null, it's an ADD operation
+            this.currentSchema = schema; // Array of field definitions { name, type, label }
+            this.currentRecordFiles = {};
 
-        const form = document.getElementById('admin-form');
-        form.innerHTML = '';
-        const modalTitle = document.getElementById('admin-modal-title');
-        modalTitle.innerText = record ? 'Editar Registro' : 'Agregar Nuevo Registro';
+            const form = document.getElementById('admin-form');
+            if (!form) {
+                console.error("Admin form not found!");
+                return;
+            }
+            form.innerHTML = '';
+            
+            const modalTitle = document.getElementById('admin-modal-title');
+            if (modalTitle) modalTitle.innerText = record ? 'Editar Registro' : 'Agregar Nuevo Registro';
 
-        // Build form with nicer layout: two-column grid for compactness
-        // For specific tables, allow reordering to match UX expectations
-        let fieldsToRender = Array.isArray(schema) ? [...schema] : [];
+            // Build form with nicer layout: two-column grid for compactness
+            // For specific tables, allow reordering to match UX expectations
+            let fieldsToRender = Array.isArray(schema) ? [...schema] : [];
         if (this.currentTable === 'daily_operations') {
             const preferredOrder = [
                 'date',
@@ -448,7 +454,7 @@ class AdminUI {
                 input.placeholder = field.placeholder || '';
             }
 
-            if (record && field.type !== 'select') {
+            if (record && field.type !== 'select' && field.type !== 'file') {
                 const rawVal = record[field.name] == null ? '' : record[field.name];
                 if (field.type === 'number' && rawVal !== '') {
                     try {
@@ -502,9 +508,24 @@ class AdminUI {
                 if (existing) {
                     let files = [];
                     try {
-                        files = typeof existing === 'string' && existing.startsWith('[') ? JSON.parse(existing) : (Array.isArray(existing) ? existing : [{ url: existing, name: existing.split('/').pop() }]);
+                        if (typeof existing === 'string') {
+                            if (existing.startsWith('[')) {
+                                files = JSON.parse(existing);
+                            } else {
+                                files = [{ url: existing, name: existing.split('/').pop() }];
+                            }
+                        } else if (Array.isArray(existing)) {
+                            files = existing;
+                        } else if (existing && typeof existing === 'object') {
+                            // Handle single object (Supabase JSONB quirk)
+                            if (existing.url) files = [existing];
+                            else files = []; 
+                        } else {
+                             files = [];
+                        }
                     } catch (e) {
-                        files = [{ url: existing, name: existing.split('/').pop() }];
+                        console.warn('Error parsing file field', e);
+                        files = [];
                     }
                     this.currentRecordFiles[field.name] = files;
 
@@ -514,23 +535,26 @@ class AdminUI {
 
                     const renderFiles = () => {
                         filesContainer.innerHTML = '';
-                        this.currentRecordFiles[field.name].forEach((file, idx) => {
-                            const url = typeof file === 'string' ? file : file.url;
-                            const name = file.name || url.split('/').pop();
+                        if (this.currentRecordFiles[field.name] && Array.isArray(this.currentRecordFiles[field.name])) {
+                            this.currentRecordFiles[field.name].forEach((file, idx) => {
+                                if (!file) return;
+                                const url = typeof file === 'string' ? file : (file.url || '');
+                                const name = file.name || (url ? url.split('/').pop() : 'Archivo');
 
-                            const div = document.createElement('div');
-                            div.className = 'd-flex align-items-center justify-content-between p-2 rounded border bg-light small';
-                            div.innerHTML = `
-                                <span class="text-truncate me-2"><i class="fas fa-file me-1"></i> ${name}</span>
-                                <div class="btn-group">
-                                    <a href="${url}" target="_blank" class="btn btn-sm btn-link text-primary p-0 px-2"><i class="fas fa-external-link-alt"></i></a>
-                                    <button type="button" class="btn btn-sm btn-link text-danger p-0 px-2 remove-file-btn" data-field="${field.name}" data-index="${idx}"><i class="fas fa-trash"></i></button>
-                                </div>
-                            `;
-                            filesContainer.appendChild(div);
-                        });
+                                const div = document.createElement('div');
+                                div.className = 'd-flex align-items-center justify-content-between p-2 rounded border bg-light small';
+                                div.innerHTML = `
+                                    <span class="text-truncate me-2"><i class="fas fa-file me-1"></i> ${name}</span>
+                                    <div class="btn-group">
+                                        ${url ? `<a href="${url}" target="_blank" class="btn btn-sm btn-link text-primary p-0 px-2"><i class="fas fa-external-link-alt"></i></a>` : ''}
+                                        <button type="button" class="btn btn-sm btn-link text-danger p-0 px-2 remove-file-btn" data-field="${field.name}" data-index="${idx}"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                `;
+                                filesContainer.appendChild(div);
+                            });
+                        }
 
-                        // Attach remove listeners
+                        // Attach remove listners
                         filesContainer.querySelectorAll('.remove-file-btn').forEach(btn => {
                             btn.onclick = () => {
                                 const f = btn.dataset.field;
@@ -615,11 +639,21 @@ class AdminUI {
         }
 
         // Autofocus first input after show
-        this.modal.show();
-        setTimeout(() => {
-            const firstInput = document.querySelector('#admin-form .form-control:not([disabled])');
-            if (firstInput) firstInput.focus();
-        }, 200);
+        if (this.modal) {
+            this.modal.show();
+            setTimeout(() => {
+                const firstInput = document.querySelector('#admin-form .form-control:not([disabled])');
+                if (firstInput) firstInput.focus();
+            }, 200);
+        } else {
+             console.error('Modal instance missing');
+             alert('Error: No se pudo abrir la ventana de edición.');
+        }
+
+       } catch (error) {
+           console.error('Error in openEditModal:', error);
+           alert('Ocurrió un error al intentar abrir el formulario: ' + error.message);
+       }
     }
 
     setupWeeklyFrequenciesLogic(mode = 'domestic') {

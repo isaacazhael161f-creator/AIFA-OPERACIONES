@@ -536,6 +536,7 @@
             if (table === 'daily_flights_ops') this.loadDailyFlightsOps();
             if (table === 'medical_attentions') this.loadMedicalAttentions();
             if (table === 'medical_types') this.loadMedicalTypes();
+            if (table === 'medical_directory') this.loadMedicalDirectory();
             if (table === 'delays') this.loadDelays();
             if (table === 'punctuality_stats') this.loadPunctualityStats();
             if (table === 'weekly_frequencies') this.loadWeeklyFrequencies();
