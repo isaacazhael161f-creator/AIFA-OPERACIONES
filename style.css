@@ -10430,8 +10430,8 @@ body.dark-mode #table-ops-flights tbody tr:nth-of-type(even) {
    display: flex;
    align-items: stretch;
    background: rgba(255, 255, 255, 0.9);
-   backdrop-filter: blur(16px);
    -webkit-backdrop-filter: blur(16px);
+   backdrop-filter: blur(16px);
    border-radius: 60px 10px 10px 60px;
    /* Bullet/Fuselage shape */
    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
@@ -10686,6 +10686,7 @@ body.dark-mode #fauna-rescate-table .table-container-tech.h-scroll-area thead th
     display: flex;
     align-items: center;
     gap: 8px;
+    -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
@@ -10695,45 +10696,64 @@ body.dark-mode #fauna-rescate-table .table-container-tech.h-scroll-area thead th
 }
 
 
- / *   M e d i c a l   T a b l e s   S c r o l l   F i x   * / 
- . m e d i c a s - t a b l e - c o n t a i n e r   { 
-     m a x - h e i g h t :   4 5 0 p x ; 
-     o v e r f l o w - y :   a u t o ; 
-     b o r d e r :   1 p x   s o l i d   v a r ( - - b o r d e r - c o l o r ) ; 
-     b o r d e r - r a d i u s :   0 . 3 7 5 r e m ; 
-     s c r o l l b a r - w i d t h :   t h i n ; 
- } 
- . m e d i c a s - t a b l e - c o n t a i n e r   t h e a d   t h   { 
-     p o s i t i o n :   s t i c k y ; 
-     t o p :   0 ; 
-     b a c k g r o u n d - c o l o r :   # f 8 f 9 f a ; 
-     z - i n d e x :   2 ; 
-     b o x - s h a d o w :   0   2 p x   4 p x   r g b a ( 0 , 0 , 0 , 0 . 0 5 ) ; 
- } 
- / *   E n s u r e   i n n e r   t a b l e   d o e s n ' t   h a v e   d o u b l e   b o r d e r   * / 
- . m e d i c a s - t a b l e - c o n t a i n e r   t a b l e   { 
-     m a r g i n - b o t t o m :   0 ; 
- } 
- 
- 
- 
- / *   F i x e d   L a y o u t   T a b l e s   * / 
- . t a b l e - f i x e d   { 
-     t a b l e - l a y o u t :   f i x e d ; 
-     w i d t h :   1 0 0 % ; 
- } 
- . t a b l e - f i x e d   t h ,   . t a b l e - f i x e d   t d   { 
-     o v e r f l o w :   h i d d e n ; 
-     t e x t - o v e r f l o w :   e l l i p s i s ; 
-     w h i t e - s p a c e :   n o w r a p ; 
-     v e r t i c a l - a l i g n :   m i d d l e ; 
- } 
- / *   C e n t e r e d   I n p u t s   i n   F i l t e r   R o w   * / 
- . f i l t e r - r o w   i n p u t   { 
-     t e x t - a l i g n :   c e n t e r ; 
-     f o n t - s i z e :   0 . 8 5 e m ; 
-     p a d d i n g :   0 . 2 5 r e m   0 . 5 r e m ; 
- } 
- 
- 
- 
+/* Medical Tables Scroll Fix */
+.medicas-table-container {
+  max-height: 450px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem;
+  scrollbar-width: thin;
+}
+.medicas-table-container thead th {
+  position: sticky;
+  top: 0;
+  background-color: #f8f9fa;
+  z-index: 2;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+/* Ensure inner table doesn't have double border */
+.medicas-table-container table {
+  margin-bottom: 0;
+}
+
+
+
+/* Fixed Layout Tables */
+.table-fixed {
+  table-layout: fixed;
+  width: 100%;
+}
+.table-fixed th, .table-fixed td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+/* Centered Inputs in Filter Row */
+.filter-row input {
+  text-align: center;
+  font-size: 0.85em;
+  padding: 0.25rem 0.5rem;
+}
+
+
+
+/* Utility classes for form elements */
+.w-30px { width: 30px !important; }
+.w-40px { width: 40px !important; }
+.w-50px { width: 50px !important; }
+.w-60px { width: 60px !important; }
+.w-75px { width: 75px !important; }
+.w-80px { width: 80px !important; }
+.w-85px { width: 85px !important; }
+.w-100px { width: 100px !important; }
+.mw-70px { max-width: 70px !important; }
+.mw-140px { max-width: 140px !important; }
+.w-auto-imp { width: auto !important; }
+
+.table-fixed-small { font-size: 0.75rem !important; table-layout: fixed !important; }
+
+.rotate-n45 { transform: rotate(-45deg); }
+.rotate-45 { transform: rotate(45deg); }
+.chart-container-fixed { height: 250px; width: 100%; }
+.table-csv-fixed { font-size: 0.75rem !important; white-space: nowrap !important; }

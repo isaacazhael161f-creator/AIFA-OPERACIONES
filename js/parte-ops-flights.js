@@ -1,4 +1,579 @@
 /**
+ * Vuelos (Parte de Operaciones) - CSV import
+ * Estructura: tabla ancha con encabezados del CSV del software de aeropuerto.
+ */
+(function () {
+    const TABLE_NAME = 'vuelos_parte_operaciones_csv';
+    const HEADERS = [
+        'Status',
+        '[Arr] Airline code',
+        '[Arr] Flight Designator',
+        '[Arr] ALDT',
+        '[Arr] SIBT',
+        '[Arr] AIBT',
+        '[Arr] Stand',
+        '[Arr] Gates',
+        '[Arr] Boarded',
+        '[Arr] Baggage Belts',
+        '[Arr] Service Type',
+        'Routing',
+        '[Dep] Service Type',
+        'Aircraft type',
+        'Registration',
+        '[Dep] Airline code',
+        '[Dep] Flight Designator',
+        '[Dep] Stand',
+        '[Dep] Gates',
+        '[Dep] Boarded',
+        '[Dep] SOBT',
+        '[Dep] AOBT',
+        '[Dep] ATOT',
+        '[Dep] ATTT'
+    ];
+    const ARR_TIME_FIELDS = ['[Arr] SIBT', '[Arr] AIBT', '[Arr] ALDT'];
+    const DEP_TIME_FIELDS = ['[Dep] SOBT', '[Dep] AOBT', '[Dep] ATOT', '[Dep] ATTT'];
+    const DATE_FIELDS = [...ARR_TIME_FIELDS, ...DEP_TIME_FIELDS];
+    const MONTHS = {
+        JAN: 0,
+        FEB: 1,
+        MAR: 2,
+        APR: 3,
+        MAY: 4,
+        JUN: 5,
+        JUL: 6,
+        AUG: 7,
+        SEP: 8,
+        OCT: 9,
+        NOV: 10,
+        DEC: 11
+    };
+
+    let currentData = [];
+    let columnFilters = {};
+    let dateMode = 'relative';
+    let relStart = -4;
+    let relEnd = 0;
+    let absStart = '';
+    let absEnd = '';
+    let lastImportYear = new Date().getFullYear();
+    let peakChart = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        init();
+        window.opsFlights = { loadFlights, importCsvFromFile };
+    });
+
+    function init() {
+        const tabEl = document.getElementById('tab-vuelos-ops');
+        if (tabEl) {
+            tabEl.addEventListener('shown.bs.tab', () => loadFlights());
+            if (tabEl.classList.contains('active')) {
+                setTimeout(loadFlights, 300);
+            }
+        }
+
+        const dateInput = document.getElementById('vuelos-ops-date');
+        if (dateInput) dateInput.addEventListener('change', () => {
+            updateRelativeLabels();
+            loadFlights();
+        });
+        const mainDateInput = document.getElementById('operations-summary-date');
+        if (mainDateInput) mainDateInput.addEventListener('change', () => {
+            updateRelativeLabels();
+            applyAndRender();
+        });
+
+        const btnRel = document.getElementById('btn-date-mode-relative');
+        const btnAbs = document.getElementById('btn-date-mode-absolute');
+        const relWrap = document.getElementById('ops-date-relative');
+        const absWrap = document.getElementById('ops-date-absolute');
+        const relStartInput = document.getElementById('rel-start');
+        const relEndInput = document.getElementById('rel-end');
+        const relStartLabel = document.getElementById('rel-start-label');
+        const relEndLabel = document.getElementById('rel-end-label');
+        const absStartInput = document.getElementById('ops-date-start');
+        const absEndInput = document.getElementById('ops-date-end');
+
+        const toggleDateMode = (mode) => {
+            dateMode = mode;
+            if (btnRel && btnAbs) {
+                btnRel.classList.toggle('active', mode === 'relative');
+                btnAbs.classList.toggle('active', mode === 'absolute');
+            }
+            if (relWrap && absWrap) {
+                relWrap.classList.toggle('d-none', mode !== 'relative');
+                absWrap.classList.toggle('d-none', mode !== 'absolute');
+            }
+            applyAndRender();
+        };
+
+        if (btnRel) btnRel.addEventListener('click', () => toggleDateMode('relative'));
+        if (btnAbs) btnAbs.addEventListener('click', () => toggleDateMode('absolute'));
+
+        const syncRelative = () => {
+            relStart = parseInt(relStartInput ? relStartInput.value : relStart, 10);
+            relEnd = parseInt(relEndInput ? relEndInput.value : relEnd, 10);
+            if (isNaN(relStart)) relStart = -4;
+            if (isNaN(relEnd)) relEnd = 0;
+            updateRelativeLabels();
+            applyAndRender();
+        };
+
+        if (relStartInput) relStartInput.addEventListener('input', syncRelative);
+        if (relEndInput) relEndInput.addEventListener('input', syncRelative);
+
+        const relStartDec = document.getElementById('rel-start-dec');
+        const relStartInc = document.getElementById('rel-start-inc');
+        const relEndDec = document.getElementById('rel-end-dec');
+        const relEndInc = document.getElementById('rel-end-inc');
+
+        if (relStartDec) relStartDec.addEventListener('click', () => { relStartInput.value = parseInt(relStartInput.value || -4, 10) - 1; syncRelative(); });
+        if (relStartInc) relStartInc.addEventListener('click', () => { relStartInput.value = parseInt(relStartInput.value || -4, 10) + 1; syncRelative(); });
+        if (relEndDec) relEndDec.addEventListener('click', () => { relEndInput.value = parseInt(relEndInput.value || 0, 10) - 1; syncRelative(); });
+        if (relEndInc) relEndInc.addEventListener('click', () => { relEndInput.value = parseInt(relEndInput.value || 0, 10) + 1; syncRelative(); });
+
+        const syncAbsolute = () => {
+            absStart = absStartInput ? absStartInput.value : '';
+            absEnd = absEndInput ? absEndInput.value : '';
+            applyAndRender();
+        };
+
+        if (absStartInput) absStartInput.addEventListener('change', syncAbsolute);
+        if (absEndInput) absEndInput.addEventListener('change', syncAbsolute);
+
+        updateRelativeLabels(relStartLabel, relEndLabel);
+
+        const filterInputs = document.querySelectorAll('#table-ops-flights-csv .csv-filter-row input');
+        filterInputs.forEach(input => {
+            input.addEventListener('input', () => {
+                const field = input.dataset.field;
+                if (field) {
+                    columnFilters[field] = input.value.trim();
+                }
+                applyAndRender();
+            });
+        });
+
+        const btnSave = document.getElementById('btn-save-ops-itinerary-csv');
+        const fileInput = document.getElementById('ops-itinerary-csv-file');
+
+        if (btnSave && fileInput) {
+            btnSave.addEventListener('click', () => {
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    alert('Selecciona un archivo CSV primero.');
+                    return;
+                }
+                importCsvFromFile(fileInput.files[0]);
+            });
+        }
+    }
+
+    async function loadFlights() {
+        const tbody = document.getElementById('tbody-ops-flights-csv');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="24" class="text-center py-4">Cargando...</td></tr>';
+        }
+
+        try {
+            const supabase = window.supabaseClient;
+            if (!supabase) throw new Error('Cliente Supabase no disponible');
+
+            const { data, error } = await supabase.from(TABLE_NAME).select('*');
+            if (error) throw error;
+
+            let rows = Array.isArray(data) ? data.map(normalizeRow) : [];
+            rows = sortRows(rows, getReferenceDate());
+
+            currentData = rows;
+            applyAndRender();
+        } catch (err) {
+            console.error(err);
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="24" class="text-danger text-center py-4">${escapeHtml(err.message)}</td></tr>`;
+            }
+        }
+    }
+
+    async function importCsvFromFile(file) {
+        try {
+            const content = await file.text();
+            const rows = parseCsv(content);
+            if (rows.length === 0) throw new Error('El archivo CSV está vacío.');
+
+            const headers = rows.shift().map(h => h.trim());
+            if (!headersMatch(headers)) {
+                throw new Error('Los encabezados del CSV no coinciden con el formato requerido.');
+            }
+
+            const yearFromName = inferYearFromFilename(file.name);
+            if (yearFromName) lastImportYear = yearFromName;
+
+            const mapped = rows
+                .filter(r => r.some(cell => String(cell || '').trim() !== ''))
+                .map(r => mapRowToObject(headers, r));
+
+            if (mapped.length === 0) throw new Error('No hay filas de datos válidas en el CSV.');
+
+            const dateInput = document.getElementById('vuelos-ops-date');
+            const dateFilter = dateInput ? dateInput.value : '';
+            const ordered = sortRows(mapped, dateFilter);
+
+            const confirmMsg = `Se encontraron ${ordered.length} registros.\n¿Deseas reemplazar los datos actuales?`;
+            if (!confirm(confirmMsg)) return;
+
+            await saveToDatabase(ordered);
+
+            const modalEl = document.getElementById('uploadOpsCsvModal');
+            if (modalEl) {
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+            }
+
+            await loadFlights();
+        } catch (err) {
+            console.error(err);
+            alert(`Error al importar CSV: ${err.message}`);
+        }
+    }
+
+    async function saveToDatabase(rows) {
+        const supabase = window.supabaseClient;
+        if (!supabase) throw new Error('Cliente Supabase no disponible');
+
+        const { error: delError } = await supabase
+            .from(TABLE_NAME)
+            .delete()
+            .neq('Status', '__all__');
+        if (delError) throw delError;
+
+        const chunks = chunkArray(rows, 500);
+        for (const chunk of chunks) {
+            const { error: insError } = await supabase.from(TABLE_NAME).insert(chunk);
+            if (insError) throw insError;
+        }
+
+        alert('CSV importado correctamente.');
+    }
+
+    function renderTable(rows) {
+        const tbody = document.getElementById('tbody-ops-flights-csv');
+        if (!tbody) return;
+
+        if (!rows || rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="24" class="text-center text-muted py-4">No hay registros para mostrar.</td></tr>';
+            return;
+        }
+
+        const html = rows.map(row => {
+            const statusClass = getStatusClass(row['Status']);
+            const cells = HEADERS.map(h => {
+                const content = escapeHtml(row[h] || '');
+                if (h === '[Arr] Flight Designator' || h === '[Dep] Flight Designator') {
+                    return `<td class="fw-bold">${content}</td>`;
+                }
+                if (h === 'Status') {
+                    return `<td class="csv-status ${statusClass}">${content}</td>`;
+                }
+                return `<td>${content}</td>`;
+            }).join('');
+            return `<tr>${cells}</tr>`;
+        }).join('');
+
+        tbody.innerHTML = html;
+        attachRowSelection(tbody);
+    }
+
+    function updateChart(rows, dateFilter) {
+        const canvas = document.getElementById('chart-peak-hours-ops');
+        if (!canvas || !window.Chart) return;
+
+        const arrivals = Array(24).fill(0);
+        const departures = Array(24).fill(0);
+
+        rows.forEach(row => {
+            const arrDate = getFirstDate(row, ARR_TIME_FIELDS, dateFilter);
+            if (arrDate) arrivals[arrDate.getHours()]++;
+
+            const depDate = getFirstDate(row, DEP_TIME_FIELDS, dateFilter);
+            if (depDate) departures[depDate.getHours()]++;
+        });
+
+        if (peakChart) peakChart.destroy();
+        peakChart = new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels: Array.from({ length: 24 }, (_, i) => i),
+                datasets: [
+                    { label: 'Llegadas', data: arrivals, backgroundColor: '#198754' },
+                    { label: 'Salidas', data: departures, backgroundColor: '#0d6efd' }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { grid: { display: false } } }
+            }
+        });
+    }
+
+    function applyAndRender() {
+        const dateRef = getReferenceDate();
+        const dateFiltered = applyDateWindow(currentData, dateRef);
+        const filtered = applyFilters(dateFiltered);
+        renderTable(filtered);
+        updateChart(filtered, dateRef);
+        updateRelativeLabels();
+    }
+
+    function getReferenceDate() {
+        const dateInput = document.getElementById('vuelos-ops-date');
+        if (dateInput && dateInput.value) return dateInput.value;
+        const mainDateInput = document.getElementById('operations-summary-date');
+        if (mainDateInput && mainDateInput.value) return mainDateInput.value;
+        const today = new Date();
+        return today.toISOString().slice(0, 10);
+    }
+
+    function updateRelativeLabels() {
+        const relStartLabel = document.getElementById('rel-start-label');
+        const relEndLabel = document.getElementById('rel-end-label');
+        if (!relStartLabel || !relEndLabel) return;
+        const dateRef = getReferenceDate();
+        if (!dateRef) {
+            relStartLabel.textContent = '—';
+            relEndLabel.textContent = '—';
+            return;
+        }
+        const base = new Date(dateRef);
+        if (Number.isNaN(base.getTime())) {
+            relStartLabel.textContent = '—';
+            relEndLabel.textContent = '—';
+            return;
+        }
+        const start = new Date(base);
+        const end = new Date(base);
+        start.setDate(start.getDate() + relStart);
+        end.setDate(end.getDate() + relEnd);
+        const formatter = new Intl.DateTimeFormat('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+        relStartLabel.textContent = formatter.format(start);
+        relEndLabel.textContent = formatter.format(end);
+    }
+
+    function normalizeRow(row) {
+        const normalized = {};
+        HEADERS.forEach(h => {
+            const raw = row[h];
+            normalized[h] = normalizeValue(raw);
+        });
+        return normalized;
+    }
+
+    function normalizeValue(value) {
+        if (value === null || value === undefined) return '';
+        const str = String(value).trim();
+        if (str === '---') return '';
+        return str;
+    }
+
+    function sortRows(rows, dateFilter) {
+        const yearOverride = dateFilter ? parseInt(dateFilter.slice(0, 4), 10) : null;
+        return [...rows].sort((a, b) => {
+            const da = getFirstDate(a, DATE_FIELDS, dateFilter, yearOverride);
+            const db = getFirstDate(b, DATE_FIELDS, dateFilter, yearOverride);
+            if (!da && !db) return 0;
+            if (!da) return 1;
+            if (!db) return -1;
+            return da - db;
+        });
+    }
+
+    function deriveDateKey(row, dateFilter) {
+        const yearOverride = dateFilter ? parseInt(dateFilter.slice(0, 4), 10) : null;
+        const dt = getFirstDate(row, DATE_FIELDS, dateFilter, yearOverride);
+        if (!dt) return '';
+        return dt.toISOString().slice(0, 10);
+    }
+
+    function getFirstDate(row, fields, dateFilter, yearOverride = null) {
+        const year = yearOverride || (dateFilter ? parseInt(dateFilter.slice(0, 4), 10) : lastImportYear);
+        for (const field of fields) {
+            const val = row[field];
+            const dt = parseOpsDateTime(val, year);
+            if (dt) return dt;
+        }
+        return null;
+    }
+
+    function parseOpsDateTime(value, year) {
+        if (!value) return null;
+        const raw = String(value).trim().toUpperCase();
+        const match = raw.match(/(\d{2})([A-Z]{3})\s+(\d{2}):(\d{2})/);
+        if (!match) return null;
+        const day = parseInt(match[1], 10);
+        const month = MONTHS[match[2]];
+        const hour = parseInt(match[3], 10);
+        const minute = parseInt(match[4], 10);
+        if (month === undefined) return null;
+        return new Date(year, month, day, hour, minute);
+    }
+
+    function parseCsv(text) {
+        const rows = [];
+        let row = [];
+        let value = '';
+        let inQuotes = false;
+
+        const data = text.replace(/^\uFEFF/, '');
+
+        for (let i = 0; i < data.length; i++) {
+            const char = data[i];
+            const next = data[i + 1];
+
+            if (char === '"') {
+                if (inQuotes && next === '"') {
+                    value += '"';
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+                continue;
+            }
+
+            if (char === ',' && !inQuotes) {
+                row.push(value);
+                value = '';
+                continue;
+            }
+
+            if ((char === '\n' || char === '\r') && !inQuotes) {
+                if (char === '\r' && next === '\n') i++;
+                row.push(value);
+                rows.push(row);
+                row = [];
+                value = '';
+                continue;
+            }
+
+            value += char;
+        }
+
+        if (value.length > 0 || row.length > 0) {
+            row.push(value);
+            rows.push(row);
+        }
+
+        return rows;
+    }
+
+    function headersMatch(headers) {
+        if (headers.length !== HEADERS.length) return false;
+        for (let i = 0; i < HEADERS.length; i++) {
+            if (headers[i] !== HEADERS[i]) return false;
+        }
+        return true;
+    }
+
+    function mapRowToObject(headers, row) {
+        const obj = {};
+        headers.forEach((h, idx) => {
+            obj[h] = normalizeValue(row[idx] || '');
+        });
+        return obj;
+    }
+
+    function inferYearFromFilename(filename) {
+        const match = filename.toUpperCase().match(/(\d{2})([A-Z]{3})(\d{2})/);
+        if (!match) return null;
+        const year = parseInt(match[3], 10);
+        return 2000 + year;
+    }
+
+    function chunkArray(list, size) {
+        const chunks = [];
+        for (let i = 0; i < list.length; i += size) {
+            chunks.push(list.slice(i, i + size));
+        }
+        return chunks;
+    }
+
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function applyFilters(rows) {
+        const activeFields = Object.keys(columnFilters).filter(key => columnFilters[key]);
+        if (activeFields.length === 0) return rows;
+        return rows.filter(row => {
+            return activeFields.every(field => {
+                const val = String(row[field] || '').toLowerCase();
+                const search = columnFilters[field].toLowerCase();
+                return val.includes(search);
+            });
+        });
+    }
+
+    function applyDateWindow(rows, dateRef) {
+        if (!dateRef && dateMode === 'absolute' && !absStart && !absEnd) return rows;
+
+        if (dateMode === 'absolute') {
+            const start = absStart || dateRef;
+            const end = absEnd || dateRef;
+            if (!start && !end) return rows;
+            return rows.filter(row => {
+                const key = deriveDateKey(row, start || end);
+                if (!key) return false;
+                if (start && key < start) return false;
+                if (end && key > end) return false;
+                return true;
+            });
+        }
+
+        if (!dateRef) return rows;
+        const base = new Date(dateRef);
+        if (Number.isNaN(base.getTime())) return rows;
+        const start = new Date(base);
+        const end = new Date(base);
+        start.setDate(start.getDate() + relStart);
+        end.setDate(end.getDate() + relEnd);
+        if (start > end) {
+            const temp = new Date(start);
+            start.setTime(end.getTime());
+            end.setTime(temp.getTime());
+        }
+        const startKey = start.toISOString().slice(0, 10);
+        const endKey = end.toISOString().slice(0, 10);
+        return rows.filter(row => {
+            const key = deriveDateKey(row, dateRef);
+            if (!key) return false;
+            return key >= startKey && key <= endKey;
+        });
+    }
+
+    function getStatusClass(status) {
+        const normalized = String(status || '').toLowerCase();
+        if (normalized.includes('cancel')) return 'csv-status-red';
+        if (normalized.includes('in block') || normalized.includes('flight activated')) return 'csv-status-green';
+        return 'csv-status-blue';
+    }
+
+    function attachRowSelection(tbody) {
+        if (tbody.dataset.rowSelectBound === 'true') return;
+        tbody.dataset.rowSelectBound = 'true';
+
+        tbody.addEventListener('click', (event) => {
+            const row = event.target.closest('tr');
+            if (!row) return;
+            tbody.querySelectorAll('tr.csv-row-selected').forEach(r => r.classList.remove('csv-row-selected'));
+            row.classList.add('csv-row-selected');
+        });
+    }
+})();/**
  * Logic for "Vuelos" tab (PDF Reader)
  * Structure: WIDE TABLE (13 Columns)
  * Matches DB Table 'daily_flights_ops' 1:1.

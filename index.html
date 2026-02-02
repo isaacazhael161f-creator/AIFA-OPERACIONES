@@ -42,6 +42,57 @@
             white-space: nowrap;
         }
 
+        /* CSV Vuelos (Parte de Operaciones) */
+        #table-ops-flights-csv tbody tr {
+            cursor: pointer;
+        }
+
+        #table-ops-flights-csv tbody tr.csv-row-selected > td {
+            background-color: #fff3cd !important;
+        }
+
+        #table-ops-flights-csv tbody tr:nth-child(even) > td {
+            background-color: #f8f9fa;
+        }
+
+        #table-ops-flights-csv tbody tr.csv-row-selected:nth-child(even) > td {
+            background-color: #fff3cd !important;
+        }
+
+        #table-ops-flights-csv .csv-status {
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
+        }
+
+        #table-ops-flights-csv .csv-status-blue {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        #table-ops-flights-csv .csv-status-green {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+
+        #table-ops-flights-csv .csv-status-red {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        #table-ops-flights-csv .csv-filter-row th {
+            padding: 0.25rem;
+        }
+
+        #table-ops-flights-csv .csv-filter-row input {
+            font-size: 0.7rem;
+        }
+
+        #table-ops-flights-csv td,
+        #table-ops-flights-csv th {
+            white-space: nowrap;
+        }
+
         .filter-icon {
             position: absolute;
             right: 6px;
@@ -156,6 +207,80 @@
             border-radius: 4px;
             overflow: hidden;
             height: 650px;
+        }
+
+        /* Custom scrollbar and alignment for Ops Flights CSV (Parte de Operaciones) */
+        #container-ops-flights-csv {
+            overflow-x: scroll !important; /* Force scrollbar track to be visible always */
+            width: 100%;
+            display: block;
+            padding-bottom: 15px; /* Ensure space for scrollbar */
+        }
+        
+        #container-ops-flights-csv::-webkit-scrollbar {
+            height: 16px; /* Slightly taller to be more visible */
+            display: block !important;
+            background-color: #f1f1f1; /* Ensure track has color */
+        }
+
+        #container-ops-flights-csv::-webkit-scrollbar-thumb {
+            background-color: #a0a0a0; /* Darker thumb for better visibility */
+            border-radius: 8px;
+            border: 3px solid #f1f1f1; /* Creates padding effect */
+        }
+        
+        #container-ops-flights-csv::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+            border-top: 1px solid #e0e0e0;
+        }
+
+        /* Default tight style for all columns in this table to shrink them */
+        #table-ops-flights-csv th, 
+        #table-ops-flights-csv td {
+             padding: 2px 4px !important;
+             width: 1px; /* Forces shrink to fit content width */
+             white-space: nowrap;
+        }
+
+        /* Specific style for Date/Time columns to give them separation and left alignment */
+        /* Columns: 4 ([Arr] ALDT), 5 ([Arr] SIBT), 6 ([Arr] AIBT) */
+        /* Columns: 21 ([Dep] SOBT), 22 ([Dep] AOBT), 23 ([Dep] ATOT), 24 ([Dep] ATTT) */
+        #table-ops-flights-csv th:nth-child(4),
+        #table-ops-flights-csv td:nth-child(4),
+        #table-ops-flights-csv th:nth-child(5),
+        #table-ops-flights-csv td:nth-child(5),
+        #table-ops-flights-csv th:nth-child(6),
+        #table-ops-flights-csv td:nth-child(6),
+        #table-ops-flights-csv th:nth-child(21),
+        #table-ops-flights-csv td:nth-child(21),
+        #table-ops-flights-csv th:nth-child(22),
+        #table-ops-flights-csv td:nth-child(22),
+        #table-ops-flights-csv th:nth-child(23),
+        #table-ops-flights-csv td:nth-child(23),
+        #table-ops-flights-csv th:nth-child(24),
+        #table-ops-flights-csv td:nth-child(24) {
+             padding-left: 30px !important;
+             padding-right: 30px !important;
+             text-align: left !important;
+             min-width: 150px;
+             width: auto; /* Allow expansion for these specific columns */
+        }
+
+        /* Ultra compact columns: Airline, Flight, Baggage, Service Type */
+        /* Columns: 2, 3, 10, 11, 13, 16, 17 */
+        #table-ops-flights-csv th:nth-child(2), #table-ops-flights-csv td:nth-child(2),
+        #table-ops-flights-csv th:nth-child(3), #table-ops-flights-csv td:nth-child(3),
+        #table-ops-flights-csv th:nth-child(10), #table-ops-flights-csv td:nth-child(10),
+        #table-ops-flights-csv th:nth-child(11), #table-ops-flights-csv td:nth-child(11),
+        #table-ops-flights-csv th:nth-child(13), #table-ops-flights-csv td:nth-child(13),
+        #table-ops-flights-csv th:nth-child(16), #table-ops-flights-csv td:nth-child(16),
+        #table-ops-flights-csv th:nth-child(17), #table-ops-flights-csv td:nth-child(17) {
+            padding-left: 2px !important;
+            padding-right: 2px !important;
+            text-align: center !important;
+            max-width: 80px; /* Force constraint */
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
     </style>
 </head>
@@ -359,13 +484,14 @@
                                     <h5 class="mb-0 text-primary"><i class="fas fa-globe-americas me-2"></i>Vista
                                         Satelital (Google Earth)</h5>
                                     <a href="https://earth.google.com/web/@19.7431,-99.0125,2247a,5010.5d,35y,0h,0t,0r"
-                                        target="_blank" class="btn btn-sm btn-outline-primary">
+                                        target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
                                         <i class="fas fa-external-link-alt me-1"></i> Abrir en Google Earth
                                     </a>
                                 </div>
                                 <div class="card-body p-0">
                                     <div class="map-container-wrapper">
                                         <iframe width="100%" height="650" frameborder="0" style="border:0;"
+                                            title="Vista Satelital Oficial AIFA"
                                             src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d14896.47195325062!2d-99.01248!3d19.7431!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e1!3m2!1ses-419!2smx!4v1715620000000!5m2!1ses-419!2smx&maptype=satellite"
                                             allowfullscreen="" loading="lazy">
                                         </iframe>
@@ -901,13 +1027,13 @@
                                             <div class="d-flex justify-content-between mb-3">
                                                 <div class="d-flex gap-2">
                                                     <div class="input-group w-auto">
-                                                        <span class="input-group-text">Año</span>
-                                                        <input type="number" class="form-control"
+                                                        <span class="input-group-text">Año</span> aria-label="Año"
                                                             id="filter-punctuality-year" value="2025"
-                                                            style="width: 100px;">
+                                                            class="w-100px">
                                                     </div>
                                                     <div class="input-group w-auto">
                                                         <span class="input-group-text">Mes</span>
+                                                        <select class="form-select" id="filter-punctuality-month" aria-label="Mes
                                                         <select class="form-select" id="filter-punctuality-month">
                                                             <option value="">Todo</option>
                                                             <option value="1">Enero</option>
@@ -1024,7 +1150,7 @@
                                                     <div class="d-flex justify-content-between mb-3">
                                                         <div class="input-group w-auto">
                                                             <span class="input-group-text">Año</span>
-                                                            <select class="form-select" id="filter-medical-year">
+                                                            <select class="form-select" id="filter-medical-year" aria-label="Seleccionar Año">
                                                                 <option value="2024">2024</option>
                                                                 <option value="2025" selected>2025</option>
                                                             </select>
@@ -1112,7 +1238,7 @@
                                                             id="table-medical-directory">
                                                             <thead>
                                                                 <tr>
-                                                                    <th style="width: 80px;">Orden</th>
+                                                                    <th class="w-80px">Orden</th>
                                                                     <th>Asunto</th>
                                                                     <th>Responsable</th>
                                                                     <th>Estado</th>
@@ -1231,24 +1357,22 @@
                                                         <div class="card-body p-0">
                                                             <div class="table-responsive">
                                                                 <table
-                                                                    class="table table-hover table-bordered table-sm align-middle mb-0"
-                                                                    id="table-daily-flights-arrivals"
-                                                                    style="font-size: 0.75rem; table-layout: fixed;">
+                                                                    class="table table-hover table-bordered table-sm align-middle mb-0 table-fixed-small"
+                                                                    id="table-daily-flights-arrivals">
                                                                     <thead class="table-light">
                                                                         <tr
                                                                             class="text-center small text-muted text-uppercase">
-                                                                            <th style="width: 30px;">No.</th>
-                                                                            <th style="width: 75px;">Aerolínea</th>
-                                                                            <th style="width: 60px;">Vuelo</th>
-                                                                            <th style="width: 85px;">Origen</th>
+                                                                            <th class="w-30px">No.</th>
+                                                                            <th class="w-75px">Aerolínea</th>
+                                                                            <th class="w-60px">Vuelo</th>
+                                                                            <th class="w-85px">Origen</th>
                                                                             <th>Prog</th>
                                                                             <th>Real</th>
-                                                                            <th style="width: 65px;">Pax</th>
-                                                                            <th style="width: 40px;"
-                                                                                class="col-conciliacion d-none"><i
+                                                                            <th class="w-65px">Pax</th>
+                                                                            <th class="col-conciliacion d-none w-40px"><i
                                                                                     class="fas fa-check-circle"></i>
                                                                             </th>
-                                                                            <th style="width: 40px;"></th>
+                                                                            <th class="w-40px"></th>
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody class="text-center bg-white"></tbody>
@@ -1270,23 +1394,21 @@
                                                             <div class="table-responsive">
                                                                 <table
                                                                     class="table table-hover table-bordered table-sm align-middle mb-0"
-                                                                    id="table-daily-flights-departures"
-                                                                    style="font-size: 0.75rem; table-layout: fixed;">
-                                                                    <thead class="table-light">
+                                                                    id="table-daily-flights-departures" table-fixed-small"
+                                                                    id="table-daily-flights-departures
                                                                         <tr
                                                                             class="text-center small text-muted text-uppercase">
-                                                                            <th style="width: 75px;">Aerolínea</th>
-                                                                            <th style="width: 60px;">Vuelo</th>
-                                                                            <th style="width: 85px;">Destino</th>
+                                                                            <th class="w-75px">Aerolínea</th>
+                                                                            <th class="w-60px">Vuelo</th>
+                                                                            <th class="w-85px">Destino</th>
                                                                             <th>Prog</th>
                                                                             <th>Real</th>
-                                                                            <th style="width: 50px;">Pax</th>
-                                                                            <th style="width: 75px;">Matrícula</th>
-                                                                            <th style="width: 40px;"
-                                                                                class="col-conciliacion d-none"><i
+                                                                            <th class="w-50px">Pax</th>
+                                                                            <th class="w-75px">Matrícula</th>
+                                                                            <th class="col-conciliacion d-none w-40px"><i
                                                                                     class="fas fa-check-circle"></i>
                                                                             </th>
-                                                                            <th style="width: 40px;"></th>
+                                                                            <th class="w-40px"></th>
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody class="text-center bg-white"></tbody>
@@ -1298,35 +1420,7 @@
                                             </div>
                                         </div>
 
-                                        <!-- Medical Pane -->
-                                        <div class="tab-pane fade" id="pane-medical" role="tabpanel">
-                                            <div class="d-flex justify-content-between mb-3">
-                                                <select class="form-select w-auto" id="filter-medical-year"
-                                                    aria-label="Filtrar por año">
-                                                    <option value="2025">2025</option>
-                                                    <option value="2024">2024</option>
-                                                </select>
-                                                <button class="btn btn-primary btn-sm"
-                                                    onclick="dataManagement.addItem('medical_attentions')"><i
-                                                        class="fas fa-plus"></i> Agregar Registro</button>
-                                            </div>
-                                            <div class="table-responsive">
-                                                <table class="table table-striped table-hover" id="table-medical">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Mes</th>
-                                                            <th>AIFA</th>
-                                                            <th>Otras Empresas</th>
-                                                            <th>Pasajeros</th>
-                                                            <th>Visitantes</th>
-                                                            <th>Total</th>
-                                                            <th>Acciones</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody></tbody>
-                                                </table>
-                                            </div>
-                                        </div>
+
 
                                         <!-- Delays Pane -->
                                         <div class="tab-pane fade" id="pane-delays" role="tabpanel">
@@ -1392,43 +1486,7 @@
                                             </div>
                                         </div>
 
-                                        <!-- Punctuality Pane -->
-                                        <div class="tab-pane fade" id="pane-punctuality" role="tabpanel">
-                                            <div class="d-flex justify-content-between mb-3">
-                                                <div class="d-flex gap-2">
-                                                    <select class="form-select w-auto" id="filter-punctuality-year"
-                                                        aria-label="Filtrar por año">
-                                                        <option value="2025">2025</option>
-                                                    </select>
-                                                    <select class="form-select w-auto" id="filter-punctuality-month"
-                                                        aria-label="Filtrar por mes">
-                                                        <option value="">Todos los meses</option>
-                                                        <option value="Enero">Enero</option>
-                                                        <!-- Add more months -->
-                                                    </select>
-                                                </div>
-                                                <button class="btn btn-primary btn-sm"
-                                                    onclick="dataManagement.addItem('punctuality')"><i
-                                                        class="fas fa-plus"></i>
-                                                    Agregar Registro</button>
-                                            </div>
-                                            <div class="table-responsive">
-                                                <table class="table table-striped table-hover" id="table-punctuality">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Mes</th>
-                                                            <th>Aerolínea</th>
-                                                            <th>A Tiempo</th>
-                                                            <th>Demora</th>
-                                                            <th>Cancelado</th>
-                                                            <th>Total</th>
-                                                            <th>Acciones</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody></tbody>
-                                                </table>
-                                            </div>
-                                        </div>
+
 
                                         <!-- Pane Biblioteca -->
                                         <div class="tab-pane fade" id="pane-library" role="tabpanel">
@@ -1645,7 +1703,7 @@
 
                                                     <!-- Botón Limpiar (Opcional, pero útil) -->
                                                     <div class="chip">
-                                                        <button id="clear-filters-btn" class="btn btn-outline-secondary btn-sm h-100">
+                                                        <button id="clear-filters-btn" class="btn btn-outline-secondary btn-sm h-100" aria-label="Limpiar filtros">
                                                             <i class="fas fa-eraser"></i>
                                                         </button>
                                                     </div>
@@ -1653,11 +1711,11 @@
                                                     <!-- Hidden Legacy Inputs to prevent JS errors if referenced directly without check -->
                                                     <input type="hidden" id="claim-filter">
                                                     <input type="hidden" id="global-search"> 
-                                                    <select id="position-filter" class="d-none"><option value="all">Todas</option></select>
-                                                    <select id="origin-filter" class="d-none"><option value="all">Todos</option></select>
-                                                    <select id="destination-filter" class="d-none"><option value="all">Todos</option></select>
-                                                    <select id="hour-filter" class="d-none"><option value="all">Todas</option></select>
-                                                    <select id="hour-type-filter" class="d-none"><option value="both">Ambas</option></select>
+                                                    <select id="position-filter" class="d-none" aria-label="Filtro Posición"><option value="all">Todas</option></select>
+                                                    <select id="origin-filter" class="d-none" aria-label="Filtro Origen"><option value="all">Todos</option></select>
+                                                    <select id="destination-filter" class="d-none" aria-label="Filtro Destino"><option value="all">Todos</option></select>
+                                                    <select id="hour-filter" class="d-none" aria-label="Filtro Hora"><option value="all">Todas</option></select>
+                                                    <select id="hour-type-filter" class="d-none" aria-label="Filtro Tipo Hora"><option value="both">Ambas</option></select>
                                                 </div>
                                                     <div class="filters-actions">
                                                         <button id="clear-filters"
@@ -2265,21 +2323,41 @@
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <h5 class="mb-0 text-primary"><i class="fas fa-plane me-2"></i>Itinerario de
                                             Vuelos del Día</h5>
-                                        <div class="d-flex gap-2">
-                                            <input type="date" class="form-control form-control-sm" id="vuelos-ops-date"
-                                                style="max-width: 140px;"
-                                                aria-label="Seleccionar fecha de itinerario de vuelos">
+                                        <div class="d-flex gap-2 align-items-center flex-wrap">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="small text-muted">Date Window</span>
+                                                <div class="btn-group btn-group-sm" role="group" aria-label="Filtro de fecha">
+                                                    <button class="btn btn-outline-primary active" type="button" id="btn-date-mode-relative">Relative</button>
+                                                    <button class="btn btn-outline-primary" type="button" id="btn-date-mode-absolute">Absolute</button>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex flex-column" id="ops-date-relative">
+                                                <div class="d-flex align-items-center gap-2">
+                                                <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-start-dec">-</button>
+                                                <input type="number" class="form-control form-control-sm mw-70px" id="rel-start" value="-4" aria-label="Inicio relativo">
+                                                <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-start-inc">+</button>
+                                                <span class="small text-muted">to</span>
+                                                <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-end-dec">-</button>
+                                                <input type="number" class="form-control form-control-sm mw-70px" id="rel-end" value="0" aria-label="Fin relativo">
+                                                <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-end-inc">+</button>
+                                                </div>
+                                                <div class="d-flex align-items-center gap-2 small text-muted mt-1">
+                                                    <span id="rel-start-label">—</span>
+                                                    <span>to</span>
+                                                    <span id="rel-end-label">—</span>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2 d-none" id="ops-date-absolute">
+                                                <input type="date" class="form-control form-control-sm mw-140px" id="ops-date-start" aria-label="Fecha inicio">
+                                                <span class="small text-muted">to</span>
+                                                <input type="date" class="form-control form-control-sm mw-140px" id="ops-date-end" aria-label="Fecha fin">
+                                            </div>
                                             <button class="btn btn-sm btn-outline-secondary"
                                                 onclick="window.opsFlights && window.opsFlights.loadFlights()"><i
                                                     class="fas fa-sync-alt me-1"></i>Actualizar</button>
-                                            <button class="btn btn-sm btn-outline-primary" id="btn-toggle-edit-mode"
-                                                onclick="window.opsFlights.toggleEditMode()"><i
-                                                    class="fas fa-edit me-1"></i>Modo
-                                                Edición</button>
-                                            <button class="btn btn-sm btn-success d-none" id="btn-save-edit-mode"
-                                                onclick="window.opsFlights.saveEditedData()"><i
-                                                    class="fas fa-save me-1"></i>Guardar
-                                                Cambios</button>
+                                            <button class="btn btn-sm btn-outline-success" id="btn-import-ops-csv"
+                                                data-bs-toggle="modal" data-bs-target="#uploadOpsCsvModal"><i
+                                                    class="fas fa-file-csv me-1"></i>Importar CSV</button>
                                         </div>
                                     </div>
 
@@ -2292,7 +2370,7 @@
                                                         (Salidas vs Llegadas)</h6>
                                                 </div>
                                                 <div class="card-body">
-                                                    <div style="height: 250px; width: 100%;">
+                                                    <div class="chart-container-fixed">
                                                         <canvas id="chart-peak-hours-ops"></canvas>
                                                     </div>
                                                 </div>
@@ -2300,75 +2378,77 @@
                                         </div>
                                     </div>
 
-                                    <!-- Tables Config: Arrivals and Departures Split -->
+                                    <!-- CSV Table (Operaciones) -->
                                     <div class="row">
-                                        <!-- Arrivals Column -->
-                                        <div class="col-lg-6 mb-4">
-                                            <div class="card shadow-sm border-0 h-100">
-                                                <div class="card-header bg-success text-white py-2">
-                                                    <h6 class="mb-0 small text-uppercase"><i
-                                                            class="fas fa-plane-arrival me-2"></i>Llegadas</h6>
+                                        <div class="col-12 mb-4">
+                                            <div class="card shadow-sm border-0">
+                                                <div class="card-header bg-light">
+                                                    <h6 class="mb-0 text-uppercase small text-muted">Vuelos importados
+                                                        desde CSV</h6>
                                                 </div>
-                                                <div class="table-responsive">
+                                                <div class="table-responsive" id="container-ops-flights-csv">
                                                     <table
-                                                        class="table table-hover table-bordered table-sm align-middle mb-0"
-                                                        id="table-ops-flights-arrivals"
-                                                        style="font-size: 0.75rem; table-layout: fixed;">
+                                                        class="table table-hover table-bordered table-sm align-middle mb-0 table-csv-fixed"
+                                                        id="table-ops-flights-csv">
                                                         <thead class="table-light">
                                                             <tr class="text-center small text-muted text-uppercase">
-                                                                <th style="width: 30px;">No.</th>
-                                                                <th style="width: 75px;">Aerolínea</th>
-                                                                <th style="width: 60px;">Vuelo</th>
-                                                                <th style="width: 85px;">Origen</th>
-                                                                <th>Prog</th>
-                                                                <th>Real</th>
-                                                                <th style="width: 65px;">Pax</th>
-                                                                <th style="width: 40px;" class="col-conciliacion"><i
-                                                                        class="fas fa-check-circle"></i></th>
+                                                                <th>Status</th>
+                                                                <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Airline</th>
+                                                                <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Flight</th>
+                                                                <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] ALDT</th>
+                                                                <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] SIBT</th>
+                                                                <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] AIBT</th>
+                                                                <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Stand</th>
+                                                                <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Gates</th>
+                                                                <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Boarded</th>
+                                                                <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Belts</th>
+                                                                <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Type</th>
+                                                                <th>Routing</th>
+                                                                <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Type</th>
+                                                                <th>Aircraft type</th>
+                                                                <th>Registration</th>
+                                                                <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Airline</th>
+                                                                <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Flight</th>
+                                                                <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Stand</th>
+                                                                <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Gates</th>
+                                                                <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Boarded</th>
+                                                                <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] SOBT</th>
+                                                                <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] AOBT</th>
+                                                                <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] ATOT</th>
+                                                                <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] ATTT</th>
+                                                            </tr>
+                                                            <tr class="csv-filter-row">
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="Status" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Arr] Airline code" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Arr] Flight Designator" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Arr] ALDT" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Arr] SIBT" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Arr] AIBT" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Arr] Stand" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Arr] Gates" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Arr] Boarded" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Arr] Baggage Belts" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Arr] Service Type" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="Routing" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Dep] Service Type" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="Aircraft type" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="Registration" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Dep] Airline code" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Dep] Flight Designator" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Dep] Stand" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Dep] Gates" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Dep] Boarded" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Dep] SOBT" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Dep] AOBT" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Dep] ATOT" placeholder="Filtrar..."></th>
+                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Dep] ATTT" placeholder="Filtrar..."></th>
                                                             </tr>
                                                         </thead>
                                                         <tbody class="text-center bg-white"
-                                                            id="tbody-ops-flights-arrivals">
+                                                            id="tbody-ops-flights-csv">
                                                             <tr>
-                                                                <td colspan="8" class="text-muted py-4">Cargando
-                                                                    llegadas...</td>
-                                                            </tr>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Departures Column -->
-                                        <div class="col-lg-6 mb-4">
-                                            <div class="card shadow-sm border-0 h-100">
-                                                <div class="card-header bg-primary text-white py-2">
-                                                    <h6 class="mb-0 small text-uppercase"><i
-                                                            class="fas fa-plane-departure me-2"></i>Salidas</h6>
-                                                </div>
-                                                <div class="table-responsive">
-                                                    <table
-                                                        class="table table-hover table-bordered table-sm align-middle mb-0"
-                                                        id="table-ops-flights-departures"
-                                                        style="font-size: 0.75rem; table-layout: fixed;">
-                                                        <thead class="table-light">
-                                                            <tr class="text-center small text-muted text-uppercase">
-                                                                <th style="width: 75px;">Aerolínea</th>
-                                                                <th style="width: 60px;">Vuelo</th>
-                                                                <th style="width: 85px;">Destino</th>
-                                                                <th>Prog</th>
-                                                                <th>Real</th>
-                                                                <th style="width: 50px;">Pax</th>
-                                                                <th style="width: 75px;">Matrícula</th>
-                                                                <th style="width: 40px;" class="col-conciliacion"><i
-                                                                        class="fas fa-check-circle"></i></th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody class="text-center bg-white"
-                                                            id="tbody-ops-flights-departures">
-                                                            <tr>
-                                                                <td colspan="8" class="text-muted py-4">Cargando
-                                                                    salidas...</td>
+                                                                <td colspan="24" class="text-muted py-4">Cargando
+                                                                    vuelos...</td>
                                                             </tr>
                                                         </tbody>
                                                     </table>
@@ -6783,6 +6863,33 @@
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-success" id="btn-process-ops-json"><i
                             class="fas fa-save me-2"></i>Procesar y Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cargar CSV Itinerario (Parte de Operaciones) -->
+    <div class="modal fade" id="uploadOpsCsvModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Cargar Parte de Operaciones (CSV)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="ops-itinerary-csv-file" class="form-label">Cargar CSV (Software de aeropuerto)</label>
+                        <input type="file" class="form-control mb-2" id="ops-itinerary-csv-file" accept=".csv">
+                        <div class="text-muted small">El CSV debe contener exactamente los encabezados de la tabla de
+                            Vuelos del Parte de Operaciones.</div>
+                    </div>
+                    <div class="alert alert-info small">
+                        <i class="fas fa-info-circle me-1"></i> Este proceso sobrescribirá los vuelos existentes.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-save-ops-itinerary-csv">Importar CSV</button>
                 </div>
             </div>
         </div>
