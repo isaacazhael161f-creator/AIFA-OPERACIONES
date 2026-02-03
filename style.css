@@ -10830,3 +10830,22 @@ body.dark-mode #fauna-rescate-table .table-container-tech.h-scroll-area thead th
     display: none !important;
 }
 
+
+/* Highlight for itinerary rows */
+.table-row-selected > * {
+    background-color: #fff9c4 !important;
+    color: #333 !important;
+}
+
+
+/* Custom Striping for Filtered Tables */
+.row-stripe-odd > * {
+    background-color: var(--bs-table-striped-bg);
+    --bs-table-accent-bg: var(--bs-table-striped-bg);
+    color: var(--bs-table-striped-color);
+}
+.row-stripe-even > * {
+    background-color: transparent;
+    --bs-table-accent-bg: transparent;
+}
+

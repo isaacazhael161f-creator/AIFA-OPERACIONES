@@ -3410,6 +3410,31 @@ async function loadItineraryData(options = {}) {
     }
     return allFlightsData;
 }
+// Helper para actualizar el cebrado (striping) visible después del filtrado
+function updateTableVisualStriping(tableContainer) {
+    if (!tableContainer) return;
+    const tbody = tableContainer.querySelector('tbody');
+    if (!tbody) return;
+    // Seleccionar solo las filas visibles (excluyendo mensajes de "no data" si las hubiera)
+    const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.style.display !== 'none' && !r.classList.contains('no-data-msg'));
+    
+    rows.forEach((row, index) => {
+        // Remover clases previas
+        row.classList.remove('row-stripe-odd', 'row-stripe-even');
+        // Aplicar nueva clase basada en el índice VISIBLE
+        // Queremos "Una y Una".
+        // Fila 0 (visible) -> Even (Blanco/Transparente)
+        // Fila 1 (visible) -> Odd (Gris)
+        // Fila 2 (visible) -> Even (Blanco)
+        // Así logramos: Blanco, Gris, Blanco, Gris... (Una y Una)
+        if (index % 2 !== 0) {
+           row.classList.add('row-stripe-odd');
+        } else {
+           // row.classList.add('row-stripe-even'); // No necesario si el default es blanco
+        }
+    });
+}
+
 // Helper for client-side table filtering
 function applyClientSideTableFilter(tableContainer, searchState) {
     if (!tableContainer || !searchState) return;
@@ -3469,6 +3494,9 @@ function applyClientSideTableFilter(tableContainer, searchState) {
         }
         row.style.display = visible ? '' : 'none';
     });
+    
+    // Re-apply visual striping to visible rows
+    updateTableVisualStriping(tableContainer);
 }
 
 // Improved Global Helper handling Scope
@@ -3500,26 +3528,123 @@ window.setGlobalItineraryFilter = function(airlineName, scope) {
 };
 
 // Global helper acting as bridge from onclick in generated HTML
-window.setItineraryAirlineFilter = function(airlineName, element) {
+// Helper para resaltar fila en itinerarios
+window.toggleRowHighlight = function(row) {
+    if (!row) return;
+    // Si ya estÃ¡ seleccionada, deseleccionar
+    if (row.classList.contains('table-row-selected')) {
+        row.classList.remove('table-row-selected');
+        return;
+    }
+    // Deseleccionar otras filas en el mismo tbody
+    const siblings = row.parentNode ? row.parentNode.querySelectorAll('tr.table-row-selected') : [];
+    siblings.forEach(r => r.classList.remove('table-row-selected'));
+    // Seleccionar actual
+    row.classList.add('table-row-selected');
+};
+
+window.setItineraryAirlineFilter = function(airlineName, element, explicitType = null) {
     if (!airlineName) return;
     const cleanName = airlineName.trim().toUpperCase();
     
-    // Find the container of the clicked element
-    // Element is the div.airline-cell -> td -> tr -> tbody -> table -> .itinerary-airline-table -> .card-body -> .itinerary-general-card
-    // or closer: .itinerary-airline-table usually
+    // Identificar contenedores y sus tipos
+    const paxContainer = document.getElementById('passenger-itinerary-container');
+    const cargoContainer = document.getElementById('cargo-itinerary-container');
     
-    const container = element.closest('.itinerary-general-card');
-    if (!container) return;
-    
-    // Find the search input for 'aerolinea' within this container
-    const input = container.querySelector('input[data-col="aerolinea"]');
-    if (input) {
-        input.value = cleanName;
-        // Trigger input event to run the filter logic
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-        
-        // Improve UX: Scroll to table thread so user sees the filter applied
-        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Identificar origen del click
+    let clickedType = explicitType || 'none'; // 'pax', 'cargo', 'summary'
+
+    // Si no es explícito, intentar inferir (aunque ahora siempre debería ser explícito desde las tablas)
+    if (clickedType === 'none' && element) {
+        let cursor = element;
+        while (cursor && cursor instanceof Element && cursor !== document.documentElement) {
+             if (cursor.id === 'passenger-itinerary-container') {
+                 clickedType = 'pax';
+                 break;
+             }
+             if (cursor.id === 'cargo-itinerary-container') {
+                 clickedType = 'cargo';
+                 break;
+             }
+             if (cursor.classList && cursor.classList.contains('airline-summary-card')) {
+                 clickedType = 'summary';
+                 break;
+             }
+             cursor = cursor.parentNode;
+        }
+    }
+
+    console.log('[FilterDebug] Action:', cleanName, 'Type:', clickedType);
+
+    // Configuración de contenedores a actualizar
+    let targets = [];
+
+    if (clickedType === 'pax') {
+         targets.push({ container: paxContainer, type: 'pax', stateKey: 'dailyItinerarySearchState' });
+    } else if (clickedType === 'cargo') {
+         targets.push({ container: cargoContainer, type: 'cargo', stateKey: 'cargoItinerarySearchState' });
+    } else if (clickedType === 'summary') {
+        targets.push({ container: paxContainer, type: 'pax', stateKey: 'dailyItinerarySearchState' });
+        targets.push({ container: cargoContainer, type: 'cargo', stateKey: 'cargoItinerarySearchState' });
+    } else {
+        // Si no sabemos qué es (ej. búsqueda global), actualizamos ambos
+        if (!element) {
+             targets.push({ container: paxContainer, type: 'pax', stateKey: 'dailyItinerarySearchState' });
+             targets.push({ container: cargoContainer, type: 'cargo', stateKey: 'cargoItinerarySearchState' });
+        }
+    }
+
+    let targetToScroll = null;
+    let anyItemsFound = false;
+
+    targets.forEach(target => {
+        try {
+            const { container, type, stateKey } = target;
+            if (!container) return; 
+
+            // RESET OTHER TABLE if switching context specifically?
+            // No, user might want to keep filters. But here we are setting a new airline.
+            
+            const input = container.querySelector('input[data-col="aerolinea"]');
+            if (input) {
+                input.value = cleanName;
+                if (!window[stateKey]) window[stateKey] = {};
+                window[stateKey]['aerolinea'] = cleanName;
+                
+                try {
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                } catch (err) { }
+
+                // Check visibility
+                const tbody = container.querySelector('tbody');
+                if (tbody) {
+                    const visibleRows = Array.from(tbody.rows).filter(r => {
+                        return r.style.display !== 'none' && !r.classList.contains('text-center') && r.cells.length > 1; 
+                    });
+                    
+                    if (visibleRows.length > 0) {
+                        anyItemsFound = true;
+                        if (clickedType === type) {
+                            targetToScroll = container;
+                        } 
+                        else if (!targetToScroll) {
+                            targetToScroll = container;
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    });
+
+    if (targetToScroll) {
+        const anchor = targetToScroll.closest('.itinerary-general-card') || targetToScroll;
+        setTimeout(() => {
+            anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+    } else if (clickedType !== 'none' && element) {
+         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 };
 
@@ -5354,6 +5479,16 @@ function displayPassengerTable(flights) {
         return isoDate;
     };
 
+    const formatTimeHM = (timeStr) => {
+        if (!timeStr) return '-';
+        // Match 12:25, 06:00:00, etc.
+        const match = /^(\d{1,2}):(\d{2})(?::\d{2})?/.exec(String(timeStr).trim());
+        if (match) {
+            return `${match[1].padStart(2, '0')}:${match[2]}`;
+        }
+        return timeStr;
+    };
+
     const rowsHtml = flightsList.map((flight, index) => {
         const airlineNameRaw = (flight?.aerolinea || '').toString().trim();
         const displayAirline = airlineNameRaw || 'Sin aerolínea';
@@ -5374,19 +5509,21 @@ function displayPassengerTable(flights) {
         const aircraft = flight?.equipo || flight?.aeronave;
         const dateArr = formatDateDMY(flight?.fecha_llegada);
         const dateDep = formatDateDMY(flight?.fecha_salida);
+        const timeArr = formatTimeHM(flight?.hora_llegada);
+        const timeDep = formatTimeHM(flight?.hora_salida);
 
-        return `<tr class="animated-row" style="--delay:${delay}s; --airline-color:${rowColor}; --airline-row-hover:${rowHover}; --airline-row-hover-dark:${rowHoverDark};">
-            <td><div class="airline-cell${logoHtml ? ' has-logo' : ''}" role="button" onclick="window.setItineraryAirlineFilter('${escapeHTML(displayAirline)}', this)" title="Filtrar por ${escapeHTML(displayAirline)}">${logoHtml}<span class="airline-dot" style="background:${rowColor};"></span><span class="airline-name">${escapeHTML(displayAirline)}</span></div></td>
+        return `<tr class="animated-row" onclick="window.toggleRowHighlight(this)" style="--delay:${delay}s; --airline-color:${rowColor}; --airline-row-hover:${rowHover}; --airline-row-hover-dark:${rowHoverDark};">
+            <td><div class="airline-cell${logoHtml ? ' has-logo' : ''}" role="button" onclick="window.setItineraryAirlineFilter('${escapeHTML(displayAirline)}', this, 'pax')" title="Filtrar por ${escapeHTML(displayAirline)}">${logoHtml}<span class="airline-dot" style="background:${rowColor};"></span><span class="airline-name">${escapeHTML(displayAirline)}</span></div></td>
             <td class="text-center">${formatCell(aircraft)}</td>
             <td class="text-center">${formatCell(flight?.vuelo_llegada)}</td>
             <td class="text-center">${formatCell(dateArr)}</td>
-            <td class="text-center">${formatCell(flight?.hora_llegada)}</td>
+            <td class="text-center">${formatCell(timeArr)}</td>
             <td class="col-origen text-center">${formatCell(flight?.origen)}</td>
             <td class="text-center">${formatCell(flight?.banda_reclamo)}</td>
             <td class="text-center">${positionDisplay ? escapeHTML(positionDisplay) : '-'}</td>
             <td class="text-center">${formatCell(flight?.vuelo_salida)}</td>
             <td class="text-center">${formatCell(dateDep)}</td>
-            <td class="text-center">${formatCell(flight?.hora_salida)}</td>
+            <td class="text-center">${formatCell(timeDep)}</td>
             <td class="col-destino text-center">${formatCell(flight?.destino)}</td>
         </tr>`;
     }).join('');
@@ -5489,6 +5626,7 @@ function displayPassengerTable(flights) {
     }, 50);
 
     wireItineraryExports();
+    updateTableVisualStriping(container);
     console.log(`[perf] pasajeros tabla: ${(performance.now() - t0).toFixed(1)}ms, filas=${flightsList.length}`);
 }
 function displayCargoTable(flights) {
@@ -5529,6 +5667,16 @@ function displayCargoTable(flights) {
         return isoDate;
     };
 
+    const formatTimeHM = (timeStr) => {
+        if (!timeStr) return '-';
+        // Match 12:25, 06:00:00, etc.
+        const match = /^(\d{1,2}):(\d{2})(?::\d{2})?/.exec(String(timeStr).trim());
+        if (match) {
+            return `${match[1].padStart(2, '0')}:${match[2]}`;
+        }
+        return timeStr;
+    };
+
     const rowsHtml = flightsList.map((flight, index) => {
         const airlineNameRaw = (flight?.aerolinea || '').toString().trim();
         const displayAirline = airlineNameRaw || 'Sin aerolínea';
@@ -5549,19 +5697,21 @@ function displayCargoTable(flights) {
         const aircraft = flight?.equipo || flight?.aeronave;
         const dateArr = formatDateDMY(flight?.fecha_llegada);
         const dateDep = formatDateDMY(flight?.fecha_salida);
+        const timeArr = formatTimeHM(flight?.hora_llegada);
+        const timeDep = formatTimeHM(flight?.hora_salida);
 
-        return `<tr class="animated-row" style="--delay:${delay}s; --airline-color:${rowColor}; --airline-row-hover:${rowHover}; --airline-row-hover-dark:${rowHoverDark};">
-            <td><div class="airline-cell${logoHtml ? ' has-logo' : ''}" role="button" onclick="window.setItineraryAirlineFilter('${escapeHTML(displayAirline)}', this)" title="Filtrar por ${escapeHTML(displayAirline)}">${logoHtml}<span class="airline-dot" style="background:${rowColor};"></span><span class="airline-name">${escapeHTML(displayAirline)}</span></div></td>
-            <td>${formatCell(aircraft)}</td>
-            <td>${formatCell(flight?.vuelo_llegada)}</td>
-            <td>${formatCell(dateArr)}</td>
-            <td>${formatCell(flight?.hora_llegada)}</td>
-            <td class="col-origen">${formatCell(flight?.origen)}</td>
-            <td>${positionDisplay ? escapeHTML(positionDisplay) : '-'}</td>
-            <td>${formatCell(flight?.vuelo_salida)}</td>
-            <td>${formatCell(dateDep)}</td>
-            <td>${formatCell(flight?.hora_salida)}</td>
-            <td class="col-destino">${formatCell(flight?.destino)}</td>
+        return `<tr class="animated-row" onclick="window.toggleRowHighlight(this)" style="--delay:${delay}s; --airline-color:${rowColor}; --airline-row-hover:${rowHover}; --airline-row-hover-dark:${rowHoverDark};">
+            <td><div class="airline-cell${logoHtml ? ' has-logo' : ''}" role="button" onclick="window.setItineraryAirlineFilter('${escapeHTML(displayAirline)}', this, 'cargo')" title="Filtrar por ${escapeHTML(displayAirline)}">${logoHtml}<span class="airline-dot" style="background:${rowColor};"></span><span class="airline-name">${escapeHTML(displayAirline)}</span></div></td>
+            <td class="text-center">${formatCell(aircraft)}</td>
+            <td class="text-center">${formatCell(flight?.vuelo_llegada)}</td>
+            <td class="text-center">${formatCell(dateArr)}</td>
+            <td class="text-center">${formatCell(timeArr)}</td>
+            <td class="col-origen text-center">${formatCell(flight?.origen)}</td>
+            <td class="text-center">${positionDisplay ? escapeHTML(positionDisplay) : '-'}</td>
+            <td class="text-center">${formatCell(flight?.vuelo_salida)}</td>
+            <td class="text-center">${formatCell(dateDep)}</td>
+            <td class="text-center">${formatCell(timeDep)}</td>
+            <td class="col-destino text-center">${formatCell(flight?.destino)}</td>
         </tr>`;
     }).join('');
 
@@ -5594,7 +5744,7 @@ function displayCargoTable(flights) {
                     <table class="table table-hover align-middle mb-0">
                         <thead>
                             <tr class="align-middle">
-                                <th class="text-center">Aerolínea</th>
+                                <th class="ps-3">Aerolínea</th>
                                 <th class="text-center">Aeronave</th>
                                 <th class="text-center">Vuelo Lleg.</th>
                                 <th class="text-center">Fecha Lleg.</th>
@@ -5637,27 +5787,29 @@ function displayCargoTable(flights) {
         if (!inputs.length) return;
         const tableContainer = container.querySelector('.itinerary-airline-table');
 
-        // Restore state
-        if (window.dailyItinerarySearchState) {
+        // Restore state (CARGO)
+        if (window.cargoItinerarySearchState) {
             inputs.forEach(inp => {
                 const col = inp.dataset.col;
-                if (window.dailyItinerarySearchState[col]) {
-                    inp.value = window.dailyItinerarySearchState[col];
+                if (window.cargoItinerarySearchState[col]) {
+                    inp.value = window.cargoItinerarySearchState[col];
                 }
             });
-            applyClientSideTableFilter(tableContainer, window.dailyItinerarySearchState);
+            applyClientSideTableFilter(tableContainer, window.cargoItinerarySearchState);
         }
 
         inputs.forEach(input => {
             input.addEventListener('input', (e) => {
                 const val = e.target.value.trim().toUpperCase();
                 const col = e.target.dataset.col;
-                if (!window.dailyItinerarySearchState) window.dailyItinerarySearchState = {};
-                window.dailyItinerarySearchState[col] = val;
-                applyClientSideTableFilter(tableContainer, window.dailyItinerarySearchState);
+                if (!window.cargoItinerarySearchState) window.cargoItinerarySearchState = {};
+                window.cargoItinerarySearchState[col] = val;
+                applyClientSideTableFilter(tableContainer, window.cargoItinerarySearchState);
             });
         });
     }, 50);
+
+    updateTableVisualStriping(container);
 
     wireItineraryExports();
     console.log(`[perf] carga tabla: ${(performance.now() - t0).toFixed(1)}ms, filas=${flightsList.length}`);
