@@ -565,6 +565,7 @@
         this.loadAnnualOperations();
         this.syncChartsData();
         this.setupGlobalRefresh();
+        this.initColumnVisibility();
     }
 
     setupGlobalRefresh() {
@@ -1438,31 +1439,80 @@
             if (type === 'arrival') {
                 // No, Aerolinea, Vuelo, Origen, Prog, Real, Pax, Conci(empty), Action
                 tr.innerHTML = `
-                    <td class="fw-bold text-muted small">${row.seq_no || '-'}</td>
-                    <td class="text-start ps-3 align-middle">${airlineHtml}</td>
-                    <td class="align-middle">${displayFlight}</td>
-                    <td class="align-middle">${displayLoc}</td>
-                    <td class="align-middle">${displayProg}</td>
-                    <td class="align-middle">${displayReal}</td>
-                    <td class="align-middle">${displayPax}</td>
-                    <td></td>
-                    <td class="align-middle">${deleteBtn}</td>
+                    <td class="fw-bold text-muted small col-no">${row.seq_no || '-'}</td>
+                    <td class="text-start ps-3 align-middle col-aerolinea">${airlineHtml}</td>
+                    <td class="align-middle col-vuelo">${displayFlight}</td>
+                    <td class="align-middle col-route">${displayLoc}</td>
+                    <td class="align-middle col-prog">${displayProg}</td>
+                    <td class="align-middle col-real">${displayReal}</td>
+                    <td class="align-middle col-pax">${displayPax}</td>
+                    <td class="col-conciliacion"></td>
+                    <td class="align-middle col-actions">${deleteBtn}</td>
                 `;
             } else {
                 tr.innerHTML = `
-                    <td class="text-start ps-3 align-middle">${airlineHtml}</td>
-                    <td class="align-middle">${displayFlight}</td>
-                    <td class="align-middle">${displayLoc}</td>
-                    <td class="align-middle">${displayProg}</td>
-                    <td class="align-middle">${displayReal}</td>
-                    <td class="align-middle">${displayPax}</td>
-                    <td class="align-middle">${displayMat}</td>
-                    <td></td>
-                    <td class="align-middle">${deleteBtn}</td>
+                    <td class="text-start ps-3 align-middle col-aerolinea">${airlineHtml}</td>
+                    <td class="align-middle col-vuelo">${displayFlight}</td>
+                    <td class="align-middle col-route">${displayLoc}</td>
+                    <td class="align-middle col-prog">${displayProg}</td>
+                    <td class="align-middle col-real">${displayReal}</td>
+                    <td class="align-middle col-pax">${displayPax}</td>
+                    <td class="align-middle col-matricula">${displayMat}</td>
+                    <td class="col-conciliacion"></td>
+                    <td class="align-middle col-actions">${deleteBtn}</td>
                 `;
             }
             tbody.appendChild(tr);
         });
+    }
+
+    initColumnVisibility() {
+        const saved = localStorage.getItem('dm-daily-flights-columns');
+        const container = document.querySelector('#pane-daily-flights-ops');
+        if (!container) return;
+
+        if (saved) {
+            try {
+                const hiddenCols = JSON.parse(saved);
+                if (Array.isArray(hiddenCols)) {
+                    hiddenCols.forEach(col => {
+                        // Checkbox unchecked
+                        const chk = document.querySelector(`.col-toggle[data-col="${col}"]`);
+                        if (chk) chk.checked = false;
+                        
+                        // Apply class
+                        this.toggleColumn(col, false);
+                    });
+                }
+            } catch (e) {
+                console.error("Error parsing saved columns", e);
+            }
+        }
+    }
+
+    toggleColumn(colName, isVisible) {
+        const container = document.querySelector('#pane-daily-flights-ops');
+        if (!container) return;
+
+        const className = `hide-${colName}`;
+        if (isVisible) {
+            container.classList.remove(className);
+        } else {
+            container.classList.add(className);
+        }
+        this.saveColumnVisibility();
+    }
+
+    saveColumnVisibility() {
+        const checkboxes = document.querySelectorAll('.col-toggle');
+        const hidden = [];
+        checkboxes.forEach(cb => {
+            if (!cb.checked) {
+                const col = cb.getAttribute('data-col');
+                if (col) hidden.push(col);
+            }
+        });
+        localStorage.setItem('dm-daily-flights-columns', JSON.stringify(hidden));
     }
 
     async deleteSingleFlight(dateStr, seqNo, type) {

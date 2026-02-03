@@ -10757,3 +10757,76 @@ body.dark-mode #fauna-rescate-table .table-container-tech.h-scroll-area thead th
 .rotate-45 { transform: rotate(45deg); }
 .chart-container-fixed { height: 250px; width: 100%; }
 .table-csv-fixed { font-size: 0.75rem !important; white-space: nowrap !important; }
+
+/* Accessibility & Maintenance Helpers */
+.maintenance-alert {
+    background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%);
+    border-left: 5px solid #ffc107;
+    border-radius: 12px;
+}
+
+.maintenance-icon-wrapper {
+    width: 50px;
+    height: 50px;
+    background-color: rgba(255, 193, 7, 0.2);
+    border-radius: 50%;
+    color: #856404;
+}
+
+.maintenance-text {
+    color: #856404;
+}
+
+.maintenance-text-sub {
+    color: #856404;
+    opacity: 0.9;
+}
+
+.scrollable-card-body {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+
+/* Column Visibility Helpers for Daily Flights Ops */
+#pane-daily-flights-ops.hide-col-no .col-no,
+#pane-daily-flights-ops.hide-col-aerolinea .col-aerolinea,
+#pane-daily-flights-ops.hide-col-vuelo .col-vuelo,
+#pane-daily-flights-ops.hide-col-route .col-route,
+#pane-daily-flights-ops.hide-col-prog .col-prog,
+#pane-daily-flights-ops.hide-col-real .col-real,
+#pane-daily-flights-ops.hide-col-pax .col-pax,
+#pane-daily-flights-ops.hide-col-matricula .col-matricula,
+#pane-daily-flights-ops.hide-col-actions .col-actions {
+    display: none !important;
+}
+
+
+/* Column Visibility Helpers for Operaciones CSV Table */
+#container-ops-flights-csv.hide-col-cvs-status .col-cvs-status,
+#container-ops-flights-csv.hide-col-cvs-arr-airline .col-cvs-arr-airline,
+#container-ops-flights-csv.hide-col-cvs-arr-flight .col-cvs-arr-flight,
+#container-ops-flights-csv.hide-col-cvs-arr-aldt .col-cvs-arr-aldt,
+#container-ops-flights-csv.hide-col-cvs-arr-sibt .col-cvs-arr-sibt,
+#container-ops-flights-csv.hide-col-cvs-arr-aibt .col-cvs-arr-aibt,
+#container-ops-flights-csv.hide-col-cvs-arr-stand .col-cvs-arr-stand,
+#container-ops-flights-csv.hide-col-cvs-arr-gates .col-cvs-arr-gates,
+#container-ops-flights-csv.hide-col-cvs-arr-boarded .col-cvs-arr-boarded,
+#container-ops-flights-csv.hide-col-cvs-arr-belts .col-cvs-arr-belts,
+#container-ops-flights-csv.hide-col-cvs-arr-type .col-cvs-arr-type,
+#container-ops-flights-csv.hide-col-cvs-routing .col-cvs-routing,
+#container-ops-flights-csv.hide-col-cvs-dep-type .col-cvs-dep-type,
+#container-ops-flights-csv.hide-col-cvs-aircraft .col-cvs-aircraft,
+#container-ops-flights-csv.hide-col-cvs-reg .col-cvs-reg,
+#container-ops-flights-csv.hide-col-cvs-dep-airline .col-cvs-dep-airline,
+#container-ops-flights-csv.hide-col-cvs-dep-flight .col-cvs-dep-flight,
+#container-ops-flights-csv.hide-col-cvs-dep-stand .col-cvs-dep-stand,
+#container-ops-flights-csv.hide-col-cvs-dep-gates .col-cvs-dep-gates,
+#container-ops-flights-csv.hide-col-cvs-dep-boarded .col-cvs-dep-boarded,
+#container-ops-flights-csv.hide-col-cvs-dep-sobt .col-cvs-dep-sobt,
+#container-ops-flights-csv.hide-col-cvs-dep-aobt .col-cvs-dep-aobt,
+#container-ops-flights-csv.hide-col-cvs-dep-atot .col-cvs-dep-atot,
+#container-ops-flights-csv.hide-col-cvs-dep-attt .col-cvs-dep-attt {
+    display: none !important;
+}
+

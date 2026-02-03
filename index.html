@@ -307,8 +307,8 @@
                     <label for="username">Usuario</label>
                 </div>
                 <div class="form-floating mb-3 position-relative">
-                    <input type="password" class="form-control" id="password" name="password" required placeholder=" "
-                        autocomplete="current-password" style="padding-right: 40px;">
+                    <input type="password" class="form-control pe-5" id="password" name="password" required placeholder=" "
+                        autocomplete="current-password">
                     <label for="password">Contraseña</label>
                     <span id="toggle-password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; z-index: 10;">
                         <i class="fas fa-eye"></i>
@@ -1027,14 +1027,14 @@
                                             <div class="d-flex justify-content-between mb-3">
                                                 <div class="d-flex gap-2">
                                                     <div class="input-group w-auto">
-                                                        <span class="input-group-text">Año</span> aria-label="Año"
-                                                            id="filter-punctuality-year" value="2025"
-                                                            class="w-100px">
+                                                        <span class="input-group-text">Año</span>
+                                                        <select class="form-select w-100px" id="filter-punctuality-year" aria-label="Seleccionar Año">
+                                                            <option value="2025">2025</option>
+                                                        </select>
                                                     </div>
                                                     <div class="input-group w-auto">
                                                         <span class="input-group-text">Mes</span>
-                                                        <select class="form-select" id="filter-punctuality-month" aria-label="Mes
-                                                        <select class="form-select" id="filter-punctuality-month">
+                                                        <select class="form-select" id="filter-punctuality-month" aria-label="Seleccionar Mes">
                                                             <option value="">Todo</option>
                                                             <option value="1">Enero</option>
                                                             <option value="2">Febrero</option>
@@ -1192,7 +1192,7 @@
                                                     <div class="d-flex justify-content-between mb-3">
                                                         <div class="input-group w-auto">
                                                             <span class="input-group-text">Año</span>
-                                                            <select class="form-select" id="filter-medical-types-year">
+                                                            <select class="form-select" id="filter-medical-types-year" aria-label="Seleccionar Año">
                                                                 <option value="2024">2024</option>
                                                                 <option value="2025" selected>2025</option>
                                                             </select>
@@ -1309,7 +1309,7 @@
                                                 <h5 class="mb-0">Vuelos (Itinerario Operaciones)</h5>
                                                 <div class="d-flex gap-2">
                                                     <input type="date" class="form-control form-control-sm"
-                                                        id="filter-daily-flights-date"
+                                                        id="filter-daily-flights-date" aria-label="Filtrar por fecha"
                                                         onchange="dataManagement.loadDailyFlightsOps()">
                                                     <button class="btn btn-outline-danger btn-sm"
                                                         onclick="dataManagement.deleteDailyOpsByDate()"
@@ -1339,6 +1339,48 @@
                                                         <i class="fas fa-save me-1"></i> Guardar
                                                     </button>
 
+                                                    <div class="dropdown d-inline-block">
+                                                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="dropdownMenuButtonColumns" data-bs-toggle="dropdown" aria-expanded="false" title="Seleccionar columnas visibles">
+                                                            <i class="fas fa-columns me-1"></i>
+                                                        </button>
+                                                        <ul class="dropdown-menu p-3 shadow" aria-labelledby="dropdownMenuButtonColumns" style="min-width: 250px;" onclick="event.stopPropagation()">
+                                                            <li><h6 class="dropdown-header text-primary fw-bold">Columnas Visibles</h6></li>
+                                                            <li><hr class="dropdown-divider"></li>
+                                                            <li class="form-check mb-1">
+                                                                <input class="form-check-input col-toggle" type="checkbox" value="" id="chk-col-no" data-col="col-no" checked onchange="dataManagement.toggleColumn('col-no', this.checked)">
+                                                                <label class="form-check-label" for="chk-col-no">No. (Seq)</label>
+                                                            </li>
+                                                            <li class="form-check mb-1">
+                                                                <input class="form-check-input col-toggle" type="checkbox" value="" id="chk-col-aerolinea" data-col="col-aerolinea" checked onchange="dataManagement.toggleColumn('col-aerolinea', this.checked)">
+                                                                <label class="form-check-label" for="chk-col-aerolinea">Aerolínea</label>
+                                                            </li>
+                                                            <li class="form-check mb-1">
+                                                                <input class="form-check-input col-toggle" type="checkbox" value="" id="chk-col-vuelo" data-col="col-vuelo" checked onchange="dataManagement.toggleColumn('col-vuelo', this.checked)">
+                                                                <label class="form-check-label" for="chk-col-vuelo">Vuelo</label>
+                                                            </li>
+                                                            <li class="form-check mb-1">
+                                                                <input class="form-check-input col-toggle" type="checkbox" value="" id="chk-col-route" data-col="col-route" checked onchange="dataManagement.toggleColumn('col-route', this.checked)">
+                                                                <label class="form-check-label" for="chk-col-route">Origen / Destino</label>
+                                                            </li>
+                                                            <li class="form-check mb-1">
+                                                                <input class="form-check-input col-toggle" type="checkbox" value="" id="chk-col-prog" data-col="col-prog" checked onchange="dataManagement.toggleColumn('col-prog', this.checked)">
+                                                                <label class="form-check-label" for="chk-col-prog">Hora Programada</label>
+                                                            </li>
+                                                            <li class="form-check mb-1">
+                                                                <input class="form-check-input col-toggle" type="checkbox" value="" id="chk-col-real" data-col="col-real" checked onchange="dataManagement.toggleColumn('col-real', this.checked)">
+                                                                <label class="form-check-label" for="chk-col-real">Hora Real</label>
+                                                            </li>
+                                                            <li class="form-check mb-1">
+                                                                <input class="form-check-input col-toggle" type="checkbox" value="" id="chk-col-pax" data-col="col-pax" checked onchange="dataManagement.toggleColumn('col-pax', this.checked)">
+                                                                <label class="form-check-label" for="chk-col-pax">Pasajeros (Pax)</label>
+                                                            </li>
+                                                            <li class="form-check mb-1">
+                                                                <input class="form-check-input col-toggle" type="checkbox" value="" id="chk-col-matricula" data-col="col-matricula" checked onchange="dataManagement.toggleColumn('col-matricula', this.checked)">
+                                                                <label class="form-check-label" for="chk-col-matricula">Matrícula</label>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+
                                                     <button class="btn btn-primary btn-sm"
                                                         onclick="dataManagement.addItem('daily_flights_ops')"><i
                                                             class="fas fa-plus"></i> Agregar Vuelo</button>
@@ -1362,17 +1404,17 @@
                                                                     <thead class="table-light">
                                                                         <tr
                                                                             class="text-center small text-muted text-uppercase">
-                                                                            <th class="w-30px">No.</th>
-                                                                            <th class="w-75px">Aerolínea</th>
-                                                                            <th class="w-60px">Vuelo</th>
-                                                                            <th class="w-85px">Origen</th>
-                                                                            <th>Prog</th>
-                                                                            <th>Real</th>
-                                                                            <th class="w-65px">Pax</th>
+                                                                            <th class="w-30px col-no">No.</th>
+                                                                            <th class="w-75px col-aerolinea">Aerolínea</th>
+                                                                            <th class="w-60px col-vuelo">Vuelo</th>
+                                                                            <th class="w-85px col-route">Origen</th>
+                                                                            <th class="col-prog">Prog</th>
+                                                                            <th class="col-real">Real</th>
+                                                                            <th class="w-65px col-pax">Pax</th>
                                                                             <th class="col-conciliacion d-none w-40px"><i
                                                                                     class="fas fa-check-circle"></i>
                                                                             </th>
-                                                                            <th class="w-40px"></th>
+                                                                            <th class="w-40px col-actions"></th>
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody class="text-center bg-white"></tbody>
@@ -1393,22 +1435,22 @@
                                                         <div class="card-body p-0">
                                                             <div class="table-responsive">
                                                                 <table
-                                                                    class="table table-hover table-bordered table-sm align-middle mb-0"
-                                                                    id="table-daily-flights-departures" table-fixed-small"
-                                                                    id="table-daily-flights-departures
+                                                                    class="table table-hover table-bordered table-sm align-middle mb-0 table-fixed-small"
+                                                                    id="table-daily-flights-departures">
+                                                                    <thead class="table-light">
                                                                         <tr
                                                                             class="text-center small text-muted text-uppercase">
-                                                                            <th class="w-75px">Aerolínea</th>
-                                                                            <th class="w-60px">Vuelo</th>
-                                                                            <th class="w-85px">Destino</th>
-                                                                            <th>Prog</th>
-                                                                            <th>Real</th>
-                                                                            <th class="w-50px">Pax</th>
-                                                                            <th class="w-75px">Matrícula</th>
+                                                                            <th class="w-75px col-aerolinea">Aerolínea</th>
+                                                                            <th class="w-60px col-vuelo">Vuelo</th>
+                                                                            <th class="w-85px col-route">Destino</th>
+                                                                            <th class="col-prog">Prog</th>
+                                                                            <th class="col-real">Real</th>
+                                                                            <th class="w-50px col-pax">Pax</th>
+                                                                            <th class="w-75px col-matricula">Matrícula</th>
                                                                             <th class="col-conciliacion d-none w-40px"><i
                                                                                     class="fas fa-check-circle"></i>
                                                                             </th>
-                                                                            <th class="w-40px"></th>
+                                                                            <th class="w-40px col-actions"></th>
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody class="text-center bg-white"></tbody>
@@ -1480,7 +1522,7 @@
                                                 <div class="col-md-6">
                                                     <h6 class="text-muted mb-2">Vista Previa Actual</h6>
                                                     <div class="ratio ratio-16x9 border rounded bg-light">
-                                                        <iframe id="preview-comparativa-admin" src=""></iframe>
+                                                        <iframe id="preview-comparativa-admin" src="" title="Vista previa comparativa"></iframe>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1664,13 +1706,13 @@
                             <div class="tab-content" id="inicioTabContent">
                                 <div class="tab-pane fade show active" id="interactivo-inicio-pane" role="tabpanel"
                                     aria-labelledby="interactivo-inicio-tab" tabindex="0">
-                                    <div class="alert shadow-sm border-0 d-flex align-items-center mb-4 p-3" role="alert" style="background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%); border-left: 5px solid #ffc107; border-radius: 12px;">
-                                        <div class="d-flex align-items-center justify-content-center flex-shrink-0 me-3" style="width: 50px; height: 50px; background-color: rgba(255, 193, 7, 0.2); border-radius: 50%; color: #856404;">
+                                    <div class="alert shadow-sm border-0 d-flex align-items-center mb-4 p-3 maintenance-alert" role="alert">
+                                        <div class="d-flex align-items-center justify-content-center flex-shrink-0 me-3 maintenance-icon-wrapper">
                                             <i class="fas fa-tools fs-4"></i>
                                         </div>
                                         <div>
-                                            <h6 class="alert-heading mb-1 fw-bold" style="color: #856404;">Sección en Mantenimiento</h6>
-                                            <p class="mb-0 small" style="color: #856404; opacity: 0.9;">
+                                            <h6 class="alert-heading mb-1 fw-bold maintenance-text">Sección en Mantenimiento</h6>
+                                            <p class="mb-0 small maintenance-text-sub">
                                                 Estamos implementando mejoras y actualizaciones en este módulo para optimizar la precisión de los datos.
                                             </p>
                                         </div>
@@ -2309,13 +2351,13 @@
                                     </div>
                                 </div>
                                 <div class="tab-pane fade" id="vuelos-ops-pane" role="tabpanel">
-                                    <div class="alert shadow-sm border-0 d-flex align-items-center mb-4 p-3" role="alert" style="background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%); border-left: 5px solid #ffc107; border-radius: 12px;">
-                                        <div class="d-flex align-items-center justify-content-center flex-shrink-0 me-3" style="width: 50px; height: 50px; background-color: rgba(255, 193, 7, 0.2); border-radius: 50%; color: #856404;">
+                                    <div class="alert shadow-sm border-0 d-flex align-items-center mb-4 p-3 maintenance-alert" role="alert">
+                                        <div class="d-flex align-items-center justify-content-center flex-shrink-0 me-3 maintenance-icon-wrapper">
                                             <i class="fas fa-tools fs-4"></i>
                                         </div>
                                         <div>
-                                            <h6 class="alert-heading mb-1 fw-bold" style="color: #856404;">Sección en Mantenimiento</h6>
-                                            <p class="mb-0 small" style="color: #856404; opacity: 0.9;">
+                                            <h6 class="alert-heading mb-1 fw-bold maintenance-text">Sección en Mantenimiento</h6>
+                                            <p class="mb-0 small maintenance-text-sub">
                                                 Estamos implementando mejoras y actualizaciones en este módulo para optimizar la precisión de los datos.
                                             </p>
                                         </div>
@@ -2382,9 +2424,45 @@
                                     <div class="row">
                                         <div class="col-12 mb-4">
                                             <div class="card shadow-sm border-0">
-                                                <div class="card-header bg-light">
+                                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
                                                     <h6 class="mb-0 text-uppercase small text-muted">Vuelos importados
                                                         desde CSV</h6>
+                                                    
+                                                    <div class="dropdown">
+                                                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="dropdownMenuButtonCsvColumns" data-bs-toggle="dropdown" aria-expanded="false" title="Seleccionar columnas visibles">
+                                                            <i class="fas fa-columns me-1"></i>
+                                                        </button>
+                                                        <ul class="dropdown-menu p-3 shadow dropdown-menu-end" aria-labelledby="dropdownMenuButtonCsvColumns" style="min-width: 300px; max-height: 400px; overflow-y: auto;" onclick="event.stopPropagation()">
+                                                            <li><h6 class="dropdown-header text-primary fw-bold">Columnas Visibles</h6></li>
+                                                            <li><hr class="dropdown-divider"></li>
+                                                            <!-- Checkboxes generated dynamically or static -->
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-status" data-col="col-cvs-status" onchange="window.opsFlights.toggleColumn('col-cvs-status', this.checked)"><label class="form-check-label" for="chk-csv-status">Status</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-airline" data-col="col-cvs-arr-airline" onchange="window.opsFlights.toggleColumn('col-cvs-arr-airline', this.checked)"><label class="form-check-label" for="chk-csv-arr-airline">[Arr] Airline</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-flight" data-col="col-cvs-arr-flight" onchange="window.opsFlights.toggleColumn('col-cvs-arr-flight', this.checked)"><label class="form-check-label" for="chk-csv-arr-flight">[Arr] Flight</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-aldt" data-col="col-cvs-arr-aldt" onchange="window.opsFlights.toggleColumn('col-cvs-arr-aldt', this.checked)"><label class="form-check-label" for="chk-csv-arr-aldt">[Arr] ALDT</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-sibt" data-col="col-cvs-arr-sibt" onchange="window.opsFlights.toggleColumn('col-cvs-arr-sibt', this.checked)"><label class="form-check-label" for="chk-csv-arr-sibt">[Arr] SIBT</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-aibt" data-col="col-cvs-arr-aibt" onchange="window.opsFlights.toggleColumn('col-cvs-arr-aibt', this.checked)"><label class="form-check-label" for="chk-csv-arr-aibt">[Arr] AIBT</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-stand" data-col="col-cvs-arr-stand" onchange="window.opsFlights.toggleColumn('col-cvs-arr-stand', this.checked)"><label class="form-check-label" for="chk-csv-arr-stand">[Arr] Stand</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-gates" data-col="col-cvs-arr-gates" onchange="window.opsFlights.toggleColumn('col-cvs-arr-gates', this.checked)"><label class="form-check-label" for="chk-csv-arr-gates">[Arr] Gates</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-boarded" data-col="col-cvs-arr-boarded" onchange="window.opsFlights.toggleColumn('col-cvs-arr-boarded', this.checked)"><label class="form-check-label" for="chk-csv-arr-boarded">[Arr] Boarded</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-belts" data-col="col-cvs-arr-belts" onchange="window.opsFlights.toggleColumn('col-cvs-arr-belts', this.checked)"><label class="form-check-label" for="chk-csv-arr-belts">[Arr] Belts</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-type" data-col="col-cvs-arr-type" onchange="window.opsFlights.toggleColumn('col-cvs-arr-type', this.checked)"><label class="form-check-label" for="chk-csv-arr-type">[Arr] Type</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-routing" data-col="col-cvs-routing" onchange="window.opsFlights.toggleColumn('col-cvs-routing', this.checked)"><label class="form-check-label" for="chk-csv-routing">Routing</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-type" data-col="col-cvs-dep-type" onchange="window.opsFlights.toggleColumn('col-cvs-dep-type', this.checked)"><label class="form-check-label" for="chk-csv-dep-type">[Dep] Type</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-aircraft" data-col="col-cvs-aircraft" onchange="window.opsFlights.toggleColumn('col-cvs-aircraft', this.checked)"><label class="form-check-label" for="chk-csv-aircraft">Aircraft Type</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-reg" data-col="col-cvs-reg" onchange="window.opsFlights.toggleColumn('col-cvs-reg', this.checked)"><label class="form-check-label" for="chk-csv-reg">Registration</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-airline" data-col="col-cvs-dep-airline" onchange="window.opsFlights.toggleColumn('col-cvs-dep-airline', this.checked)"><label class="form-check-label" for="chk-csv-dep-airline">[Dep] Airline</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-flight" data-col="col-cvs-dep-flight" onchange="window.opsFlights.toggleColumn('col-cvs-dep-flight', this.checked)"><label class="form-check-label" for="chk-csv-dep-flight">[Dep] Flight</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-stand" data-col="col-cvs-dep-stand" onchange="window.opsFlights.toggleColumn('col-cvs-dep-stand', this.checked)"><label class="form-check-label" for="chk-csv-dep-stand">[Dep] Stand</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-gates" data-col="col-cvs-dep-gates" onchange="window.opsFlights.toggleColumn('col-cvs-dep-gates', this.checked)"><label class="form-check-label" for="chk-csv-dep-gates">[Dep] Gates</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-boarded" data-col="col-cvs-dep-boarded" onchange="window.opsFlights.toggleColumn('col-cvs-dep-boarded', this.checked)"><label class="form-check-label" for="chk-csv-dep-boarded">[Dep] Boarded</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-sobt" data-col="col-cvs-dep-sobt" onchange="window.opsFlights.toggleColumn('col-cvs-dep-sobt', this.checked)"><label class="form-check-label" for="chk-csv-dep-sobt">[Dep] SOBT</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-aobt" data-col="col-cvs-dep-aobt" onchange="window.opsFlights.toggleColumn('col-cvs-dep-aobt', this.checked)"><label class="form-check-label" for="chk-csv-dep-aobt">[Dep] AOBT</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-atot" data-col="col-cvs-dep-atot" onchange="window.opsFlights.toggleColumn('col-cvs-dep-atot', this.checked)"><label class="form-check-label" for="chk-csv-dep-atot">[Dep] ATOT</label></li>
+                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-attt" data-col="col-cvs-dep-attt" onchange="window.opsFlights.toggleColumn('col-cvs-dep-attt', this.checked)"><label class="form-check-label" for="chk-csv-dep-attt">[Dep] ATTT</label></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
                                                 </div>
                                                 <div class="table-responsive" id="container-ops-flights-csv">
                                                     <table
@@ -2392,56 +2470,56 @@
                                                         id="table-ops-flights-csv">
                                                         <thead class="table-light">
                                                             <tr class="text-center small text-muted text-uppercase">
-                                                                <th>Status</th>
-                                                                <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Airline</th>
-                                                                <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Flight</th>
-                                                                <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] ALDT</th>
-                                                                <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] SIBT</th>
-                                                                <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] AIBT</th>
-                                                                <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Stand</th>
-                                                                <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Gates</th>
-                                                                <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Boarded</th>
-                                                                <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Belts</th>
-                                                                <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Type</th>
-                                                                <th>Routing</th>
-                                                                <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Type</th>
-                                                                <th>Aircraft type</th>
-                                                                <th>Registration</th>
-                                                                <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Airline</th>
-                                                                <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Flight</th>
-                                                                <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Stand</th>
-                                                                <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Gates</th>
-                                                                <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Boarded</th>
-                                                                <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] SOBT</th>
-                                                                <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] AOBT</th>
-                                                                <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] ATOT</th>
-                                                                <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] ATTT</th>
+                                                                <th class="col-cvs-status">Status</th>
+                                                                <th class="col-cvs-arr-airline"><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Airline</th>
+                                                                <th class="col-cvs-arr-flight"><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Flight</th>
+                                                                <th class="col-cvs-arr-aldt"><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] ALDT</th>
+                                                                <th class="col-cvs-arr-sibt"><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] SIBT</th>
+                                                                <th class="col-cvs-arr-aibt"><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] AIBT</th>
+                                                                <th class="col-cvs-arr-stand"><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Stand</th>
+                                                                <th class="col-cvs-arr-gates"><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Gates</th>
+                                                                <th class="col-cvs-arr-boarded"><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Boarded</th>
+                                                                <th class="col-cvs-arr-belts"><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Belts</th>
+                                                                <th class="col-cvs-arr-type"><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Type</th>
+                                                                <th class="col-cvs-routing">Routing</th>
+                                                                <th class="col-cvs-dep-type"><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Type</th>
+                                                                <th class="col-cvs-aircraft">Aircraft type</th>
+                                                                <th class="col-cvs-reg">Registration</th>
+                                                                <th class="col-cvs-dep-airline"><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Airline</th>
+                                                                <th class="col-cvs-dep-flight"><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Flight</th>
+                                                                <th class="col-cvs-dep-stand"><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Stand</th>
+                                                                <th class="col-cvs-dep-gates"><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Gates</th>
+                                                                <th class="col-cvs-dep-boarded"><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Boarded</th>
+                                                                <th class="col-cvs-dep-sobt"><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] SOBT</th>
+                                                                <th class="col-cvs-dep-aobt"><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] AOBT</th>
+                                                                <th class="col-cvs-dep-atot"><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] ATOT</th>
+                                                                <th class="col-cvs-dep-attt"><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] ATTT</th>
                                                             </tr>
                                                             <tr class="csv-filter-row">
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="Status" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Arr] Airline code" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Arr] Flight Designator" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Arr] ALDT" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Arr] SIBT" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Arr] AIBT" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Arr] Stand" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Arr] Gates" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Arr] Boarded" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Arr] Baggage Belts" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Arr] Service Type" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="Routing" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Dep] Service Type" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="Aircraft type" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="Registration" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Dep] Airline code" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Dep] Flight Designator" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Dep] Stand" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Dep] Gates" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Dep] Boarded" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Dep] SOBT" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Dep] AOBT" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Dep] ATOT" placeholder="Filtrar..."></th>
-                                                                <th><input type="text" class="form-control form-control-sm" data-field="[Dep] ATTT" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-status"><input type="text" class="form-control form-control-sm" data-field="Status" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-arr-airline"><input type="text" class="form-control form-control-sm" data-field="[Arr] Airline code" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-arr-flight"><input type="text" class="form-control form-control-sm" data-field="[Arr] Flight Designator" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-arr-aldt"><input type="text" class="form-control form-control-sm" data-field="[Arr] ALDT" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-arr-sibt"><input type="text" class="form-control form-control-sm" data-field="[Arr] SIBT" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-arr-aibt"><input type="text" class="form-control form-control-sm" data-field="[Arr] AIBT" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-arr-stand"><input type="text" class="form-control form-control-sm" data-field="[Arr] Stand" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-arr-gates"><input type="text" class="form-control form-control-sm" data-field="[Arr] Gates" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-arr-boarded"><input type="text" class="form-control form-control-sm" data-field="[Arr] Boarded" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-arr-belts"><input type="text" class="form-control form-control-sm" data-field="[Arr] Baggage Belts" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-arr-type"><input type="text" class="form-control form-control-sm" data-field="[Arr] Service Type" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-routing"><input type="text" class="form-control form-control-sm" data-field="Routing" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-dep-type"><input type="text" class="form-control form-control-sm" data-field="[Dep] Service Type" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-aircraft"><input type="text" class="form-control form-control-sm" data-field="Aircraft type" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-reg"><input type="text" class="form-control form-control-sm" data-field="Registration" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-dep-airline"><input type="text" class="form-control form-control-sm" data-field="[Dep] Airline code" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-dep-flight"><input type="text" class="form-control form-control-sm" data-field="[Dep] Flight Designator" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-dep-stand"><input type="text" class="form-control form-control-sm" data-field="[Dep] Stand" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-dep-gates"><input type="text" class="form-control form-control-sm" data-field="[Dep] Gates" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-dep-boarded"><input type="text" class="form-control form-control-sm" data-field="[Dep] Boarded" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-dep-sobt"><input type="text" class="form-control form-control-sm" data-field="[Dep] SOBT" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-dep-aobt"><input type="text" class="form-control form-control-sm" data-field="[Dep] AOBT" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-dep-atot"><input type="text" class="form-control form-control-sm" data-field="[Dep] ATOT" placeholder="Filtrar..."></th>
+                                                                <th class="col-cvs-dep-attt"><input type="text" class="form-control form-control-sm" data-field="[Dep] ATTT" placeholder="Filtrar..."></th>
                                                             </tr>
                                                         </thead>
                                                         <tbody class="text-center bg-white"
@@ -4518,9 +4596,9 @@
                                                 automatización de frecuencias. Datos solo para uso práctico.
                                             </div>
                                         </div>
-                                        <div id="frecuencias-error" class="alert alert-danger d-none" role="alert">
+                                        <div id="frecuencias-error-legacy" class="alert alert-danger d-none" role="alert">
                                         </div>
-                                        <div id="frecuencias-loading" class="frecuencias-loading-state" role="status"
+                                        <div id="frecuencias-loading-legacy" class="frecuencias-loading-state" role="status"
                                             aria-live="polite">
                                             <div class="spinner-border text-primary" role="presentation"></div>
                                             <div>
@@ -4530,7 +4608,7 @@
                                                     archivos JSON.</p>
                                             </div>
                                         </div>
-                                        <div id="frecuencias-content" class="frecuencias-auto-content d-none">
+                                        <div id="frecuencias-content-legacy" class="frecuencias-auto-content d-none">
                                             <div class="frecuencias-meta card shadow-sm mb-3">
                                                 <div
                                                     class="card-body d-flex flex-column flex-md-row justify-content-between gap-3">
@@ -4557,7 +4635,7 @@
                                             </div>
 
                                             <div class="row g-3 mb-4">
-                                                <div class="col-12 transition-all" id="frecuencias-map-col">
+                                                <div class="col-12 transition-all" id="frecuencias-map-col-legacy">
                                                     <div class="card shadow-sm h-100">
                                                         <div
                                                             class="card-header d-flex align-items-center justify-content-between">
@@ -4573,17 +4651,17 @@
 
 
                                                             <button class="btn btn-outline-primary btn-sm"
-                                                                id="frecuencias-fit-map"><i
+                                                                id="frecuencias-fit-map-legacy"><i
                                                                     class="fas fa-expand me-1"></i>Enfocar
                                                                 país</button>
                                                         </div>
                                                         <div class="card-body">
                                                             <div class="frecuencias-map-shell">
-                                                                <div id="frecuencias-map" class="frecuencias-map"
+                                                                <div id="frecuencias-map-legacy" class="frecuencias-map"
                                                                     role="img"
                                                                     aria-label="Mapa de frecuencias semanales">
                                                                 </div>
-                                                                <div id="frecuencias-map-empty"
+                                                                <div id="frecuencias-map-empty-legacy"
                                                                     class="frecuencias-map-empty d-none">Sin
                                                                     destinos
                                                                     para mostrar con los filtros actuales.</div>
@@ -4594,21 +4672,21 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div class="col-12 col-lg-5 d-none" id="frecuencias-details-col">
+                                                <div class="col-12 col-lg-5 d-none" id="frecuencias-details-col-legacy">
                                                     <div class="card shadow-sm h-100">
                                                         <div
                                                             class="card-header bg-light d-flex justify-content-between align-items-center">
                                                             <h5 class="mb-0 text-primary"
-                                                                id="frecuencias-details-title">
+                                                                id="frecuencias-details-title-legacy">
                                                                 Detalles
                                                             </h5>
                                                             <button type="button" class="btn-close"
                                                                 aria-label="Cerrar detalles"
-                                                                id="frecuencias-details-close"></button>
+                                                                id="frecuencias-details-close-legacy"></button>
                                                         </div>
                                                         <div class="card-body p-0 overflow-auto"
                                                             style="max-height: 500px;">
-                                                            <div id="frecuencias-details-body"
+                                                            <div id="frecuencias-details-body-legacy"
                                                                 class="list-group list-group-flush">
                                                             </div>
                                                         </div>
@@ -4649,44 +4727,44 @@
                                                 <div class="card-body">
                                                     <div class="row g-3 align-items-end">
                                                         <div class="col-12 col-lg-3">
-                                                            <label for="frecuencias-airline-filter"
+                                                            <label for="frecuencias-airline-filter-legacy"
                                                                 class="form-label small text-uppercase text-muted">Filtrar
                                                                 por aerolínea</label>
-                                                            <select id="frecuencias-airline-filter"
+                                                            <select id="frecuencias-airline-filter-legacy"
                                                                 class="form-select form-select-sm"
                                                                 aria-label="Filtrar frecuencias por aerolínea"></select>
                                                         </div>
                                                         <div class="col-12 col-lg-3">
-                                                            <label for="frecuencias-destination-filter"
+                                                            <label for="frecuencias-destination-filter-legacy"
                                                                 class="form-label small text-uppercase text-muted">Filtrar
                                                                 por destino</label>
-                                                            <select id="frecuencias-destination-filter"
+                                                            <select id="frecuencias-destination-filter-legacy"
                                                                 class="form-select form-select-sm"
                                                                 aria-label="Filtrar frecuencias por destino"></select>
                                                         </div>
                                                         <div class="col-12 col-lg-3">
-                                                            <label for="frecuencias-day-filter"
+                                                            <label for="frecuencias-day-filter-legacy"
                                                                 class="form-label small text-uppercase text-muted">Día
                                                                 con operación</label>
-                                                            <select id="frecuencias-day-filter"
+                                                            <select id="frecuencias-day-filter-legacy"
                                                                 class="form-select form-select-sm"
                                                                 aria-label="Filtrar frecuencias por día"></select>
                                                         </div>
                                                         <div class="col-12 col-lg-3">
-                                                            <label for="frecuencias-search"
+                                                            <label for="frecuencias-search-legacy"
                                                                 class="form-label small text-uppercase text-muted">Buscar</label>
-                                                            <input type="search" id="frecuencias-search"
+                                                            <input type="search" id="frecuencias-search-legacy"
                                                                 class="form-control form-control-sm"
                                                                 placeholder="Ciudad, estado o aerolínea">
                                                         </div>
                                                     </div>
                                                     <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
                                                         <button class="btn btn-outline-secondary btn-sm"
-                                                            id="frecuencias-reset-filters"><i
+                                                            id="frecuencias-reset-filters-legacy"><i
                                                                 class="fas fa-eraser me-1"></i>Limpiar
                                                             filtros</button>
                                                         <span class="small text-muted"
-                                                            id="frecuencias-active-filters">Mostrando
+                                                            id="frecuencias-active-filters-legacy">Mostrando
                                                             todos los
                                                             destinos.</span>
                                                     </div>
@@ -4701,9 +4779,9 @@
                                                             </h3>
                                                         </div>
                                                         <div class="card-body">
-                                                            <div id="frecuencias-dow-list" class="frecuencias-dow-list">
+                                                            <div id="frecuencias-dow-list-legacy" class="frecuencias-dow-list">
                                                             </div>
-                                                            <div id="frecuencias-insights"
+                                                            <div id="frecuencias-insights-legacy"
                                                                 class="frecuencias-insights mt-3">
                                                             </div>
                                                         </div>
@@ -4721,11 +4799,11 @@
                                                             día.</small>
                                                     </div>
                                                     <span class="badge bg-secondary-subtle text-secondary"
-                                                        id="frecuencias-table-count">— destinos listados</span>
+                                                        id="frecuencias-table-count-legacy">— destinos listados</span>
                                                 </div>
                                                 <div class="table-responsive">
                                                     <table class="table table-hover table-bordered align-middle"
-                                                        id="frecuencias-destinos-table">
+                                                        id="frecuencias-destinos-table-legacy">
                                                         <thead>
                                                             <tr>
                                                                 <th scope="col">Destino</th>
@@ -4743,10 +4821,10 @@
                                                         <tbody></tbody>
                                                     </table>
                                                 </div>
-                                                <div id="frecuencias-empty" class="frecuencias-empty d-none">No hay
+                                                <div id="frecuencias-empty-legacy" class="frecuencias-empty d-none">No hay
                                                     destinos que coincidan con los filtros seleccionados.</div>
                                                 <div class="card-footer bg-light text-muted small">
-                                                    <div id="frecuencias-table-footnote">Valores generados
+                                                    <div id="frecuencias-table-footnote-legacy">Valores generados
                                                         automáticamente a partir del archivo JSON semanal.</div>
                                                 </div>
                                             </div>
@@ -6273,7 +6351,132 @@
     <script src="js/parte-ops-tab.js"></script>
     <script src="js/itinerario-tab.js"></script>
     <script src="js/comparativa.js"></script>
-    <script src="js/parte-ops-flights.js"></script>
+    <script src="js/parte-ops-flights.js?v=2.2"></script>
+    <script>
+    (function() { 
+        /* 
+           EMERGENCY COLUMN VISIBILITY PATCH (v3)
+           This script runs immediately and periodically to enforce column hiding 
+           regardless of caching or specificity issues in external files.
+        */
+        function forceUpdateVisibility() {
+            const tableId = '#table-ops-flights-csv';
+            const table = document.querySelector(tableId);
+            if (!table) return;
+
+            // Gather hidden columns from checkboxes
+            const hiddenCols = new Set();
+            document.querySelectorAll('.col-toggle-csv').forEach(cb => {
+                if (!cb.checked) {
+                    const col = cb.getAttribute('data-col');
+                    if(col) hiddenCols.add(col);
+                }
+            });
+
+            // Map headers to classes to handle indices
+            const headers = [
+                'Status', '[Arr] Airline code', '[Arr] Flight Designator', '[Arr] ALDT', '[Arr] SIBT', '[Arr] AIBT',
+                '[Arr] Stand', '[Arr] Gates', '[Arr] Boarded', '[Arr] Baggage Belts', '[Arr] Service Type', 'Routing',
+                '[Dep] Service Type', 'Aircraft type', 'Registration', '[Dep] Airline code', '[Dep] Flight Designator',
+                '[Dep] Stand', '[Dep] Gates', '[Dep] Boarded', '[Dep] SOBT', '[Dep] AOBT', '[Dep] ATOT', '[Dep] ATTT'
+            ];
+            const headerMap = {
+                'Status': 'col-cvs-status',
+                '[Arr] Airline code': 'col-cvs-arr-airline',
+                '[Arr] Flight Designator': 'col-cvs-arr-flight',
+                '[Arr] ALDT': 'col-cvs-arr-aldt',
+                '[Arr] SIBT': 'col-cvs-arr-sibt',
+                '[Arr] AIBT': 'col-cvs-arr-aibt',
+                '[Arr] Stand': 'col-cvs-arr-stand',
+                '[Arr] Gates': 'col-cvs-arr-gates',
+                '[Arr] Boarded': 'col-cvs-arr-boarded',
+                '[Arr] Baggage Belts': 'col-cvs-arr-belts',
+                '[Arr] Service Type': 'col-cvs-arr-type',
+                'Routing': 'col-cvs-routing',
+                '[Dep] Service Type': 'col-cvs-dep-type',
+                'Aircraft type': 'col-cvs-aircraft',
+                'Registration': 'col-cvs-reg',
+                '[Dep] Airline code': 'col-cvs-dep-airline',
+                '[Dep] Flight Designator': 'col-cvs-dep-flight',
+                '[Dep] Stand': 'col-cvs-dep-stand',
+                '[Dep] Gates': 'col-cvs-dep-gates',
+                '[Dep] Boarded': 'col-cvs-dep-boarded',
+                '[Dep] SOBT': 'col-cvs-dep-sobt',
+                '[Dep] AOBT': 'col-cvs-dep-aobt',
+                '[Dep] ATOT': 'col-cvs-dep-atot',
+                '[Dep] ATTT': 'col-cvs-dep-attt'
+            };
+
+            // 1. Apply Global CSS
+            let css = '';
+            hiddenCols.forEach(cls => {
+                // Class selector
+                css += `${tableId} .${cls}, ${tableId} th.${cls}, ${tableId} td.${cls} { display: none !important; } `;
+                // Index selector
+                const index = headers.findIndex(h => headerMap[h] === cls);
+                if (index !== -1) {
+                    css += `${tableId} tr > *:nth-child(${index + 1}) { display: none !important; } `;
+                }
+            });
+
+            let style = document.getElementById('force-csv-style-inline');
+            if (!style) {
+                style = document.createElement('style');
+                style.id = 'force-csv-style-inline';
+                document.head.appendChild(style);
+            }
+            if (style.textContent !== css) {
+                style.textContent = css;
+            }
+
+            // 2. Apply Inline Styles (Iterate rows)
+            const rows = table.querySelectorAll('tr');
+            rows.forEach(row => {
+               const cells = Array.from(row.children);
+               cells.forEach((cell, idx) => {
+                   let shouldHide = false;
+                   
+                   // Check by Class
+                   if (cell.className && typeof cell.className === 'string') {
+                       const classes = cell.className.split(/\s+/);
+                       if (classes.some(c => hiddenCols.has(c))) shouldHide = true;
+                   }
+                   
+                   // Check by Index
+                   if (!shouldHide && idx < headers.length) {
+                       const hName = headers[idx];
+                       const hClass = headerMap[hName];
+                       if (hiddenCols.has(hClass)) shouldHide = true;
+                   }
+
+                   if (shouldHide) {
+                       cell.style.setProperty('display', 'none', 'important');
+                   } else {
+                       // Only remove if it was set by us (optimization: check if it is 'none')
+                       if (cell.style.display === 'none') {
+                            // If we are here, it means it is NOT in hiddenCols currently
+                            cell.style.display = '';
+                       }
+                   }
+               });
+            });
+        }
+
+        // Attach to window for debug
+        window.forceCsvUpdate = forceUpdateVisibility;
+
+        // Auto-run loop
+        setInterval(forceUpdateVisibility, 500);
+
+        // Listen for changes
+        document.addEventListener('change', (e) => {
+            if (e.target && e.target.classList.contains('col-toggle-csv')) {
+                // Delay slightly to let the checkbox state update
+                setTimeout(forceUpdateVisibility, 10);
+            }
+        });
+    })();
+    </script>
     <script src="js/frecuencias_upload_test.js"></script>
     <script src="script.js?v=20260203"></script>
     <script src="js/puntualidad.js"></script>
@@ -6972,3 +7175,6 @@
 </body>
 
 </html>
+
+
+

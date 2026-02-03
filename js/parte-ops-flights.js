@@ -48,6 +48,33 @@
         DEC: 11
     };
 
+    const HEADER_CLASSES = {
+        'Status': 'col-cvs-status',
+        '[Arr] Airline code': 'col-cvs-arr-airline',
+        '[Arr] Flight Designator': 'col-cvs-arr-flight',
+        '[Arr] ALDT': 'col-cvs-arr-aldt',
+        '[Arr] SIBT': 'col-cvs-arr-sibt',
+        '[Arr] AIBT': 'col-cvs-arr-aibt',
+        '[Arr] Stand': 'col-cvs-arr-stand',
+        '[Arr] Gates': 'col-cvs-arr-gates',
+        '[Arr] Boarded': 'col-cvs-arr-boarded',
+        '[Arr] Baggage Belts': 'col-cvs-arr-belts',
+        '[Arr] Service Type': 'col-cvs-arr-type',
+        'Routing': 'col-cvs-routing',
+        '[Dep] Service Type': 'col-cvs-dep-type',
+        'Aircraft type': 'col-cvs-aircraft',
+        'Registration': 'col-cvs-reg',
+        '[Dep] Airline code': 'col-cvs-dep-airline',
+        '[Dep] Flight Designator': 'col-cvs-dep-flight',
+        '[Dep] Stand': 'col-cvs-dep-stand',
+        '[Dep] Gates': 'col-cvs-dep-gates',
+        '[Dep] Boarded': 'col-cvs-dep-boarded',
+        '[Dep] SOBT': 'col-cvs-dep-sobt',
+        '[Dep] AOBT': 'col-cvs-dep-aobt',
+        '[Dep] ATOT': 'col-cvs-dep-atot',
+        '[Dep] ATTT': 'col-cvs-dep-attt'
+    };
+
     let currentData = [];
     let columnFilters = {};
     let dateMode = 'relative';
@@ -60,10 +87,19 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         init();
-        window.opsFlights = { loadFlights, importCsvFromFile };
+        window.opsFlights = { loadFlights, importCsvFromFile, toggleColumn };
     });
 
     function init() {
+        // Create style tag for column visibility
+        if (!document.getElementById('csv-cols-style')) {
+            const style = document.createElement('style');
+            style.id = 'csv-cols-style';
+            document.head.appendChild(style);
+        }
+
+        initColumnVisibility();
+        
         const tabEl = document.getElementById('tab-vuelos-ops');
         if (tabEl) {
             tabEl.addEventListener('shown.bs.tab', () => loadFlights());
@@ -255,6 +291,163 @@
         alert('CSV importado correctamente.');
     }
 
+    function initColumnVisibility() {
+        const saved = localStorage.getItem('dm-ops-csv-columns');
+        const container = document.querySelector('#container-ops-flights-csv');
+        if (!container) return;
+
+        if (saved) {
+            try {
+                const hiddenCols = JSON.parse(saved);
+                if (Array.isArray(hiddenCols)) {
+                    hiddenCols.forEach(col => {
+                        // Checkbox unchecked
+                        const chk = document.querySelector(`.col-toggle-csv[data-col="${col}"]`);
+                        if (chk) chk.checked = false;
+                    });
+                }
+            } catch (e) {
+                console.error("Error parsing saved columns", e);
+            }
+        }
+        
+        // Initial build of styles
+        rebuildColumnStyles();
+    }
+
+    function toggleColumn(colName, isVisible) {
+        let styleTag = document.getElementById('csv-cols-style');
+        if (!styleTag) {
+             styleTag = document.createElement('style');
+             styleTag.id = 'csv-cols-style';
+             document.head.appendChild(styleTag);
+        }
+
+        // We manage a list of hidden columns based on checkboxes
+        // instead of adding/removing single rules, we rebuild the style content
+        // to be cleaner and more robust.
+        
+        saveColumnVisibility(); // Save current state to local storage
+        rebuildColumnStyles();  // Apply styles based on all checkboxes
+    }
+
+    function getHiddenClasses() {
+        const hidden = new Set();
+        const checkboxes = document.querySelectorAll('.col-toggle-csv');
+        checkboxes.forEach(cb => {
+            if (!cb.checked) {
+                const col = cb.getAttribute('data-col');
+                if (col) hidden.add(col);
+            }
+        });
+        return hidden;
+    }
+
+    function toggleColumn(colName, isVisible) {
+        saveColumnVisibility();
+        // Force full consistency check
+        updateAllVisibility();
+    }
+
+    function updateAllVisibility() {
+        const hiddenSet = getHiddenClasses();
+        const tableId = '#table-ops-flights-csv';
+        
+        // 1. Dynamic CSS (Style Tag) - Global Rule
+        let cssRules = '';
+        hiddenSet.forEach(colClass => {
+             cssRules += `${tableId} .${colClass}, ${tableId} th.${colClass}, ${tableId} td.${colClass} { display: none !important; } `;
+        });
+        
+        // Add nth-child rules for extra robustness
+        // Determine indices based on HEADER_CLASSES
+        hiddenSet.forEach(colClass => {
+             const headerName = Object.keys(HEADER_CLASSES).find(key => HEADER_CLASSES[key] === colClass);
+             if (headerName) {
+                 const index = HEADERS.indexOf(headerName);
+                 if (index !== -1) {
+                     const n = index + 1;
+                     cssRules += `${tableId} tr > *:nth-child(${n}) { display: none !important; } `;
+                 }
+             }
+        });
+
+        let styleTag = document.getElementById('csv-cols-style');
+        if (!styleTag) {
+            styleTag = document.createElement('style');
+            styleTag.id = 'csv-cols-style';
+            document.head.appendChild(styleTag);
+        }
+        styleTag.textContent = cssRules;
+
+        // 2. Inline Styles for Existing Elements (Immediate update)
+        const table = document.querySelector(tableId);
+        if (table) {
+            // Update Headers
+            table.querySelectorAll('thead th, thead td').forEach(cell => {
+                updateCellVisibility(cell, hiddenSet);
+            });
+            // Update Body Rows
+            const tbody = table.querySelector('tbody');
+            if (tbody) {
+                tbody.querySelectorAll('tr').forEach(row => {
+                     Array.from(row.children).forEach((cell, idx) => {
+                         // Check by class
+                         let shouldHide = false;
+                         cell.classList.forEach(cls => {
+                             if (hiddenSet.has(cls)) shouldHide = true;
+                         });
+                         
+                         // Check by index (backup)
+                         if (!shouldHide) {
+                              const headerName = HEADERS[idx];
+                              if (headerName && HEADER_CLASSES[headerName]) {
+                                  if (hiddenSet.has(HEADER_CLASSES[headerName])) shouldHide = true;
+                              }
+                         }
+
+                         cell.style.display = shouldHide ? 'none' : '';
+                         if (shouldHide) cell.style.setProperty('display', 'none', 'important');
+                     });
+                });
+            }
+        }
+    }
+
+    function updateCellVisibility(cell, hiddenSet) {
+        let shouldHide = false;
+        // Check element classes
+        cell.classList.forEach(cls => {
+            if (hiddenSet.has(cls)) shouldHide = true;
+        });
+        
+        if (shouldHide) {
+             cell.style.display = 'none';
+             cell.style.setProperty('display', 'none', 'important');
+        } else {
+             cell.style.display = '';
+        }
+    }
+
+    // Alias for compatibility
+    const rebuildColumnStyles = updateAllVisibility;
+
+    function removeSingleClassLogic() {
+        // Legacy cleanup if needed
+    }
+
+    function saveColumnVisibility() {
+        const checkboxes = document.querySelectorAll('.col-toggle-csv');
+        const hidden = [];
+        checkboxes.forEach(cb => {
+            if (!cb.checked) {
+                const col = cb.getAttribute('data-col');
+                if (col) hidden.push(col);
+            }
+        });
+        localStorage.setItem('dm-ops-csv-columns', JSON.stringify(hidden));
+    }
+
     function renderTable(rows) {
         const tbody = document.getElementById('tbody-ops-flights-csv');
         if (!tbody) return;
@@ -264,23 +457,35 @@
             return;
         }
 
+        // Get visibility state ONCE for the whole render
+        const hiddenSet = getHiddenClasses();
+
         const html = rows.map(row => {
             const statusClass = getStatusClass(row['Status']);
             const cells = HEADERS.map(h => {
                 const content = escapeHtml(row[h] || '');
+                const colClass = HEADER_CLASSES[h] || '';
+                
+                // Determine visibility inline
+                const isHidden = hiddenSet.has(colClass);
+                const displayStyle = isHidden ? 'display: none !important;' : '';
+
                 if (h === '[Arr] Flight Designator' || h === '[Dep] Flight Designator') {
-                    return `<td class="fw-bold">${content}</td>`;
+                    return `<td class="fw-bold ${colClass}" style="${displayStyle}">${content}</td>`;
                 }
                 if (h === 'Status') {
-                    return `<td class="csv-status ${statusClass}">${content}</td>`;
+                    return `<td class="csv-status ${statusClass} ${colClass}" style="${displayStyle}">${content}</td>`;
                 }
-                return `<td>${content}</td>`;
+                return `<td class="${colClass}" style="${displayStyle}">${content}</td>`;
             }).join('');
             return `<tr>${cells}</tr>`;
         }).join('');
 
         tbody.innerHTML = html;
         attachRowSelection(tbody);
+        
+        // Final sanity check (hides headers too)
+        setTimeout(updateAllVisibility, 0); 
     }
 
     function updateChart(rows, dateFilter) {
