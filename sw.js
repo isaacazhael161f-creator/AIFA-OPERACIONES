@@ -1,4 +1,4 @@
-// Minimal SW to stop intercepting requests from an older worker - v5
+// Minimal SW to stop intercepting requests from an older worker - v6
 self.addEventListener('install', () => {
   self.skipWaiting();
 });
