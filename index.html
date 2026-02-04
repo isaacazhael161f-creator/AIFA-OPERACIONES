@@ -2258,13 +2258,16 @@
                                         Operaciones</button></li>
                                 <li class="nav-item" role="presentation"><button class="nav-link"
                                         data-bs-toggle="tab" data-bs-target="#vuelos-ops-pane" type="button" role="tab"
-                                        id="tab-vuelos-ops">Vuelos</button></li>
+                                        id="tab-vuelos-ops">Conciliación</button></li>
+                                <li class="nav-item" role="presentation"><button class="nav-link"
+                                        data-bs-toggle="tab" data-bs-target="#analisis-mensual-pane" type="button" role="tab"
+                                        id="tab-analisis-mensual">Análisis mensual</button></li>
                                 <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab"
                                         data-bs-target="#analisis-anual-pane" type="button" role="tab">Análisis
                                         anual</button></li>
                             </ul>
                             <div class="tab-content pt-3" id="operationsTabContent">
-                                <div class="tab-pane fade show active" id="resumen1-pane">
+                                <div class="tab-pane active" id="resumen1-pane">
                                     <div class="alert alert-info d-flex align-items-center gap-2 ops-calendar-hint"
                                         role="note">
                                         <i class="fas fa-calendar-day" aria-hidden="true"></i>
@@ -2339,7 +2342,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="tab-pane fade" id="vuelos-ops-pane" role="tabpanel">
+                                <div class="tab-pane" id="vuelos-ops-pane" role="tabpanel">
                                     <div class="alert shadow-sm border-0 d-flex align-items-center mb-4 p-3 maintenance-alert" role="alert">
                                         <div class="d-flex align-items-center justify-content-center flex-shrink-0 me-3 maintenance-icon-wrapper">
                                             <i class="fas fa-tools fs-4"></i>
@@ -2524,23 +2527,119 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="tab-pane fade" id="analisis-anual-pane">
-                                    <div class="annual-analysis-intro alert alert-secondary d-flex align-items-center gap-2"
-                                        role="note">
-                                        <i class="fas fa-chart-line text-primary"></i>
-                                        <div>
-                                            <p class="mb-0 fw-semibold">Promedios mensuales por tipo de aviación</p>
-                                            <small class="text-muted">Calculados con todas las capturas disponibles
-                                                durante el año seleccionado.</small>
+                                <div class="tab-pane" id="analisis-mensual-pane" role="tabpanel">
+                                    <div class="d-flex justify-content-between align-items-center mb-4">
+                                        <h4 class="mb-0">Análisis Operativo Mensual</h4>
+                                        <div class="d-flex gap-2">
+                                            <select class="form-select form-select-sm" id="analysis-month-select" style="width: auto;" aria-label="Seleccionar Mes">
+                                                <option value="0">Enero</option>
+                                                <option value="1">Febrero</option>
+                                                <option value="2">Marzo</option>
+                                                <option value="3">Abril</option>
+                                                <option value="4">Mayo</option>
+                                                <option value="5">Junio</option>
+                                                <option value="6">Julio</option>
+                                                <option value="7">Agosto</option>
+                                                <option value="8">Septiembre</option>
+                                                <option value="9">Octubre</option>
+                                                <option value="10">Noviembre</option>
+                                                <option value="11">Diciembre</option>
+                                            </select>
+                                            <input type="number" class="form-control form-control-sm" id="analysis-year-select" value="2026" style="width: 80px;" aria-label="Seleccionar Año">
+                                            <button class="btn btn-primary btn-sm" id="btn-update-analysis">
+                                                <i class="fas fa-sync-alt me-1"></i>Actualizar
+                                            </button>
                                         </div>
                                     </div>
-                                    <div class="annual-analysis-cards" id="ops-annual-averages-cards"
-                                        aria-live="polite"></div>
-                                    <div class="chart-container annual-analysis-chart chart-height-420">
-                                        <canvas id="ops-annual-averages-chart" aria-label="Promedio mensual por tipo"
-                                            role="img"></canvas>
+
+                                    <!-- Summary Cards -->
+                                    <div class="row g-3 mb-4">
+                                        <div class="col-md-4">
+                                            <div class="card h-100 border-primary border-start border-3 shadow-sm">
+                                                <div class="card-body">
+                                                    <h6 class="text-uppercase text-muted small mb-2">Total Operaciones</h6>
+                                                    <h2 class="mb-0 display-6 fw-bold text-primary" id="stat-total-ops">-</h2>
+                                                    <p class="mb-0 text-muted small mt-1" id="stat-total-subtitle">en el mes seleccionado</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card h-100 border-warning border-start border-3 shadow-sm">
+                                                <div class="card-body">
+                                                    <h6 class="text-uppercase text-muted small mb-2">Día con más operaciones</h6>
+                                                    <h2 class="mb-0 display-6 fw-bold text-warning" id="stat-peak-day">-</h2>
+                                                    <p class="mb-0 text-muted small mt-1" id="stat-peak-day-val">- operaciones</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card h-100 border-success border-start border-3 shadow-sm">
+                                                <div class="card-body">
+                                                    <h6 class="text-uppercase text-muted small mb-2">Semana con más operaciones</h6>
+                                                    <h2 class="mb-0 display-6 fw-bold text-success" id="stat-peak-week">-</h2>
+                                                    <p class="mb-0 text-muted small mt-1" id="stat-peak-week-val">- operaciones</p>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="table-responsive mt-4" id="ops-annual-averages-table"></div>
+
+                                    <!-- Charts Row 1 -->
+                                    <div class="row g-4 mb-4">
+                                        <div class="col-12">
+                                            <div class="card shadow-sm h-100">
+                                                <div class="card-header bg-transparent py-3">
+                                                    <h6 class="m-0 fw-bold text-primary">Evolución de Operaciones Diarias</h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <canvas id="chart-daily-ops" height="350"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                     <!-- Charts Row 2 -->
+                                    <div class="row g-4 mb-4">
+                                        <div class="col-md-6">
+                                            <div class="card shadow-sm">
+                                               <div class="card-header bg-transparent py-3">
+                                                    <h6 class="m-0 fw-bold text-primary">Operaciones por Tipo de Servicio</h6>
+                                                </div>
+                                                <div class="card-body">
+                                                     <canvas id="chart-service-type"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card shadow-sm h-100 bg-light border-0">
+                                                <div class="card-body">
+                                                    <h5 class="card-title text-primary mb-3"><i class="fas fa-search-dollar me-2"></i>Insights del Mes</h5>
+                                                    <div id="analysis-insights" class="fs-6 text-dark" style="line-height: 1.6;">
+                                                        Seleccione un mes y presione actualizar para ver el análisis.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane" id="analisis-anual-pane">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="mb-0 text-primary">Análisis Anual Comparativo</h5>
+                                        <button class="btn btn-outline-secondary btn-sm" id="btn-refresh-annual">
+                                            <i class="fas fa-sync-alt me-1"></i>Recargar
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Cards Container Restored -->
+                                    <div class="mb-4" id="ops-annual-averages-cards"></div>
+                                    
+                                    <div class="card shadow-sm border-0">
+                                        <div class="card-body p-3">
+                                            <div class="chart-container annual-analysis-chart" style="height: 350px; position: relative;">
+                                                <canvas id="ops-annual-averages-chart" aria-label="Promedio mensual por tipo" role="img"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="table-responsive mt-3" id="ops-annual-averages-table"></div>
                                 </div>
                             </div>
                         </div>
@@ -6341,6 +6440,8 @@
     <script src="js/itinerario-tab.js"></script>
     <script src="js/comparativa.js"></script>
     <script src="js/parte-ops-flights.js?v=2.2"></script>
+    <script src="js/analisis-mensual.js?v=1.0"></script>
+    <script src="js/analisis-anual.js?v=1.0"></script>
     <script>
     (function() { 
         /* 

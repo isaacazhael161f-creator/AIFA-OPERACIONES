@@ -87,7 +87,15 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         init();
-        window.opsFlights = { loadFlights, importCsvFromFile, toggleColumn };
+        window.opsFlights = { 
+            loadFlights, 
+            importCsvFromFile, 
+            toggleColumn, 
+            getData: () => currentData,
+            getHeaders: () => HEADERS,
+            getDateFields: () => DATE_FIELDS,
+            getLastImportYear: () => lastImportYear
+        };
     });
 
     function init() {
