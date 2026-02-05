@@ -817,7 +817,8 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         init();
-        window.opsFlights = { loadFlights, importJson, toggleEditMode, saveEditedData };
+        // Prevent overwriting the main opsFlights object which handles CSV/Wide Table
+        window.opsFlightsLegacy = { loadFlights, importJson, toggleEditMode, saveEditedData };
     });
 
     function init() {

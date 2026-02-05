@@ -747,6 +747,10 @@
 
   function renderDestinationDetails(dest) {
     if (!dom.detailsTitle || !dom.detailsBody) return;
+    
+    // Clear previous details to avoid stacking
+    dom.detailsBody.innerHTML = '';
+
     dom.detailsTitle.textContent = `${dest.city} (${dest.iata})`;
     
     const projected = projectDestination(dest);

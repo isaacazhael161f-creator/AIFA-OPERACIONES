@@ -6000,6 +6000,14 @@ function handleNavigation(e) {
         if (section === 'historia') {
             try { loadHistory(); } catch (_) { }
         }
+        if (section === 'conciliacion') {
+            try {
+                if (window.opsFlights && typeof window.opsFlights.loadFlights === 'function') {
+                    // Cargar vuelos al entrar a la sección
+                    setTimeout(() => window.opsFlights.loadFlights(), 50);
+                }
+            } catch (_) { }
+        }
     }
 }
 
