@@ -718,19 +718,90 @@
       } else {
           // Switch to detail view
           // detailHtml is raw string like "VB102 14:00<br>VB405 19:30"
-          const flights = detailHtml.split('<br>');
+          const flightsRaw = detailHtml.split('<br>');
+          
+          // Smart Deduplication & Parsing
+          const uniqueFlights = new Map();
+
+          flightsRaw.forEach(f => {
+              const raw = f.trim();
+              if (!raw) return;
+
+              const parts = raw.split(' ');
+              let flightNum = '';
+              let type = '';
+              let time = '';
+              let isLegacy = false;
+
+              // Detect new format tags
+              const arrivalIdx = parts.findIndex(p => p.includes('(Lleg)'));
+              const departureIdx = parts.findIndex(p => p.includes('(Sal)'));
+
+              if (arrivalIdx !== -1) {
+                  type = 'Arr';
+                  flightNum = parts.slice(0, arrivalIdx).join(' '); 
+                  time = parts.slice(arrivalIdx + 1).join(' '); 
+              } else if (departureIdx !== -1) {
+                  type = 'Dep';
+                  flightNum = parts.slice(0, departureIdx).join(' ');
+                  time = parts.slice(departureIdx + 1).join(' ');
+              } else {
+                  // Legacy parsing attempt: "XN 1204 21:55 (Dep)" or "VB102 14:00"
+                  isLegacy = true;
+                  // Heuristic: Last part is usually time (maybe with (Dep))
+                  // flight is everything before.
+                  // Or: Flight is First part(s), Time is Last part(s).
+                  // Clean approach: Text matching.
+                  time = parts[parts.length - 1]; // "21:55" or "(Dep)"
+                  if (time.includes('(') && parts.length > 2) {
+                       // "21:55 (Dep)" -> time is prev
+                       time = parts[parts.length - 2];
+                  }
+                  // Clean time
+                  flightNum = raw.replace(time, '').replace('(Dep)', '').replace('(Arr)', '').trim();
+              }
+
+              // Normalize for key
+              const timeClean = time.replace(/\(Dep\)|\(Arr\)/gi, '').trim();
+              const flightClean = flightNum.replace(/\s+/g, '');
+              const key = `${flightClean}-${timeClean}`;
+
+              const entry = {
+                  flightNum: flightClean, // Use normalized for display if legacy, or nice parts if new
+                  rawFlightNum: flightNum,
+                  time: timeClean,
+                  type: type || (raw.includes('(Dep)') || raw.includes('Sal') ? 'Dep' : (raw.includes('(Arr)') || raw.includes('Lleg') ? 'Arr' : '')), 
+                  isLegacy
+              };
+
+              // Prefer Non-Legacy entries
+              if (uniqueFlights.has(key)) {
+                  if (!entry.isLegacy && uniqueFlights.get(key).isLegacy) {
+                      uniqueFlights.set(key, entry);
+                  }
+              } else {
+                  uniqueFlights.set(key, entry);
+              }
+          });
+
+          const sortedFlights = Array.from(uniqueFlights.values()).sort((a,b) => a.time.localeCompare(b.time));
           
           let html = '<div class="d-flex flex-column gap-1 text-start" style="min-width: 80px;">';
-          flights.forEach(f => {
-             const parts = f.trim().split(' ');
-             const flightNum = parts[0] || '';
-             const time = parts.slice(1).join(' ') || '';
+          sortedFlights.forEach(item => {
+             const typeBadge = item.type === 'Arr' 
+                ? `<span class="badge bg-info text-dark ms-1" style="font-size: 0.6rem;">Lleg</span>` 
+                : (item.type === 'Dep' ? `<span class="badge bg-success ms-1" style="font-size: 0.6rem;">Sal</span>` : '');
              
-             // Styled item: Flight Number Bold, Time Monospace
+             // Restore nice spacing for flight num if it was squashed, or use raw
+             // If legacy was squashed "XN1204", it's fine.
+             
              html += `
                 <div class="px-2 py-1 rounded d-flex justify-content-between align-items-center bg-white bg-opacity-25" style="font-size: 0.75rem; color: inherit;">
-                    <span class="fw-bold me-1">${flightNum}</span>
-                    <span class="font-monospace small opacity-75">${time}</span>
+                    <div class="d-flex align-items-center">
+                        <span class="fw-bold me-1">${item.rawFlightNum}</span>
+                        ${typeBadge}
+                    </div>
+                    <span class="font-monospace small opacity-75">${item.time}</span>
                 </div>
              `;
           });
@@ -855,7 +926,10 @@
                         contentDiv.style.textAlign = 'center';
                     } else {
                         // Expand
-                        const flights = detail.split('<br>');
+                        const flightsRaw = detail.split('<br>');
+                        // Deduplicate: trim spaces and use Set
+                        const flights = [...new Set(flightsRaw.map(f => f.trim()))].filter(Boolean);
+
                         let listHtml = '<div class="d-flex flex-column gap-1 text-start mt-1">';
                         flights.forEach(f => {
                             const parts = f.trim().split(' ');

@@ -74,22 +74,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const headers = parseCSVLine(rows[0]);
         // Map columns
         // Expected: [Dep] Routing, [Dep] Airline code, [Dep] Flight Designator, [Dep] SOBT
-        const idxRouting = headers.findIndex(h => h.includes('[Dep] Routing'));
-        const idxAirline = headers.findIndex(h => h.includes('[Dep] Airline code'));
-        const idxFlight = headers.findIndex(h => h.includes('[Dep] Flight Designator')); // Or Airline code as user said, but let's prioritize Flight Designator if prevalent
-        // User clarification: "[Dep] Airline code, viene así por ejemplo: VB 9480"
-        // But context attachment showed [Dep] Flight Designator has VB 9480.
-        // I will allow fallback.
-        const idxFlightAlt = headers.findIndex(h => h === '[Dep] Airline code');
+        const idxDepRouting = headers.findIndex(h => h.includes('[Dep] Routing'));
+        const idxDepAirline = headers.findIndex(h => h.includes('[Dep] Airline code'));
+        const idxDepFlight = headers.findIndex(h => h.includes('[Dep] Flight Designator')); 
+        const idxDepFlightAlt = headers.findIndex(h => h === '[Dep] Airline code');
         const idxSOBT = headers.findIndex(h => h.includes('[Dep] SOBT'));
 
-        if (idxRouting === -1 || (idxFlight === -1 && idxFlightAlt === -1) || idxSOBT === -1) {
-             showError('No se encontraron las columnas requeridas: [Dep] Routing, [Dep] Flight Designator/Airline code, [Dep] SOBT');
+        // Expected Arrival Columns
+        const idxArrRouting = headers.findIndex(h => h.includes('[Arr] Routing'));
+        const idxArrAirline = headers.findIndex(h => h.includes('[Arr] Airline code'));
+        const idxArrFlight = headers.findIndex(h => h.includes('[Arr] Flight Designator'));
+        const idxArrFlightAlt = headers.findIndex(h => h === '[Arr] Airline code');
+        const idxSIBT = headers.findIndex(h => h.includes('[Arr] SIBT'));
+
+        if (idxDepRouting === -1 && idxArrRouting === -1) {
+             showError('No se encontraron columnas de Routing ([Dep] o [Arr]).');
              return;
         }
         
-        const realIdxFlight = idxFlight !== -1 ? idxFlight : idxFlightAlt;
-        const realIdxAirline = idxAirline !== -1 ? idxAirline : -1; // Maybe Airline code is just "VB" in another col
+        const realIdxDepFlight = idxDepFlight !== -1 ? idxDepFlight : idxDepFlightAlt;
+        const realIdxArrFlight = idxArrFlight !== -1 ? idxArrFlight : idxArrFlightAlt;
 
         const startDate = new Date(inputDate.value + 'T00:00:00');
         const endDate = new Date(startDate);
@@ -99,52 +103,54 @@ document.addEventListener('DOMContentLoaded', () => {
         const dataMap = new Map(); // Key: Route|Airline -> { route, airline, count, flights: [] }
         let totalCount = 0;
 
-        for (let i = 1; i < rows.length; i++) {
-            const cols = parseCSVLine(rows[i]);
-            if (cols.length < headers.length) continue;
+        // Helper to process a flight
+        const processFlight = (routing, airlineRaw, flightRaw, timeRaw, type) => {
+            if (!routing || !flightRaw || !timeRaw) return;
 
-            const rawRouting = cols[idxRouting];
-            // Normalize Routing: NLU-ACA -> ACA
-            // User: "las tres letras que analizarás son las que están después del guión"
-            const routeParts = rawRouting.split('-');
-            const route = routeParts.length > 1 ? routeParts[1] : rawRouting; 
+            // Normalize Routing
+            // NLU-ACA (Dep) -> Route is ACA (parts[1])
+            // MH-NLU (Arr) -> Route is MH (parts[0]) - Assuming standard 3 letter code or city name?
+            // Actually, usually headers are IATA-IATA. Check for AIFA code (NLU) to determine logic?
+            // Or assume Position 1 for Dep, Position 0 for Arr relative to NLU.
+            // But routing string order ensures NLU is Origin for Dep, Dest for Arr.
+            // [Dep] Routing: NLU-CUN -> Destination CUN
+            // [Arr] Routing: CUN-NLU -> Origin CUN
             
-            // Filter NLU departures only? User: "todas son salidas", implies the file is departure file.
-            // But we should probably check if starts with NLU if strictly needed. 
-            // "Column Routing mentions: NLU-ACA". 
-            // We assume it's valid.
-
-            const airline = realIdxAirline !== -1 ? cols[realIdxAirline] : 'UNK';
-            const flightNum = cols[realIdxFlight];
-            const sobtRaw = cols[idxSOBT]; // "19JAN 08:24"
-
-            const flightDate = parseSOBT(sobtRaw, startDate.getFullYear());
-            
-            // Date Filter
-            // Handle Year rollover?
-            // If we utilize the week start date, we can infer correct year.
-            // If Input Start Date is Dec 2025, and row is Jan 01, it's 2026.
-            // Basic logic: Assign year of Start Date. Check if date falls in range.
-            // If not, try Next Year (if month < start month).
-            
-            let validDate = false;
-            let finalDate = new Date(flightDate);
-            
-            // Try Current Year of Range Start
-            finalDate.setFullYear(startDate.getFullYear());
-            if (finalDate >= startDate && finalDate <= endDate) {
-                validDate = true;
+            const routeParts = routing.split('-');
+            let route = '';
+            if (type === 'DEP') {
+                route = routeParts.length > 1 ? routeParts[1] : routing;
             } else {
-                 // Try Next Year
+                route = routeParts.length > 1 ? routeParts[0] : routing;
+            }
+            
+            // Clean up route
+            route = route.trim();
+            if (route === 'NLU' || route === 'MMSM') return; // Should not happen if logic is correct, but safe guard
+
+            const airline = airlineRaw ? airlineRaw.trim() : 'UNK';
+            // Clean up flight number (remove spaces)
+            const flightClean = flightRaw.replace(/\s+/g, '');
+            const flightWithDir = `${flightClean} (${type === 'DEP' ? 'Sal' : 'Lleg'})`;
+
+            // Clean time string (remove (Dep), (Arr), etc from CSV)
+            const timeClean = timeRaw.split('(')[0].trim();
+
+            const flightDateRaw = parseSOBT(timeRaw, startDate.getFullYear());
+            if (!flightDateRaw) return;
+
+            // Date Filter Logic (shared)
+            let validDate = false;
+            let finalDate = new Date(flightDateRaw);
+            
+            finalDate.setFullYear(startDate.getFullYear());
+            if (finalDate >= startDate && finalDate <= endDate) validDate = true;
+            else {
                  finalDate.setFullYear(startDate.getFullYear() + 1);
-                 if (finalDate >= startDate && finalDate <= endDate) {
-                     validDate = true;
-                 } else {
-                     // Try Prev Year (Rare case: selecting Jan 2026, data says Dec 31)
+                 if (finalDate >= startDate && finalDate <= endDate) validDate = true;
+                 else {
                      finalDate.setFullYear(startDate.getFullYear() - 1);
-                     if (finalDate >= startDate && finalDate <= endDate) {
-                         validDate = true;
-                     }
+                     if (finalDate >= startDate && finalDate <= endDate) validDate = true;
                  }
             }
 
@@ -159,13 +165,41 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
                 const entry = dataMap.get(key);
-                entry.count++;
-                entry.flights.push({
-                    fullDate: finalDate,
-                    sobt: sobtRaw,
-                    flight: flightNum
-                });
-                totalCount++;
+                
+                // Deduplicate: Check if same flight number AND same EXACT date/time already exists
+                // This prevents adding the same flight twice if the CSV has duplicate rows
+                const exists = entry.flights.some(f => 
+                    f.flight === flightWithDir && 
+                    f.sobt === timeClean &&
+                    f.fullDate.getTime() === finalDate.getTime()
+                );
+
+                if (!exists) {
+                    entry.count++;
+                    entry.flights.push({
+                        fullDate: finalDate,
+                        sobt: timeClean, 
+                        flight: flightWithDir
+                    });
+                    totalCount++;
+                }
+            }
+        };
+
+        for (let i = 1; i < rows.length; i++) {
+            const cols = parseCSVLine(rows[i]);
+            if (cols.length < headers.length) continue;
+
+            // Process Departure
+            if (idxDepRouting !== -1 && idxSOBT !== -1) {
+                 const airline = idxDepAirline !== -1 ? cols[idxDepAirline] : 'UNK';
+                 processFlight(cols[idxDepRouting], airline, cols[realIdxDepFlight], cols[idxSOBT], 'DEP');
+            }
+
+            // Process Arrival
+            if (idxArrRouting !== -1 && idxSIBT !== -1) {
+                 const airline = idxArrAirline !== -1 ? cols[idxArrAirline] : 'UNK';
+                 processFlight(cols[idxArrRouting], airline, cols[realIdxArrFlight], cols[idxSIBT], 'ARR');
             }
         }
 
@@ -192,12 +226,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (dbRows.length > 0) {
-            // 2. Delete existing detailed records for this week to avoid duplication
-            // We do this client side for 'weekly_flights_detailed'; the RPC handles 'weekly_frequencies'
+            // 2. Delete existing detailed records for this WEEK RANGE to avoid duplication/stale data
+            // We use Date Range delete instead of just Label to ensure we clean up any overlapping mess
+            const isoStart = startDate.toISOString();
+            const isoEnd = endDate.toISOString();
+            
+            // Delete overlap
             const { error: deleteError } = await supabase
                 .from('weekly_flights_detailed')
                 .delete()
-                .eq('week_label', weekLabel);
+                .gte('flight_date', isoStart)
+                .lte('flight_date', isoEnd); // or lte end of day
 
             if (deleteError) {
                 console.error('Delete error', deleteError);
@@ -414,27 +453,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function parseSOBT(sobtStr, defaultYear) {
-        // "19JAN 08:24"
-        // Months EN
+        // "19JAN 08:24" or "19JAN 08:24 (Dep)"
+        // Clean trailing info
+        const cleanStr = sobtStr.split('(')[0].trim();
+        
         const MONTHS = {
             'JAN': 0, 'FEB': 1, 'MAR': 2, 'APR': 3, 'MAY': 4, 'JUN': 5,
             'JUL': 6, 'AUG': 7, 'SEP': 8, 'OCT': 9, 'NOV': 10, 'DEC': 11
         };
-        const parts = sobtStr.split(' ');
-        if (parts.length < 2) return new Date(); // Fallback
+        const parts = cleanStr.split(' ');
+        if (parts.length < 2) return null; 
         
-        // Date Part "19JAN"
-        const datePart = parts[0];
-        const day = parseInt(datePart.match(/\d+/)[0]);
-        const monthStr = datePart.match(/[A-Z]+/)[0];
-        const month = MONTHS[monthStr];
+        try {
+            // Date Part "19JAN"
+            const datePart = parts[0];
+            const dayMatch = datePart.match(/\d+/);
+            const monthMatch = datePart.match(/[A-Z]+/);
+            
+            if (!dayMatch || !monthMatch) return null;
 
-        // Time Part "08:24"
-        const timeParts = parts[1].split(':');
-        const hour = parseInt(timeParts[0]);
-        const min = parseInt(timeParts[1]);
+            const day = parseInt(dayMatch[0]);
+            const monthStr = monthMatch[0];
+            const month = MONTHS[monthStr];
+            
+            if (month === undefined) return null;
 
-        return new Date(defaultYear, month, day, hour, min, 0);
+            // Time Part "08:24"
+            const timeParts = parts[1].split(':');
+            const hour = parseInt(timeParts[0]);
+            const min = parseInt(timeParts[1]);
+
+            return new Date(defaultYear, month, day, hour, min, 0);
+        } catch (e) {
+            console.error("Error parsing SOBT:", sobtStr, e);
+            return null;
+        }
     }
 
     function showModal(item) {
