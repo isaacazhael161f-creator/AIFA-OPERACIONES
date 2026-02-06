@@ -1,4 +1,4 @@
-(function(){
+﻿(function(){
   const pane = document.getElementById('frecuencias-auto-pane');
   if (!pane) return;
 
@@ -108,7 +108,8 @@
     detailsCol: pane.querySelector('#frecuencias-details-col'),
     detailsTitle: pane.querySelector('#frecuencias-details-title'),
     detailsBody: pane.querySelector('#frecuencias-details-body'),
-    detailsClose: pane.querySelector('#frecuencias-details-close')
+    detailsClose: pane.querySelector('#frecuencias-details-close'),
+    detailsCopy: pane.querySelector('#frecuencias-copy-whatsapp')
   };
 
   const state = {
@@ -121,7 +122,8 @@
     markerLayer: null,
     planeLayer: null,
     animationFrameId: null,
-    animationTimeoutId: null
+    animationTimeoutId: null,
+    currentDetailDest: null
   };
 
   document.addEventListener('DOMContentLoaded', init);
@@ -129,12 +131,16 @@
   // Expose for global refresh
   window.reloadFrecuenciasNational = init;
 
-  document.addEventListener('shown.bs.tab', evt => {
+    document.addEventListener('shown.bs.tab', evt => {
     if (evt.target && evt.target.id === 'frecuencias-auto-tab') {
       // Force immediate resize with no delay for better perceived performance
       requestAnimationFrame(() => {
          state.map?.invalidateSize();
          fitMapToData();
+         // Ensure animation restarts/continues
+         if (state.filtered && state.filtered.length > 0) {
+             animatePlanes(state.filtered);
+         }
       });
     }
   });
@@ -325,6 +331,18 @@
   }
 
   function wireInteractions(){
+    // Listen for tab shown event to restart animation instantly
+    const tabEl = document.getElementById('frecuencias-auto-tab');
+    if (tabEl) {
+        tabEl.addEventListener('shown.bs.tab', () => {
+            if (state.map) {
+                state.map.invalidateSize();
+                fitMapToData();
+            }
+            animatePlanes(state.filtered);
+        });
+    }
+
     if (dom.filters.airline) dom.filters.airline.addEventListener('change', evt => {
       state.filters.airline = evt.target.value || 'all';
       applyFilters();
@@ -385,6 +403,10 @@
         applyFilters();
       });
     }
+
+    if (dom.detailsCopy) {
+        dom.detailsCopy.addEventListener('click', copyToWhatsApp);
+    }
   }
 
   function applyFilters(){
@@ -414,14 +436,15 @@
     if (dom.mapCol && dom.detailsCol) {
         if (isSingleDest) {
             dom.mapCol.classList.remove('col-12');
-            dom.mapCol.classList.add('col-lg-7');
+            dom.mapCol.classList.add('col-lg-5'); // Make map smaller (was col-lg-7)
+            dom.detailsCol.className = 'col-12 col-lg-7'; // Make details larger (was col-lg-5 default in HTML)
             dom.detailsCol.classList.remove('d-none');
             // Render details
             const dest = state.destinations.find(d => d.iata === state.filters.destination);
             if (dest) renderDestinationDetails(dest);
         } else {
             dom.mapCol.classList.add('col-12');
-            dom.mapCol.classList.remove('col-lg-7');
+            dom.mapCol.classList.remove('col-lg-5');
             dom.detailsCol.classList.add('d-none');
         }
         // Trigger map resize after transition
@@ -786,22 +809,22 @@
 
           const sortedFlights = Array.from(uniqueFlights.values()).sort((a,b) => a.time.localeCompare(b.time));
           
-          let html = '<div class="d-flex flex-column gap-1 text-start" style="min-width: 80px;">';
+          let html = '<div class="d-flex flex-column gap-1 text-start" style="min-width: 120px;">';
           sortedFlights.forEach(item => {
-             const typeBadge = item.type === 'Arr' 
-                ? `<span class="badge bg-info text-dark ms-1" style="font-size: 0.6rem;">Lleg</span>` 
-                : (item.type === 'Dep' ? `<span class="badge bg-success ms-1" style="font-size: 0.6rem;">Sal</span>` : '');
+             const isArr = item.type === 'Arr';
+             const iconClass = isArr ? 'fa-plane-arrival' : 'fa-plane-departure';
+             // Using bg-primary (Blue) for Arr, bg-success (Green) for Dep to match panels
+             const badgeClass = isArr ? 'bg-primary' : 'bg-success';
              
-             // Restore nice spacing for flight num if it was squashed, or use raw
-             // If legacy was squashed "XN1204", it's fine.
+             const iconHtml = `<span class="badge ${badgeClass} me-2" style="font-size: 0.75rem; padding: 0.3em 0.4em;"><i class="fas ${iconClass} text-white"></i></span>`;
              
              html += `
-                <div class="px-2 py-1 rounded d-flex justify-content-between align-items-center bg-white bg-opacity-25" style="font-size: 0.75rem; color: inherit;">
+                <div class="px-2 py-1 rounded d-flex justify-content-between align-items-center bg-white bg-opacity-50 mb-1" style="font-size: 0.85rem; color: #212529;">
                     <div class="d-flex align-items-center">
+                        ${iconHtml}
                         <span class="fw-bold me-1">${item.rawFlightNum}</span>
-                        ${typeBadge}
                     </div>
-                    <span class="font-monospace small opacity-75">${item.time}</span>
+                    <span class="font-monospace fw-bold small">${item.time}</span>
                 </div>
              `;
           });
@@ -827,8 +850,11 @@
     const projected = projectDestination(dest);
     if (!projected) {
         dom.detailsBody.innerHTML = '<div class="p-3 text-muted">No hay vuelos con los filtros actuales.</div>';
+        state.currentDetailDest = null;
         return;
     }
+    // Store for Copy
+    state.currentDetailDest = projected;
 
     const abbrs = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
     
@@ -879,7 +905,10 @@
 
         // Days Grid
         const grid = document.createElement('div');
-        grid.className = 'd-flex gap-1 justify-content-between';
+        // Usar overflow-auto para permitir scroll horizontal si hay muchos datos
+        grid.className = 'd-flex gap-2 pb-2 overflow-auto'; 
+        // Estilo par scrollbar más sutil si se desea
+        // grid.style.scrollbarWidth = 'thin';
 
         DAY_CODES.forEach((code, idx) => {
             const count = air.daily[idx];
@@ -888,23 +917,25 @@
             
             const cell = document.createElement('div');
             // Base styles
-            cell.className = `text-center rounded p-1 flex-fill ${isActive ? 'bg-primary-subtle border border-primary-subtle' : 'bg-light border border-light'}`;
-            cell.style.minWidth = '35px';
+            cell.className = `text-center rounded p-2 flex-fill flex-shrink-0 ${isActive ? 'bg-primary-subtle border border-primary-subtle' : 'bg-light border border-light'}`;
+            // Aumentar minWidth para que quepan bien los detalles del vuelo (200px para estar seguros)
+            cell.style.minWidth = '220px'; 
             cell.style.transition = 'all 0.2s ease';
             
             // Date Label
             const dateDiv = document.createElement('div');
-            dateDiv.className = `small ${isActive ? 'text-primary fw-semibold' : 'text-muted opacity-50'}`;
-            dateDiv.style.fontSize = '0.7rem';
-            dateDiv.style.marginBottom = '4px';
-            dateDiv.style.lineHeight = '1.1';
+            dateDiv.className = `small ${isActive ? 'text-primary fw-bold' : 'text-muted opacity-50'}`;
+            // Aumentar un poco el tamaño de letra de la fecha
+            dateDiv.style.fontSize = '0.8rem'; 
+            dateDiv.style.marginBottom = '6px';
+            dateDiv.style.lineHeight = '1.2';
             dateDiv.innerHTML = dateLabels[idx];
             cell.appendChild(dateDiv);
 
             // Value/Content Div
             const contentDiv = document.createElement('div');
             contentDiv.className = isActive ? 'text-primary fw-bold' : 'text-muted opacity-25';
-            contentDiv.style.fontSize = '1.1rem'; // Large number by default
+            contentDiv.style.fontSize = '1.5rem'; // Large number by default
             contentDiv.style.lineHeight = '1.2';
             contentDiv.textContent = isActive ? count : '0';
             cell.appendChild(contentDiv);
@@ -922,7 +953,7 @@
                         // Collapse
                         contentDiv.textContent = count;
                         contentDiv.dataset.view = 'count';
-                        contentDiv.style.fontSize = '1.1rem';
+                        contentDiv.style.fontSize = '1.5rem';
                         contentDiv.style.textAlign = 'center';
                     } else {
                         // Expand
@@ -930,22 +961,65 @@
                         // Deduplicate: trim spaces and use Set
                         const flights = [...new Set(flightsRaw.map(f => f.trim()))].filter(Boolean);
 
-                        let listHtml = '<div class="d-flex flex-column gap-1 text-start mt-1">';
+                        let listHtml = '<div class="d-flex flex-column gap-2 text-start mt-2">';
                         flights.forEach(f => {
-                            const parts = f.trim().split(' ');
-                            const flightNum = parts[0] || '';
-                            const time = parts.slice(1).join(' ') || '';
+                            // Improved parsing
+                            const raw = f.trim();
+                            if (!raw) return;
+                            const parts = raw.split(' ');
+                            
+                            let flightNum = '';
+                            let type = '';
+                            let time = '';
+
+                            const arrivalIdx = parts.findIndex(p => p.includes('(Lleg)') || p.includes('Lleg'));
+                            const departureIdx = parts.findIndex(p => p.includes('(Sal)') || p.includes('Sal'));
+
+                            if (arrivalIdx !== -1) {
+                                type = 'Arr';
+                                flightNum = parts.slice(0, arrivalIdx).join(' ');
+                                time = parts.slice(arrivalIdx + 1).join(' ');
+                            } else if (departureIdx !== -1) {
+                                type = 'Dep';
+                                flightNum = parts.slice(0, departureIdx).join(' ');
+                                time = parts.slice(departureIdx + 1).join(' ');
+                            } else {
+                                // Fallback
+                                const possibleTime = parts[parts.length - 1];
+                                if (possibleTime.includes(':')) {
+                                    time = possibleTime;
+                                    flightNum = parts.slice(0, parts.length - 1).join(' ');
+                                } else {
+                                    flightNum = raw; // ?
+                                }
+                            }
+                            
+                            // Clean up
+                            flightNum = flightNum.replace(/\(Dep\)|\(Arr\)/gi, '').trim();
+                            time = time.replace(/\(Dep\)|\(Arr\)/gi, '').trim();
+
+                            // New Logic: More representative colors (Blue for Arrival, Green for Departure)
+                            const isArr = type === 'Arr';
+                            const iconClass = isArr ? 'fa-plane-arrival' : 'fa-plane-departure';
+                            const badgeClass = isArr ? 'bg-primary' : 'bg-success';
+                            
+                            // Badge más grande para el icono
+                            const iconHtml = `<div class="rounded-circle ${badgeClass} d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm" style="width: 32px; height: 32px;"><i class="fas ${iconClass} text-white" style="font-size: 0.9rem;"></i></div>`;
+
                             listHtml += `
-                                <div class="px-2 py-1 rounded bg-white border border-primary-subtle shadow-sm d-flex justify-content-between align-items-center" style="font-size: 0.7rem;">
-                                    <span class="fw-bold text-dark">${flightNum}</span>
-                                    <span class="font-monospace text-primary">${time}</span>
+                                <div class="p-2 rounded bg-white border shadow-sm d-flex align-items-center justify-content-between mb-1" style="font-size: 0.95rem; border-color: #dee2e6 !important;">
+                                    <div class="d-flex align-items-center gap-2">
+                                        ${iconHtml}
+                                        <span class="fw-bold text-dark text-nowrap" style="font-size: 1rem;">${flightNum}</span>
+                                    </div>
+                                    <span class="font-monospace fw-bold text-secondary text-nowrap ms-2" style="font-size: 1.1rem;">${time}</span>
                                 </div>`;
                         });
                         listHtml += '</div>';
                         
                         contentDiv.innerHTML = listHtml;
                         contentDiv.dataset.view = 'detail';
-                        contentDiv.style.fontSize = '1rem';
+                        contentDiv.style.fontSize = '1rem'; // Reset font size for container text
                         contentDiv.style.textAlign = 'left';
                     }
                 };
@@ -963,7 +1037,6 @@
     notes.innerHTML = `
         <div class="fw-bold mb-1">Notas:</div>
         <ul class="mb-0 ps-3" style="list-style-type: disc;">
-            <li class="mb-1">Una frecuencia es cuantas veces va a un destino, se refiere a un aterrizaje y un despegue.</li>
             <li>Esta programación esta sujeta a cambios con base en las necesidades de las aerolíneas.</li>
         </ul>`;
     dom.detailsBody.appendChild(notes);
@@ -980,7 +1053,8 @@
         iconSize: [40, 40],
         iconAnchor: [20, 20]
     });
-    L.marker([AIFA_COORDS.lat, AIFA_COORDS.lng], { icon: aifaIcon, zIndexOffset: 1000 }).addTo(state.markerLayer)
+    // AIFA zIndex 3000 para estar siempre arriba del avión (2000)
+    L.marker([AIFA_COORDS.lat, AIFA_COORDS.lng], { icon: aifaIcon, zIndexOffset: 3000 }).addTo(state.markerLayer)
      .bindTooltip('AIFA (NLU)', { permanent: false, direction: 'top' });
 
     const dataset = state.filtered;
@@ -1029,7 +1103,7 @@
     let currentPlane = null;
     let currentLine = null;
     let startTime = 0;
-    const duration = 5000; // 5 segundos por vuelo (lento)
+    const duration = 5000; // 5 segundos por vuelo
 
     function startNextFlight(){
         if (currentIndex >= validDestinations.length) {
@@ -1039,12 +1113,9 @@
         const start = L.latLng(AIFA_COORDS.lat, AIFA_COORDS.lng);
         const end = L.latLng(dest.coords.lat, dest.coords.lng);
 
-        // Calculate Geodesic Path (Great Circle roughly)
-        // Basic Bezier control point strategy for visual arc
-        // Or spherical interpolation points
         const pathPoints = getGeodesicPath(start, end);
 
-        // Dibujar línea de trayectoria (trayectoria real visual)
+        // Dibujar línea (trayectoria)
         if (currentLine) state.planeLayer.removeLayer(currentLine);
         currentLine = L.polyline(pathPoints, {
             color: '#0d6efd',
@@ -1053,74 +1124,108 @@
             dashArray: '5, 10'
         }).addTo(state.planeLayer);
 
-        // Crear avión
+        // Crear avión con SVG de silueta más realista (apunta hacia ARRIBA por defecto)
+        // Icono: Material Design 'flight' modificado o similar
+        const planeSvg = `
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:100%;height:100%;display:block;">
+             <path d="M21,16V14L13,9V3.5A1.5,1.5 0 0,0 11.5,2A1.5,1.5 0 0,0 10,3.5V9L2,14V16L10,13.5V19L8,20.5V22L11.5,21L15,22V20.5L13,19V13.5L21,16Z" />
+        </svg>`;
+
         const icon = L.divIcon({
             className: 'frecuencia-plane-icon',
-            html: '<i class="fas fa-plane"></i>',
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
+            html: `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#0d6efd;">
+                    ${planeSvg}
+                   </div>`,
+            iconSize: [28, 28], // Un poco más grande para que se aprecie la forma
+            iconAnchor: [14, 14]
         });
         
         if (currentPlane) state.planeLayer.removeLayer(currentPlane);
-        currentPlane = L.marker(start, { icon, zIndexOffset: 500, interactive: false }).addTo(state.planeLayer);
+        // Aumentado zIndexOffset a 2000 para asegurar que el avión se vea sobre los marcadores
+        currentPlane = L.marker(start, { icon, zIndexOffset: 2000, interactive: false }).addTo(state.planeLayer);
+
+        // Estado para suavizado de rotación
+        let lastAngle = null;
 
         startTime = performance.now();
-        requestAnimationFrame((now) => animate(now, pathPoints));
+        requestAnimationFrame((now) => animate(now, pathPoints, lastAngle));
     }
 
-    function animate(now, pathPoints){
+    function animate(now, pathPoints, prevAngle){
         const elapsed = now - startTime;
         const t = Math.min(elapsed / duration, 1);
 
-        // Interpolación along path
-        // Find segment index
         const totalSegments = pathPoints.length - 1;
         const segmentFloat = t * totalSegments;
         const segmentIndex = Math.floor(segmentFloat);
         const segmentT = segmentFloat - segmentIndex;
 
-        let lat, lng, nextLat, nextLng;
+        let lat, lng;
 
         if (segmentIndex >= totalSegments) {
-             lat = pathPoints[totalSegments].lat;
-             lng = pathPoints[totalSegments].lng;
-             nextLat = lat; // No movement
-             nextLng = lng;
+             const last = pathPoints[totalSegments];
+             lat = last.lat;
+             lng = last.lng;
         } else {
              const p1 = pathPoints[segmentIndex];
              const p2 = pathPoints[segmentIndex + 1];
              lat = p1.lat + (p2.lat - p1.lat) * segmentT;
              lng = p1.lng + (p2.lng - p1.lng) * segmentT;
-             nextLat = p2.lat;
-             nextLng = p2.lng;
         }
         
         currentPlane.setLatLng([lat, lng]);
 
-        // Rotación
-        // Calculate heading based on current segment or immediate derivative
-        // Simple: Heading to next point
-        // Better: derivative at t
-        let angle = 0;
+        // Rotación Visual usando píxeles de pantalla
+        let currentVisualAngle = prevAngle; // Mantener ángulo anterior por defecto
+
         if (segmentIndex < totalSegments) {
             const p1 = pathPoints[segmentIndex];
             const p2 = pathPoints[segmentIndex + 1];
-            const dy = p2.lat - p1.lat;
-            const dx = p2.lng - p1.lng;
-            angle = Math.atan2(dy, dx) * 180 / Math.PI;
-        } else {
-           // Keep last angle or 0
+            
+            let targetAngle = null;
+
+            // Usar proyección del mapa si está disponible y visible
+            if (state.map) {
+                const pp1 = state.map.latLngToContainerPoint(p1);
+                const pp2 = state.map.latLngToContainerPoint(p2);
+                const dy = pp2.y - pp1.y;
+                const dx = pp2.x - pp1.x; // x aumenta a la derecha, y aumenta hacia abajo
+                
+                if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
+                     const theta = Math.atan2(dy, dx) * 180 / Math.PI;
+                     targetAngle = theta + 90;
+                }
+            } else {
+                 const dy = p2.lat - p1.lat;
+                 const dx = p2.lng - p1.lng;
+                 const theta = Math.atan2(dy, dx) * 180 / Math.PI;
+                 targetAngle = 90 - theta; 
+            }
+
+            if (targetAngle !== null) {
+                if (currentVisualAngle === null || currentVisualAngle === undefined) {
+                    currentVisualAngle = targetAngle;
+                } else {
+                    // Interpolación suave (Lerp) para evitar temblores
+                    let diff = targetAngle - currentVisualAngle;
+                    while (diff < -180) diff += 360;
+                    while (diff > 180) diff -= 360;
+                    // Factor de suavizado bajo (0.1) para eliminar vibración
+                    currentVisualAngle += diff * 0.1;
+                }
+            }
         }
         
-        const iconEl = currentPlane.getElement()?.querySelector('i');
-        if (iconEl) {
-            iconEl.style.transform = `rotate(${-angle}deg)`;
+        const iconContainer = currentPlane.getElement()?.querySelector('div');
+        const svgEl = iconContainer?.querySelector('svg');
+        
+        if (svgEl && currentVisualAngle !== null) {
+            svgEl.style.transform = `rotate(${currentVisualAngle}deg)`;
         }
 
         if (t < 1) {
-            state.animationFrameId = requestAnimationFrame((nextNow) => animate(nextNow, pathPoints));
+            state.animationFrameId = requestAnimationFrame((nextNow) => animate(nextNow, pathPoints, currentVisualAngle));
         } else {
-            // Vuelo terminado, esperar un poco y lanzar el siguiente
             state.animationTimeoutId = setTimeout(() => {
                 if (currentPlane) state.planeLayer.removeLayer(currentPlane);
                 if (currentLine) state.planeLayer.removeLayer(currentLine);
@@ -1230,7 +1335,9 @@
   }
 
   function normalizeDestinations(list){
-    return list.map(dest => {
+    return list
+      .filter(dest => dest.iata !== 'NLU' && dest.iata !== 'GUA')
+      .map(dest => {
       const airlines = (dest.airlines || []).map(air => normalizeAirline(air)).filter(Boolean);
       const weeklyTotal = airlines.reduce((sum, air) => sum + air.weeklyTotal, 0);
       const dailyTotals = DAY_CODES.map((_, idx) => airlines.reduce((sum, air) => sum + (air.daily[idx] || 0), 0));
@@ -1762,6 +1869,68 @@
     saveAs(blob, 'Frecuencias_Nacionales_AIFA.xlsx');
   }
 
+  function copyToWhatsApp() {
+      if (!state.currentDetailDest) return;
+
+      const dest = state.currentDetailDest;
+      const lines = [`✈️ *${dest.city} (${dest.iata})*`];
+      
+      const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+      dest.viewAirlines.forEach(air => {
+          lines.push('');
+          lines.push(`🛫 *${air.name}* (${air.weeklyTotal} frec/sem)`);
+          
+          dayNames.forEach((dayName, idx) => {
+              const detail = air.dailyDetails?.[idx];
+              if (!detail) return;
+              
+              // Parse detail string
+              const flightsRaw = detail.split('<br>');
+              // Deduplicate
+              const flights = [...new Set(flightsRaw.map(f => f.trim()))].filter(Boolean);
+              
+              if (flights.length > 0) {
+                 lines.push(`_${dayName}:_`);
+                 flights.forEach(f => {
+                     // Clean up string like "VB5069 08:00 (Sal)"
+                     // Remove (Sal)/(Lleg) text but keep meaning if possible or just raw
+                     // "VB5069 08:00 (Sal)" -> "VB5069 08:00"
+                     let clean = f.replace(/\(Dep\)|\(Arr\)|\(Sal\)|\(Lleg\)/gi, '').trim();
+                     
+                     // Add direction emoji
+                     if (f.toLowerCase().includes('lleg') || f.toLowerCase().includes('arr')) {
+                         clean = `🔷 LLEG ${clean}`;
+                     } else {
+                         clean = `🟢 SAL ${clean}`;
+                     }
+                     lines.push(`  ${clean}`);
+                 });
+              }
+          });
+      });
+      
+      const text = lines.join('\n');
+      
+      navigator.clipboard.writeText(text).then(() => {
+          // Show tooltip or visual feedback
+          const btn = dom.detailsCopy;
+          const original = btn.innerHTML;
+          btn.innerHTML = '<i class="fas fa-check me-1"></i> Copiado';
+          btn.classList.remove('btn-outline-success');
+          btn.classList.add('btn-success', 'text-white');
+          
+          setTimeout(() => {
+              btn.innerHTML = original;
+              btn.classList.add('btn-outline-success');
+              btn.classList.remove('btn-success', 'text-white');
+          }, 2000);
+      }).catch(err => {
+          console.error('Copy failed', err);
+          alert('No se pudo copiar al portapapeles');
+      });
+  }
+
   function debounce(fn, wait){
     let timeout;
     return function(...args){
@@ -1779,3 +1948,6 @@
       .replace(/^-+|-+$/g, '');
   }
 })();
+
+
+

@@ -297,6 +297,24 @@
                 { name: 'sunday', label: 'Domingo', type: 'number' },
                 { name: 'weekly_total', label: 'Total Semanal', type: 'number', readonly: true }
             ],
+            weekly_frequencies_cargo: [
+                { name: 'week_label', label: 'Etiqueta Semana (ej. 08-14 Dic 2025)', type: 'text' },
+                { name: 'valid_from', label: 'Válido Desde', type: 'date' },
+                { name: 'valid_to', label: 'Válido Hasta', type: 'date' },
+                { name: 'route_id', label: 'ID Ruta', type: 'number' },
+                { name: 'city', label: 'Ciudad / País', type: 'text' },
+                { name: 'state', label: 'Región', type: 'text' },
+                { name: 'iata', label: 'Código IATA', type: 'text' },
+                { name: 'airline', label: 'Aerolínea', type: 'text' },
+                { name: 'monday', label: 'Lunes', type: 'number' },
+                { name: 'tuesday', label: 'Martes', type: 'number' },
+                { name: 'wednesday', label: 'Miércoles', type: 'number' },
+                { name: 'thursday', label: 'Jueves', type: 'number' },
+                { name: 'friday', label: 'Viernes', type: 'number' },
+                { name: 'saturday', label: 'Sábado', type: 'number' },
+                { name: 'sunday', label: 'Domingo', type: 'number' },
+                { name: 'weekly_total', label: 'Total Semanal', type: 'number', readonly: true }
+            ],
             punctuality_stats: [
                 { name: 'year', label: 'Año', type: 'number' },
                 {
@@ -515,6 +533,16 @@
         const weeklyFreqLabel = document.getElementById('filter-weekly-freq-label');
         if (weeklyFreqLabel) weeklyFreqLabel.addEventListener('change', () => this.loadWeeklyFrequencies());
 
+        const weeklyFreqIntLabel = document.getElementById('filter-weekly-freq-int-label');
+        if (weeklyFreqIntLabel) weeklyFreqIntLabel.addEventListener('change', () => this.loadWeeklyFrequenciesInt());
+        const weeklyFreqIntAirline = document.getElementById('filter-weekly-freq-int-airline');
+        if (weeklyFreqIntAirline) weeklyFreqIntAirline.addEventListener('change', () => this.loadWeeklyFrequenciesInt());
+
+        const weeklyFreqCargoLabel = document.getElementById('filter-weekly-freq-cargo-label');
+        if (weeklyFreqCargoLabel) weeklyFreqCargoLabel.addEventListener('change', () => this.loadWeeklyFrequenciesCargo());
+        const weeklyFreqCargoAirline = document.getElementById('filter-weekly-freq-cargo-airline');
+        if (weeklyFreqCargoAirline) weeklyFreqCargoAirline.addEventListener('change', () => this.loadWeeklyFrequenciesCargo());
+
         // Monthly / Annual UI listeners
         const monthlyYearSel = document.getElementById('monthly-ops-year');
         if (monthlyYearSel) monthlyYearSel.addEventListener('change', () => this.loadMonthlyOperations());
@@ -541,6 +569,7 @@
             if (table === 'punctuality_stats') this.loadPunctualityStats();
             if (table === 'weekly_frequencies') this.loadWeeklyFrequencies();
             if (table === 'weekly_frequencies_int') this.loadWeeklyFrequenciesInt();
+            if (table === 'weekly_frequencies_cargo') this.loadWeeklyFrequenciesCargo();
 
             if (table === 'monthly_operations') {
                 this.loadMonthlyOperations();
@@ -653,6 +682,7 @@
         if (targetId === '#pane-punctuality-table') this.loadPunctualityStats();
         if (targetId === '#pane-weekly-frequencies') this.loadWeeklyFrequencies();
         if (targetId === '#pane-weekly-frequencies-int') this.loadWeeklyFrequenciesInt();
+        if (targetId === '#pane-weekly-frequencies-cargo') this.loadWeeklyFrequenciesCargo();
         if (targetId === '#pane-library') {
             this.loadLibraryCategories();
             this.loadLibraryItems();
@@ -3863,6 +3893,435 @@
             `;
             container.appendChild(el);
         });
+    }
+
+    // --- Cargo Weekly Frequencies ---
+
+    async loadWeeklyFrequenciesCargo(forceRefresh = false) {
+        try {
+            const labelSelect = document.getElementById('filter-weekly-freq-cargo-label');
+            const airlineSelect = document.getElementById('filter-weekly-freq-cargo-airline');
+            // No destination filter for cargo usually needed or requested yet, but can add if needed.
+            
+            let selectedLabel = labelSelect ? labelSelect.value : '';
+            let selectedAirline = airlineSelect ? airlineSelect.value : '';
+
+            // Fetch data based on selection. If empty, fetch latest.
+            let data = await window.dataManager.getWeeklyFrequenciesCargo(selectedLabel);
+
+            // Update headers with dates if data exists
+            if (data && data.length > 0 && data[0].week_label) {
+                this.updateWeeklyFreqHeaders(data[0].week_label, 'table-weekly-frequencies-cargo');
+            }
+
+            if (labelSelect && (labelSelect.options.length <= 1 || !selectedLabel || forceRefresh)) {
+                const allData = await window.dataManager.getWeeklyFrequenciesCargo();
+
+                const uniqueLabels = [...new Set(allData.map(item => item.week_label))];
+                // Keep selection if exists and still valid
+                const currentLabel = labelSelect.value;
+                
+                labelSelect.innerHTML = '<option value="">Todas las semanas</option>';
+                uniqueLabels.forEach(label => {
+                    const opt = document.createElement('option');
+                    opt.value = label;
+                    opt.textContent = label;
+                    labelSelect.appendChild(opt);
+                });
+                
+                if (currentLabel && uniqueLabels.includes(currentLabel)) {
+                    labelSelect.value = currentLabel;
+                } else if (uniqueLabels.length > 0 && !currentLabel) {
+                     // Auto select first (latest)
+                     // labelSelect.value = uniqueLabels[0];
+                }
+
+                if (airlineSelect) {
+                    const uniqueAirlines = [...new Set(allData.map(item => item.airline))].sort();
+                    const currentAirline = airlineSelect.value;
+                    airlineSelect.innerHTML = '<option value="">Todas</option>';
+                    uniqueAirlines.forEach(airline => {
+                        const opt = document.createElement('option');
+                        opt.value = airline;
+                        opt.textContent = airline;
+                        airlineSelect.appendChild(opt);
+                    });
+                    if (currentAirline) airlineSelect.value = currentAirline;
+                }
+            }
+
+            if (selectedAirline) {
+                data = data.filter(item => item.airline === selectedAirline);
+            }
+
+            // Ensure route_id is number for sorting
+            data.sort((a, b) => (Number(a.route_id) || 999) - (Number(b.route_id) || 999));
+
+            const tbody = document.querySelector('#table-weekly-frequencies-cargo tbody');
+            tbody.innerHTML = '';
+
+            const grouped = {};
+            data.forEach(item => {
+                // Group by Week + City + Airline (since Cargo routes might be specific per airline)
+                // Or just match the passenger grouping: Week + City + Code
+                const key = `${item.week_label}||${item.city}||${item.iata}`;
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(item);
+            });
+
+            const processedKeys = new Set();
+
+            data.forEach(item => {
+                const key = `${item.week_label}||${item.city}||${item.iata}`;
+                if (processedKeys.has(key)) return;
+                processedKeys.add(key);
+
+                const groupItems = grouped[key];
+
+                groupItems.forEach((groupItem, index) => {
+                    const tr = document.createElement('tr');
+                    tr.classList.add('freq-row-hover'); // Add hover class for better UX
+
+                    // Group Hover Logic
+                    const groupId = key.replace(/[^a-zA-Z0-9]/g, '_');
+                    tr.dataset.groupId = groupId;
+
+                    tr.onmouseenter = function () {
+                        const gid = this.dataset.groupId;
+                        const rows = this.closest('tbody').querySelectorAll(`tr[data-group-id="${gid}"]`);
+                        rows.forEach(r => r.classList.add('group-hover'));
+                    };
+                    tr.onmouseleave = function () {
+                        const gid = this.dataset.groupId;
+                        const rows = this.closest('tbody').querySelectorAll(`tr[data-group-id="${gid}"]`);
+                        rows.forEach(r => r.classList.remove('group-hover'));
+                    };
+
+                    const slug = this.slugify(groupItem.airline || 'default');
+                    const config = this.airlineConfig[slug] || this.airlineConfig['default'];
+
+                    // Force red theme for cargo if not defined, but rely on airline config mostly
+                    // If no specific color, maybe default to Warning/Orange/Red?
+                    // But we used config color in styling.
+                    
+                    tr.style.backgroundColor = config.color;
+                    tr.style.color = config.text;
+                    tr.style.setProperty('--bs-table-bg', 'transparent');
+                    tr.style.setProperty('--bs-table-accent-bg', 'transparent');
+
+                    if (index === 0) {
+                        const tdWeek = document.createElement('td');
+                        tdWeek.textContent = groupItem.week_label;
+                        tdWeek.style.backgroundColor = '#ffffff'; 
+                        tdWeek.style.color = '#212529';
+                        tdWeek.rowSpan = groupItems.length;
+                        tdWeek.style.verticalAlign = 'middle';
+                        tdWeek.classList.add('shared-info-cell');
+                        tr.appendChild(tdWeek);
+
+                        const tdRouteId = document.createElement('td');
+                        tdRouteId.textContent = groupItem.route_id || '-';
+                        tdRouteId.style.backgroundColor = '#ffffff';
+                        tdRouteId.style.color = '#212529';
+                        tdRouteId.rowSpan = groupItems.length;
+                        tdRouteId.style.verticalAlign = 'middle';
+                        tdRouteId.classList.add('shared-info-cell');
+                        tr.appendChild(tdRouteId);
+
+                        const tdRoute = document.createElement('td');
+                        tdRoute.innerHTML = `<div><strong>${groupItem.city}</strong></div><small>${groupItem.state || ''} (${groupItem.iata})</small>`;
+                        tdRoute.style.backgroundColor = '#ffffff';
+                        tdRoute.style.color = '#212529';
+                        tdRoute.rowSpan = groupItems.length;
+                        tdRoute.style.verticalAlign = 'middle';
+                        tdRoute.classList.add('shared-info-cell');
+
+                        const btnAdd = document.createElement('button');
+                        btnAdd.className = 'btn btn-sm btn-outline-warning d-block mx-auto mt-2';
+                        btnAdd.style.fontSize = '0.7rem';
+                        btnAdd.style.padding = '2px 6px';
+                        btnAdd.innerHTML = '<i class="fas fa-plus"></i> Aerolínea';
+                        btnAdd.title = 'Agregar aerolínea a este destino de Carga';
+                        btnAdd.onclick = () => this.addCargoAirlineToDestination(groupItem);
+                        tdRoute.appendChild(btnAdd);
+
+                        tr.appendChild(tdRoute);
+                    }
+
+                    const tdAirline = document.createElement('td');
+                    tdAirline.style.backgroundColor = '#ffffff';
+                    tdAirline.style.color = config.color;
+                    tdAirline.style.borderLeft = `8px solid ${config.color}`;
+                    tdAirline.style.verticalAlign = 'middle';
+                    tdAirline.className = 'text-center';
+
+                    if (config.logo) {
+                         const logoStyle = 'height: 35px; max-width: 120px; object-fit: contain;';
+                         tdAirline.innerHTML = `<img src="images/airlines/${config.logo}" alt="${groupItem.airline}" title="${groupItem.airline}" style="${logoStyle}">`;
+                    } else {
+                        tdAirline.textContent = groupItem.airline || 'UNK';
+                    }
+                    tr.appendChild(tdAirline);
+
+                    ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].forEach(day => {
+                        const td = document.createElement('td');
+                        td.className = 'text-center border-start';
+                        td.style.verticalAlign = 'middle';
+                        td.style.color = '#ffffff'; 
+                        td.style.color = config.text; 
+                        
+                        // Show tooltip with details if available (detail columns need to be selected from DB)
+                        // In RPC we added monday_detail etc.
+                        // We should probably show them in title attribute
+                        const details = groupItem[day + '_detail'] || '';
+                        
+                        // We can use a spanned structure: Num <br> List
+                        // But table cell is small. Tooltip is better.
+                        const val = groupItem[day] || 0;
+                        const span = document.createElement('span');
+                        span.className = 'weekly-freq-value';
+                        span.dataset.field = day;
+                        span.dataset.id = groupItem.id;
+                        span.textContent = val;
+                        if (details) span.title = details.replace(/<br>/g, '\n');
+                        
+                        td.appendChild(span);
+                        tr.appendChild(td);
+                    });
+
+                    const tdTotal = document.createElement('td');
+                    tdTotal.className = 'text-center fw-bold border-start freq-total-cell';
+                    tdTotal.style.verticalAlign = 'middle';
+                    tdTotal.style.color = config.text;
+                    tdTotal.textContent = groupItem.weekly_total;
+                    tr.appendChild(tdTotal);
+
+                    const tdActions = document.createElement('td');
+                    tdActions.className = 'text-center border-start';
+                    tdActions.style.verticalAlign = 'middle';
+                    tdActions.style.backgroundColor = '#ffffff';
+
+                    const btnEdit = document.createElement('button');
+                    btnEdit.className = 'btn btn-sm btn-outline-primary me-1';
+                    btnEdit.innerHTML = '<i class="fas fa-edit"></i>';
+                    btnEdit.onclick = () => this.editItem('weekly_frequencies_cargo', groupItem);
+                    tdActions.appendChild(btnEdit);
+
+                    const btnDelete = document.createElement('button');
+                    btnDelete.className = 'btn btn-sm btn-outline-danger';
+                    btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
+                    btnDelete.onclick = () => this.deleteItem('weekly_frequencies_cargo', groupItem.id);
+                    tdActions.appendChild(btnDelete);
+
+                    tr.appendChild(tdActions);
+                    tbody.appendChild(tr);
+                });
+            });
+
+        } catch (error) {
+            console.error('Error loading cargo weekly frequencies:', error);
+        }
+    }
+
+    addCargoAirlineToDestination(templateItem) {
+        const defaults = {
+            week_label: templateItem.week_label,
+            valid_from: templateItem.valid_from,
+            valid_to: templateItem.valid_to,
+            route_id: templateItem.route_id,
+            city: templateItem.city,
+            state: templateItem.state,
+            iata: templateItem.iata,
+            airline: '',
+            monday: 0, tuesday: 0, wednesday: 0, thursday: 0, friday: 0, saturday: 0, sunday: 0, weekly_total: 0
+        };
+
+        const schema = this.schemas['weekly_frequencies_cargo'];
+        if (schema) {
+            window.adminUI.openEditModal('weekly_frequencies_cargo', defaults, schema);
+        }
+    }
+
+    openCopyWeekModalCargo() {
+        const labelSelect = document.getElementById('filter-weekly-freq-cargo-label');
+        const sourceLabel = labelSelect ? labelSelect.value : '';
+
+        if (!sourceLabel) {
+            alert('Por favor selecciona una semana origen primero.');
+            return;
+        }
+
+        document.getElementById('copy-source-week-label').textContent = sourceLabel;
+        const startDateInput = document.getElementById('copy-start-date');
+        const endDateInput = document.getElementById('copy-end-date');
+        startDateInput.value = '';
+        endDateInput.value = '';
+        document.getElementById('copy-preview-label').textContent = '';
+
+        const btnConfirm = document.querySelector('#modal-copy-week .btn-primary');
+        const newBtn = btnConfirm.cloneNode(true);
+        btnConfirm.parentNode.replaceChild(newBtn, btnConfirm);
+
+        newBtn.onclick = () => this.confirmCopyWeekCargo();
+        
+        startDateInput.onchange = () => {
+             const startVal = startDateInput.value;
+             if (startVal) {
+                const [y, m, d] = startVal.split('-').map(Number);
+                // Create date object correctly handling timezone offset or just string calc
+                const date = new Date(y, m - 1, d);
+                date.setDate(date.getDate() + 6);
+                const yEnd = date.getFullYear();
+                const mEnd = String(date.getMonth() + 1).padStart(2, '0');
+                const dEnd = String(date.getDate()).padStart(2, '0');
+                endDateInput.value = `${yEnd}-${mEnd}-${dEnd}`;
+                
+                const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                const mName = months[m - 1];
+                const mNameEnd = months[date.getMonth()];
+                
+                document.getElementById('copy-preview-label').textContent = `${d} ${mName} - ${dEnd} ${mNameEnd} ${yEnd}`;
+             }
+        };
+
+        const modal = new bootstrap.Modal(document.getElementById('modal-copy-week'));
+        modal.show();
+    }
+
+    async confirmCopyWeekCargo() {
+        const labelSelect = document.getElementById('filter-weekly-freq-cargo-label');
+        const sourceLabel = labelSelect ? labelSelect.value : '';
+        const startDate = document.getElementById('copy-start-date').value;
+        const endDate = document.getElementById('copy-end-date').value;
+        const newLabel = document.getElementById('copy-preview-label').textContent;
+
+        if (!startDate || !endDate || !newLabel) {
+            alert('Por favor selecciona las fechas.');
+            return;
+        }
+
+        try {
+            const sourceData = await window.dataManager.getWeeklyFrequenciesCargo(sourceLabel);
+            if (!sourceData || sourceData.length === 0) {
+                alert('No hay datos en la semana origen.');
+                return;
+            }
+
+            const newRows = sourceData.map(item => {
+                const { id, created_at, ...rest } = item;
+                // Important: Ensure we don't carry over IDs primary key
+                return {
+                    ...rest,
+                    week_label: newLabel,
+                    valid_from: startDate,
+                    valid_to: endDate
+                };
+            });
+
+            const { error } = await this.client.from('weekly_frequencies_cargo').insert(newRows);
+            if (error) throw error;
+
+            bootstrap.Modal.getInstance(document.getElementById('modal-copy-week')).hide();
+            alert('Semana (Carga) copiada exitosamente.');
+            this.loadWeeklyFrequenciesCargo();
+
+        } catch (error) {
+            console.error('Error copying week:', error);
+            alert('Error al copiar: ' + error.message);
+        }
+    }
+
+    async deleteWeeklyTemplateCargo() {
+        const labelSelect = document.getElementById('filter-weekly-freq-cargo-label');
+        const selectedLabel = labelSelect ? labelSelect.value : '';
+        if (!selectedLabel) return;
+
+        if (!confirm(`¿Estás seguro de eliminar TODOS los registros de Carga de la semana: ${selectedLabel}?`)) return;
+
+        try {
+            const { error } = await this.client.from('weekly_frequencies_cargo').delete().eq('week_label', selectedLabel);
+            if (error) throw error;
+            
+            // Clear Select to force refresh
+            labelSelect.value = '';
+            alert('Semana eliminada.');
+            
+            // Force refresh UI list
+            this.loadWeeklyFrequenciesCargo(true);
+        } catch (e) {
+            console.error('Error deleting week:', e);
+            alert('Error: ' + e.message);
+        }
+    }
+
+    toggleWeeklyEditModeCargo() {
+        const btn = document.getElementById('btn-edit-weekly-cargo-mode');
+        const saveBtn = document.getElementById('btn-save-weekly-cargo-changes');
+        const table = document.getElementById('table-weekly-frequencies-cargo');
+        
+        if (btn.classList.contains('active')) {
+             btn.classList.remove('active');
+             btn.innerHTML = '<i class="fas fa-edit"></i> Editar Tabla';
+             saveBtn.classList.add('d-none');
+             this.loadWeeklyFrequenciesCargo();
+        } else {
+             btn.classList.add('active');
+             btn.innerHTML = '<i class="fas fa-times"></i> Cancelar';
+             saveBtn.classList.remove('d-none');
+             
+             const spans = table.querySelectorAll('.weekly-freq-value');
+             spans.forEach(span => {
+                 const val = span.textContent;
+                 const input = document.createElement('input');
+                 input.type = 'number';
+                 input.className = 'form-control form-control-sm p-0 text-center';
+                 input.style.width = '40px';
+                 input.value = val;
+                 input.dataset.original = val;
+                 span.style.display = 'none';
+                 span.parentNode.insertBefore(input, span);
+             });
+        }
+    }
+
+    async saveWeeklyChangesCargo() {
+        const table = document.getElementById('table-weekly-frequencies-cargo');
+        const inputs = table.querySelectorAll('input[type="number"]');
+        
+        const updates = {};
+        
+        inputs.forEach(input => {
+            const span = input.nextElementSibling;
+            const original = input.dataset.original;
+            const current = input.value;
+            const id = span.dataset.id;
+            const field = span.dataset.field;
+            
+            if (original !== current) {
+                if (!updates[id]) updates[id] = {};
+                updates[id][field] = parseInt(current) || 0;
+            }
+        });
+        
+        if (Object.keys(updates).length === 0) {
+            alert('No hay cambios para guardar.');
+            this.toggleWeeklyEditModeCargo();
+            return;
+        }
+        
+        try {
+            const promises = Object.keys(updates).map(id => {
+                 return this.client.from('weekly_frequencies_cargo').update(updates[id]).eq('id', id);
+            });
+            
+            await Promise.all(promises);
+            alert('Cambios guardados.');
+            this.toggleWeeklyEditModeCargo(); 
+            
+        } catch (error) {
+            console.error('Error saving changes:', error);
+            alert('Error al guardar cambios.');
+        }
     }
 }
 

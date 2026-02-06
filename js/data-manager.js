@@ -188,6 +188,21 @@ class DataManager {
         return data;
     }
 
+    async getWeeklyFrequenciesCargo(weekLabel) {
+        let query = this.client.from('weekly_frequencies_cargo')
+            .select('*')
+            .order('valid_from', { ascending: false })
+            .order('route_id', { ascending: true })
+            .order('airline', { ascending: true });
+
+        if (weekLabel) {
+            query = query.eq('week_label', weekLabel);
+        }
+        const { data, error } = await query;
+        if (error) throw error;
+        return data;
+    }
+
     // --- Monthly / Annual Operations ---
     async getMonthlyOperations(year) {
         let query = this.client.from('monthly_operations').select('*').order('year', { ascending: false }).order('month', { ascending: false });

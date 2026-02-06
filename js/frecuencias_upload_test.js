@@ -2,6 +2,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const btnProcess = document.getElementById('btn-process-frecuencias');
     const inputDate = document.getElementById('frecuencias-week-start');
+    const typeSelect = document.getElementById('frecuencias-type-select');
     const labelWeek = document.getElementById('frecuencias-week-display');
     const modalDetalle = new bootstrap.Modal(document.getElementById('modalFrecuenciasDetalle'));
 
@@ -226,17 +227,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (dbRows.length > 0) {
-            // 2. Delete existing detailed records for this WEEK RANGE to avoid duplication/stale data
+            // 2. Delete existing detailed records for this WEEK RANGE and TYPE to avoid duplication/stale data
             // We use Date Range delete instead of just Label to ensure we clean up any overlapping mess
             const isoStart = startDate.toISOString();
             const isoEnd = endDate.toISOString();
             
-            // Delete overlap
+            // Determine type code ('P' for passenger/default, 'C' for cargo)
+            let typeCode = 'P';
+            if (typeSelect.value === 'cargo') typeCode = 'C';
+
+            // Delete overlap for this specific type
             const { error: deleteError } = await supabase
                 .from('weekly_flights_detailed')
                 .delete()
                 .gte('flight_date', isoStart)
-                .lte('flight_date', isoEnd); // or lte end of day
+                .lte('flight_date', isoEnd)
+                .eq('operation_type', typeCode); // Only clean relevant type
 
             if (deleteError) {
                 console.error('Delete error', deleteError);
@@ -244,7 +250,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // 3. Insert new records (Batched if necessary, Supabase handles fairly large batches usually)
-            // If > 1000, maybe split? Typical weekly ops ~500-800? Should be fine.
+            // Add type code to rows
+            dbRows.forEach(row => row.operation_type = typeCode);
+
             const { error: insertError } = await supabase
                 .from('weekly_flights_detailed')
                 .insert(dbRows);
@@ -254,31 +262,46 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error('Error guardando vuelos detallados: ' + insertError.message);
             }
 
-            // 4. Call RPC to regenerate summary (NATIONAL)
-            const { error: rpcError } = await supabase.rpc('generate_weekly_frequencies', {
-                p_week_label: weekLabel,
-                p_start_date: startDate.toISOString().split('T')[0],
-                p_end_date: endDate.toISOString().split('T')[0]
-            });
+            if (typeSelect.value === 'cargo') {
+                // 4. Call RPC Cargo
+                const { error: rpcCargoError } = await supabase.rpc('generate_weekly_frequencies_cargo', {
+                    p_week_label: weekLabel,
+                    p_start_date: startDate.toISOString().split('T')[0],
+                    p_end_date: endDate.toISOString().split('T')[0]
+                });
+                
+                if (rpcCargoError) {
+                    console.error('RPC Cargo error', rpcCargoError);
+                    throw new Error('Error generando reporte de frecuencias (Carga): ' + rpcCargoError.message);
+                }
+                showSuccess(`Se procesaron y guardaron ${totalCount} vuelos correctamente. Se actualizaron frecuencias de Carga.`);
+            } else {
+                // 4. Call RPC to regenerate summary (NATIONAL)
+                const { error: rpcError } = await supabase.rpc('generate_weekly_frequencies', {
+                    p_week_label: weekLabel,
+                    p_start_date: startDate.toISOString().split('T')[0],
+                    p_end_date: endDate.toISOString().split('T')[0]
+                });
 
-            if (rpcError) {
-                console.error('RPC error', rpcError);
-                throw new Error('Error generando reporte de frecuencias (Nacional): ' + rpcError.message);
+                if (rpcError) {
+                    console.error('RPC error', rpcError);
+                    throw new Error('Error generando reporte de frecuencias (Nacional): ' + rpcError.message);
+                }
+
+                // 5. Call RPC to regenerate summary (INTERNATIONAL)
+                const { error: rpcIntError } = await supabase.rpc('generate_weekly_frequencies_int', {
+                    p_week_label: weekLabel,
+                    p_start_date: startDate.toISOString().split('T')[0],
+                    p_end_date: endDate.toISOString().split('T')[0]
+                });
+
+                if (rpcIntError) {
+                    console.error('RPC Int error', rpcIntError);
+                    throw new Error('Error generando reporte de frecuencias (Internacional): ' + rpcIntError.message);
+                }
+                
+                showSuccess(`Se procesaron y guardaron ${totalCount} vuelos correctamente. Se actualizaron frecuencias Nacionales e Internacionales.`);
             }
-
-            // 5. Call RPC to regenerate summary (INTERNATIONAL)
-            const { error: rpcIntError } = await supabase.rpc('generate_weekly_frequencies_int', {
-                p_week_label: weekLabel,
-                p_start_date: startDate.toISOString().split('T')[0],
-                p_end_date: endDate.toISOString().split('T')[0]
-            });
-
-            if (rpcIntError) {
-                console.error('RPC Int error', rpcIntError);
-                throw new Error('Error generando reporte de frecuencias (Internacional): ' + rpcIntError.message);
-            }
-            
-            showSuccess(`Se procesaron y guardaron ${totalCount} vuelos correctamente. Se actualizaron frecuencias Nacionales e Internacionales.`);
         } else {
             showSuccess('No se encontraron vuelos válidos en el rango de fechas seleccionado.');
         }
