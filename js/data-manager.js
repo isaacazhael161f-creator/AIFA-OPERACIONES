@@ -4,7 +4,7 @@ class DataManager {
         // Listen for session changes to re-check
         if (this.client) {
             this.client.auth.onAuthStateChange((event, session) => {
-                this.checkAuth().catch(console.error);
+                this.checkAuth(event).catch(console.error);
             });
         }
     }
@@ -13,49 +13,102 @@ class DataManager {
         return window.supabaseClient;
     }
 
-    async checkAuth() {
+    async checkAuth(authEvent = null) {
+        // --- 1. Optimistic Load from Cache (Immediate UI update) ---
+        // Skip cache if we know we are signing out
+        if (authEvent !== 'SIGNED_OUT') {
+            const cachedAuth = localStorage.getItem('auth_permissions_cache');
+            if (cachedAuth) {
+                try {
+                    const cache = JSON.parse(cachedAuth);
+                    // Simple verify expiration (e.g. 1 hour) or just rely on session validity
+                    if (Date.now() - cache.timestamp < 3600000) { // 1 hour
+                        this.isAdmin = cache.isAdmin;
+                        this.userRole = cache.userRole;
+                        this.permissions = cache.permissions;
+                        this._dispatchAuthEvent(); // Update UI immediately
+                    }
+                } catch (e) {
+                    console.warn('Invalid auth cache', e);
+                }
+            }
+        } else {
+             // If signed out, ensure cache is cleared immediately
+             localStorage.removeItem('auth_permissions_cache');
+        }
+
         const { data: { session } } = await this.client.auth.getSession();
         if (session) {
             // Check role in user_roles table
             try {
                 const { data: roleData, error } = await this.client
                     .from('user_roles')
-                    .select('role')
+                    .select('role, permissions')
                     .eq('user_id', session.user.id)
                     .single();
 
                 this.userEmail = session.user.email; // Store email for history logs
 
-                if (roleData && ['admin', 'editor', 'superadmin', 'control_fauna', 'servicio_medico'].includes(roleData.role)) {
-                    this.isAdmin = true;
-                    this.userRole = roleData.role;
+                if (roleData) {
+                    this.permissions = roleData.permissions || { allowed_sections: [] }; // Store permissions
+                    if (['admin', 'editor', 'superadmin', 'control_fauna', 'servicio_medico'].includes(roleData.role)) {
+                        this.isAdmin = true;
+                        this.userRole = roleData.role;
+                    } else if (roleData.role === 'viewer') {
+                        this.isAdmin = false; // Viewer is not admin
+                        this.userRole = 'viewer';
+                    } else {
+                        this.isAdmin = false;
+                        this.userRole = roleData.role;
+                    }
+
+                    // --- 2. Update Cache ---
+                    localStorage.setItem('auth_permissions_cache', JSON.stringify({
+                        isAdmin: this.isAdmin,
+                        userRole: this.userRole,
+                        permissions: this.permissions,
+                        timestamp: Date.now()
+                    }));
+
                 } else {
                     this.isAdmin = false;
-                    this.userRole = roleData ? roleData.role : null; // Keep role even if not admin, useful for UI checks
+                    this.userRole = null;
+                    this.permissions = {};
+                    localStorage.removeItem('auth_permissions_cache');
                 }
             } catch (e) {
                 console.error('Error checking role:', e);
+                // On error, don't clear legacy cache immediately to avoid flash if it's just a network blip?
+                // Or clear it to be safe. Let's keep state as false.
                 this.isAdmin = false;
                 this.userRole = null;
+                this.permissions = {};
             }
         } else {
             this.isAdmin = false;
             this.userRole = null;
+            this.permissions = {};
+            localStorage.removeItem('auth_permissions_cache');
         }
 
+        this._dispatchAuthEvent();
+        return this.isAdmin;
+    }
+
+    _dispatchAuthEvent() {
         // Apply visual state
         document.body.classList.toggle('is-admin', this.isAdmin);
+        document.body.classList.toggle('is-viewer', this.userRole === 'viewer');
 
         // Dispatch detailed event for AdminUI
         window.dispatchEvent(new CustomEvent('admin-mode-changed', {
             detail: {
                 isAdmin: this.isAdmin,
                 role: this.userRole,
+                permissions: this.permissions,
                 timestamp: Date.now()
             }
         }));
-
-        return this.isAdmin;
     }
 
     // --- Operations Summary ---

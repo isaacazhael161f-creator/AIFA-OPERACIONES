@@ -444,13 +444,28 @@
       showLoading(false);
       dom.content?.classList.remove('d-none');
       
+      // Force map to recognize its container size using ResizeObserver
+      if (dom.mapContainer) {
+          const resizeObserver = new ResizeObserver(() => {
+              if (state.map) {
+                  state.map.invalidateSize();
+                  if (state.resizeTimeout) clearTimeout(state.resizeTimeout);
+                  state.resizeTimeout = setTimeout(() => {
+                      fitMapToData();
+                  }, 100);
+              }
+          });
+          resizeObserver.observe(dom.mapContainer);
+          state.resizeObserver = resizeObserver;
+      }
+      
       requestAnimationFrame(() => {
           state.map?.invalidateSize();
           fitMapToData();
       });
     } catch (err) {
         console.error('Frecuencias Cargo automation error:', err);
-        showError('No se pudo cargar la información de frecuencias de carga.');
+        showError(`No se pudo cargar la información de frecuencias de carga. ${err.message || ''}`);
         showLoading(false);
     }
     wireInteractions();

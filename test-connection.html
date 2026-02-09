@@ -137,30 +137,89 @@
                                 </fieldset>
                             </div>
 
-                            <!-- Usuarios -->
+                            <!-- Usuarios (Generador de Permisos) -->
                             <div class="tab-pane fade" id="pills-users" role="tabpanel">
                                 <div class="alert alert-info small mb-3">
-                                    <i class="fas fa-info-circle me-1"></i> Gestión de roles de usuario.
+                                    <i class="fas fa-tools me-1"></i> Generador de SQL para Usuarios Viewer.
                                 </div>
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-hover" id="users-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Usuario</th>
-                                                <th>Rol Actual</th>
-                                                <th>Acción</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr><td colspan="3" class="text-center text-muted">Cargando usuarios...</td></tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div class="d-grid gap-2">
-                                    <button class="btn btn-sm btn-outline-primary" onclick="loadUsers()">
-                                        <i class="fas fa-sync-alt me-1"></i> Recargar Lista
-                                    </button>
-                                </div>
+                                
+                                <form id="viewer-gen-form" onsubmit="event.preventDefault(); generateViewerSQL();">
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold" for="gen-email">Email del Usuario</label>
+                                        <input type="email" class="form-control" id="gen-email" placeholder="usuario@ejemplo.com" required>
+                                        <div class="form-text small">El script buscará este email en auth.users.</div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold" for="gen-role">Rol</label>
+                                        <select class="form-select" id="gen-role">
+                                            <option value="viewer" selected>Viewer (Solo lectura selectiva)</option>
+                                            <option value="editor">Editor</option>
+                                            <option value="control_fauna">Control Fauna</option>
+                                            <option value="servicio_medico">Servicio Médico</option>
+                                            <option value="admin">Admin</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold">Secciones Permitidas (Solo para Viewer)</label>
+                                        <div class="row g-2">
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input section-check" type="checkbox" value="operaciones-totales" id="sec-inicio" checked>
+                                                    <label class="form-check-label small" for="sec-inicio">Inicio (Dashboard)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input section-check" type="checkbox" value="parte-operaciones" id="sec-parte">
+                                                    <label class="form-check-label small" for="sec-parte">Parte Operaciones</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input section-check" type="checkbox" value="inicio" id="sec-itinerario">
+                                                    <label class="form-check-label small" for="sec-itinerario">Itinerario Diario</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input section-check" type="checkbox" value="frecuencias-semana" id="sec-frec">
+                                                    <label class="form-check-label small" for="sec-frec">Frecuencias</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input section-check" type="checkbox" value="puntualidad-agosto" id="sec-punt">
+                                                    <label class="form-check-label small" for="sec-punt">Puntualidad</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input section-check" type="checkbox" value="demoras" id="sec-dem">
+                                                    <label class="form-check-label small" for="sec-dem">Demoras</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input section-check" type="checkbox" value="fauna" id="sec-fauna">
+                                                    <label class="form-check-label small" for="sec-fauna">Fauna (GSO)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input section-check" type="checkbox" value="medicas" id="sec-med">
+                                                    <label class="form-check-label small" for="sec-med">Médico</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input section-check" type="checkbox" value="biblioteca" id="sec-bib">
+                                                    <label class="form-check-label small" for="sec-bib">Biblioteca</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-grid gap-2 mb-3">
+                                        <button type="submit" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-code me-1"></i> Generar Script SQL
+                                        </button>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold" for="gen-output">Script SQL Resultante</label>
+                                        <textarea class="form-control font-monospace small bg-dark text-white" id="gen-output" rows="8" readonly></textarea>
+                                        <div class="form-text small">Copia este código y ejecútalo en el Editor SQL de Supabase.</div>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm w-100" onclick="navigator.clipboard.writeText(document.getElementById('gen-output').value)">Copiar al Portapapeles</button>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -400,98 +459,59 @@
             location.reload();
         }
 
-        async function loadUsers() {
-            const tbody = document.querySelector('#users-table tbody');
-            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Cargando...</td></tr>';
-            
-            try {
-                // 1. Get Profiles
-                const { data: profiles, error: errProfiles } = await window.supabaseClient
-                    .from('profiles')
-                    .select('*');
-                
-                if (errProfiles) throw errProfiles;
-
-                // 2. Get Roles
-                const { data: roles, error: errRoles } = await window.supabaseClient
-                    .from('user_roles')
-                    .select('*');
-                
-                const roleMap = {};
-                if (roles) {
-                    roles.forEach(r => roleMap[r.user_id] = r.role);
-                }
-
-                tbody.innerHTML = '';
-                
-                if (!profiles || profiles.length === 0) {
-                     tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No se encontraron perfiles.</td></tr>';
-                     return;
-                }
-
-                profiles.forEach(p => {
-                    const currentRole = roleMap[p.id] || 'viewer';
-                    const tr = document.createElement('tr');
-                    
-                    tr.innerHTML = `
-                        <td>
-                            <div class="fw-bold small text-truncate" style="max-width: 150px;" title="${p.username}">${p.username || 'Sin usuario'}</div>
-                            <div class="text-muted small text-truncate" style="font-size: 0.7rem; max-width: 150px;">${p.id}</div>
-                        </td>
-                        <td><span class="badge bg-secondary">${currentRole}</span></td>
-                        <td>
-                            <div class="input-group input-group-sm">
-                                <select class="form-select form-select-sm" id="role-select-${p.id}" style="font-size: 0.75rem;">
-                                    <option value="viewer">Viewer</option>
-                                    <option value="editor">Editor</option>
-                                    <option value="admin">Admin</option>
-                                    <option value="superadmin">S.Admin</option>
-                                    <option value="control_fauna">Fauna</option>
-                                    <option value="servicio_medico">Servicio Médico</option>
-                                </select>
-                                <button class="btn btn-primary" onclick="assignRole('${p.id}')">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                            </div>
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-                    
-                    const sel = document.getElementById(`role-select-${p.id}`);
-                    if (sel && ['viewer','editor','admin','superadmin','control_fauna','servicio_medico'].includes(currentRole)) {
-                        sel.value = currentRole;
-                    }
-                });
-
-            } catch (e) {
-                console.error(e);
-                tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger small">Error: ${e.message}</td></tr>`;
+        // --- Generator Logic ---
+        function generateViewerSQL() {
+            const email = document.getElementById('gen-email').value;
+            if (!email) {
+                alert('Por favor ingrese un email.');
+                return;
             }
+            const role = document.getElementById('gen-role').value;
+            
+            // Get checked sections
+            const checks = document.querySelectorAll('.section-check:checked');
+            const sections = Array.from(checks).map(c => c.value);
+            
+            // Construct JSON
+            const permissions = { allowed_sections: sections };
+            const jsonPermissions = JSON.stringify(permissions);
+
+            // Construct SQL Block
+            const sql = `
+-- 1. Asegurar que la columna permissions existe (Ejecutar esto primero si falla)
+ALTER TABLE public.user_roles 
+ADD COLUMN IF NOT EXISTS permissions JSONB DEFAULT '{}'::jsonb;
+
+DO $$
+DECLARE
+    v_target_email TEXT := '${email.trim()}';
+    v_user_id UUID;
+    v_role TEXT := '${role}';
+    v_permissions JSONB := '${jsonPermissions}'::jsonb;
+BEGIN
+    -- 1. Buscar ID del usuario por email en auth.users
+    SELECT id INTO v_user_id FROM auth.users WHERE email = v_target_email;
+
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION 'Usuario con email % no encontrado. Asegúrese de haberlo creado en Authentication primero.', v_target_email;
+    END IF;
+
+    -- 2. Insertar o Actualizar Rol y Permisos en public.user_roles
+    INSERT INTO public.user_roles (user_id, role, permissions)
+    VALUES (v_user_id, v_role, v_permissions)
+    ON CONFLICT (user_id) 
+    DO UPDATE SET 
+        role = EXCLUDED.role,
+        permissions = EXCLUDED.permissions;
+
+    RAISE NOTICE 'Permisos actualizados para usuario % (Rol: %, Secciones: count=%)', v_target_email, v_role, jsonb_array_length(v_permissions->'allowed_sections');
+END $$;
+`;
+            document.getElementById('gen-output').value = sql.trim();
         }
 
-        async function assignRole(userId) {
-            const select = document.getElementById(`role-select-${userId}`);
-            const newRole = select.value;
-            
-            updateStatus('info', `Asignando rol ${newRole}...`);
-            
-            try {
-                const { error } = await window.supabaseClient
-                    .from('user_roles')
-                    .upsert({ user_id: userId, role: newRole }, { onConflict: 'user_id' });
-                
-                if (error) throw error;
-                
-                updateStatus('success', 'Rol actualizado correctamente.');
-                loadUsers();
-                
-            } catch (e) {
-                console.error(e);
-                let msg = e.message;
-                if (msg.includes('new row violates row-level security policy')) msg = 'Bloqueado por RLS. Necesitas permisos de admin en la BD.';
-                updateStatus('danger', 'Error: ' + msg);
-            }
-        }
+        async function loadUsers() { console.log('Legacy loadUsers stub'); }
+        async function assignRole(userId) { console.log('Legacy assignRole stub'); }
 
         checkSession();
     </script>

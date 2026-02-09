@@ -10852,3 +10852,5 @@ body.dark-mode #fauna-rescate-table .table-container-tech.h-scroll-area thead th
 
 /* Force hide inactive tab panes to prevent ghost content and layout gaps */
 .tab-pane:not(.active) { display: none !important; }
+
+.d-none-auth { display: none !important; }
