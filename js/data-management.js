@@ -784,6 +784,30 @@
             if (dateFilter) {
                 filteredData = data.filter(item => item.arrival_date === dateFilter);
             }
+            
+            // --- Deduplication Logic (User Request) ---
+            // "si un numero de vuelo es el mismo, tiene la misma hora programada... y el origen o el destino igual, no repitas esos vuelos"
+            // We use a Set to track seen combinations of Flight Number + Time + Location
+            const seenFlights = new Set();
+            const uniqueData = [];
+
+            filteredData.forEach(item => {
+                // Handle potential different property names (view vs table)
+                const fNum = item.flight_number || item.arrival_flight || item.departure_flight || item.vuelo || '';
+                const time = item.arrival_time || item.departure_time || item.hora || '';
+                // For location, we might have origin_destination or separated fields
+                const loc = item.origin_destination || item.origin || item.destination || '';
+                
+                // Create unique key
+                const key = `${fNum}|${time}|${loc}`;
+                
+                if (!seenFlights.has(key)) {
+                    seenFlights.add(key);
+                    uniqueData.push(item);
+                }
+            });
+            filteredData = uniqueData;
+
             this.renderTable('table-itinerary', filteredData, ['flight_number', 'airline', 'origin_destination', 'arrival_time', 'status'], 'flight_itinerary');
         } catch (error) {
             console.error('Error loading itinerary:', error);
