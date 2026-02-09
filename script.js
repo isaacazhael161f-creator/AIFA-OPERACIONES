@@ -6338,68 +6338,68 @@ const opsPersistentTooltipPlugin = {
             const sizeHint = String(cfg.sizeHint || 'default');
             const tooltipStyles = {
                 micro: {
-                    headerFont: '600 7px "Roboto", "Segoe UI", Arial, sans-serif',
-                    bodyFont: '500 7px "Roboto", "Segoe UI", Arial, sans-serif',
-                    headerLineHeight: 8,
-                    bodyLineHeight: 8,
-                    headerPadX: 4,
-                    headerPadY: 2,
-                    bodyPadX: 4,
-                    bodyPadY: 3,
-                    pointerWidth: 8,
-                    pointerHeight: 4,
-                    cornerRadius: 6,
-                    preferredOffset: 8,
-                    shadowBlur: 4,
-                    shadowOffsetY: 1
-                },
-                mini: {
-                    headerFont: '600 9px "Roboto", "Segoe UI", Arial, sans-serif',
-                    bodyFont: '500 9px "Roboto", "Segoe UI", Arial, sans-serif',
-                    headerLineHeight: 11,
-                    bodyLineHeight: 12,
-                    headerPadX: 8,
-                    headerPadY: 4,
-                    bodyPadX: 8,
-                    bodyPadY: 6,
-                    pointerWidth: 12,
+                    headerFont: '600 11px "Roboto", "Segoe UI", Arial, sans-serif',
+                    bodyFont: '500 11px "Roboto", "Segoe UI", Arial, sans-serif',
+                    headerLineHeight: 13,
+                    bodyLineHeight: 13,
+                    headerPadX: 6,
+                    headerPadY: 3,
+                    bodyPadX: 6,
+                    bodyPadY: 4,
+                    pointerWidth: 10,
                     pointerHeight: 5,
-                    cornerRadius: 8,
-                    preferredOffset: 12,
-                    shadowBlur: 8,
+                    cornerRadius: 6,
+                    preferredOffset: 10,
+                    shadowBlur: 5,
                     shadowOffsetY: 2
                 },
-                compact: {
-                    headerFont: '600 10px "Roboto", "Segoe UI", Arial, sans-serif',
-                    bodyFont: '500 10px "Roboto", "Segoe UI", Arial, sans-serif',
-                    headerLineHeight: 12,
-                    bodyLineHeight: 13,
+                mini: {
+                    headerFont: '600 13px "Roboto", "Segoe UI", Arial, sans-serif',
+                    bodyFont: '500 13px "Roboto", "Segoe UI", Arial, sans-serif',
+                    headerLineHeight: 15,
+                    bodyLineHeight: 16,
                     headerPadX: 10,
                     headerPadY: 5,
                     bodyPadX: 10,
-                    bodyPadY: 8,
+                    bodyPadY: 7,
                     pointerWidth: 14,
                     pointerHeight: 6,
-                    cornerRadius: 10,
+                    cornerRadius: 8,
                     preferredOffset: 14,
-                    shadowBlur: 10,
+                    shadowBlur: 8,
                     shadowOffsetY: 3
                 },
-                default: {
-                    headerFont: '600 11px "Roboto", "Segoe UI", Arial, sans-serif',
-                    bodyFont: '500 11px "Roboto", "Segoe UI", Arial, sans-serif',
-                    headerLineHeight: 14,
-                    bodyLineHeight: 15,
+                compact: {
+                    headerFont: '600 15px "Roboto", "Segoe UI", Arial, sans-serif',
+                    bodyFont: '500 15px "Roboto", "Segoe UI", Arial, sans-serif',
+                    headerLineHeight: 17,
+                    bodyLineHeight: 18,
                     headerPadX: 12,
-                    headerPadY: 7,
-                    bodyPadX: 14,
+                    headerPadY: 6,
+                    bodyPadX: 12,
                     bodyPadY: 10,
                     pointerWidth: 16,
                     pointerHeight: 8,
-                    cornerRadius: 12,
-                    preferredOffset: 18,
-                    shadowBlur: 12,
+                    cornerRadius: 10,
+                    preferredOffset: 16,
+                    shadowBlur: 10,
                     shadowOffsetY: 4
+                },
+                default: {
+                    headerFont: '600 16px "Roboto", "Segoe UI", Arial, sans-serif',
+                    bodyFont: '500 16px "Roboto", "Segoe UI", Arial, sans-serif',
+                    headerLineHeight: 19,
+                    bodyLineHeight: 20,
+                    headerPadX: 14,
+                    headerPadY: 8,
+                    bodyPadX: 16,
+                    bodyPadY: 12,
+                    pointerWidth: 18,
+                    pointerHeight: 10,
+                    cornerRadius: 12,
+                    preferredOffset: 20,
+                    shadowBlur: 14,
+                    shadowOffsetY: 5
                 }
             };
             const style = tooltipStyles[sizeHint] || tooltipStyles.default;
@@ -8166,7 +8166,7 @@ function renderOperacionesTotales() {
                     const borderColor = (opts.borderColor || ds.borderColor || '#0d6efd');
                     const fillColor = (opts.fillColor || ds.borderColor || '#0d6efd');
                     const textColor = (opts.textColor || '#ffffff');
-                    const corner = 10;
+                    const corner = 12; // Radius aumentado
                     const onlyMax = !!opts.onlyMax;
                     const area = chart.chartArea;
                     const small = !!opts.small;
@@ -8175,14 +8175,19 @@ function renderOperacionesTotales() {
                     // hallar índice máximo si aplica
                     let maxIdx = -1; if (onlyMax) { let mv = -Infinity; values.forEach((v, i) => { if (v > mv) { mv = v; maxIdx = i; } }); }
 
+                    // AUMENTO DE TAMAÑO SOLICITADO
+                    const fontSize = small ? 14 : 16; 
+                    const fontStr = `600 ${fontSize}px system-ui, Segoe UI, Roboto, Arial`;
+                    
                     ctx.save();
-                    ctx.font = `${small ? '600 10px' : '600 12px'} system-ui, Segoe UI, Roboto, Arial`;
+                    ctx.font = fontStr;
                     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                     let lastShownX = -Infinity;
                     let lastPlacedBelow = false;
                     const placed = [];
-                    const offsetUp = Number(opts.offsetY || 40);
-                    const defaultOffsetBelow = small ? 30 : 26;
+                    // Ajustamos offsets para que no queden pegados al punto al ser mas grandes
+                    const offsetUp = Number(opts.offsetY || (small ? 45 : 50)); 
+                    const defaultOffsetBelow = small ? 35 : 30;
                     const offsetBelow = Number(opts.offsetBelow || defaultOffsetBelow);
 
                     const intersects = (a, b) => !(a.x + a.w < b.x || b.x + b.w < a.x || a.y + a.h < b.y || b.y + b.h < a.y);
@@ -8204,12 +8209,16 @@ function renderOperacionesTotales() {
                         const valueTxt = formatFull(v, (opts.format || 'int'));
                         const line1 = period;
                         const line2 = valueTxt;
-                        const padX = small ? 8 : 10;
-                        const padY = small ? 4 : 6;
+                        
+                        // Nuevos paddings y tamaños aumentados
+                        const padX = small ? 12 : 16;
+                        const lineSpacing = small ? 18 : 22; 
+                        
                         const maxLineW = Math.max(ctx.measureText(line1).width, ctx.measureText(line2).width);
                         const w = Math.ceil(maxLineW) + padX * 2;
-                        const lineH = 12 + 2; // font size + spacing
-                        const h = (small ? 6 : 8) + lineH * 2; // dos líneas con padding
+                        // Altura total: 2 lineas + padding vertical
+                        const h = (small ? 14 : 18) + lineSpacing * 2; 
+                        
                         let x = p.x; let y = p.y - offsetUp; // por defecto arriba del punto
                         let rx = Math.round(x - w / 2), ry = Math.round(y - h / 2);
                         // Decidir ubicación arriba/abajo: evita encimado alternando cuando están muy cerca
@@ -8237,14 +8246,14 @@ function renderOperacionesTotales() {
                                 y = placeBelow ? (p.y + offsetBelow) : (p.y - offsetUp);
                             } else if (tries === 2) {
                                 // segundo: pequeño empuje vertical adicional
-                                const bump = small ? 10 : 12;
+                                const bump = small ? 14 : 16;
                                 y += placeBelow ? bump : -bump;
                             } else if (tries === 3) {
                                 // tercero: pequeño corrimiento horizontal hacia la izquierda
-                                x -= Math.min(12, Math.max(0, x - (area ? area.left + 10 : 10)));
+                                x -= Math.min(14, Math.max(0, x - (area ? area.left + 10 : 10)));
                             } else {
                                 // cuarto: corrimiento horizontal hacia la derecha si es posible
-                                x += 12;
+                                x += 14;
                             }
                             rx = Math.round(x - w / 2);
                             ry = Math.round(y - h / 2);
@@ -8293,8 +8302,10 @@ function renderOperacionesTotales() {
                         // texto
                         ctx.fillStyle = textColor;
                         const cx = rx + w / 2, cy = ry + h / 2;
-                        ctx.fillText(line1, cx, cy - 5);
-                        ctx.fillText(line2, cx, cy + 9);
+                        // Better text positioning for larger fonts
+                        const txtGap = small ? 9 : 11;
+                        ctx.fillText(line1, cx, cy - txtGap);
+                        ctx.fillText(line2, cx, cy + txtGap);
                         lastShownX = cx;
                         lastPlacedBelow = placeBelow;
                         placed.push(rect);
