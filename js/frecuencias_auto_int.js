@@ -1049,22 +1049,13 @@
             
             let targetAngle = null;
 
-            if (state.map) {
-                const pp1 = state.map.latLngToContainerPoint(p1);
-                const pp2 = state.map.latLngToContainerPoint(p2);
-                const dy = pp2.y - pp1.y;
-                const dx = pp2.x - pp1.x;
-                
-                if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
-                     const theta = Math.atan2(dy, dx) * 180 / Math.PI;
-                     targetAngle = theta + 90; 
-                }
-            } else {
-                 const dy = p2.lat - p1.lat;
-                 const dx = p2.lng - p1.lng;
-                 const theta = Math.atan2(dy, dx) * 180 / Math.PI;
-                 targetAngle = 90 - theta;
-            }
+            // FIXED: Stable rotation using Geocoordinates
+            const dLat = p2.lat - p1.lat;
+            const dLng = p2.lng - p1.lng;
+            
+            // Math.atan2(y, x). y = -dLat (screen Y is inverted), x = dLng
+            let theta = Math.atan2(-dLat, dLng) * 180 / Math.PI;
+            targetAngle = theta + 90;
 
             if (targetAngle !== null) {
                 if (currentVisualAngle === null || currentVisualAngle === undefined) {
@@ -1127,9 +1118,10 @@
 
   function buildMarkerIcon(total, label){
     // Icono de ubicación (pin) con número pequeño para evitar saturación
+    // Color AZUL (#0d6efd)
     return L.divIcon({
       className: 'frecuencia-pin-marker',
-      html: `<div class="pin-content"><i class="fas fa-location-dot"></i><span>${total}</span></div>`,
+      html: `<div class="pin-content"><i class="fas fa-location-dot" style="color: #0d6efd;"></i><span style="color: #0d6efd !important;">${total}</span></div>`,
       iconSize: [30, 40],
       iconAnchor: [15, 40],
       tooltipAnchor: [0, -35]

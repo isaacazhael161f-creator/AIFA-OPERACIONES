@@ -1048,7 +1048,7 @@
         const pathPoints = getGeodesicPath(start, end);
 
         if (currentLine) state.planeLayer.removeLayer(currentLine);
-        currentLine = L.polyline(pathPoints, { color: '#dc3545', weight: 2, opacity: 0.4, dashArray: '5, 10' }).addTo(state.planeLayer);
+        currentLine = L.polyline(pathPoints, { color: '#fd7e14', weight: 2, opacity: 0.4, dashArray: '5, 10' }).addTo(state.planeLayer);
 
         const planeSvg = `
         <svg viewBox="0 0 24 24" fill="currentColor" style="width:100%;height:100%;display:block;">
@@ -1057,9 +1057,9 @@
 
         const icon = L.divIcon({
             className: 'frecuencia-plane-icon',
-            // Asegurar centrado del icono y mantener color rojo (text-danger) (#dc3545)
+            // Asegurar centrado del icono y mantener color naranja (#fd7e14)
             // SVG apunta UP por defecto.
-            html: `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#dc3545;">
+            html: `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fd7e14;">
                     ${planeSvg}
                    </div>`,
             iconSize: [28, 28],
@@ -1106,22 +1106,13 @@
             
             let targetAngle = null;
 
-            if (state.map) {
-                const pp1 = state.map.latLngToContainerPoint(p1);
-                const pp2 = state.map.latLngToContainerPoint(p2);
-                const dy = pp2.y - pp1.y;
-                const dx = pp2.x - pp1.x;
-                
-                if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
-                     const theta = Math.atan2(dy, dx) * 180 / Math.PI;
-                     targetAngle = theta + 90;
-                }
-            } else {
-                 const dy = p2.lat - p1.lat;
-                 const dx = p2.lng - p1.lng;
-                 const theta = Math.atan2(dy, dx) * 180 / Math.PI;
-                 targetAngle = 90 - theta;
-            }
+            // FIXED: Stable rotation using Geocoordinates
+            const dLat = p2.lat - p1.lat;
+            const dLng = p2.lng - p1.lng;
+            
+            // Math.atan2(y, x). y = -dLat (screen Y is inverted), x = dLng
+            let theta = Math.atan2(-dLat, dLng) * 180 / Math.PI;
+            targetAngle = theta + 90;
 
             if (targetAngle !== null) {
                 if (currentVisualAngle === null || currentVisualAngle === undefined) {
@@ -1182,9 +1173,11 @@
   }
 
   function buildMarkerIcon(total){
+    // Orange color for Cargo (#fd7e14)
+    const color = '#fd7e14';
     return L.divIcon({
       className: 'frecuencia-pin-marker',
-      html: `<div class="pin-content bg-danger"><i class="fas fa-box"></i><span>${total}</span></div>`,
+      html: `<div class="pin-content"><i class="fas fa-location-dot" style="color: ${color};"></i><span style="color: ${color} !important;">${total}</span></div>`,
       iconSize: [30, 40],
       iconAnchor: [15, 40],
       tooltipAnchor: [0, -35]

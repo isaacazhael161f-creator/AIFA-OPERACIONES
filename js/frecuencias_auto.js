@@ -1184,23 +1184,19 @@
             
             let targetAngle = null;
 
-            // Usar proyección del mapa si está disponible y visible
-            if (state.map) {
-                const pp1 = state.map.latLngToContainerPoint(p1);
-                const pp2 = state.map.latLngToContainerPoint(p2);
-                const dy = pp2.y - pp1.y;
-                const dx = pp2.x - pp1.x; // x aumenta a la derecha, y aumenta hacia abajo
-                
-                if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
-                     const theta = Math.atan2(dy, dx) * 180 / Math.PI;
-                     targetAngle = theta + 90;
-                }
-            } else {
-                 const dy = p2.lat - p1.lat;
-                 const dx = p2.lng - p1.lng;
-                 const theta = Math.atan2(dy, dx) * 180 / Math.PI;
-                 targetAngle = 90 - theta; 
-            }
+            // FIXED: Stable rotation using Geocoordinates instead of Screen Pixels
+            // This prevents "wobbling" caused by pixel quantization or projection noise on small segments
+            const dLat = p2.lat - p1.lat;
+            const dLng = p2.lng - p1.lng;
+            
+            // On screen: y is inverted relative to lat.
+            // Math.atan2(y, x). y = -dLat, x = dLng
+            let theta = Math.atan2(-dLat, dLng) * 180 / Math.PI;
+            
+            // Adjust for icon orientation (Icon points UP at 0deg)
+            // atan2(0, 1) = 0 (East). We want 90deg.
+            // atan2(-1, 0) = -90 (North). We want 0deg.
+            targetAngle = theta + 90;
 
             if (targetAngle !== null) {
                 if (currentVisualAngle === null || currentVisualAngle === undefined) {
@@ -1210,7 +1206,7 @@
                     let diff = targetAngle - currentVisualAngle;
                     while (diff < -180) diff += 360;
                     while (diff > 180) diff -= 360;
-                    // Factor de suavizado bajo (0.1) para eliminar vibración
+                    // Factor de suavizado (0.1)
                     currentVisualAngle += diff * 0.1;
                 }
             }
@@ -1265,9 +1261,9 @@
 
   const MARKER_PALETTE = ['#D32F2F', '#C2185B', '#7B1FA2', '#512DA8', '#303F9F', '#1976D2', '#0288D1', '#0097A7', '#00796B', '#388E3C', '#689F38', '#AFB42B', '#FBC02D', '#FFA000', '#F57C00', '#E64A19', '#5D4037', '#616161', '#455A64']; // Full palette restored for stateColorMap function usage to work but logic will always return 0 if we override getMarkerColor
 
-  // Override to return just red
+  // Override to return blue (Air Force Blue / Bootstrap Primary)
   function getMarkerColor(stateName) {
-      return '#dc3545';
+      return '#0d6efd';
   }
 
   function buildMarkerIcon(total, label, stateName){
@@ -1275,8 +1271,8 @@
     
     return L.divIcon({
       className: 'frecuencia-pin-marker',
-      // Revert to original text color but keep red icon
-      html: `<div class="pin-content"><i class="fas fa-location-dot" style="color: ${color};"></i><span style="color: #fff; text-shadow: 0 0 2px #000;">${total}</span></div>`,
+      // Text color matches pin color (Blue) because CSS adds a white background bubble
+      html: `<div class="pin-content"><i class="fas fa-location-dot" style="color: ${color};"></i><span style="color: ${color} !important;">${total}</span></div>`,
       iconSize: [30, 40],
       iconAnchor: [15, 40],
       tooltipAnchor: [0, -35]
