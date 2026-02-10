@@ -15,11 +15,25 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <link rel="stylesheet" href="style.css?v=20260203">
+    <link rel="stylesheet" href="visual-cards.css?v=1"> <!-- Visual Cards Styles -->
     <link rel="stylesheet" href="admin.css?v=20260203">
     <link rel="icon" type="image/png" sizes="192x192" href="images/icons/aifa-app-icon-192.png?v=20251126">
     <link rel="icon" type="image/png" sizes="512x512" href="images/icons/aifa-app-icon-512.png?v=20251126">
     <link rel="apple-touch-icon" sizes="180x180" href="images/icons/aifa-app-icon-512.png?v=20251126">
     <link rel="manifest" href="manifest.webmanifest?v=20251126">
+    
+    <!-- Preload Critical Images for Fluid Performance -->
+    <link rel="preload" as="image" href="images/torre.jpg" fetchpriority="high">
+    <link rel="preload" as="image" href="images/Analisis_pax.jpg">
+    <link rel="preload" as="image" href="images/An%C3%A1lisis_carga.jpg">
+    <link rel="preload" as="image" href="images/An%C3%A1lisis_priv.jpg">
+    <link rel="preload" as="image" href="images/Aviones%20pax.jpeg">
+    <link rel="preload" as="image" href="images/Pax.jpeg">
+    <link rel="preload" as="image" href="images/Aeronaves%20carga.jpg">
+    <link rel="preload" as="image" href="images/Carga%20a%C3%A9rea.jpg">
+    <link rel="preload" as="image" href="images/Aviones%20FBO.png">
+    <link rel="preload" as="image" href="images/Pasajero%20FBO.jpg">
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- PDF.js (CDN for stability) -->
@@ -3821,7 +3835,7 @@
                                                 </div>
                                             </div>
                                             <div class="col-12 col-lg-8 col-xxl-9">
-                                                <div class="card h-100">
+                                                <div class="card h-100 insight-card--visual" style="background-image: url('images/Analisis_pax.jpg');">
                                                     <div class="card-body">
                                                         <div class="d-flex flex-column gap-3">
                                                             <div>
@@ -3970,25 +3984,25 @@
                                                 </div>
                                             </div>
                                             <div class="col-12 col-lg-8 col-xxl-9">
-                                                <div class="card h-100">
+                                                <div class="card h-100 insight-card--visual" style="background-image: url('images/An%C3%A1lisis_priv.jpg'); background-position: left bottom;">
                                                     <div class="card-body">
                                                         <div class="d-flex flex-column gap-3">
                                                             <div>
                                                                 <h5 class="mb-1 d-flex align-items-center gap-2">
-                                                                    <i class="fas fa-chart-area text-primary"></i>
-                                                                    <span>Panorama táctico</span>
+                                                                    <i class="fas fa-chart-area text-white"></i>
+                                                                    <span class="text-white">Panorama táctico</span>
                                                                 </h5>
-                                                                <p class="text-muted small mb-0">Monitorea el pulso
+                                                                <p class="text-white-50 small mb-0">Monitorea el pulso
                                                                     operativo de la aviación general con métricas
                                                                     históricas y comparativos inmediatos.</p>
                                                             </div>
-                                                            <ul class="list-unstyled small text-muted mb-0">
+                                                            <ul class="list-unstyled small text-white-50 mb-0">
                                                                 <li class="d-flex align-items-center gap-2"><i
-                                                                        class="fas fa-compass text-primary"></i><span>Identifica
+                                                                        class="fas fa-compass text-info"></i><span>Identifica
                                                                         variaciones relevantes por temporada.</span>
                                                                 </li>
                                                                 <li class="d-flex align-items-center gap-2"><i
-                                                                        class="fas fa-calendar-alt text-primary"></i><span>Activa
+                                                                        class="fas fa-calendar-alt text-info"></i><span>Activa
                                                                         el detalle mensual para detectar meses
                                                                         pico.</span></li>
                                                                 <li class="d-flex align-items-center gap-2"><i
@@ -4117,7 +4131,7 @@
                                                 </div>
                                             </div>
                                             <div class="col-12 col-lg-8 col-xxl-9">
-                                                <div class="card h-100">
+                                                <div class="card h-100 insight-card--visual" style="background-image: url('images/An%C3%A1lisis_carga.jpg');">
                                                     <div class="card-body">
                                                         <div class="d-flex flex-column gap-3">
                                                             <div>

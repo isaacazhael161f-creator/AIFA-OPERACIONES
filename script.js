@@ -9094,10 +9094,18 @@ function updateOpsSummary() {
         const fmtInt = (value) => Number(value || 0).toLocaleString('es-MX');
         const fmtTon = (value) => Number(value || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
         const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char] || char));
-        const makeCard = (iconClass, label, value, subLabel, extraClasses = []) => {
-            const classes = ['ops-summary-pill', ...extraClasses.filter(Boolean)].join(' ');
+        const makeCard = (iconClass, label, value, subLabel, extraClasses = [], bgImage = null) => {
+            const isVisual = !!bgImage;
+            const classes = ['ops-summary-pill', ...extraClasses.filter(Boolean), isVisual ? 'ops-summary-pill--visual' : ''].join(' ');
+            let style = '';
+            
+            if (isVisual) {
+                // Background image set via inline style, layout/gradient handled by CSS class 'ops-summary-pill--visual'
+                style = `style="background-image: url('${bgImage}');"`;
+            }
+
             return `
-            <div class="${classes}" role="group" aria-label="${label}">
+            <div class="${classes}" role="group" aria-label="${label}" ${style}>
                 <span class="pill-icon"><i class="${iconClass}" aria-hidden="true"></i></span>
                 <div class="pill-text">
                     <span class="pill-label">${label}</span>
@@ -9115,7 +9123,7 @@ function updateOpsSummary() {
         const showCom = sections.comercial !== false;
         const showCar = sections.carga !== false;
         const showGen = sections.general !== false;
-        const heroBackgroundImage = 'images/fondo-aifa.jpg';
+        const heroBackgroundImage = 'images/torre.jpg';
         const buildHero = (variant, iconClass, periodLabel, detailText, badgeLabel) => {
             const detail = (detailText || '').trim();
             const badge = (badgeLabel || '').trim();
@@ -9174,20 +9182,20 @@ function updateOpsSummary() {
             captionMarkup = '';
             if (showCom) {
                 cards.push(
-                    makeCard('fas fa-plane-departure', 'Comercial', fmtInt(commercialOps), 'Operaciones acumuladas', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-ops']),
-                    makeCard('fas fa-user-friends', 'Comercial', fmtInt(commercialPax), 'Pasajeros acumulados', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-passengers'])
+                    makeCard('fas fa-plane-departure', 'Comercial', fmtInt(commercialOps), 'Operaciones acumuladas', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-ops'], 'images/Aviones%20pax.jpeg'),
+                    makeCard('fas fa-user-friends', 'Comercial', fmtInt(commercialPax), 'Pasajeros acumulados', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-passengers'], 'images/Pax.jpeg')
                 );
             }
             if (showCar) {
                 cards.push(
-                    makeCard('fas fa-box-open', 'Carga', fmtInt(cargoOps), 'Operaciones acumuladas', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ops']),
-                    makeCard('fas fa-weight-hanging', 'Carga', fmtTon(cargoTon), 'Toneladas acumuladas', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ton'])
+                    makeCard('fas fa-box-open', 'Carga', fmtInt(cargoOps), 'Operaciones acumuladas', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ops'], 'images/Aeronaves%20carga.jpg'),
+                    makeCard('fas fa-weight-hanging', 'Carga', fmtTon(cargoTon), 'Toneladas acumuladas', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ton'], 'images/Carga%20a%C3%A9rea.jpg')
                 );
             }
             if (showGen) {
                 cards.push(
-                    makeCard('fas fa-paper-plane', 'General', fmtInt(generalOps), 'Operaciones acumuladas', ['ops-summary-pill--general', 'ops-summary-pill--metric-ops']),
-                    makeCard('fas fa-user-check', 'General', fmtInt(generalPax), 'Pasajeros acumulados', ['ops-summary-pill--general', 'ops-summary-pill--metric-passengers'])
+                    makeCard('fas fa-paper-plane', 'General', fmtInt(generalOps), 'Operaciones acumuladas', ['ops-summary-pill--general', 'ops-summary-pill--metric-ops'], 'images/Aviones%20FBO.png'),
+                    makeCard('fas fa-user-check', 'General', fmtInt(generalPax), 'Pasajeros acumulados', ['ops-summary-pill--general', 'ops-summary-pill--metric-passengers'], 'images/Pasajero%20FBO.jpg')
                 );
             }
         } else if (mode === 'monthly') {
@@ -9260,20 +9268,20 @@ function updateOpsSummary() {
                 : '';
             if (showCom) {
                 cards.push(
-                    makeCard('fas fa-plane-departure', 'Comercial', fmtInt(commercialOps), 'Operaciones acumuladas', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-ops']),
-                    makeCard('fas fa-user-friends', 'Comercial', fmtInt(commercialPax), 'Pasajeros acumulados', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-passengers'])
+                    makeCard('fas fa-plane-departure', 'Comercial', fmtInt(commercialOps), 'Operaciones acumuladas', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-ops'], 'images/Aviones%20pax.jpeg'),
+                    makeCard('fas fa-user-friends', 'Comercial', fmtInt(commercialPax), 'Pasajeros acumulados', ['ops-summary-pill--comercial', 'ops-summary-pill--metric-passengers'], 'images/Pax.jpeg')
                 );
             }
             if (showCar) {
                 cards.push(
-                    makeCard('fas fa-box-open', 'Carga', fmtInt(cargoOps), 'Operaciones acumuladas', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ops']),
-                    makeCard('fas fa-weight-hanging', 'Carga', fmtTon(cargoTon), 'Toneladas acumuladas', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ton'])
+                    makeCard('fas fa-box-open', 'Carga', fmtInt(cargoOps), 'Operaciones acumuladas', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ops'], 'images/Aeronaves%20carga.jpg'),
+                    makeCard('fas fa-weight-hanging', 'Carga', fmtTon(cargoTon), 'Toneladas acumuladas', ['ops-summary-pill--carga', 'ops-summary-pill--metric-ton'], 'images/Carga%20a%C3%A9rea.jpg')
                 );
             }
             if (showGen) {
                 cards.push(
-                    makeCard('fas fa-paper-plane', 'General', fmtInt(generalOps), 'Operaciones acumuladas', ['ops-summary-pill--general', 'ops-summary-pill--metric-ops']),
-                    makeCard('fas fa-user-check', 'General', fmtInt(generalPax), 'Pasajeros acumulados', ['ops-summary-pill--general', 'ops-summary-pill--metric-passengers'])
+                    makeCard('fas fa-paper-plane', 'General', fmtInt(generalOps), 'Operaciones acumuladas', ['ops-summary-pill--general', 'ops-summary-pill--metric-ops'], 'images/Aviones%20FBO.png'),
+                    makeCard('fas fa-user-check', 'General', fmtInt(generalPax), 'Pasajeros acumulados', ['ops-summary-pill--general', 'ops-summary-pill--metric-passengers'], 'images/Pasajero%20FBO.jpg')
                 );
             }
         } else {
@@ -9315,20 +9323,20 @@ function updateOpsSummary() {
             captionMarkup = '';
             if (showCom) {
                 cards.push(
-                    makeCard('fas fa-plane-departure', 'Comercial', fmtInt(commercialOps), suffixOps, ['ops-summary-pill--comercial', 'ops-summary-pill--metric-ops']),
-                    makeCard('fas fa-user-friends', 'Comercial', fmtInt(commercialPax), suffixPax, ['ops-summary-pill--comercial', 'ops-summary-pill--metric-passengers'])
+                    makeCard('fas fa-plane-departure', 'Comercial', fmtInt(commercialOps), suffixOps, ['ops-summary-pill--comercial', 'ops-summary-pill--metric-ops'], 'images/Aviones%20pax.jpeg'),
+                    makeCard('fas fa-user-friends', 'Comercial', fmtInt(commercialPax), suffixPax, ['ops-summary-pill--comercial', 'ops-summary-pill--metric-passengers'], 'images/Pax.jpeg')
                 );
             }
             if (showCar) {
                 cards.push(
-                    makeCard('fas fa-box-open', 'Carga', fmtInt(cargoOps), suffixOps, ['ops-summary-pill--carga', 'ops-summary-pill--metric-ops']),
-                    makeCard('fas fa-weight-hanging', 'Carga', fmtTon(cargoTon), suffixTon, ['ops-summary-pill--carga', 'ops-summary-pill--metric-ton'])
+                    makeCard('fas fa-box-open', 'Carga', fmtInt(cargoOps), suffixOps, ['ops-summary-pill--carga', 'ops-summary-pill--metric-ops'], 'images/Aeronaves%20carga.jpg'),
+                    makeCard('fas fa-weight-hanging', 'Carga', fmtTon(cargoTon), suffixTon, ['ops-summary-pill--carga', 'ops-summary-pill--metric-ton'], 'images/Carga%20a%C3%A9rea.jpg')
                 );
             }
             if (showGen) {
                 cards.push(
-                    makeCard('fas fa-paper-plane', 'General', fmtInt(generalOps), suffixOps, ['ops-summary-pill--general', 'ops-summary-pill--metric-ops']),
-                    makeCard('fas fa-user-check', 'General', fmtInt(generalPax), suffixPax, ['ops-summary-pill--general', 'ops-summary-pill--metric-passengers'])
+                    makeCard('fas fa-paper-plane', 'General', fmtInt(generalOps), suffixOps, ['ops-summary-pill--general', 'ops-summary-pill--metric-ops'], 'images/Aviones%20FBO.png'),
+                    makeCard('fas fa-user-check', 'General', fmtInt(generalPax), suffixPax, ['ops-summary-pill--general', 'ops-summary-pill--metric-passengers'], 'images/Pasajero%20FBO.jpg')
                 );
             }
             // recommendation intentionally removed per latest UI guidance

@@ -29,6 +29,76 @@
 
   const AIFA_COORDS = { lat: 19.7456, lng: -99.0086 };
 
+  // --- DESTINATION IMAGES (LOCAL FOLDER MAPPING) ---
+  // Maps IATA codes to local file paths in images/destinos/ folder.
+  // Filenames include accents and proper capitalization as requested.
+  const DESTINATION_IMAGES = {
+     'ACA': 'images/destinos/Acapulco.jpg',
+     'BJX': 'images/destinos/León.jpg',
+     'CEN': 'images/destinos/Ciudad Obregón.jpg',
+     'CJS': 'images/destinos/Ciudad Juárez.jpg',
+     'CLQ': 'images/destinos/Colima.jpg',
+     'CPE': 'images/destinos/Campeche.jpg',
+     'CTM': 'images/destinos/Chetumal.jpg',
+     'CUL': 'images/destinos/Culiacán.jpg',
+     'CUN': 'images/destinos/Cancún.jpg',
+     'CUU': 'images/destinos/Chihuahua.jpg',
+     'CVM': 'images/destinos/Ciudad Victoria.jpg',
+     'DGO': 'images/destinos/Durango.jpg',
+     'GDL': 'images/destinos/Guadalajara.jpg',
+     'HMO': 'images/destinos/Hermosillo.jpg',
+     'HUX': 'images/destinos/Huatulco.jpg',
+     'IZT': 'images/destinos/Ixtepec.jpg',
+     'LAP': 'images/destinos/La Paz.jpg',
+     'MAM': 'images/destinos/Matamoros.jpg',
+     'MID': 'images/destinos/Mérida.jpg',
+     'MTY': 'images/destinos/Monterrey.jpg',
+     'MZT': 'images/destinos/Mazatlán.jpg',
+     'NLD': 'images/destinos/Nuevo Laredo.jpg',
+     'OAX': 'images/destinos/Oaxaca.jpg',
+     'PQM': 'images/destinos/Palenque.jpg',
+     'PVR': 'images/destinos/Puerto Vallarta.jpg',
+     'PXM': 'images/destinos/Puerto Escondido.jpg',
+     'REX': 'images/destinos/Reynosa.jpg',
+     'SJD': 'images/destinos/Los Cabos.jpg',
+     'SLP': 'images/destinos/San Luis Potosí.jpg',
+     'SLW': 'images/destinos/Saltillo.jpg',
+     'TAM': 'images/destinos/Tampico.jpg',
+     'TGZ': 'images/destinos/Tuxtla Gutiérrez.jpg',
+     'TIJ': 'images/destinos/Tijuana.jpg',
+     'TPQ': 'images/destinos/Tepic.jpg',
+     'TQO': 'images/destinos/Tulum.jpg',
+     'VER': 'images/destinos/Veracruz.jpg',
+     'VSA': 'images/destinos/Villahermosa.jpg',
+     'ZIH': 'images/destinos/Zihuatanejo.jpg'
+  };
+
+  // --- CITY NAME CORRECTIONS (ACCENTS) ---
+  // Overrides raw data from JSON/CSV for display purposes.
+  const CITY_DISPLAY_NAMES = {
+    'BJX': 'León',
+    'CEN': 'Ciudad Obregón',
+    'CJS': 'Ciudad Juárez',
+    'CUN': 'Cancún',
+    'CUL': 'Culiacán',
+    'CUU': 'Chihuahua', // Usually fine, but just in case
+    'HUX': 'Huatulco',
+    'MID': 'Mérida',
+    'MTY': 'Monterrey',
+    'MZT': 'Mazatlán',
+    'OAX': 'Oaxaca',
+    'PVR': 'Puerto Vallarta',
+    'QRO': 'Querétaro',
+    'REX': 'Reynosa',
+    'SJD': 'San José del Cabo', // or Los Cabos
+    'SLP': 'San Luis Potosí',
+    'TGZ': 'Tuxtla Gutiérrez',
+    'TRC': 'Torreón',
+    'VER': 'Veracruz',
+    'VSA': 'Villahermosa',
+    // Add others if needed
+  };
+
   const AIRPORT_COORDS = {
     ACA: { lat: 16.7571, lng: -99.7534 },
     BJX: { lat: 20.9935, lng: -101.4809 },
@@ -845,16 +915,122 @@
     // Clear previous details to avoid stacking
     dom.detailsBody.innerHTML = '';
 
-    dom.detailsTitle.textContent = `${dest.city} (${dest.iata})`;
-    
     const projected = projectDestination(dest);
     if (!projected) {
+        dom.detailsTitle.textContent = `${dest.city} (${dest.iata})`;
         dom.detailsBody.innerHTML = '<div class="p-3 text-muted">No hay vuelos con los filtros actuales.</div>';
         state.currentDetailDest = null;
         return;
     }
     // Store for Copy
     state.currentDetailDest = projected;
+    
+    // --- DESTINATION HERO IMAGE LOGIC ---
+    let heroImage = DESTINATION_IMAGES[dest.iata];
+    
+    // Correction for City Name (Accents)
+    const displayCity = CITY_DISPLAY_NAMES[dest.iata] || dest.city;
+
+    // Simple fallback logic if not in map but file exists (optimistic)
+    // Or use a generic placeholder
+    if (!heroImage) {
+        // Fallback to a placeholder service or a generic local image if available
+        // For now, use a nice gradient pattern if no image
+        heroImage = null; 
+    }
+
+    // Custom Header with Image
+    const heroContainer = document.createElement('div');
+    heroContainer.style.position = 'relative';
+    heroContainer.style.height = '280px';
+    heroContainer.style.background = '#0a1f44'; // Fallback color
+    heroContainer.style.overflow = 'hidden';
+    heroContainer.style.borderBottom = '1px solid rgba(0,0,0,0.1)';
+
+    if (heroImage) {
+        heroContainer.innerHTML = `
+            <div style="
+                position: absolute;
+                inset: 0;
+                background-image: url('${heroImage}');
+                background-size: cover;
+                background-position: center;
+                filter: brightness(0.65);
+            "></div>
+            <div style="
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                padding: 1rem;
+                background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+                color: white;
+            ">
+                <h4 class="mb-0 fw-bold text-white text-shadow">${displayCity}</h4>
+                <div class="small opacity-75">${dest.state} • ${dest.iata}</div>
+            </div>
+        `;
+        // Hide default title since we have a hero
+         dom.detailsTitle.style.display = 'none';
+        // Adjust copy button position or style?
+        // Actually, the copy button assumes the default title is visible.
+        // Let's keep the default title hidden for this view, or update the textContent to empty.
+        // Better: We insert this hero AT THE TOP of the details BODY, and keep the Header for controls.
+        
+        // Wait, replacing the title logic is cleaner visually.
+        // Resetting title visibility logic:
+        dom.detailsTitle.parentElement.style.display = 'none'; // Hide the whole title/copy row? No, we need the Close button.
+        
+        // Let's just update the content inside dom.detailsBody to include this hero at the top.
+        // And keep the standard header for "Detalles" or just reuse it.
+    } else {
+        // No image? Standard header
+         dom.detailsTitle.parentElement.style.display = 'flex';
+    }
+
+    // Refined approach:
+    // If image exists:
+    // 1. Insert Hero Image at top of detailsBody.
+    // 2. Set detailsTitle to just "Detalles del vuelo" or keep hidden to avoid redundancy.
+    
+    if (heroImage) {
+        dom.detailsTitle.textContent = `${dest.city} (${dest.iata})`; // Keep for context references
+        // We will stick the hero image INSIDE the body, at the top.
+        // And we can make it look like a seamless header.
+        heroContainer.className = 'mb-3 rounded-top'; // Add margin
+        
+        // Use inline style for image to support the variable
+        heroContainer.innerHTML = `
+            <div style="
+                position: absolute;
+                inset: 0;
+                background-image: url('${heroImage}');
+                background-size: cover;
+                background-position: center;
+            "></div>
+            <div style="
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.6));
+            "></div>
+            <div style="
+                position: absolute;
+                bottom: 12px;
+                left: 16px;
+                color: white;
+                text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            ">
+                <h3 class="m-0 fw-bold">${dest.city}</h3>
+                <span class="badge bg-white text-dark border-0 mt-1">${dest.iata}</span>
+                <span class="small ms-2 opacity-75 text-white">${dest.state}</span>
+            </div>
+        `;
+        dom.detailsBody.appendChild(heroContainer);
+    } else {
+        dom.detailsTitle.textContent = `${dest.city} (${dest.iata})`;
+    }
+    
+    // --- END HERO IMAGE LOGIC ---
 
     const abbrs = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
     

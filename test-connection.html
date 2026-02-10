@@ -100,13 +100,18 @@
 
                             <!-- Registro -->
                             <div class="tab-pane fade" id="pills-register" role="tabpanel">
+                                
+                                <h6 class="text-primary mb-3 small fw-bold text-uppercase border-bottom pb-2">
+                                    <i class="fas fa-user-circle me-2"></i>1. Datos de Cuenta
+                                </h6>
+
                                 <div class="form-floating mb-3">
                                     <input type="text" class="form-control bg-light border-0" id="reg-username" placeholder="Usuario">
-                                    <label for="reg-username" class="text-muted"><i class="fas fa-user me-2"></i>Usuario</label>
+                                    <label for="reg-username" class="text-muted"><i class="fas fa-user me-2"></i>Usuario (ID)</label>
                                 </div>
                                 <div class="form-floating mb-3">
                                     <input type="email" class="form-control bg-light border-0" id="reg-email" placeholder="Correo electrónico (Opcional)">
-                                    <label for="reg-email" class="text-muted"><i class="fas fa-envelope me-2"></i>Correo (Opcional)</label>
+                                    <label for="reg-email" class="text-muted"><i class="fas fa-envelope me-2"></i>Correo (Permite recuperación)</label>
                                 </div>
                                 <div class="form-floating mb-3">
                                     <input type="text" class="form-control bg-light border-0" id="reg-fullname" placeholder="Nombre Completo">
@@ -116,8 +121,83 @@
                                     <input type="password" class="form-control bg-light border-0" id="reg-password" placeholder="Contraseña">
                                     <label for="reg-password" class="text-muted"><i class="fas fa-lock me-2"></i>Contraseña</label>
                                 </div>
+
+                                <h6 class="text-primary mb-3 small fw-bold text-uppercase border-bottom pb-2 mt-4">
+                                    <i class="fas fa-user-shield me-2"></i>2. Configuración de Rol
+                                </h6>
+
+                                <div class="mb-3">
+                                    <label for="reg-role" class="form-label small fw-bold text-muted">Tipo de Usuario</label>
+                                    <select class="form-select bg-light border-0" id="reg-role" onchange="toggleRegPermissions()" aria-label="Seleccionar rol de usuario">
+                                        <option value="viewer" selected>👀 Visualizador (Solo Lectura)</option>
+                                        <option value="editor">✏️ Editor (Operaciones)</option>
+                                        <option value="control_fauna">🦅 Control Fauna</option>
+                                        <option value="servicio_medico">🚑 Servicio Médico</option>
+                                        <option value="admin">🛠️ Administrador</option>
+                                    </select>
+                                </div>
+
+                                <div id="reg-permissions-container" class="mb-4 p-3 bg-white border rounded">
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="reg-full-access" checked onchange="toggleRegCheckboxes()">
+                                        <label class="form-check-label fw-bold small" for="reg-full-access">
+                                            Acceso Total (Ver todas las secciones)
+                                        </label>
+                                    </div>
+
+                                    <div id="reg-section-checks" class="d-none">
+                                        <div class="small text-muted mb-2">Seleccione las secciones visibles:</div>
+                                        <div class="row g-2">
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input reg-section-check" type="checkbox" value="operaciones-totales" id="reg-sec-inicio" checked>
+                                                    <label class="form-check-label small" for="reg-sec-inicio">Inicio (Dashboard)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input reg-section-check" type="checkbox" value="parte-operaciones" id="reg-sec-parte">
+                                                    <label class="form-check-label small" for="reg-sec-parte">Parte Operaciones</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input reg-section-check" type="checkbox" value="inicio" id="reg-sec-itinerario">
+                                                    <label class="form-check-label small" for="reg-sec-itinerario">Itinerario Diario</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input reg-section-check" type="checkbox" value="frecuencias-semana" id="reg-sec-frec">
+                                                    <label class="form-check-label small" for="reg-sec-frec">Frecuencias</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input reg-section-check" type="checkbox" value="itinerario-mensual" id="reg-sec-itin-mensual">
+                                                    <label class="form-check-label small" for="reg-sec-itin-mensual">Itinerario Mensual</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input reg-section-check" type="checkbox" value="puntualidad-agosto" id="reg-sec-punt">
+                                                    <label class="form-check-label small" for="reg-sec-punt">Puntualidad</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input reg-section-check" type="checkbox" value="demoras" id="reg-sec-dem">
+                                                    <label class="form-check-label small" for="reg-sec-dem">Demoras</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input reg-section-check" type="checkbox" value="fauna" id="reg-sec-fauna">
+                                                    <label class="form-check-label small" for="reg-sec-fauna">Fauna (GSO)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input reg-section-check" type="checkbox" value="medicas" id="reg-sec-med">
+                                                    <label class="form-check-label small" for="reg-sec-med">Médico</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input reg-section-check" type="checkbox" value="biblioteca" id="reg-sec-bib">
+                                                    <label class="form-check-label small" for="reg-sec-bib">Biblioteca y Docs</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <button class="btn btn-success w-100 py-3 rounded-3 fw-bold shadow-sm" onclick="testRegister()">
-                                    <i class="fas fa-user-check me-2"></i>CREAR CUENTA
+                                    <i class="fas fa-user-plus me-2"></i>CREAR USUARIO Y PERMISOS
                                 </button>
                             </div>
 
@@ -318,58 +398,130 @@
             }
         }
 
+        function toggleRegPermissions() {
+            const role = document.getElementById('reg-role').value;
+            const container = document.getElementById('reg-permissions-container');
+            if (role === 'viewer') {
+                container.classList.remove('d-none');
+            } else {
+                container.classList.add('d-none');
+            }
+        }
+
+        function toggleRegCheckboxes() {
+            const fullAccess = document.getElementById('reg-full-access').checked;
+            const checkboxesDiv = document.getElementById('reg-section-checks');
+            if (fullAccess) {
+                checkboxesDiv.classList.add('d-none');
+            } else {
+                checkboxesDiv.classList.remove('d-none');
+            }
+        }
+
         async function testRegister() {
             let username = document.getElementById('reg-username').value;
             const emailInput = document.getElementById('reg-email').value;
             const fullName = document.getElementById('reg-fullname').value;
             const password = document.getElementById('reg-password').value;
+            
+            // New Fields
+            const role = document.getElementById('reg-role').value;
+            const isViewer = role === 'viewer';
+            const isFullAccess = document.getElementById('reg-full-access').checked;
+            
+            let permissions = {};
+            if (isViewer) {
+                if (isFullAccess) {
+                    // Empty allowed_sections implies no restrictions if logic handles it that way, 
+                    // BUT current app logic might treat empty as "nothing allowed".
+                    // Let's explicitly list ALL known sections to be safe, or use a special "all" token if supported.
+                    // Based on script.js, checking includes(). 
+                    // Better approach: Populate with ALL known sections if Full Access.
+                    permissions.allowed_sections = [
+                        'operaciones-totales', 'parte-operaciones', 'inicio', 'frecuencias-semana', 
+                        'itinerario-mensual', 'puntualidad-agosto', 'demoras', 'fauna', 'medicas', 
+                        'biblioteca', 'comparativa', 'manifiestos', 'data-management', 'historia'
+                    ];
+                } else {
+                    const checks = document.querySelectorAll('.reg-section-check:checked');
+                    permissions.allowed_sections = Array.from(checks).map(c => c.value);
+                }
+            } else {
+                // Non-viewers usually have full access by role definition, but we can set empty
+                permissions.allowed_sections = []; 
+            }
 
             if (!username || !password) {
                 alert('Usuario y contraseña requeridos');
                 return;
             }
 
-            updateStatus('info', 'Registrando nuevo tripulante...');
+            updateStatus('info', 'Registrando nuevo tripulante y configurando permisos...');
 
             try {
-                // Generar SIEMPRE el email de autenticación basado en el Usuario
-                // Esto garantiza que el login siempre funcione con el Usuario, independientemente del correo de contacto.
                 let authEmail = username;
                 if (!authEmail.includes('@')) {
                     const normalized = username.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '.');
                     authEmail = `${normalized}@aifa.operaciones`;
                 }
 
+                // 1. Create User via SignUp
+                // We store role/permissions in metadata so a Trigger can pick it up
                 const { data, error } = await window.supabaseClient.auth.signUp({
-                    email: authEmail, // Usamos el email generado del usuario para Auth
+                    email: authEmail,
                     password: password,
                     options: { 
                         data: { 
                             full_name: fullName,
                             username: username,
-                            contact_email: emailInput || '' // Guardamos el correo real en metadatos para recuperación
+                            contact_email: emailInput || '',
+                            // CRITICAL: Storing role/perms in metadata
+                            role: role, 
+                            permissions: permissions 
                         } 
                     }
                 });
 
                 if (error) throw error;
 
+                // 2. Attempt to write to user_roles directly (Best Effort)
+                if (data.user) {
+                    const userId = data.user.id;
+                    try {
+                        const { error: roleErr } = await window.supabaseClient
+                            .from('user_roles')
+                            .insert({
+                                user_id: userId,
+                                role: role,
+                                permissions: permissions
+                            });
+                        
+                        if (roleErr) {
+                            console.warn('Direct role insert failed (expected if non-admin):', roleErr);
+                            // Do not throw, we rely on metadata + trigger (if set up) or manual SQL
+                        } else {
+                            console.log('Direct role insert successful!');
+                        }
+                    } catch (ignore) {}
+                }
+
                 if (data.user && !data.session) {
-                    updateStatus('warning', `Usuario creado. ID: ${data.user.id}. Requiere confirmación.`);
+                    updateStatus('warning', `Usuario creado (ID: ${data.user.id}). Requiere confirmación/Trigger para permisos.`);
                 } else {
-                    updateStatus('success', `Usuario creado exitosamente. ID: ${data.user.id}`);
+                    updateStatus('success', `Usuario ${username} creado con rol ${role.toUpperCase()}.`);
                     
-                    // Limpiar campos
+                    // Clear fields
                     document.getElementById('reg-username').value = '';
                     document.getElementById('reg-fullname').value = '';
                     document.getElementById('reg-password').value = '';
+                    // Reset defaults
+                    document.getElementById('reg-role').value = 'viewer';
+                    toggleRegPermissions();
                 }
 
             } catch (err) {
                 console.error(err);
                 let msg = err.message;
-                if (msg.includes('Signups not allowed')) msg = 'Registros desactivados en Supabase.';
-                if (msg.includes('Database error')) msg = 'Error de base de datos (posible falta de tablas).';
                 updateStatus('danger', 'Error al registrar: ' + msg);
             }
         }
