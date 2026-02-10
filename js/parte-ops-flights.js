@@ -258,14 +258,86 @@
 
             if (mapped.length === 0) throw new Error('No hay filas de datos válidas en el CSV.');
 
+            if (mapped.length === 0) throw new Error('No hay filas de datos válidas en el CSV.');
+
             const dateInput = document.getElementById('vuelos-ops-date');
             const dateFilter = dateInput ? dateInput.value : '';
             const ordered = sortRows(mapped, dateFilter);
 
-            const confirmMsg = `Se encontraron ${ordered.length} registros.\n¿Deseas reemplazar los datos actuales?`;
+            // --- DUPLICATE DETECTION START ---
+            const supabase = window.supabaseClient;
+            if (!supabase) throw new Error('Cliente Supabase no disponible');
+
+            // 1. Fetch existing flights to check against
+            // We select minimal columns to build signatures
+            const { data: existingData, error: fetchError } = await supabase
+                .from(TABLE_NAME)
+                .select('"Status", "[Arr] Flight Designator", "[Arr] SIBT", "[Dep] Flight Designator", "[Dep] SOBT"');
+            
+            if (fetchError) {
+                console.error("Error fetching existing data for duplicate check:", fetchError);
+                // Fallback: warn user but proceed? Or fail? 
+                // Let's alert failure to be safe.
+                throw new Error("No se pudierón verificar duplicados: " + fetchError.message);
+            }
+
+            const existingSignatures = new Set();
+            if (existingData) {
+                existingData.forEach(r => {
+                    // Signature format: TYPE|FLIGHT|TIME
+                    // Arrival Signature
+                    if (r['[Arr] Flight Designator'] && r['[Arr] SIBT']) {
+                        existingSignatures.add(`ARR|${r['[Arr] Flight Designator']}|${r['[Arr] SIBT']}`);
+                    }
+                    // Departure Signature
+                    if (r['[Dep] Flight Designator'] && r['[Dep] SOBT']) {
+                        existingSignatures.add(`DEP|${r['[Dep] Flight Designator']}|${r['[Dep] SOBT']}`);
+                    }
+                });
+            }
+
+            const uniqueRows = [];
+            let duplicatesCount = 0;
+
+            // 2. Filter new rows
+            ordered.forEach(row => {
+               const arrFlight = row['[Arr] Flight Designator'];
+               const arrTime = row['[Arr] SIBT'];
+               const depFlight = row['[Dep] Flight Designator'];
+               const depTime = row['[Dep] SOBT'];
+
+               const arrSig = (arrFlight && arrTime) ? `ARR|${arrFlight}|${arrTime}` : null;
+               const depSig = (depFlight && depTime) ? `DEP|${depFlight}|${depTime}` : null;
+
+               let isDuplicate = false;
+               if (arrSig && existingSignatures.has(arrSig)) isDuplicate = true;
+               if (depSig && existingSignatures.has(depSig)) isDuplicate = true;
+
+               if (isDuplicate) {
+                   duplicatesCount++;
+               } else {
+                   // Add signatures to set so we also catch duplicates WITHIN the same CSV file
+                   if (arrSig) existingSignatures.add(arrSig);
+                   if (depSig) existingSignatures.add(depSig);
+                   uniqueRows.push(row);
+               }
+            });
+
+            if (uniqueRows.length === 0) {
+                alert(`Todos los ${ordered.length} registros del CSV ya existen en la base de datos (Duplicados). No se importará nada.`);
+                return;
+            }
+
+            const confirmMsg = `Se encontraron ${ordered.length} registros en el archivo.\n` +
+                               `- ${duplicatesCount} son duplicados (ya existen o se repiten).\n` +
+                               `- ${uniqueRows.length} son nuevos registros.\n\n` +
+                               `¿Deseas AGREGAR estos ${uniqueRows.length} nuevos registros?`;
+                               
             if (!confirm(confirmMsg)) return;
 
-            await saveToDatabase(ordered);
+            // Pass 'true' to append instead of replace
+            await saveToDatabase(uniqueRows, true);
+            // --- DUPLICATE DETECTION END ---
 
             const modalEl = document.getElementById('uploadOpsCsvModal');
             if (modalEl) {
@@ -280,15 +352,18 @@
         }
     }
 
-    async function saveToDatabase(rows) {
+    async function saveToDatabase(rows, append = false) {
         const supabase = window.supabaseClient;
         if (!supabase) throw new Error('Cliente Supabase no disponible');
 
-        const { error: delError } = await supabase
-            .from(TABLE_NAME)
-            .delete()
-            .neq('Status', '__all__');
-        if (delError) throw delError;
+        // Only delete if NOT appending
+        if (!append) {
+            const { error: delError } = await supabase
+                .from(TABLE_NAME)
+                .delete()
+                .neq('Status', '__all__');
+            if (delError) throw delError;
+        }
 
         const chunks = chunkArray(rows, 500);
         for (const chunk of chunks) {

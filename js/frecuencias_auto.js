@@ -76,27 +76,46 @@
   // --- CITY NAME CORRECTIONS (ACCENTS) ---
   // Overrides raw data from JSON/CSV for display purposes.
   const CITY_DISPLAY_NAMES = {
+    'ACA': 'Acapulco',
     'BJX': 'León',
     'CEN': 'Ciudad Obregón',
     'CJS': 'Ciudad Juárez',
-    'CUN': 'Cancún',
+    'CLQ': 'Colima',
+    'CPE': 'Campeche',
+    'CTM': 'Chetumal',
     'CUL': 'Culiacán',
-    'CUU': 'Chihuahua', // Usually fine, but just in case
+    'CUN': 'Cancún',
+    'CUU': 'Chihuahua',
+    'CVM': 'Ciudad Victoria',
+    'DGO': 'Durango',
+    'GDL': 'Guadalajara',
+    'HMO': 'Hermosillo',
     'HUX': 'Huatulco',
+    'IZT': 'Ixtepec',
+    'LAP': 'La Paz',
+    'MAM': 'Matamoros',
     'MID': 'Mérida',
     'MTY': 'Monterrey',
     'MZT': 'Mazatlán',
+    'NLD': 'Nuevo Laredo',
     'OAX': 'Oaxaca',
+    'PQM': 'Palenque',
     'PVR': 'Puerto Vallarta',
+    'PXM': 'Puerto Escondido',
     'QRO': 'Querétaro',
     'REX': 'Reynosa',
-    'SJD': 'San José del Cabo', // or Los Cabos
+    'SJD': 'San José del Cabo',
     'SLP': 'San Luis Potosí',
+    'SLW': 'Saltillo',
+    'TAM': 'Tampico',
     'TGZ': 'Tuxtla Gutiérrez',
+    'TIJ': 'Tijuana',
+    'TPQ': 'Tepic',
+    'TQO': 'Tulum',
     'TRC': 'Torreón',
     'VER': 'Veracruz',
     'VSA': 'Villahermosa',
-    // Add others if needed
+    'ZIH': 'Zihuatanejo'
   };
 
   const AIRPORT_COORDS = {
@@ -966,8 +985,11 @@
                 background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
                 color: white;
             ">
-                <h4 class="mb-0 fw-bold text-white text-shadow">${displayCity}</h4>
-                <div class="small opacity-75">${dest.state} • ${dest.iata}</div>
+                <h4 class="mb-0 fw-bold text-white text-shadow" style="font-size: 1.8rem;">${displayCity}</h4>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                    <span class="badge bg-white text-dark shadow-sm" style="font-size: 0.9em; border-radius: 6px;">${dest.iata}</span>
+                    <span class="text-white text-shadow fw-light" style="font-size: 1rem; opacity: 0.9;">${dest.state}</span>
+                </div>
             </div>
         `;
         // Hide default title since we have a hero
@@ -1514,9 +1536,13 @@
       const weeklyTotal = airlines.reduce((sum, air) => sum + air.weeklyTotal, 0);
       const dailyTotals = DAY_CODES.map((_, idx) => airlines.reduce((sum, air) => sum + (air.daily[idx] || 0), 0));
       const searchText = `${dest.city || ''} ${dest.state || ''} ${dest.iata || ''} ${airlines.map(a => a.name).join(' ')}`.toLowerCase();
+      
+      // Use explicit display name if available, otherwise title case the raw city
+      const finalCity = CITY_DISPLAY_NAMES[dest.iata] || toTitleCase(dest.city) || 'Sin ciudad';
+
       return {
         routeId: dest.routeId,
-        city: toTitleCase(dest.city) || 'Sin ciudad',
+        city: finalCity,
         state: toTitleCase(dest.state) || '',
         iata: dest.iata || '—',
         airports: Array.isArray(dest.airports) ? dest.airports : [],

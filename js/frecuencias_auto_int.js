@@ -39,6 +39,41 @@
 
   const AIFA_COORDS = { lat: 19.7456, lng: -99.0086 };
 
+  // --- DESTINATION IMAGES (LOCAL FOLDER MAPPING - INT) ---
+  const DESTINATION_IMAGES = {
+     'HAV': 'images/destinos_int/La Habana.jpg',
+     'PUJ': 'images/destinos_int/Punta Cana.jpg',
+     'SDQ': 'images/destinos_int/Santo Domingo.jpg',
+     'BOG': 'images/destinos_int/Bogotá.jpg',
+     'CCS': 'images/destinos_int/Caracas.jpg',
+     'PTY': 'images/destinos_int/Ciudad de Panamá.jpg',
+     'IAH': 'images/destinos_int/Houston.jpg',
+     'MIA': 'images/destinos_int/Miami.jpg',
+     'JFK': 'images/destinos_int/Nueva York.jpg',
+     'ORD': 'images/destinos_int/Chicago.jpg',
+     'DFW': 'images/destinos_int/Dallas.jpg',
+     'MAD': 'images/destinos_int/Madrid.jpg',
+     'CDG': 'images/destinos_int/París.jpg',
+     'AMS': 'images/destinos_int/Ámsterdam.jpg',
+     'LHR': 'images/destinos_int/Londres.jpg',
+     'FRA': 'images/destinos_int/Fráncfort.jpg',
+     'DOH': 'images/destinos_int/Doha.jpg',
+     'ICN': 'images/destinos_int/Seúl.jpg',
+     'NRT': 'images/destinos_int/Tokio.jpg',
+     'HKG': 'images/destinos_int/Hong Kong.jpg',
+     'YYZ': 'images/destinos_int/Toronto.jpg',
+     'YVR': 'images/destinos_int/Vancouver.jpg',
+     'YUL': 'images/destinos_int/Montreal.jpg',
+     'LIM': 'images/destinos_int/Lima.jpg',
+     'SCL': 'images/destinos_int/Santiago.jpg',
+     'EZE': 'images/destinos_int/Buenos Aires.jpg',
+     'GRU': 'images/destinos_int/São Paulo.jpg',
+     'GIG': 'images/destinos_int/Río de Janeiro.jpg',
+     'MCALLEN': 'images/destinos_int/McAllen.jpg',
+     'SAT': 'images/destinos_int/San Antonio.jpg',
+     // Add more as needed
+  };
+
   // Manual mapping for clean display names
   const IATA_LOCATIONS = {
       'HAV': { city: 'La Habana', country: 'Cuba' },
@@ -761,15 +796,63 @@
 
   function renderDestinationDetails(dest) {
     if (!dom.detailsTitle || !dom.detailsBody) return;
-    dom.detailsTitle.textContent = `${dest.city} (${dest.iata})`;
     
     const projected = projectDestination(dest);
     if (!projected) {
+        dom.detailsTitle.textContent = `${dest.city} (${dest.iata})`;
         dom.detailsBody.innerHTML = '<div class="p-3 text-muted">No hay vuelos con los filtros actuales.</div>';
         return;
     }
 
+    // --- DESTINATION HERO IMAGE LOGIC ---
+    let heroImage = DESTINATION_IMAGES[dest.iata];
+    
+    // Custom Header with Image
+    const heroContainer = document.createElement('div');
+    heroContainer.style.position = 'relative';
+    heroContainer.style.height = '280px';
+    heroContainer.style.background = '#0a1f44'; // Fallback color
+    heroContainer.style.overflow = 'hidden';
+    heroContainer.style.borderBottom = '1px solid rgba(0,0,0,0.1)';
+
+    if (heroImage) {
+        heroContainer.innerHTML = `
+            <div style="
+                position: absolute;
+                inset: 0;
+                background-image: url('${heroImage}');
+                background-size: cover;
+                background-position: center;
+                filter: brightness(0.65);
+            "></div>
+            <div style="
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                padding: 1rem;
+                background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+                color: white;
+            ">
+                <h4 class="mb-0 fw-bold text-white text-shadow" style="font-size: 1.8rem;">${dest.city}</h4>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                    <span class="badge bg-white text-dark shadow-sm" style="font-size: 0.9em; border-radius: 6px;">${dest.iata}</span>
+                    <span class="text-white text-shadow fw-light" style="font-size: 1rem; opacity: 0.9;">${dest.state}</span>
+                </div>
+            </div>
+        `;
+        // Hide default title since we have a hero
+         dom.detailsTitle.style.display = 'none';
+    } else {
+        // Fallback header if no image
+        dom.detailsTitle.textContent = `${dest.city} (${dest.iata})`;
+        dom.detailsTitle.style.display = 'block';
+    }
+
     dom.detailsBody.innerHTML = ''; // Clear previous content
+    if (heroImage) {
+        dom.detailsBody.appendChild(heroContainer);
+    }
 
     const abbrs = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
     
