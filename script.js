@@ -4704,11 +4704,14 @@ function displaySummaryTable(flights, options = {}) {
         </button>
     </div>`;
 
+    /* Se removieron las secciones de aerolíneas con logo a petición del usuario.
+       Solo se mantienen los totales y las posiciones. 
     html += '<div class="summary-airline-sections">';
     html += renderAirlineSection('Pasajeros', passengerAirlineCards, 'passenger');
     html += renderAirlineSection('Carga', cargoAirlineCards, 'cargo');
     html += renderAirlineSection('General', generalAirlineCards, 'general');
     html += '</div>';
+    */
     html += '<div id="summary-airline-detail" class="mt-4"></div>';
 
     container.innerHTML = html;
@@ -4729,7 +4732,11 @@ function displaySummaryTable(flights, options = {}) {
     }
 
     const renderEmptyDetail = (message) => {
-        const text = message || 'Selecciona una aerolínea o posición para ver el detalle.';
+        if (!message) {
+            detailEl.innerHTML = '';
+            return;
+        }
+        const text = message;
         detailEl.innerHTML = `<div class="alert alert-info">${escapeHtml(text)}</div>`;
     };
 

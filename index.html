@@ -434,6 +434,8 @@
                             class="fas fa-shield-alt"></i><span>GSO</span></a>
                     <a class="menu-item" href="#" data-section="medicas"><i
                             class="fas fa-briefcase-medical"></i><span>Servicio Médico</span></a>
+                    <a class="menu-item" href="#" data-section="abordadores-mecanicos"><i
+                            class="fas fa-cogs"></i><span>Abordadores Mecánicos</span></a>
                     <a class="menu-item" href="#" data-section="biblioteca"><i
                             class="fas fa-book"></i><span>Biblioteca</span></a>
                     <a class="menu-item d-none" href="#" data-section="data-management" id="data-management-menu"><i
@@ -851,6 +853,9 @@
                                                     <button class="btn btn-primary btn-sm"
                                                         id="btn-upload-itinerary-json"><i
                                                             class="fas fa-file-code me-1"></i> Cargar JSON</button>
+                                                    <button class="btn btn-danger btn-sm"
+                                                        id="btn-delete-itinerary-date"><i class="fas fa-trash-alt me-1"></i>
+                                                        Borrar Día</button>
                                                     <button class="btn btn-outline-secondary btn-sm"
                                                         id="btn-refresh-itinerary"><i class="fas fa-sync-alt"></i>
                                                         Actualizar</button>
@@ -1805,17 +1810,6 @@
                             <div class="tab-content" id="inicioTabContent">
                                 <div class="tab-pane fade show active" id="interactivo-inicio-pane" role="tabpanel"
                                     aria-labelledby="interactivo-inicio-tab" tabindex="0">
-                                    <div class="alert shadow-sm border-0 d-flex align-items-center mb-4 p-3 maintenance-alert" role="alert">
-                                        <div class="d-flex align-items-center justify-content-center flex-shrink-0 me-3 maintenance-icon-wrapper">
-                                            <i class="fas fa-tools fs-4"></i>
-                                        </div>
-                                        <div>
-                                            <h6 class="alert-heading mb-1 fw-bold maintenance-text">Sección en Mantenimiento</h6>
-                                            <p class="mb-0 small maintenance-text-sub">
-                                                Estamos implementando mejoras y actualizaciones en este módulo para optimizar la precisión de los datos.
-                                            </p>
-                                        </div>
-                                    </div>
                                     <!-- Tablero de Aerolíneas removido a petición -->
                                     <div class="row">
                                         <div class="col-12">
@@ -1853,7 +1847,10 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="itinerary-airline-toolbar">
+                                            
+                                            <div id="summary-table-container" class="mb-4"></div>
+
+                                            <div class="itinerary-airline-toolbar d-none">
                                                 <!--
                                                 <div class="itinerary-airline-picker">
                                                     <label for="airline-filter" class="airline-picker-label"><i
@@ -6430,6 +6427,238 @@
 
 
 
+                <!-- ABORDADORES MECANICOS SECTION -->
+                <div id="abordadores-mecanicos-section" class="content-section">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="section-heading mb-0"><i class="fas fa-cogs me-2"></i>Abordadores Mecánicos</h2>
+                        <button class="btn btn-success text-white shadow-sm rounded-pill px-4"><i class="fas fa-plus me-1"></i>Registrar</button>
+                    </div>
+
+                    <div class="card shadow-sm border-0">
+                         <div class="card-header bg-white border-bottom-0 pb-0">
+                            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link text-muted" data-bs-toggle="tab" data-bs-target="#pane-mech-aeropasillos" type="button" role="tab">Aeropasillos</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active fw-bold text-primary" data-bs-toggle="tab" data-bs-target="#pane-mech-aerocares" type="button" role="tab">Aerocares</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link text-muted" data-bs-toggle="tab" data-bs-target="#pane-mech-reportes" type="button" role="tab">Reportes</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link text-muted" data-bs-toggle="tab" data-bs-target="#pane-mech-catalogo" type="button" role="tab">Catálogo</button>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <div class="card-body bg-light">
+                            <div class="tab-content">
+                                <!-- Aerocares Content -->
+                                <div class="tab-pane fade show active" id="pane-mech-aerocares" role="tabpanel">
+                                    <h5 class="mb-3 fw-bold ps-1">Catálogo Aerocares</h5>
+                                    
+                                    <!-- Search Box -->
+                                    <div class="card mb-3 border-0 shadow-sm">
+                                        <div class="card-header bg-light fw-bold small text-muted border-0">Búsqueda</div>
+                                        <div class="card-body">
+                                            <div class="row g-3">
+                                                <div class="col-md-5">
+                                                    <label class="form-label small text-muted text-uppercase fw-bold">Aerocares:</label>
+                                                    <input type="text" class="form-control" placeholder="Ingresar">
+                                                </div>
+                                                <div class="col-md-5">
+                                                     <label class="form-label small text-muted text-uppercase fw-bold">Estatus:</label>
+                                                     <select class="form-select text-muted" aria-label="Filtrar por estatus">
+                                                         <option selected>Seleccionar estatus</option>
+                                                         <option value="1">Activo</option>
+                                                         <option value="0">Inactivo</option>
+                                                     </select>
+                                                </div>
+                                                 <div class="col-md-2 d-flex align-items-end justify-content-end gap-2">
+                                                      <button class="btn btn-light border rounded-pill px-3 text-muted">Limpiar</button>
+                                                      <button class="btn btn-light border rounded-pill px-3 text-muted">Buscar</button>
+                                                 </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Table -->
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover align-middle mb-0">
+                                                <thead class="table-light">
+                                                    <tr class="text-muted small text-uppercase">
+                                                        <th class="ps-4 border-0 py-3 fw-semibold">Id</th>
+                                                        <th class="border-0 py-3 fw-semibold">Aerocares</th>
+                                                        <th class="border-0 py-3 fw-semibold">Fecha registro</th>
+                                                        <th class="border-0 py-3 fw-semibold">Estatus</th>
+                                                        <th class="text-end pe-4 border-0 py-3 fw-semibold">Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="bg-white">
+                                                    <!-- Mock Data -->
+                                                    <tr>
+                                                        <td class="ps-4 text-muted">1</td>
+                                                        <td class="fw-bold text-dark">AIFA-57</td>
+                                                        <td class="text-muted">12/11/2024</td>
+                                                        <td><span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 fw-normal">● Activo</span></td>
+                                                        <td class="text-end pe-4"><button class="btn btn-sm btn-light text-primary rounded-circle" aria-label="Opciones"><i class="fas fa-ellipsis-v"></i></button></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="ps-4 text-muted">2</td>
+                                                        <td class="fw-bold text-dark">AIFA-58</td>
+                                                        <td class="text-muted">12/11/2024</td>
+                                                        <td><span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 fw-normal">● Activo</span></td>
+                                                        <td class="text-end pe-4"><button class="btn btn-sm btn-light text-primary rounded-circle" aria-label="Opciones"><i class="fas fa-ellipsis-v"></i></button></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="ps-4 text-muted">3</td>
+                                                        <td class="fw-bold text-dark">AIFA-59</td>
+                                                        <td class="text-muted">12/11/2024</td>
+                                                        <td><span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 fw-normal">● Activo</span></td>
+                                                        <td class="text-end pe-4"><button class="btn btn-sm btn-light text-primary rounded-circle" aria-label="Opciones"><i class="fas fa-ellipsis-v"></i></button></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="ps-4 text-muted">4</td>
+                                                        <td class="fw-bold text-dark">AIFA-60</td>
+                                                        <td class="text-muted">12/11/2024</td>
+                                                        <td><span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 fw-normal">● Activo</span></td>
+                                                        <td class="text-end pe-4"><button class="btn btn-sm btn-light text-primary rounded-circle" aria-label="Opciones"><i class="fas fa-ellipsis-v"></i></button></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="ps-4 text-muted">5</td>
+                                                        <td class="fw-bold text-dark">AIFA-61</td>
+                                                        <td class="text-muted">12/11/2024</td>
+                                                        <td><span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 fw-normal">● Activo</span></td>
+                                                        <td class="text-end pe-4"><button class="btn btn-sm btn-light text-primary rounded-circle" aria-label="Opciones"><i class="fas fa-ellipsis-v"></i></button></td>
+                                                    </tr>
+                                                     <tr>
+                                                        <td class="ps-4 text-muted">6</td>
+                                                        <td class="fw-bold text-dark">AIFA-62</td>
+                                                        <td class="text-muted">12/11/2024</td>
+                                                        <td><span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 fw-normal">● Activo</span></td>
+                                                        <td class="text-end pe-4"><button class="btn btn-sm btn-light text-primary rounded-circle" aria-label="Opciones"><i class="fas fa-ellipsis-v"></i></button></td>
+                                                    </tr>
+                                                     <tr>
+                                                        <td class="ps-4 text-muted">7</td>
+                                                        <td class="fw-bold text-dark">AFIFA-PR1</td>
+                                                        <td class="text-muted">25/11/2024</td>
+                                                        <td><span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 fw-normal">● Activo</span></td>
+                                                        <td class="text-end pe-4"><button class="btn btn-sm btn-light text-primary rounded-circle" aria-label="Opciones"><i class="fas fa-ellipsis-v"></i></button></td>
+                                                    </tr>
+                                                      <tr>
+                                                        <td class="ps-4 text-muted">8</td>
+                                                        <td class="fw-bold text-dark">AFA-PR2</td>
+                                                        <td class="text-muted">25/11/2024</td>
+                                                        <td><span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 fw-normal">● Activo</span></td>
+                                                        <td class="text-end pe-4"><button class="btn btn-sm btn-light text-primary rounded-circle" aria-label="Opciones"><i class="fas fa-ellipsis-v"></i></button></td>
+                                                    </tr>
+                                                       <tr>
+                                                        <td class="ps-4 text-muted">9</td>
+                                                        <td class="fw-bold text-dark">AIFA0119</td>
+                                                        <td class="text-muted">10/12/2024</td>
+                                                        <td><span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 fw-normal">● Activo</span></td>
+                                                        <td class="text-end pe-4"><button class="btn btn-sm btn-light text-primary rounded-circle" aria-label="Opciones"><i class="fas fa-ellipsis-v"></i></button></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="pane-mech-aeropasillos" role="tabpanel">
+                                     <div class="d-flex flex-column align-items-center justify-content-center p-5 text-muted">
+                                         <i class="fas fa-hard-hat fa-3x mb-3 text-secondary opacity-25"></i>
+                                         <h5>Módulo Aeropasillos</h5>
+                                         <p class="small">En construcción...</p>
+                                     </div>
+                                </div>
+                                <div class="tab-pane fade" id="pane-mech-reportes" role="tabpanel">
+                                     <div class="d-flex flex-column align-items-center justify-content-center p-5 text-muted">
+                                         <i class="fas fa-file-alt fa-3x mb-3 text-secondary opacity-25"></i>
+                                         <h5>Módulo Reportes</h5>
+                                         <p class="small">En construcción...</p>
+                                     </div>
+                                </div>
+                                <div class="tab-pane fade" id="pane-mech-catalogo" role="tabpanel">
+                                    <div class="card shadow-sm border-0">
+                                        <div class="card-header bg-white border-bottom-0">
+                                            <ul class="nav nav-tabs card-header-tabs" id="mechCatalogsTabs" role="tablist">
+                                                <li class="nav-item" role="presentation">
+                                                    <button class="nav-link active" id="tab-mech-cat-aerocares"
+                                                        data-bs-toggle="tab"
+                                                        data-bs-target="#subpane-mech-cat-aerocares" type="button"
+                                                        role="tab" aria-selected="true">Aerocares</button>
+                                                </li>
+                                                <li class="nav-item" role="presentation">
+                                                    <button class="nav-link" id="tab-mech-cat-operadores"
+                                                        data-bs-toggle="tab"
+                                                        data-bs-target="#subpane-mech-cat-operadores" type="button"
+                                                        role="tab" aria-selected="false">Operadores
+                                                        Aerocares</button>
+                                                </li>
+                                                <li class="nav-item" role="presentation">
+                                                    <button class="nav-link" id="tab-mech-cat-posiciones"
+                                                        data-bs-toggle="tab"
+                                                        data-bs-target="#subpane-mech-cat-posiciones" type="button"
+                                                        role="tab" aria-selected="false">Posiciones
+                                                        Aerocares</button>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="tab-content" id="mechCatalogsTabsContent">
+                                                <!-- Aerocares -->
+                                                <div class="tab-pane fade show active"
+                                                    id="subpane-mech-cat-aerocares" role="tabpanel">
+                                                    <div class="d-flex justify-content-between mb-3">
+                                                        <h5>Listado de Aerocares</h5>
+                                                        <!-- <button class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i>Agregar</button> -->
+                                                    </div>
+                                                    <div id="table-aerocares-container"
+                                                        class="table-responsive">
+                                                        <div class="text-center py-5 text-muted">
+                                                            <i class="fas fa-spinner fa-spin me-2"></i>Cargando datos de Aerocares...
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- Operadores -->
+                                                <div class="tab-pane fade" id="subpane-mech-cat-operadores"
+                                                    role="tabpanel">
+                                                     <div class="d-flex justify-content-between mb-3">
+                                                        <h5>Listado de Operadores</h5>
+                                                        <!-- <button class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i>Agregar</button> -->
+                                                    </div>
+                                                    <div id="table-operadores-aerocares-container"
+                                                        class="table-responsive">
+                                                        <div class="text-center py-5 text-muted">
+                                                            <i class="fas fa-spinner fa-spin me-2"></i>Cargando datos de Operadores...
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- Posiciones -->
+                                                <div class="tab-pane fade" id="subpane-mech-cat-posiciones"
+                                                    role="tabpanel">
+                                                     <div class="d-flex justify-content-between mb-3">
+                                                        <h5>Listado de Posiciones</h5>
+                                                        <!-- <button class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i>Agregar</button> -->
+                                                    </div>
+                                                    <div id="table-posiciones-aerocares-container"
+                                                        class="table-responsive">
+                                                        <div class="text-center py-5 text-muted">
+                                                            <i class="fas fa-spinner fa-spin me-2"></i>Cargando datos de Posiciones...
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </main>
         </div>
     </div>
@@ -6769,6 +6998,7 @@
     <script src="js/data-manager.js"></script>
     <script src="js/permissions.js"></script>
     <script src="js/admin-ui.js"></script>
+    <script src="js/aerocares.js"></script>
     <script src="js/init-data.js"></script>
     <script src="js/data-management.js"></script>
     <script src="js/parte-ops-tab.js"></script>

@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnProcessJson = document.getElementById('btn-process-itinerary-json');
     const btnViewJson = document.getElementById('btn-view-itinerary-json');
     const btnRefresh = document.getElementById('btn-refresh-itinerary');
+    const btnDeleteDay = document.getElementById('btn-delete-itinerary-date');
     const dateFilter = document.getElementById('filter-itinerary-date');
     const tbody = document.getElementById('tbody-itinerary');
     
@@ -326,6 +327,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnProcessJson.innerHTML = originalText;
                 btnProcessJson.disabled = false;
             }
+        });
+    }
+
+    if (btnDeleteDay) {
+        btnDeleteDay.addEventListener('click', async () => {
+             const dateVal = dateFilter ? dateFilter.value : null;
+             if (!dateVal) {
+                 alert("Por favor, selecciona una fecha primero para indicar qué día borrar.");
+                 return;
+             }
+
+             const confirmMsg = `ADVERTENCIA: ¿Estás seguro de que deseas ELIMINAR TODOS los vuelos del itinerario para la fecha ${dateVal}?\n\n` +
+                                `Esta acción borrará tanto llegadas como salidas programadas para ese día.\n` +
+                                `Esta acción NO SE PUEDE DESHACER.`;
+             
+             if (!confirm(confirmMsg)) return;
+             if (!confirm("¿Realmente estás seguro? Se borrará todo el día seleccionado.")) return;
+
+             try {
+                // Delete where fecha_llegada = date OR fecha_salida = date
+                // Note: Using raw SQL filter syntax for OR logic in Supabase JS client
+                // .or(`col1.eq.val,col2.eq.val`)
+                const { error } = await window.supabaseClient
+                    .from('flights')
+                    .delete()
+                    .or(`fecha_llegada.eq.${dateVal},fecha_salida.eq.${dateVal}`);
+
+                if (error) throw error;
+
+                alert("Vuelos eliminados correctamente.");
+                loadItineraryData(); // Refresh table
+
+             } catch (e) {
+                 console.error("Error deleting flights:", e);
+                 alert("Error al eliminar los vuelos: " + e.message);
+             }
         });
     }
 

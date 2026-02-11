@@ -903,7 +903,9 @@
 
         // Days Grid
         const grid = document.createElement('div');
-        grid.className = 'd-flex gap-1 justify-content-between';
+        // Enable horizontal scrolling and prevent shrinking
+        grid.className = 'd-flex gap-2 pb-2 overflow-auto';
+        // Add scroll behavior styles if needed via class or logic
 
         DAY_CODES.forEach((code, idx) => {
             const count = air.daily[idx];
@@ -912,8 +914,8 @@
             
             const cell = document.createElement('div');
             // Base styles
-            cell.className = `text-center rounded p-1 flex-fill ${isActive ? 'bg-primary-subtle border border-primary-subtle' : 'bg-light border border-light'}`;
-            cell.style.minWidth = '35px';
+            cell.className = `text-center rounded p-1 flex-shrink-0 ${isActive ? 'bg-primary-subtle border border-primary-subtle' : 'bg-light border border-light'}`;
+            cell.style.minWidth = '50px'; // Slightly larger base width
             cell.style.transition = 'all 0.2s ease';
             
             // Date Label
@@ -948,25 +950,66 @@
                         contentDiv.dataset.view = 'count';
                         contentDiv.style.fontSize = '1.1rem';
                         contentDiv.style.textAlign = 'center';
+                        cell.style.minWidth = '50px';
+                        cell.classList.remove('flex-grow-1');
                     } else {
                         // Expand
+                        cell.style.minWidth = '180px'; // Increase width to fit card
+                        // cell.classList.add('flex-grow-1'); // Optional: make it take available space
+                        
                         const flights = detail.split('<br>');
-                        let listHtml = '<div class="d-flex flex-column gap-1 text-start mt-1">';
+                        let listHtml = '<div class="d-flex flex-column gap-2 text-start mt-2">';
                         flights.forEach(f => {
                             const parts = f.trim().split(' ');
                             const flightNum = parts[0] || '';
-                            const time = parts.slice(1).join(' ') || '';
+                            let time = parts.slice(1).join(' ') || '';
+
+                            // Clean up text that is redundant due to icons
+                            time = time.replace(/\(Lleg\)/gi, '')
+                                       .replace(/\(Sal\)/gi, '')
+                                       .replace(/\(Arr\)/gi, '')
+                                       .replace(/\(Dep\)/gi, '')
+                                       .replace(/Llegada/gi, '')
+                                       .replace(/Salida/gi, '')
+                                       .trim();
+                            
+                            // Determine direction based on flight number parity (Standard convention: Odd=Outbound, Even=Inbound)
+                            const num = parseInt(flightNum.replace(/\D/g, '')) || 0;
+                            const isDeparture = (num % 2) !== 0; // Odd = Departure (Blue), Even = Arrival (Green)
+                            
+                            const iconClass = isDeparture ? 'fa-plane-arrival' : 'fa-plane-departure'; // Correction: Usually Odd is Outbound (Dep), Even is Inbound (Arr) from Hub perspective. 
+                            // But usually displaying 'Frequencies' implies departures.
+                            // Let's stick to the visual provided: XN1205 (Odd) -> Blue, XN1204 (Even) -> Green.
+                            
+                            const colorClass = isDeparture ? 'text-primary' : 'text-success';
+                            const bgIconClass = isDeparture ? 'bg-primary' : 'bg-success';
+                            const rotateClass = isDeparture ? 'fa-rotate-270' : ''; // Adjust icon rotation if needed
+                            
+                            // Fix icons based on screenshot: 
+                            // Blue Icon = Taking off/Up Right
+                            // Green Icon = Landing/Down Right
+                            const iconDef = isDeparture 
+                                ? '<i class="fas fa-plane-departure text-white" style="font-size: 0.9rem;"></i>' 
+                                : '<i class="fas fa-plane-arrival text-white" style="font-size: 0.9rem;"></i>';
+
+                            // Adopt style from frecuencias_auto.js for consistency (better spacing and layout)
                             listHtml += `
-                                <div class="px-2 py-1 rounded bg-white border border-primary-subtle shadow-sm d-flex justify-content-between align-items-center" style="font-size: 0.7rem;">
-                                    <span class="fw-bold text-dark">${flightNum}</span>
-                                    <span class="font-monospace text-primary">${time}</span>
+                                <div class="p-2 rounded bg-white border shadow-sm d-flex align-items-center justify-content-between mb-1" style="font-size: 0.95rem; border-color: #dee2e6 !important;">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-circle ${bgIconClass} d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm" style="width: 32px; height: 32px;">
+                                            ${iconDef}
+                                        </div>
+                                        <span class="fw-bold text-dark text-nowrap" style="font-size: 1rem;">${flightNum}</span>
+                                    </div>
+                                    <span class="font-monospace fw-bold text-secondary text-nowrap ms-2" style="font-size: 1.1rem;">${time}</span>
                                 </div>`;
                         });
                         listHtml += '</div>';
                         
                         contentDiv.innerHTML = listHtml;
                         contentDiv.dataset.view = 'detail';
-                        contentDiv.style.fontSize = '1rem';
+                        contentDiv.parentElement.classList.remove('bg-primary-subtle');
+                        contentDiv.parentElement.classList.add('bg-primary-subtle'); // Keep bg-color
                         contentDiv.style.textAlign = 'left';
                     }
                 };
