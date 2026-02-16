@@ -411,6 +411,8 @@
                             class="fas fa-file-invoice"></i><span>Parte de Operaciones</span></a>
                     <a class="menu-item" href="#" data-section="conciliacion"><i
                             class="fas fa-tasks"></i><span>Conciliación</span></a>
+                    <a class="menu-item" href="#" data-section="analisis-operaciones"><i
+                            class="fas fa-chart-pie"></i><span>Análisis de Operaciones</span></a>
                     <a class="menu-item" href="#" data-section="inicio"><i
                             class="fas fa-calendar-day"></i><span>Itinerario diario</span></a>
                     <a class="menu-item" href="#" data-section="frecuencias-semana"><i
@@ -554,9 +556,17 @@
                                             Operaciones</button>
 
                                         <button class="nav-link text-start mb-2 border shadow-sm rounded"
+                                            id="tab-conciliacion-admin" data-bs-toggle="pill" data-bs-target="#pane-conciliacion"
+                                            type="button" role="tab"><i
+                                                class="fas fa-tasks me-2 text-warning"></i>Conciliación</button>
+
+
+                                        <!--
+                                        <button class="nav-link text-start mb-2 border shadow-sm rounded"
                                             id="tab-daily-flights-ops" data-bs-toggle="pill"
                                             data-bs-target="#pane-daily-flights-ops" type="button" role="tab"><i
                                                 class="fas fa-plane me-2 text-primary"></i>Vuelos (Ops)</button>
+                                        -->
 
                                         <button class="nav-link text-start mb-2 border shadow-sm rounded"
                                             id="tab-library" data-bs-toggle="pill" data-bs-target="#pane-library"
@@ -835,6 +845,253 @@
                                                     </thead>
                                                     <tbody id="tbody-parte-ops"></tbody>
                                                 </table>
+                                            </div>
+                                        </div>
+
+                                        <!-- Conciliación Pane (Moved from main section) -->
+                                        <div class="tab-pane fade" id="pane-conciliacion" role="tabpanel">
+                                            <div class="alert shadow-sm border-0 d-flex align-items-center mb-4 p-3 maintenance-alert" role="alert">
+                                                <div class="d-flex align-items-center justify-content-center flex-shrink-0 me-3 maintenance-icon-wrapper">
+                                                    <i class="fas fa-tools fs-4"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="alert-heading mb-1 fw-bold maintenance-text">Sección en Mantenimiento</h6>
+                                                    <p class="mb-0 small maintenance-text-sub">
+                                                        Estamos implementando mejoras y actualizaciones en este módulo para optimizar la precisión de los datos.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                                <h5 class="mb-0 text-primary"><i class="fas fa-plane me-2"></i>Itinerario de Vuelos del Día</h5>
+                                                <div class="d-flex gap-2 align-items-center flex-wrap">
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <select class="form-select form-select-sm w-auto" id="date-filter-type-admin" aria-label="Tipo de operación">
+                                                            <option value="all" selected>Todo</option>
+                                                            <option value="arr">Llegadas (Arr)</option>
+                                                            <option value="dep">Salidas (Dep)</option>
+                                                        </select>
+                                                        <div class="vr"></div>
+                                                        <span class="small text-muted">Date Window</span>
+                                                        <div class="btn-group btn-group-sm" role="group" aria-label="Filtro de fecha">
+                                                            <button class="btn btn-outline-primary active" type="button" id="btn-date-mode-relative-admin">Relative</button>
+                                                            <button class="btn btn-outline-primary" type="button" id="btn-date-mode-absolute-admin">Absolute</button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="d-flex flex-column" id="ops-date-relative-admin">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-start-dec-admin">-</button>
+                                                            <input type="number" class="form-control form-control-sm mw-70px" id="rel-start-admin" value="-4" aria-label="Inicio relativo">
+                                                            <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-start-inc-admin">+</button>
+                                                            <span class="small text-muted">to</span>
+                                                            <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-end-dec-admin">-</button>
+                                                            <input type="number" class="form-control form-control-sm mw-70px" id="rel-end-admin" value="0" aria-label="Fin relativo">
+                                                            <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-end-inc-admin">+</button>
+                                                        </div>
+                                                        <div class="d-flex align-items-center gap-2 small text-muted mt-1">
+                                                            <span id="rel-start-label-admin">—</span>
+                                                            <span>to</span>
+                                                            <span id="rel-end-label-admin">—</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-2 d-none" id="ops-date-absolute-admin">
+                                                        <input type="date" class="form-control form-control-sm mw-140px" id="ops-date-start-admin" aria-label="Fecha inicio">
+                                                        <span class="small text-muted">to</span>
+                                                        <input type="date" class="form-control form-control-sm mw-140px" id="ops-date-end-admin" aria-label="Fecha fin">
+                                                    </div>
+                                                    <button class="btn btn-sm btn-outline-secondary"
+                                                        onclick="window.opsFlightsAdmin && window.opsFlightsAdmin.loadFlights()"><i
+                                                            class="fas fa-sync-alt me-1"></i>Actualizar</button>
+                                                    <button class="btn btn-sm btn-outline-success" id="btn-import-ops-csv-admin"
+                                                        data-bs-toggle="modal" data-bs-target="#uploadOpsCsvModal"><i
+                                                            class="fas fa-file-csv me-1"></i>Importar CSV</button>
+                                                    <button class="btn btn-sm btn-outline-primary ms-2" id="btn-split-view-admin" title="Vista Dividida Llegadas/Salidas" onclick="window.opsFlightsAdmin.toggleSplitView()">
+                                                        <i class="fas fa-plane"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <!-- Charts Row (Commented out) -->
+                                            <!--
+                                            <div class="row mb-4">
+                                                <div class="col-12">
+                                                    <div class="card shadow-sm border-0">
+                                                        <div class="card-header bg-white border-bottom-0">
+                                                            <h6 class="mb-0 text-muted small text-uppercase">Horarios Pico
+                                                                (Salidas vs Llegadas)</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div class="chart-container-fixed">
+                                                                <canvas id="chart-peak-hours-ops-admin"></canvas>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            -->
+
+                                            <!-- CSV Table (Operaciones) -->
+                                            <div class="row" id="view-mode-standard-admin">
+                                                <div class="col-12 mb-4">
+                                                    <div class="card shadow-sm border-0">
+                                                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                                            <h6 class="mb-0 text-uppercase small text-muted">Vuelos importados desde CSV</h6>
+                                                            
+                                                            <div class="dropdown">
+                                                                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="dropdownMenuButtonCsvColumns-admin" data-bs-toggle="dropdown" aria-expanded="false" title="Seleccionar columnas visibles">
+                                                                    <i class="fas fa-columns me-1"></i>
+                                                                </button>
+                                                                <ul class="dropdown-menu p-3 shadow dropdown-menu-end" aria-labelledby="dropdownMenuButtonCsvColumns-admin" style="min-width: 300px; max-height: 400px; overflow-y: auto;" onclick="event.stopPropagation()">
+                                                                    <li><h6 class="dropdown-header text-primary fw-bold">Columnas Visibles</h6></li>
+                                                                    <li><hr class="dropdown-divider"></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-status-admin" data-col="col-cvs-status" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-status', this.checked)"><label class="form-check-label" for="chk-csv-status-admin">Status</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-arr-airline-admin" data-col="col-cvs-arr-airline" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-arr-airline', this.checked)"><label class="form-check-label" for="chk-csv-arr-airline-admin">[Arr] Airline</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-arr-flight-admin" data-col="col-cvs-arr-flight" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-arr-flight', this.checked)"><label class="form-check-label" for="chk-csv-arr-flight-admin">[Arr] Flight</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-arr-aldt-admin" data-col="col-cvs-arr-aldt" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-arr-aldt', this.checked)"><label class="form-check-label" for="chk-csv-arr-aldt-admin">[Arr] ALDT</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-arr-sibt-admin" data-col="col-cvs-arr-sibt" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-arr-sibt', this.checked)"><label class="form-check-label" for="chk-csv-arr-sibt-admin">[Arr] SIBT</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-arr-aibt-admin" data-col="col-cvs-arr-aibt" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-arr-aibt', this.checked)"><label class="form-check-label" for="chk-csv-arr-aibt-admin">[Arr] AIBT</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-arr-stand-admin" data-col="col-cvs-arr-stand" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-arr-stand', this.checked)"><label class="form-check-label" for="chk-csv-arr-stand-admin">[Arr] Stand</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-arr-gates-admin" data-col="col-cvs-arr-gates" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-arr-gates', this.checked)"><label class="form-check-label" for="chk-csv-arr-gates-admin">[Arr] Gates</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-arr-boarded-admin" data-col="col-cvs-arr-boarded" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-arr-boarded', this.checked)"><label class="form-check-label" for="chk-csv-arr-boarded-admin">[Arr] Boarded</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-arr-belts-admin" data-col="col-cvs-arr-belts" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-arr-belts', this.checked)"><label class="form-check-label" for="chk-csv-arr-belts-admin">[Arr] Belts</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-arr-type-admin" data-col="col-cvs-arr-type" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-arr-type', this.checked)"><label class="form-check-label" for="chk-csv-arr-type-admin">[Arr] Type</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-routing-admin" data-col="col-cvs-routing" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-routing', this.checked)"><label class="form-check-label" for="chk-csv-routing-admin">Routing</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-dep-type-admin" data-col="col-cvs-dep-type" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-dep-type', this.checked)"><label class="form-check-label" for="chk-csv-dep-type-admin">[Dep] Type</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-aircraft-admin" data-col="col-cvs-aircraft" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-aircraft', this.checked)"><label class="form-check-label" for="chk-csv-aircraft-admin">Aircraft Type</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-reg-admin" data-col="col-cvs-reg" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-reg', this.checked)"><label class="form-check-label" for="chk-csv-reg-admin">Registration</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-dep-airline-admin" data-col="col-cvs-dep-airline" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-dep-airline', this.checked)"><label class="form-check-label" for="chk-csv-dep-airline-admin">[Dep] Airline</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-dep-flight-admin" data-col="col-cvs-dep-flight" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-dep-flight', this.checked)"><label class="form-check-label" for="chk-csv-dep-flight-admin">[Dep] Flight</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-dep-stand-admin" data-col="col-cvs-dep-stand" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-dep-stand', this.checked)"><label class="form-check-label" for="chk-csv-dep-stand-admin">[Dep] Stand</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-dep-gates-admin" data-col="col-cvs-dep-gates" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-dep-gates', this.checked)"><label class="form-check-label" for="chk-csv-dep-gates-admin">[Dep] Gates</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-dep-boarded-admin" data-col="col-cvs-dep-boarded" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-dep-boarded', this.checked)"><label class="form-check-label" for="chk-csv-dep-boarded-admin">[Dep] Boarded</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-dep-sobt-admin" data-col="col-cvs-dep-sobt" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-dep-sobt', this.checked)"><label class="form-check-label" for="chk-csv-dep-sobt-admin">[Dep] SOBT</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-dep-aobt-admin" data-col="col-cvs-dep-aobt" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-dep-aobt', this.checked)"><label class="form-check-label" for="chk-csv-dep-aobt-admin">[Dep] AOBT</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-dep-atot-admin" data-col="col-cvs-dep-atot" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-dep-atot', this.checked)"><label class="form-check-label" for="chk-csv-dep-atot-admin">[Dep] ATOT</label></li>
+                                                                    <li class="form-check mb-1"><input class="form-check-input col-toggle-csv-admin" type="checkbox" checked id="chk-csv-dep-attt-admin" data-col="col-cvs-dep-attt" onchange="window.opsFlightsAdmin.toggleColumn('col-cvs-dep-attt', this.checked)"><label class="form-check-label" for="chk-csv-dep-attt-admin">[Dep] ATTT</label></li>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                        </div>
+                                                        <div class="table-responsive" id="container-ops-flights-csv-admin">
+                                                            <table
+                                                                class="table table-hover table-bordered table-sm align-middle mb-0 table-csv-fixed"
+                                                                id="table-ops-flights-csv-admin">
+                                                                <thead class="table-light">
+                                                                    <tr class="text-center small text-muted text-uppercase">
+                                                                        <th class="col-cvs-status">Status</th>
+                                                                        <th class="col-cvs-arr-airline"><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Airline</th>
+                                                                        <th class="col-cvs-arr-flight"><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Flight</th>
+                                                                        <th class="col-cvs-arr-aldt"><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] ALDT</th>
+                                                                        <th class="col-cvs-arr-sibt"><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] SIBT</th>
+                                                                        <th class="col-cvs-arr-aibt"><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] AIBT</th>
+                                                                        <th class="col-cvs-arr-stand"><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Stand</th>
+                                                                        <th class="col-cvs-arr-gates"><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Gates</th>
+                                                                        <th class="col-cvs-arr-boarded"><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Boarded</th>
+                                                                        <th class="col-cvs-arr-belts"><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Belts</th>
+                                                                        <th class="col-cvs-arr-type"><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Type</th>
+                                                                        <th class="col-cvs-routing">Routing</th>
+                                                                        <th class="col-cvs-dep-type"><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Type</th>
+                                                                        <th class="col-cvs-aircraft">Aircraft type</th>
+                                                                        <th class="col-cvs-reg">Registration</th>
+                                                                        <th class="col-cvs-dep-airline"><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Airline</th>
+                                                                        <th class="col-cvs-dep-flight"><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Flight</th>
+                                                                        <th class="col-cvs-dep-stand"><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Stand</th>
+                                                                        <th class="col-cvs-dep-gates"><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Gates</th>
+                                                                        <th class="col-cvs-dep-boarded"><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Boarded</th>
+                                                                        <th class="col-cvs-dep-sobt"><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] SOBT</th>
+                                                                        <th class="col-cvs-dep-aobt"><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] AOBT</th>
+                                                                        <th class="col-cvs-dep-atot"><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] ATOT</th>
+                                                                        <th class="col-cvs-dep-attt"><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] ATTT</th>
+                                                                    </tr>
+                                                                    <tr class="csv-filter-row">
+                                                                        <th class="col-cvs-status"><input type="text" class="form-control form-control-sm" data-field="Status" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-arr-airline"><input type="text" class="form-control form-control-sm" data-field="[Arr] Airline code" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-arr-flight"><input type="text" class="form-control form-control-sm" data-field="[Arr] Flight Designator" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-arr-aldt"><input type="text" class="form-control form-control-sm" data-field="[Arr] ALDT" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-arr-sibt"><input type="text" class="form-control form-control-sm" data-field="[Arr] SIBT" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-arr-aibt"><input type="text" class="form-control form-control-sm" data-field="[Arr] AIBT" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-arr-stand"><input type="text" class="form-control form-control-sm" data-field="[Arr] Stand" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-arr-gates"><input type="text" class="form-control form-control-sm" data-field="[Arr] Gates" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-arr-boarded"><input type="text" class="form-control form-control-sm" data-field="[Arr] Boarded" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-arr-belts"><input type="text" class="form-control form-control-sm" data-field="[Arr] Baggage Belts" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-arr-type"><input type="text" class="form-control form-control-sm" data-field="[Arr] Service Type" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-routing"><input type="text" class="form-control form-control-sm" data-field="Routing" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-dep-type"><input type="text" class="form-control form-control-sm" data-field="[Dep] Service Type" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-aircraft"><input type="text" class="form-control form-control-sm" data-field="Aircraft type" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-reg"><input type="text" class="form-control form-control-sm" data-field="Registration" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-dep-airline"><input type="text" class="form-control form-control-sm" data-field="[Dep] Airline code" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-dep-flight"><input type="text" class="form-control form-control-sm" data-field="[Dep] Flight Designator" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-dep-stand"><input type="text" class="form-control form-control-sm" data-field="[Dep] Stand" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-dep-gates"><input type="text" class="form-control form-control-sm" data-field="[Dep] Gates" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-dep-boarded"><input type="text" class="form-control form-control-sm" data-field="[Dep] Boarded" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-dep-sobt"><input type="text" class="form-control form-control-sm" data-field="[Dep] SOBT" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-dep-aobt"><input type="text" class="form-control form-control-sm" data-field="[Dep] AOBT" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-dep-atot"><input type="text" class="form-control form-control-sm" data-field="[Dep] ATOT" placeholder="Filtrar..."></th>
+                                                                        <th class="col-cvs-dep-attt"><input type="text" class="form-control form-control-sm" data-field="[Dep] ATTT" placeholder="Filtrar..."></th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody class="text-center bg-white"
+                                                                    id="tbody-ops-flights-csv-admin">
+                                                                    <tr>
+                                                                        <td colspan="24" class="text-muted py-4">Cargando
+                                                                            vuelos...</td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Split View Container -->
+                                            <div class="row d-none" id="view-mode-split-admin" style="min-height: 600px;">
+                                                <div class="col-6 pe-1 h-100">
+                                                    <div class="card shadow-sm border-0 h-100">
+                                                        <div class="card-header bg-success text-white text-center py-2 sticky-top">
+                                                            <h6 class="mb-0 fw-bold"><i class="fas fa-plane-arrival me-2"></i>[Arrivals] Itinerario</h6>
+                                                        </div>
+                                                        <div class="card-body p-0 table-responsive custom-scrollbar" style="max-height: 600px; overflow-y: auto;">
+                                                            <table class="table table-sm table-hover table-bordered small mb-0 text-center" id="table-split-arr-admin">
+                                                                <thead class="table-light sticky-top bg-white" style="top: 0; z-index: 5;">
+                                                                     <tr>
+                                                                        <th>Status</th>
+                                                                        <th>Airline</th>
+                                                                        <th>Flight</th>
+                                                                        <th>SIBT</th>
+                                                                        <th>AIBT</th>
+                                                                        <th>Routing</th>
+                                                                        <th>Type</th>
+                                                                        <th>Reg</th>
+                                                                     </tr>
+                                                                </thead>
+                                                                <tbody class="bg-white align-middle"></tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6 ps-1 h-100">
+                                                    <div class="card shadow-sm border-0 h-100">
+                                                        <div class="card-header bg-primary text-white text-center py-2 sticky-top">
+                                                            <h6 class="mb-0 fw-bold"><i class="fas fa-plane-departure me-2"></i>[Departures] Default</h6>
+                                                        </div>
+                                                        <div class="card-body p-0 table-responsive custom-scrollbar" style="max-height: 600px; overflow-y: auto;">
+                                                            <table class="table table-sm table-hover table-bordered small mb-0 text-center" id="table-split-dep-admin">
+                                                                <thead class="table-light sticky-top bg-white" style="top: 0; z-index: 5;">
+                                                                    <tr>
+                                                                        <th>Status</th>
+                                                                        <th>Airline</th>
+                                                                        <th>Flight</th>
+                                                                        <th>SOBT</th>
+                                                                        <th>AOBT</th>
+                                                                        <th>Routing</th>
+                                                                        <th>Type</th>
+                                                                        <th>Reg</th>
+                                                                     </tr>
+                                                                </thead>
+                                                                <tbody class="bg-white align-middle"></tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -1408,6 +1665,7 @@
                                         </div>
 
                                         <!-- Daily Flights Ops Pane -->
+                                        <!--
                                         <div class="tab-pane fade" id="pane-daily-flights-ops" role="tabpanel">
                                             <div class="d-flex justify-content-between align-items-center mb-3">
                                                 <h5 class="mb-0">Vuelos (Itinerario Operaciones)</h5>
@@ -1565,6 +1823,7 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        -->
 
 
 
@@ -2578,6 +2837,12 @@
                                             Vuelos del Día</h5>
                                         <div class="d-flex gap-2 align-items-center flex-wrap">
                                             <div class="d-flex align-items-center gap-2">
+                                                <select class="form-select form-select-sm w-auto" id="date-filter-type" aria-label="Tipo de operación">
+                                                    <option value="all" selected>Todo</option>
+                                                    <option value="arr">Llegadas (Arr)</option>
+                                                    <option value="dep">Salidas (Dep)</option>
+                                                </select>
+                                                <div class="vr"></div>
                                                 <span class="small text-muted">Date Window</span>
                                                 <div class="btn-group btn-group-sm" role="group" aria-label="Filtro de fecha">
                                                     <button class="btn btn-outline-primary active" type="button" id="btn-date-mode-relative">Relative</button>
@@ -2611,10 +2876,14 @@
                                             <button class="btn btn-sm btn-outline-success" id="btn-import-ops-csv"
                                                 data-bs-toggle="modal" data-bs-target="#uploadOpsCsvModal"><i
                                                     class="fas fa-file-csv me-1"></i>Importar CSV</button>
+                                            <button class="btn btn-sm btn-outline-primary ms-2" id="btn-split-view" title="Vista Dividida Llegadas/Salidas" onclick="window.opsFlights.toggleSplitView()">
+                                                <i class="fas fa-plane"></i>
+                                            </button>
                                         </div>
                                     </div>
 
                                     <!-- Charts Row -->
+                                    <!--
                                     <div class="row mb-4">
                                         <div class="col-12">
                                             <div class="card shadow-sm border-0">
@@ -2630,9 +2899,10 @@
                                             </div>
                                         </div>
                                     </div>
+                                    -->
 
                                     <!-- CSV Table (Operaciones) -->
-                                    <div class="row">
+                                    <div class="row" id="view-mode-standard">
                                         <div class="col-12 mb-4">
                                             <div class="card shadow-sm border-0">
                                                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
@@ -2745,6 +3015,275 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    <!-- Split View Container -->
+                                    <div class="row d-none" id="view-mode-split">
+                                        <div class="col-6 pe-1 h-100">
+                                            <div class="card shadow-sm border-0 h-100">
+                                                <div class="card-header bg-success text-white text-center py-2 sticky-top">
+                                                    <h6 class="mb-0 fw-bold"><i class="fas fa-plane-arrival me-2"></i>[Arrivals] Itinerario</h6>
+                                                </div>
+                                                <div class="card-body p-0 table-responsive custom-scrollbar split-view-card-body">
+                                                    <table class="table table-sm table-hover table-bordered small mb-0 text-center" id="table-split-arr">
+                                                        <thead class="table-light sticky-top bg-white split-view-thead">
+                                                             <tr>
+                                                                <th>Status</th>
+                                                                <th>Airline</th>
+                                                                <th>Flight</th>
+                                                                <th>SIBT</th>
+                                                                <th>AIBT</th>
+                                                                <th>Routing</th>
+                                                                <th>Type</th>
+                                                                <th>Reg</th>
+                                                             </tr>
+                                                        </thead>
+                                                        <tbody class="bg-white align-middle"></tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 ps-1 h-100">
+                                            <div class="card shadow-sm border-0 h-100">
+                                                <div class="card-header bg-primary text-white text-center py-2 sticky-top">
+                                                    <h6 class="mb-0 fw-bold"><i class="fas fa-plane-departure me-2"></i>[Departures] Default</h6>
+                                                </div>
+                                                <div class="card-body p-0 table-responsive custom-scrollbar split-view-card-body">
+                                                    <table class="table table-sm table-hover table-bordered small mb-0 text-center" id="table-split-dep">
+                                                        <thead class="table-light sticky-top bg-white split-view-thead">
+                                                            <tr>
+                                                                <th>Status</th>
+                                                                <th>Airline</th>
+                                                                <th>Flight</th>
+                                                                <th>SOBT</th>
+                                                                <th>AOBT</th>
+                                                                <th>Routing</th>
+                                                                <th>Type</th>
+                                                                <th>Reg</th>
+                                                             </tr>
+                                                        </thead>
+                                                        <tbody class="bg-white align-middle"></tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Análisis de Operaciones Section -->
+                <div id="analisis-operaciones-section" class="content-section">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 text-primary fw-bold"><i class="fas fa-chart-pie me-2"></i>Análisis Exhaustivo de Operaciones</h5>
+                            <div class="d-flex gap-2">
+                                <select id="ops-analysis-month" class="form-select form-select-sm" aria-label="Seleccionar Mes">
+                                    <option value="Enero" selected>Enero</option>
+                                    <option value="Febrero">Febrero</option>
+                                    <option value="Marzo">Marzo</option>
+                                    <option value="Abril">Abril</option>
+                                    <option value="Mayo">Mayo</option>
+                                    <option value="Junio">Junio</option>
+                                    <option value="Julio">Julio</option>
+                                    <option value="Agosto">Agosto</option>
+                                    <option value="Septiembre">Septiembre</option>
+                                    <option value="Octubre">Octubre</option>
+                                    <option value="Noviembre">Noviembre</option>
+                                    <option value="Diciembre">Diciembre</option>
+                                </select>
+                                <input type="number" id="ops-analysis-year" class="form-control form-control-sm" value="2025" aria-label="Año de Análisis">
+                                <button id="btn-refresh-ops-analysis" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i> Analizar</button>
+                            </div>
+                        </div>
+                        <div class="card-body bg-light">
+                            
+                            <!-- Loading State -->
+                            <div id="ops-analysis-loading" class="text-center py-5 d-none">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Cargando...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Consultando base de datos de demoras...</p>
+                            </div>
+
+                            <!-- Error State -->
+                            <div id="ops-analysis-error" class="alert alert-danger d-none text-center"></div>
+
+                            <!-- Content -->
+                            <div id="ops-analysis-content" class="d-none">
+
+                                <!-- Tabs Navigation -->
+                                <ul class="nav nav-tabs mb-4" id="analysisTabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="tab-resumen" data-bs-toggle="tab" data-bs-target="#content-resumen" type="button" role="tab"><i class="fas fa-home me-2"></i>Resumen General</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="tab-flota" data-bs-toggle="tab" data-bs-target="#content-flota" type="button" role="tab"><i class="fas fa-plane me-2"></i>Detalle de Flota & Servicios</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="tab-aerolineas" data-bs-toggle="tab" data-bs-target="#content-aerolineas" type="button" role="tab"><i class="fas fa-building me-2"></i>Análisis de Aerolíneas</button>
+                                    </li>
+                                </ul>
+
+                                <div class="tab-content" id="analysisTabsContent">
+                                    
+                                    <!-- TAB 1: RESUMEN (Existing Dashboard) -->
+                                    <div class="tab-pane fade show active" id="content-resumen" role="tabpanel">
+                                        <!-- KPIs -->
+                                        <div class="row g-3 mb-4">
+                                            <div class="col-md-4">
+                                                <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary">
+                                                    <div class="card-body">
+                                                        <h6 class="text-muted text-uppercase small">Total Operaciones</h6>
+                                                        <h2 id="kpi-total-ops" class="mb-0 fw-bold display-6">0</h2>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="card border-0 shadow-sm h-100 border-start border-4 border-warning">
+                                                    <div class="card-body">
+                                                        <h6 class="text-muted text-uppercase small">Vuelos Pasajeros</h6>
+                                                        <h2 id="kpi-pax-ops" class="mb-0 fw-bold display-6">0</h2>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="card border-0 shadow-sm h-100 border-start border-4 border-success">
+                                                    <div class="card-body">
+                                                        <h6 class="text-muted text-uppercase small">Vuelos Carga/Correo</h6>
+                                                        <h2 id="kpi-cargo-ops" class="mb-0 fw-bold display-6">0</h2>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Main Charts -->
+                                        <div class="row g-4 mb-4">
+                                            <div class="col-lg-4">
+                                                <div class="card h-100 border-0 shadow-sm">
+                                                    <div class="card-header bg-white fw-bold">Distribución por Servicio</div>
+                                                    <div class="card-body">
+                                                        <canvas id="chart-ops-service"></canvas>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-8">
+                                                <div class="card h-100 border-0 shadow-sm">
+                                                    <div class="card-header bg-white fw-bold">Top Aeronaves (Resumen)</div>
+                                                    <div class="card-body">
+                                                        <div id="chart-ops-aircraft-container">
+                                                            <canvas id="chart-ops-aircraft"></canvas>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Delay Analysis Row -->
+                                        <div class="row g-4 mb-4">
+                                            <div class="col-12">
+                                                <div class="card h-100 border-0 shadow-sm">
+                                                    <div class="card-header bg-white fw-bold text-danger">
+                                                        <i class="fas fa-clock me-2"></i>Análisis de Demoras (>15 mins)
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div class="row">
+                                                            <div class="col-md-3 d-flex flex-column align-items-center justify-content-center border-end">
+                                                                <div class="text-center mb-4">
+                                                                    <h3 class="display-6 fw-bold text-danger" id="kpi-delay-total">0</h3>
+                                                                    <p class="text-muted small text-uppercase">Minutos Totales</p>
+                                                                </div>
+                                                                <div class="text-center">
+                                                                    <h4 class="fw-bold" id="kpi-delay-ops">0</h4>
+                                                                    <p class="text-muted small text-uppercase">Vuelos Demorados</p>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-9">
+                                                                <canvas id="chart-ops-delay" style="max-height: 250px;"></canvas>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Heatmap -->
+                                        <div class="card border-0 shadow-sm">
+                                            <div class="card-header bg-white fw-bold d-flex justify-content-between">
+                                                <span>Mapa de Calor: Horas Pico de Operación</span>
+                                                <small class="text-muted">Intensidad por Hora y Día de la Semana</small>
+                                            </div>
+                                            <div class="card-body p-0 table-responsive" id="ops-heatmap-container">
+                                                <!-- Table generated by JS -->
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- TAB 2: FLOTA Y SERVICIOS -->
+                                    <div class="tab-pane fade" id="content-flota" role="tabpanel">
+                                        <div class="card border-0 shadow-sm mb-4">
+                                             <div class="card-header bg-white fw-bold">Detalle Exhaustivo por Tipo de Aeronave</div>
+                                             <div class="card-body p-0">
+                                                 <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                                                     <table class="table table-hover table-sm align-middle mb-0" id="table-ops-aircraft-detail">
+                                                         <thead class="table-light sticky-top">
+                                                             <tr>
+                                                                 <th>Equipo (IATA/ICAO)</th>
+                                                                 <th>Nombre Comercial</th>
+                                                                 <th>Categoría</th>
+                                                                 <th class="text-center">Total Ops</th>
+                                                                 <th class="text-center">Pax</th>
+                                                                 <th class="text-center">Carga</th>
+                                                                 <th class="text-center">Otros</th>
+                                                                 <th>Uso Principal</th>
+                                                             </tr>
+                                                         </thead>
+                                                         <tbody>
+                                                             <!-- JS generated -->
+                                                         </tbody>
+                                                     </table>
+                                                 </div>
+                                             </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- TAB 3: AEROLINEAS -->
+                                    <div class="tab-pane fade" id="content-aerolineas" role="tabpanel">
+                                        <div class="row g-4 mb-4">
+                                            <div class="col-lg-12">
+                                                <div class="card h-100 border-0 shadow-sm">
+                                                    <div class="card-header bg-white fw-bold">Top Aerolíneas por Volumen</div>
+                                                    <div class="card-body">
+                                                        <canvas id="chart-ops-airlines" style="max-height: 300px;"></canvas>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="card border-0 shadow-sm">
+                                            <div class="card-header bg-white fw-bold">Detalle por Aerolínea</div>
+                                            <div class="card-body p-0">
+                                                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                                                    <table class="table table-hover table-sm align-middle mb-0" id="table-ops-airlines-detail">
+                                                        <thead class="table-light sticky-top">
+                                                            <tr>
+                                                                <th>Aerolínea</th>
+                                                                <th class="text-center">Vuelos Totales</th>
+                                                                <th class="text-center">% Del Total</th>
+                                                                <th class="text-center">Demoras (>15m)</th>
+                                                                <th>Flota (Top Modelos)</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <!-- JS generated -->
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div> <!-- End Tab Content -->
+
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2756,7 +3295,7 @@
                             <div class="gso-media-wrapper mb-4 px-3 px-md-0">
                                 <div class="ratio ratio-16x9 gso-hero">
                                     <video class="gso-hero-media" src="videos/Aterrizaje%20Cargo.mp4" autoplay muted
-                                        loop playsinline preload="metadata"
+                                        loop preload="metadata"
                                         aria-label="Gerencia de Seguridad Operacional"></video>
                                     <div class="gso-hero-overlay">
                                         <div class="gso-hero-inner">
@@ -6464,6 +7003,7 @@
                                         <div class="card-body">
                                             <div class="row g-3">
                                                 <div class="col-md-5">
+                                          
                                                     <label class="form-label small text-muted text-uppercase fw-bold">Aerocares:</label>
                                                     <input type="text" class="form-control" placeholder="Ingresar">
                                                 </div>
@@ -6986,6 +7526,7 @@
     <script src="js/inicio.js"></script>
     <script src="js/itinerario.js?v=3"></script>
     <script src="js/demoras.js"></script>
+    <script src="js/analisis-operaciones.js?v=2"></script>
     <script src="js/operaciones.js"></script>
     <script src="js/frecuencias.js"></script>
     <script src="js/frecuencias_auto.js?v=2"></script>

@@ -2,7 +2,8 @@
  * Vuelos (Parte de Operaciones) - CSV import
  * Estructura: tabla ancha con encabezados del CSV del software de aeropuerto.
  */
-(function () {
+function initCsvModule(suffix) {
+
     const TABLE_NAME = 'vuelos_parte_operaciones_csv';
     const HEADERS = [
         'Status',
@@ -77,6 +78,8 @@
 
     let currentData = [];
     let columnFilters = {};
+    let isSplitView = false;
+    let dateFilterType = 'all';
     let dateMode = 'relative';
     let relStart = -4;
     let relEnd = 0;
@@ -85,12 +88,20 @@
     let lastImportYear = new Date().getFullYear();
     let peakChart = null;
 
+    function getCurrentDateFields() {
+        if (dateFilterType === 'arr') return ARR_TIME_FIELDS;
+        if (dateFilterType === 'dep') return DEP_TIME_FIELDS;
+        return DATE_FIELDS;
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         init();
-        window.opsFlights = { 
+        window['opsFlights' + (suffix === '-admin' ? 'Admin' : '')] = { 
             loadFlights, 
             importCsvFromFile, 
-            toggleColumn, 
+            toggleColumn,
+            toggleSplitView,
+            highlightSplitRow,
             getData: () => currentData,
             getHeaders: () => HEADERS,
             getDateFields: () => DATE_FIELDS,
@@ -100,23 +111,32 @@
 
     function init() {
         // Create style tag for column visibility
-        if (!document.getElementById('csv-cols-style')) {
+        if (!document.getElementById('csv-cols-style' + suffix)) {
             const style = document.createElement('style');
-            style.id = 'csv-cols-style';
+            style.id = 'csv-cols-style' + suffix;
             document.head.appendChild(style);
         }
 
         initColumnVisibility();
         
-        const tabEl = document.getElementById('tab-vuelos-ops');
+        const tabEl = document.getElementById('tab-vuelos-ops' + suffix);
         if (tabEl) {
             tabEl.addEventListener('shown.bs.tab', () => loadFlights());
             if (tabEl.classList.contains('active')) {
                 setTimeout(loadFlights, 300);
             }
         }
+        
+        const tabConci = document.getElementById('tab-conciliacion' + suffix);
+        if (tabConci) {
+            tabConci.addEventListener('shown.bs.tab', () => loadFlights());
+            // If already active on load
+            if (tabConci.classList.contains('active')) {
+                setTimeout(loadFlights, 300);
+            }
+        }
 
-        const dateInput = document.getElementById('vuelos-ops-date');
+        const dateInput = document.getElementById('vuelos-ops-date' + suffix);
         if (dateInput) dateInput.addEventListener('change', () => {
             updateRelativeLabels();
             loadFlights();
@@ -127,16 +147,16 @@
             applyAndRender();
         });
 
-        const btnRel = document.getElementById('btn-date-mode-relative');
-        const btnAbs = document.getElementById('btn-date-mode-absolute');
-        const relWrap = document.getElementById('ops-date-relative');
-        const absWrap = document.getElementById('ops-date-absolute');
-        const relStartInput = document.getElementById('rel-start');
-        const relEndInput = document.getElementById('rel-end');
-        const relStartLabel = document.getElementById('rel-start-label');
-        const relEndLabel = document.getElementById('rel-end-label');
-        const absStartInput = document.getElementById('ops-date-start');
-        const absEndInput = document.getElementById('ops-date-end');
+        const btnRel = document.getElementById('btn-date-mode-relative' + suffix);
+        const btnAbs = document.getElementById('btn-date-mode-absolute' + suffix);
+        const relWrap = document.getElementById('ops-date-relative' + suffix);
+        const absWrap = document.getElementById('ops-date-absolute' + suffix);
+        const relStartInput = document.getElementById('rel-start' + suffix);
+        const relEndInput = document.getElementById('rel-end' + suffix);
+        const relStartLabel = document.getElementById('rel-start-label' + suffix);
+        const relEndLabel = document.getElementById('rel-end-label' + suffix);
+        const absStartInput = document.getElementById('ops-date-start' + suffix);
+        const absEndInput = document.getElementById('ops-date-end' + suffix);
 
         const toggleDateMode = (mode) => {
             dateMode = mode;
@@ -166,10 +186,10 @@
         if (relStartInput) relStartInput.addEventListener('input', syncRelative);
         if (relEndInput) relEndInput.addEventListener('input', syncRelative);
 
-        const relStartDec = document.getElementById('rel-start-dec');
-        const relStartInc = document.getElementById('rel-start-inc');
-        const relEndDec = document.getElementById('rel-end-dec');
-        const relEndInc = document.getElementById('rel-end-inc');
+        const relStartDec = document.getElementById('rel-start-dec' + suffix);
+        const relStartInc = document.getElementById('rel-start-inc' + suffix);
+        const relEndDec = document.getElementById('rel-end-dec' + suffix);
+        const relEndInc = document.getElementById('rel-end-inc' + suffix);
 
         if (relStartDec) relStartDec.addEventListener('click', () => { relStartInput.value = parseInt(relStartInput.value || -4, 10) - 1; syncRelative(); });
         if (relStartInc) relStartInc.addEventListener('click', () => { relStartInput.value = parseInt(relStartInput.value || -4, 10) + 1; syncRelative(); });
@@ -210,10 +230,18 @@
                 importCsvFromFile(fileInput.files[0]);
             });
         }
+
+        const dateTypeSelect = document.getElementById('date-filter-type' + suffix);
+        if (dateTypeSelect) {
+            dateTypeSelect.addEventListener('change', () => {
+                dateFilterType = dateTypeSelect.value;
+                applyAndRender();
+            });
+        }
     }
 
     async function loadFlights() {
-        const tbody = document.getElementById('tbody-ops-flights-csv');
+        const tbody = document.getElementById('tbody-ops-flights-csv' + suffix);
         if (tbody) {
             tbody.innerHTML = '<tr><td colspan="24" class="text-center py-4">Cargando...</td></tr>';
         }
@@ -260,7 +288,7 @@
 
             if (mapped.length === 0) throw new Error('No hay filas de datos válidas en el CSV.');
 
-            const dateInput = document.getElementById('vuelos-ops-date');
+            const dateInput = document.getElementById('vuelos-ops-date' + suffix);
             const dateFilter = dateInput ? dateInput.value : '';
             const ordered = sortRows(mapped, dateFilter);
 
@@ -372,8 +400,8 @@
     }
 
     function initColumnVisibility() {
-        const saved = localStorage.getItem('dm-ops-csv-columns');
-        const container = document.querySelector('#container-ops-flights-csv');
+        const saved = localStorage.getItem('dm-ops-csv-columns' + suffix);
+        const container = document.querySelector('#container-ops-flights-csv' + suffix);
         if (!container) return;
 
         if (saved) {
@@ -396,7 +424,7 @@
     }
 
     function toggleColumn(colName, isVisible) {
-        let styleTag = document.getElementById('csv-cols-style');
+        let styleTag = document.getElementById('csv-cols-style' + suffix);
         if (!styleTag) {
              styleTag = document.createElement('style');
              styleTag.id = 'csv-cols-style';
@@ -413,7 +441,7 @@
 
     function getHiddenClasses() {
         const hidden = new Set();
-        const checkboxes = document.querySelectorAll('.col-toggle-csv');
+        const checkboxes = document.querySelectorAll('.col-toggle-csv' + suffix);
         checkboxes.forEach(cb => {
             if (!cb.checked) {
                 const col = cb.getAttribute('data-col');
@@ -431,7 +459,7 @@
 
     function updateAllVisibility() {
         const hiddenSet = getHiddenClasses();
-        const tableId = '#table-ops-flights-csv';
+        const tableId = '#table-ops-flights-csv' + suffix;
         
         // 1. Dynamic CSS (Style Tag) - Global Rule
         let cssRules = '';
@@ -452,7 +480,7 @@
              }
         });
 
-        let styleTag = document.getElementById('csv-cols-style');
+        let styleTag = document.getElementById('csv-cols-style' + suffix);
         if (!styleTag) {
             styleTag = document.createElement('style');
             styleTag.id = 'csv-cols-style';
@@ -517,7 +545,7 @@
     }
 
     function saveColumnVisibility() {
-        const checkboxes = document.querySelectorAll('.col-toggle-csv');
+        const checkboxes = document.querySelectorAll('.col-toggle-csv' + suffix);
         const hidden = [];
         checkboxes.forEach(cb => {
             if (!cb.checked) {
@@ -525,11 +553,11 @@
                 if (col) hidden.push(col);
             }
         });
-        localStorage.setItem('dm-ops-csv-columns', JSON.stringify(hidden));
+        localStorage.setItem('dm-ops-csv-columns' + suffix, JSON.stringify(hidden));
     }
 
     function renderTable(rows) {
-        const tbody = document.getElementById('tbody-ops-flights-csv');
+        const tbody = document.getElementById('tbody-ops-flights-csv' + suffix);
         if (!tbody) return;
 
         if (!rows || rows.length === 0) {
@@ -569,7 +597,7 @@
     }
 
     function updateChart(rows, dateFilter) {
-        const canvas = document.getElementById('chart-peak-hours-ops');
+        const canvas = document.getElementById('chart-peak-hours-ops' + suffix);
         if (!canvas || !window.Chart) return;
 
         const arrivals = Array(24).fill(0);
@@ -602,17 +630,116 @@
         });
     }
 
+    function getStatusColor(status) {
+        if (!status) return 'secondary';
+        const s = status.toLowerCase();
+        if (s.includes('landing') || s.includes('landed') || s.includes('arr') || s.includes('block')) return 'success';
+        if (s.includes('dep') || s.includes('take off') || s.includes('airborne')) return 'primary';
+        if (s.includes('cx') || s.includes('cancel')) return 'danger';
+        return 'info';
+    }
+
+    function toggleSplitView() {
+        isSplitView = !isSplitView;
+        const btn = document.getElementById('btn-split-view' + suffix);
+        if (btn) {
+            if (isSplitView) {
+                btn.classList.remove('btn-outline-primary');
+                btn.classList.add('btn-primary');
+            } else {
+                btn.classList.add('btn-outline-primary');
+                btn.classList.remove('btn-primary');
+            }
+        }
+        applyAndRender();
+    }
+
+    function highlightSplitRow(index) {
+        // Clear previous
+        const container = document.getElementById('view-mode-split' + suffix);
+        if (!container) return;
+        container.querySelectorAll('tr.table-warning').forEach(r => r.classList.remove('table-warning'));
+
+        // Highlight new
+        const rows = container.querySelectorAll(`tr[data-uid="${index}"]`);
+        rows.forEach(r => {
+            r.classList.add('table-warning');
+            r.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+    }
+
+    function renderSplitTables(data) {
+        const tableArr = document.getElementById('table-split-arr' + suffix);
+        const tableDep = document.getElementById('table-split-dep' + suffix);
+        if (!tableArr || !tableDep) return;
+
+        const tbodyArr = tableArr.querySelector('tbody');
+        const tbodyDep = tableDep.querySelector('tbody');
+
+        let htmlArr = '';
+        let htmlDep = '';
+        const globalObj = 'window.opsFlights' + (suffix === '-admin' ? 'Admin' : '');
+
+        data.forEach((r, index) => {
+            // Arrivals
+            const arrFlight = r['[Arr] Flight Designator'];
+            if (arrFlight) {
+                htmlArr += `<tr class="cursor-pointer" data-uid="${index}" onclick="${globalObj}.highlightSplitRow(${index})">
+                    <td><span class="badge bg-${getStatusColor(r['Status'])}">${r['Status'] || ''}</span></td>
+                    <td>${r['[Arr] Airline code'] || ''}</td>
+                    <td class="fw-bold">${arrFlight}</td>
+                    <td class="small">${r['[Arr] SIBT'] || ''}</td>
+                    <td class="small fw-bold">${r['[Arr] AIBT'] || ''}</td>
+                    <td class="small text-truncate" style="max-width:80px;" title="${r['Routing']}">${r['Routing'] || ''}</td>
+                    <td class="small">${r['Aircraft type'] || ''}</td>
+                    <td class="small">${r['Registration'] || ''}</td>
+                 </tr>`;
+            }
+
+            // Departures
+            const depFlight = r['[Dep] Flight Designator'];
+            if (depFlight) {
+                htmlDep += `<tr class="cursor-pointer" data-uid="${index}" onclick="${globalObj}.highlightSplitRow(${index})">
+                    <td><span class="badge bg-${getStatusColor(r['Status'])}">${r['Status'] || ''}</span></td>
+                    <td>${r['[Dep] Airline code'] || ''}</td>
+                    <td class="fw-bold">${depFlight}</td>
+                    <td class="small">${r['[Dep] SOBT'] || ''}</td>
+                    <td class="small fw-bold">${r['[Dep] AOBT'] || ''}</td>
+                    <td class="small text-truncate" style="max-width:80px;" title="${r['Routing']}">${r['Routing'] || ''}</td>
+                    <td class="small">${r['Aircraft type'] || ''}</td>
+                    <td class="small">${r['Registration'] || ''}</td>
+                 </tr>`;
+            }
+        });
+
+        tbodyArr.innerHTML = htmlArr || '<tr><td colspan="8" class="text-muted p-4">No hay llegadas</td></tr>';
+        tbodyDep.innerHTML = htmlDep || '<tr><td colspan="8" class="text-muted p-4">No hay salidas</td></tr>';
+    }
+
     function applyAndRender() {
         const dateRef = getReferenceDate();
         const dateFiltered = applyDateWindow(currentData, dateRef);
         const filtered = applyFilters(dateFiltered);
-        renderTable(filtered);
+        
+        const modeAll = document.getElementById('view-mode-standard' + suffix);
+        const modeSplit = document.getElementById('view-mode-split' + suffix);
+        
+        if (isSplitView) {
+            if (modeAll) modeAll.classList.add('d-none');
+            if (modeSplit) modeSplit.classList.remove('d-none');
+            renderSplitTables(filtered);
+        } else {
+            if (modeAll) modeAll.classList.remove('d-none');
+            if (modeSplit) modeSplit.classList.add('d-none');
+            renderTable(filtered);
+        }
+
         updateChart(filtered, dateRef);
         updateRelativeLabels();
     }
 
     function getReferenceDate() {
-        const dateInput = document.getElementById('vuelos-ops-date');
+        const dateInput = document.getElementById('vuelos-ops-date' + suffix);
         if (dateInput && dateInput.value) return dateInput.value;
         const mainDateInput = document.getElementById('operations-summary-date');
         if (mainDateInput && mainDateInput.value) return mainDateInput.value;
@@ -621,8 +748,8 @@
     }
 
     function updateRelativeLabels() {
-        const relStartLabel = document.getElementById('rel-start-label');
-        const relEndLabel = document.getElementById('rel-end-label');
+        const relStartLabel = document.getElementById('rel-start-label' + suffix);
+        const relEndLabel = document.getElementById('rel-end-label' + suffix);
         if (!relStartLabel || !relEndLabel) return;
         const dateRef = getReferenceDate();
         if (!dateRef) {
@@ -663,9 +790,10 @@
 
     function sortRows(rows, dateFilter) {
         const yearOverride = dateFilter ? parseInt(dateFilter.slice(0, 4), 10) : null;
+        const fields = getCurrentDateFields();
         return [...rows].sort((a, b) => {
-            const da = getFirstDate(a, DATE_FIELDS, dateFilter, yearOverride);
-            const db = getFirstDate(b, DATE_FIELDS, dateFilter, yearOverride);
+            const da = getFirstDate(a, fields, dateFilter, yearOverride);
+            const db = getFirstDate(b, fields, dateFilter, yearOverride);
             if (!da && !db) return 0;
             if (!da) return 1;
             if (!db) return -1;
@@ -675,7 +803,7 @@
 
     function deriveDateKey(row, dateFilter) {
         const yearOverride = dateFilter ? parseInt(dateFilter.slice(0, 4), 10) : null;
-        const dt = getFirstDate(row, DATE_FIELDS, dateFilter, yearOverride);
+        const dt = getFirstDate(row, getCurrentDateFields(), dateFilter, yearOverride);
         if (!dt) return '';
         return dt.toISOString().slice(0, 10);
     }
@@ -858,7 +986,13 @@
             row.classList.add('csv-row-selected');
         });
     }
-})();/**
+
+}
+
+initCsvModule('');
+initCsvModule('-admin');
+
+/**
  * Logic for "Vuelos" tab (PDF Reader)
  * Structure: WIDE TABLE (13 Columns)
  * Matches DB Table 'daily_flights_ops' 1:1.

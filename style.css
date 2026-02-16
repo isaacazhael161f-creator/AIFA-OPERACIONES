@@ -10862,3 +10862,35 @@ body.dark-mode #fauna-rescate-table .table-container-tech.h-scroll-area thead th
 .tab-pane:not(.active) { display: none !important; }
 
 .d-none-auth { display: none !important; }
+
+/* =========================================
+   Recent Additions (Split View & Analysis)
+   ========================================= */
+
+/* Split View */
+#view-mode-split {
+    min-height: 600px;
+}
+.split-view-card-body {
+    max-height: 600px; 
+    overflow-y: auto;
+}
+.split-view-thead {
+    top: 0; 
+    z-index: 5;
+}
+
+/* Ops Analysis Section */
+#ops-analysis-month {
+    width: 150px;
+}
+#ops-analysis-year {
+    width: 80px;
+}
+#chart-ops-aircraft-container {
+    height: 300px;
+}
+#ops-heatmap-container {
+    max-height: 400px; 
+    overflow: auto;
+}
