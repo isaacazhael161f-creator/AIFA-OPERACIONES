@@ -570,12 +570,6 @@ function _ensureOpsAdvancedStatsUi() {
         <div class="row g-3">
             <div class="col-md-2">
                 <div class="card h-100 border-0 shadow-sm text-center p-3">
-                    <div class="text-muted small text-uppercase">% Internacional</div>
-                    <div class="fs-2 fw-bold text-primary" id="kpi-international-share">-</div>
-                </div>
-            </div>
-            <div class="col-md-2">
-                <div class="card h-100 border-0 shadow-sm text-center p-3">
                     <div class="text-muted small text-uppercase">Demora Promedio (min)</div>
                     <div class="fs-2 fw-bold text-danger" id="kpi-avg-delay">-</div>
                 </div>
@@ -718,10 +712,16 @@ async function renderOpsCharts() {
         const kFecha = getKey('fecha', 'estatus_fecha', 'date', 'aterrizaje', 'despegue',
                               'programada', 'horario', 'std', 'sta', 'sobt', 'sibt',
                               'hora_programada', 'hora_real', 'created_at');
-        // Hour: 'hora_actual' takes priority (real/actual time), fallback to other time cols
-        let kHora = getKey('hora_actual', 'hora_real_local', 'hora_aterrizaje', 'hora_despegue',
-                           'hora', 'time', 'hh', 'hora_prog', 'hora_real');
+        // kHora: used for date/time extraction in parseDateFromRecord — keep original priority
+        // so a full-datetime column (e.g. "Hora") is preferred over a time-only column
+        let kHora = getKey('hora', 'time', 'hh', 'hora_prog', 'hora_real');
         if (kHora === kFecha) kHora = undefined; // avoid using same col twice
+
+        // kHoraActual: dedicated column for the ACTUAL hour shown in the heatmap and hoursMap
+        // This is separate so it can point to "Hora actual" (time-only) without breaking date parsing
+        const kHoraActual = getKey('hora_actual', 'hora_real_local', 'hora_aterrizaje', 'hora_despegue');
+        // If it turned out the same column as kFecha or kHora, ignore it (avoid duplicate use)
+        // We want it to be a truly separate column
 
         const kPos = getKey('posicion', 'pos', 'platform', 'stand', 'plataforma');
         // Registration (matricula) vs aircraft type — intentionally kept separate
@@ -744,11 +744,31 @@ async function renderOpsCharts() {
                                    'direction', 'llegada', 'op_type');
         const kVuelo = getKey('vuelo', 'numero_vuelo', 'flight', 'flight_number',
                               'nro_vuelo', 'num_vuelo', 'nrovuelo', 'flight_no', 'flt_no');
+        // Find the column that actually contains 'CANCELADO' by scanning all rows and columns.
+        // This is more reliable than getKey() because the column name varies between tables.
+        const allColKeys = Object.keys(data[0]);
+        let kEstatus = getKey('demoras', 'estatus', 'status', 'estado', 'estatus_vuelo', 'flight_status');
+        if (!kEstatus) {
+            // Fallback: scan up to 200 rows to find whichever column has 'CANCELADO'
+            const sample = data.slice(0, 200);
+            kEstatus = allColKeys.find(col =>
+                sample.some(r => /^CANCELAD[AO]$/i.test(String(r[col] || '').trim()))
+            );
+        }
 
-        console.log('[renderOpsCharts] Keys detectadas:', {kFecha, kHora, kPos, kMatricula, kTipoAc, kEquipo, kAerolinea, kMovimiento, kVuelo});
+        const isCancelled = (r) => /^CANCELAD[AO]$/i.test(String(r[kEstatus] || '').trim());
+
+        // Exclude cancelled flights from ALL analysis
+        const activeData = kEstatus
+            ? data.filter(r => !isCancelled(r))
+            : data;
+        const cancelledCount = data.length - activeData.length;
+        console.log(`[renderOpsCharts] kEstatus="${kEstatus}" | Cancelados excluidos: ${cancelledCount} de ${data.length}`);
+
+        console.log('[renderOpsCharts] Keys detectadas:', {kFecha, kHora, kHoraActual, kPos, kMatricula, kTipoAc, kEquipo, kAerolinea, kMovimiento, kVuelo, kEstatus});
 
         // Stats
-        let totalOps = data.length;
+        let totalOps = activeData.length;
         let daysMap = {};
         let hoursMap = {};
         let posMap = {};
@@ -785,8 +805,21 @@ async function renderOpsCharts() {
             // Use kFecha first; use kHora as fallback if it contains a datetime
             const rawFecha = kFecha && row[kFecha] ? String(row[kFecha]).trim() : '';
             const rawHora  = kHora  && row[kHora]  ? String(row[kHora]).trim()  : '';
-            // Pick the source that contains a 4-digit year
-            const src = rawFecha.match(/\d{4}/) ? rawFecha : (rawHora.match(/\d{4}/) ? rawHora : rawFecha);
+            // Pick the source that contains a 4-digit OR 2-digit year (e.g. DD/MM/YY)
+            const has4DigitYear = (s) => /\d{4}/.test(s);
+            const has2DigitSlash = (s) => /\d{2}\/\d{2}\/\d{2}(?!\d)/.test(s);
+            let src;
+            if (has4DigitYear(rawFecha)) {
+                src = rawFecha;
+            } else if (has4DigitYear(rawHora)) {
+                src = rawHora;
+            } else if (has2DigitSlash(rawFecha)) {
+                src = rawFecha; // DD/MM/YY — handled below
+            } else if (has2DigitSlash(rawHora)) {
+                src = rawHora;
+            } else {
+                src = rawFecha;
+            }
 
             let dateObj = null;
             let hourFromObj = null; // set when the Date object already carries correct local hour
@@ -795,7 +828,17 @@ async function renderOpsCharts() {
             const slashMatch = src.match(/(\d{2})\/(\d{2})\/(\d{4})/);
             if (slashMatch) {
                 dateObj = new Date(Number(slashMatch[3]), Number(slashMatch[2]) - 1, Number(slashMatch[1]));
-            } else if (src.includes('-')) {
+            } else {
+                // DD/MM/YY (2-digit year) — e.g. 01/02/25 → February 1, 2025
+                const slashMatch2 = src.match(/(\d{2})\/(\d{2})\/(\d{2})(?!\d)/);
+                if (slashMatch2) {
+                    const yy = Number(slashMatch2[3]);
+                    // Pivot: 00-49 → 2000s, 50-99 → 1900s (standard 2-digit year rule)
+                    const yyyy = yy < 50 ? 2000 + yy : 1900 + yy;
+                    dateObj = new Date(yyyy, Number(slashMatch2[2]) - 1, Number(slashMatch2[1]));
+                }
+            }
+            if (!dateObj && src.includes('-')) {
                 // ISO: YYYY-MM-DD or YYYY-MM-DDTHH:mm[Z|±HH:mm]
                 const parsed = new Date(src);
                 if (!Number.isNaN(parsed.getTime())) {
@@ -820,10 +863,13 @@ async function renderOpsCharts() {
                 // Timezone-aware ISO string — Date object already holds correct local hour
                 hour = hourFromObj;
             } else {
-                // Extract hour from raw string (DD/MM/YYYY HH:mm, ISO without tz, AIMS…)
-                const hhFromFecha = (src.match(/(\d{1,2}):(\d{2})/) || [])[1];
-                const hhFromHora  = (rawHora.match(/(\d{1,2}):(\d{2})/) || [])[1];
-                hour = Number(hhFromHora ?? hhFromFecha ?? '0') || 0;
+                // Extract hour: prefer "Hora actual" column (time-only, most precise),
+                // then fall back to finding HH:MM in the main date/time strings
+                const rawHoraActual = kHoraActual && row[kHoraActual] ? String(row[kHoraActual]).trim() : '';
+                const hhFromActual = (rawHoraActual.match(/(\d{1,2}):(\d{2})/) || [])[1];
+                const hhFromFecha  = (src.match(/(\d{1,2}):(\d{2})/) || [])[1];
+                const hhFromHora   = (rawHora.match(/(\d{1,2}):(\d{2})/) || [])[1];
+                hour = Number(hhFromActual ?? hhFromHora ?? hhFromFecha ?? '0') || 0;
             }
             dateObj.setHours(Math.max(0, Math.min(23, hour)), 0, 0, 0);
             return dateObj;
@@ -840,7 +886,7 @@ async function renderOpsCharts() {
         const acMovData   = {};  // { direction: { acType: { serviceLabel: count } } }
         const acServiceSet = new Set(); // all unique service labels seen
 
-        data.forEach(r => {
+        activeData.forEach(r => {
             const pax = kPasajeros ? parsePassengers(r[kPasajeros]) : 0;
             totalPassengers += pax;
 
@@ -869,7 +915,8 @@ async function renderOpsCharts() {
                     aeronave:   kMatricula   ? String(r[kMatricula]   || '').trim() :
                                 (kTipoAc    ? String(r[kTipoAc]      || '').trim() : ''),
                     fecha:      kFecha       ? String(r[kFecha]       || '').trim() : '',
-                    hora:       kHora        ? String(r[kHora]        || '').trim() : '',
+                    hora:       kHoraActual  ? String(r[kHoraActual]  || '').trim() :
+                                (kHora       ? String(r[kHora]        || '').trim() : ''),
                     pax
                 });
                 if (!heatmapOps[hourKey]) heatmapOps[hourKey] = Array(7).fill(0);
@@ -883,15 +930,16 @@ async function renderOpsCharts() {
                 const dateKey = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
                 daysMap[dateKey] = (daysMap[dateKey] || 0) + 1;
             }
-            // Hour (HH)
-            if(kHora && r[kHora]) {
-                let hStr = String(r[kHora]);
-                // Handle HH:mm:ss or HH:mm
+            // Hour (HH) — prefer kHoraActual ("Hora actual") for the hoursMap bucket
+            const horaActualRaw = kHoraActual && r[kHoraActual] ? String(r[kHoraActual]).trim() : '';
+            const horaFallbackRaw = kHora && r[kHora] ? String(r[kHora]).trim() : '';
+            const horaSource = horaActualRaw || horaFallbackRaw;
+            if (horaSource) {
+                let hStr = horaSource;
                 let h = hStr.includes(':') ? hStr.split(':')[0] : hStr.substring(0, 2);
                 h = h.trim();
-                if(h.length === 1) h = '0'+h;
-                
-                if(!isNaN(parseInt(h))) hoursMap[h] = (hoursMap[h] || 0) + 1;
+                if (h.length === 1) h = '0' + h;
+                if (!isNaN(parseInt(h))) hoursMap[h] = (hoursMap[h] || 0) + 1;
             }
             // Pos
             if(kPos && r[kPos]) posMap[r[kPos]] = (posMap[r[kPos]] || 0) + 1;
@@ -1081,18 +1129,6 @@ async function renderOpsCharts() {
         // --- Charts ---
         console.log('[renderOpsCharts] daysMap sample:', Object.entries(daysMap).slice(0, 3));
         console.log('[renderOpsCharts] kFecha:', kFecha, '| daysMap keys:', Object.keys(daysMap).length);
-
-        // 1. Hourly (Bar)
-        const sortedHours = Object.keys(hoursMap).sort();
-        _renderChart('chart-hourly-ops', 'bar', {
-            labels: sortedHours,
-            datasets: [{
-                label: 'Total',
-                data: sortedHours.map(h => hoursMap[h]),
-                backgroundColor: '#ffc107',
-                borderRadius: 4
-            }]
-        });
 
         // 3. Positions (Horizontal Bar — all positions with %; hidden if no position column)
         const posCardCol = document.getElementById('chart-positions-wrapper')?.closest('.col-12');
