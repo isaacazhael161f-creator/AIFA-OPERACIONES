@@ -569,37 +569,8 @@
     }
 
     function updateChart(rows, dateFilter) {
-        const canvas = document.getElementById('chart-peak-hours-ops');
-        if (!canvas || !window.Chart) return;
-
-        const arrivals = Array(24).fill(0);
-        const departures = Array(24).fill(0);
-
-        rows.forEach(row => {
-            const arrDate = getFirstDate(row, ARR_TIME_FIELDS, dateFilter);
-            if (arrDate) arrivals[arrDate.getHours()]++;
-
-            const depDate = getFirstDate(row, DEP_TIME_FIELDS, dateFilter);
-            if (depDate) departures[depDate.getHours()]++;
-        });
-
-        if (peakChart) peakChart.destroy();
-        peakChart = new Chart(canvas, {
-            type: 'bar',
-            data: {
-                labels: Array.from({ length: 24 }, (_, i) => i),
-                datasets: [
-                    { label: 'Llegadas', data: arrivals, backgroundColor: '#198754' },
-                    { label: 'Salidas', data: departures, backgroundColor: '#0d6efd' }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { x: { grid: { display: false } } }
-            }
-        });
+        // Chart removed as per request
+        return;
     }
 
     function applyAndRender() {
@@ -2466,41 +2437,8 @@
 
 
     function updateChart(data) {
-        const canvas = document.getElementById('chart-peak-hours-ops');
-        if (!canvas) return;
-
-        const arrivals = Array(24).fill(0);
-        const departures = Array(24).fill(0);
-
-        data.forEach(row => {
-            // Arr Time
-            if (row.fecha_hora_real_llegada && row.fecha_hora_real_llegada.includes(':')) {
-                const h = parseInt(row.fecha_hora_real_llegada.split(' ')[1].split(':')[0]);
-                if (!isNaN(h)) arrivals[h]++;
-            }
-            // Dep Time
-            if (row.fecha_hora_real_salida && row.fecha_hora_real_salida.includes(':')) {
-                const h = parseInt(row.fecha_hora_real_salida.split(' ')[1].split(':')[0]);
-                if (!isNaN(h)) departures[h]++;
-            }
-        });
-
-        if (peakChart) peakChart.destroy();
-        peakChart = new Chart(canvas, {
-            type: 'bar',
-            data: {
-                labels: Array.from({ length: 24 }, (_, i) => i),
-                datasets: [
-                    { label: 'Llegadas', data: arrivals, backgroundColor: '#198754' },
-                    { label: 'Salidas', data: departures, backgroundColor: '#0d6efd' }
-                ]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { x: { grid: { display: false } } }
-            }
-        });
+        // Chart removed as per request
+        return;
     }
 
 })();

@@ -45,7 +45,179 @@
     <script src="js/supabase-client.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+    <!-- Chart.js for visualizations -->
+
+    <!-- jQuery (Required for DataTables & PivotTable.js) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.4.0/css/fixedHeader.bootstrap5.min.css">
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/fixedheader/3.4.0/js/dataTables.fixedHeader.min.js"></script>
+    
     <style>
+        /* Excel-like Table Styles */
+        #ops-datatable {
+            width: 100% !important;
+        }
+
+        .dataTables_wrapper .dataTables_scrollHead table thead th {
+            background-color: #0f5132;
+            color: #ffffff;
+            font-weight: 700;
+            border-bottom: 2px solid #0b3d26;
+            border-right: 1px solid rgba(255, 255, 255, 0.25);
+            position: relative;
+            padding: 0.6rem 2rem 0.6rem 0.5rem !important;
+            white-space: nowrap;
+            text-align: center !important;
+            vertical-align: middle !important;
+        }
+
+        .dataTables_wrapper .dataTables_scrollHead table thead th:last-child {
+            border-right: none;
+        }
+
+        .dataTables_scrollHead th {
+            background-color: #0f5132 !important;
+            color: #ffffff !important;
+            text-align: center !important;
+            vertical-align: middle !important;
+        }
+
+        /* Hide DataTables sorting arrows completely */
+        table.dataTable thead .sorting,
+        table.dataTable thead .sorting_asc,
+        table.dataTable thead .sorting_desc,
+        table.dataTable thead .sorting_asc_disabled,
+        table.dataTable thead .sorting_desc_disabled {
+            cursor: default !important;
+            background-image: none !important;
+        }
+
+        table.dataTable thead .sorting:before,
+        table.dataTable thead .sorting:after,
+        table.dataTable thead .sorting_asc:before,
+        table.dataTable thead .sorting_asc:after,
+        table.dataTable thead .sorting_desc:before,
+        table.dataTable thead .sorting_desc:after {
+            display: none !important;
+            content: "" !important;
+        }
+
+        .dataTables_wrapper .dataTables_scrollHead table thead th,
+        #ops-datatable tbody td {
+            box-sizing: border-box;
+        }
+
+        .dataTables_scrollHead table,
+        .dataTables_scrollBody table {
+            margin: 0 !important;
+            table-layout: fixed !important;
+        }
+
+
+        #ops-datatable tbody td {
+            vertical-align: middle;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            padding: 0.5rem;
+            text-align: center !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 0;
+        }
+
+        .dataTables_wrapper .dataTables_scrollHead table thead th {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #ops-datatable tbody tr:hover {
+            background-color: #e2e6ea;
+        }
+
+        /* Excel Filter Dropdown */
+        .excel-filter-btn {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.85);
+            cursor: pointer;
+            padding: 2px 4px;
+            font-size: 0.8rem;
+            transition: color 0.15s;
+        }
+
+        .excel-filter-btn:hover, .excel-filter-btn.active {
+            color: #ffffff;
+            background-color: rgba(255, 255, 255, 0.16);
+            border-radius: 4px;
+        }
+
+        .excel-filter-dropdown {
+            min-width: 250px;
+            padding: 0.5rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(0,0,0,.15);
+            border-radius: 4px;
+            font-size: 0.85rem;
+            max-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .excel-filter-search {
+            margin-bottom: 0.5rem;
+        }
+
+        .excel-filter-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            margin-bottom: 0.5rem;
+            padding: 0.25rem;
+            background: #fff;
+        }
+
+        .excel-filter-item {
+            display: flex;
+            align-items: center;
+            padding: 2px 4px;
+            cursor: pointer;
+        }
+        
+        .excel-filter-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .excel-filter-item input {
+            margin-right: 6px;
+        }
+
+        .excel-filter-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .dataTables_wrapper .dataTables_filter {
+            margin-bottom: 1rem;
+        }
+
         /* Excel-like Filter Styles */
         .excel-filter-header {
             position: relative;
@@ -411,6 +583,8 @@
                             class="fas fa-file-invoice"></i><span>Parte de Operaciones</span></a>
                     <a class="menu-item" href="#" data-section="conciliacion"><i
                             class="fas fa-tasks"></i><span>Conciliación</span></a>
+                    <a class="menu-item" href="#" data-section="analisis-operaciones"><i
+                            class="fas fa-chart-pie"></i><span>Análisis de Operaciones</span></a>
                     <a class="menu-item" href="#" data-section="inicio"><i
                             class="fas fa-calendar-day"></i><span>Itinerario diario</span></a>
                     <a class="menu-item" href="#" data-section="frecuencias-semana"><i
@@ -2615,6 +2789,8 @@
                                     </div>
 
                                     <!-- Charts Row -->
+                                    <!-- Chart Removed: Horarios Pico (Salidas vs Llegadas) -->
+                                    <!--
                                     <div class="row mb-4">
                                         <div class="col-12">
                                             <div class="card shadow-sm border-0">
@@ -2630,6 +2806,7 @@
                                             </div>
                                         </div>
                                     </div>
+                                    -->
 
                                     <!-- CSV Table (Operaciones) -->
                                     <div class="row">
@@ -3442,6 +3619,170 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+
+                <!-- Análisis de Operaciones Section -->
+                <div id="analisis-operaciones-section" class="content-section">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 text-primary fw-bold"><i class="fas fa-database me-2"></i>Base de Datos de Operaciones (Demoras)</h5>
+                            
+                            <!-- Year Selection (Top Level) -->
+                            <ul class="nav nav-pills card-header-pills" id="ops-year-tabs" role="tablist">
+                                <li class="nav-item">
+                                    <button class="nav-link active" id="tab-year-2025" data-bs-toggle="pill" data-bs-target="#content-year-2025" type="button" role="tab" onclick="loadOperationsYear(2025)">2025</button>
+                                </li>
+                                <!-- More years can be added here -->
+                            </ul>
+                        </div>
+                        
+                        <div class="card-body bg-light p-3">
+                            <!-- Year Content -->
+                            <div class="tab-content" id="ops-year-content">
+                                
+                                <!-- 2025 Content -->
+                                <div class="tab-pane fade show active" id="content-year-2025" role="tabpanel">
+                                    
+                                    <!-- Month Tabs (Scrollable on mobile) -->
+                                    <div class="d-flex align-items-center mb-3 overflow-auto border-bottom pb-2">
+                                        <ul class="nav nav-tabs flex-nowrap w-100" id="ops-month-tabs-2025" role="tablist">
+                                            <!-- Generated by JS -->
+                                        </ul>
+                                    </div>
+
+                                    <!-- Month Content Container -->
+                                    <div class="tab-content" id="ops-month-content-2025">
+                                        <div class="tab-pane fade show active" id="month-view-container" role="tabpanel">
+                                            
+                                            <!-- Toolbar -->
+                                            <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-2 rounded shadow-sm">
+                                                <div class="d-flex gap-2 align-items-center">
+                                                    <span class="badge bg-primary fs-6" id="current-month-badge">Enero 2025</span>
+                                                    <span class="text-muted small" id="record-count-badge">Cargando...</span>
+                                                </div>
+                                                <div class="btn-group" role="group">
+                                                    <input type="radio" class="btn-check" name="viewmode" id="view-table" autocomplete="off" checked onchange="toggleViewMode('table')">
+                                                    <label class="btn btn-outline-secondary btn-sm" for="view-table"><i class="fas fa-table me-1"></i>Tabla Detallada</label>
+
+                                                    <input type="radio" class="btn-check" name="viewmode" id="view-charts" autocomplete="off" onchange="toggleViewMode('charts')">
+                                                    <label class="btn btn-outline-secondary btn-sm" for="view-charts"><i class="fas fa-chart-pie me-1"></i>Estadísticas</label>
+                                                </div>
+                                                <button class="btn btn-success btn-sm" onclick="exportCurrentTable()"><i class="fas fa-file-excel me-1"></i>Exportar Excel</button>
+                                            </div>
+
+                                            <!-- Data Table View -->
+                                            <div id="ops-table-wrapper" class="bg-white p-3 rounded shadow-sm" style="min-height: 400px;">
+                                                <div class="table-responsive">
+                                                    <table id="ops-datatable" class="table table-striped table-hover table-bordered w-100" style="font-size: 0.85rem;">
+                                                        <thead class="table-light">
+                                                            <!-- Headers will be dynamic -->
+                                                        </thead>
+                                                        <tbody></tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+
+                                            <!-- Charts View (New) -->
+                                            <div id="ops-charts-wrapper" class="d-none" style="min-height: 400px;">
+                                                <div class="row g-3">
+                                                    <!-- KPI Cards -->
+                                                    <div class="col-md-3">
+                                                        <div class="card h-100 border-0 shadow-sm text-center p-3">
+                                                            <div class="text-muted small text-uppercase">Total Operaciones</div>
+                                                            <div class="fs-2 fw-bold text-primary" id="kpi-total-ops">-</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <div class="card h-100 border-0 shadow-sm text-center p-3">
+                                                            <div class="text-muted small text-uppercase">Promedio Diario</div>
+                                                            <div class="fs-2 fw-bold text-success" id="kpi-avg-daily">-</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                         <div class="card h-100 border-0 shadow-sm text-center p-3">
+                                                            <div class="text-muted small text-uppercase">Día Más Activo</div>
+                                                            <div class="fs-4 fw-bold text-info" id="kpi-busiest-day">-</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <div class="card h-100 border-0 shadow-sm text-center p-3">
+                                                            <div class="text-muted small text-uppercase">Hora Pico (Moda)</div>
+                                                            <div class="fs-2 fw-bold text-warning" id="kpi-peak-hour">-</div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Charts -->
+                                                    <div class="col-12">
+                                                        <div class="card h-100 border-0 shadow-sm">
+                                                            <div class="card-header bg-white fw-bold">Distribución por Hora</div>
+                                                            <div class="card-body" style="position:relative;min-height:280px;">
+                                                                <canvas id="chart-hourly-ops"></canvas>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="col-12">
+                                                        <div class="card border-0 shadow-sm">
+                                                            <div class="card-header bg-white fw-bold d-flex align-items-center gap-3">
+                                                                <span>Uso de Posiciones</span>
+                                                                <span class="d-flex gap-2 flex-wrap ms-auto" style="font-size:0.78rem;font-weight:400">
+                                                                    <span><span style="display:inline-block;width:12px;height:12px;background:#198754;border-radius:2px"></span> Contacto</span>
+                                                                    <span><span style="display:inline-block;width:12px;height:12px;background:#20c997;border-radius:2px"></span> Contacto Intl.</span>
+                                                                    <span><span style="display:inline-block;width:12px;height:12px;background:#fd7e14;border-radius:2px"></span> Semicontacto</span>
+                                                                    <span><span style="display:inline-block;width:12px;height:12px;background:#0d6efd;border-radius:2px"></span> Remota</span>
+                                                                    <span><span style="display:inline-block;width:12px;height:12px;background:#6c757d;border-radius:2px"></span> Hangar</span>
+                                                                    <span><span style="display:inline-block;width:12px;height:12px;background:#adb5bd;border-radius:2px"></span> Sin clasificar</span>
+                                                                </span>
+                                                            </div>
+                                                            <div class="card-body" style="overflow-y:auto;max-height:600px;padding-bottom:8px">
+                                                                <div id="chart-positions-wrapper" style="position:relative;min-height:350px">
+                                                                    <canvas id="chart-positions"></canvas>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12" id="chart-aircrafts-col">
+                                                        <div class="card border-0 shadow-sm">
+                                                            <div class="card-header bg-white d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                                                <span class="fw-bold">Operaciones por Tipo de Aeronave</span>
+                                                                <div class="d-flex align-items-center gap-2">
+                                                                    <label for="ac-mov-service-filter" class="text-muted small mb-0">Filtrar por tipo de servicio:</label>
+                                                                    <select id="ac-mov-service-filter" class="form-select form-select-sm" style="min-width:190px;">
+                                                                        <option value="">Todos los servicios</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                            <div class="card-body">
+                                                                <div class="row g-3">
+                                                                    <div class="col-md-6">
+                                                                        <h6 class="text-primary fw-bold text-center mb-2">&#x1F6EC; Aterrizajes</h6>
+                                                                        <div id="chart-arr-body" style="position:relative;min-height:400px;">
+                                                                            <canvas id="chart-ac-arrivals"></canvas>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-md-6">
+                                                                        <h6 class="text-success fw-bold text-center mb-2">&#x1F6EB; Despegues</h6>
+                                                                        <div id="chart-dep-body" style="position:relative;min-height:400px;">
+                                                                            <canvas id="chart-ac-departures"></canvas>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                     </div>
                 </div>
 
@@ -6986,6 +7327,7 @@
     <script src="js/inicio.js"></script>
     <script src="js/itinerario.js?v=3"></script>
     <script src="js/demoras.js"></script>
+    <script src="js/analisis-operaciones.js?v=2"></script>
     <script src="js/operaciones.js"></script>
     <script src="js/frecuencias.js"></script>
     <script src="js/frecuencias_auto.js?v=2"></script>
@@ -7826,6 +8168,24 @@
             </div>
         </div>
     </div>
+
+<!-- ── Heatmap Drill-down Modal ─────────────────────────────────────────── -->
+<div class="modal fade" id="heatmap-drilldown-modal" tabindex="-1"
+     aria-labelledby="heatmap-drilldown-title" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title mb-0" id="heatmap-drilldown-title">Vuelos</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body" id="heatmap-drilldown-body">
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 </body>
 
