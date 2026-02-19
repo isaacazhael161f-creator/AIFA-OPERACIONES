@@ -3166,7 +3166,11 @@ async function handleLogin(e) {
         let emailOrUsername = document.getElementById('username').value;
         const password = document.getElementById('password').value;
 
-        if (!window.supabaseClient) throw new Error('Supabase no inicializado');
+        // Asegurar que Supabase esté listo (intento de recarga si es necesario)
+        if (typeof window.ensureSupabaseClient === 'function') {
+            try { await window.ensureSupabaseClient(); } catch(e){ console.error(e); }
+        }
+        if (!window.supabaseClient) throw new Error('Supabase no inicializado (Verifique conexión).');
 
         // Si no es un email, asumimos que es un nombre de usuario y agregamos el dominio interno
         if (!emailOrUsername.includes('@')) {
@@ -3181,10 +3185,24 @@ async function handleLogin(e) {
             emailOrUsername = `${normalized}@aifa.operaciones`;
         }
 
-        const { data, error } = await window.supabaseClient.auth.signInWithPassword({
+        // Timeout wrapper
+        const loginPromise = window.supabaseClient.auth.signInWithPassword({
             email: emailOrUsername,
             password: password,
         });
+
+        // Aumentado a 60s porque Supabase puede tardar en "despertar"
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('El servidor tardó demasiado (Timeout 60s). Posiblemente el proyecto esté despertando o la conexión sea lenta.')), 60000)
+        );
+
+        // Feedback visual si tarda
+        const slowTimer = setTimeout(() => {
+            showGlobalLoader('Contactando servidor (esto puede tardar unos segundos)...');
+        }, 3000);
+
+        const { data, error } = await Promise.race([loginPromise, timeoutPromise]);
+        clearTimeout(slowTimer);
 
         if (error) throw error;
 
