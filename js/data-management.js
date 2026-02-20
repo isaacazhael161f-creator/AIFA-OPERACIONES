@@ -47,6 +47,11 @@
         };
         this.isEditMode = false;
         this.currentDailyData = []; // Store raw data for edits
+        // Date-filter state for the main-page Llegadas / Salidas tables
+        this.dailyDateState = {
+            arrival:   { mode: 'rel', active: false, dateFrom: null, dateTo: null },
+            departure: { mode: 'rel', active: false, dateFrom: null, dateTo: null }
+        };
 
         this.schemas = {
             operations_summary: [
@@ -1335,53 +1340,116 @@
         const tbody = table.querySelector('tbody');
         const thead = table.querySelector('thead');
 
-        // Inject Filter
-        // Inject Filter
+        // Inject Filter Row ─────────────────────────────────────────────
         let filterRow = thead.querySelector('.filter-row');
         if (!filterRow) {
             filterRow = document.createElement('tr');
-            filterRow.className = 'filter-row text-center bg-light';
+            filterRow.className = 'filter-row text-center';
             const headers = thead.querySelectorAll('tr:not(.filter-row) th');
+
+            // Helper: apply all column filters + global search for this table
+            const applyAllFilters = () => {
+                const filterInputs = filterRow.querySelectorAll('.flights-col-filter');
+                const globalInput = document.getElementById('search-flights-global');
+                const globalTerm = globalInput ? globalInput.value.trim().toLowerCase() : '';
+                let visible = 0;
+
+                tbody.querySelectorAll('tr').forEach(r => {
+                    // Global search: check entire row text
+                    if (globalTerm && !r.textContent.toLowerCase().includes(globalTerm)) {
+                        r.style.display = 'none';
+                        return;
+                    }
+                    // Column-level cooperative filters
+                    let show = true;
+                    filterInputs.forEach((inp, i) => {
+                        const term = inp.value.trim().toLowerCase();
+                        if (!term) return;
+                        const cell = r.cells[i];
+                        if (cell && !cell.textContent.toLowerCase().includes(term)) {
+                            show = false;
+                        }
+                    });
+                    // Date filter
+                    if (show) {
+                        const ds = this.dailyDateState[type];
+                        if (ds && ds.active) {
+                            const fecha = r.getAttribute('data-fecha');
+                            const rowDate = fecha ? new Date(fecha + 'T12:00:00') : null;
+                            if (!rowDate || isNaN(rowDate)) { show = false; }
+                            else {
+                                if (ds.dateFrom && rowDate < ds.dateFrom) show = false;
+                                if (ds.dateTo   && rowDate > ds.dateTo)   show = false;
+                            }
+                        }
+                    }
+                    r.style.display = show ? '' : 'none';
+                    if (show) visible++;
+                });
+
+                // Update count badge with filtered count
+                const badgeId = type === 'arrival' ? 'arrivals-count-badge' : 'departures-count-badge';
+                const badge = document.getElementById(badgeId);
+                if (badge) {
+                    const total = tbody.querySelectorAll('tr').length;
+                    const dateActive = this.dailyDateState[type] && this.dailyDateState[type].active;
+                    badge.textContent = (globalTerm || filterRow.querySelector('.active-filter') || dateActive)
+                        ? `${visible} / ${total} vuelos`
+                        : `${total} vuelos`;
+                }
+            };
 
             headers.forEach((th, idx) => {
                 const td = document.createElement('td');
                 td.className = 'p-1';
-                // Only add filter inputs for columns that have data and aren't purely actions/empty
-                if (idx < headers.length) {
+
+                // Skip pure-icon or action headers (empty text, last two cols)
+                const headerText = th.textContent.trim();
+                const isActionCol = idx >= headers.length - 2 && !headerText;
+
+                if (!isActionCol) {
                     const input = document.createElement('input');
                     input.type = 'text';
-                    input.className = 'form-control form-control-sm border-0 bg-white text-center shadow-sm';
-                    input.style.fontSize = '0.75rem';
-                    input.placeholder = 'Filtrar...';
+                    input.className = 'flights-col-filter w-100';
+                    input.placeholder = headerText ? 'Filtrar…' : '';
+                    input.title = headerText ? `Filtrar por ${headerText}` : '';
 
-                    input.addEventListener('keyup', function () {
-                        const term = this.value.toLowerCase();
-                        const rows = tbody.querySelectorAll('tr');
-                        rows.forEach(r => {
-                            const cell = r.cells[idx];
-                            if (cell) {
-                                const txt = cell.textContent.toLowerCase();
-                                r.style.display = txt.includes(term) ? '' : 'none';
-                            }
-                        });
+                    input.addEventListener('input', function () {
+                        this.classList.toggle('active-filter', this.value.trim().length > 0);
+                        applyAllFilters();
                     });
 
                     td.appendChild(input);
+                } else {
+                    td.innerHTML = '<span class="text-muted small">—</span>';
                 }
+
                 filterRow.appendChild(td);
             });
             thead.appendChild(filterRow);
+
+            // Expose applyAllFilters so global search can re-use it
+            table._applyAllFilters = applyAllFilters;
         }
 
-        // Render Data
+        // Render Data ────────────────────────────────────────────────────
         tbody.innerHTML = '';
+
+        // Update count badge
+        const badgeId = type === 'arrival' ? 'arrivals-count-badge' : 'departures-count-badge';
+        const badge = document.getElementById(badgeId);
+
         if (!data || data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">Sin registros</td></tr>`;
+            if (badge) badge.textContent = '0 vuelos';
             return;
         }
 
+        if (badge) badge.textContent = `${data.length} vuelos`;
+
         data.forEach(row => {
             const tr = document.createElement('tr');
+            tr.setAttribute('data-fecha', row.fecha || '');
 
             const airlineName = row.aerolinea || 'N/A';
             const config = this.getAirlineConfigByName(airlineName);
@@ -1518,6 +1586,166 @@
             }
             tbody.appendChild(tr);
         });
+    }
+
+    /**
+     * Global search across both flight tables (Llegadas + Salidas).
+     * Respects any active column-level filters already set.
+     */
+    filterFlightsGlobal(term) {
+        const tables = [
+            document.querySelector('#table-daily-flights-arrivals'),
+            document.querySelector('#table-daily-flights-departures')
+        ];
+        tables.forEach(table => {
+            if (!table) return;
+            if (typeof table._applyAllFilters === 'function') {
+                // Reuse the cooperative filter already wired inside renderDailyOpsFancy
+                table._applyAllFilters();
+            } else {
+                // Fallback: simple global text filter
+                const rows = table.querySelectorAll('tbody tr');
+                const t = term.trim().toLowerCase();
+                rows.forEach(r => {
+                    r.style.display = (!t || r.textContent.toLowerCase().includes(t)) ? '' : 'none';
+                });
+            }
+        });
+    }
+
+    /** Clear global search input and reset visibility in both flight tables. */
+    clearFlightsSearch() {
+        const input = document.getElementById('search-flights-global');
+        if (input) input.value = '';
+        this.filterFlightsGlobal('');
+    }
+
+    // ── Daily-ops date filter helpers ───────────────────────────────────
+
+    /** Toggle the date-filter panel open/closed for 'arrival' or 'departure'. */
+    toggleDailyDatePanel(type) {
+        const panelId = type === 'arrival' ? 'daily-date-panel-arr' : 'daily-date-panel-dep';
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+        panel.classList.toggle('d-none');
+        // On open: refresh labels and apply the filter immediately
+        if (!panel.classList.contains('d-none')) {
+            this._updateDailyDateLabels(type);
+            this.applyDailyDateFilter(type);
+        }
+    }
+
+    /** Switch between 'rel' (relative) and 'abs' (absolute) date-filter modes. */
+    setDailyDateMode(type, mode) {
+        this.dailyDateState[type].mode = mode;
+        const prefix = type === 'arrival' ? 'daily-arr' : 'daily-dep';
+        const relPanel = document.getElementById(`${prefix}-rel-mode`);
+        const absPanel = document.getElementById(`${prefix}-abs-mode`);
+        const btnRel   = document.getElementById(`${prefix}-mode-rel`);
+        const btnAbs   = document.getElementById(`${prefix}-mode-abs`);
+        if (relPanel) relPanel.classList.toggle('d-none', mode !== 'rel');
+        if (absPanel) absPanel.classList.toggle('d-none', mode !== 'abs');
+        if (btnRel) btnRel.classList.toggle('active', mode === 'rel');
+        if (btnAbs) btnAbs.classList.toggle('active', mode === 'abs');
+        this.applyDailyDateFilter(type);
+    }
+
+    /** Increment or decrement a relative offset input and re-apply the filter. */
+    stepDailyOffset(type, which, delta) {
+        const prefix = type === 'arrival' ? 'daily-arr' : 'daily-dep';
+        const inputId = which === 'start' ? `${prefix}-rel-start` : `${prefix}-rel-end`;
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        input.value = (parseInt(input.value, 10) || 0) + delta;
+        this.applyDailyDateFilter(type);
+    }
+
+    /** Update the human-readable date label spans for relative mode. */
+    _updateDailyDateLabels(type) {
+        const prefix = type === 'arrival' ? 'daily-arr' : 'daily-dep';
+        const startOffset = parseInt((document.getElementById(`${prefix}-rel-start`) || {}).value ?? '-4', 10);
+        const endOffset   = parseInt((document.getElementById(`${prefix}-rel-end`)   || {}).value ?? '0',  10);
+        const today = new Date();
+        const fmt = (d) => d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+        const startDate = new Date(today); startDate.setDate(today.getDate() + startOffset);
+        const endDate   = new Date(today); endDate.setDate(today.getDate() + endOffset);
+        const startLabel = document.getElementById(`${prefix}-rel-start-label`);
+        const endLabel   = document.getElementById(`${prefix}-rel-end-label`);
+        if (startLabel) startLabel.textContent = fmt(startDate);
+        if (endLabel)   endLabel.textContent   = fmt(endDate);
+    }
+
+    /** Compute [start, end] Date window for the given type from current inputs. Returns null if inactive. */
+    _getDailyDateWindow(type) {
+        const ds = this.dailyDateState[type];
+        const prefix = type === 'arrival' ? 'daily-arr' : 'daily-dep';
+        if (ds.mode === 'rel') {
+            const startOffset = parseInt((document.getElementById(`${prefix}-rel-start`) || {}).value ?? '-4', 10);
+            const endOffset   = parseInt((document.getElementById(`${prefix}-rel-end`)   || {}).value ?? '0',  10);
+            const today = new Date();
+            const start = new Date(today); start.setDate(today.getDate() + startOffset); start.setHours(0, 0, 0, 0);
+            const end   = new Date(today); end.setDate(today.getDate() + endOffset);     end.setHours(23, 59, 59, 999);
+            return [start, end];
+        } else {
+            const fromVal = (document.getElementById(`${prefix}-abs-from`) || {}).value || '';
+            const toVal   = (document.getElementById(`${prefix}-abs-to`)   || {}).value || '';
+            if (!fromVal && !toVal) return null;
+            const start = fromVal ? new Date(fromVal + 'T00:00:00') : new Date('2000-01-01');
+            const end   = toVal   ? new Date(toVal   + 'T23:59:59') : new Date('2099-12-31');
+            return [start, end];
+        }
+    }
+
+    /** Called on every date input change; updates state and re-triggers the table filter. */
+    applyDailyDateFilter(type) {
+        const win = this._getDailyDateWindow(type);
+        const ds  = this.dailyDateState[type];
+        ds.active   = win !== null;
+        ds.dateFrom = win ? win[0] : null;
+        ds.dateTo   = win ? win[1] : null;
+        // Update date labels for relative mode
+        if (ds.mode === 'rel') this._updateDailyDateLabels(type);
+        // Highlight funnel button
+        const btnId = type === 'arrival' ? 'btn-date-daily-arr' : 'btn-date-daily-dep';
+        const btn = document.getElementById(btnId);
+        if (btn) btn.classList.toggle('active-date-filter', ds.active);
+        // Re-run the cooperative filter on the right table
+        const tableSelector = type === 'arrival'
+            ? '#table-daily-flights-arrivals'
+            : '#table-daily-flights-departures';
+        const table = document.querySelector(tableSelector);
+        if (table && typeof table._applyAllFilters === 'function') {
+            table._applyAllFilters();
+        }
+    }
+
+    /** Remove date filter for a given table type. */
+    clearDailyDateFilter(type) {
+        const ds = this.dailyDateState[type];
+        ds.active = false; ds.dateFrom = null; ds.dateTo = null;
+        const btnId = type === 'arrival' ? 'btn-date-daily-arr' : 'btn-date-daily-dep';
+        const btn = document.getElementById(btnId);
+        if (btn) btn.classList.remove('active-date-filter');
+        const prefix = type === 'arrival' ? 'daily-arr' : 'daily-dep';
+        // Reset relative offsets to defaults (-4 to 0)
+        const startEl = document.getElementById(`${prefix}-rel-start`);
+        const endEl   = document.getElementById(`${prefix}-rel-end`);
+        if (startEl) startEl.value = '-4';
+        if (endEl)   endEl.value   = '0';
+        // Reset absolute range
+        const fromEl = document.getElementById(`${prefix}-abs-from`);
+        const toEl   = document.getElementById(`${prefix}-abs-to`);
+        if (fromEl) fromEl.value = '';
+        if (toEl)   toEl.value   = '';
+        // Refresh labels
+        this._updateDailyDateLabels(type);
+        const tableSelector = type === 'arrival'
+            ? '#table-daily-flights-arrivals'
+            : '#table-daily-flights-departures';
+        const table = document.querySelector(tableSelector);
+        if (table && typeof table._applyAllFilters === 'function') {
+            table._applyAllFilters();
+        }
     }
 
     initColumnVisibility() {

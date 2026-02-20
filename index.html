@@ -300,9 +300,204 @@
             color: #0d6efd !important;
         }
 
+        /* ── Board View (Llegadas / Salidas) column filters ───────── */
+        .board-filter-row td {
+            background: #f0f4f8 !important;
+            padding: 3px !important;
+        }
+        .board-col-filter {
+            font-size: 0.72rem !important;
+            border-radius: 5px !important;
+            border: 1px solid #cbd5e0 !important;
+            background: #fff !important;
+            padding: 2px 5px !important;
+            height: 26px !important;
+            text-align: center;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .board-col-filter:focus {
+            outline: none;
+            border-color: #2980b9 !important;
+            box-shadow: 0 0 0 2px rgba(41,128,185,0.18) !important;
+        }
+        #table-board-arrivals .board-col-filter:focus {
+            border-color: #27ae60 !important;
+            box-shadow: 0 0 0 2px rgba(39,174,96,0.18) !important;
+        }
+        .board-col-filter.active-filter {
+            border-color: #f39c12 !important;
+            background: #fffde7 !important;
+        }
+        .board-global-search {
+            max-width: 320px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .board-global-search .form-control:focus {
+            box-shadow: none !important;
+            border-color: #dee2e6;
+        }
+
         .filter-icon.active {
             color: #0d6efd !important;
             font-weight: bold;
+        }
+
+        /* ── Flight Tables (Llegadas / Salidas) ───────────────────────── */
+        .flights-card {
+            border-radius: 12px !important;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.10) !important;
+            border: none !important;
+        }
+        .flights-card .card-header {
+            padding: 0.65rem 1rem !important;
+            letter-spacing: 0.3px;
+        }
+        .flights-card .card-header.arr-header {
+            background: linear-gradient(135deg, #1a7a4a 0%, #27ae60 100%) !important;
+        }
+        .flights-card .card-header.dep-header {
+            background: linear-gradient(135deg, #0d4fa3 0%, #2980b9 100%) !important;
+        }
+        .flights-count-badge {
+            font-size: 0.78rem !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.5px;
+            padding: 0.3em 0.7em !important;
+            border-radius: 20px !important;
+            opacity: 0.95;
+        }
+        .flights-global-search {
+            border-radius: 8px !important;
+            overflow: hidden;
+        }
+        .flights-global-search .input-group-text {
+            background: #fff;
+            border-right: none;
+            color: #6c757d;
+        }
+        .flights-global-search .form-control {
+            border-left: none;
+            box-shadow: none !important;
+        }
+        .flights-global-search .form-control:focus {
+            border-color: #dee2e6;
+        }
+        /* Filter row inside flights tables */
+        #table-daily-flights-arrivals .filter-row td,
+        #table-daily-flights-departures .filter-row td {
+            background: #f0f4f8;
+            padding: 4px 3px !important;
+        }
+        #table-daily-flights-arrivals .filter-row .flights-col-filter,
+        #table-daily-flights-departures .filter-row .flights-col-filter {
+            font-size: 0.72rem !important;
+            border-radius: 5px !important;
+            border: 1px solid #cbd5e0 !important;
+            background: #fff !important;
+            text-align: center;
+            padding: 2px 5px !important;
+            height: 26px !important;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        #table-daily-flights-arrivals .filter-row .flights-col-filter:focus,
+        #table-daily-flights-departures .filter-row .flights-col-filter:focus {
+            border-color: #27ae60 !important;
+            box-shadow: 0 0 0 2px rgba(39,174,96,0.15) !important;
+            outline: none;
+        }
+        #table-daily-flights-departures .filter-row .flights-col-filter:focus {
+            border-color: #2980b9 !important;
+            box-shadow: 0 0 0 2px rgba(41,128,185,0.15) !important;
+        }
+        #table-daily-flights-arrivals .filter-row .flights-col-filter.active-filter,
+        #table-daily-flights-departures .filter-row .flights-col-filter.active-filter {
+            border-color: #f39c12 !important;
+            background: #fffde7 !important;
+        }
+        /* Table rows */
+        #table-daily-flights-arrivals tbody tr,
+        #table-daily-flights-departures tbody tr {
+            transition: background 0.15s;
+        }
+        #table-daily-flights-arrivals.table-hover tbody tr:hover td,
+        #table-daily-flights-departures.table-hover tbody tr:hover td {
+            background: rgba(39,174,96,0.07) !important;
+        }
+        #table-daily-flights-departures.table-hover tbody tr:hover td {
+            background: rgba(41,128,185,0.07) !important;
+        }
+        /* Header cells */
+        #table-daily-flights-arrivals thead tr:first-child th,
+        #table-daily-flights-departures thead tr:first-child th {
+            background: #f8fafc;
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: #4a5568;
+            letter-spacing: 0.4px;
+            border-bottom: 2px solid #e2e8f0;
+            white-space: nowrap;
+        }
+        /* ────────────────────────────────────────────────────────────── */
+
+        /* ── Date-filter panel (shared by main-page & board-view tables) ─── */
+        .board-date-panel {
+            padding: 10px 14px 12px;
+            background: rgba(41, 128, 185, 0.07);   /* default: blue tint (salidas) */
+            border-bottom: 1px solid rgba(0,0,0,0.07);
+            animation: dateFilterSlide .15s ease;
+        }
+        @keyframes dateFilterSlide {
+            from { opacity: 0; transform: translateY(-5px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        /* Arrivals (green) tint */
+        #daily-date-panel-arr,
+        #board-date-panel-arr {
+            background: rgba(40, 167, 69, 0.08);
+        }
+        /* Funnel toggle button */
+        .btn-date-filter-toggle {
+            padding: 2px 7px !important;
+            font-size: 0.8rem !important;
+            border-radius: 6px !important;
+            opacity: 0.85;
+            transition: opacity .15s, background .15s, border-color .15s;
+        }
+        .btn-date-filter-toggle:hover { opacity: 1; }
+        .btn-date-filter-toggle.active-date-filter {
+            background: #fff3cd !important;
+            border-color: #ffc107 !important;
+            color: #856404 !important;
+            opacity: 1;
+        }
+        /* Small mode-toggle buttons (Relativo / Absoluto) */
+        .btn.btn-xs {
+            padding: 2px 8px !important;
+            font-size: 0.75rem !important;
+            line-height: 1.5;
+            border-radius: 5px !important;
+        }
+        .board-mode-btn {
+            background: #e9ecef;
+            border: 1px solid #ced4da;
+            color: #495057;
+            transition: background .15s, color .15s, border-color .15s;
+        }
+        .board-mode-btn.active {
+            background: #0d6efd;
+            color: #fff;
+            border-color: #0d6efd;
+        }
+        /* Green active state for arrivals panels */
+        #daily-date-panel-arr .board-mode-btn.active,
+        #board-date-panel-arr .board-mode-btn.active {
+            background: #28a745;
+            border-color: #28a745;
+        }
+        .board-date-mode-section {
+            padding-top: 6px;
         }
 
         .excel-filter-menu {
@@ -726,11 +921,6 @@
                                             type="button" role="tab"><i
                                                 class="fas fa-clipboard-list me-2 text-success"></i>Parte de
                                             Operaciones</button>
-
-                                        <button class="nav-link text-start mb-2 border shadow-sm rounded"
-                                            id="tab-daily-flights-ops" data-bs-toggle="pill"
-                                            data-bs-target="#pane-daily-flights-ops" type="button" role="tab"><i
-                                                class="fas fa-plane me-2 text-primary"></i>Vuelos (Ops)</button>
 
                                         <button class="nav-link text-start mb-2 border shadow-sm rounded"
                                             id="tab-library" data-bs-toggle="pill" data-bs-target="#pane-library"
@@ -1582,9 +1772,10 @@
                                         </div>
 
                                         <!-- Daily Flights Ops Pane -->
-                                        <div class="tab-pane fade" id="pane-daily-flights-ops" role="tabpanel">
+                                        <!-- pane-daily-flights-ops removed: content moved to Conciliación section -->
+                                        <div class="tab-pane fade d-none" id="pane-daily-flights-ops" role="tabpanel">
                                             <div class="d-flex justify-content-between align-items-center mb-3">
-                                                <h5 class="mb-0">Vuelos (Itinerario Operaciones)</h5>
+                                                <h5 class="mb-0"><i class="fas fa-tasks me-2 text-primary"></i>Conciliación — Itinerario de Vuelos</h5>
                                                 <div class="d-flex gap-2">
                                                     <input type="date" class="form-control form-control-sm"
                                                         id="filter-daily-flights-date" aria-label="Filtrar por fecha"
@@ -1666,13 +1857,80 @@
                                             </div>
 
                                             <div class="row g-3">
+                                                <!-- ── Global search bar ── -->
+                                                <div class="col-12">
+                                                    <div class="input-group input-group-sm shadow-sm flights-global-search">
+                                                        <span class="input-group-text border-end-0">
+                                                            <i class="fas fa-search"></i>
+                                                        </span>
+                                                        <input type="text" class="form-control"
+                                                            id="search-flights-global"
+                                                            placeholder="🔍  Buscar en llegadas y salidas (aerolínea, vuelo, origen, destino, matrícula…)"
+                                                            oninput="dataManagement.filterFlightsGlobal(this.value)">
+                                                        <button class="btn btn-outline-secondary btn-sm" type="button"
+                                                            title="Limpiar búsqueda"
+                                                            onclick="dataManagement.clearFlightsSearch()">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+
                                                 <!-- Arrivals Column -->
                                                 <div class="col-lg-6">
-                                                    <div class="card h-100 border-0 shadow-sm">
-                                                        <div class="card-header bg-success text-white py-2">
-                                                            <h6 class="mb-0"><i
-                                                                    class="fas fa-plane-arrival me-2"></i>Llegadas
-                                                            </h6>
+                                                    <div class="card h-100 border-0 shadow-sm flights-card">
+                                                        <div class="card-header arr-header text-white py-2 d-flex justify-content-between align-items-center">
+                                                            <h6 class="mb-0"><i class="fas fa-plane-arrival me-2"></i>Llegadas</h6>
+                                                            <div class="d-flex align-items-center gap-2">
+                                                                <span class="badge bg-white text-success flights-count-badge" id="arrivals-count-badge">— vuelos</span>
+                                                                <button class="btn btn-sm btn-light btn-date-filter-toggle" id="btn-date-daily-arr"
+                                                                    onclick="dataManagement.toggleDailyDatePanel('arrival')" title="Filtrar por fecha">
+                                                                    <i class="fas fa-filter"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <div id="daily-date-panel-arr" class="board-date-panel d-none">
+                                                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                                <span class="small fw-semibold text-muted" style="white-space:nowrap">Date Window</span>
+                                                                <div class="btn-group btn-group-sm" role="group">
+                                                                    <button class="btn btn-outline-success active" type="button" id="daily-arr-mode-rel"
+                                                                        onclick="dataManagement.setDailyDateMode('arrival','rel')">Relative</button>
+                                                                    <button class="btn btn-outline-success" type="button" id="daily-arr-mode-abs"
+                                                                        onclick="dataManagement.setDailyDateMode('arrival','abs')">Absolute</button>
+                                                                </div>
+                                                                <div id="daily-arr-rel-mode" class="d-flex flex-column">
+                                                                    <div class="d-flex align-items-center gap-1">
+                                                                        <button class="btn btn-sm btn-outline-secondary" type="button"
+                                                                            onclick="dataManagement.stepDailyOffset('arrival','start',-1)">-</button>
+                                                                        <input type="number" class="form-control form-control-sm text-center" id="daily-arr-rel-start"
+                                                                            value="-4" style="width:60px" oninput="dataManagement.applyDailyDateFilter('arrival')">
+                                                                        <button class="btn btn-sm btn-outline-secondary" type="button"
+                                                                            onclick="dataManagement.stepDailyOffset('arrival','start',1)">+</button>
+                                                                        <span class="small text-muted">to</span>
+                                                                        <button class="btn btn-sm btn-outline-secondary" type="button"
+                                                                            onclick="dataManagement.stepDailyOffset('arrival','end',-1)">-</button>
+                                                                        <input type="number" class="form-control form-control-sm text-center" id="daily-arr-rel-end"
+                                                                            value="0" style="width:60px" oninput="dataManagement.applyDailyDateFilter('arrival')">
+                                                                        <button class="btn btn-sm btn-outline-secondary" type="button"
+                                                                            onclick="dataManagement.stepDailyOffset('arrival','end',1)">+</button>
+                                                                    </div>
+                                                                    <div class="d-flex align-items-center gap-1 small text-muted mt-1">
+                                                                        <span id="daily-arr-rel-start-label">—</span>
+                                                                        <span>to</span>
+                                                                        <span id="daily-arr-rel-end-label">—</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div id="daily-arr-abs-mode" class="d-flex align-items-center gap-2 d-none">
+                                                                    <input type="date" class="form-control form-control-sm" id="daily-arr-abs-from"
+                                                                        style="width:135px" oninput="dataManagement.applyDailyDateFilter('arrival')">
+                                                                    <span class="small text-muted">to</span>
+                                                                    <input type="date" class="form-control form-control-sm" id="daily-arr-abs-to"
+                                                                        style="width:135px" oninput="dataManagement.applyDailyDateFilter('arrival')">
+                                                                </div>
+                                                                <button class="btn btn-xs btn-outline-secondary ms-auto"
+                                                                    onclick="dataManagement.clearDailyDateFilter('arrival')" title="Quitar filtro">
+                                                                    <i class="fas fa-times"></i>
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                         <div class="card-body p-0">
                                                             <div class="table-responsive">
@@ -1704,11 +1962,60 @@
 
                                                 <!-- Departures Column -->
                                                 <div class="col-lg-6">
-                                                    <div class="card h-100 border-0 shadow-sm">
-                                                        <div class="card-header bg-primary text-white py-2">
-                                                            <h6 class="mb-0"><i
-                                                                    class="fas fa-plane-departure me-2"></i>Salidas
-                                                            </h6>
+                                                    <div class="card h-100 border-0 shadow-sm flights-card">
+                                                        <div class="card-header dep-header text-white py-2 d-flex justify-content-between align-items-center">
+                                                            <h6 class="mb-0"><i class="fas fa-plane-departure me-2"></i>Salidas</h6>
+                                                            <div class="d-flex align-items-center gap-2">
+                                                                <span class="badge bg-white text-primary flights-count-badge" id="departures-count-badge">— vuelos</span>
+                                                                <button class="btn btn-sm btn-light btn-date-filter-toggle" id="btn-date-daily-dep"
+                                                                    onclick="dataManagement.toggleDailyDatePanel('departure')" title="Filtrar por fecha">
+                                                                    <i class="fas fa-filter"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <div id="daily-date-panel-dep" class="board-date-panel d-none">
+                                                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                                <span class="small fw-semibold text-muted" style="white-space:nowrap">Date Window</span>
+                                                                <div class="btn-group btn-group-sm" role="group">
+                                                                    <button class="btn btn-outline-primary active" type="button" id="daily-dep-mode-rel"
+                                                                        onclick="dataManagement.setDailyDateMode('departure','rel')">Relative</button>
+                                                                    <button class="btn btn-outline-primary" type="button" id="daily-dep-mode-abs"
+                                                                        onclick="dataManagement.setDailyDateMode('departure','abs')">Absolute</button>
+                                                                </div>
+                                                                <div id="daily-dep-rel-mode" class="d-flex flex-column">
+                                                                    <div class="d-flex align-items-center gap-1">
+                                                                        <button class="btn btn-sm btn-outline-secondary" type="button"
+                                                                            onclick="dataManagement.stepDailyOffset('departure','start',-1)">-</button>
+                                                                        <input type="number" class="form-control form-control-sm text-center" id="daily-dep-rel-start"
+                                                                            value="-4" style="width:60px" oninput="dataManagement.applyDailyDateFilter('departure')">
+                                                                        <button class="btn btn-sm btn-outline-secondary" type="button"
+                                                                            onclick="dataManagement.stepDailyOffset('departure','start',1)">+</button>
+                                                                        <span class="small text-muted">to</span>
+                                                                        <button class="btn btn-sm btn-outline-secondary" type="button"
+                                                                            onclick="dataManagement.stepDailyOffset('departure','end',-1)">-</button>
+                                                                        <input type="number" class="form-control form-control-sm text-center" id="daily-dep-rel-end"
+                                                                            value="0" style="width:60px" oninput="dataManagement.applyDailyDateFilter('departure')">
+                                                                        <button class="btn btn-sm btn-outline-secondary" type="button"
+                                                                            onclick="dataManagement.stepDailyOffset('departure','end',1)">+</button>
+                                                                    </div>
+                                                                    <div class="d-flex align-items-center gap-1 small text-muted mt-1">
+                                                                        <span id="daily-dep-rel-start-label">—</span>
+                                                                        <span>to</span>
+                                                                        <span id="daily-dep-rel-end-label">—</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div id="daily-dep-abs-mode" class="d-flex align-items-center gap-2 d-none">
+                                                                    <input type="date" class="form-control form-control-sm" id="daily-dep-abs-from"
+                                                                        style="width:135px" oninput="dataManagement.applyDailyDateFilter('departure')">
+                                                                    <span class="small text-muted">to</span>
+                                                                    <input type="date" class="form-control form-control-sm" id="daily-dep-abs-to"
+                                                                        style="width:135px" oninput="dataManagement.applyDailyDateFilter('departure')">
+                                                                </div>
+                                                                <button class="btn btn-xs btn-outline-secondary ms-auto"
+                                                                    onclick="dataManagement.clearDailyDateFilter('departure')" title="Quitar filtro">
+                                                                    <i class="fas fa-times"></i>
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                         <div class="card-body p-0">
                                                             <div class="table-responsive">
@@ -2785,6 +3092,12 @@
                                             <button class="btn btn-sm btn-outline-success" id="btn-import-ops-csv"
                                                 data-bs-toggle="modal" data-bs-target="#uploadOpsCsvModal"><i
                                                     class="fas fa-file-csv me-1"></i>Importar CSV</button>
+                                            <button id="btn-conciliacion-board"
+                                                class="btn btn-sm btn-outline-primary"
+                                                onclick="toggleConciliacionBoard()"
+                                                title="Vista Llegadas / Salidas">
+                                                <i class="fas fa-plane" style="transform:rotate(-90deg);display:inline-block;"></i>
+                                            </button>
                                         </div>
                                     </div>
 
@@ -2809,6 +3122,7 @@
                                     -->
 
                                     <!-- CSV Table (Operaciones) -->
+                                    <div id="conciliacion-csv-view">
                                     <div class="row">
                                         <div class="col-12 mb-4">
                                             <div class="card shadow-sm border-0">
@@ -2922,6 +3236,231 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    </div><!-- /conciliacion-csv-view -->
+
+                                    <!-- Vista Board: Llegadas y Salidas -->
+                                    <div id="conciliacion-board-view" class="d-none mt-2">
+                                        <div class="d-flex align-items-center mb-3 gap-2 flex-wrap">
+                                            <button class="btn btn-sm btn-outline-secondary" onclick="toggleConciliacionBoard()">
+                                                <i class="fas fa-table me-1"></i>Regresar al CSV
+                                            </button>
+                                            <span class="text-muted small"><i class="fas fa-plane me-1"></i>Vista Llegadas / Salidas</span>
+                                            <div class="input-group input-group-sm ms-auto board-global-search">
+                                                <span class="input-group-text border-end-0 bg-white"><i class="fas fa-search text-muted"></i></span>
+                                                <input type="text" class="form-control border-start-0" id="board-global-search"
+                                                    placeholder="Buscar en llegadas y salidas…"
+                                                    oninput="filterBoardTables()">
+                                                <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('board-global-search').value='';filterBoardTables();" title="Limpiar">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                            <span class="badge bg-warning text-dark ms-auto" style="font-size:.75rem;font-weight:500;">
+                                                <i class="fas fa-link me-1"></i>Haz clic en un vuelo para ver su enlace por matrícula
+                                            </span>
+                                        </div>
+                                        <div class="row g-3">
+                                            <!-- Llegadas -->
+                                            <div class="col-xl-6">
+                                                <div class="card shadow-sm border-0 h-100">
+                                                    <div class="card-header bg-success text-white d-flex align-items-center justify-content-between py-2">
+                                                        <span class="fw-bold"><i class="fas fa-plane-arrival me-2"></i>Llegadas</span>
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <span class="badge bg-white text-success fw-bold" id="board-arr-count">0 vuelos</span>
+                                                            <button class="btn btn-sm btn-light btn-date-filter-toggle" id="btn-board-date-arr"
+                                                                onclick="toggleBoardDatePanel('arr')" title="Filtrar por fecha">
+                                                                <i class="fas fa-filter"></i>
+                                                            </button>
+                                                            <button class="btn btn-sm btn-outline-light" title="Limpiar filtros de columna"
+                                                                onclick="clearBoardColFilters('arr')">
+                                                                <i class="fas fa-broom"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <!-- Date Window Panel: Llegadas -->
+                                                    <div id="board-date-panel-arr" class="board-date-panel d-none">
+                                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                            <span class="small fw-semibold text-muted" style="white-space:nowrap">Date Window</span>
+                                                            <div class="btn-group btn-group-sm" role="group">
+                                                                <button class="btn btn-outline-success active" type="button" id="board-arr-mode-rel"
+                                                                    onclick="setBoardDateMode('arr','rel')">Relative</button>
+                                                                <button class="btn btn-outline-success" type="button" id="board-arr-mode-abs"
+                                                                    onclick="setBoardDateMode('arr','abs')">Absolute</button>
+                                                            </div>
+                                                            <div id="board-arr-rel-mode" class="d-flex flex-column">
+                                                                <div class="d-flex align-items-center gap-1">
+                                                                    <button class="btn btn-sm btn-outline-secondary" type="button"
+                                                                        onclick="stepBoardOffset('arr','start',-1)">-</button>
+                                                                    <input type="number" class="form-control form-control-sm text-center" id="board-arr-rel-start"
+                                                                        value="-4" style="width:60px" oninput="applyBoardDateFilter('arr')">
+                                                                    <button class="btn btn-sm btn-outline-secondary" type="button"
+                                                                        onclick="stepBoardOffset('arr','start',1)">+</button>
+                                                                    <span class="small text-muted">a</span>
+                                                                    <button class="btn btn-sm btn-outline-secondary" type="button"
+                                                                        onclick="stepBoardOffset('arr','end',-1)">-</button>
+                                                                    <input type="number" class="form-control form-control-sm text-center" id="board-arr-rel-end"
+                                                                        value="0" style="width:60px" oninput="applyBoardDateFilter('arr')">
+                                                                    <button class="btn btn-sm btn-outline-secondary" type="button"
+                                                                        onclick="stepBoardOffset('arr','end',1)">+</button>
+                                                                </div>
+                                                                <div class="d-flex align-items-center gap-1 small text-muted mt-1">
+                                                                    <span id="board-arr-rel-start-label">—</span>
+                                                                    <span>a</span>
+                                                                    <span id="board-arr-rel-end-label">—</span>
+                                                                </div>
+                                                            </div>
+                                                            <div id="board-arr-abs-mode" class="d-flex align-items-center gap-2 d-none">
+                                                                <input type="date" class="form-control form-control-sm" id="board-arr-abs-date"
+                                                                    style="width:150px" oninput="applyBoardDateFilter('arr')">
+                                                                <span class="small text-muted fst-italic">— solo este día</span>
+                                                            </div>
+                                                            <button class="btn btn-xs btn-outline-secondary ms-auto"
+                                                                onclick="clearBoardDateFilter('arr')" title="Quitar filtro">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-body p-0">
+                                                        <div class="table-responsive" style="max-height:600px;overflow-y:auto;">
+                                                            <table class="table table-hover table-bordered table-sm align-middle mb-0" id="table-board-arrivals">
+                                                                <thead class="table-light sticky-top">
+                                                                    <tr class="text-center small text-uppercase text-muted">
+                                                                        <th>Status</th>
+                                                                        <th>Flight</th>
+                                                                        <th>SIBT</th>
+                                                                        <th>AIBT</th>
+                                                                        <th>Routing</th>
+                                                                        <th>Aircraft</th>
+                                                                        <th>Registration</th>
+                                                                    </tr>
+                                                                    <tr class="board-filter-row">
+                                                                        <td><input type="text" class="board-col-filter w-100" data-table="arr" placeholder="Status…" oninput="filterBoardTables()"></td>
+                                                                        <td><input type="text" class="board-col-filter w-100" data-table="arr" placeholder="Flight…" oninput="filterBoardTables()"></td>
+                                                                        <td><input type="text" class="board-col-filter w-100" data-table="arr" placeholder="SIBT…" oninput="filterBoardTables()"></td>
+                                                                        <td><input type="text" class="board-col-filter w-100" data-table="arr" placeholder="AIBT…" oninput="filterBoardTables()"></td>
+                                                                        <td><input type="text" class="board-col-filter w-100" data-table="arr" placeholder="Routing…" oninput="filterBoardTables()"></td>
+                                                                        <td><input type="text" class="board-col-filter w-100" data-table="arr" placeholder="Aircraft…" oninput="filterBoardTables()"></td>
+                                                                        <td><input type="text" class="board-col-filter w-100" data-table="arr" placeholder="Reg…" oninput="filterBoardTables()"></td>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody id="tbody-board-arrivals" class="text-center">
+                                                                    <tr><td colspan="7" class="text-muted py-4">Haz clic en el botón para cargar datos.</td></tr>
+                                                                </tbody>
+                                                                <tfoot>
+                                                                    <tr class="table-light">
+                                                                        <td colspan="7" class="text-end small text-muted py-2 pe-3">
+                                                                            <i class="fas fa-plane-arrival me-1"></i>
+                                                                            <span id="board-arr-footer">0</span> vuelos
+                                                                        </td>
+                                                                    </tr>
+                                                                </tfoot>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Salidas -->
+                                            <div class="col-xl-6">
+                                                <div class="card shadow-sm border-0 h-100">
+                                                    <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between py-2">
+                                                        <span class="fw-bold"><i class="fas fa-plane-departure me-2"></i>Salidas</span>
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <span class="badge bg-white text-primary fw-bold" id="board-dep-count">0 vuelos</span>
+                                                            <button class="btn btn-sm btn-light btn-date-filter-toggle" id="btn-board-date-dep"
+                                                                onclick="toggleBoardDatePanel('dep')" title="Filtrar por fecha">
+                                                                <i class="fas fa-filter"></i>
+                                                            </button>
+                                                            <button class="btn btn-sm btn-outline-light" title="Limpiar filtros de columna"
+                                                                onclick="clearBoardColFilters('dep')">
+                                                                <i class="fas fa-broom"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <!-- Date Window Panel: Salidas -->
+                                                    <div id="board-date-panel-dep" class="board-date-panel d-none">
+                                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                            <span class="small fw-semibold text-muted" style="white-space:nowrap">Date Window</span>
+                                                            <div class="btn-group btn-group-sm" role="group">
+                                                                <button class="btn btn-outline-primary active" type="button" id="board-dep-mode-rel"
+                                                                    onclick="setBoardDateMode('dep','rel')">Relative</button>
+                                                                <button class="btn btn-outline-primary" type="button" id="board-dep-mode-abs"
+                                                                    onclick="setBoardDateMode('dep','abs')">Absolute</button>
+                                                            </div>
+                                                            <div id="board-dep-rel-mode" class="d-flex flex-column">
+                                                                <div class="d-flex align-items-center gap-1">
+                                                                    <button class="btn btn-sm btn-outline-secondary" type="button"
+                                                                        onclick="stepBoardOffset('dep','start',-1)">-</button>
+                                                                    <input type="number" class="form-control form-control-sm text-center" id="board-dep-rel-start"
+                                                                        value="-4" style="width:60px" oninput="applyBoardDateFilter('dep')">
+                                                                    <button class="btn btn-sm btn-outline-secondary" type="button"
+                                                                        onclick="stepBoardOffset('dep','start',1)">+</button>
+                                                                    <span class="small text-muted">a</span>
+                                                                    <button class="btn btn-sm btn-outline-secondary" type="button"
+                                                                        onclick="stepBoardOffset('dep','end',-1)">-</button>
+                                                                    <input type="number" class="form-control form-control-sm text-center" id="board-dep-rel-end"
+                                                                        value="0" style="width:60px" oninput="applyBoardDateFilter('dep')">
+                                                                    <button class="btn btn-sm btn-outline-secondary" type="button"
+                                                                        onclick="stepBoardOffset('dep','end',1)">+</button>
+                                                                </div>
+                                                                <div class="d-flex align-items-center gap-1 small text-muted mt-1">
+                                                                    <span id="board-dep-rel-start-label">—</span>
+                                                                    <span>a</span>
+                                                                    <span id="board-dep-rel-end-label">—</span>
+                                                                </div>
+                                                            </div>
+                                                            <div id="board-dep-abs-mode" class="d-flex align-items-center gap-2 d-none">
+                                                                <input type="date" class="form-control form-control-sm" id="board-dep-abs-date"
+                                                                    style="width:150px" oninput="applyBoardDateFilter('dep')">
+                                                                <span class="small text-muted fst-italic">— solo este día</span>
+                                                            </div>
+                                                            <button class="btn btn-xs btn-outline-secondary ms-auto"
+                                                                onclick="clearBoardDateFilter('dep')" title="Quitar filtro">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-body p-0">
+                                                        <div class="table-responsive" style="max-height:600px;overflow-y:auto;">
+                                                            <table class="table table-hover table-bordered table-sm align-middle mb-0" id="table-board-departures">
+                                                                <thead class="table-light sticky-top">
+                                                                    <tr class="text-center small text-uppercase text-muted">
+                                                                        <th>Status</th>
+                                                                        <th>Flight</th>
+                                                                        <th>SOBT</th>
+                                                                        <th>AOBT</th>
+                                                                        <th>Routing</th>
+                                                                        <th>Aircraft</th>
+                                                                        <th>Registration</th>
+                                                                    </tr>
+                                                                    <tr class="board-filter-row">
+                                                                        <td><input type="text" class="board-col-filter w-100" data-table="dep" placeholder="Status…" oninput="filterBoardTables()"></td>
+                                                                        <td><input type="text" class="board-col-filter w-100" data-table="dep" placeholder="Flight…" oninput="filterBoardTables()"></td>
+                                                                        <td><input type="text" class="board-col-filter w-100" data-table="dep" placeholder="SOBT…" oninput="filterBoardTables()"></td>
+                                                                        <td><input type="text" class="board-col-filter w-100" data-table="dep" placeholder="AOBT…" oninput="filterBoardTables()"></td>
+                                                                        <td><input type="text" class="board-col-filter w-100" data-table="dep" placeholder="Routing…" oninput="filterBoardTables()"></td>
+                                                                        <td><input type="text" class="board-col-filter w-100" data-table="dep" placeholder="Aircraft…" oninput="filterBoardTables()"></td>
+                                                                        <td><input type="text" class="board-col-filter w-100" data-table="dep" placeholder="Reg…" oninput="filterBoardTables()"></td>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody id="tbody-board-departures" class="text-center">
+                                                                    <tr><td colspan="7" class="text-muted py-4">Haz clic en el botón para cargar datos.</td></tr>
+                                                                </tbody>
+                                                                <tfoot>
+                                                                    <tr class="table-light">
+                                                                        <td colspan="7" class="text-end small text-muted py-2 pe-3">
+                                                                            <i class="fas fa-plane-departure me-1"></i>
+                                                                            <span id="board-dep-footer">0</span> vuelos
+                                                                        </td>
+                                                                    </tr>
+                                                                </tfoot>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                         </div>
                     </div>
                 </div>
@@ -7338,6 +7877,429 @@
     <script src="js/itinerario-tab.js"></script>
     <script src="js/comparativa.js"></script>
     <script src="js/parte-ops-flights.js?v=2.2"></script>
+    <script>
+    // ---- Conciliación Board View ----
+    async function toggleConciliacionBoard() {
+        const board   = document.getElementById('conciliacion-board-view');
+        const csvView = document.getElementById('conciliacion-csv-view');
+        const btn     = document.getElementById('btn-conciliacion-board');
+        if (!board || !csvView) return;
+
+        const showingBoard = !board.classList.contains('d-none');
+
+        if (showingBoard) {
+            // Regresar a CSV
+            board.classList.add('d-none');
+            csvView.classList.remove('d-none');
+            if (btn) { btn.classList.remove('btn-primary'); btn.classList.add('btn-outline-primary'); }
+            return;
+        }
+
+        // Mostrar Board, ocultar CSV
+        csvView.classList.add('d-none');
+        board.classList.remove('d-none');
+        if (btn) { btn.classList.add('btn-primary'); btn.classList.remove('btn-outline-primary'); }
+
+        // Spinners mientras carga
+        const tbodyArr = document.getElementById('tbody-board-arrivals');
+        const tbodyDep = document.getElementById('tbody-board-departures');
+        const spinner  = `<tr><td colspan="7" class="text-center py-3"><span class="spinner-border spinner-border-sm text-secondary"></span></td></tr>`;
+        if (tbodyArr) tbodyArr.innerHTML = spinner;
+        if (tbodyDep) tbodyDep.innerHTML = spinner;
+
+        // Cargar datos si no hay
+        let data = (window.opsFlights && typeof window.opsFlights.getData === 'function') ? window.opsFlights.getData() : [];
+        if (!data || data.length === 0) {
+            if (window.opsFlights && typeof window.opsFlights.loadFlights === 'function') {
+                await window.opsFlights.loadFlights();
+            }
+        }
+
+        renderConciliacionBoard();
+    }
+
+    function renderConciliacionBoard() {
+        const data = (window.opsFlights && typeof window.opsFlights.getData === 'function')
+            ? window.opsFlights.getData()
+            : [];
+
+        const tbodyArr = document.getElementById('tbody-board-arrivals');
+        const tbodyDep = document.getElementById('tbody-board-departures');
+        const cntArr   = document.getElementById('board-arr-count');
+        const cntDep   = document.getElementById('board-dep-count');
+        const footArr  = document.getElementById('board-arr-footer');
+        const footDep  = document.getElementById('board-dep-footer');
+
+        const arrivals   = (data || []).filter(r => (r['[Arr] Flight Designator'] || '').trim());
+        const departures = (data || []).filter(r => (r['[Dep] Flight Designator'] || '').trim());
+
+        if (cntArr)  cntArr.textContent  = arrivals.length   + ' vuelos';
+        if (cntDep)  cntDep.textContent  = departures.length + ' vuelos';
+        if (footArr) footArr.textContent = arrivals.length;
+        if (footDep) footDep.textContent = departures.length;
+
+        function statusBadge(status) {
+            const s = (status || '').toLowerCase();
+            let cls = 'bg-secondary';
+            if (s.includes('block'))                                   cls = 'bg-success';
+            else if (s.includes('activated') || s.includes('active')) cls = 'bg-success';
+            else if (s.includes('cancel'))                             cls = 'bg-danger';
+            else if (s.includes('delay'))                              cls = 'bg-warning text-dark';
+            return `<span class="badge ${cls} text-wrap" style="min-width:80px;font-size:.75rem;">${status || ''}</span>`;
+        }
+        function esc(v) {
+            return String(v || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+        // Alternating bg: even rows white, odd rows light gray
+        function rowBg(i) { return i % 2 === 0 ? '#ffffff' : '#f0f4f8'; }
+
+        if (tbodyArr) {
+            if (!arrivals.length) {
+                tbodyArr.innerHTML = '<tr><td colspan="7" class="text-muted py-4">Sin datos de llegadas. Importa un CSV primero.</td></tr>';
+            } else {
+                tbodyArr.innerHTML = arrivals.map((r, i) => {
+                    const reg = esc(r['Registration']);
+                    const fecha = parseBoardDate(r['[Arr] SIBT'] || r['[Arr] AIBT'] || '');
+                    return `
+                    <tr data-registration="${reg}" data-board-type="arr" data-fecha="${fecha}"
+                        onclick="selectBoardFlight(this,'arr')"
+                        style="cursor:pointer;background:${rowBg(i)};transition:background .15s;">
+                        <td>${statusBadge(r['Status'])}</td>
+                        <td class="fw-bold">${esc(r['[Arr] Flight Designator'])}</td>
+                        <td>${esc(r['[Arr] SIBT'])}</td>
+                        <td>${esc(r['[Arr] AIBT'])}</td>
+                        <td>${esc(r['Routing'])}</td>
+                        <td>${esc(r['Aircraft type'])}</td>
+                        <td><span class="badge bg-light text-dark border">${reg}</span></td>
+                    </tr>`;
+                }).join('');
+            }
+        }
+
+        if (tbodyDep) {
+            if (!departures.length) {
+                tbodyDep.innerHTML = '<tr><td colspan="7" class="text-muted py-4">Sin datos de salidas. Importa un CSV primero.</td></tr>';
+            } else {
+                tbodyDep.innerHTML = departures.map((r, i) => {
+                    const reg = esc(r['Registration']);
+                    const fecha = parseBoardDate(r['[Dep] SOBT'] || r['[Dep] AOBT'] || '');
+                    return `
+                    <tr data-registration="${reg}" data-board-type="dep" data-fecha="${fecha}"
+                        onclick="selectBoardFlight(this,'dep')"
+                        style="cursor:pointer;background:${rowBg(i)};transition:background .15s;">
+                        <td>${statusBadge(r['Status'])}</td>
+                        <td class="fw-bold">${esc(r['[Dep] Flight Designator'])}</td>
+                        <td>${esc(r['[Dep] SOBT'])}</td>
+                        <td>${esc(r['[Dep] AOBT'])}</td>
+                        <td>${esc(r['Routing'])}</td>
+                        <td>${esc(r['Aircraft type'])}</td>
+                        <td><span class="badge bg-light text-dark border">${reg}</span></td>
+                    </tr>`;
+                }).join('');
+            }
+        }
+
+        // Re-apply any active filters after a fresh render
+        filterBoardTables();
+    }
+
+    /**
+     * Filters both board tables (Llegadas + Salidas) cooperatively:
+     * global search + per-column inputs all work together.
+     */
+    function filterBoardTables() {
+        const globalTerm = (document.getElementById('board-global-search') || {}).value || '';
+        const gt = globalTerm.trim().toLowerCase();
+
+        ['arr', 'dep'].forEach(side => {
+            const tbody = document.getElementById(`tbody-board-${side === 'arr' ? 'arrivals' : 'departures'}`);
+            const badge = document.getElementById(`board-${side}-count`);
+            const footer = document.getElementById(`board-${side}-footer`);
+            if (!tbody) return;
+
+            // Collect column filter values for this table
+            const colInputs = Array.from(
+                document.querySelectorAll(`.board-col-filter[data-table="${side}"]`)
+            );
+
+            // Date window for this side
+            const ds = boardDateState[side];
+            let dateFrom = null, dateTo = null;
+            if (ds && ds.active) {
+                const win = _getBoardDateWindow(side);
+                dateFrom = win.from;
+                dateTo   = win.to;
+            }
+
+            let visible = 0;
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const total = rows.length;
+
+            rows.forEach(r => {
+                const text = r.textContent.toLowerCase();
+
+                // Global search
+                if (gt && !text.includes(gt)) {
+                    r.style.display = 'none';
+                    return;
+                }
+
+                // Column filters (cooperative: all must match)
+                let show = true;
+                colInputs.forEach((inp, colIdx) => {
+                    const term = inp.value.trim().toLowerCase();
+                    if (!term) return;
+                    const cell = r.cells[colIdx];
+                    if (cell && !cell.textContent.toLowerCase().includes(term)) {
+                        show = false;
+                    }
+                });
+
+                // Date filter
+                if (show && dateFrom && dateTo) {
+                    const fecha = r.getAttribute('data-fecha') || '';
+                    if (!fecha || fecha < dateFrom || fecha > dateTo) show = false;
+                }
+
+                r.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+
+            // Update badges + footer with filtered / total count
+            const hasFilter = gt || colInputs.some(i => i.value.trim()) || (ds && ds.active);
+            const label = hasFilter ? `${visible} / ${total} vuelos` : `${total} vuelos`;
+            if (badge)  badge.textContent  = label;
+            if (footer) footer.textContent = hasFilter ? `${visible} / ${total}` : String(total);
+        });
+
+        // Auto-highlight linked arrival/departure pairs that survived the filter
+        autoHighlightBoardPairs();
+    }
+
+    function autoHighlightBoardPairs() {
+        const tbodyArr = document.getElementById('tbody-board-arrivals');
+        const tbodyDep = document.getElementById('tbody-board-departures');
+        if (!tbodyArr || !tbodyDep) return;
+
+        // Always clear previous pair highlights first
+        [tbodyArr, tbodyDep].forEach(tb => {
+            Array.from(tb.querySelectorAll('tr.board-paired')).forEach(r => {
+                r.classList.remove('board-paired');
+                if (!r.classList.contains('board-selected') && !r.classList.contains('board-linked')) {
+                    const idx = Array.from(r.parentNode.children).indexOf(r);
+                    const bg = idx % 2 === 0 ? '#ffffff' : '#f0f4f8';
+                    r.style.background = bg;
+                    Array.from(r.cells).forEach(td => td.style.removeProperty('background-color'));
+                }
+            });
+        });
+
+        // Only paint pairs when at least one filter is actually active
+        const globalTerm = (document.getElementById('board-global-search') || {}).value || '';
+        const anyColFilter = Array.from(document.querySelectorAll('.board-col-filter')).some(i => i.value.trim());
+        const anyDateFilter = boardDateState.arr.active || boardDateState.dep.active;
+        if (!globalTerm.trim() && !anyColFilter && !anyDateFilter) return;
+
+        // Collect registrations of all visible arr rows
+        const visibleArrRegs = new Set();
+        Array.from(tbodyArr.querySelectorAll('tr')).forEach(r => {
+            if (r.style.display !== 'none') {
+                const reg = r.getAttribute('data-registration');
+                if (reg) visibleArrRegs.add(reg);
+            }
+        });
+
+        // Paint yellow rows in both tables that share a registration and are both visible
+        function paintPaired(tr) {
+            if (tr.classList.contains('board-selected') || tr.classList.contains('board-linked')) return;
+            tr.classList.add('board-paired');
+            tr.style.background = '#fff9c4';
+            Array.from(tr.cells).forEach(td => td.style.setProperty('background-color', '#fff9c4', 'important'));
+        }
+
+        Array.from(tbodyDep.querySelectorAll('tr')).forEach(r => {
+            if (r.style.display === 'none') return;
+            const reg = r.getAttribute('data-registration');
+            if (reg && visibleArrRegs.has(reg)) {
+                const arrRow = tbodyArr.querySelector(`tr[data-registration="${CSS.escape(reg)}"]`);
+                if (arrRow && arrRow.style.display !== 'none') {
+                    paintPaired(r);
+                    paintPaired(arrRow);
+                }
+            }
+        });
+    }
+
+    function clearBoardColFilters(side) {
+        document.querySelectorAll(`.board-col-filter[data-table="${side}"]`).forEach(inp => inp.value = '');
+        filterBoardTables();
+    }
+
+    /* ── Board Date Filter State & Functions ───────────────────────── */
+    const boardDateState = {
+        arr: { mode: 'rel', relStart: -4, relEnd: 0, absDate: '', active: false },
+        dep: { mode: 'rel', relStart: -4, relEnd: 0, absDate: '', active: false }
+    };
+
+    /** Parse "26JAN 13:05" or "26JAN\n13:05" → "YYYY-MM-DD" */
+    function parseBoardDate(str) {
+        if (!str) return '';
+        const months = { JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11 };
+        const m = String(str).trim().match(/^(\d{1,2})([A-Z]{3})/);
+        if (!m) return '';
+        const day = parseInt(m[1], 10);
+        const mon = months[m[2]];
+        if (mon === undefined) return '';
+        const now = new Date();
+        let year = now.getFullYear();
+        const candidate = new Date(year, mon, day);
+        // If the date is more than 60 days in the future, it belongs to the previous year
+        if (candidate - now > 60 * 86400 * 1000) year--;
+        return `${year}-${String(mon + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    }
+
+    function _getBoardDateWindow(side) {
+        const ds = boardDateState[side];
+        if (ds.mode === 'abs') {
+            return { from: ds.absDate, to: ds.absDate };
+        }
+        const today = new Date();
+        function offsetDate(d, days) {
+            const r = new Date(d); r.setDate(r.getDate() + days);
+            return r.toISOString().slice(0,10);
+        }
+        const s = parseInt(document.getElementById(`board-${side}-rel-start`)?.value ?? ds.relStart, 10);
+        const e = parseInt(document.getElementById(`board-${side}-rel-end`)?.value   ?? ds.relEnd,   10);
+        const from = offsetDate(today, Math.min(s, e));
+        const to   = offsetDate(today, Math.max(s, e));
+        return { from, to };
+    }
+
+    function _updateBoardDateLabels(side) {
+        const win = _getBoardDateWindow(side);
+        const fmt = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'}) : '—';
+        const sl = document.getElementById(`board-${side}-rel-start-label`);
+        const el = document.getElementById(`board-${side}-rel-end-label`);
+        if (sl) sl.textContent = fmt(win.from);
+        if (el) el.textContent = fmt(win.to);
+    }
+
+    function toggleBoardDatePanel(side) {
+        const panel = document.getElementById(`board-date-panel-${side}`);
+        if (!panel) return;
+        const opening = panel.classList.contains('d-none');
+        // Close both panels first
+        ['arr','dep'].forEach(s => {
+            document.getElementById(`board-date-panel-${s}`)?.classList.add('d-none');
+        });
+        if (opening) {
+            panel.classList.remove('d-none');
+            // Only update labels — do NOT auto-apply the filter.
+            // The filter activates only when the user explicitly changes a control.
+            _updateBoardDateLabels(side);
+        }
+    }
+
+    function setBoardDateMode(side, mode) {
+        const ds = boardDateState[side];
+        ds.mode = mode;
+        const relEl  = document.getElementById(`board-${side}-rel-mode`);
+        const absEl  = document.getElementById(`board-${side}-abs-mode`);
+        const btnRel = document.getElementById(`board-${side}-mode-rel`);
+        const btnAbs = document.getElementById(`board-${side}-mode-abs`);
+        if (relEl) relEl.classList.toggle('d-none', mode !== 'rel');
+        if (absEl) absEl.classList.toggle('d-none', mode !== 'abs');
+        if (btnRel) { btnRel.classList.toggle('active', mode === 'rel'); }
+        if (btnAbs) { btnAbs.classList.toggle('active', mode === 'abs'); }
+        if (mode === 'rel') _updateBoardDateLabels(side);
+        applyBoardDateFilter(side);
+    }
+
+    function stepBoardOffset(side, which, delta) {
+        const inp = document.getElementById(`board-${side}-rel-${which}`);
+        if (!inp) return;
+        inp.value = parseInt(inp.value, 10) + delta;
+        applyBoardDateFilter(side);
+    }
+
+    function applyBoardDateFilter(side) {
+        const ds = boardDateState[side];
+        const win = _getBoardDateWindow(side);
+        ds.active = !!(win.from && win.to);
+        if (ds.mode === 'rel') {
+            ds.relStart = parseInt(document.getElementById(`board-${side}-rel-start`)?.value ?? ds.relStart, 10);
+            ds.relEnd   = parseInt(document.getElementById(`board-${side}-rel-end`)?.value   ?? ds.relEnd,   10);
+            _updateBoardDateLabels(side);
+        } else {
+            ds.absDate = document.getElementById(`board-${side}-abs-date`)?.value || '';
+            ds.active  = !!ds.absDate;
+        }
+        const btn = document.getElementById(`btn-board-date-${side}`);
+        if (btn) btn.classList.toggle('active-date-filter', ds.active);
+        filterBoardTables();
+    }
+
+    function clearBoardDateFilter(side) {
+        const ds = boardDateState[side];
+        ds.active = false; ds.mode = 'rel'; ds.relStart = -4; ds.relEnd = 0;
+        ds.absDate = '';
+        const rs = document.getElementById(`board-${side}-rel-start`);
+        const re = document.getElementById(`board-${side}-rel-end`);
+        const ad = document.getElementById(`board-${side}-abs-date`);
+        if (rs) rs.value = '-4'; if (re) re.value = '0';
+        if (ad) ad.value = '';
+        setBoardDateMode(side, 'rel');
+        const btn = document.getElementById(`btn-board-date-${side}`);
+        if (btn) btn.classList.remove('active-date-filter');
+        _updateBoardDateLabels(side);
+        filterBoardTables();
+    }
+
+    function selectBoardFlight(row, type) {
+        const reg = row.getAttribute('data-registration');
+        const wasSelected = row.classList.contains('board-selected');
+
+        // Apply bg to every <td> in the row to override Bootstrap's CSS-variable hover system
+        function paintRow(tr, color) {
+            tr.style.background = color;
+            Array.from(tr.cells).forEach(td => td.style.setProperty('background-color', color, 'important'));
+        }
+        function clearRow(tr, i) {
+            const bg = i % 2 === 0 ? '#ffffff' : '#f0f4f8';
+            tr.style.background = bg;
+            Array.from(tr.cells).forEach(td => td.style.removeProperty('background-color'));
+        }
+        function restoreBg(tbody) {
+            Array.from(tbody.children).forEach((r, i) => {
+                r.classList.remove('board-selected', 'board-linked', 'board-paired');
+                clearRow(r, i);
+            });
+        }
+
+        const tbodyArr = document.getElementById('tbody-board-arrivals');
+        const tbodyDep = document.getElementById('tbody-board-departures');
+        restoreBg(tbodyArr);
+        restoreBg(tbodyDep);
+
+        if (wasSelected) return; // Second click → deselect
+
+        // Highlight selected row amber/yellow
+        paintRow(row, '#ffe082');
+        row.classList.add('board-selected');
+
+        if (!reg) return;
+
+        // Find linked row in the other table (same Registration)
+        const otherTbodyId = type === 'arr' ? 'tbody-board-departures' : 'tbody-board-arrivals';
+        const escReg = reg.replace(/"/g, '\\"');
+        const linked = document.querySelector(`#${otherTbodyId} tr[data-registration="${escReg}"]`);
+        if (linked) {
+            paintRow(linked, '#ffe082');
+            linked.classList.add('board-linked');
+            linked.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+    </script>
     <script src="js/analisis-mensual.js?v=1.0"></script>
     <script src="js/analisis-anual.js?v=1.0"></script>
     <script>
