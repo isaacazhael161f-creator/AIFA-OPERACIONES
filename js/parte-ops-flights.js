@@ -599,8 +599,7 @@
                       </button>
                    </td>`;
 
-            const rowBg = valido ? 'background-color:#d4f5e2;border-left:3px solid #28a745;' : '';
-            return `<tr data-row-idx="${dataIdx}"${rowBg ? ` style="${rowBg}"` : ''}>${cells}${validCell}</tr>`;
+            return `<tr data-row-idx="${dataIdx}"${valido ? ' class="row-validated"' : ''}>${cells}${validCell}</tr>`;
         }).join('');
 
         tbody.innerHTML = html;
@@ -657,11 +656,9 @@
 
             // Apply / remove validated row highlight
             if (newState) {
-                tr.style.backgroundColor = '#d4f5e2';
-                tr.style.borderLeft = '3px solid #28a745';
+                tr.classList.add('row-validated');
             } else {
-                tr.style.backgroundColor = '';
-                tr.style.borderLeft = '';
+                tr.classList.remove('row-validated');
             }
 
             if (newState) {
