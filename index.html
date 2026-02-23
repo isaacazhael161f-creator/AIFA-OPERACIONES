@@ -1067,6 +1067,11 @@
                                             id="tab-comparativa" data-bs-toggle="pill"
                                             data-bs-target="#pane-comparativa" type="button" role="tab"><i
                                                 class="fas fa-chart-line me-2 text-primary"></i>Comparativa</button>
+
+                                        <button class="nav-link text-start mb-2 border shadow-sm rounded"
+                                            id="tab-conciliacion-admin" data-bs-toggle="pill"
+                                            data-bs-target="#pane-conciliacion-admin" type="button" role="tab"><i
+                                                class="fas fa-clipboard-check me-2 text-danger"></i>Conciliación</button>
                                     </div>
                                 </div>
                                 <div class="col-md-9" id="dm-content">
@@ -2193,6 +2198,130 @@
                                                 </div>
                                             </div>
                                         </div>
+
+                                        <!-- Pane Conciliación (Administración) -->
+                                        <div class="tab-pane fade" id="pane-conciliacion-admin" role="tabpanel">
+                                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                                <h5 class="mb-0 text-danger"><i class="fas fa-database me-2"></i>Administración de Itinerario CSV</h5>
+                                                <span id="admin-flight-count-badge" class="badge rounded-pill bg-danger" style="font-size:.75rem;display:none">0 vuelos</span>
+                                            </div>
+
+                                            <!-- Controls -->
+                                            <div class="card border-danger mb-3">
+                                                <div class="card-header bg-danger bg-opacity-10 py-2 px-3 d-flex align-items-center gap-2">
+                                                    <i class="fas fa-exclamation-triangle text-danger me-1"></i>
+                                                    <span class="small fw-semibold text-danger">Zona de Administración — Los cambios son permanentes e irreversibles</span>
+                                                </div>
+                                                <div class="card-body py-2 px-3">
+                                                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                                                        <!-- Date range to load -->
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <label class="small fw-semibold text-muted mb-0" for="admin-date-start">Desde:</label>
+                                                            <input type="date" class="form-control form-control-sm" id="admin-date-start" style="width:145px">
+                                                            <label class="small fw-semibold text-muted mb-0" for="admin-date-end">Hasta:</label>
+                                                            <input type="date" class="form-control form-control-sm" id="admin-date-end" style="width:145px">
+                                                            <button class="btn btn-sm btn-primary" onclick="window.opsFlightsAdmin.loadData()">
+                                                                <i class="fas fa-search me-1"></i>Cargar
+                                                            </button>
+                                                            <button class="btn btn-sm btn-outline-secondary" onclick="window.opsFlightsAdmin.loadData()" title="Refrescar">
+                                                                <i class="fas fa-sync-alt"></i>
+                                                            </button>
+                                                        </div>
+                                                        <div class="vr d-none d-md-block"></div>
+                                                        <!-- Delete by specific day -->
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <label class="small fw-semibold text-muted mb-0" for="admin-delete-date">Eliminar día:</label>
+                                                            <input type="date" class="form-control form-control-sm" id="admin-delete-date" style="width:145px">
+                                                            <button class="btn btn-sm btn-danger" onclick="window.opsFlightsAdmin.deleteByDate()">
+                                                                <i class="fas fa-trash-alt me-1"></i>Eliminar día
+                                                            </button>
+                                                        </div>
+                                                        <!-- Bulk delete selected -->
+                                                        <div class="ms-auto">
+                                                            <button class="btn btn-sm btn-danger d-none" id="btn-delete-admin-selected" onclick="window.opsFlightsAdmin.deleteSelected()">
+                                                                <i class="fas fa-trash me-1"></i>Eliminar seleccionados (<span id="admin-selected-count">0</span>)
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Status message -->
+                                            <div id="admin-status-msg" class="d-none mb-2"></div>
+
+                                            <!-- Admin Table -->
+                                            <div class="table-responsive" id="container-admin-flights-csv"
+                                                style="max-height:calc(100vh - 360px);overflow:auto;scrollbar-width:thin;scrollbar-color:#b0b8c8 #f4f6fa;">
+                                                <table class="table table-hover table-bordered table-sm align-middle mb-0"
+                                                    id="table-admin-flights-csv">
+                                                    <thead class="table-light" style="position:sticky;top:0;z-index:3">
+                                                        <tr class="text-center small text-muted text-uppercase">
+                                                            <th style="width:36px;background:#fff5f5">
+                                                                <input type="checkbox" class="form-check-input" id="admin-select-all"
+                                                                    title="Seleccionar todo"
+                                                                    onchange="window.opsFlightsAdmin.toggleSelectAll(this.checked)">
+                                                            </th>
+                                                            <th>Status</th>
+                                                            <th><i class="fas fa-arrow-down text-success me-1"></i>[Arr] Airline</th>
+                                                            <th><i class="fas fa-arrow-down text-success me-1"></i>[Arr] Flight</th>
+                                                            <th><i class="fas fa-arrow-down text-success me-1"></i>[Arr] ALDT</th>
+                                                            <th><i class="fas fa-arrow-down text-success me-1"></i>[Arr] SIBT</th>
+                                                            <th><i class="fas fa-arrow-down text-success me-1"></i>[Arr] AIBT</th>
+                                                            <th><i class="fas fa-arrow-down text-success me-1"></i>[Arr] Stand</th>
+                                                            <th><i class="fas fa-arrow-down text-success me-1"></i>[Arr] Gates</th>
+                                                            <th><i class="fas fa-arrow-down text-success me-1"></i>[Arr] Boarded</th>
+                                                            <th><i class="fas fa-arrow-down text-success me-1"></i>[Arr] Type</th>
+                                                            <th>Routing</th>
+                                                            <th><i class="fas fa-arrow-up text-primary me-1"></i>[Dep] Type</th>
+                                                            <th>Aircraft</th>
+                                                            <th>Registration</th>
+                                                            <th><i class="fas fa-arrow-up text-primary me-1"></i>[Dep] Airline</th>
+                                                            <th><i class="fas fa-arrow-up text-primary me-1"></i>[Dep] Flight</th>
+                                                            <th><i class="fas fa-arrow-up text-primary me-1"></i>[Dep] Stand</th>
+                                                            <th><i class="fas fa-arrow-up text-primary me-1"></i>[Dep] Gates</th>
+                                                            <th><i class="fas fa-arrow-up text-primary me-1"></i>[Dep] Boarded</th>
+                                                            <th><i class="fas fa-arrow-up text-primary me-1"></i>[Dep] SOBT</th>
+                                                            <th><i class="fas fa-arrow-up text-primary me-1"></i>[Dep] AOBT</th>
+                                                            <th><i class="fas fa-arrow-up text-primary me-1"></i>[Dep] ATOT</th>
+                                                            <th><i class="fas fa-arrow-up text-primary me-1"></i>[Dep] ATTT</th>
+                                                            <th style="min-width:80px;background:#fff0f0;border-left:2px solid #f5c6c6">Acción</th>
+                                                        </tr>
+                                                        <tr class="csv-filter-row">
+                                                            <th style="background:#fff5f5"></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="Status" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="[Arr] Airline code" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="[Arr] Flight Designator" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="[Arr] ALDT" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="[Arr] SIBT" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="[Arr] AIBT" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="[Arr] Stand" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="[Arr] Gates" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="[Arr] Boarded" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="[Arr] Service Type" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="Routing" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="[Dep] Service Type" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="Aircraft type" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="Registration" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="[Dep] Airline code" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="[Dep] Flight Designator" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="[Dep] Stand" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="[Dep] Gates" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="[Dep] Boarded" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="[Dep] SOBT" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="[Dep] AOBT" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="[Dep] ATOT" placeholder="Filtrar..."></th>
+                                                            <th><input type="text" class="form-control form-control-sm" data-admin-field="[Dep] ATTT" placeholder="Filtrar..."></th>
+                                                            <th style="background:#fff0f0;border-left:2px solid #f5c6c6"></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="tbody-admin-flights-csv" class="text-center bg-white">
+                                                        <tr>
+                                                            <td colspan="25" class="text-muted py-4">Elige un rango de fechas y presiona "Cargar"</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div><!-- /pane-conciliacion-admin -->
 
 
 
@@ -9469,6 +9598,265 @@
             showColHelp(th.getAttribute('data-col-help'));
         });
     });
+</script>
+
+<!-- ====== Conciliación Admin Module ====== -->
+<script>
+window.opsFlightsAdmin = (function () {
+    'use strict';
+
+    var adminData = [];
+    var adminFilters = {};
+
+    function getEl(id) { return document.getElementById(id); }
+
+    function updateBadge() {
+        var badge = getEl('admin-flight-count-badge');
+        if (!badge) return;
+        badge.textContent = adminData.length + ' vuelo' + (adminData.length !== 1 ? 's' : '');
+        badge.style.display = adminData.length > 0 ? '' : 'none';
+    }
+
+    function showStatus(msg, type) {
+        var el = getEl('admin-status-msg');
+        if (!el) return;
+        el.className = 'alert alert-' + (type || 'info') + ' py-2 px-3 small mb-2';
+        el.textContent = msg;
+        el.classList.remove('d-none');
+        clearTimeout(el._hideTimer);
+        el._hideTimer = setTimeout(function () { el.classList.add('d-none'); }, 5000);
+    }
+
+    function updateDeleteBtn() {
+        var checkboxes = document.querySelectorAll('.admin-row-chk:checked');
+        var btn = getEl('btn-delete-admin-selected');
+        var countEl = getEl('admin-selected-count');
+        var count = checkboxes.length;
+        if (!btn || !countEl) return;
+        countEl.textContent = count;
+        btn.classList.toggle('d-none', count === 0);
+    }
+
+    function toggleSelectAll(checked) {
+        document.querySelectorAll('.admin-row-chk').forEach(function (chk) { chk.checked = checked; });
+        updateDeleteBtn();
+    }
+
+    function escHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function renderTable() {
+        var tbody = getEl('tbody-admin-flights-csv');
+        if (!tbody) return;
+
+        // Reset select-all checkbox
+        var selAll = getEl('admin-select-all');
+        if (selAll) selAll.checked = false;
+
+        if (adminData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="25" class="text-muted py-4">No se encontraron vuelos para el rango seleccionado.</td></tr>';
+            updateDeleteBtn();
+            return;
+        }
+
+        var rows = adminData.map(function (row) {
+            var id = row.id;
+            var v = function (field) { return escHtml(row[field]); };
+            return (
+                '<tr data-admin-id="' + id + '">' +
+                '<td style="background:#fff5f5"><input type="checkbox" class="form-check-input admin-row-chk" data-id="' + id + '" onchange="window.opsFlightsAdmin.updateDeleteBtn()"></td>' +
+                '<td>' + v('Status') + '</td>' +
+                '<td>' + v('[Arr] Airline code') + '</td>' +
+                '<td>' + v('[Arr] Flight Designator') + '</td>' +
+                '<td>' + v('[Arr] ALDT') + '</td>' +
+                '<td>' + v('[Arr] SIBT') + '</td>' +
+                '<td>' + v('[Arr] AIBT') + '</td>' +
+                '<td>' + v('[Arr] Stand') + '</td>' +
+                '<td>' + v('[Arr] Gates') + '</td>' +
+                '<td>' + v('[Arr] Boarded') + '</td>' +
+                '<td>' + v('[Arr] Service Type') + '</td>' +
+                '<td>' + v('Routing') + '</td>' +
+                '<td>' + v('[Dep] Service Type') + '</td>' +
+                '<td>' + v('Aircraft type') + '</td>' +
+                '<td>' + v('Registration') + '</td>' +
+                '<td>' + v('[Dep] Airline code') + '</td>' +
+                '<td>' + v('[Dep] Flight Designator') + '</td>' +
+                '<td>' + v('[Dep] Stand') + '</td>' +
+                '<td>' + v('[Dep] Gates') + '</td>' +
+                '<td>' + v('[Dep] Boarded') + '</td>' +
+                '<td>' + v('[Dep] SOBT') + '</td>' +
+                '<td>' + v('[Dep] AOBT') + '</td>' +
+                '<td>' + v('[Dep] ATOT') + '</td>' +
+                '<td>' + v('[Dep] ATTT') + '</td>' +
+                '<td style="background:#fff0f0;border-left:2px solid #f5c6c6">' +
+                '<button class="btn btn-danger btn-sm py-0 px-2" onclick="window.opsFlightsAdmin.deleteById(' + id + ')" title="Eliminar vuelo"><i class="fas fa-trash-alt"></i></button>' +
+                '</td>' +
+                '</tr>'
+            );
+        });
+        tbody.innerHTML = rows.join('');
+
+        // Attach inline filter listeners
+        document.querySelectorAll('#table-admin-flights-csv thead input[data-admin-field]').forEach(function (inp) {
+            inp.oninput = function () {
+                adminFilters[this.getAttribute('data-admin-field')] = this.value.trim().toLowerCase();
+                applyAdminFilters();
+            };
+        });
+
+        updateDeleteBtn();
+        updateBadge();
+    }
+
+    function applyAdminFilters() {
+        var rows = document.querySelectorAll('#tbody-admin-flights-csv tr[data-admin-id]');
+        rows.forEach(function (tr) {
+            var id = parseInt(tr.getAttribute('data-admin-id'), 10);
+            var row = adminData.find(function (r) { return r.id === id; });
+            if (!row) { tr.style.display = ''; return; }
+            var pass = Object.keys(adminFilters).every(function (field) {
+                var q = adminFilters[field];
+                if (!q) return true;
+                var val = row[field];
+                return val !== null && val !== undefined && String(val).toLowerCase().includes(q);
+            });
+            tr.style.display = pass ? '' : 'none';
+        });
+    }
+
+    async function loadData() {
+        var startInput = getEl('admin-date-start');
+        var endInput   = getEl('admin-date-end');
+        var start = startInput ? startInput.value : '';
+        var end   = endInput   ? endInput.value   : '';
+
+        var tbody = getEl('tbody-admin-flights-csv');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="25" class="text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Cargando…</td></tr>';
+
+        try {
+            var sb = window.supabaseClient;
+            if (!sb) throw new Error('Supabase no disponible');
+
+            var query = sb.from('vuelos_parte_operaciones_csv').select('*');
+            if (start) query = query.gte('fecha_vuelo', start);
+            if (end)   query = query.lte('fecha_vuelo', end);
+            query = query.order('fecha_vuelo', { ascending: true }).order('id', { ascending: true });
+
+            var result = await query;
+            if (result.error) throw result.error;
+
+            adminData = result.data || [];
+            adminFilters = {};
+            // Clear filter inputs
+            document.querySelectorAll('#table-admin-flights-csv thead input[data-admin-field]').forEach(function (inp) { inp.value = ''; });
+
+            renderTable();
+            showStatus('Cargados ' + adminData.length + ' registro(s).', 'success');
+        } catch (e) {
+            adminData = [];
+            updateBadge();
+            if (tbody) tbody.innerHTML = '<tr><td colspan="25" class="text-danger py-3"><i class="fas fa-exclamation-triangle me-2"></i>Error al cargar: ' + escHtml(e.message || String(e)) + '</td></tr>';
+        }
+    }
+
+    async function deleteByDate() {
+        var dateEl = getEl('admin-delete-date');
+        var date = dateEl ? dateEl.value : '';
+        if (!date) {
+            showStatus('Elige una fecha en el campo "Eliminar día".', 'warning');
+            return;
+        }
+        var vuelos = adminData.filter(function (r) { return r.fecha_vuelo === date; });
+        var ok = confirm('¿Eliminar TODOS los vuelos del día ' + date + '?\n' +
+            (vuelos.length > 0 ? vuelos.length + ' registro(s) en la tabla cargada.' : 'Eliminará todos los registros de ese día en la base de datos.') +
+            '\n\nEsta acción NO se puede deshacer.');
+        if (!ok) return;
+        try {
+            var sb = window.supabaseClient;
+            var result = await sb.from('vuelos_parte_operaciones_csv')
+                .delete()
+                .eq('fecha_vuelo', date);
+            if (result.error) throw result.error;
+            showStatus('Vuelos del día ' + date + ' eliminados correctamente.', 'success');
+            adminData = adminData.filter(function (r) { return r.fecha_vuelo !== date; });
+            renderTable();
+        } catch (e) {
+            showStatus('Error al eliminar: ' + (e.message || e), 'danger');
+        }
+    }
+
+    async function deleteById(id) {
+        var ok = confirm('¿Eliminar este vuelo (ID: ' + id + ')?\n\nEsta acción NO se puede deshacer.');
+        if (!ok) return;
+        try {
+            var sb = window.supabaseClient;
+            var result = await sb.from('vuelos_parte_operaciones_csv').delete().eq('id', id);
+            if (result.error) throw result.error;
+            adminData = adminData.filter(function (r) { return r.id !== id; });
+            renderTable();
+            showStatus('Vuelo eliminado.', 'success');
+        } catch (e) {
+            showStatus('Error al eliminar: ' + (e.message || e), 'danger');
+        }
+    }
+
+    async function deleteSelected() {
+        var checkboxes = document.querySelectorAll('.admin-row-chk:checked');
+        if (checkboxes.length === 0) return;
+        var ids = Array.from(checkboxes).map(function (chk) { return parseInt(chk.getAttribute('data-id'), 10); });
+        var ok = confirm('¿Eliminar ' + ids.length + ' vuelo(s) seleccionado(s)?\n\nEsta acción NO se puede deshacer.');
+        if (!ok) return;
+        try {
+            var sb = window.supabaseClient;
+            var result = await sb.from('vuelos_parte_operaciones_csv').delete().in('id', ids);
+            if (result.error) throw result.error;
+            adminData = adminData.filter(function (r) { return !ids.includes(r.id); });
+            renderTable();
+            showStatus('Se eliminaron ' + ids.length + ' vuelo(s).', 'success');
+        } catch (e) {
+            showStatus('Error al eliminar: ' + (e.message || e), 'danger');
+        }
+    }
+
+    // Init: set default dates, wire tab activation
+    document.addEventListener('DOMContentLoaded', function () {
+        var today    = new Date();
+        var sevenAgo = new Date(today);
+        sevenAgo.setDate(today.getDate() - 6);
+        var fmt = function (d) { return d.toISOString().slice(0, 10); };
+
+        var sEl  = getEl('admin-date-start');
+        var eEl  = getEl('admin-date-end');
+        var ddEl = getEl('admin-delete-date');
+        if (sEl)  sEl.value  = fmt(sevenAgo);
+        if (eEl)  eEl.value  = fmt(today);
+        if (ddEl) ddEl.value = fmt(today);
+
+        // Load data automatically when tab is first activated
+        var tabBtn = getEl('tab-conciliacion-admin');
+        if (tabBtn) {
+            var loaded = false;
+            tabBtn.addEventListener('shown.bs.tab', function () {
+                if (!loaded) { loaded = true; loadData(); }
+            });
+        }
+    });
+
+    return {
+        loadData:        loadData,
+        deleteByDate:    deleteByDate,
+        deleteById:      deleteById,
+        deleteSelected:  deleteSelected,
+        toggleSelectAll: toggleSelectAll,
+        updateDeleteBtn: updateDeleteBtn
+    };
+}());
 </script>
 </body>
 
