@@ -528,14 +528,27 @@
         localStorage.setItem('dm-ops-csv-columns', JSON.stringify(hidden));
     }
 
+    function updateFlightCountBadge(count) {
+        const badge = document.getElementById('csv-flight-count-badge');
+        if (!badge) return;
+        if (count === 0) {
+            badge.style.display = 'none';
+        } else {
+            badge.style.display = '';
+            badge.textContent = count === 1 ? '1 vuelo' : `${count} vuelos`;
+        }
+    }
+
     function renderTable(rows) {
         const tbody = document.getElementById('tbody-ops-flights-csv');
         if (!tbody) return;
 
         if (!rows || rows.length === 0) {
             tbody.innerHTML = '<tr><td colspan="24" class="text-center text-muted py-4">No hay registros para mostrar.</td></tr>';
+            updateFlightCountBadge(0);
             return;
         }
+        updateFlightCountBadge(rows.length);
 
         // Get visibility state ONCE for the whole render
         const hiddenSet = getHiddenClasses();

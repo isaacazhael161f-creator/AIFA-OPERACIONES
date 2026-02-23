@@ -443,20 +443,28 @@
 
         /* ── Date-filter panel (shared by main-page & board-view tables) ─── */
         .board-date-panel {
-            padding: 10px 14px 12px;
-            background: rgba(41, 128, 185, 0.07);   /* default: blue tint (salidas) */
-            border-bottom: 1px solid rgba(0,0,0,0.07);
+            padding: 12px 16px 14px;
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.10);
             animation: dateFilterSlide .15s ease;
         }
         @keyframes dateFilterSlide {
-            from { opacity: 0; transform: translateY(-5px); }
+            from { opacity: 0; transform: translateY(-6px); }
             to   { opacity: 1; transform: translateY(0); }
         }
-        /* Arrivals (green) tint */
-        #daily-date-panel-arr,
-        #board-date-panel-arr {
-            background: rgba(40, 167, 69, 0.08);
+        /* CSV Vista General date filter card (popover style) */
+        .csv-date-filter-card {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 12px 16px 14px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+            animation: dateFilterSlide .15s ease;
+            min-width: 260px;
         }
+        /* Arrivals panels: green accent on header text only (handled inline) */
         /* Funnel toggle button */
         .btn-date-filter-toggle {
             padding: 2px 7px !important;
@@ -1889,8 +1897,12 @@
                                                             </div>
                                                         </div>
                                                         <div id="daily-date-panel-arr" class="board-date-panel d-none">
+                                                            <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
+                                                                <span class="small fw-semibold text-success" style="letter-spacing:.03em"><i class="fas fa-calendar-week me-1"></i>Ventana de Fecha &mdash; Llegadas</span>
+                                                                <button type="button" class="btn-close" style="font-size:.65rem" title="Cerrar" onclick="dataManagement.toggleDailyDatePanel('arrival')"></button>
+                                                            </div>
                                                             <div class="d-flex align-items-center gap-2 flex-wrap">
-                                                                <span class="small fw-semibold text-muted" style="white-space:nowrap">Date Window</span>
+                                                                <span class="small fw-semibold text-muted" style="white-space:nowrap">Modo:</span>
                                                                 <div class="btn-group btn-group-sm" role="group">
                                                                     <button class="btn btn-outline-success active" type="button" id="daily-arr-mode-rel"
                                                                         onclick="dataManagement.setDailyDateMode('arrival','rel')">Relative</button>
@@ -1926,10 +1938,6 @@
                                                                     <input type="date" class="form-control form-control-sm" id="daily-arr-abs-to"
                                                                         style="width:135px" oninput="dataManagement.applyDailyDateFilter('arrival')">
                                                                 </div>
-                                                                <button class="btn btn-xs btn-outline-secondary ms-auto"
-                                                                    onclick="dataManagement.clearDailyDateFilter('arrival')" title="Quitar filtro">
-                                                                    <i class="fas fa-times"></i>
-                                                                </button>
                                                             </div>
                                                         </div>
                                                         <div class="card-body p-0">
@@ -1974,8 +1982,12 @@
                                                             </div>
                                                         </div>
                                                         <div id="daily-date-panel-dep" class="board-date-panel d-none">
+                                                            <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
+                                                                <span class="small fw-semibold text-primary" style="letter-spacing:.03em"><i class="fas fa-calendar-week me-1"></i>Ventana de Fecha &mdash; Salidas</span>
+                                                                <button type="button" class="btn-close" style="font-size:.65rem" title="Cerrar" onclick="dataManagement.toggleDailyDatePanel('departure')"></button>
+                                                            </div>
                                                             <div class="d-flex align-items-center gap-2 flex-wrap">
-                                                                <span class="small fw-semibold text-muted" style="white-space:nowrap">Date Window</span>
+                                                                <span class="small fw-semibold text-muted" style="white-space:nowrap">Modo:</span>
                                                                 <div class="btn-group btn-group-sm" role="group">
                                                                     <button class="btn btn-outline-primary active" type="button" id="daily-dep-mode-rel"
                                                                         onclick="dataManagement.setDailyDateMode('departure','rel')">Relative</button>
@@ -2011,10 +2023,6 @@
                                                                     <input type="date" class="form-control form-control-sm" id="daily-dep-abs-to"
                                                                         style="width:135px" oninput="dataManagement.applyDailyDateFilter('departure')">
                                                                 </div>
-                                                                <button class="btn btn-xs btn-outline-secondary ms-auto"
-                                                                    onclick="dataManagement.clearDailyDateFilter('departure')" title="Quitar filtro">
-                                                                    <i class="fas fa-times"></i>
-                                                                </button>
                                                             </div>
                                                         </div>
                                                         <div class="card-body p-0">
@@ -3058,34 +3066,51 @@
                                         <h5 class="mb-0 text-primary"><i class="fas fa-plane me-2"></i>Itinerario de
                                             Vuelos del Día</h5>
                                         <div class="d-flex gap-2 align-items-center flex-wrap">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="small text-muted">Date Window</span>
-                                                <div class="btn-group btn-group-sm" role="group" aria-label="Filtro de fecha">
-                                                    <button class="btn btn-outline-primary active" type="button" id="btn-date-mode-relative">Relative</button>
-                                                    <button class="btn btn-outline-primary" type="button" id="btn-date-mode-absolute">Absolute</button>
+                                            <!-- Funnel toggle: always visible -->
+                                            <button class="btn btn-sm btn-outline-secondary" id="btn-csv-date-filter-toggle"
+                                                title="Filtrar por fecha"
+                                                onclick="(function(){var p=document.getElementById('csv-date-filter-panel');p.classList.toggle('d-none');document.getElementById('btn-csv-date-filter-toggle').classList.toggle('active');})()">
+                                                <i class="fas fa-filter"></i>
+                                            </button>
+                                            <!-- Collapsible date filter card -->
+                                            <div id="csv-date-filter-panel" class="d-none csv-date-filter-card">
+                                                <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
+                                                    <span class="small fw-semibold text-primary" style="letter-spacing:.03em">
+                                                        <i class="fas fa-calendar-week me-1"></i>Ventana de Fecha
+                                                    </span>
+                                                    <button type="button" class="btn-close" style="font-size:.65rem" title="Cerrar"
+                                                        onclick="(function(){document.getElementById('csv-date-filter-panel').classList.add('d-none');document.getElementById('btn-csv-date-filter-toggle').classList.remove('active');})()"></button>
                                                 </div>
-                                            </div>
-                                            <div class="d-flex flex-column" id="ops-date-relative">
-                                                <div class="d-flex align-items-center gap-2">
-                                                <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-start-dec">-</button>
-                                                <input type="number" class="form-control form-control-sm mw-70px" id="rel-start" value="-4" aria-label="Inicio relativo">
-                                                <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-start-inc">+</button>
-                                                <span class="small text-muted">to</span>
-                                                <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-end-dec">-</button>
-                                                <input type="number" class="form-control form-control-sm mw-70px" id="rel-end" value="0" aria-label="Fin relativo">
-                                                <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-end-inc">+</button>
+                                                <div class="d-flex align-items-center gap-2 mb-2">
+                                                    <span class="small text-muted" style="white-space:nowrap">Modo:</span>
+                                                    <div class="btn-group btn-group-sm" role="group" aria-label="Filtro de fecha">
+                                                        <button class="btn btn-outline-primary active" type="button" id="btn-date-mode-relative">Relativo</button>
+                                                        <button class="btn btn-outline-primary" type="button" id="btn-date-mode-absolute">Absoluto</button>
+                                                    </div>
                                                 </div>
-                                                <div class="d-flex align-items-center gap-2 small text-muted mt-1">
-                                                    <span id="rel-start-label">—</span>
-                                                    <span>to</span>
-                                                    <span id="rel-end-label">—</span>
+                                                <div class="d-flex flex-column" id="ops-date-relative">
+                                                    <div class="d-flex align-items-center gap-1">
+                                                        <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-start-dec">-</button>
+                                                        <input type="number" class="form-control form-control-sm text-center" style="width:58px" id="rel-start" value="-4" aria-label="Inicio relativo">
+                                                        <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-start-inc">+</button>
+                                                        <span class="small text-muted px-1">a</span>
+                                                        <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-end-dec">-</button>
+                                                        <input type="number" class="form-control form-control-sm text-center" style="width:58px" id="rel-end" value="0" aria-label="Fin relativo">
+                                                        <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-end-inc">+</button>
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-2 small text-muted mt-1">
+                                                        <i class="fas fa-calendar-day" style="opacity:.5"></i>
+                                                        <span id="rel-start-label">—</span>
+                                                        <span>→</span>
+                                                        <span id="rel-end-label">—</span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div class="d-flex align-items-center gap-2 d-none" id="ops-date-absolute">
-                                                <input type="date" class="form-control form-control-sm mw-140px" id="ops-date-start" aria-label="Fecha inicio">
-                                                <span class="small text-muted">to</span>
-                                                <input type="date" class="form-control form-control-sm mw-140px" id="ops-date-end" aria-label="Fecha fin">
-                                            </div>
+                                                <div class="d-flex align-items-center gap-2 d-none" id="ops-date-absolute">
+                                                    <input type="date" class="form-control form-control-sm" style="width:135px" id="ops-date-start" aria-label="Fecha inicio">
+                                                    <span class="small text-muted">→</span>
+                                                    <input type="date" class="form-control form-control-sm" style="width:135px" id="ops-date-end" aria-label="Fecha fin">
+                                                </div>
+                                            </div><!-- /csv-date-filter-panel -->
                                             <button class="btn btn-sm btn-outline-secondary"
                                                 onclick="window.opsFlights && window.opsFlights.loadFlights()"><i
                                                     class="fas fa-sync-alt me-1"></i>Actualizar</button>
@@ -3127,8 +3152,10 @@
                                         <div class="col-12 mb-4">
                                             <div class="card shadow-sm border-0">
                                                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                                                    <h6 class="mb-0 text-uppercase small text-muted">Vuelos importados
-                                                        desde CSV</h6>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <h6 class="mb-0 text-uppercase small text-muted">Vuelos importados desde CSV</h6>
+                                                        <span id="csv-flight-count-badge" class="badge rounded-pill bg-primary" style="font-size:.75rem;display:none">0 vuelos</span>
+                                                    </div>
                                                     
                                                     <div class="dropdown">
                                                         <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="dropdownMenuButtonCsvColumns" data-bs-toggle="dropdown" aria-expanded="false" title="Seleccionar columnas visibles">
