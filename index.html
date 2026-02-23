@@ -2218,7 +2218,7 @@
                                                 <span><strong>Zona de Administración</strong> — Los cambios son permanentes e irreversibles.</span>
                                                 <div class="d-flex align-items-center gap-2 ms-auto flex-wrap">
                                                     <label class="mb-0 fw-semibold" for="admin-delete-date">Eliminar día:</label>
-                                                    <input type="date" class="form-control form-control-sm" id="admin-delete-date" style="width:145px">
+                                                    <input type="date" class="form-control form-control-sm" id="admin-delete-date" style="width:145px" oninput="window.opsFlightsAdmin.filterByDeleteDate()">
                                                     <button class="btn btn-sm btn-danger" onclick="window.opsFlightsAdmin.deleteByDate()">
                                                         <i class="fas fa-trash-alt me-1"></i>Eliminar día
                                                     </button>
@@ -9703,19 +9703,38 @@ window.opsFlightsAdmin = (function () {
     }
 
     function applyAdminFilters() {
+        var dateEl = getEl('admin-delete-date');
+        var dayPrefix = dateEl && dateEl.value ? isoToAirportDay(dateEl.value) : '';
         var rows = document.querySelectorAll('#tbody-admin-flights-csv tr[data-admin-id]');
+        var visibleCount = 0;
         rows.forEach(function (tr) {
             var id = parseInt(tr.getAttribute('data-admin-id'), 10);
             var row = adminData.find(function (r) { return r.id === id; });
             if (!row) { tr.style.display = ''; return; }
+            // Text filter pass
             var pass = Object.keys(adminFilters).every(function (field) {
                 var q = adminFilters[field];
                 if (!q) return true;
                 var val = row[field];
                 return val !== null && val !== undefined && String(val).toLowerCase().includes(q);
             });
+            // Day filter pass
+            if (pass && dayPrefix) {
+                pass = rowMatchesDay(row, dayPrefix);
+            }
             tr.style.display = pass ? '' : 'none';
+            if (pass) visibleCount++;
         });
+        // Update badge with filtered count
+        var badge = getEl('admin-flight-count-badge');
+        if (badge) {
+            badge.textContent = visibleCount + ' vuelo' + (visibleCount !== 1 ? 's' : '') + (dayPrefix ? ' (' + dayPrefix + ')' : '');
+            badge.style.display = visibleCount > 0 ? '' : 'none';
+        }
+    }
+
+    function filterByDeleteDate() {
+        applyAdminFilters();
     }
 
     // Convert ISO date "2026-02-15" → airport text prefix "15FEB"
@@ -9841,12 +9860,13 @@ window.opsFlightsAdmin = (function () {
     });
 
     return {
-        loadData:        loadData,
-        deleteByDate:    deleteByDate,
-        deleteById:      deleteById,
-        deleteSelected:  deleteSelected,
-        toggleSelectAll: toggleSelectAll,
-        updateDeleteBtn: updateDeleteBtn
+        loadData:           loadData,
+        deleteByDate:       deleteByDate,
+        deleteById:         deleteById,
+        deleteSelected:     deleteSelected,
+        toggleSelectAll:    toggleSelectAll,
+        updateDeleteBtn:    updateDeleteBtn,
+        filterByDeleteDate: filterByDeleteDate
     };
 }());
 </script>
