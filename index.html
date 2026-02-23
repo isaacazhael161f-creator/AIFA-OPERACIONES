@@ -319,6 +319,39 @@
             box-shadow: 0 1px 2px rgba(0,0,0,.08);
         }
 
+        /* Botón de filtro Excel en cada encabezado del itinerario CSV */
+        .csv-ef-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 4px;
+            padding: 0 2px;
+            border: none;
+            background: none;
+            color: #adb5bd;
+            font-size: .65rem;
+            cursor: pointer;
+            vertical-align: middle;
+            border-radius: 2px;
+            transition: color .15s, background .15s;
+        }
+        .csv-ef-btn:hover { color: #495057; background: rgba(0,0,0,.06); }
+        .csv-ef-btn.csv-ef-btn-active { color: #0d6efd; }
+        .csv-ef-btn.csv-ef-btn-active i { font-size: .6rem; }
+
+        /* Filas del dropdown de filtro Excel */
+        .csv-ef-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 4px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: .78rem;
+        }
+        .csv-ef-item:hover { background: #e9ecef; }
+        .csv-ef-item label { cursor: pointer; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
         .filter-icon {
             position: absolute;
             right: 6px;

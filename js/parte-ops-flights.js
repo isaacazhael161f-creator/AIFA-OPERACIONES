@@ -77,6 +77,7 @@
 
     let currentData = [];
     let columnFilters = {};
+    let csvExcelFilters = {}; // field -> Set<string> of allowed values; absent key = no filter
     let dateMode = 'relative';
     let relStart = -4;
     let relEnd = 0;
@@ -211,6 +212,9 @@
                 importCsvFromFile(fileInput.files[0]);
             });
         }
+
+        // Excel-style dropdown filters on header row
+        initCsvExcelFilterButtons();
     }
 
     async function loadFlights() {
@@ -905,14 +909,145 @@
     }
 
     function applyFilters(rows) {
-        const activeFields = Object.keys(columnFilters).filter(key => columnFilters[key]);
-        if (activeFields.length === 0) return rows;
         return rows.filter(row => {
-            return activeFields.every(field => {
+            // Text-input filters (filter row)
+            for (const [field, search] of Object.entries(columnFilters)) {
+                if (!search) continue;
                 const val = String(row[field] || '').toLowerCase();
-                const search = columnFilters[field].toLowerCase();
-                return val.includes(search);
+                if (!val.includes(search.toLowerCase())) return false;
+            }
+            // Excel dropdown filters (header buttons)
+            for (const [field, allowed] of Object.entries(csvExcelFilters)) {
+                if (!allowed) continue;
+                const val = String(row[field] || '');
+                if (!allowed.has(val)) return false;
+            }
+            return true;
+        });
+    }
+
+    function initCsvExcelFilterButtons() {
+        const thead = document.querySelector('#table-ops-flights-csv thead tr:first-child');
+        if (!thead) return;
+        thead.querySelectorAll('th').forEach(th => {
+            // Find which field this th maps to via its CSS class
+            const colClass = [...th.classList].find(c => c.startsWith('col-cvs-') && c !== 'col-cvs-validation');
+            if (!colClass) return;
+            const field = Object.keys(HEADER_CLASSES).find(k => HEADER_CLASSES[k] === colClass);
+            if (!field) return;
+            th.dataset.csvFilterField = field;
+            // Avoid duplicate buttons
+            if (th.querySelector('.csv-ef-btn')) return;
+            const btn = document.createElement('button');
+            btn.className = 'csv-ef-btn';
+            btn.title = 'Filtrar columna';
+            btn.innerHTML = '<i class="fas fa-sort-down"></i>';
+            btn.addEventListener('click', e => {
+                e.stopPropagation();
+                showCsvExcelFilter(field, btn);
             });
+            th.appendChild(btn);
+        });
+    }
+
+    function showCsvExcelFilter(field, triggerEl) {
+        // Remove any existing dropdown
+        document.querySelectorAll('.csv-excel-dropdown').forEach(el => el.remove());
+
+        const rect = triggerEl.getBoundingClientRect();
+        const container = document.getElementById('container-ops-flights-csv');
+        const containerRect = container ? container.getBoundingClientRect() : { left: 0, top: 0 };
+
+        const menu = document.createElement('div');
+        menu.className = 'csv-excel-dropdown';
+        document.body.appendChild(menu);
+
+        // Position
+        let left = rect.left;
+        if (left + 240 > window.innerWidth) left = window.innerWidth - 250;
+        menu.style.cssText = `position:fixed;top:${rect.bottom + 4}px;left:${left}px;z-index:99999;` +
+            `background:#fff;border:1px solid #ddd;box-shadow:0 4px 14px rgba(0,0,0,.18);` +
+            `width:240px;border-radius:6px;padding:10px;font-size:.84rem;`;
+
+        const values = [...new Set(currentData.map(r => String(r[field] || '')))]
+            .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+        const activeSet = csvExcelFilters[field] || null;
+
+        menu.innerHTML = `
+            <input type="text" class="form-control form-control-sm mb-2" placeholder="Buscar valor..." id="csv-ef-search">
+            <div class="d-flex justify-content-between mb-2 small px-1">
+                <a href="#" class="text-decoration-none text-primary" id="csv-ef-all">Seleccionar todo</a>
+                <a href="#" class="text-decoration-none text-danger" id="csv-ef-none">Borrar filtro</a>
+            </div>
+            <div style="max-height:200px;overflow-y:auto;border:1px solid #eee;border-radius:4px;padding:4px;margin-bottom:10px;background:#f8f9fa;" id="csv-ef-list">
+                ${values.map((v, i) => {
+                    const checked = !activeSet || activeSet.has(v);
+                    const label = v === '' ? '(Vac\u00edo)' : v;
+                    return `<div class="csv-ef-item" data-value="${v.replace(/"/g, '&quot;')}">
+                        <input class="form-check-input csv-ef-chk" type="checkbox" id="csv-ef-${i}" value="${v.replace(/"/g, '&quot;')}" ${checked ? 'checked' : ''}>
+                        <label for="csv-ef-${i}" title="${label}">${label}</label>
+                    </div>`;
+                }).join('')}
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #eee;padding-top:8px;">
+                <button class="btn btn-sm btn-light border" id="csv-ef-cancel">Cancelar</button>
+                <button class="btn btn-sm btn-primary" id="csv-ef-apply">Aceptar</button>
+            </div>`;
+
+        menu.addEventListener('click', e => e.stopPropagation());
+
+        const searchBox = menu.querySelector('#csv-ef-search');
+        const listEl    = menu.querySelector('#csv-ef-list');
+
+        searchBox.addEventListener('input', () => {
+            const txt = searchBox.value.toLowerCase();
+            listEl.querySelectorAll('.csv-ef-item').forEach(item => {
+                item.style.display = item.dataset.value.toLowerCase().includes(txt) ? 'flex' : 'none';
+            });
+        });
+
+        menu.querySelector('#csv-ef-all').addEventListener('click', e => {
+            e.preventDefault();
+            listEl.querySelectorAll('.csv-ef-chk').forEach(c => c.checked = true);
+        });
+        menu.querySelector('#csv-ef-none').addEventListener('click', e => {
+            e.preventDefault();
+            listEl.querySelectorAll('.csv-ef-chk').forEach(c => c.checked = false);
+        });
+        menu.querySelector('#csv-ef-cancel').addEventListener('click', () => menu.remove());
+        menu.querySelector('#csv-ef-apply').addEventListener('click', () => {
+            const checked = [...listEl.querySelectorAll('.csv-ef-chk:checked')].map(c => c.value);
+            if (checked.length >= values.length) {
+                delete csvExcelFilters[field];
+            } else {
+                csvExcelFilters[field] = new Set(checked);
+            }
+            menu.remove();
+            updateCsvExcelFilterIcons();
+            applyAndRender();
+        });
+
+        searchBox.focus();
+
+        // Close on outside click
+        setTimeout(() => {
+            document.addEventListener('click', function closeFn(e) {
+                if (!menu.contains(e.target)) {
+                    menu.remove();
+                    document.removeEventListener('click', closeFn);
+                }
+            });
+        }, 0);
+    }
+
+    function updateCsvExcelFilterIcons() {
+        document.querySelectorAll('#table-ops-flights-csv thead tr:first-child th[data-csv-filter-field]').forEach(th => {
+            const field = th.dataset.csvFilterField;
+            const btn   = th.querySelector('.csv-ef-btn');
+            if (!btn) return;
+            const isActive = !!csvExcelFilters[field];
+            btn.classList.toggle('csv-ef-btn-active', isActive);
+            btn.querySelector('i').className = isActive ? 'fas fa-filter' : 'fas fa-sort-down';
         });
     }
 
