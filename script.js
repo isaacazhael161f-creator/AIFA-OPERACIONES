@@ -12380,6 +12380,14 @@ async function loadHistory() {
                 badgeClass = 'bg-danger';
                 icon = 'fa-trash-alt';
             }
+            if (log.action_type === 'VALIDAR') {
+                badgeClass = 'bg-success';
+                icon = 'fa-check-circle';
+            }
+            if (log.action_type === 'DESVALIDAR') {
+                badgeClass = 'bg-secondary';
+                icon = 'fa-times-circle';
+            }
 
             // Render Diff/Details with Intelligence
             let detailsHtml = '';
@@ -12415,7 +12423,8 @@ async function loadHistory() {
                 'wildlife_strikes': 'Reporte de Fauna',
                 'rescued_wildlife': 'Fauna Rescatada',
                 'flights': 'Vuelos',
-                'flight_itinerary': 'Itinerario'
+                'flight_itinerary': 'Itinerario',
+                'vuelos_itinerario': 'Conciliación — Itinerario'
             };
             const friendlyEntity = entityMap[log.entity_type] || log.entity_type;
 

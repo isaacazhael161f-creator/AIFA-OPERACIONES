@@ -599,7 +599,8 @@
                       </button>
                    </td>`;
 
-            return `<tr data-row-idx="${dataIdx}">${cells}${validCell}</tr>`;
+            const rowBg = valido ? 'background-color:#d4f5e2;border-left:3px solid #28a745;' : '';
+            return `<tr data-row-idx="${dataIdx}"${rowBg ? ` style="${rowBg}"` : ''}>${cells}${validCell}</tr>`;
         }).join('');
 
         tbody.innerHTML = html;
@@ -654,6 +655,15 @@
             const td = tr.querySelector('td.col-cvs-validation');
             if (!td) return;
 
+            // Apply / remove validated row highlight
+            if (newState) {
+                tr.style.backgroundColor = '#d4f5e2';
+                tr.style.borderLeft = '3px solid #28a745';
+            } else {
+                tr.style.backgroundColor = '';
+                tr.style.borderLeft = '';
+            }
+
             if (newState) {
                 const dt = new Date().toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
                 const safeUser = escapeHtml(userName);
@@ -672,6 +682,20 @@
                         onclick="window.opsFlights.toggleValidacion(${dataIdx}, false)" title="Marcar como validado">
                         <i class="fas fa-check me-1"></i>Validar
                     </button>`;
+            }
+
+            // Log to audit history
+            if (typeof window.logHistory === 'function') {
+                const flightId = row._id || `${row['[Dep] Flight Designator'] || ''}-${row['[Dep] SOBT'] || ''}`;
+                const flightLabel = row['[Dep] Flight Designator'] || row['[Arr] Flight Designator'] || flightId;
+                await window.logHistory(
+                    newState ? 'VALIDAR' : 'DESVALIDAR',
+                    'vuelos_itinerario',
+                    String(flightId),
+                    newState
+                        ? `Vuelo ${flightLabel} validado en Conciliación`
+                        : `Validación del vuelo ${flightLabel} deshecha en Conciliación`
+                );
             }
         } catch (err) {
             console.error('Error al actualizar validación:', err);
