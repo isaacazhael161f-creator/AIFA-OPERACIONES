@@ -91,6 +91,7 @@
             loadFlights, 
             importCsvFromFile, 
             toggleColumn, 
+            toggleValidacion,
             getData: () => currentData,
             getHeaders: () => HEADERS,
             getDateFields: () => DATE_FIELDS,
@@ -544,7 +545,7 @@
         if (!tbody) return;
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="24" class="text-center text-muted py-4">No hay registros para mostrar.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="25" class="text-center text-muted py-4">No hay registros para mostrar.</td></tr>';
             updateFlightCountBadge(0);
             return;
         }
@@ -571,7 +572,33 @@
                 }
                 return `<td class="${colClass}" style="${displayStyle}">${content}</td>`;
             }).join('');
-            return `<tr>${cells}</tr>`;
+
+            // Validation cell
+            const rowId   = row._id || '';
+            const valido  = row._validado === true;
+            const valPor  = escapeHtml(row._validadoPor || '');
+            const valAt   = row._validadoAt
+                ? new Date(row._validadoAt).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+                : '';
+            const validCell = valido
+                ? `<td class="col-cvs-validation text-center" style="border-left:2px solid #c8d9f8;">
+                      <span class="text-success fw-semibold" style="font-size:.78rem;" title="Validado por ${valPor}${valAt ? ' — ' + valAt : ''}">
+                          <i class="fas fa-check-circle me-1"></i>Validado
+                      </span>
+                      <div class="text-muted" style="font-size:.65rem;line-height:1.1">${valPor}</div>
+                      <button class="btn btn-link p-0 text-danger" style="font-size:.6rem;" title="Quitar validación"
+                          onclick="window.opsFlights.toggleValidacion('${rowId}', true)">
+                          <i class="fas fa-times-circle"></i> deshacer
+                      </button>
+                   </td>`
+                : `<td class="col-cvs-validation text-center" style="border-left:2px solid #c8d9f8;">
+                      <button class="btn btn-sm btn-outline-primary" style="font-size:.72rem;padding:2px 10px;"
+                          onclick="window.opsFlights.toggleValidacion('${rowId}', false)" title="Marcar como validado">
+                          <i class="fas fa-check me-1"></i>Validar
+                      </button>
+                   </td>`;
+
+            return `<tr data-row-id="${rowId}">${cells}${validCell}</tr>`;
         }).join('');
 
         tbody.innerHTML = html;
@@ -579,6 +606,63 @@
         
         // Final sanity check (hides headers too)
         setTimeout(updateAllVisibility, 0); 
+    }
+
+    async function toggleValidacion(rowId, currentState) {
+        if (!rowId) { console.warn('toggleValidacion: no rowId'); return; }
+        const supabase = window.supabaseClient;
+        if (!supabase) { alert('Supabase no disponible'); return; }
+
+        const newState = !currentState;
+        const userName = sessionStorage.getItem('user_fullname') || sessionStorage.getItem('currentUser') || 'Usuario';
+
+        const updateData = {
+            validado:     newState,
+            validado_por: newState ? userName : null,
+            validado_at:  newState ? new Date().toISOString() : null
+        };
+
+        try {
+            const { error } = await supabase.from(TABLE_NAME).update(updateData).eq('id', rowId);
+            if (error) throw error;
+
+            // Update local cache
+            const idx = currentData.findIndex(r => String(r._id) === String(rowId));
+            if (idx !== -1) {
+                currentData[idx]._validado    = newState;
+                currentData[idx]._validadoPor = updateData.validado_por || '';
+                currentData[idx]._validadoAt  = updateData.validado_at  || null;
+            }
+
+            // Patch just the validation cell — no full re-render, no row color change
+            const tr = document.querySelector(`#tbody-ops-flights-csv tr[data-row-id="${rowId}"]`);
+            if (!tr) return;
+            const td = tr.querySelector('td.col-cvs-validation');
+            if (!td) return;
+
+            if (newState) {
+                const dt = new Date().toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                const safeUser = userName.replace(/'/g, "'");
+                td.innerHTML = `
+                    <span class="text-success fw-semibold" style="font-size:.78rem;" title="Validado por ${safeUser} — ${dt}">
+                        <i class="fas fa-check-circle me-1"></i>Validado
+                    </span>
+                    <div class="text-muted" style="font-size:.65rem;line-height:1.1">${safeUser}</div>
+                    <button class="btn btn-link p-0 text-danger" style="font-size:.6rem;" title="Quitar validación"
+                        onclick="window.opsFlights.toggleValidacion('${rowId}', true)">
+                        <i class="fas fa-times-circle"></i> deshacer
+                    </button>`;
+            } else {
+                td.innerHTML = `
+                    <button class="btn btn-sm btn-outline-primary" style="font-size:.72rem;padding:2px 10px;"
+                        onclick="window.opsFlights.toggleValidacion('${rowId}', false)" title="Marcar como validado">
+                        <i class="fas fa-check me-1"></i>Validar
+                    </button>`;
+            }
+        } catch (err) {
+            console.error('Error al actualizar validación:', err);
+            alert('No se pudo guardar la validación: ' + err.message);
+        }
     }
 
     function updateChart(rows, dateFilter) {
@@ -635,6 +719,11 @@
             const raw = row[h];
             normalized[h] = normalizeValue(raw);
         });
+        // Preserve DB metadata needed for validation column
+        normalized._id         = row.id          ?? null;
+        normalized._validado   = row.validado     === true;
+        normalized._validadoPor= row.validado_por || '';
+        normalized._validadoAt = row.validado_at  || null;
         return normalized;
     }
 
