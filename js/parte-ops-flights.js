@@ -601,7 +601,7 @@
             relEndLabel.textContent = '—';
             return;
         }
-        const base = new Date(dateRef);
+        const base = new Date(dateRef + 'T12:00:00'); // noon avoids UTC midnight offset
         if (Number.isNaN(base.getTime())) {
             relStartLabel.textContent = '—';
             relEndLabel.textContent = '—';
@@ -648,7 +648,12 @@
         const yearOverride = dateFilter ? parseInt(dateFilter.slice(0, 4), 10) : null;
         const dt = getFirstDate(row, DATE_FIELDS, dateFilter, yearOverride);
         if (!dt) return '';
-        return dt.toISOString().slice(0, 10);
+        // Use LOCAL date getters (not toISOString which is UTC) to avoid timezone
+        // shifting evening flights into the next calendar day.
+        const y = dt.getFullYear();
+        const m = String(dt.getMonth() + 1).padStart(2, '0');
+        const d = String(dt.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     }
 
     function getFirstDate(row, fields, dateFilter, yearOverride = null) {
@@ -791,7 +796,7 @@
         }
 
         if (!dateRef) return rows;
-        const base = new Date(dateRef);
+        const base = new Date(dateRef + 'T12:00:00'); // use noon to avoid UTC edge at midnight
         if (Number.isNaN(base.getTime())) return rows;
         const start = new Date(base);
         const end = new Date(base);
@@ -802,8 +807,15 @@
             start.setTime(end.getTime());
             end.setTime(temp.getTime());
         }
-        const startKey = start.toISOString().slice(0, 10);
-        const endKey = end.toISOString().slice(0, 10);
+        // Use LOCAL date getters to avoid UTC offset shifting the boundary date
+        const toLocalKey = d => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        };
+        const startKey = toLocalKey(start);
+        const endKey = toLocalKey(end);
         return rows.filter(row => {
             const key = deriveDateKey(row, dateRef);
             if (!key) return false;
