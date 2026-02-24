@@ -288,22 +288,30 @@
                 throw new Error("No se pudierón verificar duplicados: " + fetchError.message);
             }
 
+            // Build a robust signature for a row.
+            // Primary key: ArrFlight+SIBT | DepFlight+SOBT
+            // For cancelled/blank rows (no designators, no times), fall back to
+            // Status+Routing+SIBT+SOBT so blank rows don't all collapse to "|||".
+            function buildSig(r) {
+                const ad = (r['[Arr] Flight Designator'] || '').trim();
+                const at = (r['[Arr] SIBT'] || '').trim();
+                const dd = (r['[Dep] Flight Designator'] || '').trim();
+                const dt = (r['[Dep] SOBT'] || '').trim();
+                if (ad || dd || at || dt) {
+                    return `${ad}|${at}|${dd}|${dt}`;
+                }
+                // Fallback for fully-blank flight rows (e.g. pure cancellations)
+                const st = (r['Status'] || r['status'] || '').trim();
+                const rt = (r['Routing'] || r['routing'] || '').trim();
+                const aldt = (r['[Arr] ALDT'] || '').trim();
+                const sobt2 = (r['[Dep] SOBT'] || '').trim();
+                return `BLANK|${st}|${rt}|${aldt}|${sobt2}`;
+            }
+
             const existingSignatures = new Set();
             if (existingData) {
                 existingData.forEach(r => {
-                    // Signature format: STRICT COMBINED
-                    // We concatenate Arr|Time|Dep|Time to ensure we only skip EXACT rows.
-                    // This allows "updates" (e.g. same flight, different time) to be inserted as new rows
-                    // (which effectively updates the schedule if the user deletes the old ones, or just adds the version)
-                    
-                    const ad = (r['[Arr] Flight Designator'] || '').trim();
-                    const at = (r['[Arr] SIBT'] || '').trim();
-                    const dd = (r['[Dep] Flight Designator'] || '').trim();
-                    const dt = (r['[Dep] SOBT'] || '').trim();
-                    
-                    if (ad || dd) { // Only track if there's at least some flight info
-                         existingSignatures.add(`${ad}|${at}|${dd}|${dt}`);
-                    }
+                    existingSignatures.add(buildSig(r));
                 });
             }
 
@@ -312,17 +320,11 @@
 
             // 2. Filter new rows
             ordered.forEach(row => {
-               const ad = (row['[Arr] Flight Designator'] || '').trim();
-               const at = (row['[Arr] SIBT'] || '').trim();
-               const dd = (row['[Dep] Flight Designator'] || '').trim();
-               const dt = (row['[Dep] SOBT'] || '').trim();
-
-               const rowSig = `${ad}|${at}|${dd}|${dt}`;
-
-               if (existingSignatures.has(rowSig)) {
+               const sig = buildSig(row);
+               if (existingSignatures.has(sig)) {
                    duplicatesCount++;
                } else {
-                   existingSignatures.add(rowSig); // Add to set to catch duplicates within the CSV itself
+                   existingSignatures.add(sig); // catch duplicates within the CSV itself
                    uniqueRows.push(row);
                }
             });
