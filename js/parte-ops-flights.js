@@ -94,6 +94,7 @@
             toggleColumn, 
             toggleValidacion,
             saveObservacion,
+            editObservacion,
             getData: () => currentData,
             getHeaders: () => HEADERS,
             getDateFields: () => DATE_FIELDS,
@@ -604,13 +605,15 @@
                       </button>
                    </td>`;
 
-            // Observations cell — editable textarea, autosaves on blur
-            const obsContent = escapeHtml(row._observaciones || '');
-            const obsCell = `<td class="col-cvs-observaciones" style="min-width:180px;padding:4px;background:#f0fff4;border-left:2px solid #b7dfca;">
-                <textarea class="form-control form-control-sm csv-obs-input" rows="1"
-                    style="resize:vertical;font-size:.72rem;min-width:160px;min-height:28px;"
-                    placeholder="Observación..."
-                    onblur="window.opsFlights.saveObservacion(${dataIdx}, this.value)">${obsContent}</textarea>
+            // Observations cell — locked by default, click to edit
+            const obsText = escapeHtml(row._observaciones || '');
+            const obsCell = `<td class="col-cvs-observaciones obs-td" style="min-width:190px;padding:4px 6px;background:#f0fff4;border-left:2px solid #b7dfca;">
+                <div class="obs-display" onclick="window.opsFlights.editObservacion(this,${dataIdx})" title="Clic para editar observación">
+                    ${obsText
+                        ? `<span class="obs-text">${obsText}</span>`
+                        : `<span class="obs-placeholder">Sin observación</span>`}
+                    <i class="fas fa-pencil-alt obs-edit-icon"></i>
+                </div>
             </td>`;
 
             return `<tr data-row-idx="${dataIdx}"${valido ? ' class="row-validated"' : ''}>${cells}${obsCell}${validCell}</tr>`;
@@ -623,11 +626,86 @@
         setTimeout(updateAllVisibility, 0); 
     }
 
+    function editObservacion(displayEl, dataIdx) {
+        const td = displayEl.closest('td');
+        if (td.querySelector('.obs-edit-wrap')) return; // already editing
+        const row = currentData[dataIdx];
+        const current = row ? (row._observaciones || '') : '';
+
+        // Build edit UI
+        const wrap = document.createElement('div');
+        wrap.className = 'obs-edit-wrap';
+
+        const ta = document.createElement('textarea');
+        ta.className = 'form-control form-control-sm obs-textarea';
+        ta.rows = 2;
+        ta.placeholder = 'Escribe una observación…';
+        ta.value = current;
+
+        const btnRow = document.createElement('div');
+        btnRow.className = 'obs-btn-row';
+
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'btn btn-success btn-xs obs-save-btn';
+        saveBtn.innerHTML = '<i class="fas fa-check me-1"></i>Guardar';
+        saveBtn.onclick = () => commitObservacion(td, displayEl, dataIdx, ta.value);
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-outline-secondary btn-xs obs-cancel-btn';
+        cancelBtn.innerHTML = '<i class="fas fa-times"></i>';
+        cancelBtn.onclick = () => cancelObservacion(td, displayEl);
+
+        btnRow.appendChild(saveBtn);
+        btnRow.appendChild(cancelBtn);
+        wrap.appendChild(ta);
+        wrap.appendChild(btnRow);
+
+        displayEl.classList.add('d-none');
+        td.appendChild(wrap);
+        ta.focus();
+        ta.selectionStart = ta.value.length;
+
+        // Enter = save, Escape = cancel
+        ta.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitObservacion(td, displayEl, dataIdx, ta.value); }
+            if (e.key === 'Escape') cancelObservacion(td, displayEl);
+        });
+    }
+
+    function cancelObservacion(td, displayEl) {
+        const wrap = td.querySelector('.obs-edit-wrap');
+        if (wrap) wrap.remove();
+        displayEl.classList.remove('d-none');
+    }
+
+    async function commitObservacion(td, displayEl, dataIdx, value) {
+        const saveBtn = td.querySelector('.obs-save-btn');
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; }
+
+        await saveObservacion(dataIdx, value);
+
+        // Update display
+        const row = currentData[dataIdx];
+        const saved = row ? (row._observaciones || '') : '';
+        const textEl = displayEl.querySelector('.obs-text, .obs-placeholder');
+        if (textEl) {
+            if (saved) {
+                textEl.className = 'obs-text';
+                textEl.textContent = saved;
+            } else {
+                textEl.className = 'obs-placeholder';
+                textEl.textContent = 'Sin observación';
+            }
+        }
+
+        // Exit edit mode
+        cancelObservacion(td, displayEl);
+    }
+
     async function saveObservacion(dataIdx, value) {
         const row = currentData[dataIdx];
         if (!row || !row._id) return;
         const trimmed = (value || '').trim();
-        // Skip if unchanged
         if (trimmed === (row._observaciones || '').trim()) return;
         try {
             const supabase = window.supabaseClient;

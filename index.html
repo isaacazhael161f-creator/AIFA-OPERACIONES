@@ -253,6 +253,63 @@
             background-color: #a8e8c1 !important;
         }
 
+        /* ── Observaciones cell ── */
+        .obs-display {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            border-radius: 5px;
+            padding: 3px 6px;
+            min-height: 28px;
+            transition: background .15s;
+        }
+        .obs-display:hover { background: #d4f5d4; }
+        .obs-text {
+            font-size: .75rem;
+            color: #1a5c2a;
+            flex: 1;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .obs-placeholder {
+            font-size: .72rem;
+            color: #94a3b8;
+            flex: 1;
+            font-style: italic;
+        }
+        .obs-edit-icon {
+            font-size: .6rem;
+            color: #6aad7a;
+            opacity: 0;
+            transition: opacity .15s;
+            flex-shrink: 0;
+        }
+        .obs-display:hover .obs-edit-icon { opacity: 1; }
+        .obs-edit-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .obs-textarea {
+            font-size: .75rem !important;
+            resize: vertical;
+            min-height: 52px;
+            border-color: #28a745 !important;
+            box-shadow: 0 0 0 2px rgba(40,167,69,.18) !important;
+        }
+        .obs-btn-row {
+            display: flex;
+            gap: 4px;
+            justify-content: flex-end;
+        }
+        .btn-xs {
+            font-size: .68rem;
+            padding: 2px 8px;
+            line-height: 1.4;
+            border-radius: 4px;
+        }
+
         #table-ops-flights-csv .csv-status {
             font-weight: 600;
             text-transform: uppercase;
