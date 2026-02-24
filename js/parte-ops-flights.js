@@ -343,22 +343,6 @@
             await saveToDatabase(uniqueRows, true);
             // --- DUPLICATE DETECTION END ---
 
-            // Auto-set the date picker to the dominant operational date of the
-            // imported data so the table immediately shows the right day.
-            const detectedDate = detectDominantDate(ordered);
-            if (detectedDate) {
-                const dateInput = document.getElementById('vuelos-ops-date');
-                if (dateInput) dateInput.value = detectedDate;
-                // Switch to exact-day view (relative 0 → 0)
-                dateMode = 'relative';
-                relStart = 0;
-                relEnd = 0;
-                const relStartInput = document.getElementById('rel-start');
-                const relEndInput = document.getElementById('rel-end');
-                if (relStartInput) relStartInput.value = '0';
-                if (relEndInput) relEndInput.value = '0';
-            }
-
             const modalEl = document.getElementById('uploadOpsCsvModal');
             if (modalEl) {
                 const modal = bootstrap.Modal.getInstance(modalEl);
@@ -836,8 +820,11 @@
         const dateRef = getReferenceDate();
         const dateFiltered = applyDateWindow(currentData, dateRef);
         const filtered = applyFilters(dateFiltered);
-        renderTable(filtered);
-        updateChart(filtered, dateRef);
+        // Re-sort after filtering so cross-midnight flights and any filter changes
+        // always produce a clean date → time ascending order.
+        const sorted = sortRows(filtered, dateRef);
+        renderTable(sorted);
+        updateChart(sorted, dateRef);
         updateRelativeLabels();
     }
 
@@ -897,11 +884,28 @@
         return str;
     }
 
+    // Priority order for sort: SIBT (scheduled arrival) → SOBT (scheduled departure) → any other field.
+    // This matches operational convention: flights are listed by when they were scheduled to arrive/depart.
+    const SORT_PRIORITY_FIELDS = [
+        '[Arr] SIBT',
+        '[Dep] SOBT',
+        '[Arr] AIBT', '[Arr] ALDT',
+        '[Dep] AOBT', '[Dep] ATOT', '[Dep] ATTT'
+    ];
+
+    function getSortDate(row, year) {
+        for (const field of SORT_PRIORITY_FIELDS) {
+            const dt = parseOpsDateTime(row[field], year);
+            if (dt) return dt;
+        }
+        return null;
+    }
+
     function sortRows(rows, dateFilter) {
-        const yearOverride = dateFilter ? parseInt(dateFilter.slice(0, 4), 10) : null;
+        const year = dateFilter ? parseInt(dateFilter.slice(0, 4), 10) : (lastImportYear || new Date().getFullYear());
         return [...rows].sort((a, b) => {
-            const da = getFirstDate(a, DATE_FIELDS, dateFilter, yearOverride);
-            const db = getFirstDate(b, DATE_FIELDS, dateFilter, yearOverride);
+            const da = getSortDate(a, year);
+            const db = getSortDate(b, year);
             if (!da && !db) return 0;
             if (!da) return 1;
             if (!db) return -1;
@@ -1013,41 +1017,6 @@
         if (!match) return null;
         const year = parseInt(match[3], 10);
         return 2000 + year;
-    }
-
-    /**
-     * Given an array of raw CSV row objects, returns the ISO date string (YYYY-MM-DD)
-     * of the most frequently occurring operational day.
-     * Primary field: [Arr] SIBT (scheduled arrival). Fallback: [Dep] SOBT.
-     * This is used to auto-set the date picker after an import so the user
-     * immediately sees the imported day's flights.
-     */
-    function detectDominantDate(rows) {
-        const counts = {};
-        for (const row of rows) {
-            // Use SIBT for real arrivals, SOBT as fallback (cancelled flights have no SIBT)
-            const fields = ['[Arr] SIBT', '[Dep] SOBT', '[Arr] ALDT', '[Dep] ATOT'];
-            for (const field of fields) {
-                const val = String(row[field] || '').trim().toUpperCase();
-                const m = val.match(/^(\d{2})([A-Z]{3})\s+\d{2}:\d{2}/);
-                if (m) {
-                    const key = m[1] + m[2]; // e.g. "15FEB"
-                    counts[key] = (counts[key] || 0) + 1;
-                    break; // one vote per row
-                }
-            }
-        }
-        // Find the key with the most votes
-        let bestKey = null, bestCount = 0;
-        for (const [key, count] of Object.entries(counts)) {
-            if (count > bestCount) { bestCount = count; bestKey = key; }
-        }
-        if (!bestKey) return null;
-        // Convert "15FEB" + lastImportYear → "2026-02-15"
-        const day = parseInt(bestKey.slice(0, 2), 10);
-        const monthIdx = MONTHS[bestKey.slice(2)];
-        if (monthIdx === undefined) return null;
-        return `${lastImportYear}-${String(monthIdx + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     }
 
     function chunkArray(list, size) {
