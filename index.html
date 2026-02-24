@@ -2285,6 +2285,22 @@
                                             <!-- Status message -->
                                             <div id="admin-status-msg" class="d-none mb-2"></div>
 
+                                            <!-- Days Summary Card -->
+                                            <div class="card shadow-sm border-0 mb-3" id="admin-days-summary-card">
+                                                <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <i class="fas fa-calendar-alt text-primary"></i>
+                                                        <h6 class="mb-0 text-uppercase small text-muted fw-bold">Días con Vuelos Cargados</h6>
+                                                    </div>
+                                                    <small class="text-muted" style="font-size:.75rem">Haz clic en un día para filtrar la tabla</small>
+                                                </div>
+                                                <div class="card-body py-3 px-3">
+                                                    <div id="admin-days-grid">
+                                                        <p class="text-muted small mb-0"><i class="fas fa-spinner fa-spin me-1"></i>Cargando...</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
                                             <!-- Admin Table (same design as Conciliación) -->
                                             <div class="row">
                                                 <div class="col-12 mb-4">
@@ -9760,6 +9776,7 @@ window.opsFlightsAdmin = (function () {
 
         updateDeleteBtn();
         updateBadge();
+        buildDaySummary();
     }
 
     function applyAdminFilters() {
@@ -9795,33 +9812,104 @@ window.opsFlightsAdmin = (function () {
 
     function filterByDeleteDate() {
         applyAdminFilters();
+        buildDaySummary();
     }
 
-    // Convert ISO date "2026-02-15" → airport text prefix "15FEB"
-    function isoToAirportDay(iso) {
+    // Convert airport day prefix "15FEB" → ISO date string "2026-02-15"
+    function dayPrefixToISO(prefix) {
+        var MONTH_IDX = {JAN:1,FEB:2,MAR:3,APR:4,MAY:5,JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12};
+        var m = String(prefix).toUpperCase().match(/^(\d{2})([A-Z]{3})$/);
+        if (!m) return '';
+        var day = parseInt(m[1], 10);
+        var month = MONTH_IDX[m[2]];
+        if (!month) return '';
+        var year = new Date().getFullYear();
+        // If resulting date is more than 60 days in the future, use prior year
+        var candidate = new Date(year, month - 1, day);
+        if ((candidate - new Date()) > 60 * 86400000) year--;
+        return year + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+    }
+
+    function collectDayPrefixes() {
+        var FIELDS = ['[Arr] ALDT','[Arr] SIBT','[Arr] AIBT','[Dep] SOBT','[Dep] AOBT','[Dep] ATOT'];
+        var set = new Set();
+        adminData.forEach(function (row) {
+            FIELDS.forEach(function (f) {
+                var v = String(row[f] || '').trim().toUpperCase();
+                var match = v.match(/^(\d{2}[A-Z]{3})/);
+                if (match) set.add(match[1]);
+            });
+        });
+        return Array.from(set).sort(function (a, b) {
+            return (dayPrefixToISO(a) || a).localeCompare(dayPrefixToISO(b) || b);
+        });
+    }
+
+    function buildDaySummary() {
+        var grid = getEl('admin-days-grid');
+        if (!grid) return;
+        if (adminData.length === 0) {
+            grid.innerHTML = '<p class="text-muted small mb-0">No hay datos cargados.</p>';
+            return;
+        }
+        var days = collectDayPrefixes();
+        var activeDateEl = getEl('admin-delete-date');
+        var activeISO = activeDateEl ? activeDateEl.value : '';
+        var html = '<div class="d-flex flex-wrap gap-2 align-items-start">';
+        // "Todos" chip
+        html += '<button class="btn btn-sm ' + (activeISO ? 'btn-outline-secondary' : 'btn-primary') + ' py-1" '
+              + 'onclick="window.opsFlightsAdmin.clearDayFilter()" '
+              + 'style="min-width:80px;text-align:center;border-radius:10px">'
+              + '<div style="font-size:.68rem;opacity:.7;letter-spacing:.05em">TODOS</div>'
+              + '<div style="font-size:1.15rem;font-weight:800;line-height:1.1">' + adminData.length + '</div>'
+              + '<div style="font-size:.7rem">vuelos</div>'
+              + '</button>';
+        days.forEach(function (prefix) {
+            var iso  = dayPrefixToISO(prefix);
+            var isActive = iso && iso === activeISO;
+            var day  = prefix.slice(0, 2);
+            var mon  = prefix.slice(2);
+            var count = adminData.filter(function (r) { return rowMatchesDay(r, prefix); }).length;
+            html += '<button class="btn btn-sm ' + (isActive ? 'btn-primary shadow' : 'btn-outline-primary') + ' py-1" '
+                  + 'onclick="window.opsFlightsAdmin.filterToDay(\'' + prefix + '\')" '
+                  + 'style="min-width:90px;text-align:center;border-radius:10px" '
+                  + 'title="' + count + ' vuelos el ' + prefix + '">'
+                  + '<div style="font-size:.68rem;text-transform:uppercase;opacity:.7;letter-spacing:.05em">' + mon + '</div>'
+                  + '<div style="font-size:1.4rem;font-weight:800;line-height:1.1">' + day + '</div>'
+                  + '<div style="font-size:.75rem;font-weight:600">' + count + ' <i class=\'fas fa-plane\' style=\'font-size:.6rem\'></i></div>'
+                  + '</button>';
+        });
+        html += '</div>';
+        grid.innerHTML = html;
+    }
+
+    function filterToDay(prefix) {
+        var iso = dayPrefixToISO(prefix);
+        var dateEl = getEl('admin-delete-date');
+        if (dateEl && iso) dateEl.value = iso;
+        applyAdminFilters();
+        buildDaySummary();
+    }
+
+    function clearDayFilter() {
+        var dateEl = getEl('admin-delete-date');
+        if (dateEl) dateEl.value = '';
+        applyAdminFilters();
+        buildDaySummary();
+    }
         if (!iso) return '';
         var MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
         var d = new Date(iso + 'T00:00:00');
         return String(d.getDate()).padStart(2,'0') + MONTHS[d.getMonth()];
     }
 
-    // Returns the canonical day prefix (e.g. "15FEB") for a row.
-    // Rule: [Arr] SIBT → [Dep] SOBT → first available field.
-    // Each row belongs to exactly ONE day — no duplicates, no cross-day deletions.
-    function getRowDayPrefix(row) {
-        var priority = ['[Arr] SIBT','[Dep] SOBT','[Arr] ALDT','[Arr] AIBT','[Dep] AOBT','[Dep] ATOT'];
-        for (var i = 0; i < priority.length; i++) {
-            var v = row[priority[i]];
-            if (v && String(v).trim().match(/^\d{2}[A-Z]{3}/i)) {
-                return String(v).trim().substring(0, 5).toUpperCase();
-            }
-        }
-        return '';
-    }
-
-    // Check if row's canonical day matches dayPrefix (e.g. "15FEB")
+    // Check if any time field in row contains dayPrefix (e.g. "15FEB")
     function rowMatchesDay(row, dayPrefix) {
-        return getRowDayPrefix(row) === dayPrefix;
+        var fields = ['[Arr] ALDT','[Arr] SIBT','[Arr] AIBT','[Dep] SOBT','[Dep] AOBT','[Dep] ATOT'];
+        return fields.some(function (f) {
+            var v = row[f];
+            return v && String(v).toUpperCase().startsWith(dayPrefix);
+        });
     }
 
     async function loadData() {
@@ -9936,7 +10024,9 @@ window.opsFlightsAdmin = (function () {
         deleteSelected:     deleteSelected,
         toggleSelectAll:    toggleSelectAll,
         updateDeleteBtn:    updateDeleteBtn,
-        filterByDeleteDate: filterByDeleteDate
+        filterByDeleteDate: filterByDeleteDate,
+        filterToDay:        filterToDay,
+        clearDayFilter:     clearDayFilter
     };
 }());
 </script>
