@@ -1090,7 +1090,9 @@
         if (!thead) return;
         thead.querySelectorAll('th').forEach(th => {
             // Find which field this th maps to via its CSS class
-            const colClass = [...th.classList].find(c => c.startsWith('col-cvs-') && c !== 'col-cvs-validation');
+            const colClass = [...th.classList].find(
+                c => c.startsWith('col-cvs-') && c !== 'col-cvs-validation' && c !== 'col-cvs-observaciones'
+            );
             if (!colClass) return;
             const field = Object.keys(HEADER_CLASSES).find(k => HEADER_CLASSES[k] === colClass);
             if (!field) return;
@@ -1100,7 +1102,7 @@
             const btn = document.createElement('button');
             btn.className = 'csv-ef-btn';
             btn.title = 'Filtrar columna';
-            btn.innerHTML = '<i class="fas fa-sort-down"></i>';
+            btn.innerHTML = '<i class="fas fa-filter"></i>';
             btn.addEventListener('click', e => {
                 e.stopPropagation();
                 showCsvExcelFilter(field, btn);
@@ -1128,7 +1130,10 @@
             `background:#fff;border:1px solid #ddd;box-shadow:0 4px 14px rgba(0,0,0,.18);` +
             `width:240px;border-radius:6px;padding:10px;font-size:.84rem;`;
 
-        const values = [...new Set(currentData.map(r => String(r[field] || '')))]
+        // Build value list from date-filtered data so only relevant options appear
+        const dateRef = getReferenceDate();
+        const visibleData = applyDateWindow(currentData, dateRef);
+        const values = [...new Set(visibleData.map(r => String(r[field] || '')))]
             .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
         const activeSet = csvExcelFilters[field] || null;
 
@@ -1171,12 +1176,17 @@
         });
         menu.querySelector('#csv-ef-none').addEventListener('click', e => {
             e.preventDefault();
-            listEl.querySelectorAll('.csv-ef-chk').forEach(c => c.checked = false);
+            // "Borrar filtro" → remove the filter immediately and close
+            delete csvExcelFilters[field];
+            menu.remove();
+            updateCsvExcelFilterIcons();
+            applyAndRender();
         });
         menu.querySelector('#csv-ef-cancel').addEventListener('click', () => menu.remove());
         menu.querySelector('#csv-ef-apply').addEventListener('click', () => {
             const checked = [...listEl.querySelectorAll('.csv-ef-chk:checked')].map(c => c.value);
-            if (checked.length >= values.length) {
+            // If all selected OR none selected → clear filter (show all)
+            if (checked.length >= values.length || checked.length === 0) {
                 delete csvExcelFilters[field];
             } else {
                 csvExcelFilters[field] = new Set(checked);
@@ -1206,7 +1216,8 @@
             if (!btn) return;
             const isActive = !!csvExcelFilters[field];
             btn.classList.toggle('csv-ef-btn-active', isActive);
-            btn.querySelector('i').className = isActive ? 'fas fa-filter' : 'fas fa-sort-down';
+            // Always show funnel icon — blue filled when active, gray outline when not
+            btn.querySelector('i').className = isActive ? 'fas fa-filter' : 'fas fa-filter';
         });
     }
 
