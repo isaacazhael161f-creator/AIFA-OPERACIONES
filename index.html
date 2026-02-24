@@ -2270,14 +2270,30 @@
                                             </div>
 
                                             <!-- Danger zone strip -->
-                                            <div class="alert alert-danger border-danger d-flex align-items-center gap-3 py-2 px-3 mb-3 flex-wrap" role="alert" style="font-size:.85rem">
-                                                <i class="fas fa-exclamation-triangle fa-lg"></i>
-                                                <span><strong>Zona de Administración</strong> — Los cambios son permanentes e irreversibles.</span>
-                                                <div class="d-flex align-items-center gap-2 ms-auto flex-wrap">
+                                            <div class="alert alert-danger border-danger py-2 px-3 mb-2 flex-wrap" role="alert" style="font-size:.85rem">
+                                                <div class="d-flex align-items-center gap-3 flex-wrap">
+                                                    <i class="fas fa-exclamation-triangle fa-lg"></i>
+                                                    <span><strong>Zona de Administración</strong> — Los cambios son permanentes e irreversibles.</span>
+                                                </div>
+                                                <!-- Row 1: single day -->
+                                                <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
+                                                    <i class="fas fa-calendar-day text-danger" style="width:16px"></i>
                                                     <label class="mb-0 fw-semibold" for="admin-delete-date">Eliminar día:</label>
                                                     <input type="date" class="form-control form-control-sm" id="admin-delete-date" style="width:145px" oninput="window.opsFlightsAdmin.filterByDeleteDate()">
                                                     <button class="btn btn-sm btn-danger" onclick="window.opsFlightsAdmin.deleteByDate()">
                                                         <i class="fas fa-trash-alt me-1"></i>Eliminar día
+                                                    </button>
+                                                </div>
+                                                <!-- Row 2: date range -->
+                                                <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
+                                                    <i class="fas fa-calendar-week text-danger" style="width:16px"></i>
+                                                    <label class="mb-0 fw-semibold">Eliminar rango:</label>
+                                                    <input type="date" class="form-control form-control-sm" id="admin-range-start" style="width:145px" oninput="window.opsFlightsAdmin.previewRange()">
+                                                    <span class="text-muted">al</span>
+                                                    <input type="date" class="form-control form-control-sm" id="admin-range-end" style="width:145px" oninput="window.opsFlightsAdmin.previewRange()">
+                                                    <span id="admin-range-preview" class="badge bg-warning text-dark d-none" style="font-size:.78rem"></span>
+                                                    <button class="btn btn-sm btn-danger" onclick="window.opsFlightsAdmin.deleteByRange()">
+                                                        <i class="fas fa-trash-alt me-1"></i>Eliminar rango
                                                     </button>
                                                 </div>
                                             </div>
@@ -9897,6 +9913,7 @@ window.opsFlightsAdmin = (function () {
         applyAdminFilters();
         buildDaySummary();
     }
+    function isoToAirportDay(iso) {
         if (!iso) return '';
         var MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
         var d = new Date(iso + 'T00:00:00');
@@ -9966,6 +9983,93 @@ window.opsFlightsAdmin = (function () {
         }
     }
 
+    // Returns all rows whose canonical date (first SOBT/SIBT value parsed) falls in [startISO, endISO]
+    function rowsInRange(startISO, endISO) {
+        var start = new Date(startISO + 'T00:00:00');
+        var end   = new Date(endISO   + 'T23:59:59');
+        var MONTHS = {JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11};
+        var TIME_FIELDS = ['[Dep] SOBT','[Arr] SIBT','[Arr] ALDT','[Arr] AIBT','[Dep] AOBT','[Dep] ATOT'];
+        var year = start.getFullYear();
+
+        function parseField(val) {
+            if (!val) return null;
+            var m = String(val).trim().toUpperCase().match(/(\d{2})([A-Z]{3})\s+(\d{2}):(\d{2})/);
+            if (!m) return null;
+            var mon = MONTHS[m[2]];
+            if (mon === undefined) return null;
+            return new Date(year, mon, parseInt(m[1],10), parseInt(m[3],10), parseInt(m[4],10));
+        }
+
+        return adminData.filter(function (row) {
+            // Include row if ANY time field falls within the range
+            return TIME_FIELDS.some(function (f) {
+                var dt = parseField(row[f]);
+                if (!dt) return false;
+                return dt >= start && dt <= end;
+            });
+        });
+    }
+
+    function previewRange() {
+        var s = getEl('admin-range-start');
+        var e = getEl('admin-range-end');
+        var badge = getEl('admin-range-preview');
+        if (!s || !e || !badge) return;
+        var startVal = s.value;
+        var endVal   = e.value;
+        if (!startVal || !endVal) {
+            badge.classList.add('d-none');
+            return;
+        }
+        if (endVal < startVal) {
+            badge.textContent = 'Fin anterior al inicio';
+            badge.className = 'badge bg-danger text-white';
+            return;
+        }
+        var count = rowsInRange(startVal, endVal).length;
+        badge.textContent = count + ' vuelo' + (count !== 1 ? 's' : '') + ' en rango';
+        badge.className = 'badge ' + (count > 0 ? 'bg-warning text-dark' : 'bg-secondary text-white');
+    }
+
+    async function deleteByRange() {
+        var startEl = getEl('admin-range-start');
+        var endEl   = getEl('admin-range-end');
+        var startVal = startEl ? startEl.value : '';
+        var endVal   = endEl   ? endEl.value   : '';
+        if (!startVal || !endVal) {
+            showStatus('Selecciona fecha de inicio y fin del rango.', 'warning');
+            return;
+        }
+        if (endVal < startVal) {
+            showStatus('La fecha de fin debe ser igual o posterior a la de inicio.', 'warning');
+            return;
+        }
+        var vuelos = rowsInRange(startVal, endVal);
+        if (vuelos.length === 0) {
+            showStatus('No se encontraron vuelos en el rango ' + startVal + ' — ' + endVal + '.', 'warning');
+            return;
+        }
+        var startPfx = isoToAirportDay(startVal);
+        var endPfx   = isoToAirportDay(endVal);
+        var ok = confirm('¿Eliminar TODOS los vuelos del ' + startPfx + ' al ' + endPfx + '?\n' +
+            vuelos.length + ' registro(s) serán eliminados.\n\nEsta acción NO se puede deshacer.');
+        if (!ok) return;
+        var ids = vuelos.map(function (r) { return r.id; });
+        try {
+            var sb = window.supabaseClient;
+            var result = await sb.from('vuelos_parte_operaciones_csv').delete().in('id', ids);
+            if (result.error) throw result.error;
+            showStatus('Eliminados ' + ids.length + ' vuelo(s) del rango ' + startPfx + ' — ' + endPfx + '.', 'success');
+            adminData = adminData.filter(function (r) { return !ids.includes(r.id); });
+            var badge = getEl('admin-range-preview');
+            if (badge) badge.classList.add('d-none');
+            renderTable();
+            buildDaySummary();
+        } catch (e) {
+            showStatus('Error al eliminar: ' + (e.message || e), 'danger');
+        }
+    }
+
     async function deleteById(id) {
         var ok = confirm('¿Eliminar este vuelo (ID: ' + id + ')?\n\nEsta acción NO se puede deshacer.');
         if (!ok) return;
@@ -10020,6 +10124,8 @@ window.opsFlightsAdmin = (function () {
     return {
         loadData:           loadData,
         deleteByDate:       deleteByDate,
+        deleteByRange:      deleteByRange,
+        previewRange:       previewRange,
         deleteById:         deleteById,
         deleteSelected:     deleteSelected,
         toggleSelectAll:    toggleSelectAll,
