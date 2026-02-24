@@ -434,6 +434,9 @@
             text-overflow: ellipsis;
             white-space: nowrap;
             flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 6px;
             padding: 1px 4px;
             border-radius: 3px;
             transition: background .12s, color .12s;
@@ -442,6 +445,20 @@
             background: #0d6efd;
             color: #fff;
         }
+        /* Service-type items: code badge + description inline */
+        .csv-ef-item-svc .csv-ef-label { flex-direction: column; align-items: flex-start; gap: 0; }
+        .csv-ef-svc-code {
+            font-weight: 700;
+            font-size: .82rem;
+            letter-spacing: .04em;
+        }
+        .csv-ef-svc-desc {
+            font-size: .72rem;
+            color: #6c757d;
+            white-space: normal;
+            line-height: 1.2;
+        }
+        .csv-ef-item-svc .csv-ef-label:hover .csv-ef-svc-desc { color: #dde; }
 
         .filter-icon {
             position: absolute;
