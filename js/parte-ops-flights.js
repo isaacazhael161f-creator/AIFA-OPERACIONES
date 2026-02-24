@@ -233,8 +233,7 @@
             if (error) throw error;
 
             let rows = Array.isArray(data) ? data.map(normalizeRow) : [];
-            rows = sortRows(rows, getReferenceDate());
-
+            // Preserve DB insertion order (= original CSV order)
             currentData = rows;
             applyAndRender();
         } catch (err) {
@@ -267,9 +266,8 @@
 
             if (mapped.length === 0) throw new Error('No hay filas de datos válidas en el CSV.');
 
-            const dateInput = document.getElementById('vuelos-ops-date');
-            const dateFilter = dateInput ? dateInput.value : '';
-            const ordered = sortRows(mapped, dateFilter);
+            // Preserve original CSV row order
+            const ordered = mapped;
 
             // --- DUPLICATE DETECTION START ---
             const supabase = window.supabaseClient;
@@ -820,11 +818,8 @@
         const dateRef = getReferenceDate();
         const dateFiltered = applyDateWindow(currentData, dateRef);
         const filtered = applyFilters(dateFiltered);
-        // Re-sort after filtering so cross-midnight flights and any filter changes
-        // always produce a clean date → time ascending order.
-        const sorted = sortRows(filtered, dateRef);
-        renderTable(sorted);
-        updateChart(sorted, dateRef);
+        renderTable(filtered);
+        updateChart(filtered, dateRef);
         updateRelativeLabels();
     }
 
