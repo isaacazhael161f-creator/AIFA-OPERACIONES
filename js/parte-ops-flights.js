@@ -1140,10 +1140,11 @@
                     const label = v === '' ? '(Vac\u00edo)' : v;
                     return `<div class="csv-ef-item" data-value="${v.replace(/"/g, '&quot;')}">
                         <input class="form-check-input csv-ef-chk" type="checkbox" id="csv-ef-${i}" value="${v.replace(/"/g, '&quot;')}" ${checked ? 'checked' : ''}>
-                        <label for="csv-ef-${i}" title="${label}">${label}</label>
+                        <label class="csv-ef-label" data-value="${v.replace(/"/g, '&quot;')}" title="Clic: solo este valor">${label}</label>
                     </div>`;
                 }).join('')}
             </div>
+            <div class="text-muted px-1 mb-2" style="font-size:.7rem;"><i class="fas fa-info-circle me-1"></i>Clic en el texto = solo ese valor &nbsp;·&nbsp; <i class="fas fa-check-square me-1"></i>= multi-selección</div>
             <div style="display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #eee;padding-top:8px;">
                 <button class="btn btn-sm btn-light border" id="csv-ef-cancel">Cancelar</button>
                 <button class="btn btn-sm btn-primary" id="csv-ef-apply">Aceptar</button>
@@ -1159,6 +1160,21 @@
             listEl.querySelectorAll('.csv-ef-item').forEach(item => {
                 item.style.display = item.dataset.value.toLowerCase().includes(txt) ? 'flex' : 'none';
             });
+        });
+
+        // Clicking the label text = "solo este" → uncheck all, check only this one, apply immediately
+        listEl.addEventListener('click', e => {
+            const label = e.target.closest('.csv-ef-label');
+            if (!label) return;
+            e.preventDefault();
+            const val = label.dataset.value;
+            // Uncheck all, then check only the clicked one
+            listEl.querySelectorAll('.csv-ef-chk').forEach(c => { c.checked = c.value === val; });
+            // Apply immediately
+            csvExcelFilters[field] = new Set([val]);
+            menu.remove();
+            updateCsvExcelFilterIcons();
+            applyAndRender();
         });
 
         menu.querySelector('#csv-ef-all').addEventListener('click', e => {

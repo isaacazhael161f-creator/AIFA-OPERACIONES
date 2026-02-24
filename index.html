@@ -426,6 +426,22 @@
         }
         .csv-ef-item:hover { background: #e9ecef; }
         .csv-ef-item label { cursor: pointer; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* Label text = "solo este" click target */
+        .csv-ef-label {
+            cursor: pointer;
+            margin: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            padding: 1px 4px;
+            border-radius: 3px;
+            transition: background .12s, color .12s;
+        }
+        .csv-ef-label:hover {
+            background: #0d6efd;
+            color: #fff;
+        }
 
         .filter-icon {
             position: absolute;
