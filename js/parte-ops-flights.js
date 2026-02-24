@@ -253,6 +253,7 @@
 
             let rows = Array.isArray(data) ? data.map(normalizeRow) : [];
             currentData = rows;
+            initCsvExcelFilterButtons(); // Ensure buttons exist before render
             applyAndRender();
         } catch (err) {
             console.error(err);
@@ -840,6 +841,9 @@
         renderTable(sorted);
         updateChart(sorted, dateRef);
         updateRelativeLabels();
+        // Guard: ensure filter buttons are on all columns (handles caching / timing edge cases)
+        initCsvExcelFilterButtons();
+        updateCsvExcelFilterIcons();
     }
 
     function getReferenceDate() {
