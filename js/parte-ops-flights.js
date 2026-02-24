@@ -288,30 +288,22 @@
                 throw new Error("No se pudierón verificar duplicados: " + fetchError.message);
             }
 
-            // Build a robust signature for a row.
-            // Primary key: ArrFlight+SIBT | DepFlight+SOBT
-            // For cancelled/blank rows (no designators, no times), fall back to
-            // Status+Routing+SIBT+SOBT so blank rows don't all collapse to "|||".
-            function buildSig(r) {
-                const ad = (r['[Arr] Flight Designator'] || '').trim();
-                const at = (r['[Arr] SIBT'] || '').trim();
-                const dd = (r['[Dep] Flight Designator'] || '').trim();
-                const dt = (r['[Dep] SOBT'] || '').trim();
-                if (ad || dd || at || dt) {
-                    return `${ad}|${at}|${dd}|${dt}`;
-                }
-                // Fallback for fully-blank flight rows (e.g. pure cancellations)
-                const st = (r['Status'] || r['status'] || '').trim();
-                const rt = (r['Routing'] || r['routing'] || '').trim();
-                const aldt = (r['[Arr] ALDT'] || '').trim();
-                const sobt2 = (r['[Dep] SOBT'] || '').trim();
-                return `BLANK|${st}|${rt}|${aldt}|${sobt2}`;
-            }
-
             const existingSignatures = new Set();
             if (existingData) {
                 existingData.forEach(r => {
-                    existingSignatures.add(buildSig(r));
+                    // Signature format: STRICT COMBINED
+                    // We concatenate Arr|Time|Dep|Time to ensure we only skip EXACT rows.
+                    // This allows "updates" (e.g. same flight, different time) to be inserted as new rows
+                    // (which effectively updates the schedule if the user deletes the old ones, or just adds the version)
+                    
+                    const ad = (r['[Arr] Flight Designator'] || '').trim();
+                    const at = (r['[Arr] SIBT'] || '').trim();
+                    const dd = (r['[Dep] Flight Designator'] || '').trim();
+                    const dt = (r['[Dep] SOBT'] || '').trim();
+                    
+                    if (ad || dd) { // Only track if there's at least some flight info
+                         existingSignatures.add(`${ad}|${at}|${dd}|${dt}`);
+                    }
                 });
             }
 
@@ -320,11 +312,17 @@
 
             // 2. Filter new rows
             ordered.forEach(row => {
-               const sig = buildSig(row);
-               if (existingSignatures.has(sig)) {
+               const ad = (row['[Arr] Flight Designator'] || '').trim();
+               const at = (row['[Arr] SIBT'] || '').trim();
+               const dd = (row['[Dep] Flight Designator'] || '').trim();
+               const dt = (row['[Dep] SOBT'] || '').trim();
+
+               const rowSig = `${ad}|${at}|${dd}|${dt}`;
+
+               if (existingSignatures.has(rowSig)) {
                    duplicatesCount++;
                } else {
-                   existingSignatures.add(sig); // catch duplicates within the CSV itself
+                   existingSignatures.add(rowSig); // Add to set to catch duplicates within the CSV itself
                    uniqueRows.push(row);
                }
             });
@@ -344,6 +342,22 @@
             // Pass 'true' to append instead of replace
             await saveToDatabase(uniqueRows, true);
             // --- DUPLICATE DETECTION END ---
+
+            // Auto-set the date picker to the dominant operational date of the
+            // imported data so the table immediately shows the right day.
+            const detectedDate = detectDominantDate(ordered);
+            if (detectedDate) {
+                const dateInput = document.getElementById('vuelos-ops-date');
+                if (dateInput) dateInput.value = detectedDate;
+                // Switch to exact-day view (relative 0 → 0)
+                dateMode = 'relative';
+                relStart = 0;
+                relEnd = 0;
+                const relStartInput = document.getElementById('rel-start');
+                const relEndInput = document.getElementById('rel-end');
+                if (relStartInput) relStartInput.value = '0';
+                if (relEndInput) relEndInput.value = '0';
+            }
 
             const modalEl = document.getElementById('uploadOpsCsvModal');
             if (modalEl) {
@@ -1001,6 +1015,41 @@
         return 2000 + year;
     }
 
+    /**
+     * Given an array of raw CSV row objects, returns the ISO date string (YYYY-MM-DD)
+     * of the most frequently occurring operational day.
+     * Primary field: [Arr] SIBT (scheduled arrival). Fallback: [Dep] SOBT.
+     * This is used to auto-set the date picker after an import so the user
+     * immediately sees the imported day's flights.
+     */
+    function detectDominantDate(rows) {
+        const counts = {};
+        for (const row of rows) {
+            // Use SIBT for real arrivals, SOBT as fallback (cancelled flights have no SIBT)
+            const fields = ['[Arr] SIBT', '[Dep] SOBT', '[Arr] ALDT', '[Dep] ATOT'];
+            for (const field of fields) {
+                const val = String(row[field] || '').trim().toUpperCase();
+                const m = val.match(/^(\d{2})([A-Z]{3})\s+\d{2}:\d{2}/);
+                if (m) {
+                    const key = m[1] + m[2]; // e.g. "15FEB"
+                    counts[key] = (counts[key] || 0) + 1;
+                    break; // one vote per row
+                }
+            }
+        }
+        // Find the key with the most votes
+        let bestKey = null, bestCount = 0;
+        for (const [key, count] of Object.entries(counts)) {
+            if (count > bestCount) { bestCount = count; bestKey = key; }
+        }
+        if (!bestKey) return null;
+        // Convert "15FEB" + lastImportYear → "2026-02-15"
+        const day = parseInt(bestKey.slice(0, 2), 10);
+        const monthIdx = MONTHS[bestKey.slice(2)];
+        if (monthIdx === undefined) return null;
+        return `${lastImportYear}-${String(monthIdx + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+
     function chunkArray(list, size) {
         const chunks = [];
         for (let i = 0; i < list.length; i += size) {
@@ -1171,27 +1220,13 @@
         return `${y}-${m}-${d}`;
     }
 
-    // Returns the ONE canonical day key for a row.
-    // Rule: [Arr] SIBT date → [Dep] SOBT date → first parseable field.
-    // This guarantees every row belongs to exactly one day (no duplicates across days,
-    // no cross-day deletion of unrelated rows).
-    function getCanonicalDateKey(row, year) {
-        const sibt = deriveDateKeyFromValue(row['[Arr] SIBT'], year);
-        if (sibt) return sibt;
-        const sobt = deriveDateKeyFromValue(row['[Dep] SOBT'], year);
-        if (sobt) return sobt;
-        for (const field of DATE_FIELDS) {
-            const key = deriveDateKeyFromValue(row[field], year);
-            if (key) return key;
-        }
-        return '';
-    }
-
-    // Returns true if the row's canonical day falls within [startKey, endKey]
+    // Returns true if ANY of the row's time fields falls within [startKey, endKey]
     function rowInDateWindow(row, startKey, endKey, year) {
-        const key = getCanonicalDateKey(row, year);
-        if (!key) return false;
-        return key >= startKey && key <= endKey;
+        return DATE_FIELDS.some(field => {
+            const key = deriveDateKeyFromValue(row[field], year);
+            if (!key) return false;
+            return key >= startKey && key <= endKey;
+        });
     }
 
     function applyDateWindow(rows, dateRef) {
