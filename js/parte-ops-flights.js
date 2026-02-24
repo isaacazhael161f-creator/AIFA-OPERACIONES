@@ -1086,28 +1086,19 @@
     }
 
     function initCsvExcelFilterButtons() {
-        const thead = document.querySelector('#table-ops-flights-csv thead tr:first-child');
-        if (!thead) return;
-        thead.querySelectorAll('th').forEach(th => {
-            // Find which field this th maps to via its CSS class
-            const colClass = [...th.classList].find(
-                c => c.startsWith('col-cvs-') && c !== 'col-cvs-validation' && c !== 'col-cvs-observaciones'
-            );
-            if (!colClass) return;
-            const field = Object.keys(HEADER_CLASSES).find(k => HEADER_CLASSES[k] === colClass);
+        // Buttons are embedded in HTML; just wire up click handlers (idempotent via dataset flag)
+        document.querySelectorAll('#table-ops-flights-csv thead tr:first-child th[data-csv-filter-field]').forEach(th => {
+            const field = th.dataset.csvFilterField;
             if (!field) return;
-            th.dataset.csvFilterField = field;
-            // Avoid duplicate buttons
-            if (th.querySelector('.csv-ef-btn')) return;
-            const btn = document.createElement('button');
-            btn.className = 'csv-ef-btn';
-            btn.title = 'Filtrar columna';
-            btn.innerHTML = '<i class="fas fa-filter"></i>';
+            const btn = th.querySelector('.csv-ef-btn');
+            if (!btn) return;
+            // Avoid attaching duplicate listeners
+            if (btn.dataset.csvEfBound) return;
+            btn.dataset.csvEfBound = '1';
             btn.addEventListener('click', e => {
                 e.stopPropagation();
                 showCsvExcelFilter(field, btn);
             });
-            th.appendChild(btn);
         });
     }
 
