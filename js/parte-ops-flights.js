@@ -1159,20 +1159,42 @@
         });
     }
 
+    // Helper: given a raw time field value (e.g. "15FEB 07:30") and a year, return "YYYY-MM-DD" or ''
+    function deriveDateKeyFromValue(value, year) {
+        const dt = parseOpsDateTime(value, year);
+        if (!dt) return '';
+        const y = dt.getFullYear();
+        const m = String(dt.getMonth() + 1).padStart(2, '0');
+        const d = String(dt.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    // Returns true if ANY of the row's time fields falls within [startKey, endKey]
+    function rowInDateWindow(row, startKey, endKey, year) {
+        return DATE_FIELDS.some(field => {
+            const key = deriveDateKeyFromValue(row[field], year);
+            if (!key) return false;
+            return key >= startKey && key <= endKey;
+        });
+    }
+
     function applyDateWindow(rows, dateRef) {
         if (!dateRef && dateMode === 'absolute' && !absStart && !absEnd) return rows;
+
+        // Use LOCAL date getters to avoid UTC offset shifting the boundary date
+        const toLocalKey = d => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        };
 
         if (dateMode === 'absolute') {
             const start = absStart || dateRef;
             const end = absEnd || dateRef;
             if (!start && !end) return rows;
-            return rows.filter(row => {
-                const key = deriveDateKey(row, start || end);
-                if (!key) return false;
-                if (start && key < start) return false;
-                if (end && key > end) return false;
-                return true;
-            });
+            const year = parseInt((start || end).slice(0, 4), 10);
+            return rows.filter(row => rowInDateWindow(row, start, end, year));
         }
 
         if (!dateRef) return rows;
@@ -1187,20 +1209,12 @@
             start.setTime(end.getTime());
             end.setTime(temp.getTime());
         }
-        // Use LOCAL date getters to avoid UTC offset shifting the boundary date
-        const toLocalKey = d => {
-            const y = d.getFullYear();
-            const m = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${y}-${m}-${day}`;
-        };
         const startKey = toLocalKey(start);
         const endKey = toLocalKey(end);
-        return rows.filter(row => {
-            const key = deriveDateKey(row, dateRef);
-            if (!key) return false;
-            return key >= startKey && key <= endKey;
-        });
+        const year = parseInt(dateRef.slice(0, 4), 10);
+        // A row is included if ANY of its time fields falls inside the date window.
+        // This matches flights that cross midnight (e.g., SIBT on day-1 but AIBT on target day).
+        return rows.filter(row => rowInDateWindow(row, startKey, endKey, year));
     }
 
     function getStatusClass(status) {
