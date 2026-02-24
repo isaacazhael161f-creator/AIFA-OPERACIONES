@@ -81,6 +81,15 @@
     let dateMode = 'relative';
     let relStart = -4;
     let relEnd = 0;
+    let _renderDebounceTimer = null;
+
+    // Schedule a debounced applyAndRender. Labels update instantly; the heavy
+    // DOM work fires only once the user stops clicking (after 'delay' ms).
+    function debouncedRender(delay) {
+        clearTimeout(_renderDebounceTimer);
+        updateRelativeLabels();          // instant feedback in the panel
+        _renderDebounceTimer = setTimeout(applyAndRender, delay || 220);
+    }
     let absStart = '';
     let absEnd = '';
     let lastImportYear = new Date().getFullYear();
@@ -175,10 +184,20 @@
         const relEndDec = document.getElementById('rel-end-dec');
         const relEndInc = document.getElementById('rel-end-inc');
 
-        if (relStartDec) relStartDec.addEventListener('click', () => { relStartInput.value = parseInt(relStartInput.value || -4, 10) - 1; syncRelative(); });
-        if (relStartInc) relStartInc.addEventListener('click', () => { relStartInput.value = parseInt(relStartInput.value || -4, 10) + 1; syncRelative(); });
-        if (relEndDec) relEndDec.addEventListener('click', () => { relEndInput.value = parseInt(relEndInput.value || 0, 10) - 1; syncRelative(); });
-        if (relEndInc) relEndInc.addEventListener('click', () => { relEndInput.value = parseInt(relEndInput.value || 0, 10) + 1; syncRelative(); });
+        // +/- buttons: update value immediately but debounce the heavy re-render
+        const stepRel = (inputEl, delta) => {
+            inputEl.value = parseInt(inputEl.value || 0, 10) + delta;
+            relStart = parseInt(relStartInput ? relStartInput.value : relStart, 10);
+            relEnd   = parseInt(relEndInput   ? relEndInput.value   : relEnd,   10);
+            if (isNaN(relStart)) relStart = -4;
+            if (isNaN(relEnd))   relEnd   =  0;
+            debouncedRender(200);
+        };
+
+        if (relStartDec) relStartDec.addEventListener('click', () => stepRel(relStartInput, -1));
+        if (relStartInc) relStartInc.addEventListener('click', () => stepRel(relStartInput,  1));
+        if (relEndDec)   relEndDec.addEventListener('click',   () => stepRel(relEndInput,   -1));
+        if (relEndInc)   relEndInc.addEventListener('click',   () => stepRel(relEndInput,    1));
 
         const syncAbsolute = () => {
             absStart = absStartInput ? absStartInput.value : '';
