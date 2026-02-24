@@ -93,6 +93,7 @@
             importCsvFromFile, 
             toggleColumn, 
             toggleValidacion,
+            saveObservacion,
             getData: () => currentData,
             getHeaders: () => HEADERS,
             getDateFields: () => DATE_FIELDS,
@@ -549,7 +550,7 @@
         if (!tbody) return;
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="25" class="text-center text-muted py-4">No hay registros para mostrar.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="26" class="text-center text-muted py-4">No hay registros para mostrar.</td></tr>';
             updateFlightCountBadge(0);
             return;
         }
@@ -603,7 +604,16 @@
                       </button>
                    </td>`;
 
-            return `<tr data-row-idx="${dataIdx}"${valido ? ' class="row-validated"' : ''}>${cells}${validCell}</tr>`;
+            // Observations cell — editable textarea, autosaves on blur
+            const obsContent = escapeHtml(row._observaciones || '');
+            const obsCell = `<td class="col-cvs-observaciones" style="min-width:180px;padding:4px;background:#f0fff4;border-left:2px solid #b7dfca;">
+                <textarea class="form-control form-control-sm csv-obs-input" rows="1"
+                    style="resize:vertical;font-size:.72rem;min-width:160px;min-height:28px;"
+                    placeholder="Observación..."
+                    onblur="window.opsFlights.saveObservacion(${dataIdx}, this.value)">${obsContent}</textarea>
+            </td>`;
+
+            return `<tr data-row-idx="${dataIdx}"${valido ? ' class="row-validated"' : ''}>${cells}${obsCell}${validCell}</tr>`;
         }).join('');
 
         tbody.innerHTML = html;
@@ -611,6 +621,25 @@
         
         // Final sanity check (hides headers too)
         setTimeout(updateAllVisibility, 0); 
+    }
+
+    async function saveObservacion(dataIdx, value) {
+        const row = currentData[dataIdx];
+        if (!row || !row._id) return;
+        const trimmed = (value || '').trim();
+        // Skip if unchanged
+        if (trimmed === (row._observaciones || '').trim()) return;
+        try {
+            const supabase = window.supabaseClient;
+            const { error } = await supabase
+                .from('vuelos_parte_operaciones_csv')
+                .update({ observaciones: trimmed || null })
+                .eq('id', row._id);
+            if (error) throw error;
+            row._observaciones = trimmed;
+        } catch (err) {
+            console.error('[saveObservacion]', err);
+        }
     }
 
     async function toggleValidacion(dataIdx, currentState) {
@@ -759,10 +788,11 @@
             normalized[h] = normalizeValue(raw);
         });
         // Preserve DB metadata needed for validation column
-        normalized._id         = row.id          ?? null;
-        normalized._validado   = row.validado     === true;
-        normalized._validadoPor= row.validado_por || '';
-        normalized._validadoAt = row.validado_at  || null;
+        normalized._id             = row.id          ?? null;
+        normalized._validado       = row.validado     === true;
+        normalized._validadoPor    = row.validado_por || '';
+        normalized._validadoAt     = row.validado_at  || null;
+        normalized._observaciones  = row.observaciones || '';
         return normalized;
     }
 
