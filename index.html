@@ -9805,13 +9805,23 @@ window.opsFlightsAdmin = (function () {
         return String(d.getDate()).padStart(2,'0') + MONTHS[d.getMonth()];
     }
 
-    // Check if any time field in row contains dayPrefix (e.g. "15FEB")
+    // Returns the canonical day prefix (e.g. "15FEB") for a row.
+    // Rule: [Arr] SIBT → [Dep] SOBT → first available field.
+    // Each row belongs to exactly ONE day — no duplicates, no cross-day deletions.
+    function getRowDayPrefix(row) {
+        var priority = ['[Arr] SIBT','[Dep] SOBT','[Arr] ALDT','[Arr] AIBT','[Dep] AOBT','[Dep] ATOT'];
+        for (var i = 0; i < priority.length; i++) {
+            var v = row[priority[i]];
+            if (v && String(v).trim().match(/^\d{2}[A-Z]{3}/i)) {
+                return String(v).trim().substring(0, 5).toUpperCase();
+            }
+        }
+        return '';
+    }
+
+    // Check if row's canonical day matches dayPrefix (e.g. "15FEB")
     function rowMatchesDay(row, dayPrefix) {
-        var fields = ['[Arr] ALDT','[Arr] SIBT','[Arr] AIBT','[Dep] SOBT','[Dep] AOBT','[Dep] ATOT'];
-        return fields.some(function (f) {
-            var v = row[f];
-            return v && String(v).toUpperCase().startsWith(dayPrefix);
-        });
+        return getRowDayPrefix(row) === dayPrefix;
     }
 
     async function loadData() {

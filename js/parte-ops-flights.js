@@ -1169,13 +1169,27 @@
         return `${y}-${m}-${d}`;
     }
 
-    // Returns true if ANY of the row's time fields falls within [startKey, endKey]
-    function rowInDateWindow(row, startKey, endKey, year) {
-        return DATE_FIELDS.some(field => {
+    // Returns the ONE canonical day key for a row.
+    // Rule: [Arr] SIBT date → [Dep] SOBT date → first parseable field.
+    // This guarantees every row belongs to exactly one day (no duplicates across days,
+    // no cross-day deletion of unrelated rows).
+    function getCanonicalDateKey(row, year) {
+        const sibt = deriveDateKeyFromValue(row['[Arr] SIBT'], year);
+        if (sibt) return sibt;
+        const sobt = deriveDateKeyFromValue(row['[Dep] SOBT'], year);
+        if (sobt) return sobt;
+        for (const field of DATE_FIELDS) {
             const key = deriveDateKeyFromValue(row[field], year);
-            if (!key) return false;
-            return key >= startKey && key <= endKey;
-        });
+            if (key) return key;
+        }
+        return '';
+    }
+
+    // Returns true if the row's canonical day falls within [startKey, endKey]
+    function rowInDateWindow(row, startKey, endKey, year) {
+        const key = getCanonicalDateKey(row, year);
+        if (!key) return false;
+        return key >= startKey && key <= endKey;
     }
 
     function applyDateWindow(rows, dateRef) {
