@@ -233,7 +233,6 @@
             if (error) throw error;
 
             let rows = Array.isArray(data) ? data.map(normalizeRow) : [];
-            // Preserve DB insertion order (= original CSV order)
             currentData = rows;
             applyAndRender();
         } catch (err) {
@@ -818,8 +817,9 @@
         const dateRef = getReferenceDate();
         const dateFiltered = applyDateWindow(currentData, dateRef);
         const filtered = applyFilters(dateFiltered);
-        renderTable(filtered);
-        updateChart(filtered, dateRef);
+        const sorted = sortRows(filtered, dateRef);
+        renderTable(sorted);
+        updateChart(sorted, dateRef);
         updateRelativeLabels();
     }
 
@@ -881,30 +881,43 @@
 
     // Priority order for sort: SIBT (scheduled arrival) → SOBT (scheduled departure) → any other field.
     // This matches operational convention: flights are listed by when they were scheduled to arrive/depart.
-    const SORT_PRIORITY_FIELDS = [
-        '[Arr] SIBT',
-        '[Dep] SOBT',
-        '[Arr] AIBT', '[Arr] ALDT',
-        '[Dep] AOBT', '[Dep] ATOT', '[Dep] ATTT'
-    ];
+    // Statuses considered "active" — they go in the first block.
+    // Everything else (Cancelled, Not operating, etc.) goes in the second block.
+    const ACTIVE_STATUSES = new Set(['billing validated', 'closed', 'take off', 'in block', 'flight activated']);
 
-    function getSortDate(row, year) {
-        for (const field of SORT_PRIORITY_FIELDS) {
-            const dt = parseOpsDateTime(row[field], year);
-            if (dt) return dt;
-        }
-        return null;
+    function statusGroup(row) {
+        const s = String(row['Status'] || '').toLowerCase().trim();
+        return ACTIVE_STATUSES.has(s) ? 0 : 1;
     }
 
     function sortRows(rows, dateFilter) {
-        const year = dateFilter ? parseInt(dateFilter.slice(0, 4), 10) : (lastImportYear || new Date().getFullYear());
+        const year = dateFilter
+            ? parseInt(dateFilter.slice(0, 4), 10)
+            : (lastImportYear || new Date().getFullYear());
+
         return [...rows].sort((a, b) => {
-            const da = getSortDate(a, year);
-            const db = getSortDate(b, year);
-            if (!da && !db) return 0;
-            if (!da) return 1;
-            if (!db) return -1;
-            return da - db;
+            // Level 1: active flights before cancelled/not-operating
+            const ga = statusGroup(a);
+            const gb = statusGroup(b);
+            if (ga !== gb) return ga - gb;
+
+            // Level 2: sort by [Dep] SOBT (scheduled departure)
+            const sobtA = parseOpsDateTime(a['[Dep] SOBT'], year);
+            const sobtB = parseOpsDateTime(b['[Dep] SOBT'], year);
+
+            // Flights without SOBT sink to the bottom of their group
+            if (!sobtA && !sobtB) {
+                // Level 3: fallback to [Arr] SIBT (scheduled arrival)
+                const sibtA = parseOpsDateTime(a['[Arr] SIBT'], year);
+                const sibtB = parseOpsDateTime(b['[Arr] SIBT'], year);
+                if (!sibtA && !sibtB) return 0;
+                if (!sibtA) return 1;
+                if (!sibtB) return -1;
+                return sibtA - sibtB;
+            }
+            if (!sobtA) return 1;
+            if (!sobtB) return -1;
+            return sobtA - sobtB;
         });
     }
 
