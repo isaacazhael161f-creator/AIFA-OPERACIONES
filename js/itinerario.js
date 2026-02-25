@@ -964,16 +964,28 @@
     renderPeakResults(targetScope, airlineName, hour, filtered);
   }
   function showTopHourFlights(scope, movement, hour){
-    const targetScope = scope === SCOPE_CARGO ? SCOPE_CARGO : SCOPE_PAX;
-    const insights = insightsCache[targetScope];
-    if (!insights || hour==null || !Number.isFinite(hour)) return;
+    if (hour==null || !Number.isFinite(hour)) return;
     const movementLabel = movement === 'Salida' ? 'Salida' : 'Llegada';
-    const flights = (insights.operations || []).filter(op => op.movement === movementLabel && op.hour === hour);
     const hourText = String(hour).padStart(2,'0');
-    const rangeLabel = `${hourText}:00–${hourText}:59`;
-    const scopeLabel = scopeLabels[targetScope] || 'Operaciones';
+    const rangeLabel = `${hourText}:00\u2013${hourText}:59`;
+    let flights, scopeLabel, targetScope;
+    if (scope === SCOPE_ALL) {
+      // Merge passenger + cargo operations for the combined view
+      const paxOps   = (insightsCache[SCOPE_PAX]   && insightsCache[SCOPE_PAX].operations)   || [];
+      const carOps   = (insightsCache[SCOPE_CARGO]  && insightsCache[SCOPE_CARGO].operations)  || [];
+      const allOps   = [...paxOps, ...carOps];
+      flights        = allOps.filter(op => op.movement === movementLabel && op.hour === hour);
+      scopeLabel     = scopeLabels[SCOPE_ALL] || 'Todos los vuelos';
+      targetScope    = SCOPE_ALL;
+    } else {
+      targetScope    = scope === SCOPE_CARGO ? SCOPE_CARGO : SCOPE_PAX;
+      const insights = insightsCache[targetScope];
+      if (!insights) return;
+      flights        = (insights.operations || []).filter(op => op.movement === movementLabel && op.hour === hour);
+      scopeLabel     = scopeLabels[targetScope] || 'Operaciones';
+    }
     renderPeakResults(targetScope, `${movementLabel}s ${rangeLabel}`, hour, flights, {
-      titleText: `${movementLabel}s · ${rangeLabel} · ${scopeLabel}`,
+      titleText: `${movementLabel}s \u00b7 ${rangeLabel} \u00b7 ${scopeLabel}`,
       subtitleText: `Operaciones de ${movementLabel.toLowerCase()} registradas entre ${rangeLabel}.`
     });
   }
