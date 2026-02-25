@@ -2627,19 +2627,6 @@
                                                         <input type="date" id="date-filter" class="form-control">
                                                     </div>
 
-                                                    <!-- Tipo de vista: Pasajeros / Carga / Todos -->
-                                                    <div class="chip">
-                                                        <label><i class="fas fa-layer-group me-1"></i>Vista</label>
-                                                        <div class="btn-group btn-group-sm" role="group" id="it-view-type-group" aria-label="Tipo de vista">
-                                                            <input type="radio" class="btn-check" name="it-view-type" id="it-view-pax" value="pax" autocomplete="off">
-                                                            <label class="btn btn-outline-primary" for="it-view-pax" title="Solo pasajeros"><i class="fas fa-users me-1"></i>Pasajeros</label>
-                                                            <input type="radio" class="btn-check" name="it-view-type" id="it-view-cargo" value="cargo" autocomplete="off">
-                                                            <label class="btn btn-outline-warning" for="it-view-cargo" title="Solo carga"><i class="fas fa-boxes me-1"></i>Carga</label>
-                                                            <input type="radio" class="btn-check" name="it-view-type" id="it-view-all" value="all" autocomplete="off" checked>
-                                                            <label class="btn btn-outline-success" for="it-view-all" title="Pasajeros y carga"><i class="fas fa-layer-group me-1"></i>Todos</label>
-                                                        </div>
-                                                    </div>
-
                                                     <!-- Botón Limpiar (Opcional, pero útil) -->
                                                     <div class="chip">
                                                         <button id="clear-filters-btn" class="btn btn-outline-secondary btn-sm h-100" aria-label="Limpiar filtros">
@@ -2751,6 +2738,13 @@
                                                                 aria-selected="false">2.
                                                                 Gráfica
                                                                 (Carga)</button></li>
+                                                        <li class="nav-item" role="presentation"><button
+                                                                class="nav-link" id="general-grafica-tab"
+                                                                data-bs-toggle="tab"
+                                                                data-bs-target="#general-grafica-pane" type="button"
+                                                                role="tab" aria-controls="general-grafica-pane"
+                                                                aria-selected="false"><i class="fas fa-globe me-1"></i>3.
+                                                                Vista General</button></li>
                                                     </ul>
                                                     <div class="tab-content pt-3" id="itineraryTabContent">
                                                         <!-- Pasajeros: Llegadas/Salidas del día -->
@@ -2951,11 +2945,100 @@
                                                                 </div>
                                                             </div>
                                                         </div>
+                                        <!-- Vista General: Pasajeros + Carga combinados -->
+                                        <div class="tab-pane fade" id="general-grafica-pane">
+                                            <!-- Gráficas combinadas -->
+                                            <div class="itinerary-charts-scroll itinerary-pane-block charts-block">
+                                                <div class="row g-3 chart-row-mobile-scroll">
+                                                    <div class="col-lg-6">
+                                                        <h6 class="text-muted mb-2"><i class="fas fa-plane-arrival me-1"></i>Llegadas Totales (Pax + Carga) por hora</h6>
+                                                        <div class="chart-container chart-height-360">
+                                                            <canvas id="generalArrivalsChart"></canvas>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-lg-6">
+                                                        <h6 class="text-muted mb-2"><i class="fas fa-plane-departure me-1"></i>Salidas Totales (Pax + Carga) por hora</h6>
+                                                        <div class="chart-container chart-height-360">
+                                                            <canvas id="generalDeparturesChart"></canvas>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Widget horas pico combinado -->
+                                            <div class="itinerary-top-block itinerary-pane-block top-hours-widget">
+                                                <div class="top-hours-header">
+                                                    <div class="top-hours-title">
+                                                        <span class="top-hours-eyebrow">Radar horario</span>
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <i class="fas fa-globe text-primary"></i>
+                                                            <span class="top-hours-heading" id="general-top-hours-heading">Horas pico (Vista General)</span>
+                                                        </div>
+                                                        <p class="mb-0 top-hours-subtitle text-muted" id="general-top-hours-subtitle">
+                                                            Vista unificada de pasajeros y carga. Haz clic en una franja para ver los vuelos.</p>
+                                                    </div>
+                                                    <div class="top-hours-controls">
+                                                        <label for="general-topN" class="top-hours-label text-muted mb-0">Mostrar</label>
+                                                        <select id="general-topN" class="form-select form-select-sm top-hours-select" aria-label="Seleccionar top N vista general">
+                                                            <option value="3">Top 3</option>
+                                                            <option value="5">Top 5</option>
+                                                            <option value="10" selected>Top 10</option>
+                                                            <option value="24">Todas (24h)</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="row g-3 top-hours-grid">
+                                                    <!-- Pasajeros Llegadas -->
+                                                    <div class="col-md-6 col-xl-3">
+                                                        <div class="top-hours-card arrivals-theme">
+                                                            <div class="top-hours-card-header">
+                                                                <span class="top-hours-chip chip-arrivals"><i class="fas fa-person-walking me-1"></i>Pax · Llegadas</span>
+                                                                <small class="text-muted">Tráfico entrante</small>
+                                                            </div>
+                                                            <ol id="general-pax-arr" class="top-hours-list mb-0"></ol>
+                                                            <p class="top-hours-footnote text-muted mb-0"><i class="fas fa-mouse-pointer me-1"></i>Clic para detallar.</p>
+                                                        </div>
+                                                    </div>
+                                                    <!-- Pasajeros Salidas -->
+                                                    <div class="col-md-6 col-xl-3">
+                                                        <div class="top-hours-card departures-theme">
+                                                            <div class="top-hours-card-header">
+                                                                <span class="top-hours-chip chip-departures"><i class="fas fa-person-walking-luggage me-1"></i>Pax · Salidas</span>
+                                                                <small class="text-muted">Tráfico saliente</small>
+                                                            </div>
+                                                            <ol id="general-pax-dep" class="top-hours-list mb-0"></ol>
+                                                            <p class="top-hours-footnote text-muted mb-0"><i class="fas fa-mouse-pointer me-1"></i>Clic para detallar.</p>
+                                                        </div>
+                                                    </div>
+                                                    <!-- Carga Llegadas -->
+                                                    <div class="col-md-6 col-xl-3">
+                                                        <div class="top-hours-card arrivals-theme cargo-accent">
+                                                            <div class="top-hours-card-header">
+                                                                <span class="top-hours-chip chip-arrivals"><i class="fas fa-box-open me-1"></i>Carga · Llegadas</span>
+                                                                <small class="text-muted">Recepción logística</small>
+                                                            </div>
+                                                            <ol id="general-cargo-arr" class="top-hours-list mb-0"></ol>
+                                                            <p class="top-hours-footnote text-muted mb-0"><i class="fas fa-mouse-pointer me-1"></i>Clic para detallar.</p>
+                                                        </div>
+                                                    </div>
+                                                    <!-- Carga Salidas -->
+                                                    <div class="col-md-6 col-xl-3">
+                                                        <div class="top-hours-card departures-theme cargo-accent">
+                                                            <div class="top-hours-card-header">
+                                                                <span class="top-hours-chip chip-departures"><i class="fas fa-truck-ramp-box me-1"></i>Carga · Salidas</span>
+                                                                <small class="text-muted">Despachos prioritarios</small>
+                                                            </div>
+                                                            <ol id="general-cargo-dep" class="top-hours-list mb-0"></ol>
+                                                            <p class="top-hours-footnote text-muted mb-0"><i class="fas fa-mouse-pointer me-1"></i>Clic para detallar.</p>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                                 </div>
                                 <div class="tab-pane fade" id="radar-operativo-pane" role="tabpanel"
                                     aria-labelledby="radar-operativo-tab" tabindex="0">

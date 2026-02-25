@@ -34,7 +34,7 @@
   // Exponer función para "destruir": limpiar canvases
   window.destroyItinerarioCharts = function() {
     console.log('🗑️ Limpiando canvases de itinerario...');
-    const canvasIds = ['paxArrivalsChart', 'paxDeparturesChart', 'cargoArrivalsChart', 'cargoDeparturesChart', 'heatmapPaxDay', 'heatmapCargoDay'];
+    const canvasIds = ['paxArrivalsChart', 'paxDeparturesChart', 'cargoArrivalsChart', 'cargoDeparturesChart', 'generalArrivalsChart', 'generalDeparturesChart', 'heatmapPaxDay', 'heatmapCargoDay'];
     canvasIds.forEach(id => {
       const c = document.getElementById(id);
       if (!c) return;
@@ -364,6 +364,52 @@
     renderList('pax-top-dep',   agg.paxDep, topNPax,   SCOPE_PAX,   'Salida');
     renderList('cargo-top-arr', agg.carArr, topNCargo, SCOPE_CARGO, 'Llegada');
     renderList('cargo-top-dep', agg.carDep, topNCargo, SCOPE_CARGO, 'Salida');
+  }
+
+  function renderGeneralTopHours(agg){
+    const sel = document.getElementById('general-topN');
+    const topN = sel ? parseInt(sel.value, 10) : 10;
+    const isAll = topN >= 24;
+    const headingEl  = document.getElementById('general-top-hours-heading');
+    const subtitleEl = document.getElementById('general-top-hours-subtitle');
+    if (headingEl)  headingEl.textContent  = isAll ? 'Todas las horas (Vista General)' : 'Horas pico (Vista General)';
+    if (subtitleEl) subtitleEl.textContent = isAll
+      ? 'Se muestran las 24 franjas horarias. Las horas sin operaciones aparecen con menor opacidad.'
+      : 'Vista unificada de pasajeros y carga. Haz clic en una franja para ver los vuelos.';
+    const mkTop = (arr, n) => arr
+      .map((v,i)=>({h:i,v}))
+      .filter(x=>x.v>0)
+      .sort((a,b)=> b.v - a.v || a.h - b.h)
+      .slice(0,n);
+    const renderList = (containerId, values, scope, movement)=>{
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      const items = isAll
+        ? values.map((v,i) => ({h:i,v}))
+        : mkTop(values, topN);
+      if (!isAll && !items.length){
+        el.innerHTML = '<li class="text-muted">Sin datos</li>';
+        return;
+      }
+      el.innerHTML = items.map(({h, v}) => {
+        const hourLabel  = String(h).padStart(2,'0');
+        const rangeLabel = `${hourLabel}:00\u2013${hourLabel}:59`;
+        const dimStyle   = v === 0 ? ' style="opacity:0.35"' : '';
+        const btnAttrs   = v > 0
+          ? `data-top-hour data-scope="${scope}" data-movement="${movement}" data-hour="${h}"`
+          : 'disabled aria-disabled="true" style="cursor:default;pointer-events:none"';
+        return `<li${dimStyle}>
+          <button type="button" class="btn btn-link p-0 text-start w-100 top-hour-trigger" ${btnAttrs}>
+            <strong>${rangeLabel}</strong>
+            <span class="text-muted ms-1">(${v} vuelo${v!==1?'s':''})</span>
+          </button>
+        </li>`;
+      }).join('');
+    };
+    renderList('general-pax-arr',   agg.paxArr, SCOPE_PAX,   'Llegada');
+    renderList('general-pax-dep',   agg.paxDep, SCOPE_PAX,   'Salida');
+    renderList('general-cargo-arr', agg.carArr, SCOPE_CARGO, 'Llegada');
+    renderList('general-cargo-dep', agg.carDep, SCOPE_CARGO, 'Salida');
   }
 
   function bindChartClicks(){
@@ -776,7 +822,25 @@
     const carSum = agg.carArr.map((v,i)=> v + (agg.carDep[i]||0));
     renderHeatmap1D('heatmapPaxDay', paxSum);
     renderHeatmap1D('heatmapCargoDay', carSum);
+    // Vista General: combined arrivals and departures
+    const genArr = agg.paxArr.map((v,i)=> v + (agg.carArr[i]||0));
+    const genDep = agg.paxDep.map((v,i)=> v + (agg.carDep[i]||0));
+    drawBars('generalArrivalsChart', H_LABELS, genArr, 'rgba(99,102,241,0.9)', 'Llegadas Totales (Pax + Carga)', {
+      scope: SCOPE_PAX,
+      movement: 'Llegada',
+      gradientStops: ['rgba(199,210,254,0.95)', 'rgba(99,102,241,0.65)'],
+      shadowColor: 'rgba(99,102,241,0.25)',
+      subtitle: 'Llegadas combinadas de pasajeros y carga'
+    });
+    drawBars('generalDeparturesChart', H_LABELS, genDep, 'rgba(236,72,153,0.9)', 'Salidas Totales (Pax + Carga)', {
+      scope: SCOPE_PAX,
+      movement: 'Salida',
+      gradientStops: ['rgba(251,207,232,0.95)', 'rgba(236,72,153,0.65)'],
+      shadowColor: 'rgba(236,72,153,0.25)',
+      subtitle: 'Salidas combinadas de pasajeros y carga'
+    });
     renderTopHoursLists(agg);
+    renderGeneralTopHours(agg);
     bindChartClicks();
     // Marcar banderas de renderizado exitoso para diagnóstico externo
     window._itineraryChartsOk = true;
@@ -965,6 +1029,8 @@
     if (paxTop) paxTop.addEventListener('change', ()=> { if (lastAgg) renderTopHoursLists(lastAgg); });
     const carTop = document.getElementById('cargo-topN');
     if (carTop) carTop.addEventListener('change', ()=> { if (lastAgg) renderTopHoursLists(lastAgg); });
+    const genTop = document.getElementById('general-topN');
+    if (genTop) genTop.addEventListener('change', ()=> { if (lastAgg) renderGeneralTopHours(lastAgg); });
     document.querySelectorAll('#itineraryTab button[data-bs-toggle="tab"]').forEach(btn => {
       btn.addEventListener('shown.bs.tab', (event)=> {
         const target = event.target.getAttribute('data-bs-target') || '';
