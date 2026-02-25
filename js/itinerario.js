@@ -1201,20 +1201,25 @@
             </div>
           </div>
         </div>
-        <div class="rr-section">
-          <div class="rr-section-header arr-header">
-            <i class="fas fa-plane-arrival me-2"></i>Llegadas — ${arrivals.length} vuelo${arrivals.length!==1?'s':''}
+        <!-- 50/50 split body -->
+        <div class="rr-split-body">
+          <!-- Llegadas -->
+          <div class="rr-split-col rr-split-arr">
+            <div class="rr-section-header arr-header">
+              <i class="fas fa-plane-arrival me-2"></i>Llegadas — ${arrivals.length} vuelo${arrivals.length!==1?'s':''}
+            </div>
+            <div class="rr-flights-list">
+              ${renderGroup(arrivals, 'Llegada', 'fa-plane-arrival')}
+            </div>
           </div>
-          <div class="rr-flights-list">
-            ${renderGroup(arrivals, 'Llegada', 'fa-plane-arrival')}
-          </div>
-        </div>
-        <div class="rr-section">
-          <div class="rr-section-header dep-header">
-            <i class="fas fa-plane-departure me-2"></i>Salidas — ${departures.length} vuelo${departures.length!==1?'s':''}
-          </div>
-          <div class="rr-flights-list">
-            ${renderGroup(departures, 'Salida', 'fa-plane-departure')}
+          <!-- Salidas -->
+          <div class="rr-split-col rr-split-dep">
+            <div class="rr-section-header dep-header">
+              <i class="fas fa-plane-departure me-2"></i>Salidas — ${departures.length} vuelo${departures.length!==1?'s':''}
+            </div>
+            <div class="rr-flights-list">
+              ${renderGroup(departures, 'Salida', 'fa-plane-departure')}
+            </div>
           </div>
         </div>
         <div class="rr-footer">

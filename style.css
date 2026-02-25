@@ -11030,6 +11030,28 @@ body.dark-mode #fauna-rescate-table .table-container-tech.h-scroll-area thead th
     overflow: hidden;
 }
 
+/* 50/50 split body inside the card */
+.rr-split-body {
+    display: flex;
+    align-items: stretch;
+    min-height: 0;
+}
+.rr-split-col {
+    flex: 1 1 50%;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+}
+.rr-split-arr {
+    border-right: 2px solid #e2e8f0;
+}
+@media (max-width: 767px) {
+    .rr-split-body { flex-direction: column; }
+    .rr-split-arr  { border-right: none; border-bottom: 2px solid #e2e8f0; }
+    .rr-split-col  { flex: 1 1 auto; }
+}
+
 /* Header ─ gradient banner */
 .rr-header {
     display: flex;
@@ -11088,7 +11110,7 @@ body.dark-mode #fauna-rescate-table .table-container-tech.h-scroll-area thead th
 }
 
 /* Section header rows */
-.rr-section { padding: 0; }
+.rr-section { padding: 0; } /* kept for back-compat */
 .rr-section-header {
     padding: 0.55rem 1.25rem;
     font-weight: 600;
@@ -11112,8 +11134,9 @@ body.dark-mode #fauna-rescate-table .table-container-tech.h-scroll-area thead th
 .rr-flight-row {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem 1.25rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.55rem 0.9rem;
     border-bottom: 1px solid #f1f5f9;
     transition: background .15s;
 }
