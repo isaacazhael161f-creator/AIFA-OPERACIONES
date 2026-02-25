@@ -385,14 +385,18 @@ let _heatmapHasPax    = false;
 const _HEATMAP_HOUR_LABELS = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'));
 const _HEATMAP_DAY_LABELS  = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-// Returns the ISO date string (YYYY-MM-DD) of the Monday that starts the calendar week
-// containing the given Date object.
+// Returns a local date string (YYYY-MM-DD) of the Monday that starts the calendar week
+// containing the given Date object.  Uses LOCAL date parts to avoid UTC timezone shifts.
 function _isoMondayKey(date) {
     const d = new Date(date);
     const dow = d.getDay(); // 0=Sun, 1=Mon ... 6=Sat
     const diff = dow === 0 ? -6 : 1 - dow; // shift back to Monday
     d.setDate(d.getDate() + diff);
-    return d.toISOString().slice(0, 10); // "YYYY-MM-DD"
+    // Use local year/month/day — NOT toISOString() which converts to UTC
+    const yyyy = d.getFullYear();
+    const mm   = String(d.getMonth() + 1).padStart(2, '0');
+    const dd   = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
 }
 
 // Builds a human-readable date range label for a calendar week given its Monday key.
