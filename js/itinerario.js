@@ -247,7 +247,8 @@
           origin: flight.origen,
           destination: 'AIFA',
           position: flight.posicion,
-          belt: flight.banda_reclamo
+          belt: flight.banda_reclamo,
+          aircraft: flight.equipo
         }));
       }
       if (departureMatch){
@@ -265,7 +266,8 @@
           origin: 'AIFA',
           destination: flight.destino,
           position: flight.posicion,
-          belt: flight.banda_reclamo
+          belt: flight.banda_reclamo,
+          aircraft: flight.equipo
         }));
       }
     }
@@ -292,7 +294,7 @@
     const topDestinations = toRankedList(destinations);
     return { totals, airlinePeaks, topOrigins, topDestinations, busiestHour: busiest, operations };
   }
-  function buildOperationRecord({ airlineName, airlineKey, movement, hour, time, flightNumber, origin, destination, position, belt }){
+  function buildOperationRecord({ airlineName, airlineKey, movement, hour, time, flightNumber, origin, destination, position, belt, aircraft }){
     const safeHour = (typeof hour === 'number' && Number.isFinite(hour)) ? hour : null;
     const timeLabel = (time || '').toString().trim() || (safeHour!=null ? `${String(safeHour).padStart(2,'0')}:00` : '—');
     return {
@@ -305,7 +307,8 @@
       origin: (origin || '—'),
       destination: (destination || '—'),
       position: position || '',
-      belt: belt || ''
+      belt: belt || '',
+      aircraft: (aircraft || '').toString().trim()
     };
   }
   function renderTopHoursLists(agg){
@@ -1125,7 +1128,8 @@
       const dest = (op.destination||'—').toString().trim().toUpperCase().slice(0,3);
       const pos  = op.position ? ` | Pos. ${op.position}` : '';
       const al   = (op.airline||'').trim();
-      return `  • ${t} | ${fn} | ${al} | ${orig} → ${dest}${pos}`;
+      const ac   = op.aircraft ? ` | ✈ ${op.aircraft}` : '';
+      return `  • ${t} | ${fn} | ${al} | ${orig} → ${dest}${pos}${ac}`;
     };
     const plainParts = [
       `✈️  RESUMEN OPERATIVO — AIFA`,
@@ -1154,6 +1158,7 @@
         const dest = escapeHtml((op.destination||'—').toString().trim());
         const pos  = op.position ? `<span class="rr-tag"><i class="fas fa-map-marker-alt me-1"></i>${escapeHtml(op.position)}</span>` : '';
         const belt = op.belt     ? `<span class="rr-tag"><i class="fas fa-suitcase-rolling me-1"></i>Banda ${escapeHtml(op.belt)}</span>` : '';
+        const ac   = op.aircraft ? `<span class="rr-tag rr-tag-ac"><i class="fas fa-plane-slash me-1"></i>${escapeHtml(op.aircraft)}</span>` : '';
         return `<div class="rr-flight-row">
           <div class="rr-time">${escapeHtml((op.timeLabel||'—').slice(0,5))}</div>
           <div class="rr-logo">${visual}</div>
@@ -1166,7 +1171,7 @@
             <i class="fas fa-arrow-right rr-arrow"></i>
             <span class="rr-airport">${dest}</span>
           </div>
-          <div class="rr-tags">${pos}${belt}</div>
+          <div class="rr-tags">${pos}${belt}${ac}</div>
         </div>`;
       }).join('');
     };
@@ -1216,8 +1221,14 @@
           <button class="btn btn-outline-secondary btn-sm" id="rr-copy-btn">
             <i class="fas fa-copy me-2"></i>Copiar como texto
           </button>
+          <button class="btn btn-primary btn-sm ms-2" id="rr-img-btn">
+            <i class="fas fa-camera me-2"></i>Copiar como imagen
+          </button>
+          <button class="btn btn-outline-primary btn-sm ms-2" id="rr-dl-btn">
+            <i class="fas fa-download me-2"></i>Descargar imagen
+          </button>
           <span id="rr-copy-feedback" class="ms-3 small text-success d-none">
-            <i class="fas fa-check-circle me-1"></i>¡Copiado al portapapeles!
+            <i class="fas fa-check-circle me-1"></i>¡Listo!
           </span>
         </div>
       </div>`;
@@ -1225,24 +1236,81 @@
     result.classList.remove('d-none');
     result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-    // Attach copy handler
+    // Helper: flash feedback
+    const showFeedback = () => {
+      const fb = document.getElementById('rr-copy-feedback');
+      if (fb){ fb.classList.remove('d-none'); setTimeout(() => fb.classList.add('d-none'), 3000); }
+    };
+
+    // Helper: render card to canvas via html2canvas
+    const renderCardCanvas = () => {
+      const card = document.getElementById('rr-card');
+      if (!card || typeof html2canvas === 'undefined') return Promise.reject('html2canvas not available');
+      return html2canvas(card, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false
+      });
+    };
+
+    // Copy text button
     const copyBtn = document.getElementById('rr-copy-btn');
     if (copyBtn){
       copyBtn.onclick = () => {
-        navigator.clipboard.writeText(plainParts).then(() => {
-          const fb = document.getElementById('rr-copy-feedback');
-          if (fb){ fb.classList.remove('d-none'); setTimeout(() => fb.classList.add('d-none'), 3000); }
-        }).catch(() => {
-          // fallback
+        navigator.clipboard.writeText(plainParts).then(showFeedback).catch(() => {
           const ta = document.createElement('textarea');
           ta.value = plainParts;
           ta.style.position = 'fixed'; ta.style.opacity = '0';
           document.body.appendChild(ta); ta.select();
           document.execCommand('copy');
           document.body.removeChild(ta);
-          const fb = document.getElementById('rr-copy-feedback');
-          if (fb){ fb.classList.remove('d-none'); setTimeout(() => fb.classList.add('d-none'), 3000); }
+          showFeedback();
         });
+      };
+    }
+
+    // Copy as image button
+    const imgBtn = document.getElementById('rr-img-btn');
+    if (imgBtn){
+      imgBtn.onclick = async () => {
+        imgBtn.disabled = true;
+        try {
+          const canvas = await renderCardCanvas();
+          canvas.toBlob(async (blob) => {
+            try {
+              await navigator.clipboard.write([
+                new ClipboardItem({ 'image/png': blob })
+              ]);
+              showFeedback();
+            } catch(e) {
+              // Fallback: download if clipboard write not available
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url; a.download = `AIFA-Resumen-${dateLabel.replace(/\//g,'-')}.png`;
+              a.click(); URL.revokeObjectURL(url);
+              showFeedback();
+            }
+          }, 'image/png');
+        } catch(e) { console.error('html2canvas error', e); }
+        finally { imgBtn.disabled = false; }
+      };
+    }
+
+    // Download image button
+    const dlBtn = document.getElementById('rr-dl-btn');
+    if (dlBtn){
+      dlBtn.onclick = async () => {
+        dlBtn.disabled = true;
+        try {
+          const canvas = await renderCardCanvas();
+          const a = document.createElement('a');
+          a.href = canvas.toDataURL('image/png');
+          a.download = `AIFA-Resumen-${dateLabel.replace(/\//g,'-')}.png`;
+          a.click();
+          showFeedback();
+        } catch(e) { console.error('html2canvas error', e); }
+        finally { dlBtn.disabled = false; }
       };
     }
   }

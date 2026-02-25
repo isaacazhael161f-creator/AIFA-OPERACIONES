@@ -11097,6 +11097,11 @@ body.dark-mode #fauna-rescate-table .table-container-tech.h-scroll-area thead th
     padding: 2px 6px;
     white-space: nowrap;
 }
+.rr-tag-ac {
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-weight: 600;
+}
 
 /* Empty state */
 .range-report-empty {
