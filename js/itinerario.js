@@ -8,8 +8,9 @@
   let lastAgg = null;
   const SCOPE_PAX = 'pax';
   const SCOPE_CARGO = 'cargo';
-  const scopeLabels = { [SCOPE_PAX]: 'Pasajeros', [SCOPE_CARGO]: 'Carga' };
-  const insightsCache = { [SCOPE_PAX]: null, [SCOPE_CARGO]: null };
+  const SCOPE_ALL = 'all';
+  const scopeLabels = { [SCOPE_PAX]: 'Pasajeros', [SCOPE_CARGO]: 'Carga', [SCOPE_ALL]: 'Todos los vuelos' };
+  const insightsCache = { [SCOPE_PAX]: null, [SCOPE_CARGO]: null, [SCOPE_ALL]: null };
   const DEFAULT_AIRLINE_LABEL = 'Sin aerolínea';
   const DEFAULT_LOGO_REGEX = /default-airline-logo/i;
   const MOVEMENT_META = {
@@ -227,7 +228,7 @@
     };
     for (const flight of data){
       const isPassengerFlight = isPassenger(flight);
-      if (isPassengerFlight !== isPassengerScope) continue;
+      if (scope !== SCOPE_ALL && isPassengerFlight !== isPassengerScope) continue;
       const airlineStats = ensureAirline(flight.aerolinea || flight['aerolínea'] || flight.airline);
       const arrivalMatch = toIsoDate(flight.fecha_llegada) === ymd;
       const departureMatch = toIsoDate(flight.fecha_salida) === ymd;
@@ -381,7 +382,9 @@
       .filter(x=>x.v>0)
       .sort((a,b)=> b.v - a.v || a.h - b.h)
       .slice(0,n);
-    const renderList = (containerId, values, scope, movement)=>{
+    const genArr = agg.paxArr.map((v,i)=> v + (agg.carArr[i]||0));
+    const genDep = agg.paxDep.map((v,i)=> v + (agg.carDep[i]||0));
+    const renderList = (containerId, values, movement)=>{
       const el = document.getElementById(containerId);
       if (!el) return;
       const items = isAll
@@ -396,7 +399,7 @@
         const rangeLabel = `${hourLabel}:00\u2013${hourLabel}:59`;
         const dimStyle   = v === 0 ? ' style="opacity:0.35"' : '';
         const btnAttrs   = v > 0
-          ? `data-top-hour data-scope="${scope}" data-movement="${movement}" data-hour="${h}"`
+          ? `data-top-hour data-scope="${SCOPE_ALL}" data-movement="${movement}" data-hour="${h}"`
           : 'disabled aria-disabled="true" style="cursor:default;pointer-events:none"';
         return `<li${dimStyle}>
           <button type="button" class="btn btn-link p-0 text-start w-100 top-hour-trigger" ${btnAttrs}>
@@ -406,10 +409,8 @@
         </li>`;
       }).join('');
     };
-    renderList('general-pax-arr',   agg.paxArr, SCOPE_PAX,   'Llegada');
-    renderList('general-pax-dep',   agg.paxDep, SCOPE_PAX,   'Salida');
-    renderList('general-cargo-arr', agg.carArr, SCOPE_CARGO, 'Llegada');
-    renderList('general-cargo-dep', agg.carDep, SCOPE_CARGO, 'Salida');
+    renderList('general-all-arr', genArr, 'Llegada');
+    renderList('general-all-dep', genDep, 'Salida');
   }
 
   function bindChartClicks(){
@@ -417,7 +418,9 @@
       { id: 'paxArrivalsChart' },
       { id: 'paxDeparturesChart' },
       { id: 'cargoArrivalsChart' },
-      { id: 'cargoDeparturesChart' }
+      { id: 'cargoDeparturesChart' },
+      { id: 'generalArrivalsChart' },
+      { id: 'generalDeparturesChart' }
     ];
     charts.forEach(({ id }) => {
       const canvas = document.getElementById(id);
@@ -438,7 +441,8 @@
     if (!bounds || x < bounds.left || x > bounds.right || y < bounds.top || y > bounds.bottom) return;
     const slot = hit.slots.find(s => x >= s.start && x <= s.end);
     if (!slot || !Number.isFinite(slot.hour)) return;
-    const scope = hit.meta && hit.meta.scope === SCOPE_CARGO ? SCOPE_CARGO : SCOPE_PAX;
+    const rawScope = hit.meta && hit.meta.scope;
+    const scope = rawScope === SCOPE_CARGO ? SCOPE_CARGO : rawScope === SCOPE_ALL ? SCOPE_ALL : SCOPE_PAX;
     const movement = hit.meta && hit.meta.movement === 'Salida' ? 'Salida' : 'Llegada';
     showTopHourFlights(scope, movement, slot.hour);
   }
@@ -787,6 +791,7 @@
     } catch(_) {}
     insightsCache[SCOPE_PAX] = computeItineraryInsights(data, selectedDate, SCOPE_PAX);
     insightsCache[SCOPE_CARGO] = computeItineraryInsights(data, selectedDate, SCOPE_CARGO);
+    insightsCache[SCOPE_ALL] = computeItineraryInsights(data, selectedDate, SCOPE_ALL);
     applyIntelligenceForScope(getActiveChartsScope());
   const agg = aggregateDay(data, selectedDate);
   lastAgg = agg;
@@ -826,14 +831,14 @@
     const genArr = agg.paxArr.map((v,i)=> v + (agg.carArr[i]||0));
     const genDep = agg.paxDep.map((v,i)=> v + (agg.carDep[i]||0));
     drawBars('generalArrivalsChart', H_LABELS, genArr, 'rgba(99,102,241,0.9)', 'Llegadas Totales (Pax + Carga)', {
-      scope: SCOPE_PAX,
+      scope: SCOPE_ALL,
       movement: 'Llegada',
       gradientStops: ['rgba(199,210,254,0.95)', 'rgba(99,102,241,0.65)'],
       shadowColor: 'rgba(99,102,241,0.25)',
       subtitle: 'Llegadas combinadas de pasajeros y carga'
     });
     drawBars('generalDeparturesChart', H_LABELS, genDep, 'rgba(236,72,153,0.9)', 'Salidas Totales (Pax + Carga)', {
-      scope: SCOPE_PAX,
+      scope: SCOPE_ALL,
       movement: 'Salida',
       gradientStops: ['rgba(251,207,232,0.95)', 'rgba(236,72,153,0.65)'],
       shadowColor: 'rgba(236,72,153,0.25)',
