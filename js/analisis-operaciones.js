@@ -377,6 +377,8 @@ let _chartInstances = {};
 let _opsMasterCatalogCache = null;
 let _heatmapDetails = null; // stores per-hour+day flight records for cell drill-down
 let _heatmapOpsHourDetails = null; // stores per-hour+day ops records for ops-hour heatmap drill-down
+let _acMovFlights  = null; // { direction: { acType: [records] } } for aircraft-type bar drilldown
+let _posFlights    = null; // { posName: [records] } for positions bar drilldown
 
 // Week-filter support for heatmaps
 let _paxHeatWeeks     = {}; // { '0': all, 'YYYY-MM-DD': week starting that Monday, ... }
@@ -827,6 +829,8 @@ async function renderOpsCharts() {
         let daysMap = {};
         let hoursMap = {};
         let posMap = {};
+        let posFlights        = {};  // { posName: [records] } for position drilldown
+        let acMovFlightsLocal = {};  // { direction: { acType: [records] } } for aircraft drilldown
         let eqMap = {};
         let airlineMap = {};
         let internationalOps = 0;
@@ -1017,7 +1021,25 @@ async function renderOpsCharts() {
                 if (!isNaN(parseInt(h))) hoursMap[h] = (hoursMap[h] || 0) + 1;
             }
             // Pos
-            if(kPos && r[kPos]) posMap[r[kPos]] = (posMap[r[kPos]] || 0) + 1;
+            if(kPos && r[kPos]) {
+                posMap[r[kPos]] = (posMap[r[kPos]] || 0) + 1;
+                if (!posFlights[r[kPos]]) posFlights[r[kPos]] = [];
+                posFlights[r[kPos]].push({
+                    vuelo:      kVuelo       ? String(r[kVuelo]       || '').trim() : '',
+                    aerolinea:  kAerolinea   ? String(r[kAerolinea]   || '').trim() : '',
+                    origen:     kOrigen      ? String(r[kOrigen]      || '').trim() : '',
+                    destino:    kDestino     ? String(r[kDestino]     || '').trim() : '',
+                    movimiento: kMovimiento  ? String(r[kMovimiento]  || '').trim() : '',
+                    servicio:   kServiceCode ? String(r[kServiceCode] || '').trim() : '',
+                    aeronave:   kTipoAc      ? String(r[kTipoAc]     || '').trim() :
+                                (kMatricula  ? String(r[kMatricula]   || '').trim() : ''),
+                    fecha:      kFecha       ? String(r[kFecha]       || '').trim() : '',
+                    hora:       kHoraActual  ? String(r[kHoraActual]  || '').trim() :
+                                (kHora       ? String(r[kHora]        || '').trim() : ''),
+                    pax:        kPasajeros   ? parsePassengers(r[kPasajeros]) : 0,
+                    estatus:    kEstatus     ? String(r[kEstatus]     || '').trim() : ''
+                });
+            }
             // Registration & aircraft type — use separate columns when available
             const rawMatricula = kMatricula && r[kMatricula] ? String(r[kMatricula]).trim() : '';
             const rawTipoRaw   = kTipoAc   && r[kTipoAc]   ? String(r[kTipoAc]).trim()   : '';
@@ -1100,6 +1122,24 @@ async function renderOpsCharts() {
                 if (!acMovData[direction]) acMovData[direction] = {};
                 if (!acMovData[direction][acTypeLabel]) acMovData[direction][acTypeLabel] = {};
                 acMovData[direction][acTypeLabel][svcKey] = (acMovData[direction][acTypeLabel][svcKey] || 0) + 1;
+                // Store individual records for bar drilldown
+                if (!acMovFlightsLocal[direction]) acMovFlightsLocal[direction] = {};
+                if (!acMovFlightsLocal[direction][acTypeLabel]) acMovFlightsLocal[direction][acTypeLabel] = [];
+                acMovFlightsLocal[direction][acTypeLabel].push({
+                    vuelo:      kVuelo       ? String(r[kVuelo]       || '').trim() : '',
+                    aerolinea:  kAerolinea   ? String(r[kAerolinea]   || '').trim() : '',
+                    origen:     kOrigen      ? String(r[kOrigen]      || '').trim() : '',
+                    destino:    kDestino     ? String(r[kDestino]     || '').trim() : '',
+                    movimiento: kMovimiento  ? String(r[kMovimiento]  || '').trim() : '',
+                    servicio:   svcCode || '',
+                    aeronave:   kMatricula   ? String(r[kMatricula]   || '').trim() : acTypeLabel,
+                    posicion:   kPos         ? String(r[kPos]         || '').trim() : '',
+                    fecha:      kFecha       ? String(r[kFecha]       || '').trim() : '',
+                    hora:       kHoraActual  ? String(r[kHoraActual]  || '').trim() :
+                                (kHora       ? String(r[kHora]        || '').trim() : ''),
+                    pax:        kPasajeros   ? parsePassengers(r[kPasajeros]) : 0,
+                    estatus:    kEstatus     ? String(r[kEstatus]     || '').trim() : ''
+                });
                 if (svcCode) acServiceSet.add(svcCode);
             }
             // Aircraft by airline — Y axis = airline, stacked by aircraft TYPE
@@ -1286,6 +1326,14 @@ async function renderOpsCharts() {
             }]
         }, {
             indexAxis: 'y',
+            onClick: (evt, elements) => {
+                if (!elements.length) return;
+                const posName = allPos[elements[0].index][0];
+                _showBarDrilldown(`Posición ${posName} — Vuelos`, _posFlights?.[posName] || []);
+            },
+            onHover: (evt, elements) => {
+                if (evt.native?.target) evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+            },
             plugins: {
                 legend: { display: false },
                 tooltip: {
@@ -1318,6 +1366,8 @@ async function renderOpsCharts() {
         // Store data + catalogs for re-render when filter changes
         _acMovData     = acMovData;
         _acMovCatalogs = catalogs;
+        _acMovFlights  = acMovFlightsLocal;
+        _posFlights    = posFlights;
 
         // Populate service filter dropdown — show code + description (e.g. "J — Normal Service")
         const acSvcSelect = document.getElementById('ac-mov-service-filter');
@@ -1563,6 +1613,76 @@ async function renderOpsCharts() {
 }
 
 // ── Helper rendered by filter dropdown and initial load ────────────────────
+function _showBarDrilldown(title, records) {
+    const titleEl = document.getElementById('heatmap-drilldown-title');
+    const bodyEl  = document.getElementById('heatmap-drilldown-body');
+    if (!titleEl || !bodyEl) return;
+
+    titleEl.innerHTML = `<i class="fas fa-table me-2 text-primary"></i>${title} &nbsp;<span class="badge bg-secondary fw-normal">${records.length} registro${records.length !== 1 ? 's' : ''}</span>`;
+
+    if (records.length === 0) {
+        bodyEl.innerHTML = '<p class="text-muted">Sin registros para esta selección.</p>';
+    } else {
+        const hasVuelo      = records.some(r => r.vuelo);
+        const hasAerolinea  = records.some(r => r.aerolinea);
+        const hasOrigen     = records.some(r => r.origen);
+        const hasDestino    = records.some(r => r.destino);
+        const hasMovimiento = records.some(r => r.movimiento);
+        const hasServicio   = records.some(r => r.servicio);
+        const hasAeronave   = records.some(r => r.aeronave);
+        const hasPosicion   = records.some(r => r.posicion);
+        const hasFecha      = records.some(r => r.fecha);
+        const hasHora       = records.some(r => r.hora);
+        const hasPax        = records.some(r => r.pax > 0);
+        const hasEstatus    = records.some(r => r.estatus);
+
+        const sorted   = [...records].sort((a, b) =>
+            (a.fecha || '').localeCompare(b.fecha || '') || (a.hora || '').localeCompare(b.hora || ''));
+        const totalPax = records.reduce((s, r) => s + (r.pax || 0), 0);
+
+        let html = '';
+        if (totalPax > 0) html += `<p class="text-muted small mb-3">Total pasajeros: <strong class="text-primary">${totalPax.toLocaleString()}</strong></p>`;
+        html += '<div class="table-responsive"><table class="table table-sm table-hover table-bordered align-middle mb-0" style="font-size:0.82rem"><thead class="table-light"><tr>';
+        if (hasVuelo)      html += '<th>Vuelo</th>';
+        if (hasAerolinea)  html += '<th>Aerolínea</th>';
+        if (hasMovimiento) html += '<th>Mvto.</th>';
+        if (hasOrigen)     html += '<th>Origen</th>';
+        if (hasDestino)    html += '<th>Destino</th>';
+        if (hasServicio)   html += '<th>Servicio</th>';
+        if (hasAeronave)   html += '<th>Aeronave</th>';
+        if (hasPosicion)   html += '<th>Posición</th>';
+        if (hasFecha)      html += '<th>Fecha</th>';
+        if (hasHora)       html += '<th>Hora</th>';
+        if (hasPax)        html += '<th class="text-end">Pax</th>';
+        if (hasEstatus)    html += '<th>Estatus</th>';
+        html += '</tr></thead><tbody>';
+
+        sorted.forEach(r => {
+            html += '<tr>';
+            if (hasVuelo)      html += `<td class="fw-semibold">${r.vuelo      || '—'}</td>`;
+            if (hasAerolinea)  html += `<td>${r.aerolinea  || '—'}</td>`;
+            if (hasMovimiento) html += `<td>${r.movimiento || '—'}</td>`;
+            if (hasOrigen)     html += `<td>${r.origen     || '—'}</td>`;
+            if (hasDestino)    html += `<td>${r.destino    || '—'}</td>`;
+            if (hasServicio)   html += `<td>${r.servicio   || '—'}</td>`;
+            if (hasAeronave)   html += `<td>${r.aeronave   || '—'}</td>`;
+            if (hasPosicion)   html += `<td class="fw-semibold">${r.posicion   || '—'}</td>`;
+            if (hasFecha)      html += `<td class="text-nowrap">${r.fecha     || '—'}</td>`;
+            if (hasHora)       html += `<td class="text-nowrap fw-semibold text-primary">${r.hora || '—'}</td>`;
+            if (hasPax)        html += `<td class="text-end fw-bold">${(r.pax || 0) > 0 ? r.pax.toLocaleString() : '—'}</td>`;
+            if (hasEstatus)    html += `<td>${r.estatus    || '—'}</td>`;
+            html += '</tr>';
+        });
+
+        html += '</tbody></table></div>';
+        bodyEl.innerHTML = html;
+    }
+
+    const modalEl = document.getElementById('heatmap-drilldown-modal');
+    if (!modalEl) return;
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+}
+
 function _renderAcMovCharts(serviceFilter) {
     if (!_acMovData) return;
 
@@ -1611,6 +1731,17 @@ function _renderAcMovCharts(serviceFilter) {
             }]
         }, {
             indexAxis: 'y',
+            onClick: (evt, elements) => {
+                if (!elements.length) return;
+                const acType  = sorted[elements[0].index][0];
+                const all     = _acMovFlights?.[dir]?.[acType] || [];
+                const recs    = serviceFilter ? all.filter(r => r.servicio === serviceFilter) : all;
+                const label   = nameMap[acType] ? `${acType} — ${nameMap[acType]}` : acType;
+                _showBarDrilldown(`${dirLabel} · ${label}`, recs);
+            },
+            onHover: (evt, elements) => {
+                if (evt.native?.target) evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+            },
             scales: {
                 x: {
                     beginAtZero: true,
