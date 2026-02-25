@@ -379,11 +379,36 @@ let _heatmapDetails = null; // stores per-hour+day flight records for cell drill
 let _heatmapOpsHourDetails = null; // stores per-hour+day ops records for ops-hour heatmap drill-down
 
 // Week-filter support for heatmaps
-let _paxHeatWeeks     = {}; // { 0: {data, details}, 1: {...}, ... }  0=all weeks
+let _paxHeatWeeks     = {}; // { '0': all, 'YYYY-MM-DD': week starting that Monday, ... }
 let _opsHourHeatWeeks = {}; // same for ops-hour heatmap
 let _heatmapHasPax    = false;
 const _HEATMAP_HOUR_LABELS = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'));
 const _HEATMAP_DAY_LABELS  = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+// Returns the ISO date string (YYYY-MM-DD) of the Monday that starts the calendar week
+// containing the given Date object.
+function _isoMondayKey(date) {
+    const d = new Date(date);
+    const dow = d.getDay(); // 0=Sun, 1=Mon ... 6=Sat
+    const diff = dow === 0 ? -6 : 1 - dow; // shift back to Monday
+    d.setDate(d.getDate() + diff);
+    return d.toISOString().slice(0, 10); // "YYYY-MM-DD"
+}
+
+// Builds a human-readable date range label for a calendar week given its Monday key.
+// E.g. "03–09 Feb" or "27 Ene–2 Feb" (cross-month).
+function _calWeekLabel(mondayKey) {
+    const MON = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const [y, m, d] = mondayKey.split('-').map(Number);
+    const mon = new Date(y, m - 1, d);
+    const sun = new Date(y, m - 1, d + 6);
+    const dd1 = String(mon.getDate()).padStart(2, '0');
+    const dd2 = String(sun.getDate()).padStart(2, '0');
+    if (mon.getMonth() === sun.getMonth()) {
+        return `${dd1}–${dd2} ${MON[mon.getMonth()]}`;
+    }
+    return `${dd1} ${MON[mon.getMonth()]}–${dd2} ${MON[sun.getMonth()]}`;
+}
 
 function _parseCsvLine(line) {
     const values = [];
@@ -919,10 +944,10 @@ async function renderOpsCharts() {
 
             const rowDate = parseDateFromRecord(r);
             if (rowDate) {
-                const weekOfMonth = Math.floor((rowDate.getDate() - 1) / 7) + 1;
-                const weekLabel = `Semana ${weekOfMonth}`;
-                weeklyPassengers[weekLabel] = (weeklyPassengers[weekLabel] || 0) + pax;
-                weeklyOps[weekLabel] = (weeklyOps[weekLabel] || 0) + 1;
+                // Calendar week key = ISO date of the Monday that starts this week (Mon–Sun)
+                const weekKey = _isoMondayKey(rowDate);
+                weeklyPassengers[weekKey] = (weeklyPassengers[weekKey] || 0) + pax;
+                weeklyOps[weekKey] = (weeklyOps[weekKey] || 0) + 1;
 
                 const day = rowDate.getDay(); // 0=Domingo ... 6=Sábado
                 const dayIndex = day === 0 ? 6 : day - 1; // Lunes=0 ... Domingo=6
@@ -947,19 +972,19 @@ async function renderOpsCharts() {
                     pax
                 };
                 heatmapDetails[hourKey][dayIndex].push(_hmRec);
-                // Per-week bucketing (passenger + ops fallback)
-                if (!heatmapPassengersByWeek[weekOfMonth]) heatmapPassengersByWeek[weekOfMonth] = {};
-                if (!heatmapPassengersByWeek[weekOfMonth][hourKey]) heatmapPassengersByWeek[weekOfMonth][hourKey] = Array(7).fill(0);
-                heatmapPassengersByWeek[weekOfMonth][hourKey][dayIndex] += pax;
-                if (!heatmapDetailsByWeek[weekOfMonth]) heatmapDetailsByWeek[weekOfMonth] = {};
-                if (!heatmapDetailsByWeek[weekOfMonth][hourKey]) heatmapDetailsByWeek[weekOfMonth][hourKey] = {};
-                if (!heatmapDetailsByWeek[weekOfMonth][hourKey][dayIndex]) heatmapDetailsByWeek[weekOfMonth][hourKey][dayIndex] = [];
-                heatmapDetailsByWeek[weekOfMonth][hourKey][dayIndex].push(_hmRec);
+                // Per-week bucketing (passenger + ops fallback) — keyed by Monday ISO date
+                if (!heatmapPassengersByWeek[weekKey]) heatmapPassengersByWeek[weekKey] = {};
+                if (!heatmapPassengersByWeek[weekKey][hourKey]) heatmapPassengersByWeek[weekKey][hourKey] = Array(7).fill(0);
+                heatmapPassengersByWeek[weekKey][hourKey][dayIndex] += pax;
+                if (!heatmapDetailsByWeek[weekKey]) heatmapDetailsByWeek[weekKey] = {};
+                if (!heatmapDetailsByWeek[weekKey][hourKey]) heatmapDetailsByWeek[weekKey][hourKey] = {};
+                if (!heatmapDetailsByWeek[weekKey][hourKey][dayIndex]) heatmapDetailsByWeek[weekKey][hourKey][dayIndex] = [];
+                heatmapDetailsByWeek[weekKey][hourKey][dayIndex].push(_hmRec);
                 if (!heatmapOps[hourKey]) heatmapOps[hourKey] = Array(7).fill(0);
                 heatmapOps[hourKey][dayIndex] += 1;
-                if (!heatmapOpsByWeek[weekOfMonth]) heatmapOpsByWeek[weekOfMonth] = {};
-                if (!heatmapOpsByWeek[weekOfMonth][hourKey]) heatmapOpsByWeek[weekOfMonth][hourKey] = Array(7).fill(0);
-                heatmapOpsByWeek[weekOfMonth][hourKey][dayIndex] += 1;
+                if (!heatmapOpsByWeek[weekKey]) heatmapOpsByWeek[weekKey] = {};
+                if (!heatmapOpsByWeek[weekKey][hourKey]) heatmapOpsByWeek[weekKey][hourKey] = Array(7).fill(0);
+                heatmapOpsByWeek[weekKey][hourKey][dayIndex] += 1;
             }
 
             // Date — normalize to date-only key using parseDateFromRecord
@@ -1131,7 +1156,7 @@ async function renderOpsCharts() {
             const day = rowDate.getDay();
             const dayIndex = day === 0 ? 6 : day - 1; // Lun=0...Dom=6
             const hourKey = String(rowDate.getHours()).padStart(2, '0');
-            const weekNum = Math.floor((rowDate.getDate() - 1) / 7) + 1;
+            const weekKey = _isoMondayKey(rowDate); // calendar week Mon–Sun
             if (!heatmapOpsHour[hourKey]) heatmapOpsHour[hourKey] = Array(7).fill(0);
             heatmapOpsHour[hourKey][dayIndex] += 1;
             if (!heatmapOpsHourDetails[hourKey]) heatmapOpsHourDetails[hourKey] = {};
@@ -1151,14 +1176,14 @@ async function renderOpsCharts() {
                 estatus:    kEstatus     ? String(r[kEstatus]     || '').trim() : ''
             };
             heatmapOpsHourDetails[hourKey][dayIndex].push(_ohRec);
-            // Per-week bucketing
-            if (!heatmapOpsHourByWeek[weekNum]) heatmapOpsHourByWeek[weekNum] = {};
-            if (!heatmapOpsHourByWeek[weekNum][hourKey]) heatmapOpsHourByWeek[weekNum][hourKey] = Array(7).fill(0);
-            heatmapOpsHourByWeek[weekNum][hourKey][dayIndex] += 1;
-            if (!heatmapOpsHourDetailsByWeek[weekNum]) heatmapOpsHourDetailsByWeek[weekNum] = {};
-            if (!heatmapOpsHourDetailsByWeek[weekNum][hourKey]) heatmapOpsHourDetailsByWeek[weekNum][hourKey] = {};
-            if (!heatmapOpsHourDetailsByWeek[weekNum][hourKey][dayIndex]) heatmapOpsHourDetailsByWeek[weekNum][hourKey][dayIndex] = [];
-            heatmapOpsHourDetailsByWeek[weekNum][hourKey][dayIndex].push(_ohRec);
+            // Per-week bucketing — keyed by Monday ISO date
+            if (!heatmapOpsHourByWeek[weekKey]) heatmapOpsHourByWeek[weekKey] = {};
+            if (!heatmapOpsHourByWeek[weekKey][hourKey]) heatmapOpsHourByWeek[weekKey][hourKey] = Array(7).fill(0);
+            heatmapOpsHourByWeek[weekKey][hourKey][dayIndex] += 1;
+            if (!heatmapOpsHourDetailsByWeek[weekKey]) heatmapOpsHourDetailsByWeek[weekKey] = {};
+            if (!heatmapOpsHourDetailsByWeek[weekKey][hourKey]) heatmapOpsHourDetailsByWeek[weekKey][hourKey] = {};
+            if (!heatmapOpsHourDetailsByWeek[weekKey][hourKey][dayIndex]) heatmapOpsHourDetailsByWeek[weekKey][hourKey][dayIndex] = [];
+            heatmapOpsHourDetailsByWeek[weekKey][hourKey][dayIndex].push(_ohRec);
         });
 
         // Debug: show sample delay codes and categories
@@ -1200,7 +1225,7 @@ async function renderOpsCharts() {
 
         const peakWeekEntry = Object.entries(weeklyPassengers)
             .sort((a,b) => b[1] - a[1])[0];
-        setT('kpi-peak-week-passengers', peakWeekEntry ? `${peakWeekEntry[0]} (${peakWeekEntry[1].toLocaleString()})` : 'Sin datos');
+        setT('kpi-peak-week-passengers', peakWeekEntry ? `Sem. ${_calWeekLabel(peakWeekEntry[0])} (${peakWeekEntry[1].toLocaleString()})` : 'Sin datos');
 
         // --- Charts ---
         console.log('[renderOpsCharts] daysMap sample:', Object.entries(daysMap).slice(0, 3));
@@ -1373,14 +1398,12 @@ async function renderOpsCharts() {
         const weeklyChartLabel = hasPaxData ? 'Pasajeros' : 'Operaciones';
         const weeklyChartColor = hasPaxData ? '#0dcaf0' : '#6610f2';
 
-        const sortedWeeks = Object.keys(weeklySource).sort((a, b) => {
-            const av = Number(a.replace(/\D/g, ''));
-            const bv = Number(b.replace(/\D/g, ''));
-            return av - bv;
-        });
+        // Keys are now ISO Monday dates ("YYYY-MM-DD") — sort lexicographically = chronologically
+        const sortedWeeks = Object.keys(weeklySource).sort();
+        const sortedWeekDisplayLabels = sortedWeeks.map(wk => `Sem. ${_calWeekLabel(wk)}`);
 
         _renderChart('chart-weekly-passengers', 'bar', {
-            labels: sortedWeeks,
+            labels: sortedWeekDisplayLabels,
             datasets: [{
                 label: weeklyChartLabel,
                 data: sortedWeeks.map(week => weeklySource[week]),
@@ -1407,29 +1430,27 @@ async function renderOpsCharts() {
             return `rgba(13, 110, 253, ${alpha})`;
         };
 
-        // Store passenger heatmap week data and trigger initial render
+        // Store passenger heatmap week data — keys are ISO Monday date strings
         _heatmapHasPax = hasPaxData;
         const _paxHeatSrcByWeek = hasPaxData ? heatmapPassengersByWeek : heatmapOpsByWeek;
-        _paxHeatWeeks = { 0: { data: heatSource, details: heatmapDetails } };
-        Object.keys(_paxHeatSrcByWeek).sort().forEach(wn => {
-            const wn2 = Number(wn);
-            _paxHeatWeeks[wn2] = { data: _paxHeatSrcByWeek[wn2], details: heatmapDetailsByWeek[wn2] || {} };
+        _paxHeatWeeks = { '0': { data: heatSource, details: heatmapDetails } };
+        Object.keys(_paxHeatSrcByWeek).sort().forEach(wk => {
+            _paxHeatWeeks[wk] = { data: _paxHeatSrcByWeek[wk], details: heatmapDetailsByWeek[wk] || {} };
         });
         const heatmapEl = document.getElementById('ops-passenger-heatmap');
         if (heatmapEl) {
-            _drawPassengerHeatmap(0);
+            _drawPassengerHeatmap('0');
         }
 
-        // Store ops-hour heatmap week data and trigger initial render
-        _opsHourHeatWeeks = { 0: { data: heatmapOpsHour, details: heatmapOpsHourDetails } };
-        Object.keys(heatmapOpsHourByWeek).sort().forEach(wn => {
-            const wn2 = Number(wn);
-            _opsHourHeatWeeks[wn2] = { data: heatmapOpsHourByWeek[wn2], details: heatmapOpsHourDetailsByWeek[wn2] || {} };
+        // Store ops-hour heatmap week data — keys are ISO Monday date strings
+        _opsHourHeatWeeks = { '0': { data: heatmapOpsHour, details: heatmapOpsHourDetails } };
+        Object.keys(heatmapOpsHourByWeek).sort().forEach(wk => {
+            _opsHourHeatWeeks[wk] = { data: heatmapOpsHourByWeek[wk], details: heatmapOpsHourDetailsByWeek[wk] || {} };
         });
         // === Render: Operations-per-hour heatmap (excl. cancelled + non-operational) ===
         const opsHourHeatEl = document.getElementById('ops-hour-heatmap');
         if (opsHourHeatEl) {
-            _drawOpsHourHeatmap(0);
+            _drawOpsHourHeatmap('0');
         }
 
         // chart-ac-direction is now replaced by chart-aircrafts above — hide the duplicate
@@ -1519,7 +1540,7 @@ async function renderOpsCharts() {
                         </ol>
                         <h6 class="fw-bold mb-2">Pasajeros por semana</h6>
                         <ul class="mb-0">
-                            ${sortedWeeks.map(week => `<li>${week}: <strong>${(weeklyPassengers[week] || 0).toLocaleString()}</strong></li>`).join('') || '<li>Sin datos semanales.</li>'}
+                            ${sortedWeeks.map((week, idx) => `<li>S${idx + 1} ${_calWeekLabel(week)}: <strong>${(weeklyPassengers[week] || 0).toLocaleString()}</strong></li>`).join('') || '<li>Sin datos semanales.</li>'}
                         </ul>
                     </div>
                 </div>
@@ -1965,15 +1986,15 @@ function _showHeatmapDrilldown(hour, dayIdx) {
 
 // ── Heatmap draw helpers (called on initial render and week filter changes) ─────
 
-function _drawPassengerHeatmap(weekNum) {
+function _drawPassengerHeatmap(weekKey) {
     const heatmapEl = document.getElementById('ops-passenger-heatmap');
     if (!heatmapEl) return;
-    const w = _paxHeatWeeks[weekNum] || _paxHeatWeeks[0];
+    const w = _paxHeatWeeks[weekKey] || _paxHeatWeeks['0'];
     const source  = w.data    || {};
     const details = w.details || {};
     const hasPaxData = _heatmapHasPax;
     const heatUnit   = hasPaxData ? 'Pasajeros' : 'Operaciones';
-    const weekLabel  = weekNum === 0 ? 'Todas las semanas' : `Semana ${weekNum}`;
+    const weekLabel  = weekKey === '0' ? 'Todas las semanas' : `Sem. ${_calWeekLabel(weekKey)}`;
 
     const allHeatValues = _HEATMAP_HOUR_LABELS.flatMap(h => (source[h] || Array(7).fill(0)));
     const maxHeat = Math.max(1, ...allHeatValues);
@@ -1991,12 +2012,14 @@ function _drawPassengerHeatmap(weekNum) {
     });
     const grandTotal = colTotals.reduce((a, b) => a + b, 0);
 
-    // Week filter buttons
-    const availWeeks = Object.keys(_paxHeatWeeks).map(Number).filter(n => n > 0).sort((a, b) => a - b);
+    // Week filter buttons — sorted calendar weeks with date-range labels
+    const availWeeks = Object.keys(_paxHeatWeeks).filter(k => k !== '0').sort();
     let btnBar = '<div class="d-flex flex-wrap gap-1 mb-3 align-items-center"><span class="text-muted small me-1">Filtrar semana:</span>';
-    btnBar += `<button class="btn btn-sm week-filter-btn ${weekNum === 0 ? 'btn-primary' : 'btn-outline-secondary'}" data-week="0" onclick="window._filterPassengerHeatmap(0)">Todas</button>`;
-    availWeeks.forEach(wn => {
-        btnBar += `<button class="btn btn-sm week-filter-btn ${weekNum === wn ? 'btn-primary' : 'btn-outline-secondary'}" data-week="${wn}" onclick="window._filterPassengerHeatmap(${wn})">Semana ${wn}</button>`;
+    btnBar += `<button class="btn btn-sm week-filter-btn ${weekKey === '0' ? 'btn-primary' : 'btn-outline-secondary'}" onclick="window._filterPassengerHeatmap('0')">Todas</button>`;
+    availWeeks.forEach((wk, idx) => {
+        const lbl = `S${idx + 1} ${_calWeekLabel(wk)}`;
+        const active = weekKey === wk;
+        btnBar += `<button class="btn btn-sm week-filter-btn ${active ? 'btn-primary' : 'btn-outline-secondary'}" onclick="window._filterPassengerHeatmap('${wk}')" title="${wk}">${lbl}</button>`;
     });
     btnBar += '</div>';
 
@@ -2036,13 +2059,13 @@ function _drawPassengerHeatmap(weekNum) {
     });
 }
 
-function _drawOpsHourHeatmap(weekNum) {
+function _drawOpsHourHeatmap(weekKey) {
     const opsHourHeatEl = document.getElementById('ops-hour-heatmap');
     if (!opsHourHeatEl) return;
-    const w = _opsHourHeatWeeks[weekNum] || _opsHourHeatWeeks[0];
+    const w = _opsHourHeatWeeks[weekKey] || _opsHourHeatWeeks['0'];
     const source  = w.data    || {};
     const details = w.details || {};
-    const weekLabel = weekNum === 0 ? 'Todas las semanas' : `Semana ${weekNum}`;
+    const weekLabel = weekKey === '0' ? 'Todas las semanas' : `Sem. ${_calWeekLabel(weekKey)}`;
 
     const allOpsVals = _HEATMAP_HOUR_LABELS.flatMap(h => source[h] || Array(7).fill(0));
     const maxOps = Math.max(1, ...allOpsVals);
@@ -2060,12 +2083,14 @@ function _drawOpsHourHeatmap(weekNum) {
     });
     const grandTotalOps = colTotalsOps.reduce((a, b) => a + b, 0);
 
-    // Week filter buttons
-    const availWeeks = Object.keys(_opsHourHeatWeeks).map(Number).filter(n => n > 0).sort((a, b) => a - b);
+    // Week filter buttons — sorted calendar weeks with date-range labels
+    const availWeeks = Object.keys(_opsHourHeatWeeks).filter(k => k !== '0').sort();
     let btnBar = '<div class="d-flex flex-wrap gap-1 mb-3 align-items-center"><span class="text-muted small me-1">Filtrar semana:</span>';
-    btnBar += `<button class="btn btn-sm week-filter-btn ${weekNum === 0 ? 'btn-warning' : 'btn-outline-secondary'}" data-week="0" onclick="window._filterOpsHourHeatmap(0)">Todas</button>`;
-    availWeeks.forEach(wn => {
-        btnBar += `<button class="btn btn-sm week-filter-btn ${weekNum === wn ? 'btn-warning' : 'btn-outline-secondary'}" data-week="${wn}" onclick="window._filterOpsHourHeatmap(${wn})">Semana ${wn}</button>`;
+    btnBar += `<button class="btn btn-sm week-filter-btn ${weekKey === '0' ? 'btn-warning' : 'btn-outline-secondary'}" onclick="window._filterOpsHourHeatmap('0')">Todas</button>`;
+    availWeeks.forEach((wk, idx) => {
+        const lbl = `S${idx + 1} ${_calWeekLabel(wk)}`;
+        const active = weekKey === wk;
+        btnBar += `<button class="btn btn-sm week-filter-btn ${active ? 'btn-warning' : 'btn-outline-secondary'}" onclick="window._filterOpsHourHeatmap('${wk}')" title="${wk}">${lbl}</button>`;
     });
     btnBar += '</div>';
 
@@ -2105,12 +2130,12 @@ function _drawOpsHourHeatmap(weekNum) {
     });
 }
 
-window._filterPassengerHeatmap = function(weekNum) {
-    _drawPassengerHeatmap(weekNum);
+window._filterPassengerHeatmap = function(weekKey) {
+    _drawPassengerHeatmap(String(weekKey));
 };
 
-window._filterOpsHourHeatmap = function(weekNum) {
-    _drawOpsHourHeatmap(weekNum);
+window._filterOpsHourHeatmap = function(weekKey) {
+    _drawOpsHourHeatmap(String(weekKey));
 };
 
 function _showOpsHourDrilldown(hour, dayIdx) {
