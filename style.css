@@ -10932,9 +10932,95 @@ body.dark-mode #fauna-rescate-table .table-container-tech.h-scroll-area thead th
     overflow: auto;
 }
 /* =========================================
+   Vista General — Split 50/50 layout
+   ========================================= */
+.general-split-controls {
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 0.6rem !important;
+    margin-bottom: 0;
+}
+
+.general-split-row {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 0.75rem;
+    background: #fff;
+    box-shadow: 0 2px 12px rgba(15,23,42,0.06);
+}
+
+.general-split-col {
+    display: flex;
+    flex-direction: column;
+}
+.general-split-col:first-child {
+    border-right: 1px solid #e2e8f0;
+}
+
+/* Coloured top header bar */
+.general-split-header {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    font-size: 0.88rem;
+    padding: 0.65rem 1rem;
+}
+.general-split-header.arr {
+    background: #f0fdf4;
+    color: #166534;
+    border-bottom: 1px solid #bbf7d0;
+}
+.general-split-header.dep {
+    background: #fff7ed;
+    color: #9a3412;
+    border-bottom: 1px solid #fed7aa;
+}
+
+/* Chart area inside each column */
+.general-split-chart {
+    position: relative;
+    height: 240px;
+    padding: 0.75rem 0.75rem 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+.general-split-chart canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* List area — scrollable if many rows */
+.general-split-list {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 380px;
+}
+.general-split-list .top-hours-list {
+    padding: 0.25rem 0;
+}
+
+/* Make sure range-report-block sits below the split */
+.range-report-block {
+    margin-top: 1.25rem;
+}
+
+/* =========================================
    Range Report Card (Vista General)
    ========================================= */
-.range-report-block { margin-top: 1.5rem; }
+
+/* Responsive: stack on small screens */
+@media (max-width: 767px) {
+    .general-split-col {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    .general-split-col:first-child {
+        border-right: none;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    .general-split-chart {
+        height: 180px;
+    }
+}
 
 .range-report-card {
     border-radius: 14px;

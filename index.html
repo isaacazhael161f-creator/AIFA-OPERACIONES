@@ -2947,70 +2947,59 @@
                                                         </div>
                                         <!-- Vista General: Pasajeros + Carga combinados -->
                                         <div class="tab-pane fade" id="general-grafica-pane">
-                                            <!-- Gráficas combinadas -->
-                                            <div class="itinerary-charts-scroll itinerary-pane-block charts-block">
-                                                <div class="row g-3 chart-row-mobile-scroll">
-                                                    <div class="col-lg-6">
-                                                        <h6 class="text-muted mb-2"><i class="fas fa-plane-arrival me-1"></i>Llegadas Totales (Pax + Carga) por hora</h6>
-                                                        <div class="chart-container chart-height-360">
-                                                            <canvas id="generalArrivalsChart"></canvas>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-lg-6">
-                                                        <h6 class="text-muted mb-2"><i class="fas fa-plane-departure me-1"></i>Salidas Totales (Pax + Carga) por hora</h6>
-                                                        <div class="chart-container chart-height-360">
-                                                            <canvas id="generalDeparturesChart"></canvas>
-                                                        </div>
-                                                    </div>
+                                            <!-- Controles (topN selector) -->
+                                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 px-1 pt-2 pb-1 general-split-controls">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fas fa-globe text-primary"></i>
+                                                    <span class="fw-semibold" id="general-top-hours-heading">Vista General — Pasajeros + Carga</span>
+                                                    <span class="badge bg-light text-muted border small" id="general-top-hours-subtitle">Haz clic en una franja para ver los vuelos</span>
+                                                </div>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <label for="general-topN" class="top-hours-label text-muted mb-0 small">Mostrar</label>
+                                                    <select id="general-topN" class="form-select form-select-sm top-hours-select" style="width:auto" aria-label="Seleccionar top N vista general">
+                                                        <option value="3">Top 3</option>
+                                                        <option value="5">Top 5</option>
+                                                        <option value="10" selected>Top 10</option>
+                                                        <option value="24">Todas (24h)</option>
+                                                    </select>
                                                 </div>
                                             </div>
-                                            <!-- Widget horas pico combinado -->
-                                            <div class="itinerary-top-block itinerary-pane-block top-hours-widget">
-                                                <div class="top-hours-header">
-                                                    <div class="top-hours-title">
-                                                        <span class="top-hours-eyebrow">Radar horario</span>
-                                                        <div class="d-flex align-items-center gap-2">
-                                                            <i class="fas fa-globe text-primary"></i>
-                                                            <span class="top-hours-heading" id="general-top-hours-heading">Horas pico (Vista General)</span>
-                                                        </div>
-                                                        <p class="mb-0 top-hours-subtitle text-muted" id="general-top-hours-subtitle">
-                                                            Vista unificada de pasajeros y carga. Haz clic en una franja para ver los vuelos.</p>
+
+                                            <!-- Split 50/50 — gráfica + lista en cada mitad -->
+                                            <div class="row g-0 general-split-row">
+
+                                                <!-- ── LLEGADAS (mitad izquierda) ── -->
+                                                <div class="col-6 general-split-col general-split-arr">
+                                                    <div class="general-split-header arr">
+                                                        <i class="fas fa-plane-arrival me-2"></i>Llegadas totales
+                                                        <small class="ms-2 opacity-75">Pax + Carga</small>
                                                     </div>
-                                                    <div class="top-hours-controls">
-                                                        <label for="general-topN" class="top-hours-label text-muted mb-0">Mostrar</label>
-                                                        <select id="general-topN" class="form-select form-select-sm top-hours-select" aria-label="Seleccionar top N vista general">
-                                                            <option value="3">Top 3</option>
-                                                            <option value="5">Top 5</option>
-                                                            <option value="10" selected>Top 10</option>
-                                                            <option value="24">Todas (24h)</option>
-                                                        </select>
+                                                    <div class="general-split-chart">
+                                                        <canvas id="generalArrivalsChart"></canvas>
+                                                    </div>
+                                                    <div class="general-split-list">
+                                                        <ol id="general-all-arr" class="top-hours-list mb-0"></ol>
+                                                        <p class="top-hours-footnote text-muted mb-0 px-3 pb-2"><i class="fas fa-mouse-pointer me-1"></i>Clic para ver los vuelos de esa hora.</p>
                                                     </div>
                                                 </div>
-                                                <div class="row g-3 top-hours-grid">
-                                                    <!-- Llegadas totales (Pax + Carga) -->
-                                                    <div class="col-md-6">
-                                                        <div class="top-hours-card arrivals-theme">
-                                                            <div class="top-hours-card-header">
-                                                                <span class="top-hours-chip chip-arrivals"><i class="fas fa-plane-arrival me-1"></i>Llegadas totales</span>
-                                                                <small class="text-muted">Pasajeros + Carga</small>
-                                                            </div>
-                                                            <ol id="general-all-arr" class="top-hours-list mb-0"></ol>
-                                                            <p class="top-hours-footnote text-muted mb-0"><i class="fas fa-mouse-pointer me-1"></i>Clic para ver todos los vuelos de esa hora.</p>
-                                                        </div>
+
+                                                <!-- ── SALIDAS (mitad derecha) ── -->
+                                                <div class="col-6 general-split-col general-split-dep">
+                                                    <div class="general-split-header dep">
+                                                        <i class="fas fa-plane-departure me-2"></i>Salidas totales
+                                                        <small class="ms-2 opacity-75">Pax + Carga</small>
                                                     </div>
-                                                    <!-- Salidas totales (Pax + Carga) -->
-                                                    <div class="col-md-6">
-                                                        <div class="top-hours-card departures-theme">
-                                                            <div class="top-hours-card-header">
-                                                                <span class="top-hours-chip chip-departures"><i class="fas fa-plane-departure me-1"></i>Salidas totales</span>
-                                                                <small class="text-muted">Pasajeros + Carga</small>
-                                                            </div>
-                                                            <ol id="general-all-dep" class="top-hours-list mb-0"></ol>
-                                                            <p class="top-hours-footnote text-muted mb-0"><i class="fas fa-mouse-pointer me-1"></i>Clic para ver todos los vuelos de esa hora.</p>
-                                                        </div>
+                                                    <div class="general-split-chart">
+                                                        <canvas id="generalDeparturesChart"></canvas>
+                                                    </div>
+                                                    <div class="general-split-list">
+                                                        <ol id="general-all-dep" class="top-hours-list mb-0"></ol>
+                                                        <p class="top-hours-footnote text-muted mb-0 px-3 pb-2"><i class="fas fa-mouse-pointer me-1"></i>Clic para ver los vuelos de esa hora.</p>
                                                     </div>
                                                 </div>
+
                                             </div>
+                                            <!-- /Split -->
                                             <!-- ╔══════════════════════════════════════════╗ -->
                                             <!-- ║  RESUMEN POR RANGO HORARIO (para envío) ║ -->
                                             <!-- ╚══════════════════════════════════════════╝ -->
