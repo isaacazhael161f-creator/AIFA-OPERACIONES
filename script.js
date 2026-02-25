@@ -3454,6 +3454,70 @@ function updateTableVisualStriping(tableContainer) {
 }
 
 // Helper for client-side table filtering
+// Populate funnel <select> dropdowns from unique tbody values, then bind change events
+function _initItineraryFunnelSelects(tableContainer, searchState) {
+    const tbody = tableContainer ? tableContainer.querySelector('tbody') : null;
+    if (!tbody) return;
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const isCargo = !!(tableContainer.closest('.itinerary-general-card')?.classList.contains('itinerary-general-card--cargo'));
+
+    // col key → cell index (passenger layout; cargo shifts banda/pos)
+    const colIdx = {
+        aerolinea: 0, aircraft: 1, vuelo_llegada: 2, fecha_llegada: 3,
+        hora_llegada: 4, origen: 5,
+        banda:       isCargo ? null : 6,
+        posicion:    isCargo ? 6    : 7,
+        vuelo_salida: isCargo ? 7  : 8,
+        fecha_salida: isCargo ? 8  : 9,
+        hora_salida:  isCargo ? 9  : 10,
+        destino:      isCargo ? 10 : 11
+    };
+
+    const selects = tableContainer.querySelectorAll('.daily-it-select');
+    selects.forEach(sel => {
+        const col = sel.dataset.col;
+        const idx = colIdx[col];
+        if (idx === null || idx === undefined) return;
+
+        // Collect unique, non-empty cell values
+        const vals = new Set();
+        rows.forEach(row => {
+            const cell = row.cells[idx];
+            if (!cell) return;
+            const txt = cell.textContent.trim();
+            if (txt && txt !== '\u2014' && txt !== '-') vals.add(txt);
+        });
+
+        const sorted = Array.from(vals).sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+        const current = sel.value;
+        sel.innerHTML = '<option value="">\u2261 Todas</option>';
+        sorted.forEach(v => {
+            const upper = v.toUpperCase();
+            const opt   = document.createElement('option');
+            opt.value       = upper;
+            opt.textContent = v;
+            if (current && upper === current) opt.selected = true;
+            sel.appendChild(opt);
+        });
+
+        // Attach change listener once
+        if (!sel._funnelBound) {
+            sel._funnelBound = true;
+            sel.addEventListener('change', () => {
+                const v = sel.value.trim().toUpperCase();
+                if (!window.dailyItinerarySearchState) window.dailyItinerarySearchState = {};
+                window.dailyItinerarySearchState[col] = v;
+                // Clear the paired text input so they don't conflict
+                const textIn = tableContainer.querySelector(`.daily-it-search[data-col="${col}"]`);
+                if (textIn && v) { textIn.value = ''; }
+                // Highlight select when active
+                sel.classList.toggle('active-filter', v !== '');
+                applyClientSideTableFilter(tableContainer, window.dailyItinerarySearchState);
+            });
+        }
+    });
+}
+
 function applyClientSideTableFilter(tableContainer, searchState) {
     if (!tableContainer || !searchState) return;
     
@@ -3940,6 +4004,20 @@ function renderItineraryAirlineDetail(config = {}) {
                                 <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="hora_salida" placeholder="Buscar..."></th>
                                 <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="destino" placeholder="Buscar..."></th>
                             </tr>
+                            <tr class="funnel-selects-row" style="background:#f0f4f8">
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="aerolinea" title="Filtrar por aerol\u00ednea"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="aircraft" title="Filtrar por aeronave"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="fecha_llegada" title="Filtrar por fecha llegada"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="origen" title="Filtrar por origen"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="banda" title="Filtrar por banda"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="posicion" title="Filtrar por posici\u00f3n"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="fecha_salida" title="Filtrar por fecha salida"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="destino" title="Filtrar por destino"><option value="">\u2261 Todas</option></select></th>
+                            </tr>
                         </thead>
                         <tbody>${rows || '<tr><td colspan="12" class="text-center text-muted">Sin vuelos disponibles.</td></tr>'}</tbody>
                     </table>
@@ -3975,10 +4053,16 @@ function renderItineraryAirlineDetail(config = {}) {
                 // Save state
                 if (!window.dailyItinerarySearchState) window.dailyItinerarySearchState = {};
                 window.dailyItinerarySearchState[col] = val;
+                // Reset the paired funnel select so they don't conflict
+                const sel = tableContainer.querySelector(`.daily-it-select[data-col="${col}"]`);
+                if (sel && val) { sel.value = ''; sel.classList.remove('active-filter'); }
 
                 applyClientSideTableFilter(tableContainer, window.dailyItinerarySearchState);
             });
         });
+
+        // Populate + bind funnel dropdown selects
+        _initItineraryFunnelSelects(tableContainer, window.dailyItinerarySearchState || {});
     }, 50);
 
     const clearBtn = container.querySelector('[data-action="clear-airline-filter"]');
@@ -5609,6 +5693,20 @@ function displayPassengerTable(flights) {
                                 <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="hora_salida" placeholder="Buscar..."></th>
                                 <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="destino" placeholder="Buscar..."></th>
                             </tr>
+                            <tr class="funnel-selects-row" style="background:#f0f4f8">
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="aerolinea" title="Filtrar por aerol\u00ednea"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="aircraft" title="Filtrar por aeronave"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="fecha_llegada" title="Filtrar por fecha llegada"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="origen" title="Filtrar por origen"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="banda" title="Filtrar por banda"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="posicion" title="Filtrar por posici\u00f3n"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="fecha_salida" title="Filtrar por fecha salida"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="destino" title="Filtrar por destino"><option value="">\u2261 Todas</option></select></th>
+                            </tr>
                         </thead>
                         <tbody>${rows}</tbody>
                     </table>
@@ -5645,9 +5743,15 @@ function displayPassengerTable(flights) {
                 const col = e.target.dataset.col;
                 if (!window.dailyItinerarySearchState) window.dailyItinerarySearchState = {};
                 window.dailyItinerarySearchState[col] = val;
+                // Reset the paired funnel select so they don't conflict
+                const sel = tableContainer.querySelector(`.daily-it-select[data-col="${col}"]`);
+                if (sel && val) { sel.value = ''; sel.classList.remove('active-filter'); }
                 applyClientSideTableFilter(tableContainer, window.dailyItinerarySearchState);
             });
         });
+
+        // Populate + bind funnel dropdown selects
+        _initItineraryFunnelSelects(tableContainer, window.dailyItinerarySearchState || {});
     }, 50);
 
     wireItineraryExports();
