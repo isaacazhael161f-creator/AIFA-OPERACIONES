@@ -413,6 +413,46 @@
     renderList('general-all-dep', genDep, 'Salida');
   }
 
+  // Redraw all charts using cached data — called when a hidden sub-tab becomes visible
+  // so clientWidth is correct and hit regions match actual pixel positions.
+  function _redrawVisibleCharts(){
+    if (!lastAgg) return;
+    const agg = lastAgg;
+    drawBars('paxArrivalsChart', H_LABELS, agg.paxArr, 'rgba(13,110,253,0.9)', 'Llegadas (Pasajeros)', {
+      scope: SCOPE_PAX, movement: 'Llegada',
+      gradientStops: ['rgba(148,205,255,0.95)', 'rgba(13,110,253,0.65)'],
+      shadowColor: 'rgba(13,110,253,0.25)', subtitle: 'Tráfico entrante durante el día'
+    });
+    drawBars('paxDeparturesChart', H_LABELS, agg.paxDep, 'rgba(16,185,129,0.9)', 'Salidas (Pasajeros)', {
+      scope: SCOPE_PAX, movement: 'Salida',
+      gradientStops: ['rgba(167,243,208,0.95)', 'rgba(16,185,129,0.65)'],
+      shadowColor: 'rgba(16,185,129,0.25)', subtitle: 'Ventanas de salida previstas'
+    });
+    drawBars('cargoArrivalsChart', H_LABELS, agg.carArr, 'rgba(249,115,22,0.9)', 'Llegadas (Carga)', {
+      scope: SCOPE_CARGO, movement: 'Llegada',
+      gradientStops: ['rgba(255,196,161,0.95)', 'rgba(249,115,22,0.65)'],
+      shadowColor: 'rgba(194,65,12,0.25)', subtitle: 'Recepciones logísticas por hora'
+    });
+    drawBars('cargoDeparturesChart', H_LABELS, agg.carDep, 'rgba(234,88,12,0.9)', 'Salidas (Carga)', {
+      scope: SCOPE_CARGO, movement: 'Salida',
+      gradientStops: ['rgba(253,186,140,0.95)', 'rgba(234,88,12,0.7)'],
+      shadowColor: 'rgba(234,88,12,0.25)', subtitle: 'Despachos prioritarios'
+    });
+    const genArr = agg.paxArr.map((v,i) => v + (agg.carArr[i]||0));
+    const genDep = agg.paxDep.map((v,i) => v + (agg.carDep[i]||0));
+    drawBars('generalArrivalsChart', H_LABELS, genArr, 'rgba(99,102,241,0.9)', 'Llegadas Totales (Pax + Carga)', {
+      scope: SCOPE_ALL, movement: 'Llegada',
+      gradientStops: ['rgba(199,210,254,0.95)', 'rgba(99,102,241,0.65)'],
+      shadowColor: 'rgba(99,102,241,0.25)', subtitle: 'Llegadas combinadas de pasajeros y carga'
+    });
+    drawBars('generalDeparturesChart', H_LABELS, genDep, 'rgba(236,72,153,0.9)', 'Salidas Totales (Pax + Carga)', {
+      scope: SCOPE_ALL, movement: 'Salida',
+      gradientStops: ['rgba(251,207,232,0.95)', 'rgba(236,72,153,0.65)'],
+      shadowColor: 'rgba(236,72,153,0.25)', subtitle: 'Salidas combinadas de pasajeros y carga'
+    });
+    bindChartClicks();
+  }
+
   function bindChartClicks(){
     const charts = [
       { id: 'paxArrivalsChart' },
@@ -1053,6 +1093,12 @@
         const target = event.target.getAttribute('data-bs-target') || '';
         const scope = target.includes('carga') ? SCOPE_CARGO : SCOPE_PAX;
         applyIntelligenceForScope(scope);
+        // Re-draw charts now that the pane is visible and clientWidth is correct
+        setTimeout(() => {
+          if (lastAgg) {
+            _redrawVisibleCharts();
+          }
+        }, 50);
       });
     });
     ['graficas-itinerario-tab','radar-operativo-tab'].forEach(tabId => {
