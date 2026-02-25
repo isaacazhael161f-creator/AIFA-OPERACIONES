@@ -434,9 +434,6 @@
             text-overflow: ellipsis;
             white-space: nowrap;
             flex: 1;
-            display: flex;
-            align-items: center;
-            gap: 6px;
             padding: 1px 4px;
             border-radius: 3px;
             transition: background .12s, color .12s;
@@ -445,20 +442,6 @@
             background: #0d6efd;
             color: #fff;
         }
-        /* Service-type items: code badge + description inline */
-        .csv-ef-item-svc .csv-ef-label { flex-direction: column; align-items: flex-start; gap: 0; }
-        .csv-ef-svc-code {
-            font-weight: 700;
-            font-size: .82rem;
-            letter-spacing: .04em;
-        }
-        .csv-ef-svc-desc {
-            font-size: .72rem;
-            color: #6c757d;
-            white-space: normal;
-            line-height: 1.2;
-        }
-        .csv-ef-item-svc .csv-ef-label:hover .csv-ef-svc-desc { color: #dde; }
 
         .filter-icon {
             position: absolute;
@@ -2395,9 +2378,9 @@
                                                                         <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Stand</th>
                                                                         <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Gates</th>
                                                                         <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Boarded</th>
-                                                                        <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Type</th>
+                                                                        <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Type <button type="button" class="btn btn-link p-0 border-0" style="font-size:.6em;opacity:.8;vertical-align:middle;line-height:1;color:inherit;" onclick="event.stopPropagation();new bootstrap.Modal(document.getElementById('modalFlightServiceType')).show()" title="Ver catálogo de tipos de servicio"><i class="fas fa-circle-question"></i></button></th>
                                                                         <th>Routing</th>
-                                                                        <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Type</th>
+                                                                        <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Type <button type="button" class="btn btn-link p-0 border-0" style="font-size:.6em;opacity:.8;vertical-align:middle;line-height:1;color:inherit;" onclick="event.stopPropagation();new bootstrap.Modal(document.getElementById('modalFlightServiceType')).show()" title="Ver catálogo de tipos de servicio"><i class="fas fa-circle-question"></i></button></th>
                                                                         <th>Aircraft type</th>
                                                                         <th>Registration</th>
                                                                         <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Airline</th>
@@ -2805,9 +2788,9 @@
                                                                             class="form-select form-select-sm top-hours-select"
                                                                             aria-label="Seleccionar top N pasajeros">
                                                                             <option value="3">Top 3</option>
-                                                                            <option value="5" selected>Top 5
-                                                                            </option>
-                                                                            <option value="10">Top 10</option>
+                                                                            <option value="5">Top 5</option>
+                                                                            <option value="10" selected>Top 10</option>
+                                                                            <option value="24">Todas (24h)</option>
                                                                         </select>
                                                                     </div>
                                                                 </div>
@@ -2902,9 +2885,9 @@
                                                                             class="form-select form-select-sm top-hours-select"
                                                                             aria-label="Seleccionar top N carga">
                                                                             <option value="3">Top 3</option>
-                                                                            <option value="5" selected>Top 5
-                                                                            </option>
-                                                                            <option value="10">Top 10</option>
+                                                                            <option value="5">Top 5</option>
+                                                                            <option value="10" selected>Top 10</option>
+                                                                            <option value="24">Todas (24h)</option>
                                                                         </select>
                                                                     </div>
                                                                 </div>
@@ -3380,7 +3363,27 @@
                         <div class="card-header border-bottom bg-white d-flex align-items-center justify-content-between py-3">
                             <h2 class="section-title mb-0 fs-4 fw-bold text-primary"><i class="fas fa-tasks me-2"></i>Conciliación</h2>
                         </div>
-                        <div class="card-body p-4" id="conciliacion-content">
+                        <div class="card-body p-0" id="conciliacion-content">
+
+                                    <!-- Conciliación Tabs -->
+                                    <ul class="nav nav-tabs px-4 pt-3 border-bottom bg-white" id="conciliacion-tabs" role="tablist">
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link active fw-semibold" id="tab-conci-itinerario" data-bs-toggle="tab" data-bs-target="#pane-conci-itinerario" type="button" role="tab">
+                                                <i class="fas fa-plane me-2 text-primary"></i>Itinerario de Vuelos
+                                            </button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link fw-semibold" id="tab-conci-comercial" data-bs-toggle="tab" data-bs-target="#pane-conci-comercial" type="button" role="tab">
+                                                <i class="fas fa-store me-2 text-success"></i>Comercial
+                                            </button>
+                                        </li>
+                                    </ul>
+
+                                    <div class="tab-content">
+
+                                    <!-- ═══ Tab: Itinerario ═══ -->
+                                    <div class="tab-pane fade show active p-4" id="pane-conci-itinerario" role="tabpanel">
+
                                     <div class="alert shadow-sm border-0 d-flex align-items-center mb-4 p-3 maintenance-alert" role="alert">
                                         <div class="d-flex align-items-center justify-content-center flex-shrink-0 me-3 maintenance-icon-wrapper">
                                             <i class="fas fa-tools fs-4"></i>
@@ -3540,9 +3543,9 @@
                                                                 <th class="col-cvs-arr-gates" data-csv-filter-field="[Arr] Gates" data-col-help="arr-gates" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Puerta de desembarque del vuelo de llegada"><div class="csv-th-inner"><span><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Gates <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></span><button class="csv-ef-btn" title="Filtrar Gates Arr"><i class="fas fa-filter"></i></button></div></th>
                                                                 <th class="col-cvs-arr-boarded" data-csv-filter-field="[Arr] Boarded" data-col-help="arr-boarded" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Pasajeros del vuelo de llegada"><div class="csv-th-inner"><span><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Boarded <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></span><button class="csv-ef-btn" title="Filtrar Boarded Arr"><i class="fas fa-filter"></i></button></div></th>
                                                                 <th class="col-cvs-arr-belts" data-csv-filter-field="[Arr] Baggage Belts" data-col-help="arr-belts" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Banda/cinta de equipaje asignada"><div class="csv-th-inner"><span><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Belts <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></span><button class="csv-ef-btn" title="Filtrar Belts"><i class="fas fa-filter"></i></button></div></th>
-                                                                <th class="col-cvs-arr-type" data-csv-filter-field="[Arr] Service Type" data-col-help="arr-type" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Tipo de servicio de llegada (Nacional, Internacional, Carga...)"><div class="csv-th-inner"><span><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Type <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></span><button class="csv-ef-btn" title="Filtrar Tipo Arr"><i class="fas fa-filter"></i></button></div></th>
+                                                                <th class="col-cvs-arr-type" data-csv-filter-field="[Arr] Service Type" data-col-help="arr-type" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Tipo de servicio de llegada — haz clic en ? para ver el catálogo completo"><div class="csv-th-inner"><span><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Type <button type="button" class="btn btn-link p-0 border-0" style="font-size:.6em;opacity:.8;vertical-align:middle;line-height:1;color:inherit;" onclick="event.stopPropagation();new bootstrap.Modal(document.getElementById('modalFlightServiceType')).show()" title="Ver catálogo de tipos de servicio"><i class="fas fa-circle-question"></i></button></span><button class="csv-ef-btn" title="Filtrar Tipo Arr"><i class="fas fa-filter"></i></button></div></th>
                                                                 <th class="col-cvs-routing" data-csv-filter-field="Routing" data-col-help="routing" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Ruta completa: origen &gt; AIFA &gt; destino"><div class="csv-th-inner"><span>Routing <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></span><button class="csv-ef-btn" title="Filtrar Routing"><i class="fas fa-filter"></i></button></div></th>
-                                                                <th class="col-cvs-dep-type" data-csv-filter-field="[Dep] Service Type" data-col-help="dep-type" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Tipo de servicio de salida (Nacional, Internacional, Carga...)"><div class="csv-th-inner"><span><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Type <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></span><button class="csv-ef-btn" title="Filtrar Tipo Dep"><i class="fas fa-filter"></i></button></div></th>
+                                                                <th class="col-cvs-dep-type" data-csv-filter-field="[Dep] Service Type" data-col-help="dep-type" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Tipo de servicio de salida — haz clic en ? para ver el catálogo completo"><div class="csv-th-inner"><span><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Type <button type="button" class="btn btn-link p-0 border-0" style="font-size:.6em;opacity:.8;vertical-align:middle;line-height:1;color:inherit;" onclick="event.stopPropagation();new bootstrap.Modal(document.getElementById('modalFlightServiceType')).show()" title="Ver catálogo de tipos de servicio"><i class="fas fa-circle-question"></i></button></span><button class="csv-ef-btn" title="Filtrar Tipo Dep"><i class="fas fa-filter"></i></button></div></th>
                                                                 <th class="col-cvs-aircraft" data-csv-filter-field="Aircraft type" data-col-help="aircraft" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Modelo de la aeronave (ej: Boeing 737, Airbus A321)"><div class="csv-th-inner"><span>Aircraft type <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></span><button class="csv-ef-btn" title="Filtrar Aircraft"><i class="fas fa-filter"></i></button></div></th>
                                                                 <th class="col-cvs-reg" data-csv-filter-field="Registration" data-col-help="registration" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Matrícula del avión - identifica al mismo avión en llegada y salida"><div class="csv-th-inner"><span>Registration <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></span><button class="csv-ef-btn" title="Filtrar Matrícula"><i class="fas fa-filter"></i></button></div></th>
                                                                 <th class="col-cvs-dep-airline" data-csv-filter-field="[Dep] Airline code" data-col-help="dep-airline" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Código de aerolínea del vuelo de salida"><div class="csv-th-inner"><span><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Airline <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></span><button class="csv-ef-btn" title="Filtrar Aerolínea Dep"><i class="fas fa-filter"></i></button></div></th>
@@ -3824,11 +3827,120 @@
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </div><!-- /conciliacion-board-view -->
 
-                        </div>
-                    </div>
-                </div>
+                                    </div><!-- /pane-conci-itinerario -->
+
+                                    <!-- ═══ Tab: Comercial ═══ -->
+                                    <div class="tab-pane fade" id="pane-conci-comercial" role="tabpanel">
+                                        <div class="p-4">
+
+                                            <!-- Cabecera Comercial -->
+                                            <div class="d-flex align-items-center gap-3 mb-4">
+                                                <div class="rounded-3 d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:linear-gradient(135deg,#16a34a,#22c55e);">
+                                                    <i class="fas fa-store text-white fs-5"></i>
+                                                </div>
+                                                <div>
+                                                    <h5 class="mb-0 fw-bold text-success">Datos Comerciales</h5>
+                                                    <small class="text-muted">Información de ingresos, concesiones y operaciones comerciales del aeropuerto</small>
+                                                </div>
+                                            </div>
+
+                                            <!-- KPI Cards -->
+                                            <div class="row g-3 mb-4">
+                                                <div class="col-sm-6 col-lg-3">
+                                                    <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #16a34a !important;">
+                                                        <div class="card-body py-3">
+                                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                                <i class="fas fa-coins text-success"></i>
+                                                                <small class="text-muted text-uppercase fw-semibold" style="font-size:.7rem;">Ingresos Comerciales</small>
+                                                            </div>
+                                                            <div class="fs-5 fw-bold text-success" id="kpi-comercial-ingresos">—</div>
+                                                            <small class="text-muted" style="font-size:.72rem;">Período actual</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-sm-6 col-lg-3">
+                                                    <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #2563eb !important;">
+                                                        <div class="card-body py-3">
+                                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                                <i class="fas fa-store text-primary"></i>
+                                                                <small class="text-muted text-uppercase fw-semibold" style="font-size:.7rem;">Locales Activos</small>
+                                                            </div>
+                                                            <div class="fs-5 fw-bold text-primary" id="kpi-comercial-locales">—</div>
+                                                            <small class="text-muted" style="font-size:.72rem;">Concesiones vigentes</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-sm-6 col-lg-3">
+                                                    <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #d97706 !important;">
+                                                        <div class="card-body py-3">
+                                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                                <i class="fas fa-chart-line" style="color:#d97706;"></i>
+                                                                <small class="text-muted text-uppercase fw-semibold" style="font-size:.7rem;">Ocupación Comercial</small>
+                                                            </div>
+                                                            <div class="fs-5 fw-bold" style="color:#d97706;" id="kpi-comercial-ocupacion">—</div>
+                                                            <small class="text-muted" style="font-size:.72rem;">% de m² ocupados</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-sm-6 col-lg-3">
+                                                    <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #8b5cf6 !important;">
+                                                        <div class="card-body py-3">
+                                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                                <i class="fas fa-users" style="color:#8b5cf6;"></i>
+                                                                <small class="text-muted text-uppercase fw-semibold" style="font-size:.7rem;">Pax por Local</small>
+                                                            </div>
+                                                            <div class="fs-5 fw-bold" style="color:#8b5cf6;" id="kpi-comercial-pax-local">—</div>
+                                                            <small class="text-muted" style="font-size:.72rem;">Pasajeros promedio/día</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Placeholder content -->
+                                            <div class="row g-4">
+                                                <div class="col-lg-7">
+                                                    <div class="card border-0 shadow-sm h-100">
+                                                        <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
+                                                            <h6 class="mb-0 fw-semibold"><i class="fas fa-list-ul me-2 text-success"></i>Registro de Concesiones</h6>
+                                                            <button class="btn btn-sm btn-outline-success" disabled title="Próximamente">
+                                                                <i class="fas fa-plus me-1"></i>Agregar
+                                                            </button>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div class="text-center py-5 text-muted">
+                                                                <i class="fas fa-store fa-3x mb-3 opacity-25"></i>
+                                                                <p class="fw-semibold mb-1">Módulo en desarrollo</p>
+                                                                <small>Aquí se mostrará el registro de concesiones y locales comerciales del aeropuerto.</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg-5">
+                                                    <div class="card border-0 shadow-sm h-100">
+                                                        <div class="card-header bg-white border-bottom">
+                                                            <h6 class="mb-0 fw-semibold"><i class="fas fa-chart-pie me-2 text-success"></i>Distribución por Tipo</h6>
+                                                        </div>
+                                                        <div class="card-body d-flex align-items-center justify-content-center">
+                                                            <div class="text-center py-4 text-muted">
+                                                                <i class="fas fa-chart-pie fa-3x mb-3 opacity-25"></i>
+                                                                <p class="fw-semibold mb-1">Sin datos</p>
+                                                                <small>Gráfico disponible al registrar concesiones.</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div><!-- /pane-conci-comercial -->
+
+                                    </div><!-- /tab-content -->
+
+                        </div><!-- /conciliacion-content card-body -->
+                    </div><!-- /card -->
+                </div><!-- /conciliacion-section -->
 
                 <!-- GSO Section (Impactos de Ave + Fauna Rescatada) -->
                 <div id="fauna-section" class="content-section">
@@ -9434,6 +9546,74 @@
         </div>
     </div>
 
+
+<!-- MODAL: CATÁLOGO TIPO DE SERVICIO -->
+<div class="modal fade" id="modalFlightServiceType" tabindex="-1" aria-labelledby="modalFlightServiceTypeLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header" style="background:linear-gradient(135deg,#1a3a5c,#2563a8);color:#fff;">
+                <h5 class="modal-title" id="modalFlightServiceTypeLabel">
+                    <i class="fas fa-tag me-2"></i>Catálogo de Tipos de Servicio
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-3">
+                <p class="text-muted small mb-3">
+                    <i class="fas fa-info-circle me-1 text-primary"></i>
+                    Cada vuelo en el itinerario lleva un código de una letra que identifica su categoría y tipo de operación. Consulta la tabla para interpretar los valores de las columnas <strong>[Arr] Type</strong> y <strong>[Dep] Type</strong>.
+                </p>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered table-hover align-middle mb-0" style="font-size:.875rem;">
+                        <thead class="table-dark text-uppercase small">
+                            <tr>
+                                <th class="text-center" style="width:60px">Código</th>
+                                <th>Categoría</th>
+                                <th>Tipo de Operación</th>
+                                <th>Descripción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-primary">A</span></td><td><span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle">Vuelos adicionales</span></td><td>Carga, Correo</td><td>Carga/Correo</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-primary">B</span></td><td><span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle">Vuelos adicionales</span></td><td>Pasajeros</td><td>Modo Compartido</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-warning text-dark">C</span></td><td><span class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle">Fletamento</span></td><td>Pasajeros</td><td>Solo Pasajeros</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-secondary">D</span></td><td><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle">Otros</span></td><td>Sin especificar</td><td>Aviación General</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-secondary">E</span></td><td><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle">Otros</span></td><td>Sin especificar</td><td>Especial (Gubernamentales)</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-success">F</span></td><td><span class="badge bg-success bg-opacity-10 text-success border border-success-subtle">Regular</span></td><td>Carga, Correo</td><td>Servicio Normal</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-primary">G</span></td><td><span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle">Vuelos adicionales</span></td><td>Pasajeros</td><td>Servicio Normal</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-warning text-dark">H</span></td><td><span class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle">Fletamento</span></td><td>Carga, Correo</td><td>Carga y/o Correo</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-secondary">I</span></td><td><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle">Otros</span></td><td>Sin especificar</td><td>Estatal / Diplomático / Ambulancia Aérea</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-success">J</span></td><td><span class="badge bg-success bg-opacity-10 text-success border border-success-subtle">Regular</span></td><td>Pasajeros</td><td>Servicio Normal</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-secondary">K</span></td><td><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle">Otros</span></td><td>Sin especificar</td><td>Entrenamiento (Escuela / Vuelo de Verificación)</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-warning text-dark">L</span></td><td><span class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle">Fletamento</span></td><td>Pasajeros, Carga, Correo</td><td>Pasajeros y Carga y/o Correo</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-success">M</span></td><td><span class="badge bg-success bg-opacity-10 text-success border border-success-subtle">Regular</span></td><td>Carga, Correo</td><td>Solo Correo</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-secondary">N</span></td><td><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle">Otros</span></td><td>Sin especificar</td><td>Aviación Ejecutiva / Taxi Aéreo</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-warning text-dark">O</span></td><td><span class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle">Fletamento</span></td><td>Manejo Especial</td><td>Manejo Especial (Migrantes / Inmigrantes)</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-secondary">P</span></td><td><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle">Otros</span></td><td>Sin especificar</td><td>Sin ganancia — Posicionamiento / Ferry / Entrega / Demo</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-success">Q</span></td><td><span class="badge bg-success bg-opacity-10 text-success border border-success-subtle">Regular</span></td><td>Pasajeros, Carga</td><td>Pasajeros y Carga en Cabina (aviones de configuración mixta)</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-primary">R</span></td><td><span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle">Vuelos adicionales</span></td><td>Pasajeros, Carga</td><td>Pasajeros / Carga en Cabina (aviones de configuración mixta)</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-success">S</span></td><td><span class="badge bg-success bg-opacity-10 text-success border border-success-subtle">Regular</span></td><td>Pasajeros</td><td>Modo Compartido</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-secondary">T</span></td><td><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle">Otros</span></td><td>Sin especificar</td><td>Vuelos de Prueba</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-success">U</span></td><td><span class="badge bg-success bg-opacity-10 text-success border border-success-subtle">Regular</span></td><td>Pasajeros</td><td>Servicio operado por un vehículo en plataforma</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-success">V</span></td><td><span class="badge bg-success bg-opacity-10 text-success border border-success-subtle">Regular</span></td><td>Carga, Correo</td><td>Servicio operado por un vehículo en plataforma</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-secondary">W</span></td><td><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle">Otros</span></td><td>Sin especificar</td><td>Militar</td></tr>
+                            <tr><td class="text-center fw-bold fs-5"><span class="badge bg-secondary">X</span></td><td><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle">Otros</span></td><td>Sin especificar</td><td>Escala Técnica</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="d-flex gap-2 flex-wrap mt-3">
+                    <span class="badge bg-success"><i class="fas fa-circle me-1"></i>Regular</span>
+                    <span class="badge bg-primary"><i class="fas fa-circle me-1"></i>Vuelos adicionales</span>
+                    <span class="badge bg-warning text-dark"><i class="fas fa-circle me-1"></i>Fletamento</span>
+                    <span class="badge bg-secondary"><i class="fas fa-circle me-1"></i>Otros</span>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ── Heatmap Drill-down Modal ─────────────────────────────────────────── -->
 <div class="modal fade" id="heatmap-drilldown-modal" tabindex="-1"
      aria-labelledby="heatmap-drilldown-title" aria-hidden="true">
@@ -9522,13 +9702,58 @@
   </div>
 
   <div id="colhelp-arr-type">
-    <p>Clasifica el tipo de operación del vuelo que llegó:</p>
-    <ul>
-      <li><strong>Nacional (Domestic):</strong> viene de un aeropuerto dentro de México.</li>
-      <li><strong>Internacional (International):</strong> viene de otro país.</li>
-      <li><strong>Carga (Cargo):</strong> sólo transporta mercancía, sin pasajeros.</li>
-    </ul>
-    <p class="text-muted small mb-0">&#x1F4A1; En términos simples: de dónde viene el vuelo y qué lleva.</p>
+    <p class="mb-2">Código de una sola letra que identifica la <strong>categoría y tipo de operación</strong> del vuelo de llegada, según el estándar IATA:</p>
+    <div class="col-help-svc-wrap">
+    <div class="d-flex gap-2 mb-2 flex-wrap align-items-center">
+      <div class="input-group input-group-sm" style="max-width:220px;">
+        <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+        <input type="text" class="form-control" placeholder="Filtrar por código o descripción…" oninput="filterServiceTypeTable(this)" autocomplete="off">
+        <button class="btn btn-outline-secondary" type="button" onclick="this.previousElementSibling.value='';filterServiceTypeTable(this.previousElementSibling)" title="Limpiar"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="d-flex gap-1 flex-wrap">
+        <button type="button" class="btn btn-sm btn-success svc-cat-btn" onclick="filterServiceTypeCat(this,'Regular')">Regular</button>
+        <button type="button" class="btn btn-sm btn-primary svc-cat-btn" onclick="filterServiceTypeCat(this,'Vuelos adicionales')">Vuelos adicionales</button>
+        <button type="button" class="btn btn-sm btn-warning svc-cat-btn" onclick="filterServiceTypeCat(this,'Fletamento')">Fletamento</button>
+        <button type="button" class="btn btn-sm btn-secondary svc-cat-btn" onclick="filterServiceTypeCat(this,'Otros')">Otros</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary svc-cat-btn" onclick="filterServiceTypeCat(this,'')">Todos</button>
+      </div>
+      <small class="text-muted ms-auto svc-row-count"></small>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-bordered table-hover align-middle mb-2" style="font-size:.8rem;">
+        <thead class="table-dark text-uppercase" style="font-size:.7rem;">
+          <tr><th style="width:46px">Código</th><th>Categoría</th><th>Tipo de Operación</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="text-center fw-bold"><span class="badge bg-success">A</span></td><td>Vuelos adicionales</td><td>Carga, Correo</td><td>Carga/Correo</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-primary">B</span></td><td>Vuelos adicionales</td><td>Pasajeros</td><td>Modo Compartido</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-warning text-dark">C</span></td><td>Fletamento</td><td>Pasajeros</td><td>Solo Pasajeros</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">D</span></td><td>Otros</td><td>Sin especificar</td><td>Aviación General</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">E</span></td><td>Otros</td><td>Sin especificar</td><td>Especial (Gubernamentales)</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-success">F</span></td><td>Regular</td><td>Carga, Correo</td><td>Servicio Normal</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-primary">G</span></td><td>Vuelos adicionales</td><td>Pasajeros</td><td>Servicio Normal</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-warning text-dark">H</span></td><td>Fletamento</td><td>Carga, Correo</td><td>Carga y/o Correo</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">I</span></td><td>Otros</td><td>Sin especificar</td><td>Estatal / Diplomático / Ambulancia Aérea</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-success">J</span></td><td>Regular</td><td>Pasajeros</td><td>Servicio Normal</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">K</span></td><td>Otros</td><td>Sin especificar</td><td>Entrenamiento (Escuela / Vuelo de Verificación)</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-warning text-dark">L</span></td><td>Fletamento</td><td>Pasajeros, Carga, Correo</td><td>Pasajeros y Carga y/o Correo</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-success">M</span></td><td>Regular</td><td>Carga, Correo</td><td>Solo Correo</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">N</span></td><td>Otros</td><td>Sin especificar</td><td>Aviación Ejecutiva / Taxi Aéreo</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-warning text-dark">O</span></td><td>Fletamento</td><td>Manejo Especial</td><td>Manejo Especial (Migrantes / Inmigrantes)</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">P</span></td><td>Otros</td><td>Sin especificar</td><td>Sin ganancia — Posicionamiento / Ferry / Entrega / Demo</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-success">Q</span></td><td>Regular</td><td>Pasajeros, Carga</td><td>Pasajeros y Carga en Cabina (aviones mixtos)</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-primary">R</span></td><td>Vuelos adicionales</td><td>Pasajeros, Carga</td><td>Pasajeros / Carga en Cabina (aviones mixtos)</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-success">S</span></td><td>Regular</td><td>Pasajeros</td><td>Modo Compartido</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">T</span></td><td>Otros</td><td>Sin especificar</td><td>Vuelos de Prueba</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-success">U</span></td><td>Regular</td><td>Pasajeros</td><td>Servicio operado por vehículo en plataforma</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-success">V</span></td><td>Regular</td><td>Carga, Correo</td><td>Servicio operado por vehículo en plataforma</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">W</span></td><td>Otros</td><td>Sin especificar</td><td>Militar</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">X</span></td><td>Otros</td><td>Sin especificar</td><td>Escala Técnica</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div><!-- /col-help-svc-wrap -->
+    <p class="text-muted small mb-0 mt-1">&#x1F4A1; Fuente: catálogo IATA de tipos de servicio (flightservicetype).</p>
   </div>
 
   <div id="colhelp-routing">
@@ -9539,13 +9764,58 @@
   </div>
 
   <div id="colhelp-dep-type">
-    <p>Clasifica el tipo de operación del vuelo que sale:</p>
-    <ul>
-      <li><strong>Nacional (Domestic):</strong> destino dentro de México.</li>
-      <li><strong>Internacional (International):</strong> destino en otro país.</li>
-      <li><strong>Carga (Cargo):</strong> sólo transporta mercancía, sin pasajeros.</li>
-    </ul>
-    <p class="text-muted small mb-0">&#x1F4A1; En términos simples: adónde va el vuelo y qué lleva.</p>
+    <p class="mb-2">Código de una sola letra que identifica la <strong>categoría y tipo de operación</strong> del vuelo de salida, según el estándar IATA:</p>
+    <div class="col-help-svc-wrap">
+    <div class="d-flex gap-2 mb-2 flex-wrap align-items-center">
+      <div class="input-group input-group-sm" style="max-width:220px;">
+        <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+        <input type="text" class="form-control" placeholder="Filtrar por código o descripción…" oninput="filterServiceTypeTable(this)" autocomplete="off">
+        <button class="btn btn-outline-secondary" type="button" onclick="this.previousElementSibling.value='';filterServiceTypeTable(this.previousElementSibling)" title="Limpiar"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="d-flex gap-1 flex-wrap">
+        <button type="button" class="btn btn-sm btn-success svc-cat-btn" onclick="filterServiceTypeCat(this,'Regular')">Regular</button>
+        <button type="button" class="btn btn-sm btn-primary svc-cat-btn" onclick="filterServiceTypeCat(this,'Vuelos adicionales')">Vuelos adicionales</button>
+        <button type="button" class="btn btn-sm btn-warning svc-cat-btn" onclick="filterServiceTypeCat(this,'Fletamento')">Fletamento</button>
+        <button type="button" class="btn btn-sm btn-secondary svc-cat-btn" onclick="filterServiceTypeCat(this,'Otros')">Otros</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary svc-cat-btn" onclick="filterServiceTypeCat(this,'')">Todos</button>
+      </div>
+      <small class="text-muted ms-auto svc-row-count"></small>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-bordered table-hover align-middle mb-2" style="font-size:.8rem;">
+        <thead class="table-dark text-uppercase" style="font-size:.7rem;">
+          <tr><th style="width:46px">Código</th><th>Categoría</th><th>Tipo de Operación</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="text-center fw-bold"><span class="badge bg-success">A</span></td><td>Vuelos adicionales</td><td>Carga, Correo</td><td>Carga/Correo</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-primary">B</span></td><td>Vuelos adicionales</td><td>Pasajeros</td><td>Modo Compartido</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-warning text-dark">C</span></td><td>Fletamento</td><td>Pasajeros</td><td>Solo Pasajeros</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">D</span></td><td>Otros</td><td>Sin especificar</td><td>Aviación General</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">E</span></td><td>Otros</td><td>Sin especificar</td><td>Especial (Gubernamentales)</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-success">F</span></td><td>Regular</td><td>Carga, Correo</td><td>Servicio Normal</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-primary">G</span></td><td>Vuelos adicionales</td><td>Pasajeros</td><td>Servicio Normal</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-warning text-dark">H</span></td><td>Fletamento</td><td>Carga, Correo</td><td>Carga y/o Correo</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">I</span></td><td>Otros</td><td>Sin especificar</td><td>Estatal / Diplomático / Ambulancia Aérea</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-success">J</span></td><td>Regular</td><td>Pasajeros</td><td>Servicio Normal</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">K</span></td><td>Otros</td><td>Sin especificar</td><td>Entrenamiento (Escuela / Vuelo de Verificación)</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-warning text-dark">L</span></td><td>Fletamento</td><td>Pasajeros, Carga, Correo</td><td>Pasajeros y Carga y/o Correo</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-success">M</span></td><td>Regular</td><td>Carga, Correo</td><td>Solo Correo</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">N</span></td><td>Otros</td><td>Sin especificar</td><td>Aviación Ejecutiva / Taxi Aéreo</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-warning text-dark">O</span></td><td>Fletamento</td><td>Manejo Especial</td><td>Manejo Especial (Migrantes / Inmigrantes)</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">P</span></td><td>Otros</td><td>Sin especificar</td><td>Sin ganancia — Posicionamiento / Ferry / Entrega / Demo</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-success">Q</span></td><td>Regular</td><td>Pasajeros, Carga</td><td>Pasajeros y Carga en Cabina (aviones mixtos)</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-primary">R</span></td><td>Vuelos adicionales</td><td>Pasajeros, Carga</td><td>Pasajeros / Carga en Cabina (aviones mixtos)</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-success">S</span></td><td>Regular</td><td>Pasajeros</td><td>Modo Compartido</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">T</span></td><td>Otros</td><td>Sin especificar</td><td>Vuelos de Prueba</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-success">U</span></td><td>Regular</td><td>Pasajeros</td><td>Servicio operado por vehículo en plataforma</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-success">V</span></td><td>Regular</td><td>Carga, Correo</td><td>Servicio operado por vehículo en plataforma</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">W</span></td><td>Otros</td><td>Sin especificar</td><td>Militar</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">X</span></td><td>Otros</td><td>Sin especificar</td><td>Escala Técnica</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div><!-- /col-help-svc-wrap -->
+    <p class="text-muted small mb-0 mt-1">&#x1F4A1; Fuente: catálogo IATA de tipos de servicio (flightservicetype).</p>
   </div>
 
   <div id="colhelp-aircraft">
@@ -9655,7 +9925,7 @@
 
 <!-- ══ Column Help Modal ════════════════════════════════════════════════════ -->
 <div class="modal fade" id="col-help-modal" tabindex="-1" aria-labelledby="col-help-modal-title" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header bg-light py-2">
                 <h6 class="modal-title mb-0 fw-bold" id="col-help-modal-title"></h6>
@@ -9708,6 +9978,50 @@
         'b-dep-routing': 'Routing \u2014 Aeropuerto de Destino'
     };
 
+    var COL_HELP_WIDE_KEYS = ['arr-type', 'dep-type'];
+
+    function _svcUpdateCount(wrap, visible, total) {
+        var el = wrap.querySelector('.svc-row-count');
+        if (el) el.textContent = visible === total ? total + ' tipos' : visible + ' de ' + total + ' tipos';
+    }
+
+    window.filterServiceTypeTable = function (input) {
+        var wrap = input.closest('.col-help-svc-wrap');
+        if (!wrap) return;
+        var q = input.value.trim().toLowerCase();
+        // clear category active state when typing
+        wrap.querySelectorAll('.svc-cat-btn').forEach(function(b){ b.classList.remove('active','opacity-100'); b.style.opacity=''; });
+        var rows = wrap.querySelectorAll('tbody tr');
+        var visible = 0;
+        rows.forEach(function (tr) {
+            var text = tr.textContent.toLowerCase();
+            var show = !q || text.includes(q);
+            tr.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        _svcUpdateCount(wrap, visible, rows.length);
+    };
+
+    window.filterServiceTypeCat = function (btn, cat) {
+        var wrap = btn.closest('.col-help-svc-wrap');
+        if (!wrap) return;
+        // clear text input
+        var input = wrap.querySelector('input[type="text"]');
+        if (input) input.value = '';
+        // highlight active button
+        wrap.querySelectorAll('.svc-cat-btn').forEach(function(b){ b.classList.remove('active'); b.style.opacity='.65'; });
+        btn.classList.add('active'); btn.style.opacity='';
+        var rows = wrap.querySelectorAll('tbody tr');
+        var visible = 0;
+        rows.forEach(function (tr) {
+            var catCell = tr.cells[1] ? tr.cells[1].textContent.trim() : '';
+            var show = !cat || catCell === cat;
+            tr.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        _svcUpdateCount(wrap, visible, rows.length);
+    };
+
     function showColHelp(key) {
         var titleEl  = document.getElementById('col-help-modal-title');
         var bodyEl   = document.getElementById('col-help-modal-body');
@@ -9715,6 +10029,15 @@
         if (!template || !titleEl || !bodyEl) return;
         titleEl.textContent = COL_HELP_TITLES[key] || key;
         bodyEl.innerHTML    = template.innerHTML;
+        // Widen modal for catalogs with tables
+        var dlg = document.querySelector('#col-help-modal .modal-dialog');
+        if (dlg) {
+            if (COL_HELP_WIDE_KEYS.indexOf(key) !== -1) {
+                dlg.classList.add('modal-lg');
+            } else {
+                dlg.classList.remove('modal-lg');
+            }
+        }
         bootstrap.Modal.getOrCreateInstance(document.getElementById('col-help-modal')).show();
     }
 

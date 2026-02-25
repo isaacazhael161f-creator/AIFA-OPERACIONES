@@ -308,36 +308,60 @@
     };
   }
   function renderTopHoursLists(agg){
-    const topSelPax = document.getElementById('pax-topN');
+    const topSelPax   = document.getElementById('pax-topN');
     const topSelCargo = document.getElementById('cargo-topN');
-    const topNPax = topSelPax ? parseInt(topSelPax.value,10) : 5;
+    const topNPax   = topSelPax   ? parseInt(topSelPax.value,10)   : 5;
     const topNCargo = topSelCargo ? parseInt(topSelCargo.value,10) : 5;
     const mkTop = (arr, n) => arr
       .map((v,i)=>({h:i,v}))
       .filter(x=>x.v>0)
       .sort((a,b)=> b.v - a.v || a.h - b.h)
       .slice(0,n);
+
+    // Update widget heading & subtitle to reflect the selected mode
+    const updateHeading = (selEl, suffix) => {
+      if (!selEl) return;
+      const widget = selEl.closest('.top-hours-widget');
+      if (!widget) return;
+      const headingEl  = widget.querySelector('.top-hours-heading');
+      const subtitleEl = widget.querySelector('.top-hours-subtitle');
+      const isAll = parseInt(selEl.value,10) >= 24;
+      if (headingEl)  headingEl.textContent  = isAll ? `Todas las horas ${suffix}` : `Top horas ${suffix}`;
+      if (subtitleEl) subtitleEl.textContent = isAll
+        ? 'Se muestran las 24 franjas horarias. Las horas sin operaciones aparecen con menor opacidad.'
+        : 'Haz clic en una franja para abrir los vuelos identificados en esa hora.';
+    };
+    updateHeading(topSelPax,   '(Pasajeros)');
+    updateHeading(topSelCargo, '(Carga)');
+
     const renderList = (containerId, values, topN, scope, movement)=>{
       const el = document.getElementById(containerId);
       if (!el) return;
-      const items = mkTop(values, topN);
-      if (!items.length){
+      const allMode = topN >= 24;
+      const items = allMode
+        ? values.map((v,i) => ({h:i,v}))   // all 24 hours, chronological order
+        : mkTop(values, topN);               // top N sorted by count desc
+      if (!allMode && !items.length){
         el.innerHTML = '<li class="text-muted">Sin datos</li>';
         return;
       }
       el.innerHTML = items.map(({h, v}) => {
-        const hourLabel = String(h).padStart(2,'0');
+        const hourLabel  = String(h).padStart(2,'0');
         const rangeLabel = `${hourLabel}:00–${hourLabel}:59`;
-        return `<li>
-          <button type="button" class="btn btn-link p-0 text-start w-100 top-hour-trigger" data-top-hour data-scope="${scope}" data-movement="${movement}" data-hour="${h}">
+        const dimStyle   = v === 0 ? ' style="opacity:0.35"' : '';
+        const btnAttrs   = v > 0
+          ? `data-top-hour data-scope="${scope}" data-movement="${movement}" data-hour="${h}"`
+          : 'disabled aria-disabled="true" style="cursor:default;pointer-events:none"';
+        return `<li${dimStyle}>
+          <button type="button" class="btn btn-link p-0 text-start w-100 top-hour-trigger" ${btnAttrs}>
             <strong>${rangeLabel}</strong>
-            <span class="text-muted ms-1">(${v} vuelos)</span>
+            <span class="text-muted ms-1">(${v} vuelo${v!==1?'s':''})</span>
           </button>
         </li>`;
       }).join('');
     };
-    renderList('pax-top-arr', agg.paxArr, topNPax, SCOPE_PAX, 'Llegada');
-    renderList('pax-top-dep', agg.paxDep, topNPax, SCOPE_PAX, 'Salida');
+    renderList('pax-top-arr',   agg.paxArr, topNPax,   SCOPE_PAX,   'Llegada');
+    renderList('pax-top-dep',   agg.paxDep, topNPax,   SCOPE_PAX,   'Salida');
     renderList('cargo-top-arr', agg.carArr, topNCargo, SCOPE_CARGO, 'Llegada');
     renderList('cargo-top-dep', agg.carDep, topNCargo, SCOPE_CARGO, 'Salida');
   }
