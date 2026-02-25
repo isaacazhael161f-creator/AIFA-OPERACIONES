@@ -376,6 +376,14 @@ let _chartInstances = {};
 
 let _opsMasterCatalogCache = null;
 let _heatmapDetails = null; // stores per-hour+day flight records for cell drill-down
+let _heatmapOpsHourDetails = null; // stores per-hour+day ops records for ops-hour heatmap drill-down
+
+// Week-filter support for heatmaps
+let _paxHeatWeeks     = {}; // { 0: {data, details}, 1: {...}, ... }  0=all weeks
+let _opsHourHeatWeeks = {}; // same for ops-hour heatmap
+let _heatmapHasPax    = false;
+const _HEATMAP_HOUR_LABELS = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'));
+const _HEATMAP_DAY_LABELS  = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
 function _parseCsvLine(line) {
     const values = [];
@@ -636,6 +644,12 @@ function _ensureOpsAdvancedStatsUi() {
                     <div class="card-body" id="ops-passenger-heatmap"></div>
                 </div>
             </div>
+            <div class="col-12">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-header bg-white fw-bold">Mapa de Calor de Operaciones por Hora <small class="text-muted fw-normal">(excluye cancelados y no operativos)</small></div>
+                    <div class="card-body" id="ops-hour-heatmap"></div>
+                </div>
+            </div>
             <div class="col-12" id="chart-ac-direction-col">
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white fw-bold">Aterrizajes y Despegues por Tipo de Aeronave</div>
@@ -765,6 +779,11 @@ async function renderOpsCharts() {
         const cancelledCount = data.length - activeData.length;
         console.log(`[renderOpsCharts] kEstatus="${kEstatus}" | Cancelados excluidos: ${cancelledCount} de ${data.length}`);
 
+        // For the operations heatmap — also exclude non-operational flights
+        const isNonOperational = (r) => /NO[\s._-]?OPERAT/i.test(String(r[kEstatus] || '').trim());
+        const opsCleanData = activeData.filter(r => !isNonOperational(r));
+        console.log(`[renderOpsCharts] opsCleanData (excl. cancel + no-op): ${opsCleanData.length}`);
+
         console.log('[renderOpsCharts] Keys detectadas:', {kFecha, kHora, kHoraActual, kPos, kMatricula, kTipoAc, kEquipo, kAerolinea, kMovimiento, kVuelo, kEstatus});
 
         // Stats
@@ -785,6 +804,14 @@ async function renderOpsCharts() {
         let heatmapDetails    = {}; // { hourKey: { dayIndex: [flight records] } }
         let weeklyOps = {};       // fallback: ops per week when no pax
         let heatmapOps = {};      // fallback: ops per hour-day when no pax
+        let heatmapOpsHour = {};        // ops-only heatmap (excl. cancelled + no-op): { hourKey: Array(7) }
+        let heatmapOpsHourDetails = {}; // drill-down records for ops heatmap: { hourKey: { dayIndex: [records] } }
+        // Per-week accumulators for filter buttons
+        let heatmapPassengersByWeek = {}; // { weekNum: { hour: Array(7) } }
+        let heatmapDetailsByWeek    = {}; // { weekNum: { hour: { dayIdx: [records] } } }
+        let heatmapOpsByWeek        = {}; // fallback when no pax data
+        let heatmapOpsHourByWeek        = {};
+        let heatmapOpsHourDetailsByWeek = {};
 
         const parseDelayMinutes = (value) => {
             if (value === null || value === undefined) return null;
@@ -905,7 +932,7 @@ async function renderOpsCharts() {
                 // Accumulate flight details for cell drill-down
                 if (!heatmapDetails[hourKey]) heatmapDetails[hourKey] = {};
                 if (!heatmapDetails[hourKey][dayIndex]) heatmapDetails[hourKey][dayIndex] = [];
-                heatmapDetails[hourKey][dayIndex].push({
+                const _hmRec = {
                     vuelo:      kVuelo       ? String(r[kVuelo]       || '').trim() : '',
                     aerolinea:  kAerolinea   ? String(r[kAerolinea]   || '').trim() : '',
                     origen:     kOrigen      ? String(r[kOrigen]      || '').trim() : '',
@@ -918,9 +945,21 @@ async function renderOpsCharts() {
                     hora:       kHoraActual  ? String(r[kHoraActual]  || '').trim() :
                                 (kHora       ? String(r[kHora]        || '').trim() : ''),
                     pax
-                });
+                };
+                heatmapDetails[hourKey][dayIndex].push(_hmRec);
+                // Per-week bucketing (passenger + ops fallback)
+                if (!heatmapPassengersByWeek[weekOfMonth]) heatmapPassengersByWeek[weekOfMonth] = {};
+                if (!heatmapPassengersByWeek[weekOfMonth][hourKey]) heatmapPassengersByWeek[weekOfMonth][hourKey] = Array(7).fill(0);
+                heatmapPassengersByWeek[weekOfMonth][hourKey][dayIndex] += pax;
+                if (!heatmapDetailsByWeek[weekOfMonth]) heatmapDetailsByWeek[weekOfMonth] = {};
+                if (!heatmapDetailsByWeek[weekOfMonth][hourKey]) heatmapDetailsByWeek[weekOfMonth][hourKey] = {};
+                if (!heatmapDetailsByWeek[weekOfMonth][hourKey][dayIndex]) heatmapDetailsByWeek[weekOfMonth][hourKey][dayIndex] = [];
+                heatmapDetailsByWeek[weekOfMonth][hourKey][dayIndex].push(_hmRec);
                 if (!heatmapOps[hourKey]) heatmapOps[hourKey] = Array(7).fill(0);
                 heatmapOps[hourKey][dayIndex] += 1;
+                if (!heatmapOpsByWeek[weekOfMonth]) heatmapOpsByWeek[weekOfMonth] = {};
+                if (!heatmapOpsByWeek[weekOfMonth][hourKey]) heatmapOpsByWeek[weekOfMonth][hourKey] = Array(7).fill(0);
+                heatmapOpsByWeek[weekOfMonth][hourKey][dayIndex] += 1;
             }
 
             // Date — normalize to date-only key using parseDateFromRecord
@@ -1083,6 +1122,43 @@ async function renderOpsCharts() {
                     if (delayMin <= 15) onTimeCount += 1;
                 }
             }
+        });
+
+        // === Accumulate operations heatmap (excludes cancelled AND non-operational) ===
+        opsCleanData.forEach(r => {
+            const rowDate = parseDateFromRecord(r);
+            if (!rowDate) return;
+            const day = rowDate.getDay();
+            const dayIndex = day === 0 ? 6 : day - 1; // Lun=0...Dom=6
+            const hourKey = String(rowDate.getHours()).padStart(2, '0');
+            const weekNum = Math.floor((rowDate.getDate() - 1) / 7) + 1;
+            if (!heatmapOpsHour[hourKey]) heatmapOpsHour[hourKey] = Array(7).fill(0);
+            heatmapOpsHour[hourKey][dayIndex] += 1;
+            if (!heatmapOpsHourDetails[hourKey]) heatmapOpsHourDetails[hourKey] = {};
+            if (!heatmapOpsHourDetails[hourKey][dayIndex]) heatmapOpsHourDetails[hourKey][dayIndex] = [];
+            const _ohRec = {
+                vuelo:      kVuelo       ? String(r[kVuelo]       || '').trim() : '',
+                aerolinea:  kAerolinea   ? String(r[kAerolinea]   || '').trim() : '',
+                origen:     kOrigen      ? String(r[kOrigen]      || '').trim() : '',
+                destino:    kDestino     ? String(r[kDestino]     || '').trim() : '',
+                movimiento: kMovimiento  ? String(r[kMovimiento]  || '').trim() : '',
+                servicio:   kServiceCode ? String(r[kServiceCode] || '').trim() : '',
+                aeronave:   kMatricula   ? String(r[kMatricula]   || '').trim() :
+                            (kTipoAc    ? String(r[kTipoAc]      || '').trim() : ''),
+                fecha:      kFecha       ? String(r[kFecha]       || '').trim() : '',
+                hora:       kHoraActual  ? String(r[kHoraActual]  || '').trim() :
+                            (kHora       ? String(r[kHora]        || '').trim() : ''),
+                estatus:    kEstatus     ? String(r[kEstatus]     || '').trim() : ''
+            };
+            heatmapOpsHourDetails[hourKey][dayIndex].push(_ohRec);
+            // Per-week bucketing
+            if (!heatmapOpsHourByWeek[weekNum]) heatmapOpsHourByWeek[weekNum] = {};
+            if (!heatmapOpsHourByWeek[weekNum][hourKey]) heatmapOpsHourByWeek[weekNum][hourKey] = Array(7).fill(0);
+            heatmapOpsHourByWeek[weekNum][hourKey][dayIndex] += 1;
+            if (!heatmapOpsHourDetailsByWeek[weekNum]) heatmapOpsHourDetailsByWeek[weekNum] = {};
+            if (!heatmapOpsHourDetailsByWeek[weekNum][hourKey]) heatmapOpsHourDetailsByWeek[weekNum][hourKey] = {};
+            if (!heatmapOpsHourDetailsByWeek[weekNum][hourKey][dayIndex]) heatmapOpsHourDetailsByWeek[weekNum][hourKey][dayIndex] = [];
+            heatmapOpsHourDetailsByWeek[weekNum][hourKey][dayIndex].push(_ohRec);
         });
 
         // Debug: show sample delay codes and categories
@@ -1331,55 +1407,29 @@ async function renderOpsCharts() {
             return `rgba(13, 110, 253, ${alpha})`;
         };
 
+        // Store passenger heatmap week data and trigger initial render
+        _heatmapHasPax = hasPaxData;
+        const _paxHeatSrcByWeek = hasPaxData ? heatmapPassengersByWeek : heatmapOpsByWeek;
+        _paxHeatWeeks = { 0: { data: heatSource, details: heatmapDetails } };
+        Object.keys(_paxHeatSrcByWeek).sort().forEach(wn => {
+            const wn2 = Number(wn);
+            _paxHeatWeeks[wn2] = { data: _paxHeatSrcByWeek[wn2], details: heatmapDetailsByWeek[wn2] || {} };
+        });
         const heatmapEl = document.getElementById('ops-passenger-heatmap');
         if (heatmapEl) {
-            // Calculate row totals (per hour) and column totals (per day)
-            const colTotals = Array(7).fill(0);
-            const hourTotals = {};
-            hourLabels.forEach(hour => {
-                const vals = heatSource[hour] || Array(7).fill(0);
-                const rowSum = vals.reduce((a, b) => a + b, 0);
-                hourTotals[hour] = rowSum;
-                vals.forEach((v, i) => { colTotals[i] += v; });
-            });
-            const grandTotal = colTotals.reduce((a, b) => a + b, 0);
-            const heatUnit = hasPaxData ? 'Pasajeros' : 'Operaciones';
+            _drawPassengerHeatmap(0);
+        }
 
-            let tableHtml = `<p class="text-muted small mb-2">Muestra el total de <strong>${heatUnit}</strong> por franja horaria y día de la semana. Los colores más oscuros indican mayor actividad.</p>`;
-            tableHtml += '<div class="table-responsive"><table class="table table-sm table-bordered align-middle text-center mb-0" style="font-size:0.78rem">';
-            tableHtml += '<thead class="table-light"><tr><th>Hora</th>';
-            dayLabels.forEach(label => { tableHtml += `<th>${label}</th>`; });
-            tableHtml += '<th class="table-secondary">Total</th></tr></thead><tbody>';
-
-            hourLabels.forEach(hour => {
-                const rowValues = heatSource[hour] || Array(7).fill(0);
-                const rowSum = hourTotals[hour];
-                // Skip entirely empty rows
-                if (rowSum === 0) return;
-                tableHtml += `<tr><th class="text-nowrap table-light">${hour}:00</th>`;
-                rowValues.forEach((value, dayIdx) => {
-                    if (value > 0) {
-                        tableHtml += `<td data-hm-hour="${hour}" data-hm-day="${dayIdx}" style="background:${getHeatColor(value)};font-weight:600;cursor:pointer" title="Ver vuelos — ${hour}:00">${value.toLocaleString()}</td>`;
-                    } else {
-                        tableHtml += `<td style="background:${getHeatColor(value)}"></td>`;
-                    }
-                });
-                tableHtml += `<td class="table-secondary fw-bold">${rowSum.toLocaleString()}</td></tr>`;
-            });
-
-            // Totals footer row
-            tableHtml += '<tr class="table-secondary fw-bold"><th>Total</th>';
-            colTotals.forEach(v => { tableHtml += `<td>${v.toLocaleString()}</td>`; });
-            tableHtml += `<td>${grandTotal.toLocaleString()}</td></tr>`;
-            tableHtml += '</tbody></table></div>';
-            heatmapEl.innerHTML = tableHtml;
-            // Store details and wire up click listeners for drill-down on every non-zero cell
-            _heatmapDetails = heatmapDetails;
-            heatmapEl.querySelectorAll('td[data-hm-hour]').forEach(td => {
-                td.addEventListener('click', () => {
-                    _showHeatmapDrilldown(td.dataset.hmHour, parseInt(td.dataset.hmDay, 10));
-                });
-            });
+        // Store ops-hour heatmap week data and trigger initial render
+        _opsHourHeatWeeks = { 0: { data: heatmapOpsHour, details: heatmapOpsHourDetails } };
+        Object.keys(heatmapOpsHourByWeek).sort().forEach(wn => {
+            const wn2 = Number(wn);
+            _opsHourHeatWeeks[wn2] = { data: heatmapOpsHourByWeek[wn2], details: heatmapOpsHourDetailsByWeek[wn2] || {} };
+        });
+        // === Render: Operations-per-hour heatmap (excl. cancelled + non-operational) ===
+        const opsHourHeatEl = document.getElementById('ops-hour-heatmap');
+        if (opsHourHeatEl) {
+            _drawOpsHourHeatmap(0);
         }
 
         // chart-ac-direction is now replaced by chart-aircrafts above — hide the duplicate
@@ -1913,3 +1963,216 @@ function _showHeatmapDrilldown(hour, dayIdx) {
     bootstrap.Modal.getOrCreateInstance(modalEl).show();
 }
 
+// ── Heatmap draw helpers (called on initial render and week filter changes) ─────
+
+function _drawPassengerHeatmap(weekNum) {
+    const heatmapEl = document.getElementById('ops-passenger-heatmap');
+    if (!heatmapEl) return;
+    const w = _paxHeatWeeks[weekNum] || _paxHeatWeeks[0];
+    const source  = w.data    || {};
+    const details = w.details || {};
+    const hasPaxData = _heatmapHasPax;
+    const heatUnit   = hasPaxData ? 'Pasajeros' : 'Operaciones';
+    const weekLabel  = weekNum === 0 ? 'Todas las semanas' : `Semana ${weekNum}`;
+
+    const allHeatValues = _HEATMAP_HOUR_LABELS.flatMap(h => (source[h] || Array(7).fill(0)));
+    const maxHeat = Math.max(1, ...allHeatValues);
+    const getHeatColor = (v) => {
+        const ratio = Math.max(0, Math.min(1, v / maxHeat));
+        return `rgba(13, 110, 253, ${0.08 + ratio * 0.72})`;
+    };
+
+    const colTotals = Array(7).fill(0);
+    const hourTotals = {};
+    _HEATMAP_HOUR_LABELS.forEach(hour => {
+        const vals = source[hour] || Array(7).fill(0);
+        hourTotals[hour] = vals.reduce((a, b) => a + b, 0);
+        vals.forEach((v, i) => { colTotals[i] += v; });
+    });
+    const grandTotal = colTotals.reduce((a, b) => a + b, 0);
+
+    // Week filter buttons
+    const availWeeks = Object.keys(_paxHeatWeeks).map(Number).filter(n => n > 0).sort((a, b) => a - b);
+    let btnBar = '<div class="d-flex flex-wrap gap-1 mb-3 align-items-center"><span class="text-muted small me-1">Filtrar semana:</span>';
+    btnBar += `<button class="btn btn-sm week-filter-btn ${weekNum === 0 ? 'btn-primary' : 'btn-outline-secondary'}" data-week="0" onclick="window._filterPassengerHeatmap(0)">Todas</button>`;
+    availWeeks.forEach(wn => {
+        btnBar += `<button class="btn btn-sm week-filter-btn ${weekNum === wn ? 'btn-primary' : 'btn-outline-secondary'}" data-week="${wn}" onclick="window._filterPassengerHeatmap(${wn})">Semana ${wn}</button>`;
+    });
+    btnBar += '</div>';
+
+    let tableHtml = btnBar;
+    tableHtml += `<p class="text-muted small mb-2">Muestra el total de <strong>${heatUnit}</strong> por franja horaria y día de la semana (${weekLabel}). Los colores más oscuros indican mayor actividad.</p>`;
+    tableHtml += '<div class="table-responsive"><table class="table table-sm table-bordered align-middle text-center mb-0" style="font-size:0.78rem">';
+    tableHtml += '<thead class="table-light"><tr><th>Hora</th>';
+    _HEATMAP_DAY_LABELS.forEach(label => { tableHtml += `<th>${label}</th>`; });
+    tableHtml += '<th class="table-secondary">Total</th></tr></thead><tbody>';
+
+    _HEATMAP_HOUR_LABELS.forEach(hour => {
+        const rowValues = source[hour] || Array(7).fill(0);
+        const rowSum = hourTotals[hour];
+        if (rowSum === 0) return;
+        tableHtml += `<tr><th class="text-nowrap table-light">${hour}:00</th>`;
+        rowValues.forEach((value, dayIdx) => {
+            if (value > 0) {
+                tableHtml += `<td data-hm-hour="${hour}" data-hm-day="${dayIdx}" style="background:${getHeatColor(value)};font-weight:600;cursor:pointer" title="Ver vuelos — ${hour}:00">${value.toLocaleString()}</td>`;
+            } else {
+                tableHtml += `<td style="background:${getHeatColor(0)}"></td>`;
+            }
+        });
+        tableHtml += `<td class="table-secondary fw-bold">${rowSum.toLocaleString()}</td></tr>`;
+    });
+
+    tableHtml += '<tr class="table-secondary fw-bold"><th>Total</th>';
+    colTotals.forEach(v => { tableHtml += `<td>${v.toLocaleString()}</td>`; });
+    tableHtml += `<td>${grandTotal.toLocaleString()}</td></tr>`;
+    tableHtml += '</tbody></table></div>';
+    heatmapEl.innerHTML = tableHtml;
+
+    _heatmapDetails = details;
+    heatmapEl.querySelectorAll('td[data-hm-hour]').forEach(td => {
+        td.addEventListener('click', () => {
+            _showHeatmapDrilldown(td.dataset.hmHour, parseInt(td.dataset.hmDay, 10));
+        });
+    });
+}
+
+function _drawOpsHourHeatmap(weekNum) {
+    const opsHourHeatEl = document.getElementById('ops-hour-heatmap');
+    if (!opsHourHeatEl) return;
+    const w = _opsHourHeatWeeks[weekNum] || _opsHourHeatWeeks[0];
+    const source  = w.data    || {};
+    const details = w.details || {};
+    const weekLabel = weekNum === 0 ? 'Todas las semanas' : `Semana ${weekNum}`;
+
+    const allOpsVals = _HEATMAP_HOUR_LABELS.flatMap(h => source[h] || Array(7).fill(0));
+    const maxOps = Math.max(1, ...allOpsVals);
+    const getOpsColor = (v) => {
+        const ratio = Math.max(0, Math.min(1, v / maxOps));
+        return `rgba(253, 126, 20, ${0.08 + ratio * 0.82})`;
+    };
+
+    const colTotalsOps = Array(7).fill(0);
+    const hourTotalsOps = {};
+    _HEATMAP_HOUR_LABELS.forEach(hour => {
+        const vals = source[hour] || Array(7).fill(0);
+        hourTotalsOps[hour] = vals.reduce((a, b) => a + b, 0);
+        vals.forEach((v, i) => { colTotalsOps[i] += v; });
+    });
+    const grandTotalOps = colTotalsOps.reduce((a, b) => a + b, 0);
+
+    // Week filter buttons
+    const availWeeks = Object.keys(_opsHourHeatWeeks).map(Number).filter(n => n > 0).sort((a, b) => a - b);
+    let btnBar = '<div class="d-flex flex-wrap gap-1 mb-3 align-items-center"><span class="text-muted small me-1">Filtrar semana:</span>';
+    btnBar += `<button class="btn btn-sm week-filter-btn ${weekNum === 0 ? 'btn-warning' : 'btn-outline-secondary'}" data-week="0" onclick="window._filterOpsHourHeatmap(0)">Todas</button>`;
+    availWeeks.forEach(wn => {
+        btnBar += `<button class="btn btn-sm week-filter-btn ${weekNum === wn ? 'btn-warning' : 'btn-outline-secondary'}" data-week="${wn}" onclick="window._filterOpsHourHeatmap(${wn})">Semana ${wn}</button>`;
+    });
+    btnBar += '</div>';
+
+    let opsHtml = btnBar;
+    opsHtml += `<p class="text-muted small mb-2">Muestra el total de <strong>Operaciones</strong> por franja horaria y día de la semana (${weekLabel}). <em>Excluye cancelados y no operativos.</em> Los colores más oscuros indican mayor actividad.</p>`;
+    opsHtml += '<div class="table-responsive"><table class="table table-sm table-bordered align-middle text-center mb-0" style="font-size:0.78rem">';
+    opsHtml += '<thead class="table-light"><tr><th>Hora</th>';
+    _HEATMAP_DAY_LABELS.forEach(label => { opsHtml += `<th>${label}</th>`; });
+    opsHtml += '<th class="table-secondary">Total</th></tr></thead><tbody>';
+
+    _HEATMAP_HOUR_LABELS.forEach(hour => {
+        const rowValues = source[hour] || Array(7).fill(0);
+        const rowSum = hourTotalsOps[hour];
+        if (rowSum === 0) return;
+        opsHtml += `<tr><th class="text-nowrap table-light">${hour}:00</th>`;
+        rowValues.forEach((value, dayIdx) => {
+            if (value > 0) {
+                opsHtml += `<td data-opshm-hour="${hour}" data-opshm-day="${dayIdx}" style="background:${getOpsColor(value)};font-weight:600;cursor:pointer" title="Ver vuelos — ${hour}:00">${value.toLocaleString()}</td>`;
+            } else {
+                opsHtml += `<td style="background:${getOpsColor(0)}"></td>`;
+            }
+        });
+        opsHtml += `<td class="table-secondary fw-bold">${rowSum.toLocaleString()}</td></tr>`;
+    });
+
+    opsHtml += '<tr class="table-secondary fw-bold"><th>Total</th>';
+    colTotalsOps.forEach(v => { opsHtml += `<td>${v.toLocaleString()}</td>`; });
+    opsHtml += `<td>${grandTotalOps.toLocaleString()}</td></tr>`;
+    opsHtml += '</tbody></table></div>';
+    opsHourHeatEl.innerHTML = opsHtml;
+
+    _heatmapOpsHourDetails = details;
+    opsHourHeatEl.querySelectorAll('td[data-opshm-hour]').forEach(td => {
+        td.addEventListener('click', () => {
+            _showOpsHourDrilldown(td.dataset.opshmHour, parseInt(td.dataset.opshmDay, 10));
+        });
+    });
+}
+
+window._filterPassengerHeatmap = function(weekNum) {
+    _drawPassengerHeatmap(weekNum);
+};
+
+window._filterOpsHourHeatmap = function(weekNum) {
+    _drawOpsHourHeatmap(weekNum);
+};
+
+function _showOpsHourDrilldown(hour, dayIdx) {
+    const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    const records  = (_heatmapOpsHourDetails?.[hour]?.[dayIdx]) || [];
+
+    const titleEl = document.getElementById('heatmap-drilldown-title');
+    const bodyEl  = document.getElementById('heatmap-drilldown-body');
+    if (!titleEl || !bodyEl) return;
+
+    titleEl.innerHTML = `<i class="fas fa-clock me-2 text-warning"></i>Operaciones — ${dayNames[dayIdx] || ''} ${hour}:00 &nbsp;<span class="badge bg-warning text-dark fw-normal">${records.length} operación${records.length !== 1 ? 'es' : ''}</span>`;
+
+    if (records.length === 0) {
+        bodyEl.innerHTML = '<p class="text-muted">Sin registros para esta celda.</p>';
+    } else {
+        const hasVuelo      = records.some(r => r.vuelo);
+        const hasAerolinea  = records.some(r => r.aerolinea);
+        const hasOrigen     = records.some(r => r.origen);
+        const hasDestino    = records.some(r => r.destino);
+        const hasMovimiento = records.some(r => r.movimiento);
+        const hasServicio   = records.some(r => r.servicio);
+        const hasAeronave   = records.some(r => r.aeronave);
+        const hasFecha      = records.some(r => r.fecha);
+        const hasHora       = records.some(r => r.hora);
+        const hasEstatus    = records.some(r => r.estatus);
+
+        const sorted = [...records].sort((a, b) => (a.vuelo || '').localeCompare(b.vuelo || ''));
+
+        let html = `<p class="text-muted small mb-3">Total de operaciones en esta franja: <strong class="text-warning">${records.length.toLocaleString()}</strong> <em>(cancelados y no operativos excluidos)</em></p>`;
+        html += '<div class="table-responsive"><table class="table table-sm table-hover table-bordered align-middle mb-0" style="font-size:0.82rem"><thead class="table-light"><tr>';
+        if (hasVuelo)      html += '<th>Vuelo</th>';
+        if (hasAerolinea)  html += '<th>Aerolínea</th>';
+        if (hasMovimiento) html += '<th>Mvto.</th>';
+        if (hasOrigen)     html += '<th>Origen</th>';
+        if (hasDestino)    html += '<th>Destino</th>';
+        if (hasServicio)   html += '<th>Servicio</th>';
+        if (hasAeronave)   html += '<th>Aeronave</th>';
+        if (hasEstatus)    html += '<th>Estatus</th>';
+        if (hasFecha)      html += '<th>Fecha</th>';
+        if (hasHora)       html += '<th>Hora</th>';
+        html += '</tr></thead><tbody>';
+
+        sorted.forEach(r => {
+            html += '<tr>';
+            if (hasVuelo)      html += `<td class="fw-semibold">${r.vuelo      || '—'}</td>`;
+            if (hasAerolinea)  html += `<td>${r.aerolinea  || '—'}</td>`;
+            if (hasMovimiento) html += `<td>${r.movimiento || '—'}</td>`;
+            if (hasOrigen)     html += `<td>${r.origen     || '—'}</td>`;
+            if (hasDestino)    html += `<td>${r.destino    || '—'}</td>`;
+            if (hasServicio)   html += `<td>${r.servicio   || '—'}</td>`;
+            if (hasAeronave)   html += `<td>${r.aeronave   || '—'}</td>`;
+            if (hasEstatus)    html += `<td><span class="badge bg-secondary fw-normal">${r.estatus || '—'}</span></td>`;
+            if (hasFecha)      html += `<td class="text-nowrap">${r.fecha || '—'}</td>`;
+            if (hasHora)       html += `<td class="text-nowrap fw-semibold text-warning">${r.hora || '—'}</td>`;
+            html += '</tr>';
+        });
+
+        html += '</tbody></table></div>';
+        bodyEl.innerHTML = html;
+    }
+
+    const modalEl = document.getElementById('heatmap-drilldown-modal');
+    if (!modalEl) return;
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+}
