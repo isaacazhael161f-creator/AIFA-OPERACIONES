@@ -1071,7 +1071,7 @@
     if (!trigger) return;
     event.preventDefault();
     const scopeAttr = trigger.getAttribute('data-scope');
-    const scope = scopeAttr === SCOPE_CARGO ? SCOPE_CARGO : SCOPE_PAX;
+    const scope = scopeAttr === SCOPE_CARGO ? SCOPE_CARGO : scopeAttr === SCOPE_ALL ? SCOPE_ALL : SCOPE_PAX;
     const movement = trigger.getAttribute('data-movement') === 'Salida' ? 'Salida' : 'Llegada';
     const hourAttr = trigger.getAttribute('data-hour');
     const hour = hourAttr==null ? null : Number(hourAttr);
