@@ -1078,6 +1078,176 @@
       </div>
     </article>`;
   }
+  // ─── Resumen por rango horario ────────────────────────────────────────────
+  function _initRangeHourSelects(){
+    const fromSel = document.getElementById('range-from-hour');
+    const toSel   = document.getElementById('range-to-hour');
+    if (!fromSel || !toSel || fromSel.options.length) return; // already built
+    for (let h = 0; h < 24; h++){
+      const label = `${String(h).padStart(2,'0')}:00`;
+      fromSel.add(new Option(label, h));
+      toSel.add(new Option(label, h));
+    }
+    fromSel.value = 6;
+    toSel.value   = 22;
+  }
+
+  function _buildRangeReport(){
+    const fromSel = document.getElementById('range-from-hour');
+    const toSel   = document.getElementById('range-to-hour');
+    const result  = document.getElementById('general-range-report-result');
+    if (!fromSel || !toSel || !result) return;
+    let fromH = parseInt(fromSel.value, 10);
+    let toH   = parseInt(toSel.value,   10);
+    if (fromH > toH) { const tmp = fromH; fromH = toH; toH = tmp; }
+
+    const paxOps  = (insightsCache[SCOPE_PAX]   && insightsCache[SCOPE_PAX].operations)   || [];
+    const carOps  = (insightsCache[SCOPE_CARGO]  && insightsCache[SCOPE_CARGO].operations)  || [];
+    const allOps  = [...paxOps, ...carOps].filter(op =>
+      typeof op.hour === 'number' && op.hour >= fromH && op.hour <= toH
+    );
+
+    const arrivals   = allOps.filter(op => op.movement === 'Llegada')
+                             .sort((a,b) => (a.timeLabel||'').localeCompare(b.timeLabel||''));
+    const departures = allOps.filter(op => op.movement === 'Salida')
+                             .sort((a,b) => (a.timeLabel||'').localeCompare(b.timeLabel||''));
+
+    const dateLabel = selectedDate ? ymdToDMY(selectedDate) : '—';
+    const fromLabel = `${String(fromH).padStart(2,'0')}:00`;
+    const toLabel   = `${String(toH).padStart(2,'0')}:59`;
+
+    // ── Plain-text version for clipboard ──────────────────────────
+    const SEP = '━━━━━━━━━━━━━━━━━━━━━━';
+    const fmtRow = (op) => {
+      const t  = (op.timeLabel||'—').slice(0,5);
+      const fn = op.flightNumber || '—';
+      const orig = (op.origin||'—').toString().trim().toUpperCase().slice(0,3);
+      const dest = (op.destination||'—').toString().trim().toUpperCase().slice(0,3);
+      const pos  = op.position ? ` | Pos. ${op.position}` : '';
+      const al   = (op.airline||'').trim();
+      return `  • ${t} | ${fn} | ${al} | ${orig} → ${dest}${pos}`;
+    };
+    const plainParts = [
+      `✈️  RESUMEN OPERATIVO — AIFA`,
+      `📅  ${dateLabel}   🕑 ${fromLabel} – ${toLabel}`,
+      SEP,
+      arrivals.length
+        ? `🛬  LLEGADAS (${arrivals.length} vuelo${arrivals.length!==1?'s':''})\n${arrivals.map(fmtRow).join('\n')}`
+        : `🛬  LLEGADAS: Sin operaciones en este rango`,
+      SEP,
+      departures.length
+        ? `🛫  SALIDAS (${departures.length} vuelo${departures.length!==1?'s':''})\n${departures.map(fmtRow).join('\n')}`
+        : `🛫  SALIDAS: Sin operaciones en este rango`,
+      SEP,
+      `📊  Total: ${allOps.length} operación${allOps.length!==1?'es':''}`,
+    ].join('\n');
+
+    // ── Visual card rendering ────────────────────────────────────
+    const renderGroup = (ops, mvLabel, icon) => {
+      if (!ops.length){
+        return `<div class="range-report-empty"><i class="fas ${icon} me-2 opacity-50"></i>Sin operaciones en este rango</div>`;
+      }
+      return ops.map(op => {
+        const logo   = getAirlineLogoMarkup(op.airline, 'lg');
+        const visual = logo || `<span class="intel-airline-badge sm">${escapeHtml(getAirlineInitials(op.airline))}</span>`;
+        const orig = escapeHtml((op.origin||'—').toString().trim());
+        const dest = escapeHtml((op.destination||'—').toString().trim());
+        const pos  = op.position ? `<span class="rr-tag"><i class="fas fa-map-marker-alt me-1"></i>${escapeHtml(op.position)}</span>` : '';
+        const belt = op.belt     ? `<span class="rr-tag"><i class="fas fa-suitcase-rolling me-1"></i>Banda ${escapeHtml(op.belt)}</span>` : '';
+        return `<div class="rr-flight-row">
+          <div class="rr-time">${escapeHtml((op.timeLabel||'—').slice(0,5))}</div>
+          <div class="rr-logo">${visual}</div>
+          <div class="rr-info">
+            <div class="rr-flight-num">Vuelo <strong>${escapeHtml(op.flightNumber||'—')}</strong></div>
+            <div class="rr-airline-name">${escapeHtml(op.airline||'—')}</div>
+          </div>
+          <div class="rr-route">
+            <span class="rr-airport">${orig}</span>
+            <i class="fas fa-arrow-right rr-arrow"></i>
+            <span class="rr-airport">${dest}</span>
+          </div>
+          <div class="rr-tags">${pos}${belt}</div>
+        </div>`;
+      }).join('');
+    };
+
+    result.innerHTML = `
+      <div class="range-report-card" id="rr-card">
+        <div class="rr-header">
+          <div class="rr-header-left">
+            <div class="rr-eyebrow"><i class="fas fa-plane me-2"></i>AIFA · Resumen operativo</div>
+            <div class="rr-title">${escapeHtml(dateLabel)}</div>
+            <div class="rr-subtitle"><i class="fas fa-clock me-1"></i>${escapeHtml(fromLabel)} – ${escapeHtml(toLabel)}</div>
+          </div>
+          <div class="rr-header-stats">
+            <div class="rr-stat">
+              <span class="rr-stat-num arr">${arrivals.length}</span>
+              <span class="rr-stat-label">Llegadas</span>
+            </div>
+            <div class="rr-stat-sep">+</div>
+            <div class="rr-stat">
+              <span class="rr-stat-num dep">${departures.length}</span>
+              <span class="rr-stat-label">Salidas</span>
+            </div>
+            <div class="rr-stat-sep">=</div>
+            <div class="rr-stat">
+              <span class="rr-stat-num">${allOps.length}</span>
+              <span class="rr-stat-label">Total</span>
+            </div>
+          </div>
+        </div>
+        <div class="rr-section">
+          <div class="rr-section-header arr-header">
+            <i class="fas fa-plane-arrival me-2"></i>Llegadas — ${arrivals.length} vuelo${arrivals.length!==1?'s':''}
+          </div>
+          <div class="rr-flights-list">
+            ${renderGroup(arrivals, 'Llegada', 'fa-plane-arrival')}
+          </div>
+        </div>
+        <div class="rr-section">
+          <div class="rr-section-header dep-header">
+            <i class="fas fa-plane-departure me-2"></i>Salidas — ${departures.length} vuelo${departures.length!==1?'s':''}
+          </div>
+          <div class="rr-flights-list">
+            ${renderGroup(departures, 'Salida', 'fa-plane-departure')}
+          </div>
+        </div>
+        <div class="rr-footer">
+          <button class="btn btn-outline-secondary btn-sm" id="rr-copy-btn">
+            <i class="fas fa-copy me-2"></i>Copiar como texto
+          </button>
+          <span id="rr-copy-feedback" class="ms-3 small text-success d-none">
+            <i class="fas fa-check-circle me-1"></i>¡Copiado al portapapeles!
+          </span>
+        </div>
+      </div>`;
+
+    result.classList.remove('d-none');
+    result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    // Attach copy handler
+    const copyBtn = document.getElementById('rr-copy-btn');
+    if (copyBtn){
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(plainParts).then(() => {
+          const fb = document.getElementById('rr-copy-feedback');
+          if (fb){ fb.classList.remove('d-none'); setTimeout(() => fb.classList.add('d-none'), 3000); }
+        }).catch(() => {
+          // fallback
+          const ta = document.createElement('textarea');
+          ta.value = plainParts;
+          ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta); ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          const fb = document.getElementById('rr-copy-feedback');
+          if (fb){ fb.classList.remove('d-none'); setTimeout(() => fb.classList.add('d-none'), 3000); }
+        });
+      };
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   function bindDayControls(){ const input = document.getElementById('it-day-input'); const prev  = document.getElementById('it-day-prev'); const next  = document.getElementById('it-day-next'); const today = document.getElementById('it-day-today'); if (input){ input.addEventListener('change', () => { if (!input.value) return; selectedDate = input.value; renderItineraryCharts(); }); } function shift(days){ const d = input && input.value ? new Date(input.value) : new Date(selectedDate || Date.now()); d.setDate(d.getDate() + days); selectedDate = toYMD(d); if (input) input.value = selectedDate; renderItineraryCharts(); } if (prev) prev.addEventListener('click', ()=> shift(-1)); if (next) next.addEventListener('click', ()=> shift(+1)); if (today) today.addEventListener('click', ()=> { selectedDate = toYMD(new Date()); if (input) input.value = selectedDate; renderItineraryCharts(); }); }
   document.addEventListener('DOMContentLoaded', async () => {
     bindDayControls();
@@ -1088,6 +1258,10 @@
     if (carTop) carTop.addEventListener('change', ()=> { if (lastAgg) renderTopHoursLists(lastAgg); });
     const genTop = document.getElementById('general-topN');
     if (genTop) genTop.addEventListener('change', ()=> { if (lastAgg) renderGeneralTopHours(lastAgg); });
+    // Range report
+    _initRangeHourSelects();
+    const rangeBtn = document.getElementById('range-report-btn');
+    if (rangeBtn) rangeBtn.addEventListener('click', _buildRangeReport);
     document.querySelectorAll('#itineraryTab button[data-bs-toggle="tab"]').forEach(btn => {
       btn.addEventListener('shown.bs.tab', (event)=> {
         const target = event.target.getAttribute('data-bs-target') || '';

@@ -3011,6 +3011,35 @@
                                                     </div>
                                                 </div>
                                             </div>
+                                            <!-- ╔══════════════════════════════════════════╗ -->
+                                            <!-- ║  RESUMEN POR RANGO HORARIO (para envío) ║ -->
+                                            <!-- ╚══════════════════════════════════════════╝ -->
+                                            <div class="itinerary-top-block itinerary-pane-block range-report-block" id="general-range-report-block">
+                                                <div class="top-hours-header">
+                                                    <div class="top-hours-title">
+                                                        <span class="top-hours-eyebrow">Resumen operativo</span>
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <i class="fas fa-paper-plane text-primary"></i>
+                                                            <span class="fw-semibold" style="font-size:1rem">Resumen para compartir</span>
+                                                        </div>
+                                                        <p class="mb-0 small text-muted">Selecciona un rango horario y genera un resumen de vuelos listo para enviar por mensaje.</p>
+                                                    </div>
+                                                </div>
+                                                <div class="range-report-controls d-flex flex-wrap align-items-end gap-3 mt-3">
+                                                    <div>
+                                                        <label for="range-from-hour" class="form-label small fw-semibold mb-1 text-muted"><i class="fas fa-clock me-1"></i>Desde</label>
+                                                        <select id="range-from-hour" class="form-select form-select-sm range-hour-select"></select>
+                                                    </div>
+                                                    <div>
+                                                        <label for="range-to-hour" class="form-label small fw-semibold mb-1 text-muted"><i class="fas fa-clock me-1"></i>Hasta</label>
+                                                        <select id="range-to-hour" class="form-select form-select-sm range-hour-select"></select>
+                                                    </div>
+                                                    <button id="range-report-btn" class="btn btn-primary btn-sm px-4">
+                                                        <i class="fas fa-search me-2"></i>Generar resumen
+                                                    </button>
+                                                </div>
+                                                <div id="general-range-report-result" class="mt-4 d-none"></div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

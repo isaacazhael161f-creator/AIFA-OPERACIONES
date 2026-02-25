@@ -10931,3 +10931,187 @@ body.dark-mode #fauna-rescate-table .table-container-tech.h-scroll-area thead th
     max-height: 400px; 
     overflow: auto;
 }
+/* =========================================
+   Range Report Card (Vista General)
+   ========================================= */
+.range-report-block { margin-top: 1.5rem; }
+
+.range-report-card {
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    box-shadow: 0 4px 24px rgba(15,23,42,0.07);
+    overflow: hidden;
+}
+
+/* Header ─ gradient banner */
+.rr-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background: linear-gradient(135deg, #1e3a5f 0%, #0d6efd 100%);
+    color: #fff;
+    padding: 1.25rem 1.5rem;
+}
+.rr-eyebrow {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    opacity: .75;
+    margin-bottom: 0.15rem;
+}
+.rr-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+.rr-subtitle {
+    font-size: 0.8rem;
+    opacity: .85;
+    margin-top: 0.15rem;
+}
+
+/* Stats badges inside header */
+.rr-header-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.rr-stat { text-align: center; }
+.rr-stat-num {
+    display: block;
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1;
+}
+.rr-stat-num.arr { color: #86efac; }
+.rr-stat-num.dep { color: #fcd34d; }
+.rr-stat-num.total { color: #fff; }
+.rr-stat-label {
+    font-size: 0.68rem;
+    opacity: .8;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+.rr-stat-sep {
+    font-size: 1.3rem;
+    opacity: .4;
+    line-height: 1;
+}
+
+/* Section header rows */
+.rr-section { padding: 0; }
+.rr-section-header {
+    padding: 0.55rem 1.25rem;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+.rr-section-header.arr-header {
+    background: #f0fdf4;
+    color: #166534;
+    border-bottom: 1px solid #bbf7d0;
+    border-top: 1px solid #eef2f7;
+}
+.rr-section-header.dep-header {
+    background: #fff7ed;
+    color: #9a3412;
+    border-bottom: 1px solid #fed7aa;
+    border-top: 1px solid #eef2f7;
+}
+
+/* Flight list */
+.rr-flights-list { padding: 0.15rem 0; }
+.rr-flight-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background .15s;
+}
+.rr-flight-row:last-child { border-bottom: none; }
+.rr-flight-row:hover { background: #f8fafc; }
+
+/* Cell widths */
+.rr-time {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #0f172a;
+    min-width: 3.2rem;
+    white-space: nowrap;
+}
+.rr-logo {
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.rr-logo .airline-logo.lg {
+    width: 36px;
+    height: 24px;
+    object-fit: contain;
+}
+.rr-info { min-width: 7rem; }
+.rr-flight-num {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #334155;
+}
+.rr-airline-name {
+    font-size: 0.72rem;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 130px;
+}
+.rr-route {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+.rr-airport {
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: #0f172a;
+}
+.rr-arrow {
+    color: #94a3b8;
+    font-size: 0.72rem;
+}
+.rr-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-left: auto;
+}
+.rr-tag {
+    font-size: 0.68rem;
+    background: #f1f5f9;
+    color: #475569;
+    border-radius: 4px;
+    padding: 2px 6px;
+    white-space: nowrap;
+}
+
+/* Empty state */
+.range-report-empty {
+    padding: 0.75rem 1.25rem;
+    color: #94a3b8;
+    font-size: 0.82rem;
+    font-style: italic;
+}
+
+/* Footer / copy button */
+.rr-footer {
+    padding: 0.9rem 1.25rem;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
