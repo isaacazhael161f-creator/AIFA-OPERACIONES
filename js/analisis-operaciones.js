@@ -414,6 +414,13 @@ function _calWeekLabel(mondayKey) {
     return `${dd1} ${MON[mon.getMonth()]}–${dd2} ${MON[sun.getMonth()]}`;
 }
 
+// Returns array of 7 local day-of-month numbers [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
+// for the calendar week whose Monday is given as "YYYY-MM-DD".
+function _weekDayNumbers(mondayKey) {
+    const [y, m, d] = mondayKey.split('-').map(Number);
+    return Array.from({ length: 7 }, (_, i) => new Date(y, m - 1, d + i).getDate());
+}
+
 function _parseCsvLine(line) {
     const values = [];
     let current = '';
@@ -2031,7 +2038,12 @@ function _drawPassengerHeatmap(weekKey) {
     tableHtml += `<p class="text-muted small mb-2">Muestra el total de <strong>${heatUnit}</strong> por franja horaria y día de la semana (${weekLabel}). Los colores más oscuros indican mayor actividad.</p>`;
     tableHtml += '<div class="table-responsive"><table class="table table-sm table-bordered align-middle text-center mb-0" style="font-size:0.78rem">';
     tableHtml += '<thead class="table-light"><tr><th>Hora</th>';
-    _HEATMAP_DAY_LABELS.forEach(label => { tableHtml += `<th>${label}</th>`; });
+    const _paxDayNums = weekKey !== '0' ? _weekDayNumbers(weekKey) : null;
+    _HEATMAP_DAY_LABELS.forEach((label, idx) => {
+        tableHtml += _paxDayNums
+            ? `<th>${label}<br><small class="fw-normal text-muted">${_paxDayNums[idx]}</small></th>`
+            : `<th>${label}</th>`;
+    });
     tableHtml += '<th class="table-secondary">Total</th></tr></thead><tbody>';
 
     _HEATMAP_HOUR_LABELS.forEach(hour => {
@@ -2102,7 +2114,12 @@ function _drawOpsHourHeatmap(weekKey) {
     opsHtml += `<p class="text-muted small mb-2">Muestra el total de <strong>Operaciones</strong> por franja horaria y día de la semana (${weekLabel}). <em>Excluye cancelados y no operativos.</em> Los colores más oscuros indican mayor actividad.</p>`;
     opsHtml += '<div class="table-responsive"><table class="table table-sm table-bordered align-middle text-center mb-0" style="font-size:0.78rem">';
     opsHtml += '<thead class="table-light"><tr><th>Hora</th>';
-    _HEATMAP_DAY_LABELS.forEach(label => { opsHtml += `<th>${label}</th>`; });
+    const _opsDayNums = weekKey !== '0' ? _weekDayNumbers(weekKey) : null;
+    _HEATMAP_DAY_LABELS.forEach((label, idx) => {
+        opsHtml += _opsDayNums
+            ? `<th>${label}<br><small class="fw-normal text-muted">${_opsDayNums[idx]}</small></th>`
+            : `<th>${label}</th>`;
+    });
     opsHtml += '<th class="table-secondary">Total</th></tr></thead><tbody>';
 
     _HEATMAP_HOUR_LABELS.forEach(hour => {
