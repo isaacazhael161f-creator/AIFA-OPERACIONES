@@ -2546,8 +2546,6 @@ function setupEventListeners() {
     const hourTypeSelect = document.getElementById('hour-type-filter'); if (hourTypeSelect) hourTypeSelect.addEventListener('change', (window.AIFA?.throttle || ((f) => f))(applyFilters, 120));
     // date filter (Inicio)
     const dateFilter = document.getElementById('date-filter'); if (dateFilter) dateFilter.addEventListener('change', () => loadItineraryData({ preserveFilters: true }));
-    // view-type toggle (Pasajeros / Carga / Todos)
-    document.querySelectorAll('input[name="it-view-type"]').forEach(r => r.addEventListener('change', applyFilters));
     // Botón de tema eliminado: no enlazar listener si no existe
     const themeBtnEl = document.getElementById('theme-toggler');
     if (themeBtnEl) themeBtnEl.addEventListener('click', toggleTheme);
@@ -4269,11 +4267,8 @@ function applyFilters() {
         if (filterControls) filterControls.classList.add('d-none');
         if (toolbar) toolbar.classList.add('airline-selected');
     } else {
-        // apply view-type toggle: pax / cargo / all
-        const _viewEl = document.querySelector('input[name="it-view-type"]:checked');
-        const _viewType = _viewEl ? _viewEl.value : 'all';
-        if (passBlock) passBlock.style.display = (_viewType === 'cargo') ? 'none' : '';
-        if (cargoBlock) cargoBlock.style.display = (_viewType === 'pax') ? 'none' : '';
+        if (passBlock) passBlock.style.display = '';
+        if (cargoBlock) cargoBlock.style.display = '';
         if (filterControls) filterControls.classList.remove('d-none');
         if (toolbar) toolbar.classList.remove('airline-selected');
     }
@@ -4400,9 +4395,7 @@ function clearFilters() {
     const sAirline = document.getElementById('search-airline'); if (sAirline) sAirline.value = '';
     const sFlight = document.getElementById('search-flight'); if (sFlight) sFlight.value = '';
     const sRoute = document.getElementById('search-route'); if (sRoute) sRoute.value = '';
-    // Reset view-type toggle to "Todos"
-    const viewAll = document.getElementById('it-view-all'); if (viewAll) viewAll.checked = true;
-
+    
     applyFilters();
     // visual confirmation: temporary highlight and toast
     const btn = document.getElementById('clear-filters-btn') || document.getElementById('clear-filters');

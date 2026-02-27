@@ -1,28 +1,42 @@
 /**
  * Análisis Anual - Dashboard Module
- * Fetches data directly from Supabase 'parte_operations' table.
+ * Fetches data from:
+ *   - parte_operations  → promedios mensuales por tipo de aviación
+ *   - annual_operations → KPIs anuales consolidados
+ *   - daily_flights_ops → pasajeros por aerolínea
  */
 (function() {
     let annualChart = null;
+    let airlinePaxChart = null;
 
     document.addEventListener('DOMContentLoaded', () => {
-        const tabEl = document.getElementById('analisis-anual-pane');
         const triggerBtn = document.querySelector('button[data-bs-target="#analisis-anual-pane"]');
-        
+
         const loadHandler = () => {
-            // Instant load
-            setTimeout(runAnnualAnalysis, 10); 
+            setTimeout(runAnnualAnalysis, 10);
         };
 
         if (triggerBtn) triggerBtn.addEventListener('shown.bs.tab', loadHandler);
-        
+
         const refreshBtn = document.getElementById('btn-refresh-annual');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', runAnnualAnalysis);
-        }
+        if (refreshBtn) refreshBtn.addEventListener('click', runAnnualAnalysis);
+
+        // Year selector change triggers full reload
+        const yearSel = document.getElementById('annual-year-select');
+        if (yearSel) yearSel.addEventListener('change', runAnnualAnalysis);
     });
 
+    function getSelectedYear() {
+        const sel = document.getElementById('annual-year-select');
+        return sel ? parseInt(sel.value, 10) : 2025;
+    }
+
     async function runAnnualAnalysis() {
+        const year = getSelectedYear();
+        // Update badge
+        const badge = document.getElementById('airline-pax-year-badge');
+        if (badge) badge.textContent = year;
+
         if (!window.supabaseClient) {
             console.error('Supabase client not available.');
             return;
@@ -30,6 +44,10 @@
 
         const chartCanvas = document.getElementById('ops-annual-averages-chart');
         if (chartCanvas) chartCanvas.style.opacity = '0.5';
+
+        // Launch KPI cards and airline pax ranking in parallel (non-blocking)
+        runAnnualKPICards(year);
+        runAirlinePaxRanking(year);
 
         try {
             const { data, error } = await window.supabaseClient
@@ -46,7 +64,7 @@
                 return;
             }
 
-            processAnnualData(data);
+            processAnnualData(data, year);
 
         } catch (error) {
             console.error('Error fetching annual data:', error);
@@ -54,14 +72,17 @@
         }
     }
 
-    function processAnnualData(data) {
+    function processAnnualData(data, selectedYear) {
         if (data.length === 0) return;
 
-        // Find latest year
-        const lastDate = data[data.length - 1].fecha; 
-        const latestYear = parseInt(lastDate.split('-')[0], 10);
+        // Use selected year or fall back to latest year in data
+        let latestYear = selectedYear;
+        if (!latestYear) {
+            const lastDate = data[data.length - 1].fecha;
+            latestYear = parseInt(lastDate.split('-')[0], 10);
+        }
 
-        // Filter for latest year
+        // Filter for selected year
         const yearData = data.filter(d => parseInt(d.fecha.split('-')[0], 10) === latestYear);
 
         // 1. Calculate Monthly Totals for Chart/Table
@@ -393,6 +414,278 @@
     function renderEmpty() {
         const container = document.getElementById('ops-annual-averages-cards');
         if (container) container.innerHTML = '<div class="alert alert-info">No hay datos disponibles en parte_operations.</div>';
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // KPI Cards from annual_operations table
+    // ═══════════════════════════════════════════════════════
+
+    async function runAnnualKPICards(year) {
+        const container = document.getElementById('annual-kpi-cards');
+        if (!container) return;
+
+        container.innerHTML = `<div class="text-center py-3 text-muted small"><div class="spinner-border spinner-border-sm me-2"></div>Cargando datos clave...</div>`;
+
+        try {
+            const { data, error } = await window.supabaseClient
+                .from('annual_operations')
+                .select('*')
+                .eq('year', year)
+                .maybeSingle();
+
+            if (error) throw error;
+
+            if (!data) {
+                container.innerHTML = `<div class="alert alert-secondary py-2">No hay datos anuales consolidados para ${year}.</div>`;
+                return;
+            }
+
+            renderAnnualKPICards(data);
+        } catch (err) {
+            console.error('Error fetching annual KPIs:', err);
+            container.innerHTML = '<div class="alert alert-warning py-2">No se pudieron cargar los datos clave anuales.</div>';
+        }
+    }
+
+    function renderAnnualKPICards(data) {
+        const container = document.getElementById('annual-kpi-cards');
+        if (!container) return;
+
+        const fmt = n => (n != null ? Number(n).toLocaleString('es-MX') : '—');
+        const fmtDec = n => (n != null ? Number(n).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '—');
+
+        const totalOps = (data.comercial_ops_total || 0) + (data.carga_ops_total || 0) + (data.general_ops_total || 0);
+        const totalPax = (data.comercial_pax_total || 0) + (data.general_pax_total || 0);
+
+        container.innerHTML = `
+            <div class="alert alert-secondary border-0 d-flex align-items-center mb-3 py-2" role="note">
+                <i class="fas fa-star fs-5 me-3 text-warning"></i>
+                <div>
+                    <div class="fw-bold">Datos clave del año ${data.year}</div>
+                    <div class="small text-muted">Cifras consolidadas de operaciones en AIFA.</div>
+                </div>
+            </div>
+            <div class="row g-3">
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #0d6efd !important;">
+                        <div class="card-body py-3 ps-3">
+                            <div class="text-muted small text-uppercase fw-semibold mb-1">
+                                <i class="fas fa-users me-1 text-primary"></i>Pasajeros Comerciales
+                            </div>
+                            <div class="fs-2 fw-bold text-primary lh-1 mb-1">${fmt(data.comercial_pax_total)}</div>
+                            <div class="text-muted small">${fmt(data.comercial_ops_total)} vuelos com.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #ffc107 !important;">
+                        <div class="card-body py-3 ps-3">
+                            <div class="text-muted small text-uppercase fw-semibold mb-1">
+                                <i class="fas fa-box-open me-1 text-warning"></i>Carga (Toneladas)
+                            </div>
+                            <div class="fs-2 fw-bold text-warning lh-1 mb-1">${fmtDec(data.carga_tons_total)}</div>
+                            <div class="text-muted small">${fmt(data.carga_ops_total)} ops. de carga</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #198754 !important;">
+                        <div class="card-body py-3 ps-3">
+                            <div class="text-muted small text-uppercase fw-semibold mb-1">
+                                <i class="fas fa-plane me-1 text-success"></i>Aviación General
+                            </div>
+                            <div class="fs-2 fw-bold text-success lh-1 mb-1">${fmt(data.general_ops_total)}</div>
+                            <div class="text-muted small">${fmt(data.general_pax_total)} pax. gral.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #0dcaf0 !important;">
+                        <div class="card-body py-3 ps-3">
+                            <div class="text-muted small text-uppercase fw-semibold mb-1">
+                                <i class="fas fa-calculator me-1 text-info"></i>Total Operaciones
+                            </div>
+                            <div class="fs-2 fw-bold text-info lh-1 mb-1">${fmt(totalOps)}</div>
+                            <div class="text-muted small">${fmt(totalPax)} pax. totales</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // Pasajeros por Aerolínea from daily_flights_ops
+    // ═══════════════════════════════════════════════════════
+
+    async function runAirlinePaxRanking(year) {
+        const loading = document.getElementById('airline-pax-loading');
+        const content = document.getElementById('airline-pax-content');
+        const empty   = document.getElementById('airline-pax-empty');
+
+        if (loading) loading.classList.remove('d-none');
+        if (content) content.classList.add('d-none');
+        if (empty)   empty.classList.add('d-none');
+
+        try {
+            const client = window.supabaseClient;
+            if (!client) throw new Error('Supabase client not available');
+
+            const startDate = `${year}-01-01`;
+            const endDate   = `${year}-12-31`;
+
+            let allRows = [];
+            let from = 0;
+            const batchSize = 1000;
+            let moreData = true;
+
+            while (moreData) {
+                const { data, error } = await client
+                    .from('daily_flights_ops')
+                    .select('aerolinea, pasajeros')
+                    .gte('fecha', startDate)
+                    .lte('fecha', endDate)
+                    .range(from, from + batchSize - 1);
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    allRows = allRows.concat(data);
+                    from += batchSize;
+                    if (data.length < batchSize) moreData = false;
+                } else {
+                    moreData = false;
+                }
+
+                if (allRows.length > 150000) { moreData = false; }
+            }
+
+            if (loading) loading.classList.add('d-none');
+
+            if (!allRows.length) {
+                if (empty) empty.classList.remove('d-none');
+                return;
+            }
+
+            // Aggregate by airline, summing pasajeros
+            const airlineMap = {};
+            allRows.forEach(row => {
+                const airline = (row.aerolinea || 'Sin especificar').trim();
+                const pax = parseInt(row.pasajeros, 10) || 0;
+                airlineMap[airline] = (airlineMap[airline] || 0) + pax;
+            });
+
+            const sorted = Object.entries(airlineMap)
+                .filter(([, pax]) => pax > 0)
+                .sort((a, b) => b[1] - a[1]);
+
+            if (!sorted.length) {
+                if (empty) empty.classList.remove('d-none');
+                return;
+            }
+
+            const totalPax = sorted.reduce((s, [, p]) => s + p, 0);
+
+            renderAirlinePaxChart(sorted.slice(0, 15), totalPax);
+            renderAirlinePaxTable(sorted, totalPax);
+
+            if (content) content.classList.remove('d-none');
+
+        } catch (err) {
+            console.error('Error fetching airline pax ranking:', err);
+            if (loading) loading.classList.add('d-none');
+            if (empty) {
+                empty.textContent = 'Error al cargar datos de aerolíneas. Verifica que la tabla daily_flights_ops exista y tenga datos.';
+                empty.classList.remove('d-none');
+            }
+        }
+    }
+
+    function renderAirlinePaxChart(sortedTop, totalPax) {
+        const ctx = document.getElementById('chart-airline-annual-pax');
+        if (!ctx) return;
+
+        if (airlinePaxChart) airlinePaxChart.destroy();
+
+        const labels = sortedTop.map(([name]) => name);
+        const values = sortedTop.map(([, pax]) => pax);
+
+        const palette = [
+            '#0d6efd','#198754','#ffc107','#dc3545','#0dcaf0',
+            '#6610f2','#fd7e14','#20c997','#6c757d','#d63384',
+            '#0d3b86','#155724','#856404','#721c24','#055160'
+        ];
+
+        airlinePaxChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Pasajeros',
+                    data: values,
+                    backgroundColor: palette.slice(0, labels.length),
+                    borderRadius: 4,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => {
+                                const pax = ctx.raw;
+                                const pct = ((pax / totalPax) * 100).toFixed(1);
+                                return ` ${pax.toLocaleString('es-MX')} pax (${pct}%)`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: val =>
+                                val >= 1000000 ? (val / 1000000).toFixed(1) + 'M' :
+                                val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val
+                        }
+                    },
+                    y: { ticks: { font: { size: 11 } } }
+                }
+            }
+        });
+    }
+
+    function renderAirlinePaxTable(sorted, totalPax) {
+        const tbody = document.getElementById('tbody-airline-pax');
+        if (!tbody) return;
+
+        const fmt = n => n.toLocaleString('es-MX');
+        const maxPax = sorted[0][1];
+
+        const rows = sorted.map(([name, pax], i) => {
+            const pct = ((pax / totalPax) * 100).toFixed(1);
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : String(i + 1);
+            return `
+                <tr>
+                    <td class="text-center fw-bold">${medal}</td>
+                    <td>${name}</td>
+                    <td class="text-end fw-bold">${fmt(pax)}</td>
+                    <td class="text-end text-muted small">${pct}%</td>
+                </tr>
+            `;
+        }).join('');
+
+        tbody.innerHTML = rows + `
+            <tr class="table-light fw-bold border-top">
+                <td colspan="2">TOTAL</td>
+                <td class="text-end">${fmt(totalPax)}</td>
+                <td class="text-end">100%</td>
+            </tr>
+        `;
     }
 
 })();

@@ -25,9 +25,19 @@
 
         document.body.classList.add('viewer-restricted');
         
-        const allowed = permissions?.allowed_sections || [];
+        const baseAllowed = permissions?.allowed_sections || [];
+
+        // If allowed_sections is empty/not configured, treat as "no restrictions" (show all sections)
+        if (baseAllowed.length === 0) {
+            console.log('Viewer Permissions: no allowed_sections configured — showing all sections.');
+            return;
+        }
+
+        // Always include core sections accessible to all authenticated viewers
+        const alwaysVisible = ['conciliacion', 'historia', 'biblioteca'];
+        const allowed = [...new Set([...baseAllowed, ...alwaysVisible])];
         
-        console.log('Appying Viewer Permissions:', allowed);
+        console.log('Applying Viewer Permissions:', allowed);
 
         menuItems.forEach(item => {
             const section = item.dataset.section;

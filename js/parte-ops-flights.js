@@ -75,35 +75,6 @@
         '[Dep] ATTT': 'col-cvs-dep-attt'
     };
 
-    // Flight Service Type catalog — code → { categoria, tipoOp, descripcion }
-    const FLIGHT_SERVICE_TYPES = {
-        'A': { categoria: 'Vuelos adicionales', tipoOp: 'Carga, Correo',              descripcion: 'Carga/Correo' },
-        'B': { categoria: 'Vuelos adicionales', tipoOp: 'Pasajeros',                   descripcion: 'Modo Compartido' },
-        'C': { categoria: 'Fletamento',          tipoOp: 'Pasajeros',                   descripcion: 'Solo Pasajeros' },
-        'D': { categoria: 'Otros',               tipoOp: 'Sin especificar',             descripcion: 'Aviación General' },
-        'E': { categoria: 'Otros',               tipoOp: 'Sin especificar',             descripcion: 'Especial (Gubernamentales)' },
-        'F': { categoria: 'Regular',             tipoOp: 'Carga, Correo',              descripcion: 'Servicio Normal' },
-        'G': { categoria: 'Vuelos adicionales', tipoOp: 'Pasajeros',                   descripcion: 'Servicio Normal' },
-        'H': { categoria: 'Fletamento',          tipoOp: 'Carga, Correo',              descripcion: 'Carga y/o Correo' },
-        'I': { categoria: 'Otros',               tipoOp: 'Sin especificar',             descripcion: 'Estatal / Diplomático / Ambulancia Aérea' },
-        'J': { categoria: 'Regular',             tipoOp: 'Pasajeros',                   descripcion: 'Servicio Normal' },
-        'K': { categoria: 'Otros',               tipoOp: 'Sin especificar',             descripcion: 'Entrenamiento (Escuela / Vuelo de Verificación)' },
-        'L': { categoria: 'Fletamento',          tipoOp: 'Pasajeros, Carga, Correo',   descripcion: 'Pasajeros y Carga y/o Correo' },
-        'M': { categoria: 'Regular',             tipoOp: 'Carga, Correo',              descripcion: 'Solo Correo' },
-        'N': { categoria: 'Otros',               tipoOp: 'Sin especificar',             descripcion: 'Aviación Ejecutiva / Taxi Aéreo' },
-        'O': { categoria: 'Fletamento',          tipoOp: 'Manejo Especial',             descripcion: 'Manejo Especial (Migrantes/Inmigrantes)' },
-        'P': { categoria: 'Otros',               tipoOp: 'Sin especificar',             descripcion: 'Sin ganancia — Posicionamiento / Ferry / Entrega / Demo' },
-        'Q': { categoria: 'Regular',             tipoOp: 'Pasajeros, Carga',           descripcion: 'Pasajeros y Carga en Cabina (configuración mixta)' },
-        'R': { categoria: 'Vuelos adicionales', tipoOp: 'Pasajeros, Carga',           descripcion: 'Pasajeros/Carga en Cabina (configuración mixta)' },
-        'S': { categoria: 'Regular',             tipoOp: 'Pasajeros',                   descripcion: 'Modo Compartido' },
-        'T': { categoria: 'Otros',               tipoOp: 'Sin especificar',             descripcion: 'Vuelos de Prueba' },
-        'U': { categoria: 'Regular',             tipoOp: 'Pasajeros',                   descripcion: 'Servicio operado por vehículo en plataforma' },
-        'V': { categoria: 'Regular',             tipoOp: 'Carga, Correo',              descripcion: 'Servicio operado por vehículo en plataforma' },
-        'W': { categoria: 'Otros',               tipoOp: 'Sin especificar',             descripcion: 'Militar' },
-        'X': { categoria: 'Otros',               tipoOp: 'Sin especificar',             descripcion: 'Escala Técnica' }
-    };
-    const SERVICE_TYPE_FIELDS = new Set(['[Arr] Service Type', '[Dep] Service Type']);
-
     let currentData = [];
     let columnFilters = {};
     let csvExcelFilters = {}; // field -> Set<string> of allowed values; absent key = no filter
@@ -623,11 +594,6 @@
                 }
                 if (h === 'Status') {
                     return `<td class="csv-status ${statusClass} ${colClass}" style="${displayStyle}">${content}</td>`;
-                }
-                if (h === '[Arr] Service Type' || h === '[Dep] Service Type') {
-                    const svc = content ? FLIGHT_SERVICE_TYPES[content.toUpperCase()] : null;
-                    const tipTitle = svc ? `${content} — ${svc.descripcion}\n${svc.categoria} · ${svc.tipoOp}` : content;
-                    return `<td class="${colClass} fw-semibold" style="${displayStyle}" title="${escapeHtml(tipTitle)}">${content}</td>`;
                 }
                 return `<td class="${colClass}" style="${displayStyle}">${content}</td>`;
             }).join('');
@@ -1149,13 +1115,11 @@
         document.body.appendChild(menu);
 
         // Position
-        const isServiceType = SERVICE_TYPE_FIELDS.has(field);
-        const dropdownWidth = isServiceType ? 320 : 240;
         let left = rect.left;
-        if (left + dropdownWidth > window.innerWidth) left = window.innerWidth - dropdownWidth - 10;
+        if (left + 240 > window.innerWidth) left = window.innerWidth - 250;
         menu.style.cssText = `position:fixed;top:${rect.bottom + 4}px;left:${left}px;z-index:99999;` +
             `background:#fff;border:1px solid #ddd;box-shadow:0 4px 14px rgba(0,0,0,.18);` +
-            `width:${dropdownWidth}px;border-radius:6px;padding:10px;font-size:.84rem;`;
+            `width:240px;border-radius:6px;padding:10px;font-size:.84rem;`;
 
         // Build value list from date-filtered data so only relevant options appear
         const dateRef = getReferenceDate();
@@ -1170,20 +1134,13 @@
                 <a href="#" class="text-decoration-none text-primary" id="csv-ef-all">Seleccionar todo</a>
                 <a href="#" class="text-decoration-none text-danger" id="csv-ef-none">Borrar filtro</a>
             </div>
-            <div style="max-height:220px;overflow-y:auto;border:1px solid #eee;border-radius:4px;padding:4px;margin-bottom:10px;background:#f8f9fa;" id="csv-ef-list">
+            <div style="max-height:200px;overflow-y:auto;border:1px solid #eee;border-radius:4px;padding:4px;margin-bottom:10px;background:#f8f9fa;" id="csv-ef-list">
                 ${values.map((v, i) => {
                     const checked = !activeSet || activeSet.has(v);
-                    const svc = isServiceType && v ? FLIGHT_SERVICE_TYPES[v.toUpperCase()] : null;
-                    const displayLabel = v === '' ? '(Vac\u00edo)' : v;
-                    const labelHtml = svc
-                        ? `<span class="csv-ef-svc-code">${displayLabel}</span><span class="csv-ef-svc-desc">${svc.descripcion}</span>`
-                        : displayLabel;
-                    const titleAttr = svc
-                        ? `${v} — ${svc.descripcion} · ${svc.categoria} · ${svc.tipoOp}`
-                        : 'Clic: solo este valor';
-                    return `<div class="csv-ef-item${svc ? ' csv-ef-item-svc' : ''}" data-value="${v.replace(/"/g, '&quot;')}">
+                    const label = v === '' ? '(Vac\u00edo)' : v;
+                    return `<div class="csv-ef-item" data-value="${v.replace(/"/g, '&quot;')}">
                         <input class="form-check-input csv-ef-chk" type="checkbox" id="csv-ef-${i}" value="${v.replace(/"/g, '&quot;')}" ${checked ? 'checked' : ''}>
-                        <label class="csv-ef-label" data-value="${v.replace(/"/g, '&quot;')}" title="${titleAttr}">${labelHtml}</label>
+                        <label class="csv-ef-label" data-value="${v.replace(/"/g, '&quot;')}" title="Clic: solo este valor">${label}</label>
                     </div>`;
                 }).join('')}
             </div>
