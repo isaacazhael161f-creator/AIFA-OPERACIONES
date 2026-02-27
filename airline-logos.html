@@ -40,6 +40,15 @@
     .modal-header{background:linear-gradient(135deg,#0d47a1,#1565c0);color:#fff}
     .modal-header .btn-close{filter:invert(1)}
     #loadingOverlay{position:fixed;inset:0;background:rgba(255,255,255,.8);z-index:9999;display:flex;align-items:center;justify-content:center}
+    /* toolbar */
+    .toolbar-search{max-width:240px}
+    .sort-select{width:160px}
+    /* modal form */
+    .input-uppercase{text-transform:uppercase}
+    .drop-hint{font-size:.7rem}
+    .progress-slim{height:6px}
+    .progress-bar-init{width:0%}
+    .logo-preview-box{background:#f8f9fa;border:1px dashed #dee2e6;min-height:75px}
   </style>
 </head>
 <body>
@@ -73,9 +82,9 @@
 </div>
 
 <div class="toolbar d-flex flex-wrap gap-2 align-items-center">
-  <div class="input-group input-group-sm" style="max-width:240px">
+  <div class="input-group input-group-sm toolbar-search">
     <span class="input-group-text"><i class="fas fa-search text-muted"></i></span>
-    <input type="text" class="form-control" id="searchInput" placeholder="Nombre, IATA..." oninput="applyFilters()">
+    <input type="text" class="form-control" id="searchInput" placeholder="Nombre, IATA..." aria-label="Buscar aerolínea" oninput="applyFilters()">
   </div>
   <div class="btn-group btn-group-sm">
     <button class="btn btn-outline-secondary filter-btn active" data-f="all"          onclick="setFilter('all',this)">Todas</button>
@@ -89,7 +98,7 @@
     <button class="btn btn-outline-warning   filter-btn"        data-l="gstatic" onclick="setLogoFilter('gstatic',this)">IATA</button>
     <button class="btn btn-outline-danger    filter-btn"        data-l="none"    onclick="setLogoFilter('none',this)">Sin logo</button>
   </div>
-  <select class="form-select form-select-sm" style="width:160px" onchange="sortBy(this.value)">
+  <select class="form-select form-select-sm sort-select" aria-label="Ordenar aerolíneas" onchange="sortBy(this.value)">
     <option value="name">A-Z Nombre</option>
     <option value="iata">Codigo IATA</option>
   </select>
@@ -109,25 +118,25 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="modalTitle"><i class="fas fa-plane me-2"></i>Aerolinea</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body">
         <div class="row g-3">
           <div class="col-md-5">
-            <label class="form-label small fw-semibold">Nombre *</label>
-            <input type="text" class="form-control form-control-sm" id="f-name">
+            <label class="form-label small fw-semibold" for="f-name">Nombre *</label>
+            <input type="text" class="form-control form-control-sm" id="f-name" placeholder="Ej. Aeroméxico">
           </div>
           <div class="col-md-2">
-            <label class="form-label small fw-semibold">IATA</label>
-            <input type="text" class="form-control form-control-sm" id="f-iata" maxlength="3" style="text-transform:uppercase">
+            <label class="form-label small fw-semibold" for="f-iata">IATA</label>
+            <input type="text" class="form-control form-control-sm input-uppercase" id="f-iata" maxlength="3" placeholder="AM">
           </div>
           <div class="col-md-2">
-            <label class="form-label small fw-semibold">ICAO</label>
-            <input type="text" class="form-control form-control-sm" id="f-icao" maxlength="4" style="text-transform:uppercase">
+            <label class="form-label small fw-semibold" for="f-icao">ICAO</label>
+            <input type="text" class="form-control form-control-sm input-uppercase" id="f-icao" maxlength="4" placeholder="AMX">
           </div>
           <div class="col-md-1">
-            <label class="form-label small fw-semibold">Color</label>
-            <input type="color" class="form-control form-control-sm form-control-color w-100" id="f-color" value="#0d6efd">
+            <label class="form-label small fw-semibold" for="f-color">Color</label>
+            <input type="color" class="form-control form-control-sm form-control-color w-100" id="f-color" value="#0d6efd" title="Color de la aerolínea" aria-label="Color de la aerolínea">
           </div>
           <div class="col-md-2">
             <label class="form-label small fw-semibold">Tipos</label>
@@ -139,8 +148,8 @@
             </div>
           </div>
           <div class="col-md-6">
-            <label class="form-label small fw-semibold">Aliases (uno por linea)</label>
-            <textarea class="form-control form-control-sm" id="f-aliases" rows="3"></textarea>
+            <label class="form-label small fw-semibold" for="f-aliases">Aliases (uno por linea)</label>
+            <textarea class="form-control form-control-sm" id="f-aliases" rows="3" placeholder="aeromexico&#10;aermex"></textarea>
           </div>
           <div class="col-md-6">
             <label class="form-label small fw-semibold">Logo (Supabase Storage)</label>
@@ -148,16 +157,16 @@
               ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
               <input type="file" id="f-file" accept="image/png,image/jpeg,image/svg+xml,image/webp" onchange="onFileSelected(event)">
               <i class="fas fa-upload fa-lg text-muted mb-1 d-block"></i>
-              <div class="small text-muted" id="dropText">Arrastra una imagen o haz clic<br><span style="font-size:.7rem">PNG,JPG,SVG,WebP max 2MB</span></div>
+              <div class="small text-muted" id="dropText">Arrastra una imagen o haz clic<br><span class="drop-hint">PNG,JPG,SVG,WebP max 2MB</span></div>
             </div>
             <div class="mt-2 align-items-center gap-2 d-none" id="uploadProgress">
-              <div class="progress" style="height:6px"><div class="progress-bar progress-bar-striped progress-bar-animated" id="uploadBar" style="width:0%"></div></div>
+              <div class="progress progress-slim"><div class="progress-bar progress-bar-striped progress-bar-animated progress-bar-init" id="uploadBar"></div></div>
               <span class="small text-muted" id="uploadPct">0%</span>
             </div>
           </div>
           <div class="col-12">
             <label class="form-label small fw-semibold">Vista previa</label>
-            <div class="d-flex align-items-center gap-3 p-3 rounded" style="background:#f8f9fa;border:1px dashed #dee2e6;min-height:75px" id="logoPreview">
+            <div class="d-flex align-items-center gap-3 p-3 rounded logo-preview-box" id="logoPreview">
               <span class="text-muted small">Sube un logo para ver la vista previa</span>
             </div>
           </div>
