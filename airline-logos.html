@@ -1,544 +1,410 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Base de Datos de Logos · AIFA</title>
+  <title>Logos Aerolineas - Supabase</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <style>
-    :root {
-      --brand: #0d6efd;
-      --brand-dark: #0a58ca;
-    }
-    body { background: #f0f2f8; font-family: 'Segoe UI', sans-serif; }
-
-    /* ── Header ── */
-    .page-header {
-      background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%);
-      color: #fff;
-      padding: 2rem 2rem 1.5rem;
-    }
-    .page-header h1 { font-size: 1.6rem; font-weight: 700; margin: 0; }
-    .page-header p  { margin: .25rem 0 0; opacity: .85; font-size: .9rem; }
-
-    /* ── Stats bar ── */
-    .stats-bar { background: #fff; border-bottom: 1px solid #dee2e6; }
-    .stat-item { text-align: center; padding: .75rem 1.5rem; border-right: 1px solid #e9ecef; }
-    .stat-item:last-child { border-right: none; }
-    .stat-num  { font-size: 1.6rem; font-weight: 700; color: var(--brand); line-height: 1; }
-    .stat-label{ font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: #6c757d; }
-
-    /* ── Toolbar ── */
-    .toolbar { background: #fff; border-bottom: 1px solid #dee2e6; padding: .75rem 1.5rem; }
-
-    /* ── Cards ── */
-    .airline-card {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.06);
-      transition: transform .15s, box-shadow .15s;
-      overflow: hidden;
-      position: relative;
-    }
-    .airline-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.12); }
-
-    .airline-card .card-accent {
-      height: 5px;
-      width: 100%;
-    }
-    .airline-card .card-body-inner {
-      padding: 1rem;
-    }
-    .logo-box {
-      width: 100%;
-      height: 64px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #f8f9fa;
-      border-radius: 8px;
-      margin-bottom: .75rem;
-      border: 1px dashed #dee2e6;
-      overflow: hidden;
-    }
-    .logo-box img {
-      max-height: 52px;
-      max-width: 100%;
-      object-fit: contain;
-    }
-    .logo-box .no-logo {
-      color: #adb5bd;
-      font-size: .75rem;
-      text-align: center;
-    }
-    .logo-box .gstatic-logo {
-      max-height: 40px;
-      border-radius: 4px;
-    }
-
-    .airline-name { font-weight: 700; font-size: .85rem; line-height: 1.2; margin-bottom: .3rem; }
-    .airline-meta { font-size: .72rem; color: #6c757d; }
-
-    .badge-type {
-      font-size: .65rem;
-      padding: .2em .55em;
-      border-radius: 50rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .03em;
-    }
-    .badge-nacional      { background: #d1e7dd; color: #0a3622; }
-    .badge-internacional { background: #cfe2ff; color: #084298; }
-    .badge-carga         { background: #fff3cd; color: #664d03; }
-
-    .iata-badge {
-      display: inline-block;
-      background: #e9ecef;
-      color: #495057;
-      font-family: monospace;
-      font-size: .72rem;
-      font-weight: 700;
-      padding: .1em .45em;
-      border-radius: 4px;
-    }
-    .no-logo-card .logo-box { border-color: #ffc107; background: #fffbeb; }
-    .missing-indicator {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-    }
-    .missing-indicator.ok      { background: #198754; }
-    .missing-indicator.missing { background: #ffc107; }
-    .missing-indicator.none    { background: #dee2e6; }
-
-    /* ── Filter buttons ── */
-    .filter-btn { font-size: .8rem; }
-    .filter-btn.active { background: var(--brand) !important; color: #fff !important; border-color: var(--brand) !important; }
-
-    /* ── Search ── */
-    #searchInput { max-width: 280px; }
-
-    /* ── Empty state ── */
-    #emptyState { display: none; }
-
-    /* ── Add/Edit modal ── */
-    .modal-header { background: linear-gradient(135deg, #0d47a1, #1565c0); color: #fff; }
-    .modal-header .btn-close { filter: invert(1); }
-    .preview-logo { height: 80px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 2px dashed #dee2e6; }
-    .preview-logo img { max-height: 64px; max-width: 100%; object-fit: contain; }
+    body{background:#f0f2f8;font-family:'Segoe UI',sans-serif}
+    .page-header{background:linear-gradient(135deg,#0d47a1,#1565c0);color:#fff;padding:1.5rem 2rem}
+    .page-header h1{font-size:1.5rem;font-weight:700;margin:0}
+    .stats-bar{background:#fff;border-bottom:1px solid #dee2e6}
+    .stat-item{text-align:center;padding:.6rem 1rem;border-right:1px solid #e9ecef}
+    .stat-item:last-child{border-right:none}
+    .stat-num{font-size:1.4rem;font-weight:700;color:#0d6efd;line-height:1}
+    .stat-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:#6c757d}
+    .toolbar{background:#fff;border-bottom:1px solid #dee2e6;padding:.6rem 1.2rem}
+    .airline-card{background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.06);transition:.15s;overflow:hidden;position:relative;cursor:pointer}
+    .airline-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.12)}
+    .card-accent{height:5px;width:100%}
+    .card-body-inner{padding:.8rem}
+    .logo-box{width:100%;height:58px;display:flex;align-items:center;justify-content:center;background:#f8f9fa;border-radius:6px;margin-bottom:.6rem;border:1px dashed #dee2e6;overflow:hidden}
+    .logo-box img{max-height:48px;max-width:100%;object-fit:contain}
+    .airline-name{font-weight:700;font-size:.8rem;line-height:1.2;margin-bottom:.2rem}
+    .iata-badge{display:inline-block;background:#e9ecef;color:#495057;font-family:monospace;font-size:.68rem;font-weight:700;padding:.08em .4em;border-radius:3px}
+    .badge-type{font-size:.6rem;padding:.12em .45em;border-radius:50rem;font-weight:600;text-transform:uppercase}
+    .badge-nacional{background:#d1e7dd;color:#0a3622}
+    .badge-internacional{background:#cfe2ff;color:#084298}
+    .badge-carga{background:#fff3cd;color:#664d03}
+    .badge-pasajeros{background:#f3e8ff;color:#5b00a0}
+    .dot{position:absolute;top:7px;right:7px;width:9px;height:9px;border-radius:50%}
+    .dot-storage{background:#0d6efd}
+    .dot-gstatic{background:#ffc107}
+    .dot-none{background:#dee2e6}
+    .drop-zone{border:2px dashed #c5cbe8;border-radius:8px;padding:1.25rem;text-align:center;cursor:pointer;transition:background .2s}
+    .drop-zone.drag-over{background:#e8f0fe;border-color:#0d6efd}
+    .drop-zone input[type=file]{display:none}
+    .filter-btn.active{background:#0d6efd!important;color:#fff!important;border-color:#0d6efd!important}
+    .modal-header{background:linear-gradient(135deg,#0d47a1,#1565c0);color:#fff}
+    .modal-header .btn-close{filter:invert(1)}
+    #loadingOverlay{position:fixed;inset:0;background:rgba(255,255,255,.8);z-index:9999;display:flex;align-items:center;justify-content:center}
   </style>
 </head>
 <body>
 
-<!-- ══ HEADER ══ -->
-<div class="page-header">
-  <div class="d-flex align-items-center gap-3">
-    <div>
-      <h1><i class="fas fa-database me-2"></i>Base de Datos · Logos de Aerolíneas</h1>
-      <p>Administra los logos, colores y configuración de todas las aerolíneas registradas en AIFA</p>
-    </div>
-    <div class="ms-auto d-flex gap-2">
-      <button class="btn btn-light btn-sm" onclick="exportJSON()">
-        <i class="fas fa-download me-1"></i>Exportar JSON
-      </button>
-      <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
-        <i class="fas fa-plus me-1"></i>Agregar Aerolínea
-      </button>
-    </div>
+<div id="loadingOverlay">
+  <div class="text-center">
+    <div class="spinner-border text-primary mb-2"></div>
+    <div class="small text-muted">Conectando a Supabase...</div>
   </div>
 </div>
 
-<!-- ══ STATS BAR ══ -->
-<div class="stats-bar">
-  <div class="d-flex flex-wrap">
-    <div class="stat-item">
-      <div class="stat-num" id="stat-total">—</div>
-      <div class="stat-label">Total aerolíneas</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num text-success" id="stat-with-logo">—</div>
-      <div class="stat-label">Con logo local</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num text-warning" id="stat-no-logo">—</div>
-      <div class="stat-label">Sin logo local</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num text-primary" id="stat-nacional">—</div>
-      <div class="stat-label">Nacionales</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num text-info" id="stat-internacional">—</div>
-      <div class="stat-label">Internacionales</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num text-secondary" id="stat-carga">—</div>
-      <div class="stat-label">Carga</div>
-    </div>
+<div class="page-header d-flex align-items-center flex-wrap gap-3">
+  <div>
+    <h1><i class="fas fa-database me-2"></i>Logos de Aerolineas</h1>
+    <p class="mb-0 small opacity-75">Supabase · tabla <code>airlines</code> · bucket <code>airline-logos</code></p>
+  </div>
+  <div class="ms-auto d-flex gap-2 flex-wrap">
+    <span class="badge bg-success align-self-center px-3 py-2 d-none" id="connectedBadge"><i class="fas fa-check-circle me-1"></i>Conectado</span>
+    <button class="btn btn-light btn-sm" onclick="reloadFromDB()"><i class="fas fa-sync-alt me-1"></i>Recargar</button>
+    <button class="btn btn-warning btn-sm" onclick="openAddModal()"><i class="fas fa-plus me-1"></i>Agregar</button>
   </div>
 </div>
 
-<!-- ══ TOOLBAR ══ -->
-<div class="toolbar d-flex flex-wrap align-items-center gap-2">
-  <!-- Búsqueda -->
-  <div class="input-group input-group-sm" style="max-width:260px;">
+<div class="stats-bar d-flex flex-wrap">
+  <div class="stat-item"><div class="stat-num" id="stat-total">-</div><div class="stat-label">Total</div></div>
+  <div class="stat-item"><div class="stat-num text-primary" id="stat-storage">-</div><div class="stat-label">En Storage</div></div>
+  <div class="stat-item"><div class="stat-num text-warning" id="stat-gstatic">-</div><div class="stat-label">Logo IATA</div></div>
+  <div class="stat-item"><div class="stat-num text-danger" id="stat-nologo">-</div><div class="stat-label">Sin logo</div></div>
+  <div class="stat-item"><div class="stat-num" id="stat-nac">-</div><div class="stat-label">Nacionales</div></div>
+  <div class="stat-item"><div class="stat-num text-info" id="stat-int">-</div><div class="stat-label">Internacionales</div></div>
+</div>
+
+<div class="toolbar d-flex flex-wrap gap-2 align-items-center">
+  <div class="input-group input-group-sm" style="max-width:240px">
     <span class="input-group-text"><i class="fas fa-search text-muted"></i></span>
-    <input type="text" class="form-control" id="searchInput" placeholder="Buscar aerolínea, IATA…" oninput="applyFilters()">
+    <input type="text" class="form-control" id="searchInput" placeholder="Nombre, IATA..." oninput="applyFilters()">
   </div>
-
-  <!-- Filtros tipo -->
-  <div class="btn-group btn-group-sm" role="group">
-    <button class="btn btn-outline-secondary filter-btn active" data-filter="all"       onclick="setFilter('all', this)">Todas</button>
-    <button class="btn btn-outline-secondary filter-btn"        data-filter="nacional"    onclick="setFilter('nacional', this)"><i class="fas fa-flag me-1"></i>Nacional</button>
-    <button class="btn btn-outline-secondary filter-btn"        data-filter="internacional" onclick="setFilter('internacional', this)"><i class="fas fa-globe me-1"></i>Internacional</button>
-    <button class="btn btn-outline-secondary filter-btn"        data-filter="carga"       onclick="setFilter('carga', this)"><i class="fas fa-box me-1"></i>Carga</button>
+  <div class="btn-group btn-group-sm">
+    <button class="btn btn-outline-secondary filter-btn active" data-f="all"          onclick="setFilter('all',this)">Todas</button>
+    <button class="btn btn-outline-secondary filter-btn"        data-f="nacional"      onclick="setFilter('nacional',this)">Nacional</button>
+    <button class="btn btn-outline-secondary filter-btn"        data-f="internacional" onclick="setFilter('internacional',this)">Internacional</button>
+    <button class="btn btn-outline-secondary filter-btn"        data-f="carga"         onclick="setFilter('carga',this)">Carga</button>
   </div>
-
-  <!-- Filtro logos -->
-  <div class="btn-group btn-group-sm" role="group">
-    <button class="btn btn-outline-secondary filter-btn active" data-logo="all"     onclick="setLogoFilter('all', this)">Todos</button>
-    <button class="btn btn-outline-success  filter-btn"         data-logo="has"     onclick="setLogoFilter('has', this)"><i class="fas fa-image me-1"></i>Con logo</button>
-    <button class="btn btn-outline-warning  filter-btn"         data-logo="missing" onclick="setLogoFilter('missing', this)"><i class="fas fa-exclamation-triangle me-1"></i>Sin logo</button>
+  <div class="btn-group btn-group-sm">
+    <button class="btn btn-outline-secondary filter-btn active" data-l="all"     onclick="setLogoFilter('all',this)">Todos</button>
+    <button class="btn btn-outline-primary   filter-btn"        data-l="storage" onclick="setLogoFilter('storage',this)"><i class="fas fa-cloud me-1"></i>Storage</button>
+    <button class="btn btn-outline-warning   filter-btn"        data-l="gstatic" onclick="setLogoFilter('gstatic',this)">IATA</button>
+    <button class="btn btn-outline-danger    filter-btn"        data-l="none"    onclick="setLogoFilter('none',this)">Sin logo</button>
   </div>
-
-  <!-- Ordenar -->
-  <select class="form-select form-select-sm" style="width:160px;" onchange="sortBy(this.value)">
-    <option value="name">Ordenar: A-Z</option>
-    <option value="iata">Ordenar: IATA</option>
-    <option value="type">Ordenar: Tipo</option>
+  <select class="form-select form-select-sm" style="width:160px" onchange="sortBy(this.value)">
+    <option value="name">A-Z Nombre</option>
+    <option value="iata">Codigo IATA</option>
   </select>
-
-  <span class="ms-auto text-muted small" id="resultCount"></span>
+  <span class="ms-auto small text-muted" id="resultCount"></span>
 </div>
 
-<!-- ══ GRID ══ -->
 <div class="p-3">
   <div class="row g-3" id="airlinesGrid"></div>
-  <div id="emptyState" class="text-center py-5 text-muted">
-    <i class="fas fa-search fa-3x mb-3 opacity-25"></i>
-    <p>No se encontraron aerolíneas con esos criterios.</p>
+  <div id="emptyState" class="text-center py-5 text-muted d-none">
+    <i class="fas fa-search fa-3x mb-3 opacity-25"></i><p>Sin resultados.</p>
   </div>
 </div>
 
-<!-- ══ MODAL: AGREGAR AEROLÍNEA ══ -->
-<div class="modal fade" id="addModal" tabindex="-1">
+<!-- MODAL -->
+<div class="modal fade" id="airlineModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Agregar / Editar Aerolínea</h5>
+        <h5 class="modal-title" id="modalTitle"><i class="fas fa-plane me-2"></i>Aerolinea</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label small fw-semibold">Nombre oficial</label>
-            <input type="text" class="form-control form-control-sm" id="f-name" placeholder="Ej: Aeroméxico">
+          <div class="col-md-5">
+            <label class="form-label small fw-semibold">Nombre *</label>
+            <input type="text" class="form-control form-control-sm" id="f-name">
           </div>
-          <div class="col-md-3">
-            <label class="form-label small fw-semibold">Código IATA</label>
-            <input type="text" class="form-control form-control-sm" id="f-iata" placeholder="AM" maxlength="3">
+          <div class="col-md-2">
+            <label class="form-label small fw-semibold">IATA</label>
+            <input type="text" class="form-control form-control-sm" id="f-iata" maxlength="3" style="text-transform:uppercase">
           </div>
-          <div class="col-md-3">
-            <label class="form-label small fw-semibold">Código ICAO</label>
-            <input type="text" class="form-control form-control-sm" id="f-icao" placeholder="AMX" maxlength="4">
+          <div class="col-md-2">
+            <label class="form-label small fw-semibold">ICAO</label>
+            <input type="text" class="form-control form-control-sm" id="f-icao" maxlength="4" style="text-transform:uppercase">
           </div>
-          <div class="col-md-6">
-            <label class="form-label small fw-semibold">Archivo de logo (en images/airlines/)</label>
-            <input type="text" class="form-control form-control-sm" id="f-logo" placeholder="logo_aeromexico.png" oninput="previewLogoModal()">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label small fw-semibold">Color primario</label>
+          <div class="col-md-1">
+            <label class="form-label small fw-semibold">Color</label>
             <input type="color" class="form-control form-control-sm form-control-color w-100" id="f-color" value="#0d6efd">
           </div>
-          <div class="col-md-3">
-            <label class="form-label small fw-semibold">Color texto</label>
-            <input type="color" class="form-control form-control-sm form-control-color w-100" id="f-textColor" value="#ffffff">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label small fw-semibold">Tipo (selecciona todos los que apliquen)</label>
-            <div class="d-flex gap-2 flex-wrap mt-1">
-              <div class="form-check"><input class="form-check-input" type="checkbox" id="f-t-nac"  value="nacional"><label class="form-check-label small" for="f-t-nac">Nacional</label></div>
-              <div class="form-check"><input class="form-check-input" type="checkbox" id="f-t-int"  value="internacional"><label class="form-check-label small" for="f-t-int">Internacional</label></div>
-              <div class="form-check"><input class="form-check-input" type="checkbox" id="f-t-car"  value="carga"><label class="form-check-label small" for="f-t-car">Carga</label></div>
-              <div class="form-check"><input class="form-check-input" type="checkbox" id="f-t-pax"  value="pasajeros"><label class="form-check-label small" for="f-t-pax">Pasajeros</label></div>
+          <div class="col-md-2">
+            <label class="form-label small fw-semibold">Tipos</label>
+            <div class="d-flex flex-column gap-1 mt-1">
+              <div class="form-check form-check-sm"><input class="form-check-input" type="checkbox" id="f-nac" value="nacional"><label class="form-check-label small" for="f-nac">Nacional</label></div>
+              <div class="form-check form-check-sm"><input class="form-check-input" type="checkbox" id="f-int" value="internacional"><label class="form-check-label small" for="f-int">Internacional</label></div>
+              <div class="form-check form-check-sm"><input class="form-check-input" type="checkbox" id="f-car" value="carga"><label class="form-check-label small" for="f-car">Carga</label></div>
+              <div class="form-check form-check-sm"><input class="form-check-input" type="checkbox" id="f-pax" value="pasajeros"><label class="form-check-label small" for="f-pax">Pasajeros</label></div>
             </div>
           </div>
           <div class="col-md-6">
-            <label class="form-label small fw-semibold">Aliases (uno por línea)</label>
-            <textarea class="form-control form-control-sm" id="f-aliases" rows="3" placeholder="aeromexico&#10;aeroméxico&#10;aeromexico connect"></textarea>
+            <label class="form-label small fw-semibold">Aliases (uno por linea)</label>
+            <textarea class="form-control form-control-sm" id="f-aliases" rows="3"></textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Logo (Supabase Storage)</label>
+            <div class="drop-zone" id="dropZone" onclick="document.getElementById('f-file').click()"
+              ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+              <input type="file" id="f-file" accept="image/png,image/jpeg,image/svg+xml,image/webp" onchange="onFileSelected(event)">
+              <i class="fas fa-upload fa-lg text-muted mb-1 d-block"></i>
+              <div class="small text-muted" id="dropText">Arrastra una imagen o haz clic<br><span style="font-size:.7rem">PNG,JPG,SVG,WebP max 2MB</span></div>
+            </div>
+            <div class="mt-2 align-items-center gap-2 d-none" id="uploadProgress">
+              <div class="progress" style="height:6px"><div class="progress-bar progress-bar-striped progress-bar-animated" id="uploadBar" style="width:0%"></div></div>
+              <span class="small text-muted" id="uploadPct">0%</span>
+            </div>
           </div>
           <div class="col-12">
-            <label class="form-label small fw-semibold">Vista previa del logo</label>
-            <div class="preview-logo" id="logoPreviewModal">
-              <span class="text-muted small">Ingresa el nombre del archivo para ver la vista previa</span>
+            <label class="form-label small fw-semibold">Vista previa</label>
+            <div class="d-flex align-items-center gap-3 p-3 rounded" style="background:#f8f9fa;border:1px dashed #dee2e6;min-height:75px" id="logoPreview">
+              <span class="text-muted small">Sube un logo para ver la vista previa</span>
             </div>
           </div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-primary btn-sm" onclick="saveAirline()">
-          <i class="fas fa-save me-1"></i>Guardar en JSON
-        </button>
+      <div class="modal-footer justify-content-between">
+        <button class="btn btn-outline-danger btn-sm d-none" id="btnDelete" onclick="deleteAirline()"><i class="fas fa-trash me-1"></i>Eliminar</button>
+        <div class="d-flex gap-2">
+          <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-primary btn-sm" onclick="saveAirline()"><i class="fas fa-save me-1"></i>Guardar</button>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ══ MODAL: DETALLE ══ -->
-<div class="modal fade" id="detailModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header" id="detailHeader">
-        <h5 class="modal-title" id="detailTitle">Aerolínea</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter:invert(1)"></button>
-      </div>
-      <div class="modal-body" id="detailBody"></div>
-      <div class="modal-footer">
-        <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-const LOGO_PATH  = 'images/airlines/';
-const GSTATIC    = 'https://www.gstatic.com/flights/airline_logos/70px/';
-const DATA_FILE  = 'data/airlines.json';
+const BUCKET  = 'airline-logos';
+const TABLE   = 'airlines';
+const GURL    = function(iata){ return 'https://www.gstatic.com/flights/airline_logos/70px/' + iata + '.png'; };
 
-let allAirlines  = [];
-let filtered     = [];
-let activeFilter = 'all';
-let logoFilter   = 'all';
-let sortField    = 'name';
+var sb, allAirlines=[], filtered=[], activeFilter='all', logoFilter='all', sortField='name', editingId=null, pendingFile=null;
 
-/* ── Load ── */
-fetch(DATA_FILE + '?v=' + Date.now())
-  .then(r => r.json())
-  .then(data => {
-    allAirlines = data;
-    applyFilters();
-    updateStats();
-  })
-  .catch(e => {
-    document.getElementById('airlinesGrid').innerHTML =
-      `<div class="col-12"><div class="alert alert-danger">Error cargando airlines.json: ${e.message}</div></div>`;
-  });
+document.addEventListener('DOMContentLoaded', async function(){
+  try {
+    sb = window.supabaseClient;
+    if (!sb) throw new Error('supabaseClient no disponible. Verifica js/supabase-client.js');
+    document.getElementById('connectedBadge').classList.remove('d-none');
+    await reloadFromDB();
+  } catch(e){
+    hideLoading();
+    document.getElementById('airlinesGrid').innerHTML = '<div class="col-12"><div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>' + e.message + '</div></div>';
+  }
+});
 
-/* ── Stats ── */
-function updateStats() {
-  const withLogo = allAirlines.filter(a => a.logo).length;
-  document.getElementById('stat-total').textContent        = allAirlines.length;
-  document.getElementById('stat-with-logo').textContent    = withLogo;
-  document.getElementById('stat-no-logo').textContent      = allAirlines.length - withLogo;
-  document.getElementById('stat-nacional').textContent     = allAirlines.filter(a => a.type?.includes('nacional')).length;
-  document.getElementById('stat-internacional').textContent= allAirlines.filter(a => a.type?.includes('internacional')).length;
-  document.getElementById('stat-carga').textContent        = allAirlines.filter(a => a.type?.includes('carga')).length;
+async function reloadFromDB(){
+  showLoading();
+  var res = await sb.from(TABLE).select('*').order('name');
+  hideLoading();
+  if (res.error){ showError('Error: ' + res.error.message); return; }
+  allAirlines = res.data || [];
+  updateStats();
+  applyFilters();
 }
 
-/* ── Filters ── */
-function setFilter(f, btn) {
+function updateStats(){
+  var wS = allAirlines.filter(function(a){ return !!a.logo_url; }).length;
+  var wG = allAirlines.filter(function(a){ return !a.logo_url && !!a.iata; }).length;
+  var wN = allAirlines.filter(function(a){ return !a.logo_url && !a.iata; }).length;
+  setEl('stat-total',   allAirlines.length);
+  setEl('stat-storage', wS);
+  setEl('stat-gstatic', wG);
+  setEl('stat-nologo',  wN);
+  setEl('stat-nac', allAirlines.filter(function(a){ return (a.types||[]).includes('nacional'); }).length);
+  setEl('stat-int', allAirlines.filter(function(a){ return (a.types||[]).includes('internacional'); }).length);
+}
+function setEl(id,v){ document.getElementById(id).textContent = v; }
+
+function setFilter(f,btn){
   activeFilter = f;
-  document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  applyFilters();
+  document.querySelectorAll('[data-f]').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active'); applyFilters();
 }
-function setLogoFilter(f, btn) {
+function setLogoFilter(f,btn){
   logoFilter = f;
-  document.querySelectorAll('[data-logo]').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  applyFilters();
+  document.querySelectorAll('[data-l]').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active'); applyFilters();
 }
-function sortBy(field) {
-  sortField = field;
-  applyFilters();
-}
-function applyFilters() {
-  const q = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
-  filtered = allAirlines.filter(a => {
-    if (activeFilter !== 'all' && !a.type?.includes(activeFilter)) return false;
-    if (logoFilter === 'has'     && !a.logo) return false;
-    if (logoFilter === 'missing' && a.logo)  return false;
-    if (q) {
-      const hay = [a.name, a.iata, a.icao, ...(a.aliases || [])].join(' ').toLowerCase();
+function sortBy(f){ sortField=f; applyFilters(); }
+
+function logoType(a){ return a.logo_url ? 'storage' : (a.iata ? 'gstatic' : 'none'); }
+
+function applyFilters(){
+  var q = (document.getElementById('searchInput').value||'').toLowerCase().trim();
+  filtered = allAirlines.filter(function(a){
+    if (activeFilter!=='all' && !(a.types||[]).includes(activeFilter)) return false;
+    if (logoFilter!=='all'   && logoType(a)!==logoFilter)              return false;
+    if (q){
+      var hay = [a.name,a.iata,a.icao].concat(a.aliases||[]).join(' ').toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;
   });
-
-  // Sort
-  filtered.sort((a, b) => {
-    if (sortField === 'iata') return (a.iata || 'ZZZ').localeCompare(b.iata || 'ZZZ');
-    if (sortField === 'type') return (a.type?.[0] || '').localeCompare(b.type?.[0] || '');
-    return a.name.localeCompare(b.name, 'es');
-  });
-
+  filtered.sort(function(a,b){ return sortField==='iata' ? (a.iata||'ZZZ').localeCompare(b.iata||'ZZZ') : a.name.localeCompare(b.name,'es'); });
   renderGrid();
-  document.getElementById('resultCount').textContent = `${filtered.length} aerolíneas`;
+  setEl('resultCount', filtered.length + ' aerolineas');
 }
 
-/* ── Render ── */
-function renderGrid() {
-  const grid = document.getElementById('airlinesGrid');
-  const empty = document.getElementById('emptyState');
-  if (filtered.length === 0) {
-    grid.innerHTML = '';
-    empty.style.display = 'block';
-    return;
-  }
-  empty.style.display = 'none';
-  grid.innerHTML = filtered.map(a => cardHTML(a)).join('');
+function renderGrid(){
+  var grid = document.getElementById('airlinesGrid');
+  var empty = document.getElementById('emptyState');
+  if (!filtered.length){ grid.innerHTML=''; empty.classList.remove('d-none'); return; }
+  empty.classList.add('d-none');
+  grid.innerHTML = filtered.map(cardHTML).join('');
 }
 
-function cardHTML(a) {
-  const color = a.color || '#0d6efd';
-  const hasLogo = !!a.logo;
-  const iataCode = a.iata || '';
-
-  let logoContent;
-  if (hasLogo) {
-    logoContent = `<img src="${LOGO_PATH}${a.logo}" alt="${a.name}"
-      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-      <div class="no-logo" style="display:none">
-        ${iataCode ? `<img src="${GSTATIC}${iataCode}.png" class="gstatic-logo" onerror="this.parentElement.innerHTML='<span>Sin logo</span>'">` : '<span>Sin logo</span>'}
-      </div>`;
-  } else if (iataCode) {
-    logoContent = `<img src="${GSTATIC}${iataCode}.png" class="gstatic-logo"
-      onerror="this.parentElement.innerHTML='<div class=\\'no-logo\\'><i class=\\'fas fa-plane\\'></i><br>Sin logo</div>'">`;
-  } else {
-    logoContent = `<div class="no-logo"><i class="fas fa-plane d-block mb-1"></i>Sin logo</div>`;
-  }
-
-  const types = (a.type || []).map(t => `<span class="badge-type badge-${t}">${t}</span>`).join(' ');
-  const indicatorClass = hasLogo ? 'ok' : (iataCode ? 'missing' : 'none');
-  const indicatorTitle = hasLogo ? 'Logo local disponible' : (iataCode ? 'Usa logo de Google (IATA)' : 'Sin logo');
-
-  return `
-  <div class="col-6 col-sm-4 col-md-3 col-lg-2">
-    <div class="airline-card ${hasLogo ? '' : 'no-logo-card'}" onclick='showDetail(${JSON.stringify(a.id)})' style="cursor:pointer">
-      <div class="card-accent" style="background:${color}"></div>
-      <div class="missing-indicator ${indicatorClass}" title="${indicatorTitle}"></div>
-      <div class="card-body-inner">
-        <div class="logo-box">${logoContent}</div>
-        <div class="airline-name">${a.name}</div>
-        <div class="airline-meta d-flex align-items-center gap-1 mb-1">
-          ${iataCode ? `<span class="iata-badge">${iataCode}</span>` : ''}
-          ${a.icao  ? `<span class="iata-badge" style="background:#e2e8f0">${a.icao}</span>` : ''}
-        </div>
-        <div class="d-flex flex-wrap gap-1">${types}</div>
-      </div>
-    </div>
-  </div>`;
+function logoImgHTML(a){
+  var style='max-height:46px;max-width:100%;object-fit:contain';
+  if (a.logo_url) return '<img src="'+a.logo_url+'" alt="'+a.name+'" style="'+style+'" onerror="this.style.display=\'none\'">';
+  if (a.iata)     return '<img src="'+GURL(a.iata)+'" alt="'+a.name+'" style="'+style+'" onerror="this.parentElement.innerHTML=\'<span style=\\\'font-size:.68rem;color:#adb5bd\\\'>Sin logo</span>\'">';
+  return '<span style="font-size:.68rem;color:#adb5bd"><i class="fas fa-plane d-block"></i>Sin logo</span>';
 }
 
-/* ── Detail modal ── */
-function showDetail(id) {
-  const a = allAirlines.find(x => x.id === id);
+function cardHTML(a){
+  var color = a.color||'#0d6efd';
+  var lt    = logoType(a);
+  var dotC  = {storage:'dot-storage',gstatic:'dot-gstatic',none:'dot-none'}[lt];
+  var dotT  = {storage:'Supabase Storage',gstatic:'Google IATA',none:'Sin logo'}[lt];
+  var types = (a.types||[]).map(function(t){ return '<span class="badge-type badge-'+t+'">'+t+'</span>'; }).join(' ');
+  return '<div class="col-6 col-sm-4 col-md-3 col-lg-2">'+
+    '<div class="airline-card" onclick="openEditModal(\''+a.id+'\')">'+
+      '<div class="card-accent" style="background:'+color+'"></div>'+
+      '<div class="dot '+dotC+'" title="'+dotT+'"></div>'+
+      '<div class="card-body-inner">'+
+        '<div class="logo-box">'+logoImgHTML(a)+'</div>'+
+        '<div class="airline-name">'+a.name+'</div>'+
+        '<div class="d-flex gap-1 mb-1">'+
+          (a.iata?'<span class="iata-badge">'+a.iata+'</span>':'')+
+          (a.icao?'<span class="iata-badge" style="background:#e2e8f0">'+a.icao+'</span>':'')+
+        '</div>'+
+        '<div class="d-flex flex-wrap gap-1">'+types+'</div>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+}
+
+function openAddModal(){
+  editingId=null; pendingFile=null;
+  document.getElementById('modalTitle').innerHTML='<i class="fas fa-plus me-2"></i>Agregar Aerolinea';
+  document.getElementById('btnDelete').classList.add('d-none');
+  clearForm();
+  document.getElementById('logoPreview').innerHTML='<span class="text-muted small">Sube un logo para ver la vista previa</span>';
+  new bootstrap.Modal(document.getElementById('airlineModal')).show();
+}
+function openEditModal(id){
+  var a = allAirlines.find(function(x){ return x.id===id; });
   if (!a) return;
-  const color = a.color || '#0d6efd';
-  const header = document.getElementById('detailHeader');
-  const title  = document.getElementById('detailTitle');
-  const body   = document.getElementById('detailBody');
-
-  header.style.background = `linear-gradient(135deg, ${color}, ${color}cc)`;
-  title.textContent = a.name;
-
-  const types  = (a.type || []).map(t => `<span class="badge-type badge-${t}">${t}</span>`).join(' ');
-  const aliases = (a.aliases || []).map(al => `<code class="small">${al}</code>`).join(', ');
-
-  let logoSection;
-  if (a.logo) {
-    logoSection = `<img src="${LOGO_PATH}${a.logo}" style="max-height:80px;max-width:100%;object-fit:contain" onerror="this.src='${a.iata ? GSTATIC+a.iata+'.png' : ''}'">`;
-  } else if (a.iata) {
-    logoSection = `<img src="${GSTATIC}${a.iata}.png" style="max-height:60px" onerror="this.alt='No disponible'"> <div class="small text-muted mt-1">Logo cargado desde Google (IATA)</div>`;
-  } else {
-    logoSection = `<span class="text-muted small">Sin logo disponible</span>`;
-  }
-
-  body.innerHTML = `
-    <div class="row g-3">
-      <div class="col-5 d-flex align-items-center justify-content-center p-3" style="background:#f8f9fa;border-radius:12px">
-        ${logoSection}
-      </div>
-      <div class="col-7">
-        <table class="table table-sm table-borderless mb-0">
-          <tr><th class="small text-muted ps-0 py-1">Nombre</th><td class="small py-1 fw-semibold">${a.name}</td></tr>
-          <tr><th class="small text-muted ps-0 py-1">IATA</th><td class="py-1">${a.iata ? `<span class="iata-badge">${a.iata}</span>` : '—'}</td></tr>
-          <tr><th class="small text-muted ps-0 py-1">ICAO</th><td class="py-1">${a.icao ? `<span class="iata-badge">${a.icao}</span>` : '—'}</td></tr>
-          <tr><th class="small text-muted ps-0 py-1">Tipo</th><td class="py-1">${types}</td></tr>
-          <tr><th class="small text-muted ps-0 py-1">Logo</th><td class="small py-1">${a.logo || '<span class="text-warning">Sin logo local</span>'}</td></tr>
-          <tr><th class="small text-muted ps-0 py-1">Color</th><td class="py-1"><span style="display:inline-block;width:18px;height:18px;background:${color};border-radius:4px;margin-right:4px;vertical-align:middle"></span><code class="small">${color}</code></td></tr>
-        </table>
-      </div>
-      <div class="col-12">
-        <div class="small text-muted fw-semibold mb-1">Aliases reconocidos</div>
-        <div class="d-flex flex-wrap gap-1">${aliases || '<span class="text-muted small">—</span>'}</div>
-      </div>
-    </div>`;
-
-  new bootstrap.Modal(document.getElementById('detailModal')).show();
+  editingId=id; pendingFile=null;
+  document.getElementById('modalTitle').innerHTML='<i class="fas fa-edit me-2"></i>Editar: '+a.name;
+  document.getElementById('btnDelete').classList.remove('d-none');
+  fillForm(a);
+  new bootstrap.Modal(document.getElementById('airlineModal')).show();
 }
-
-/* ── Add/Edit modal ── */
-function previewLogoModal() {
-  const file = document.getElementById('f-logo').value.trim();
-  const prev = document.getElementById('logoPreviewModal');
-  if (!file) {
-    prev.innerHTML = '<span class="text-muted small">Ingresa el nombre del archivo para ver la vista previa</span>';
-    return;
-  }
-  prev.innerHTML = `<img src="${LOGO_PATH}${file}" style="max-height:64px;max-width:100%;object-fit:contain"
-    onerror="this.parentElement.innerHTML='<span class=\\'text-danger small\\'>Archivo no encontrado: ${file}</span>'">`;
+function clearForm(){
+  ['f-name','f-iata','f-icao','f-aliases'].forEach(function(id){ document.getElementById(id).value=''; });
+  ['f-nac','f-int','f-car','f-pax'].forEach(function(id){ document.getElementById(id).checked=false; });
+  document.getElementById('f-color').value='#0d6efd';
+  document.getElementById('f-file').value='';
+  document.getElementById('dropText').innerHTML='Arrastra una imagen o haz clic<br><span style="font-size:.7rem">PNG,JPG,SVG,WebP max 2MB</span>';
 }
-
-function saveAirline() {
-  const name   = document.getElementById('f-name').value.trim();
-  const iata   = document.getElementById('f-iata').value.trim().toUpperCase();
-  const icao   = document.getElementById('f-icao').value.trim().toUpperCase();
-  const logo   = document.getElementById('f-logo').value.trim();
-  const color  = document.getElementById('f-color').value;
-  const textColor = document.getElementById('f-textColor').value;
-  const types  = ['f-t-nac','f-t-int','f-t-car','f-t-pax']
-    .filter(id => document.getElementById(id).checked)
-    .map(id => document.getElementById(id).value);
-  const aliases = document.getElementById('f-aliases').value.split('\n').map(s => s.trim()).filter(Boolean);
-
-  if (!name) { alert('El nombre es obligatorio.'); return; }
-
-  const entry = {
-    id: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-    name, iata: iata || null, icao: icao || null,
-    type: types, logo: logo || null, color, textColor, aliases
-  };
-
-  allAirlines.push(entry);
-  applyFilters();
-  updateStats();
-
-  // Copiar JSON al portapapeles para que el usuario actualice el archivo
-  const json = JSON.stringify(allAirlines, null, 2);
-  navigator.clipboard.writeText(json).then(() => {
-    bootstrap.Modal.getInstance(document.getElementById('addModal'))?.hide();
-    alert(`✅ Aerolínea "${name}" agregada.\n\nEl JSON completo fue copiado al portapapeles.\nPega el contenido en data/airlines.json para guardar los cambios permanentemente.`);
-  }).catch(() => {
-    alert('Aerolínea agregada en memoria. Usa "Exportar JSON" para guardar los cambios.');
+function fillForm(a){
+  document.getElementById('f-name').value    = a.name||'';
+  document.getElementById('f-iata').value    = a.iata||'';
+  document.getElementById('f-icao').value    = a.icao||'';
+  document.getElementById('f-color').value   = a.color||'#0d6efd';
+  document.getElementById('f-aliases').value = (a.aliases||[]).join('\n');
+  ['f-nac','f-int','f-car','f-pax'].forEach(function(id){
+    document.getElementById(id).checked = (a.types||[]).includes(document.getElementById(id).value);
   });
+  var prev = document.getElementById('logoPreview');
+  if (a.logo_url){
+    prev.innerHTML='<img src="'+a.logo_url+'" style="max-height:65px;object-fit:contain" alt="'+a.name+'"><div class="small ms-2 text-muted">Logo actual<br><span class="text-success"><i class="fas fa-cloud me-1"></i>Supabase Storage</span></div>';
+  } else if (a.iata){
+    prev.innerHTML='<img src="'+GURL(a.iata)+'" style="max-height:48px;object-fit:contain" alt="'+a.name+'"><div class="small ms-2 text-muted">Logo IATA (Google)<br><span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>No esta en Storage</span></div>';
+  } else {
+    prev.innerHTML='<span class="text-muted small">Sin logo - sube uno arriba</span>';
+  }
+  document.getElementById('dropText').innerHTML = a.logo_filename
+    ? '<span class="text-success small"><i class="fas fa-check me-1"></i>'+a.logo_filename+'</span><br><span style="font-size:.7rem" class="text-muted">Haz clic para cambiar</span>'
+    : 'Arrastra una imagen o haz clic<br><span style="font-size:.7rem">PNG,JPG,SVG,WebP max 2MB</span>';
 }
 
-/* ── Export ── */
-function exportJSON() {
-  const blob = new Blob([JSON.stringify(allAirlines, null, 2)], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = 'airlines.json';
-  a.click();
-  URL.revokeObjectURL(url);
+function onDragOver(e){ e.preventDefault(); document.getElementById('dropZone').classList.add('drag-over'); }
+function onDragLeave(){ document.getElementById('dropZone').classList.remove('drag-over'); }
+function onDrop(e){ e.preventDefault(); document.getElementById('dropZone').classList.remove('drag-over'); var f=e.dataTransfer.files[0]; if(f) handleFile(f); }
+function onFileSelected(e){ var f=e.target.files[0]; if(f) handleFile(f); }
+function handleFile(file){
+  if (file.size>2*1024*1024){ alert('El archivo supera 2 MB.'); return; }
+  pendingFile=file;
+  var url=URL.createObjectURL(file);
+  document.getElementById('dropText').innerHTML='<span class="text-success small"><i class="fas fa-check me-1"></i>'+file.name+'</span><br><span style="font-size:.7rem" class="text-muted">Haz clic para cambiar</span>';
+  document.getElementById('logoPreview').innerHTML='<img src="'+url+'" style="max-height:65px;object-fit:contain"><div class="small ms-2 text-muted">Vista previa<br>'+file.name+'</div>';
+}
+
+async function saveAirline(){
+  var name    = document.getElementById('f-name').value.trim();
+  var iata    = document.getElementById('f-iata').value.trim().toUpperCase()||null;
+  var icao    = document.getElementById('f-icao').value.trim().toUpperCase()||null;
+  var color   = document.getElementById('f-color').value;
+  var aliases = document.getElementById('f-aliases').value.split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+  var types   = ['f-nac','f-int','f-car','f-pax'].filter(function(id){ return document.getElementById(id).checked; }).map(function(id){ return document.getElementById(id).value; });
+  if (!name){ alert('Nombre obligatorio.'); return; }
+  var id = editingId || name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  var logo_url=null, logo_filename=null;
+  if (pendingFile){
+    var r=await uploadLogo(pendingFile,id); if(!r) return;
+    logo_url=r.url; logo_filename=r.filename;
+  } else if (editingId){
+    var ex=allAirlines.find(function(a){ return a.id===editingId; });
+    logo_url=ex?ex.logo_url:null; logo_filename=ex?ex.logo_filename:null;
+  }
+  var payload={id,name,iata,icao,color,text_color:'#ffffff',types,aliases,logo_url,logo_filename,active:true};
+  var res = editingId ? await sb.from(TABLE).update(payload).eq('id',editingId) : await sb.from(TABLE).insert(payload);
+  if (res.error){ alert('Error guardando: '+res.error.message); return; }
+  bootstrap.Modal.getInstance(document.getElementById('airlineModal'))?.hide();
+  showToast((editingId?'Actualizada':'Agregada')+': '+name,'success');
+  await reloadFromDB();
+}
+
+async function uploadLogo(file,airlineId){
+  var ext=file.name.split('.').pop(), filename=airlineId+'.'+ext;
+  var progress=document.getElementById('uploadProgress'), bar=document.getElementById('uploadBar'), pct=document.getElementById('uploadPct');
+  progress.classList.remove('d-none'); bar.style.width='30%'; pct.textContent='30%';
+  await sb.storage.from(BUCKET).remove([filename]);
+  bar.style.width='60%'; pct.textContent='60%';
+  var up=await sb.storage.from(BUCKET).upload(filename,file,{upsert:true,contentType:file.type});
+  if(up.error){ progress.classList.add('d-none'); alert('Error subiendo: '+up.error.message); return null; }
+  bar.style.width='100%'; pct.textContent='100%';
+  setTimeout(function(){ progress.classList.add('d-none'); },800);
+  var pub=sb.storage.from(BUCKET).getPublicUrl(filename);
+  return {url:pub.data.publicUrl,filename};
+}
+
+async function deleteAirline(){
+  var a=allAirlines.find(function(x){ return x.id===editingId; });
+  if (!confirm('Eliminar "'+( a?a.name:editingId)+'"? No se puede deshacer.')) return;
+  if (a&&a.logo_filename) await sb.storage.from(BUCKET).remove([a.logo_filename]);
+  var res=await sb.from(TABLE).delete().eq('id',editingId);
+  if (res.error){ alert('Error eliminando: '+res.error.message); return; }
+  bootstrap.Modal.getInstance(document.getElementById('airlineModal'))?.hide();
+  showToast('Aerolinea eliminada.','warning');
+  await reloadFromDB();
+}
+
+function showLoading(){ document.getElementById('loadingOverlay').style.display='flex'; }
+function hideLoading(){ document.getElementById('loadingOverlay').style.display='none'; }
+function showError(msg){ document.getElementById('airlinesGrid').innerHTML='<div class="col-12"><div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>'+msg+'</div></div>'; }
+function showToast(msg,type){
+  var t=document.createElement('div');
+  t.className='alert alert-'+(type||'success')+' position-fixed bottom-0 end-0 m-3 shadow';
+  t.style.cssText='z-index:9999;min-width:270px';
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.remove(); },4000);
 }
 </script>
 </body>
