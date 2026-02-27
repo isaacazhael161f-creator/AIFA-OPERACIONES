@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Base de Datos de Logos · AIFA</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    :root {
+      --brand: #0d6efd;
+      --brand-dark: #0a58ca;
+    }
+    body { background: #f0f2f8; font-family: 'Segoe UI', sans-serif; }
+
+    /* ── Header ── */
+    .page-header {
+      background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%);
+      color: #fff;
+      padding: 2rem 2rem 1.5rem;
+    }
+    .page-header h1 { font-size: 1.6rem; font-weight: 700; margin: 0; }
+    .page-header p  { margin: .25rem 0 0; opacity: .85; font-size: .9rem; }
+
+    /* ── Stats bar ── */
+    .stats-bar { background: #fff; border-bottom: 1px solid #dee2e6; }
+    .stat-item { text-align: center; padding: .75rem 1.5rem; border-right: 1px solid #e9ecef; }
+    .stat-item:last-child { border-right: none; }
+    .stat-num  { font-size: 1.6rem; font-weight: 700; color: var(--brand); line-height: 1; }
+    .stat-label{ font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: #6c757d; }
+
+    /* ── Toolbar ── */
+    .toolbar { background: #fff; border-bottom: 1px solid #dee2e6; padding: .75rem 1.5rem; }
+
+    /* ── Cards ── */
+    .airline-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+      transition: transform .15s, box-shadow .15s;
+      overflow: hidden;
+      position: relative;
+    }
+    .airline-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+
+    .airline-card .card-accent {
+      height: 5px;
+      width: 100%;
+    }
+    .airline-card .card-body-inner {
+      padding: 1rem;
+    }
+    .logo-box {
+      width: 100%;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f8f9fa;
+      border-radius: 8px;
+      margin-bottom: .75rem;
+      border: 1px dashed #dee2e6;
+      overflow: hidden;
+    }
+    .logo-box img {
+      max-height: 52px;
+      max-width: 100%;
+      object-fit: contain;
+    }
+    .logo-box .no-logo {
+      color: #adb5bd;
+      font-size: .75rem;
+      text-align: center;
+    }
+    .logo-box .gstatic-logo {
+      max-height: 40px;
+      border-radius: 4px;
+    }
+
+    .airline-name { font-weight: 700; font-size: .85rem; line-height: 1.2; margin-bottom: .3rem; }
+    .airline-meta { font-size: .72rem; color: #6c757d; }
+
+    .badge-type {
+      font-size: .65rem;
+      padding: .2em .55em;
+      border-radius: 50rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+    }
+    .badge-nacional      { background: #d1e7dd; color: #0a3622; }
+    .badge-internacional { background: #cfe2ff; color: #084298; }
+    .badge-carga         { background: #fff3cd; color: #664d03; }
+
+    .iata-badge {
+      display: inline-block;
+      background: #e9ecef;
+      color: #495057;
+      font-family: monospace;
+      font-size: .72rem;
+      font-weight: 700;
+      padding: .1em .45em;
+      border-radius: 4px;
+    }
+    .no-logo-card .logo-box { border-color: #ffc107; background: #fffbeb; }
+    .missing-indicator {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .missing-indicator.ok      { background: #198754; }
+    .missing-indicator.missing { background: #ffc107; }
+    .missing-indicator.none    { background: #dee2e6; }
+
+    /* ── Filter buttons ── */
+    .filter-btn { font-size: .8rem; }
+    .filter-btn.active { background: var(--brand) !important; color: #fff !important; border-color: var(--brand) !important; }
+
+    /* ── Search ── */
+    #searchInput { max-width: 280px; }
+
+    /* ── Empty state ── */
+    #emptyState { display: none; }
+
+    /* ── Add/Edit modal ── */
+    .modal-header { background: linear-gradient(135deg, #0d47a1, #1565c0); color: #fff; }
+    .modal-header .btn-close { filter: invert(1); }
+    .preview-logo { height: 80px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 2px dashed #dee2e6; }
+    .preview-logo img { max-height: 64px; max-width: 100%; object-fit: contain; }
+  </style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<div class="page-header">
+  <div class="d-flex align-items-center gap-3">
+    <div>
+      <h1><i class="fas fa-database me-2"></i>Base de Datos · Logos de Aerolíneas</h1>
+      <p>Administra los logos, colores y configuración de todas las aerolíneas registradas en AIFA</p>
+    </div>
+    <div class="ms-auto d-flex gap-2">
+      <button class="btn btn-light btn-sm" onclick="exportJSON()">
+        <i class="fas fa-download me-1"></i>Exportar JSON
+      </button>
+      <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
+        <i class="fas fa-plus me-1"></i>Agregar Aerolínea
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ STATS BAR ══ -->
+<div class="stats-bar">
+  <div class="d-flex flex-wrap">
+    <div class="stat-item">
+      <div class="stat-num" id="stat-total">—</div>
+      <div class="stat-label">Total aerolíneas</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num text-success" id="stat-with-logo">—</div>
+      <div class="stat-label">Con logo local</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num text-warning" id="stat-no-logo">—</div>
+      <div class="stat-label">Sin logo local</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num text-primary" id="stat-nacional">—</div>
+      <div class="stat-label">Nacionales</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num text-info" id="stat-internacional">—</div>
+      <div class="stat-label">Internacionales</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num text-secondary" id="stat-carga">—</div>
+      <div class="stat-label">Carga</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOOLBAR ══ -->
+<div class="toolbar d-flex flex-wrap align-items-center gap-2">
+  <!-- Búsqueda -->
+  <div class="input-group input-group-sm" style="max-width:260px;">
+    <span class="input-group-text"><i class="fas fa-search text-muted"></i></span>
+    <input type="text" class="form-control" id="searchInput" placeholder="Buscar aerolínea, IATA…" oninput="applyFilters()">
+  </div>
+
+  <!-- Filtros tipo -->
+  <div class="btn-group btn-group-sm" role="group">
+    <button class="btn btn-outline-secondary filter-btn active" data-filter="all"       onclick="setFilter('all', this)">Todas</button>
+    <button class="btn btn-outline-secondary filter-btn"        data-filter="nacional"    onclick="setFilter('nacional', this)"><i class="fas fa-flag me-1"></i>Nacional</button>
+    <button class="btn btn-outline-secondary filter-btn"        data-filter="internacional" onclick="setFilter('internacional', this)"><i class="fas fa-globe me-1"></i>Internacional</button>
+    <button class="btn btn-outline-secondary filter-btn"        data-filter="carga"       onclick="setFilter('carga', this)"><i class="fas fa-box me-1"></i>Carga</button>
+  </div>
+
+  <!-- Filtro logos -->
+  <div class="btn-group btn-group-sm" role="group">
+    <button class="btn btn-outline-secondary filter-btn active" data-logo="all"     onclick="setLogoFilter('all', this)">Todos</button>
+    <button class="btn btn-outline-success  filter-btn"         data-logo="has"     onclick="setLogoFilter('has', this)"><i class="fas fa-image me-1"></i>Con logo</button>
+    <button class="btn btn-outline-warning  filter-btn"         data-logo="missing" onclick="setLogoFilter('missing', this)"><i class="fas fa-exclamation-triangle me-1"></i>Sin logo</button>
+  </div>
+
+  <!-- Ordenar -->
+  <select class="form-select form-select-sm" style="width:160px;" onchange="sortBy(this.value)">
+    <option value="name">Ordenar: A-Z</option>
+    <option value="iata">Ordenar: IATA</option>
+    <option value="type">Ordenar: Tipo</option>
+  </select>
+
+  <span class="ms-auto text-muted small" id="resultCount"></span>
+</div>
+
+<!-- ══ GRID ══ -->
+<div class="p-3">
+  <div class="row g-3" id="airlinesGrid"></div>
+  <div id="emptyState" class="text-center py-5 text-muted">
+    <i class="fas fa-search fa-3x mb-3 opacity-25"></i>
+    <p>No se encontraron aerolíneas con esos criterios.</p>
+  </div>
+</div>
+
+<!-- ══ MODAL: AGREGAR AEROLÍNEA ══ -->
+<div class="modal fade" id="addModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Agregar / Editar Aerolínea</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Nombre oficial</label>
+            <input type="text" class="form-control form-control-sm" id="f-name" placeholder="Ej: Aeroméxico">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold">Código IATA</label>
+            <input type="text" class="form-control form-control-sm" id="f-iata" placeholder="AM" maxlength="3">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold">Código ICAO</label>
+            <input type="text" class="form-control form-control-sm" id="f-icao" placeholder="AMX" maxlength="4">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Archivo de logo (en images/airlines/)</label>
+            <input type="text" class="form-control form-control-sm" id="f-logo" placeholder="logo_aeromexico.png" oninput="previewLogoModal()">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold">Color primario</label>
+            <input type="color" class="form-control form-control-sm form-control-color w-100" id="f-color" value="#0d6efd">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold">Color texto</label>
+            <input type="color" class="form-control form-control-sm form-control-color w-100" id="f-textColor" value="#ffffff">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Tipo (selecciona todos los que apliquen)</label>
+            <div class="d-flex gap-2 flex-wrap mt-1">
+              <div class="form-check"><input class="form-check-input" type="checkbox" id="f-t-nac"  value="nacional"><label class="form-check-label small" for="f-t-nac">Nacional</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" id="f-t-int"  value="internacional"><label class="form-check-label small" for="f-t-int">Internacional</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" id="f-t-car"  value="carga"><label class="form-check-label small" for="f-t-car">Carga</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" id="f-t-pax"  value="pasajeros"><label class="form-check-label small" for="f-t-pax">Pasajeros</label></div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Aliases (uno por línea)</label>
+            <textarea class="form-control form-control-sm" id="f-aliases" rows="3" placeholder="aeromexico&#10;aeroméxico&#10;aeromexico connect"></textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Vista previa del logo</label>
+            <div class="preview-logo" id="logoPreviewModal">
+              <span class="text-muted small">Ingresa el nombre del archivo para ver la vista previa</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="saveAirline()">
+          <i class="fas fa-save me-1"></i>Guardar en JSON
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: DETALLE ══ -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header" id="detailHeader">
+        <h5 class="modal-title" id="detailTitle">Aerolínea</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter:invert(1)"></button>
+      </div>
+      <div class="modal-body" id="detailBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const LOGO_PATH  = 'images/airlines/';
+const GSTATIC    = 'https://www.gstatic.com/flights/airline_logos/70px/';
+const DATA_FILE  = 'data/airlines.json';
+
+let allAirlines  = [];
+let filtered     = [];
+let activeFilter = 'all';
+let logoFilter   = 'all';
+let sortField    = 'name';
+
+/* ── Load ── */
+fetch(DATA_FILE + '?v=' + Date.now())
+  .then(r => r.json())
+  .then(data => {
+    allAirlines = data;
+    applyFilters();
+    updateStats();
+  })
+  .catch(e => {
+    document.getElementById('airlinesGrid').innerHTML =
+      `<div class="col-12"><div class="alert alert-danger">Error cargando airlines.json: ${e.message}</div></div>`;
+  });
+
+/* ── Stats ── */
+function updateStats() {
+  const withLogo = allAirlines.filter(a => a.logo).length;
+  document.getElementById('stat-total').textContent        = allAirlines.length;
+  document.getElementById('stat-with-logo').textContent    = withLogo;
+  document.getElementById('stat-no-logo').textContent      = allAirlines.length - withLogo;
+  document.getElementById('stat-nacional').textContent     = allAirlines.filter(a => a.type?.includes('nacional')).length;
+  document.getElementById('stat-internacional').textContent= allAirlines.filter(a => a.type?.includes('internacional')).length;
+  document.getElementById('stat-carga').textContent        = allAirlines.filter(a => a.type?.includes('carga')).length;
+}
+
+/* ── Filters ── */
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilters();
+}
+function setLogoFilter(f, btn) {
+  logoFilter = f;
+  document.querySelectorAll('[data-logo]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilters();
+}
+function sortBy(field) {
+  sortField = field;
+  applyFilters();
+}
+function applyFilters() {
+  const q = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+  filtered = allAirlines.filter(a => {
+    if (activeFilter !== 'all' && !a.type?.includes(activeFilter)) return false;
+    if (logoFilter === 'has'     && !a.logo) return false;
+    if (logoFilter === 'missing' && a.logo)  return false;
+    if (q) {
+      const hay = [a.name, a.iata, a.icao, ...(a.aliases || [])].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  // Sort
+  filtered.sort((a, b) => {
+    if (sortField === 'iata') return (a.iata || 'ZZZ').localeCompare(b.iata || 'ZZZ');
+    if (sortField === 'type') return (a.type?.[0] || '').localeCompare(b.type?.[0] || '');
+    return a.name.localeCompare(b.name, 'es');
+  });
+
+  renderGrid();
+  document.getElementById('resultCount').textContent = `${filtered.length} aerolíneas`;
+}
+
+/* ── Render ── */
+function renderGrid() {
+  const grid = document.getElementById('airlinesGrid');
+  const empty = document.getElementById('emptyState');
+  if (filtered.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  grid.innerHTML = filtered.map(a => cardHTML(a)).join('');
+}
+
+function cardHTML(a) {
+  const color = a.color || '#0d6efd';
+  const hasLogo = !!a.logo;
+  const iataCode = a.iata || '';
+
+  let logoContent;
+  if (hasLogo) {
+    logoContent = `<img src="${LOGO_PATH}${a.logo}" alt="${a.name}"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="no-logo" style="display:none">
+        ${iataCode ? `<img src="${GSTATIC}${iataCode}.png" class="gstatic-logo" onerror="this.parentElement.innerHTML='<span>Sin logo</span>'">` : '<span>Sin logo</span>'}
+      </div>`;
+  } else if (iataCode) {
+    logoContent = `<img src="${GSTATIC}${iataCode}.png" class="gstatic-logo"
+      onerror="this.parentElement.innerHTML='<div class=\\'no-logo\\'><i class=\\'fas fa-plane\\'></i><br>Sin logo</div>'">`;
+  } else {
+    logoContent = `<div class="no-logo"><i class="fas fa-plane d-block mb-1"></i>Sin logo</div>`;
+  }
+
+  const types = (a.type || []).map(t => `<span class="badge-type badge-${t}">${t}</span>`).join(' ');
+  const indicatorClass = hasLogo ? 'ok' : (iataCode ? 'missing' : 'none');
+  const indicatorTitle = hasLogo ? 'Logo local disponible' : (iataCode ? 'Usa logo de Google (IATA)' : 'Sin logo');
+
+  return `
+  <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+    <div class="airline-card ${hasLogo ? '' : 'no-logo-card'}" onclick='showDetail(${JSON.stringify(a.id)})' style="cursor:pointer">
+      <div class="card-accent" style="background:${color}"></div>
+      <div class="missing-indicator ${indicatorClass}" title="${indicatorTitle}"></div>
+      <div class="card-body-inner">
+        <div class="logo-box">${logoContent}</div>
+        <div class="airline-name">${a.name}</div>
+        <div class="airline-meta d-flex align-items-center gap-1 mb-1">
+          ${iataCode ? `<span class="iata-badge">${iataCode}</span>` : ''}
+          ${a.icao  ? `<span class="iata-badge" style="background:#e2e8f0">${a.icao}</span>` : ''}
+        </div>
+        <div class="d-flex flex-wrap gap-1">${types}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ── Detail modal ── */
+function showDetail(id) {
+  const a = allAirlines.find(x => x.id === id);
+  if (!a) return;
+  const color = a.color || '#0d6efd';
+  const header = document.getElementById('detailHeader');
+  const title  = document.getElementById('detailTitle');
+  const body   = document.getElementById('detailBody');
+
+  header.style.background = `linear-gradient(135deg, ${color}, ${color}cc)`;
+  title.textContent = a.name;
+
+  const types  = (a.type || []).map(t => `<span class="badge-type badge-${t}">${t}</span>`).join(' ');
+  const aliases = (a.aliases || []).map(al => `<code class="small">${al}</code>`).join(', ');
+
+  let logoSection;
+  if (a.logo) {
+    logoSection = `<img src="${LOGO_PATH}${a.logo}" style="max-height:80px;max-width:100%;object-fit:contain" onerror="this.src='${a.iata ? GSTATIC+a.iata+'.png' : ''}'">`;
+  } else if (a.iata) {
+    logoSection = `<img src="${GSTATIC}${a.iata}.png" style="max-height:60px" onerror="this.alt='No disponible'"> <div class="small text-muted mt-1">Logo cargado desde Google (IATA)</div>`;
+  } else {
+    logoSection = `<span class="text-muted small">Sin logo disponible</span>`;
+  }
+
+  body.innerHTML = `
+    <div class="row g-3">
+      <div class="col-5 d-flex align-items-center justify-content-center p-3" style="background:#f8f9fa;border-radius:12px">
+        ${logoSection}
+      </div>
+      <div class="col-7">
+        <table class="table table-sm table-borderless mb-0">
+          <tr><th class="small text-muted ps-0 py-1">Nombre</th><td class="small py-1 fw-semibold">${a.name}</td></tr>
+          <tr><th class="small text-muted ps-0 py-1">IATA</th><td class="py-1">${a.iata ? `<span class="iata-badge">${a.iata}</span>` : '—'}</td></tr>
+          <tr><th class="small text-muted ps-0 py-1">ICAO</th><td class="py-1">${a.icao ? `<span class="iata-badge">${a.icao}</span>` : '—'}</td></tr>
+          <tr><th class="small text-muted ps-0 py-1">Tipo</th><td class="py-1">${types}</td></tr>
+          <tr><th class="small text-muted ps-0 py-1">Logo</th><td class="small py-1">${a.logo || '<span class="text-warning">Sin logo local</span>'}</td></tr>
+          <tr><th class="small text-muted ps-0 py-1">Color</th><td class="py-1"><span style="display:inline-block;width:18px;height:18px;background:${color};border-radius:4px;margin-right:4px;vertical-align:middle"></span><code class="small">${color}</code></td></tr>
+        </table>
+      </div>
+      <div class="col-12">
+        <div class="small text-muted fw-semibold mb-1">Aliases reconocidos</div>
+        <div class="d-flex flex-wrap gap-1">${aliases || '<span class="text-muted small">—</span>'}</div>
+      </div>
+    </div>`;
+
+  new bootstrap.Modal(document.getElementById('detailModal')).show();
+}
+
+/* ── Add/Edit modal ── */
+function previewLogoModal() {
+  const file = document.getElementById('f-logo').value.trim();
+  const prev = document.getElementById('logoPreviewModal');
+  if (!file) {
+    prev.innerHTML = '<span class="text-muted small">Ingresa el nombre del archivo para ver la vista previa</span>';
+    return;
+  }
+  prev.innerHTML = `<img src="${LOGO_PATH}${file}" style="max-height:64px;max-width:100%;object-fit:contain"
+    onerror="this.parentElement.innerHTML='<span class=\\'text-danger small\\'>Archivo no encontrado: ${file}</span>'">`;
+}
+
+function saveAirline() {
+  const name   = document.getElementById('f-name').value.trim();
+  const iata   = document.getElementById('f-iata').value.trim().toUpperCase();
+  const icao   = document.getElementById('f-icao').value.trim().toUpperCase();
+  const logo   = document.getElementById('f-logo').value.trim();
+  const color  = document.getElementById('f-color').value;
+  const textColor = document.getElementById('f-textColor').value;
+  const types  = ['f-t-nac','f-t-int','f-t-car','f-t-pax']
+    .filter(id => document.getElementById(id).checked)
+    .map(id => document.getElementById(id).value);
+  const aliases = document.getElementById('f-aliases').value.split('\n').map(s => s.trim()).filter(Boolean);
+
+  if (!name) { alert('El nombre es obligatorio.'); return; }
+
+  const entry = {
+    id: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    name, iata: iata || null, icao: icao || null,
+    type: types, logo: logo || null, color, textColor, aliases
+  };
+
+  allAirlines.push(entry);
+  applyFilters();
+  updateStats();
+
+  // Copiar JSON al portapapeles para que el usuario actualice el archivo
+  const json = JSON.stringify(allAirlines, null, 2);
+  navigator.clipboard.writeText(json).then(() => {
+    bootstrap.Modal.getInstance(document.getElementById('addModal'))?.hide();
+    alert(`✅ Aerolínea "${name}" agregada.\n\nEl JSON completo fue copiado al portapapeles.\nPega el contenido en data/airlines.json para guardar los cambios permanentemente.`);
+  }).catch(() => {
+    alert('Aerolínea agregada en memoria. Usa "Exportar JSON" para guardar los cambios.');
+  });
+}
+
+/* ── Export ── */
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(allAirlines, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'airlines.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
