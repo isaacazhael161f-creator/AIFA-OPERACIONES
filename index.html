@@ -5267,7 +5267,7 @@
                 <div id="analisis-operaciones-section" class="content-section">
                     <div class="card shadow-sm border-0">
 
-                        <!-- Main Section Tabs: Slots | Manifiestos -->
+                        <!-- Main Section Tabs: Slots | Manifiestos | Carga -->
                         <div class="card-header bg-white py-0 border-bottom">
                             <ul class="nav nav-tabs card-header-tabs" id="aops-main-tabs" role="tablist">
                                 <li class="nav-item" role="presentation">
@@ -5281,6 +5281,12 @@
                                         data-bs-target="#aops-pane-manifiestos" type="button" role="tab"
                                         id="btn-open-manifiestos-db">
                                         <i class="fas fa-file-signature me-2 text-success"></i>Manifiestos
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link fw-semibold" id="aops-tab-carga" data-bs-toggle="tab"
+                                        data-bs-target="#aops-pane-carga" type="button" role="tab">
+                                        <i class="fas fa-box me-2" style="color:#6f42c1"></i>Carga
                                     </button>
                                 </li>
                             </ul>
@@ -5441,6 +5447,20 @@
 
                         <!-- ═══ MANIFIESTOS PANE ═══ -->
                         <div class="tab-pane fade" id="aops-pane-manifiestos" role="tabpanel">
+
+                            <!-- ══ SELECTOR DE PERÍODO ══ -->
+                            <div class="px-4 py-2 d-flex align-items-center gap-3 border-bottom bg-white flex-wrap">
+                                <span class="small text-muted fw-semibold"><i class="fas fa-calendar-alt me-1 text-primary"></i>Período:</span>
+                                <div class="btn-group btn-group-sm shadow-sm" role="group" aria-label="Seleccionar período">
+                                    <button type="button" class="btn btn-primary mdb-period-btn" data-table="Base de datos Manifiestos 2025" id="mdb-period-2025">
+                                        <i class="fas fa-layer-group me-1"></i>2025 · Anual
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary mdb-period-btn" data-table="Base de Datos Manifiestos Febrero 2026" id="mdb-period-feb2026">
+                                        <i class="fas fa-calendar-day me-1"></i>Febrero 2026
+                                    </button>
+                                </div>
+                                <span class="badge bg-light text-secondary border fw-normal small" id="mdb-period-label">Manifiestos 2025 — Datos anuales</span>
+                            </div>
 
                             <!-- ══ BARRA DE FILTROS (compartida entre sub-pestañas) ══ -->
                             <div class="border-bottom" style="background:linear-gradient(135deg,#f8f9ff 0%,#eef1fb 100%);">
@@ -5672,6 +5692,11 @@
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link px-3 py-2 small fw-semibold" id="mdb-sub-tab-equipaje" data-bs-toggle="tab" data-bs-target="#mdb-sub-equipaje" type="button" role="tab">
                                             <i class="fas fa-suitcase me-1 text-secondary"></i>Equipaje
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link px-3 py-2 small fw-semibold" id="mdb-sub-tab-operaciones" data-bs-toggle="tab" data-bs-target="#mdb-sub-operaciones" type="button" role="tab">
+                                            <i class="fas fa-plane me-1" style="color:#6f42c1"></i>Operaciones
                                         </button>
                                     </li>
                                     <li class="nav-item" role="presentation">
@@ -6004,6 +6029,91 @@
                                     </div>
                                 </div><!-- /mdb-sub-equipaje -->
 
+                                <!-- ══════ SUB-PESTAÑA: OPERACIONES ══════ -->
+                                <div class="tab-pane fade" id="mdb-sub-operaciones" role="tabpanel">
+                                    <!-- KPIs Operaciones -->
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-6 col-md-3">
+                                            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #6f42c1!important">
+                                                <div class="card-body py-3 ps-3">
+                                                    <div class="text-muted small text-uppercase fw-semibold mb-1"><i class="fas fa-plane me-1" style="color:#6f42c1"></i>Total Operaciones</div>
+                                                    <div class="fs-2 fw-bold lh-1" id="ops-kpi-total" style="color:#6f42c1">—</div>
+                                                    <div class="text-muted small mt-1" id="ops-kpi-total-sub">vuelos registrados</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #fd7e14!important">
+                                                <div class="card-body py-3 ps-3">
+                                                    <div class="text-muted small text-uppercase fw-semibold mb-1"><i class="fas fa-flag me-1" style="color:#fd7e14"></i>Operaciones Nacionales</div>
+                                                    <div class="fs-2 fw-bold lh-1" id="ops-kpi-nac" style="color:#fd7e14">—</div>
+                                                    <div class="text-muted small mt-1" id="ops-kpi-nac-pct">—</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #20c997!important">
+                                                <div class="card-body py-3 ps-3">
+                                                    <div class="text-muted small text-uppercase fw-semibold mb-1"><i class="fas fa-globe me-1" style="color:#20c997"></i>Operaciones Internacionales</div>
+                                                    <div class="fs-2 fw-bold lh-1" id="ops-kpi-int" style="color:#20c997">—</div>
+                                                    <div class="text-muted small mt-1" id="ops-kpi-int-pct">—</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #0d6efd!important">
+                                                <div class="card-body py-3 ps-3">
+                                                    <div class="text-muted small text-uppercase fw-semibold mb-1"><i class="fas fa-chart-bar me-1 text-primary"></i>Promedio Mensual</div>
+                                                    <div class="fs-2 fw-bold text-primary lh-1" id="ops-kpi-avg">—</div>
+                                                    <div class="text-muted small mt-1">operaciones/mes</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Gráficas -->
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-lg-8">
+                                            <div class="card border-0 shadow-sm h-100">
+                                                <div class="card-header bg-white border-0 pb-0"><span class="fw-bold small"><i class="fas fa-chart-bar me-2" style="color:#6f42c1"></i>Operaciones por Mes (Nacional vs Internacional)</span></div>
+                                                <div class="card-body pt-2"><div style="position:relative;height:260px;"><canvas id="ops-chart-monthly"></canvas></div></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-4">
+                                            <div class="card border-0 shadow-sm h-100">
+                                                <div class="card-header bg-white border-0 pb-0"><span class="fw-bold small"><i class="fas fa-chart-pie me-2 text-success"></i>Nacional vs Internacional</span></div>
+                                                <div class="card-body pt-2 d-flex align-items-center justify-content-center"><div style="position:relative;height:240px;width:100%;"><canvas id="ops-chart-donut"></canvas></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Tabla mensual de operaciones -->
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-header bg-white border-0 d-flex align-items-center justify-content-between">
+                                            <span class="fw-bold small"><i class="fas fa-table me-2" style="color:#6f42c1"></i>Desglose Mensual de Operaciones</span>
+                                            <span class="badge" style="background:#6f42c1" id="ops-total-badge">—</span>
+                                        </div>
+                                        <div class="card-body p-0">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-hover table-bordered mb-0" id="ops-table-monthly">
+                                                    <thead class="table-light" style="position:sticky;top:0;z-index:1;">
+                                                        <tr>
+                                                            <th class="text-center">Mes</th>
+                                                            <th class="text-end" style="color:#fd7e14"><i class="fas fa-flag me-1"></i>Nacional</th>
+                                                            <th class="text-end" style="color:#20c997"><i class="fas fa-globe me-1"></i>Internacional</th>
+                                                            <th class="text-end fw-bold">Total</th>
+                                                            <th class="text-end">% Nac.</th>
+                                                            <th class="text-end">% Int.</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="ops-tbody-monthly">
+                                                        <tr><td colspan="6" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm me-2"></div>Cargando...</td></tr>
+                                                    </tbody>
+                                                    <tfoot id="ops-tfoot-monthly" class="table-dark fw-bold"></tfoot>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div><!-- /mdb-sub-operaciones -->
+
                                 <!-- ══════ SUB-PESTAÑA: DATOS ══════ -->
                                 <div class="tab-pane fade" id="mdb-sub-datos" role="tabpanel">
                                     <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
@@ -6040,6 +6150,346 @@
                                 </div>
                             </div>
                         </div><!-- /aops-pane-manifiestos -->
+
+                        <!-- ═══ CARGA PANE ═══ -->
+                        <div class="tab-pane fade" id="aops-pane-carga" role="tabpanel">
+
+                            <!-- ══ SELECTOR DE PERÍODO DE CARGA ══ -->
+                            <div class="px-4 py-2 d-flex align-items-center gap-3 border-bottom bg-white flex-wrap">
+                                <span class="small text-muted fw-semibold"><i class="fas fa-calendar-alt me-1" style="color:#6f42c1"></i>Período:</span>
+                                <div class="btn-group btn-group-sm shadow-sm" role="group">
+                                    <button type="button" class="btn btn-carga active mcg-period-btn" data-table="Base de Manifiestos Carga Febrero 2026" id="mcg-period-feb2026"
+                                        style="background:#6f42c1;color:#fff;border-color:#6f42c1;">
+                                        <i class="fas fa-calendar-day me-1"></i>Febrero 2026
+                                    </button>
+                                </div>
+                                <span class="badge border fw-normal small" id="mcg-period-label" style="background:#f3eeff;color:#6f42c1;border-color:#c5b3f5;">Manifiestos Carga — Febrero 2026</span>
+                                <div class="ms-auto d-flex gap-2">
+                                    <span class="badge px-3 py-2 fw-semibold" id="mcg-record-count" style="background:#2d1b69;font-size:.8rem">— reg.</span>
+                                    <button class="btn btn-sm btn-outline-secondary" id="mcg-btn-reload" title="Recargar datos">
+                                        <i class="fas fa-database me-1"></i>Recargar
+                                    </button>
+                                    <button class="btn btn-sm" id="mcg-btn-export" title="Exportar a Excel"
+                                        style="background:#6f42c1;color:#fff;border-color:#6f42c1;">
+                                        <i class="fas fa-file-excel me-1"></i>Excel
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- ══ SUB-PESTAÑAS CARGA ══ -->
+                            <div class="px-3 pt-2 pb-0 border-bottom">
+                                <ul class="nav nav-tabs border-0" id="mcg-sub-tabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active px-3 py-2 small fw-semibold" id="mcg-sub-tab-resumen" data-bs-toggle="tab" data-bs-target="#mcg-sub-resumen" type="button" role="tab">
+                                            <i class="fas fa-tachometer-alt me-1" style="color:#6f42c1"></i>Resumen
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link px-3 py-2 small fw-semibold" id="mcg-sub-tab-aerolineas" data-bs-toggle="tab" data-bs-target="#mcg-sub-aerolineas" type="button" role="tab">
+                                            <i class="fas fa-plane me-1 text-warning"></i>Aerolíneas
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link px-3 py-2 small fw-semibold" id="mcg-sub-tab-rutas" data-bs-toggle="tab" data-bs-target="#mcg-sub-rutas" type="button" role="tab">
+                                            <i class="fas fa-route me-1 text-danger"></i>Rutas
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link px-3 py-2 small fw-semibold" id="mcg-sub-tab-tipo" data-bs-toggle="tab" data-bs-target="#mcg-sub-tipo" type="button" role="tab">
+                                            <i class="fas fa-tags me-1 text-info"></i>Tipo de Carga
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link px-3 py-2 small fw-semibold" id="mcg-sub-tab-datos" data-bs-toggle="tab" data-bs-target="#mcg-sub-datos" type="button" role="tab">
+                                            <i class="fas fa-table me-1 text-secondary"></i>Datos
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div class="tab-content p-3" id="mcg-sub-content">
+
+                                <!-- ══ RESUMEN ══ -->
+                                <div class="tab-pane fade show active" id="mcg-sub-resumen" role="tabpanel">
+                                    <!-- Banner error -->
+                                    <div id="mcg-banner" class="d-none alert mb-3"></div>
+                                    <!-- KPIs fila 1 -->
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-6 col-md-3">
+                                            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #6f42c1!important">
+                                                <div class="card-body py-3 ps-3">
+                                                    <div class="text-muted small text-uppercase fw-semibold mb-1"><i class="fas fa-box me-1" style="color:#6f42c1"></i>Total Vuelos Carga</div>
+                                                    <div class="fs-2 fw-bold lh-1" id="mcg-kpi-total" style="color:#6f42c1">—</div>
+                                                    <div class="text-muted small mt-1" id="mcg-kpi-total-sub">movimientos registrados</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #198754!important">
+                                                <div class="card-body py-3 ps-3">
+                                                    <div class="text-muted small text-uppercase fw-semibold mb-1"><i class="fas fa-weight-hanging me-1 text-success"></i>Total KGS Carga</div>
+                                                    <div class="fs-2 fw-bold text-success lh-1" id="mcg-kpi-kgs">—</div>
+                                                    <div class="text-muted small mt-1" id="mcg-kpi-kgs-sub">kilogramos</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #ffc107!important">
+                                                <div class="card-body py-3 ps-3">
+                                                    <div class="text-muted small text-uppercase fw-semibold mb-1"><i class="fas fa-balance-scale me-1 text-warning"></i>KGS Prom./Vuelo</div>
+                                                    <div class="fs-2 fw-bold text-warning lh-1" id="mcg-kpi-avgkgs">—</div>
+                                                    <div class="text-muted small mt-1">kg por movimiento</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #0dcaf0!important">
+                                                <div class="card-body py-3 ps-3">
+                                                    <div class="text-muted small text-uppercase fw-semibold mb-1"><i class="fas fa-trophy me-1 text-info"></i>Aerolínea Líder</div>
+                                                    <div class="fs-6 fw-bold text-info lh-1" id="mcg-kpi-top-airline">—</div>
+                                                    <div class="text-muted small mt-1" id="mcg-kpi-top-airline-kgs">—</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- KPIs fila 2 -->
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-6 col-md-3">
+                                            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #d63384!important">
+                                                <div class="card-body py-3 ps-3">
+                                                    <div class="text-muted small text-uppercase fw-semibold mb-1"><i class="fas fa-plane-arrival me-1" style="color:#d63384"></i>KGS Llegadas</div>
+                                                    <div class="fs-2 fw-bold lh-1" id="mcg-kpi-arr-kgs" style="color:#d63384">—</div>
+                                                    <div class="text-muted small mt-1" id="mcg-kpi-arr-count">—</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #6610f2!important">
+                                                <div class="card-body py-3 ps-3">
+                                                    <div class="text-muted small text-uppercase fw-semibold mb-1"><i class="fas fa-plane-departure me-1" style="color:#6610f2"></i>KGS Salidas</div>
+                                                    <div class="fs-2 fw-bold lh-1" id="mcg-kpi-dep-kgs" style="color:#6610f2">—</div>
+                                                    <div class="text-muted small mt-1" id="mcg-kpi-dep-count">—</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #fd7e14!important">
+                                                <div class="card-body py-3 ps-3">
+                                                    <div class="text-muted small text-uppercase fw-semibold mb-1"><i class="fas fa-flag me-1" style="color:#fd7e14"></i>KGS Nacional</div>
+                                                    <div class="fs-2 fw-bold lh-1" id="mcg-kpi-nac-kgs" style="color:#fd7e14">—</div>
+                                                    <div class="text-muted small mt-1" id="mcg-kpi-nac-pct">—</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #20c997!important">
+                                                <div class="card-body py-3 ps-3">
+                                                    <div class="text-muted small text-uppercase fw-semibold mb-1"><i class="fas fa-globe me-1" style="color:#20c997"></i>KGS Internacional</div>
+                                                    <div class="fs-2 fw-bold lh-1" id="mcg-kpi-int-kgs" style="color:#20c997">—</div>
+                                                    <div class="text-muted small mt-1" id="mcg-kpi-int-pct">—</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Gráficas resumen -->
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-lg-8">
+                                            <div class="card border-0 shadow-sm h-100">
+                                                <div class="card-header bg-white border-0 pb-0"><span class="fw-bold small"><i class="fas fa-chart-bar me-2" style="color:#6f42c1"></i>KGS de Carga por Aerolínea (Top 15)</span></div>
+                                                <div class="card-body pt-2"><div style="position:relative;min-height:320px;"><canvas id="mcg-chart-airline-kgs"></canvas></div></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-4">
+                                            <div class="card border-0 shadow-sm h-100">
+                                                <div class="card-header bg-white border-0 pb-0"><span class="fw-bold small"><i class="fas fa-chart-pie me-2 text-success"></i>Nacional vs Internacional</span></div>
+                                                <div class="card-body pt-2 d-flex align-items-center justify-content-center"><div style="position:relative;height:280px;width:100%;"><canvas id="mcg-chart-optype-donut"></canvas></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row g-3">
+                                        <div class="col-lg-6">
+                                            <div class="card border-0 shadow-sm h-100">
+                                                <div class="card-header bg-white border-0 pb-0"><span class="fw-bold small"><i class="fas fa-chart-pie me-2" style="color:#d63384"></i>Llegadas vs Salidas (KGS)</span></div>
+                                                <div class="card-body pt-2 d-flex align-items-center justify-content-center"><div style="position:relative;height:260px;width:100%;"><canvas id="mcg-chart-dir-donut"></canvas></div></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-6" id="mcg-piezas-chart-col">
+                                            <div class="card border-0 shadow-sm h-100">
+                                                <div class="card-header bg-white border-0 pb-0"><span class="fw-bold small"><i class="fas fa-cubes me-2 text-info"></i>Piezas por Aerolínea (Top 10)</span></div>
+                                                <div class="card-body pt-2"><div style="position:relative;height:260px;"><canvas id="mcg-chart-piezas"></canvas></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div><!-- /mcg-sub-resumen -->
+
+                                <!-- ══ AEROLÍNEAS ══ -->
+                                <div class="tab-pane fade" id="mcg-sub-aerolineas" role="tabpanel">
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-lg-7">
+                                            <div class="card border-0 shadow-sm h-100">
+                                                <div class="card-header bg-white border-0 pb-0"><span class="fw-bold small"><i class="fas fa-chart-bar me-2 text-warning"></i>KGS por Aerolínea: Nacional vs Internacional</span></div>
+                                                <div class="card-body pt-2"><div style="position:relative;min-height:360px;"><canvas id="mcg-chart-airline-domint"></canvas></div></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-5">
+                                            <div class="card border-0 shadow-sm h-100">
+                                                <div class="card-header bg-white border-0 pb-0"><span class="fw-bold small"><i class="fas fa-chart-bar me-2" style="color:#6f42c1"></i>Vuelos por Aerolínea</span></div>
+                                                <div class="card-body pt-2"><div style="position:relative;min-height:360px;"><canvas id="mcg-chart-airline-flights"></canvas></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-header bg-white border-0 d-flex align-items-center justify-content-between">
+                                            <span class="fw-bold small"><i class="fas fa-list-ol me-2" style="color:#6f42c1"></i>Ranking de Aerolíneas de Carga</span>
+                                            <span class="badge" style="background:#6f42c1" id="mcg-airline-count-badge">—</span>
+                                        </div>
+                                        <div class="card-body p-0">
+                                            <div class="table-responsive" style="max-height:400px;overflow-y:auto;">
+                                                <table class="table table-sm table-hover table-bordered mb-0">
+                                                    <thead class="table-light" style="position:sticky;top:0;z-index:1;">
+                                                        <tr>
+                                                            <th class="text-center">#</th>
+                                                            <th>Aerolínea</th>
+                                                            <th class="text-end">Vuelos</th>
+                                                            <th class="text-end">KGS Total</th>
+                                                            <th class="text-end">KGS Prom.</th>
+                                                            <th class="text-end">KGS Llegadas</th>
+                                                            <th class="text-end">KGS Salidas</th>
+                                                            <th class="text-end">% KGS</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="mcg-tbody-airline-ranking">
+                                                        <tr><td colspan="8" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm me-2"></div>Cargando...</td></tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div><!-- /mcg-sub-aerolineas -->
+
+                                <!-- ══ RUTAS ══ -->
+                                <div class="tab-pane fade" id="mcg-sub-rutas" role="tabpanel">
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-lg-8">
+                                            <div class="card border-0 shadow-sm h-100">
+                                                <div class="card-header bg-white border-0 pb-0"><span class="fw-bold small"><i class="fas fa-route me-2 text-danger"></i>Top 15 Rutas por KGS de Carga</span></div>
+                                                <div class="card-body pt-2"><div style="position:relative;min-height:380px;"><canvas id="mcg-chart-routes"></canvas></div></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-4">
+                                            <div class="card border-0 shadow-sm h-100">
+                                                <div class="card-header bg-white border-0 pb-0"><span class="fw-bold small"><i class="fas fa-chart-pie me-2 text-primary"></i>Nacional vs Int. por KGS</span></div>
+                                                <div class="card-body pt-2 d-flex align-items-center justify-content-center"><div style="position:relative;height:340px;width:100%;"><canvas id="mcg-chart-route-optype"></canvas></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-header bg-white border-0"><span class="fw-bold small"><i class="fas fa-table me-2 text-danger"></i>Detalle por Ruta</span></div>
+                                        <div class="card-body p-0">
+                                            <div class="table-responsive" style="max-height:380px;overflow-y:auto;">
+                                                <table class="table table-sm table-hover table-bordered mb-0">
+                                                    <thead class="table-light" style="position:sticky;top:0;z-index:1;">
+                                                        <tr>
+                                                            <th>#</th><th>Ruta</th>
+                                                            <th class="text-end">Vuelos</th>
+                                                            <th class="text-end">KGS Total</th>
+                                                            <th class="text-end">KGS Prom.</th>
+                                                            <th class="text-end">Nacional</th>
+                                                            <th class="text-end">Internacional</th>
+                                                            <th class="text-end">% Total</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="mcg-tbody-rutas">
+                                                        <tr><td colspan="8" class="text-center py-3 text-muted">Cargando...</td></tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div><!-- /mcg-sub-rutas -->
+
+                                <!-- ══ TIPO DE CARGA ══ -->
+                                <div class="tab-pane fade" id="mcg-sub-tipo" role="tabpanel">
+                                    <div id="mcg-tipo-no-col" class="alert alert-info d-none">
+                                        <i class="fas fa-info-circle me-2"></i>La columna de tipo de carga no se detectó en esta tabla. Las columnas disponibles se muestran en la pestaña <strong>Datos</strong>.
+                                    </div>
+                                    <div id="mcg-tipo-content">
+                                        <div class="row g-3 mb-3">
+                                            <div class="col-lg-7">
+                                                <div class="card border-0 shadow-sm h-100">
+                                                    <div class="card-header bg-white border-0 pb-0"><span class="fw-bold small"><i class="fas fa-chart-bar me-2 text-info"></i>KGS por Tipo de Carga</span></div>
+                                                    <div class="card-body pt-2"><div style="position:relative;min-height:320px;"><canvas id="mcg-chart-tipo-kgs"></canvas></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-5">
+                                                <div class="card border-0 shadow-sm h-100">
+                                                    <div class="card-header bg-white border-0 pb-0"><span class="fw-bold small"><i class="fas fa-chart-pie me-2 text-warning"></i>Distribución por Tipo</span></div>
+                                                    <div class="card-body pt-2 d-flex align-items-center justify-content-center"><div style="position:relative;height:300px;width:100%;"><canvas id="mcg-chart-tipo-donut"></canvas></div></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="card border-0 shadow-sm">
+                                            <div class="card-header bg-white border-0"><span class="fw-bold small"><i class="fas fa-table me-2 text-info"></i>Detalle por Tipo de Carga</span></div>
+                                            <div class="card-body p-0">
+                                                <div class="table-responsive" style="max-height:360px;overflow-y:auto;">
+                                                    <table class="table table-sm table-hover table-bordered mb-0">
+                                                        <thead class="table-light" style="position:sticky;top:0;z-index:1;">
+                                                            <tr>
+                                                                <th>#</th><th>Tipo de Carga</th>
+                                                                <th class="text-end">Vuelos</th>
+                                                                <th class="text-end">KGS Total</th>
+                                                                <th class="text-end">KGS Prom.</th>
+                                                                <th class="text-end">% KGS</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody id="mcg-tbody-tipo">
+                                                            <tr><td colspan="6" class="text-center py-3 text-muted">Cargando...</td></tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div><!-- /mcg-sub-tipo -->
+
+                                <!-- ══ DATOS ══ -->
+                                <div class="tab-pane fade" id="mcg-sub-datos" role="tabpanel">
+                                    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                                        <span class="fw-bold small"><i class="fas fa-table me-2" style="color:#6f42c1"></i>Base de Datos Completa — Manifiestos Carga</span>
+                                        <div class="d-flex gap-2">
+                                            <span class="badge" style="background:#6f42c1" id="mcg-detected-cols-badge"></span>
+                                            <input type="text" class="form-control form-control-sm" id="mcg-search-input" placeholder="Buscar..." style="width:200px;">
+                                        </div>
+                                    </div>
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body p-0">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-striped table-hover table-bordered mb-0 w-100" style="font-size:.82rem;">
+                                                    <thead class="table-light" id="mcg-main-thead"></thead>
+                                                    <tbody id="mcg-main-tbody">
+                                                        <tr><td colspan="20" class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Consultando base de datos...</td></tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top bg-light">
+                                                <span class="small text-muted" id="mcg-table-info">—</span>
+                                                <div class="d-flex gap-1" id="mcg-pagination"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div><!-- /mcg-sub-datos -->
+
+                            </div><!-- /mcg-sub-content -->
+
+                            <!-- Loading overlay -->
+                            <div id="mcg-overlay" style="display:none;position:absolute;inset:0;background:rgba(255,255,255,.88);z-index:20;align-items:center;justify-content:center;">
+                                <div class="text-center">
+                                    <div class="spinner-border mb-2" style="width:3rem;height:3rem;color:#6f42c1;"></div>
+                                    <div class="small fw-semibold text-muted" id="mcg-overlay-text">Cargando carga...</div>
+                                </div>
+                            </div>
+
+                        </div><!-- /aops-pane-carga -->
 
                         </div><!-- /aops-main-content tab-content -->
                     </div><!-- /card -->
@@ -9951,6 +10401,7 @@
     <script src="js/frecuencias_auto_cargo.js?v=2"></script>
     <script src="js/manifiestos.js"></script>
     <script src="js/manifiestos-analisis.js"></script>
+    <script src="js/manifiestos-carga.js"></script>
     <script src="js/medicas.js?v=2"></script>
     <script src="js/fauna.js"></script>
 

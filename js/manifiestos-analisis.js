@@ -7,8 +7,16 @@
 (function () {
   'use strict';
 
-  const TABLE     = 'Base de datos Manifiestos 2025';
+  const TABLES = {
+    '2025':      { name: 'Base de datos Manifiestos 2025',          label: 'Manifiestos 2025 — Datos anuales' },
+    'feb2026':   { name: 'Base de Datos Manifiestos Febrero 2026',   label: 'Febrero 2026 — Datos mensuales' }
+  };
+  let _activeTableKey = '2025';
+  const getTableName  = () => TABLES[_activeTableKey].name;
+  const getTableLabel = () => TABLES[_activeTableKey].label;
   const PAGE_SIZE = 50;
+  // Cache per table so switching back doesn't re-fetch
+  const _dataCache = {};
   const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const PAL_12    = ['#0d6efd','#198754','#ffc107','#dc3545','#0dcaf0','#6610f2','#fd7e14','#20c997','#6c757d','#d63384','#0d3b86','#155724'];
   const PAL_7     = ['#0d6efd','#fd7e14','#20c997','#0dcaf0','#d63384','#ffc107','#6c757d'];
@@ -186,15 +194,26 @@
   const escHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const tickK   = v => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'k' : v;
 
-  /* Opciones de datalabels para donuts/pies mostrando % */
+  /* Opciones de datalabels para pies — etiquetas externas con nombre y % */
   function datalabelsPiePct(total) {
     return {
       display: true,
-      color: '#fff',
-      font: { weight: 'bold', size: 12 },
-      formatter: (value) => {
+      anchor: 'end',
+      align: 'end',
+      offset: 6,
+      clip: false,
+      color: (ctx) => {
+        const bg = ctx.dataset.backgroundColor;
+        return Array.isArray(bg) ? (bg[ctx.dataIndex] || '#495057') : '#495057';
+      },
+      font: { weight: 'bold', size: 11 },
+      textStrokeColor: '#fff',
+      textStrokeWidth: 3,
+      formatter: (value, ctx) => {
         const p = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-        return p > 3 ? p + '%' : '';
+        if (parseFloat(p) < 2) return null;
+        const label = (ctx.chart.data.labels || [])[ctx.dataIndex] || '';
+        return label + ' (' + p + '%)';
       }
     };
   }
@@ -220,6 +239,33 @@
   let _allData = [], _filtered = [], _tableData = [];
   let _currentPage = 1, _charts = {}, _loaded = false;
 
+  function switchMdbPeriod(tableKey) {
+    if (_activeTableKey === tableKey) return;
+    _activeTableKey = tableKey;
+    // Save current data to cache, restore if already fetched
+    _loaded = false;
+    _allData = [];
+    if (_dataCache[tableKey]) {
+      _allData = _dataCache[tableKey];
+      _loaded  = true;
+    }
+    // Update UI buttons
+    document.querySelectorAll('.mdb-period-btn').forEach(b => {
+      const isActive = b.dataset.table === TABLES[tableKey].name;
+      b.className = b.className
+        .replace('btn-primary','btn-outline-primary')
+        .replace('btn-outline-primary btn-outline-primary','btn-outline-primary'); // dedup
+      if (isActive) b.className = b.className.replace('btn-outline-primary','btn-primary');
+    });
+    const lbl = document.getElementById('mdb-period-label');
+    if (lbl) lbl.textContent = getTableLabel();
+    // Reset airline dropdown
+    const sel = document.getElementById('mdb-filter-airline');
+    if (sel) while (sel.options.length > 1) sel.remove(1);
+    // Reload
+    load();
+  }
+
   /* ═══════════════════════════════════════════════════════
      INIT
   ═══════════════════════════════════════════════════════ */
@@ -234,9 +280,16 @@
     document.getElementById('mdb-btn-export')?.addEventListener('click', exportExcel);
     document.getElementById('mdb-btn-reload')?.addEventListener('click', () => {
       _loaded = false; _allData = [];
+      delete _dataCache[_activeTableKey];
       const sel = document.getElementById('mdb-filter-airline');
       if (sel) while (sel.options.length > 1) sel.remove(1);
       load();
+    });
+    document.querySelectorAll('.mdb-period-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tableKey = Object.keys(TABLES).find(k => TABLES[k].name === btn.dataset.table);
+        if (tableKey) switchMdbPeriod(tableKey);
+      });
     });
     let _st;
     document.getElementById('mdb-search-input')?.addEventListener('input', e => {
@@ -278,13 +331,14 @@
       let more = true;
       while (more) {
         setOverlayText('Cargando registros (' + all.length.toLocaleString() + ')...');
-        const { data, error } = await client.from(TABLE).select('*').range(from, from + BS - 1);
+        const { data, error } = await client.from(getTableName()).select('*').range(from, from + BS - 1);
         if (error) throw error;
         if (data && data.length > 0) { all = all.concat(data); from += BS; if (data.length < BS) more = false; }
         else more = false;
         if (all.length > 200000) more = false;
       }
       _allData = all; _loaded = true;
+      _dataCache[_activeTableKey] = all;
       if (all.length === 0) { showBanner('info', 'La tabla est\u00e1 vac\u00eda o RLS bloquea la lectura.'); hideOverlay(); return; }
       preloadAirlineLogos(all);
       const airlines = [...new Set(all.map(r => getAirline(r)))].sort();
@@ -361,9 +415,10 @@
       case '#mdb-sub-pasajeros':  renderTabPasajeros();  break;
       case '#mdb-sub-aerolineas': renderTabAerolineas(); break;
       case '#mdb-sub-rutas':      renderTabRutas();      break;
-      case '#mdb-sub-equipaje':   renderTabEquipaje();   break;
-      case '#mdb-sub-datos':      renderTabDatos();      break;
-      default:                    renderTabResumen();
+      case '#mdb-sub-equipaje':      renderTabEquipaje();      break;
+      case '#mdb-sub-operaciones':  renderTabOperaciones();   break;
+      case '#mdb-sub-datos':         renderTabDatos();         break;
+      default:                       renderTabResumen();
     }
   }
 
@@ -457,12 +512,13 @@
     const depPax = _filtered.filter(isDep).reduce((s, r) => s + getPaxTotal(r), 0);
     const total  = arrPax + depPax;
     _charts.dirDonut = new Chart(ctx, {
-      type: 'doughnut',
+      type: 'pie',
       plugins: window.ChartDataLabels ? [ChartDataLabels] : [],
       data: { labels: ['Llegadas','Salidas'], datasets: [{ data: [arrPax, depPax], backgroundColor: ['#d63384','#6610f2'], borderWidth: 2, hoverOffset: 8 }] },
       options: { responsive: true, maintainAspectRatio: false,
+        layout: { padding: 70 },
         plugins: {
-          legend: { position: 'bottom' },
+          legend: { display: false },
           datalabels: datalabelsPiePct(total),
           tooltip: { callbacks: { label: c => ' ' + c.label + ': ' + fmt(c.raw) + ' pax (' + pct(c.raw, total) + ')' } }
         }
@@ -505,12 +561,13 @@
     const entries = Object.entries(map).sort((a, b) => b[1] - a[1]);
     const total = entries.reduce((s, [,v]) => s + v, 0);
     _charts.optypeDonut = new Chart(ctx, {
-      type: 'doughnut',
+      type: 'pie',
       plugins: window.ChartDataLabels ? [ChartDataLabels] : [],
       data: { labels: entries.map(([k]) => k), datasets: [{ data: entries.map(([,v]) => v), backgroundColor: PAL_7.slice(0, entries.length), borderWidth: 2, hoverOffset: 8 }] },
       options: { responsive: true, maintainAspectRatio: false,
+        layout: { padding: 70 },
         plugins: {
-          legend: { position: 'bottom', labels: { font: { size: 11 } } },
+          legend: { display: false },
           datalabels: datalabelsPiePct(total),
           tooltip: { callbacks: { label: c => ' ' + c.label + ': ' + fmt(c.raw) + ' pax (' + pct(c.raw, total) + ')' } }
         }
@@ -586,15 +643,16 @@
     ];
     const total = vals.reduce((s, v) => s + v, 0);
     _charts.tuaExent = new Chart(ctx, {
-      type: 'doughnut',
+      type: 'pie',
       plugins: window.ChartDataLabels ? [ChartDataLabels] : [],
       data: {
         labels: ['Pagan TUA','Infantes','Tr\u00e1nsitos','Conexiones','Diplom\u00e1ticos','En Comisi\u00f3n','Otros Exentos'],
         datasets: [{ data: vals, backgroundColor: PAL_7, borderWidth: 2, hoverOffset: 8 }]
       },
       options: { responsive: true, maintainAspectRatio: false,
+        layout: { padding: 80 },
         plugins: {
-          legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } },
+          legend: { display: false },
           datalabels: datalabelsPiePct(total),
           tooltip: { callbacks: { label: c => ' ' + c.label + ': ' + fmt(c.raw) + ' (' + pct(c.raw, total) + ')' } }
         }
@@ -981,6 +1039,134 @@
   /* ═══════════════════════════════════════════════════════
      SUB-PESTAÑA: DATOS
   ═══════════════════════════════════════════════════════ */
+  /* ═══════════════════════════════════════════════════════
+     SUB-PESTAÑA: OPERACIONES
+  ═══════════════════════════════════════════════════════ */
+  function renderTabOperaciones() {
+    const d = _filtered;
+    const total = d.length;
+
+    // Count by type
+    const nacRows = d.filter(isDom);
+    const intRows = d.filter(isInt);
+    const nacTotal = nacRows.length;
+    const intTotal = intRows.length;
+    const activeMths = MONTHS_ES.filter((_, i) => d.some(r => getMonthIdx(r) === i));
+    const avgPerMonth = activeMths.length > 0 ? Math.round(total / activeMths.length) : 0;
+
+    // KPIs
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('ops-kpi-total',    fmt(total));
+    set('ops-kpi-total-sub', total === _allData.length ? 'vuelos registrados' : 'vuelos filtrados');
+    set('ops-kpi-nac',      fmt(nacTotal));
+    set('ops-kpi-nac-pct',  pct(nacTotal, total) + ' del total');
+    set('ops-kpi-int',      fmt(intTotal));
+    set('ops-kpi-int-pct',  pct(intTotal, total) + ' del total');
+    set('ops-kpi-avg',      fmt(avgPerMonth));
+    const badge = document.getElementById('ops-total-badge');
+    if (badge) badge.textContent = fmt(total) + ' operaciones';
+
+    // Monthly breakdown
+    const nacByMonth = new Array(12).fill(0);
+    const intByMonth = new Array(12).fill(0);
+    const totByMonth = new Array(12).fill(0);
+    d.forEach(r => {
+      const idx = getMonthIdx(r);
+      if (idx < 0 || idx > 11) return;
+      if (isDom(r)) nacByMonth[idx]++;
+      else if (isInt(r)) intByMonth[idx]++;
+      totByMonth[idx]++;
+    });
+
+    // Render monthly table
+    const tbody = document.getElementById('ops-tbody-monthly');
+    if (tbody) {
+      tbody.innerHTML = '';
+      let hasAnyData = false;
+      MONTHS_ES.forEach((mes, i) => {
+        if (totByMonth[i] === 0) return;
+        hasAnyData = true;
+        const pNac = totByMonth[i] > 0 ? ((nacByMonth[i] / totByMonth[i]) * 100).toFixed(1) : '0.0';
+        const pInt = totByMonth[i] > 0 ? ((intByMonth[i] / totByMonth[i]) * 100).toFixed(1) : '0.0';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="fw-semibold">${mes}</td>
+          <td class="text-end" style="color:#fd7e14">${fmt(nacByMonth[i])}</td>
+          <td class="text-end" style="color:#20c997">${fmt(intByMonth[i])}</td>
+          <td class="text-end fw-bold">${fmt(totByMonth[i])}</td>
+          <td class="text-end">${pNac}%</td>
+          <td class="text-end">${pInt}%</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      if (!hasAnyData) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">Sin datos para el período seleccionado</td></tr>';
+      }
+    }
+
+    // Totals footer
+    const tfoot = document.getElementById('ops-tfoot-monthly');
+    if (tfoot) {
+      const pNacT = total > 0 ? ((nacTotal / total) * 100).toFixed(1) : '0.0';
+      const pIntT = total > 0 ? ((intTotal / total) * 100).toFixed(1) : '0.0';
+      tfoot.innerHTML = `<tr>
+        <td>TOTAL</td>
+        <td class="text-end">${fmt(nacTotal)}</td>
+        <td class="text-end">${fmt(intTotal)}</td>
+        <td class="text-end">${fmt(total)}</td>
+        <td class="text-end">${pNacT}%</td>
+        <td class="text-end">${pIntT}%</td>
+      </tr>`;
+    }
+
+    // Bar chart: monthly operations
+    const ctxBar = document.getElementById('ops-chart-monthly');
+    if (ctxBar) {
+      if (_charts.opsMonthly) _charts.opsMonthly.destroy();
+      // Only show months with data
+      const labels = MONTHS_ES.filter((_, i) => totByMonth[i] > 0);
+      const nacData = nacByMonth.filter((_, i) => totByMonth[i] > 0);
+      const intData = intByMonth.filter((_, i) => totByMonth[i] > 0);
+      _charts.opsMonthly = new Chart(ctxBar, {
+        type: 'bar',
+        data: { labels, datasets: [
+          { label: 'Nacional',       data: nacData, backgroundColor: 'rgba(253,126,20,0.8)',   stack: 'S', borderRadius: { topLeft:0, topRight:0, bottomLeft:4, bottomRight:4 } },
+          { label: 'Internacional', data: intData, backgroundColor: 'rgba(32,201,151,0.8)',   stack: 'S', borderRadius: { topLeft:4, topRight:4, bottomLeft:0, bottomRight:0 } }
+        ]},
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top' },
+            datalabels: { display: false },
+            tooltip: { callbacks: {
+              label: c => ' ' + c.dataset.label + ': ' + fmt(c.raw),
+              footer: items => 'Total: ' + fmt(items.reduce((s, i) => s + i.raw, 0))
+            }}
+          },
+          scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1, callback: v => Number.isInteger(v) ? v : '' } } }
+        }
+      });
+    }
+
+    // Donut chart: nac vs int
+    const ctxDonut = document.getElementById('ops-chart-donut');
+    if (ctxDonut) {
+      if (_charts.opsDonut) _charts.opsDonut.destroy();
+      _charts.opsDonut = new Chart(ctxDonut, {
+        type: 'doughnut',
+        plugins: window.ChartDataLabels ? [ChartDataLabels] : [],
+        data: { labels: ['Nacional', 'Internacional'], datasets: [{ data: [nacTotal, intTotal], backgroundColor: ['#fd7e14', '#20c997'], borderWidth: 2, hoverOffset: 8 }] },
+        options: { responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            datalabels: datalabelsPiePct(total),
+            tooltip: { callbacks: { label: c => ' ' + c.label + ': ' + fmt(c.raw) + ' (' + pct(c.raw, total) + ')' } }
+          }
+        }
+      });
+    }
+  }
+
   function renderTabDatos() { renderTable(_filtered); }
 
   const DISPLAY_COLS = [
