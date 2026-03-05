@@ -316,10 +316,15 @@
     };
   }
 
-  function buildDemorasAnnualPeriod(periods, dataset) {
+  function buildDemorasAnnualPeriod(periods, dataset, targetYear) {
     if (!Array.isArray(periods) || !periods.length) return null;
+    // Filter to the target year if provided
+    const filtered = targetYear
+      ? periods.filter((p) => String(p.year) === String(targetYear))
+      : periods;
+    if (!filtered.length) return null;
     const totals = new Map();
-    periods.forEach((period) => {
+    filtered.forEach((period) => {
       if (!Array.isArray(period?.causas)) return;
       period.causas.forEach((item) => {
         const causeName = item?.causa || 'Sin causa';
@@ -331,7 +336,7 @@
     const causas = Array.from(totals.entries())
       .map(([causa, demoras]) => ({ causa, demoras }))
       .sort((a, b) => b.demoras - a.demoras);
-    const inferredYear = dataset?.year || periods.find((p) => p.year)?.year || '';
+    const inferredYear = targetYear || dataset?.year || filtered.find((p) => p.year)?.year || '';
     const label = inferredYear ? `Año ${inferredYear}` : 'Año completo';
     return {
       key: inferredYear ? `annual-${inferredYear}` : 'annual-total',
@@ -341,7 +346,7 @@
       scope: 'annual',
       year: inferredYear,
       causas,
-      sortOrder: Number.MAX_SAFE_INTEGER
+      sortOrder: inferredYear ? (Number(inferredYear) * 100 + 99) : Number.MAX_SAFE_INTEGER
     };
   }
 
@@ -410,8 +415,19 @@
       const [currentPeriod] = normalized.splice(currentIdx, 1);
       normalized.unshift(currentPeriod);
     }
-    const annual = buildDemorasAnnualPeriod(normalized.filter((p) => p.scope !== 'annual'), safeDataset);
-    return annual ? [annual, ...normalized] : normalized;
+    // Build one annual period per distinct year so years don't get mixed
+    const monthlyPeriods = normalized.filter((p) => p.scope !== 'annual');
+    const distinctYears = [...new Set(monthlyPeriods.map((p) => p.year).filter(Boolean))];
+    distinctYears.sort((a, b) => Number(b) - Number(a)); // descending: 2026, 2025, ...
+    const annualPeriods = distinctYears
+      .map((yr) => buildDemorasAnnualPeriod(monthlyPeriods, safeDataset, yr))
+      .filter(Boolean);
+    // Fallback: if no year info, build a single combined annual as before
+    if (!annualPeriods.length) {
+      const annual = buildDemorasAnnualPeriod(monthlyPeriods, safeDataset);
+      return annual ? [annual, ...normalized] : normalized;
+    }
+    return [...annualPeriods, ...normalized];
   }
 
   function findDefaultDemorasPeriod(periods = demorasState.periods) {

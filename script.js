@@ -6137,6 +6137,16 @@ function handleNavigation(e) {
                 }
             } catch (_) { }
         }
+        if (section === 'frecuencias-semana') {
+            try {
+                // Si la pestaña Estadísticas ya está activa, llamar a init directamente
+                // (shown.bs.tab no se vuelve a disparar al navegar entre secciones)
+                const statsTab = document.getElementById('frecuencias-estadisticas-tab');
+                if (statsTab && statsTab.classList.contains('active') && typeof FreqStats !== 'undefined') {
+                    setTimeout(() => FreqStats.init(), 120);
+                }
+            } catch (_) { }
+        }
     }
 }
 
@@ -14367,6 +14377,153 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load dynamic data
     loadWeeklyOperationsFromDB();
+
+    // Conciliación Manifiestos: load when tab is shown
+    const tabConciComercial = document.getElementById('tab-conci-comercial');
+    if (tabConciComercial) {
+        tabConciComercial.addEventListener('shown.bs.tab', () => {
+            loadConciliacionManifiestos();
+        });
+        // Also hook filter changes
+        ['filter-conci-manifiestos-year', 'filter-conci-manifiestos-month'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', loadConciliacionManifiestos);
+        });
+    }
 });
+
+// ─── Conciliación Manifiestos ────────────────────────────────────────────────
+let _conciManifiestosDataTable = null;
+
+async function loadConciliacionManifiestos() {
+    const yearEl  = document.getElementById('filter-conci-manifiestos-year');
+    const monthEl = document.getElementById('filter-conci-manifiestos-month');
+    const loading = document.getElementById('conci-manifiestos-loading');
+    const errorEl = document.getElementById('conci-manifiestos-error');
+    const badge   = document.getElementById('badge-conci-manifiestos-count');
+
+    const year  = yearEl  ? yearEl.value  : null;
+    const month = monthEl ? monthEl.value : null;
+
+    if (loading) loading.classList.remove('d-none');
+    if (errorEl) errorEl.classList.add('d-none');
+
+    try {
+        let client = window.supabaseClient;
+        if (!client && window.ensureSupabaseClient) client = await window.ensureSupabaseClient();
+        if (!client) throw new Error('No se pudo inicializar el cliente de Supabase.');
+
+        // Fetch all and filter client-side (column names may vary)
+        let allRows = [];
+        let from = 0;
+        const batch = 1000;
+        let more = true;
+        while (more) {
+            const { data: chunk, error } = await client
+                .from('Conciliación Manifiestos')
+                .select('*')
+                .range(from, from + batch - 1);
+            if (error) throw error;
+            if (chunk && chunk.length > 0) {
+                allRows = allRows.concat(chunk);
+                from += batch;
+                if (chunk.length < batch) more = false;
+            } else {
+                more = false;
+            }
+        }
+
+        // Detect year/month column names dynamically
+        let data = allRows;
+        if (allRows.length > 0) {
+            const keys = Object.keys(allRows[0]);
+            const yearKey  = keys.find(k => /^a[ñn]o$/i.test(k) || /year/i.test(k));
+            const monthKey = keys.find(k => /^mes$/i.test(k) || /month/i.test(k));
+            if (year && yearKey)   data = data.filter(r => String(r[yearKey])  === String(year));
+            if (month && monthKey) data = data.filter(r => String(r[monthKey]) === String(month));
+        }
+
+        if (loading) loading.classList.add('d-none');
+
+        // Update badge
+        if (badge) {
+            badge.textContent = `${(data || []).length} registros`;
+            badge.style.display = '';
+        }
+
+        // Render DataTable
+        _renderConciManifiestosTable(data || []);
+
+    } catch (err) {
+        if (loading) loading.classList.add('d-none');
+        if (errorEl) {
+            errorEl.textContent = `Error al cargar: ${err.message}`;
+            errorEl.classList.remove('d-none');
+        }
+        console.error('loadConciliacionManifiestos error:', err);
+    }
+}
+
+function _renderConciManifiestosTable(data) {
+    const tableId = 'table-conci-manifiestos';
+
+    // Destroy existing DataTable instance
+    if (_conciManifiestosDataTable) {
+        try { _conciManifiestosDataTable.destroy(); } catch(_) {}
+        _conciManifiestosDataTable = null;
+    }
+
+    const table = document.getElementById(tableId);
+    if (!table) return;
+
+    const thead = table.querySelector('thead');
+    const tbody = table.querySelector('tbody');
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+
+    if (!data.length) {
+        tbody.innerHTML = '<tr><td colspan="100%" class="text-center text-muted py-5">No se encontraron registros para los filtros seleccionados.</td></tr>';
+        return;
+    }
+
+    const cols = Object.keys(data[0]);
+
+    // Build header
+    const trHead = document.createElement('tr');
+    cols.forEach(c => {
+        const th = document.createElement('th');
+        th.className = 'text-center text-nowrap';
+        th.textContent = c.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        trHead.appendChild(th);
+    });
+    thead.appendChild(trHead);
+
+    // Build body
+    data.forEach(row => {
+        const tr = document.createElement('tr');
+        cols.forEach(c => {
+            const td = document.createElement('td');
+            td.className = 'text-center';
+            const val = row[c];
+            td.textContent = (val === null || val === undefined) ? '' : val;
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+
+    // Init DataTable
+    if (typeof $.fn !== 'undefined' && $.fn.DataTable) {
+        _conciManifiestosDataTable = $(`#${tableId}`).DataTable({
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+            },
+            pageLength: 25,
+            scrollX: true,
+            order: [],
+            dom: 'lfrtip'
+        });
+    }
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 // End of script

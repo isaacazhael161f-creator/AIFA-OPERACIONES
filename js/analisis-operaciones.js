@@ -87,7 +87,8 @@ async function loadOpsMonthData(month) {
     }
 
     try {
-        const tableName = `Demoras ${month}`;
+        // 2025 tables: "Demoras Enero" (sin año). 2026+ tables: "Demoras Enero 2026", etc.
+        const tableName = currentYearOps === 2025 ? `Demoras ${month}` : `Demoras ${month} ${currentYearOps}`;
         
         let client = window.supabaseClient;
         if (!client && window.ensureSupabaseClient) {
@@ -1825,6 +1826,10 @@ function renderPivotTable() {
 
 window.loadOperationsYear = function(year) {
     currentYearOps = year;
+    // Update active pill state
+    document.querySelectorAll('#ops-year-tabs .nav-link').forEach(btn => btn.classList.remove('active'));
+    const activeYearTab = document.getElementById(`tab-year-${year}`);
+    if (activeYearTab) activeYearTab.classList.add('active');
     loadOpsMonthData(currentMonthOps);
 };
 
