@@ -57,6 +57,68 @@ document.addEventListener('DOMContentLoaded', () => {
         estatus: item.estatus || null
     });
 
+    async function buildDaySummary() {
+        const grid = document.getElementById('itinerary-days-grid');
+        if (!grid) return;
+        if (!window.supabaseClient) return;
+        try {
+            const { data, error } = await window.supabaseClient
+                .from('flights')
+                .select('fecha_llegada')
+                .not('fecha_llegada', 'is', null)
+                .order('fecha_llegada', { ascending: true });
+            if (error) throw error;
+
+            const activeDate = dateFilter ? dateFilter.value : '';
+            const MONTHS = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+
+            const counts = {};
+            (data || []).forEach(row => {
+                const d = row.fecha_llegada;
+                if (d) counts[d] = (counts[d] || 0) + 1;
+            });
+            const sortedDates = Object.keys(counts).sort();
+            const total = (data || []).length;
+
+            if (total === 0) {
+                grid.innerHTML = '<p class="text-muted small mb-0">No hay datos cargados.</p>';
+                return;
+            }
+
+            let html = '<div class="d-flex flex-wrap gap-2 align-items-start">';
+            html += `<button class="btn btn-sm ${activeDate ? 'btn-outline-secondary' : 'btn-primary'} py-1 it-day-chip"
+                data-date="" style="min-width:80px;text-align:center;border-radius:10px">
+                <div style="font-size:.68rem;opacity:.7;letter-spacing:.05em">TODOS</div>
+                <div style="font-size:1.15rem;font-weight:800;line-height:1.1">${total}</div>
+                <div style="font-size:.7rem">vuelos</div></button>`;
+            sortedDates.forEach(iso => {
+                const d = new Date(iso + 'T00:00:00');
+                const day = String(d.getDate()).padStart(2, '0');
+                const mon = MONTHS[d.getMonth()];
+                const cnt = counts[iso];
+                const isActive = iso === activeDate;
+                html += `<button class="btn btn-sm ${isActive ? 'btn-primary shadow' : 'btn-outline-primary'} py-1 it-day-chip"
+                    data-date="${iso}" style="min-width:90px;text-align:center;border-radius:10px"
+                    title="${cnt} vuelos el ${iso}">
+                    <div style="font-size:.68rem;text-transform:uppercase;opacity:.7;letter-spacing:.05em">${mon}</div>
+                    <div style="font-size:1.4rem;font-weight:800;line-height:1.1">${day}</div>
+                    <div style="font-size:.75rem;font-weight:600">${cnt} <i class='fas fa-plane' style='font-size:.6rem'></i></div></button>`;
+            });
+            html += '</div>';
+            grid.innerHTML = html;
+
+            grid.querySelectorAll('.it-day-chip').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (dateFilter) dateFilter.value = btn.dataset.date;
+                    loadItineraryData();
+                });
+            });
+        } catch (e) {
+            if (grid) grid.innerHTML = '<p class="text-danger small mb-0"><i class="fas fa-exclamation-circle me-1"></i>Error al cargar días.</p>';
+            console.error('[DaySummary]', e);
+        }
+    }
+
     async function loadItineraryData() {
         if (!tbody) return;
         tbody.innerHTML = '<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm text-primary" role="status"></div> Cargando...</td></tr>';
@@ -133,9 +195,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert('Error al eliminar: ' + delError.message);
                 } else {
                     loadItineraryData();
+                    buildDaySummary();
                 }
             });
         });
+
+        buildDaySummary();
     }
 
     if (btnUploadJson) {
@@ -319,6 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 uploadModal.hide();
                 textarea.value = ''; // Clear
                 loadItineraryData();
+                buildDaySummary();
 
             } catch (error) {
                 console.error('Error importing flights:', error);
@@ -358,6 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 alert("Vuelos eliminados correctamente.");
                 loadItineraryData(); // Refresh table
+                buildDaySummary();
 
              } catch (e) {
                  console.error("Error deleting flights:", e);
@@ -367,11 +434,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (btnRefresh) {
-        btnRefresh.addEventListener('click', loadItineraryData);
+        btnRefresh.addEventListener('click', () => { loadItineraryData(); buildDaySummary(); });
     }
 
     if (dateFilter) {
-        dateFilter.addEventListener('change', loadItineraryData);
+        dateFilter.addEventListener('change', () => { loadItineraryData(); buildDaySummary(); });
     }
 
     // Initial load if tab is active (or just load it, it's fine)
@@ -402,4 +469,5 @@ document.addEventListener('DOMContentLoaded', () => {
     // Let's just expose the load function globally or rely on the user clicking refresh/date.
     // Or just call it.
     loadItineraryData();
+    buildDaySummary();
 });
