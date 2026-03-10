@@ -14395,6 +14395,270 @@ document.addEventListener('DOMContentLoaded', () => {
 // ─── Conciliación Manifiestos ────────────────────────────────────────────────
 let _conciManifiestosDataTable = null;
 
+// Fetch all rows from a Supabase table (paginated)
+async function _concifetchAllRows(client, tableName) {
+    let allRows = [];
+    let from = 0;
+    const batch = 1000;
+    while (true) {
+        const { data: chunk, error } = await client
+            .from(tableName)
+            .select('*')
+            .range(from, from + batch - 1);
+        if (error) return { data: allRows, error };
+        if (!chunk || chunk.length === 0) break;
+        allRows = allRows.concat(chunk);
+        from += batch;
+        if (chunk.length < batch) break;
+    }
+    return { data: allRows, error: null };
+}
+
+// Month abbreviation → number (1-based)
+const _CONCI_MONTHS = { JAN:1,FEB:2,MAR:3,APR:4,MAY:5,JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12 };
+
+// Parse month number from a vuelos time field value ("15FEB 07:30" → 2)
+function _conciParseVueloMonth(row) {
+    const DATE_FIELDS = ['[Arr] SIBT','[Arr] AIBT','[Arr] ALDT','[Dep] SOBT','[Dep] AOBT','[Dep] ATOT'];
+    for (const f of DATE_FIELDS) {
+        const raw = (row[f] || '').trim().toUpperCase();
+        const m = raw.match(/(\d{1,2})([A-Z]{3})\s+\d{2}:\d{2}/);
+        if (m && _CONCI_MONTHS[m[2]] !== undefined) {
+            return _CONCI_MONTHS[m[2]]; // 1-12
+        }
+    }
+    return null;
+}
+
+// Extract { day, month } from a vuelos row's date fields
+function _conciExtractVueloDateParts(vRow, preferArr) {
+    const arrFields = ['[Arr] SIBT','[Arr] AIBT','[Arr] ALDT'];
+    const depFields = ['[Dep] SOBT','[Dep] AOBT','[Dep] ATOT'];
+    const fields = preferArr ? [...arrFields, ...depFields] : [...depFields, ...arrFields];
+    for (const f of fields) {
+        const raw = (vRow[f] || '').trim().toUpperCase();
+        const m = raw.match(/^(\d{1,2})([A-Z]{3})\s+\d{2}:\d{2}/);
+        if (m && _CONCI_MONTHS[m[2]] !== undefined) {
+            return { day: m[1].padStart(2, '0'), month: _CONCI_MONTHS[m[2]] };
+        }
+    }
+    return null;
+}
+
+// Detect which key in an array matches a pattern
+function _conciDetect(keys, pattern) {
+    return keys.find(k => pattern.test(k)) || null;
+}
+
+// Build a synthetic manifest row from a vuelos row, given 'LLEGADA' or 'SALIDA'
+function _conciVueloToRow(vRow, tipo, outputCols, colm, hasManifestSchema) {
+    const isArr = tipo === 'LLEGADA';
+    if (hasManifestSchema) {
+        const row = {};
+        outputCols.forEach(c => { row[c] = ''; });
+        if (colm.tipo)      row[colm.tipo]      = tipo;
+        if (colm.vuelo)     row[colm.vuelo]      = isArr ? vRow['[Arr] Flight Designator'] : vRow['[Dep] Flight Designator'];
+        if (colm.aerolinea) row[colm.aerolinea]  = isArr ? vRow['[Arr] Airline code']      : vRow['[Dep] Airline code'];
+        if (colm.optype)    row[colm.optype]     = isArr ? vRow['[Arr] Service Type']      : vRow['[Dep] Service Type'];
+        if (colm.aeronave)  row[colm.aeronave]   = vRow['Aircraft type'] || '';
+        if (colm.matricula) row[colm.matricula]  = vRow['Registration']  || '';
+        if (colm.routing)   row[colm.routing]    = vRow['Routing']       || '';
+        if (colm.stand)     row[colm.stand]      = isArr ? vRow['[Arr] Stand']  : vRow['[Dep] Stand'];
+        if (colm.puerta)    row[colm.puerta]     = isArr ? vRow['[Arr] Gates']  : vRow['[Dep] Gates'];
+        if (colm.pax)       row[colm.pax]        = isArr ? vRow['[Arr] Boarded']: vRow['[Dep] Boarded'];
+        if (colm.status)    row[colm.status]     = vRow['Status'] || '';
+        const _dp2 = _conciExtractVueloDateParts(vRow, isArr);
+        if (colm.mes)       row[colm.mes]        = _dp2 ? String(_dp2.month) : '';
+        if (colm.fecha)     row[colm.fecha]      = _dp2 ? `${_dp2.day}/${String(_dp2.month).padStart(2,'0')}` : '';
+        if (isArr) {
+            if (colm.cinta) row[colm.cinta]      = vRow['[Arr] Baggage Belts'] || '';
+            if (colm.sibt)  row[colm.sibt]       = vRow['[Arr] SIBT'] || '';
+            if (colm.aibt)  row[colm.aibt]       = vRow['[Arr] AIBT'] || '';
+            if (colm.aldt)  row[colm.aldt]       = vRow['[Arr] ALDT'] || '';
+        } else {
+            if (colm.sobt)  row[colm.sobt]       = vRow['[Dep] SOBT'] || '';
+            if (colm.aobt)  row[colm.aobt]       = vRow['[Dep] AOBT'] || '';
+            if (colm.atot)  row[colm.atot]       = vRow['[Dep] ATOT'] || '';
+        }
+        row['_fuente'] = 'Solo Vuelos';
+        return row;
+    }
+    // No manifest schema — use synthetic columns
+    return {
+        'Tipo de Manifiesto': tipo,
+        '# de Vuelo':         isArr ? (vRow['[Arr] Flight Designator'] || '') : (vRow['[Dep] Flight Designator'] || ''),
+        'Aerolínea':          isArr ? (vRow['[Arr] Airline code']      || '') : (vRow['[Dep] Airline code']      || ''),
+        'Tipo de Operación':  isArr ? (vRow['[Arr] Service Type']      || '') : (vRow['[Dep] Service Type']      || ''),
+        'Aeronave':           vRow['Aircraft type']         || '',
+        'Matrícula':          vRow['Registration']          || '',
+        'Routing':            vRow['Routing']               || '',
+        'Stand':              isArr ? (vRow['[Arr] Stand']  || '') : (vRow['[Dep] Stand']  || ''),
+        'Puerta':             isArr ? (vRow['[Arr] Gates']  || '') : (vRow['[Dep] Gates']  || ''),
+        'Pax / Embarcados':   isArr ? (vRow['[Arr] Boarded']|| '') : (vRow['[Dep] Boarded']|| ''),
+        'Cinta':              isArr ? (vRow['[Arr] Baggage Belts'] || '') : '',
+        'Hora Prog.':         isArr ? (vRow['[Arr] SIBT']   || '') : (vRow['[Dep] SOBT']   || ''),
+        'Hora Real':          isArr ? (vRow['[Arr] AIBT']   || '') : (vRow['[Dep] AOBT']   || ''),
+        'ALDT / ATOT':        isArr ? (vRow['[Arr] ALDT']   || '') : (vRow['[Dep] ATOT']   || ''),
+        'ATTT':               isArr ? '' : (vRow['[Dep] ATTT'] || ''),
+        'Status':             vRow['Status'] || '',
+        '_fuente':            'Solo Vuelos',
+    };
+}
+
+// Build enriched rows merging manifest + vuelos data
+// schemaRows = full unfiltered manifest (for column schema even when filteredManifest is empty)
+function _conciBuildEnriched(manifestRows, vuelosRows, schemaRows) {
+    const _schemaSource = (schemaRows && schemaRows.length > 0) ? schemaRows : manifestRows;
+    const _sysCols = new Set(['id', 'created_at', 'updated_at']);
+    const manifestKeys = _schemaSource.length > 0
+        ? Object.keys(_schemaSource[0]).filter(k => !_sysCols.has(k))
+        : [];
+    const hasManifest  = _schemaSource.length > 0;
+
+    // Detect semantic columns in manifest schema
+    const colm = {};
+    const patterns = {
+        tipo:      /tipo.*(manif)/i,
+        vuelo:     /(#.*vuelo|n[oú]?\.?\s*vuelo|flight\s*des|designat)/i,
+        aerolinea: /(aerol[ií]nea|airline\s*cod|c[oó]d.*aerol)/i,
+        optype:    /(tipo.*oper|service\s*type|operaci[oó]n)/i,
+        aeronave:  /(aeronave|aircraft|tipo\s*aeronave)/i,
+        matricula: /(matr[ií]cula|registrat)/i,
+        routing:   /(routing|origen|ruta)/i,
+        stand:     /stand/i,
+        puerta:    /(puerta|gate)/i,
+        pax:       /(pax|boarded|pasaj)/i,
+        cinta:     /(cinta|belt)/i,
+        sibt:      /sibt/i,
+        aibt:      /aibt/i,
+        aldt:      /aldt/i,
+        sobt:      /sobt/i,
+        aobt:      /aobt/i,
+        atot:      /atot/i,
+        status:    /^status$/i,
+        mes:       /^mes$/i,
+        fecha:     /^fecha$/i,
+    };
+    for (const [key, pat] of Object.entries(patterns)) {
+        const found = _conciDetect(manifestKeys, pat);
+        if (found) colm[key] = found;
+    }
+
+    // Determine output columns
+    let outputCols;
+    if (hasManifest) {
+        outputCols = [...manifestKeys];
+        if (!outputCols.includes('_fuente')) outputCols.push('_fuente');
+    } else {
+        outputCols = [
+            'Tipo de Manifiesto','# de Vuelo','Aerolínea','Tipo de Operación',
+            'Aeronave','Matrícula','Routing','Stand','Puerta','Pax / Embarcados',
+            'Cinta','Hora Prog.','Hora Real','ALDT / ATOT','ATTT','Status','_fuente'
+        ];
+    }
+
+    // Build vuelos index: normalized flight number → { arrRow, depRow }
+    const vIndex = new Map();
+    for (const r of vuelosRows) {
+        const arr = (r['[Arr] Flight Designator'] || '').trim().toUpperCase();
+        const dep = (r['[Dep] Flight Designator'] || '').trim().toUpperCase();
+        if (arr) {
+            if (!vIndex.has(arr)) vIndex.set(arr, { arrRow: null, depRow: null });
+            vIndex.get(arr).arrRow = r;
+        }
+        if (dep) {
+            if (!vIndex.has(dep)) vIndex.set(dep, { arrRow: null, depRow: null });
+            vIndex.get(dep).depRow = r;
+        }
+    }
+
+    const enrichedRows = [];
+    const usedKeys = new Set(); // track matched vuelo keys
+
+    // Step 1: Enrich existing manifest rows
+    for (const mRow of manifestRows) {
+        const enriched = { ...mRow };
+
+        const tipoRaw = colm.tipo ? (mRow[colm.tipo] || '') : '';
+        const isLlegada = /lleg|arr/i.test(tipoRaw);
+        const isSalida  = /sal|dep/i.test(tipoRaw);
+        const flightNum = colm.vuelo ? (mRow[colm.vuelo] || '').trim().toUpperCase() : '';
+
+        let vRow = null;
+        if (flightNum && vIndex.has(flightNum)) {
+            const entry = vIndex.get(flightNum);
+            vRow = isLlegada ? (entry.arrRow || entry.depRow)
+                 : isSalida  ? (entry.depRow || entry.arrRow)
+                 : (entry.arrRow || entry.depRow);
+            if (vRow) usedKeys.add(flightNum + (isLlegada ? '_arr' : '_dep'));
+        }
+
+        if (vRow) {
+            const useArr = isLlegada || (!isSalida && vRow['[Arr] Flight Designator']);
+            const _dp = _conciExtractVueloDateParts(vRow, useArr);
+            const _mesVal   = _dp ? String(_dp.month) : '';
+            const _fechaVal = _dp ? `${_dp.day}/${String(_dp.month).padStart(2,'0')}` : '';
+            const fillMap = useArr ? {
+                [colm.aerolinea]: vRow['[Arr] Airline code'],
+                [colm.optype]:    vRow['[Arr] Service Type'],
+                [colm.aeronave]:  vRow['Aircraft type'],
+                [colm.matricula]: vRow['Registration'],
+                [colm.routing]:   vRow['Routing'],
+                [colm.stand]:     vRow['[Arr] Stand'],
+                [colm.puerta]:    vRow['[Arr] Gates'],
+                [colm.pax]:       vRow['[Arr] Boarded'],
+                [colm.cinta]:     vRow['[Arr] Baggage Belts'],
+                [colm.sibt]:      vRow['[Arr] SIBT'],
+                [colm.aibt]:      vRow['[Arr] AIBT'],
+                [colm.aldt]:      vRow['[Arr] ALDT'],
+                [colm.status]:    vRow['Status'],
+                [colm.mes]:       _mesVal,
+                [colm.fecha]:     _fechaVal,
+            } : {
+                [colm.aerolinea]: vRow['[Dep] Airline code'],
+                [colm.optype]:    vRow['[Dep] Service Type'],
+                [colm.aeronave]:  vRow['Aircraft type'],
+                [colm.matricula]: vRow['Registration'],
+                [colm.routing]:   vRow['Routing'],
+                [colm.stand]:     vRow['[Dep] Stand'],
+                [colm.puerta]:    vRow['[Dep] Gates'],
+                [colm.pax]:       vRow['[Dep] Boarded'],
+                [colm.sobt]:      vRow['[Dep] SOBT'],
+                [colm.aobt]:      vRow['[Dep] AOBT'],
+                [colm.atot]:      vRow['[Dep] ATOT'],
+                [colm.status]:    vRow['Status'],
+                [colm.mes]:       _mesVal,
+                [colm.fecha]:     _fechaVal,
+            };
+            for (const [col, val] of Object.entries(fillMap)) {
+                if (col && (enriched[col] === null || enriched[col] === undefined || String(enriched[col]).trim() === '')) {
+                    enriched[col] = val || '';
+                }
+            }
+            enriched['_fuente'] = 'Manifiestos + Vuelos';
+        } else {
+            enriched['_fuente'] = 'Solo Manifiestos';
+        }
+
+        enrichedRows.push(enriched);
+    }
+
+    // Step 2: Add unmatched vuelos as virtual manifest rows
+    for (const vRow of vuelosRows) {
+        const arrFlight = (vRow['[Arr] Flight Designator'] || '').trim().toUpperCase();
+        const depFlight = (vRow['[Dep] Flight Designator'] || '').trim().toUpperCase();
+
+        if (arrFlight && !usedKeys.has(arrFlight + '_arr')) {
+            enrichedRows.push(_conciVueloToRow(vRow, 'LLEGADA', outputCols, colm, hasManifest));
+        }
+        if (depFlight && !usedKeys.has(depFlight + '_dep')) {
+            enrichedRows.push(_conciVueloToRow(vRow, 'SALIDA', outputCols, colm, hasManifest));
+        }
+    }
+
+    return { rows: enrichedRows, columns: outputCols };
+}
+
 async function loadConciliacionManifiestos() {
     const yearEl  = document.getElementById('filter-conci-manifiestos-year');
     const monthEl = document.getElementById('filter-conci-manifiestos-month');
@@ -14402,10 +14666,10 @@ async function loadConciliacionManifiestos() {
     const errorEl = document.getElementById('conci-manifiestos-error');
     const badge   = document.getElementById('badge-conci-manifiestos-count');
 
-    const year  = yearEl  ? yearEl.value  : null;
-    const month = monthEl ? monthEl.value : null;
+    const year  = yearEl  ? parseInt(yearEl.value, 10)  : new Date().getFullYear();
+    const month = monthEl && monthEl.value ? parseInt(monthEl.value, 10) : null; // 1-12 or null
 
-    if (loading) loading.classList.remove('d-none');
+    if (loading) { loading.classList.remove('d-none'); }
     if (errorEl) errorEl.classList.add('d-none');
 
     try {
@@ -14413,49 +14677,46 @@ async function loadConciliacionManifiestos() {
         if (!client && window.ensureSupabaseClient) client = await window.ensureSupabaseClient();
         if (!client) throw new Error('No se pudo inicializar el cliente de Supabase.');
 
-        // Fetch all and filter client-side (column names may vary)
-        let allRows = [];
-        let from = 0;
-        const batch = 1000;
-        let more = true;
-        while (more) {
-            const { data: chunk, error } = await client
-                .from('Conciliación Manifiestos')
-                .select('*')
-                .range(from, from + batch - 1);
-            if (error) throw error;
-            if (chunk && chunk.length > 0) {
-                allRows = allRows.concat(chunk);
-                from += batch;
-                if (chunk.length < batch) more = false;
-            } else {
-                more = false;
-            }
-        }
+        // Fetch both tables in parallel
+        const [manifestResult, vuelosResult] = await Promise.all([
+            _concifetchAllRows(client, 'Conciliación Manifiestos'),
+            _concifetchAllRows(client, 'vuelos_parte_operaciones_csv'),
+        ]);
 
-        // Detect year/month column names dynamically
-        let data = allRows;
-        if (allRows.length > 0) {
-            const keys = Object.keys(allRows[0]);
+        // Ignore manifest fetch error gracefully (table may be empty)
+        const manifestRows = manifestResult.data || [];
+        const vuelosRows   = vuelosResult.data   || [];
+        if (vuelosResult.error && manifestResult.error) throw vuelosResult.error;
+
+        // Filter vuelos by selected month (year is implicit — dates have no year in storage)
+        const filteredVuelos = month
+            ? vuelosRows.filter(r => _conciParseVueloMonth(r) === month)
+            : vuelosRows;
+
+        // Filter manifest rows by year/month if columns exist
+        let filteredManifest = manifestRows;
+        if (manifestRows.length > 0) {
+            const keys = Object.keys(manifestRows[0]);
             const yearKey  = keys.find(k => /^a[ñn]o$/i.test(k) || /year/i.test(k));
             const monthKey = keys.find(k => /^mes$/i.test(k) || /month/i.test(k));
-            if (year && yearKey)   data = data.filter(r => String(r[yearKey])  === String(year));
-            if (month && monthKey) data = data.filter(r => String(r[monthKey]) === String(month));
+            if (yearKey)              filteredManifest = filteredManifest.filter(r => String(r[yearKey]) === String(year));
+            if (month && monthKey)    filteredManifest = filteredManifest.filter(r => String(r[monthKey]) === String(month));
         }
 
-        if (loading) loading.classList.add('d-none');
+        // Build enriched merged dataset
+        // Pass full manifestRows as schema source so columns are always the original manifest columns
+        const { rows, columns } = _conciBuildEnriched(filteredManifest, filteredVuelos, manifestRows);
 
-        // Update badge
+        if (loading) { loading.classList.add('d-none'); }
         if (badge) {
-            badge.textContent = `${(data || []).length} registros`;
+            badge.textContent = `${rows.length} registros`;
             badge.style.display = '';
         }
 
-        // Render DataTable
-        _renderConciManifiestosTable(data || []);
+        _renderConciManifiestosTable(rows, columns);
 
     } catch (err) {
-        if (loading) loading.classList.add('d-none');
+        if (loading) { loading.classList.add('d-none'); }
         if (errorEl) {
             errorEl.textContent = `Error al cargar: ${err.message}`;
             errorEl.classList.remove('d-none');
@@ -14464,10 +14725,9 @@ async function loadConciliacionManifiestos() {
     }
 }
 
-function _renderConciManifiestosTable(data) {
+function _renderConciManifiestosTable(data, columns) {
     const tableId = 'table-conci-manifiestos';
 
-    // Destroy existing DataTable instance
     if (_conciManifiestosDataTable) {
         try { _conciManifiestosDataTable.destroy(); } catch(_) {}
         _conciManifiestosDataTable = null;
@@ -14481,48 +14741,47 @@ function _renderConciManifiestosTable(data) {
     thead.innerHTML = '';
     tbody.innerHTML = '';
 
+    // Display columns: hide the internal _fuente marker column
+    const displayCols = (columns || (data.length ? Object.keys(data[0]) : [])).filter(c => c !== '_fuente');
+
     if (!data.length) {
         tbody.innerHTML = '<tr><td colspan="100%" class="text-center text-muted py-5">No se encontraron registros para los filtros seleccionados.</td></tr>';
         return;
     }
 
-    const cols = Object.keys(data[0]);
-
-    // Build header
+    // Header — sticky (CSS-based, no DataTables split-table misalignment)
     const trHead = document.createElement('tr');
-    cols.forEach(c => {
+    displayCols.forEach(c => {
         const th = document.createElement('th');
-        th.className = 'text-center text-nowrap';
-        th.textContent = c.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        th.className = 'text-nowrap';
+        th.style.cssText = 'position:sticky;top:0;z-index:2;background:#343a40;color:#fff;padding:8px 10px;border:1px solid #454d55;white-space:nowrap;text-align:center;';
+        th.textContent = c;
         trHead.appendChild(th);
     });
     thead.appendChild(trHead);
 
-    // Build body
-    data.forEach(row => {
+    // Source → background color
+    const srcColors = {
+        'Manifiestos + Vuelos': '#e8f5e9',
+        'Solo Manifiestos':     '#fff9c4',
+        'Solo Vuelos':          '#e3f2fd',
+    };
+
+    // Body
+    data.forEach((row, idx) => {
         const tr = document.createElement('tr');
-        cols.forEach(c => {
+        const bg = srcColors[row['_fuente']];
+        tr.style.backgroundColor = bg || (idx % 2 === 0 ? '#fff' : '#f8f9fa');
+
+        displayCols.forEach(c => {
             const td = document.createElement('td');
-            td.className = 'text-center';
+            td.style.cssText = 'text-align:center;padding:5px 8px;border:1px solid #dee2e6;white-space:nowrap;font-size:0.82rem;';
             const val = row[c];
             td.textContent = (val === null || val === undefined) ? '' : val;
             tr.appendChild(td);
         });
         tbody.appendChild(tr);
     });
-
-    // Init DataTable
-    if (typeof $.fn !== 'undefined' && $.fn.DataTable) {
-        _conciManifiestosDataTable = $(`#${tableId}`).DataTable({
-            language: {
-                url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
-            },
-            pageLength: 25,
-            scrollX: true,
-            order: [],
-            dom: 'lfrtip'
-        });
-    }
 }
 // ─────────────────────────────────────────────────────────────────────────────
 

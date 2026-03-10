@@ -211,13 +211,15 @@
         updateRelativeLabels(relStartLabel, relEndLabel);
 
         const filterInputs = document.querySelectorAll('#table-ops-flights-csv .csv-filter-row input');
+        let _filterDebounce;
         filterInputs.forEach(input => {
             input.addEventListener('input', () => {
                 const field = input.dataset.field;
                 if (field) {
                     columnFilters[field] = input.value.trim();
                 }
-                applyAndRender();
+                clearTimeout(_filterDebounce);
+                _filterDebounce = setTimeout(applyAndRender, 250);
             });
         });
 

@@ -35,7 +35,7 @@
   // Exponer función para "destruir": limpiar canvases
   window.destroyItinerarioCharts = function() {
     console.log('🗑️ Limpiando canvases de itinerario...');
-    const canvasIds = ['paxArrivalsChart', 'paxDeparturesChart', 'cargoArrivalsChart', 'cargoDeparturesChart', 'generalArrivalsChart', 'generalDeparturesChart', 'heatmapPaxDay', 'heatmapCargoDay'];
+    const canvasIds = ['paxArrivalsChart', 'paxDeparturesChart', 'cargoArrivalsChart', 'cargoDeparturesChart', 'generalArrivalsChart', 'generalDeparturesChart', 'heatmapPaxDay', 'heatmapCargoDay', 'combinedChart', 'paxCombinedChart', 'cargoCombinedChart'];
     canvasIds.forEach(id => {
       const c = document.getElementById(id);
       if (!c) return;
@@ -349,19 +349,23 @@
         el.innerHTML = '<li class="text-muted">Sin datos</li>';
         return;
       }
+      const isArr = movement === 'Llegada';
+      const maxV  = Math.max(...items.map(x => x.v), 1);
       el.innerHTML = items.map(({h, v}) => {
         const hourLabel  = String(h).padStart(2,'0');
-        const rangeLabel = `${hourLabel}:00–${hourLabel}:59`;
+        const rangeLabel = `${hourLabel}:00\u2013${hourLabel}:59`;
         const dimStyle   = v === 0 ? ' style="opacity:0.35"' : '';
+        const pct        = Math.round((v / maxV) * 100);
+        const barBg      = v > 0
+          ? `background:linear-gradient(to right,${isArr ? 'rgba(16,185,129,0.14)' : 'rgba(249,115,22,0.14)'} ${pct}%,transparent ${pct}%)`
+          : '';
+        const countHtml  = v > 0
+          ? `<span class="th-count-badge ${isArr ? 'th-badge-arr' : 'th-badge-dep'}">${v}<small> vuelo${v!==1?'s':''}</small></span>`
+          : `<span class="th-count-zero">\u2014</span>`;
         const btnAttrs   = v > 0
           ? `data-top-hour data-scope="${scope}" data-movement="${movement}" data-hour="${h}"`
           : 'disabled aria-disabled="true" style="cursor:default;pointer-events:none"';
-        return `<li${dimStyle}>
-          <button type="button" class="btn btn-link p-0 text-start w-100 top-hour-trigger" ${btnAttrs}>
-            <strong>${rangeLabel}</strong>
-            <span class="text-muted ms-1">(${v} vuelo${v!==1?'s':''})</span>
-          </button>
-        </li>`;
+        return `<li${dimStyle}><button type="button" class="btn btn-link p-0 text-start w-100 top-hour-trigger" ${btnAttrs} style="${barBg}"><strong class="th-range">${rangeLabel}</strong>${countHtml}</button></li>`;
       }).join('');
     };
     renderList('pax-top-arr',   agg.paxArr, topNPax,   SCOPE_PAX,   'Llegada');
@@ -397,23 +401,126 @@
         el.innerHTML = '<li class="text-muted">Sin datos</li>';
         return;
       }
+      const isArr = movement === 'Llegada';
+      const maxV  = Math.max(...items.map(x => x.v), 1);
       el.innerHTML = items.map(({h, v}) => {
         const hourLabel  = String(h).padStart(2,'0');
         const rangeLabel = `${hourLabel}:00\u2013${hourLabel}:59`;
         const dimStyle   = v === 0 ? ' style="opacity:0.35"' : '';
+        const pct        = Math.round((v / maxV) * 100);
+        const barBg      = v > 0
+          ? `background:linear-gradient(to right,${isArr ? 'rgba(16,185,129,0.14)' : 'rgba(249,115,22,0.14)'} ${pct}%,transparent ${pct}%)`
+          : '';
+        const countHtml  = v > 0
+          ? `<span class="th-count-badge ${isArr ? 'th-badge-arr' : 'th-badge-dep'}">${v}<small> vuelo${v!==1?'s':''}</small></span>`
+          : `<span class="th-count-zero">\u2014</span>`;
         const btnAttrs   = v > 0
           ? `data-top-hour data-scope="${SCOPE_ALL}" data-movement="${movement}" data-hour="${h}"`
           : 'disabled aria-disabled="true" style="cursor:default;pointer-events:none"';
-        return `<li${dimStyle}>
-          <button type="button" class="btn btn-link p-0 text-start w-100 top-hour-trigger" ${btnAttrs}>
-            <strong>${rangeLabel}</strong>
-            <span class="text-muted ms-1">(${v} vuelo${v!==1?'s':''})</span>
-          </button>
-        </li>`;
+        return `<li${dimStyle}><button type="button" class="btn btn-link p-0 text-start w-100 top-hour-trigger" ${btnAttrs} style="${barBg}"><strong class="th-range">${rangeLabel}</strong>${countHtml}</button></li>`;
       }).join('');
     };
     renderList('general-all-arr', genArr, 'Llegada');
     renderList('general-all-dep', genDep, 'Salida');
+  }
+
+  function _makeSingleTopHoursList(containerId, scope, totals, topN, detailFn, accentCss) {
+    const isAll = topN >= 24;
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const items = isAll
+      ? totals.map((v,i) => ({h:i,v}))
+      : totals.map((v,i)=>({h:i,v})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v||a.h-b.h).slice(0,topN);
+    if (!isAll && !items.length){ el.innerHTML = '<li class="text-muted">Sin datos</li>'; return; }
+    const maxV = Math.max(...items.map(x=>x.v), 1);
+    el.innerHTML = items.map(({h,v}) => {
+      const lbl  = String(h).padStart(2,'0');
+      const rng  = `${lbl}:00\u2013${lbl}:59`;
+      const dim  = v === 0 ? ' style="opacity:0.35"' : '';
+      const pct  = Math.round((v/maxV)*100);
+      const bg   = v > 0 ? `background:linear-gradient(to right,${accentCss} ${pct}%,transparent ${pct}%)` : '';
+      const det  = detailFn(h, v);
+      const btn  = v > 0
+        ? `data-top-hour data-scope="${scope}" data-hour="${h}"`
+        : 'disabled aria-disabled="true" style="cursor:default;pointer-events:none"';
+      return `<li${dim}><button type="button" class="btn btn-link p-0 text-start w-100 top-hour-trigger" ${btn} style="${bg}"><strong class="th-range">${rng}</strong>${det}</button></li>`;
+    }).join('');
+    el.querySelectorAll('[data-top-hour]').forEach(btn => {
+      btn.addEventListener('click', () => showTopHourFlights(scope, null, parseInt(btn.dataset.hour, 10)));
+    });
+  }
+
+  function renderPaxCombinedTopHours(agg){
+    const sel  = document.getElementById('pax-combined-topN');
+    const topN = sel ? parseInt(sel.value, 10) : 5;
+    const totals = agg.paxArr.map((v,i) => v + (agg.paxDep[i]||0));
+    _makeSingleTopHoursList('pax-combined-top-all', SCOPE_PAX, totals, topN, (h, v) => {
+      const arr = agg.paxArr[h]||0, dep = agg.paxDep[h]||0;
+      return v > 0
+        ? `<span class="th-count-badge" style="background:rgba(13,110,253,0.15);color:rgb(13,100,220)">${v}<small> vuelo${v!==1?'s':''}</small></span>`
+          + (arr ? `<small class="text-muted ms-1">Arr:${arr}</small>` : '')
+          + (dep ? `<small class="text-muted ms-1">Sal:${dep}</small>` : '')
+        : '<span class="th-count-zero">\u2014</span>';
+    }, 'rgba(13,110,253,0.13)');
+  }
+
+  function renderCargoCombinedTopHours(agg){
+    const sel  = document.getElementById('cargo-combined-topN');
+    const topN = sel ? parseInt(sel.value, 10) : 5;
+    const totals = agg.carArr.map((v,i) => v + (agg.carDep[i]||0));
+    _makeSingleTopHoursList('cargo-combined-top-all', SCOPE_CARGO, totals, topN, (h, v) => {
+      const arr = agg.carArr[h]||0, dep = agg.carDep[h]||0;
+      return v > 0
+        ? `<span class="th-count-badge" style="background:rgba(249,115,22,0.15);color:rgb(194,65,12)">${v}<small> vuelo${v!==1?'s':''}</small></span>`
+          + (arr ? `<small class="text-muted ms-1">Arr:${arr}</small>` : '')
+          + (dep ? `<small class="text-muted ms-1">Sal:${dep}</small>` : '')
+        : '<span class="th-count-zero">\u2014</span>';
+    }, 'rgba(249,115,22,0.13)');
+  }
+
+  function renderCombinedTopHours(agg){
+    const sel  = document.getElementById('combined-topN');
+    const topN = sel ? parseInt(sel.value, 10) : 5;
+    const isAll = topN >= 24;
+    const totals = agg.paxArr.map((v,i) => v + (agg.paxDep[i]||0) + (agg.carArr[i]||0) + (agg.carDep[i]||0));
+    const el = document.getElementById('combined-top-all');
+    if (!el) return;
+    const items = isAll
+      ? totals.map((v,i) => ({h:i,v}))
+      : totals
+          .map((v,i)=>({h:i,v}))
+          .filter(x=>x.v>0)
+          .sort((a,b)=> b.v - a.v || a.h - b.h)
+          .slice(0, topN);
+    if (!isAll && !items.length){ el.innerHTML = '<li class="text-muted">Sin datos</li>'; return; }
+    const maxV = Math.max(...items.map(x=>x.v), 1);
+    el.innerHTML = items.map(({h,v}) => {
+      const hourLabel  = String(h).padStart(2,'0');
+      const rangeLabel = `${hourLabel}:00\u2013${hourLabel}:59`;
+      const dimStyle   = v === 0 ? ' style="opacity:0.35"' : '';
+      const pct        = Math.round((v/maxV)*100);
+      const barBg      = v > 0
+        ? `background:linear-gradient(to right,rgba(99,102,241,0.14) ${pct}%,transparent ${pct}%)`
+        : '';
+      const paxTotal = (agg.paxArr[h]||0) + (agg.paxDep[h]||0);
+      const carTotal = (agg.carArr[h]||0) + (agg.carDep[h]||0);
+      const detailHtml = v > 0
+        ? `<span class="th-count-badge" style="background:rgba(99,102,241,0.15);color:rgb(79,70,229)">${v}<small> vuelo${v!==1?'s':''}</small></span>`
+          + (paxTotal ? `<small class="text-muted ms-1">Pax:${paxTotal}</small>` : '')
+          + (carTotal ? `<small class="text-muted ms-1">Carga:${carTotal}</small>` : '')
+        : '<span class="th-count-zero">\u2014</span>';
+      const btnAttrs = v > 0
+        ? `data-top-hour data-scope="${SCOPE_ALL}" data-hour="${h}"`
+        : 'disabled aria-disabled="true" style="cursor:default;pointer-events:none"';
+      return `<li${dimStyle}><button type="button" class="btn btn-link p-0 text-start w-100 top-hour-trigger" ${btnAttrs} style="${barBg}"><strong class="th-range">${rangeLabel}</strong>${detailHtml}</button></li>`;
+    }).join('');
+    // Bind click events to newly rendered items
+    el.querySelectorAll('[data-top-hour]').forEach(btn => {
+      btn.addEventListener('click', ()=> {
+        const hour = parseInt(btn.dataset.hour, 10);
+        showTopHourFlights(SCOPE_ALL, null, hour);
+      });
+    });
   }
 
   // Redraw all charts using cached data — called when a hidden sub-tab becomes visible
@@ -453,6 +560,23 @@
       gradientStops: ['rgba(251,207,232,0.95)', 'rgba(236,72,153,0.65)'],
       shadowColor: 'rgba(236,72,153,0.25)', subtitle: 'Salidas combinadas de pasajeros y carga'
     });
+    drawGroupedBars('combinedChart', H_LABELS, [
+      { values: agg.paxArr, color: 'rgba(13,110,253,1)',   scope: SCOPE_PAX,   movement: 'Llegada' },
+      { values: agg.paxDep, color: 'rgba(16,185,129,1)',   scope: SCOPE_PAX,   movement: 'Salida'  },
+      { values: agg.carArr, color: 'rgba(249,115,22,1)',   scope: SCOPE_CARGO, movement: 'Llegada' },
+      { values: agg.carDep, color: 'rgba(234,88,12,1)',    scope: SCOPE_CARGO, movement: 'Salida'  }
+    ]);
+    renderCombinedTopHours(agg);
+    drawGroupedBars('paxCombinedChart', H_LABELS, [
+      { values: agg.paxArr, color: 'rgba(13,110,253,1)',  scope: SCOPE_PAX, movement: 'Llegada' },
+      { values: agg.paxDep, color: 'rgba(16,185,129,1)', scope: SCOPE_PAX, movement: 'Salida'  }
+    ]);
+    renderPaxCombinedTopHours(agg);
+    drawGroupedBars('cargoCombinedChart', H_LABELS, [
+      { values: agg.carArr, color: 'rgba(249,115,22,1)', scope: SCOPE_CARGO, movement: 'Llegada' },
+      { values: agg.carDep, color: 'rgba(180,60,6,1)',   scope: SCOPE_CARGO, movement: 'Salida'  }
+    ]);
+    renderCargoCombinedTopHours(agg);
     bindChartClicks();
   }
 
@@ -463,7 +587,10 @@
       { id: 'cargoArrivalsChart' },
       { id: 'cargoDeparturesChart' },
       { id: 'generalArrivalsChart' },
-      { id: 'generalDeparturesChart' }
+      { id: 'generalDeparturesChart' },
+      { id: 'combinedChart' },
+      { id: 'paxCombinedChart' },
+      { id: 'cargoCombinedChart' }
     ];
     charts.forEach(({ id }) => {
       const canvas = document.getElementById(id);
@@ -484,11 +611,137 @@
     if (!bounds || x < bounds.left || x > bounds.right || y < bounds.top || y > bounds.bottom) return;
     const slot = hit.slots.find(s => x >= s.start && x <= s.end);
     if (!slot || !Number.isFinite(slot.hour)) return;
-    const rawScope = hit.meta && hit.meta.scope;
+    const rawScope = (slot.scope) || (hit.meta && hit.meta.scope);
+    const rawMovement = (slot.movement) || (hit.meta && hit.meta.movement);
     const scope = rawScope === SCOPE_CARGO ? SCOPE_CARGO : rawScope === SCOPE_ALL ? SCOPE_ALL : SCOPE_PAX;
-    const movement = hit.meta && hit.meta.movement === 'Salida' ? 'Salida' : 'Llegada';
+    const movement = rawMovement === 'Salida' ? 'Salida' : rawMovement === 'Llegada' ? 'Llegada' : null;
     showTopHourFlights(scope, movement, slot.hour);
   }
+  // ── Gráfica combinada: barras APILADAS (paxArr / paxDep / carArr / carDep) ──
+  function drawGroupedBars(canvasId, labels, datasets) {
+    const c = document.getElementById(canvasId);
+    if (!c) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w   = c.clientWidth  || 640;
+    const h   = c.clientHeight || 400;
+    c.width  = Math.max(1, Math.floor(w * dpr));
+    c.height = Math.max(1, Math.floor(h * dpr));
+    const g  = c.getContext('2d');
+    if (!g) return;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+
+    const darkMode = document.body && document.body.classList.contains('dark-mode');
+    const bg = g.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, darkMode ? 'rgba(2,6,23,0.95)'  : 'rgba(255,255,255,0.98)');
+    bg.addColorStop(1, darkMode ? 'rgba(15,23,42,0.9)' : 'rgba(243,246,255,0.95)');
+    g.fillStyle = bg;
+    g.fillRect(0, 0, w, h);
+
+    const isMobile = (w < 576);
+    const margin   = { top: 28, right: 16, bottom: isMobile ? 56 : 36, left: 46 };
+    const innerW   = Math.max(1, w - margin.left - margin.right);
+    const innerH   = Math.max(1, h - margin.top  - margin.bottom);
+    const x0 = margin.left;
+    const y0 = h - margin.bottom;
+
+    // Plot bg
+    const plotGrad = g.createLinearGradient(0, margin.top, 0, y0);
+    plotGrad.addColorStop(0, darkMode ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.92)');
+    plotGrad.addColorStop(1, darkMode ? 'rgba(15,23,42,0.55)' : 'rgba(240,249,255,0.88)');
+    g.save(); g.fillStyle = plotGrad;
+    roundRect(g, x0 - 14, margin.top - 10, innerW + 28, innerH + 20, 18);
+    g.fill(); g.restore();
+
+    const gridColor = darkMode ? 'rgba(226,232,240,0.15)' : 'rgba(15,23,42,0.08)';
+    const axisColor = darkMode ? '#cbd5f5' : '#475569';
+    const labelColor = darkMode ? '#f8fafc' : '#1f2937';
+
+    // Per-hour totals (for height + top label)
+    const totals = labels.map((_, i) => datasets.reduce((s, ds) => s + (ds.values[i] || 0), 0));
+    const maxV   = Math.max(1, ...totals);
+    const topVal = niceMax(maxV);
+
+    // Grid lines + Y labels
+    const tickCount = 5;
+    for (let t = 0; t <= tickCount; t++) {
+      const val = Math.round((t / tickCount) * topVal);
+      const yt  = y0 - (val / topVal) * innerH;
+      g.strokeStyle = gridColor; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(x0, yt); g.lineTo(x0 + innerW, yt); g.stroke();
+      g.fillStyle = axisColor;
+      g.font = `${isMobile ? 9 : 11}px system-ui,sans-serif`;
+      g.textAlign = 'right';
+      g.fillText(val, x0 - 6, yt + 4);
+    }
+
+    const slotW = innerW / labels.length;
+    const barW  = slotW * 0.70;
+    const slots = [];
+
+    labels.forEach((lbl, i) => {
+      const total = totals[i];
+      if (!total) {
+        slots.push({ start: x0 + i * slotW, end: x0 + i * slotW + barW, hour: i, scope: SCOPE_ALL, movement: null });
+        return;
+      }
+      const barX = x0 + i * slotW + (slotW - barW) / 2;
+      let stackY = y0;
+
+      datasets.forEach((ds, di) => {
+        const val = ds.values[i] || 0;
+        if (val <= 0) return;
+        const segH = (val / topVal) * innerH;
+        const segY = stackY - segH;
+        const isTop = di === datasets.length - 1 || datasets.slice(di + 1).every(d => (d.values[i] || 0) === 0);
+        g.save();
+        g.fillStyle = ds.color;
+        g.beginPath();
+        if (isTop) {
+          const r = Math.min(4, barW / 2, segH / 2);
+          g.moveTo(barX + r, segY);
+          g.lineTo(barX + barW - r, segY);
+          g.quadraticCurveTo(barX + barW, segY, barX + barW, segY + r);
+          g.lineTo(barX + barW, stackY);
+          g.lineTo(barX, stackY);
+          g.lineTo(barX, segY + r);
+          g.quadraticCurveTo(barX, segY, barX + r, segY);
+        } else {
+          g.rect(barX, segY, barW, segH);
+        }
+        g.closePath(); g.fill(); g.restore();
+        stackY = segY;
+      });
+
+      // Total label above bar
+      const barTopY = y0 - (total / topVal) * innerH;
+      g.fillStyle = labelColor;
+      g.font = `bold ${isMobile ? 9 : 11}px system-ui,sans-serif`;
+      g.textAlign = 'center';
+      g.fillText(total, barX + barW / 2, barTopY - 5);
+
+      slots.push({ start: barX, end: barX + barW, hour: i, scope: SCOPE_ALL, movement: null });
+    });
+
+    chartHitRegions[canvasId] = {
+      bounds: { left: x0, right: x0 + innerW, top: margin.top, bottom: y0 },
+      slots
+    };
+
+    // X-axis hour labels
+    g.font = `${isMobile ? 9 : 10}px system-ui,sans-serif`;
+    g.textAlign = 'center';
+    g.fillStyle = axisColor;
+    labels.forEach((lbl, i) => {
+      if (isMobile && i % 2 !== 0) return;
+      g.fillText(lbl, x0 + i * slotW + slotW / 2, y0 + 16);
+    });
+
+    // Baseline
+    g.strokeStyle = axisColor; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(x0, y0); g.lineTo(x0 + innerW, y0); g.stroke();
+  }
+
   // Dibujador de barras (sin Chart.js) con estética pulida e interacción
   function drawBars(canvasId, labels, values, color, title, meta = {}){
     const c = document.getElementById(canvasId);
@@ -887,6 +1140,23 @@
       shadowColor: 'rgba(236,72,153,0.25)',
       subtitle: 'Salidas combinadas de pasajeros y carga'
     });
+    drawGroupedBars('combinedChart', H_LABELS, [
+      { values: agg.paxArr, color: 'rgba(13,110,253,1)',   scope: SCOPE_PAX,   movement: 'Llegada' },
+      { values: agg.paxDep, color: 'rgba(16,185,129,1)',   scope: SCOPE_PAX,   movement: 'Salida'  },
+      { values: agg.carArr, color: 'rgba(249,115,22,1)',   scope: SCOPE_CARGO, movement: 'Llegada' },
+      { values: agg.carDep, color: 'rgba(234,88,12,1)',    scope: SCOPE_CARGO, movement: 'Salida'  }
+    ]);
+    renderCombinedTopHours(agg);
+    drawGroupedBars('paxCombinedChart', H_LABELS, [
+      { values: agg.paxArr, color: 'rgba(13,110,253,1)',  scope: SCOPE_PAX, movement: 'Llegada' },
+      { values: agg.paxDep, color: 'rgba(16,185,129,1)', scope: SCOPE_PAX, movement: 'Salida'  }
+    ]);
+    renderPaxCombinedTopHours(agg);
+    drawGroupedBars('cargoCombinedChart', H_LABELS, [
+      { values: agg.carArr, color: 'rgba(249,115,22,1)', scope: SCOPE_CARGO, movement: 'Llegada' },
+      { values: agg.carDep, color: 'rgba(180,60,6,1)',   scope: SCOPE_CARGO, movement: 'Salida'  }
+    ]);
+    renderCargoCombinedTopHours(agg);
     renderTopHoursLists(agg);
     renderGeneralTopHours(agg);
     bindChartClicks();
@@ -1008,28 +1278,31 @@
   }
   function showTopHourFlights(scope, movement, hour){
     if (hour==null || !Number.isFinite(hour)) return;
-    const movementLabel = movement === 'Salida' ? 'Salida' : 'Llegada';
+    const movementLabel = movement === 'Salida' ? 'Salida' : movement === 'Llegada' ? 'Llegada' : null;
     const hourText = String(hour).padStart(2,'0');
     const rangeLabel = `${hourText}:00\u2013${hourText}:59`;
     let flights, scopeLabel, targetScope;
     if (scope === SCOPE_ALL) {
-      // Merge passenger + cargo operations for the combined view
       const paxOps   = (insightsCache[SCOPE_PAX]   && insightsCache[SCOPE_PAX].operations)   || [];
       const carOps   = (insightsCache[SCOPE_CARGO]  && insightsCache[SCOPE_CARGO].operations)  || [];
       const allOps   = [...paxOps, ...carOps];
-      flights        = allOps.filter(op => op.movement === movementLabel && op.hour === hour);
+      flights        = movementLabel
+        ? allOps.filter(op => op.movement === movementLabel && op.hour === hour)
+        : allOps.filter(op => op.hour === hour);   // null = todas
       scopeLabel     = scopeLabels[SCOPE_ALL] || 'Todos los vuelos';
       targetScope    = SCOPE_ALL;
     } else {
       targetScope    = scope === SCOPE_CARGO ? SCOPE_CARGO : SCOPE_PAX;
       const insights = insightsCache[targetScope];
       if (!insights) return;
-      flights        = (insights.operations || []).filter(op => op.movement === movementLabel && op.hour === hour);
+      flights        = movementLabel
+        ? (insights.operations || []).filter(op => op.movement === movementLabel && op.hour === hour)
+        : (insights.operations || []).filter(op => op.hour === hour);
       scopeLabel     = scopeLabels[targetScope] || 'Operaciones';
     }
-    renderPeakResults(targetScope, `${movementLabel}s ${rangeLabel}`, hour, flights, {
-      titleText: `${movementLabel}s \u00b7 ${rangeLabel} \u00b7 ${scopeLabel}`,
-      subtitleText: `Operaciones de ${movementLabel.toLowerCase()} registradas entre ${rangeLabel}.`
+    renderPeakResults(targetScope, `${movementLabel ?? 'Todos'} ${rangeLabel}`, hour, flights, {
+      titleText: `${movementLabel ? movementLabel + 's' : 'Todos los vuelos'} \u00b7 ${rangeLabel} \u00b7 ${scopeLabel}`,
+      subtitleText: `Operaciones ${ movementLabel ? 'de ' + movementLabel.toLowerCase() : ''} registradas entre ${rangeLabel}.`
     });
   }
   function renderPeakResults(scope, label, hour, flights, options = {}){
@@ -1331,6 +1604,12 @@
     if (carTop) carTop.addEventListener('change', ()=> { if (lastAgg) renderTopHoursLists(lastAgg); });
     const genTop = document.getElementById('general-topN');
     if (genTop) genTop.addEventListener('change', ()=> { if (lastAgg) renderGeneralTopHours(lastAgg); });
+    const combTop = document.getElementById('combined-topN');
+    if (combTop) combTop.addEventListener('change', ()=> { if (lastAgg) renderCombinedTopHours(lastAgg); });
+    const paxCombTop = document.getElementById('pax-combined-topN');
+    if (paxCombTop) paxCombTop.addEventListener('change', ()=> { if (lastAgg) renderPaxCombinedTopHours(lastAgg); });
+    const cargoCombTop = document.getElementById('cargo-combined-topN');
+    if (cargoCombTop) cargoCombTop.addEventListener('change', ()=> { if (lastAgg) renderCargoCombinedTopHours(lastAgg); });
     // Range report
     _initRangeHourSelects();
     const rangeBtn = document.getElementById('range-report-btn');
@@ -1396,4 +1675,176 @@
     showPeakFlights(scope, airline, airlineKey, Number.isFinite(hour) ? hour : null);
   });
   const themeBtn = document.getElementById('theme-toggler'); if (themeBtn) themeBtn.addEventListener('click', ()=> setTimeout(()=>renderItineraryCharts(), 250));
+
+  // ── Compartir gráfica por WhatsApp ───────────────────────────────────────
+  // Captures the active itinerary tab pane (charts + top-hours widget) as a
+  // PNG image, then shares via Web Share API on mobile or downloads on desktop.
+  const shareItBtn = document.getElementById('btn-compartir-itinerario');
+  if (shareItBtn) {
+    shareItBtn.addEventListener('click', async () => {
+      // Find the active inner tab pane (pasajeros / carga / general)
+      const activeTabLink = document.querySelector('#itineraryTab .nav-link.active');
+      const paneSelector = activeTabLink && activeTabLink.dataset.bsTarget;
+      const captureEl = (paneSelector && document.querySelector(paneSelector))
+        || document.getElementById('pasajeros-grafica-pane');
+      if (!captureEl) return;
+
+      const originalHTML = shareItBtn.innerHTML;
+      shareItBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i><span class="btn-text">Capturando…</span>';
+      shareItBtn.disabled = true;
+
+      // Build date strings
+      const dateVal = document.getElementById('it-day-input')?.value
+        || new Date().toISOString().slice(0, 10);
+      const parts = (dateVal || '').split('-');
+      const dateDisplay = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateVal || '—';
+      const tabLabel = activeTabLink ? activeTabLink.textContent.trim() : '';
+
+      // 1. Inject branded date header inside the capture area
+      const headerDiv = document.createElement('div');
+      headerDiv.className = 'it-share-header';
+      headerDiv.innerHTML =
+        `<img src="images/logo-aifa-obscuro.jpg" class="it-share-logo" alt="AIFA" />` +
+        `<div><div class="it-share-title">Itinerario del día <strong>${dateDisplay}</strong></div>` +
+        `<div class="it-share-subtitle">${tabLabel}</div></div>`;
+      captureEl.insertBefore(headerDiv, captureEl.firstChild);
+
+      // 2. Temporarily expand all scrollable regions so html2canvas captures every row
+      const savedOverflows = [];
+      captureEl.querySelectorAll('*').forEach(el => {
+        const cs = window.getComputedStyle(el);
+        if ((cs.overflowY === 'auto' || cs.overflowY === 'scroll') && el.scrollHeight > el.clientHeight + 2) {
+          savedOverflows.push({ el, maxHeight: el.style.maxHeight, overflowY: el.style.overflowY, height: el.style.height });
+          el.style.maxHeight = 'none';
+          el.style.overflowY = 'visible';
+          el.style.height = 'auto';
+        }
+      });
+
+      let showDownloadMsg = false;
+      try {
+        const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark'
+          || document.body.classList.contains('dark-mode');
+        const bgColor = isDark ? '#1a1a2e' : '#ffffff';
+
+        const canvas = await html2canvas(captureEl, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: bgColor,
+          logging: false,
+          ignoreElements: el => el.classList.contains('top-hours-footnote')
+        });
+
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        const filename = `itinerario_AIFA_${dateVal}.png`;
+        const file = new File([blob], filename, { type: 'image/png' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          // Mobile: native share sheet — includes WhatsApp, Telegram, etc.
+          await navigator.share({ files: [file], title: `Itinerario AIFA — ${dateDisplay}` });
+        } else {
+          // Desktop fallback: trigger a download; user can then attach it to WhatsApp Web
+          const url = URL.createObjectURL(blob);
+          const anchor = document.createElement('a');
+          anchor.href = url;
+          anchor.download = filename;
+          document.body.appendChild(anchor);
+          anchor.click();
+          document.body.removeChild(anchor);
+          setTimeout(() => URL.revokeObjectURL(url), 8000);
+          showDownloadMsg = true;
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('[Compartir itinerario]', err);
+          alert('No se pudo compartir la imagen. Intenta de nuevo.');
+        }
+      } finally {
+        // 3. Remove injected header
+        if (headerDiv.parentNode) headerDiv.parentNode.removeChild(headerDiv);
+        // 4. Restore scroll constraints
+        savedOverflows.forEach(({ el, maxHeight, overflowY, height }) => {
+          el.style.maxHeight = maxHeight;
+          el.style.overflowY = overflowY;
+          el.style.height = height;
+        });
+        if (showDownloadMsg) {
+          shareItBtn.innerHTML = '<i class="fas fa-check me-2"></i><span class="btn-text">Imagen descargada</span>';
+          shareItBtn.disabled = false;
+          setTimeout(() => { shareItBtn.innerHTML = originalHTML; }, 2500);
+        } else {
+          shareItBtn.innerHTML = originalHTML;
+          shareItBtn.disabled = false;
+        }
+      }
+    });
+  }
+
+  // ── Copiar resumen de Top Horas al portapapeles ──────────────────────────
+  // Builds a WhatsApp-friendly plain-text summary from the active tab's
+  // top-hours lists and copies it to the clipboard.
+  const copyResumenBtn = document.getElementById('btn-copiar-resumen-itinerario');
+  if (copyResumenBtn) {
+    copyResumenBtn.addEventListener('click', () => {
+      const activeTabLink = document.querySelector('#itineraryTab .nav-link.active');
+      const paneSelector = activeTabLink && activeTabLink.dataset.bsTarget;
+      const activePane = (paneSelector && document.querySelector(paneSelector))
+        || document.getElementById('pasajeros-grafica-pane');
+
+      const dateVal = document.getElementById('it-day-input')?.value || '';
+      const [year, month, day] = dateVal.split('-');
+      const dateDisplay = dateVal ? `${day}/${month}/${year}` : '—';
+
+      const tabLabel = activeTabLink ? activeTabLink.textContent.trim() : 'Itinerario';
+      const lines = [`✈️ *ITINERARIO AIFA — ${dateDisplay}*`, `📊 ${tabLabel}`, ''];
+
+      // Helper: extract list items from a <ol> inside the active pane
+      function extractList(listId, header) {
+        const ol = activePane && activePane.querySelector(`#${listId}`);
+        if (!ol) return;
+        const items = ol.querySelectorAll('li');
+        if (!items.length) return;
+        lines.push(header);
+        items.forEach((li, idx) => {
+          // Get the visible text, stripping internal badges/spans cleanly
+          const text = li.textContent.replace(/\s+/g, ' ').trim();
+          lines.push(`  ${idx + 1}. ${text}`);
+        });
+        lines.push('');
+      }
+
+      if (activePane && activePane.id === 'pasajeros-grafica-pane') {
+        extractList('pax-top-arr', '🛬 Llegadas (Pasajeros)');
+        extractList('pax-top-dep', '🛫 Salidas (Pasajeros)');
+      } else if (activePane && activePane.id === 'carga-grafica-pane') {
+        extractList('cargo-top-arr', '📦 Llegadas (Carga)');
+        extractList('cargo-top-dep', '🚚 Salidas (Carga)');
+      } else if (activePane && activePane.id === 'general-grafica-pane') {
+        extractList('general-all-arr', '🛬 Llegadas (Total)');
+        extractList('general-all-dep', '🛫 Salidas (Total)');
+      }
+
+      const text = lines.join('\n');
+      if (!navigator.clipboard) {
+        // Old-browser fallback
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      } else {
+        navigator.clipboard.writeText(text).catch(err => console.error('[Copiar resumen]', err));
+      }
+
+      // Visual feedback
+      const originalHTML = copyResumenBtn.innerHTML;
+      copyResumenBtn.innerHTML = '<i class="fas fa-check me-1"></i><span class="btn-text">¡Copiado!</span>';
+      setTimeout(() => { copyResumenBtn.innerHTML = originalHTML; }, 2000);
+    });
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 })();

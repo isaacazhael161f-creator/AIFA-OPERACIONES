@@ -695,6 +695,9 @@
         if (targetId === '#pane-alerts') {
             this.loadSystemAlertsTable();
         }
+        if (targetId === '#pane-aerolineas') {
+            alLoad();
+        }
     }
 
 
@@ -4619,5 +4622,330 @@ window.hideDmSidebar = hideDmSidebar;
 window.toggleDmSidebar = toggleDmSidebar;
 
 document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.dataManagement.renderPublicAlerts(), 2000); });
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MÓDULO AEROLÍNEAS — gestión inline en Gestión de Datos
+   Tabla: airlines   Bucket: airline-logos
+   ══════════════════════════════════════════════════════════════════════════ */
+(function () {
+    const AL_TABLE  = 'airlines';
+    const AL_BUCKET = 'airline-logos';
+    const GURL      = iata => `https://www.gstatic.com/flights/airline_logos/70px/${iata}.png`;
+
+    let alAll      = [];
+    let alFiltered = [];
+    let alFilter   = 'all';
+    let alEditId   = null;
+    let alPending  = null;
+
+    // ── helpers ──────────────────────────────────────────────────────────────
+    function esc(s)  { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function escA(s) { return String(s ?? '').replace(/'/g,'&#39;').replace(/"/g,'&quot;'); }
+    function sb()    { return window.supabaseClient; }
+
+    function alLogoType(a) { return a.logo_url ? 'storage' : (a.iata ? 'iata' : 'none'); }
+
+    // ── load & render ────────────────────────────────────────────────────────
+    window.alLoad = async function () {
+        const tbody = document.getElementById('al-tbody');
+        if (!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Cargando…</td></tr>';
+        const client = sb();
+        if (!client) {
+            tbody.innerHTML = '<tr><td colspan="7" class="alert alert-danger m-2">supabaseClient no disponible.</td></tr>';
+            return;
+        }
+        const { data, error } = await client.from(AL_TABLE).select('*').order('name');
+        if (error) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-danger p-3">${esc(error.message)}</td></tr>`;
+            return;
+        }
+        alAll = data || [];
+        alUpdateStats();
+        alApplyFilters();
+    };
+
+    function alUpdateStats() {
+        const withLogo = alAll.filter(a => !!a.logo_url).length;
+        const noLogo   = alAll.filter(a => !a.logo_url && !a.iata).length;
+        const nac      = alAll.filter(a => (a.types||[]).includes('nacional')).length;
+        const intl     = alAll.filter(a => (a.types||[]).includes('internacional')).length;
+        const setS = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+        setS('al-stat-total',  `${alAll.length} total`);
+        setS('al-stat-logo',   `${withLogo} con logo`);
+        setS('al-stat-nologo', `${noLogo} sin logo`);
+        setS('al-stat-nac',    `${nac} nacionales`);
+        setS('al-stat-int',    `${intl} internacionales`);
+    }
+
+    window.alSetFilter = function (f, btn) {
+        alFilter = f;
+        document.querySelectorAll('.al-f-btn').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        alApplyFilters();
+    };
+
+    window.alApplyFilters = function () {
+        const q = (document.getElementById('al-search')?.value || '').toLowerCase().trim();
+        alFiltered = alAll.filter(a => {
+            if (alFilter !== 'all' && !(a.types || []).includes(alFilter)) return false;
+            if (q) {
+                const hay = [a.name, a.iata, a.icao, ...(a.aliases || [])].join(' ').toLowerCase();
+                if (!hay.includes(q)) return false;
+            }
+            return true;
+        });
+        alRender();
+        const cnt = document.getElementById('al-count');
+        if (cnt) cnt.textContent = `${alFiltered.length} aerolíneas mostradas`;
+    };
+
+    function alLogoThumb(a) {
+        const lt = alLogoType(a);
+        let inner = '';
+        if (lt === 'storage') {
+            inner = `<img src="${escA(a.logo_url)}" alt="${escA(a.name)}" style="max-width:54px;max-height:34px;object-fit:contain" onerror="this.style.display='none'">`;
+        } else if (lt === 'iata') {
+            inner = `<img src="${GURL(a.iata)}" alt="${escA(a.name)}" style="max-width:54px;max-height:34px;object-fit:contain" onerror="this.parentElement.querySelector('span').style.display='block';this.remove()">`;
+        }
+        return `<div onclick="alInlineUpload('${escA(a.id)}')" title="Subir logo" style="
+                    width:60px;height:38px;border-radius:6px;border:1.5px dashed #ced4da;
+                    background:#f8f9fa;display:flex;align-items:center;justify-content:center;
+                    overflow:hidden;cursor:pointer;position:relative;transition:.15s"
+                    onmouseenter="this.style.borderColor='#0d6efd'" onmouseleave="this.style.borderColor='#ced4da'">
+                  ${inner}
+                  <span style="font-size:.6rem;color:#adb5bd;display:${inner ? 'none' : 'block'};text-align:center;line-height:1.2"><i class="fas fa-plane d-block"></i>Sin logo</span>
+                </div>
+                <div style="height:3px;background:#e9ecef;border-radius:2px;margin-top:2px;display:none" id="al-rprog-${escA(a.id)}">
+                  <div style="height:100%;border-radius:2px;background:#0d6efd;width:0%;transition:width .25s" id="al-rbar-${escA(a.id)}"></div>
+                </div>`;
+    }
+
+    function alTypeBadges(a) {
+        const map = { nacional:'success', internacional:'primary', carga:'warning', pasajeros:'secondary' };
+        return (a.types || []).map(t => `<span class="badge bg-${map[t]||'light'} text-${map[t]==='warning'?'dark':'white'} me-1" style="font-size:.6rem">${esc(t)}</span>`).join('');
+    }
+
+    function alStatusPill(a) {
+        const lt = alLogoType(a);
+        if (lt === 'storage') return '<span class="badge bg-success" style="font-size:.65rem"><i class="fas fa-cloud me-1"></i>Storage</span>';
+        if (lt === 'iata')    return '<span class="badge bg-warning text-dark" style="font-size:.65rem"><i class="fas fa-link me-1"></i>IATA</span>';
+        return '<span class="badge bg-secondary" style="font-size:.65rem">Sin logo</span>';
+    }
+
+    function alRender() {
+        const tbody = document.getElementById('al-tbody');
+        if (!tbody) return;
+        if (!alFiltered.length) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-5"><i class="fas fa-search me-2"></i>Sin resultados</td></tr>';
+            return;
+        }
+        tbody.innerHTML = alFiltered.map(a => {
+            const color = a.color || '#6c757d';
+            const codes = [(a.iata ? `<code style="font-size:.75rem;background:#e9ecef;padding:.1em .35em;border-radius:3px">${esc(a.iata)}</code>` : ''),
+                           (a.icao ? `<code style="font-size:.75rem;background:#e2e8f0;padding:.1em .35em;border-radius:3px;color:#374151">${esc(a.icao)}</code>` : '')].filter(Boolean).join(' ');
+            return `<tr id="al-row-${escA(a.id)}">
+                <td style="vertical-align:middle;padding:.4rem .6rem">${alLogoThumb(a)}</td>
+                <td style="font-weight:600;font-size:.88rem">${esc(a.name)}</td>
+                <td>${codes || '<span class="text-muted small">—</span>'}</td>
+                <td>${alTypeBadges(a) || '<span class="text-muted small">—</span>'}</td>
+                <td><span style="display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.15);background:${escA(color)};vertical-align:middle;margin-right:4px"></span><code style="font-size:.72rem">${esc(color)}</code></td>
+                <td>${alStatusPill(a)}</td>
+                <td style="text-align:center;white-space:nowrap">
+                  <button class="btn btn-sm btn-outline-success px-2 py-1 me-1" title="Subir logo" onclick="alInlineUpload('${escA(a.id)}')"><i class="fas fa-image" style="font-size:.75rem"></i></button>
+                  <button class="btn btn-sm btn-outline-primary px-2 py-1 me-1" title="Editar" onclick="alOpenEdit('${escA(a.id)}')"><i class="fas fa-pen" style="font-size:.75rem"></i></button>
+                  <button class="btn btn-sm btn-outline-danger px-2 py-1" title="Eliminar" onclick="alConfirmDelete('${escA(a.id)}')"><i class="fas fa-trash" style="font-size:.75rem"></i></button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    // ── inline logo upload ────────────────────────────────────────────────────
+    window.alInlineUpload = function (airlineId) {
+        const inp = document.createElement('input');
+        inp.type = 'file';
+        inp.accept = 'image/*';
+        inp.onchange = () => { if (inp.files[0]) alDoUpload(airlineId, inp.files[0]); };
+        inp.click();
+    };
+
+    async function alDoUpload(airlineId, file) {
+        if (file.size > 2 * 1024 * 1024) { alToast('El archivo supera 2 MB.', 'danger'); return; }
+        const prog  = document.getElementById(`al-rprog-${airlineId}`);
+        const pbar  = document.getElementById(`al-rbar-${airlineId}`);
+        const setW  = w => { if (pbar) pbar.style.width = w; };
+        if (prog)  prog.style.display = 'block';
+        setW('25%');
+
+        const ext      = file.name.split('.').pop().toLowerCase();
+        const filename = `${airlineId}.${ext}`;
+        const client   = sb();
+
+        await client.storage.from(AL_BUCKET).remove([filename]);
+        setW('55%');
+
+        const { error: upErr } = await client.storage.from(AL_BUCKET).upload(filename, file, { upsert: true, contentType: file.type });
+        if (upErr) { if (prog) prog.style.display = 'none'; alToast(`Error subiendo: ${upErr.message}`, 'danger'); return; }
+        setW('80%');
+
+        const { data: { publicUrl } } = client.storage.from(AL_BUCKET).getPublicUrl(filename);
+        const { error: dbErr } = await client.from(AL_TABLE).update({ logo_url: publicUrl, logo_filename: filename }).eq('id', airlineId);
+        if (dbErr) { if (prog) prog.style.display = 'none'; alToast(`Error en DB: ${dbErr.message}`, 'danger'); return; }
+
+        setW('100%');
+        setTimeout(() => { if (prog) prog.style.display = 'none'; setW('0%'); }, 700);
+
+        // Update local data
+        const a = alAll.find(x => x.id === airlineId);
+        if (a) { a.logo_url = publicUrl; a.logo_filename = filename; }
+        alUpdateStats();
+        alApplyFilters();
+        alToast(`Logo actualizado: ${(alAll.find(x => x.id === airlineId) || {}).name || airlineId}`, 'success');
+    }
+
+    // ── modal: add / edit ─────────────────────────────────────────────────────
+    window.alOpenAdd = function () {
+        alEditId = null; alPending = null;
+        document.getElementById('al-modal-title').innerHTML = '<i class="fas fa-plus me-2"></i>Nueva Aerolínea';
+        document.getElementById('al-btn-delete').classList.add('d-none');
+        alClearForm();
+        new bootstrap.Modal(document.getElementById('dm-airline-modal')).show();
+    };
+
+    window.alOpenEdit = function (id) {
+        const a = alAll.find(x => x.id === id);
+        if (!a) return;
+        alEditId = id; alPending = null;
+        document.getElementById('al-modal-title').innerHTML = `<i class="fas fa-edit me-2"></i>${esc(a.name)}`;
+        document.getElementById('al-btn-delete').classList.remove('d-none');
+        alFillForm(a);
+        new bootstrap.Modal(document.getElementById('dm-airline-modal')).show();
+    };
+
+    function alClearForm() {
+        ['al-f-name','al-f-iata','al-f-icao','al-f-aliases'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        ['al-f-nac','al-f-int','al-f-car','al-f-pax'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
+        const col = document.getElementById('al-f-color'); if (col) col.value = '#0d6efd';
+        const dt  = document.getElementById('al-drop-text'); if (dt) dt.textContent = 'Arrastra o haz clic · PNG, JPG, SVG — máx 2 MB';
+        const prev = document.getElementById('al-logo-preview'); if (prev) prev.innerHTML = '<span class="text-muted small">Sube un logo para ver la vista previa</span>';
+    }
+
+    function alFillForm(a) {
+        const sv = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+        sv('al-f-name',    a.name);
+        sv('al-f-iata',    a.iata);
+        sv('al-f-icao',    a.icao);
+        sv('al-f-color',   a.color || '#0d6efd');
+        sv('al-f-aliases', (a.aliases || []).join('\n'));
+        ['al-f-nac','al-f-int','al-f-car','al-f-pax'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.checked = (a.types || []).includes(el.value);
+        });
+        const prev = document.getElementById('al-logo-preview');
+        if (!prev) return;
+        if (a.logo_url) {
+            prev.innerHTML = `<img src="${escA(a.logo_url)}" style="max-height:60px;object-fit:contain"><div class="small ms-2 text-muted">Logo actual · <span class="text-success"><i class="fas fa-cloud me-1"></i>Storage</span></div>`;
+        } else if (a.iata) {
+            prev.innerHTML = `<img src="${GURL(a.iata)}" style="max-height:50px;object-fit:contain"><div class="small ms-2 text-muted">Logo IATA · <span class="text-warning">No está en Storage</span></div>`;
+        } else {
+            prev.innerHTML = '<span class="text-muted small">Sin logo — sube uno</span>';
+        }
+        const dt = document.getElementById('al-drop-text');
+        if (dt) dt.innerHTML = a.logo_filename
+            ? `<span class="text-success"><i class="fas fa-check me-1"></i>${esc(a.logo_filename)}</span> <small class="text-muted">· clic para cambiar</small>`
+            : 'Arrastra o haz clic · PNG, JPG, SVG — máx 2 MB';
+    }
+
+    window.alHandleDrop = function (e) { e.preventDefault(); if (e.dataTransfer.files[0]) alHandleFile(e.dataTransfer.files[0]); };
+    window.alHandleFile = function (file) {
+        if (file.size > 2 * 1024 * 1024) { alToast('El archivo supera 2 MB.', 'danger'); return; }
+        alPending = file;
+        const url  = URL.createObjectURL(file);
+        const dt   = document.getElementById('al-drop-text');
+        const prev = document.getElementById('al-logo-preview');
+        if (dt)   dt.innerHTML = `<span class="text-success"><i class="fas fa-check me-1"></i>${esc(file.name)}</span>`;
+        if (prev) prev.innerHTML = `<img src="${url}" style="max-height:60px;object-fit:contain"><div class="small ms-2 text-muted">Vista previa · ${esc(file.name)}</div>`;
+    };
+
+    window.alSave = async function () {
+        const name    = document.getElementById('al-f-name')?.value.trim();
+        const iata    = document.getElementById('al-f-iata')?.value.trim().toUpperCase() || null;
+        const icao    = document.getElementById('al-f-icao')?.value.trim().toUpperCase() || null;
+        const color   = document.getElementById('al-f-color')?.value || '#6c757d';
+        const aliases = (document.getElementById('al-f-aliases')?.value || '').split('\n').map(s => s.trim()).filter(Boolean);
+        const types   = ['al-f-nac','al-f-int','al-f-car','al-f-pax'].filter(id => document.getElementById(id)?.checked).map(id => document.getElementById(id).value);
+        if (!name) { alToast('El nombre es obligatorio.', 'warning'); return; }
+
+        const id = alEditId || name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+        let logo_url = null, logo_filename = null;
+
+        if (alPending) {
+            const r = await alUploadModal(alPending, id);
+            if (!r) return;
+            logo_url = r.url; logo_filename = r.filename;
+        } else if (alEditId) {
+            const ex = alAll.find(a => a.id === alEditId);
+            logo_url = ex?.logo_url || null;
+            logo_filename = ex?.logo_filename || null;
+        }
+
+        const payload = { id, name, iata, icao, color, text_color: '#ffffff', types, aliases, logo_url, logo_filename, active: true };
+        const client = sb();
+        const res = alEditId
+            ? await client.from(AL_TABLE).update(payload).eq('id', alEditId)
+            : await client.from(AL_TABLE).insert(payload);
+
+        if (res.error) { alToast(`Error: ${res.error.message}`, 'danger'); return; }
+        bootstrap.Modal.getInstance(document.getElementById('dm-airline-modal'))?.hide();
+        alToast(`${alEditId ? 'Actualizada' : 'Creada'}: ${name}`, 'success');
+        await alLoad();
+    };
+
+    async function alUploadModal(file, airlineId) {
+        const ext = file.name.split('.').pop().toLowerCase();
+        const filename = `${airlineId}.${ext}`;
+        const prog = document.getElementById('al-upload-progress');
+        const bar  = document.getElementById('al-prog-bar');
+        if (prog) prog.classList.remove('d-none');
+        if (bar)  bar.style.width = '30%';
+
+        const client = sb();
+        await client.storage.from(AL_BUCKET).remove([filename]);
+        if (bar) bar.style.width = '60%';
+
+        const { error } = await client.storage.from(AL_BUCKET).upload(filename, file, { upsert: true, contentType: file.type });
+        if (error) { if (prog) prog.classList.add('d-none'); alToast(`Error subiendo: ${error.message}`, 'danger'); return null; }
+        if (bar) bar.style.width = '100%';
+        setTimeout(() => { if (prog) prog.classList.add('d-none'); if (bar) bar.style.width = '0%'; }, 800);
+
+        const { data: { publicUrl } } = client.storage.from(AL_BUCKET).getPublicUrl(filename);
+        return { url: publicUrl, filename };
+    }
+
+    // ── delete ────────────────────────────────────────────────────────────────
+    window.alConfirmDelete = async function (id) {
+        const a = alAll.find(x => x.id === id);
+        if (!confirm(`¿Eliminar "${a ? a.name : id}"? Esta acción no se puede deshacer.`)) return;
+        const client = sb();
+        if (a?.logo_filename) await client.storage.from(AL_BUCKET).remove([a.logo_filename]);
+        const { error } = await client.from(AL_TABLE).delete().eq('id', id);
+        if (error) { alToast(`Error: ${error.message}`, 'danger'); return; }
+        alToast('Aerolínea eliminada.', 'warning');
+        await alLoad();
+    };
+
+    window.alDelete = async function () { if (alEditId) await alConfirmDelete(alEditId); };
+
+    // ── toast ─────────────────────────────────────────────────────────────────
+    function alToast(msg, type) {
+        const t = document.createElement('div');
+        t.className = `alert alert-${type || 'success'} position-fixed bottom-0 end-0 m-3 shadow`;
+        t.style.cssText = 'z-index:9999;min-width:270px';
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 4000);
+    }
+})();
+
 
 

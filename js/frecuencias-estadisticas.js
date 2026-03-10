@@ -70,14 +70,49 @@ const FreqStats = (() => {
             _raw.int   = int_  || [];
             _raw.carga = cargo || [];
 
-            // Load airline metadata for logo / alias normalization
+            // Load airline metadata for logo / alias normalization.
+            // Priority: Supabase catalogo_aerolineas → local data/airlines.json
             try {
                 if (!_airlines.length) {
-                    const resp = await fetch('data/airlines.json');
-                    _airlines = await resp.json();
+                    let loaded = false;
+                    // 1. Try Supabase (catalogo_aerolineas table)
+                    const sb = window.supabaseClient;
+                    if (sb) {
+                        const { data: dbRows, error: dbErr } = await sb
+                            .from('catalogo_aerolineas')
+                            .select('id,nombre,iata,icao,tipo,logo,logo_url,color,color_texto,aliases')
+                            .eq('activa', true)
+                            .order('nombre');
+                        if (!dbErr && Array.isArray(dbRows) && dbRows.length) {
+                            // Normalise to the same shape as airlines.json
+                            _airlines = dbRows.map(r => ({
+                                id:        r.id,
+                                name:      r.nombre,
+                                iata:      r.iata,
+                                icao:      r.icao,
+                                type:      r.tipo  || [],
+                                // logo_url takes priority over the filename logo
+                                logo:      r.logo_url || (r.logo || null),
+                                color:     r.color      || '#6c757d',
+                                textColor: r.color_texto || '#ffffff',
+                                aliases:   r.aliases || []
+                            }));
+                            loaded = true;
+                            console.log(`[FreqStats] Aerolíneas cargadas desde Supabase: ${_airlines.length}`);
+                        }
+                    }
+                    // 2. Fallback: local JSON
+                    if (!loaded) {
+                        const resp = await fetch('data/airlines.json');
+                        _airlines = await resp.json();
+                        console.log(`[FreqStats] Aerolíneas cargadas desde airlines.json: ${_airlines.length}`);
+                    }
                     _airlineCache = {}; // reset on fresh load
                 }
-            } catch(_e) { _airlines = []; }
+            } catch(_e) {
+                console.warn('[FreqStats] Error cargando catálogo de aerolíneas:', _e);
+                _airlines = [];
+            }
 
             _initialized = true;
 
@@ -105,9 +140,14 @@ const FreqStats = (() => {
         for (const a of _airlines) {
             const aliases = (a.aliases || []).map(s => s.toLowerCase());
             if (aliases.includes(key) || (a.name || '').toLowerCase() === key) {
+                // logo may be a filename (prefix with path) or an absolute URL (use as-is)
+                const logoRaw = a.logo || null;
+                const logoPath = logoRaw
+                    ? (logoRaw.startsWith('http') || logoRaw.startsWith('/') ? logoRaw : `images/airlines/${logoRaw}`)
+                    : null;
                 const result = {
                     canonical: a.name,
-                    logo:      a.logo ? `images/airlines/${a.logo}` : null,
+                    logo:      logoPath,
                     color:     a.color     || '#6c757d',
                     textColor: a.textColor || '#fff',
                     iata:      a.iata

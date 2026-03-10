@@ -222,6 +222,26 @@
     }
   });
 
+  // Carga coordenadas desde la tabla aeropuertos y las fusiona con AIRPORT_COORDS.
+  async function loadDBCoords() {
+    try {
+      const sb = window.supabaseClient;
+      if (!sb) return;
+      const { data } = await sb
+        .from('aeropuertos')
+        .select('iata,lat,lng')
+        .not('lat', 'is', null);
+      if (!data) return;
+      data.forEach(r => {
+        if (r.iata && r.lat != null && r.lng != null && !AIRPORT_COORDS[r.iata]) {
+          AIRPORT_COORDS[r.iata] = { lat: r.lat, lng: r.lng };
+        }
+      });
+    } catch (e) {
+      console.warn('loadDBCoords (int) error:', e);
+    }
+  }
+
   async function init(){
     prepareFilterSkeletons();
     showLoading(true);
@@ -235,6 +255,7 @@
         throw e;
       }
 
+      await loadDBCoords();
       state.raw = data;
       state.destinations = normalizeDestinations(data?.destinations || []);
       state.uniqueAirlines = collectAirlines(state.destinations);
