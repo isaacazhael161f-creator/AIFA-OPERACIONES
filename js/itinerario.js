@@ -1888,6 +1888,12 @@
         if (lastAgg) renderFuelHeatmap(lastAgg, btn.dataset.fuelScope);
       });
     });
+
+    // Fuel PDF download
+    const fuelPdfBtn = document.getElementById('fuel-pdf-btn');
+    if (fuelPdfBtn) {
+      fuelPdfBtn.addEventListener('click', () => _downloadFuelPDF(fuelPdfBtn));
+    }
     // Range report
     _initRangeHourSelects();
     const rangeBtn = document.getElementById('range-report-btn');
@@ -1958,6 +1964,131 @@
     showPeakFlights(scope, airline, airlineKey, Number.isFinite(hour) ? hour : null);
   });
   const themeBtn = document.getElementById('theme-toggler'); if (themeBtn) themeBtn.addEventListener('click', ()=> setTimeout(()=>renderItineraryCharts(), 250));
+
+  // ── PDF Despacho Combustible ─────────────────────────────────────────────
+  async function _downloadFuelPDF(btn) {
+    if (typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+      alert('Librerías de PDF no disponibles. Recarga la página.'); return;
+    }
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Generando…';
+
+    try {
+      const captureEl = document.getElementById('fuel-capture-area');
+      if (!captureEl) return;
+
+      // Temporarily remove scroll limit so full table is captured
+      const scrollBox = document.getElementById('fuel-table-scroll');
+      let savedMax = '', savedOY = '';
+      if (scrollBox) {
+        savedMax = scrollBox.style.maxHeight;
+        savedOY  = scrollBox.style.overflowY;
+        scrollBox.style.maxHeight = 'none';
+        scrollBox.style.overflowY = 'visible';
+      }
+
+      const canvas = await html2canvas(captureEl, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false
+      });
+
+      // Restore scroll
+      if (scrollBox) {
+        scrollBox.style.maxHeight = savedMax;
+        scrollBox.style.overflowY = savedOY;
+      }
+
+      const imgData  = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+
+      // A4 landscape: 297 × 210 mm
+      const pdf  = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const PW   = 297, PH = 210;
+      const margin = 12;
+
+      // ── Header band ────────────────────────────────────────────────────
+      pdf.setFillColor(20, 30, 60);
+      pdf.rect(0, 0, PW, 18, 'F');
+
+      // Logo (try to load; skip if unavailable)
+      try {
+        const logoImg = new Image();
+        logoImg.crossOrigin = 'anonymous';
+        await new Promise((res, rej) => {
+          logoImg.onload = res; logoImg.onerror = rej;
+          logoImg.src = 'images/logo-aifa-obscuro.jpg';
+        });
+        const logoCanvas = document.createElement('canvas');
+        const lRatio = logoImg.naturalWidth / logoImg.naturalHeight;
+        logoCanvas.height = 120; logoCanvas.width = Math.round(120 * lRatio);
+        logoCanvas.getContext('2d').drawImage(logoImg, 0, 0, logoCanvas.width, 120);
+        pdf.addImage(logoCanvas.toDataURL('image/png'), 'PNG', margin, 1.5, 14 * lRatio, 14);
+      } catch(_) { /* logo not available */ }
+
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(12);
+      pdf.text('Capacidad vs Demanda de Despacho de Combustible', PW / 2, 8, { align: 'center' });
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8);
+      const scopeLabel = _fuelScope === 'pax' ? 'Pasajeros' : _fuelScope === 'cargo' ? 'Carga' : 'General (Pax + Carga)';
+      const dateVal = document.getElementById('it-day-input')?.value || '';
+      const dateStr = dateVal ? (() => { const [y,m,d] = dateVal.split('-'); return `${d}/${m}/${y}`; })() : new Date().toLocaleDateString('es-MX');
+      pdf.text(`Alcance: ${scopeLabel}   |   Fecha: ${dateStr}   |   Aeropuerto Internacional Felipe Ángeles (AIFA)`, PW / 2, 14, { align: 'center' });
+
+      // ── Main image ─────────────────────────────────────────────────────
+      const contentY = 22;
+      const contentH = PH - contentY - margin - 10; // leave room for footer
+      const imgW = canvas.width, imgH = canvas.height;
+      const scale = Math.min((PW - margin * 2) / imgW, contentH / imgH);
+      const scaledW = imgW * scale;
+      const scaledH = imgH * scale;
+      const imgX = (PW - scaledW) / 2;
+      pdf.addImage(imgData, 'PNG', imgX, contentY, scaledW, scaledH);
+
+      // ── Colour legend bar ──────────────────────────────────────────────
+      const legendY = contentY + scaledH + 4;
+      if (legendY < PH - 14) {
+        const legendItems = [
+          { label: 'Baja demanda',   r: 220, g: 252, b: 231 },
+          { label: 'Demanda media',  r: 254, g: 240, b: 138 },
+          { label: 'Alta demanda',   r: 251, g: 146, b:  60 },
+          { label: 'Pico máximo',    r: 220, g:  38, b:  38 }
+        ];
+        let lx = margin;
+        legendItems.forEach(({ label, r, g, b }) => {
+          pdf.setFillColor(r, g, b);
+          pdf.roundedRect(lx, legendY, 5, 3.5, 0.8, 0.8, 'F');
+          pdf.setTextColor(60, 60, 60);
+          pdf.setFontSize(7);
+          pdf.text(label, lx + 6.5, legendY + 2.6);
+          lx += 38;
+        });
+      }
+
+      // ── Footer ─────────────────────────────────────────────────────────
+      pdf.setFillColor(20, 30, 60);
+      pdf.rect(0, PH - 8, PW, 8, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(6.5);
+      pdf.text('Secretaría de la Defensa Nacional  ·  AIFA  ·  Operaciones mensuales promedio por día  ·  No se consideran operaciones de aviación general.',
+        PW / 2, PH - 3, { align: 'center' });
+
+      const filename = `AIFA_Combustible_${_fuelScope}_${dateVal || 'hoy'}.pdf`;
+      pdf.save(filename);
+    } catch(e) {
+      console.error('[PDF Combustible]', e);
+      alert('Error al generar el PDF. Intenta de nuevo.');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = originalHTML;
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   // ── Compartir gráfica por WhatsApp ───────────────────────────────────────
   // Captures the active itinerary tab pane (charts + top-hours widget) as a
