@@ -817,9 +817,57 @@
             filteredData = uniqueData;
 
             this.renderTable('table-itinerary', filteredData, ['flight_number', 'airline', 'origin_destination', 'arrival_time', 'status'], 'flight_itinerary');
+            this._buildItineraryDaySummary(data);
         } catch (error) {
             console.error('Error loading itinerary:', error);
         }
+    }
+
+    _buildItineraryDaySummary(allData) {
+        const grid = document.getElementById('itinerary-days-grid');
+        if (!grid) return;
+        if (!allData || allData.length === 0) {
+            grid.innerHTML = '<p class="text-muted small mb-0">No hay datos cargados.</p>';
+            return;
+        }
+        const activeDate = (document.getElementById('filter-itinerary-date') || {}).value || '';
+        const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+        // Group by arrival_date
+        const counts = {};
+        allData.forEach(row => {
+            const d = row.arrival_date || '';
+            if (d) counts[d] = (counts[d] || 0) + 1;
+        });
+        const sortedDates = Object.keys(counts).sort();
+        let html = '<div class="d-flex flex-wrap gap-2 align-items-start">';
+        // TODOS chip
+        html += `<button class="btn btn-sm ${activeDate ? 'btn-outline-secondary' : 'btn-primary'} py-1 it-day-chip"
+            data-date="" style="min-width:80px;text-align:center;border-radius:10px">
+            <div style="font-size:.68rem;opacity:.7;letter-spacing:.05em">TODOS</div>
+            <div style="font-size:1.15rem;font-weight:800;line-height:1.1">${allData.length}</div>
+            <div style="font-size:.7rem">vuelos</div></button>`;
+        sortedDates.forEach(iso => {
+            const d = new Date(iso + 'T00:00:00');
+            const day = String(d.getDate()).padStart(2, '0');
+            const mon = MONTHS[d.getMonth()];
+            const cnt = counts[iso];
+            const isActive = iso === activeDate;
+            html += `<button class="btn btn-sm ${isActive ? 'btn-primary shadow' : 'btn-outline-primary'} py-1 it-day-chip"
+                data-date="${iso}" style="min-width:90px;text-align:center;border-radius:10px"
+                title="${cnt} vuelos el ${iso}">
+                <div style="font-size:.68rem;text-transform:uppercase;opacity:.7;letter-spacing:.05em">${mon}</div>
+                <div style="font-size:1.4rem;font-weight:800;line-height:1.1">${day}</div>
+                <div style="font-size:.75rem;font-weight:600">${cnt} <i class='fas fa-plane' style='font-size:.6rem'></i></div></button>`;
+        });
+        html += '</div>';
+        grid.innerHTML = html;
+        grid.querySelectorAll('.it-day-chip').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const dateEl = document.getElementById('filter-itinerary-date');
+                if (dateEl) dateEl.value = btn.dataset.date;
+                this.loadItinerary();
+            });
+        });
     }
 
     async loadMonthlyOperations() {
