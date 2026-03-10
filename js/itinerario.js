@@ -515,8 +515,6 @@
 
     const lineColor = s==='pax' ? 'rgb(13,110,253)' : s==='cargo' ? 'rgb(249,115,22)' : 'rgb(99,102,241)';
     const ptColors  = demand.map(d => _heatColor(d / maxD).bg);
-    const hlabels   = Array.from({length:24}, (_,h) =>
-      `${String(h).padStart(2,'0')}:00–00${h===23?'':String(h+1).padStart(2,'0')}:00`);
 
     const plugins = window.ChartDataLabels ? [window.ChartDataLabels] : [];
     _fuelHeatmapChartInst = new window.Chart(canvas, {
@@ -532,17 +530,22 @@
           backgroundColor: 'transparent',
           pointBackgroundColor: ptColors,
           pointBorderColor: '#fff',
-          pointBorderWidth: 1.5,
-          pointRadius: 6,
-          pointHoverRadius: 8,
+          pointBorderWidth: 2,
+          pointRadius: 7,
+          pointHoverRadius: 9,
           borderWidth: 2.5,
           tension: 0,
+          clip: false,
           datalabels: {
             display: true,
             anchor: 'end',
             align: 'top',
-            font: { weight: 'bold', size: 10 },
-            color: (ctx) => ptColors[ctx.dataIndex] === 'rgb(220,252,231)' ? '#166534' : ptColors[ctx.dataIndex],
+            offset: 4,
+            font: { weight: 'bold', size: 11 },
+            color: '#111',
+            backgroundColor: (ctx) => ptColors[ctx.dataIndex],
+            borderRadius: 4,
+            padding: { top: 2, bottom: 2, left: 4, right: 4 },
             formatter: v => v
           }
         }]
@@ -550,14 +553,15 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        layout: { padding: { top: 20 } },
+        clip: false,
+        layout: { padding: { top: 36, right: 16, bottom: 4, left: 8 } },
         plugins: {
-          legend: { display: true, position: 'bottom', labels: { font: { size: 11 } } },
+          legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, padding: 16, usePointStyle: true, pointStyleWidth: 18 } },
           datalabels: { display: true }
         },
         scales: {
           x: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { maxRotation: 45, minRotation: 45, font: { size: 8 } } },
-          y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { precision: 0, font: { size: 10 } } }
+          y: { beginAtZero: true, suggestedMax: maxD + Math.ceil(maxD * 0.25), grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { precision: 0, font: { size: 10 } } }
         }
       }
     });
@@ -629,11 +633,12 @@
 
     const demColor  = isPax ? 'rgb(13,110,253)' : 'rgb(249,115,22)';
     const hlabels   = Array.from({length:24}, (_,h) =>
-      `${String(h).padStart(2,'0')}:00-${h===23?'00:00':String(h+1).padStart(2,'00')+':00'}`);
+      `${String(h).padStart(2,'0')}:00-${h===23?'00:00':String(h+1).padStart(2,'0')+':00'}`);
 
     const ptColors = demand.map((d,i) =>
       d > capacity[i] ? '#dc3545' : d === capacity[i] ? '#e6a800' : '#198754');
 
+    const maxVal = Math.max(...demand, ...capacity);
     const plugins = window.ChartDataLabels ? [window.ChartDataLabels] : [];
     const inst = new window.Chart(canvas, {
       type: 'line',
@@ -648,37 +653,48 @@
             backgroundColor: 'transparent',
             pointBackgroundColor: ptColors,
             pointBorderColor: '#fff',
-            pointBorderWidth: 1,
-            pointRadius: 5,
+            pointBorderWidth: 2,
+            pointRadius: 7,
+            pointHoverRadius: 9,
             borderWidth: 2.5,
             tension: 0,
+            clip: false,
             datalabels: {
               display: true,
               anchor: 'end',
               align: 'top',
-              font: { weight: 'bold', size: 10 },
-              color: (ctx) => ptColors[ctx.dataIndex] || '#333',
+              offset: 4,
+              font: { weight: 'bold', size: 11 },
+              color: '#fff',
+              backgroundColor: (ctx) => ptColors[ctx.dataIndex],
+              borderRadius: 4,
+              padding: { top: 2, bottom: 2, left: 5, right: 5 },
               formatter: v => v
             }
           },
           {
             label: 'Capacidad',
             data: capacity,
-            borderColor: 'rgb(150,20,20)',
-            borderDash: [6,4],
+            borderColor: 'rgb(136,19,19)',
+            borderDash: [7,4],
             backgroundColor: 'transparent',
-            pointBackgroundColor: 'rgb(150,20,20)',
+            pointBackgroundColor: 'rgb(136,19,19)',
             pointBorderColor: '#fff',
-            pointBorderWidth: 1,
-            pointRadius: 4,
-            borderWidth: 2,
+            pointBorderWidth: 2,
+            pointRadius: 5,
+            borderWidth: 2.5,
             tension: 0,
+            clip: false,
             datalabels: {
               display: true,
               anchor: 'start',
               align: 'bottom',
-              color: 'rgb(140,15,15)',
-              font: { size: 9 },
+              offset: 4,
+              font: { weight: '600', size: 10 },
+              color: '#fff',
+              backgroundColor: 'rgb(136,19,19)',
+              borderRadius: 4,
+              padding: { top: 2, bottom: 2, left: 4, right: 4 },
               formatter: v => v
             }
           }
@@ -687,13 +703,15 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        clip: false,
+        layout: { padding: { top: 36, right: 16, bottom: 4, left: 8 } },
         plugins: {
-          legend: { display: true, position: 'bottom' },
+          legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, padding: 16, usePointStyle: true, pointStyleWidth: 18 } },
           datalabels: { display: true }
         },
         scales: {
-          x: { ticks: { maxRotation: 45, minRotation: 45, font: { size: 8 } } },
-          y: { beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } }
+          x: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { maxRotation: 45, minRotation: 45, font: { size: 8 } } },
+          y: { beginAtZero: true, suggestedMax: maxVal + Math.ceil(maxVal * 0.25), grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { precision: 0, font: { size: 10 } } }
         }
       }
     });
