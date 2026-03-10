@@ -3740,6 +3740,12 @@
                                 </div>
                                 <!-- Tab 5: Pasajeros Total (llegadas + salidas apiladas) -->
                                 <div class="tab-pane fade" id="pax-combined-grafica-pane" role="tabpanel" aria-labelledby="pax-combined-grafica-tab" tabindex="0">
+                                    <!-- View toggle -->
+                                    <div class="d-flex gap-2 mb-2 border-bottom pb-2 px-1 pt-2">
+                                        <button id="pax-view-bar-btn" class="btn btn-sm btn-primary"><i class="fas fa-chart-bar me-1"></i>Distribución horaria</button>
+                                        <button id="pax-view-capdem-btn" class="btn btn-sm btn-outline-secondary"><i class="fas fa-table me-1"></i>Capacidad vs Demanda</button>
+                                    </div>
+                                    <div id="pax-combined-bar-view">
                                     <div class="itinerary-charts-scroll itinerary-pane-block charts-block pt-2">
                                         <div class="d-flex gap-3 flex-wrap align-items-center mb-2 px-1">
                                             <span class="d-flex align-items-center gap-1 small fw-semibold"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:rgba(13,110,253,0.85)"></span>Llegadas Pax</span>
@@ -3773,9 +3779,54 @@
                                         <ol id="pax-combined-top-all" class="top-hours-list mb-0"></ol>
                                         <p class="top-hours-footnote text-muted mb-0"><i class="fas fa-mouse-pointer me-1"></i>Selecciona una hora para ver el detalle completo.</p>
                                     </div>
+                                    </div><!-- /pax-combined-bar-view -->
+                                    <!-- Capacidad vs Demanda - PAX -->
+                                    <div id="pax-combined-capdem-view" style="display:none" class="p-2">
+                                        <div class="d-flex flex-wrap gap-3 align-items-center mb-3 p-2 rounded" style="background:var(--bs-light,#f8f9fa)">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <label for="pax-cap-day" class="small fw-semibold mb-0">Capacidad turno día <span class="text-muted">(07–19h)</span>:</label>
+                                                <input type="number" id="pax-cap-day" class="form-control form-control-sm" style="width:70px" min="1" max="99" value="9">
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <label for="pax-cap-night" class="small fw-semibold mb-0">Turno noche:</label>
+                                                <input type="number" id="pax-cap-night" class="form-control form-control-sm" style="width:70px" min="1" max="99" value="5">
+                                            </div>
+                                            <button id="pax-cap-apply" class="btn btn-sm btn-primary"><i class="fas fa-check me-1"></i>Aplicar</button>
+                                        </div>
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <div class="table-responsive" style="max-height:500px;overflow-y:auto">
+                                                    <table class="table table-sm table-bordered text-center small mb-0">
+                                                        <thead class="table-dark">
+                                                            <tr>
+                                                                <th>Franja Horaria</th>
+                                                                <th>Vuelos totales (salidas + llegadas)</th>
+                                                                <th>Capacidad</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody id="pax-capdem-tbody"></tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-8">
+                                                <p class="fw-semibold text-center mb-1 small text-uppercase text-muted">Total de Operaciones de Pasajeros</p>
+                                                <div style="height:420px;position:relative">
+                                                    <canvas id="paxCapDemChart"></canvas>
+                                                </div>
+                                                <p class="text-muted small text-center mt-1 mb-0">Operaciones mensuales promedio por día</p>
+                                                <p class="text-muted small text-center mb-0"><strong>Nota*</strong> No se consideran operaciones de aviación general.</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <!-- Tab 6: Carga Total (llegadas + salidas apiladas) -->
                                 <div class="tab-pane fade" id="cargo-combined-grafica-pane" role="tabpanel" aria-labelledby="cargo-combined-grafica-tab" tabindex="0">
+                                    <!-- View toggle -->
+                                    <div class="d-flex gap-2 mb-2 border-bottom pb-2 px-1 pt-2">
+                                        <button id="cargo-view-bar-btn" class="btn btn-sm btn-primary"><i class="fas fa-chart-bar me-1"></i>Distribución horaria</button>
+                                        <button id="cargo-view-capdem-btn" class="btn btn-sm btn-outline-secondary"><i class="fas fa-table me-1"></i>Capacidad vs Demanda</button>
+                                    </div>
+                                    <div id="cargo-combined-bar-view">
                                     <div class="itinerary-charts-scroll itinerary-pane-block charts-block pt-2">
                                         <div class="d-flex gap-3 flex-wrap align-items-center mb-2 px-1">
                                             <span class="d-flex align-items-center gap-1 small fw-semibold"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:rgba(249,115,22,0.85)"></span>Llegadas Carga</span>
@@ -3808,6 +3859,45 @@
                                         </div>
                                         <ol id="cargo-combined-top-all" class="top-hours-list mb-0"></ol>
                                         <p class="top-hours-footnote text-muted mb-0"><i class="fas fa-mouse-pointer me-1"></i>Selecciona una hora para ver el detalle completo.</p>
+                                    </div>
+                                    </div><!-- /cargo-combined-bar-view -->
+                                    <!-- Capacidad vs Demanda - CARGO -->
+                                    <div id="cargo-combined-capdem-view" style="display:none" class="p-2">
+                                        <div class="d-flex flex-wrap gap-3 align-items-center mb-3 p-2 rounded" style="background:var(--bs-light,#f8f9fa)">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <label for="cargo-cap-day" class="small fw-semibold mb-0">Capacidad turno día <span class="text-muted">(07–19h)</span>:</label>
+                                                <input type="number" id="cargo-cap-day" class="form-control form-control-sm" style="width:70px" min="1" max="99" value="5">
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <label for="cargo-cap-night" class="small fw-semibold mb-0">Turno noche:</label>
+                                                <input type="number" id="cargo-cap-night" class="form-control form-control-sm" style="width:70px" min="1" max="99" value="3">
+                                            </div>
+                                            <button id="cargo-cap-apply" class="btn btn-sm btn-primary"><i class="fas fa-check me-1"></i>Aplicar</button>
+                                        </div>
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <div class="table-responsive" style="max-height:500px;overflow-y:auto">
+                                                    <table class="table table-sm table-bordered text-center small mb-0">
+                                                        <thead class="table-dark">
+                                                            <tr>
+                                                                <th>Franja Horaria</th>
+                                                                <th>Vuelos totales (salidas + llegadas)</th>
+                                                                <th>Capacidad</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody id="cargo-capdem-tbody"></tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-8">
+                                                <p class="fw-semibold text-center mb-1 small text-uppercase text-muted">Total de Operaciones de Carga</p>
+                                                <div style="height:420px;position:relative">
+                                                    <canvas id="cargoCapDemChart"></canvas>
+                                                </div>
+                                                <p class="text-muted small text-center mt-1 mb-0">Operaciones mensuales promedio por día</p>
+                                                <p class="text-muted small text-center mb-0"><strong>Nota*</strong> No se consideran operaciones de aviación general.</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 </div>

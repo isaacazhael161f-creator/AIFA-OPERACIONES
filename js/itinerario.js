@@ -478,6 +478,117 @@
     }, 'rgba(249,115,22,0.13)');
   }
 
+  // ─── Capacidad vs Demanda ─────────────────────────────────────────────────
+  let _paxCapDemChartInst   = null;
+  let _cargoCapDemChartInst = null;
+
+  function renderCapDem(kind, agg) {
+    if (!agg) return;
+    const isPax = kind === 'pax';
+    const dayCapEl   = document.getElementById(`${kind}-cap-day`);
+    const nightCapEl = document.getElementById(`${kind}-cap-night`);
+    const dayCap   = Math.max(1, parseInt(dayCapEl?.value,   10) || (isPax ? 9 : 5));
+    const nightCap = Math.max(1, parseInt(nightCapEl?.value, 10) || (isPax ? 5 : 3));
+
+    const demand   = Array.from({length:24}, (_,h) =>
+      isPax ? (agg.paxArr[h]||0)+(agg.paxDep[h]||0) : (agg.carArr[h]||0)+(agg.carDep[h]||0));
+    const capacity = Array.from({length:24}, (_,h) => (h>=7 && h<19) ? dayCap : nightCap);
+
+    // ── Table ───────────────────────────────────────────────────────────────
+    const tbody = document.getElementById(`${kind}-capdem-tbody`);
+    if (tbody) {
+      tbody.innerHTML = Array.from({length:24}, (_,h) => {
+        const endLabel = h===23 ? '00:00' : `${String(h+1).padStart(2,'0')}:00`;
+        const range = `${String(h).padStart(2,'0')}:00-${endLabel}`;
+        const d = demand[h], c = capacity[h];
+        const [bg, tc] = d > c ? ['#dc3545','#fff'] : d === c ? ['#ffc107','#000'] : ['#198754','#fff'];
+        return `<tr><td>${range}</td><td style="background:${bg};color:${tc};font-weight:700">${d}</td><td>${c}</td></tr>`;
+      }).join('');
+    }
+
+    // ── Line chart ──────────────────────────────────────────────────────────
+    const canvas = document.getElementById(`${kind}CapDemChart`);
+    if (!canvas || !window.Chart) return;
+
+    if (isPax  && _paxCapDemChartInst)   { _paxCapDemChartInst.destroy();   _paxCapDemChartInst   = null; }
+    if (!isPax && _cargoCapDemChartInst) { _cargoCapDemChartInst.destroy(); _cargoCapDemChartInst = null; }
+
+    const demColor  = isPax ? 'rgb(13,110,253)' : 'rgb(249,115,22)';
+    const hlabels   = Array.from({length:24}, (_,h) =>
+      `${String(h).padStart(2,'0')}:00-${h===23?'00:00':String(h+1).padStart(2,'00')+':00'}`);
+
+    const ptColors = demand.map((d,i) =>
+      d > capacity[i] ? '#dc3545' : d === capacity[i] ? '#e6a800' : '#198754');
+
+    const plugins = window.ChartDataLabels ? [window.ChartDataLabels] : [];
+    const inst = new window.Chart(canvas, {
+      type: 'line',
+      plugins,
+      data: {
+        labels: hlabels,
+        datasets: [
+          {
+            label: isPax ? 'Vuelos pasajeros' : 'Vuelos carga',
+            data: demand,
+            borderColor: demColor,
+            backgroundColor: 'transparent',
+            pointBackgroundColor: ptColors,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 1,
+            pointRadius: 5,
+            borderWidth: 2.5,
+            tension: 0,
+            datalabels: {
+              display: true,
+              anchor: 'end',
+              align: 'top',
+              font: { weight: 'bold', size: 10 },
+              color: (ctx) => ptColors[ctx.dataIndex] || '#333',
+              formatter: v => v
+            }
+          },
+          {
+            label: 'Capacidad',
+            data: capacity,
+            borderColor: 'rgb(150,20,20)',
+            borderDash: [6,4],
+            backgroundColor: 'transparent',
+            pointBackgroundColor: 'rgb(150,20,20)',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 1,
+            pointRadius: 4,
+            borderWidth: 2,
+            tension: 0,
+            datalabels: {
+              display: true,
+              anchor: 'start',
+              align: 'bottom',
+              color: 'rgb(140,15,15)',
+              font: { size: 9 },
+              formatter: v => v
+            }
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'bottom' },
+          datalabels: { display: true }
+        },
+        scales: {
+          x: { ticks: { maxRotation: 45, minRotation: 45, font: { size: 8 } } },
+          y: { beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } }
+        }
+      }
+    });
+
+    if (isPax) _paxCapDemChartInst = inst;
+    else _cargoCapDemChartInst = inst;
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   function renderCombinedTopHours(agg){
     const sel  = document.getElementById('combined-topN');
     const topN = sel ? parseInt(sel.value, 10) : 5;
@@ -1610,6 +1721,35 @@
     if (paxCombTop) paxCombTop.addEventListener('change', ()=> { if (lastAgg) renderPaxCombinedTopHours(lastAgg); });
     const cargoCombTop = document.getElementById('cargo-combined-topN');
     if (cargoCombTop) cargoCombTop.addEventListener('change', ()=> { if (lastAgg) renderCargoCombinedTopHours(lastAgg); });
+
+    // ── Capacidad vs Demanda toggles ────────────────────────────────────────
+    function _bindCapDemToggle(kind) {
+      const barBtn    = document.getElementById(`${kind}-view-bar-btn`);
+      const capdemBtn = document.getElementById(`${kind}-view-capdem-btn`);
+      const barView   = document.getElementById(`${kind}-combined-bar-view`);
+      const capdemView= document.getElementById(`${kind}-combined-capdem-view`);
+      const applyBtn  = document.getElementById(`${kind}-cap-apply`);
+      if (!barBtn || !capdemBtn) return;
+      function showBar()    {
+        barView && (barView.style.display='');
+        capdemView && (capdemView.style.display='none');
+        barBtn.className    = 'btn btn-sm btn-primary';
+        capdemBtn.className = 'btn btn-sm btn-outline-secondary';
+      }
+      function showCapDem() {
+        barView && (barView.style.display='none');
+        capdemView && (capdemView.style.display='');
+        barBtn.className    = 'btn btn-sm btn-outline-secondary';
+        capdemBtn.className = 'btn btn-sm btn-primary';
+        if (lastAgg) renderCapDem(kind, lastAgg);
+      }
+      barBtn.addEventListener('click',    showBar);
+      capdemBtn.addEventListener('click', showCapDem);
+      if (applyBtn) applyBtn.addEventListener('click', () => { if (lastAgg) renderCapDem(kind, lastAgg); });
+    }
+    _bindCapDemToggle('pax');
+    _bindCapDemToggle('cargo');
+    // ───────────────────────────────────────────────────────────────────────
     // Range report
     _initRangeHourSelects();
     const rangeBtn = document.getElementById('range-report-btn');
