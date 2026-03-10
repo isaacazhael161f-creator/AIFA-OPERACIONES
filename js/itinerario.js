@@ -452,15 +452,15 @@
 
   // ─── Heatmap de Despacho Combustible ─────────────────────────────────────
   let _fuelHeatmapChartInst = null;
+  let _fuelScope = 'all';
 
   function _heatColor(ratio) {
-    // 0=blanco/verde, 0.5=amarillo, 1=rojo
     const stops = [
-      [0,    [220, 252, 231]], // verde claro
-      [0.25, [134, 239, 172]], // verde
-      [0.5,  [254, 240, 138]], // amarillo
-      [0.75, [251, 146,  60]], // naranja
-      [1,    [220,  38,  38]]  // rojo
+      [0,    [220, 252, 231]],
+      [0.25, [134, 239, 172]],
+      [0.5,  [254, 240, 138]],
+      [0.75, [251, 146,  60]],
+      [1,    [220,  38,  38]]
     ];
     let i = 0;
     while (i < stops.length - 1 && ratio > stops[i+1][0]) i++;
@@ -468,75 +468,96 @@
     const [t1, c1] = stops[Math.min(i+1, stops.length-1)];
     const f = t1 === t0 ? 1 : (ratio - t0) / (t1 - t0);
     const lerp = (a,b) => Math.round(a + (b-a)*f);
-    const [r,g,b] = [lerp(c0[0],c1[0]), lerp(c0[1],c1[1]), lerp(c0[2],c1[2])];
-    // text color: light on dark backgrounds
-    const luminance = 0.299*r + 0.587*g + 0.114*b;
+    const [r,g,bv] = [lerp(c0[0],c1[0]), lerp(c0[1],c1[1]), lerp(c0[2],c1[2])];
+    const luminance = 0.299*r + 0.587*g + 0.114*bv;
     const tc = luminance < 150 ? '#fff' : '#111';
-    return { bg: `rgb(${r},${g},${b})`, tc };
+    return { bg: `rgb(${r},${g},${bv})`, tc };
   }
 
-  function renderFuelHeatmap(agg) {
+  function renderFuelHeatmap(agg, scope) {
     if (!agg) return;
-    const demand = Array.from({length:24}, (_,h) =>
-      (agg.paxArr[h]||0) + (agg.paxDep[h]||0) + (agg.carArr[h]||0) + (agg.carDep[h]||0));
+    if (scope) _fuelScope = scope;
+    const s = _fuelScope;
+    const demand = Array.from({length:24}, (_,h) => {
+      if (s === 'pax')   return (agg.paxArr[h]||0) + (agg.paxDep[h]||0);
+      if (s === 'cargo') return (agg.carArr[h]||0) + (agg.carDep[h]||0);
+      return (agg.paxArr[h]||0)+(agg.paxDep[h]||0)+(agg.carArr[h]||0)+(agg.carDep[h]||0);
+    });
     const maxD = Math.max(1, ...demand);
 
-    // ── Table ───────────────────────────────────────────────────────────────
+    const scopeLabel = s==='pax' ? 'Pasajeros' : s==='cargo' ? 'Carga' : 'General (Pax + Carga)';
+    const titleEl = document.getElementById('fuel-chart-title');
+    if (titleEl) titleEl.textContent = `Total de Operaciones por Hora — ${scopeLabel}`;
+    const colEl = document.getElementById('fuel-table-col-header');
+    if (colEl) colEl.textContent = s==='pax' ? 'Vuelos Pax' : s==='cargo' ? 'Vuelos Carga' : 'Vuelos Totales';
+
+    // ── Scope toggle button states ──────────────────────────────────────────
+    document.querySelectorAll('[data-fuel-scope]').forEach(btn => {
+      const active = btn.dataset.fuelScope === s;
+      btn.className = active ? 'btn btn-primary active' : 'btn btn-outline-primary';
+    });
+
+    // ── Table with heatmap colors ───────────────────────────────────────────
     const tbody = document.getElementById('fuel-heatmap-tbody');
     if (tbody) {
       tbody.innerHTML = demand.map((d, h) => {
         const endLabel = h===23 ? '00:00' : `${String(h+1).padStart(2,'0')}:00`;
-        const range = `${String(h).padStart(2,'0')}:00 \u2013 ${endLabel}`;
+        const range = `${String(h).padStart(2,'0')}:00 – ${endLabel}`;
         const { bg, tc } = _heatColor(d / maxD);
         return `<tr><td class="fw-semibold">${range}</td><td style="background:${bg};color:${tc};font-weight:800;font-size:1.05em">${d}</td></tr>`;
       }).join('');
     }
 
-    // ── Bar chart with heat colors ──────────────────────────────────────────
+    // ── Line chart (normal, points colored by heat) ─────────────────────────
     const canvas = document.getElementById('fuelHeatmapChart');
     if (!canvas || !window.Chart) return;
     if (_fuelHeatmapChartInst) { _fuelHeatmapChartInst.destroy(); _fuelHeatmapChartInst = null; }
 
-    const hlabels = Array.from({length:24}, (_,h) =>
-      `${String(h).padStart(2,'0')}:00`);
-    const barColors = demand.map(d => _heatColor(d / maxD).bg);
+    const lineColor = s==='pax' ? 'rgb(13,110,253)' : s==='cargo' ? 'rgb(249,115,22)' : 'rgb(99,102,241)';
+    const ptColors  = demand.map(d => _heatColor(d / maxD).bg);
+    const hlabels   = Array.from({length:24}, (_,h) =>
+      `${String(h).padStart(2,'0')}:00–00${h===23?'':String(h+1).padStart(2,'0')}:00`);
 
     const plugins = window.ChartDataLabels ? [window.ChartDataLabels] : [];
     _fuelHeatmapChartInst = new window.Chart(canvas, {
-      type: 'bar',
+      type: 'line',
       plugins,
       data: {
-        labels: hlabels,
+        labels: Array.from({length:24}, (_,h) =>
+          `${String(h).padStart(2,'0')}:00-${h===23?'00':String(h+1).padStart(2,'0')}:00`),
         datasets: [{
-          label: 'Vuelos totales',
+          label: scopeLabel,
           data: demand,
-          backgroundColor: barColors,
-          borderColor: barColors.map(c => c.replace('rgb','rgba').replace(')',',0.9)')),
-          borderWidth: 1,
-          borderRadius: 4,
+          borderColor: lineColor,
+          backgroundColor: 'transparent',
+          pointBackgroundColor: ptColors,
+          pointBorderColor: '#fff',
+          pointBorderWidth: 1.5,
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          borderWidth: 2.5,
+          tension: 0,
           datalabels: {
             display: true,
             anchor: 'end',
             align: 'top',
-            color: (ctx) => {
-              const { tc } = _heatColor(demand[ctx.dataIndex] / maxD);
-              return demand[ctx.dataIndex] === 0 ? '#aaa' : '#333';
-            },
             font: { weight: 'bold', size: 10 },
-            formatter: v => v || ''
+            color: (ctx) => ptColors[ctx.dataIndex] === 'rgb(220,252,231)' ? '#166534' : ptColors[ctx.dataIndex],
+            formatter: v => v
           }
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        layout: { padding: { top: 20 } },
         plugins: {
-          legend: { display: false },
+          legend: { display: true, position: 'bottom', labels: { font: { size: 11 } } },
           datalabels: { display: true }
         },
         scales: {
-          x: { ticks: { maxRotation: 45, minRotation: 45, font: { size: 8 } } },
-          y: { beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } }
+          x: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { maxRotation: 45, minRotation: 45, font: { size: 8 } } },
+          y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { precision: 0, font: { size: 10 } } }
         }
       }
     });
@@ -1843,6 +1864,12 @@
     _bindCapDemToggle('pax');
     _bindCapDemToggle('cargo');
     // ───────────────────────────────────────────────────────────────────────
+    // Fuel heatmap scope buttons
+    document.querySelectorAll('[data-fuel-scope]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (lastAgg) renderFuelHeatmap(lastAgg, btn.dataset.fuelScope);
+      });
+    });
     // Range report
     _initRangeHourSelects();
     const rangeBtn = document.getElementById('range-report-btn');

@@ -3910,9 +3910,16 @@
                                 <!-- Tab 7: Despacho Combustible – heatmap horario -->
                                 <div class="tab-pane fade" id="fuel-heatmap-pane" role="tabpanel" aria-labelledby="fuel-heatmap-tab" tabindex="0">
                                     <div class="p-2">
-                                        <div class="d-flex align-items-center gap-2 mb-3">
-                                            <i class="fas fa-fire-flame-curved text-danger"></i>
-                                            <h6 class="mb-0 fw-bold">Demanda de Despacho de Combustible por Franja Horaria</h6>
+                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="fas fa-fire-flame-curved text-danger"></i>
+                                                <h6 class="mb-0 fw-bold">Demanda de Despacho de Combustible por Franja Horaria</h6>
+                                            </div>
+                                            <div class="btn-group btn-group-sm" role="group" id="fuel-scope-btns">
+                                                <button type="button" class="btn btn-primary active" data-fuel-scope="all"><i class="fas fa-globe me-1"></i>General</button>
+                                                <button type="button" class="btn btn-outline-primary" data-fuel-scope="pax"><i class="fas fa-users me-1"></i>Pasajeros</button>
+                                                <button type="button" class="btn btn-outline-primary" data-fuel-scope="cargo"><i class="fas fa-box me-1"></i>Carga</button>
+                                            </div>
                                         </div>
                                         <div class="row g-3">
                                             <div class="col-md-4">
@@ -3922,7 +3929,7 @@
                                                         <thead class="table-dark">
                                                             <tr>
                                                                 <th>Franja Horaria</th>
-                                                                <th>Vuelos Totales</th>
+                                                                <th id="fuel-table-col-header">Vuelos Totales</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody id="fuel-heatmap-tbody"></tbody>
@@ -3930,11 +3937,11 @@
                                                 </div>
                                             </div>
                                             <div class="col-md-8">
-                                                <p class="fw-semibold text-center mb-1 small text-uppercase text-muted">Total de Operaciones por Hora</p>
+                                                <p id="fuel-chart-title" class="fw-semibold text-center mb-1 small text-uppercase text-muted">Total de Operaciones por Hora</p>
                                                 <div style="height:440px;position:relative">
                                                     <canvas id="fuelHeatmapChart"></canvas>
                                                 </div>
-                                                <p class="text-muted small text-center mt-1 mb-0"><strong>Nota*</strong> Incluye vuelos de pasajeros y carga.</p>
+                                                <p class="text-muted small text-center mt-1 mb-0">Operaciones mensuales promedio por día &nbsp;&bull;&nbsp; <strong>Nota*</strong> No se consideran operaciones de aviación general.</p>
                                             </div>
                                         </div>
                                     </div>
