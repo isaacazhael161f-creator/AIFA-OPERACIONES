@@ -2288,10 +2288,39 @@ function getAirlineAccentColor(name) {
     }
     return '#0d6efd';
 }
+// Cache de logos desde la tabla airlines de Supabase (logo_url = URL pública de Storage)
+window.airlineLogoDbMap = window.airlineLogoDbMap || new Map(); // key: nombre normalizado → logo_url
+async function loadAirlineLogosFromDb() {
+    try {
+        const sb = (typeof window.ensureSupabaseClient === 'function')
+            ? await window.ensureSupabaseClient()
+            : window.supabaseClient;
+        if (!sb) return;
+        const { data } = await sb.from('airlines').select('name, aliases, logo_url').limit(500);
+        if (!data) return;
+        data.forEach(row => {
+            if (!row.logo_url) return;
+            const allNames = [row.name, ...(Array.isArray(row.aliases) ? row.aliases : [])];
+            allNames.forEach(n => {
+                if (!n) return;
+                const normalized = normalizeAirlineName(n);
+                window.airlineLogoDbMap.set(normalized, row.logo_url);
+                // Also index by the no-spaces variant so "aero union" matches "aerounion"
+                const noSpace = normalized.replace(/\s+/g, '');
+                if (noSpace !== normalized) window.airlineLogoDbMap.set(noSpace, row.logo_url);
+            });
+        });
+    } catch (_) { /* silent */ }
+}
+document.addEventListener('DOMContentLoaded', () => { loadAirlineLogosFromDb(); });
+
 function getAirlineLogoCandidates(airline) {
     const key = normalizeAirlineName(airline);
     const files = airlineLogoFileMap[key];
     const candidates = [];
+    // Priorizar logo_url desde la DB de Supabase si existe
+    const dbUrl = window.airlineLogoDbMap && window.airlineLogoDbMap.get(key);
+    if (dbUrl) candidates.push(dbUrl);
     if (Array.isArray(files) && files.length) {
         files.forEach(f => { candidates.push(`images/airlines/${f}`); });
     } else {
@@ -4409,7 +4438,7 @@ function clearFilters() {
     }
 }
 
-function viewFlightsForAirline(airline) {
+function viewFlightsForAirline(airline, section) {
     // set airline filter and re-run
     try {
         summaryDetailMode = 'airline';
@@ -4418,25 +4447,37 @@ function viewFlightsForAirline(airline) {
         summarySelectionLocked = true;
     } catch (_) { }
 
-    // Try new table filter first
-    const passengerContainer = document.getElementById('passenger-itinerary-container');
-    if (passengerContainer) {
-        const airlineInput = passengerContainer.querySelector('.daily-it-search[data-col="aerolinea"]');
+    // Choose container based on section: 'cargo' → cargo table, otherwise → passenger table
+    const isCargo = section === 'cargo';
+    const primaryId  = isCargo ? 'cargo-itinerary-container' : 'passenger-itinerary-container';
+    const fallbackId = isCargo ? 'passenger-itinerary-container' : 'cargo-itinerary-container';
+
+    const primaryContainer = document.getElementById(primaryId);
+    if (primaryContainer) {
+        const airlineInput = primaryContainer.querySelector('.daily-it-search[data-col="aerolinea"]');
         if (airlineInput) {
             airlineInput.value = airline;
-            // Dispatch event to trigger filter logic
             airlineInput.dispatchEvent(new Event('input', { bubbles: true }));
-            
-            // Scroll to table
-            passengerContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            primaryContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
             return;
         }
     }
 
-    // Fallback to legacy select if exists (but it is likely removed)
+    // Fallback to the other container if primary not found
+    const fallbackContainer = document.getElementById(fallbackId);
+    if (fallbackContainer) {
+        const airlineInput = fallbackContainer.querySelector('.daily-it-search[data-col="aerolinea"]');
+        if (airlineInput) {
+            airlineInput.value = airline;
+            airlineInput.dispatchEvent(new Event('input', { bubbles: true }));
+            fallbackContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return;
+        }
+    }
+
+    // Fallback to legacy select if exists
     const select = document.getElementById('airline-filter');
     if (select) {
-        // ensure option exists
         let exists = Array.from(select.options).find(o => o.value === airline);
         if (!exists) {
             const opt = document.createElement('option'); opt.value = airline; opt.textContent = airline; select.appendChild(opt);
@@ -4731,13 +4772,16 @@ function displaySummaryTable(flights, options = {}) {
                 : `<span class="summary-airline-fallback">${escapeHtml(item.airline.charAt(0) || '?')}</span>`;
             const accentColor = airlineColors[item.airline] || '#0d6efd';
             return `
-            <div class="col-6 col-md-4 col-lg-3 col-xl-2 summary-airline-col" data-airline="${escapeHtml(item.airline)}" data-section="${escapeHtml(sectionType)}">
-                <div class="card summary-airline-card h-100" role="button" tabindex="0" data-airline="${escapeHtml(item.airline)}" data-section="${escapeHtml(sectionType)}" aria-label="${escapeHtml(item.airline)}: ${formatNumber(item.total)} vuelos" style="--summary-airline-color:${accentColor};">
+            <div class="summary-airline-col" data-airline="${escapeHtml(item.airline)}" data-section="${escapeHtml(sectionType)}">
+                <div class="card summary-airline-card" role="button" tabindex="0" data-airline="${escapeHtml(item.airline)}" data-section="${escapeHtml(sectionType)}" aria-label="${escapeHtml(item.airline)}: ${formatNumber(item.total)} vuelos" style="--summary-airline-color:${accentColor};">
+                    <div class="summary-airline-accent-bar"></div>
                     <div class="summary-airline-card-body card-body">
                         <div class="summary-airline-logo">${logoHtml}</div>
-                        <div class="summary-airline-total">${formatNumber(item.total)}</div>
-                        <div class="summary-airline-total-label">Vuelos</div>
-                        <span class="visually-hidden">${escapeHtml(item.airline)}</span>
+                        <div class="summary-airline-name" title="${escapeHtml(item.airline)}">${escapeHtml(item.airline)}</div>
+                        <div class="summary-airline-count-row">
+                            <span class="summary-airline-num">${formatNumber(item.total)}</span>
+                            <span class="summary-airline-unit">${item.total === 1 ? 'vuelo' : 'vuelos'}</span>
+                        </div>
                     </div>
                 </div>
             </div>`;
@@ -4745,7 +4789,7 @@ function displaySummaryTable(flights, options = {}) {
         return `
         <div class="summary-airline-section" data-section="${escapeHtml(sectionType)}">
             <div class="summary-section-label">${title}</div>
-            <div class="row g-3 summary-airline-grid">
+            <div class="d-flex flex-wrap gap-2 summary-airline-grid">
                 ${cardsMarkup}
             </div>
         </div>`;
@@ -4806,14 +4850,11 @@ function displaySummaryTable(flights, options = {}) {
         </button>
     </div>`;
 
-    /* Se removieron las secciones de aerolíneas con logo a petición del usuario.
-       Solo se mantienen los totales y las posiciones. 
     html += '<div class="summary-airline-sections">';
     html += renderAirlineSection('Pasajeros', passengerAirlineCards, 'passenger');
     html += renderAirlineSection('Carga', cargoAirlineCards, 'cargo');
     html += renderAirlineSection('General', generalAirlineCards, 'general');
     html += '</div>';
-    */
     html += '<div id="summary-airline-detail" class="mt-4"></div>';
 
     container.innerHTML = html;
@@ -5203,6 +5244,7 @@ function displaySummaryTable(flights, options = {}) {
 
     cards.forEach((card) => {
         const airlineName = card.dataset.airline;
+        const cardSection = card.dataset.section; // 'passenger', 'cargo', 'general'
         if (!airlineName) return;
         const toggleDetail = () => {
             if (!airlineDataMap.has(airlineName)) return;
@@ -5211,17 +5253,24 @@ function displaySummaryTable(flights, options = {}) {
                 summarySelectionLocked = false;
                 summarySelectedAirline = null;
                 summarySelectedPosition = null;
-                
-                 // Clear table filter (new method)
-                const passengerContainer = document.getElementById('passenger-itinerary-container');
-                if (passengerContainer) {
-                    const airlineInput = passengerContainer.querySelector('.daily-it-search[data-col="aerolinea"]');
-                    if (airlineInput && airlineInput.value) {
-                         airlineInput.value = '';
-                         airlineInput.dispatchEvent(new Event('input', { bubbles: true }));
-                         return;
+
+                // Clear the filter in the correct container based on section
+                const isCargo = cardSection === 'cargo';
+                const clearIds = isCargo
+                    ? ['cargo-itinerary-container']
+                    : ['passenger-itinerary-container', 'cargo-itinerary-container'];
+                let cleared = false;
+                clearIds.forEach(cid => {
+                    const c = document.getElementById(cid);
+                    if (!c) return;
+                    const inp = c.querySelector('.daily-it-search[data-col="aerolinea"]');
+                    if (inp && inp.value) {
+                        inp.value = '';
+                        inp.dispatchEvent(new Event('input', { bubbles: true }));
+                        cleared = true;
                     }
-                }
+                });
+                if (cleared) return;
 
                 const select = document.getElementById('airline-filter');
                 if (select && select.value !== 'all') {
@@ -5237,7 +5286,7 @@ function displaySummaryTable(flights, options = {}) {
             summarySelectedAirline = airlineName;
             summarySelectedPosition = null;
             summarySelectionLocked = true;
-            viewFlightsForAirline(airlineName);
+            viewFlightsForAirline(airlineName, cardSection);
         };
         card.addEventListener('click', toggleDetail);
         card.addEventListener('keypress', (ev) => {

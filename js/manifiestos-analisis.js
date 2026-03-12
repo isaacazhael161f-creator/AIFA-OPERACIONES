@@ -153,6 +153,35 @@
   const getFecha    = r => col(r, 'FECHA', 'fecha') || '';
   const getMes      = r => col(r, 'MES', 'mes') || '';
 
+  /* Extrae la hora (0-23) preferentemente de la columna HR. DE OPERACIÓN */
+  function getHour(r) {
+    // Columna principal: HR. DE OPERACIÓN (y variantes de escritura)
+    const raw = col(r, 'HR. DE OPERACI\u00d3N', 'HR. DE OPERACION', 'HR DE OPERACION', 'HR DE OPERACI\u00d3N',
+                       'HORA DE OPERACI\u00d3N', 'HORA DE OPERACION', 'HORA OPERACION',
+                       'HR. OPERACI\u00d3N', 'HR. OPERACION',
+                       'SLOT ASIGNADO', 'SLOT COORDINADO',
+                       'HORA DE INICIO O TERMINO DE PERNOCTA', 'HORA DE RECEPCI\u00d3N', 'HORA DE RECEPCION');
+    if (raw) {
+      const s = String(raw).trim();
+      // HH:MM o HH:MM:SS
+      const m1 = s.match(/^(\d{1,2}):(\d{2})/);
+      if (m1) return parseInt(m1[1], 10);
+      // HHMM numérico (e.g. "0830")
+      const m2 = s.match(/^(\d{3,4})$/);
+      if (m2) return parseInt(s.length === 3 ? s[0] : s.substring(0, 2), 10);
+      // Datetime con T o espacio: "2025-12-20T14:30" / "2025-12-20 14:30"
+      const m3 = s.match(/[T ](\d{1,2}):(\d{2})/);
+      if (m3) return parseInt(m3[1], 10);
+    }
+    // Fallback: si FECHA contiene hora
+    const fecha = getFecha(r);
+    if (fecha) {
+      const m = String(fecha).match(/[T ](\d{1,2}):(\d{2})/);
+      if (m) return parseInt(m[1], 10);
+    }
+    return -1; // sin dato
+  }
+
   const ni = v => parseInt(v, 10) || 0;
   const getPaxTotal = r => ni(col(r, 'TOTAL PAX'));
   const getPaxTUA   = r => ni(col(r, 'PAX. QUE PAGAN TUA'));
@@ -303,7 +332,7 @@
     document.querySelectorAll('#mdb-sub-tabs button[data-bs-toggle="tab"]').forEach(btn => {
       btn.addEventListener('shown.bs.tab', () => { if (_loaded && _filtered.length > 0) renderActiveSubTab(); });
     });
-    setTimeout(tryPreload, 1000);
+    setTimeout(tryPreload, 100);
   });
 
   function tryPreload() {
@@ -312,8 +341,8 @@
     const iv = setInterval(() => {
       tries++;
       if (window.supabaseClient) { clearInterval(iv); load(); }
-      else if (tries >= 15)      { clearInterval(iv); }
-    }, 2000);
+      else if (tries >= 30)      { clearInterval(iv); }
+    }, 500);
   }
 
   /* ═══════════════════════════════════════════════════════
@@ -326,17 +355,25 @@
     try {
       const client = window.supabaseClient;
       if (!client) throw new Error('Supabase no disponible — inicia sesi\u00f3n primero');
-      let all = [], from = 0;
       const BS = 1000;
-      let more = true;
-      while (more) {
-        setOverlayText('Cargando registros (' + all.length.toLocaleString() + ')...');
-        const { data, error } = await client.from(getTableName()).select('*').range(from, from + BS - 1);
-        if (error) throw error;
-        if (data && data.length > 0) { all = all.concat(data); from += BS; if (data.length < BS) more = false; }
-        else more = false;
-        if (all.length > 200000) more = false;
-      }
+      const tableName = getTableName();
+
+      // 1. Obtener el total de registros con una sola petición HEAD
+      setOverlayText('Consultando registros...');
+      const { count, error: countErr } = await client.from(tableName).select('*', { count: 'exact', head: true });
+      if (countErr) throw countErr;
+      const total = Math.min(count || 0, 200000);
+
+      // 2. Descargar todas las páginas en paralelo
+      const pages = Math.ceil(total / BS);
+      setOverlayText('Descargando ' + total.toLocaleString() + ' registros en ' + pages + ' lotes...');
+      const requests = Array.from({ length: pages }, (_, i) =>
+        client.from(tableName).select('*').range(i * BS, (i + 1) * BS - 1)
+      );
+      const results = await Promise.all(requests);
+      const errors = results.filter(r => r.error);
+      if (errors.length) throw errors[0].error;
+      const all = results.flatMap(r => r.data || []);
       _allData = all; _loaded = true;
       _dataCache[_activeTableKey] = all;
       if (all.length === 0) { showBanner('info', 'La tabla est\u00e1 vac\u00eda o RLS bloquea la lectura.'); hideOverlay(); return; }
@@ -417,6 +454,7 @@
       case '#mdb-sub-rutas':      renderTabRutas();      break;
       case '#mdb-sub-equipaje':      renderTabEquipaje();      break;
       case '#mdb-sub-operaciones':  renderTabOperaciones();   break;
+      case '#mdb-sub-dia':           renderTabDia();           break;
       case '#mdb-sub-datos':         renderTabDatos();         break;
       default:                       renderTabResumen();
     }
@@ -1167,7 +1205,728 @@
     }
   }
 
+  /* ═══════════════════════════════════════════════════════
+     HELPER: DÍA
+  ═══════════════════════════════════════════════════════ */
+  function getDayKey(r) {
+    const raw = getFecha(r); if (!raw) return '';
+    const clean = String(raw).split('T')[0];
+    const p = clean.split(/[-\/]/);
+    if (p.length < 3) return '';
+    if (p[0].length === 4) return p[0] + '-' + p[1].padStart(2,'0') + '-' + p[2].padStart(2,'0'); // YYYY-MM-DD
+    return p[2] + '-' + p[1].padStart(2,'0') + '-' + p[0].padStart(2,'0'); // DD/MM/YYYY → YYYY-MM-DD
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     SUB-PESTAÑA: POR DÍA
+  ═══════════════════════════════════════════════════════ */
+  function renderTabDia() {
+    const DIAS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+    // Aggregate per calendar day
+    const map = {};
+    _filtered.forEach(r => {
+      const key = getDayKey(r); if (!key) return;
+      if (!map[key]) map[key] = { flights: 0, pax: 0, arrPax: 0, depPax: 0, domPax: 0, intPax: 0 };
+      const p = getPaxTotal(r);
+      map[key].flights++;
+      map[key].pax    += p;
+      if (isArr(r)) map[key].arrPax += p;
+      if (isDep(r)) map[key].depPax += p;
+      if (isDom(r)) map[key].domPax += p;
+      if (isInt(r)) map[key].intPax += p;
+    });
+
+    const sorted = Object.keys(map).sort();
+    const badge = document.getElementById('mdb-dia-count-badge');
+    if (badge) badge.textContent = sorted.length + ' días';
+
+    // Bar chart
+    const ctx = document.getElementById('mdb-chart-day-pax');
+    if (ctx) {
+      if (_charts.dayPax) _charts.dayPax.destroy();
+      const arrData = sorted.map(k => map[k].arrPax);
+      const depData = sorted.map(k => map[k].depPax);
+      const totData = sorted.map(k => map[k].pax);
+      const grandTotal = totData.reduce((s, v) => s + v, 0);
+      const labels = sorted.map(k => {
+        try {
+          const d = new Date(k + 'T12:00:00');
+          const [y, m, day] = k.split('-');
+          return DIAS_ES[d.getDay()] + ' ' + day + '/' + m;
+        } catch(_) { return k; }
+      });
+      _charts.dayPax = new Chart(ctx, {
+        type: 'bar',
+        plugins: window.ChartDataLabels ? [ChartDataLabels] : [],
+        data: { labels, datasets: [
+          { label: 'Llegadas', data: arrData, backgroundColor: 'rgba(214,51,132,0.78)', stack: 'S', borderRadius: { topLeft:0, topRight:0, bottomLeft:4, bottomRight:4 } },
+          { label: 'Salidas',  data: depData, backgroundColor: 'rgba(102,16,242,0.78)', stack: 'S', borderRadius: { topLeft:4, topRight:4, bottomLeft:0, bottomRight:0 } }
+        ]},
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top' },
+            datalabels: { display: false },
+            tooltip: { callbacks: {
+              title: items => {
+                try { const d = new Date(sorted[items[0].dataIndex] + 'T12:00:00'); return DIAS_ES[d.getDay()] + ', ' + sorted[items[0].dataIndex]; } catch(_) { return sorted[items[0].dataIndex]; }
+              },
+              label: c => ' ' + c.dataset.label + ': ' + fmt(c.raw) + ' (' + pct(c.raw, totData[c.dataIndex]) + ')',
+              footer: items => 'Total: ' + fmt(totData[items[0].dataIndex]) + ' (' + pct(totData[items[0].dataIndex], grandTotal) + ' del período)'
+            }}
+          },
+          scales: {
+            x: { stacked: true, ticks: { maxRotation: 45, font: { size: 10 } } },
+            y: { stacked: true, beginAtZero: true, ticks: { callback: tickK } }
+          }
+        }
+      });
+    }
+
+    // Summary table
+    const tbody = document.getElementById('mdb-tbody-dia');
+    if (!tbody) return;
+    if (!sorted.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">Sin datos para el período seleccionado</td></tr>';
+      return;
+    }
+    const totalPax      = sorted.reduce((s, k) => s + map[k].pax, 0);
+    const totalFlights  = sorted.reduce((s, k) => s + map[k].flights, 0);
+    const totalArr      = sorted.reduce((s, k) => s + map[k].arrPax, 0);
+    const totalDep      = sorted.reduce((s, k) => s + map[k].depPax, 0);
+    const totalDom      = sorted.reduce((s, k) => s + map[k].domPax, 0);
+    const totalInt      = sorted.reduce((s, k) => s + map[k].intPax, 0);
+    // Determine peak day
+    const peakDay = sorted.reduce((best, k) => (!best || map[k].pax > map[best].pax) ? k : best, null);
+    tbody.innerHTML = sorted.map(k => {
+      const v = map[k];
+      let dia = '', esFin = false;
+      try {
+        const d = new Date(k + 'T12:00:00');
+        dia = DIAS_ES[d.getDay()];
+        esFin = d.getDay() === 0 || d.getDay() === 6;
+      } catch(_) {}
+      const [y, m, day] = k.split('-');
+      const isPeak = k === peakDay;
+      const rowClass = isPeak ? 'class="table-info"' : (esFin ? 'class="table-warning"' : '');
+      const badgeCls = esFin ? 'bg-warning text-dark' : 'bg-light text-secondary border';
+      return '<tr ' + rowClass + ' data-day="' + k + '" style="cursor:pointer;" title="Clic para ver desglose por hora">' +
+        '<td class="fw-semibold text-nowrap">' + day + '/' + m + '/' + y + (isPeak ? ' <span class="badge bg-info text-dark ms-1" style="font-size:0.65rem;">Mayor pax</span>' : '') + '</td>' +
+        '<td class="text-center"><span class="badge ' + badgeCls + '">' + dia + '</span></td>' +
+        '<td class="text-end">' + fmt(v.flights) + '</td>' +
+        '<td class="text-end fw-bold">' + fmt(v.pax) + '</td>' +
+        '<td class="text-end" style="color:#d63384">' + fmt(v.arrPax) + '</td>' +
+        '<td class="text-end" style="color:#6610f2">' + fmt(v.depPax) + '</td>' +
+        '<td class="text-end" style="color:#fd7e14">' + fmt(v.domPax) + '</td>' +
+        '<td class="text-end" style="color:#20c997">' + fmt(v.intPax) + '</td>' +
+        '<td class="text-end text-muted">' + (v.flights ? fmt(Math.round(v.pax / v.flights)) : '—') + '</td>' +
+        '</tr>';
+    }).join('') +
+    '<tr class="table-dark fw-bold">' +
+    '<td colspan="2">TOTAL</td>' +
+    '<td class="text-end">' + fmt(totalFlights) + '</td>' +
+    '<td class="text-end">' + fmt(totalPax) + '</td>' +
+    '<td class="text-end">' + fmt(totalArr) + '</td>' +
+    '<td class="text-end">' + fmt(totalDep) + '</td>' +
+    '<td class="text-end">' + fmt(totalDom) + '</td>' +
+    '<td class="text-end">' + fmt(totalInt) + '</td>' +
+    '<td></td>' +
+    '</tr>';
+
+    // Row click → drill-down
+    tbody.querySelectorAll('tr[data-day]').forEach(tr => {
+      tr.addEventListener('click', () => {
+        tbody.querySelectorAll('tr[data-day]').forEach(r => r.style.outline = '');
+        tr.style.outline = '2px solid #0d6efd';
+        renderDiaDetail(tr.dataset.day);
+        document.getElementById('mdb-card-dia-detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+
+    // Wire up date picker + button
+    _initDiaDetailControls(sorted, peakDay);
+
+    // Hourly breakdown
+    renderDiaHourChart();
+
+    // Airline breakdown
+    renderDiaAirlineChart();
+  }
+
+  function _initDiaDetailControls(sorted, peakDay) {
+    const btn  = document.getElementById('mdb-btn-dia-detail');
+    const dinp = document.getElementById('mdb-dia-detail-date');
+    if (!btn || !dinp) return;
+    // Remove old listeners by cloning
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    newBtn.addEventListener('click', () => {
+      const v = dinp.value;
+      if (!v) return;
+      renderDiaDetail(v);
+      document.getElementById('mdb-card-dia-detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    // Default: Dec 19, 2025 if in data, else peak day
+    const defaultDay = sorted.includes('2025-12-19') ? '2025-12-19' : peakDay;
+    if (defaultDay && dinp.value !== defaultDay) dinp.value = defaultDay;
+    if (defaultDay) { setTimeout(() => renderDiaDetail(defaultDay), 0); }
+  }
+
+  function renderDiaHourChart() {
+    const ctx = document.getElementById('mdb-chart-hour-pax'); if (!ctx) return;
+    if (_charts.hourPax) _charts.hourPax.destroy();
+
+    const arrH = new Array(24).fill(0);
+    const depH = new Array(24).fill(0);
+    let hasHourData = false;
+
+    _filtered.forEach(r => {
+      const h = getHour(r);
+      if (h < 0 || h > 23) return;
+      hasHourData = true;
+      const p = getPaxTotal(r);
+      if (isArr(r)) arrH[h] += p;
+      else depH[h] += p;
+    });
+
+    const noDataBadge = document.getElementById('mdb-hour-no-data');
+    const card = document.getElementById('mdb-card-hour');
+    if (!hasHourData) {
+      if (noDataBadge) noDataBadge.style.display = '';
+      if (card) card.querySelector('.card-body').innerHTML = '<div class="text-center text-muted py-4 small"><i class="fas fa-info-circle me-2"></i>No se detect\u00f3 columna de hora en esta tabla (HORA DE OPERACI\u00d3N / SLOT). La gr\u00e1fica no est\u00e1 disponible para este conjunto de datos.</div>';
+      return;
+    }
+    if (noDataBadge) noDataBadge.style.display = 'none';
+
+    const labels = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0') + ':00 – ' + ((i + 1) % 24).toString().padStart(2, '0') + ':00');
+    const totH   = arrH.map((v, i) => v + depH[i]);
+    const grandTotal = totH.reduce((s, v) => s + v, 0);
+
+    _charts.hourPax = new Chart(ctx, {
+      type: 'bar',
+      plugins: window.ChartDataLabels ? [ChartDataLabels] : [],
+      data: { labels, datasets: [
+        { label: 'Llegadas', data: arrH, backgroundColor: 'rgba(214,51,132,0.78)', stack: 'S', borderRadius: { topLeft:0, topRight:0, bottomLeft:3, bottomRight:3 } },
+        { label: 'Salidas',  data: depH, backgroundColor: 'rgba(102,16,242,0.78)', stack: 'S', borderRadius: { topLeft:3, topRight:3, bottomLeft:0, bottomRight:0 } }
+      ]},
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top' },
+          datalabels: { display: false },
+          tooltip: { callbacks: {
+            label: c => ' ' + c.dataset.label + ': ' + fmt(c.raw) + ' (' + pct(c.raw, totH[c.dataIndex]) + ')',
+            footer: items => 'Total hora: ' + fmt(totH[items[0].dataIndex]) + ' (' + pct(totH[items[0].dataIndex], grandTotal) + ' del per\u00edodo)'
+          }}
+        },
+        scales: {
+          x: { stacked: true, ticks: { font: { size: 10 } } },
+          y: { stacked: true, beginAtZero: true, ticks: { callback: tickK } }
+        }
+      }
+    });
+  }
+
+  function renderDiaAirlineChart() {
+    const map = {};
+    _filtered.forEach(r => {
+      const a = getAirline(r);
+      if (!map[a]) map[a] = { flights: 0, pax: 0, arrPax: 0, depPax: 0 };
+      const p = getPaxTotal(r);
+      map[a].flights++;
+      map[a].pax += p;
+      if (isArr(r)) map[a].arrPax += p;
+      if (isDep(r)) map[a].depPax += p;
+    });
+    const sorted = Object.entries(map).sort((a, b) => b[1].pax - a[1].pax);
+    const totalPax = sorted.reduce((s, [, v]) => s + v.pax, 0);
+    const top15 = sorted.slice(0, 15);
+
+    // Chart
+    const ctx = document.getElementById('mdb-chart-dia-airline');
+    if (ctx) {
+      if (_charts.diaAirline) _charts.diaAirline.destroy();
+      top15.forEach(([n]) => { const iata = getIATA(n); if (iata) preloadLogo(iata); });
+      _charts.diaAirline = new Chart(ctx, {
+        type: 'bar',
+        plugins: window.ChartDataLabels ? [ChartDataLabels] : [],
+        data: { labels: top15.map(([n]) => n), datasets: [
+          { label: 'Llegadas', data: top15.map(([, v]) => v.arrPax), backgroundColor: 'rgba(214,51,132,0.82)', stack: 'S', borderRadius: { topLeft:0, topRight:0, bottomLeft:4, bottomRight:4 } },
+          { label: 'Salidas',  data: top15.map(([, v]) => v.depPax), backgroundColor: 'rgba(102,16,242,0.82)', stack: 'S', borderRadius: { topLeft:4, topRight:4, bottomLeft:0, bottomRight:0 } }
+        ]},
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          layout: { padding: { left: top15.some(([n]) => getIATA(n)) ? 32 : 4, right: 60 } },
+          plugins: {
+            legend: { position: 'top' },
+            datalabels: { display: true, color: '#fff', font: { size: 9, weight: 'bold' },
+              formatter: (v, c2) => {
+                const tot = top15[c2.dataIndex][1].pax;
+                return (!tot || v < tot * 0.06) ? '' : pct(v, tot);
+              }
+            },
+            tooltip: { callbacks: {
+              label: c => ' ' + c.dataset.label + ': ' + fmt(c.raw) + ' (' + pct(c.raw, top15[c.dataIndex][1].pax) + ' aerol\u00ednea)',
+              footer: items => 'Total: ' + fmt(top15[items[0].dataIndex][1].pax) + ' (' + pct(top15[items[0].dataIndex][1].pax, totalPax) + ' global)'
+            }},
+            airlineLogos: { enabled: true, size: 20, gap: 6 }
+          },
+          scales: { x: { stacked: true, beginAtZero: true, ticks: { callback: tickK } }, y: { stacked: true } }
+        }
+      });
+    }
+
+    // Ranking table
+    const badge = document.getElementById('mdb-dia-airline-badge');
+    if (badge) badge.textContent = sorted.length + ' aerol\u00edneas';
+    const tbody = document.getElementById('mdb-tbody-dia-airline');
+    if (!tbody) return;
+    const medals = ['\uD83E\uDD47', '\uD83E\uDD48', '\uD83E\uDD49'];
+    tbody.innerHTML = sorted.map(([name, v], i) => {
+      const logo = airlineLogoHTML(name, 22);
+      const barW = totalPax ? Math.max(2, Math.round((v.pax / totalPax) * 100)) : 0;
+      return '<tr>' +
+        '<td class="text-center fw-bold">' + (medals[i] || (i + 1)) + '</td>' +
+        '<td><div class="d-flex align-items-center gap-2">' + logo + '<span class="fw-semibold small">' + escHtml(name) + '</span></div></td>' +
+        '<td class="text-end small">' + fmt(v.flights) + '</td>' +
+        '<td class="text-end fw-bold small">' + fmt(v.pax) + '</td>' +
+        '<td class="text-end small" style="color:#d63384">' + fmt(v.arrPax) + '</td>' +
+        '<td class="text-end small" style="color:#6610f2">' + fmt(v.depPax) + '</td>' +
+        '<td><div class="d-flex align-items-center gap-2"><div class="progress flex-grow-1" style="height:7px;min-width:40px;"><div class="progress-bar bg-primary" style="width:' + barW + '%"></div></div><span class="small fw-semibold text-primary">' + pct(v.pax, totalPax) + '</span></div></td>' +
+        '</tr>';
+    }).join('') + (sorted.length ? '<tr class="table-light fw-bold"><td colspan="3" class="text-end">TOTAL</td><td class="text-end">' + fmt(totalPax) + '</td><td colspan="3"></td></tr>' : '<tr><td colspan="7" class="text-center text-muted py-3">Sin datos</td></tr>');
+  }
+
   function renderTabDatos() { renderTable(_filtered); }
+
+  /* ═══════════════════════════════════════════════════════
+     DETALLE POR HORA DE UN DÍA ESPECÍFICO
+  ═══════════════════════════════════════════════════════ */
+  function renderDiaDetail(dateKey) {
+    const DIAS_ES2 = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const container = document.getElementById('mdb-dia-detail-content');
+    if (!container || !dateKey) return;
+
+    // Update date input to match selected day
+    const dinp = document.getElementById('mdb-dia-detail-date');
+    if (dinp) dinp.value = dateKey;
+
+    // Filter all loaded data (not just _filtered) so even without month filter we get the day
+    const dayRows = _allData.filter(r => getDayKey(r) === dateKey);
+
+    if (!dayRows.length) {
+      container.innerHTML = '<div class="alert alert-warning mb-0 py-2">No hay datos para <strong>' + escHtml(dateKey) + '</strong>. ' +
+        'Verifica que los filtros de año/mes/aerolínea no excluyan este día, o que el dato exista en la base de datos.</div>';
+      return;
+    }
+
+    // Format date label
+    const [yy, mm, dd] = dateKey.split('-');
+    let dayLabel = dd + '/' + mm + '/' + yy;
+    try {
+      const dt = new Date(dateKey + 'T12:00:00');
+      dayLabel = DIAS_ES2[dt.getDay()] + ' ' + parseInt(dd, 10) + ' de ' + MONTHS_ES[parseInt(mm, 10) - 1] + ' de ' + yy;
+    } catch (_) {}
+
+    // KPIs
+    const totalPax  = dayRows.reduce((s, r) => s + getPaxTotal(r), 0);
+    const arrPax    = dayRows.filter(r => isArr(r)).reduce((s, r) => s + getPaxTotal(r), 0);
+    const depPax    = dayRows.filter(r => isDep(r)).reduce((s, r) => s + getPaxTotal(r), 0);
+    const domPax    = dayRows.filter(r => isDom(r)).reduce((s, r) => s + getPaxTotal(r), 0);
+    const intPax    = dayRows.filter(r => isInt(r)).reduce((s, r) => s + getPaxTotal(r), 0);
+    const airlines  = new Set(dayRows.map(r => getAirline(r))).size;
+    const flights   = dayRows.length;
+
+    // Hourly aggregation + per-airline breakdown
+    const arrH    = new Array(24).fill(0);
+    const depH    = new Array(24).fill(0);
+    const fltsH   = new Array(24).fill(0);
+    const hourAirMap = {}; // h → { airlineName → { arr, dep, flights } }
+    dayRows.forEach(r => {
+      const h = getHour(r); if (h < 0 || h > 23) return;
+      const a = getAirline(r);
+      const p = getPaxTotal(r);
+      if (isArr(r)) arrH[h] += p; else depH[h] += p;
+      fltsH[h]++;
+      if (!hourAirMap[h]) hourAirMap[h] = {};
+      if (!hourAirMap[h][a]) hourAirMap[h][a] = { arr: 0, dep: 0, flights: 0 };
+      if (isArr(r)) hourAirMap[h][a].arr += p; else hourAirMap[h][a].dep += p;
+      hourAirMap[h][a].flights++;
+    });
+    const totH    = arrH.map((v, i) => v + depH[i]);
+    const hasHour = totH.some(v => v > 0);
+    const peakH   = hasHour ? totH.indexOf(Math.max(...totH)) : -1;
+    const grandH  = totH.reduce((s, v) => s + v, 0);
+    const activeHours = Array.from({length: 24}, (_, h) => h).filter(h => totH[h] > 0 || fltsH[h] > 0);
+
+    // Airline aggregation
+    const airMap = {};
+    dayRows.forEach(r => {
+      const a = getAirline(r);
+      if (!airMap[a]) airMap[a] = { flights: 0, pax: 0, arr: 0, dep: 0, hours: new Set() };
+      const p = getPaxTotal(r);
+      airMap[a].flights++;
+      airMap[a].pax += p;
+      if (isArr(r)) airMap[a].arr += p; else airMap[a].dep += p;
+      const h = getHour(r); if (h >= 0) airMap[a].hours.add(h);
+    });
+    const airSorted = Object.entries(airMap).sort((a, b) => b[1].pax - a[1].pax);
+    const medals = ['\uD83E\uDD47', '\uD83E\uDD48', '\uD83E\uDD49'];
+    const AIR_COLORS = ['#0d6efd','#198754','#ffc107','#dc3545','#0dcaf0','#6610f2','#fd7e14','#20c997','#d63384','#6c757d','#0d3b86','#adb5bd'];
+    const TOP_CHART = Math.min(8, airSorted.length);
+    const topAirlines = airSorted.slice(0, TOP_CHART).map(([n]) => n);
+    const hlbl = h => h.toString().padStart(2, '0') + ':00–' + ((h + 1) % 24).toString().padStart(2, '0') + ':00';
+
+    // Build hourly table rows (expandable per-airline sub-rows)
+    const hourRows = activeHours.map(h => {
+      const isPk = h === peakH && totH[h] > 0;
+      const airEntries = Object.entries(hourAirMap[h] || {}).sort((a, b) => (b[1].arr + b[1].dep) - (a[1].arr + a[1].dep));
+      const airStr = airEntries.map(([a]) =>
+        '<span class="d-inline-flex align-items-center gap-1 me-1">' + airlineLogoHTML(a, 14) +
+        '<span class="small text-truncate" style="max-width:100px;" title="' + escHtml(a) + '">' + escHtml(a) + '</span></span>'
+      ).join('');
+      const summaryRow = '<tr class="hour-summary-row' + (isPk ? ' table-warning fw-bold' : '') + '" data-h="' + h + '" style="cursor:pointer;">' +
+        '<td class="text-nowrap fw-semibold small">' +
+          '<i class="fas fa-chevron-right hour-chevron me-1" style="font-size:0.6rem;transition:transform 0.2s;"></i>' +
+          h.toString().padStart(2, '0') + ':00 – ' + ((h + 1) % 24).toString().padStart(2, '0') + ':00' +
+          (isPk ? ' <span class="badge bg-warning text-dark ms-1" style="font-size:0.6rem;">PICO</span>' : '') +
+        '</td>' +
+        '<td class="text-end small">' + fltsH[h] + '</td>' +
+        '<td class="text-end fw-bold small">' + fmt(totH[h]) + '</td>' +
+        '<td class="text-end small" style="color:#d63384">' + (arrH[h] ? fmt(arrH[h]) : '—') + '</td>' +
+        '<td class="text-end small" style="color:#6610f2">' + (depH[h] ? fmt(depH[h]) : '—') + '</td>' +
+        '<td class="text-end small text-muted">' + (totH[h] && grandH ? ((totH[h] / grandH * 100).toFixed(1) + '%') : '—') + '</td>' +
+        '<td class="small">' + (airStr || '<span class="text-muted">—</span>') + '</td>' +
+        '</tr>';
+      const subRows = airEntries.map(([a, av]) => {
+        const tot = av.arr + av.dep;
+        return '<tr class="hour-airline-sub" data-h="' + h + '" style="display:none;background:#f8f9fa;">' +
+          '<td class="small ps-4 text-muted">' +
+            '<div class="d-flex align-items-center gap-1">' + airlineLogoHTML(a, 14) +
+            '<span class="fw-semibold" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escHtml(a) + '">' + escHtml(a) + '</span></div>' +
+          '</td>' +
+          '<td class="text-end small text-muted">' + av.flights + '</td>' +
+          '<td class="text-end fw-bold small">' + fmt(tot) + '</td>' +
+          '<td class="text-end small" style="color:#d63384">' + (av.arr ? fmt(av.arr) : '—') + '</td>' +
+          '<td class="text-end small" style="color:#6610f2">' + (av.dep ? fmt(av.dep) : '—') + '</td>' +
+          '<td class="text-end small text-muted">' + (grandH ? ((tot / grandH * 100).toFixed(1) + '%') : '—') + '</td>' +
+          '<td></td>' +
+          '</tr>';
+      }).join('');
+      return summaryRow + subRows;
+    }).join('');
+
+    // Build airline table rows
+    const airRows = airSorted.map(([name, v], i) => {
+      const logo = airlineLogoHTML(name, 20);
+      const barW = totalPax ? Math.max(2, Math.round((v.pax / totalPax) * 100)) : 0;
+      const hList = [...v.hours].sort((a,b)=>a-b).map(h => h.toString().padStart(2,'0') + ':00').join(', ');
+      return '<tr>' +
+        '<td class="text-center fw-bold small">' + (medals[i] || (i + 1)) + '</td>' +
+        '<td><div class="d-flex align-items-center gap-1">' + logo + '<span class="fw-semibold small">' + escHtml(name) + '</span></div></td>' +
+        '<td class="text-end small">' + v.flights + '</td>' +
+        '<td class="text-end fw-bold small">' + fmt(v.pax) + '</td>' +
+        '<td class="text-end small" style="color:#d63384">' + (v.arr ? fmt(v.arr) : '—') + '</td>' +
+        '<td class="text-end small" style="color:#6610f2">' + (v.dep ? fmt(v.dep) : '—') + '</td>' +
+        '<td class="text-end small">' +
+          '<div class="d-flex align-items-center gap-1 justify-content-end">' +
+            '<div class="progress flex-grow-1" style="height:6px;min-width:30px;">' +
+              '<div class="progress-bar bg-primary" style="width:' + barW + '%"></div></div>' +
+            '<span class="fw-semibold text-primary">' + pct(v.pax, totalPax) + '</span>' +
+          '</div>' +
+        '</td>' +
+        '<td class="small text-muted">' + escHtml(hList || '—') + '</td>' +
+        '</tr>';
+    }).join('') + (airSorted.length ? '<tr class="table-light fw-bold"><td colspan="3" class="text-end small">TOTAL</td><td class="text-end small">' + fmt(totalPax) + '</td><td colspan="4"></td></tr>' : '');
+
+    // Matrix: Hora × Aerolínea (top 10)
+    const matrixCols = airSorted.slice(0, Math.min(10, airSorted.length)).map(([n]) => n);
+    const matrixHeader = '<th class="text-nowrap small fw-semibold" style="min-width:80px;">Hora</th><th class="text-end small fw-semibold">Total</th>' +
+      matrixCols.map((a, i) => '<th class="text-center" style="font-size:0.65rem;min-width:72px;max-width:90px;background:' + AIR_COLORS[i % AIR_COLORS.length] + '22;">' +
+        '<div class="d-flex flex-column align-items-center gap-1 py-1">' + airlineLogoHTML(a, 16) +
+        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px;display:block;" title="' + escHtml(a) + '">' + escHtml(a) + '</span></div></th>'
+      ).join('');
+    const matrixRows = activeHours.map(h => {
+      const isPk = h === peakH;
+      const cols = matrixCols.map((a, i) => {
+        const v = (hourAirMap[h] || {})[a];
+        if (!v || (!v.arr && !v.dep)) return '<td class="text-center text-muted" style="font-size:0.7rem;color:#ccc!important;">\u2014</td>';
+        const tot = v.arr + v.dep;
+        const bg = AIR_COLORS[i % AIR_COLORS.length] + '18';
+        return '<td class="text-end" style="font-size:0.72rem;padding:3px 6px;line-height:1.4;background:' + bg + ';">' +
+          '<span class="fw-bold d-block">' + fmt(tot) + '</span>' +
+          (v.arr ? '<span style="color:#d63384;font-size:0.62rem;">\u25b2' + fmt(v.arr) + '</span> ' : '') +
+          (v.dep ? '<span style="color:#6610f2;font-size:0.62rem;">\u25bc' + fmt(v.dep) + '</span>' : '') +
+          '</td>';
+      }).join('');
+      return '<tr' + (isPk ? ' class="table-warning"' : '') + '>' +
+        '<td class="text-nowrap fw-semibold" style="font-size:0.72rem;padding:3px 6px;">' + hlbl(h) + (isPk ? ' \u2605' : '') + '</td>' +
+        '<td class="text-end fw-bold" style="font-size:0.72rem;padding:3px 6px;">' + fmt(totH[h]) + '</td>' +
+        cols + '</tr>';
+    }).join('');
+
+    container.innerHTML =
+      // Alert header
+      '<div class="alert alert-dark d-flex align-items-center gap-3 mb-3 py-2 px-3">' +
+        '<i class="fas fa-calendar-day fa-lg text-warning"></i>' +
+        '<span class="fw-bold">' + escHtml(dayLabel) + '</span>' +
+        '<span class="badge bg-warning text-dark ms-auto">' + fmt(totalPax) + ' pax totales</span>' +
+      '</div>' +
+
+      // KPI row
+      '<div class="row g-2 mb-3">' +
+        '<div class="col-6 col-md-2"><div class="card border-0 bg-light text-center py-2 h-100">' +
+          '<div class="small text-muted mb-1"><i class="fas fa-users me-1"></i>Total Pax</div>' +
+          '<div class="fs-5 fw-bold text-dark">' + fmt(totalPax) + '</div>' +
+        '</div></div>' +
+        '<div class="col-6 col-md-2"><div class="card border-0 text-center py-2 h-100" style="background:#fce4f3;">' +
+          '<div class="small mb-1" style="color:#d63384;"><i class="fas fa-plane-arrival me-1"></i>Llegadas</div>' +
+          '<div class="fs-5 fw-bold" style="color:#d63384;">' + fmt(arrPax) + '</div>' +
+          '<div class="small text-muted">' + pct(arrPax, totalPax) + '</div>' +
+        '</div></div>' +
+        '<div class="col-6 col-md-2"><div class="card border-0 text-center py-2 h-100" style="background:#eef0fd;">' +
+          '<div class="small mb-1" style="color:#6610f2;"><i class="fas fa-plane-departure me-1"></i>Salidas</div>' +
+          '<div class="fs-5 fw-bold" style="color:#6610f2;">' + fmt(depPax) + '</div>' +
+          '<div class="small text-muted">' + pct(depPax, totalPax) + '</div>' +
+        '</div></div>' +
+        '<div class="col-6 col-md-2"><div class="card border-0 bg-light text-center py-2 h-100">' +
+          '<div class="small text-muted mb-1"><i class="fas fa-flag me-1 text-warning"></i>Nacional</div>' +
+          '<div class="fs-5 fw-bold text-dark">' + fmt(domPax) + '</div>' +
+          '<div class="small text-muted">' + pct(domPax, totalPax) + '</div>' +
+        '</div></div>' +
+        '<div class="col-6 col-md-2"><div class="card border-0 bg-light text-center py-2 h-100">' +
+          '<div class="small text-muted mb-1"><i class="fas fa-globe me-1 text-success"></i>Intern.</div>' +
+          '<div class="fs-5 fw-bold text-dark">' + fmt(intPax) + '</div>' +
+          '<div class="small text-muted">' + pct(intPax, totalPax) + '</div>' +
+        '</div></div>' +
+        '<div class="col-6 col-md-1"><div class="card border-0 bg-light text-center py-2 h-100">' +
+          '<div class="small text-muted mb-1"><i class="fas fa-plane me-1"></i>Vuelos</div>' +
+          '<div class="fs-5 fw-bold text-dark">' + fmt(flights) + '</div>' +
+        '</div></div>' +
+        '<div class="col-6 col-md-1"><div class="card border-0 bg-light text-center py-2 h-100">' +
+          '<div class="small text-muted mb-1"><i class="fas fa-building me-1"></i>Aerol.</div>' +
+          '<div class="fs-5 fw-bold text-dark">' + airlines + '</div>' +
+        '</div></div>' +
+      '</div>' +
+
+      // Hourly chart
+      (hasHour ?
+        '<div class="card border-0 shadow-sm mb-3">' +
+          '<div class="card-header bg-white border-0 pb-0">' +
+            '<span class="fw-bold small"><i class="fas fa-clock me-2 text-warning"></i>Pasajeros por Hora — ' + escHtml(dayLabel) + '</span>' +
+          '</div>' +
+          '<div class="card-body pt-2"><div style="position:relative;height:240px;"><canvas id="mdb-chart-hour-detail"></canvas></div></div>' +
+        '</div>'
+      : '<div class="alert alert-secondary small mb-3"><i class="fas fa-info-circle me-2"></i>No se detectó columna de hora (HORA DE OPERACIÓN / SLOT) — gráfica horaria no disponible.</div>') +
+
+      // Chart 2: per-airline stacked (total)
+      (hasHour && topAirlines.length ?
+        '<div class="card border-0 shadow-sm mb-3">' +
+          '<div class="card-header bg-white border-0 pb-0">' +
+            '<span class="fw-bold small"><i class="fas fa-layer-group me-2 text-success"></i>Pasajeros por Hora y Aerolínea (Total) — ' + escHtml(dayLabel) + '</span>' +
+          '</div>' +
+          '<div class="card-body pt-2"><div style="position:relative;height:280px;"><canvas id="mdb-chart-hour-airline-total"></canvas></div></div>' +
+        '</div>'
+      : '') +
+
+      // Charts 3 & 4: arrivals and departures side by side
+      (hasHour && topAirlines.length ?
+        '<div class="row g-3 mb-3">' +
+          '<div class="col-md-6"><div class="card border-0 shadow-sm h-100">' +
+            '<div class="card-header bg-white border-0 pb-0">' +
+              '<span class="fw-bold small" style="color:#d63384;"><i class="fas fa-plane-arrival me-2"></i>Llegadas por Hora y Aerolínea</span>' +
+            '</div>' +
+            '<div class="card-body pt-2"><div style="position:relative;height:260px;"><canvas id="mdb-chart-hour-airline-arr"></canvas></div></div>' +
+          '</div></div>' +
+          '<div class="col-md-6"><div class="card border-0 shadow-sm h-100">' +
+            '<div class="card-header bg-white border-0 pb-0">' +
+              '<span class="fw-bold small" style="color:#6610f2;"><i class="fas fa-plane-departure me-2"></i>Salidas por Hora y Aerolínea</span>' +
+            '</div>' +
+            '<div class="card-body pt-2"><div style="position:relative;height:260px;"><canvas id="mdb-chart-hour-airline-dep"></canvas></div></div>' +
+          '</div></div>' +
+        '</div>'
+      : '') +
+
+      // Hourly table
+      (hasHour ?
+        '<div class="card border-0 shadow-sm mb-3">' +
+          '<div class="card-header bg-white border-0">' +
+            '<span class="fw-bold small"><i class="fas fa-table me-2 text-info"></i>Desglose Horario Detallado</span>' +
+          '</div>' +
+          '<div class="card-body p-0"><div class="table-responsive" style="max-height:380px;overflow-y:auto;">' +
+            '<table id="mdb-tbl-hour-detail" class="table table-sm table-hover table-bordered mb-0">' +
+              '<thead class="table-dark" style="position:sticky;top:0;z-index:1;"><tr>' +
+                '<th class="text-nowrap small" style="cursor:pointer;">Hora <i class="fas fa-chevron-right" style="font-size:0.65rem;opacity:0.6;"></i></th>' +
+                '<th class="text-end small">Vuelos</th>' +
+                '<th class="text-end small fw-bold">Pax Total</th>' +
+                '<th class="text-end small" style="color:#f472b6;"><i class="fas fa-plane-arrival"></i> Llegadas</th>' +
+                '<th class="text-end small" style="color:#a78bfa;"><i class="fas fa-plane-departure"></i> Salidas</th>' +
+                '<th class="text-end small">% Día</th>' +
+                '<th class="small">Aerolíneas (clic para expandir)</th>' +
+              '</tr></thead>' +
+              '<tbody>' + (hourRows || '<tr><td colspan="7" class="text-center text-muted py-3">Sin datos horarios disponibles</td></tr>') + '</tbody>' +
+            '</table>' +
+          '</div></div>' +
+        '</div>'
+      : '') +
+
+      // Matrix: Hora × Aerolínea
+      (hasHour && matrixRows ?
+        '<div class="card border-0 shadow-sm mb-3">' +
+          '<div class="card-header bg-white border-0 d-flex align-items-center justify-content-between">' +
+            '<span class="fw-bold small"><i class="fas fa-th me-2 text-warning"></i>Matriz Hora × Aerolínea — ' + escHtml(dayLabel) + '</span>' +
+            '<span class="badge bg-secondary">' + matrixCols.length + ' aerolíneas · ' + activeHours.length + ' horas activas</span>' +
+          '</div>' +
+          '<div class="card-body p-0"><div class="table-responsive">' +
+            '<table class="table table-sm table-bordered mb-0" style="min-width:600px;">' +
+              '<thead style="position:sticky;top:0;z-index:1;"><tr>' + matrixHeader + '</tr></thead>' +
+              '<tbody>' + matrixRows + '</tbody>' +
+            '</table>' +
+          '</div></div>' +
+        '</div>'
+      : '') +
+
+      // Airline breakdown table
+      '<div class="card border-0 shadow-sm">' +
+        '<div class="card-header bg-white border-0 d-flex align-items-center justify-content-between">' +
+          '<span class="fw-bold small"><i class="fas fa-chess-queen me-2 text-primary"></i>Ranking por Aerolínea — ' + escHtml(dayLabel) + '</span>' +
+          '<span class="badge bg-primary">' + airSorted.length + ' aerolíneas</span>' +
+        '</div>' +
+        '<div class="card-body p-0"><div class="table-responsive" style="max-height:400px;overflow-y:auto;">' +
+          '<table class="table table-sm table-hover table-bordered mb-0">' +
+            '<thead class="table-light" style="position:sticky;top:0;z-index:1;"><tr>' +
+              '<th class="text-center small">#</th>' +
+              '<th class="small">Aerolínea</th>' +
+              '<th class="text-end small">Vuelos</th>' +
+              '<th class="text-end small fw-bold">Pax Total</th>' +
+              '<th class="text-end small" style="color:#d63384;">Llegadas</th>' +
+              '<th class="text-end small" style="color:#6610f2;">Salidas</th>' +
+              '<th class="text-end small">% Día</th>' +
+              '<th class="small">Horas operadas</th>' +
+            '</tr></thead>' +
+            '<tbody>' + (airRows || '<tr><td colspan="8" class="text-center text-muted py-3">Sin datos</td></tr>') + '</tbody>' +
+          '</table>' +
+        '</div></div>' +
+      '</div>';
+
+    // Draw hourly charts after DOM is ready
+    if (hasHour) {
+      setTimeout(() => {
+        // Chart 1: arrivals vs departures totals
+        const ctx3 = document.getElementById('mdb-chart-hour-detail');
+        if (ctx3) {
+          if (_charts.hourDetail) { try { _charts.hourDetail.destroy(); } catch (_) {} }
+          const labels3 = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0') + ':00 – ' + ((i + 1) % 24).toString().padStart(2, '0') + ':00');
+          _charts.hourDetail = new Chart(ctx3, {
+            type: 'bar',
+            plugins: window.ChartDataLabels ? [ChartDataLabels] : [],
+            data: {
+              labels: labels3,
+              datasets: [
+                { label: 'Llegadas', data: arrH, backgroundColor: 'rgba(214,51,132,0.82)', stack: 'S',
+                  borderRadius: { topLeft: 0, topRight: 0, bottomLeft: 3, bottomRight: 3 } },
+                { label: 'Salidas',  data: depH, backgroundColor: 'rgba(102,16,242,0.82)', stack: 'S',
+                  borderRadius: { topLeft: 3, topRight: 3, bottomLeft: 0, bottomRight: 0 } }
+              ]
+            },
+            options: {
+              responsive: true, maintainAspectRatio: false,
+              plugins: {
+                legend: { position: 'top' },
+                datalabels: { display: false },
+                tooltip: { callbacks: {
+                  title: items => labels3[items[0].dataIndex],
+                  label: c => ' ' + c.dataset.label + ': ' + fmt(c.raw) + (totH[c.dataIndex] ? ' (' + pct(c.raw, totH[c.dataIndex]) + ' hora)' : ''),
+                  footer: items => 'Total hora: ' + fmt(totH[items[0].dataIndex]) + ' (' + (grandH ? pct(totH[items[0].dataIndex], grandH) : '—') + ' del día)'
+                }}
+              },
+              scales: {
+                x: { stacked: true, ticks: { font: { size: 10 } } },
+                y: { stacked: true, beginAtZero: true, ticks: { callback: tickK } }
+              }
+            }
+          });
+        }
+
+        // Charts 2-4: per-airline breakdown
+        if (topAirlines.length) {
+          const hlbls = activeHours.map(h => hlbl(h));
+          function buildAirDS(dir) {
+            return topAirlines.map((airName, i) => ({
+              label: airName,
+              data: activeHours.map(h => {
+                const v = (hourAirMap[h] || {})[airName];
+                if (!v) return 0;
+                return dir === 'arr' ? v.arr : dir === 'dep' ? v.dep : v.arr + v.dep;
+              }),
+              backgroundColor: AIR_COLORS[i % AIR_COLORS.length] + 'CC',
+              stack: 'S'
+            }));
+          }
+          const airOpts = () => ({
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'right', labels: { font: { size: 10 }, boxWidth: 12 } },
+              datalabels: { display: false },
+              tooltip: { callbacks: {
+                title: items => hlbls[items[0].dataIndex],
+                label: c => ' ' + c.dataset.label + ': ' + fmt(c.raw)
+              }}
+            },
+            scales: {
+              x: { stacked: true, ticks: { font: { size: 9 } } },
+              y: { stacked: true, beginAtZero: true, ticks: { callback: tickK } }
+            }
+          });
+
+          const ctx2 = document.getElementById('mdb-chart-hour-airline-total');
+          if (ctx2) {
+            if (_charts.hourAirTotal) { try { _charts.hourAirTotal.destroy(); } catch (_) {} }
+            _charts.hourAirTotal = new Chart(ctx2, {
+              type: 'bar', plugins: window.ChartDataLabels ? [ChartDataLabels] : [],
+              data: { labels: hlbls, datasets: buildAirDS('total') },
+              options: airOpts()
+            });
+          }
+          const ctxArr = document.getElementById('mdb-chart-hour-airline-arr');
+          if (ctxArr) {
+            if (_charts.hourAirArr) { try { _charts.hourAirArr.destroy(); } catch (_) {} }
+            _charts.hourAirArr = new Chart(ctxArr, {
+              type: 'bar', plugins: window.ChartDataLabels ? [ChartDataLabels] : [],
+              data: { labels: hlbls, datasets: buildAirDS('arr') },
+              options: airOpts()
+            });
+          }
+          const ctxDep = document.getElementById('mdb-chart-hour-airline-dep');
+          if (ctxDep) {
+            if (_charts.hourAirDep) { try { _charts.hourAirDep.destroy(); } catch (_) {} }
+            _charts.hourAirDep = new Chart(ctxDep, {
+              type: 'bar', plugins: window.ChartDataLabels ? [ChartDataLabels] : [],
+              data: { labels: hlbls, datasets: buildAirDS('dep') },
+              options: airOpts()
+            });
+          }
+        }
+
+        // Wire expandable rows in hourly table
+        const tbl = document.getElementById('mdb-tbl-hour-detail');
+        if (tbl) {
+          tbl.querySelectorAll('tr.hour-summary-row').forEach(tr => {
+            tr.style.cursor = 'pointer';
+            tr.addEventListener('click', () => {
+              const h = tr.dataset.h;
+              const subs = tbl.querySelectorAll('tr.hour-airline-sub[data-h="' + h + '"]');
+              const chev = tr.querySelector('.hour-chevron');
+              const isOpen = subs.length && subs[0].style.display !== 'none';
+              subs.forEach(s => { s.style.display = isOpen ? 'none' : ''; });
+              if (chev) chev.style.transform = isOpen ? '' : 'rotate(90deg)';
+            });
+          });
+        }
+      }, 0);
+    }
+  }
 
   const DISPLAY_COLS = [
     { label:'Mes',             key:'MES' },

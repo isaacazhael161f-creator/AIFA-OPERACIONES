@@ -119,6 +119,52 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function renderAirlineSummary(data, dateVal) {
+        const card = document.getElementById('itinerary-airline-summary-card');
+        const container = document.getElementById('itinerary-airline-summary');
+        const dateLabel = document.getElementById('itinerary-airline-summary-date');
+        if (!card || !container) return;
+        if (!data || data.length === 0) { card.style.display = 'none'; return; }
+
+        const counts = {};
+        data.forEach(row => {
+            const airline = (row.aerolinea || 'Sin aerolínea').trim() || 'Sin aerolínea';
+            if (!counts[airline]) counts[airline] = { total: 0, arrivals: 0, departures: 0 };
+            const isArr = dateVal ? row.fecha_llegada === dateVal : false;
+            const isDep = dateVal ? row.fecha_salida === dateVal : false;
+            if (isArr) { counts[airline].arrivals++; counts[airline].total++; }
+            if (isDep) { counts[airline].departures++; counts[airline].total++; }
+            if (!isArr && !isDep) counts[airline].total++;
+        });
+
+        const sorted = Object.entries(counts).sort((a, b) => b[1].total - a[1].total);
+
+        if (dateLabel) {
+            const MONTHS = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+            if (dateVal) {
+                const d = new Date(dateVal + 'T00:00:00');
+                dateLabel.textContent = `${String(d.getDate()).padStart(2,'0')} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+            } else {
+                dateLabel.textContent = 'Todos los días';
+            }
+        }
+
+        container.innerHTML = `<div class="d-flex flex-wrap gap-2 py-1">${
+            sorted.map(([airline, c]) => `
+                <div class="d-flex flex-column align-items-center px-3 py-2 rounded"
+                     style="background:#f8f9fa;min-width:110px;border:1px solid #dee2e6">
+                    <div class="fw-semibold text-center text-truncate" style="font-size:.8rem;max-width:140px" title="${airline.replace(/"/g,'&quot;')}">${airline}</div>
+                    <div class="mt-1 fw-bold" style="font-size:1.2rem;line-height:1">${c.total}</div>
+                    <div class="d-flex gap-2 mt-1">
+                        <span class="text-success" style="font-size:.75rem" title="Llegadas"><i class="fas fa-plane-arrival"></i> ${c.arrivals}</span>
+                        <span class="text-primary" style="font-size:.75rem" title="Salidas"><i class="fas fa-plane-departure"></i> ${c.departures}</span>
+                    </div>
+                </div>`
+            ).join('')
+        }</div>`;
+        card.style.display = '';
+    }
+
     async function loadItineraryData() {
         if (!tbody) return;
         tbody.innerHTML = '<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm text-primary" role="status"></div> Cargando...</td></tr>';
@@ -152,6 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!data || data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No se encontraron vuelos para esta fecha</td></tr>';
+            renderAirlineSummary([], dateFilter ? dateFilter.value : null);
             return;
         }
 
@@ -200,6 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
+        renderAirlineSummary(data, dateFilter ? dateFilter.value : null);
         buildDaySummary();
     }
 
