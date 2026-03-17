@@ -830,6 +830,8 @@ async function renderOpsCharts() {
         let daysMap = {};
         let hoursMap = {};
         let posMap = {};
+        let posTypeMap = {}; // { categoryLabel: totalCount }
+        let simultMap  = {}; // { "HH:MM": count } — 10-min slot → total ops, all days
         let posFlights        = {};  // { posName: [records] } for position drilldown
         let acMovFlightsLocal = {};  // { direction: { acType: [records] } } for aircraft drilldown
         let eqMap = {};
@@ -1020,10 +1022,22 @@ async function renderOpsCharts() {
                 h = h.trim();
                 if (h.length === 1) h = '0' + h;
                 if (!isNaN(parseInt(h))) hoursMap[h] = (hoursMap[h] || 0) + 1;
+                // 10-min slot for simultaneous ops analysis (±5 min window)
+                const mMatch = horaSource.match(/(\d{1,2}):(\d{2})/);
+                if (mMatch) {
+                    const sH = parseInt(mMatch[1], 10);
+                    const sM = Math.floor(parseInt(mMatch[2], 10) / 10) * 10;
+                    const slotKey = `${String(sH).padStart(2,'0')}:${String(sM).padStart(2,'0')}`;
+                    simultMap[slotKey] = (simultMap[slotKey] || 0) + 1;
+                }
             }
             // Pos
             if(kPos && r[kPos]) {
                 posMap[r[kPos]] = (posMap[r[kPos]] || 0) + 1;
+                // Accumulate by position category
+                const _sm = catalogs.standsMap || {};
+                const _posCat = (_sm[r[kPos]] && _sm[r[kPos]].category) || 'Sin clasificar';
+                posTypeMap[_posCat] = (posTypeMap[_posCat] || 0) + 1;
                 if (!posFlights[r[kPos]]) posFlights[r[kPos]] = [];
                 posFlights[r[kPos]].push({
                     vuelo:      kVuelo       ? String(r[kVuelo]       || '').trim() : '',
@@ -1264,6 +1278,48 @@ async function renderOpsCharts() {
         setT('kpi-busiest-day', busyD);
         setT('kpi-peak-hour', peakH);
 
+        // Average daily ops per position type
+        const posTypeOrder = ['Contacto','Contacto Internacional','Semicontacto','Remota','Hangar','Sin clasificar'];
+        const posTypeMeta  = {
+            'Contacto':              { color: '#198754', icon: 'fa-plane-arrival' },
+            'Contacto Internacional':{ color: '#20c997', icon: 'fa-globe' },
+            'Semicontacto':          { color: '#fd7e14', icon: 'fa-bus' },
+            'Remota':                { color: '#0d6efd', icon: 'fa-road' },
+            'Hangar':                { color: '#6c757d', icon: 'fa-warehouse' },
+            'Sin clasificar':        { color: '#adb5bd', icon: 'fa-question-circle' },
+        };
+        const posTypePanel = document.getElementById('kpi-postype-panel');
+        if (posTypePanel) {
+            const hasAnyPos = Object.keys(posTypeMap).length > 0;
+            posTypePanel.closest('.col-12').style.display = hasAnyPos ? '' : 'none';
+            if (hasAnyPos) {
+                posTypePanel.innerHTML = posTypeOrder
+                    .filter(cat => posTypeMap[cat] > 0)
+                    .map(cat => {
+                        const total = posTypeMap[cat];
+                        const dailyAvg = Math.round(total / uniqueDays);
+                        const pct = totalOps ? ((total / totalOps) * 100).toFixed(1) : 0;
+                        const meta = posTypeMeta[cat] || { color: '#adb5bd', icon: 'fa-question-circle' };
+                        return `<div class="d-flex align-items-center gap-3 py-2 border-bottom">
+                            <div style="width:36px;height:36px;border-radius:8px;background:${meta.color};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <i class="fas ${meta.icon} text-white" style="font-size:0.85rem"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold" style="font-size:0.88rem">${cat}</div>
+                                <div class="progress mt-1" style="height:5px;border-radius:3px">
+                                    <div class="progress-bar" style="width:${pct}%;background:${meta.color}"></div>
+                                </div>
+                            </div>
+                            <div class="text-end" style="min-width:110px">
+                                <span class="fw-bold fs-5" style="color:${meta.color}">${dailyAvg}</span>
+                                <span class="text-muted" style="font-size:0.78rem"> ops/día</span>
+                                <div class="text-muted" style="font-size:0.75rem">${total.toLocaleString()} total &bull; ${pct}%</div>
+                            </div>
+                        </div>`;
+                    }).join('');
+            }
+        }
+
         const intlShare = totalOps ? ((internationalOps / totalOps) * 100) : 0;
         const avgDelay = delayMinutesCount ? (delayMinutesTotal / delayMinutesCount) : 0;
         const onTimeRate = delayMinutesCount ? ((onTimeCount / delayMinutesCount) * 100) : 0;
@@ -1361,6 +1417,84 @@ async function renderOpsCharts() {
             }
         }); // end positions else
         } // end if kPos
+
+        // 3b. Simultaneous operations chart (10-min slots, averaged per active day)
+        {
+            const simultSlots = Object.keys(simultMap).sort();
+            const simultCard  = document.getElementById('chart-simultaneous-wrapper')?.closest('.col-12');
+            if (simultSlots.length === 0) {
+                if (simultCard) simultCard.style.display = 'none';
+            } else {
+                if (simultCard) simultCard.style.display = '';
+                const simultAvgs = simultSlots.map(k => parseFloat((simultMap[k] / uniqueDays).toFixed(2)));
+                const simultMax  = Math.max(...simultAvgs) || 1;
+                const simultBgColors = simultAvgs.map(v => {
+                    const pct = v / simultMax;
+                    if (pct > 0.80) return '#dc3545';
+                    if (pct > 0.55) return '#fd7e14';
+                    if (pct > 0.30) return '#ffc107';
+                    return '#20c997';
+                });
+                // Resize canvas
+                const sCanvas  = document.getElementById('chart-simultaneous');
+                const sWrapper = document.getElementById('chart-simultaneous-wrapper');
+                if (sCanvas && sWrapper) { sCanvas.style.height = '320px'; sWrapper.style.height = '320px'; }
+                // Peak label for subtitle
+                const peakSimultSlot = simultSlots[simultAvgs.indexOf(simultMax)];
+                const peakSimultVal  = simultMax.toFixed(1);
+                const sSubtitle = document.getElementById('simult-subtitle');
+                if (sSubtitle) sSubtitle.textContent =
+                    `Pico: ${peakSimultSlot} hrs — ${peakSimultVal} ops simultáneas (promedio/día)`;
+                _renderChart('chart-simultaneous', 'bar', {
+                    labels: simultSlots,
+                    datasets: [{
+                        label: 'Ops simultáneas',
+                        data: simultAvgs,
+                        backgroundColor: simultBgColors,
+                        borderRadius: 2,
+                        barPercentage: 1.0,
+                        categoryPercentage: 0.95,
+                    }]
+                }, {
+                    animation: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: ctx => `${ctx[0].label} – ${(() => {
+                                    const [hh, mm] = ctx[0].label.split(':').map(Number);
+                                    const end = mm + 9;
+                                    return `${String(hh).padStart(2,'0')}:${String(end).padStart(2,'0')} hrs`;
+                                })()}`,
+                                label: ctx => [
+                                    ` ${ctx.raw} ops simultáneas prom/día`,
+                                    ` Total período: ${simultMap[simultSlots[ctx.dataIndex]]}`
+                                ]
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Franja horaria (cada 10 min)' },
+                            ticks: {
+                                maxRotation: 90,
+                                autoSkip: false,
+                                callback: (_, idx) => {
+                                    const lbl = simultSlots[idx] || '';
+                                    return lbl.endsWith(':00') ? lbl : '';
+                                },
+                                font: { size: 10 }
+                            },
+                            grid: { display: false }
+                        },
+                        y: {
+                            title: { display: true, text: 'Ops simultáneas (prom/día)' },
+                            beginAtZero: true
+                        }
+                    }
+                });
+            }
+        }
 
         // 4. Two separate aircraft charts (Aterrizajes + Despegues) with service filter
         const acChartCol = document.getElementById('chart-aircrafts-col');

@@ -182,6 +182,46 @@
     return -1; // sin dato
   }
 
+  /* Extrae minuto del día (0..1439) para análisis de simultaneidad */
+  function getMinuteOfDay(r) {
+    const raw = col(r, 'HR. DE OPERACIÓN', 'HR. DE OPERACION', 'HR DE OPERACION', 'HR DE OPERACIÓN',
+                       'HORA DE OPERACIÓN', 'HORA DE OPERACION', 'HORA OPERACION',
+                       'HR. OPERACIÓN', 'HR. OPERACION',
+                       'SLOT ASIGNADO', 'SLOT COORDINADO',
+                       'HORA DE INICIO O TERMINO DE PERNOCTA', 'HORA DE RECEPCIÓN', 'HORA DE RECEPCION');
+    const parseToMinute = (val) => {
+      if (!val) return -1;
+      const s = String(val).trim();
+      // HH:MM o HH:MM:SS
+      const m1 = s.match(/^(\d{1,2}):(\d{2})/);
+      if (m1) {
+        const hh = parseInt(m1[1], 10), mm = parseInt(m1[2], 10);
+        if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) return (hh * 60) + mm;
+      }
+      // HHMM numérico (e.g. 0830)
+      const m2 = s.match(/^(\d{3,4})$/);
+      if (m2) {
+        const hh = parseInt(s.length === 3 ? s[0] : s.substring(0, 2), 10);
+        const mm = parseInt(s.length === 3 ? s.substring(1, 3) : s.substring(2, 4), 10);
+        if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) return (hh * 60) + mm;
+      }
+      // Datetime con T o espacio: YYYY-MM-DDTHH:MM
+      const m3 = s.match(/[T ](\d{1,2}):(\d{2})/);
+      if (m3) {
+        const hh = parseInt(m3[1], 10), mm = parseInt(m3[2], 10);
+        if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) return (hh * 60) + mm;
+      }
+      return -1;
+    };
+
+    const fromRaw = parseToMinute(raw);
+    if (fromRaw >= 0) return fromRaw;
+
+    // Fallback: FECHA con hora
+    const fromFecha = parseToMinute(getFecha(r));
+    return fromFecha;
+  }
+
   const ni = v => parseInt(v, 10) || 0;
   const getPaxTotal = r => ni(col(r, 'TOTAL PAX'));
   const getPaxTUA   = r => ni(col(r, 'PAX. QUE PAGAN TUA'));
@@ -1350,6 +1390,9 @@
     // Hourly breakdown
     renderDiaHourChart();
 
+    // Simultaneous operations by 10-minute slots (±5 min window)
+    renderDiaSimultaneousOps();
+
     // Airline breakdown
     renderDiaAirlineChart();
   }
@@ -1423,6 +1466,150 @@
         scales: {
           x: { stacked: true, ticks: { font: { size: 10 } } },
           y: { stacked: true, beginAtZero: true, ticks: { callback: tickK } }
+        }
+      }
+    });
+  }
+
+  function renderDiaSimultaneousOps() {
+    const ctx = document.getElementById('mdb-chart-hour-simult'); if (!ctx) return;
+    if (_charts.hourSimult) _charts.hourSimult.destroy();
+
+    const peakBadge = document.getElementById('mdb-hour-simult-peak');
+    const noDataBadge = document.getElementById('mdb-hour-simult-no-data');
+    const summaryEl = document.getElementById('mdb-hour-simult-summary');
+    const topEl = document.getElementById('mdb-hour-simult-top');
+    const chartWrap = document.getElementById('mdb-hour-simult-chart-wrap');
+
+    const slots = new Map(); // minuteSlot -> total operations in period
+    const dayKeys = new Set();
+    let withHour = 0;
+
+    _filtered.forEach(r => {
+      const minuteOfDay = getMinuteOfDay(r);
+      if (minuteOfDay < 0) return;
+      withHour += 1;
+
+      const dayKey = getDayKey(r);
+      if (dayKey) dayKeys.add(dayKey);
+
+      // ±5 min window modeled as nearest 10-minute center
+      const centered = Math.round(minuteOfDay / 10) * 10;
+      const slot = ((centered % 1440) + 1440) % 1440;
+      slots.set(slot, (slots.get(slot) || 0) + 1);
+    });
+
+    if (withHour === 0) {
+      if (noDataBadge) noDataBadge.style.display = '';
+      if (peakBadge) peakBadge.textContent = 'Pico: —';
+      if (summaryEl) {
+        summaryEl.textContent = 'No se detectó columna de hora en esta tabla para calcular operaciones simultáneas.';
+      }
+      if (topEl) topEl.innerHTML = '';
+      if (chartWrap) chartWrap.style.display = 'none';
+      return;
+    }
+    if (noDataBadge) noDataBadge.style.display = 'none';
+    if (chartWrap) chartWrap.style.display = '';
+
+    const activeDays = dayKeys.size || 1;
+    const ordered = Array.from(slots.entries()).sort((a, b) => a[0] - b[0]);
+    const labels = ordered.map(([m]) => {
+      const hh = Math.floor(m / 60);
+      const mm = m % 60;
+      return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+    });
+    const totals = ordered.map(([, c]) => c);
+    const avgs = totals.map(c => Number((c / activeDays).toFixed(2)));
+
+    let maxIdx = 0;
+    for (let i = 1; i < avgs.length; i++) if (avgs[i] > avgs[maxIdx]) maxIdx = i;
+
+    const peakLabel = labels[maxIdx];
+    const peakAvg = avgs[maxIdx];
+
+    if (peakBadge) peakBadge.textContent = 'Pico: ' + peakLabel + ' (' + peakAvg.toFixed(1) + ' ops/día)';
+    if (summaryEl) {
+      const hh = parseInt(peakLabel.substring(0, 2), 10);
+      const mm = parseInt(peakLabel.substring(3, 5), 10);
+      const ini = String(hh).padStart(2, '0') + ':' + String(Math.max(0, mm - 5)).padStart(2, '0');
+      const fin = String(hh).padStart(2, '0') + ':' + String(Math.min(59, mm + 5)).padStart(2, '0');
+      summaryEl.innerHTML =
+        '<strong>Interpretación:</strong> En promedio, la mayor simultaneidad ocurre alrededor de <strong>' + peakLabel +
+        '</strong> (' + ini + ' a ' + fin + '), con <strong>' + peakAvg.toFixed(1) +
+        '</strong> operaciones al mismo tiempo por día activo.';
+    }
+
+    if (topEl) {
+      const top = ordered
+        .map(([m, c], idx) => ({ label: labels[idx], total: c, avg: Number((c / activeDays).toFixed(2)) }))
+        .sort((a, b) => b.avg - a.avg)
+        .slice(0, 5);
+      topEl.innerHTML = top.map((t, i) =>
+        '<span class="badge rounded-pill ' + (i === 0 ? 'bg-danger' : 'bg-secondary') + '">'
+        + '#' + (i + 1) + ' ' + t.label + ' · ' + t.avg.toFixed(1) + ' ops/día'
+        + '</span>'
+      ).join('');
+    }
+
+    _charts.hourSimult = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Ops simultáneas promedio por día',
+          data: avgs,
+          borderColor: '#dc3545',
+          backgroundColor: 'rgba(220,53,69,0.14)',
+          fill: true,
+          tension: 0.25,
+          pointRadius: 2,
+          pointHoverRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: {
+            callbacks: {
+              title: (items) => {
+                const c = items[0].label;
+                const hh = parseInt(c.substring(0, 2), 10);
+                const mm = parseInt(c.substring(3, 5), 10);
+                const ini = String(hh).padStart(2, '0') + ':' + String(Math.max(0, mm - 5)).padStart(2, '0');
+                const fin = String(hh).padStart(2, '0') + ':' + String(Math.min(59, mm + 5)).padStart(2, '0');
+                return c + ' (ventana ' + ini + ' - ' + fin + ')';
+              },
+              label: (ctx2) => {
+                const idx = ctx2.dataIndex;
+                return [
+                  ' ' + Number(ctx2.raw).toFixed(2) + ' ops simultáneas prom/día',
+                  ' Total período: ' + fmt(totals[idx]) + ' operaciones',
+                  ' Días activos: ' + fmt(activeDays)
+                ];
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: {
+              autoSkip: false,
+              maxRotation: 0,
+              callback: (val, idx) => {
+                const lbl = labels[idx] || '';
+                return lbl.endsWith(':00') ? lbl : '';
+              },
+              font: { size: 10 }
+            },
+            title: { display: true, text: 'Hora central (agrupación cada 10 min con ±5 min)' }
+          },
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: 'Operaciones simultáneas promedio por día' }
+          }
         }
       }
     });

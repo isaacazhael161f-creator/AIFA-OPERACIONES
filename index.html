@@ -4461,7 +4461,7 @@
                                         </li>
                                         <li class="nav-item" role="presentation">
                                             <button class="nav-link fw-semibold" id="tab-conci-comercial" data-bs-toggle="tab" data-bs-target="#pane-conci-comercial" type="button" role="tab">
-                                                <i class="fas fa-store me-2 text-success"></i>Comercial
+                                                <i class="fas fa-file-alt me-2 text-success"></i>Manifiestos
                                             </button>
                                         </li>
                                     </ul>
@@ -4918,72 +4918,9 @@
 
                                     </div><!-- /pane-conci-itinerario -->
 
-                                    <!-- ═══ Tab: Comercial ═══ -->
+                                    <!-- ═══ Tab: Manifiestos ═══ -->
                                     <div class="tab-pane fade" id="pane-conci-comercial" role="tabpanel">
                                         <div class="p-4">
-
-                                            <!-- Cabecera Comercial -->
-                                            <div class="d-flex align-items-center gap-3 mb-4">
-                                                <div class="rounded-3 d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:linear-gradient(135deg,#16a34a,#22c55e);">
-                                                    <i class="fas fa-store text-white fs-5"></i>
-                                                </div>
-                                                <div>
-                                                    <h5 class="mb-0 fw-bold text-success">Datos Comerciales</h5>
-                                                    <small class="text-muted">Información de ingresos, concesiones y operaciones comerciales del aeropuerto</small>
-                                                </div>
-                                            </div>
-
-                                            <!-- KPI Cards -->
-                                            <div class="row g-3 mb-4">
-                                                <div class="col-sm-6 col-lg-3">
-                                                    <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #16a34a !important;">
-                                                        <div class="card-body py-3">
-                                                            <div class="d-flex align-items-center gap-2 mb-1">
-                                                                <i class="fas fa-coins text-success"></i>
-                                                                <small class="text-muted text-uppercase fw-semibold" style="font-size:.7rem;">Ingresos Comerciales</small>
-                                                            </div>
-                                                            <div class="fs-5 fw-bold text-success" id="kpi-comercial-ingresos">—</div>
-                                                            <small class="text-muted" style="font-size:.72rem;">Período actual</small>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-sm-6 col-lg-3">
-                                                    <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #2563eb !important;">
-                                                        <div class="card-body py-3">
-                                                            <div class="d-flex align-items-center gap-2 mb-1">
-                                                                <i class="fas fa-store text-primary"></i>
-                                                                <small class="text-muted text-uppercase fw-semibold" style="font-size:.7rem;">Locales Activos</small>
-                                                            </div>
-                                                            <div class="fs-5 fw-bold text-primary" id="kpi-comercial-locales">—</div>
-                                                            <small class="text-muted" style="font-size:.72rem;">Concesiones vigentes</small>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-sm-6 col-lg-3">
-                                                    <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #d97706 !important;">
-                                                        <div class="card-body py-3">
-                                                            <div class="d-flex align-items-center gap-2 mb-1">
-                                                                <i class="fas fa-chart-line" style="color:#d97706;"></i>
-                                                                <small class="text-muted text-uppercase fw-semibold" style="font-size:.7rem;">Ocupación Comercial</small>
-                                                            </div>
-                                                            <div class="fs-5 fw-bold" style="color:#d97706;" id="kpi-comercial-ocupacion">—</div>
-                                                            <small class="text-muted" style="font-size:.72rem;">% de m² ocupados</small>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-sm-6 col-lg-3">
-                                                    <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #8b5cf6 !important;">
-                                                        <div class="card-body py-3">
-                                                            <div class="d-flex align-items-center gap-2 mb-1">
-                                                                <i class="fas fa-users" style="color:#8b5cf6;"></i>
-                                                                <small class="text-muted text-uppercase fw-semibold" style="font-size:.7rem;">Pax por Local</small>
-                                                            </div>
-                                                            <div class="fs-5 fw-bold" style="color:#8b5cf6;" id="kpi-comercial-pax-local">—</div>
-                                                            <small class="text-muted" style="font-size:.72rem;">Pasajeros promedio/día</small>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
 
                                             <!-- Conciliación Manifiestos Table -->
                                             <div class="card border-0 shadow-sm">
@@ -5015,8 +4952,17 @@
                                                                 <option value="12">Diciembre</option>
                                                             </select>
                                                         </div>
-                                                        <button class="btn btn-sm btn-outline-secondary" onclick="loadConciliacionManifiestos()" title="Actualizar">
+                                                        <button class="btn btn-sm btn-outline-secondary" id="btn-conci-refresh" title="Actualizar desde la base de datos">
                                                             <i class="fas fa-sync-alt"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-primary d-none" id="btn-conci-edit-mode" title="Editar toda la tabla">
+                                                            <i class="fas fa-edit me-1"></i>Editar
+                                                        </button>
+                                                        <button class="btn btn-sm btn-success d-none" id="btn-conci-save-mode" title="Guardar cambios de la tabla">
+                                                            <i class="fas fa-save me-1"></i>Guardar
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-secondary d-none" id="btn-conci-cancel-mode" title="Cancelar edición">
+                                                            <i class="fas fa-times me-1"></i>Cancelar
                                                         </button>
                                                         <span class="badge bg-secondary" id="badge-conci-manifiestos-count" style="display:none"></span>
                                                     </div>
@@ -5869,6 +5815,20 @@
                                                         </div>
                                                     </div>
 
+                                                    <!-- Promedio diario por tipo de posición -->
+                                                    <div class="col-12">
+                                                        <div class="card border-0 shadow-sm">
+                                                            <div class="card-header bg-white fw-bold d-flex align-items-center gap-2">
+                                                                <i class="fas fa-parking text-primary"></i>
+                                                                Promedio Diario por Tipo de Posición
+                                                                <span class="ms-auto text-muted fw-normal" style="font-size:0.78rem">Operaciones promedio/día por categoría de posición</span>
+                                                            </div>
+                                                            <div class="card-body py-2 px-3" id="kpi-postype-panel">
+                                                                <div class="text-muted text-center py-3 small">Cargando...</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
                                                     <!-- Charts -->
                                                     <div class="col-12">
                                                         <div class="card border-0 shadow-sm">
@@ -5890,6 +5850,30 @@
                                                             </div>
                                                         </div>
                                                     </div>
+
+                                                    <!-- Operaciones Simúltáneas por Franja Horaria -->
+                                                    <div class="col-12">
+                                                        <div class="card border-0 shadow-sm">
+                                                            <div class="card-header bg-white fw-bold d-flex align-items-center gap-2 flex-wrap">
+                                                                <i class="fas fa-layer-group text-danger"></i>
+                                                                Operaciones Simultáneas por Franja Horaria
+                                                                <span id="simult-subtitle" class="ms-auto text-muted fw-normal" style="font-size:0.78rem"></span>
+                                                            </div>
+                                                            <div class="px-3 pt-2 pb-1 d-flex gap-3 flex-wrap border-bottom bg-light" style="font-size:0.76rem">
+                                                                <span><span style="display:inline-block;width:11px;height:11px;background:#dc3545;border-radius:2px;vertical-align:middle"></span> &gt;80% del pico</span>
+                                                                <span><span style="display:inline-block;width:11px;height:11px;background:#fd7e14;border-radius:2px;vertical-align:middle"></span> 55–80%</span>
+                                                                <span><span style="display:inline-block;width:11px;height:11px;background:#ffc107;border-radius:2px;vertical-align:middle"></span> 30–55%</span>
+                                                                <span><span style="display:inline-block;width:11px;height:11px;background:#20c997;border-radius:2px;vertical-align:middle"></span> &lt;30% (baja carga)</span>
+                                                                <span class="ms-auto text-muted">Agrupación: franjas de 10 min (±5 min)</span>
+                                                            </div>
+                                                            <div class="card-body" style="overflow-x:auto;padding-bottom:8px">
+                                                                <div id="chart-simultaneous-wrapper" style="position:relative;min-height:320px">
+                                                                    <canvas id="chart-simultaneous"></canvas>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
                                                     <div class="col-12" id="chart-aircrafts-col">
                                                         <div class="card border-0 shadow-sm">
                                                             <div class="card-header bg-white d-flex align-items-center justify-content-between flex-wrap gap-2">
@@ -6659,6 +6643,26 @@
                                             <div style="position:relative;height:260px;">
                                                 <canvas id="mdb-chart-hour-pax"></canvas>
                                             </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Operaciones Simultáneas por franja de 10 minutos (±5 min) -->
+                                    <div class="card border-0 shadow-sm mb-3" id="mdb-card-hour-simult">
+                                        <div class="card-header bg-white border-0 pb-0 d-flex align-items-center gap-2 flex-wrap">
+                                            <span class="fw-bold small"><i class="fas fa-layer-group me-2 text-danger"></i>Operaciones Simultáneas (ventana ±5 min)</span>
+                                            <span class="badge bg-danger ms-auto" id="mdb-hour-simult-peak">Pico: —</span>
+                                            <span class="badge bg-secondary" id="mdb-hour-simult-no-data" style="display:none">Sin columna de hora</span>
+                                        </div>
+                                        <div class="px-3 pt-2">
+                                            <div class="small text-muted" id="mdb-hour-simult-summary">
+                                                Cada punto representa operaciones ocurridas en torno a una hora central (5 minutos antes y 5 minutos después).
+                                            </div>
+                                        </div>
+                                        <div class="card-body pt-2">
+                                            <div id="mdb-hour-simult-chart-wrap" style="position:relative;height:280px;">
+                                                <canvas id="mdb-chart-hour-simult"></canvas>
+                                            </div>
+                                            <div class="d-flex flex-wrap gap-2 mt-3" id="mdb-hour-simult-top"></div>
                                         </div>
                                     </div>
 

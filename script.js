@@ -19,6 +19,43 @@ const APP_UPDATE_CHECK_INTERVAL = 5 * 60 * 1000;
 let appUpdateCheckTimer = null;
 let appUpdateWatchersBound = false;
 let appReloadScheduled = false;
+let appReloadDeferred = false;
+
+function isMainAppVisible() {
+    try {
+        const main = document.getElementById('main-app');
+        return !!(main && !main.classList.contains('hidden'));
+    } catch (_) {
+        return false;
+    }
+}
+
+function hasPotentialUnsavedWork() {
+    try {
+        if (document.querySelector('.conci-cell-input')) return true;
+        if (document.querySelector('tr[data-dirty="1"]')) return true;
+        const active = document.activeElement;
+        if (!active) return false;
+        const tag = String(active.tagName || '').toUpperCase();
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') return false;
+        if (tag === 'INPUT') {
+            const t = String(active.type || '').toLowerCase();
+            if (['button', 'submit', 'reset', 'checkbox', 'radio', 'file'].includes(t)) return false;
+        }
+        return true;
+    } catch (_) {
+        return false;
+    }
+}
+
+function shouldDeferAutoReload() {
+    try {
+        const hasSessionToken = !!sessionStorage.getItem('aifa.session.token');
+        return isMainAppVisible() || hasSessionToken || hasPotentialUnsavedWork();
+    } catch (_) {
+        return isMainAppVisible() || hasPotentialUnsavedWork();
+    }
+}
 
 function resolveDefaultInstallTabId() {
     try {
@@ -103,6 +140,11 @@ function registerServiceWorkerIfNeeded() {
 
 function scheduleAppReload(reason) {
     if (appReloadScheduled) return;
+    if (shouldDeferAutoReload()) {
+        appReloadDeferred = true;
+        try { console.info('App reload deferred while session is active:', reason); } catch (_) { }
+        return;
+    }
     appReloadScheduled = true;
     try { console.info('Scheduling app reload:', reason); } catch (_) { }
     try { showGlobalLoader('Actualizando Operaciones AIFA...'); } catch (_) { }
@@ -2310,6 +2352,25 @@ async function loadAirlineLogosFromDb() {
                 if (noSpace !== normalized) window.airlineLogoDbMap.set(noSpace, row.logo_url);
             });
         });
+        // After DB map is populated, refresh any airline logo img elements that
+        // failed to load (no .has-logo on their parent cell) so Storage logos appear.
+        requestAnimationFrame(() => {
+            document.querySelectorAll('img.airline-logo').forEach(img => {
+                const cell = img.closest('.airline-cell, .summary-airline-logo');
+                if (cell && cell.classList.contains('has-logo')) return; // already loaded fine
+                const altText = img.alt || '';
+                const airlineName = altText.replace(/^Logo\s+/i, '').trim();
+                if (!airlineName) return;
+                const candidates = getAirlineLogoCandidates(airlineName);
+                if (!candidates.length) return;
+                const dbUrl = window.airlineLogoDbMap.get(normalizeAirlineName(airlineName));
+                if (!dbUrl) return; // no storage URL found for this airline
+                img.dataset.cands = candidates.join('|');
+                img.dataset.candIdx = '0';
+                img.style.display = '';
+                img.src = candidates[0];
+            });
+        });
     } catch (_) { /* silent */ }
 }
 document.addEventListener('DOMContentLoaded', () => { loadAirlineLogosFromDb(); });
@@ -2976,8 +3037,84 @@ function animateCounter(elementId, endValue, duration = 2500, isDecimal = false)
 const LOGIN_LOCK_KEY = 'aifa.lock.count';
 const LOGIN_LOCK_TS = 'aifa.lock.until';
 const SESSION_TOKEN = 'aifa.session.token';
+const SESSION_REFRESH_TOKEN = 'aifa.session.refresh_token';
 const SESSION_USER = 'currentUser';
 const SECRET_SALT = 'aifa.ops.local.salt.v1'; // cambia en prod
+let supabaseAuthBridgeBound = false;
+
+function cacheSupabaseSession(session) {
+    if (!session) return;
+    try {
+        if (session.access_token) sessionStorage.setItem(SESSION_TOKEN, session.access_token);
+        if (session.refresh_token) sessionStorage.setItem(SESSION_REFRESH_TOKEN, session.refresh_token);
+        if (session.user?.email) sessionStorage.setItem(SESSION_USER, session.user.email);
+    } catch (_) { }
+}
+
+async function ensureRoleInSessionStorage(userId) {
+    try {
+        if (sessionStorage.getItem('user_role')) return;
+        if (!window.supabaseClient || !userId) return;
+        const { data: roleData } = await window.supabaseClient
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', userId)
+            .single();
+        sessionStorage.setItem('user_role', (roleData && roleData.role) ? roleData.role : 'viewer');
+    } catch (_) {
+        try { sessionStorage.setItem('user_role', sessionStorage.getItem('user_role') || 'viewer'); } catch (_) { }
+    }
+}
+
+async function restoreSessionFromSupabase() {
+    try {
+        if (typeof window.ensureSupabaseClient === 'function') {
+            try { await window.ensureSupabaseClient(); } catch (_) { }
+        }
+        if (!window.supabaseClient) return false;
+        const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+        if (error || !session) return false;
+        cacheSupabaseSession(session);
+        try {
+            if (!sessionStorage.getItem('user_fullname')) {
+                const fallbackName = session.user?.user_metadata?.full_name || session.user?.email || '';
+                if (fallbackName) sessionStorage.setItem('user_fullname', fallbackName);
+            }
+        } catch (_) { }
+        await ensureRoleInSessionStorage(session.user?.id);
+        return true;
+    } catch (_) {
+        return false;
+    }
+}
+
+async function bindSupabaseAuthSessionBridge() {
+    if (supabaseAuthBridgeBound) return;
+    try {
+        if (typeof window.ensureSupabaseClient === 'function') {
+            try { await window.ensureSupabaseClient(); } catch (_) { }
+        }
+        if (!window.supabaseClient?.auth?.onAuthStateChange) return;
+        window.supabaseClient.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                cacheSupabaseSession(session);
+                return;
+            }
+            if (event === 'SIGNED_OUT') {
+                try {
+                    sessionStorage.removeItem(SESSION_TOKEN);
+                    sessionStorage.removeItem(SESSION_REFRESH_TOKEN);
+                    sessionStorage.removeItem(SESSION_USER);
+                    sessionStorage.removeItem('user_fullname');
+                    sessionStorage.removeItem('user_role');
+                } catch (_) { }
+            }
+        });
+        supabaseAuthBridgeBound = true;
+    } catch (err) {
+        console.warn('bindSupabaseAuthSessionBridge failed:', err);
+    }
+}
 
 // Fallback SHA-256 for contexts without crypto.subtle
 const SHA256_FALLBACK_INIT = [
@@ -3147,20 +3284,33 @@ async function verifyToken(token) {
     if (window.supabaseClient) {
         const { data: { session }, error } = await window.supabaseClient.auth.getSession();
 
-        // Si no hay sesión pero tenemos token, intentamos restaurarla
-        if (!session && token && token.length > 50) { // Simple check to distinguish from legacy hash
+        if (!error && session) {
+            cacheSupabaseSession(session);
+            return true;
+        }
+
+        // Si no hay sesión pero tenemos tokens, intentamos restaurarla
+        const refreshToken = (() => {
+            try { return sessionStorage.getItem(SESSION_REFRESH_TOKEN); } catch (_) { return null; }
+        })();
+        if (!session && token && refreshToken && token.length > 50) {
             const { data: restoreData, error: restoreError } = await window.supabaseClient.auth.setSession({
                 access_token: token,
-                refresh_token: token
+                refresh_token: refreshToken
             });
-            if (!restoreError && restoreData.session) {
+            if (!restoreError && restoreData?.session) {
+                cacheSupabaseSession(restoreData.session);
                 return true;
             }
         }
 
-        if (error || !session) return false;
-        // Si hay sesión activa en Supabase, consideramos el token válido
-        return true;
+        // Evitar logout por fallas transitorias de red al validar sesión
+        if (error && token) {
+            console.warn('verifyToken: validación remota falló, se conserva sesión local temporalmente.', error);
+            return true;
+        }
+
+        return false;
     }
 
     // Validación Legacy (Hash local)
@@ -3238,6 +3388,8 @@ async function handleLogin(e) {
         // Éxito
         sessionStorage.setItem(SESSION_USER, data.user.email);
         sessionStorage.setItem(SESSION_TOKEN, data.session.access_token);
+        if (data.session.refresh_token) sessionStorage.setItem(SESSION_REFRESH_TOKEN, data.session.refresh_token);
+        cacheSupabaseSession(data.session);
 
         // Obtener nombre completo (metadata o tabla profiles)
         let fullName = data.user.user_metadata?.full_name;
@@ -6215,6 +6367,8 @@ function performLogout() {
     checkForAppUpdates(true).catch(() => { });
     startAppUpdatePolling();
     try { sessionStorage.removeItem('currentUser'); } catch (_) { }
+    try { sessionStorage.removeItem(SESSION_TOKEN); } catch (_) { }
+    try { sessionStorage.removeItem(SESSION_REFRESH_TOKEN); } catch (_) { }
     try { sessionStorage.removeItem('aifa.user'); } catch (_) { }
     const mainApp = document.getElementById('main-app');
     const login = document.getElementById('login-screen');
@@ -6240,6 +6394,12 @@ function performLogout() {
     try {
         updateParteOperacionesAvailabilityBanner(undefined, { skipBanner: true });
     } catch (_) { }
+
+    // Si hay actualización pendiente, aplicar recarga ya fuera de sesión de trabajo
+    if (appReloadDeferred) {
+        appReloadDeferred = false;
+        scheduleAppReload('deferred-after-logout');
+    }
 }
 
 let gsoNavVisibilityController = null;
@@ -10111,9 +10271,18 @@ function showMainApp() {
     const token = sessionStorage.getItem(SESSION_TOKEN);
     const name = sessionStorage.getItem(SESSION_USER) || '';
     // Si no hay token válido, volver a login
-    verifyToken(token).then(valid => {
+    verifyToken(token).then(async valid => {
         if (!valid) {
-            try { sessionStorage.removeItem(SESSION_USER); sessionStorage.removeItem(SESSION_TOKEN); } catch (_) { }
+            const restored = await restoreSessionFromSupabase();
+            if (restored) {
+                showMainApp();
+                return;
+            }
+            try {
+                sessionStorage.removeItem(SESSION_USER);
+                sessionStorage.removeItem(SESSION_TOKEN);
+                sessionStorage.removeItem(SESSION_REFRESH_TOKEN);
+            } catch (_) { }
             if (main) main.classList.add('hidden');
             if (login) login.classList.remove('hidden');
             return;
@@ -10196,9 +10365,28 @@ function checkSession() {
     try {
         const token = sessionStorage.getItem(SESSION_TOKEN);
         const name = sessionStorage.getItem(SESSION_USER);
-        if (!token || !name) return;
-        // Validar token antes de mostrar
-        verifyToken(token).then(valid => { if (valid) showMainApp(); }).catch(() => { });
+        if (token && name) {
+            // Validar token antes de mostrar
+            verifyToken(token)
+                .then(async valid => {
+                    if (valid) {
+                        showMainApp();
+                        return;
+                    }
+                    const restored = await restoreSessionFromSupabase();
+                    if (restored) showMainApp();
+                })
+                .catch(async () => {
+                    const restored = await restoreSessionFromSupabase();
+                    if (restored) showMainApp();
+                });
+            return;
+        }
+
+        // Fallback: si sessionStorage se perdió pero Supabase conserva sesión, restaurar
+        restoreSessionFromSupabase().then(restored => {
+            if (restored) showMainApp();
+        }).catch(() => { });
     } catch (e) { /* ignore */ }
 }
 
@@ -11564,6 +11752,7 @@ function setupManifestsUI() {
         let typeByCode = new Map();    // IATA code -> { ICAO, Name }
         // Aeropuertos
         let airportByIATA = new Map(); // IATA -> Name
+        let airportCityByIATA = new Map(); // IATA -> City name (short, for display)
         let airportByName = new Map(); // lowercase Name -> IATA
         let iataSet = new Set();
         // OCR helpers locales
@@ -11729,8 +11918,10 @@ function setupManifestsUI() {
                     const IATA = (parts[0] || '').trim().toUpperCase();
                     // const ICAO = (parts[1]||'').trim().toUpperCase(); // no usado aquí
                     const Name = (parts[2] || '').trim().replace(/^"|"$/g, ''); // SOLO Name
+                    const City = (parts[4] || '').trim().replace(/^"|"$/g, ''); // City column
                     if (!IATA || !Name) continue;
                     airportByIATA.set(IATA, Name);
+                    airportCityByIATA.set(IATA, City || Name);
                     airportByName.set(Name.toLowerCase(), IATA);
                     iataSet.add(IATA);
                     optsIATA.push(`<option value="${IATA}">${Name}</option>`);
@@ -11740,6 +11931,12 @@ function setupManifestsUI() {
                 const dlName = document.getElementById('airports-name-list');
                 if (dlIATA) dlIATA.innerHTML = optsIATA.join('');
                 if (dlName) dlName.innerHTML = optsName.join('');
+                // Expose global helper for other sections (e.g. conciliation table)
+                window._iataToCity = code => {
+                    if (!code) return '';
+                    const k = String(code).trim().toUpperCase();
+                    return airportCityByIATA.get(k) || airportByIATA.get(k) || k;
+                };
             } catch (e) { console.warn('No se pudo cargar airports.csv', e); }
         }
 
@@ -14377,6 +14574,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
+        bindSupabaseAuthSessionBridge();
+    } catch (err) {
+        console.warn('bindSupabaseAuthSessionBridge init failed:', err);
+    }
+
+    try {
         loadItineraryData();
     } catch (err) {
         console.warn('loadItineraryData failed:', err);
@@ -14431,29 +14634,236 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabConciComercial = document.getElementById('tab-conci-comercial');
     if (tabConciComercial) {
         tabConciComercial.addEventListener('shown.bs.tab', () => {
-            loadConciliacionManifiestos();
+            loadConciliacionManifiestos({ forceRefresh: true });
         });
         // Also hook filter changes
         ['filter-conci-manifiestos-year', 'filter-conci-manifiestos-month'].forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.addEventListener('change', loadConciliacionManifiestos);
+            if (el) el.addEventListener('change', () => loadConciliacionManifiestos());
         });
     }
+
+    const btnConciRefresh = document.getElementById('btn-conci-refresh');
+    const btnConciEdit = document.getElementById('btn-conci-edit-mode');
+    const btnConciSave = document.getElementById('btn-conci-save-mode');
+    const btnConciCancel = document.getElementById('btn-conci-cancel-mode');
+    if (btnConciRefresh) btnConciRefresh.addEventListener('click', () => loadConciliacionManifiestos({ forceRefresh: true }));
+    if (btnConciEdit) btnConciEdit.addEventListener('click', _conciEnterEditMode);
+    if (btnConciSave) btnConciSave.addEventListener('click', _conciSaveBulkEdits);
+    if (btnConciCancel) btnConciCancel.addEventListener('click', _conciCancelBulkEdits);
+    window.addEventListener('admin-mode-changed', _conciRefreshEditToolbar);
+    _conciRefreshEditToolbar();
 });
 
 // ─── Conciliación Manifiestos ────────────────────────────────────────────────
 let _conciManifiestosDataTable = null;
+let _conciEditFallbackYear = null;   // cached for post-save formatting
+let _conciEditFechaCol     = null;   // cached fecha column name for formatting
+let _conciEditMode         = false;  // global edit mode for the whole table
+let _conciCellClickHandler = null;   // delegated click handler for edit-mode cells
+let _conciAirlineCatalogLoaded = false;
+let _conciAirlineCodeMap = new Map();
+let _conciAirlineAliasMap = new Map();
+let _conciLoadRequestSeq = 0;
+
+function _conciNormalizeAirlineName(value) {
+    return String(value || '')
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function _conciDefaultAirlineMeta(rawCode) {
+    const code = String(rawCode || '').trim().toUpperCase();
+    const defaults = {
+        'VB': { name: 'VIVA AEROBUS', color: '#00a850', textColor: '#ffffff' },
+        'Y4': { name: 'VOLARIS', color: '#a300e6', textColor: '#ffffff' },
+        'AM': { name: 'AEROMEXICO', color: '#0b2161', textColor: '#ffffff' },
+        'XN': { name: 'MEXICANA DE AVIACION', color: '#008375', textColor: '#ffffff' },
+    };
+    return defaults[code] || null;
+}
+
+async function _ensureConciAirlineCatalog() {
+    if (_conciAirlineCatalogLoaded) return;
+
+    try {
+        const res = await fetch('data/airlines.json', { cache: 'force-cache' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const rows = await res.json();
+
+        _conciAirlineCodeMap = new Map();
+        _conciAirlineAliasMap = new Map();
+
+        (Array.isArray(rows) ? rows : []).forEach(item => {
+            const meta = {
+                name: String(item?.name || item?.iata || '').trim(),
+                color: String(item?.color || '#6c757d').trim(),
+                textColor: String(item?.textColor || '#ffffff').trim(),
+                iata: String(item?.iata || '').trim().toUpperCase(),
+            };
+            if (!meta.name) return;
+
+            if (meta.iata) _conciAirlineCodeMap.set(meta.iata, meta);
+
+            const aliasList = [meta.name]
+                .concat(Array.isArray(item?.aliases) ? item.aliases : [])
+                .filter(Boolean)
+                .map(a => _conciNormalizeAirlineName(a));
+
+            aliasList.forEach(alias => {
+                if (alias) _conciAirlineAliasMap.set(alias, meta);
+            });
+        });
+    } catch (err) {
+        console.warn('[Conciliacion] No se pudo cargar data/airlines.json:', err);
+    } finally {
+        _conciAirlineCatalogLoaded = true;
+    }
+}
+
+function _conciResolveAirlineMeta(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return null;
+
+    const byCode = _conciAirlineCodeMap.get(raw.toUpperCase());
+    if (byCode) return byCode;
+
+    const byAlias = _conciAirlineAliasMap.get(_conciNormalizeAirlineName(raw));
+    if (byAlias) return byAlias;
+
+    return _conciDefaultAirlineMeta(raw);
+}
+
+function _conciCanCurrentUserEdit() {
+    const allowedRoles = new Set(['admin', 'editor', 'superadmin']);
+    try {
+        if (typeof canCurrentUserEditParteOperaciones === 'function' && canCurrentUserEditParteOperaciones()) return true;
+    } catch (_) {}
+    const candidates = [];
+    try { candidates.push(sessionStorage.getItem('user_role')); } catch (_) {}
+    try { candidates.push(window.dataManager && window.dataManager.userRole); } catch (_) {}
+    try {
+        const cacheRaw = localStorage.getItem('auth_permissions_cache');
+        if (cacheRaw) {
+            const cache = JSON.parse(cacheRaw);
+            if (cache && cache.userRole) candidates.push(cache.userRole);
+        }
+    } catch (_) {}
+    return candidates.some(r => allowedRoles.has(String(r || '').trim().toLowerCase()));
+}
+
+function _conciNormalizeEditableCellText(value) {
+    return String(value || '')
+        .replace(/\u00a0/g, ' ')
+        .replace(/[\r\n\t]+/g, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+}
+
+function _conciRefreshEditToolbar() {
+    const btnEdit = document.getElementById('btn-conci-edit-mode');
+    const btnSave = document.getElementById('btn-conci-save-mode');
+    const btnCancel = document.getElementById('btn-conci-cancel-mode');
+    const btnRefresh = document.getElementById('btn-conci-refresh');
+    const yearSel = document.getElementById('filter-conci-manifiestos-year');
+    const monthSel = document.getElementById('filter-conci-manifiestos-month');
+    const canEdit = _conciCanCurrentUserEdit();
+
+    if (btnEdit) {
+        btnEdit.classList.toggle('d-none', !canEdit || _conciEditMode);
+        btnEdit.disabled = !canEdit;
+    }
+    if (btnSave) {
+        btnSave.classList.toggle('d-none', !canEdit || !_conciEditMode);
+        btnSave.disabled = !canEdit;
+    }
+    if (btnCancel) {
+        btnCancel.classList.toggle('d-none', !canEdit || !_conciEditMode);
+        btnCancel.disabled = !canEdit;
+    }
+
+    const controlsLocked = _conciEditMode;
+    if (btnRefresh) btnRefresh.disabled = controlsLocked;
+    if (yearSel) yearSel.disabled = controlsLocked;
+    if (monthSel) monthSel.disabled = controlsLocked;
+}
+
+function _conciSetRefreshLoading(isLoading) {
+    const btnRefresh = document.getElementById('btn-conci-refresh');
+    if (!btnRefresh) return;
+
+    if (!btnRefresh.dataset.defaultHtml) btnRefresh.dataset.defaultHtml = btnRefresh.innerHTML;
+
+    if (isLoading) {
+        btnRefresh.disabled = true;
+        btnRefresh.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        return;
+    }
+
+    btnRefresh.innerHTML = btnRefresh.dataset.defaultHtml || '<i class="fas fa-sync-alt"></i>';
+    if (!_conciEditMode) btnRefresh.disabled = false;
+}
+
+// Ensures window._iataToCity is available (loads airports.csv if needed)
+async function _ensureIataCityMap() {
+    if (window._iataToCity) return; // already loaded
+    try {
+        const res = await fetch('data/master/airports.csv', { cache: 'force-cache' });
+        const text = await res.text();
+        const map = new Map();
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        // Parse CSV respecting quotes
+        function _parseLine(line) {
+            const cols = []; let cur = ''; let inQ = false;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (ch === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+                else if (ch === ',' && !inQ) { cols.push(cur); cur = ''; }
+                else cur += ch;
+            }
+            cols.push(cur);
+            return cols;
+        }
+        for (let i = 1; i < lines.length; i++) {
+            const parts = _parseLine(lines[i]);
+            if (parts.length < 3) continue;
+            const IATA = (parts[0] || '').trim().toUpperCase();
+            const Name = (parts[2] || '').trim().replace(/^"|"$/g, '');
+            const City = (parts[4] || '').trim().replace(/^"|"$/g, '');
+            if (IATA) map.set(IATA, City || Name || IATA);
+        }
+        window._iataToCity = code => {
+            const k = String(code || '').trim().toUpperCase();
+            return map.get(k) || k;
+        };
+    } catch(e) {
+        window._iataToCity = code => String(code || '').trim().toUpperCase();
+    }
+}
 
 // Fetch all rows from a Supabase table (paginated)
-async function _concifetchAllRows(client, tableName) {
+async function _concifetchAllRows(client, tableName, options = {}) {
     let allRows = [];
     let from = 0;
-    const batch = 1000;
+    const batch = Number(options.batchSize) > 0 ? Number(options.batchSize) : 5000;
+    const orderBy = Array.isArray(options.orderBy) ? options.orderBy : [];
     while (true) {
-        const { data: chunk, error } = await client
+        let query = client
             .from(tableName)
-            .select('*')
-            .range(from, from + batch - 1);
+            .select('*');
+
+        orderBy.forEach(item => {
+            if (!item || !item.column) return;
+            query = query.order(item.column, {
+                ascending: item.ascending !== false,
+                nullsFirst: item.nullsFirst,
+            });
+        });
+
+        const { data: chunk, error } = await query.range(from, from + batch - 1);
         if (error) return { data: allRows, error };
         if (!chunk || chunk.length === 0) break;
         allRows = allRows.concat(chunk);
@@ -14499,9 +14909,120 @@ function _conciDetect(keys, pattern) {
     return keys.find(k => pattern.test(k)) || null;
 }
 
+function _conciGetAssignedSlot(vRow, isArr) {
+    return isArr ? (vRow['[Arr] SIBT'] || '') : (vRow['[Dep] SOBT'] || '');
+}
+
+function _conciGetOperationHour(vRow, isArr) {
+    return isArr ? (vRow['[Arr] AIBT'] || '') : (vRow['[Dep] AOBT'] || '');
+}
+
+function _conciResolveYear(yearValue, fallbackYear) {
+    if (!yearValue && fallbackYear) return Number(fallbackYear);
+    const parsed = parseInt(String(yearValue || '').trim(), 10);
+    if (!Number.isFinite(parsed)) return Number(fallbackYear) || new Date().getFullYear();
+    if (String(parsed).length === 2) return parsed < 50 ? 2000 + parsed : 1900 + parsed;
+    return parsed;
+}
+
+function _conciPad2(value) {
+    return String(value).padStart(2, '0');
+}
+
+function _conciParseDateTimeParts(rawValue, fallbackYear) {
+    const raw = String(rawValue || '').trim();
+    if (!raw) return null;
+    let match = raw.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?(?:\s+(\d{1,2}):(\d{2}))?$/);
+    if (match) {
+        return {
+            day: parseInt(match[1], 10),
+            month: parseInt(match[2], 10),
+            year: _conciResolveYear(match[3], fallbackYear),
+            hour: match[4] !== undefined ? parseInt(match[4], 10) : null,
+            minute: match[5] !== undefined ? parseInt(match[5], 10) : null,
+        };
+    }
+    match = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s](\d{1,2}):(\d{2}))?/);
+    if (match) {
+        return {
+            day: parseInt(match[3], 10),
+            month: parseInt(match[2], 10),
+            year: parseInt(match[1], 10),
+            hour: match[4] !== undefined ? parseInt(match[4], 10) : null,
+            minute: match[5] !== undefined ? parseInt(match[5], 10) : null,
+        };
+    }
+    match = raw.toUpperCase().match(/^(\d{1,2})([A-Z]{3})(?:\s+(\d{1,2}):(\d{2}))?$/);
+    if (match && _CONCI_MONTHS[match[2]] !== undefined) {
+        return {
+            day: parseInt(match[1], 10),
+            month: _CONCI_MONTHS[match[2]],
+            year: _conciResolveYear('', fallbackYear),
+            hour: match[3] !== undefined ? parseInt(match[3], 10) : null,
+            minute: match[4] !== undefined ? parseInt(match[4], 10) : null,
+        };
+    }
+    return null;
+}
+
+function _conciParseTimeOnly(rawValue) {
+    const raw = String(rawValue || '').trim();
+    if (!raw) return null;
+    const match = raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+    if (!match) return null;
+    return { hour: parseInt(match[1], 10), minute: parseInt(match[2], 10) };
+}
+
+function _conciFormatDateParts(parts) {
+    if (!parts || !Number.isFinite(parts.day) || !Number.isFinite(parts.month) || !Number.isFinite(parts.year)) return '';
+    return `${_conciPad2(parts.day)}/${_conciPad2(parts.month)}/${parts.year}`;
+}
+
+function _conciFormatDateTimeParts(parts) {
+    const dateText = _conciFormatDateParts(parts);
+    if (!dateText || !Number.isFinite(parts.hour) || !Number.isFinite(parts.minute)) return dateText;
+    return `${dateText} ${_conciPad2(parts.hour)}:${_conciPad2(parts.minute)}`;
+}
+
+function _conciGetRowDateParts(row, fechaCol, fallbackYear) {
+    if (!fechaCol) return null;
+    return _conciParseDateTimeParts(row?.[fechaCol], fallbackYear);
+}
+
+function _conciFormatDisplayValue(columnName, value, row, fechaCol, fallbackYear) {
+    if (value === null || value === undefined) return '';
+    const raw = String(value).trim();
+    if (!raw) return '';
+
+    const isDateColumn = /(^|\b)fecha(\b|$)/i.test(columnName);
+    const isDateTimeColumn = /(hora|hr\.?\s*de|slot|sibt|aibt|aldt|sobt|aobt|atot|attt)/i.test(columnName);
+
+    if (isDateColumn) {
+        const parts = _conciParseDateTimeParts(raw, fallbackYear);
+        return parts ? _conciFormatDateParts(parts) : raw;
+    }
+
+    if (isDateTimeColumn) {
+        const fullParts = _conciParseDateTimeParts(raw, fallbackYear);
+        if (fullParts && Number.isFinite(fullParts.hour) && Number.isFinite(fullParts.minute)) {
+            return _conciFormatDateTimeParts(fullParts);
+        }
+        const timeOnly = _conciParseTimeOnly(raw);
+        const rowDateParts = _conciGetRowDateParts(row, fechaCol, fallbackYear);
+        if (timeOnly && rowDateParts) {
+            return _conciFormatDateTimeParts({ ...rowDateParts, ...timeOnly });
+        }
+        return raw;
+    }
+
+    return raw;
+}
+
 // Build a synthetic manifest row from a vuelos row, given 'LLEGADA' or 'SALIDA'
 function _conciVueloToRow(vRow, tipo, outputCols, colm, hasManifestSchema) {
     const isArr = tipo === 'LLEGADA';
+    const assignedSlot = _conciGetAssignedSlot(vRow, isArr);
+    const operationHour = _conciGetOperationHour(vRow, isArr);
     if (hasManifestSchema) {
         const row = {};
         outputCols.forEach(c => { row[c] = ''; });
@@ -14515,6 +15036,8 @@ function _conciVueloToRow(vRow, tipo, outputCols, colm, hasManifestSchema) {
         if (colm.stand)     row[colm.stand]      = isArr ? vRow['[Arr] Stand']  : vRow['[Dep] Stand'];
         if (colm.puerta)    row[colm.puerta]     = isArr ? vRow['[Arr] Gates']  : vRow['[Dep] Gates'];
         if (colm.pax)       row[colm.pax]        = isArr ? vRow['[Arr] Boarded']: vRow['[Dep] Boarded'];
+        if (colm.slotAsignado) row[colm.slotAsignado] = assignedSlot;
+        if (colm.hrOperacion) row[colm.hrOperacion] = operationHour;
         if (colm.status)    row[colm.status]     = vRow['Status'] || '';
         const _dp2 = _conciExtractVueloDateParts(vRow, isArr);
         if (colm.mes)       row[colm.mes]        = _dp2 ? String(_dp2.month) : '';
@@ -14541,6 +15064,8 @@ function _conciVueloToRow(vRow, tipo, outputCols, colm, hasManifestSchema) {
         'Aeronave':           vRow['Aircraft type']         || '',
         'Matrícula':          vRow['Registration']          || '',
         'Routing':            vRow['Routing']               || '',
+        'Slot asignado':      assignedSlot,
+        'HR. DE OPERACIÓN':   operationHour,
         'Stand':              isArr ? (vRow['[Arr] Stand']  || '') : (vRow['[Dep] Stand']  || ''),
         'Puerta':             isArr ? (vRow['[Arr] Gates']  || '') : (vRow['[Dep] Gates']  || ''),
         'Pax / Embarcados':   isArr ? (vRow['[Arr] Boarded']|| '') : (vRow['[Dep] Boarded']|| ''),
@@ -14574,6 +15099,8 @@ function _conciBuildEnriched(manifestRows, vuelosRows, schemaRows) {
         aeronave:  /(aeronave|aircraft|tipo\s*aeronave)/i,
         matricula: /(matr[ií]cula|registrat)/i,
         routing:   /(routing|origen|ruta)/i,
+        slotAsignado: /(slot\s*asig|slot_asig)/i,
+        hrOperacion: /(hr\.?\s*de\s*oper|hora\s*de\s*oper)/i,
         stand:     /stand/i,
         puerta:    /(puerta|gate)/i,
         pax:       /(pax|boarded|pasaj)/i,
@@ -14647,12 +15174,16 @@ function _conciBuildEnriched(manifestRows, vuelosRows, schemaRows) {
             const _dp = _conciExtractVueloDateParts(vRow, useArr);
             const _mesVal   = _dp ? String(_dp.month) : '';
             const _fechaVal = _dp ? `${_dp.day}/${String(_dp.month).padStart(2,'0')}` : '';
+            const _assignedSlot = _conciGetAssignedSlot(vRow, useArr);
+            const _operationHour = _conciGetOperationHour(vRow, useArr);
             const fillMap = useArr ? {
                 [colm.aerolinea]: vRow['[Arr] Airline code'],
                 [colm.optype]:    vRow['[Arr] Service Type'],
                 [colm.aeronave]:  vRow['Aircraft type'],
                 [colm.matricula]: vRow['Registration'],
                 [colm.routing]:   vRow['Routing'],
+                [colm.slotAsignado]: _assignedSlot,
+                [colm.hrOperacion]: _operationHour,
                 [colm.stand]:     vRow['[Arr] Stand'],
                 [colm.puerta]:    vRow['[Arr] Gates'],
                 [colm.pax]:       vRow['[Arr] Boarded'],
@@ -14669,6 +15200,8 @@ function _conciBuildEnriched(manifestRows, vuelosRows, schemaRows) {
                 [colm.aeronave]:  vRow['Aircraft type'],
                 [colm.matricula]: vRow['Registration'],
                 [colm.routing]:   vRow['Routing'],
+                [colm.slotAsignado]: _assignedSlot,
+                [colm.hrOperacion]: _operationHour,
                 [colm.stand]:     vRow['[Dep] Stand'],
                 [colm.puerta]:    vRow['[Dep] Gates'],
                 [colm.pax]:       vRow['[Dep] Boarded'],
@@ -14708,16 +15241,19 @@ function _conciBuildEnriched(manifestRows, vuelosRows, schemaRows) {
     return { rows: enrichedRows, columns: outputCols };
 }
 
-async function loadConciliacionManifiestos() {
+async function loadConciliacionManifiestos(options = {}) {
     const yearEl  = document.getElementById('filter-conci-manifiestos-year');
     const monthEl = document.getElementById('filter-conci-manifiestos-month');
     const loading = document.getElementById('conci-manifiestos-loading');
     const errorEl = document.getElementById('conci-manifiestos-error');
     const badge   = document.getElementById('badge-conci-manifiestos-count');
+    const config = (typeof Event !== 'undefined' && options instanceof Event) ? {} : (options || {});
+    const requestSeq = ++_conciLoadRequestSeq;
 
     const year  = yearEl  ? parseInt(yearEl.value, 10)  : new Date().getFullYear();
     const month = monthEl && monthEl.value ? parseInt(monthEl.value, 10) : null; // 1-12 or null
 
+    _conciSetRefreshLoading(true);
     if (loading) { loading.classList.remove('d-none'); }
     if (errorEl) errorEl.classList.add('d-none');
 
@@ -14728,9 +15264,16 @@ async function loadConciliacionManifiestos() {
 
         // Fetch both tables in parallel
         const [manifestResult, vuelosResult] = await Promise.all([
-            _concifetchAllRows(client, 'Conciliación Manifiestos'),
-            _concifetchAllRows(client, 'vuelos_parte_operaciones_csv'),
+            _concifetchAllRows(client, 'Conciliación Manifiestos', {
+                batchSize: 5000,
+                orderBy: [{ column: 'id', ascending: true }],
+            }),
+            _concifetchAllRows(client, 'vuelos_parte_operaciones_csv', {
+                batchSize: 5000,
+            }),
         ]);
+
+        if (requestSeq !== _conciLoadRequestSeq) return;
 
         // Ignore manifest fetch error gracefully (table may be empty)
         const manifestRows = manifestResult.data || [];
@@ -14754,27 +15297,39 @@ async function loadConciliacionManifiestos() {
 
         // Build enriched merged dataset
         // Pass full manifestRows as schema source so columns are always the original manifest columns
+        // Ensure airport-city map and airline catalog are available before rendering
+        await Promise.all([
+            _ensureIataCityMap(),
+            _ensureConciAirlineCatalog(),
+        ]);
+
+        if (requestSeq !== _conciLoadRequestSeq) return;
+
         const { rows, columns } = _conciBuildEnriched(filteredManifest, filteredVuelos, manifestRows);
 
         if (loading) { loading.classList.add('d-none'); }
         if (badge) {
-            badge.textContent = `${rows.length} registros`;
+            const refreshedText = config.forceRefresh ? 'Actualizado' : 'Cargado';
+            badge.textContent = `${rows.length} registros · ${refreshedText}`;
             badge.style.display = '';
         }
 
-        _renderConciManifiestosTable(rows, columns);
+        _renderConciManifiestosTable(rows, columns, year);
 
     } catch (err) {
+        if (requestSeq !== _conciLoadRequestSeq) return;
         if (loading) { loading.classList.add('d-none'); }
         if (errorEl) {
             errorEl.textContent = `Error al cargar: ${err.message}`;
             errorEl.classList.remove('d-none');
         }
         console.error('loadConciliacionManifiestos error:', err);
+    } finally {
+        if (requestSeq === _conciLoadRequestSeq) _conciSetRefreshLoading(false);
     }
 }
 
-function _renderConciManifiestosTable(data, columns) {
+function _renderConciManifiestosTable(data, columns, fallbackYear) {
     const tableId = 'table-conci-manifiestos';
 
     if (_conciManifiestosDataTable) {
@@ -14793,8 +15348,18 @@ function _renderConciManifiestosTable(data, columns) {
     // Display columns: hide the internal _fuente marker column
     const displayCols = (columns || (data.length ? Object.keys(data[0]) : [])).filter(c => c !== '_fuente');
 
+    // Detect semantic columns for smart city-name display in routing/origen cell
+    const _tipoCol    = displayCols.find(c => /tipo.*(manif)/i.test(c)) || null;
+    const _airlineCol = displayCols.find(c => /aerol[ií]nea|airline/i.test(c)) || null;
+    // Match columns named exactly 'Routing' OR containing 'origen' or 'destino' (e.g. 'DESTINO / ORIGEN')
+    const _routingCol = displayCols.find(c => /^routing$/i.test(c) || /origen|destino.*origen|routing/i.test(c)) || null;
+    const _fechaCol   = displayCols.find(c => /(^|\b)fecha(\b|$)/i.test(c)) || null;
+    _conciEditFallbackYear = fallbackYear;
+    _conciEditFechaCol     = _fechaCol;
+
     if (!data.length) {
         tbody.innerHTML = '<tr><td colspan="100%" class="text-center text-muted py-5">No se encontraron registros para los filtros seleccionados.</td></tr>';
+        _conciRefreshEditToolbar();
         return;
     }
 
@@ -14821,16 +15386,399 @@ function _renderConciManifiestosTable(data, columns) {
         const tr = document.createElement('tr');
         const bg = srcColors[row['_fuente']];
         tr.style.backgroundColor = bg || (idx % 2 === 0 ? '#fff' : '#f8f9fa');
+        const _rowId = row.id !== undefined && row.id !== null ? String(row.id) : '';
+        const _rowFuente = row['_fuente'] || '';
+        tr.dataset.rowId = _rowId;
+        tr.dataset.rowFuente = _rowFuente;
+        tr.dataset.rowIndex = String(idx);
 
         displayCols.forEach(c => {
             const td = document.createElement('td');
             td.style.cssText = 'text-align:center;padding:5px 8px;border:1px solid #dee2e6;white-space:nowrap;font-size:0.82rem;';
+            td.dataset.col = c;
             const val = row[c];
-            td.textContent = (val === null || val === undefined) ? '' : val;
+            const rawStr = String(val !== null && val !== undefined ? val : '').trim();
+            td.dataset.raw = rawStr;
+            // Smart city-name resolution for routing/origen column
+            if (_airlineCol && c === _airlineCol) {
+                const meta = _conciResolveAirlineMeta(rawStr);
+                if (meta) {
+                    const badge = document.createElement('span');
+                    badge.style.cssText = `display:inline-block;padding:2px 10px;border-radius:999px;font-size:0.74rem;font-weight:700;line-height:1.2;background:${meta.color || '#6c757d'};color:${meta.textColor || '#ffffff'};border:1px solid rgba(0,0,0,.15);`;
+                    badge.textContent = String(meta.name || rawStr).toUpperCase();
+                    td.style.boxShadow = `inset 3px 0 0 ${meta.color || '#6c757d'}`;
+                    td.appendChild(badge);
+                    if (rawStr && rawStr.toUpperCase() !== String(meta.name || '').toUpperCase()) td.title = rawStr;
+                } else {
+                    td.textContent = rawStr;
+                }
+            } else if (_routingCol && c === _routingCol && window._iataToCity) {
+                const tipo = _tipoCol ? String(row[_tipoCol] || '') : '';
+                const isArr = /lleg|arr/i.test(tipo);
+                const parts = rawStr.toUpperCase().split(/[-\/]+/);
+                const code = (parts.length >= 2)
+                    ? (isArr ? parts[0] : parts[parts.length - 1])
+                    : (parts[0] || '');
+                const city = code ? window._iataToCity(code) : rawStr;
+                td.textContent = city || rawStr;
+                if (rawStr) td.title = rawStr;
+            } else {
+                const displayValue = _conciFormatDisplayValue(c, val, row, _fechaCol, fallbackYear);
+                td.textContent = displayValue;
+                if (displayValue && String(displayValue) !== String(val || '').trim()) td.title = String(val || '').trim();
+            }
             tr.appendChild(td);
         });
         tbody.appendChild(tr);
     });
+
+    _conciRefreshEditToolbar();
+}
+
+// ─── Conciliation global-edit helpers ──────────────────────────────────────
+function _conciEnsureEditStyles() {
+    if (document.getElementById('conci-edit-style')) return;
+    const style = document.createElement('style');
+    style.id = 'conci-edit-style';
+    style.textContent = `
+        #table-conci-manifiestos.conci-edit-mode td[data-col] {
+            cursor: text;
+            background: #fffef2 !important;
+        }
+        #table-conci-manifiestos.conci-edit-mode td[data-col].conci-cell-active {
+            outline: 2px solid #0d6efd;
+            outline-offset: -2px;
+            background: #ffffff !important;
+        }
+        #table-conci-manifiestos .conci-cell-input {
+            min-width: 72px;
+            border: 1px solid #0d6efd;
+            box-shadow: none;
+            font-size: 0.8rem;
+            padding: 2px 4px;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+function _conciGetNextEditableCell(td) {
+    if (!td) return null;
+    let next = td.nextElementSibling;
+    while (next && !next.dataset?.col) next = next.nextElementSibling;
+    if (next) return next;
+    let row = td.parentElement ? td.parentElement.nextElementSibling : null;
+    while (row) {
+        const first = row.querySelector('td[data-col]');
+        if (first) return first;
+        row = row.nextElementSibling;
+    }
+    return null;
+}
+
+function _conciActivateCellEditor(td) {
+    if (!td || td.querySelector('.conci-cell-input')) return;
+
+    const currentRaw = _conciNormalizeEditableCellText(
+        td.dataset.pendingRaw !== undefined ? td.dataset.pendingRaw : (td.dataset.raw || '')
+    );
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'form-control form-control-sm conci-cell-input';
+    input.value = currentRaw;
+
+    td.classList.add('conci-cell-active');
+    td.textContent = '';
+    td.appendChild(input);
+
+    let closed = false;
+    const closeEditor = (accept, moveNext) => {
+        if (closed) return;
+        closed = true;
+
+        const fallbackRaw = _conciNormalizeEditableCellText(
+            td.dataset.pendingRaw !== undefined ? td.dataset.pendingRaw : (td.dataset.raw || '')
+        );
+        const nextRaw = accept ? _conciNormalizeEditableCellText(input.value) : fallbackRaw;
+        td.dataset.pendingRaw = nextRaw;
+        td.dataset.raw = nextRaw;
+
+        const origRaw = _conciNormalizeEditableCellText(td.dataset.origRaw || '');
+        if (nextRaw !== origRaw) td.dataset.dirty = '1';
+        else td.removeAttribute('data-dirty');
+
+        const tr = td.closest('tr');
+        if (tr) {
+            const rowDirty = !!tr.querySelector('td[data-dirty="1"]');
+            if (rowDirty) tr.dataset.dirty = '1';
+            else tr.removeAttribute('data-dirty');
+        }
+
+        td.classList.remove('conci-cell-active');
+        td.textContent = nextRaw;
+        td.title = 'Clic para editar';
+
+        if (moveNext) {
+            const nextCell = _conciGetNextEditableCell(td);
+            if (nextCell) _conciActivateCellEditor(nextCell);
+        }
+    };
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            closeEditor(true, true);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            closeEditor(false, false);
+        }
+    });
+    input.addEventListener('blur', () => closeEditor(true, false));
+
+    input.focus();
+    input.select();
+}
+
+function _conciSetTableEditableState(enabled) {
+    const table = document.getElementById('table-conci-manifiestos');
+    const tbody = table ? table.querySelector('tbody') : null;
+    if (!table || !tbody) return;
+
+    table.classList.toggle('conci-edit-mode', !!enabled);
+
+    if (enabled) {
+        if (!_conciCellClickHandler) {
+            _conciCellClickHandler = (ev) => {
+                if (!_conciEditMode) return;
+                if (ev.target.closest('.conci-cell-input')) return;
+                const td = ev.target.closest('td[data-col]');
+                if (!td || !tbody.contains(td)) return;
+                _conciActivateCellEditor(td);
+            };
+        }
+        tbody.addEventListener('click', _conciCellClickHandler);
+
+        tbody.querySelectorAll('td[data-col]').forEach(td => {
+            td.dataset.origRaw = td.dataset.raw || '';
+            td.dataset.pendingRaw = td.dataset.raw || '';
+            td.removeAttribute('data-dirty');
+            td.classList.remove('conci-cell-active');
+            td.title = 'Clic para editar';
+        });
+        tbody.querySelectorAll('tr').forEach(tr => tr.removeAttribute('data-dirty'));
+    } else {
+        if (_conciCellClickHandler) tbody.removeEventListener('click', _conciCellClickHandler);
+
+        tbody.querySelectorAll('td[data-col]').forEach(td => {
+            const liveInput = td.querySelector('.conci-cell-input');
+            if (liveInput) {
+                const committed = _conciNormalizeEditableCellText(liveInput.value);
+                td.dataset.pendingRaw = committed;
+                td.dataset.raw = committed;
+                td.textContent = committed;
+            }
+            td.classList.remove('conci-cell-active');
+            td.removeAttribute('data-orig-raw');
+            td.removeAttribute('data-pending-raw');
+            td.removeAttribute('data-dirty');
+            td.title = '';
+        });
+        tbody.querySelectorAll('tr').forEach(tr => tr.removeAttribute('data-dirty'));
+    }
+}
+
+function _conciCoerceNumberCandidate(value) {
+    if (value === null || value === undefined) return null;
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    const raw = String(value).trim();
+    if (!raw) return null;
+    const normalized = raw.replace(/,/g, '');
+    if (/^[-+]?\d+$/.test(normalized)) return parseInt(normalized, 10);
+    if (/^[-+]?\d*\.\d+$/.test(normalized)) return parseFloat(normalized);
+    return null;
+}
+
+async function _conciWriteRowSafe(client, payload, rowId) {
+    let currentPayload = { ...payload };
+
+    const _norm = s => String(s || '')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    for (let attempt = 0; attempt < 8; attempt++) {
+        if (Object.keys(currentPayload).length === 0) {
+            return { ok: false, error: { message: 'Sin campos válidos para guardar.' } };
+        }
+
+        const req = client.from('Conciliación Manifiestos');
+        const result = rowId
+            ? await req.update(currentPayload).eq('id', rowId)
+            : await req.insert(currentPayload);
+
+        if (!result.error) return { ok: true, adjusted: attempt > 0 };
+
+        const message = String(result.error.message || '');
+        let mutated = false;
+
+        const typeValueMatch = message.match(/invalid input syntax for type (?:bigint|integer|numeric|double precision):\s*"([^"]+)"/i);
+        if (typeValueMatch) {
+            const badValue = _conciNormalizeEditableCellText(typeValueMatch[1]);
+            Object.keys(currentPayload).forEach(col => {
+                const val = currentPayload[col];
+                if (val === null || val === undefined) return;
+                const valNorm = _conciNormalizeEditableCellText(String(val));
+                if (valNorm !== badValue) return;
+
+                const coerced = _conciCoerceNumberCandidate(val);
+                if (coerced === null || Number.isNaN(coerced)) delete currentPayload[col];
+                else currentPayload[col] = coerced;
+                mutated = true;
+            });
+        }
+
+        const notNullMatch = message.match(/null value in column "([^"]+)" violates not-null constraint/i);
+        if (!mutated && notNullMatch) {
+            const badColNorm = _norm(notNullMatch[1]);
+            const key = Object.keys(currentPayload).find(k => _norm(k) === badColNorm) || notNullMatch[1];
+            if (currentPayload[key] === null || currentPayload[key] === undefined || String(currentPayload[key]).trim() === '') {
+                currentPayload[key] = 0;
+                mutated = true;
+            }
+        }
+
+        if (!mutated) return { ok: false, error: result.error };
+    }
+
+    return { ok: false, error: { message: 'Error desconocido al guardar.' } };
+}
+
+async function _conciRunBatchWrites(items, batchSize, worker) {
+    const results = [];
+    for (let i = 0; i < items.length; i += batchSize) {
+        const batch = items.slice(i, i + batchSize);
+        const out = await Promise.all(batch.map(worker));
+        results.push(...out);
+    }
+    return results;
+}
+
+function _conciEnterEditMode() {
+    if (!_conciCanCurrentUserEdit()) {
+        alert('Solo usuarios editor o admin pueden editar esta tabla.');
+        return;
+    }
+    if (_conciEditMode) return;
+
+    _conciEnsureEditStyles();
+    _conciEditMode = true;
+    _conciSetTableEditableState(true);
+    _conciRefreshEditToolbar();
+}
+
+async function _conciCancelBulkEdits() {
+    if (!_conciEditMode) return;
+    _conciEditMode = false;
+    _conciSetTableEditableState(false);
+    _conciRefreshEditToolbar();
+    await loadConciliacionManifiestos();
+}
+
+async function _conciSaveBulkEdits() {
+    if (!_conciEditMode) return;
+    if (!_conciCanCurrentUserEdit()) {
+        alert('Solo usuarios editor o admin pueden guardar cambios.');
+        return;
+    }
+
+    const btnSave = document.getElementById('btn-conci-save-mode');
+    const prevHtml = btnSave ? btnSave.innerHTML : '';
+    if (btnSave) {
+        btnSave.disabled = true;
+        btnSave.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando';
+    }
+
+    try {
+        let client = window.supabaseClient;
+        if (!client && window.ensureSupabaseClient) client = await window.ensureSupabaseClient();
+        if (!client) throw new Error('No se pudo inicializar el cliente de Supabase.');
+
+        const table = document.getElementById('table-conci-manifiestos');
+        const tbody = table ? table.querySelector('tbody') : null;
+        if (!tbody) throw new Error('No se encontró la tabla de conciliación.');
+
+        // Commit active editor before collecting changes
+        tbody.querySelectorAll('.conci-cell-input').forEach(inp => inp.blur());
+
+        const updates = [];
+        const inserts = [];
+
+        const dirtyRows = Array.from(tbody.querySelectorAll('tr[data-dirty="1"]'));
+        dirtyRows.forEach(tr => {
+            const rowId = String(tr.dataset.rowId || '').trim();
+            const changedPayload = {};
+            const fullPayload = {};
+
+            tr.querySelectorAll('td[data-col]').forEach(td => {
+                const col = td.dataset.col;
+                const newRaw = _conciNormalizeEditableCellText(
+                    td.dataset.pendingRaw !== undefined ? td.dataset.pendingRaw : td.dataset.raw
+                );
+                const oldRaw = _conciNormalizeEditableCellText(
+                    td.dataset.origRaw !== undefined ? td.dataset.origRaw : td.dataset.raw
+                );
+                const normalized = newRaw === '' ? null : newRaw;
+
+                fullPayload[col] = normalized;
+                if (newRaw !== oldRaw) changedPayload[col] = normalized;
+            });
+
+            if (Object.keys(changedPayload).length === 0) return;
+            if (rowId) updates.push({ id: rowId, payload: changedPayload });
+            else {
+                const hasMeaningfulValue = Object.values(changedPayload)
+                    .some(v => v !== null && String(v).trim() !== '');
+                if (hasMeaningfulValue) inserts.push(fullPayload);
+            }
+        });
+
+        if (updates.length === 0 && inserts.length === 0) {
+            _conciEditMode = false;
+            _conciSetTableEditableState(false);
+            _conciRefreshEditToolbar();
+            return;
+        }
+
+        const updateResults = await _conciRunBatchWrites(
+            updates,
+            30,
+            (item) => _conciWriteRowSafe(client, item.payload, item.id)
+        );
+        const insertResults = await _conciRunBatchWrites(
+            inserts,
+            30,
+            (payload) => _conciWriteRowSafe(client, payload, null)
+        );
+
+        const results = [...updateResults, ...insertResults];
+        const okCount = results.filter(r => r && r.ok).length;
+        const fail = results.filter(r => !r || !r.ok);
+
+        if (fail.length > 0) {
+            const firstErr = fail[0]?.error?.message || 'Error desconocido';
+            alert(`Guardado parcial: ${okCount} filas guardadas, ${fail.length} con error. Primer error: ${firstErr}`);
+        }
+
+        _conciEditMode = false;
+        _conciSetTableEditableState(false);
+        _conciRefreshEditToolbar();
+        await loadConciliacionManifiestos();
+    } catch (e) {
+        alert('Error al guardar cambios: ' + e.message);
+    } finally {
+        if (btnSave) {
+            btnSave.disabled = false;
+            btnSave.innerHTML = prevHtml;
+        }
+    }
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
