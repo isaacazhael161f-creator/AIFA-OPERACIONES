@@ -988,6 +988,11 @@
                             class="fas fa-database"></i><span>Gestión de Datos</span></a>
                     <a class="menu-item" href="#" data-section="historia"><i
                             class="fas fa-history"></i><span>Historia</span></a>
+                            
+                    <!-- Nueva sección Insights -->
+                    <a class="menu-item" href="#" data-section="insights"><i 
+                            class="fas fa-lightbulb"></i><span>Insights y Mejoras</span></a>
+
                     <a class="menu-item" href="#" data-install-app-info><i class="fas fa-download"></i><span>Instalar
                             como app</span></a>
 
@@ -3234,6 +3239,65 @@
                     </div>
                 </div>
 
+                <!-- SECCIÓN DE INSIGHTS Y MEJORAS -->
+                <div id="insights-section" class="content-section">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="section-heading mb-0"><i class="fas fa-lightbulb me-2 text-warning"></i>Insights y Mejoras Contínuas</h2>
+                        <button class="btn btn-primary" onclick="window.insightsManager.generarInsights()"><i class="fas fa-sync-alt me-2"></i>Actualizar Análisis</button>
+                    </div>
+                    
+                    <!-- Tarjetas de resumen rápido -->
+                    <div class="row g-3 mb-4" id="insights-cards-container">
+                        <!-- Generado dinámicamente -->
+                    </div>
+
+                    <div class="row g-4 mb-4">
+                        <!-- Panel de análisis de demoras estructurales -->
+                        <div class="col-12 col-xl-6">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-header bg-white py-3">
+                                    <h5 class="mb-0 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Concentración de Demoras</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3" id="insights-demoras-chart-container" style="height: 250px;">
+                                        <canvas id="insightsDemorasChart"></canvas>
+                                    </div>
+                                    <div id="insights-demoras-texto" class="text-muted small">Cargando análisis...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel de recomendaciones de rutas/aerolíneas -->
+                        <div class="col-12 col-xl-6">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-header bg-white py-3">
+                                    <h5 class="mb-0 text-success"><i class="fas fa-chart-line me-2"></i>Oportunidades de Crecimiento</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3" id="insights-crecimiento-chart-container" style="height: 250px;">
+                                        <canvas id="insightsCrecimientoChart"></canvas>
+                                    </div>
+                                    <div id="insights-crecimiento-texto" class="text-muted small">Cargando análisis...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sugerencias Operativas (Texto Formateado) -->
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-header bg-white py-3">
+                            <h5 class="mb-0 text-primary"><i class="fas fa-list-check me-2"></i>Recomendaciones Operativas</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row" id="insights-recomendaciones-container">
+                                <!-- Generadas dinámicamente -->
+                                <div class="col-12 text-center text-muted"><p>Procesando información histórica para generar sugerencias...</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- FIN SECCIÓN DE INSIGHTS -->
+
                 <div id="inicio-section" class="content-section">
                     <div class="card">
                         <div class="card-header">
@@ -4382,9 +4446,6 @@
                                         </div>
                                     </div>
 
-                                    <!-- ─── Promedios mensuales por tipo (parte_operations) ─── -->
-                                    <div class="mb-4" id="ops-annual-averages-cards"></div>
-
                                     <div class="card shadow-sm border-0 mb-3">
                                         <div class="card-header bg-white border-0 pb-0">
                                             <span class="fw-bold"><i class="fas fa-chart-bar me-2 text-primary"></i>Distribución Mensual de Operaciones</span>
@@ -4397,48 +4458,8 @@
                                     </div>
                                     <div class="table-responsive mb-4" id="ops-annual-averages-table"></div>
 
-                                    <!-- ─── Pasajeros por Aerolínea ─── -->
-                                    <div class="card shadow-sm border-0 mb-3" id="airline-pax-section">
-                                        <div class="card-header bg-white border-0 pb-0 d-flex align-items-center justify-content-between">
-                                            <h6 class="fw-bold mb-0">
-                                                <i class="fas fa-users me-2 text-success"></i>Pasajeros por Aerolínea
-                                            </h6>
-                                            <span class="badge bg-primary" id="airline-pax-year-badge">2025</span>
-                                        </div>
-                                        <div class="card-body pt-2">
-                                            <div id="airline-pax-loading" class="text-center py-4 text-muted small">
-                                                <div class="spinner-border spinner-border-sm me-2"></div>Calculando pasajeros por aerolínea...
-                                            </div>
-                                            <div id="airline-pax-content" class="d-none">
-                                                <div class="row g-3">
-                                                    <div class="col-lg-7">
-                                                        <div style="position: relative; min-height: 420px;">
-                                                            <canvas id="chart-airline-annual-pax"></canvas>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-lg-5">
-                                                        <div class="table-responsive" style="max-height: 440px; overflow-y: auto;">
-                                                            <table class="table table-sm table-hover table-bordered mb-0" id="table-airline-pax">
-                                                                <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
-                                                                    <tr>
-                                                                        <th class="text-center">#</th>
-                                                                        <th>Aerolínea</th>
-                                                                        <th class="text-end">Pasajeros</th>
-                                                                        <th class="text-end">% Total</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody id="tbody-airline-pax"></tbody>
-                                                            </table>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div id="airline-pax-empty" class="d-none alert alert-info mb-0">
-                                                No hay datos de pasajeros por aerolínea disponibles para este año en <code>daily_flights_ops</code>.
-                                            </div>
-                                        </div>
-                                    </div>
                                 </div>
+
                             </div>
                         </div>
                     </div>
@@ -7146,6 +7167,12 @@
                                         aria-controls="aviacion-carga-pane" aria-selected="false"><i
                                             class="fas fa-box-open me-2"></i>Aviación de carga</button>
                                 </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="comparativa-yoy-tab" data-bs-toggle="tab"
+                                        data-bs-target="#analisis-yoy-pane" type="button" role="tab"
+                                        aria-controls="analisis-yoy-pane" aria-selected="false"><i
+                                            class="fas fa-chart-line me-2"></i>Comparativa (YoY)</button>
+                                </li>
                             </ul>
                             <div class="tab-content pt-3" id="opsTabsContent">
                                 <div class="tab-pane fade show active" id="ops-resumen-pane" role="tabpanel"
@@ -7880,6 +7907,75 @@
                                         <div class="ag-insights d-none mt-3" id="cargo-insights"></div>
                                     </div>
                                 </div>
+                                
+                                <div class="tab-pane fade" id="analisis-yoy-pane" role="tabpanel" aria-labelledby="comparativa-yoy-tab" tabindex="0">
+                                    <div class="ag-wrapper">
+                                        <div class="row g-3 mb-4">
+                                            <div class="col-12 col-xl-3">
+                                                <div class="card h-100 shadow-sm border-0 bg-light-subtle">
+                                                    <div class="card-body">
+                                                        <h6 class="text-uppercase text-muted fw-bold mb-3"><i class="fas fa-filter me-2"></i>Filtros YoY</h6>
+                                                        <div class="mb-3">
+                                                            <label for="yoy-metric-select" class="form-label small fw-semibold">Indicador</label>
+                                                            <select id="yoy-metric-select" class="form-select form-select-sm">
+                                                                <option value="operaciones" selected>Operaciones</option>
+                                                                <option value="pasajeros">Pasajeros</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label small fw-semibold">Años a comparar</label>
+                                                            <div id="yoy-years-container" class="d-flex flex-column gap-2">
+                                                                <!-- Se llenará dinámicamente -->
+                                                            </div>
+                                                        </div>
+                                                        <hr/ >
+                                                        <p class="small text-muted mb-0">Esta vista superpone los meses (Enero a Diciembre) de cada año seleccionado para facilitar la comparación de tendencias.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-xl-9">
+                                                <div class="card shadow-sm border-0 h-100">
+                                                    <div class="card-body">
+                                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                                            <h5 class="card-title fw-bold mb-0 text-primary" id="yoy-chart-title">Comparativa Mensual</h5>
+                                                            <button class="btn btn-sm btn-outline-secondary" id="yoy-export-btn" title="Exportar CSV">
+                                                                <i class="fas fa-download"></i>
+                                                            </button>
+                                                        </div>
+                                                        <div class="chart-container" style="position: relative; height:400px; width:100%; margin-bottom: 2rem;">
+                                                            <canvas id="yoyCompChart"></canvas>
+                                                        </div>
+                                                        <div id="yoy-insights" class="alert alert-info border-0 shadow-sm d-none" role="alert">
+                                                            <h6 class="alert-heading fw-bold mb-2"><i class="fas fa-lightbulb me-2 text-warning"></i>Insights y Tendencias</h6>
+                                                            <ul id="yoy-insights-list" class="mb-0 small ps-3">
+                                                                <!-- Generado mediante JS -->
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-12">
+                                                <div class="card shadow-sm border-0">
+                                                    <div class="card-body p-0">
+                                                        <div class="table-responsive">
+                                                            <table class="table table-hover table-bordered table-sm align-middle mb-0 text-center" id="yoy-data-table">
+                                                                <thead class="table-light">
+                                                                    <!-- Se llenará dinámicamente -->
+                                                                </thead>
+                                                                <tbody>
+                                                                    <!-- Se llenará dinámicamente -->
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
 
                         </div>
@@ -9213,6 +9309,7 @@
                                             </div>
 
                                             <div class="row g-3 mb-4">
+                                  
                                                 <div class="col-12">
                                                     <div class="card shadow-sm h-100">
                                                         <div class="card-header">
@@ -11031,6 +11128,8 @@
     <script src="js/parte-ops-tab.js"></script>
     <script src="js/itinerario-tab.js"></script>
     <script src="js/comparativa.js"></script>
+    <script src="js/insights.js"></script>
+    <script src="js/comparativa-historica.js"></script>
     <script src="js/parte-ops-flights.js?v=2.2"></script>
     <script>
     // ---- Conciliación Board View ----

@@ -12,18 +12,25 @@
     document.addEventListener('DOMContentLoaded', () => {
         const triggerBtn = document.querySelector('button[data-bs-target="#analisis-anual-pane"]');
 
+        let lastLoadedYear = null;
+
         const loadHandler = () => {
-            setTimeout(runAnnualAnalysis, 10);
+            const year = getSelectedYear();
+            if (lastLoadedYear === year && window._annualDataLoaded) return; // Prevenir re-fething lag
+            lastLoadedYear = year;
+            window._annualDataLoaded = true;
+            // Usamos requestAnimationFrame en vez de setTimeout para que la UI no se congele durante el cambio de pestaña
+            requestAnimationFrame(() => requestAnimationFrame(runAnnualAnalysis));
         };
 
         if (triggerBtn) triggerBtn.addEventListener('shown.bs.tab', loadHandler);
 
         const refreshBtn = document.getElementById('btn-refresh-annual');
-        if (refreshBtn) refreshBtn.addEventListener('click', runAnnualAnalysis);
+        if (refreshBtn) refreshBtn.addEventListener('click', () => { lastLoadedYear = null; runAnnualAnalysis(); });
 
         // Year selector change triggers full reload
         const yearSel = document.getElementById('annual-year-select');
-        if (yearSel) yearSel.addEventListener('change', runAnnualAnalysis);
+        if (yearSel) yearSel.addEventListener('change', () => { lastLoadedYear = null; runAnnualAnalysis(); });
     });
 
     function getSelectedYear() {
@@ -45,9 +52,9 @@
         const chartCanvas = document.getElementById('ops-annual-averages-chart');
         if (chartCanvas) chartCanvas.style.opacity = '0.5';
 
-        // Launch KPI cards and airline pax ranking in parallel (non-blocking)
+        // Launch KPI cards in parallel (non-blocking)
         runAnnualKPICards(year);
-        runAirlinePaxRanking(year);
+        // runAirlinePaxRanking(year); // Removing per user request
 
         try {
             const { data, error } = await window.supabaseClient

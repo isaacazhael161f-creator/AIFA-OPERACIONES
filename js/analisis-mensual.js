@@ -7,16 +7,30 @@
     let serviceChart = null;
 
     document.addEventListener('DOMContentLoaded', () => {
+        let lastLoadedMonth = null;
+        
+        function getSelectedMonthStr() {
+            const mObj = window.monthSelector ? window.monthSelector.getMonth() : null;
+            if(!mObj) return null;
+            return `${mObj.year}-${mObj.month}`;
+        }
+
+        const loadHandler = () => {
+            const currentMonthStr = getSelectedMonthStr();
+            if (lastLoadedMonth === currentMonthStr && window._monthlyDataLoaded) return; // Prevent lag
+            lastLoadedMonth = currentMonthStr;
+            window._monthlyDataLoaded = true;
+            requestAnimationFrame(() => requestAnimationFrame(runAnalysis));
+        };
+
         const btnUpdate = document.getElementById('btn-update-analysis');
         if (btnUpdate) {
-            btnUpdate.addEventListener('click', runAnalysis);
+            btnUpdate.addEventListener('click', () => { lastLoadedMonth = null; runAnalysis(); });
         }
 
         const tabEl = document.getElementById('tab-analisis-mensual');
         if (tabEl) {
-            tabEl.addEventListener('shown.bs.tab', () => {
-                setTimeout(runAnalysis, 100);
-            });
+            tabEl.addEventListener('shown.bs.tab', loadHandler);
         }
     });
 

@@ -27,8 +27,12 @@
   ═══════════════════════════════════════════════════════ */
   const AIRLINE_IATA = {
     'aerom\u00e9xico': 'AM', 'aeromexico': 'AM', 'aeroméxico connect': 'AM',
+    'aerolitoral': 'AM', 'aerovias': 'AM', 'aerov\u00edas': 'AM', 'aerovias de mexico': 'AM', 'aerovías de méxico': 'AM',
+    'mexicana': 'XN', 'mexicana de aviacion': 'XN', 'mexicana de aviación': 'XN',
     'volaris': 'Y4', 'vuela': 'Y4',
     'vivaaerobus': 'VB', 'viva aerobus': 'VB', 'viva aerob\u00fas': 'VB',
+    'arajet': 'DM',
+    'aerus': '5A',
     'aeromar': 'VW',
     'american airlines': 'AA', 'american': 'AA',
     'united airlines': 'UA', 'united': 'UA',
@@ -74,11 +78,39 @@
     'transportes a\u00e9reos guatemaltecos': 'GU', 'tag airlines': 'GU',
   };
 
+  const LOCAL_AIRLINE_LOGOS = {
+    'viva aerobus': 'images/airlines/logo_viva.png',
+    'vivaaerobus': 'images/airlines/logo_viva.png',
+    'volaris': 'images/airlines/logo_volaris.png',
+    'mexicana': 'images/airlines/logo_mexicana.png',
+    'mexicana de aviacion': 'images/airlines/logo_mexicana.png',
+    'aerolitoral': 'images/airlines/logo_aeromexico.png',
+    'aerovias': 'images/airlines/logo_aeromexico.png',
+    'aerovias de mexico': 'images/airlines/logo_aeromexico.png',
+    'arajet': 'images/airlines/logo_arajet.png',
+    'aerus': 'images/airlines/logo_aerus.png'
+  };
+
   const _logoCache = {};  // IATA → HTMLImageElement
 
+  function normalizeAirlineKey(airlineName) {
+    return (airlineName || '')
+      .toString()
+      .toLowerCase()
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ');
+  }
+
   function getIATA(airlineName) {
-    const k = (airlineName || '').toLowerCase().trim();
+    const k = normalizeAirlineKey(airlineName);
     return AIRLINE_IATA[k] || null;
+  }
+
+  function getLocalLogoPath(airlineName) {
+    const k = normalizeAirlineKey(airlineName);
+    return LOCAL_AIRLINE_LOGOS[k] || null;
   }
 
   function logoUrl(iata) {
@@ -102,6 +134,13 @@
   }
 
   function airlineLogoHTML(name, size) {
+    const localLogo = getLocalLogoPath(name);
+    if (localLogo) {
+      const s = size || 22;
+      return '<img src="' + localLogo + '" alt="' + escHtml(name || 'logo') + '"'
+        + ' style="width:' + s + 'px;height:' + s + 'px;object-fit:contain;border-radius:4px;margin-right:5px;vertical-align:middle;background:#f8f9fa;"'
+        + ' onerror="this.style.display=\'none\'">';
+    }
     const iata = getIATA(name);
     if (!iata) return '';
     const s = size || 22;
