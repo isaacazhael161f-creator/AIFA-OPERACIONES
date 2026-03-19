@@ -162,20 +162,24 @@
 
             const yColor = yearColors[year] || yearColors['default'];
 
-            datasets.push({
-                label: `A\u00F1o ${year}`,
-                data: dataArr,
-                borderColor: yColor,
-                backgroundColor: yColor + '1A', 
-                borderWidth: 2,
-                pointBackgroundColor: '#fff',
-                pointBorderColor: yColor,
-                pointBorderWidth: 2,
-                pointRadius: 4,
-                pointHoverRadius: 6,
-                fill: true,
-                tension: 0.3
-            });
+                          datasets.push({
+                  label: `A\u00F1o ${year}`,
+                  data: dataArr,
+                  borderColor: yColor,
+                  backgroundColor: yColor + '26',
+                  borderWidth: 3,
+                  pointBackgroundColor: yColor,
+                  pointBorderColor: '#ffffff',
+                  pointBorderWidth: 2,
+                  pointRadius: 4,
+                  pointHoverRadius: 7,
+                  pointHoverBackgroundColor: yColor,
+                  pointHoverBorderColor: '#ffffff',
+                  pointHoverBorderWidth: 3,
+                  fill: true,
+                  tension: 0.4
+              });
+
         });
 
         // Solo "llenar" (fill) el dataset mï¿½s reciente
@@ -192,6 +196,10 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: {
+                    duration: 500,
+                    easing: 'easeOutQuart'
+                },
                 interaction: {
                     mode: 'index',
                     intersect: false,
@@ -199,9 +207,28 @@
                 plugins: {
                     legend: {
                         position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            boxWidth: 8,
+                            padding: 20,
+                            font: {
+                                family: "'Inter', 'Segoe UI', sans-serif",
+                                size: 13,
+                                weight: '500'
+                            }
+                        }
                     },
                     tooltip: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#1e293b',
+                        bodyColor: '#475569',
+                        borderColor: '#cbd5e1',
+                        borderWidth: 1,
+                        padding: 12,
+                        boxPadding: 6,
                         usePointStyle: true,
+                        titleFont: { size: 14, weight: 'bold' },
+                        bodyFont: { size: 13, weight: '500' },
                         callbacks: {
                             label: function(context) {
                                 let label = context.dataset.label || '';
@@ -217,9 +244,34 @@
                     }
                 },
                 scales: {
+                    x: {
+                        grid: {
+                            display: false,
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#64748b',
+                            font: {
+                                family: "'Inter', 'Segoe UI', sans-serif",
+                                size: 12
+                            }
+                        }
+                    },
                     y: {
                         beginAtZero: true,
+                        grid: {
+                            color: '#f1f5f9',
+                            drawBorder: false,
+                            tickLength: 0
+                        },
+                        border: { display: false },
                         ticks: {
+                            color: '#64748b',
+                            padding: 8,
+                            font: {
+                                family: "'Inter', 'Segoe UI', sans-serif",
+                                size: 12
+                            },
                             callback: function(value) {
                                 return new Intl.NumberFormat('es-MX', { notation: "compact", compactDisplay: "short" }).format(value);
                             }
@@ -439,3 +491,5 @@
             insightsContainer.classList.add('d-none');
         }
     }
+
+
