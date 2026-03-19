@@ -59,11 +59,10 @@
     function updateChartTitle() {
         const titleEl = document.getElementById('yoy-chart-title');
         if (titleEl) {
-            if (currentMetric === 'operaciones') {
-                titleEl.innerHTML = '<i class="fa-solid fa-plane me-2"></i>Comparativa Mensual de Operaciones Comerciales';
-            } else {
-                titleEl.innerHTML = '<i class="fa-solid fa-user me-2"></i>Comparativa Mensual de Pasajeros Comerciales';
-            }
+            // Se usa innerHTML para incluir el icono
+            titleEl.innerHTML = currentMetric === 'operaciones' 
+                ? '<i class="fas fa-plane me-2"></i>Comparativa Mensual de Operaciones Comerciales' 
+                : '<i class="fas fa-user me-2"></i>Comparativa Mensual de Pasajeros Comerciales';
         }
     }
 
@@ -431,7 +430,7 @@
         link.click();
         document.body.removeChild(link);
     }
-})();
+
     function generateYoYInsights() {
         const insightsContainer = document.getElementById('yoy-insights');
         const insightsList = document.getElementById('yoy-insights-list');
@@ -521,5 +520,4 @@
             insightsContainer.classList.add('d-none');
         }
     }
-
-
+});
