@@ -951,8 +951,16 @@
             const isActive = count > 0;
             
             const cell = document.createElement('div');
-            cell.className = `text-center rounded p-1 flex-fill ${isActive ? 'bg-danger-subtle border border-danger-subtle' : 'bg-light border border-light'}`;
-            cell.style.minWidth = '35px';
+            cell.className = `text-center rounded p-1 flex-shrink-0 ${isActive ? 'bg-danger-subtle border border-danger-subtle shadow-sm' : 'bg-light border border-light'}`;
+            cell.style.flex = '1 1 0px';
+            cell.style.minWidth = '0';
+            cell.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            if (isActive) {
+                cell.onmouseenter = () => {
+                    if (contentDiv.dataset.view !== 'detail') cell.style.transform = 'translateY(-2px)';
+                };
+                cell.onmouseleave = () => cell.style.transform = 'none';
+            }
             
             const dateDiv = document.createElement('div');
             dateDiv.className = `small ${isActive ? 'text-danger fw-semibold' : 'text-muted opacity-50'}`;
@@ -971,9 +979,12 @@
                 cell.onclick = (e) => {
                     e.stopPropagation();
                     const isExpanded = contentDiv.dataset.view === 'detail';
+                    
                     if (isExpanded) {
                         contentDiv.textContent = count;
                         contentDiv.dataset.view = 'count';
+                        cell.style.flex = '1 1 0px';
+                        cell.style.transform = 'none';
                     } else {
                         const flights = detail.split('<br>');
                         let listHtml = '<div class="d-flex flex-column gap-1 text-start mt-1">';
@@ -1010,6 +1021,8 @@
                         listHtml += '</div>';
                         contentDiv.innerHTML = listHtml;
                         contentDiv.dataset.view = 'detail';
+                        cell.style.flex = '3 1 180px';
+                        cell.style.transform = 'translateY(-2px)';
                     }
                 };
             }

@@ -1137,10 +1137,17 @@
             
             const cell = document.createElement('div');
             // Base styles
-            cell.className = `text-center rounded p-2 flex-fill flex-shrink-0 ${isActive ? 'bg-primary-subtle border border-primary-subtle' : 'bg-light border border-light'}`;
-            // Aumentar minWidth para que quepan bien los detalles del vuelo (200px para estar seguros)
-            cell.style.minWidth = '220px'; 
-            cell.style.transition = 'all 0.2s ease';
+            cell.className = `text-center rounded p-2 flex-shrink-0 ${isActive ? 'bg-primary-subtle border border-primary-subtle shadow-sm' : 'bg-light border border-light'}`;
+            // Permitir que se distribuyan equitativamente
+            cell.style.flex = '1 1 0px';
+            cell.style.minWidth = '0';
+            cell.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            if (isActive) {
+                cell.onmouseenter = () => {
+                    if (contentDiv.dataset.view !== 'detail') cell.style.transform = 'translateY(-2px)';
+                };
+                cell.onmouseleave = () => cell.style.transform = 'none';
+            }
             
             // Date Label
             const dateDiv = document.createElement('div');
@@ -1175,8 +1182,13 @@
                         contentDiv.dataset.view = 'count';
                         contentDiv.style.fontSize = '1.5rem';
                         contentDiv.style.textAlign = 'center';
+                        cell.style.flex = '1 1 0px';
+                        cell.style.minWidth = '0';
                     } else {
                         // Expand
+                        cell.style.flex = '3 1 200px'; 
+                        cell.style.minWidth = '200px';
+                        
                         const flightsRaw = detail.split('<br>');
                         // Deduplicate: trim spaces and use Set
                         const flights = [...new Set(flightsRaw.map(f => f.trim()))].filter(Boolean);

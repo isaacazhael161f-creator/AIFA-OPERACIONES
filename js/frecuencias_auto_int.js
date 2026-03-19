@@ -935,9 +935,16 @@
             
             const cell = document.createElement('div');
             // Base styles
-            cell.className = `text-center rounded p-1 flex-shrink-0 ${isActive ? 'bg-primary-subtle border border-primary-subtle' : 'bg-light border border-light'}`;
-            cell.style.minWidth = '50px'; // Slightly larger base width
-            cell.style.transition = 'all 0.2s ease';
+            cell.className = `text-center rounded p-1 flex-shrink-0 ${isActive ? 'bg-primary-subtle border border-primary-subtle shadow-sm' : 'bg-light border border-light'}`;
+            cell.style.flex = '1 1 0px';
+            cell.style.minWidth = '0';
+            cell.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            if (isActive) {
+                cell.onmouseenter = () => {
+                    if (contentDiv.dataset.view !== 'detail') cell.style.transform = 'translateY(-2px)';
+                };
+                cell.onmouseleave = () => cell.style.transform = 'none';
+            }
             
             // Date Label
             const dateDiv = document.createElement('div');
@@ -971,12 +978,12 @@
                         contentDiv.dataset.view = 'count';
                         contentDiv.style.fontSize = '1.1rem';
                         contentDiv.style.textAlign = 'center';
-                        cell.style.minWidth = '50px';
-                        cell.classList.remove('flex-grow-1');
+                        cell.style.flex = '1 1 0px';
+                        cell.style.minWidth = '0';
                     } else {
                         // Expand
-                        cell.style.minWidth = '180px'; // Increase width to fit card
-                        // cell.classList.add('flex-grow-1'); // Optional: make it take available space
+                        cell.style.flex = '3 1 180px';
+                        cell.style.minWidth = '180px'; 
                         
                         const flights = detail.split('<br>');
                         let listHtml = '<div class="d-flex flex-column gap-2 text-start mt-2">';
