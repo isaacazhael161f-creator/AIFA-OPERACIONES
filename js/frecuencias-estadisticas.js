@@ -20,6 +20,18 @@ const FreqStats = (() => {
     let _initialized = false;
     let _airlines = [];        // from data/airlines.json
     let _airlineCache = {};    // normalized name cache
+    const AIRLINE_LOGO_FIXES = {
+        'masair': { canonical: 'MasAir', logo: 'images/airlines/logo_mas_air.png', color: '#00a550', textColor: '#ffffff', iata: 'M7' },
+        'mas air': { canonical: 'MasAir', logo: 'images/airlines/logo_mas_air.png', color: '#00a550', textColor: '#ffffff', iata: 'M7' },
+        'china southern': { canonical: 'China Southern', logo: 'images/airlines/logo_china_southern.png', color: '#002a5c', textColor: '#ffffff', iata: 'CZ' },
+        'china southern airlines': { canonical: 'China Southern', logo: 'images/airlines/logo_china_southern.png', color: '#002a5c', textColor: '#ffffff', iata: 'CZ' },
+        'china southern cargo': { canonical: 'China Southern', logo: 'images/airlines/logo_china_southern.png', color: '#002a5c', textColor: '#ffffff', iata: 'CZ' },
+        'china southerrn': { canonical: 'China Southern', logo: 'images/airlines/logo_china_southern.png', color: '#002a5c', textColor: '#ffffff', iata: 'CZ' },
+        'aerotransporte de carga union': { canonical: 'Aerotransporte de Carga Unión', logo: 'images/airlines/logo_aerotransporte_de_carga_unión.png', color: '#00529b', textColor: '#ffffff', iata: 'R6' },
+        'aerotransporte de carga union sa de cv': { canonical: 'Aerotransporte de Carga Unión', logo: 'images/airlines/logo_aerotransporte_de_carga_unión.png', color: '#00529b', textColor: '#ffffff', iata: 'R6' },
+        'aerounion': { canonical: 'Aerotransporte de Carga Unión', logo: 'images/airlines/logo_aerounión.png', color: '#00529b', textColor: '#ffffff', iata: 'R6' },
+        'aero union': { canonical: 'Aerotransporte de Carga Unión', logo: 'images/airlines/logo_aerounión.png', color: '#00529b', textColor: '#ffffff', iata: 'R6' }
+    };
 
     const DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
     const DAY_LABELS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
@@ -135,11 +147,23 @@ const FreqStats = (() => {
     // ─── Airline resolver ────────────────────────────────────────────────────
     /** Returns { canonical, logo, color, textColor, iata } for a raw airline name */
     function resolveAirline(rawName) {
-        const key = (rawName || '').toLowerCase().trim();
+        const normalizeAirlineName = (value) => String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^\w\s-]/g, ' ')
+            .replace(/[_-]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        const key = normalizeAirlineName(rawName);
         if (_airlineCache[key]) return _airlineCache[key];
+        if (AIRLINE_LOGO_FIXES[key]) return (_airlineCache[key] = AIRLINE_LOGO_FIXES[key]);
+
         for (const a of _airlines) {
-            const aliases = (a.aliases || []).map(s => s.toLowerCase());
-            if (aliases.includes(key) || (a.name || '').toLowerCase() === key) {
+            const aliases = (a.aliases || []).map(normalizeAirlineName);
+            const nameKey = normalizeAirlineName(a.name || '');
+            if (aliases.includes(key) || nameKey === key) {
                 // logo may be a filename (prefix with path) or an absolute URL (use as-is)
                 const logoRaw = a.logo || null;
                 const logoPath = logoRaw
