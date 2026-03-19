@@ -546,16 +546,15 @@
     const isSingleDest = state.filters.destination !== 'all';
     if (dom.mapCol && dom.detailsCol) {
         if (isSingleDest) {
-            dom.mapCol.classList.remove('col-12');
-            dom.mapCol.classList.add('col-lg-5'); // Make map smaller (was col-lg-7)
-            dom.detailsCol.className = 'col-12 col-lg-7'; // Make details larger (was col-lg-5 default in HTML)
+            // Dar más espacio a los días para que no haya scroll horizontal
+            dom.mapCol.className = 'col-12 col-xl-3 col-lg-4 transition-all';
+            dom.detailsCol.className = 'col-12 col-xl-9 col-lg-8';
             dom.detailsCol.classList.remove('d-none');
             // Render details
             const dest = state.destinations.find(d => d.iata === state.filters.destination);
             if (dest) renderDestinationDetails(dest);
         } else {
-            dom.mapCol.classList.add('col-12');
-            dom.mapCol.classList.remove('col-lg-5');
+            dom.mapCol.className = 'col-12 transition-all';
             dom.detailsCol.classList.add('d-none');
         }
         // Trigger map resize after transition
@@ -1186,9 +1185,9 @@
                         cell.style.minWidth = '0';
                     } else {
                         // Expand
-                        cell.style.flex = '3 1 200px'; 
-                        cell.style.minWidth = '200px';
-                        
+                        cell.style.flex = '4 1 0px';
+                        cell.style.minWidth = '0';
+
                         const flightsRaw = detail.split('<br>');
                         // Deduplicate: trim spaces and use Set
                         const flights = [...new Set(flightsRaw.map(f => f.trim()))].filter(Boolean);
