@@ -490,14 +490,15 @@
     const isSingleDest = state.filters.destination !== 'all';
     if (dom.mapCol && dom.detailsCol) {
         if (isSingleDest) {
-            dom.mapCol.className = 'col-12 col-xl-3 col-lg-4 transition-all';
-            dom.detailsCol.className = 'col-12 col-xl-9 col-lg-8';
+            dom.mapCol.classList.remove('col-12');
+            dom.mapCol.classList.add('col-lg-7');
             dom.detailsCol.classList.remove('d-none');
             // Render details
             const dest = state.destinations.find(d => d.iata === state.filters.destination);
             if (dest) renderDestinationDetails(dest);
         } else {
-            dom.mapCol.className = 'col-12 transition-all';
+            dom.mapCol.classList.add('col-12');
+            dom.mapCol.classList.remove('col-lg-7');
             dom.detailsCol.classList.add('d-none');
         }
         // Trigger map resize after transition
@@ -981,9 +982,9 @@
                         cell.style.minWidth = '0';
                     } else {
                         // Expand
-                        cell.style.flex = '4 1 0px';
-                        cell.style.minWidth = '0';
-
+                        cell.style.flex = '3 1 180px';
+                        cell.style.minWidth = '180px'; 
+                        
                         const flights = detail.split('<br>');
                         let listHtml = '<div class="d-flex flex-column gap-2 text-start mt-2">';
                         flights.forEach(f => {

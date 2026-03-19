@@ -785,7 +785,71 @@ function formatDateShort(dateStr) {
     return `${d} de ${SPANISH_MONTH_NAMES[m - 1]}`;
 }
 
+const opsDeferredSyncState = {
+    pendingWeeklyReload: false,
+    pendingStaticSync: false,
+    pendingFiltersRefresh: false,
+    flushInFlight: null
+};
+
+function isOpsFiltersModalVisible() {
+    try {
+        const modalEl = document.getElementById('opsFiltersModal');
+        return !!(
+            (typeof window !== 'undefined' && window._opsFiltersModalActive)
+            || (modalEl && modalEl.classList.contains('show'))
+        );
+    } catch (_) {
+        return (typeof window !== 'undefined' && !!window._opsFiltersModalActive);
+    }
+}
+
+function queueOpsDeferredSync(key) {
+    if (!key || key === 'flushInFlight') return;
+    if (!Object.prototype.hasOwnProperty.call(opsDeferredSyncState, key)) return;
+    opsDeferredSyncState[key] = true;
+}
+
+function flushDeferredOpsSyncAfterModalClose() {
+    if (opsDeferredSyncState.flushInFlight) return opsDeferredSyncState.flushInFlight;
+
+    const shouldSyncStatic = opsDeferredSyncState.pendingStaticSync;
+    const shouldReloadWeekly = opsDeferredSyncState.pendingWeeklyReload;
+    const shouldRefreshFilters = opsDeferredSyncState.pendingFiltersRefresh;
+
+    opsDeferredSyncState.pendingStaticSync = false;
+    opsDeferredSyncState.pendingWeeklyReload = false;
+    opsDeferredSyncState.pendingFiltersRefresh = false;
+
+    if (!shouldSyncStatic && !shouldReloadWeekly && !shouldRefreshFilters) {
+        return Promise.resolve(false);
+    }
+
+    const runner = Promise.resolve()
+        .then(() => shouldSyncStatic ? syncStaticDataFromDB() : null)
+        .then(() => shouldReloadWeekly ? loadWeeklyOperationsFromDB() : null)
+        .then(() => {
+            if (shouldRefreshFilters && !shouldReloadWeekly && typeof window.updateOpsFiltersAfterDataLoad === 'function') {
+                window.updateOpsFiltersAfterDataLoad();
+            }
+        })
+        .catch((err) => {
+            console.warn('Deferred ops sync flush failed:', err);
+        })
+        .finally(() => {
+            opsDeferredSyncState.flushInFlight = null;
+        });
+
+    opsDeferredSyncState.flushInFlight = runner;
+    return runner;
+}
+
 async function loadWeeklyOperationsFromDB() {
+    if (isOpsFiltersModalVisible()) {
+        queueOpsDeferredSync('pendingWeeklyReload');
+        return;
+    }
+
     if (!window.dataManager) {
         console.warn('DataManager not available, retrying in 500ms');
         setTimeout(loadWeeklyOperationsFromDB, 500);
@@ -871,6 +935,12 @@ async function loadWeeklyOperationsFromDB() {
 
         console.log('Weekly operations loaded from DB:', WEEKLY_OPERATIONS_DATASETS.length, 'weeks');
         console.log('DB Data Sample (First Week):', WEEKLY_OPERATIONS_DATASETS[0]);
+
+        if (isOpsFiltersModalVisible()) {
+            queueOpsDeferredSync('pendingFiltersRefresh');
+            window._opsRenderQueuedFromFiltersModal = true;
+            return;
+        }
 
         // Trigger UI updates
         if (typeof window.updateOpsFiltersAfterDataLoad === 'function') {
@@ -1089,6 +1159,12 @@ window.cachedStaticRows = { annual: [], monthly: [] };
 
 async function syncStaticDataFromDB(targetYear = null) {
     try {
+        const explicitYearRequest = targetYear !== null && targetYear !== undefined && String(targetYear).trim() !== '';
+        if (isOpsFiltersModalVisible() && !explicitYearRequest) {
+            queueOpsDeferredSync('pendingStaticSync');
+            return;
+        }
+
         if (!window.dataManager) {
             console.warn('DataManager no listo, reintentando syncStaticDataFromDB en 500ms...');
             setTimeout(() => syncStaticDataFromDB(targetYear), 500);
@@ -1127,6 +1203,12 @@ async function syncStaticDataFromDB(targetYear = null) {
             latestYear = years.length ? years[years.length - 1] : (new Date()).getFullYear();
         }
         staticData.mensualYear = String(latestYear);
+
+        if (isOpsFiltersModalVisible() && !explicitYearRequest) {
+            queueOpsDeferredSync('pendingStaticSync');
+            window._opsRenderQueuedFromFiltersModal = true;
+            return;
+        }
 
         // Sync UI select if exists
         const opsFilterYear = document.getElementById('ops-filter-year');
@@ -1517,6 +1599,12 @@ function syncOperationsDataFromAnalyticsDataset(dataset) {
         staticData.mensual2025.general.pasajeros = generalPaxMonthly;
         staticData.mensualYear = targetYear;
 
+        if (isOpsFiltersModalVisible()) {
+            queueOpsDeferredSync('pendingFiltersRefresh');
+            window._opsRenderQueuedFromFiltersModal = true;
+            return;
+        }
+
         const updatedYears = new Set();
         [comercialYearly, cargaYearly, generalYearly].forEach((collection) => {
             if (!Array.isArray(collection)) return;
@@ -1577,6 +1665,10 @@ function ensureAviationAnalyticsData() {
 
 function refreshAviationAnalyticsDataIfChanged(options = {}) {
     const { notifyOnChange = true, force = false } = options;
+    if (isOpsFiltersModalVisible() && !force) {
+        queueOpsDeferredSync('pendingStaticSync');
+        return Promise.resolve(false);
+    }
     if (aviationAnalyticsRefreshInFlight) {
         return aviationAnalyticsRefreshInFlight;
     }
@@ -1602,6 +1694,10 @@ function startAviationAnalyticsAutoRefresh() {
         clearInterval(aviationAnalyticsAutoRefreshTimer);
     }
     const poll = (notify = true) => {
+        if (isOpsFiltersModalVisible()) {
+            queueOpsDeferredSync('pendingStaticSync');
+            return;
+        }
         refreshAviationAnalyticsDataIfChanged({ notifyOnChange: notify }).catch(() => { });
     };
     poll(false);
@@ -6586,6 +6682,7 @@ document.addEventListener('DOMContentLoaded', function () {
 // Resumen y gráficas de Operaciones Totales (restauración completa con filtros, animaciones y colores)
 const opsCharts = {};
 let opsViewportFrame = null;
+let opsViewportUpdateDeferred = false;
 let opsTooltipsAlwaysOn = false;
 let deferredPwaInstallEvent = null;
 let installAppModalInstance = null;
@@ -7118,6 +7215,10 @@ function adjustOpsChartViewport(chart) {
 }
 
 function scheduleOpsViewportUpdate() {
+    if (typeof window !== 'undefined' && window._opsFiltersModalActive) {
+        opsViewportUpdateDeferred = true;
+        return;
+    }
     if (opsViewportFrame) cancelAnimationFrame(opsViewportFrame);
     opsViewportFrame = requestAnimationFrame(() => {
         opsViewportFrame = null;
@@ -8231,6 +8332,15 @@ function detectChartErrors() {
     }
 }
 function renderOperacionesTotales() {
+    const opsFiltersModalOpen = isOpsFiltersModalVisible();
+    if (opsFiltersModalOpen) {
+        // Avoid expensive chart teardown/rebuild while the config modal is visible.
+        // Queue a single refresh and execute it when the modal closes.
+        window._opsRenderQueuedFromFiltersModal = true;
+        return;
+    }
+    window._opsRenderQueuedFromFiltersModal = false;
+
     try {
         const theme = getChartColors();
         updateOpsTooltipToggleButton();
@@ -11257,10 +11367,55 @@ document.addEventListener('DOMContentLoaded', () => {
         const monthsNone = document.getElementById('months-select-none');
         const sectionsBox = document.getElementById('ops-sections-filters');
         const yearsBox = document.getElementById('ops-years-filters');
+        const opsFiltersModal = document.getElementById('opsFiltersModal');
         const presetOps = document.getElementById('preset-ops');
         const presetPassengers = document.getElementById('preset-passengers');
         const presetCargoTon = document.getElementById('preset-cargo-ton');
         const presetFull = document.getElementById('preset-full');
+
+        // Isolate modal from parent tab-pane layout/reflow to avoid visual jitter.
+        if (opsFiltersModal && opsFiltersModal.parentElement !== document.body) {
+            document.body.appendChild(opsFiltersModal);
+        }
+
+        if (opsFiltersModal && !opsFiltersModal.dataset.renderFlushBound) {
+            opsFiltersModal.dataset.renderFlushBound = '1';
+            opsFiltersModal.addEventListener('show.bs.modal', () => {
+                window._opsFiltersModalActive = true;
+                document.body.classList.add('ops-filters-modal-open');
+                try { stopOpsAnim(); } catch (_) { }
+            });
+
+            opsFiltersModal.addEventListener('hide.bs.modal', () => {
+                // Keep the lock active until hidden to avoid flicker during fade-out.
+                window._opsFiltersModalActive = true;
+            });
+
+            opsFiltersModal.addEventListener('hidden.bs.modal', () => {
+                window._opsFiltersModalActive = false;
+                document.body.classList.remove('ops-filters-modal-open');
+                if (opsViewportUpdateDeferred) {
+                    opsViewportUpdateDeferred = false;
+                    requestAnimationFrame(() => {
+                        try { scheduleOpsViewportUpdate(); } catch (_) { }
+                    });
+                }
+                Promise.resolve(flushDeferredOpsSyncAfterModalClose()).finally(() => {
+                    if (window._opsRenderQueuedFromFiltersModal) {
+                        window._opsRenderQueuedFromFiltersModal = false;
+                        requestAnimationFrame(() => {
+                            try { renderOperacionesTotales(); } catch (_) { }
+                        });
+                        return;
+                    }
+
+                    // Resume traveler animation only if the section is still active.
+                    if (typeof getActiveSectionKey === 'function' && getActiveSectionKey() === 'operaciones-totales') {
+                        try { startOpsAnim(); } catch (_) { }
+                    }
+                });
+            });
+        }
 
         refreshOpsYearFilters();
         refreshOpsMonthlyYearLabels();
@@ -11283,6 +11438,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Expose update function for dynamic data loading
         window.updateOpsFiltersAfterDataLoad = function () {
+            if (isOpsFiltersModalVisible()) {
+                queueOpsDeferredSync('pendingFiltersRefresh');
+                return;
+            }
+
             const availability = populateWeeklyWeekOptions();
             populateWeeklyDayOptions();
 

@@ -1544,15 +1544,19 @@
                 </div> <!-- End of biblioteca-section -->
 
                 <div id="data-management-section" class="content-section">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2 class="section-heading mb-0"><i class="fas fa-database me-2"></i>Gestión de Datos</h2>
+                    <div class="d-flex justify-content-between align-items-center mb-4 dm-header">
+                        <div>
+                            <h2 class="section-heading mb-1"><i class="fas fa-database me-2"></i>Gestión de Datos</h2>
+                            <p class="dm-header-subtitle mb-0">Administra, valida y actualiza información operativa desde un panel unificado.</p>
+                        </div>
+                        <span class="dm-header-badge"><i class="fas fa-shield-alt me-2"></i>Panel Administrativo</span>
                     </div>
 
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="row">
+                    <div class="card dm-shell">
+                        <div class="card-body dm-shell-body">
+                            <div class="row g-4 align-items-start">
                                 <div class="col-md-3 border-end" id="dm-sidebar">
-                                    <div class="nav flex-column nav-pills me-3" id="dataTabs" role="tablist"
+                                    <div class="nav flex-column nav-pills me-3 dm-nav" id="dataTabs" role="tablist"
                                         aria-orientation="vertical">
                                         <button class="nav-link active text-start mb-2 border shadow-sm rounded"
                                             id="tab-ops-summary" data-bs-toggle="pill"
@@ -1658,7 +1662,7 @@
                                         onclick="toggleDmSidebar()">
                                         <i class="fas fa-bars me-1"></i> Mostrar Menú
                                     </button>
-                                    <div class="tab-content" id="dataTabsContent">
+                                    <div class="tab-content dm-tab-panel" id="dataTabsContent">
                                         <!-- Operations Summary Pane -->
                                         <div class="tab-pane fade show active" id="pane-ops-summary" role="tabpanel">
                                             <div class="table-responsive">

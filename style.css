@@ -1062,6 +1062,7 @@ body.dark-mode .section-title small {
    background:
       radial-gradient(circle at top right, rgba(18, 98, 196, 0.08), transparent 22%),
       linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 253, 0.96));
+   -webkit-backdrop-filter: blur(10px);
    backdrop-filter: blur(10px);
    border-bottom: 1px solid rgba(14, 55, 99, 0.08);
    margin-bottom: 1rem;
@@ -6807,6 +6808,37 @@ body.dark-mode #opsFiltersModal h6.text-muted {
    color: #9fb4cc !important;
 }
 
+/* Estabilidad visual para evitar parpadeo mientras el modal de filtros está abierto */
+body.ops-filters-modal-open .header {
+   -webkit-backdrop-filter: none !important;
+   backdrop-filter: none !important;
+}
+
+body.ops-filters-modal-open #opsFiltersModal .modal-dialog,
+body.ops-filters-modal-open #opsFiltersModal .modal-content,
+body.ops-filters-modal-open #opsFiltersModal .modal-body {
+   transform: translateZ(0);
+   backface-visibility: hidden;
+}
+
+body.ops-filters-modal-open #opsFiltersModal .weekly-week-picker,
+body.ops-filters-modal-open #opsFiltersModal .weekly-week-chip,
+body.ops-filters-modal-open #opsFiltersModal .weekly-week-chip .chip-title,
+body.ops-filters-modal-open #opsFiltersModal .weekly-week-chip .chip-subtitle,
+body.ops-filters-modal-open #opsFiltersModal .weekly-week-chip .chip-badge {
+   transition: none !important;
+   animation: none !important;
+}
+
+body.ops-filters-modal-open #opsFiltersModal * {
+   animation: none !important;
+   transition-duration: 0s !important;
+}
+
+body.ops-filters-modal-open .modal-backdrop {
+   transition: none !important;
+}
+
 /* Cards de estadÃ­sticas diarias */
 #daily-stats-row .stat-card {
    background: var(--card-bg);
@@ -11838,4 +11870,433 @@ body.dark-mode #yoy-insights {
 
 body.dark-mode #yoy-insights-list li {
     color: #7dd3fc;
+}
+
+/* ============================================================================
+   Data Management Section: Professional Redesign
+   ============================================================================ */
+#data-management-section {
+   --dm-primary: #0b5cab;
+   --dm-primary-strong: #074a8a;
+   --dm-ink: #173a5b;
+   --dm-muted: #5f7895;
+   --dm-border: #d9e6f4;
+   --dm-soft-bg: #f5f9fe;
+   --dm-surface: #ffffff;
+   position: relative;
+}
+
+#data-management-section .dm-header {
+   gap: 1rem;
+   flex-wrap: wrap;
+}
+
+#data-management-section .dm-header-subtitle {
+   color: var(--dm-muted);
+   font-size: 0.9rem;
+   font-weight: 500;
+   letter-spacing: 0.01em;
+}
+
+#data-management-section .dm-header-badge {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   padding: 0.5rem 0.9rem;
+   border-radius: 999px;
+   border: 1px solid #b8cde5;
+   color: #22507b;
+   font-size: 0.78rem;
+   font-weight: 700;
+   text-transform: uppercase;
+   letter-spacing: 0.05em;
+   background: linear-gradient(135deg, #ffffff 0%, #ecf4fd 100%);
+   box-shadow: 0 6px 16px rgba(20, 66, 112, 0.12);
+}
+
+#data-management-section .dm-shell {
+   border: 1px solid var(--dm-border);
+   border-radius: 22px;
+   overflow: hidden;
+   background: linear-gradient(155deg, #f9fcff 0%, #f3f8fe 45%, #edf4fd 100%);
+   box-shadow: 0 18px 42px rgba(17, 63, 113, 0.14), 0 3px 10px rgba(17, 63, 113, 0.08);
+   animation: dmSectionReveal 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#data-management-section .dm-shell-body {
+   padding: 1.25rem 1.2rem;
+}
+
+#data-management-section #dm-sidebar {
+   border-right: 1px solid #dbe8f5 !important;
+   padding-right: 0.9rem;
+   position: sticky;
+   top: 84px;
+   align-self: flex-start;
+   max-height: calc(100vh - 130px);
+}
+
+#data-management-section #dataTabs {
+   max-height: calc(100vh - 170px);
+   overflow-y: auto;
+   padding-right: 0.3rem;
+   margin-right: 0 !important;
+   flex-wrap: nowrap;
+   scrollbar-width: thin;
+   scrollbar-color: #aec4db transparent;
+}
+
+#data-management-section #dataTabs::-webkit-scrollbar {
+   width: 8px;
+}
+
+#data-management-section #dataTabs::-webkit-scrollbar-thumb {
+   background: #aec4db;
+   border-radius: 10px;
+}
+
+#data-management-section #dataTabs .nav-link {
+   border: 1px solid var(--dm-border) !important;
+   border-radius: 12px !important;
+   background: rgba(255, 255, 255, 0.95);
+   color: var(--dm-ink);
+   width: 100%;
+   display: flex;
+   align-items: center;
+   gap: 0.55rem;
+   padding: 0.68rem 0.85rem;
+   font-size: 0.92rem;
+   font-weight: 600;
+   box-shadow: 0 2px 7px rgba(20, 58, 102, 0.06);
+   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+   opacity: 1;
+   transform: translateX(0);
+   animation: dmNavItemIn 0.38s ease forwards;
+}
+
+#data-management-section #dataTabs .nav-link:nth-child(1) { animation-delay: 0.02s; }
+#data-management-section #dataTabs .nav-link:nth-child(2) { animation-delay: 0.04s; }
+#data-management-section #dataTabs .nav-link:nth-child(3) { animation-delay: 0.06s; }
+#data-management-section #dataTabs .nav-link:nth-child(4) { animation-delay: 0.08s; }
+#data-management-section #dataTabs .nav-link:nth-child(5) { animation-delay: 0.1s; }
+#data-management-section #dataTabs .nav-link:nth-child(6) { animation-delay: 0.12s; }
+#data-management-section #dataTabs .nav-link:nth-child(7) { animation-delay: 0.14s; }
+#data-management-section #dataTabs .nav-link:nth-child(8) { animation-delay: 0.16s; }
+#data-management-section #dataTabs .nav-link:nth-child(9) { animation-delay: 0.18s; }
+#data-management-section #dataTabs .nav-link:nth-child(10) { animation-delay: 0.2s; }
+#data-management-section #dataTabs .nav-link:nth-child(11) { animation-delay: 0.22s; }
+#data-management-section #dataTabs .nav-link:nth-child(12) { animation-delay: 0.24s; }
+#data-management-section #dataTabs .nav-link:nth-child(13) { animation-delay: 0.26s; }
+#data-management-section #dataTabs .nav-link:nth-child(14) { animation-delay: 0.28s; }
+#data-management-section #dataTabs .nav-link:nth-child(15) { animation-delay: 0.3s; }
+#data-management-section #dataTabs .nav-link:nth-child(16) { animation-delay: 0.32s; }
+#data-management-section #dataTabs .nav-link:nth-child(17) { animation-delay: 0.34s; }
+#data-management-section #dataTabs .nav-link:nth-child(18) { animation-delay: 0.36s; }
+
+#data-management-section #dataTabs .nav-link i {
+   width: 1.05rem;
+   text-align: center;
+   font-size: 0.9rem;
+}
+
+#data-management-section #dataTabs .nav-link:hover {
+   transform: translateX(2px);
+   border-color: #b8d0eb !important;
+   box-shadow: 0 9px 20px rgba(20, 69, 116, 0.14);
+}
+
+#data-management-section #dataTabs .nav-link.active {
+   color: #ffffff;
+   border-color: #0f73be !important;
+   background: linear-gradient(135deg, var(--dm-primary) 0%, #0f73be 100%);
+   box-shadow: 0 12px 24px rgba(11, 92, 171, 0.28);
+}
+
+#data-management-section #dataTabs .nav-link.active i {
+   color: #ffffff !important;
+}
+
+#data-management-section #dm-content {
+   padding-left: 0.8rem;
+}
+
+#data-management-section .dm-tab-panel > .tab-pane {
+   background: var(--dm-surface);
+   border: 1px solid #dbe7f5;
+   border-radius: 16px;
+   padding: 1rem 1rem 0.95rem;
+   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 8px 22px rgba(14, 53, 98, 0.07);
+   animation: dmPaneIn 0.28s ease;
+}
+
+#data-management-section .tab-pane h5,
+#data-management-section .tab-pane h6 {
+   color: #1f3f61;
+   font-weight: 700;
+}
+
+#data-management-section .table-responsive {
+   border: 1px solid #d8e6f5;
+   border-radius: 14px;
+   background: #ffffff;
+   box-shadow: 0 1px 2px rgba(10, 62, 118, 0.05);
+}
+
+#data-management-section .table {
+   margin-bottom: 0;
+}
+
+#data-management-section .table thead th {
+   background: linear-gradient(180deg, #f8fbff 0%, #edf4fc 100%);
+   color: #203a57;
+   border-bottom: 1px solid #d5e4f5;
+   font-size: 0.78rem;
+   font-weight: 700;
+   letter-spacing: 0.02em;
+   text-transform: uppercase;
+   white-space: nowrap;
+   vertical-align: middle;
+}
+
+#data-management-section .table tbody td {
+   color: #2b435f;
+   font-size: 0.86rem;
+   border-color: #e8f0f8;
+   vertical-align: middle;
+}
+
+#data-management-section .table-striped > tbody > tr:nth-of-type(odd) > * {
+   background-color: #f8fbff;
+}
+
+#data-management-section .table-hover > tbody > tr:hover > * {
+   background-color: #eaf3ff;
+}
+
+#data-management-section .input-group-text {
+   background: #f5f9ff;
+   color: #406282;
+   font-weight: 600;
+   border-color: #cfdded;
+}
+
+#data-management-section .form-control,
+#data-management-section .form-select {
+   border-color: #cfdded;
+}
+
+#data-management-section .form-control:focus,
+#data-management-section .form-select:focus {
+   border-color: #6ea8da;
+   box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.12);
+}
+
+#data-management-section .btn-primary {
+   background: linear-gradient(135deg, var(--dm-primary) 0%, #0f73be 100%);
+   border-color: #0e6db5;
+   box-shadow: 0 4px 12px rgba(13, 99, 175, 0.22);
+}
+
+#data-management-section .btn-primary:hover,
+#data-management-section .btn-primary:focus {
+   background: linear-gradient(135deg, var(--dm-primary-strong) 0%, #0c64a4 100%);
+   border-color: var(--dm-primary-strong);
+   transform: translateY(-1px);
+}
+
+#data-management-section .btn-outline-secondary {
+   border-color: #c1d3e8;
+   color: #3f5f80;
+   background: #ffffff;
+}
+
+#data-management-section .btn-outline-secondary:hover,
+#data-management-section .btn-outline-secondary:focus {
+   color: #1f3f61;
+   border-color: #98b8d7;
+   background: #f2f7fd;
+}
+
+#data-management-section table .btn.btn-sm {
+   border-radius: 8px;
+   min-width: 30px;
+   min-height: 30px;
+   padding: 0.2rem 0.45rem;
+}
+
+#data-management-section #dm-sidebar-toggle {
+   border-radius: 999px;
+   padding: 0.45rem 0.9rem;
+   font-weight: 600;
+}
+
+@keyframes dmSectionReveal {
+   from {
+      opacity: 0;
+      transform: translateY(12px);
+   }
+   to {
+      opacity: 1;
+      transform: translateY(0);
+   }
+}
+
+@keyframes dmNavItemIn {
+   from {
+      opacity: 0;
+      transform: translateX(-6px);
+   }
+   to {
+      opacity: 1;
+      transform: translateX(0);
+   }
+}
+
+@keyframes dmPaneIn {
+   from {
+      opacity: 0;
+      transform: translateY(6px);
+   }
+   to {
+      opacity: 1;
+      transform: translateY(0);
+   }
+}
+
+@media (max-width: 991.98px) {
+   #data-management-section .dm-shell-body {
+      padding: 1rem;
+   }
+
+   #data-management-section #dm-sidebar {
+      position: relative;
+      top: 0;
+      max-height: none;
+      border-right: 0 !important;
+      padding-right: 0;
+   }
+
+   #data-management-section #dataTabs {
+      max-height: 320px;
+      margin-right: 0 !important;
+      padding-right: 0;
+   }
+
+   #data-management-section #dm-content {
+      padding-left: 0;
+   }
+}
+
+@media (max-width: 767.98px) {
+   #data-management-section .dm-header {
+      align-items: flex-start !important;
+   }
+
+   #data-management-section .dm-header-badge {
+      width: 100%;
+   }
+
+   #data-management-section .dm-tab-panel > .tab-pane {
+      padding: 0.85rem;
+   }
+
+   #data-management-section .table thead th,
+   #data-management-section .table tbody td {
+      font-size: 0.78rem;
+      padding: 0.48rem 0.45rem;
+   }
+}
+
+body.dark-mode #data-management-section {
+   --dm-ink: #d6e6f8;
+   --dm-muted: #9fb7ce;
+   --dm-border: #2d4257;
+   --dm-soft-bg: #111f2d;
+   --dm-surface: #132435;
+}
+
+body.dark-mode #data-management-section .dm-header-badge {
+   color: #b7d2ec;
+   border-color: #39526c;
+   background: linear-gradient(135deg, #1a2f45 0%, #16304a 100%);
+   box-shadow: none;
+}
+
+body.dark-mode #data-management-section .dm-shell {
+   background: linear-gradient(155deg, #122234 0%, #13293e 45%, #0f1f31 100%);
+   border-color: #2d4257;
+   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.35);
+}
+
+body.dark-mode #data-management-section #dm-sidebar {
+   border-right-color: #2b4258 !important;
+}
+
+body.dark-mode #data-management-section #dataTabs .nav-link {
+   background: rgba(15, 33, 49, 0.85);
+   border-color: #2e4a66 !important;
+   color: #c8dbef;
+   box-shadow: none;
+}
+
+body.dark-mode #data-management-section #dataTabs .nav-link:hover {
+   border-color: #4272a3 !important;
+   background: rgba(20, 44, 65, 0.95);
+}
+
+body.dark-mode #data-management-section .dm-tab-panel > .tab-pane {
+   background: #0f2133;
+   border-color: #2d4257;
+   box-shadow: none;
+}
+
+body.dark-mode #data-management-section .table-responsive {
+   border-color: #2e455d;
+   background: #0f2133;
+   box-shadow: none;
+}
+
+body.dark-mode #data-management-section .table thead th {
+   background: linear-gradient(180deg, #1b344c 0%, #162c42 100%);
+   border-bottom-color: #2f4a65;
+   color: #d9e8f7;
+}
+
+body.dark-mode #data-management-section .table tbody td {
+   color: #c6d8eb;
+   border-color: #24394d;
+}
+
+body.dark-mode #data-management-section .table-striped > tbody > tr:nth-of-type(odd) > * {
+   background-color: #13273b;
+}
+
+body.dark-mode #data-management-section .table-hover > tbody > tr:hover > * {
+   background-color: #1a3450;
+}
+
+body.dark-mode #data-management-section .input-group-text {
+   background: #162d43;
+   color: #b6cbe1;
+   border-color: #35506a;
+}
+
+body.dark-mode #data-management-section .form-control,
+body.dark-mode #data-management-section .form-select {
+   background-color: #14273a;
+   border-color: #35506a;
+   color: #d8e6f5;
+}
+
+body.dark-mode #data-management-section .btn-outline-secondary {
+   color: #c0d6ec;
+   border-color: #45617c;
+   background: #14283d;
+}
+
+body.dark-mode #data-management-section .btn-outline-secondary:hover,
+body.dark-mode #data-management-section .btn-outline-secondary:focus {
+   color: #e2effc;
+   border-color: #5982a8;
+   background: #1a324b;
 }

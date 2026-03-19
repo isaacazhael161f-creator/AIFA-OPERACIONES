@@ -698,13 +698,14 @@
     const isSingleDest = state.filters.destination !== 'all';
     if (dom.mapCol && dom.detailsCol) {
         if (isSingleDest) {
-            dom.mapCol.className = 'col-12 col-xl-3 col-lg-4 transition-all';
-            dom.detailsCol.className = 'col-12 col-xl-9 col-lg-8';
+            dom.mapCol.classList.remove('col-12');
+            dom.mapCol.classList.add('col-lg-7');
             dom.detailsCol.classList.remove('d-none');
             const dest = state.destinations.find(d => d.iata === state.filters.destination);
             if (dest) renderDestinationDetails(dest);
         } else {
-            dom.mapCol.className = 'col-12 transition-all';
+            dom.mapCol.classList.add('col-12');
+            dom.mapCol.classList.remove('col-lg-7');
             dom.detailsCol.classList.add('d-none');
         }
         setTimeout(() => state.map?.invalidateSize(), 300);
@@ -1020,7 +1021,7 @@
                         listHtml += '</div>';
                         contentDiv.innerHTML = listHtml;
                         contentDiv.dataset.view = 'detail';
-                        cell.style.flex = '4 1 0px';
+                        cell.style.flex = '3 1 180px';
                         cell.style.transform = 'translateY(-2px)';
                     }
                 };
