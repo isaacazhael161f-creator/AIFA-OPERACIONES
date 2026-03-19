@@ -1059,21 +1059,25 @@ body.dark-mode .section-title small {
 .header {
    position: relative;
    overflow: hidden;
-   background: rgba(255, 255, 255, 0.4);
-   backdrop-filter: blur(12px);
-   border-bottom: 1px solid var(--border-color);
+   background:
+      radial-gradient(circle at top right, rgba(18, 98, 196, 0.08), transparent 22%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 253, 0.96));
+   backdrop-filter: blur(10px);
+   border-bottom: 1px solid rgba(14, 55, 99, 0.08);
    margin-bottom: 1rem;
-   border-radius: 0 0 16px 16px;
-   box-shadow: 0 4px 16px var(--shadow-color);
+   border-radius: 0 0 18px 18px;
+   box-shadow: 0 10px 28px -24px rgba(15, 23, 42, 0.28);
 }
 
 body.dark-mode .header {
-   background: rgba(21, 29, 39, 0.6);
+   background: rgba(21, 29, 39, 0.92);
 }
 
 .header-content {
    position: relative;
    z-index: 2;
+   gap: 1rem;
+   min-height: 108px;
 }
 
 .header-center-content {
@@ -1083,15 +1087,22 @@ body.dark-mode .header {
    justify-content: center;
    flex: 1 1 auto;
    text-align: center;
-   gap: .5rem;
+   gap: .35rem;
+   padding: 0 .75rem;
+}
+
+body.dark-mode .header-center-content,
+body.dark-mode .header-right-content {
+   background: transparent;
+   border-color: transparent;
 }
 
 .header-center-content .header-title-row {
    width: 100%;
    display: flex;
    align-items: center;
-   justify-content: space-between;
-   gap: .5rem;
+   justify-content: center;
+   gap: 1rem;
 }
 
 .header-center-content .header-title-row .main-title {
@@ -1099,11 +1110,15 @@ body.dark-mode .header {
    text-align: center;
 }
 
+.header-eyebrow {
+   display: none;
+}
+
 .header-center-content .header-subtext {
    display: flex;
    flex-direction: column;
    align-items: center;
-   gap: .1rem;
+   gap: .2rem;
 }
 
 .header-center-content .header-subtext .current-user-display {
@@ -1112,8 +1127,8 @@ body.dark-mode .header {
 
 .header-center-content .header-subtext .current-date-display {
    margin: 0;
-   font-size: .95rem;
-   letter-spacing: .03em;
+   font-size: 1rem;
+   letter-spacing: .04em;
 }
 
 /* Mostrar aviÃ³n animado tambiÃ©n en mÃ³viles (preferencia del usuario) */
@@ -2909,43 +2924,57 @@ body.dark-mode .h5 {
 }
 
 .header-logo {
-   height: 45px;
+   height: 46px;
+   width: auto;
+   object-fit: contain;
+   filter: none;
 }
 
 .main-title {
-   font-size: 1.4rem;
-   font-weight: 500;
-   color: var(--text-color);
+   max-width: 760px;
+   font-size: clamp(1.55rem, 1.05rem + 0.9vw, 2.3rem);
+   font-weight: 700;
+   line-height: 1.1;
+   letter-spacing: 0.01em;
+   color: #1a2f55;
+   text-transform: uppercase;
 }
 
 .current-user-display {
-   color: var(--primary-color);
+   color: #0e63c7;
+   font-size: 0.98rem;
 }
 
 .gob-logo {
-   height: 35px;
+   height: 34px;
+   width: auto;
 }
 
-.formal-clock-container {
+.formal-clock-container,
+.utc-clock-container {
    text-align: center;
-   background-color: var(--body-bg);
-   padding: 0.5rem 1rem;
-   border-radius: 0.5rem;
-   border: 1px solid var(--border-color);
+   min-width: 126px;
+   padding: 0.45rem 0.8rem;
+   border-radius: 12px;
+   border: 1px solid rgba(14, 55, 99, 0.08);
+   background: rgba(255, 255, 255, 0.72);
+   box-shadow: none;
 }
 
 .clock-label {
-   font-size: 0.7rem;
-   font-weight: 600;
-   color: var(--text-muted-color);
+   font-size: 0.68rem;
+   font-weight: 800;
+   color: #5f6f88;
    text-transform: uppercase;
+   letter-spacing: 0.12em;
 }
 
 .formal-clock {
    font-family: 'Courier New', monospace;
    font-weight: 700;
    font-size: 1.05rem;
-   color: var(--primary-color);
+   letter-spacing: 0.05em;
+   color: #0c2d57;
 }
 
 /* UTC clock styling - same size as local clock */
@@ -2953,7 +2982,8 @@ body.dark-mode .h5 {
    font-family: 'Courier New', monospace;
    font-weight: 700;
    font-size: 1.05rem;
-   color: var(--primary-color);
+   letter-spacing: 0.05em;
+   color: #0c2d57;
 }
 
 .utc-clock-container .clock-label {
@@ -2963,18 +2993,37 @@ body.dark-mode .h5 {
 /* Clocks wrapper adjustments - make both clocks visually identical */
 .clocks-wrapper .formal-clock-container,
 .clocks-wrapper .utc-clock-container {
-   background: transparent;
-   padding: 0.18rem 0.45rem;
-   border-radius: 0.4rem;
+   padding: 0.7rem 1rem;
 }
 
 .formal-clock,
 .utc-clock {
-   padding: 0.18rem 0.6rem;
-   border-radius: 6px;
-   background: rgba(255, 255, 255, 0.92);
-   color: #002244;
-   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+   padding: 0;
+   border-radius: 0;
+   background: transparent;
+   box-shadow: none;
+}
+
+.header-brand-block {
+   gap: 0.85rem;
+}
+
+.header-right-content {
+   flex-wrap: wrap;
+   justify-content: flex-end;
+   padding: 0;
+   border-radius: 0;
+   background: transparent;
+   border: 0;
+   box-shadow: none;
+}
+
+.header-action-btn {
+   min-height: 42px;
+   padding-inline: 0.9rem;
+   border-radius: 12px;
+   font-weight: 700;
+   box-shadow: none;
 }
 
 body.dark-mode .formal-clock,
@@ -2982,6 +3031,12 @@ body.dark-mode .utc-clock {
    background: rgba(255, 255, 255, 0.04);
    color: #e8eaed;
    box-shadow: none;
+}
+
+body.dark-mode .formal-clock-container,
+body.dark-mode .utc-clock-container {
+   background: rgba(33, 46, 67, 0.9);
+   border-color: rgba(148, 163, 184, 0.18);
 }
 
 /* Improve contrast in dark mode across the app for text-heavy areas */
@@ -7646,7 +7701,7 @@ body.dark-mode .doc-embed-placeholder code {
    }
 
    .header-logo {
-      height: 28px;
+      height: 34px;
    }
 
    .gob-logo {
@@ -7654,7 +7709,7 @@ body.dark-mode .doc-embed-placeholder code {
    }
 
    .main-title {
-      font-size: 1rem;
+      font-size: 1.15rem;
       line-height: 1.2;
       text-align: center;
       max-width: 85vw;
@@ -7673,6 +7728,7 @@ body.dark-mode .doc-embed-placeholder code {
 
    .header-center-content {
       width: 100%;
+      padding: 0.9rem 1rem;
    }
 
    .header-center-content>.d-flex {
@@ -7684,12 +7740,12 @@ body.dark-mode .doc-embed-placeholder code {
    .header-center-content .header-title-row {
       justify-content: center;
       flex-wrap: wrap;
-      gap: .4rem;
+      gap: .55rem;
       align-items: center;
    }
 
    .header-center-content .header-title-row .header-logo {
-      height: 28px;
+      height: 34px;
       display: block;
       margin: 0 auto;
    }
@@ -7697,12 +7753,15 @@ body.dark-mode .doc-embed-placeholder code {
    .header-right-content {
       width: 100%;
       justify-content: center;
-      gap: .5rem;
+      gap: .75rem;
       flex-wrap: wrap;
+      padding: 0.75rem;
    }
 
    .clocks-wrapper {
       gap: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
    }
 
    .utc-clock-container {
@@ -7711,8 +7770,7 @@ body.dark-mode .doc-embed-placeholder code {
 
    .formal-clock,
    .utc-clock {
-      font-size: .95rem;
-      padding: .1rem .5rem;
+      font-size: 1.1rem;
    }
 }
 
