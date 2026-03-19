@@ -11494,4 +11494,163 @@ body.dark-mode .th-badge-dep {
     margin-top: 0.1rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
+}/* ============================================
+   Improved YoY Comparativa Chart Styling
+   ============================================ */
+
+/* Enhanced Chart Container */
+#yoyCompChart {
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.08)) !important;
+}
+
+/* Improved Form Switches for Year Selection */
+.yoy-year-switch {
+    accent-color: #2196f3;
+    cursor: pointer;
+    width: 3.5em !important;
+    height: 1.5em !important;
+}
+
+.yoy-year-switch:checked {
+    background-color: #2196f3 !important;
+    border-color: #2196f3 !important;
+    box-shadow: 0 0 0 0.25rem rgba(33, 150, 243, 0.25);
+}
+
+/* YoY Table Styling */
+#yoy-data-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+#yoy-data-table thead th {
+    background: linear-gradient(135deg, #f0f4f8 0%, #e8ecf1 100%);
+    color: #1e293b;
+    font-weight: 700;
+    padding: 14px 12px;
+    border-bottom: 2px solid #cbd5e1;
+    text-align: center;
+}
+
+#yoy-data-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+#yoy-data-table tbody tr:hover {
+    background-color: #f0f4f8 !important;
+}
+
+#yoy-data-table tbody td {
+    padding: 14px 12px;
+    text-align: center;
+    border-color: #f0f4f8;
+    color: #334155;
+}
+
+#yoy-data-table tbody tr:nth-child(odd) td {
+    background-color: #fafbfc;
+}
+
+#yoy-data-table tbody tr:last-child {
+    background: linear-gradient(135deg, #f0f4f8 0%, #e8ecf1 100%);
+    border-top: 2px solid #cbd5e1;
+    border-bottom: 2px solid #cbd5e1;
+    font-weight: 700;
+}
+
+/* Chart Title Styles */
+#yoy-chart-title {
+    background: linear-gradient(135deg, #2196f3 0%, #1e88e5 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: fadeInDown 0.6s ease-out;
+}
+
+/* Insights Box Styling */
+#yoy-insights {
+    background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%) !important;
+    border-left: 4px solid #0284c7 !important;
+    border-radius: 8px !important;
+    animation: slideIn 0.4s ease-out;
+}
+
+#yoy-insights-list li {
+    margin-bottom: 8px;
+    padding: 6px 0;
+    color: #0c4a6e;
+    line-height: 1.6;
+}
+
+/* Card Header Styles */
+.card-header {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+    border-bottom: 1px solid #f0f4f8 !important;
+}
+
+/* Animations */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .chart-container {
+        height: clamp(300px, 80vw, 380px);
+    }
+    
+    #yoy-data-table {
+        font-size: 0.85rem;
+    }
+    
+    #yoy-data-table thead th,
+    #yoy-data-table tbody td {
+        padding: 8px 6px;
+    }
+}
+
+/* Dark Mode Support */
+body.dark-mode #yoy-chart-title {
+    background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+body.dark-mode #yoy-data-table thead th {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    color: #e2e8f0;
+    border-color: #475569;
+}
+
+body.dark-mode #yoy-data-table tbody tr:nth-child(odd) td {
+    background-color: #1e293b;
+    color: #cbd5e1;
+}
+
+body.dark-mode #yoy-insights {
+    background: linear-gradient(135deg, #164e63 0%, #0f3460 100%) !important;
+    color: #7dd3fc;
+}
+
+body.dark-mode #yoy-insights-list li {
+    color: #7dd3fc;
 }

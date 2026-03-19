@@ -9,13 +9,14 @@
     let activeYears = new Set();
     let currentMetric = 'operaciones'; // 'operaciones' o 'pasajeros'
 
-    // Colores para cada aï¿½o
+    // Colores mejorados para cada año - con mayor saturación y contraste
     const yearColors = {
-        '2022': '#0dcaf0',
-        '2023': '#ffc107',
-        '2024': '#198754',
-        '2025': '#0d6efd',
-        'default': '#6c757d' // Para otros aï¿½os
+        '2022': '#06b3e8',  // Cyan mejorado - más saturado
+        '2023': '#ff9800',  // Naranja más vibrante
+        '2024': '#4caf50',  // Verde más saturado
+        '2025': '#2196f3',  // Azul más vibrante
+        '2026': '#e91e63',  // Magenta para año adicional
+        'default': '#78909c' // Gris mejorado
     };
 
     const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -58,7 +59,11 @@
     function updateChartTitle() {
         const titleEl = document.getElementById('yoy-chart-title');
         if (titleEl) {
-            titleEl.textContent = currentMetric === 'operaciones' ? 'Comparativa Mensual de Operaciones Comerciales' : 'Comparativa Mensual de Pasajeros Comerciales';
+            if (currentMetric === 'operaciones') {
+                titleEl.innerHTML = '<i class="fa-solid fa-plane me-2"></i>Comparativa Mensual de Operaciones Comerciales';
+            } else {
+                titleEl.innerHTML = '<i class="fa-solid fa-user me-2"></i>Comparativa Mensual de Pasajeros Comerciales';
+            }
         }
     }
 
@@ -133,18 +138,20 @@
         const canvas = document.getElementById('yoyCompChart');
         if (!canvas) return;
 
-        // Limpiar grï¿½fica vieja
+        // Limpiar gráfica vieja
         if (yoyChart) yoyChart.destroy();
 
-        // Si no hay aï¿½os activos
+        // Si no hay años activos
         if (activeYears.size === 0) {
             return;
         }
 
+        const ctx = canvas.getContext('2d');
+        const sortedYears = Array.from(activeYears).sort();
         const datasets = [];
 
-        // Por cada aï¿½o activo, armamos su dataset
-        Array.from(activeYears).sort().forEach(year => {
+        // Por cada año activo, armamos su dataset
+        sortedYears.forEach((year, idx) => {
             // Filtrar datos de current year
             const yearData = opsDataCache.filter(d => d.year === year);
             
@@ -161,30 +168,36 @@
             });
 
             const yColor = yearColors[year] || yearColors['default'];
+            const isLast = idx === sortedYears.length - 1;
 
-                          datasets.push({
-                  label: `A\u00F1o ${year}`,
-                  data: dataArr,
-                  borderColor: yColor,
-                  backgroundColor: yColor + '26',
-                  borderWidth: 3,
-                  pointBackgroundColor: yColor,
-                  pointBorderColor: '#ffffff',
-                  pointBorderWidth: 2,
-                  pointRadius: 4,
-                  pointHoverRadius: 7,
-                  pointHoverBackgroundColor: yColor,
-                  pointHoverBorderColor: '#ffffff',
-                  pointHoverBorderWidth: 3,
-                  fill: true,
-                  tension: 0.4
-              });
+            // Gradient para el último año
+            let backgroundColor = yColor + '20';
+            if (isLast) {
+                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, yColor + '60'); // Más opaco arriba
+                gradient.addColorStop(1, yColor + '05'); // Transparente abajo
+                backgroundColor = gradient;
+            }
 
-        });
-
-        // Solo "llenar" (fill) el dataset mï¿½s reciente
-        datasets.forEach((ds, idx) => {
-            ds.fill = (idx === datasets.length - 1);
+            datasets.push({
+                label: `Año ${year}`,
+                data: dataArr,
+                borderColor: yColor,
+                backgroundColor: backgroundColor,
+                borderWidth: isLast ? 3 : 2,
+                // Puntos solo visibles en el último año o al hacer hover
+                pointRadius: isLast ? 4 : 0,
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: yColor,
+                pointBorderWidth: 2,
+                pointHoverRadius: 6,
+                pointHoverBackgroundColor: yColor,
+                pointHoverBorderColor: '#ffffff',
+                pointHoverBorderWidth: 3,
+                fill: isLast, // Solo llenar el área del último año
+                tension: 0.4, // Curva suave
+                order: isLast ? 0 : 1 // El último año se dibuja encima
+            });
         });
 
         yoyChart = new Chart(canvas, {
@@ -197,8 +210,8 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 animation: {
-                    duration: 500,
-                    easing: 'easeOutQuart'
+                    duration: 750,
+                    easing: 'easeInOutQuart'
                 },
                 interaction: {
                     mode: 'index',
@@ -207,38 +220,53 @@
                 plugins: {
                     legend: {
                         position: 'top',
+                        align: 'end',
                         labels: {
                             usePointStyle: true,
-                            boxWidth: 8,
-                            padding: 20,
+                            boxWidth: 12,
+                            padding: 15,
+                            margin: 10,
                             font: {
                                 family: "'Inter', 'Segoe UI', sans-serif",
                                 size: 13,
-                                weight: '500'
-                            }
+                                weight: '600'
+                            },
+                            color: '#334155'
                         }
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                        titleColor: '#1e293b',
-                        bodyColor: '#475569',
-                        borderColor: '#cbd5e1',
-                        borderWidth: 1,
-                        padding: 12,
-                        boxPadding: 6,
+                        backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                        titleColor: '#f1f5f9',
+                        bodyColor: '#e2e8f0',
+                        borderColor: '#475569',
+                        borderWidth: 2,
+                        padding: 14,
+                        boxPadding: 8,
                         usePointStyle: true,
-                        titleFont: { size: 14, weight: 'bold' },
-                        bodyFont: { size: 13, weight: '500' },
+                        cornerRadius: 8,
+                        titleFont: { size: 14, weight: 'bold', family: "'Inter', sans-serif" },
+                        bodyFont: { size: 13, family: "'Inter', sans-serif" },
                         callbacks: {
+                            title: function(context) {
+                                return `📅 ${context[0].label}`;
+                            },
                             label: function(context) {
                                 let label = context.dataset.label || '';
                                 if (label) {
                                     label += ': ';
                                 }
                                 if (context.parsed.y !== null) {
-                                    label += new Intl.NumberFormat('en-US').format(context.parsed.y);
+                                    label += '📊 ' + new Intl.NumberFormat('es-MX').format(context.parsed.y);
                                 }
                                 return label;
+                            },
+                            footer: function(context) {
+                                if (context.length > 1) {
+                                    const values = context.map(c => c.parsed.y || 0);
+                                    const total = values.reduce((a, b) => a + b, 0);
+                                    return `📈 Total: ${new Intl.NumberFormat('es-MX').format(total)}`;
+                                }
+                                return '';
                             }
                         }
                     }
@@ -250,7 +278,7 @@
                             drawBorder: false
                         },
                         ticks: {
-                            color: '#64748b',
+                            color: '#94a3b8',
                             font: {
                                 family: "'Inter', 'Segoe UI', sans-serif",
                                 size: 12
@@ -259,21 +287,23 @@
                     },
                     y: {
                         beginAtZero: true,
+                        border: { display: false },
                         grid: {
                             color: '#f1f5f9',
+                            borderDash: [5, 5],
                             drawBorder: false,
-                            tickLength: 0
                         },
-                        border: { display: false },
                         ticks: {
-                            color: '#64748b',
-                            padding: 8,
+                            color: '#94a3b8',
+                            padding: 10,
                             font: {
                                 family: "'Inter', 'Segoe UI', sans-serif",
-                                size: 12
+                                size: 11
                             },
                             callback: function(value) {
-                                return new Intl.NumberFormat('es-MX', { notation: "compact", compactDisplay: "short" }).format(value);
+                                if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                                if (value >= 1000) return (value / 1000).toFixed(0) + 'k';
+                                return value;
                             }
                         }
                     }

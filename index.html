@@ -1101,37 +1101,37 @@
                                     <!-- Quick nav cards -->
                                     <div class="row g-2 mb-4">
                                         <div class="col-6 col-md-2">
-                                            <div class="text-center p-2 rounded-3" style="background:#f0f9ff; border:2px solid #bae6fd; cursor:pointer;" onclick="document.getElementById('guia-btn-1').click()">
+                                            <div class="text-center p-2 rounded-3" style="background:#f0f9ff; border:2px solid #bae6fd; cursor:pointer;" role="button" tabindex="0" aria-label="Clasificación OACI" onclick="document.getElementById('guia-btn-1').click()" onkeypress="if(event.key==='Enter') document.getElementById('guia-btn-1').click()">
                                                 <div class="fs-3">✈️</div>
                                                 <div class="fw-semibold" style="font-size:.72rem; color:#0369a1;">Clasificación<br>OACI</div>
                                             </div>
                                         </div>
                                         <div class="col-6 col-md-2">
-                                            <div class="text-center p-2 rounded-3" style="background:#f0fdf4; border:2px solid #bbf7d0; cursor:pointer;" onclick="document.getElementById('guia-btn-2').click()">
+                                            <div class="text-center p-2 rounded-3" style="background:#f0fdf4; border:2px solid #bbf7d0; cursor:pointer;" role="button" tabindex="0" aria-label="Capacidad AIFA" onclick="document.getElementById('guia-btn-2').click()" onkeypress="if(event.key==='Enter') document.getElementById('guia-btn-2').click()">
                                                 <div class="fs-3">🅿️</div>
                                                 <div class="fw-semibold" style="font-size:.72rem; color:#166534;">Capacidad<br>AIFA</div>
                                             </div>
                                         </div>
                                         <div class="col-6 col-md-2">
-                                            <div class="text-center p-2 rounded-3" style="background:#fff7ed; border:2px solid #fed7aa; cursor:pointer;" onclick="document.getElementById('guia-btn-3').click()">
+                                            <div class="text-center p-2 rounded-3" style="background:#fff7ed; border:2px solid #fed7aa; cursor:pointer;" role="button" tabindex="0" aria-label="Proceso de Slots" onclick="document.getElementById('guia-btn-3').click()" onkeypress="if(event.key==='Enter') document.getElementById('guia-btn-3').click()">
                                                 <div class="fs-3">🕐</div>
                                                 <div class="fw-semibold" style="font-size:.72rem; color:#9a3412;">Proceso<br>de Slots</div>
                                             </div>
                                         </div>
                                         <div class="col-6 col-md-2">
-                                            <div class="text-center p-2 rounded-3" style="background:#fdf4ff; border:2px solid #e9d5ff; cursor:pointer;" onclick="document.getElementById('guia-btn-4').click()">
+                                            <div class="text-center p-2 rounded-3" style="background:#fdf4ff; border:2px solid #e9d5ff; cursor:pointer;" role="button" tabindex="0" aria-label="Organismos y Ley" onclick="document.getElementById('guia-btn-4').click()" onkeypress="if(event.key==='Enter') document.getElementById('guia-btn-4').click()">
                                                 <div class="fs-3">🏛️</div>
                                                 <div class="fw-semibold" style="font-size:.72rem; color:#7e22ce;">Organismos<br>y Ley</div>
                                             </div>
                                         </div>
                                         <div class="col-6 col-md-2">
-                                            <div class="text-center p-2 rounded-3" style="background:#fffbeb; border:2px solid #fde68a; cursor:pointer;" onclick="document.getElementById('guia-btn-5').click()">
+                                            <div class="text-center p-2 rounded-3" style="background:#fffbeb; border:2px solid #fde68a; cursor:pointer;" role="button" tabindex="0" aria-label="Documentos Oficiales" onclick="document.getElementById('guia-btn-5').click()" onkeypress="if(event.key==='Enter') document.getElementById('guia-btn-5').click()">
                                                 <div class="fs-3">📋</div>
                                                 <div class="fw-semibold" style="font-size:.72rem; color:#92400e;">Documentos<br>Oficiales</div>
                                             </div>
                                         </div>
                                         <div class="col-6 col-md-2">
-                                            <div class="text-center p-2 rounded-3" style="background:#fef2f2; border:2px solid #fecaca; cursor:pointer;" onclick="document.getElementById('guia-btn-6').click()">
+                                            <div class="text-center p-2 rounded-3" style="background:#fef2f2; border:2px solid #fecaca; cursor:pointer;" role="button" tabindex="0" aria-label="Penalizaciones y Sanciones" onclick="document.getElementById('guia-btn-6').click()" onkeypress="if(event.key==='Enter') document.getElementById('guia-btn-6').click()">
                                                 <div class="fs-3">⚠️</div>
                                                 <div class="fw-semibold" style="font-size:.72rem; color:#991b1b;">Penalizaciones<br>y Sanciones</div>
                                             </div>
@@ -2098,7 +2098,7 @@
                                                             onchange="dataManagement.loadWeeklyFrequenciesCargo()">
                                                             <option value="">Cargando...</option>
                                                         </select>
-                                                        <button class="btn btn-outline-secondary" onclick="dataManagement.loadWeeklyFrequenciesCargo(true)" title="Actualizar lista"><i class="fas fa-sync-alt"></i></button>
+                                                        <button class="btn btn-outline-secondary" onclick="dataManagement.loadWeeklyFrequenciesCargo(true)" aria-label="Recargar lista de frecuencias semanales de carga" title="Actualizar lista"><i class="fas fa-sync-alt" aria-hidden="true"></i></button>
                                                     </div>
                                                     <div class="input-group w-auto">
                                                         <span class="input-group-text">Aerolínea</span>
@@ -2566,7 +2566,7 @@
                                                         <div id="daily-date-panel-arr" class="board-date-panel d-none">
                                                             <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
                                                                 <span class="small fw-semibold text-success" style="letter-spacing:.03em"><i class="fas fa-calendar-week me-1"></i>Ventana de Fecha &mdash; Llegadas</span>
-                                                                <button type="button" class="btn-close" style="font-size:.65rem" title="Cerrar" onclick="dataManagement.toggleDailyDatePanel('arrival')"></button>
+                                                                <button type="button" class="btn-close" style="font-size:.65rem" aria-label="Cerrar panel de fecha" title="Cerrar" onclick="dataManagement.toggleDailyDatePanel('arrival')"></button>
                                                             </div>
                                                             <div class="d-flex align-items-center gap-2 flex-wrap">
                                                                 <span class="small fw-semibold text-muted" style="white-space:nowrap">Modo:</span>
@@ -2651,7 +2651,7 @@
                                                         <div id="daily-date-panel-dep" class="board-date-panel d-none">
                                                             <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
                                                                 <span class="small fw-semibold text-primary" style="letter-spacing:.03em"><i class="fas fa-calendar-week me-1"></i>Ventana de Fecha &mdash; Salidas</span>
-                                                                <button type="button" class="btn-close" style="font-size:.65rem" title="Cerrar" onclick="dataManagement.toggleDailyDatePanel('departure')"></button>
+                                                                <button type="button" class="btn-close" style="font-size:.65rem" aria-label="Cerrar panel de fecha" title="Cerrar" onclick="dataManagement.toggleDailyDatePanel('departure')"></button>
                                                             </div>
                                                             <div class="d-flex align-items-center gap-2 flex-wrap">
                                                                 <span class="small fw-semibold text-muted" style="white-space:nowrap">Modo:</span>
@@ -2795,9 +2795,9 @@
                                             <div class="d-flex justify-content-between align-items-center mb-3">
                                                 <h5 class="mb-0 text-primary"><i class="fas fa-plane me-2"></i>Itinerario de Vuelos del Día</h5>
                                                 <div class="d-flex gap-2 align-items-center flex-wrap">
-                                                    <button class="btn btn-sm btn-outline-secondary" onclick="window.opsFlightsAdmin.loadData()" title="Actualizar"><i class="fas fa-sync-alt me-1"></i>Actualizar</button>
-                                                    <button class="btn btn-sm btn-danger d-none" id="btn-delete-admin-selected" onclick="window.opsFlightsAdmin.deleteSelected()">
-                                                        <i class="fas fa-trash me-1"></i>Eliminar seleccionados (<span id="admin-selected-count">0</span>)
+                                                    <button class="btn btn-sm btn-outline-secondary" onclick="window.opsFlightsAdmin.loadData()" aria-label="Recargar lista de vuelos" title="Actualizar"><i class="fas fa-sync-alt me-1" aria-hidden="true"></i>Actualizar</button>
+                                                    <button class="btn btn-sm btn-danger d-none" id="btn-delete-admin-selected" onclick="window.opsFlightsAdmin.deleteSelected()" aria-label="Eliminar los vuelos seleccionados">
+                                                        <i class="fas fa-trash me-1" aria-hidden="true"></i>Eliminar seleccionados (<span id="admin-selected-count">0</span>)
                                                     </button>
                                                 </div>
                                             </div>
@@ -2812,9 +2812,9 @@
                                                 <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
                                                     <i class="fas fa-calendar-day text-danger" style="width:16px"></i>
                                                     <label class="mb-0 fw-semibold" for="admin-delete-date">Eliminar día:</label>
-                                                    <input type="date" class="form-control form-control-sm" id="admin-delete-date" style="width:145px" oninput="window.opsFlightsAdmin.filterByDeleteDate()">
-                                                    <button class="btn btn-sm btn-danger" onclick="window.opsFlightsAdmin.deleteByDate()">
-                                                        <i class="fas fa-trash-alt me-1"></i>Eliminar día
+                                                    <input type="date" class="form-control form-control-sm" id="admin-delete-date" aria-label="Fecha del día a eliminar" style="width:145px" oninput="window.opsFlightsAdmin.filterByDeleteDate()">
+                                                    <button class="btn btn-sm btn-danger" onclick="window.opsFlightsAdmin.deleteByDate()" aria-label="Eliminar todos los vuelos del día seleccionado">
+                                                        <i class="fas fa-trash-alt me-1" aria-hidden="true"></i>Eliminar día
                                                     </button>
                                                 </div>
                                                 <!-- Row 2: date range -->
@@ -2825,8 +2825,8 @@
                                                     <span class="text-muted">al</span>
                                                     <input type="date" class="form-control form-control-sm" id="admin-range-end" aria-label="Fecha de fin del rango a eliminar" style="width:145px" oninput="window.opsFlightsAdmin.previewRange()">
                                                     <span id="admin-range-preview" class="badge bg-warning text-dark d-none" style="font-size:.78rem"></span>
-                                                    <button class="btn btn-sm btn-danger" onclick="window.opsFlightsAdmin.deleteByRange()">
-                                                        <i class="fas fa-trash-alt me-1"></i>Eliminar rango
+                                                    <button class="btn btn-sm btn-danger" onclick="window.opsFlightsAdmin.deleteByRange()" aria-label="Eliminar todos los vuelos del rango de fechas seleccionado">
+                                                        <i class="fas fa-trash-alt me-1" aria-hidden="true"></i>Eliminar rango
                                                     </button>
                                                 </div>
                                             </div>
@@ -2877,9 +2877,9 @@
                                                                         <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Stand</th>
                                                                         <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Gates</th>
                                                                         <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Boarded</th>
-                                                                        <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Type <button type="button" class="btn btn-link p-0 border-0" style="font-size:.6em;opacity:.8;vertical-align:middle;line-height:1;color:inherit;" onclick="event.stopPropagation();new bootstrap.Modal(document.getElementById('modalFlightServiceType')).show()" title="Ver catálogo de tipos de servicio"><i class="fas fa-circle-question"></i></button></th>
+                                                                        <th><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Type <button type="button" aria-label="Ver catálogo de tipos de servicio de llegada" class="btn btn-link p-0 border-0" style="font-size:.6em;opacity:.8;vertical-align:middle;line-height:1;color:inherit;" onclick="event.stopPropagation();new bootstrap.Modal(document.getElementById('modalFlightServiceType')).show()" title="Ver catálogo de tipos de servicio"><i class="fas fa-circle-question" aria-hidden="true"></i></button></th>
                                                                         <th>Routing</th>
-                                                                        <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Type <button type="button" class="btn btn-link p-0 border-0" style="font-size:.6em;opacity:.8;vertical-align:middle;line-height:1;color:inherit;" onclick="event.stopPropagation();new bootstrap.Modal(document.getElementById('modalFlightServiceType')).show()" title="Ver catálogo de tipos de servicio"><i class="fas fa-circle-question"></i></button></th>
+                                                                        <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Type <button type="button" aria-label="Ver catálogo de tipos de servicio de salida" class="btn btn-link p-0 border-0" style="font-size:.6em;opacity:.8;vertical-align:middle;line-height:1;color:inherit;" onclick="event.stopPropagation();new bootstrap.Modal(document.getElementById('modalFlightServiceType')).show()" title="Ver catálogo de tipos de servicio"><i class="fas fa-circle-question" aria-hidden="true"></i></button></th>
                                                                         <th>Aircraft type</th>
                                                                         <th>Registration</th>
                                                                         <th><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Airline</th>
@@ -2938,8 +2938,8 @@
                                             <div class="d-flex justify-content-between align-items-center mb-3">
                                                 <h5 class="mb-0"><i class="fas fa-plane-arrival me-2 text-success"></i>Catálogo de Aeropuertos</h5>
                                                 <div class="d-flex gap-2">
-                                                    <input id="aeropuertos-search" type="text" class="form-control form-control-sm" placeholder="Buscar..." oninput="window.AeropuertosModule && window.AeropuertosModule.filter()" style="width:220px">
-                                                    <button class="btn btn-sm btn-outline-primary" onclick="window.AeropuertosModule && window.AeropuertosModule.load()"><i class="fas fa-sync-alt me-1"></i>Recargar</button>
+                                                    <input id="aeropuertos-search" type="text" class="form-control form-control-sm" aria-label="Buscar aeropuerto por código o nombre" placeholder="Buscar..." oninput="window.AeropuertosModule && window.AeropuertosModule.filter()" style="width:220px">
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="window.AeropuertosModule && window.AeropuertosModule.load()" aria-label="Recargar lista de aeropuertos"><i class="fas fa-sync-alt me-1" aria-hidden="true"></i>Recargar</button>
                                                 </div>
                                             </div>
                                             <div class="table-responsive">
@@ -2971,17 +2971,17 @@
                                             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                                                 <h5 class="mb-0"><i class="fas fa-plane me-2 text-primary"></i>Catálogo de Aerolíneas</h5>
                                                 <div class="d-flex gap-2 flex-wrap align-items-center">
-                                                    <input type="text" id="al-search" class="form-control form-control-sm"
+                                                    <input type="text" id="al-search" class="form-control form-control-sm" aria-label="Buscar aerolínea por nombre, código IATA o ICAO"
                                                         placeholder="Nombre, IATA, ICAO…" style="width:200px"
                                                         oninput="alApplyFilters()">
                                                     <div class="btn-group btn-group-sm">
-                                                        <button class="btn btn-outline-secondary al-f-btn active" data-altype="all"     onclick="alSetFilter('all',this)">Todas</button>
-                                                        <button class="btn btn-outline-secondary al-f-btn"        data-altype="nacional"  onclick="alSetFilter('nacional',this)">Nacional</button>
-                                                        <button class="btn btn-outline-secondary al-f-btn"        data-altype="internacional" onclick="alSetFilter('internacional',this)">Internacional</button>
-                                                        <button class="btn btn-outline-secondary al-f-btn"        data-altype="carga"     onclick="alSetFilter('carga',this)">Carga</button>
+                                                        <button class="btn btn-outline-secondary al-f-btn active" data-altype="all" aria-label="Mostrar todas las aerolíneas"     onclick="alSetFilter('all',this)">Todas</button>
+                                                        <button class="btn btn-outline-secondary al-f-btn" aria-label="Mostrar solo aerolíneas nacionales"        data-altype="nacional"  onclick="alSetFilter('nacional',this)">Nacional</button>
+                                                        <button class="btn btn-outline-secondary al-f-btn" aria-label="Mostrar solo aerolíneas internacionales"        data-altype="internacional" onclick="alSetFilter('internacional',this)">Internacional</button>
+                                                        <button class="btn btn-outline-secondary al-f-btn" aria-label="Mostrar solo aerolíneas de carga"        data-altype="carga"     onclick="alSetFilter('carga',this)">Carga</button>
                                                     </div>
-                                                    <button class="btn btn-sm btn-outline-secondary" onclick="alLoad()"><i class="fas fa-sync-alt"></i></button>
-                                                    <button class="btn btn-sm btn-primary" onclick="alOpenAdd()"><i class="fas fa-plus me-1"></i>Nueva Aerolínea</button>
+                                                    <button class="btn btn-sm btn-outline-secondary" onclick="alLoad()" aria-label="Recargar lista de aerolíneas"><i class="fas fa-sync-alt" aria-hidden="true"></i></button>
+                                                    <button class="btn btn-sm btn-primary" onclick="alOpenAdd()" aria-label="Agregar una nueva aerolínea"><i class="fas fa-plus me-1" aria-hidden="true"></i>Nueva Aerolínea</button>
                                                 </div>
                                             </div>
 
@@ -3080,10 +3080,10 @@
                                                 </div>
                                               </div>
                                               <div class="modal-footer justify-content-between">
-                                                <button class="btn btn-outline-danger btn-sm d-none" id="al-btn-delete" onclick="alDelete()"><i class="fas fa-trash me-1"></i>Eliminar</button>
+                                                <button class="btn btn-outline-danger btn-sm d-none" id="al-btn-delete" onclick="alDelete()" aria-label="Eliminar esta aerolínea"><i class="fas fa-trash me-1" aria-hidden="true"></i>Eliminar</button>
                                                 <div class="d-flex gap-2">
                                                   <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-                                                  <button class="btn btn-primary btn-sm" onclick="alSave()"><i class="fas fa-save me-1"></i>Guardar</button>
+                                                  <button class="btn btn-primary btn-sm" onclick="alSave()" aria-label="Guardar cambios de la aerolínea"><i class="fas fa-save me-1" aria-hidden="true"></i>Guardar</button>
                                                 </div>
                                               </div>
                                             </div>
@@ -3203,11 +3203,11 @@
                         <h2 class="section-heading mb-0"><i class="fas fa-history me-2"></i>Historial de Cambios
                         </h2>
                         <div>
-                            <button class="btn btn-outline-secondary btn-sm me-2" onclick="testHistoryConnection()"><i
-                                    class="fas fa-plug me-1"></i>Probar
+                            <button class="btn btn-outline-secondary btn-sm me-2" onclick="testHistoryConnection()" aria-label="Probar conexión del servidor de historial"><i
+                                    class="fas fa-plug me-1" aria-hidden="true"></i>Probar
                                 Conexión</button>
-                            <button class="btn btn-outline-primary btn-sm" onclick="loadHistory()"><i
-                                    class="fas fa-sync-alt me-1"></i>Actualizar</button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="loadHistory()" aria-label="Actualizar historial de cambios"><i
+                                    class="fas fa-sync-alt me-1" aria-hidden="true"></i>Actualizar</button>
                         </div>
                     </div>
                     <div class="card">
@@ -4588,9 +4588,9 @@
                                                                 <th class="col-cvs-arr-gates" data-csv-filter-field="[Arr] Gates" data-col-help="arr-gates" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Puerta de desembarque del vuelo de llegada"><div class="csv-th-inner"><span><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Gates <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></span><button class="csv-ef-btn" title="Filtrar Gates Arr"><i class="fas fa-filter"></i></button></div></th>
                                                                 <th class="col-cvs-arr-boarded" data-csv-filter-field="[Arr] Boarded" data-col-help="arr-boarded" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Pasajeros del vuelo de llegada"><div class="csv-th-inner"><span><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Boarded <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></span><button class="csv-ef-btn" title="Filtrar Boarded Arr"><i class="fas fa-filter"></i></button></div></th>
                                                                 <th class="col-cvs-arr-belts" data-csv-filter-field="[Arr] Baggage Belts" data-col-help="arr-belts" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Banda/cinta de equipaje asignada"><div class="csv-th-inner"><span><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Belts <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></span><button class="csv-ef-btn" title="Filtrar Belts"><i class="fas fa-filter"></i></button></div></th>
-                                                                <th class="col-cvs-arr-type" data-csv-filter-field="[Arr] Service Type" data-col-help="arr-type" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Tipo de servicio de llegada — haz clic en ? para ver el catálogo completo"><div class="csv-th-inner"><span><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Type <button type="button" class="btn btn-link p-0 border-0" style="font-size:.6em;opacity:.8;vertical-align:middle;line-height:1;color:inherit;" onclick="event.stopPropagation();new bootstrap.Modal(document.getElementById('modalFlightServiceType')).show()" title="Ver catálogo de tipos de servicio"><i class="fas fa-circle-question"></i></button></span><button class="csv-ef-btn" title="Filtrar Tipo Arr"><i class="fas fa-filter"></i></button></div></th>
+                                                                <th class="col-cvs-arr-type" data-csv-filter-field="[Arr] Service Type" data-col-help="arr-type" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Tipo de servicio de llegada — haz clic en ? para ver el catálogo completo"><div class="csv-th-inner"><span><i class="fas fa-arrow-down text-success me-1 rotate-n45"></i>[Arr] Type <button type="button" aria-label="Ver catálogo de tipos de servicio de llegada" class="btn btn-link p-0 border-0" style="font-size:.6em;opacity:.8;vertical-align:middle;line-height:1;color:inherit;" onclick="event.stopPropagation();new bootstrap.Modal(document.getElementById('modalFlightServiceType')).show()" title="Ver catálogo de tipos de servicio"><i class="fas fa-circle-question" aria-hidden="true"></i></button></span><button class="csv-ef-btn" title="Filtrar Tipo Arr" aria-label="Filtrar por tipo de servicio de llegada"><i class="fas fa-filter" aria-hidden="true"></i></button></div></th>
                                                                 <th class="col-cvs-routing" data-csv-filter-field="Routing" data-col-help="routing" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Ruta completa: origen &gt; AIFA &gt; destino"><div class="csv-th-inner"><span>Routing <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></span><button class="csv-ef-btn" title="Filtrar Routing"><i class="fas fa-filter"></i></button></div></th>
-                                                                <th class="col-cvs-dep-type" data-csv-filter-field="[Dep] Service Type" data-col-help="dep-type" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Tipo de servicio de salida — haz clic en ? para ver el catálogo completo"><div class="csv-th-inner"><span><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Type <button type="button" class="btn btn-link p-0 border-0" style="font-size:.6em;opacity:.8;vertical-align:middle;line-height:1;color:inherit;" onclick="event.stopPropagation();new bootstrap.Modal(document.getElementById('modalFlightServiceType')).show()" title="Ver catálogo de tipos de servicio"><i class="fas fa-circle-question"></i></button></span><button class="csv-ef-btn" title="Filtrar Tipo Dep"><i class="fas fa-filter"></i></button></div></th>
+                                                                <th class="col-cvs-dep-type" data-csv-filter-field="[Dep] Service Type" data-col-help="dep-type" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Tipo de servicio de salida — haz clic en ? para ver el catálogo completo"><div class="csv-th-inner"><span><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Type <button type="button" aria-label="Ver catálogo de tipos de servicio de salida" class="btn btn-link p-0 border-0" style="font-size:.6em;opacity:.8;vertical-align:middle;line-height:1;color:inherit;" onclick="event.stopPropagation();new bootstrap.Modal(document.getElementById('modalFlightServiceType')).show()" title="Ver catálogo de tipos de servicio"><i class="fas fa-circle-question" aria-hidden="true"></i></button></span><button class="csv-ef-btn" title="Filtrar Tipo Dep" aria-label="Filtrar por tipo de servicio de salida"><i class="fas fa-filter" aria-hidden="true"></i></button></div></th>
                                                                 <th class="col-cvs-aircraft" data-csv-filter-field="Aircraft type" data-col-help="aircraft" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Modelo de la aeronave (ej: Boeing 737, Airbus A321)"><div class="csv-th-inner"><span>Aircraft type <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></span><button class="csv-ef-btn" title="Filtrar Aircraft"><i class="fas fa-filter"></i></button></div></th>
                                                                 <th class="col-cvs-reg" data-csv-filter-field="Registration" data-col-help="registration" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Matrícula del avión - identifica al mismo avión en llegada y salida"><div class="csv-th-inner"><span>Registration <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></span><button class="csv-ef-btn" title="Filtrar Matrícula"><i class="fas fa-filter"></i></button></div></th>
                                                                 <th class="col-cvs-dep-airline" data-csv-filter-field="[Dep] Airline code" data-col-help="dep-airline" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Código de aerolínea del vuelo de salida"><div class="csv-th-inner"><span><i class="fas fa-arrow-up text-primary me-1 rotate-45"></i>[Dep] Airline <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></span><button class="csv-ef-btn" title="Filtrar Aerolínea Dep"><i class="fas fa-filter"></i></button></div></th>
@@ -4651,17 +4651,17 @@
                                     <!-- Vista Board: Llegadas y Salidas -->
                                     <div id="conciliacion-board-view" class="d-none mt-2">
                                         <div class="d-flex align-items-center mb-3 gap-2 flex-wrap">
-                                            <button class="btn btn-sm btn-outline-secondary" onclick="toggleConciliacionBoard()">
-                                                <i class="fas fa-table me-1"></i>Regresar al CSV
+                                            <button class="btn btn-sm btn-outline-secondary" onclick="toggleConciliacionBoard()" aria-label="Regresar a la vista de tabla CSV">
+                                                <i class="fas fa-table me-1" aria-hidden="true"></i>Regresar al CSV
                                             </button>
                                             <span class="text-muted small"><i class="fas fa-plane me-1"></i>Vista Llegadas / Salidas</span>
                                             <div class="input-group input-group-sm ms-auto board-global-search">
                                                 <span class="input-group-text border-end-0 bg-white"><i class="fas fa-search text-muted"></i></span>
-                                                <input type="text" class="form-control border-start-0" id="board-global-search"
+                                                <input type="text" class="form-control border-start-0" id="board-global-search" aria-label="Buscar en tabla de llegadas y salidas"
                                                     placeholder="Buscar en llegadas y salidas…"
                                                     oninput="filterBoardTables()">
-                                                <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('board-global-search').value='';filterBoardTables();" title="Limpiar">
-                                                    <i class="fas fa-times"></i>
+                                                <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('board-global-search').value='';filterBoardTables();" aria-label="Limpiar búsqueda" title="Limpiar">
+                                                    <i class="fas fa-times" aria-hidden="true"></i>
                                                 </button>
                                             </div>
                                             <span class="badge bg-warning text-dark ms-auto" style="font-size:.75rem;font-weight:500;">
@@ -5098,8 +5098,8 @@
                                                             class="fas fa-file-csv me-1"></i>CSV</button>
                                                 </div>
                                                 <div class="chip chip-actions ms-auto">
-                                                    <button class="btn btn-primary btn-sm admin-edit-btn" style="display:none;" onclick="dataManagement.addItem('wildlife_strikes')">
-                                                        <i class="fas fa-plus me-1"></i>Agregar Registro
+                                                    <button class="btn btn-primary btn-sm admin-edit-btn" style="display:none;" onclick="dataManagement.addItem('wildlife_strikes')" aria-label="Agregar un nuevo registro de fauna">
+                                                        <i class="fas fa-plus me-1" aria-hidden="true"></i>Agregar Registro
                                                     </button>
                                                 </div>
                                             </div>
@@ -5264,8 +5264,8 @@
                                                         class="btn btn-outline-secondary btn-sm">Restablecer</button>
                                                 </div>
                                                 <div class="chip chip-actions ms-auto">
-                                                    <button class="btn btn-primary btn-sm admin-edit-btn" style="display:none;" onclick="dataManagement.addItem('rescued_wildlife')">
-                                                        <i class="fas fa-plus me-1"></i>Agregar Rescate
+                                                    <button class="btn btn-primary btn-sm admin-edit-btn" style="display:none;" onclick="dataManagement.addItem('rescued_wildlife')" aria-label="Agregar un nuevo registro de fauna rescatada">
+                                                        <i class="fas fa-plus me-1" aria-hidden="true"></i>Agregar Rescate
                                                     </button>
                                                 </div>
                                             </div>
@@ -5729,7 +5729,7 @@
                                                     <input type="radio" class="btn-check" name="viewmode" id="view-charts" autocomplete="off" onchange="toggleViewMode('charts')">
                                                     <label class="btn btn-outline-secondary btn-sm" for="view-charts"><i class="fas fa-chart-pie me-1"></i>Estadísticas</label>
                                                 </div>
-                                                <button class="btn btn-success btn-sm" onclick="exportCurrentTable()"><i class="fas fa-file-excel me-1"></i>Exportar Excel</button>
+                                                <button class="btn btn-success btn-sm" onclick="exportCurrentTable()" aria-label="Exportar la tabla actual a formato Excel"><i class="fas fa-file-excel me-1" aria-hidden="true"></i>Exportar Excel</button>
                                             </div>
 
                                             <!-- Data Table View -->
@@ -7849,42 +7849,47 @@
                                     <div class="ag-wrapper">
                                         <div class="row g-3 mb-4">
                                             <div class="col-12 col-xl-3">
-                                                <div class="card h-100 shadow-sm border-0 bg-light-subtle">
+                                                <div class="card h-100 shadow-sm border-0" style="background: linear-gradient(135deg, #f5f7fa 0%, #f0f3f8 100%); border-left: 4px solid #2196f3;">
                                                     <div class="card-body">
-                                                        <h6 class="text-uppercase text-muted fw-bold mb-3"><i class="fas fa-filter me-2"></i>Filtros YoY</h6>
-                                                        <div class="mb-3">
-                                                            <label for="yoy-metric-select" class="form-label small fw-semibold">Indicador</label>
-                                                            <select id="yoy-metric-select" class="form-select form-select-sm">
-                                                                <option value="operaciones" selected>Operaciones</option>
-                                                                <option value="pasajeros">Pasajeros</option>
+                                                        <h6 class="text-uppercase text-muted fw-bold mb-3" style="letter-spacing: 0.5px;"><i class="fas fa-filter me-2 text-primary"></i>Filtros de Comparación</h6>
+                                                        <div class="mb-4">
+                                                            <label for="yoy-metric-select" class="form-label small fw-semibold mb-2" style="color: #334155;">📊 Indicador</label>
+                                                            <select id="yoy-metric-select" class="form-select form-select-sm" style="border-color: #cbd5e1; border-radius: 6px;">
+                                                                <option value="operaciones" selected>Operaciones Comerciales</option>
+                                                                <option value="pasajeros">Pasajeros Comerciales</option>
                                                             </select>
                                                         </div>
                                                         <div class="mb-3">
-                                                            <label class="form-label small fw-semibold">Años a comparar</label>
+                                                            <label class="form-label small fw-semibold mb-2" style="color: #334155;">📅 Años a Comparar</label>
                                                             <div id="yoy-years-container" class="d-flex flex-column gap-2">
                                                                 <!-- Se llenará dinámicamente -->
                                                             </div>
                                                         </div>
-                                                        <hr/ >
-                                                        <p class="small text-muted mb-0">Esta vista superpone los meses (Enero a Diciembre) de cada año seleccionado para facilitar la comparación de tendencias.</p>
+                                                        <hr class="my-3" />
+                                                        <p class="small mb-0" style="color: #64748b; line-height: 1.6;">✨ Esta vista superpone los 12 meses de cada año seleccionado para facilitar el análisis de tendencias y patrones estacionales.</p>
                                                     </div>
                                                 </div>
                                             </div>
                                             <div class="col-12 col-xl-9">
                                                 <div class="card shadow-sm border-0 h-100">
-                                                    <div class="card-body">
-                                                        <div class="d-flex justify-content-between align-items-center mb-3">
-                                                            <h5 class="card-title fw-bold mb-0 text-primary" id="yoy-chart-title">Comparativa Mensual</h5>
-                                                            <button class="btn btn-sm btn-outline-secondary" id="yoy-export-btn" title="Exportar CSV">
-                                                                <i class="fas fa-download"></i>
+                                                    <div class="card-header bg-white border-bottom" style="border-color: #f0f4f8;">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <h5 class="card-title fw-bold mb-0 text-primary" id="yoy-chart-title" style="font-size: 1.1rem; letter-spacing: -0.02em;">📈 Comparativa Mensual de Operaciones Comerciales</h5>
+                                                                <small class="text-muted d-block mt-2">Análisis de tendencias año a año</small>
+                                                            </div>
+                                                            <button class="btn btn-sm btn-outline-secondary" id="yoy-export-btn" title="Exportar a CSV" aria-label="Exportar gráfica a CSV">
+                                                                <i class="fas fa-download me-1"></i>Exportar
                                                             </button>
                                                         </div>
-                                                        <div class="chart-container" style="position: relative; height:400px; width:100%; margin-bottom: 2rem;">
-                                                            <canvas id="yoyCompChart"></canvas>
+                                                    </div>
+                                                    <div class="card-body" style="padding: 1.5rem;">
+                                                        <div class="chart-container" style="position: relative; height: 420px; width: 100%; margin-bottom: 1.5rem;">
+                                                            <canvas id="yoyCompChart" style="filter: drop-shadow(0 2px 8px rgba(0,0,0,0.05));"></canvas>
                                                         </div>
-                                                        <div id="yoy-insights" class="alert alert-info border-0 shadow-sm d-none" role="alert">
-                                                            <h6 class="alert-heading fw-bold mb-2"><i class="fas fa-lightbulb me-2 text-warning"></i>Insights y Tendencias</h6>
-                                                            <ul id="yoy-insights-list" class="mb-0 small ps-3">
+                                                        <div id="yoy-insights" class="alert alert-info border-0 shadow-sm d-none" role="alert" style="background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%); border-left: 4px solid #0284c7;">
+                                                            <h6 class="alert-heading fw-bold mb-2" style="color: #0c4a6e;"><i class="fas fa-lightbulb me-2" style="color: #f59e0b;"></i>💡 Insights y Tendencias</h6>
+                                                            <ul id="yoy-insights-list" class="mb-0 small ps-3" style="color: #1e3a8a;">
                                                                 <!-- Generado mediante JS -->
                                                             </ul>
                                                         </div>
@@ -7895,9 +7900,12 @@
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="card shadow-sm border-0">
+                                                    <div class="card-header bg-white border-bottom" style="border-color: #f0f4f8;">
+                                                        <h6 class="mb-0 fw-bold text-secondary" style="font-size: 0.95rem;">📋 Detalles por Mes</h6>
+                                                    </div>
                                                     <div class="card-body p-0">
                                                         <div class="table-responsive">
-                                                            <table class="table table-hover table-bordered table-sm align-middle mb-0 text-center" id="yoy-data-table">
+                                                            <table class="table table-hover table-bordered table-sm align-middle mb-0 text-center" id="yoy-data-table" style="border-color: #f0f4f8;">
                                                                 <thead class="table-light">
                                                                     <!-- Se llenará dinámicamente -->
                                                                 </thead>
@@ -8734,8 +8742,8 @@
                                                 <div class="d-flex align-items-center gap-2">
                                                     <label class="form-label mb-0 small fw-semibold text-muted">Semana:</label>
                                                     <select class="form-select form-select-sm" id="freq-stats-week-select" aria-label="Semana" style="min-width:180px"></select>
-                                                    <button class="btn btn-sm btn-outline-secondary" onclick="FreqStats.refresh()" title="Actualizar">
-                                                        <i class="fas fa-sync-alt"></i>
+                                                    <button class="btn btn-sm btn-outline-secondary" onclick="FreqStats.refresh()" aria-label="Recargar estadísticas de frecuencias" title="Actualizar">
+                                                        <i class="fas fa-sync-alt" aria-hidden="true"></i>
                                                     </button>
                                                 </div>
                                             </div>
@@ -8976,8 +8984,8 @@
                                                     class="form-control form-control-sm"
                                                     placeholder="Filtrar aerolínea o ruta…"
                                                     style="min-width:185px">
-                                                <button class="btn btn-sm btn-outline-secondary" onclick="FreqStats.refresh()" title="Actualizar">
-                                                    <i class="fas fa-sync-alt"></i>
+                                                <button class="btn btn-sm btn-outline-secondary" onclick="FreqStats.refresh()" aria-label="Recargar estadísticas de frecuencias" title="Actualizar">
+                                                    <i class="fas fa-sync-alt" aria-hidden="true"></i>
                                                 </button>
                                             </div>
                                         </div>
@@ -12402,14 +12410,14 @@
       <div class="input-group input-group-sm" style="max-width:220px;">
         <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
         <input type="text" class="form-control" placeholder="Filtrar por código o descripción…" oninput="filterServiceTypeTable(this)" autocomplete="off">
-        <button class="btn btn-outline-secondary" type="button" onclick="this.previousElementSibling.value='';filterServiceTypeTable(this.previousElementSibling)" title="Limpiar"><i class="fas fa-times"></i></button>
+        <button class="btn btn-outline-secondary" type="button" onclick="this.previousElementSibling.value='';filterServiceTypeTable(this.previousElementSibling)" aria-label="Limpiar búsqueda" title="Limpiar"><i class="fas fa-times" aria-hidden="true"></i></button>
       </div>
       <div class="d-flex gap-1 flex-wrap">
-        <button type="button" class="btn btn-sm btn-success svc-cat-btn" onclick="filterServiceTypeCat(this,'Regular')">Regular</button>
-        <button type="button" class="btn btn-sm btn-primary svc-cat-btn" onclick="filterServiceTypeCat(this,'Vuelos adicionales')">Vuelos adicionales</button>
-        <button type="button" class="btn btn-sm btn-warning svc-cat-btn" onclick="filterServiceTypeCat(this,'Fletamento')">Fletamento</button>
-        <button type="button" class="btn btn-sm btn-secondary svc-cat-btn" onclick="filterServiceTypeCat(this,'Otros')">Otros</button>
-        <button type="button" class="btn btn-sm btn-outline-secondary svc-cat-btn" onclick="filterServiceTypeCat(this,'')">Todos</button>
+        <button type="button" class="btn btn-sm btn-success svc-cat-btn" onclick="filterServiceTypeCat(this,'Regular')" aria-label="Filtrar por categoría Regular">Regular</button>
+        <button type="button" class="btn btn-sm btn-primary svc-cat-btn" onclick="filterServiceTypeCat(this,'Vuelos adicionales')" aria-label="Filtrar por categoría Vuelos adicionales">Vuelos adicionales</button>
+        <button type="button" class="btn btn-sm btn-warning svc-cat-btn" onclick="filterServiceTypeCat(this,'Fletamento')" aria-label="Filtrar por categoría Fletamento">Fletamento</button>
+        <button type="button" class="btn btn-sm btn-secondary svc-cat-btn" onclick="filterServiceTypeCat(this,'Otros')" aria-label="Filtrar por categoría Otros">Otros</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary svc-cat-btn" onclick="filterServiceTypeCat(this,'')" aria-label="Mostrar todas las categorías">Todos</button>
       </div>
       <small class="text-muted ms-auto svc-row-count"></small>
     </div>
@@ -12464,14 +12472,14 @@
       <div class="input-group input-group-sm" style="max-width:220px;">
         <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
         <input type="text" class="form-control" placeholder="Filtrar por código o descripción…" oninput="filterServiceTypeTable(this)" autocomplete="off">
-        <button class="btn btn-outline-secondary" type="button" onclick="this.previousElementSibling.value='';filterServiceTypeTable(this.previousElementSibling)" title="Limpiar"><i class="fas fa-times"></i></button>
+        <button class="btn btn-outline-secondary" type="button" onclick="this.previousElementSibling.value='';filterServiceTypeTable(this.previousElementSibling)" aria-label="Limpiar búsqueda" title="Limpiar"><i class="fas fa-times" aria-hidden="true"></i></button>
       </div>
       <div class="d-flex gap-1 flex-wrap">
-        <button type="button" class="btn btn-sm btn-success svc-cat-btn" onclick="filterServiceTypeCat(this,'Regular')">Regular</button>
-        <button type="button" class="btn btn-sm btn-primary svc-cat-btn" onclick="filterServiceTypeCat(this,'Vuelos adicionales')">Vuelos adicionales</button>
-        <button type="button" class="btn btn-sm btn-warning svc-cat-btn" onclick="filterServiceTypeCat(this,'Fletamento')">Fletamento</button>
-        <button type="button" class="btn btn-sm btn-secondary svc-cat-btn" onclick="filterServiceTypeCat(this,'Otros')">Otros</button>
-        <button type="button" class="btn btn-sm btn-outline-secondary svc-cat-btn" onclick="filterServiceTypeCat(this,'')">Todos</button>
+        <button type="button" class="btn btn-sm btn-success svc-cat-btn" onclick="filterServiceTypeCat(this,'Regular')" aria-label="Filtrar por categoría Regular">Regular</button>
+        <button type="button" class="btn btn-sm btn-primary svc-cat-btn" onclick="filterServiceTypeCat(this,'Vuelos adicionales')" aria-label="Filtrar por categoría Vuelos adicionales">Vuelos adicionales</button>
+        <button type="button" class="btn btn-sm btn-warning svc-cat-btn" onclick="filterServiceTypeCat(this,'Fletamento')" aria-label="Filtrar por categoría Fletamento">Fletamento</button>
+        <button type="button" class="btn btn-sm btn-secondary svc-cat-btn" onclick="filterServiceTypeCat(this,'Otros')" aria-label="Filtrar por categoría Otros">Otros</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary svc-cat-btn" onclick="filterServiceTypeCat(this,'')" aria-label="Mostrar todas las categorías">Todos</button>
       </div>
       <small class="text-muted ms-auto svc-row-count"></small>
     </div>
@@ -12843,7 +12851,7 @@ window.opsFlightsAdmin = (function () {
                 '<td>' + v('[Dep] ATOT') + '</td>' +
                 '<td>' + v('[Dep] ATTT') + '</td>' +
                 '<td style="background:#fff0f0;border-left:2px solid #f5c6c6">' +
-                '<button class="btn btn-danger btn-sm py-0 px-2" onclick="window.opsFlightsAdmin.deleteById(' + id + ')" title="Eliminar vuelo"><i class="fas fa-trash-alt"></i></button>' +
+                '<button class="btn btn-danger btn-sm py-0 px-2" onclick="window.opsFlightsAdmin.deleteById(' + id + ')" aria-label="Eliminar vuelo" title="Eliminar vuelo"><i class="fas fa-trash-alt" aria-hidden="true"></i></button>' +
                 '</td>' +
                 '</tr>'
             );
