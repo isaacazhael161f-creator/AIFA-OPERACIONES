@@ -46,7 +46,6 @@
                 updateChartTitle();
                 renderYoYChart();
                 renderYoYTable();
-                generateYoYInsights();
             });
         }
 
@@ -88,7 +87,6 @@
             updateChartTitle();
             renderYoYChart();
             renderYoYTable();
-                generateYoYInsights();
             dataLoaded = true;
 
         } catch(error) {
@@ -119,7 +117,6 @@
                 else activeYears.delete(parseInt(yr));
                 renderYoYChart();
                 renderYoYTable();
-                generateYoYInsights();
             });
 
             const label = document.createElement('label');
@@ -430,94 +427,4 @@
         link.click();
         document.body.removeChild(link);
     }
-
-    function generateYoYInsights() {
-        const insightsContainer = document.getElementById('yoy-insights');
-        const insightsList = document.getElementById('yoy-insights-list');
-        if (!insightsContainer || !insightsList) return;
-
-        insightsList.innerHTML = '';
-        const yearsList = Array.from(activeYears).sort((a,b) => b - a); // Descending
-
-        if (yearsList.length === 0) {
-            insightsContainer.classList.add('d-none');
-            return;
-        }
-
-        const insights = [];
-        const metricName = currentMetric === 'operaciones' ? 'operaciones comerciales' : 'pasajeros comerciales';
-        
-        // 1. Total del año más reciente
-        if (yearsList.length > 0) {
-            const latestYear = yearsList[0];
-            const dataLatest = opsDataCache.filter(d => d.year === latestYear);
-            let totalLatest = 0;
-            let bestMonthLatest = { month: -1, val: -1 };
-            
-            dataLatest.forEach(d => {
-                const val = currentMetric === 'operaciones' ? (d.comercial_ops || 0) : (d.comercial_pax || 0);
-                totalLatest += val;
-                if (val > bestMonthLatest.val) {
-                    bestMonthLatest = { month: d.month, val: val };
-                }
-            });
-            
-            if (totalLatest > 0) {
-                insights.push(`En el año <strong>${latestYear}</strong> se registraron un total de <strong>${new Intl.NumberFormat('es-MX').format(totalLatest)}</strong> ${metricName}.`);
-                if (bestMonthLatest.month !== -1) {
-                    insights.push(`El mes más fuerte de <strong>${latestYear}</strong> fue <strong>${monthNames[bestMonthLatest.month - 1]}</strong> con <strong>${new Intl.NumberFormat('es-MX').format(bestMonthLatest.val)}</strong> ${metricName}.`);
-                }
-            }
-        }
-        
-        // 2. Comparación YTD
-        if (yearsList.length > 1) {
-            const latestYear = yearsList[0];
-            const prevYear = yearsList[1];
-            
-            let totalLatestYtd = 0, totalPrevYtd = 0;
-            const dataLatest = opsDataCache.filter(d => d.year === latestYear);
-            const dataPrev = opsDataCache.filter(d => d.year === prevYear);
-            
-            let maxMonthLatest = 0;
-            dataLatest.forEach(d => {
-                const val = currentMetric === 'operaciones' ? (d.comercial_ops || 0) : (d.comercial_pax || 0);
-                if (val > 0 && d.month > maxMonthLatest) {
-                    maxMonthLatest = d.month;
-                }
-            });
-            
-            if (maxMonthLatest > 0) {
-                 for (let m = 1; m <= maxMonthLatest; m++) {
-                    const rowL = dataLatest.find(d => d.month === m);
-                    if (rowL) {
-                        totalLatestYtd += currentMetric === 'operaciones' ? (rowL.comercial_ops || 0) : (rowL.comercial_pax || 0);
-                    }
-                    const rowP = dataPrev.find(d => d.month === m);
-                    if (rowP) {
-                        totalPrevYtd += currentMetric === 'operaciones' ? (rowP.comercial_ops || 0) : (rowP.comercial_pax || 0);
-                    }
-                 }
-                 
-                 if (totalPrevYtd > 0 && totalLatestYtd > 0) {
-                     const growth = ((totalLatestYtd - totalPrevYtd) / totalPrevYtd) * 100;
-                     const sign = growth >= 0 ? 'incremento' : 'caída';
-                     const icon = growth >= 0 ? '<i class="fas fa-arrow-up text-success"></i>' : '<i class="fas fa-arrow-down text-danger"></i>';
-                     insights.push(`Comparando el mismo periodo (Ene-${monthNames[maxMonthLatest-1]}) de <strong>${latestYear}</strong> vs <strong>${prevYear}</strong>, se observa un ${sign} del <strong>${Math.abs(growth).toFixed(1)}%</strong> ${icon}.`);
-                 }
-            }
-        }
-
-        if (insights.length > 0) {
-            insights.forEach(text => {
-                const li = document.createElement('li');
-                li.className = 'mb-1';
-                li.innerHTML = text;
-                insightsList.appendChild(li);
-            });
-            insightsContainer.classList.remove('d-none');
-        } else {
-            insightsContainer.classList.add('d-none');
-        }
-    }
-});
+})();
