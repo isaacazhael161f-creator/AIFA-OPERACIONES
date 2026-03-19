@@ -113,6 +113,70 @@ body {
    display: none !important;
 }
 
+/* --- Mejoras visuales globales modernas --- */
+.btn {
+   border-radius: 8px;
+   transition: all 0.25s ease;
+   font-weight: 500;
+   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.btn:hover {
+   transform: translateY(-1px);
+   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.btn:active {
+   transform: translateY(0);
+   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.form-control, .form-select {
+   border-radius: 8px;
+   border: 1px solid var(--border-color);
+   transition: all 0.25s ease;
+   background-color: var(--card-bg);
+   color: var(--text-color);
+}
+
+.form-control:focus, .form-select:focus {
+   box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.12);
+   border-color: var(--primary-color);
+}
+
+.table {
+   border-radius: 8px;
+   overflow: hidden;
+}
+
+.table th {
+   font-weight: 600;
+   background-color: rgba(0,0,0,0.02);
+}
+
+/* Global scrollbar improvements */
+::-webkit-scrollbar {
+   width: 8px;
+   height: 8px;
+}
+::-webkit-scrollbar-track {
+   background: transparent;
+}
+::-webkit-scrollbar-thumb {
+   background: rgba(100, 116, 139, 0.4);
+   border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+   background: rgba(100, 116, 139, 0.6);
+}
+body.dark-mode ::-webkit-scrollbar-thumb {
+   background: rgba(255, 255, 255, 0.2);
+}
+body.dark-mode ::-webkit-scrollbar-thumb:hover {
+   background: rgba(255, 255, 255, 0.35);
+}
+/* ------------------------------------------- */
+
 body.dark-mode {
    --primary-color: #4dabf7;
    --primary-color-dark: #1e88e5;
@@ -995,6 +1059,16 @@ body.dark-mode .section-title small {
 .header {
    position: relative;
    overflow: hidden;
+   background: rgba(255, 255, 255, 0.4);
+   backdrop-filter: blur(12px);
+   border-bottom: 1px solid var(--border-color);
+   margin-bottom: 1rem;
+   border-radius: 0 0 16px 16px;
+   box-shadow: 0 4px 16px var(--shadow-color);
+}
+
+body.dark-mode .header {
+   background: rgba(21, 29, 39, 0.6);
 }
 
 .header-content {
@@ -2925,10 +2999,6 @@ body.dark-mode .menu-item {
    color: rgba(255, 255, 255, 0.95);
 }
 
-body.dark-mode .menu-item:hover {
-   background-color: rgba(255, 255, 255, 0.05);
-}
-
 body.dark-mode .table-container-tech {
    background-color: rgba(255, 255, 255, 0.04);
 }
@@ -2969,23 +3039,26 @@ body.dark-mode .update-note {
 .menu-item {
    display: flex;
    align-items: center;
-   padding: 0.85rem 1.5rem;
-   color: rgba(255, 255, 255, 0.8);
+   padding: 0.85rem 1.25rem;
+   margin: 0.25rem 1rem;
+   border-radius: 8px;
+   color: rgba(255, 255, 255, 0.75);
    text-decoration: none;
-   transition: all 0.2s ease;
-   border-left: 4px solid transparent;
+   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+   border-left: none;
 }
 
 .menu-item:hover {
    background-color: rgba(255, 255, 255, 0.1);
    color: white;
+   transform: translateX(4px);
 }
 
 .menu-item.active {
-   background-color: var(--primary-color-light);
-   color: var(--primary-color-dark);
-   font-weight: 700;
-   border-left-color: var(--primary-color);
+   background-color: rgba(255, 255, 255, 0.15);
+   color: #ffffff;
+   font-weight: 600;
+   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 body.dark-mode .menu-item.active {
@@ -3233,7 +3306,14 @@ body.dark-mode .weekly-week-chip.is-active {
 .card {
    background-color: var(--card-bg);
    border: 1px solid var(--border-color);
-   transition: background-color 0.3s, border-color 0.3s;
+   border-radius: 12px;
+   box-shadow: 0 4px 16px var(--shadow-color);
+   transition: background-color 0.3s, border-color 0.3s, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+   box-shadow: 0 8px 24px var(--shadow-color);
+   transform: translateY(-2px);
 }
 
 .card-header,
@@ -3243,13 +3323,41 @@ body.dark-mode .weekly-week-chip.is-active {
    border-color: var(--border-color);
 }
 
+.card-header {
+   border-top-left-radius: 12px;
+   border-top-right-radius: 12px;
+   font-weight: 600;
+   padding-bottom: 0.75rem;
+   padding-top: 1rem;
+   background: linear-gradient(180deg, rgba(13, 110, 253, 0.03) 0%, transparent 100%);
+}
+
+.nav-tabs {
+   border-bottom: 2px solid var(--border-color);
+   gap: 0.5rem;
+}
+
 .nav-tabs .nav-link {
    color: var(--text-muted-color);
+   border: none;
+   border-bottom: 2px solid transparent;
+   padding: 0.75rem 1.25rem;
+   font-weight: 500;
+   transition: all 0.3s ease;
+   border-radius: 6px 6px 0 0;
+}
+
+.nav-tabs .nav-link:hover {
+   color: var(--primary-color-dark);
+   background-color: rgba(13, 110, 253, 0.05);
+   border-color: transparent;
 }
 
 .nav-tabs .nav-link.active {
    color: var(--primary-color);
    border-bottom-color: var(--primary-color);
+   background-color: rgba(13, 110, 253, 0.08);
+   font-weight: 600;
 }
 
 /* Keep Servicio MÃ©dico tabs laid out horizontally with smooth scrolling */
@@ -11587,8 +11695,8 @@ body.dark-mode .th-badge-dep {
 
 /* Card Header Styles */
 .card-header {
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
-    border-bottom: 1px solid #f0f4f8 !important;
+    background: transparent !important;
+    border-bottom: 1px solid var(--border-color) !important;
 }
 
 /* Animations */
