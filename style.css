@@ -11519,8 +11519,7 @@ body.dark-mode .th-badge-dep {
 
 /* YoY Table Styling */
 #yoy-data-table {
-    border-collapse: separate;
-    border-spacing: 0;
+    border-collapse: collapse;
 }
 
 #yoy-data-table thead th {
@@ -11528,6 +11527,7 @@ body.dark-mode .th-badge-dep {
     color: #1e293b;
     font-weight: 700;
     padding: 14px 12px;
+    border: 1px solid #cbd5e1;
     border-bottom: 2px solid #cbd5e1;
     text-align: center;
 }
@@ -11536,25 +11536,28 @@ body.dark-mode .th-badge-dep {
     transition: background-color 0.2s ease;
 }
 
-#yoy-data-table tbody tr:hover {
-    background-color: #f0f4f8 !important;
+#yoy-data-table tbody tr:hover td {
+    background-color: #e2e8f0 !important;
 }
 
 #yoy-data-table tbody td {
     padding: 14px 12px;
     text-align: center;
-    border-color: #f0f4f8;
+    border: 1px solid #cbd5e1;
     color: #334155;
+    background-color: #ffffff;
 }
 
 #yoy-data-table tbody tr:nth-child(odd) td {
-    background-color: #fafbfc;
+    background-color: #f1f5f9;
 }
 
-#yoy-data-table tbody tr:last-child {
+#yoy-data-table tbody tr:last-child td {
     background: linear-gradient(135deg, #f0f4f8 0%, #e8ecf1 100%);
     border-top: 2px solid #cbd5e1;
     border-bottom: 2px solid #cbd5e1;
+    border-left: 1px solid #cbd5e1;
+    border-right: 1px solid #cbd5e1;
     font-weight: 700;
 }
 
@@ -11641,9 +11644,25 @@ body.dark-mode #yoy-data-table thead th {
     border-color: #475569;
 }
 
+body.dark-mode #yoy-data-table tbody td {
+    background-color: #0f172a;
+    color: #e2e8f0;
+    border-color: #475569;
+}
+
 body.dark-mode #yoy-data-table tbody tr:nth-child(odd) td {
     background-color: #1e293b;
-    color: #cbd5e1;
+    color: #e2e8f0;
+}
+
+body.dark-mode #yoy-data-table tbody tr:hover td {
+    background-color: #334155 !important;
+}
+
+body.dark-mode #yoy-data-table tbody tr:last-child td {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-color: #475569;
+    color: #f8fafc;
 }
 
 body.dark-mode #yoy-insights {
