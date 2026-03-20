@@ -504,7 +504,7 @@
         const endLabel = h===23 ? '00:00' : `${String(h+1).padStart(2,'0')}:00`;
         const range = `${String(h).padStart(2,'0')}:00 – ${endLabel}`;
         const { bg, tc } = _heatColor(d / maxD);
-        return `<tr><td class="fw-semibold">${range}</td><td style="background:${bg};color:${tc};font-weight:800;font-size:1.05em">${d}</td></tr>`;
+        return `<tr><td class="fw-semibold">${range}</td><td style="background-color:${bg} !important;--bs-table-accent-bg:transparent !important;box-shadow:none;color:${tc};font-weight:800;font-size:1.05em">${d}</td></tr>`;
       }).join('');
     }
 
@@ -620,7 +620,7 @@
         const range = `${String(h).padStart(2,'0')}:00-${endLabel}`;
         const d = demand[h], c = capacity[h];
         const [bg, tc] = d > c ? ['#dc3545','#fff'] : d === c ? ['#ffc107','#000'] : ['#198754','#fff'];
-        return `<tr><td>${range}</td><td style="background:${bg};color:${tc};font-weight:700">${d}</td><td>${c}</td></tr>`;
+        return `<tr><td>${range}</td><td style="background-color:${bg} !important;--bs-table-accent-bg:transparent !important;box-shadow:none;color:${tc};font-weight:700">${d}</td><td>${c}</td></tr>`;
       }).join('');
     }
 
@@ -1898,10 +1898,87 @@
     _initRangeHourSelects();
     const rangeBtn = document.getElementById('range-report-btn');
     if (rangeBtn) rangeBtn.addEventListener('click', _buildRangeReport);
+    const itineraryGeneralSubtabsWrap = document.getElementById('itinerary-general-subtabs-wrap');
+    const itineraryCombinedSubtabsWrap = document.getElementById('itinerary-combined-subtabs-wrap');
+    const itineraryGeneralTargets = new Set([
+      '#general-grafica-pane',
+      '#pasajeros-grafica-pane',
+      '#carga-grafica-pane'
+    ]);
+    const itineraryCombinedTargets = new Set([
+      '#combined-grafica-pane',
+      '#pax-combined-grafica-pane',
+      '#cargo-combined-grafica-pane'
+    ]);
+
+    function syncGeneralSubtabsVisibility(target) {
+      if (!itineraryGeneralSubtabsWrap) return;
+      itineraryGeneralSubtabsWrap.classList.toggle('d-none', !itineraryGeneralTargets.has(target));
+    }
+
+    function syncCombinedSubtabsVisibility(target) {
+      if (!itineraryCombinedSubtabsWrap) return;
+      itineraryCombinedSubtabsWrap.classList.toggle('d-none', !itineraryCombinedTargets.has(target));
+    }
+
+    function syncGeneralSubtabsState(target) {
+      if (!itineraryGeneralTargets.has(target)) return;
+      document.querySelectorAll('#itineraryGeneralSubtab .nav-link').forEach(btn => {
+        const isActive = btn.getAttribute('data-bs-target') === target;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+    }
+
+    function syncCombinedSubtabsState(target) {
+      if (!itineraryCombinedTargets.has(target)) return;
+      document.querySelectorAll('#itineraryCombinedSubtab .nav-link').forEach(btn => {
+        const isActive = btn.getAttribute('data-bs-target') === target;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+    }
+
+    function syncNestedSubviewControls(target) {
+      syncGeneralSubtabsVisibility(target);
+      syncCombinedSubtabsVisibility(target);
+      syncGeneralSubtabsState(target);
+      syncCombinedSubtabsState(target);
+    }
+
+    // Defensive guard: ensure exactly one itinerary chart pane is visible.
+    function forceSingleItineraryPane(target) {
+      const targetId = String(target || '').replace(/^#/, '');
+      const paneIds = [
+        'pasajeros-grafica-pane',
+        'carga-grafica-pane',
+        'general-grafica-pane',
+        'combined-grafica-pane',
+        'pax-combined-grafica-pane',
+        'cargo-combined-grafica-pane',
+        'fuel-heatmap-pane'
+      ];
+
+      paneIds.forEach((id) => {
+        const pane = document.getElementById(id);
+        if (!pane) return;
+        const isActive = id === targetId;
+        pane.classList.toggle('active', isActive);
+        pane.classList.toggle('show', isActive);
+      });
+    }
+
+    function getScopeFromPaneTarget(target) {
+      const targetText = String(target || '').toLowerCase();
+      return (targetText.includes('carga') || targetText.includes('cargo')) ? SCOPE_CARGO : SCOPE_PAX;
+    }
+
     document.querySelectorAll('#itineraryTab button[data-bs-toggle="tab"]').forEach(btn => {
       btn.addEventListener('shown.bs.tab', (event)=> {
         const target = event.target.getAttribute('data-bs-target') || '';
-        const scope = target.includes('carga') ? SCOPE_CARGO : SCOPE_PAX;
+        forceSingleItineraryPane(target);
+        syncNestedSubviewControls(target);
+        const scope = getScopeFromPaneTarget(target);
         applyIntelligenceForScope(scope);
         // Render fuel heatmap when its tab is activated
         if (target === '#fuel-heatmap-pane' && lastAgg) {
@@ -1916,6 +1993,35 @@
         }, 50);
       });
     });
+    document.querySelectorAll('#itineraryGeneralSubtab button[data-bs-toggle="tab"]').forEach(btn => {
+      btn.addEventListener('shown.bs.tab', (event)=> {
+        const target = event.target.getAttribute('data-bs-target') || '';
+        forceSingleItineraryPane(target);
+        syncNestedSubviewControls(target);
+        const scope = getScopeFromPaneTarget(target);
+        applyIntelligenceForScope(scope);
+        setTimeout(() => {
+          if (lastAgg) _redrawVisibleCharts();
+        }, 50);
+      });
+    });
+    document.querySelectorAll('#itineraryCombinedSubtab button[data-bs-toggle="tab"]').forEach(btn => {
+      btn.addEventListener('shown.bs.tab', (event)=> {
+        const target = event.target.getAttribute('data-bs-target') || '';
+        forceSingleItineraryPane(target);
+        syncNestedSubviewControls(target);
+        const scope = getScopeFromPaneTarget(target);
+        applyIntelligenceForScope(scope);
+        setTimeout(() => {
+          if (lastAgg) _redrawVisibleCharts();
+        }, 50);
+      });
+    });
+    const activePaneOnLoad = document.querySelector('#itineraryTabContent > .tab-pane.show.active')
+      || document.querySelector('#itineraryTabContent > .tab-pane.active');
+    const activeTargetOnLoad = activePaneOnLoad ? `#${activePaneOnLoad.id}` : '#combined-grafica-pane';
+    forceSingleItineraryPane(activeTargetOnLoad);
+    syncNestedSubviewControls(activeTargetOnLoad);
     ['graficas-itinerario-tab','radar-operativo-tab'].forEach(tabId => {
       const trigger = document.getElementById(tabId);
       if (trigger) trigger.addEventListener('shown.bs.tab', (e) => {
@@ -2090,6 +2196,34 @@
   }
   // ─────────────────────────────────────────────────────────────────────────
 
+  function getActiveItineraryChartPane(){
+    return document.querySelector('#itineraryTabContent > .tab-pane.show.active')
+      || document.querySelector('#itineraryTabContent > .tab-pane.active')
+      || document.getElementById('combined-grafica-pane')
+      || document.getElementById('pax-combined-grafica-pane')
+      || document.getElementById('cargo-combined-grafica-pane')
+      || document.getElementById('general-grafica-pane')
+      || document.getElementById('pasajeros-grafica-pane');
+  }
+
+  function getActiveItineraryChartLabel(activePane){
+    const paneId = activePane && activePane.id ? activePane.id : '';
+    const isGeneralSubviewPane = paneId === 'general-grafica-pane' || paneId === 'pasajeros-grafica-pane' || paneId === 'carga-grafica-pane';
+    const isCombinedSubviewPane = paneId === 'combined-grafica-pane' || paneId === 'pax-combined-grafica-pane' || paneId === 'cargo-combined-grafica-pane';
+    const activeGeneralSubview = document.querySelector('#itineraryGeneralSubtab .nav-link.active');
+    if (isGeneralSubviewPane && activeGeneralSubview) return activeGeneralSubview.textContent.trim();
+    const activeCombinedSubview = document.querySelector('#itineraryCombinedSubtab .nav-link.active');
+    if (isCombinedSubviewPane && activeCombinedSubview) return activeCombinedSubview.textContent.trim();
+    const activeMainTab = document.querySelector('#itineraryTab > .nav-item:not(.d-none) .nav-link.active');
+    if (activeMainTab) return activeMainTab.textContent.trim();
+    if (paneId === 'cargo-combined-grafica-pane') return '4. Carga (Total)';
+    if (paneId === 'pax-combined-grafica-pane') return '3. Pax (Total)';
+    if (paneId === 'combined-grafica-pane') return '2. Llegadas vs Salidas';
+    if (paneId === 'carga-grafica-pane') return 'Gráfica Carga';
+    if (paneId === 'general-grafica-pane') return 'Vista General';
+    return 'Gráfica Pasajeros';
+  }
+
   // ── Compartir gráfica por WhatsApp ───────────────────────────────────────
   // Captures the active itinerary tab pane (charts + top-hours widget) as a
   // PNG image, then shares via Web Share API on mobile or downloads on desktop.
@@ -2097,10 +2231,7 @@
   if (shareItBtn) {
     shareItBtn.addEventListener('click', async () => {
       // Find the active inner tab pane (pasajeros / carga / general)
-      const activeTabLink = document.querySelector('#itineraryTab .nav-link.active');
-      const paneSelector = activeTabLink && activeTabLink.dataset.bsTarget;
-      const captureEl = (paneSelector && document.querySelector(paneSelector))
-        || document.getElementById('pasajeros-grafica-pane');
+      const captureEl = getActiveItineraryChartPane();
       if (!captureEl) return;
 
       const originalHTML = shareItBtn.innerHTML;
@@ -2112,7 +2243,7 @@
         || new Date().toISOString().slice(0, 10);
       const parts = (dateVal || '').split('-');
       const dateDisplay = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateVal || '—';
-      const tabLabel = activeTabLink ? activeTabLink.textContent.trim() : '';
+      const tabLabel = getActiveItineraryChartLabel(captureEl);
 
       // 1. Inject branded date header inside the capture area
       const headerDiv = document.createElement('div');
@@ -2201,16 +2332,13 @@
   const copyResumenBtn = document.getElementById('btn-copiar-resumen-itinerario');
   if (copyResumenBtn) {
     copyResumenBtn.addEventListener('click', () => {
-      const activeTabLink = document.querySelector('#itineraryTab .nav-link.active');
-      const paneSelector = activeTabLink && activeTabLink.dataset.bsTarget;
-      const activePane = (paneSelector && document.querySelector(paneSelector))
-        || document.getElementById('pasajeros-grafica-pane');
+      const activePane = getActiveItineraryChartPane();
 
       const dateVal = document.getElementById('it-day-input')?.value || '';
       const [year, month, day] = dateVal.split('-');
       const dateDisplay = dateVal ? `${day}/${month}/${year}` : '—';
 
-      const tabLabel = activeTabLink ? activeTabLink.textContent.trim() : 'Itinerario';
+      const tabLabel = getActiveItineraryChartLabel(activePane);
       const lines = [`✈️ *ITINERARIO AIFA — ${dateDisplay}*`, `📊 ${tabLabel}`, ''];
 
       // Helper: extract list items from a <ol> inside the active pane
@@ -2237,6 +2365,12 @@
       } else if (activePane && activePane.id === 'general-grafica-pane') {
         extractList('general-all-arr', '🛬 Llegadas (Total)');
         extractList('general-all-dep', '🛫 Salidas (Total)');
+      } else if (activePane && activePane.id === 'combined-grafica-pane') {
+        extractList('combined-top-all', '📊 Total (Pax + Carga)');
+      } else if (activePane && activePane.id === 'pax-combined-grafica-pane') {
+        extractList('pax-combined-top-all', '👥 Pax (Total)');
+      } else if (activePane && activePane.id === 'cargo-combined-grafica-pane') {
+        extractList('cargo-combined-top-all', '📦 Carga (Total)');
       }
 
       const text = lines.join('\n');

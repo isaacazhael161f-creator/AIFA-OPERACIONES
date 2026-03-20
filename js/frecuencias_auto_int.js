@@ -490,14 +490,15 @@
     const isSingleDest = state.filters.destination !== 'all';
     if (dom.mapCol && dom.detailsCol) {
         if (isSingleDest) {
-            dom.mapCol.className = 'col-12 col-xl-3 col-lg-4 transition-all';
-            dom.detailsCol.className = 'col-12 col-xl-9 col-lg-8';
+            dom.mapCol.classList.remove('col-12');
+            dom.mapCol.classList.add('col-lg-7');
             dom.detailsCol.classList.remove('d-none');
             // Render details
             const dest = state.destinations.find(d => d.iata === state.filters.destination);
             if (dest) renderDestinationDetails(dest);
         } else {
-            dom.mapCol.className = 'col-12 transition-all';
+            dom.mapCol.classList.add('col-12');
+            dom.mapCol.classList.remove('col-lg-7');
             dom.detailsCol.classList.add('d-none');
         }
         // Trigger map resize after transition
@@ -981,9 +982,9 @@
                         cell.style.minWidth = '0';
                     } else {
                         // Expand
-                        cell.style.flex = '4 1 0px';
-                        cell.style.minWidth = '0';
-
+                        cell.style.flex = '3 1 180px';
+                        cell.style.minWidth = '180px'; 
+                        
                         const flights = detail.split('<br>');
                         let listHtml = '<div class="d-flex flex-column gap-2 text-start mt-2">';
                         flights.forEach(f => {
@@ -1111,8 +1112,17 @@
     if (state.animationFrameId) cancelAnimationFrame(state.animationFrameId);
     if (state.animationTimeoutId) clearTimeout(state.animationTimeoutId);
 
+    const hasValidCoords = (coords) => {
+      if (!coords) return false;
+      const lat = Number(coords.lat);
+      const lng = Number(coords.lng);
+      return Number.isFinite(lat) && Number.isFinite(lng);
+    };
+
+    const hasValidPoint = (point) => !!point && Number.isFinite(point.lat) && Number.isFinite(point.lng);
+
     // Filtrar destinos válidos
-    const validDestinations = dataset.filter(d => d.coords && (d.viewWeeklyTotal ?? d.weeklyTotal) > 0);
+    const validDestinations = dataset.filter(d => hasValidCoords(d.coords) && Number(d.viewWeeklyTotal ?? d.weeklyTotal) > 0);
     if (!validDestinations.length) return;
 
     let currentIndex = 0;
@@ -1121,16 +1131,33 @@
     let startTime = 0;
     const duration = 5000; // 5 segundos por vuelo (lento)
 
+    function scheduleNextFlight(delayMs = 500){
+      state.animationTimeoutId = setTimeout(() => {
+        if (currentPlane) state.planeLayer.removeLayer(currentPlane);
+        if (currentLine) state.planeLayer.removeLayer(currentLine);
+        currentIndex++;
+        startNextFlight();
+      }, delayMs);
+    }
+
     function startNextFlight(){
         if (currentIndex >= validDestinations.length) {
             currentIndex = 0; // Loop infinito
         }
         const dest = validDestinations[currentIndex];
+      if (!dest || !hasValidCoords(dest.coords)) {
+        scheduleNextFlight(0);
+        return;
+      }
         const start = L.latLng(AIFA_COORDS.lat, AIFA_COORDS.lng);
-        const end = L.latLng(dest.coords.lat, dest.coords.lng);
+      const end = L.latLng(Number(dest.coords.lat), Number(dest.coords.lng));
 
         // Calculate Geodesic Path
-        const pathPoints = getGeodesicPath(start, end);
+      const pathPoints = getGeodesicPath(start, end).filter(hasValidPoint);
+      if (pathPoints.length < 2) {
+        scheduleNextFlight(0);
+        return;
+      }
 
         // Dibujar línea de trayectoria (trayectoria real visual)
         if (currentLine) state.planeLayer.removeLayer(currentLine);
@@ -1169,12 +1196,21 @@
     }
 
     function animate(now, pathPoints, prevAngle){
+      if (!currentPlane || !Array.isArray(pathPoints) || pathPoints.length < 2) {
+        scheduleNextFlight(0);
+        return;
+      }
+
         const elapsed = now - startTime;
         const t = Math.min(elapsed / duration, 1);
 
         // Interpolación along path
         // Find segment index
         const totalSegments = pathPoints.length - 1;
+      if (totalSegments < 1) {
+        scheduleNextFlight(0);
+        return;
+      }
         const segmentFloat = t * totalSegments;
         const segmentIndex = Math.floor(segmentFloat);
         const segmentT = segmentFloat - segmentIndex;
@@ -1182,14 +1218,28 @@
         let lat, lng;
 
         if (segmentIndex >= totalSegments) {
-             lat = pathPoints[totalSegments].lat;
-             lng = pathPoints[totalSegments].lng;
+         const lastPoint = pathPoints[totalSegments];
+         if (!hasValidPoint(lastPoint)) {
+           scheduleNextFlight(0);
+           return;
+         }
+         lat = lastPoint.lat;
+         lng = lastPoint.lng;
         } else {
              const p1 = pathPoints[segmentIndex];
              const p2 = pathPoints[segmentIndex + 1];
+         if (!hasValidPoint(p1) || !hasValidPoint(p2)) {
+           scheduleNextFlight(0);
+           return;
+         }
              lat = p1.lat + (p2.lat - p1.lat) * segmentT;
              lng = p1.lng + (p2.lng - p1.lng) * segmentT;
         }
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        scheduleNextFlight(0);
+        return;
+      }
         
         currentPlane.setLatLng([lat, lng]);
 
@@ -1199,6 +1249,10 @@
         if (segmentIndex < totalSegments) {
             const p1 = pathPoints[segmentIndex];
             const p2 = pathPoints[segmentIndex + 1];
+          if (!hasValidPoint(p1) || !hasValidPoint(p2)) {
+            scheduleNextFlight(0);
+            return;
+          }
             
             let targetAngle = null;
 
@@ -1231,13 +1285,8 @@
         if (t < 1) {
             state.animationFrameId = requestAnimationFrame((nextNow) => animate(nextNow, pathPoints, currentVisualAngle));
         } else {
-            // Vuelo terminado, esperar un poco y lanzar el siguiente
-            state.animationTimeoutId = setTimeout(() => {
-                if (currentPlane) state.planeLayer.removeLayer(currentPlane);
-                if (currentLine) state.planeLayer.removeLayer(currentLine);
-                currentIndex++;
-                startNextFlight();
-            }, 500);
+          // Vuelo terminado, esperar un poco y lanzar el siguiente
+          scheduleNextFlight(500);
         }
     }
 
@@ -1250,12 +1299,21 @@
         
         const d = 2 * Math.asin(Math.sqrt(Math.pow(Math.sin((lat2 - lat1) / 2), 2) +
         Math.cos(lat1) * Math.cos(lat2) * Math.pow(Math.sin((lon2 - lon1) / 2), 2)));
+
+        if (!Number.isFinite(d) || d === 0) {
+          return [L.latLng(start.lat, start.lng), L.latLng(end.lat, end.lng)];
+        }
+
+        const sinD = Math.sin(d);
+        if (!Number.isFinite(sinD) || Math.abs(sinD) < 1e-12) {
+          return [L.latLng(start.lat, start.lng), L.latLng(end.lat, end.lng)];
+        }
         
         const path = [];
         for (let i = 0; i <= numPoints; i++) {
             const f = i / numPoints;
-            const A = Math.sin((1 - f) * d) / Math.sin(d);
-            const B = Math.sin(f * d) / Math.sin(d);
+          const A = Math.sin((1 - f) * d) / sinD;
+          const B = Math.sin(f * d) / sinD;
             const x = A * Math.cos(lat1) * Math.cos(lon1) + B * Math.cos(lat2) * Math.cos(lon2);
             const y = A * Math.cos(lat1) * Math.sin(lon1) + B * Math.cos(lat2) * Math.sin(lon2);
             const z = A * Math.sin(lat1) + B * Math.sin(lat2);
