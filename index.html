@@ -13403,6 +13403,9 @@ window.AeropuertosModule = (function () {
     var isChecking = false;
     var currentVersion = null;
     var pendingVersion = null;
+    var apiUnavailableCount = 0;
+    var currentHtmlHash = null;
+    var switchedToNodeHost = false;
 
     function readStoredVersion() {
         try {
@@ -13420,6 +13423,16 @@ window.AeropuertosModule = (function () {
         }
     }
 
+    function hashText(value) {
+        var hash = 0;
+        if (!value) return '0';
+        for (var i = 0; i < value.length; i += 1) {
+            hash = ((hash << 5) - hash) + value.charCodeAt(i);
+            hash |= 0;
+        }
+        return (hash >>> 0).toString(16);
+    }
+
     function isUserEditing() {
         var active = document.activeElement;
         if (!active || !active.tagName) return false;
@@ -13433,6 +13446,12 @@ window.AeropuertosModule = (function () {
         return url.toString();
     }
 
+    function buildNoCacheUrl(urlLike, tokenName) {
+        var url = new URL(urlLike, window.location.href);
+        url.searchParams.set(tokenName || '_', Date.now().toString());
+        return url.toString();
+    }
+
     function reloadToLatest(versionToken) {
         writeStoredVersion(versionToken);
         currentVersion = versionToken;
@@ -13440,16 +13459,73 @@ window.AeropuertosModule = (function () {
     }
 
     async function fetchLatestVersion() {
-        var response = await fetch(VERSION_ENDPOINT + '?_=' + Date.now(), {
-            cache: 'no-store',
-            headers: { 'Cache-Control': 'no-cache' }
-        });
-        if (!response.ok) return null;
+        try {
+            var response = await fetch(buildNoCacheUrl(VERSION_ENDPOINT, '_'), {
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache' }
+            });
+            if (!response.ok) return null;
 
-        var payload = await response.json().catch(function () {
+            var payload = await response.json().catch(function () {
+                return null;
+            });
+            return payload && payload.version ? String(payload.version) : null;
+        } catch (err) {
             return null;
-        });
-        return payload && payload.version ? String(payload.version) : null;
+        }
+    }
+
+    async function fetchCurrentIndexHash() {
+        try {
+            var pageUrl = new URL(window.location.href);
+            var response = await fetch(buildNoCacheUrl(pageUrl.toString(), '__indexv'), {
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache' }
+            });
+            if (!response.ok) return null;
+            var html = await response.text();
+            return hashText(html);
+        } catch (err) {
+            return null;
+        }
+    }
+
+    async function ensureIndexHashBaseline() {
+        if (currentHtmlHash) return;
+        currentHtmlHash = await fetchCurrentIndexHash();
+        if (!currentHtmlHash) {
+            currentHtmlHash = hashText(document.documentElement ? document.documentElement.outerHTML : '');
+        }
+    }
+
+    async function maybeSwitchToNodeServer() {
+        if (switchedToNodeHost) return false;
+        if (window.location.hostname !== 'localhost') return false;
+        if (window.location.port && window.location.port !== '3000') return false;
+
+        try {
+            var response = await fetch(buildNoCacheUrl('http://127.0.0.1:3000/api/app-version', '__switch'), {
+                cache: 'no-store',
+                mode: 'cors',
+                headers: { 'Cache-Control': 'no-cache' }
+            });
+            if (!response.ok) return false;
+
+            var payload = await response.json().catch(function () {
+                return null;
+            });
+            if (!payload || !payload.version) return false;
+
+            switchedToNodeHost = true;
+            var target = new URL(window.location.href);
+            target.hostname = '127.0.0.1';
+            target.port = '3000';
+            target.searchParams.set('appv', String(payload.version));
+            window.location.replace(target.toString());
+            return true;
+        } catch (err) {
+            return false;
+        }
     }
 
     async function checkForAppUpdates() {
@@ -13458,20 +13534,43 @@ window.AeropuertosModule = (function () {
 
         try {
             var latest = await fetchLatestVersion();
-            if (!latest) return;
+            if (latest) {
+                apiUnavailableCount = 0;
 
-            var baseline = currentVersion || readStoredVersion();
-            if (!baseline) {
-                currentVersion = latest;
-                writeStoredVersion(latest);
+                var baseline = currentVersion || readStoredVersion();
+                if (!baseline) {
+                    currentVersion = latest;
+                    writeStoredVersion(latest);
+                    return;
+                }
+
+                if (baseline !== latest) {
+                    pendingVersion = latest;
+
+                    if (document.visibilityState !== 'visible' || !isUserEditing()) {
+                        reloadToLatest(latest);
+                    }
+                }
                 return;
             }
 
-            if (baseline !== latest) {
-                pendingVersion = latest;
+            apiUnavailableCount += 1;
+            if (apiUnavailableCount >= 2) {
+                var switched = await maybeSwitchToNodeServer();
+                if (switched) return;
+            }
+
+            await ensureIndexHashBaseline();
+            var latestHash = await fetchCurrentIndexHash();
+            if (!latestHash || !currentHtmlHash) {
+                return;
+            }
+
+            if (latestHash !== currentHtmlHash) {
+                pendingVersion = latestHash;
 
                 if (document.visibilityState !== 'visible' || !isUserEditing()) {
-                    reloadToLatest(latest);
+                    reloadToLatest(latestHash);
                 }
             }
         } catch (err) {
