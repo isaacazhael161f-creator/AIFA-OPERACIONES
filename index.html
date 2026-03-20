@@ -10,11 +10,19 @@
         integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://code.jquery.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.datatables.net" crossorigin>
+    <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="//code.jquery.com">
+    <link rel="dns-prefetch" href="//cdn.datatables.net">
     <link
         href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;700&family=Roboto+Condensed:wght@400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-    <link rel="stylesheet" href="style.css?v=20260203">
+    <link rel="stylesheet" href="style.css?v=20260320">
     <link rel="stylesheet" href="visual-cards.css?v=1"> <!-- Visual Cards Styles -->
     <link rel="stylesheet" href="admin.css?v=20260203">
     <link rel="icon" type="image/png" sizes="192x192" href="images/icons/aifa-app-icon-192.png?v=20251126">
@@ -22,15 +30,18 @@
     <link rel="apple-touch-icon" sizes="180x180" href="images/icons/aifa-app-icon-512.png?v=20251126">
     <link rel="manifest" href="manifest.webmanifest?v=20251126">
     
-    <!-- Preload Critical Images for Fluid Performance -->
+    <!-- Staged loading: critical first, secondary as prefetch -->
     <link rel="preload" as="image" href="images/Slot.jpeg" fetchpriority="high">
-    <link rel="preload" as="image" href="images/torre.jpg">
-    <link rel="preload" as="image" href="images/Aviones%20pax.jpeg">
-    <link rel="preload" as="image" href="images/Pax.jpeg">
-    <link rel="preload" as="image" href="images/Aeronaves%20carga.jpg">
-    <link rel="preload" as="image" href="images/Carga%20a%C3%A9rea.jpg">
-    <link rel="preload" as="image" href="images/Aviones%20FBO.png">
-    <link rel="preload" as="image" href="images/Pasajero%20FBO.jpg">
+    <link rel="preload" as="image" href="images/aifa-logo.png" fetchpriority="high">
+    <link rel="preload" as="image" href="images/nlu-operacion.png">
+    <link rel="preload" as="image" href="images/emblema-aviacion.png">
+    <link rel="prefetch" as="image" href="images/torre.jpg">
+    <link rel="prefetch" as="image" href="images/Aviones%20pax.jpeg">
+    <link rel="prefetch" as="image" href="images/Pax.jpeg">
+    <link rel="prefetch" as="image" href="images/Aeronaves%20carga.jpg">
+    <link rel="prefetch" as="image" href="images/Carga%20a%C3%A9rea.jpg">
+    <link rel="prefetch" as="image" href="images/Aviones%20FBO.png">
+    <link rel="prefetch" as="image" href="images/Pasajero%20FBO.jpg">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -841,6 +852,7 @@
 
     <div id="login-screen" class="login-screen">
         <img id="login-bg-img" class="login-bg-img" src="images/Slot.jpeg" alt="" aria-hidden="true" draggable="false"
+             loading="eager" fetchpriority="high" decoding="async"
              onload="this.classList.add('loaded')" />
         <div id="login-sky" aria-hidden="true"></div>
         <div class="login-overlay"></div>
@@ -848,7 +860,7 @@
             <div class="login-header">
                 <div class="login-logo-wrap">
                     <div class="login-logo-inner">
-                        <img src="images/emblema-aviacion.png" alt="Emblema de la Aviación" class="login-logo" />
+                        <img src="images/emblema-aviacion.png" alt="Emblema de la Aviación" class="login-logo" loading="eager" decoding="async" />
                     </div>
                 </div>
                 <h1 id="login-title" class="h3">OPERACIONES-AIFA</h1>
@@ -893,13 +905,13 @@
                             aria-label="Alternar barra lateral">
                             <i class="fas fa-bars"></i>
                         </button>
-                        <img src="images/aifa-logo.png" alt="Logo AIFA" class="aifa-logo" />
+                        <img src="images/aifa-logo.png" alt="Logo AIFA" class="aifa-logo" loading="eager" decoding="async" />
                     </div>
                     <div class="text-center header-center-content">
                         <div class="d-flex align-items-center justify-content-between gap-3 header-title-row">
-                            <img src="images/nlu-operacion.png" alt="Logo de Operación NLU" class="header-logo" />
+                            <img src="images/nlu-operacion.png" alt="Logo de Operación NLU" class="header-logo" loading="eager" decoding="async" />
                             <h1 class="main-title">AEROPUERTO INTERNACIONAL FELIPE ÁNGELES</h1>
-                            <img src="images/emblema-aviacion.png" alt="Logo de Aviación" class="header-logo" />
+                            <img src="images/emblema-aviacion.png" alt="Logo de Aviación" class="header-logo" loading="eager" decoding="async" />
                         </div>
                         <div class="header-subtext">
                             <div id="current-user" class="current-user-display fw-bold"></div>
@@ -932,7 +944,7 @@
                             <span>Instalar app</span>
                         </button>
 
-                        <img src="images/gobierno-mexico.png" alt="Logo del Gobierno de México" class="gob-logo" />
+                        <img src="images/gobierno-mexico.png" alt="Logo del Gobierno de México" class="gob-logo" loading="eager" decoding="async" />
                         <!-- Tema fijo claro: se elimina el botón de cambio de tema -->
                         <a href="#" class="btn btn-outline-danger d-lg-none logout-button-mobile" data-action="logout"
                             title="Cerrar Sesión" aria-label="Cerrar Sesión">
@@ -3037,7 +3049,7 @@
                                             <div class="modal-content">
                                               <div class="modal-header bg-primary text-white">
                                                 <h5 class="modal-title" id="al-modal-title"><i class="fas fa-plane me-2"></i>Aerolínea</h5>
-                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar modal" title="Cerrar modal"></button>
                                               </div>
                                               <div class="modal-body">
                                                 <div class="row g-3">
@@ -3054,8 +3066,8 @@
                                                     <input type="text" class="form-control form-control-sm text-uppercase" id="al-f-icao" maxlength="4" placeholder="AMX">
                                                   </div>
                                                   <div class="col-md-1">
-                                                    <label class="form-label small fw-semibold">Color</label>
-                                                    <input type="color" class="form-control form-control-sm form-control-color w-100" id="al-f-color" value="#0d6efd">
+                                                                                                        <label class="form-label small fw-semibold" for="al-f-color">Color</label>
+                                                                                                        <input type="color" class="form-control form-control-sm form-control-color w-100" id="al-f-color" value="#0d6efd" aria-label="Seleccionar color" title="Seleccionar color">
                                                   </div>
                                                   <div class="col-md-2">
                                                     <label class="form-label small fw-semibold">Tipos</label>
@@ -10969,8 +10981,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -13339,6 +13349,50 @@ window.AeropuertosModule = (function () {
     });
 
     return { load: load, filter: filter };
+})();
+</script>
+<script>
+(function () {
+    var criticalImageSelector = '#login-bg-img, .login-logo, .aifa-logo, .header-logo, .gob-logo';
+
+    function optimizeMediaLoading() {
+        var criticalImages = new Set(document.querySelectorAll(criticalImageSelector));
+
+        document.querySelectorAll('img').forEach(function (img) {
+            if (!img.hasAttribute('decoding')) {
+                img.setAttribute('decoding', 'async');
+            }
+
+            if (criticalImages.has(img)) {
+                if (!img.hasAttribute('loading')) {
+                    img.setAttribute('loading', 'eager');
+                }
+                return;
+            }
+
+            if (!img.hasAttribute('loading')) {
+                img.setAttribute('loading', 'lazy');
+            }
+        });
+
+        document.querySelectorAll('iframe').forEach(function (frame) {
+            if (!frame.hasAttribute('loading')) {
+                frame.setAttribute('loading', 'lazy');
+            }
+        });
+
+        document.querySelectorAll('video:not([autoplay])').forEach(function (video) {
+            if (!video.hasAttribute('preload')) {
+                video.setAttribute('preload', 'metadata');
+            }
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', optimizeMediaLoading, { once: true });
+    } else {
+        optimizeMediaLoading();
+    }
 })();
 </script>
 </body>
