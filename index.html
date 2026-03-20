@@ -13404,14 +13404,20 @@ window.AeropuertosModule = (function () {
 <script>
 (function () {
     var VERSION_ENDPOINT = '/api/app-version';
+    var GITHUB_REPO_OWNER = 'isaacazhael161f-creator';
+    var GITHUB_REPO_NAME = 'AIFA-OPERACIONES';
+    var GITHUB_BRANCH = 'main';
+    var GITHUB_COMMIT_ENDPOINT = 'https://api.github.com/repos/' + GITHUB_REPO_OWNER + '/' + GITHUB_REPO_NAME + '/commits/' + GITHUB_BRANCH;
     var STORAGE_KEY = 'aifa_app_version_token';
     var CHECK_INTERVAL_MS = 60000;
+    var REMOTE_VERSION_THROTTLE_MS = 180000;
     var isChecking = false;
     var currentVersion = null;
     var pendingVersion = null;
     var apiUnavailableCount = 0;
     var currentHtmlHash = null;
     var switchedToNodeHost = false;
+    var lastRemoteVersionFetchAt = 0;
 
     function readStoredVersion() {
         try {
@@ -13427,6 +13433,10 @@ window.AeropuertosModule = (function () {
         } catch (err) {
             // Ignore storage errors (private mode/quota) and keep runtime fallback.
         }
+    }
+
+    function isGitHubPagesHost() {
+        return /\.github\.io$/i.test(window.location.hostname || '');
     }
 
     function hashText(value) {
@@ -13476,6 +13486,36 @@ window.AeropuertosModule = (function () {
                 return null;
             });
             return payload && payload.version ? String(payload.version) : null;
+        } catch (err) {
+            return null;
+        }
+    }
+
+    async function fetchLatestGitHubVersion() {
+        if (!isGitHubPagesHost()) return null;
+
+        var now = Date.now();
+        if ((now - lastRemoteVersionFetchAt) < REMOTE_VERSION_THROTTLE_MS) {
+            return null;
+        }
+        lastRemoteVersionFetchAt = now;
+
+        try {
+            var response = await fetch(buildNoCacheUrl(GITHUB_COMMIT_ENDPOINT, '__ghv'), {
+                cache: 'no-store',
+                headers: {
+                    'Accept': 'application/vnd.github+json',
+                    'Cache-Control': 'no-cache'
+                }
+            });
+            if (!response.ok) return null;
+
+            var payload = await response.json().catch(function () {
+                return null;
+            });
+            if (!payload || !payload.sha) return null;
+
+            return String(payload.sha).slice(0, 16);
         } catch (err) {
             return null;
         }
@@ -13540,6 +13580,10 @@ window.AeropuertosModule = (function () {
 
         try {
             var latest = await fetchLatestVersion();
+            if (!latest) {
+                latest = await fetchLatestGitHubVersion();
+            }
+
             if (latest) {
                 apiUnavailableCount = 0;
 
