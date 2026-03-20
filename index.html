@@ -851,9 +851,9 @@
 <body>
 
     <div id="login-screen" class="login-screen">
-    <img id="login-bg-img" class="login-bg-img" src="images/Slot.jpeg" alt="" aria-hidden="true" draggable="false"
-         loading="eager" fetchpriority="high" decoding="async"
-         onload="this.classList.add('loaded')" />
+        <img id="login-bg-img" class="login-bg-img" src="images/Slot.jpeg" alt="" aria-hidden="true" draggable="false"
+             loading="eager" fetchpriority="high" decoding="async"
+             onload="this.classList.add('loaded')" />
         <div id="login-sky" aria-hidden="true"></div>
         <div class="login-overlay"></div>
         <div class="login-container">
@@ -1556,19 +1556,15 @@
                 </div> <!-- End of biblioteca-section -->
 
                 <div id="data-management-section" class="content-section">
-                    <div class="d-flex justify-content-between align-items-center mb-4 dm-header">
-                        <div>
-                            <h2 class="section-heading mb-1"><i class="fas fa-database me-2"></i>Gestión de Datos</h2>
-                            <p class="dm-header-subtitle mb-0">Administra, valida y actualiza información operativa desde un panel unificado.</p>
-                        </div>
-                        <span class="dm-header-badge"><i class="fas fa-shield-alt me-2"></i>Panel Administrativo</span>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="section-heading mb-0"><i class="fas fa-database me-2"></i>Gestión de Datos</h2>
                     </div>
 
-                    <div class="card dm-shell">
-                        <div class="card-body dm-shell-body">
-                            <div class="row g-4 align-items-start">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row">
                                 <div class="col-md-3 border-end" id="dm-sidebar">
-                                    <div class="nav flex-column nav-pills me-3 dm-nav" id="dataTabs" role="tablist"
+                                    <div class="nav flex-column nav-pills me-3" id="dataTabs" role="tablist"
                                         aria-orientation="vertical">
                                         <button class="nav-link active text-start mb-2 border shadow-sm rounded"
                                             id="tab-ops-summary" data-bs-toggle="pill"
@@ -1674,7 +1670,7 @@
                                         onclick="toggleDmSidebar()">
                                         <i class="fas fa-bars me-1"></i> Mostrar Menú
                                     </button>
-                                    <div class="tab-content dm-tab-panel" id="dataTabsContent">
+                                    <div class="tab-content" id="dataTabsContent">
                                         <!-- Operations Summary Pane -->
                                         <div class="tab-pane fade show active" id="pane-ops-summary" role="tabpanel">
                                             <div class="table-responsive">
@@ -3412,71 +3408,69 @@
                                                                 class="fas fa-calendar-day me-1"></i>Hoy</button>
                                                     </div>
 
-                                                        <ul class="nav nav-tabs" id="itineraryTab" role="tablist">
+                                                    <ul class="nav nav-tabs" id="itineraryTab" role="tablist">
                                                         <li class="nav-item" role="presentation"><button
-                                                            class="nav-link" id="general-grafica-tab"
-                                                            data-bs-toggle="tab"
-                                                            data-bs-target="#general-grafica-pane" type="button"
-                                                            role="tab" aria-controls="general-grafica-pane"
-                                                            aria-selected="false"><i class="fas fa-globe me-1"></i>1.
-                                                            Vista General</button></li>
+                                                                class="nav-link active" id="pasajeros-grafica-tab"
+                                                                data-bs-toggle="tab"
+                                                                data-bs-target="#pasajeros-grafica-pane" type="button"
+                                                                role="tab" aria-controls="pasajeros-grafica-pane"
+                                                                aria-selected="true">1.
+                                                                Gráfica (Pasajeros)</button>
+                                                        </li>
                                                         <li class="nav-item" role="presentation"><button
-                                                            class="nav-link active" id="combined-grafica-tab"
-                                                            data-bs-toggle="tab"
-                                                            data-bs-target="#combined-grafica-pane" type="button"
-                                                            role="tab" aria-controls="combined-grafica-pane"
-                                                            aria-selected="true"><i class="fas fa-layer-group me-1"></i>2.
-                                                            Llegadas vs Salidas</button></li>
+                                                                class="nav-link" id="carga-grafica-tab"
+                                                                data-bs-toggle="tab"
+                                                                data-bs-target="#carga-grafica-pane" type="button"
+                                                                role="tab" aria-controls="carga-grafica-pane"
+                                                                aria-selected="false">2.
+                                                                Gráfica
+                                                                (Carga)</button></li>
                                                         <li class="nav-item" role="presentation"><button
-                                                            class="nav-link" id="fuel-heatmap-tab"
-                                                            data-bs-toggle="tab"
-                                                            data-bs-target="#fuel-heatmap-pane" type="button"
-                                                            role="tab" aria-controls="fuel-heatmap-pane"
-                                                            aria-selected="false"><i class="fas fa-fire-flame-curved me-1"></i>5.
-                                                            Despacho Combustible</button></li>
-                                                        </ul>
-                                                        <div class="itinerary-general-subtabs-wrap mb-2 d-none" id="itinerary-general-subtabs-wrap">
-                                                        <div class="nav nav-pills itinerary-general-subtabs" id="itineraryGeneralSubtab" role="tablist" aria-label="Subvistas de Vista General">
-                                                            <button class="nav-link active" id="general-subview-tab"
-                                                            data-bs-toggle="tab" data-bs-target="#general-grafica-pane"
-                                                            type="button" role="tab" aria-controls="general-grafica-pane"
-                                                            aria-selected="true"><i class="fas fa-globe me-1"></i>Vista General</button>
-                                                            <button class="nav-link" id="pasajeros-subview-tab"
-                                                            data-bs-toggle="tab" data-bs-target="#pasajeros-grafica-pane"
-                                                            type="button" role="tab" aria-controls="pasajeros-grafica-pane"
-                                                            aria-selected="false"><i class="fas fa-users me-1"></i>Gráfica Pasajeros</button>
-                                                            <button class="nav-link" id="carga-subview-tab"
-                                                            data-bs-toggle="tab" data-bs-target="#carga-grafica-pane"
-                                                            type="button" role="tab" aria-controls="carga-grafica-pane"
-                                                            aria-selected="false"><i class="fas fa-box me-1"></i>Gráfica Carga</button>
-                                                        </div>
-                                                        </div>
-                                                        <div class="itinerary-combined-subtabs-wrap mb-2" id="itinerary-combined-subtabs-wrap">
-                                                        <div class="nav nav-pills itinerary-general-subtabs itinerary-combined-subtabs" id="itineraryCombinedSubtab" role="tablist" aria-label="Subvistas de Llegadas vs Salidas">
-                                                            <button class="nav-link active" id="combined-subview-tab"
-                                                            data-bs-toggle="tab" data-bs-target="#combined-grafica-pane"
-                                                            type="button" role="tab" aria-controls="combined-grafica-pane"
-                                                            aria-selected="true"><i class="fas fa-layer-group me-1"></i>2. Llegadas vs Salidas</button>
-                                                            <button class="nav-link" id="pax-combined-subview-tab"
-                                                            data-bs-toggle="tab" data-bs-target="#pax-combined-grafica-pane"
-                                                            type="button" role="tab" aria-controls="pax-combined-grafica-pane"
-                                                            aria-selected="false"><i class="fas fa-users me-1"></i>3. Pax (Total)</button>
-                                                            <button class="nav-link" id="cargo-combined-subview-tab"
-                                                            data-bs-toggle="tab" data-bs-target="#cargo-combined-grafica-pane"
-                                                            type="button" role="tab" aria-controls="cargo-combined-grafica-pane"
-                                                            aria-selected="false"><i class="fas fa-box me-1"></i>4. Carga (Total)</button>
-                                                        </div>
-                                                        </div>
+                                                                class="nav-link" id="general-grafica-tab"
+                                                                data-bs-toggle="tab"
+                                                                data-bs-target="#general-grafica-pane" type="button"
+                                                                role="tab" aria-controls="general-grafica-pane"
+                                                                aria-selected="false"><i class="fas fa-globe me-1"></i>3.
+                                                                Vista General</button></li>
+                                                        <li class="nav-item" role="presentation"><button
+                                                                class="nav-link" id="combined-grafica-tab"
+                                                                data-bs-toggle="tab"
+                                                                data-bs-target="#combined-grafica-pane" type="button"
+                                                                role="tab" aria-controls="combined-grafica-pane"
+                                                                aria-selected="false"><i class="fas fa-layer-group me-1"></i>4.
+                                                                Llegadas vs Salidas</button></li>
+                                                        <li class="nav-item" role="presentation"><button
+                                                                class="nav-link" id="pax-combined-grafica-tab"
+                                                                data-bs-toggle="tab"
+                                                                data-bs-target="#pax-combined-grafica-pane" type="button"
+                                                                role="tab" aria-controls="pax-combined-grafica-pane"
+                                                                aria-selected="false"><i class="fas fa-users me-1"></i>5.
+                                                                Pax (Total)</button></li>
+                                                        <li class="nav-item" role="presentation"><button
+                                                                class="nav-link" id="cargo-combined-grafica-tab"
+                                                                data-bs-toggle="tab"
+                                                                data-bs-target="#cargo-combined-grafica-pane" type="button"
+                                                                role="tab" aria-controls="cargo-combined-grafica-pane"
+                                                                aria-selected="false"><i class="fas fa-box me-1"></i>6.
+                                                                Carga (Total)</button></li>
+                                                        <li class="nav-item" role="presentation"><button
+                                                                class="nav-link" id="fuel-heatmap-tab"
+                                                                data-bs-toggle="tab"
+                                                                data-bs-target="#fuel-heatmap-pane" type="button"
+                                                                role="tab" aria-controls="fuel-heatmap-pane"
+                                                                aria-selected="false"><i class="fas fa-fire-flame-curved me-1"></i>7.
+                                                                Despacho Combustible</button></li>
+                                                    </ul>
                                                     <div class="tab-content pt-3" id="itineraryTabContent">
                                                         <!-- Pasajeros: Llegadas/Salidas del día -->
-                                                        <div class="tab-pane fade"
-                                                            id="pasajeros-grafica-pane" role="tabpanel" aria-labelledby="pasajeros-subview-tab" tabindex="0">
+                                                        <div class="tab-pane fade show active"
+                                                            id="pasajeros-grafica-pane">
                                                             <div
                                                                 class="itinerary-charts-scroll itinerary-pane-block charts-block">
                                                                 <div class="row g-3 chart-row-mobile-scroll">
                                                                     <div class="col-lg-6">
                                                                         <h6 class="text-muted mb-2"><i
-                                                                                class="fas fa-plane-arrival me-1"></i>Llegadas
+                                                                                class="fas fa-person-walking me-1"></i>Llegadas
                                                                             (Pasajeros) por hora</h6>
                                                                         <div class="chart-container chart-height-360">
                                                                             <canvas id="paxArrivalsChart"></canvas>
@@ -3484,7 +3478,7 @@
                                                                     </div>
                                                                     <div class="col-lg-6">
                                                                         <h6 class="text-muted mb-2"><i
-                                                                                class="fas fa-plane-departure me-1"></i>Salidas
+                                                                                class="fas fa-person-walking-luggage me-1"></i>Salidas
                                                                             (Pasajeros) por hora</h6>
                                                                         <div class="chart-container chart-height-360">
                                                                             <canvas id="paxDeparturesChart"></canvas>
@@ -3567,8 +3561,8 @@
                                                             </div>
                                                         </div>
                                                         <!-- Carga: Llegadas/Salidas del día -->
-                                                        <div class="tab-pane fade" id="carga-grafica-pane"
-                                                            role="tabpanel" aria-labelledby="carga-subview-tab"
+                                                        <div class="tab-pane fade" id="carga-grafica-pane">
+                                                            <div
                                                                 class="itinerary-charts-scroll itinerary-pane-block charts-block">
                                                                 <div class="row g-3 chart-row-mobile-scroll">
                                                                     <div class="col-lg-6">
@@ -3751,7 +3745,12 @@
                                                 <div id="general-range-report-result" class="mt-4 d-none"></div>
                                             </div>
                                         </div>
-                                <div class="tab-pane fade show active" id="combined-grafica-pane" role="tabpanel" aria-labelledby="combined-grafica-tab" tabindex="0">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                                <div class="tab-pane fade" id="combined-grafica-pane" role="tabpanel" aria-labelledby="combined-grafica-tab" tabindex="0">
                                     <div class="itinerary-charts-scroll itinerary-pane-block charts-block pt-2">
                                         <!-- Leyenda -->
                                         <div class="d-flex gap-3 flex-wrap align-items-center mb-2 px-1">
@@ -3792,7 +3791,7 @@
                                     </div>
                                 </div>
                                 <!-- Tab 5: Pasajeros Total (llegadas + salidas apiladas) -->
-                                <div class="tab-pane fade" id="pax-combined-grafica-pane" role="tabpanel" aria-labelledby="pax-combined-subview-tab" tabindex="0">
+                                <div class="tab-pane fade" id="pax-combined-grafica-pane" role="tabpanel" aria-labelledby="pax-combined-grafica-tab" tabindex="0">
                                     <!-- View toggle -->
                                     <div class="d-flex gap-2 mb-2 border-bottom pb-2 px-1 pt-2">
                                         <button id="pax-view-bar-btn" class="btn btn-sm btn-primary"><i class="fas fa-chart-bar me-1"></i>Distribución horaria</button>
@@ -3873,7 +3872,7 @@
                                     </div>
                                 </div>
                                 <!-- Tab 6: Carga Total (llegadas + salidas apiladas) -->
-                                <div class="tab-pane fade" id="cargo-combined-grafica-pane" role="tabpanel" aria-labelledby="cargo-combined-subview-tab" tabindex="0">
+                                <div class="tab-pane fade" id="cargo-combined-grafica-pane" role="tabpanel" aria-labelledby="cargo-combined-grafica-tab" tabindex="0">
                                     <!-- View toggle -->
                                     <div class="d-flex gap-2 mb-2 border-bottom pb-2 px-1 pt-2">
                                         <button id="cargo-view-bar-btn" class="btn btn-sm btn-primary"><i class="fas fa-chart-bar me-1"></i>Distribución horaria</button>
@@ -4000,11 +3999,6 @@
                                     </div>
                                 </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                </div>
                                 <div class="tab-pane fade" id="radar-operativo-pane" role="tabpanel"
                                     aria-labelledby="radar-operativo-tab" tabindex="0">
                                     <div class="pt-3">
@@ -4031,8 +4025,8 @@
                                                             id="it-intelligence-scope-badge">Pasajeros</span>
                                                     </div>
                                                     <div class="row g-3 intel-metrics-row">
-                                                        <div class="col-12 col-sm-6 col-lg-4">
-                                                            <div class="intel-metric-card metric-total shadow-sm h-100">
+                                                        <div class="col-6 col-lg-3">
+                                                            <div class="intel-metric-card shadow-sm h-100">
                                                                 <div class="intel-metric-icon icon-primary"><i
                                                                         class="fas fa-plane-departure"></i></div>
                                                                 <div class="intel-metric-copy">
@@ -4046,10 +4040,10 @@
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <div class="col-12 col-sm-6 col-lg-4">
-                                                            <div class="intel-metric-card metric-arrivals shadow-sm h-100">
+                                                        <div class="col-6 col-lg-3">
+                                                            <div class="intel-metric-card shadow-sm h-100">
                                                                 <div class="intel-metric-icon icon-success"><i
-                                                                        class="fas fa-plane-arrival"></i></div>
+                                                                        class="fas fa-person-arrival"></i></div>
                                                                 <div class="intel-metric-copy">
                                                                     <span class="intel-metric-label">Llegadas</span>
                                                                     <div class="intel-metric-value"
@@ -4061,10 +4055,10 @@
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <div class="col-12 col-sm-6 col-lg-4">
-                                                            <div class="intel-metric-card metric-departures shadow-sm h-100">
+                                                        <div class="col-6 col-lg-3">
+                                                            <div class="intel-metric-card shadow-sm h-100">
                                                                 <div class="intel-metric-icon icon-warning"><i
-                                                                        class="fas fa-plane-departure"></i>
+                                                                        class="fas fa-person-walking-luggage"></i>
                                                                 </div>
                                                                 <div class="intel-metric-copy">
                                                                     <span class="intel-metric-label">Salidas</span>

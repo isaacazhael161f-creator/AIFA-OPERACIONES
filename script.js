@@ -785,71 +785,7 @@ function formatDateShort(dateStr) {
     return `${d} de ${SPANISH_MONTH_NAMES[m - 1]}`;
 }
 
-const opsDeferredSyncState = {
-    pendingWeeklyReload: false,
-    pendingStaticSync: false,
-    pendingFiltersRefresh: false,
-    flushInFlight: null
-};
-
-function isOpsFiltersModalVisible() {
-    try {
-        const modalEl = document.getElementById('opsFiltersModal');
-        return !!(
-            (typeof window !== 'undefined' && window._opsFiltersModalActive)
-            || (modalEl && modalEl.classList.contains('show'))
-        );
-    } catch (_) {
-        return (typeof window !== 'undefined' && !!window._opsFiltersModalActive);
-    }
-}
-
-function queueOpsDeferredSync(key) {
-    if (!key || key === 'flushInFlight') return;
-    if (!Object.prototype.hasOwnProperty.call(opsDeferredSyncState, key)) return;
-    opsDeferredSyncState[key] = true;
-}
-
-function flushDeferredOpsSyncAfterModalClose() {
-    if (opsDeferredSyncState.flushInFlight) return opsDeferredSyncState.flushInFlight;
-
-    const shouldSyncStatic = opsDeferredSyncState.pendingStaticSync;
-    const shouldReloadWeekly = opsDeferredSyncState.pendingWeeklyReload;
-    const shouldRefreshFilters = opsDeferredSyncState.pendingFiltersRefresh;
-
-    opsDeferredSyncState.pendingStaticSync = false;
-    opsDeferredSyncState.pendingWeeklyReload = false;
-    opsDeferredSyncState.pendingFiltersRefresh = false;
-
-    if (!shouldSyncStatic && !shouldReloadWeekly && !shouldRefreshFilters) {
-        return Promise.resolve(false);
-    }
-
-    const runner = Promise.resolve()
-        .then(() => shouldSyncStatic ? syncStaticDataFromDB() : null)
-        .then(() => shouldReloadWeekly ? loadWeeklyOperationsFromDB() : null)
-        .then(() => {
-            if (shouldRefreshFilters && !shouldReloadWeekly && typeof window.updateOpsFiltersAfterDataLoad === 'function') {
-                window.updateOpsFiltersAfterDataLoad();
-            }
-        })
-        .catch((err) => {
-            console.warn('Deferred ops sync flush failed:', err);
-        })
-        .finally(() => {
-            opsDeferredSyncState.flushInFlight = null;
-        });
-
-    opsDeferredSyncState.flushInFlight = runner;
-    return runner;
-}
-
 async function loadWeeklyOperationsFromDB() {
-    if (isOpsFiltersModalVisible()) {
-        queueOpsDeferredSync('pendingWeeklyReload');
-        return;
-    }
-
     if (!window.dataManager) {
         console.warn('DataManager not available, retrying in 500ms');
         setTimeout(loadWeeklyOperationsFromDB, 500);
@@ -935,12 +871,6 @@ async function loadWeeklyOperationsFromDB() {
 
         console.log('Weekly operations loaded from DB:', WEEKLY_OPERATIONS_DATASETS.length, 'weeks');
         console.log('DB Data Sample (First Week):', WEEKLY_OPERATIONS_DATASETS[0]);
-
-        if (isOpsFiltersModalVisible()) {
-            queueOpsDeferredSync('pendingFiltersRefresh');
-            window._opsRenderQueuedFromFiltersModal = true;
-            return;
-        }
 
         // Trigger UI updates
         if (typeof window.updateOpsFiltersAfterDataLoad === 'function') {
@@ -1159,12 +1089,6 @@ window.cachedStaticRows = { annual: [], monthly: [] };
 
 async function syncStaticDataFromDB(targetYear = null) {
     try {
-        const explicitYearRequest = targetYear !== null && targetYear !== undefined && String(targetYear).trim() !== '';
-        if (isOpsFiltersModalVisible() && !explicitYearRequest) {
-            queueOpsDeferredSync('pendingStaticSync');
-            return;
-        }
-
         if (!window.dataManager) {
             console.warn('DataManager no listo, reintentando syncStaticDataFromDB en 500ms...');
             setTimeout(() => syncStaticDataFromDB(targetYear), 500);
@@ -1203,12 +1127,6 @@ async function syncStaticDataFromDB(targetYear = null) {
             latestYear = years.length ? years[years.length - 1] : (new Date()).getFullYear();
         }
         staticData.mensualYear = String(latestYear);
-
-        if (isOpsFiltersModalVisible() && !explicitYearRequest) {
-            queueOpsDeferredSync('pendingStaticSync');
-            window._opsRenderQueuedFromFiltersModal = true;
-            return;
-        }
 
         // Sync UI select if exists
         const opsFilterYear = document.getElementById('ops-filter-year');
@@ -1599,12 +1517,6 @@ function syncOperationsDataFromAnalyticsDataset(dataset) {
         staticData.mensual2025.general.pasajeros = generalPaxMonthly;
         staticData.mensualYear = targetYear;
 
-        if (isOpsFiltersModalVisible()) {
-            queueOpsDeferredSync('pendingFiltersRefresh');
-            window._opsRenderQueuedFromFiltersModal = true;
-            return;
-        }
-
         const updatedYears = new Set();
         [comercialYearly, cargaYearly, generalYearly].forEach((collection) => {
             if (!Array.isArray(collection)) return;
@@ -1665,10 +1577,6 @@ function ensureAviationAnalyticsData() {
 
 function refreshAviationAnalyticsDataIfChanged(options = {}) {
     const { notifyOnChange = true, force = false } = options;
-    if (isOpsFiltersModalVisible() && !force) {
-        queueOpsDeferredSync('pendingStaticSync');
-        return Promise.resolve(false);
-    }
     if (aviationAnalyticsRefreshInFlight) {
         return aviationAnalyticsRefreshInFlight;
     }
@@ -1694,10 +1602,6 @@ function startAviationAnalyticsAutoRefresh() {
         clearInterval(aviationAnalyticsAutoRefreshTimer);
     }
     const poll = (notify = true) => {
-        if (isOpsFiltersModalVisible()) {
-            queueOpsDeferredSync('pendingStaticSync');
-            return;
-        }
         refreshAviationAnalyticsDataIfChanged({ notifyOnChange: notify }).catch(() => { });
     };
     poll(false);
@@ -3730,421 +3634,130 @@ function updateTableVisualStriping(tableContainer) {
     });
 }
 
-let itineraryFunnelMenu = null;
-let itineraryFunnelMenuContext = null;
-
-function getDynamicTableHeaderRegistryRef() {
-    return window.dynamicTableHeaderRegistry instanceof Map ? window.dynamicTableHeaderRegistry : null;
-}
-
-function normalizeItineraryFilterToken(value) {
-    const trimmed = String(value || '').replace(/\s+/g, ' ').trim();
-    if (!trimmed || trimmed === '\u2014' || trimmed === '-') return '';
-    return trimmed.toUpperCase();
-}
-
-function getItineraryColumnIndexMap(tableContainer) {
-    const isCargo = !!(tableContainer?.closest('.itinerary-general-card')?.classList.contains('itinerary-general-card--cargo'));
-    return {
-        isCargo,
-        map: {
-            aerolinea: 0,
-            aircraft: 1,
-            vuelo_llegada: 2,
-            fecha_llegada: 3,
-            hora_llegada: 4,
-            origen: 5,
-            banda: isCargo ? null : 6,
-            posicion: isCargo ? 6 : 7,
-            vuelo_salida: isCargo ? 7 : 8,
-            fecha_salida: isCargo ? 8 : 9,
-            hora_salida: isCargo ? 9 : 10,
-            destino: isCargo ? 10 : 11
-        }
-    };
-}
-
-function getItineraryCellTextForColumn(row, col, isCargo) {
-    if (!row) return '';
-    let cellText = '';
-    if (col === 'aerolinea') cellText = row.cells[0]?.textContent || '';
-    else if (col === 'aircraft') cellText = row.cells[1]?.textContent || '';
-    else if (col === 'vuelo_llegada') cellText = row.cells[2]?.textContent || '';
-    else if (col === 'fecha_llegada') cellText = row.cells[3]?.textContent || '';
-    else if (col === 'hora_llegada') cellText = row.cells[4]?.textContent || '';
-    else if (col === 'origen') cellText = row.cells[5]?.textContent || '';
-    else if (col === 'banda') {
-        if (!isCargo) cellText = row.cells[6]?.textContent || '';
-    } else if (col === 'posicion') {
-        if (isCargo) cellText = row.cells[6]?.textContent || '';
-        else cellText = row.cells[7]?.textContent || '';
-    } else if (col === 'vuelo_salida') {
-        if (isCargo) cellText = row.cells[7]?.textContent || '';
-        else cellText = row.cells[8]?.textContent || '';
-    } else if (col === 'fecha_salida') {
-        if (isCargo) cellText = row.cells[8]?.textContent || '';
-        else cellText = row.cells[9]?.textContent || '';
-    } else if (col === 'hora_salida') {
-        if (isCargo) cellText = row.cells[9]?.textContent || '';
-        else cellText = row.cells[10]?.textContent || '';
-    } else if (col === 'destino') {
-        if (isCargo) cellText = row.cells[10]?.textContent || '';
-        else cellText = row.cells[11]?.textContent || '';
-    }
-    return String(cellText || '').replace(/\s+/g, ' ').trim();
-}
-
-function collectItineraryFunnelValues(tableContainer, col) {
-    const tbody = tableContainer ? tableContainer.querySelector('tbody') : null;
-    if (!tbody) return [];
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-    const { isCargo } = getItineraryColumnIndexMap(tableContainer);
-    const seen = new Map();
-
-    rows.forEach((row) => {
-        const raw = getItineraryCellTextForColumn(row, col, isCargo);
-        const token = normalizeItineraryFilterToken(raw);
-        if (!seen.has(token)) {
-            seen.set(token, raw && raw !== '\u2014' && raw !== '-' ? raw : '');
-        }
-    });
-
-    return Array.from(seen.entries())
-        .map(([token, label]) => ({ token, label }))
-        .sort((a, b) => {
-            if (!a.label && b.label) return 1;
-            if (a.label && !b.label) return -1;
-            return String(a.label || '').localeCompare(String(b.label || ''), 'es', { numeric: true, sensitivity: 'base' });
-        });
-}
-
-function setItineraryFunnelButtonState(button, selectedSet) {
-    if (!button) return;
-    const labelEl = button.querySelector('.daily-it-funnel-btn-label');
-    const isActive = selectedSet instanceof Set && selectedSet.size > 0;
-    if (labelEl) {
-        labelEl.textContent = isActive ? `${selectedSet.size} seleccionados` : '\u2261 Todas';
-    }
-    button.classList.toggle('active-filter', isActive);
-}
-
-function syncItineraryFunnelButtons(tableContainer, col, selectedSet) {
-    if (!tableContainer || !col) return;
-    const localButtons = tableContainer.querySelectorAll(`.daily-it-funnel-btn[data-col="${col}"]`);
-    localButtons.forEach((btn) => setItineraryFunnelButtonState(btn, selectedSet));
-
-    const tableEl = tableContainer.querySelector('table');
-    if (!tableEl) return;
-    const registry = getDynamicTableHeaderRegistryRef();
-    if (!registry) return;
-    for (const [key, state] of registry.entries()) {
-        if (state?.table !== tableEl) continue;
-        const floatingButtons = document.querySelectorAll(`.floating-table-header[data-header-context="${key}"] .daily-it-funnel-btn[data-col="${col}"]`);
-        floatingButtons.forEach((btn) => setItineraryFunnelButtonState(btn, selectedSet));
-        break;
-    }
-}
-
-function resolveItineraryTableContainerForFunnelButton(button) {
-    if (!button) return null;
-    const floatingHost = button.closest('.floating-table-header');
-    if (floatingHost?.dataset?.headerContext) {
-        const registry = getDynamicTableHeaderRegistryRef();
-        const state = registry ? registry.get(floatingHost.dataset.headerContext) : null;
-        const table = state?.table;
-        return table ? table.closest('.itinerary-airline-table') : null;
-    }
-    return button.closest('.itinerary-airline-table');
-}
-
-function ensureItineraryFunnelMenu() {
-    if (itineraryFunnelMenu) return itineraryFunnelMenu;
-    itineraryFunnelMenu = document.createElement('div');
-    itineraryFunnelMenu.className = 'daily-it-funnel-menu';
-    itineraryFunnelMenu.style.display = 'none';
-    document.body.appendChild(itineraryFunnelMenu);
-    return itineraryFunnelMenu;
-}
-
-function hideItineraryFunnelMenu() {
-    if (itineraryFunnelMenu) {
-        itineraryFunnelMenu.style.display = 'none';
-    }
-    itineraryFunnelMenuContext = null;
-}
-
-function handleItineraryFunnelGlobalScroll(event) {
-    if (!itineraryFunnelMenu || itineraryFunnelMenu.style.display !== 'block') return;
-    const target = event?.target;
-    if (target && itineraryFunnelMenu.contains(target)) return;
-    hideItineraryFunnelMenu();
-}
-
-function applyItineraryFunnelSelection(context, selectedTokens) {
-    if (!context) return;
-    const { col, tableContainer, searchState, funnelState } = context;
-    const values = collectItineraryFunnelValues(tableContainer, col);
-    const totalCount = values.length;
-    const selectedUnique = Array.from(new Set(selectedTokens || []));
-
-    if (totalCount === 0 || selectedUnique.length >= totalCount) {
-        delete funnelState[col];
-    } else {
-        funnelState[col] = new Set(selectedUnique);
-    }
-
-    applyClientSideTableFilter(tableContainer, searchState, funnelState);
-    _initItineraryFunnelSelects(tableContainer, searchState, funnelState);
-}
-
-function showItineraryFunnelMenuForButton(button) {
-    const tableContainer = resolveItineraryTableContainerForFunnelButton(button);
-    if (!tableContainer) return;
-
-    const { isCargo, map } = getItineraryColumnIndexMap(tableContainer);
-    const col = button.dataset.col;
-    const idx = map[col];
-    if (idx === null || idx === undefined) return;
-
-    const searchStateKey = isCargo ? 'cargoItinerarySearchState' : 'dailyItinerarySearchState';
-    const funnelStateKey = isCargo ? 'cargoItineraryFunnelState' : 'dailyItineraryFunnelState';
-    if (!window[searchStateKey]) window[searchStateKey] = {};
-    if (!window[funnelStateKey]) window[funnelStateKey] = {};
-
-    const searchState = window[searchStateKey];
-    const funnelState = window[funnelStateKey];
-
-    if (itineraryFunnelMenuContext?.triggerButton === button && itineraryFunnelMenu?.style.display === 'block') {
-        hideItineraryFunnelMenu();
-        return;
-    }
-
-    const values = collectItineraryFunnelValues(tableContainer, col);
-    const selectedSet = funnelState[col] instanceof Set ? funnelState[col] : null;
-    const menu = ensureItineraryFunnelMenu();
-    menu.innerHTML = '';
-
-    const anchorCell = button.closest('th');
-    let titleText = button.title || col;
-    if (anchorCell && anchorCell.parentElement) {
-        const index = Array.from(anchorCell.parentElement.children).indexOf(anchorCell);
-        const headerCell = tableContainer.querySelector('thead tr:first-child')?.children?.[index];
-        if (headerCell) {
-            const clone = headerCell.cloneNode(true);
-            clone.querySelectorAll('button').forEach((el) => el.remove());
-            const parsed = clone.textContent.replace(/\s+/g, ' ').trim();
-            if (parsed) titleText = parsed;
-        }
-    }
-
-    const title = document.createElement('div');
-    title.className = 'daily-it-funnel-title';
-    title.textContent = titleText;
-    menu.appendChild(title);
-
-    const searchWrap = document.createElement('div');
-    searchWrap.className = 'daily-it-funnel-search';
-    const searchInput = document.createElement('input');
-    searchInput.type = 'text';
-    searchInput.className = 'form-control form-control-sm';
-    searchInput.placeholder = 'Buscar valor';
-    searchWrap.appendChild(searchInput);
-    menu.appendChild(searchWrap);
-
-    const actions = document.createElement('div');
-    actions.className = 'daily-it-funnel-actions';
-    actions.innerHTML = `
-        <button type="button" class="link-btn" data-action="select-all">Todos seleccionados</button>
-        <button type="button" class="link-btn" data-action="clear-all">Borrar</button>
-        <button type="button" class="link-btn" data-action="clear-filter">Sin filtro</button>
-    `;
-    menu.appendChild(actions);
-
-    const list = document.createElement('div');
-    list.className = 'daily-it-funnel-list';
-    menu.appendChild(list);
-
-    const items = [];
-    values.forEach((item, index) => {
-        const row = document.createElement('label');
-        row.className = 'daily-it-funnel-item';
-
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.className = 'daily-it-funnel-check';
-        checkbox.dataset.token = item.token;
-        checkbox.id = `daily-it-funnel-${col}-${index}`;
-
-        const label = document.createElement('span');
-        label.textContent = item.label || '(Vacío)';
-
-        checkbox.checked = selectedSet ? selectedSet.has(item.token) : true;
-
-        row.appendChild(checkbox);
-        row.appendChild(label);
-        list.appendChild(row);
-        items.push({ row, checkbox, token: item.token, label: (item.label || '(Vacío)').toLowerCase() });
-    });
-
-    const footer = document.createElement('div');
-    footer.className = 'daily-it-funnel-footer';
-    const closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.className = 'btn btn-sm btn-link';
-    closeBtn.textContent = 'Cerrar';
-    footer.appendChild(closeBtn);
-    menu.appendChild(footer);
-
-    const applyFromChecks = () => {
-        const selectedTokens = items.filter((item) => item.checkbox.checked).map((item) => item.token);
-        applyItineraryFunnelSelection({ col, tableContainer, searchState, funnelState }, selectedTokens);
-    };
-
-    const filterVisibleItems = () => {
-        const term = searchInput.value.toLowerCase().trim();
-        items.forEach((item) => {
-            item.row.style.display = !term || item.label.includes(term) ? 'flex' : 'none';
-        });
-    };
-
-    searchInput.addEventListener('input', filterVisibleItems);
-
-    items.forEach((item) => {
-        item.checkbox.addEventListener('change', applyFromChecks);
-    });
-
-    actions.querySelector('[data-action="select-all"]')?.addEventListener('click', () => {
-        items.forEach((item) => {
-            if (item.row.style.display !== 'none') item.checkbox.checked = true;
-        });
-        applyFromChecks();
-    });
-
-    actions.querySelector('[data-action="clear-all"]')?.addEventListener('click', () => {
-        items.forEach((item) => {
-            if (item.row.style.display !== 'none') item.checkbox.checked = false;
-        });
-        applyFromChecks();
-    });
-
-    actions.querySelector('[data-action="clear-filter"]')?.addEventListener('click', () => {
-        delete funnelState[col];
-        applyClientSideTableFilter(tableContainer, searchState, funnelState);
-        _initItineraryFunnelSelects(tableContainer, searchState, funnelState);
-        hideItineraryFunnelMenu();
-    });
-
-    closeBtn.addEventListener('click', () => hideItineraryFunnelMenu());
-
-    menu.style.display = 'block';
-    menu.style.visibility = 'hidden';
-    menu.style.left = '0px';
-    menu.style.top = '0px';
-
-    const triggerRect = button.getBoundingClientRect();
-    const menuRect = menu.getBoundingClientRect();
-    let left = triggerRect.left;
-    let top = triggerRect.bottom + 6;
-    if (left + menuRect.width > window.innerWidth - 8) {
-        left = window.innerWidth - menuRect.width - 8;
-    }
-    if (left < 8) left = 8;
-    if (top + menuRect.height > window.innerHeight - 8) {
-        top = Math.max(8, triggerRect.top - menuRect.height - 6);
-    }
-
-    menu.style.left = `${Math.round(left)}px`;
-    menu.style.top = `${Math.round(top)}px`;
-    menu.style.visibility = 'visible';
-
-    itineraryFunnelMenuContext = { triggerButton: button };
-    setTimeout(() => {
-        try { searchInput.focus({ preventScroll: true }); } catch (_) { /* noop */ }
-    }, 0);
-}
-
 // Helper for client-side table filtering
-// Populate itinerary funnel buttons and bind global menu behavior
-function _initItineraryFunnelSelects(tableContainer, searchState, funnelState = {}) {
-    if (!tableContainer) return;
-    const { map } = getItineraryColumnIndexMap(tableContainer);
-    const buttons = tableContainer.querySelectorAll('.daily-it-funnel-btn');
+// Populate funnel <select> dropdowns from unique tbody values, then bind change events
+function _initItineraryFunnelSelects(tableContainer, searchState) {
+    const tbody = tableContainer ? tableContainer.querySelector('tbody') : null;
+    if (!tbody) return;
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const isCargo = !!(tableContainer.closest('.itinerary-general-card')?.classList.contains('itinerary-general-card--cargo'));
 
-    buttons.forEach((btn) => {
-        const col = btn.dataset.col;
-        const idx = map[col];
-        if (idx === null || idx === undefined) {
-            btn.disabled = true;
-            return;
-        }
+    // col key → cell index (passenger layout; cargo shifts banda/pos)
+    const colIdx = {
+        aerolinea: 0, aircraft: 1, vuelo_llegada: 2, fecha_llegada: 3,
+        hora_llegada: 4, origen: 5,
+        banda:       isCargo ? null : 6,
+        posicion:    isCargo ? 6    : 7,
+        vuelo_salida: isCargo ? 7  : 8,
+        fecha_salida: isCargo ? 8  : 9,
+        hora_salida:  isCargo ? 9  : 10,
+        destino:      isCargo ? 10 : 11
+    };
 
-        const values = collectItineraryFunnelValues(tableContainer, col);
-        btn.disabled = values.length === 0;
-        btn.dataset.valueCount = String(values.length);
-        const selectedSet = funnelState[col] instanceof Set ? funnelState[col] : null;
-        syncItineraryFunnelButtons(tableContainer, col, selectedSet);
-    });
+    const selects = tableContainer.querySelectorAll('.daily-it-select');
+    selects.forEach(sel => {
+        const col = sel.dataset.col;
+        const idx = colIdx[col];
+        if (idx === null || idx === undefined) return;
 
-    if (!window._dailyItineraryFunnelGlobalBound) {
-        window._dailyItineraryFunnelGlobalBound = true;
-        document.addEventListener('click', (event) => {
-            const trigger = event.target.closest('.daily-it-funnel-btn');
-            if (trigger) {
-                event.preventDefault();
-                event.stopPropagation();
-                showItineraryFunnelMenuForButton(trigger);
-                return;
-            }
-            if (itineraryFunnelMenu && itineraryFunnelMenu.style.display === 'block' && !itineraryFunnelMenu.contains(event.target)) {
-                hideItineraryFunnelMenu();
-            }
+        // Collect unique, non-empty cell values
+        const vals = new Set();
+        rows.forEach(row => {
+            const cell = row.cells[idx];
+            if (!cell) return;
+            const txt = cell.textContent.trim();
+            if (txt && txt !== '\u2014' && txt !== '-') vals.add(txt);
         });
-        window.addEventListener('resize', hideItineraryFunnelMenu);
-        window.addEventListener('scroll', handleItineraryFunnelGlobalScroll, true);
-    }
+
+        const sorted = Array.from(vals).sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+        const current = sel.value;
+        sel.innerHTML = '<option value="">\u2261 Todas</option>';
+        sorted.forEach(v => {
+            const upper = v.toUpperCase();
+            const opt   = document.createElement('option');
+            opt.value       = upper;
+            opt.textContent = v;
+            if (current && upper === current) opt.selected = true;
+            sel.appendChild(opt);
+        });
+
+        // Attach change listener once
+        if (!sel._funnelBound) {
+            sel._funnelBound = true;
+            sel.addEventListener('change', () => {
+                const v = sel.value.trim().toUpperCase();
+                if (!window.dailyItinerarySearchState) window.dailyItinerarySearchState = {};
+                window.dailyItinerarySearchState[col] = v;
+                // Clear the paired text input so they don't conflict
+                const textIn = tableContainer.querySelector(`.daily-it-search[data-col="${col}"]`);
+                if (textIn && v) { textIn.value = ''; }
+                // Highlight select when active
+                sel.classList.toggle('active-filter', v !== '');
+                applyClientSideTableFilter(tableContainer, window.dailyItinerarySearchState);
+            });
+        }
+    });
 }
 
-function applyClientSideTableFilter(tableContainer, searchState = {}, funnelState = null) {
-    if (!tableContainer) return;
-
-    const { isCargo } = getItineraryColumnIndexMap(tableContainer);
-    const activeSearch = searchState || {};
-    const activeFunnel = funnelState || (isCargo ? window.cargoItineraryFunnelState : window.dailyItineraryFunnelState) || {};
+function applyClientSideTableFilter(tableContainer, searchState) {
+    if (!tableContainer || !searchState) return;
+    
+    // Detect Cargo context
+    const card = tableContainer.closest('.itinerary-general-card');
+    const isCargo = card && card.classList.contains('itinerary-general-card--cargo');
 
     const tbody = tableContainer.querySelector('tbody');
     if (!tbody) return;
     const rows = tbody.querySelectorAll('tr');
-
-    rows.forEach((row) => {
+    
+    rows.forEach(row => {
         let visible = true;
-
-        for (const [col, val] of Object.entries(activeSearch)) {
+        // Check each criteria
+        for (const [col, val] of Object.entries(searchState)) {
             if (!val) continue;
-            const token = normalizeItineraryFilterToken(getItineraryCellTextForColumn(row, col, isCargo));
-            if (!token.includes(String(val).toUpperCase())) {
+            let cellText = '';
+            
+            // Map col key to cell index or class
+            if (col === 'aerolinea') cellText = row.cells[0]?.textContent || '';
+            else if (col === 'aircraft') cellText = row.cells[1]?.textContent || '';
+            else if (col === 'vuelo_llegada') cellText = row.cells[2]?.textContent || '';
+            else if (col === 'fecha_llegada') cellText = row.cells[3]?.textContent || '';
+            else if (col === 'hora_llegada') cellText = row.cells[4]?.textContent || '';
+            else if (col === 'origen') cellText = row.cells[5]?.textContent || '';
+            
+            else if (col === 'banda') {
+                // Cargo tables don't have banda usually, or it's skipped
+                if (!isCargo) cellText = row.cells[6]?.textContent || '';
+            }
+            else if (col === 'posicion') {
+                if (isCargo) cellText = row.cells[6]?.textContent || ''; // Pos is col 6 in cargo
+                else cellText = row.cells[7]?.textContent || '';       // Pos is col 7 in pax
+            }
+            else if (col === 'vuelo_salida') {
+                if (isCargo) cellText = row.cells[7]?.textContent || '';
+                else cellText = row.cells[8]?.textContent || '';
+            }
+            else if (col === 'fecha_salida') {
+                if (isCargo) cellText = row.cells[8]?.textContent || '';
+                else cellText = row.cells[9]?.textContent || '';
+            }
+            else if (col === 'hora_salida') {
+                if (isCargo) cellText = row.cells[9]?.textContent || '';
+                else cellText = row.cells[10]?.textContent || '';
+            }
+            else if (col === 'destino') {
+                if (isCargo) cellText = row.cells[10]?.textContent || '';
+                else cellText = row.cells[11]?.textContent || '';
+            }
+            
+            if (!cellText.toUpperCase().includes(val)) {
                 visible = false;
                 break;
             }
         }
-
-        if (visible) {
-            for (const [col, selectedSet] of Object.entries(activeFunnel)) {
-                if (!(selectedSet instanceof Set)) continue;
-                if (selectedSet.size === 0) {
-                    visible = false;
-                    break;
-                }
-                const token = normalizeItineraryFilterToken(getItineraryCellTextForColumn(row, col, isCargo));
-                if (!selectedSet.has(token)) {
-                    visible = false;
-                    break;
-                }
-            }
-        }
-
         row.style.display = visible ? '' : 'none';
     });
-
+    
     // Re-apply visual striping to visible rows
     updateTableVisualStriping(tableContainer);
 }
@@ -4573,18 +4186,18 @@ function renderItineraryAirlineDetail(config = {}) {
                                 <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="destino" placeholder="Buscar..."></th>
                             </tr>
                             <tr class="funnel-selects-row" style="background:#f0f4f8">
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="aerolinea" title="Filtrar por aerol\u00ednea"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="aircraft" title="Filtrar por aeronave"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="vuelo_llegada" title="Filtrar por vuelo llegada"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="fecha_llegada" title="Filtrar por fecha llegada"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="hora_llegada" title="Filtrar por hora llegada"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="origen" title="Filtrar por origen"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="banda" title="Filtrar por banda"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="posicion" title="Filtrar por posici\u00f3n"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="vuelo_salida" title="Filtrar por vuelo salida"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="fecha_salida" title="Filtrar por fecha salida"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="hora_salida" title="Filtrar por hora salida"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="destino" title="Filtrar por destino"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="aerolinea" title="Filtrar por aerol\u00ednea"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="aircraft" title="Filtrar por aeronave"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="fecha_llegada" title="Filtrar por fecha llegada"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="origen" title="Filtrar por origen"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="banda" title="Filtrar por banda"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="posicion" title="Filtrar por posici\u00f3n"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="fecha_salida" title="Filtrar por fecha salida"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="destino" title="Filtrar por destino"><option value="">\u2261 Todas</option></select></th>
                             </tr>
                         </thead>
                         <tbody>${rows || '<tr><td colspan="12" class="text-center text-muted">Sin vuelos disponibles.</td></tr>'}</tbody>
@@ -4610,7 +4223,7 @@ function renderItineraryAirlineDetail(config = {}) {
                 }
             });
             // Apply filter immediately if state exists
-            applyClientSideTableFilter(tableContainer, window.dailyItinerarySearchState, window.dailyItineraryFunnelState || {});
+             applyClientSideTableFilter(tableContainer, window.dailyItinerarySearchState);
         }
 
         inputs.forEach(input => {
@@ -4620,18 +4233,17 @@ function renderItineraryAirlineDetail(config = {}) {
                 
                 // Save state
                 if (!window.dailyItinerarySearchState) window.dailyItinerarySearchState = {};
-                if (!window.dailyItineraryFunnelState) window.dailyItineraryFunnelState = {};
                 window.dailyItinerarySearchState[col] = val;
-                // Text filter takes precedence for the same column
-                if (val) delete window.dailyItineraryFunnelState[col];
+                // Reset the paired funnel select so they don't conflict
+                const sel = tableContainer.querySelector(`.daily-it-select[data-col="${col}"]`);
+                if (sel && val) { sel.value = ''; sel.classList.remove('active-filter'); }
 
-                applyClientSideTableFilter(tableContainer, window.dailyItinerarySearchState, window.dailyItineraryFunnelState);
-                _initItineraryFunnelSelects(tableContainer, window.dailyItinerarySearchState, window.dailyItineraryFunnelState);
+                applyClientSideTableFilter(tableContainer, window.dailyItinerarySearchState);
             });
         });
 
-        // Populate + bind funnel dropdown buttons
-        _initItineraryFunnelSelects(tableContainer, window.dailyItinerarySearchState || {}, window.dailyItineraryFunnelState || {});
+        // Populate + bind funnel dropdown selects
+        _initItineraryFunnelSelects(tableContainer, window.dailyItinerarySearchState || {});
     }, 50);
 
     const clearBtn = container.querySelector('[data-action="clear-airline-filter"]');
@@ -5898,10 +5510,7 @@ function displaySummaryTable(flights, options = {}) {
     updateSelectionLayout();
 }
 
-const dynamicTableHeaderRegistry = window.dynamicTableHeaderRegistry instanceof Map
-    ? window.dynamicTableHeaderRegistry
-    : new Map();
-window.dynamicTableHeaderRegistry = dynamicTableHeaderRegistry;
+const dynamicTableHeaderRegistry = new Map();
 
 function cleanupDynamicTableHeader(key) {
     if (!key) return;
@@ -6286,18 +5895,18 @@ function displayPassengerTable(flights) {
                                 <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="destino" placeholder="Buscar..."></th>
                             </tr>
                             <tr class="funnel-selects-row" style="background:#f0f4f8">
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="aerolinea" title="Filtrar por aerol\u00ednea"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="aircraft" title="Filtrar por aeronave"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="vuelo_llegada" title="Filtrar por vuelo llegada"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="fecha_llegada" title="Filtrar por fecha llegada"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="hora_llegada" title="Filtrar por hora llegada"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="origen" title="Filtrar por origen"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="banda" title="Filtrar por banda"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="posicion" title="Filtrar por posici\u00f3n"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="vuelo_salida" title="Filtrar por vuelo salida"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="fecha_salida" title="Filtrar por fecha salida"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="hora_salida" title="Filtrar por hora salida"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="destino" title="Filtrar por destino"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="aerolinea" title="Filtrar por aerol\u00ednea"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="aircraft" title="Filtrar por aeronave"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="fecha_llegada" title="Filtrar por fecha llegada"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="origen" title="Filtrar por origen"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="banda" title="Filtrar por banda"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="posicion" title="Filtrar por posici\u00f3n"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="fecha_salida" title="Filtrar por fecha salida"><option value="">\u2261 Todas</option></select></th>
+                                <th class="p-1"></th>
+                                <th class="p-1"><select class="form-select form-select-sm daily-it-select" data-col="destino" title="Filtrar por destino"><option value="">\u2261 Todas</option></select></th>
                             </tr>
                         </thead>
                         <tbody>${rows}</tbody>
@@ -6326,7 +5935,7 @@ function displayPassengerTable(flights) {
                     inp.value = window.dailyItinerarySearchState[col];
                 }
             });
-            applyClientSideTableFilter(tableContainer, window.dailyItinerarySearchState, window.dailyItineraryFunnelState || {});
+            applyClientSideTableFilter(tableContainer, window.dailyItinerarySearchState);
         }
 
         inputs.forEach(input => {
@@ -6334,16 +5943,16 @@ function displayPassengerTable(flights) {
                 const val = e.target.value.trim().toUpperCase();
                 const col = e.target.dataset.col;
                 if (!window.dailyItinerarySearchState) window.dailyItinerarySearchState = {};
-                if (!window.dailyItineraryFunnelState) window.dailyItineraryFunnelState = {};
                 window.dailyItinerarySearchState[col] = val;
-                if (val) delete window.dailyItineraryFunnelState[col];
-                applyClientSideTableFilter(tableContainer, window.dailyItinerarySearchState, window.dailyItineraryFunnelState);
-                _initItineraryFunnelSelects(tableContainer, window.dailyItinerarySearchState, window.dailyItineraryFunnelState);
+                // Reset the paired funnel select so they don't conflict
+                const sel = tableContainer.querySelector(`.daily-it-select[data-col="${col}"]`);
+                if (sel && val) { sel.value = ''; sel.classList.remove('active-filter'); }
+                applyClientSideTableFilter(tableContainer, window.dailyItinerarySearchState);
             });
         });
 
-        // Populate + bind funnel dropdown buttons
-        _initItineraryFunnelSelects(tableContainer, window.dailyItinerarySearchState || {}, window.dailyItineraryFunnelState || {});
+        // Populate + bind funnel dropdown selects
+        _initItineraryFunnelSelects(tableContainer, window.dailyItinerarySearchState || {});
     }, 50);
 
     wireItineraryExports();
@@ -6490,19 +6099,6 @@ function displayCargoTable(flights) {
                                 <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="hora_salida" placeholder="Buscar..."></th>
                                 <th class="p-1"><input type="text" class="form-control form-control-sm daily-it-search search-input-modern text-uppercase" data-col="destino" placeholder="Buscar..."></th>
                             </tr>
-                            <tr class="funnel-selects-row" style="background:#f0f4f8">
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="aerolinea" title="Filtrar por aerol\u00ednea"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="aircraft" title="Filtrar por aeronave"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="vuelo_llegada" title="Filtrar por vuelo llegada"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="fecha_llegada" title="Filtrar por fecha llegada"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="hora_llegada" title="Filtrar por hora llegada"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="origen" title="Filtrar por origen"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="posicion" title="Filtrar por posici\u00f3n"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="vuelo_salida" title="Filtrar por vuelo salida"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="fecha_salida" title="Filtrar por fecha salida"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="hora_salida" title="Filtrar por hora salida"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                                <th class="p-1"><button type="button" class="daily-it-funnel-btn" data-col="destino" title="Filtrar por destino"><i class="fas fa-filter"></i><span class="daily-it-funnel-btn-label">\u2261 Todas</span></button></th>
-                            </tr>
                         </thead>
                         <tbody>${rows}</tbody>
                     </table>
@@ -6529,7 +6125,7 @@ function displayCargoTable(flights) {
                     inp.value = window.cargoItinerarySearchState[col];
                 }
             });
-            applyClientSideTableFilter(tableContainer, window.cargoItinerarySearchState, window.cargoItineraryFunnelState || {});
+            applyClientSideTableFilter(tableContainer, window.cargoItinerarySearchState);
         }
 
         inputs.forEach(input => {
@@ -6537,15 +6133,10 @@ function displayCargoTable(flights) {
                 const val = e.target.value.trim().toUpperCase();
                 const col = e.target.dataset.col;
                 if (!window.cargoItinerarySearchState) window.cargoItinerarySearchState = {};
-                if (!window.cargoItineraryFunnelState) window.cargoItineraryFunnelState = {};
                 window.cargoItinerarySearchState[col] = val;
-                if (val) delete window.cargoItineraryFunnelState[col];
-                applyClientSideTableFilter(tableContainer, window.cargoItinerarySearchState, window.cargoItineraryFunnelState);
-                _initItineraryFunnelSelects(tableContainer, window.cargoItinerarySearchState, window.cargoItineraryFunnelState);
+                applyClientSideTableFilter(tableContainer, window.cargoItinerarySearchState);
             });
         });
-
-        _initItineraryFunnelSelects(tableContainer, window.cargoItinerarySearchState || {}, window.cargoItineraryFunnelState || {});
     }, 50);
 
     updateTableVisualStriping(container);
@@ -6995,7 +6586,6 @@ document.addEventListener('DOMContentLoaded', function () {
 // Resumen y gráficas de Operaciones Totales (restauración completa con filtros, animaciones y colores)
 const opsCharts = {};
 let opsViewportFrame = null;
-let opsViewportUpdateDeferred = false;
 let opsTooltipsAlwaysOn = false;
 let deferredPwaInstallEvent = null;
 let installAppModalInstance = null;
@@ -7528,10 +7118,6 @@ function adjustOpsChartViewport(chart) {
 }
 
 function scheduleOpsViewportUpdate() {
-    if (typeof window !== 'undefined' && window._opsFiltersModalActive) {
-        opsViewportUpdateDeferred = true;
-        return;
-    }
     if (opsViewportFrame) cancelAnimationFrame(opsViewportFrame);
     opsViewportFrame = requestAnimationFrame(() => {
         opsViewportFrame = null;
@@ -8645,15 +8231,6 @@ function detectChartErrors() {
     }
 }
 function renderOperacionesTotales() {
-    const opsFiltersModalOpen = isOpsFiltersModalVisible();
-    if (opsFiltersModalOpen) {
-        // Avoid expensive chart teardown/rebuild while the config modal is visible.
-        // Queue a single refresh and execute it when the modal closes.
-        window._opsRenderQueuedFromFiltersModal = true;
-        return;
-    }
-    window._opsRenderQueuedFromFiltersModal = false;
-
     try {
         const theme = getChartColors();
         updateOpsTooltipToggleButton();
@@ -11680,55 +11257,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const monthsNone = document.getElementById('months-select-none');
         const sectionsBox = document.getElementById('ops-sections-filters');
         const yearsBox = document.getElementById('ops-years-filters');
-        const opsFiltersModal = document.getElementById('opsFiltersModal');
         const presetOps = document.getElementById('preset-ops');
         const presetPassengers = document.getElementById('preset-passengers');
         const presetCargoTon = document.getElementById('preset-cargo-ton');
         const presetFull = document.getElementById('preset-full');
-
-        // Isolate modal from parent tab-pane layout/reflow to avoid visual jitter.
-        if (opsFiltersModal && opsFiltersModal.parentElement !== document.body) {
-            document.body.appendChild(opsFiltersModal);
-        }
-
-        if (opsFiltersModal && !opsFiltersModal.dataset.renderFlushBound) {
-            opsFiltersModal.dataset.renderFlushBound = '1';
-            opsFiltersModal.addEventListener('show.bs.modal', () => {
-                window._opsFiltersModalActive = true;
-                document.body.classList.add('ops-filters-modal-open');
-                try { stopOpsAnim(); } catch (_) { }
-            });
-
-            opsFiltersModal.addEventListener('hide.bs.modal', () => {
-                // Keep the lock active until hidden to avoid flicker during fade-out.
-                window._opsFiltersModalActive = true;
-            });
-
-            opsFiltersModal.addEventListener('hidden.bs.modal', () => {
-                window._opsFiltersModalActive = false;
-                document.body.classList.remove('ops-filters-modal-open');
-                if (opsViewportUpdateDeferred) {
-                    opsViewportUpdateDeferred = false;
-                    requestAnimationFrame(() => {
-                        try { scheduleOpsViewportUpdate(); } catch (_) { }
-                    });
-                }
-                Promise.resolve(flushDeferredOpsSyncAfterModalClose()).finally(() => {
-                    if (window._opsRenderQueuedFromFiltersModal) {
-                        window._opsRenderQueuedFromFiltersModal = false;
-                        requestAnimationFrame(() => {
-                            try { renderOperacionesTotales(); } catch (_) { }
-                        });
-                        return;
-                    }
-
-                    // Resume traveler animation only if the section is still active.
-                    if (typeof getActiveSectionKey === 'function' && getActiveSectionKey() === 'operaciones-totales') {
-                        try { startOpsAnim(); } catch (_) { }
-                    }
-                });
-            });
-        }
 
         refreshOpsYearFilters();
         refreshOpsMonthlyYearLabels();
@@ -11751,11 +11283,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Expose update function for dynamic data loading
         window.updateOpsFiltersAfterDataLoad = function () {
-            if (isOpsFiltersModalVisible()) {
-                queueOpsDeferredSync('pendingFiltersRefresh');
-                return;
-            }
-
             const availability = populateWeeklyWeekOptions();
             populateWeeklyDayOptions();
 
