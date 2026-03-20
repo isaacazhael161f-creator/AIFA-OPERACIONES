@@ -13401,6 +13401,117 @@ window.AeropuertosModule = (function () {
     }
 })();
 </script>
+<script>
+(function () {
+    var VERSION_ENDPOINT = '/api/app-version';
+    var STORAGE_KEY = 'aifa_app_version_token';
+    var CHECK_INTERVAL_MS = 60000;
+    var isChecking = false;
+    var currentVersion = null;
+    var pendingVersion = null;
+
+    function readStoredVersion() {
+        try {
+            return localStorage.getItem(STORAGE_KEY);
+        } catch (err) {
+            return null;
+        }
+    }
+
+    function writeStoredVersion(value) {
+        try {
+            localStorage.setItem(STORAGE_KEY, value);
+        } catch (err) {
+            // Ignore storage errors (private mode/quota) and keep runtime fallback.
+        }
+    }
+
+    function isUserEditing() {
+        var active = document.activeElement;
+        if (!active || !active.tagName) return false;
+        var tag = active.tagName.toLowerCase();
+        return tag === 'input' || tag === 'textarea' || tag === 'select';
+    }
+
+    function buildReloadUrl(versionToken) {
+        var url = new URL(window.location.href);
+        url.searchParams.set('appv', versionToken);
+        return url.toString();
+    }
+
+    function reloadToLatest(versionToken) {
+        writeStoredVersion(versionToken);
+        currentVersion = versionToken;
+        window.location.replace(buildReloadUrl(versionToken));
+    }
+
+    async function fetchLatestVersion() {
+        var response = await fetch(VERSION_ENDPOINT + '?_=' + Date.now(), {
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache' }
+        });
+        if (!response.ok) return null;
+
+        var payload = await response.json().catch(function () {
+            return null;
+        });
+        return payload && payload.version ? String(payload.version) : null;
+    }
+
+    async function checkForAppUpdates() {
+        if (isChecking) return;
+        isChecking = true;
+
+        try {
+            var latest = await fetchLatestVersion();
+            if (!latest) return;
+
+            var baseline = currentVersion || readStoredVersion();
+            if (!baseline) {
+                currentVersion = latest;
+                writeStoredVersion(latest);
+                return;
+            }
+
+            if (baseline !== latest) {
+                pendingVersion = latest;
+
+                if (document.visibilityState !== 'visible' || !isUserEditing()) {
+                    reloadToLatest(latest);
+                }
+            }
+        } catch (err) {
+            console.warn('App version check failed:', err);
+        } finally {
+            isChecking = false;
+        }
+    }
+
+    function flushPendingUpdate() {
+        if (!pendingVersion) return;
+        if (isUserEditing()) return;
+
+        var nextVersion = pendingVersion;
+        pendingVersion = null;
+        reloadToLatest(nextVersion);
+    }
+
+    checkForAppUpdates();
+    setInterval(checkForAppUpdates, CHECK_INTERVAL_MS);
+
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') {
+            checkForAppUpdates();
+            flushPendingUpdate();
+        }
+    });
+
+    window.addEventListener('focus', function () {
+        checkForAppUpdates();
+        flushPendingUpdate();
+    });
+})();
+</script>
 </body>
 </html>
 
