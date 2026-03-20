@@ -10,6 +10,14 @@
         integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://code.jquery.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.datatables.net" crossorigin>
+    <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="//code.jquery.com">
+    <link rel="dns-prefetch" href="//cdn.datatables.net">
     <link
         href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;700&family=Roboto+Condensed:wght@400;500;700&display=swap"
         rel="stylesheet">
@@ -22,15 +30,18 @@
     <link rel="apple-touch-icon" sizes="180x180" href="images/icons/aifa-app-icon-512.png?v=20251126">
     <link rel="manifest" href="manifest.webmanifest?v=20251126">
     
-    <!-- Preload Critical Images for Fluid Performance -->
+    <!-- Staged loading: critical first, secondary as prefetch -->
     <link rel="preload" as="image" href="images/Slot.jpeg" fetchpriority="high">
-    <link rel="preload" as="image" href="images/torre.jpg">
-    <link rel="preload" as="image" href="images/Aviones%20pax.jpeg">
-    <link rel="preload" as="image" href="images/Pax.jpeg">
-    <link rel="preload" as="image" href="images/Aeronaves%20carga.jpg">
-    <link rel="preload" as="image" href="images/Carga%20a%C3%A9rea.jpg">
-    <link rel="preload" as="image" href="images/Aviones%20FBO.png">
-    <link rel="preload" as="image" href="images/Pasajero%20FBO.jpg">
+    <link rel="preload" as="image" href="images/aifa-logo.png" fetchpriority="high">
+    <link rel="preload" as="image" href="images/nlu-operacion.png">
+    <link rel="preload" as="image" href="images/emblema-aviacion.png">
+    <link rel="prefetch" as="image" href="images/torre.jpg">
+    <link rel="prefetch" as="image" href="images/Aviones%20pax.jpeg">
+    <link rel="prefetch" as="image" href="images/Pax.jpeg">
+    <link rel="prefetch" as="image" href="images/Aeronaves%20carga.jpg">
+    <link rel="prefetch" as="image" href="images/Carga%20a%C3%A9rea.jpg">
+    <link rel="prefetch" as="image" href="images/Aviones%20FBO.png">
+    <link rel="prefetch" as="image" href="images/Pasajero%20FBO.jpg">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -840,15 +851,16 @@
 <body>
 
     <div id="login-screen" class="login-screen">
-        <img id="login-bg-img" class="login-bg-img" src="images/Slot.jpeg" alt="" aria-hidden="true" draggable="false"
-             onload="this.classList.add('loaded')" />
+                <img id="login-bg-img" class="login-bg-img" src="images/Slot.jpeg" alt="" aria-hidden="true" draggable="false"
+                         loading="eager" fetchpriority="high" decoding="async"
+                         onload="this.classList.add('loaded')" />
         <div id="login-sky" aria-hidden="true"></div>
         <div class="login-overlay"></div>
         <div class="login-container">
             <div class="login-header">
                 <div class="login-logo-wrap">
                     <div class="login-logo-inner">
-                        <img src="images/emblema-aviacion.png" alt="Emblema de la Aviación" class="login-logo" />
+                        <img src="images/emblema-aviacion.png" alt="Emblema de la Aviación" class="login-logo" loading="eager" decoding="async" />
                     </div>
                 </div>
                 <h1 id="login-title" class="h3">OPERACIONES-AIFA</h1>
@@ -893,13 +905,13 @@
                             aria-label="Alternar barra lateral">
                             <i class="fas fa-bars"></i>
                         </button>
-                        <img src="images/aifa-logo.png" alt="Logo AIFA" class="aifa-logo" />
+                        <img src="images/aifa-logo.png" alt="Logo AIFA" class="aifa-logo" loading="eager" decoding="async" />
                     </div>
                     <div class="text-center header-center-content">
                         <div class="d-flex align-items-center justify-content-between gap-3 header-title-row">
-                            <img src="images/nlu-operacion.png" alt="Logo de Operación NLU" class="header-logo" />
+                            <img src="images/nlu-operacion.png" alt="Logo de Operación NLU" class="header-logo" loading="eager" decoding="async" />
                             <h1 class="main-title">AEROPUERTO INTERNACIONAL FELIPE ÁNGELES</h1>
-                            <img src="images/emblema-aviacion.png" alt="Logo de Aviación" class="header-logo" />
+                            <img src="images/emblema-aviacion.png" alt="Logo de Aviación" class="header-logo" loading="eager" decoding="async" />
                         </div>
                         <div class="header-subtext">
                             <div id="current-user" class="current-user-display fw-bold"></div>
@@ -932,7 +944,7 @@
                             <span>Instalar app</span>
                         </button>
 
-                        <img src="images/gobierno-mexico.png" alt="Logo del Gobierno de México" class="gob-logo" />
+                        <img src="images/gobierno-mexico.png" alt="Logo del Gobierno de México" class="gob-logo" loading="eager" decoding="async" />
                         <!-- Tema fijo claro: se elimina el botón de cambio de tema -->
                         <a href="#" class="btn btn-outline-danger d-lg-none logout-button-mobile" data-action="logout"
                             title="Cerrar Sesión" aria-label="Cerrar Sesión">
@@ -3401,22 +3413,6 @@
                                                     </div>
 
                                                         <ul class="nav nav-tabs" id="itineraryTab" role="tablist">
-                                                        <li class="nav-item d-none itinerary-main-hidden-subtab" role="presentation"><button
-                                                            class="nav-link" id="pasajeros-grafica-tab"
-                                                            data-bs-toggle="tab"
-                                                            data-bs-target="#pasajeros-grafica-pane" type="button"
-                                                            role="tab" aria-controls="pasajeros-grafica-pane"
-                                                            aria-selected="false">1.
-                                                            Gráfica (Pasajeros)</button>
-                                                        </li>
-                                                        <li class="nav-item d-none itinerary-main-hidden-subtab" role="presentation"><button
-                                                            class="nav-link" id="carga-grafica-tab"
-                                                            data-bs-toggle="tab"
-                                                            data-bs-target="#carga-grafica-pane" type="button"
-                                                            role="tab" aria-controls="carga-grafica-pane"
-                                                            aria-selected="false">2.
-                                                            Gráfica
-                                                            (Carga)</button></li>
                                                         <li class="nav-item" role="presentation"><button
                                                             class="nav-link" id="general-grafica-tab"
                                                             data-bs-toggle="tab"
@@ -3431,20 +3427,6 @@
                                                             role="tab" aria-controls="combined-grafica-pane"
                                                             aria-selected="true"><i class="fas fa-layer-group me-1"></i>2.
                                                             Llegadas vs Salidas</button></li>
-                                                        <li class="nav-item d-none itinerary-main-hidden-combined-subtab" role="presentation"><button
-                                                            class="nav-link" id="pax-combined-grafica-tab"
-                                                            data-bs-toggle="tab"
-                                                            data-bs-target="#pax-combined-grafica-pane" type="button"
-                                                            role="tab" aria-controls="pax-combined-grafica-pane"
-                                                            aria-selected="false"><i class="fas fa-users me-1"></i>3.
-                                                            Pax (Total)</button></li>
-                                                        <li class="nav-item d-none itinerary-main-hidden-combined-subtab" role="presentation"><button
-                                                            class="nav-link" id="cargo-combined-grafica-tab"
-                                                            data-bs-toggle="tab"
-                                                            data-bs-target="#cargo-combined-grafica-pane" type="button"
-                                                            role="tab" aria-controls="cargo-combined-grafica-pane"
-                                                            aria-selected="false"><i class="fas fa-box me-1"></i>4.
-                                                            Carga (Total)</button></li>
                                                         <li class="nav-item" role="presentation"><button
                                                             class="nav-link" id="fuel-heatmap-tab"
                                                             data-bs-toggle="tab"
@@ -3488,7 +3470,7 @@
                                                     <div class="tab-content pt-3" id="itineraryTabContent">
                                                         <!-- Pasajeros: Llegadas/Salidas del día -->
                                                         <div class="tab-pane fade"
-                                                            id="pasajeros-grafica-pane">
+                                                            id="pasajeros-grafica-pane" role="tabpanel" aria-labelledby="pasajeros-subview-tab" tabindex="0">
                                                             <div
                                                                 class="itinerary-charts-scroll itinerary-pane-block charts-block">
                                                                 <div class="row g-3 chart-row-mobile-scroll">
@@ -3585,8 +3567,8 @@
                                                             </div>
                                                         </div>
                                                         <!-- Carga: Llegadas/Salidas del día -->
-                                                        <div class="tab-pane fade" id="carga-grafica-pane">
-                                                            <div
+                                                        <div class="tab-pane fade" id="carga-grafica-pane"
+                                                            role="tabpanel" aria-labelledby="carga-subview-tab"
                                                                 class="itinerary-charts-scroll itinerary-pane-block charts-block">
                                                                 <div class="row g-3 chart-row-mobile-scroll">
                                                                     <div class="col-lg-6">
@@ -3810,7 +3792,7 @@
                                     </div>
                                 </div>
                                 <!-- Tab 5: Pasajeros Total (llegadas + salidas apiladas) -->
-                                <div class="tab-pane fade" id="pax-combined-grafica-pane" role="tabpanel" aria-labelledby="pax-combined-grafica-tab" tabindex="0">
+                                <div class="tab-pane fade" id="pax-combined-grafica-pane" role="tabpanel" aria-labelledby="pax-combined-subview-tab" tabindex="0">
                                     <!-- View toggle -->
                                     <div class="d-flex gap-2 mb-2 border-bottom pb-2 px-1 pt-2">
                                         <button id="pax-view-bar-btn" class="btn btn-sm btn-primary"><i class="fas fa-chart-bar me-1"></i>Distribución horaria</button>
@@ -3891,7 +3873,7 @@
                                     </div>
                                 </div>
                                 <!-- Tab 6: Carga Total (llegadas + salidas apiladas) -->
-                                <div class="tab-pane fade" id="cargo-combined-grafica-pane" role="tabpanel" aria-labelledby="cargo-combined-grafica-tab" tabindex="0">
+                                <div class="tab-pane fade" id="cargo-combined-grafica-pane" role="tabpanel" aria-labelledby="cargo-combined-subview-tab" tabindex="0">
                                     <!-- View toggle -->
                                     <div class="d-flex gap-2 mb-2 border-bottom pb-2 px-1 pt-2">
                                         <button id="cargo-view-bar-btn" class="btn btn-sm btn-primary"><i class="fas fa-chart-bar me-1"></i>Distribución horaria</button>
@@ -11005,8 +10987,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -13375,6 +13355,50 @@ window.AeropuertosModule = (function () {
     });
 
     return { load: load, filter: filter };
+})();
+</script>
+<script>
+(function () {
+    var criticalImageSelector = '#login-bg-img, .login-logo, .aifa-logo, .header-logo, .gob-logo';
+
+    function optimizeMediaLoading() {
+        var criticalImages = new Set(document.querySelectorAll(criticalImageSelector));
+
+        document.querySelectorAll('img').forEach(function (img) {
+            if (!img.hasAttribute('decoding')) {
+                img.setAttribute('decoding', 'async');
+            }
+
+            if (criticalImages.has(img)) {
+                if (!img.hasAttribute('loading')) {
+                    img.setAttribute('loading', 'eager');
+                }
+                return;
+            }
+
+            if (!img.hasAttribute('loading')) {
+                img.setAttribute('loading', 'lazy');
+            }
+        });
+
+        document.querySelectorAll('iframe').forEach(function (frame) {
+            if (!frame.hasAttribute('loading')) {
+                frame.setAttribute('loading', 'lazy');
+            }
+        });
+
+        document.querySelectorAll('video:not([autoplay])').forEach(function (video) {
+            if (!video.hasAttribute('preload')) {
+                video.setAttribute('preload', 'metadata');
+            }
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', optimizeMediaLoading, { once: true });
+    } else {
+        optimizeMediaLoading();
+    }
 })();
 </script>
 </body>
