@@ -151,6 +151,10 @@ body {
 
 .table th {
    font-weight: 600;
+}
+
+.table thead:not(.table-dark) th,
+.table tfoot th {
    background-color: rgba(0,0,0,0.02);
 }
 
@@ -6813,6 +6817,32 @@ body.dark-mode .ops-summary-pill .pill-sub {
 
 #opsFiltersModal .months-chips .chip {
    margin: 3px;
+}
+
+#ops-configure-view-btn,
+#ops-configure-view-btn:hover,
+#ops-configure-view-btn:focus,
+#ops-configure-view-btn:active {
+   transform: none !important;
+}
+
+body.ops-filters-modal-open #operaciones-totales-section .card,
+body.ops-filters-modal-open #operaciones-totales-section .btn,
+body.ops-filters-modal-open #operaciones-totales-section .nav-link,
+body.ops-filters-modal-open #operaciones-totales-section .chart-container,
+body.ops-filters-modal-open #operaciones-totales-section canvas {
+   transition: none !important;
+   animation: none !important;
+}
+
+body.ops-filters-modal-open #opsFiltersModal .modal-dialog,
+body.ops-filters-modal-open #opsFiltersModal .modal-content {
+   transform: none !important;
+}
+
+body.ops-filters-modal-open #opsFiltersModal .modal-body {
+   -webkit-backdrop-filter: none !important;
+   backdrop-filter: none !important;
 }
 
 body.dark-mode #opsFiltersModal .modal-title {

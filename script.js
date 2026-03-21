@@ -769,6 +769,66 @@ function deepCloneWeek(week) {
 
 let WEEKLY_OPERATIONS_DATASETS = [];
 
+if (typeof window !== 'undefined') {
+    window._opsFiltersModalActive = !!window._opsFiltersModalActive;
+    window._opsRenderQueuedFromFiltersModal = !!window._opsRenderQueuedFromFiltersModal;
+}
+
+let opsViewportUpdateDeferred = false;
+const opsDeferredSyncState = {
+    weeklyLoad: false,
+    staticSyncNoYear: false,
+    filtersRefresh: false
+};
+
+function isOpsFiltersModalActive() {
+    return typeof window !== 'undefined' && !!window._opsFiltersModalActive;
+}
+
+function queueDeferredOpsSync(key) {
+    if (!Object.prototype.hasOwnProperty.call(opsDeferredSyncState, key)) return;
+    opsDeferredSyncState[key] = true;
+}
+
+function flushDeferredOpsSyncAfterModalClose() {
+    if (isOpsFiltersModalActive()) return;
+
+    const pending = {
+        weeklyLoad: !!opsDeferredSyncState.weeklyLoad,
+        staticSyncNoYear: !!opsDeferredSyncState.staticSyncNoYear,
+        filtersRefresh: !!opsDeferredSyncState.filtersRefresh
+    };
+    opsDeferredSyncState.weeklyLoad = false;
+    opsDeferredSyncState.staticSyncNoYear = false;
+    opsDeferredSyncState.filtersRefresh = false;
+
+    const queuedRender = typeof window !== 'undefined' && !!window._opsRenderQueuedFromFiltersModal;
+    if (typeof window !== 'undefined') {
+        window._opsRenderQueuedFromFiltersModal = false;
+    }
+
+    const queuedViewport = !!opsViewportUpdateDeferred;
+    opsViewportUpdateDeferred = false;
+
+    if (pending.staticSyncNoYear) {
+        syncStaticDataFromDB().catch((err) => console.warn('Deferred syncStaticDataFromDB failed:', err));
+    }
+    if (pending.weeklyLoad) {
+        loadWeeklyOperationsFromDB().catch((err) => console.warn('Deferred loadWeeklyOperationsFromDB failed:', err));
+    }
+    if (pending.filtersRefresh && typeof window.updateOpsFiltersAfterDataLoad === 'function') {
+        try { window.updateOpsFiltersAfterDataLoad(); } catch (_) { }
+    }
+    if (queuedRender && typeof window.renderOperacionesTotales === 'function') {
+        requestAnimationFrame(() => {
+            try { window.renderOperacionesTotales(); } catch (_) { }
+        });
+    }
+    if (queuedViewport) {
+        scheduleOpsViewportUpdate();
+    }
+}
+
 function formatDateLabel(dateStr) {
     if (!dateStr) return '';
     const [y, m, d] = dateStr.split('-').map(Number);
@@ -786,6 +846,11 @@ function formatDateShort(dateStr) {
 }
 
 async function loadWeeklyOperationsFromDB() {
+    if (isOpsFiltersModalActive()) {
+        queueDeferredOpsSync('weeklyLoad');
+        return;
+    }
+
     if (!window.dataManager) {
         console.warn('DataManager not available, retrying in 500ms');
         setTimeout(loadWeeklyOperationsFromDB, 500);
@@ -1089,6 +1154,12 @@ window.cachedStaticRows = { annual: [], monthly: [] };
 
 async function syncStaticDataFromDB(targetYear = null) {
     try {
+        const hasExplicitYear = targetYear !== null && targetYear !== undefined && String(targetYear).trim() !== '';
+        if (isOpsFiltersModalActive() && !hasExplicitYear) {
+            queueDeferredOpsSync('staticSyncNoYear');
+            return;
+        }
+
         if (!window.dataManager) {
             console.warn('DataManager no listo, reintentando syncStaticDataFromDB en 500ms...');
             setTimeout(() => syncStaticDataFromDB(targetYear), 500);
@@ -1119,24 +1190,50 @@ async function syncStaticDataFromDB(targetYear = null) {
         });
 
         const years = Array.from(new Set((monthlyRows || []).map(r => Number(r.year))).values()).filter(y => Number.isFinite(y)).sort((a, b) => a - b);
+        const latestAvailableYear = years.length ? years[years.length - 1] : (new Date()).getFullYear();
 
-        let latestYear;
-        if (targetYear) {
-            latestYear = Number(targetYear);
-        } else {
-            latestYear = years.length ? years[years.length - 1] : (new Date()).getFullYear();
-        }
-        staticData.mensualYear = String(latestYear);
+        const normalizeYearCandidate = (raw) => {
+            if (raw === null || raw === undefined || raw === '') return null;
+            const parsed = Number(raw);
+            return Number.isFinite(parsed) ? parsed : null;
+        };
 
-        // Sync UI select if exists
+        // Preserve explicit user choice (targetYear or current select value) instead of forcing latest available year.
         const opsFilterYear = document.getElementById('ops-filter-year');
-        if (opsFilterYear) {
-            if (!opsFilterYear.value || targetYear) {
-                opsFilterYear.value = String(latestYear);
+        let selectedMonthlyYear = hasExplicitYear ? normalizeYearCandidate(targetYear) : null;
+
+        if (selectedMonthlyYear === null && opsFilterYear) {
+            const pickerYear = normalizeYearCandidate(opsFilterYear.value);
+            if (pickerYear !== null && (!years.length || years.includes(pickerYear))) {
+                selectedMonthlyYear = pickerYear;
             }
         }
 
-        refreshOpsMonthlyYearLabels(latestYear);
+        if (selectedMonthlyYear === null) {
+            const cachedYear = normalizeYearCandidate(staticData?.mensualYear);
+            if (cachedYear !== null && (!years.length || years.includes(cachedYear))) {
+                selectedMonthlyYear = cachedYear;
+            }
+        }
+
+        if (selectedMonthlyYear === null || (years.length && !years.includes(selectedMonthlyYear))) {
+            selectedMonthlyYear = latestAvailableYear;
+        }
+
+        const selectedMonthlyYearStr = String(selectedMonthlyYear);
+        staticData.mensualYear = selectedMonthlyYearStr;
+
+        // Keep year selector in sync while user is in monthly mode or when the value is invalid.
+        if (opsFilterYear) {
+            const pickerYear = normalizeYearCandidate(opsFilterYear.value);
+            const pickerYearIsValid = pickerYear !== null && (!years.length || years.includes(pickerYear));
+            const monthlyPickerVisible = !opsFilterYear.classList.contains('d-none');
+            if (!pickerYearIsValid || hasExplicitYear || monthlyPickerVisible) {
+                opsFilterYear.value = selectedMonthlyYearStr;
+            }
+        }
+
+        refreshOpsMonthlyYearLabels(selectedMonthlyYearStr);
         refreshOpsMonthsSelectionUI();
 
         const months = OPS_ALL_MONTH_CODES.slice();
@@ -1150,7 +1247,7 @@ async function syncStaticDataFromDB(targetYear = null) {
         };
 
         (monthlyRows || []).forEach(row => {
-            if (Number(row.year) !== Number(latestYear)) return;
+            if (Number(row.year) !== Number(selectedMonthlyYear)) return;
             const m = String(row.month).padStart(2, '0');
             const idx = months.indexOf(m);
             if (idx === -1) return;
@@ -1164,13 +1261,13 @@ async function syncStaticDataFromDB(targetYear = null) {
 
         // Populate AVIATION_ANALYTICS_DATA for the tabs
         AVIATION_ANALYTICS_DATA = buildAviationAnalyticsFromDB(monthlyRows, annualRows);
-        AVIATION_ANALYTICS_CUTOFF_YEAR = String(latestYear);
+        AVIATION_ANALYTICS_CUTOFF_YEAR = String(latestAvailableYear);
 
         // Determine cutoff month index based on data availability for the latest year
         let lastClosedMonth = -1;
-        const latestYearStr = String(latestYear);
-        if (AVIATION_ANALYTICS_DATA.comercial.operaciones.years[latestYearStr]) {
-            const monthsData = AVIATION_ANALYTICS_DATA.comercial.operaciones.years[latestYearStr].months;
+        const cutoffYearStr = String(AVIATION_ANALYTICS_CUTOFF_YEAR);
+        if (AVIATION_ANALYTICS_DATA.comercial.operaciones.years[cutoffYearStr]) {
+            const monthsData = AVIATION_ANALYTICS_DATA.comercial.operaciones.years[cutoffYearStr].months;
             AVIATION_ANALYTICS_MONTH_KEYS.forEach((key, idx) => {
                 if (monthsData[key] !== null) lastClosedMonth = idx;
             });
@@ -7118,6 +7215,11 @@ function adjustOpsChartViewport(chart) {
 }
 
 function scheduleOpsViewportUpdate() {
+    if (isOpsFiltersModalActive()) {
+        opsViewportUpdateDeferred = true;
+        return;
+    }
+
     if (opsViewportFrame) cancelAnimationFrame(opsViewportFrame);
     opsViewportFrame = requestAnimationFrame(() => {
         opsViewportFrame = null;
@@ -7185,12 +7287,112 @@ function computeStaticMonthlyCutoff() {
 }
 
 function getAllowedMonthsForYear(year) {
-    // Always return all months to allow full comparison/selection freedom
+    const yearNum = Number(year);
+    if (!Number.isFinite(yearNum)) return OPS_ALL_MONTH_CODES.slice();
+
+    const monthSet = new Set();
+    let hasYearRows = false;
+    const metricKeys = ['comercial_ops', 'comercial_pax', 'general_ops', 'general_pax', 'carga_ops', 'carga_tons'];
+    const hasValue = (value) => value !== null && value !== undefined && value !== '';
+    const normalizeMonthCode = (rawMonth) => {
+        const code = String(rawMonth || '').padStart(2, '0');
+        return OPS_ALL_MONTH_CODES.includes(code) ? code : null;
+    };
+
+    const monthlyRows = window?.cachedStaticRows?.monthly;
+    if (Array.isArray(monthlyRows) && monthlyRows.length) {
+        monthlyRows.forEach((row) => {
+            if (Number(row?.year) !== yearNum) return;
+            hasYearRows = true;
+            const monthCode = normalizeMonthCode(row?.month);
+            if (!monthCode) return;
+            const rowHasData = metricKeys.some((key) => hasValue(row?.[key]));
+            if (rowHasData) {
+                monthSet.add(monthCode);
+            }
+        });
+    }
+
+    // Fallback for active year when cache is not ready yet.
+    if (!monthSet.size && String(getOpsActiveMonthlyYear()) === String(yearNum)) {
+        const monthly = staticData?.mensual2025;
+        const scanSeries = (collection, valueKey) => {
+            if (!Array.isArray(collection)) return;
+            collection.forEach((entry) => {
+                if (!hasValue(entry?.[valueKey])) return;
+                const monthCode = normalizeMonthCode(entry?.mes);
+                if (monthCode) monthSet.add(monthCode);
+            });
+        };
+
+        scanSeries(monthly?.comercial, 'operaciones');
+        scanSeries(monthly?.comercialPasajeros, 'pasajeros');
+        scanSeries(monthly?.carga, 'operaciones');
+        scanSeries(monthly?.cargaToneladas, 'toneladas');
+        scanSeries(monthly?.general?.operaciones, 'operaciones');
+        scanSeries(monthly?.general?.pasajeros, 'pasajeros');
+    }
+
+    if (monthSet.size) {
+        return OPS_ALL_MONTH_CODES.filter((code) => monthSet.has(code));
+    }
+
+    if (hasYearRows) {
+        return [];
+    }
+
     return OPS_ALL_MONTH_CODES.slice();
 }
 
 function createAllowedMonthsSet(year) {
     return new Set(getAllowedMonthsForYear(year).map((code) => String(code).padStart(2, '0')));
+}
+
+let opsMonthlyWarmupPromise = null;
+
+function hasOpsMonthlyMetricData(collection, valueKey) {
+    if (!Array.isArray(collection)) return false;
+    return collection.some((entry) => {
+        if (!entry) return false;
+        const raw = entry[valueKey];
+        if (raw === null || raw === undefined || raw === '') return false;
+        return Number.isFinite(Number(raw));
+    });
+}
+
+function hasOpsMonthlyDataSnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') return false;
+    const general = snapshot.general || {};
+    return (
+        hasOpsMonthlyMetricData(snapshot.comercial, 'operaciones') ||
+        hasOpsMonthlyMetricData(snapshot.comercialPasajeros, 'pasajeros') ||
+        hasOpsMonthlyMetricData(snapshot.carga, 'operaciones') ||
+        hasOpsMonthlyMetricData(snapshot.cargaToneladas, 'toneladas') ||
+        hasOpsMonthlyMetricData(general.operaciones, 'operaciones') ||
+        hasOpsMonthlyMetricData(general.pasajeros, 'pasajeros')
+    );
+}
+
+function getOpsMonthlySnapshotForChecks() {
+    try {
+        const aggregated = getOpsAggregatedData();
+        if (aggregated && aggregated.monthly) {
+            return aggregated.monthly;
+        }
+    } catch (_) { }
+    return staticData?.mensual2025 || null;
+}
+
+function ensureOpsMonthlyDataWarmup(targetYear) {
+    if (opsMonthlyWarmupPromise) return opsMonthlyWarmupPromise;
+    const yearToHydrate = targetYear ? String(targetYear) : getOpsActiveMonthlyYear();
+    opsMonthlyWarmupPromise = Promise.allSettled([
+        syncStaticDataFromDB(yearToHydrate),
+        loadWeeklyOperationsFromDB()
+    ]).finally(() => {
+        opsMonthlyWarmupPromise = null;
+    });
+    return opsMonthlyWarmupPromise;
 }
 
 const initialAllowedMonths = createAllowedMonthsSet(getOpsActiveMonthlyYear());
@@ -7558,9 +7760,11 @@ function computeSequentialPercent(values = []) {
     const arr = Array.isArray(values) ? values : [];
     return arr.map((value, index) => {
         if (index === 0) return null;
-        const current = ensureNumber(value);
-        const previous = ensureNumber(arr[index - 1]);
-        if (!previous) return null;
+        if (value === null || value === undefined || value === '') return null;
+        if (arr[index - 1] === null || arr[index - 1] === undefined || arr[index - 1] === '') return null;
+        const current = Number(value);
+        const previous = Number(arr[index - 1]);
+        if (!Number.isFinite(current) || !Number.isFinite(previous) || previous === 0) return null;
         const delta = ((current - previous) / Math.abs(previous)) * 100;
         return Number.isFinite(delta) ? delta : null;
     });
@@ -8231,6 +8435,13 @@ function detectChartErrors() {
     }
 }
 function renderOperacionesTotales() {
+    if (isOpsFiltersModalActive()) {
+        if (typeof window !== 'undefined') {
+            window._opsRenderQueuedFromFiltersModal = true;
+        }
+        return;
+    }
+
     try {
         const theme = getChartColors();
         updateOpsTooltipToggleButton();
@@ -9294,16 +9505,21 @@ function renderOperacionesTotales() {
             variations.generalPax = computeSequentialPercent(series.generalPax);
         } else {
             const selMonths = Array.from(opsUIState.months2025).sort();
+            const normalizeMonthlyPoint = (raw) => {
+                if (raw === null || raw === undefined || raw === '') return null;
+                const num = Number(raw);
+                return Number.isFinite(num) ? num : null;
+            };
             labels = monthly.comercial.filter(m => selMonths.includes(m.mes)).map(m => m.label);
             // Comercial
-            series.comercialOps = monthly.comercial.filter(m => selMonths.includes(m.mes)).map(m => m.operaciones || 0);
-            series.comercialPax = monthly.comercialPasajeros.filter(m => selMonths.includes(m.mes)).map(m => m.pasajeros || 0);
+            series.comercialOps = monthly.comercial.filter(m => selMonths.includes(m.mes)).map(m => normalizeMonthlyPoint(m.operaciones));
+            series.comercialPax = monthly.comercialPasajeros.filter(m => selMonths.includes(m.mes)).map(m => normalizeMonthlyPoint(m.pasajeros));
             // Carga
-            series.cargaOps = monthly.carga.filter(m => selMonths.includes(m.mes)).map(m => m.operaciones || 0);
-            series.cargaTon = monthly.cargaToneladas.filter(m => selMonths.includes(m.mes)).map(m => m.toneladas || 0);
+            series.cargaOps = monthly.carga.filter(m => selMonths.includes(m.mes)).map(m => normalizeMonthlyPoint(m.operaciones));
+            series.cargaTon = monthly.cargaToneladas.filter(m => selMonths.includes(m.mes)).map(m => normalizeMonthlyPoint(m.toneladas));
             // General
-            series.generalOps = monthly.general.operaciones.filter(m => selMonths.includes(m.mes)).map(m => m.operaciones || 0);
-            series.generalPax = monthly.general.pasajeros.filter(m => selMonths.includes(m.mes)).map(m => m.pasajeros || 0);
+            series.generalOps = monthly.general.operaciones.filter(m => selMonths.includes(m.mes)).map(m => normalizeMonthlyPoint(m.operaciones));
+            series.generalPax = monthly.general.pasajeros.filter(m => selMonths.includes(m.mes)).map(m => normalizeMonthlyPoint(m.pasajeros));
             variations.comercialOps = computeSequentialPercent(series.comercialOps);
             variations.comercialPax = computeSequentialPercent(series.comercialPax);
             variations.cargaOps = computeSequentialPercent(series.cargaOps);
@@ -11251,6 +11467,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const weeklyWeekHint = document.getElementById('weekly-week-hint');
         const weeklyDayFilter = document.getElementById('weekly-day-filter');
         const weeklyDaySelect = document.getElementById('weekly-day-select');
+        const opsFiltersModal = document.getElementById('opsFiltersModal');
         const yearsHint = document.getElementById('years-disabled-hint');
         const monthsPanel = document.getElementById('ops-months-panel');
         const monthsAll = document.getElementById('months-select-all');
@@ -11283,6 +11500,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Expose update function for dynamic data loading
         window.updateOpsFiltersAfterDataLoad = function () {
+            if (isOpsFiltersModalActive()) {
+                queueDeferredOpsSync('filtersRefresh');
+                return;
+            }
+
             const availability = populateWeeklyWeekOptions();
             populateWeeklyDayOptions();
 
@@ -11512,6 +11734,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 newMode = 'monthly';
                 if (!toggleMonthly || toggleMonthly.disabled) newMode = 'yearly';
             }
+            const previousMode = opsUIState.mode || 'weekly';
+            let monthlyDefaultYearSync = null;
             adjustingMode = true;
             let availability = { weeks: [], hasAny: true, currentHasData: false };
             try {
@@ -11541,6 +11765,25 @@ document.addEventListener('DOMContentLoaded', () => {
                         opsFilterYear.value = staticData.mensualYear;
                     }
                 }
+
+                if (newMode === 'monthly' && previousMode !== 'monthly') {
+                    const preferredYear = '2025';
+
+                    syncOpsMonthlyYearState(preferredYear);
+                    if (opsFilterYear) {
+                        const hasPreferredOption = Array.from(opsFilterYear.options || [])
+                            .some((option) => String(option?.value) === preferredYear);
+                        if (hasPreferredOption) {
+                            opsFilterYear.value = preferredYear;
+                        }
+                    }
+
+                    monthlyDefaultYearSync = syncStaticDataFromDB(preferredYear)
+                        .catch((err) => {
+                            console.warn('monthly default year sync failed:', err);
+                        });
+                }
+
                 syncToggleStates();
                 availability = populateWeeklyWeekOptions();
                 if (opsUIState.mode === 'weekly' && opsUIState.weeklyWeekId === 'auto' && !availability.currentHasData && availability.weeks.length) {
@@ -11559,6 +11802,31 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
             }
+
+            if (monthlyDefaultYearSync) {
+                monthlyDefaultYearSync.finally(() => {
+                    if (opsUIState.mode === 'monthly') {
+                        renderOperacionesTotales();
+                    }
+                });
+                return;
+            }
+
+            if (opsUIState.mode === 'monthly') {
+                const monthlySnapshot = getOpsMonthlySnapshotForChecks();
+                const needsWarmup = !hasOpsMonthlyDataSnapshot(monthlySnapshot);
+                if (needsWarmup) {
+                    const activeYear = opsUIState?.activeMonthlyYear ? String(opsUIState.activeMonthlyYear) : getOpsActiveMonthlyYear();
+                    ensureOpsMonthlyDataWarmup(activeYear)
+                        .finally(() => {
+                            if (opsUIState.mode === 'monthly') {
+                                renderOperacionesTotales();
+                            }
+                        });
+                    return;
+                }
+            }
+
             renderOperacionesTotales();
         }
 
@@ -11627,7 +11895,23 @@ document.addEventListener('DOMContentLoaded', () => {
             opsFilterYear.addEventListener('change', () => {
                 const year = opsFilterYear.value;
                 if (year) {
-                    syncStaticDataFromDB(year);
+                    syncStaticDataFromDB(year)
+                        .then(() => {
+                            const monthlySnapshot = getOpsMonthlySnapshotForChecks();
+                            const needsWarmup = opsUIState.mode === 'monthly' && !hasOpsMonthlyDataSnapshot(monthlySnapshot);
+                            if (needsWarmup) {
+                                return ensureOpsMonthlyDataWarmup(year);
+                            }
+                            return null;
+                        })
+                        .then(() => {
+                            if (opsUIState.mode === 'monthly') {
+                                renderOperacionesTotales();
+                            }
+                        })
+                        .catch((err) => {
+                            console.warn('opsFilterYear change sync failed:', err);
+                        });
                 }
             });
         }
@@ -11723,6 +12007,32 @@ document.addEventListener('DOMContentLoaded', () => {
         if (presetPassengers && !presetPassengers._wired) { presetPassengers._wired = 1; presetPassengers.addEventListener('click', () => { opsUIState.preset = 'pax'; renderOperacionesTotales(); }); }
         if (presetCargoTon && !presetCargoTon._wired) { presetCargoTon._wired = 1; presetCargoTon.addEventListener('click', () => { opsUIState.preset = 'cargoTon'; renderOperacionesTotales(); }); }
         if (presetFull && !presetFull._wired) { presetFull._wired = 1; presetFull.addEventListener('click', () => { opsUIState.preset = 'full'; renderOperacionesTotales(); }); }
+
+        if (opsFiltersModal && !opsFiltersModal._wiredFlickerGuard) {
+            opsFiltersModal._wiredFlickerGuard = 1;
+
+            if (opsFiltersModal.parentElement !== document.body) {
+                document.body.appendChild(opsFiltersModal);
+            }
+
+            opsFiltersModal.addEventListener('show.bs.modal', () => {
+                window._opsFiltersModalActive = true;
+                window._opsRenderQueuedFromFiltersModal = false;
+                document.body.classList.add('ops-filters-modal-open');
+                if (opsViewportFrame) {
+                    cancelAnimationFrame(opsViewportFrame);
+                    opsViewportFrame = null;
+                }
+                stopOpsAnim();
+            });
+
+            opsFiltersModal.addEventListener('hidden.bs.modal', () => {
+                window._opsFiltersModalActive = false;
+                document.body.classList.remove('ops-filters-modal-open');
+                startOpsAnim();
+                flushDeferredOpsSyncAfterModalClose();
+            });
+        }
     } catch (_) { }
 });
 
