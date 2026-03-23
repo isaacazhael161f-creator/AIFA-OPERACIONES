@@ -68,8 +68,9 @@ BEGIN
     FROM weekly_flights_detailed det
     LEFT JOIN catalogo_aeropuertos cat ON det.route_code = cat.iata
     LEFT JOIN catalogo_aerolineas al ON det.airline_code = al.codigo_iata
-    WHERE (det.flight_date AT TIME ZONE 'America/Mexico_City')::date >= p_start_date
+        WHERE (det.flight_date AT TIME ZONE 'America/Mexico_City')::date >= p_start_date
       AND (det.flight_date AT TIME ZONE 'America/Mexico_City')::date <= p_end_date
+            AND det.operation_type = 'P'
       AND (cat.orden_id IS NULL OR cat.orden_id > 50)
       AND upper(coalesce(det.route_code, '')) <> 'TRC'
       AND det.route_code != 'LAX'
@@ -135,8 +136,9 @@ BEGIN
     FROM weekly_flights_detailed det
     LEFT JOIN catalogo_aeropuertos cat ON det.route_code = cat.iata
     LEFT JOIN catalogo_aerolineas al ON det.airline_code = al.codigo_iata
-    WHERE (det.flight_date AT TIME ZONE 'America/Mexico_City')::date >= p_start_date
+        WHERE (det.flight_date AT TIME ZONE 'America/Mexico_City')::date >= p_start_date
       AND (det.flight_date AT TIME ZONE 'America/Mexico_City')::date <= p_end_date
+            AND det.operation_type = 'P'
       AND ((cat.orden_id <= 50) OR upper(coalesce(det.route_code, '')) = 'TRC')
     GROUP BY det.route_code, cat.ciudad, cat.estado, cat.orden_id, det.airline_code, al.nombre_aerolinea, al.logo, al.color;
 END;
