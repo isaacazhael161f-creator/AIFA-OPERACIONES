@@ -223,7 +223,48 @@ class DataManager {
         }
         const { data, error } = await query;
         if (error) throw error;
-        return data;
+
+        // Recovery path: some domestic rows have been mistakenly loaded into
+        // weekly_frequencies_int (e.g., TRC). Merge them into national output.
+        let trcQuery = this.client.from('weekly_frequencies_int')
+            .select('*')
+            .eq('iata', 'TRC')
+            .order('valid_from', { ascending: false })
+            .order('route_id', { ascending: true })
+            .order('airline', { ascending: true });
+
+        if (weekLabel) {
+            trcQuery = trcQuery.eq('week_label', weekLabel);
+        }
+
+        const { data: misplacedDomesticRows, error: trcError } = await trcQuery;
+        if (trcError) throw trcError;
+
+        const baseRows = Array.isArray(data) ? data : [];
+        const trcRows = Array.isArray(misplacedDomesticRows) ? misplacedDomesticRows : [];
+        if (!trcRows.length) return baseRows;
+
+        const seen = new Set(baseRows.map(row => {
+            const iata = (row && row.iata) || '';
+            const airline = (row && row.airline) || '';
+            const wl = (row && row.week_label) || '';
+            const rid = (row && row.route_id) || '';
+            return `${wl}|${rid}|${iata}|${airline}`;
+        }));
+
+        trcRows.forEach(row => {
+            const iata = (row && row.iata) || '';
+            const airline = (row && row.airline) || '';
+            const wl = (row && row.week_label) || '';
+            const rid = (row && row.route_id) || '';
+            const key = `${wl}|${rid}|${iata}|${airline}`;
+            if (!seen.has(key)) {
+                baseRows.push(row);
+                seen.add(key);
+            }
+        });
+
+        return baseRows;
     }
 
     async getWeeklyFrequenciesInt(weekLabel) {
