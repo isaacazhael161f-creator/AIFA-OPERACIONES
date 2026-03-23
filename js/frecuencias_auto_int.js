@@ -1,4 +1,4 @@
-﻿(function(){
+(function(){
   const pane = document.getElementById('frecuencias-auto-int-pane');
   if (!pane) return;
 
@@ -41,26 +41,6 @@
 
   // Domestic destinations that must never render in the international map.
   const INTERNATIONAL_EXCLUDED_IATAS = new Set(['TRC']);
-  const INTERNATIONAL_EXCLUDED_CITY_KEYS = new Set(['torreon']);
-
-  function normalizeTextKey(value) {
-    return (value || '')
-      .toString()
-      .trim()
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-  }
-
-  function isInternationalExcludedRow(row) {
-    const iata = ((row && row.iata) || '').toString().trim().toUpperCase();
-    if (INTERNATIONAL_EXCLUDED_IATAS.has(iata)) return true;
-
-    const cityKey = normalizeTextKey((row && row.city) || '');
-    if (INTERNATIONAL_EXCLUDED_CITY_KEYS.has(cityKey)) return true;
-
-    return false;
-  }
 
   // --- DESTINATION IMAGES (LOCAL FOLDER MAPPING - INT) ---
   const DESTINATION_IMAGES = {
@@ -310,7 +290,7 @@
       if (!rows || rows.length === 0) return { weekLabel: '', validFrom: '', validTo: '', destinations: [] };
 
       // Guardrail: prevent domestic destinations from showing in this international module.
-      const filteredRows = rows.filter(row => !isInternationalExcludedRow(row));
+      const filteredRows = rows.filter(row => !INTERNATIONAL_EXCLUDED_IATAS.has((row?.iata || '').toString().trim().toUpperCase()));
       if (filteredRows.length === 0) return { weekLabel: '', validFrom: '', validTo: '', destinations: [] };
       
       const groups = {};
@@ -1357,10 +1337,16 @@
   }
 
   function normalizeDestinations(list){
-    return list
-      .filter(dest => !isInternationalExcludedRow(dest))
-      .map(dest => {
-      const airlines = (dest.airlines || []).map(air => normalizeAirline(air)).filter(Boolean);
+    const CARGO_SLUGS = [ 'aerotransporte-de-carga-union', 'cargolux', 'estafeta', 'masair', 'mas', 'iberia', 'air-canada', 'air-france', 'cathay-pacific', 'lufthansa', 'awesome-cargo', 'cargojet', 'cargojet-airways', 'lan-cargo', 'lan-cargo-sa', 'national-airlines', 'national-airlines-cargo', 'sky-lease', 'saudi-arabian', 'saudi-arabian-airlines-cargo', 'latam-cargo', 'lynden-air-cargo', 'dhl', 'sf-airlines', 'suparna', 'china-cargo', 'china-southern-cargo', 'abx-air', 'fedex', 'ups', 'kalitta-air', 'aero-union', 'aerotransporte-de-carga-union-sa-de-cv', 'emirates-skycargo', 'emirates-airlines', 'emirates', 'la-nueva-aerolinea', 'qatar-airways', 'qatar-airways-cargo', 'qatar-cargo', 'ameriflight', 'uniworld-air-cargo', 'air-china', 'amerijet-international', 'dhl-guatemala', 'ethiopian-airlines', 'turkish-airlines', 'united-parcel-service', 'china-southerrn', 'china-southern', 'china-airlines', 'suparna-airlines', 'saudi-arabian-airlines', 'abx-air', 'tap-portugal', 'tap-air-portugal' ];
+
+    return list.map(dest => {
+      const airlines = (dest.airlines || [])
+        .map(air => normalizeAirline(air))
+        .filter(Boolean)
+        .filter(air => !CARGO_SLUGS.includes(air.slug));
+        
+      if (airlines.length === 0) return null;
+
       const weeklyTotal = airlines.reduce((sum, air) => sum + air.weeklyTotal, 0);
       const dailyTotals = DAY_CODES.map((_, idx) => airlines.reduce((sum, air) => sum + (air.daily[idx] || 0), 0));
       
@@ -1386,7 +1372,7 @@
         coords: AIRPORT_COORDS[dest.iata] || null,
         searchText
       };
-    });
+    }).filter(Boolean);
   }
 
   function toTitleCase(str) {

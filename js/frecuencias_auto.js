@@ -1,4 +1,4 @@
-﻿(function(){
+(function(){
   const pane = document.getElementById('frecuencias-auto-pane');
   if (!pane) return;
 
@@ -116,7 +116,7 @@
     'VER': 'Veracruz',
     'VSA': 'Villahermosa',
     'ZIH': 'Zihuatanejo'
-  };
+};
 
   const AIRPORT_COORDS = {
     ACA: { lat: 16.7571, lng: -99.7534 },
@@ -521,7 +521,14 @@
     }
   }
 
-  function applyFilters(){
+  function applyFilters() {
+    // Restablecer el orden original basado en routeId
+    state.destinations.sort((a, b) => {
+        const idA = parseInt(a.routeId) || 9999;
+        const idB = parseInt(b.routeId) || 9999;
+        if (idA !== idB) return idA - idB;
+        return a.city.localeCompare(b.city, 'es-MX');
+    });
     const list = state.destinations
       .map(dest => projectDestination(dest))
       .filter(Boolean)
@@ -662,7 +669,7 @@
     }
 
     const airlineTotals = new Map();
-    dataset.forEach(dest => {
+    dataset.forEach((dest, destIndex) => {
       const source = dest.viewAirlines?.length ? dest.viewAirlines : dest.airlines;
       source.forEach(air => {
         if (!airlineTotals.has(air.name)) {
@@ -730,7 +737,7 @@
     dom.tableEmpty?.classList.add('d-none');
     dom.tableCount.textContent = `${dataset.length} destinos listados`;
 
-    dataset.forEach(dest => {
+    dataset.forEach((dest, destIndex) => {
       const base = (dest.viewAirlines?.length ? dest.viewAirlines : dest.airlines) || [];
       const airlines = base.length ? base : [{ name: 'Sin datos', daily: Array(DAY_CODES.length).fill(0), weeklyTotal: 0 }];
       airlines.forEach((airline, idx) => {
@@ -764,7 +771,7 @@
           tdId.rowSpan = airlines.length;
           tdId.style.backgroundColor = '#ffffff';
           tdId.style.color = '#212529';
-          tdId.textContent = dest.routeId || dest.iata || '';
+          tdId.textContent = destIndex + 1;
           tr.appendChild(tdId);
 
           const tdDest = document.createElement('td');
@@ -1304,7 +1311,7 @@
     });
 
     let idx = 0;
-    dataset.forEach(dest => {
+    dataset.forEach((dest, destIndex) => {
       if (!dest.coords) return;
       const total = dest.viewWeeklyTotal ?? dest.weeklyTotal;
       const icon = buildMarkerIcon(total, dest.iata, dest.state);
@@ -1559,14 +1566,25 @@
     if (state.filters.destination !== 'all') active.push(`Destino: ${state.filters.destination}`);
     if (state.filters.day !== 'all') active.push(`Día: ${DAY_LABELS[state.filters.day]}`);
     if (state.filters.search) active.push(`Búsqueda: "${state.filters.search}"`);
-    dom.activeFilters.textContent = active.length ? `Filtros activos → ${active.join(' · ')}` : 'Mostrando todos los destinos.';
+    dom.activeFilters.textContent = active.length ? `Filtros activos ? ${active.join(' · ')}` : 'Mostrando todos los destinos.';
   }
 
   function normalizeDestinations(list){
+    const CARGO_SLUGS = [ 'aerotransporte-de-carga-union', 'cargolux', 'estafeta', 'masair', 'air-canada', 'air-france', 'cathay-pacific', 'lufthansa', 'awesome-cargo', 'cargojet', 'lan-cargo', 'lan-cargo-sa', 'national-airlines', 'national-airlines-cargo', 'sky-lease', 'saudi-arabian', 'saudi-arabian-airlines-cargo', 'latam-cargo', 'lynden-air-cargo', 'dhl', 'sf-airlines', 'suparna', 'china-cargo', 'china-southern-cargo', 'abx-air', 'fedex', 'ups', 'kalitta-air', 'aero-union', 'aerotransporte-de-carga-union-sa-de-cv', 'emirates-skycargo', 'qatar-airways', 'qatar-airways-cargo', 'qatar-cargo', 'ameriflight', 'uniworld-air-cargo', 'air-china', 'amerijet-international', 'dhl-guatemala', 'ethiopian-airlines', 'turkish-airlines', 'united-parcel-service', 'china-southerrn', 'china-southern', 'china-airlines', 'suparna-airlines', 'saudi-arabian-airlines', 'abx-air', 'tap-portugal', 'tap-air-portugal'];
+
     return list
       .filter(dest => dest.iata !== 'NLU' && dest.iata !== 'GUA')
       .map(dest => {
-      const airlines = (dest.airlines || []).map(air => normalizeAirline(air)).filter(Boolean);
+      const airlines = (dest.airlines || [])
+        .map(air => normalizeAirline(air))
+        .filter(Boolean)
+        .filter(air => !CARGO_SLUGS.includes(air.slug));
+      
+      // Do not include destinations that ended up with no airlines (because all were cargo)
+      if (airlines.length === 0 && dest.airlines && dest.airlines.length > 0) {
+          return null;
+      }
+
       const weeklyTotal = airlines.reduce((sum, air) => sum + air.weeklyTotal, 0);
       const dailyTotals = DAY_CODES.map((_, idx) => airlines.reduce((sum, air) => sum + (air.daily[idx] || 0), 0));
       const searchText = `${dest.city || ''} ${dest.state || ''} ${dest.iata || ''} ${airlines.map(a => a.name).join(' ')}`.toLowerCase();
@@ -1578,7 +1596,7 @@
         routeId: dest.routeId,
         city: finalCity,
         state: toTitleCase(dest.state) || '',
-        iata: dest.iata || '—',
+        iata: dest.iata || '',
         airports: Array.isArray(dest.airports) ? dest.airports : [],
         airlines,
         weeklyTotal,
@@ -1586,7 +1604,7 @@
         coords: AIRPORT_COORDS[dest.iata] || null,
         searchText
       };
-    });
+    }).filter(Boolean);
   }
 
   function toTitleCase(str) {
@@ -2105,13 +2123,13 @@
       if (!state.currentDetailDest) return;
 
       const dest = state.currentDetailDest;
-      const lines = [`✈️ *${dest.city} (${dest.iata})*`];
+      const lines = [`?? *${dest.city} (${dest.iata})*`];
       
       const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
       dest.viewAirlines.forEach(air => {
           lines.push('');
-          lines.push(`🛫 *${air.name}* (${air.weeklyTotal} frec/sem)`);
+          lines.push(`?? *${air.name}* (${air.weeklyTotal} frec/sem)`);
           
           dayNames.forEach((dayName, idx) => {
               const detail = air.dailyDetails?.[idx];
@@ -2132,9 +2150,9 @@
                      
                      // Add direction emoji
                      if (f.toLowerCase().includes('lleg') || f.toLowerCase().includes('arr')) {
-                         clean = `🔷 LLEG ${clean}`;
+                         clean = `?? LLEG ${clean}`;
                      } else {
-                         clean = `🟢 SAL ${clean}`;
+                         clean = `?? SAL ${clean}`;
                      }
                      lines.push(`  ${clean}`);
                  });
@@ -2180,6 +2198,7 @@
       .replace(/^-+|-+$/g, '');
   }
 })();
+
 
 
 
