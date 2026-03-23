@@ -41,6 +41,26 @@
 
   // Domestic destinations that must never render in the international map.
   const INTERNATIONAL_EXCLUDED_IATAS = new Set(['TRC']);
+  const INTERNATIONAL_EXCLUDED_CITY_KEYS = new Set(['torreon']);
+
+  function normalizeTextKey(value) {
+    return (value || '')
+      .toString()
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function isInternationalExcludedRow(row) {
+    const iata = ((row && row.iata) || '').toString().trim().toUpperCase();
+    if (INTERNATIONAL_EXCLUDED_IATAS.has(iata)) return true;
+
+    const cityKey = normalizeTextKey((row && row.city) || '');
+    if (INTERNATIONAL_EXCLUDED_CITY_KEYS.has(cityKey)) return true;
+
+    return false;
+  }
 
   // --- DESTINATION IMAGES (LOCAL FOLDER MAPPING - INT) ---
   const DESTINATION_IMAGES = {
@@ -290,7 +310,7 @@
       if (!rows || rows.length === 0) return { weekLabel: '', validFrom: '', validTo: '', destinations: [] };
 
       // Guardrail: prevent domestic destinations from showing in this international module.
-      const filteredRows = rows.filter(row => !INTERNATIONAL_EXCLUDED_IATAS.has((row?.iata || '').toString().trim().toUpperCase()));
+      const filteredRows = rows.filter(row => !isInternationalExcludedRow(row));
       if (filteredRows.length === 0) return { weekLabel: '', validFrom: '', validTo: '', destinations: [] };
       
       const groups = {};
@@ -1337,7 +1357,9 @@
   }
 
   function normalizeDestinations(list){
-    return list.map(dest => {
+    return list
+      .filter(dest => !isInternationalExcludedRow(dest))
+      .map(dest => {
       const airlines = (dest.airlines || []).map(air => normalizeAirline(air)).filter(Boolean);
       const weeklyTotal = airlines.reduce((sum, air) => sum + air.weeklyTotal, 0);
       const dailyTotals = DAY_CODES.map((_, idx) => airlines.reduce((sum, air) => sum + (air.daily[idx] || 0), 0));

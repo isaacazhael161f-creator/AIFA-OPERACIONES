@@ -229,6 +229,9 @@ class DataManager {
     async getWeeklyFrequenciesInt(weekLabel) {
         let query = this.client.from('weekly_frequencies_int')
             .select('*')
+            .neq('iata', 'TRC')
+            .not('city', 'ilike', '%torreon%')
+            .not('city', 'ilike', '%torreón%')
             .order('valid_from', { ascending: false })
             .order('route_id', { ascending: true })
             .order('airline', { ascending: true });
