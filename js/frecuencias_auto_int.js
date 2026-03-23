@@ -39,6 +39,9 @@
 
   const AIFA_COORDS = { lat: 19.7456, lng: -99.0086 };
 
+  // Domestic destinations that must never render in the international map.
+  const INTERNATIONAL_EXCLUDED_IATAS = new Set(['TRC']);
+
   // --- DESTINATION IMAGES (LOCAL FOLDER MAPPING - INT) ---
   const DESTINATION_IMAGES = {
      'HAV': 'images/destinos_int/La Habana.jpg',
@@ -285,9 +288,13 @@
 
   function transformDBData(rows) {
       if (!rows || rows.length === 0) return { weekLabel: '', validFrom: '', validTo: '', destinations: [] };
+
+      // Guardrail: prevent domestic destinations from showing in this international module.
+      const filteredRows = rows.filter(row => !INTERNATIONAL_EXCLUDED_IATAS.has((row?.iata || '').toString().trim().toUpperCase()));
+      if (filteredRows.length === 0) return { weekLabel: '', validFrom: '', validTo: '', destinations: [] };
       
       const groups = {};
-      rows.forEach(row => {
+      filteredRows.forEach(row => {
           const key = row.week_label;
           if (!groups[key]) {
               groups[key] = {
