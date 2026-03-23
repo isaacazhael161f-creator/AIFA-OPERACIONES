@@ -14,6 +14,80 @@ document.addEventListener('DOMContentLoaded', () => {
 
     inputDate.addEventListener('change', updateWeekLabel);
 
+    async function enforceTorreonNationalForWeek(supabase, weekLabel) {
+        // Defensive fix: if TRC is generated in weekly_frequencies_int, move it
+        // into weekly_frequencies for the same week.
+        const { data: trcIntRows, error: trcIntError } = await supabase
+            .from('weekly_frequencies_int')
+            .select('id,week_label,valid_from,valid_to,route_id,city,state,iata,airline,logo,color,monday,monday_detail,tuesday,tuesday_detail,wednesday,wednesday_detail,thursday,thursday_detail,friday,friday_detail,saturday,saturday_detail,sunday,sunday_detail,weekly_total')
+            .eq('week_label', weekLabel)
+            .or('iata.eq.TRC,city.ilike.%torreon%,city.ilike.%torreón%');
+
+        if (trcIntError) throw new Error('Error leyendo TRC de internacionales: ' + trcIntError.message);
+        if (!Array.isArray(trcIntRows) || trcIntRows.length === 0) return { moved: 0, deleted: 0 };
+
+        const { data: trcNacRows, error: trcNacError } = await supabase
+            .from('weekly_frequencies')
+            .select('week_label,valid_from,iata,airline')
+            .eq('week_label', weekLabel)
+            .eq('iata', 'TRC');
+
+        if (trcNacError) throw new Error('Error leyendo TRC de nacionales: ' + trcNacError.message);
+
+        const existing = new Set((trcNacRows || []).map(r => {
+            return `${r.week_label}|${r.valid_from}|${(r.iata || '').toUpperCase()}|${(r.airline || '').toLowerCase()}`;
+        }));
+
+        const toInsert = trcIntRows
+            .map(r => ({
+                week_label: r.week_label,
+                valid_from: r.valid_from,
+                valid_to: r.valid_to,
+                route_id: r.route_id,
+                city: r.city,
+                state: (!r.state || String(r.state).trim().toLowerCase() === 'mexico') ? 'Coahuila' : r.state,
+                iata: 'TRC',
+                airline: r.airline,
+                logo: r.logo,
+                color: r.color,
+                monday: r.monday,
+                monday_detail: r.monday_detail,
+                tuesday: r.tuesday,
+                tuesday_detail: r.tuesday_detail,
+                wednesday: r.wednesday,
+                wednesday_detail: r.wednesday_detail,
+                thursday: r.thursday,
+                thursday_detail: r.thursday_detail,
+                friday: r.friday,
+                friday_detail: r.friday_detail,
+                saturday: r.saturday,
+                saturday_detail: r.saturday_detail,
+                sunday: r.sunday,
+                sunday_detail: r.sunday_detail,
+                weekly_total: r.weekly_total
+            }))
+            .filter(r => {
+                const key = `${r.week_label}|${r.valid_from}|${(r.iata || '').toUpperCase()}|${(r.airline || '').toLowerCase()}`;
+                return !existing.has(key);
+            });
+
+        if (toInsert.length > 0) {
+            const { error: insertError } = await supabase.from('weekly_frequencies').insert(toInsert);
+            if (insertError) throw new Error('Error insertando TRC en nacionales: ' + insertError.message);
+        }
+
+        const idsToDelete = trcIntRows.map(r => r.id).filter(Boolean);
+        if (idsToDelete.length > 0) {
+            const { error: deleteError } = await supabase
+                .from('weekly_frequencies_int')
+                .delete()
+                .in('id', idsToDelete);
+            if (deleteError) throw new Error('Error eliminando TRC de internacionales: ' + deleteError.message);
+        }
+
+        return { moved: toInsert.length, deleted: idsToDelete.length };
+    }
+
     function updateWeekLabel() {
         if (!inputDate.value) {
             labelWeek.textContent = '-';
@@ -299,8 +373,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.error('RPC Int error', rpcIntError);
                     throw new Error('Error generando reporte de frecuencias (Internacional): ' + rpcIntError.message);
                 }
+
+                // Final safeguard: TRC/Torreón must remain in national routes.
+                const trcFix = await enforceTorreonNationalForWeek(supabase, weekLabel);
                 
-                showSuccess(`Se procesaron y guardaron ${totalCount} vuelos correctamente. Se actualizaron frecuencias Nacionales e Internacionales.`);
+                let fixMsg = '';
+                if (trcFix && (trcFix.moved > 0 || trcFix.deleted > 0)) {
+                    fixMsg = ` Ajuste aplicado: TRC movido a nacionales (${trcFix.moved} insertados, ${trcFix.deleted} eliminados de internacionales).`;
+                }
+                showSuccess(`Se procesaron y guardaron ${totalCount} vuelos correctamente. Se actualizaron frecuencias Nacionales e Internacionales.${fixMsg}`);
             }
         } else {
             showSuccess('No se encontraron vuelos válidos en el rango de fechas seleccionado.');
