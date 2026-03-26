@@ -1470,50 +1470,32 @@
     if (!window.echarts) return null;
     const host = document.getElementById(id);
     if (!host) return null;
-    let chart = window.echarts.getInstanceByDom(host);
-    if (!chart) {
-      chart = window.echarts.init(host);
-    }
+
+    const isSmall = window.matchMedia && window.matchMedia('(max-width: 576px)').matches;
     const pairs = labels.map((label, idx) => ({
       label,
       value: Number(values[idx]) || 0
     }));
-    const isSmall = window.matchMedia && window.matchMedia('(max-width: 576px)').matches;
+
+    // Auto-adjust container height to prevent overlap with multi-line names
+    const itemHeight = isSmall ? 55 : 65; 
+    const calculatedHeight = Math.max(320, pairs.length * itemHeight + 60);
+    host.style.height = `${calculatedHeight}px`;
+    
+    if (host.parentElement && host.parentElement.classList.contains('chart-container')) {
+       host.parentElement.style.height = 'auto'; // allow expanding beyond 320px
+       host.parentElement.style.minHeight = '320px';
+    }
+
+    let chart = window.echarts.getInstanceByDom(host);
+    if (!chart) {
+      chart = window.echarts.init(host);
+    } else {
+      chart.resize();
+    }
+
     const isDark = !!(document.body && document.body.classList && document.body.classList.contains('dark-mode'));
-    const wrapLimit = isSmall ? 18 : 26;
-    const wrapLabel = (value) => {
-      const words = String(value || '').split(/\s+/);
-      const lines = [];
-      let current = '';
-      words.forEach(word => {
-        if (!word) return;
-        const candidate = current ? `${current} ${word}` : word;
-        if (candidate.length > wrapLimit && current) {
-          lines.push(current);
-          current = word;
-        } else if (candidate.length > wrapLimit) {
-          const chunks = word.match(new RegExp(`.{1,${wrapLimit}}`, 'g')) || [word];
-          if (chunks.length) {
-            if (current) {
-              lines.push(current);
-              current = '';
-            }
-            const lastChunk = chunks.pop();
-            lines.push(...chunks);
-            current = lastChunk;
-          }
-        } else {
-          current = candidate;
-        }
-      });
-      if (current) lines.push(current);
-      return lines.join('\n');
-    };
-    const wrappedLabels = pairs.map(item => wrapLabel(item.label));
-    const maxLineLength = wrappedLabels.reduce((max, label) => {
-      return Math.max(max, ...label.split('\n').map(line => line.length));
-    }, 0);
-    const leftPadding = Math.min(300, Math.max(isSmall ? 140 : 200, maxLineLength * (isSmall ? 6 : 7)));
+    const leftPadding = '2%';
     const maxValue = pairs.reduce((max, item) => Math.max(max, item.value), 0);
     const rightPadding = Math.max(isSmall ? 32 : 48, String(Math.max(maxValue, 0)).length * (isSmall ? 8 : 11) + 28);
     const axisLabelColor = isDark ? '#e2e8f0' : '#1f2937';
@@ -1557,10 +1539,11 @@
         axisLabel: {
           color: axisLabelColor,
           fontWeight: 600,
-          fontSize: isSmall ? 11 : 13,
-          lineHeight: isSmall ? 16 : 20,
-          formatter: wrapLabel,
-          margin: isSmall ? 10 : 14
+          fontSize: isSmall ? 10 : 12,
+          lineHeight: isSmall ? 14 : 16,
+          margin: isSmall ? 10 : 14,
+          width: isSmall ? 130 : 250,
+          overflow: 'break'
         }
       },
       series: [{
