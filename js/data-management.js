@@ -1850,6 +1850,7 @@
 
     async deleteSingleFlight(dateStr, seqNo, type) {
         if (!confirm('Â¿Eliminar este vuelo?')) return;
+const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-single-overlay'; loadingMsg.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);color:white;display:flex;align-items:center;justify-content:center;font-size:24px;z-index:9999;flex-direction:column;'; loadingMsg.innerHTML = 'Espera, eliminando...'; document.body.appendChild(loadingMsg); 
         try {
             const { data, error } = await this.client
                 .from('vuelos_parte_operaciones')
@@ -1897,9 +1898,9 @@
                 });
             }
 
-            this.loadDailyFlightsOps();
+            this.loadDailyFlightsOps(); if (document.getElementById('deleting-single-overlay')) document.body.removeChild(document.getElementById('deleting-single-overlay'));
 
-        } catch (e) {
+        } catch (e) { if (document.getElementById('deleting-single-overlay')) document.body.removeChild(document.getElementById('deleting-single-overlay'));
             console.error(e);
             alert('Error al eliminar: ' + e.message);
         }

@@ -7647,10 +7647,11 @@ function getLatestCargoLegendInfo(week) {
     });
     for (const day of days) {
         const note = day?.carga?.corteNota;
-        if (note) {
+        const corteFecha = day?.carga?.corteFecha;
+        if (note || corteFecha) {
             return {
-                note,
-                corteFecha: day?.carga?.corteFecha || null,
+                note: note || '',
+                corteFecha: corteFecha || null,
                 sourceDate: day?.fecha || null
             };
         }
@@ -7663,31 +7664,56 @@ function updateCargoLegend(week) {
     const cargoNoteSmall = document.querySelector('#cargo-update-note small');
     const info = getLatestCargoLegendInfo(week || getActiveWeeklyDataset());
 
-    if (info) {
-        if (legendEl) {
+    if (info || week) {
+        if (info && info.note && legendEl) {
             const legendText = escapeHTML(info.note);
             legendEl.innerHTML = `<strong>Leyenda:</strong> ${legendText}`;
             legendEl.classList.remove('d-none');
+        } else if (legendEl) {
+            legendEl.innerHTML = '';
+            legendEl.classList.add('d-none');
         }
-        if (cargoNoteSmall) {
-            if (info.corteFecha) {
-                const formatted = formatSpanishDate(info.corteFecha);
-                if (formatted) {
-                    cargoNoteSmall.innerHTML = `Datos actualizados al <strong>${escapeHTML(formatted)}</strong>`;
-                } else {
-                    cargoNoteSmall.textContent = info.note;
+
+        const cargoNoteContainer = document.getElementById('cargo-update-note');
+        if (cargoNoteContainer) {
+            cargoNoteContainer.style.backgroundColor = 'rgba(255, 152, 0, 0.08)';
+            cargoNoteContainer.style.borderLeft = '4px solid #ff9800';
+            cargoNoteContainer.style.padding = '8px 12px';
+            cargoNoteContainer.style.borderRadius = '6px';
+            cargoNoteContainer.style.color = 'var(--text-color)';
+            
+            let dateText = "este periodo";
+            if (info && info.corteFecha) {
+                dateText = formatSpanishDate(info.corteFecha) || info.corteFecha;
+            } else if (week && Array.isArray(week.dias) && week.dias.length > 0) {
+                const sortedDays = [...week.dias].sort((a, b) => (parseIsoDay(b?.fecha || '') || new Date(0)) - (parseIsoDay(a?.fecha || '') || new Date(0)));
+                const dayWithCorte = sortedDays.find(d => d?.carga?.corteFecha);
+                if (dayWithCorte && dayWithCorte.carga.corteFecha) {
+                    dateText = formatSpanishDate(dayWithCorte.carga.corteFecha) || dayWithCorte.carga.corteFecha;
+                } else if (sortedDays[0] && sortedDays[0].fecha) {
+                    dateText = formatSpanishDate(sortedDays[0].fecha);
                 }
-            } else if (info.note) {
-                cargoNoteSmall.textContent = info.note;
             }
+
+            cargoNoteContainer.innerHTML = `
+                <i class="fas fa-info-circle me-1" style="color: #ff9800; font-size: 1.1em;" aria-hidden="true"></i>
+                <small style="font-size: 0.95em;">
+                    <strong>Cifras de:</strong> <span class="fw-bold" style="font-size: 1.05em;">${escapeHTML(dateText)}</span>. 
+                    <span class="ms-1" style="font-style: italic; opacity: 0.85;">Estas cifras no se actualizan diariamente.</span>
+                </small>
+            `;
         }
     } else {
         if (legendEl) {
             legendEl.innerHTML = '';
             legendEl.classList.add('d-none');
         }
-        if (cargoNoteSmall) {
-            cargoNoteSmall.innerHTML = 'Datos actualizados disponibles próximamente';
+        const cargoNoteContainer = document.getElementById('cargo-update-note');
+        if (cargoNoteContainer) {
+            cargoNoteContainer.innerHTML = `
+                <i class="fas fa-info-circle me-1" style="color: #ff9800;" aria-hidden="true"></i>
+                <small style="font-style: italic; opacity: 0.85;">Estas cifras no se actualizan diariamente.</small>
+            `;
         }
     }
 }
@@ -14944,10 +14970,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabConciComercial = document.getElementById('tab-conci-comercial');
     if (tabConciComercial) {
         tabConciComercial.addEventListener('shown.bs.tab', () => {
-            loadConciliacionManifiestos({ forceRefresh: true });
+            loadConciliacionManifiestos();
         });
         // Also hook filter changes
-        ['filter-conci-manifiestos-year', 'filter-conci-manifiestos-month'].forEach(id => {
+        ['filter-conci-manifiestos-year', 'filter-conci-manifiestos-month', 'filter-conci-manifiestos-day'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('change', () => loadConciliacionManifiestos());
         });
@@ -14973,8 +14999,12 @@ let _conciEditMode         = false;  // global edit mode for the whole table
 let _conciCellClickHandler = null;   // delegated click handler for edit-mode cells
 let _conciAirlineCatalogLoaded = false;
 let _conciAirlineCodeMap = new Map();
+let _conciAirlineMasterCodeMap = new Map();
 let _conciAirlineAliasMap = new Map();
 let _conciLoadRequestSeq = 0;
+let _conciRenderSeq = 0;
+const _conciRenderCache = new Map();
+let _conciRenderedKey = '';
 
 function _conciNormalizeAirlineName(value) {
     return String(value || '')
@@ -14996,6 +15026,30 @@ function _conciDefaultAirlineMeta(rawCode) {
     return defaults[code] || null;
 }
 
+function _conciParseCsvLine(line) {
+    const cols = [];
+    let cur = '';
+    let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+            if (inQ && line[i + 1] === '"') {
+                cur += '"';
+                i++;
+            } else {
+                inQ = !inQ;
+            }
+        } else if (ch === ',' && !inQ) {
+            cols.push(cur);
+            cur = '';
+        } else {
+            cur += ch;
+        }
+    }
+    cols.push(cur);
+    return cols;
+}
+
 async function _ensureConciAirlineCatalog() {
     if (_conciAirlineCatalogLoaded) return;
 
@@ -15005,6 +15059,7 @@ async function _ensureConciAirlineCatalog() {
         const rows = await res.json();
 
         _conciAirlineCodeMap = new Map();
+        _conciAirlineMasterCodeMap = new Map();
         _conciAirlineAliasMap = new Map();
 
         (Array.isArray(rows) ? rows : []).forEach(item => {
@@ -15023,10 +15078,42 @@ async function _ensureConciAirlineCatalog() {
                 .filter(Boolean)
                 .map(a => _conciNormalizeAirlineName(a));
 
+            if (meta.iata === 'R6' || _conciNormalizeAirlineName(meta.name).includes('aerounion')) {
+                aliasList.push(_conciNormalizeAirlineName('Aerotransporte de Carga Unión'));
+                aliasList.push(_conciNormalizeAirlineName('Aerounion Cargo'));
+            }
+
             aliasList.forEach(alias => {
                 if (alias) _conciAirlineAliasMap.set(alias, meta);
             });
         });
+
+        try {
+            const masterRes = await fetch('data/master/airlines.csv', { cache: 'force-cache' });
+            if (masterRes.ok) {
+                const csvText = await masterRes.text();
+                const lines = csvText.split(/\r?\n/).filter(Boolean);
+                for (let i = 1; i < lines.length; i++) {
+                    const parts = _conciParseCsvLine(lines[i]);
+                    const iataCode = String(parts[0] || '').trim().toUpperCase();
+                    const fullName = String(parts[2] || '').trim();
+                    if (!iataCode) continue;
+
+                    const byName = _conciAirlineAliasMap.get(_conciNormalizeAirlineName(fullName));
+                    if (byName) {
+                        _conciAirlineMasterCodeMap.set(iataCode, byName);
+                        continue;
+                    }
+
+                    const byCode = _conciAirlineCodeMap.get(iataCode);
+                    if (byCode) {
+                        _conciAirlineMasterCodeMap.set(iataCode, byCode);
+                    }
+                }
+            }
+        } catch (masterErr) {
+            console.warn('[Conciliacion] No se pudo cargar data/master/airlines.csv:', masterErr);
+        }
     } catch (err) {
         console.warn('[Conciliacion] No se pudo cargar data/airlines.json:', err);
     } finally {
@@ -15038,8 +15125,13 @@ function _conciResolveAirlineMeta(value) {
     const raw = String(value || '').trim();
     if (!raw) return null;
 
-    const byCode = _conciAirlineCodeMap.get(raw.toUpperCase());
+    const code = raw.toUpperCase();
+
+    const byCode = _conciAirlineCodeMap.get(code);
     if (byCode) return byCode;
+
+    const byMasterCode = _conciAirlineMasterCodeMap.get(code);
+    if (byMasterCode) return byMasterCode;
 
     const byAlias = _conciAirlineAliasMap.get(_conciNormalizeAirlineName(raw));
     if (byAlias) return byAlias;
@@ -15080,6 +15172,7 @@ function _conciRefreshEditToolbar() {
     const btnRefresh = document.getElementById('btn-conci-refresh');
     const yearSel = document.getElementById('filter-conci-manifiestos-year');
     const monthSel = document.getElementById('filter-conci-manifiestos-month');
+    const daySel = document.getElementById('filter-conci-manifiestos-day');
     const canEdit = _conciCanCurrentUserEdit();
 
     if (btnEdit) {
@@ -15099,6 +15192,7 @@ function _conciRefreshEditToolbar() {
     if (btnRefresh) btnRefresh.disabled = controlsLocked;
     if (yearSel) yearSel.disabled = controlsLocked;
     if (monthSel) monthSel.disabled = controlsLocked;
+    if (daySel) daySel.disabled = controlsLocked;
 }
 
 function _conciSetRefreshLoading(isLoading) {
@@ -15194,6 +15288,18 @@ function _conciParseVueloMonth(row) {
         const m = raw.match(/(\d{1,2})([A-Z]{3})\s+\d{2}:\d{2}/);
         if (m && _CONCI_MONTHS[m[2]] !== undefined) {
             return _CONCI_MONTHS[m[2]]; // 1-12
+        }
+    }
+    return null;
+}
+
+function _conciParseVueloDay(row) {
+    const DATE_FIELDS = ['[Arr] SIBT','[Arr] AIBT','[Arr] ALDT','[Dep] SOBT','[Dep] AOBT','[Dep] ATOT'];
+    for (const f of DATE_FIELDS) {
+        const raw = (row[f] || '').trim().toUpperCase();
+        const m = raw.match(/(\d{1,2})([A-Z]{3})\s+\d{2}:\d{2}/);
+        if (m) {
+            return parseInt(m[1], 10);
         }
     }
     return null;
@@ -15326,6 +15432,50 @@ function _conciFormatDisplayValue(columnName, value, row, fechaCol, fallbackYear
     }
 
     return raw;
+}
+
+function _conciBuildSortDate(row, columns, fallbackYear) {
+    const keys = Array.isArray(columns) && columns.length ? columns : Object.keys(row || {});
+    const fechaCol = keys.find(c => /(^|\b)fecha(\b|$)/i.test(c)) || null;
+    const dateParts = fechaCol ? _conciParseDateTimeParts(row?.[fechaCol], fallbackYear) : null;
+
+    const timeCols = keys.filter(c => /(hora|hr\.?\s*de|slot|sibt|aibt|aldt|sobt|aobt|atot)/i.test(c));
+    let timeParts = null;
+    for (const col of timeCols) {
+        const raw = row?.[col];
+        if (raw === null || raw === undefined || raw === '') continue;
+        const full = _conciParseDateTimeParts(raw, fallbackYear);
+        if (full && Number.isFinite(full.day) && Number.isFinite(full.month) && Number.isFinite(full.year)) {
+            return new Date(
+                full.year,
+                Math.max(0, full.month - 1),
+                full.day,
+                Number.isFinite(full.hour) ? full.hour : 0,
+                Number.isFinite(full.minute) ? full.minute : 0,
+                0,
+                0
+            );
+        }
+        const onlyTime = _conciParseTimeOnly(raw);
+        if (onlyTime) {
+            timeParts = onlyTime;
+            break;
+        }
+    }
+
+    if (dateParts && Number.isFinite(dateParts.day) && Number.isFinite(dateParts.month) && Number.isFinite(dateParts.year)) {
+        return new Date(
+            dateParts.year,
+            Math.max(0, dateParts.month - 1),
+            dateParts.day,
+            timeParts && Number.isFinite(timeParts.hour) ? timeParts.hour : 0,
+            timeParts && Number.isFinite(timeParts.minute) ? timeParts.minute : 0,
+            0,
+            0
+        );
+    }
+
+    return null;
 }
 
 // Build a synthetic manifest row from a vuelos row, given 'LLEGADA' or 'SALIDA'
@@ -15554,6 +15704,7 @@ function _conciBuildEnriched(manifestRows, vuelosRows, schemaRows) {
 async function loadConciliacionManifiestos(options = {}) {
     const yearEl  = document.getElementById('filter-conci-manifiestos-year');
     const monthEl = document.getElementById('filter-conci-manifiestos-month');
+    const dayEl   = document.getElementById('filter-conci-manifiestos-day');
     const loading = document.getElementById('conci-manifiestos-loading');
     const errorEl = document.getElementById('conci-manifiestos-error');
     const badge   = document.getElementById('badge-conci-manifiestos-count');
@@ -15562,6 +15713,30 @@ async function loadConciliacionManifiestos(options = {}) {
 
     const year  = yearEl  ? parseInt(yearEl.value, 10)  : new Date().getFullYear();
     const month = monthEl && monthEl.value ? parseInt(monthEl.value, 10) : null; // 1-12 or null
+    const day   = dayEl && dayEl.value ? parseInt(dayEl.value, 10) : null; // 1-31 or null
+    const cacheKey = `${year}|${month || 0}|${day || 0}`;
+
+    if (!config.forceRefresh && _conciRenderedKey === cacheKey) {
+        const table = document.getElementById('table-conci-manifiestos');
+        const tbody = table ? table.querySelector('tbody') : null;
+        if (tbody && tbody.childElementCount > 0) {
+            return;
+        }
+    }
+
+    // Reuse already-built rows for the same filter to make tab navigation instant.
+    if (!config.forceRefresh && _conciRenderCache.has(cacheKey)) {
+        const cached = _conciRenderCache.get(cacheKey);
+        if (cached) {
+            if (badge) {
+                badge.textContent = `${cached.rows.length} registros · Caché`;
+                badge.style.display = '';
+            }
+            _conciRenderedKey = cacheKey;
+            _renderConciManifiestosTable(cached.rows, cached.columns, cached.year);
+            return;
+        }
+    }
 
     _conciSetRefreshLoading(true);
     if (loading) { loading.classList.remove('d-none'); }
@@ -15591,9 +15766,11 @@ async function loadConciliacionManifiestos(options = {}) {
         if (vuelosResult.error && manifestResult.error) throw vuelosResult.error;
 
         // Filter vuelos by selected month (year is implicit — dates have no year in storage)
-        const filteredVuelos = month
-            ? vuelosRows.filter(r => _conciParseVueloMonth(r) === month)
-            : vuelosRows;
+        const filteredVuelos = vuelosRows.filter(r => {
+            if (month && _conciParseVueloMonth(r) !== month) return false;
+            if (day && _conciParseVueloDay(r) !== day) return false;
+            return true;
+        });
 
         // Filter manifest rows by year/month if columns exist
         let filteredManifest = manifestRows;
@@ -15601,8 +15778,22 @@ async function loadConciliacionManifiestos(options = {}) {
             const keys = Object.keys(manifestRows[0]);
             const yearKey  = keys.find(k => /^a[ñn]o$/i.test(k) || /year/i.test(k));
             const monthKey = keys.find(k => /^mes$/i.test(k) || /month/i.test(k));
+            const dayKey   = keys.find(k => /^d[ií]a$/i.test(k) || /\bday\b/i.test(k));
+            const fechaKey = keys.find(k => /(^|\b)fecha(\b|$)/i.test(k));
             if (yearKey)              filteredManifest = filteredManifest.filter(r => String(r[yearKey]) === String(year));
             if (month && monthKey)    filteredManifest = filteredManifest.filter(r => String(r[monthKey]) === String(month));
+            if (day) {
+                if (dayKey) {
+                    filteredManifest = filteredManifest.filter(r => String(r[dayKey]) === String(day));
+                } else if (fechaKey) {
+                    filteredManifest = filteredManifest.filter(r => {
+                        const parts = _conciParseDateTimeParts(r[fechaKey], year);
+                        if (!parts || !Number.isFinite(parts.day)) return false;
+                        if (month && Number.isFinite(parts.month) && parts.month !== month) return false;
+                        return parts.day === day;
+                    });
+                }
+            }
         }
 
         // Build enriched merged dataset
@@ -15617,14 +15808,29 @@ async function loadConciliacionManifiestos(options = {}) {
 
         const { rows, columns } = _conciBuildEnriched(filteredManifest, filteredVuelos, manifestRows);
 
+        const chronoRows = [...rows].sort((a, b) => {
+            const da = _conciBuildSortDate(a, columns, year);
+            const db = _conciBuildSortDate(b, columns, year);
+            const ta = da ? da.getTime() : Number.MAX_SAFE_INTEGER;
+            const tb = db ? db.getTime() : Number.MAX_SAFE_INTEGER;
+            if (ta !== tb) return ta - tb;
+            const ida = Number(a?.id);
+            const idb = Number(b?.id);
+            if (Number.isFinite(ida) && Number.isFinite(idb)) return ida - idb;
+            return String(a?.id || '').localeCompare(String(b?.id || ''), 'es', { numeric: true, sensitivity: 'base' });
+        });
+
+        _conciRenderCache.set(cacheKey, { rows: chronoRows, columns, year });
+
         if (loading) { loading.classList.add('d-none'); }
         if (badge) {
             const refreshedText = config.forceRefresh ? 'Actualizado' : 'Cargado';
-            badge.textContent = `${rows.length} registros · ${refreshedText}`;
+            badge.textContent = `${chronoRows.length} registros · ${refreshedText}`;
             badge.style.display = '';
         }
 
-        _renderConciManifiestosTable(rows, columns, year);
+        _conciRenderedKey = cacheKey;
+        _renderConciManifiestosTable(chronoRows, columns, year);
 
     } catch (err) {
         if (requestSeq !== _conciLoadRequestSeq) return;
@@ -15678,71 +15884,155 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
     displayCols.forEach(c => {
         const th = document.createElement('th');
         th.className = 'text-nowrap';
-        th.style.cssText = 'position:sticky;top:0;z-index:2;background:#343a40;color:#fff;padding:8px 10px;border:1px solid #454d55;white-space:nowrap;text-align:center;';
+        th.style.cssText = 'position:relative;top:0;z-index:6;background:#343a40;color:#fff;padding:8px 10px;border:1px solid #454d55;white-space:nowrap;text-align:center;';
         th.textContent = c;
         trHead.appendChild(th);
     });
     thead.appendChild(trHead);
+    thead.style.position = 'relative';
+    thead.style.zIndex = '7';
+    thead.style.transform = 'translateY(0px)';
+    thead.style.willChange = 'transform';
 
-    // Source → background color
-    const srcColors = {
-        'Manifiestos + Vuelos': '#e8f5e9',
-        'Solo Manifiestos':     '#fff9c4',
-        'Solo Vuelos':          '#e3f2fd',
+    const rowToneCount = 2;
+
+    if (tbody.dataset.conciRowSelectBound !== 'true') {
+        tbody.dataset.conciRowSelectBound = 'true';
+        tbody.addEventListener('click', (event) => {
+            const interactiveTarget = event.target.closest('button, a, input, textarea, select, label');
+            if (interactiveTarget) return;
+            const tr = event.target.closest('tr');
+            if (!tr || !tbody.contains(tr)) return;
+
+            tbody.querySelectorAll('tr.conci-row-selected').forEach((row) => {
+                row.classList.remove('conci-row-selected');
+                row.setAttribute('aria-selected', 'false');
+            });
+
+            tr.classList.add('conci-row-selected');
+            tr.setAttribute('aria-selected', 'true');
+        });
+    }
+
+    // Body (lazy append: keeps DOM smaller, improving horizontal scroll smoothness)
+    const renderSeq = ++_conciRenderSeq;
+    const batchSize = 250;
+    let idx = 0;
+    let appendScheduled = false;
+    const scrollWrap = table.closest('.table-responsive');
+
+    const appendBatch = () => {
+        appendScheduled = false;
+        if (renderSeq !== _conciRenderSeq) return;
+
+        const frag = document.createDocumentFragment();
+        const end = Math.min(idx + batchSize, data.length);
+
+        for (; idx < end; idx++) {
+            const row = data[idx];
+            const tr = document.createElement('tr');
+            const tone = idx % rowToneCount;
+            tr.classList.add(`conci-row-tone-${tone}`);
+            const _rowId = row.id !== undefined && row.id !== null ? String(row.id) : '';
+            const _rowFuente = row['_fuente'] || '';
+            tr.dataset.rowId = _rowId;
+            tr.dataset.rowFuente = _rowFuente;
+            tr.dataset.rowIndex = String(idx);
+
+            displayCols.forEach(c => {
+                const td = document.createElement('td');
+                td.style.cssText = 'text-align:center;padding:5px 8px;border:1px solid #dee2e6;white-space:nowrap;font-size:0.82rem;';
+                td.dataset.col = c;
+                const val = row[c];
+                const rawStr = String(val !== null && val !== undefined ? val : '').trim();
+                td.dataset.raw = rawStr;
+
+                if (_airlineCol && c === _airlineCol) {
+                    const meta = _conciResolveAirlineMeta(rawStr);
+                    if (meta) {
+                        const badge = document.createElement('span');
+                        badge.style.cssText = `display:inline-block;padding:2px 10px;border-radius:999px;font-size:0.74rem;font-weight:700;line-height:1.2;background:${meta.color || '#6c757d'};color:${meta.textColor || '#ffffff'};border:1px solid rgba(0,0,0,.15);`;
+                        badge.textContent = String(meta.name || rawStr).toUpperCase();
+                        td.style.borderLeft = `3px solid ${meta.color || '#6c757d'}`;
+                        td.appendChild(badge);
+                        if (rawStr && rawStr.toUpperCase() !== String(meta.name || '').toUpperCase()) td.title = rawStr;
+                    } else {
+                        td.textContent = rawStr;
+                    }
+                } else if (_routingCol && c === _routingCol && window._iataToCity) {
+                    const tipo = _tipoCol ? String(row[_tipoCol] || '') : '';
+                    const isArr = /lleg|arr/i.test(tipo);
+                    const parts = rawStr.toUpperCase().split(/[-\/]+/);
+                    const code = (parts.length >= 2)
+                        ? (isArr ? parts[0] : parts[parts.length - 1])
+                        : (parts[0] || '');
+                    const city = code ? window._iataToCity(code) : rawStr;
+                    td.textContent = city || rawStr;
+                    if (rawStr) td.title = rawStr;
+                } else {
+                    const displayValue = _conciFormatDisplayValue(c, val, row, _fechaCol, fallbackYear);
+                    td.textContent = displayValue;
+                    if (displayValue && String(displayValue) !== String(val || '').trim()) td.title = String(val || '').trim();
+                }
+
+                tr.appendChild(td);
+            });
+
+            frag.appendChild(tr);
+        }
+
+        tbody.appendChild(frag);
+
+        if (idx >= data.length) {
+            if (scrollWrap && scrollWrap._conciLazyHandler) {
+                scrollWrap.removeEventListener('scroll', scrollWrap._conciLazyHandler);
+                delete scrollWrap._conciLazyHandler;
+            }
+            _conciRefreshEditToolbar();
+            return;
+        }
+
+        // If viewport is still not full, keep appending in next frame.
+        if (scrollWrap && scrollWrap.scrollHeight <= (scrollWrap.clientHeight + 80)) {
+            scheduleAppend();
+        }
     };
 
-    // Body
-    data.forEach((row, idx) => {
-        const tr = document.createElement('tr');
-        const bg = srcColors[row['_fuente']];
-        tr.style.backgroundColor = bg || (idx % 2 === 0 ? '#fff' : '#f8f9fa');
-        const _rowId = row.id !== undefined && row.id !== null ? String(row.id) : '';
-        const _rowFuente = row['_fuente'] || '';
-        tr.dataset.rowId = _rowId;
-        tr.dataset.rowFuente = _rowFuente;
-        tr.dataset.rowIndex = String(idx);
+    const scheduleAppend = () => {
+        if (appendScheduled || renderSeq !== _conciRenderSeq || idx >= data.length) return;
+        appendScheduled = true;
+        window.requestAnimationFrame(appendBatch);
+    };
 
-        displayCols.forEach(c => {
-            const td = document.createElement('td');
-            td.style.cssText = 'text-align:center;padding:5px 8px;border:1px solid #dee2e6;white-space:nowrap;font-size:0.82rem;';
-            td.dataset.col = c;
-            const val = row[c];
-            const rawStr = String(val !== null && val !== undefined ? val : '').trim();
-            td.dataset.raw = rawStr;
-            // Smart city-name resolution for routing/origen column
-            if (_airlineCol && c === _airlineCol) {
-                const meta = _conciResolveAirlineMeta(rawStr);
-                if (meta) {
-                    const badge = document.createElement('span');
-                    badge.style.cssText = `display:inline-block;padding:2px 10px;border-radius:999px;font-size:0.74rem;font-weight:700;line-height:1.2;background:${meta.color || '#6c757d'};color:${meta.textColor || '#ffffff'};border:1px solid rgba(0,0,0,.15);`;
-                    badge.textContent = String(meta.name || rawStr).toUpperCase();
-                    td.style.boxShadow = `inset 3px 0 0 ${meta.color || '#6c757d'}`;
-                    td.appendChild(badge);
-                    if (rawStr && rawStr.toUpperCase() !== String(meta.name || '').toUpperCase()) td.title = rawStr;
-                } else {
-                    td.textContent = rawStr;
-                }
-            } else if (_routingCol && c === _routingCol && window._iataToCity) {
-                const tipo = _tipoCol ? String(row[_tipoCol] || '') : '';
-                const isArr = /lleg|arr/i.test(tipo);
-                const parts = rawStr.toUpperCase().split(/[-\/]+/);
-                const code = (parts.length >= 2)
-                    ? (isArr ? parts[0] : parts[parts.length - 1])
-                    : (parts[0] || '');
-                const city = code ? window._iataToCity(code) : rawStr;
-                td.textContent = city || rawStr;
-                if (rawStr) td.title = rawStr;
-            } else {
-                const displayValue = _conciFormatDisplayValue(c, val, row, _fechaCol, fallbackYear);
-                td.textContent = displayValue;
-                if (displayValue && String(displayValue) !== String(val || '').trim()) td.title = String(val || '').trim();
-            }
-            tr.appendChild(td);
+    let headerSyncRaf = 0;
+    const scheduleHeaderSync = () => {
+        if (headerSyncRaf || renderSeq !== _conciRenderSeq || !scrollWrap) return;
+        headerSyncRaf = window.requestAnimationFrame(() => {
+            headerSyncRaf = 0;
+            if (renderSeq !== _conciRenderSeq || !scrollWrap) return;
+            thead.style.transform = `translateY(${scrollWrap.scrollTop || 0}px)`;
         });
-        tbody.appendChild(tr);
-    });
+    };
+
+    const onLazyScroll = () => {
+        if (renderSeq !== _conciRenderSeq || !scrollWrap) return;
+        scheduleHeaderSync();
+        if (idx >= data.length) return;
+        const nearBottom = (scrollWrap.scrollTop + scrollWrap.clientHeight) >= (scrollWrap.scrollHeight - 240);
+        if (nearBottom) scheduleAppend();
+    };
+
+    if (scrollWrap) {
+        if (scrollWrap._conciLazyHandler) {
+            scrollWrap.removeEventListener('scroll', scrollWrap._conciLazyHandler);
+        }
+        scrollWrap._conciLazyHandler = onLazyScroll;
+        scrollWrap.addEventListener('scroll', onLazyScroll, { passive: true });
+        scheduleHeaderSync();
+    }
 
     _conciRefreshEditToolbar();
+    scheduleAppend();
 }
 
 // ─── Conciliation global-edit helpers ──────────────────────────────────────
@@ -16080,7 +16370,7 @@ async function _conciSaveBulkEdits() {
         _conciEditMode = false;
         _conciSetTableEditableState(false);
         _conciRefreshEditToolbar();
-        await loadConciliacionManifiestos();
+        await loadConciliacionManifiestos({ forceRefresh: true });
     } catch (e) {
         alert('Error al guardar cambios: ' + e.message);
     } finally {

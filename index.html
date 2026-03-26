@@ -241,18 +241,21 @@
         /* CSV Vuelos (Parte de Operaciones) */
         #table-ops-flights-csv tbody tr {
             cursor: pointer;
+            transition: background-color .16s ease, box-shadow .16s ease;
+        }
+
+        #table-ops-flights-csv tbody tr:nth-child(4n+1) > td { background-color: #ffffff; }
+        #table-ops-flights-csv tbody tr:nth-child(4n+2) > td { background-color: #f8fbff; }
+        #table-ops-flights-csv tbody tr:nth-child(4n+3) > td { background-color: #f6fff8; }
+        #table-ops-flights-csv tbody tr:nth-child(4n+4) > td { background-color: #fffaf4; }
+
+        #table-ops-flights-csv tbody tr:hover > td {
+            background-color: #e7f3ff !important;
         }
 
         #table-ops-flights-csv tbody tr.csv-row-selected > td {
-            background-color: #fff3cd !important;
-        }
-
-        #table-ops-flights-csv tbody tr:nth-child(even) > td {
-            background-color: #f8f9fa;
-        }
-
-        #table-ops-flights-csv tbody tr.csv-row-selected:nth-child(even) > td {
-            background-color: #fff3cd !important;
+            background-color: #d7ebff !important;
+            box-shadow: inset 0 1px 0 #b9dbff, inset 0 -1px 0 #b9dbff;
         }
 
         #table-ops-flights-csv tbody tr.row-validated > td {
@@ -377,13 +380,23 @@
             background: #6c757d;
         }
 
-        /* Solo la fila de encabezados es sticky — los filtros NO siguen el scroll */
+        /* Conciliacion principal: mantener encabezados visibles durante scroll */
+        #table-ops-flights-csv {
+            --csv-head-row1-height: 34px;
+        }
         #table-ops-flights-csv thead tr:first-child th {
             position: sticky;
             top: 0;
-            z-index: 3;
+            z-index: 6;
             background: #f8f9fa;
             box-shadow: 0 1px 2px rgba(0,0,0,.08);
+        }
+        #table-ops-flights-csv thead tr.csv-filter-row th {
+            position: sticky;
+            top: var(--csv-head-row1-height);
+            z-index: 5;
+            background: #f8f9fa;
+            box-shadow: 0 1px 0 rgba(0,0,0,.06);
         }
 
         /* Botón de filtro embudo en cada encabezado del itinerario CSV */
@@ -501,6 +514,56 @@
         .board-col-filter.active-filter {
             border-color: #f39c12 !important;
             background: #fffde7 !important;
+        }
+        #table-board-arrivals,
+        #table-board-departures {
+            --board-head-row1-height: 32px;
+        }
+        #table-board-arrivals thead tr:first-child th,
+        #table-board-departures thead tr:first-child th {
+            position: sticky;
+            top: 0;
+            z-index: 4;
+            background: #f8f9fa;
+        }
+        #table-board-arrivals thead tr.board-filter-row td,
+        #table-board-departures thead tr.board-filter-row td {
+            position: sticky;
+            top: var(--board-head-row1-height);
+            z-index: 3;
+        }
+        #conci-manifiestos-scroll {
+            position: relative;
+            max-height: 620px;
+            overflow-y: auto;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            will-change: scroll-position;
+        }
+        #table-conci-manifiestos {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        #table-conci-manifiestos thead th {
+            position: relative;
+            top: 0;
+            z-index: 6;
+            background: #343a40;
+            color: #fff;
+            box-shadow: 0 1px 2px rgba(0,0,0,.2);
+        }
+        #table-conci-manifiestos tbody tr {
+            cursor: pointer;
+            transition: background-color .15s ease;
+        }
+        #table-conci-manifiestos tbody tr.conci-row-tone-0 > td { background: #ffffff; }
+        #table-conci-manifiestos tbody tr.conci-row-tone-1 > td { background: #f2f4f7; }
+        #table-conci-manifiestos tbody tr:hover > td {
+            background: #eaf3ff !important;
+        }
+        #table-conci-manifiestos tbody tr.conci-row-selected > td {
+            background: #fff3bf !important;
+            box-shadow: inset 0 1px 0 #ffe58a, inset 0 -1px 0 #ffe58a;
         }
         .board-global-search {
             max-width: 320px;
@@ -778,6 +841,8 @@
             width: 100%;
             display: block;
             padding-bottom: 15px; /* Ensure space for scrollbar */
+            -webkit-overflow-scrolling: touch;
+            will-change: scroll-position;
         }
         
         #container-ops-flights-csv::-webkit-scrollbar {
@@ -1001,8 +1066,8 @@
                             class="fas fa-table"></i><span>Itinerario Mensual</span></a>
                     <a class="menu-item" href="#" data-section="comparativa"><i
                             class="fas fa-chart-line"></i><span>Comparativa</span></a>
-                    <!-- <a class="menu-item" href="#" data-section="manifiestos"><i
-                            class="fas fa-file-signature"></i><span>Manifiestos</span></a> -->
+                        <a class="menu-item" href="#" data-section="manifiestos"><i
+                            class="fas fa-file-signature"></i><span>Manifiestos</span></a>
                     <a class="menu-item" href="#" data-section="fauna"><i
                             class="fas fa-shield-alt"></i><span>GSO</span></a>
                     <a class="menu-item" href="#" data-section="medicas"><i
@@ -4937,6 +5002,43 @@
                                                                 <option value="12">Diciembre</option>
                                                             </select>
                                                         </div>
+                                                        <div class="input-group input-group-sm" style="width:auto">
+                                                            <span class="input-group-text">Día</span>
+                                                            <select class="form-select" id="filter-conci-manifiestos-day" aria-label="Día" style="width:84px">
+                                                                <option value="">Todos</option>
+                                                                <option value="1">1</option>
+                                                                <option value="2">2</option>
+                                                                <option value="3">3</option>
+                                                                <option value="4">4</option>
+                                                                <option value="5">5</option>
+                                                                <option value="6">6</option>
+                                                                <option value="7">7</option>
+                                                                <option value="8">8</option>
+                                                                <option value="9">9</option>
+                                                                <option value="10">10</option>
+                                                                <option value="11">11</option>
+                                                                <option value="12">12</option>
+                                                                <option value="13">13</option>
+                                                                <option value="14">14</option>
+                                                                <option value="15">15</option>
+                                                                <option value="16">16</option>
+                                                                <option value="17">17</option>
+                                                                <option value="18">18</option>
+                                                                <option value="19">19</option>
+                                                                <option value="20">20</option>
+                                                                <option value="21">21</option>
+                                                                <option value="22">22</option>
+                                                                <option value="23">23</option>
+                                                                <option value="24">24</option>
+                                                                <option value="25">25</option>
+                                                                <option value="26">26</option>
+                                                                <option value="27">27</option>
+                                                                <option value="28">28</option>
+                                                                <option value="29">29</option>
+                                                                <option value="30">30</option>
+                                                                <option value="31">31</option>
+                                                            </select>
+                                                        </div>
                                                         <button class="btn btn-sm btn-outline-secondary" id="btn-conci-refresh" title="Actualizar desde la base de datos">
                                                             <i class="fas fa-sync-alt"></i>
                                                         </button>
@@ -4964,7 +5066,7 @@
                                                         <p class="small mb-0">Cargando manifiestos...</p>
                                                     </div>
                                                     <div id="conci-manifiestos-error" class="alert alert-danger m-3 d-none"></div>
-                                                    <div class="table-responsive" style="max-height:620px;overflow-y:auto;overflow-x:auto;">
+                                                    <div class="table-responsive" id="conci-manifiestos-scroll" style="max-height:620px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;will-change:scroll-position;">
                                                         <table id="table-conci-manifiestos" class="table table-sm table-bordered align-middle mb-0" style="font-size:0.82rem;width:100%;table-layout:auto;">
                                                             <thead></thead>
                                                             <tbody></tbody>
@@ -6541,6 +6643,24 @@
                                             <div class="card border-0 shadow-sm h-100">
                                                 <div class="card-header bg-white border-0 pb-0"><span class="fw-bold small"><i class="fas fa-chart-pie me-2 text-success"></i>Nacional vs Internacional</span></div>
                                                 <div class="card-body pt-2 d-flex align-items-center justify-content-center"><div style="position:relative;height:240px;width:100%;"><canvas id="ops-chart-donut"></canvas></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-12">
+                                            <div class="card border-0 shadow-sm h-100">
+                                                <div class="card-header bg-white border-0 pb-0">
+                                                    <span class="fw-bold small"><i class="fas fa-th me-2 text-primary"></i>Mapa de Calor de Pasajeros (Hora x Día)</span>
+                                                </div>
+                                                <div class="card-body pt-2" id="mdb-ops-heatmap-pax"></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="card border-0 shadow-sm h-100">
+                                                <div class="card-header bg-white border-0 pb-0">
+                                                    <span class="fw-bold small"><i class="fas fa-th me-2 text-warning"></i>Mapa de Calor de Operaciones por Hora <small class="text-muted fw-normal">(manifiestos del período)</small></span>
+                                                </div>
+                                                <div class="card-body pt-2" id="mdb-ops-heatmap-ops"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -9531,8 +9651,7 @@
                 </div>
 
                 <!-- Manifiestos -->
-                <!-- SECCION MANIFIESTOS COMENTADA -->
-                <template id="manifiestos-section-disabled">
+                <!-- SECCION MANIFIESTOS REACTIVADA -->
                     <div id="manifiestos-section" class="content-section">
                         <div class="card border-0">
                             <div class="card-header bg-transparent text-center">
@@ -10554,7 +10673,7 @@
                             </div>
                         </div>
                     </div>
-                </template>
+
 
 
 

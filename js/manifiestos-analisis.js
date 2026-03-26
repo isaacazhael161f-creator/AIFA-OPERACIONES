@@ -1282,6 +1282,298 @@
         }
       });
     }
+
+    // Heatmaps: pasajeros y operaciones por hora x día de semana (datos de manifiestos)
+    renderOperacionesHeatmaps(d);
+  }
+
+  function renderOperacionesHeatmaps(rows) {
+    const paxContainer = document.getElementById('mdb-ops-heatmap-pax');
+    const opsContainer = document.getElementById('mdb-ops-heatmap-ops');
+    if (!paxContainer || !opsContainer) return;
+
+    const state = buildOperacionesHeatmapState(rows || []);
+    drawOperacionesHeatmap(paxContainer, state, {
+      metric: 'pax',
+      unit: 'Pasajeros',
+      tone: 'primary'
+    });
+    drawOperacionesHeatmap(opsContainer, state, {
+      metric: 'ops',
+      unit: 'Operaciones',
+      tone: 'warning'
+    });
+  }
+
+  function buildOperacionesHeatmapState(rows) {
+    const createMatrix = () => Array.from({ length: 24 }, () => Array(7).fill(0));
+    const createDetailsMatrix = () => Array.from({ length: 24 }, () => Array.from({ length: 7 }, () => []));
+    const allPax = createMatrix();
+    const allOps = createMatrix();
+    const allDetails = createDetailsMatrix();
+    const weekMap = new Map(); // weekKey -> { monday, pax, ops }
+
+    rows.forEach(r => {
+      const h = getHour(r);
+      if (!Number.isFinite(h) || h < 0 || h > 23) return;
+
+      const dayKey = getDayKey(r);
+      if (!dayKey) return;
+      const dt = new Date(dayKey + 'T12:00:00');
+      if (Number.isNaN(dt.getTime())) return;
+
+      const dayIdx = (dt.getDay() + 6) % 7; // Monday=0 ... Sunday=6
+      const paxVal = getPaxTotal(r);
+      const detailRec = {
+        dayKey,
+        fecha: getFecha(r) || dayKey,
+        hora: getOperacionesHeatmapHourLabel(r, h),
+        manifiesto: getDir(r) || '',
+        aerolinea: getAirline(r) || '',
+        vuelo: getFlight(r) || '',
+        ruta: getRoute(r) || '',
+        tipoOperacion: getOpType(r) || '',
+        pax: paxVal
+      };
+
+      allPax[h][dayIdx] += paxVal;
+      allOps[h][dayIdx] += 1;
+      allDetails[h][dayIdx].push(detailRec);
+
+      const monday = new Date(dt);
+      monday.setDate(dt.getDate() - dayIdx);
+      const wkKey = monday.toISOString().slice(0, 10);
+      if (!weekMap.has(wkKey)) {
+        weekMap.set(wkKey, { monday: wkKey, pax: createMatrix(), ops: createMatrix(), details: createDetailsMatrix() });
+      }
+      const wk = weekMap.get(wkKey);
+      wk.pax[h][dayIdx] += paxVal;
+      wk.ops[h][dayIdx] += 1;
+      wk.details[h][dayIdx].push(detailRec);
+    });
+
+    const weekKeys = Array.from(weekMap.keys()).sort();
+    const weeks = {};
+    weekKeys.forEach((k, idx) => {
+      weeks[k] = {
+        index: idx + 1,
+        label: buildWeekLabel(k, idx + 1),
+        pax: weekMap.get(k).pax,
+        ops: weekMap.get(k).ops,
+        details: weekMap.get(k).details,
+      };
+    });
+
+    return { allPax, allOps, allDetails, weeks, weekKeys };
+  }
+
+  function getOperacionesHeatmapHourLabel(row, fallbackHour) {
+    const raw = col(row,
+      'HR. DE OPERACIÓN', 'HR. DE OPERACION', 'HR DE OPERACION', 'HR DE OPERACIÓN',
+      'HORA DE OPERACIÓN', 'HORA DE OPERACION', 'HORA OPERACION',
+      'HR. OPERACIÓN', 'HR. OPERACION',
+      'SLOT ASIGNADO', 'SLOT COORDINADO',
+      'HORA DE INICIO O TERMINO DE PERNOCTA', 'HORA DE RECEPCIÓN', 'HORA DE RECEPCION'
+    );
+    if (raw) {
+      const s = String(raw).trim();
+      const m = s.match(/(\d{1,2}:\d{2}(?::\d{2})?)/);
+      if (m) return m[1];
+    }
+    return String(fallbackHour).padStart(2, '0') + ':00';
+  }
+
+  function buildWeekLabel(weekKey, index) {
+    const m = new Date(weekKey + 'T12:00:00');
+    if (Number.isNaN(m.getTime())) return 'S' + index;
+    const s = new Date(m);
+    s.setDate(m.getDate() + 6);
+    const shortMonths = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const left = String(m.getDate()).padStart(2, '0') + ' ' + shortMonths[m.getMonth()];
+    const right = String(s.getDate()).padStart(2, '0') + ' ' + shortMonths[s.getMonth()];
+    return 'S' + index + ' ' + left + '–' + right;
+  }
+
+  function drawOperacionesHeatmap(container, state, config) {
+    const metric = config.metric;
+    const tone = config.tone;
+    const unit = config.unit;
+    const dayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    let selectedWeek = '0';
+
+    const getMatrix = () => {
+      if (selectedWeek !== '0' && state.weeks[selectedWeek]) {
+        return metric === 'pax' ? state.weeks[selectedWeek].pax : state.weeks[selectedWeek].ops;
+      }
+      return metric === 'pax' ? state.allPax : state.allOps;
+    };
+
+    const getDetailsMatrix = () => {
+      if (selectedWeek !== '0' && state.weeks[selectedWeek]) {
+        return state.weeks[selectedWeek].details;
+      }
+      return state.allDetails;
+    };
+
+    const render = () => {
+      const matrix = getMatrix();
+      const detailsMatrix = getDetailsMatrix();
+      const rowsWithData = [];
+      for (let h = 0; h < 24; h++) {
+        const rowSum = matrix[h].reduce((a, b) => a + b, 0);
+        if (rowSum > 0) rowsWithData.push(h);
+      }
+
+      const hours = rowsWithData.length ? rowsWithData : Array.from({ length: 24 }, (_, h) => h);
+      const values = hours.flatMap(h => matrix[h]);
+      const maxVal = Math.max(0, ...values);
+
+      const dayTotals = Array(7).fill(0);
+      const hourTotals = [];
+      let grandTotal = 0;
+      hours.forEach(h => {
+        const row = matrix[h] || Array(7).fill(0);
+        const rowTotal = row.reduce((a, b) => a + b, 0);
+        hourTotals.push(rowTotal);
+        grandTotal += rowTotal;
+        row.forEach((v, idx) => { dayTotals[idx] += v; });
+      });
+
+      const weekButtons = [
+        `<button type="button" class="btn btn-sm ${selectedWeek === '0' ? (tone === 'warning' ? 'btn-warning' : 'btn-primary') : 'btn-outline-secondary'}" data-week="0">Todas</button>`,
+        ...state.weekKeys.map(wk => {
+          const active = selectedWeek === wk;
+          const lbl = state.weeks[wk].label;
+          return `<button type="button" class="btn btn-sm ${active ? (tone === 'warning' ? 'btn-warning' : 'btn-primary') : 'btn-outline-secondary'}" data-week="${wk}">${escHtml(lbl)}</button>`;
+        })
+      ].join('');
+
+      const weekLabel = selectedWeek === '0' ? 'Todas las semanas' : (state.weeks[selectedWeek]?.label || 'Semana');
+      const colorFor = (value) => {
+        if (!maxVal || value <= 0) return '#edf2f7';
+        const t = Math.max(0, Math.min(1, value / maxVal));
+        if (tone === 'warning') {
+          const light = [248, 229, 211];
+          const dark = [245, 146, 49];
+          const r = Math.round(light[0] + (dark[0] - light[0]) * t);
+          const g = Math.round(light[1] + (dark[1] - light[1]) * t);
+          const b = Math.round(light[2] + (dark[2] - light[2]) * t);
+          return `rgb(${r}, ${g}, ${b})`;
+        }
+        const light = [218, 230, 248];
+        const dark = [67, 130, 221];
+        const r = Math.round(light[0] + (dark[0] - light[0]) * t);
+        const g = Math.round(light[1] + (dark[1] - light[1]) * t);
+        const b = Math.round(light[2] + (dark[2] - light[2]) * t);
+        return `rgb(${r}, ${g}, ${b})`;
+      };
+
+      let html = '';
+      html += `<div class="small text-muted mb-2">Filtrar semana:</div>`;
+      html += `<div class="d-flex flex-wrap gap-2 mb-3">${weekButtons}</div>`;
+      html += `<p class="text-muted small mb-2">Muestra el total de <strong>${unit}</strong> por franja horaria y día de la semana (${escHtml(weekLabel)}). Los colores más oscuros indican mayor actividad.</p>`;
+      html += '<div class="table-responsive"><table class="table table-sm table-bordered text-center align-middle mb-0">';
+      html += '<thead class="table-light"><tr><th class="text-center">Hora</th>';
+      dayLabels.forEach(d => { html += `<th class="text-center">${d}</th>`; });
+      html += '<th class="text-center">Total</th></tr></thead><tbody>';
+
+      hours.forEach((h, idx) => {
+        const row = matrix[h] || Array(7).fill(0);
+        html += `<tr><th class="text-center">${String(h).padStart(2, '0')}:00</th>`;
+        row.forEach((v, dayIdx) => {
+          if (v > 0) {
+            html += `<td data-mdbhm-hour="${h}" data-mdbhm-day="${dayIdx}" style="background:${colorFor(v)};font-weight:600;cursor:pointer;" title="Ver vuelos de esta celda">${fmt(v)}</td>`;
+          } else {
+            html += `<td style="background:${colorFor(v)};font-weight:600;">${fmt(v)}</td>`;
+          }
+        });
+        html += `<td class="fw-bold bg-light">${fmt(hourTotals[idx])}</td></tr>`;
+      });
+
+      html += '<tr class="table-secondary fw-bold"><th>Total</th>';
+      dayTotals.forEach(v => { html += `<td>${fmt(v)}</td>`; });
+      html += `<td>${fmt(grandTotal)}</td></tr>`;
+      html += '</tbody></table></div>';
+
+      container.innerHTML = html;
+
+      container.querySelectorAll('button[data-week]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          selectedWeek = btn.dataset.week || '0';
+          render();
+        });
+      });
+
+      container.querySelectorAll('td[data-mdbhm-hour]').forEach(td => {
+        td.addEventListener('click', () => {
+          const hour = parseInt(td.dataset.mdbhmHour || '-1', 10);
+          const dayIdx = parseInt(td.dataset.mdbhmDay || '-1', 10);
+          if (!Number.isFinite(hour) || hour < 0 || hour > 23 || !Number.isFinite(dayIdx) || dayIdx < 0 || dayIdx > 6) return;
+          const records = (detailsMatrix[hour] && detailsMatrix[hour][dayIdx]) ? detailsMatrix[hour][dayIdx] : [];
+          const weekLabelForTitle = selectedWeek === '0' ? 'Todas las semanas' : (state.weeks[selectedWeek]?.label || 'Semana');
+          showOperacionesHeatmapDrilldown({
+            records,
+            metric,
+            hour,
+            dayIdx,
+            dayName: dayNames[dayIdx],
+            weekLabel: weekLabelForTitle,
+            unit
+          });
+        });
+      });
+    };
+
+    render();
+  }
+
+  function showOperacionesHeatmapDrilldown(ctx) {
+    const titleEl = document.getElementById('heatmap-drilldown-title');
+    const bodyEl = document.getElementById('heatmap-drilldown-body');
+    const modalEl = document.getElementById('heatmap-drilldown-modal');
+    if (!titleEl || !bodyEl || !modalEl) return;
+
+    const records = Array.isArray(ctx.records) ? ctx.records : [];
+    const titleMetric = ctx.metric === 'ops' ? 'Operaciones' : 'Pasajeros';
+    const badgeClass = ctx.metric === 'ops' ? 'bg-warning text-dark' : 'bg-primary';
+    titleEl.innerHTML = `${titleMetric} — ${escHtml(ctx.dayName || '')} ${String(ctx.hour).padStart(2, '0')}:00 <span class="badge ${badgeClass} fw-normal ms-2">${fmt(records.length)} registro${records.length === 1 ? '' : 's'}</span>`;
+
+    if (!records.length) {
+      bodyEl.innerHTML = '<p class="text-muted mb-0">Sin registros para esta celda.</p>';
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+      return;
+    }
+
+    const sorted = [...records].sort((a, b) => {
+      const d = String(a.dayKey || '').localeCompare(String(b.dayKey || ''));
+      if (d !== 0) return d;
+      const h = String(a.hora || '').localeCompare(String(b.hora || ''));
+      if (h !== 0) return h;
+      return String(a.vuelo || '').localeCompare(String(b.vuelo || ''));
+    });
+
+    const totalPax = sorted.reduce((acc, r) => acc + (Number(r.pax) || 0), 0);
+    let html = `<p class="text-muted small mb-3">Semana: <strong>${escHtml(ctx.weekLabel || 'Todas las semanas')}</strong>. Total de registros: <strong>${fmt(sorted.length)}</strong>. Total de pasajeros: <strong>${fmt(totalPax)}</strong>.</p>`;
+    html += '<div class="table-responsive"><table class="table table-sm table-hover table-bordered align-middle mb-0" style="font-size:0.82rem">';
+    html += '<thead class="table-light"><tr><th>Fecha</th><th>Hora</th><th>Manifiesto</th><th>Aerolínea</th><th>Vuelo</th><th>Ruta</th><th>Tipo de operación</th><th class="text-end">Pax</th></tr></thead><tbody>';
+
+    sorted.forEach(r => {
+      html += '<tr>';
+      html += `<td class="text-nowrap">${escHtml(r.fecha || '—')}</td>`;
+      html += `<td class="text-nowrap fw-semibold">${escHtml(r.hora || '—')}</td>`;
+      html += `<td>${escHtml(r.manifiesto || '—')}</td>`;
+      html += `<td>${escHtml(r.aerolinea || '—')}</td>`;
+      html += `<td class="fw-semibold">${escHtml(r.vuelo || '—')}</td>`;
+      html += `<td>${escHtml(r.ruta || '—')}</td>`;
+      html += `<td>${escHtml(r.tipoOperacion || '—')}</td>`;
+      html += `<td class="text-end">${fmt(r.pax || 0)}</td>`;
+      html += '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    bodyEl.innerHTML = html;
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
   }
 
   /* ═══════════════════════════════════════════════════════

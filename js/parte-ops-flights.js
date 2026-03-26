@@ -82,6 +82,7 @@
     let relStart = -4;
     let relEnd = 0;
     let _renderDebounceTimer = null;
+    let _stickySyncRaf = 0;
 
     // Schedule a debounced applyAndRender. Labels update instantly; the heavy
     // DOM work fires only once the user stops clicking (after 'delay' ms).
@@ -89,6 +90,30 @@
         clearTimeout(_renderDebounceTimer);
         updateRelativeLabels();          // instant feedback in the panel
         _renderDebounceTimer = setTimeout(applyAndRender, delay || 220);
+    }
+
+    function scheduleStickySync() {
+        if (_stickySyncRaf) return;
+        _stickySyncRaf = window.requestAnimationFrame(() => {
+            _stickySyncRaf = 0;
+            syncConciliacionStickyOffsets();
+        });
+    }
+
+    function syncConciliacionStickyOffsets() {
+        const csvTable = document.getElementById('table-ops-flights-csv');
+        const csvRow1 = csvTable ? csvTable.querySelector('thead tr:first-child') : null;
+        if (csvTable && csvRow1) {
+            csvTable.style.setProperty('--csv-head-row1-height', `${Math.ceil(csvRow1.getBoundingClientRect().height)}px`);
+        }
+
+        ['table-board-arrivals', 'table-board-departures'].forEach(tableId => {
+            const table = document.getElementById(tableId);
+            const row1 = table ? table.querySelector('thead tr:first-child') : null;
+            if (table && row1) {
+                table.style.setProperty('--board-head-row1-height', `${Math.ceil(row1.getBoundingClientRect().height)}px`);
+            }
+        });
     }
     let absStart = '';
     let absEnd = '';
@@ -238,6 +263,8 @@
 
         // Excel-style dropdown filters on header row
         initCsvExcelFilterButtons();
+        scheduleStickySync();
+        window.addEventListener('resize', scheduleStickySync);
     }
 
     async function loadFlights() {
@@ -485,54 +512,7 @@
             document.head.appendChild(styleTag);
         }
         styleTag.textContent = cssRules;
-
-        // 2. Inline Styles for Existing Elements (Immediate update)
-        const table = document.querySelector(tableId);
-        if (table) {
-            // Update Headers
-            table.querySelectorAll('thead th, thead td').forEach(cell => {
-                updateCellVisibility(cell, hiddenSet);
-            });
-            // Update Body Rows
-            const tbody = table.querySelector('tbody');
-            if (tbody) {
-                tbody.querySelectorAll('tr').forEach(row => {
-                     Array.from(row.children).forEach((cell, idx) => {
-                         // Check by class
-                         let shouldHide = false;
-                         cell.classList.forEach(cls => {
-                             if (hiddenSet.has(cls)) shouldHide = true;
-                         });
-                         
-                         // Check by index (backup)
-                         if (!shouldHide) {
-                              const headerName = HEADERS[idx];
-                              if (headerName && HEADER_CLASSES[headerName]) {
-                                  if (hiddenSet.has(HEADER_CLASSES[headerName])) shouldHide = true;
-                              }
-                         }
-
-                         cell.style.display = shouldHide ? 'none' : '';
-                         if (shouldHide) cell.style.setProperty('display', 'none', 'important');
-                     });
-                });
-            }
-        }
-    }
-
-    function updateCellVisibility(cell, hiddenSet) {
-        let shouldHide = false;
-        // Check element classes
-        cell.classList.forEach(cls => {
-            if (hiddenSet.has(cls)) shouldHide = true;
-        });
-        
-        if (shouldHide) {
-             cell.style.display = 'none';
-             cell.style.setProperty('display', 'none', 'important');
-        } else {
-             cell.style.display = '';
-        }
+        scheduleStickySync();
     }
 
     // Alias for compatibility
@@ -576,28 +556,23 @@
         }
         updateFlightCountBadge(rows.length);
 
-        // Get visibility state ONCE for the whole render
-        const hiddenSet = getHiddenClasses();
+        const dataIndexMap = new Map(currentData.map((item, idx) => [item, idx]));
 
         const html = rows.map(row => {
             const statusClass = getStatusClass(row['Status']);
             // Stable index into currentData (survives filter changes)
-            const dataIdx = currentData.indexOf(row);
+            const dataIdx = dataIndexMap.has(row) ? dataIndexMap.get(row) : currentData.indexOf(row);
             const cells = HEADERS.map(h => {
                 const content = escapeHtml(row[h] || '');
                 const colClass = HEADER_CLASSES[h] || '';
                 
-                // Determine visibility inline
-                const isHidden = hiddenSet.has(colClass);
-                const displayStyle = isHidden ? 'display: none !important;' : '';
-
                 if (h === '[Arr] Flight Designator' || h === '[Dep] Flight Designator') {
-                    return `<td class="fw-bold ${colClass}" style="${displayStyle}">${content}</td>`;
+                    return `<td class="fw-bold ${colClass}">${content}</td>`;
                 }
                 if (h === 'Status') {
-                    return `<td class="csv-status ${statusClass} ${colClass}" style="${displayStyle}">${content}</td>`;
+                    return `<td class="csv-status ${statusClass} ${colClass}">${content}</td>`;
                 }
-                return `<td class="${colClass}" style="${displayStyle}">${content}</td>`;
+                return `<td class="${colClass}">${content}</td>`;
             }).join('');
 
             // Validation cell — uses dataIdx to reference currentData
@@ -641,8 +616,8 @@
         tbody.innerHTML = html;
         attachRowSelection(tbody);
         
-        // Final sanity check (hides headers too)
-        setTimeout(updateAllVisibility, 0); 
+        // Dynamic CSS already controls column visibility; avoid full re-scan per render.
+        scheduleStickySync();
     }
 
     function editObservacion(displayEl, dataIdx) {
@@ -1300,10 +1275,16 @@
         tbody.dataset.rowSelectBound = 'true';
 
         tbody.addEventListener('click', (event) => {
+            const interactiveTarget = event.target.closest('button, a, input, textarea, select, label');
+            if (interactiveTarget) return;
             const row = event.target.closest('tr');
             if (!row) return;
-            tbody.querySelectorAll('tr.csv-row-selected').forEach(r => r.classList.remove('csv-row-selected'));
+            tbody.querySelectorAll('tr.csv-row-selected').forEach(r => {
+                r.classList.remove('csv-row-selected');
+                r.setAttribute('aria-selected', 'false');
+            });
             row.classList.add('csv-row-selected');
+            row.setAttribute('aria-selected', 'true');
         });
     }
 })();/**

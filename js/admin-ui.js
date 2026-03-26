@@ -1231,6 +1231,13 @@ class AdminUI {
 
     async deleteRecord(table, id, pkField = 'id') {
         if (confirm('¿Estás seguro de que deseas eliminar este registro?')) {
+            // MOSTRAR MENSAJE DE ELIMINANDO
+            const loadingMsg = document.createElement('div');
+            loadingMsg.id = 'deleting-overlay';
+            loadingMsg.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);color:white;display:flex;align-items:center;justify-content:center;font-size:24px;z-index:9999;flex-direction:column;';
+            loadingMsg.innerHTML = '<div class="spinner-border mb-3" style="width: 3rem; height: 3rem;" role="status"></div><div>Espera, se está eliminando el registro...</div>';
+            document.body.appendChild(loadingMsg);
+
             try {
                 // Fetch record before delete for history (approximate)
                 let recordToDelete = null;
@@ -1245,18 +1252,20 @@ class AdminUI {
                 // History Logging via Global Logger
                 if (window.logHistory && recordToDelete) {
                     await window.logHistory(
-                        'ELIMINAR', 
-                        table, 
-                        String(id), 
+                        'ELIMINAR',
+                        table,
+                        String(id),
                         { old: recordToDelete }
                     );
                 }
 
+                document.body.removeChild(loadingMsg);
                 alert('Registro eliminado correctamente.');
                 window.dispatchEvent(new CustomEvent('data-updated', { detail: { table: table } }));
             } catch (err) {
-                console.error(err);
-                alert('Error al eliminar: ' + err.message);
+                if (document.getElementById('deleting-overlay')) {
+                    document.body.removeChild(document.getElementById('deleting-overlay'));
+                }
             }
         }
     }
