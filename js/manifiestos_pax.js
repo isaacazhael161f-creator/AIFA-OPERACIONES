@@ -91,6 +91,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     windowWidth: 1000
                 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }   
+            };
+
             const pdfBlob = await window.html2pdf().set(opt).from(clone).outputPdf('blob');
             
             document.body.removeChild(wrapper);
