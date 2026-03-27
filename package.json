@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/isaacazhael161f-creator/AIFA-OPERACIONES#readme",
   "dependencies": {
+    "@supabase/supabase-js": "^2.100.1",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",

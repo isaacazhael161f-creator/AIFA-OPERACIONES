@@ -15745,15 +15745,16 @@ async function loadConciliacionManifiestos(options = {}) {
     try {
         let client = window.supabaseClient;
         if (!client && window.ensureSupabaseClient) client = await window.ensureSupabaseClient();
-        if (!client) throw new Error('No se pudo inicializar el cliente de Supabase.');
-
-        // Fetch both tables in parallel
-        const [manifestResult, vuelosResult] = await Promise.all([
+        if (!client) throw new Error('No se pudo inicializar el cliente de Supabase.');        // Fetch both tables in parallel
+        const [manifestResult, vuelosResult, paxResult] = await Promise.all([
             _concifetchAllRows(client, 'Conciliación Manifiestos', {
                 batchSize: 5000,
                 orderBy: [{ column: 'id', ascending: true }],
             }),
-            _concifetchAllRows(client, 'vuelos_parte_operaciones_csv', {
+            _concifetchAllRows(client, 'vuelos_parte_operaciones_csv', {        
+                batchSize: 5000,
+            }),
+            _concifetchAllRows(client, 'manifiestos_pasajeros', {        
                 batchSize: 5000,
             }),
         ]);
@@ -15761,9 +15762,116 @@ async function loadConciliacionManifiestos(options = {}) {
         if (requestSeq !== _conciLoadRequestSeq) return;
 
         // Ignore manifest fetch error gracefully (table may be empty)
-        const manifestRows = manifestResult.data || [];
+        let manifestRows = manifestResult.data || [];
         const vuelosRows   = vuelosResult.data   || [];
+        const paxRows = paxResult ? (paxResult.data || []) : [];
         if (vuelosResult.error && manifestResult.error) throw vuelosResult.error;
+
+        // Map paxRows to match manifestRows structure
+        let mCols = {
+            tipo: 'Tipo de Manifiesto', 
+            vuelo: '# de Vuelo',
+            aerolinea: 'Aerolínea', 
+            tipo_aeronave: 'Aeronave', 
+            matricula: 'Matrícula', 
+            origen_destino: 'Routing', 
+            h_itin: 'Hora Prog.', 
+            h_real: 'Hora Real', 
+            h_calzos: 'ALDT / ATOT', 
+            posicion: 'Stand',
+            pasajeros_total: 'Pax / Embarcados', 
+            fecha: 'Fecha',
+            year: 'Año',
+            month: 'Mes',
+            day: 'Día',
+            slot_asig: 'SLOT ASIGNADO',
+            slot_coord: 'SLOT COORDINADO',
+            hr_pernocta: 'HR. DE INICIO O TERMINO DE PERNOCTA',
+            hr_embarque: 'HR. DE EMBARQUE O DESEMBARQUE',
+            hr_operacion: 'HR. DE OPERACIÓN',
+            hr_max_ent: 'HR. MÁXIMA DE ENTREGA'
+        };
+
+        if (manifestRows.length > 0) {
+            const keys = Object.keys(manifestRows[0]);
+            const findKey = (pattern) => keys.find(k => pattern.test(k));      
+            const ct = findKey(/tipo.*(manif)/i); if(ct) mCols.tipo = ct;      
+            const cv = findKey(/(#.*vuelo|n[oú]?\.?\s*vuelo|flight\s*des|designat)/i); if(cv) mCols.vuelo = cv;
+            const ca = findKey(/(aerol[ií]nea|airline\s*cod|c[oó]d.*aerol)/i); if(ca) mCols.aerolinea = ca;
+            const cta = findKey(/(aeronave|aircraft|tipo\s*aeronave)/i); if(cta) mCols.tipo_aeronave = cta;
+            const cm = findKey(/(matr[ií]cula|registrat)/i); if(cm) mCols.matricula = cm;
+            const co = findKey(/(routing|origen|ruta)/i); if(co) mCols.origen_destino = co;
+            const chi = findKey(/sibt/i); if(chi) mCols.h_itin = chi; 
+            const chr = findKey(/aibt/i); if(chr) mCols.h_real = chr;
+            const chc = findKey(/aldt/i); if(chc) mCols.h_calzos = chc;        
+            const cpos = findKey(/stand/i); if(cpos) mCols.posicion = cpos;    
+            const cpax = findKey(/(pax|boarded|pasaj)/i); if(cpax) mCols.pasajeros_total = cpax;
+            const cdate = findKey(/(^|\b)fecha(\b|$)/i); if(cdate) mCols.fecha = cdate;
+
+            const cyear = findKey(/^a[ñn]o$/i) || findKey(/year/i); if(cyear) mCols.year = cyear;
+            const cmonth = findKey(/^mes$/i) || findKey(/month/i); if(cmonth) mCols.month = cmonth;
+            const cday = findKey(/^d[ií]a$/i) || findKey(/\bday\b/i); if(cday) mCols.day = cday;
+
+            const cslotasig = findKey(/(slot\s*asig|slot_asig)/i); if(cslotasig) mCols.slot_asig = cslotasig;
+            const cslotcoord = findKey(/(slot\s*coord|slot_coord)/i); if(cslotcoord) mCols.slot_coord = cslotcoord;
+            const chrpern = findKey(/(pernocta)/i); if(chrpern) mCols.hr_pernocta = chrpern;
+            const chremb = findKey(/(embarque\s*o|desembarque)/i); if(chremb) mCols.hr_embarque = chremb;
+            const chroper = findKey(/(hr\.?\s*de\s*oper|hora\s*de\s*oper)/i); if(chroper) mCols.hr_operacion = chroper;
+            const chrent = findKey(/(m[áa]xima\s*de\s*entrega|max.*ent)/i); if(chrent) mCols.hr_max_ent = chrent;
+        }
+
+        const paxMapped = paxRows.map(p => {
+            const obj = { _isPax: true, id: p.id };
+            
+            let fDesig = String(p.vuelo || "").trim();
+            const exp = String(p.explotador || "").trim();
+            if (exp && fDesig && !fDesig.toUpperCase().startsWith(exp.toUpperCase())) {
+                fDesig = exp + fDesig;
+            }
+
+            obj[mCols.tipo] = p.tipo;
+            obj[mCols.vuelo] = fDesig;
+            obj[mCols.aerolinea] = p.aerolinea;
+            obj[mCols.tipo_aeronave] = p.tipo_aeronave;
+            obj[mCols.matricula] = p.matricula;
+            obj[mCols.origen_destino] = p.aeropuerto_origen || p.aeropuerto_escala || p.aeropuerto_llegada_salida || '';
+            obj[mCols.h_itin] = p.h_itin;
+            obj[mCols.h_real] = p.h_real;
+            obj[mCols.h_calzos] = p.h_calzos;
+            obj[mCols.posicion] = p.posicion;
+            obj[mCols.pasajeros_total] = p.pasajeros_total;
+            obj[mCols.fecha] = p.fecha ? (p.fecha.includes('-') ? p.fecha.split('-').reverse().join('/') : p.fecha) : ''; 
+
+            if (mCols.slot_asig) obj[mCols.slot_asig] = p.slot_asig || "";
+            if (mCols.slot_coord) obj[mCols.slot_coord] = "";
+            if (mCols.hr_pernocta) obj[mCols.hr_pernocta] = "";
+            if (mCols.hr_embarque) obj[mCols.hr_embarque] = p.h_puerta || "";
+            if (mCols.hr_operacion) obj[mCols.hr_operacion] = p.hora_operacion || "";
+            if (mCols.hr_max_ent) obj[mCols.hr_max_ent] = "";
+
+            obj[mCols.year] = '';
+            obj[mCols.month] = '';
+            obj[mCols.day] = '';
+
+            if (p.fecha && p.fecha.includes('-')) {
+                const parts = p.fecha.split('-');
+                if(parts.length >= 3) {
+                    obj[mCols.year] = parts[0].trim();
+                    obj[mCols.month] = parseInt(parts[1], 10);
+                    obj[mCols.day] = parseInt(parts[2], 10);
+                }
+            } else if (p.fecha && p.fecha.includes('/')) {
+                const parts = p.fecha.split('/');
+                if(parts.length >= 3) {
+                    obj[mCols.year] = parts[2].trim();
+                    obj[mCols.month] = parseInt(parts[1], 10);
+                    obj[mCols.day] = parseInt(parts[0], 10);
+                }
+            }
+            return obj;
+        });
+
+        manifestRows = manifestRows.concat(paxMapped);
 
         // Filter vuelos by selected month (year is implicit — dates have no year in storage)
         const filteredVuelos = vuelosRows.filter(r => {
@@ -15773,14 +15881,14 @@ async function loadConciliacionManifiestos(options = {}) {
         });
 
         // Filter manifest rows by year/month if columns exist
-        let filteredManifest = manifestRows;
+        let filteredManifest = manifestRows; console.log('Manifest KEYS:', Object.keys(manifestRows[0]||{}), 'PAX:', paxRows);
         if (manifestRows.length > 0) {
             const keys = Object.keys(manifestRows[0]);
             const yearKey  = keys.find(k => /^a[ñn]o$/i.test(k) || /year/i.test(k));
             const monthKey = keys.find(k => /^mes$/i.test(k) || /month/i.test(k));
             const dayKey   = keys.find(k => /^d[ií]a$/i.test(k) || /\bday\b/i.test(k));
             const fechaKey = keys.find(k => /(^|\b)fecha(\b|$)/i.test(k));
-            if (yearKey)              filteredManifest = filteredManifest.filter(r => String(r[yearKey]) === String(year));
+            if (yearKey) filteredManifest = filteredManifest.filter(r => { let ry = String(r[yearKey]); if(ry.length === 2 && !isNaN(ry)) ry = '20' + ry; return ry === String(year); });
             if (month && monthKey)    filteredManifest = filteredManifest.filter(r => String(r[monthKey]) === String(month));
             if (day) {
                 if (dayKey) {
