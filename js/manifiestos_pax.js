@@ -61,8 +61,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Envolvemos al clon para asegurar que respete el grid de Bootstrap
             const wrapper = document.createElement('div');
-            wrapper.style.cssText = 'position:absolute; top:0; left:0; width:1140px; z-index:999998; background:white; padding:20px;';
-            
+            // Usamos un ancho de 1000px que mantiene el formato PC sin verse diminuto en hoja vertical
+            wrapper.style.cssText = 'position:absolute; top:0; left:0; width:1000px; z-index:999998; background:white; padding:10px;';
+
             const modalBodySim = document.createElement('div');
             modalBodySim.className = 'modal-body';
 
@@ -71,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
             clone.style.top = 'auto';
             clone.style.left = 'auto';
             clone.style.backgroundColor = element.style.backgroundColor || '#e2fce6';
-            
+
             modalBodySim.appendChild(clone);
             wrapper.appendChild(modalBodySim);
             document.body.appendChild(wrapper);
@@ -80,18 +81,16 @@ document.addEventListener('DOMContentLoaded', () => {
             await new Promise(r => setTimeout(r, 600));
 
             const opt = {
-                margin: 5,
+                margin: 10,
                 filename: `manifiesto_${payload.vuelo || 'desconocido'}.pdf`,   
                 image: { type: 'jpeg', quality: 1.0 },
                 html2canvas: {
                     scale: 2,
                     useCORS: true,
-                    logging: true,
-                    windowWidth: 1200
+                    logging: false,
+                    windowWidth: 1000
                 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }   
-            };
-
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }   
             const pdfBlob = await window.html2pdf().set(opt).from(clone).outputPdf('blob');
             
             document.body.removeChild(wrapper);
