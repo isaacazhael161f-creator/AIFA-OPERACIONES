@@ -53,20 +53,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Evitar hoja en blanco: ponerlo en el body, renderizar y borrar
+            // Mostrar overlay de carga en toda la pantalla para ocultar el clon
+            const loader = document.createElement('div');
+            loader.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.95);z-index:999999;display:flex;justify-content:center;align-items:center;';
+            loader.innerHTML = '<h2 style="color:#22543d; font-family:sans-serif;">Generando PDF interactivo...</h2>';
+            document.body.appendChild(loader);
+
+            // Evitar hoja en blanco: ponerlo en el body visible
             clone.style.position = 'absolute';
             clone.style.top = '0px';
-            clone.style.left = '0px'; // Tiene que estar en 0 para que html2canvas no lo recorte
-            clone.style.zIndex = '-9999'; // Lo ocultamos detrás del modal para que no se vea el parpadeo
+            clone.style.left = '0px'; 
+            clone.style.zIndex = '999998'; // Debajo del loader, pero muy por encima de todo
             clone.style.width = '1000px'; // Forzar ancho constante
             
-            // Si no tiene color de fondo, html2canvas puede ponerlo negro o transparente
+            // Si no tiene color de fondo, html2canvas puede ponerlo transparente
             clone.style.backgroundColor = element.style.backgroundColor || '#e2fce6'; 
             
             document.body.appendChild(clone);
 
-            // Dar un respiro de 1/4 de segundo para que el navegador pinte el clon en pantalla antes de la foto
-            await new Promise(r => setTimeout(r, 250));
+            // Dar respiro para que Google Chrome renderice el clon (0.5s)
+            await new Promise(r => setTimeout(r, 500));
 
             const opt = {
                 margin: 5,
@@ -86,6 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const pdfBlob = await window.html2pdf().set(opt).from(clone).outputPdf('blob');
             document.body.removeChild(clone);
+            document.body.removeChild(loader);
 
             const fileName = `manifiesto_${payload.tipo.toLowerCase()}_${payload.vuelo || 'NA'}_${Date.now()}.pdf`;
             
