@@ -15818,7 +15818,20 @@ async function loadConciliacionManifiestos(options = {}) {
             const chremb = findKey(/(embarque\s*o|desembarque)/i); if(chremb) mCols.hr_embarque = chremb;
             const chroper = findKey(/(hr\.?\s*de\s*oper|hora\s*de\s*oper)/i); if(chroper) mCols.hr_operacion = chroper;
             const chrent = findKey(/(m[áa]xima\s*de\s*entrega|max.*ent)/i); if(chrent) mCols.hr_max_ent = chrent;
+            const ctoper = findKey(/^(tipo?.*oper|service\s*type)/i); if(ctoper) mCols.tipo_operacion = ctoper;
         }
+
+        const _isNacionalMX = (code) => {
+            if (!code) return false;
+            const c = String(code).trim().toUpperCase();
+            if (c === 'NLU' || c === 'MEX' || c === 'TLC' || c === 'AIFA' || c === 'MMSM') return true;
+            if (/^MM[A-Z]{2}$/.test(c)) return true;
+            const mx_iata = new Set(['ACA','AGU','BJX','CME','CPE','CUN','CTM','CJS','CVA','CUL','CZA','CUU','CYW','CEN','DGO','GDL','GYM','HMO','HUX','JAL','LAP','LMM','LTO','ZLO','MAM','MZT','MID','MXL','MEX','NLU','MTY','MLM','NLD','OAX','PAZ','PBC','PQM','PXM','PVR','QRO','REX','SLW','SJD','SLP','TAM','TAP','TIJ','TLC','TRC','TGZ','UPN','VSA','ZCL','TZM','TQO']);
+            if (c.length === 3 && mx_iata.has(c)) return true;
+            const mx_cities = ['ACAPULCO','AGUASCALIENTES','CANCUN','CANCÚN','CAMPECHE','CHETUMAL','CIUDAD JUAREZ','CIUDAD JUÁREZ','CULIACAN','CULIACÁN','CHIHUAHUA','DURANGO','GUADALAJARA','HERMOSILLO','HUATULCO','LA PAZ','LORETO','MANZANILLO','MAZATLAN','MAZATLÁN','MERIDA','MÉRIDA','MEXICALI','MONTERREY','MORELIA','OAXACA','PUEBLA','PUERTO ESCONDIDO','PUERTO VALLARTA','QUERETARO','QUERÉTARO','REYNOSA','SALTILLO','LOS CABOS','SAN LUIS POTOSI','SAN LUIS POTOSÍ','TAMPICO','TAPACHULA','TIJUANA','TOLUCA','TORREON','TORREÓN','TULUM','TUXTLA','VILLAHERMOSA','ZACATECAS','IXTAPA','ZIHUATANEJO','CIUDAD DEL CARMEN','COZUMEL','MINATITLAN','MINATITLÁN', 'MEXICO', 'MÉXICO'];
+            if (mx_cities.some(mxc => c.includes(mxc))) return true;
+            return false;
+        };
 
         const paxMapped = paxRows.map(p => {
             const obj = { _isPax: true, id: p.id };
@@ -15842,12 +15855,26 @@ async function loadConciliacionManifiestos(options = {}) {
             obj[mCols.pasajeros_total] = p.pasajeros_total;
             obj[mCols.fecha] = p.fecha ? (p.fecha.includes('-') ? p.fecha.split('-').reverse().join('/') : p.fecha) : ''; 
 
-            if (mCols.slot_asig) obj[mCols.slot_asig] = p.slot_asig || "";
+            if (mCols.slot_asig) obj[mCols.slot_asig] = p.h_itin || p.slot_asig || "";
             if (mCols.slot_coord) obj[mCols.slot_coord] = "";
             if (mCols.hr_pernocta) obj[mCols.hr_pernocta] = "";
             if (mCols.hr_embarque) obj[mCols.hr_embarque] = p.h_puerta || "";
-            if (mCols.hr_operacion) obj[mCols.hr_operacion] = p.hora_operacion || "";
+            if (mCols.hr_operacion) obj[mCols.hr_operacion] = p.h_calzos || p.hora_operacion || "";
             if (mCols.hr_max_ent) obj[mCols.hr_max_ent] = "";
+
+            if (mCols.tipo_operacion) {
+                const locs = [p.aeropuerto_origen, p.oaci_origen, p.aeropuerto_escala, p.oaci_escala, p.aeropuerto_llegada_salida, p.origen_destino].filter(Boolean);
+                const otherLocs = locs.filter(l => {
+                    const sl = String(l).trim().toUpperCase();
+                    return sl !== 'NLU' && sl !== 'AIFA' && sl !== 'MMSM'; 
+                });
+                
+                let isNac = true;
+                if (otherLocs.length > 0) {
+                    isNac = otherLocs.every(l => _isNacionalMX(l));
+                }
+                obj[mCols.tipo_operacion] = isNac ? 'Nacional' : 'Internacional';
+            }
 
             obj[mCols.year] = '';
             obj[mCols.month] = '';
