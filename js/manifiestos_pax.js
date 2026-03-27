@@ -53,45 +53,48 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Mostrar overlay de carga en toda la pantalla para ocultar el clon
+// Mostrar overlay de carga en toda la pantalla
             const loader = document.createElement('div');
-            loader.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.95);z-index:999999;display:flex;justify-content:center;align-items:center;';
-            loader.innerHTML = '<h2 style="color:#22543d; font-family:sans-serif;">Generando PDF interactivo...</h2>';
+            loader.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#ffffff;z-index:999999;display:flex;flex-direction:column;justify-content:center;align-items:center;';
+            loader.innerHTML = '<h2 style="color:#22543d; font-family:sans-serif;">Generando PDF interactivo...</h2><p>Por favor, no cierre la ventana.</p>';
             document.body.appendChild(loader);
 
-            // Evitar hoja en blanco: ponerlo en el body visible
-            clone.style.position = 'absolute';
-            clone.style.top = '0px';
-            clone.style.left = '0px'; 
-            clone.style.zIndex = '999998'; // Debajo del loader, pero muy por encima de todo
-            clone.style.width = '1000px'; // Forzar ancho constante
+            // Envolvemos al clon para asegurar que respete el grid de Bootstrap
+            const wrapper = document.createElement('div');
+            wrapper.style.cssText = 'position:absolute; top:0; left:0; width:1140px; z-index:999998; background:white; padding:20px;';
             
-            // Si no tiene color de fondo, html2canvas puede ponerlo transparente
-            clone.style.backgroundColor = element.style.backgroundColor || '#e2fce6'; 
-            
-            document.body.appendChild(clone);
+            const modalBodySim = document.createElement('div');
+            modalBodySim.className = 'modal-body';
 
-            // Dar respiro para que Google Chrome renderice el clon (0.5s)
-            await new Promise(r => setTimeout(r, 500));
+            clone.style.position = 'relative';
+            clone.style.width = '100%';
+            clone.style.top = 'auto';
+            clone.style.left = 'auto';
+            clone.style.backgroundColor = element.style.backgroundColor || '#e2fce6';
+            
+            modalBodySim.appendChild(clone);
+            wrapper.appendChild(modalBodySim);
+            document.body.appendChild(wrapper);
+
+            // Dar respiro para renderizado
+            await new Promise(r => setTimeout(r, 600));
 
             const opt = {
                 margin: 5,
-                filename: `manifiesto_${payload.vuelo || 'desconocido'}.pdf`,
+                filename: `manifiesto_${payload.vuelo || 'desconocido'}.pdf`,   
                 image: { type: 'jpeg', quality: 1.0 },
-                html2canvas: { 
-                    scale: 2, 
+                html2canvas: {
+                    scale: 2,
                     useCORS: true,
-                    x: 0,
-                    y: 0,
-                    scrollY: 0,
-                    scrollX: 0,
-                    windowWidth: 1000
+                    logging: true,
+                    windowWidth: 1200
                 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }   
             };
 
             const pdfBlob = await window.html2pdf().set(opt).from(clone).outputPdf('blob');
-            document.body.removeChild(clone);
+            
+            document.body.removeChild(wrapper);
             document.body.removeChild(loader);
 
             const fileName = `manifiesto_${payload.tipo.toLowerCase()}_${payload.vuelo || 'NA'}_${Date.now()}.pdf`;
