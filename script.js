@@ -15615,10 +15615,10 @@ function _conciBuildEnriched(manifestRows, vuelosRows, schemaRows) {
     for (const mRow of manifestRows) {
         const enriched = { ...mRow };
 
-        const tipoRaw = colm.tipo ? (mRow[colm.tipo] || '') : '';
+        const tipoRaw = colm.tipo ? String(mRow[colm.tipo] || '') : '';
         const isLlegada = /lleg|arr/i.test(tipoRaw);
         const isSalida  = /sal|dep/i.test(tipoRaw);
-        const flightNum = colm.vuelo ? (mRow[colm.vuelo] || '').trim().toUpperCase() : '';
+        const flightNum = colm.vuelo ? String(mRow[colm.vuelo] || '').trim().toUpperCase() : '';
 
         let vRow = null;
         if (flightNum && vIndex.has(flightNum)) {
@@ -16354,20 +16354,25 @@ async function _conciWriteRowSafe(client, payload, rowId) {
         const message = String(result.error.message || '');
         let mutated = false;
 
-        const typeValueMatch = message.match(/invalid input syntax for type (?:bigint|integer|numeric|double precision):\s*"([^"]+)"/i);
+const typeValueMatch = message.match(/invalid input syntax for (?:type\s+)?(?:bigint|integer|numeric|double precision|real|smallint|decimal):\s*"([^"]+)"/i);
         if (typeValueMatch) {
-            const badValue = _conciNormalizeEditableCellText(typeValueMatch[1]);
+            const badValue = _conciNormalizeEditableCellText(typeValueMatch[1]).toLowerCase();
             Object.keys(currentPayload).forEach(col => {
                 const val = currentPayload[col];
                 if (val === null || val === undefined) return;
-                const valNorm = _conciNormalizeEditableCellText(String(val));
-                if (valNorm !== badValue) return;
+                const valNorm = _conciNormalizeEditableCellText(String(val)).toLowerCase();   
+                if (!valNorm.includes(badValue) && !badValue.includes(valNorm)) return;
 
                 const coerced = _conciCoerceNumberCandidate(val);
                 if (coerced === null || Number.isNaN(coerced)) delete currentPayload[col];
                 else currentPayload[col] = coerced;
                 mutated = true;
             });
+            // Fallback: If STILL not mutated, forcefully remove the exact known columns that are numeric if they somehow received this value
+             if (!mutated) {
+                 const knownNumCols = ['TOTAL PAX', 'KGS. DE EQUIPAJE', 'HRS. CUMPLIDAS', '# DE VUELO', 'TOTAL EXENTOS', 'PAX QUE PAGAN TUA', 'KGS. DE CARGA', 'CORREO'];
+                 knownNumCols.forEach(kc => { if (currentPayload[kc] !== undefined) { delete currentPayload[kc]; mutated = true; } });
+             }
         }
 
         const notNullMatch = message.match(/null value in column "([^"]+)" violates not-null constraint/i);
