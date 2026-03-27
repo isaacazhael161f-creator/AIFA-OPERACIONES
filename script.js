@@ -16104,6 +16104,20 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
                     const city = code ? window._iataToCity(code) : rawStr;
                     td.textContent = city || rawStr;
                     if (rawStr) td.title = rawStr;
+                } else if (/evidencia/i.test(c)) {
+                    // Si es la columna de evidencia de PDF y trae link
+                    if (rawStr && (rawStr.startsWith('http') || rawStr.endsWith('.pdf'))) {
+                        const a = document.createElement('a');
+                        a.href = rawStr;
+                        a.target = '_blank'; // Abrir en nueva pestaña
+                        a.rel = 'noopener noreferrer';
+                        a.className = 'btn btn-sm btn-outline-danger py-0 px-2';
+                        a.style.cssText = 'border-radius: 4px; font-weight: 500; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px;';
+                        a.innerHTML = '<i class="fas fa-file-pdf"></i> Ver PDF';
+                        td.appendChild(a);
+                    } else {
+                        td.textContent = rawStr;
+                    }
                 } else {
                     const displayValue = _conciFormatDisplayValue(c, val, row, _fechaCol, fallbackYear);
                     td.textContent = displayValue;
