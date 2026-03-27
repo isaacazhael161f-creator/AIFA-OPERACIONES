@@ -56,19 +56,30 @@ document.addEventListener('DOMContentLoaded', () => {
             // Evitar hoja en blanco: ponerlo en el body, renderizar y borrar
             clone.style.position = 'absolute';
             clone.style.top = '0px';
-            clone.style.left = '-9999px'; // offscreen pero arriba
-            clone.style.width = element.scrollWidth + 'px';
+            clone.style.left = '0px'; // Tiene que estar en 0 para que html2canvas no lo recorte
+            clone.style.zIndex = '-9999'; // Lo ocultamos detrás del modal para que no se vea el parpadeo
+            clone.style.width = '1000px'; // Forzar ancho constante
+            
+            // Si no tiene color de fondo, html2canvas puede ponerlo negro o transparente
+            clone.style.backgroundColor = element.style.backgroundColor || '#e2fce6'; 
+            
             document.body.appendChild(clone);
+
+            // Dar un respiro de 1/4 de segundo para que el navegador pinte el clon en pantalla antes de la foto
+            await new Promise(r => setTimeout(r, 250));
 
             const opt = {
                 margin: 5,
                 filename: `manifiesto_${payload.vuelo || 'desconocido'}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
+                image: { type: 'jpeg', quality: 1.0 },
                 html2canvas: { 
                     scale: 2, 
                     useCORS: true,
+                    x: 0,
+                    y: 0,
                     scrollY: 0,
-                    scrollX: 0
+                    scrollX: 0,
+                    windowWidth: 1000
                 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
             };
