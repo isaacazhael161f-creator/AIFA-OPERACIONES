@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 span.style.alignItems = 'flex-end'; // Empujar el texto hacia el borde inferior
                 
                 // Respetamos la alineación horizontal original, por defecto centrada
-                const align = styles.textAlign || 'center';
+                const align = \'center\';
                 span.style.justifyContent = align === 'left' || align === 'start' ? 'flex-start' : (align === 'right' || align === 'end' ? 'flex-end' : 'center');
                 span.style.textAlign = align;
                 
