@@ -16,12 +16,18 @@ async function loadAerolineasDashboard() {
     tblBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Cargando datos...</td></tr>';
     
     try {
+        let client = window.supabaseClient;
+        if (!client && typeof window.ensureSupabaseClient === 'function') {
+            client = await window.ensureSupabaseClient();
+        }
+        if (!client) throw new Error('Cliente Supabase no disponible');
+
         // Fetch Pasajeros
-        const { data: paxData, error: paxError } = await window.supabaseClient.from('Aerolíneas de pasajeros').select('*');
+        const { data: paxData, error: paxError } = await client.from('Aerolíneas de pasajeros').select('*');
         if (paxError) throw paxError;
         
         // Fetch Carga
-        const { data: cargoData, error: cargoError } = await window.supabaseClient.from('Aerolíneas de carga').select('*');
+        const { data: cargoData, error: cargoError } = await client.from('Aerolíneas de carga').select('*');
         if (cargoError) throw cargoError;
         
         const finalData = [];
@@ -86,12 +92,12 @@ function renderAirlinesTable(data) {
             : '<span class="badge" style="background-color:#6f42c1">Carga</span>';
             
         const tr = document.createElement('tr');
-        tr.innerHTML = 
-            <td></td>
-            <td class="fw-bold"></td>
-            <td></td>
-            <td class="text-muted small"></td>
-        ;
+        tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td class="fw-bold">${item.nombre}</td>
+            <td>${catBadge}</td>
+            <td class="text-muted small">${item.servicio}</td>
+        `;
         tblBody.appendChild(tr);
     });
 }
