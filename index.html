@@ -1051,7 +1051,11 @@
                     <!-- 6. Conciliación -->
                     <a class="menu-item" href="#" data-section="conciliacion"><i
                             class="fas fa-tasks"></i><span>Conciliación</span></a>
-                            
+
+                    <!-- 7. Aerolíneas -->
+                    <a class="menu-item" href="#" data-section="aerolineas"><i
+                            class="fas fa-plane"></i><span>Aerolíneas</span></a>
+
                     <!-- Resto -->
                     <a class="menu-item" href="#" data-section="puntualidad-agosto">
                         <span class="icon-clock-check" aria-hidden="true">
@@ -4490,6 +4494,74 @@
                                 </div>
 
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aerolíneas Section -->
+                <div id="aerolineas-section" class="content-section">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                            <h2 class="section-title mb-0 fs-4 fw-bold text-primary"><i class="fas fa-plane me-2"></i>Catálogo de Aerolíneas</h2>
+                            <button class="btn btn-sm btn-outline-primary" onclick="loadAerolineasDashboard()">
+                                <i class="fas fa-sync-alt"></i> Actualizar
+                            </button>
+                        </div>
+                        <div class="card-body bg-light">
+                            <!-- KPIs -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-4">
+                                    <div class="card h-100 border-0 shadow-sm text-center p-3">
+                                        <div class="text-muted small text-uppercase">Total de Aerolíneas</div>
+                                        <div class="fs-1 fw-bold text-primary" id="aero-kpi-total">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card h-100 border-0 shadow-sm text-center p-3">
+                                        <div class="text-muted small text-uppercase">Aerolíneas de Pasajeros</div>
+                                        <div class="fs-1 fw-bold text-success" id="aero-kpi-pax">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card h-100 border-0 shadow-sm text-center p-3">
+                                        <div class="text-muted small text-uppercase">Aerolíneas de Carga</div>
+                                        <div class="fs-1 fw-bold" style="color: #6f42c1" id="aero-kpi-cargo">-</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Search & Tables -->
+                            <div class="row g-4">
+                                <div class="col-12">
+                                    <div class="card shadow-sm border-0">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                                <h5 class="card-title text-primary mb-0"><i class="fas fa-list me-2"></i>Directorio General</h5>
+                                                <div class="input-group" style="max-width: 300px;">
+                                                    <span class="input-group-text bg-white"><i class="fas fa-search"></i></span>
+                                                    <input type="text" class="form-control" id="aero-search" placeholder="Buscar aerolínea..." onkeyup="filterAirlinesTable()">
+                                                </div>
+                                            </div>
+                                            <div class="table-responsive">
+                                                <table class="table table-hover table-striped align-middle" id="aero-main-table">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>No.</th>
+                                                            <th>Aerolínea</th>
+                                                            <th>Categoría</th>
+                                                            <th>Tipo de Servicio</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="aero-table-body">
+                                                        <tr><td colspan="4" class="text-center py-4 text-muted">Cargando datos...</td></tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
                         </div>
                     </div>
                 </div>
@@ -12646,6 +12718,7 @@
     <script src="js/inicio.js"></script>
     <script src="js/itinerario.js?v=3"></script>
     <script src="js/demoras.js"></script>
+    <script src="js/aerolineas.js"></script>
     <script src="js/analisis-operaciones.js?v=2"></script>
     <script src="js/operaciones.js"></script>
     <script src="js/frecuencias.js"></script>
