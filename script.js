@@ -15583,13 +15583,28 @@ function _conciBuildEnriched(manifestRows, vuelosRows, schemaRows) {
     // Determine output columns
     let outputCols;
     if (hasManifest) {
-        outputCols = [...manifestKeys];
+        outputCols = [
+            "CIERRE SUBSECRETARIA", "MES", "FECHA", "TIPO DE MANIFIESTO", "AEROLINEA",
+            "TIPO DE OPERACIÓN", "AERONAVE", "MATRÍCULA", "ESTATUS MATRÍCULA", "# DE VUELO",
+            "DESTINO / ORIGEN", "SLOT ASIGNADO", "SLOT COORDINADO", "HR. DE INICIO O TERMINO DE PERNOCTA",
+            "HR. DE EMBARQUE O DESEMBARQUE", "HR. DE OPERACIÓN", "HR. MÁXIMA DE ENTREGA", "HR. DE RECEPCIÓN",
+            "HRS. CUMPLIDAS", "PUNTUALIDAD / CANCELACIÓN", "TOTAL PAX", "DIPLOMATICOS", "EN COMISION",
+            "INFANTES", "TRANSITOS", "CONEXIONES", "OTROS EXENTOS", "TOTAL EXENTOS", "PAX QUE PAGAN TUA",
+            "KGS. DE EQUIPAJE", "KGS. DE CARGA", "CORREO", "DEMORA +- 15 MIN.", "CÓDIGO DEMORA",
+            "OBSERVACIONES", "CAPTURÓ", "id", "EVIDENCIA", "Hora y Fecha Generación", "_fuente"
+        ];
+        if (!outputCols.includes('Hora y Fecha Generación')) outputCols.push('Hora y Fecha Generación');
         if (!outputCols.includes('_fuente')) outputCols.push('_fuente');
     } else {
-        outputCols = [
-            'Tipo de Manifiesto','# de Vuelo','Aerolínea','Tipo de Operación',
-            'Aeronave','Matrícula','Routing','Stand','Puerta','Pax / Embarcados',
-            'Cinta','Hora Prog.','Hora Real','ALDT / ATOT','ATTT','Status','_fuente'
+              outputCols = [
+            "CIERRE SUBSECRETARIA", "MES", "FECHA", "TIPO DE MANIFIESTO", "AEROLINEA",
+            "TIPO DE OPERACIÓN", "AERONAVE", "MATRíCULA", "ESTATUS MATRÍCULA", "# DE VUELO",
+            "DESTINO / ORIGEN", "SLOT ASIGNADO", "SLOT COORDINADO", "HR. DE INICIO O TERMINO DE PERNOCTA",
+            "HR. DE EMBARQUE O DESEMBARQUE", "HR. DE OPERACKN", "HR. MÈXIMA DE ENTREGA", "HR. DE RECEPCIÓN",
+            "HRS. CUMPLIDAS", "PUNTUALIDAD / CANCELACIÓN", "TOTAL PAX", "DIPLOMATICOS", "EN COMISION",
+            "INFANTES", "TRANSITOS", "CONEXIONES", "OTROS EXENTOS", "TOTAL EXENTOS", "PAX QUE PAGAN TUA",
+            "KGS. DE EQUIPAJE", "KGS. DE CARGA", "CORREO", "DEMORA +- 15 MIN.", "CDIGO DEMORA",
+            "OBSERVACIONES", "CAPTURÓ", "id", "EVIDENCIA", "Hora y Fecha Generación", "_fuente"
         ];
     }
 
@@ -15768,28 +15783,30 @@ async function loadConciliacionManifiestos(options = {}) {
         if (vuelosResult.error && manifestResult.error) throw vuelosResult.error;
 
         // Map paxRows to match manifestRows structure
-        let mCols = {
-            tipo: 'Tipo de Manifiesto', 
-            vuelo: '# de Vuelo',
-            aerolinea: 'Aerolínea', 
-            tipo_aeronave: 'Aeronave', 
-            matricula: 'Matrícula', 
-            origen_destino: 'Routing', 
-            h_itin: 'Hora Prog.', 
-            h_real: 'Hora Real', 
-            h_calzos: 'ALDT / ATOT', 
-            posicion: 'Stand',
-            pasajeros_total: 'Pax / Embarcados', 
-            fecha: 'Fecha',
-            year: 'Año',
-            month: 'Mes',
-            day: 'Día',
+                let mCols = {
+            tipo: 'TIPO DE MANIFIESTO',
+            vuelo: '# DE VUELO',
+            aerolinea: 'AEROLINEA',
+            tipo_aeronave: 'AERONAVE',
+            matricula: 'MATRÍCULA',
+            origen_destino: 'DESTINO / ORIGEN',
+            h_itin: 'HR. DE OPERACIÓN',
+            h_real: 'HR. DE EMBARQUE O DESEMBARQUE',
+            h_calzos: 'HR. DE INICIO O TERMINO DE PERNOCTA',
+            posicion: 'HR. DE RECEPCIÓN',
+            pasajeros_total: 'TOTAL PAX',
+            fecha: 'FECHA',
+            year: 'MES',
+            month: 'MES',
+            day: 'FECHA',
             slot_asig: 'SLOT ASIGNADO',
             slot_coord: 'SLOT COORDINADO',
             hr_pernocta: 'HR. DE INICIO O TERMINO DE PERNOCTA',
             hr_embarque: 'HR. DE EMBARQUE O DESEMBARQUE',
             hr_operacion: 'HR. DE OPERACIÓN',
-            hr_max_ent: 'HR. MÁXIMA DE ENTREGA'
+            hr_max_ent: 'HR. MÁXIMA DE ENTREGA',
+            tipo_operacion: 'TIPO DE OPERACIÓN',
+            evidencia: 'EVIDENCIA'
         };
 
         if (manifestRows.length > 0) {
@@ -15819,6 +15836,7 @@ async function loadConciliacionManifiestos(options = {}) {
             const chroper = findKey(/(hr\.?\s*de\s*oper|hora\s*de\s*oper)/i); if(chroper) mCols.hr_operacion = chroper;
             const chrent = findKey(/(m[áa]xima\s*de\s*entrega|max.*ent)/i); if(chrent) mCols.hr_max_ent = chrent;
             const ctoper = findKey(/^(tipo?.*oper|service\s*type)/i); if(ctoper) mCols.tipo_operacion = ctoper;
+            const cevid = findKey(/evidencia/i); if(cevid) mCols.evidencia = cevid;
         }
 
         const _isNacionalMX = (code) => {
@@ -15861,6 +15879,7 @@ async function loadConciliacionManifiestos(options = {}) {
             if (mCols.hr_embarque) obj[mCols.hr_embarque] = p.h_puerta || "";
             if (mCols.hr_operacion) obj[mCols.hr_operacion] = p.h_calzos || p.hora_operacion || "";
             if (mCols.hr_max_ent) obj[mCols.hr_max_ent] = "";
+            if (mCols.evidencia) obj[mCols.evidencia] = p.pdf_url || "";
 
             if (mCols.tipo_operacion) {
                 const locs = [p.aeropuerto_origen, p.oaci_origen, p.aeropuerto_escala, p.oaci_escala, p.aeropuerto_llegada_salida, p.origen_destino].filter(Boolean);
@@ -15898,7 +15917,7 @@ async function loadConciliacionManifiestos(options = {}) {
             return obj;
         });
 
-        manifestRows = manifestRows.concat(paxMapped);
+        // manifestRows = manifestRows.concat(paxMapped); // DESHABILITADO PARA NO DUPLICAR
 
         // Filter vuelos by selected month (year is implicit — dates have no year in storage)
         const filteredVuelos = vuelosRows.filter(r => {
@@ -15916,7 +15935,7 @@ async function loadConciliacionManifiestos(options = {}) {
             const dayKey   = keys.find(k => /^d[ií]a$/i.test(k) || /\bday\b/i.test(k));
             const fechaKey = keys.find(k => /(^|\b)fecha(\b|$)/i.test(k));
             if (yearKey) filteredManifest = filteredManifest.filter(r => { let ry = String(r[yearKey]); if(ry.length === 2 && !isNaN(ry)) ry = '20' + ry; return ry === String(year); });
-            if (month && monthKey)    filteredManifest = filteredManifest.filter(r => String(r[monthKey]) === String(month));
+            if (month) filteredManifest = filteredManifest.filter(r => { let rm = r[monthKey]; if(!rm && r[fechaKey]) { const parts = _conciParseDateTimeParts(r[fechaKey], year); if(parts && parts.month) rm = parts.month; } return String(rm) === String(month); });
             if (day) {
                 if (dayKey) {
                     filteredManifest = filteredManifest.filter(r => String(r[dayKey]) === String(day));
@@ -15996,8 +16015,8 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
     thead.innerHTML = '';
     tbody.innerHTML = '';
 
-    // Display columns: hide the internal _fuente marker column
-    const displayCols = (columns || (data.length ? Object.keys(data[0]) : [])).filter(c => c !== '_fuente');
+    // Display columns: hide the internal marker columns
+    const displayCols = (columns || (data.length ? Object.keys(data[0]) : [])).filter(c => !['_fuente', '_isPax', 'id', 'Año', 'Mes', 'Día'].includes(c));
 
     // Detect semantic columns for smart city-name display in routing/origen cell
     const _tipoCol    = displayCols.find(c => /tipo.*(manif)/i.test(c)) || null;

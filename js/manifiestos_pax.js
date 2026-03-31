@@ -59,19 +59,32 @@ document.addEventListener('DOMContentLoaded', () => {
             loader.innerHTML = '<h2 style="color:#22543d; font-family:sans-serif;">Generando PDF interactivo...</h2><p>Por favor, no cierre la ventana.</p>';
             document.body.appendChild(loader);
 
-            // Envolvemos al clon para asegurar que respete el grid de Bootstrap
+            // Envolvemos al clon para asegurar que respete el grid sin apretarse
             const wrapper = document.createElement('div');
-            // Usamos un ancho de 1000px que mantiene el formato PC sin verse diminuto en hoja vertical
-            wrapper.style.cssText = 'position:absolute; top:0; left:0; width:1000px; z-index:999998; background:white; padding:10px;';
+            // Tamaño base, propocional a Carta (Letter): 1000px ancho x 1294px alto (relación 8.5 x 11)
+            // Se le da display flex para que el contenido se reparta u ocupe el espacio orgánicamente
+            wrapper.style.cssText = 'position:absolute; top:0; left:0; width:1000px; min-height:1294px; z-index:-1; background:white; padding:10px; box-sizing:border-box; overflow:hidden; display:flex; flex-direction:column;';
 
             const modalBodySim = document.createElement('div');
-            modalBodySim.className = 'modal-body';
+            modalBodySim.className = 'modal-body container-fluid';
+            modalBodySim.style.margin = '0';
+            modalBodySim.style.padding = '0px'; 
+            modalBodySim.style.flex = '1';
 
             clone.style.position = 'relative';
             clone.style.width = '100%';
+            clone.style.height = '100%'; // para que estire
             clone.style.top = 'auto';
             clone.style.left = 'auto';
+            clone.style.margin = '0';
             clone.style.backgroundColor = element.style.backgroundColor || '#e2fce6';
+
+            // ATENCIÓN: Eliminar los márgenes negativos de Bootstrap (.row) que provocan que el borde izquierdo y derecho se corten en el html2canvas
+            const bRows = clone.querySelectorAll('.row');
+            bRows.forEach(row => {
+                row.style.marginLeft = '0';
+                row.style.marginRight = '0';
+            });
 
             modalBodySim.appendChild(clone);
             wrapper.appendChild(modalBodySim);
@@ -80,27 +93,70 @@ document.addEventListener('DOMContentLoaded', () => {
             // Dar respiro para renderizado
             await new Promise(r => setTimeout(r, 600));
 
-            const opt = {
-                margin: 10,
-                filename: `manifiesto_${payload.vuelo || 'desconocido'}.pdf`,   
-                image: { type: 'jpeg', quality: 1.0 },
-                html2canvas: {
+            // Calculamos dimensiones para forzar que sea exactamente una hoja
+            let pdfBlob = null;
+            if (window.html2canvas && window.jspdf && window.jspdf.jsPDF) {
+                // Al subir la pantalla a 0,0 evitamos cortes por scroll
+                const oldScroll = window.scrollY;
+                window.scrollTo(0, 0);
+
+                const canvas = await window.html2canvas(wrapper, {
                     scale: 2,
                     useCORS: true,
                     logging: false,
-                    windowWidth: 1000
-                },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }   
-            };
+                    backgroundColor: '#ffffff',
+                    windowWidth: 1000,
+                    x: 0,
+                    y: 0,
+                    scrollX: 0,
+                    scrollY: 0
+                });
 
-            const pdfBlob = await window.html2pdf().set(opt).from(clone).outputPdf('blob');
+                window.scrollTo(0, oldScroll);
+
+                const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                const pdf = new window.jspdf.jsPDF('p', 'mm', 'letter');
+                const pdfW = pdf.internal.pageSize.getWidth();
+                const pdfH = pdf.internal.pageSize.getHeight();
+
+                // Forzamos que la imagen cubra exactamente el lienzo de toda la hoja Letter,
+                // ya que hemos preparado el wrapper con la proporción idéntica
+                pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH);
+                pdfBlob = pdf.output('blob');
+            } else {
+                // Fallback automático
+                const opt = {
+                    margin: 5,
+                    filename: `manifiesto_${payload.vuelo || 'desconocido'}.pdf`,
+                    image: { type: 'jpeg', quality: 1.0 },
+                    html2canvas: { scale: 2, useCORS: true, logging: false },
+                    jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+                };
+                pdfBlob = await window.html2pdf().set(opt).from(wrapper).outputPdf('blob');
+            }
             
             document.body.removeChild(wrapper);
             document.body.removeChild(loader);
 
             const fileName = `manifiesto_${payload.tipo.toLowerCase()}_${payload.vuelo || 'NA'}_${Date.now()}.pdf`;
-            
-            // Subir a Supabase Storage
+
+            try {
+                const downloadUrl = window.URL.createObjectURL(pdfBlob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = downloadUrl;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(downloadUrl);
+                    a.remove();
+                }, 100);
+            } catch (e) {
+                console.error("Error trigger auto-download", e);
+            }
+
+            // Subir a SupabaseStorage
             const { data: uploadData, error: uploadError } = await window.supabaseClient.storage
                 .from('manifiestos_pdfs')
                 .upload(fileName, pdfBlob, {
@@ -136,53 +192,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const syncToConciliacion = async (payload, pdfUrl = '') => {
         try {
-            const _isNac = (code) => {
-                if (!code) return false;
-                const c = String(code).trim().toUpperCase();
-                if (c === 'NLU' || c === 'MEX' || c === 'TLC' || c === 'AIFA' || c === 'MMSM') return true;
-                if (/^MM[A-Z]{2}$/.test(c)) return true;
-                const mx = new Set(['ACA','AGU','BJX','CME','CPE','CUN','CTM','CJS','CVA','CUL','CZA','CUU','CYW','CEN','DGO','GDL','GYM','HMO','HUX','JAL','LAP','LMM','LTO','ZLO','SJD','MAM','MTT','MXL','MTY','OAX','PQM','PBC','PDS','PAZ','PRX','QRO','REX','SLW','TAM','TAP','TGZ','TIJ','TPQ','TRC','UPN','UPA','UKE','VER','VSA','ZCL','ZIH','ZLC']);
-                return mx.has(c);
-            };
+            const now = new Date();
+            const fechaHora = now.toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });
 
-            const locs = [payload.aeropuerto_origen, payload.oaci_origen, payload.aeropuerto_escala, payload.oaci_escala, payload.aeropuerto_llegada_salida, payload.origen_destino].filter(Boolean);
-            const otherLocs = locs.filter(l => { const sl = String(l).trim().toUpperCase(); return sl !== 'NLU' && sl !== 'AIFA' && sl !== 'MMSM'; });
-            let tipoOperacion = 'Internacional';
-            if (otherLocs.length > 0 && otherLocs.every(l => _isNac(l))) tipoOperacion = 'Nacional';
-            if (otherLocs.length === 0) tipoOperacion = 'Nacional';
-
-            let formattedFecha = '';
-            if (payload.fecha) {
-                formattedFecha = payload.fecha.includes('-') ? payload.fecha.split('-').reverse().join('/') : payload.fecha;
+            const exploitador = payload.explotador ? payload.explotador.trim() : '';
+            const numVuelo = payload.vuelo ? payload.vuelo.trim() : '';
+            let vueloCompleto = numVuelo;
+            if (exploitador && numVuelo && !numVuelo.toUpperCase().startsWith(exploitador.toUpperCase())) {
+                vueloCompleto = exploitador + numVuelo;
             }
-            const monthStr = payload.fecha ? parseInt(payload.fecha.split('-')[1], 10) : '';
+
+            const isNac = (payload.aeropuerto_origen && payload.aeropuerto_origen.includes('MX')) || 
+                          (payload.aeropuerto_llegada_salida && payload.aeropuerto_llegada_salida.includes('MX')) ? 'Nacional' : 'Internacional';
+
+            let numMes = null;
+            if (payload.fecha && payload.fecha.includes('-')) {
+                const p = payload.fecha.split('-');
+                if(p.length >= 2) numMes = String(parseInt(p[1], 10));
+            }
 
             const pConci = {
+                'MES': numMes,
                 'TIPO DE MANIFIESTO': payload.tipo,
-                '# DE VUELO': payload.vuelo || '',
+                '# DE VUELO': parseInt(String(vueloCompleto).replace(/[^0-9]/g, '')) || null,
                 'AEROLINEA': payload.aerolinea || '',
                 'AERONAVE': payload.tipo_aeronave || '',
                 'MATRÍCULA': payload.matricula || '',
-                'DESTINO / ORIGEN': payload.aeropuerto_origen || payload.oaci_origen || payload.aeropuerto_escala || payload.aeropuerto_llegada_salida || '',
-                'FECHA': formattedFecha,
-                'MES': isNaN(monthStr) ? null : monthStr,
-                'HR. DE INICIO O TERMINO DE PERNOCTA': '',
-                'HR. MÁXIMA DE ENTREGA': '',
-                'HR. DE EMBARQUE O DESEMBARQUE': payload.h_puerta || '',
-                'HR. DE OPERACIÓN': payload.h_calzos || payload.hora_operacion || '',
-                'SLOT ASIGNADO': payload.h_itin || payload.slot_asig || '',  
-                'SLOT COORDINADO': '',
+                'DESTINO / ORIGEN': payload.aeropuerto_origen || payload.aeropuerto_escala || payload.aeropuerto_llegada_salida || '',
                 'TOTAL PAX': payload.pasajeros_total || 0,
-                'TIPO DE OPERACIÓN': tipoOperacion,
-                'INFANTES': payload.pasajeros_infantes || 0,
-                'CÓDIGO DEMORA': payload.demora1_codigo || null,
-                'OBSERVACIONES': payload.motivo_demora || null,
-                'EVIDENCIA': pdfUrl // Columna del PDF
+                'FECHA': payload.fecha || '',
+                'EVIDENCIA': pdfUrl || '',
+                'TIPO DE OPERACIÓN': payload.clase_servicio || isNac,
+                'Hora y Fecha Generación': fechaHora
             };
 
-            await window.supabaseClient.from('Conciliación Manifiestos').insert([pConci]);
-        } catch (ec) {
-            console.error('Error al sincronizar con Conciliación Manifiestos:', ec);
+            // Intentar insertar a Conciliación Manifiestos
+            const { error: errConci } = await window.supabaseClient
+                .from('Conciliación Manifiestos')
+                .insert([pConci]);
+
+            if (errConci) {
+                console.error("No se pudo insertar en Conciliación Manifiestos (verifica que la columna 'Hora y Fecha Generación' o 'EVIDENCIA' existan si marca error de esquema):", errConci);
+            } else {
+                console.log("Se insertó exitosamente el registro en Conciliación Manifiestos con su Hora y Fecha.");
+            }
+        } catch (e) {
+            console.error("Error en syncToConciliacion:", e);
         }
     };
 
