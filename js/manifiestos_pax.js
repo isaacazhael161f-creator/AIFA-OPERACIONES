@@ -38,14 +38,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Intentamos replicar estilos básicos visuales fijos para que no dependa del agente
                 const styles = window.getComputedStyle(orig);
                 span.style.cssText = styles.cssText;
-                span.style.display = 'inline-block';
-                span.style.border = 'none';
+                
+                // Forzar bottom border estilo subrayado
+                span.style.borderTop = 'none';
+                span.style.borderLeft = 'none';
+                span.style.borderRight = 'none';
+                // Si el input original tenía checkboxes/radios, los quitamos, si no, dibujamos el borde inferior
+                if (orig.tagName === 'INPUT' && (orig.type === 'radio' || orig.type === 'checkbox')) {
+                    span.style.borderBottom = 'none';
+                } else {
+                    span.style.borderBottom = (styles.borderBottom && styles.borderBottom !== '0px none rgb(0, 0, 0)' && !styles.borderBottom.includes('none')) ? styles.borderBottom : '1px solid #1a202c';
+                }
+                
                 span.style.backgroundColor = 'transparent';
                 span.style.color = '#000';
                 span.style.fontWeight = 'bold';
                 span.style.minHeight = '24px';
                 span.style.minWidth = '30px';
                 span.style.padding = '0 5px';
+                
+                // Ajustar text-align y padding para que el texto descanse sobre la línea inferior
+                span.style.display = 'inline-flex';
+                span.style.alignItems = 'flex-end'; // Empujar el texto hacia el borde inferior
+                
+                // Respetamos la alineación horizontal original, por defecto centrada
+                const align = styles.textAlign || 'center';
+                span.style.justifyContent = align === 'left' || align === 'start' ? 'flex-start' : (align === 'right' || align === 'end' ? 'flex-end' : 'center');
+                span.style.textAlign = align;
+                
                 span.textContent = val;
                 
                 if (cloneInputs[index] && cloneInputs[index].parentNode) {
