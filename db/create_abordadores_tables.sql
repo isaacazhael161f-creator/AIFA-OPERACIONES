@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS registros_servicio_aeropasillos (
     aeronave                TEXT,
     empleado_acople         TEXT,
     -- LLEGADA
+    lleg_programada         TIME,
     lleg_no_vuelo           TEXT,
     lleg_origen             TEXT,
     lleg_h_calzos           TIME,
@@ -88,6 +89,7 @@ CREATE TABLE IF NOT EXISTS registros_servicio_aeropasillos (
     lleg_no_pax             TEXT,                   -- puede ser "N/A"
     lleg_empleado_desacople TEXT,
     -- SALIDA
+    sal_programada          TIME,
     sal_no_vuelo            TEXT,
     sal_destino             TEXT,
     sal_no_pax              TEXT,

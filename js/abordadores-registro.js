@@ -453,6 +453,10 @@
         if (pcaEl) pcaEl.value = '';
         if (salEl) { salEl.value = ''; delete salEl.dataset.manualOverride; }
         apFillCoordinador();
+        const llegProgEl = document.getElementById('ap-lleg-programada');
+        const salProgEl  = document.getElementById('ap-sal-programada');
+        if (llegProgEl) llegProgEl.value = '';
+        if (salProgEl)  salProgEl.value  = '';
         const fb = document.getElementById('ap-form-feedback');
         if (fb) fb.classList.add('d-none');
     }
@@ -483,6 +487,7 @@
                 linea_aerea:              document.getElementById('ap-linea-aerea').value.trim() || null,
                 aeronave:                 document.getElementById('ap-aeronave').value.trim() || null,
                 empleado_acople:          document.getElementById('ap-empleado-acople').value.trim() || null,
+                lleg_programada:          document.getElementById('ap-lleg-programada')?.value || null,
                 lleg_no_vuelo:            document.getElementById('ap-lleg-vuelo').value.trim() || null,
                 lleg_origen:              document.getElementById('ap-lleg-origen').value.trim().toUpperCase() || null,
                 lleg_h_calzos:            document.getElementById('ap-lleg-h-calzos').value || null,
@@ -490,6 +495,7 @@
                 lleg_h_acople:            document.getElementById('ap-lleg-h-acople').value || null,
                 lleg_no_pax:              document.getElementById('ap-lleg-pax').value.trim() || null,
                 lleg_empleado_desacople:  document.getElementById('ap-lleg-empleado-desacople').value.trim() || null,
+                sal_programada:           document.getElementById('ap-sal-programada')?.value || null,
                 sal_no_vuelo:             document.getElementById('ap-sal-vuelo').value.trim() || null,
                 sal_destino:              document.getElementById('ap-sal-destino').value.trim().toUpperCase() || null,
                 sal_no_pax:               document.getElementById('ap-sal-pax').value.trim() || null,
@@ -760,7 +766,6 @@
 
     function init() {
         setupGlobalTimeHandling();
-        upgradeFormsForTablet();
         aoInitEvents();
         apInitEvents();
         bindTabListeners();
