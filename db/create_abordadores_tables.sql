@@ -161,11 +161,13 @@ ALTER TABLE ordenes_servicio_aerocares
     ADD COLUMN IF NOT EXISTS firma_operador  TEXT,
     ADD COLUMN IF NOT EXISTS sig_aerolinea   TEXT,
     ADD COLUMN IF NOT EXISTS sig_operador    TEXT,
-    ADD COLUMN IF NOT EXISTS sig_coordinador TEXT;
+    ADD COLUMN IF NOT EXISTS sig_coordinador TEXT,
+    ADD COLUMN IF NOT EXISTS pdf_url         TEXT;
 
 ALTER TABLE registros_servicio_aeropasillos
     ADD COLUMN IF NOT EXISTS lleg_programada TIME,
     ADD COLUMN IF NOT EXISTS sal_programada  TIME,
     ADD COLUMN IF NOT EXISTS sig_aerolinea   TEXT,
     ADD COLUMN IF NOT EXISTS sig_operador    TEXT,
-    ADD COLUMN IF NOT EXISTS sig_coordinador TEXT;
+    ADD COLUMN IF NOT EXISTS sig_coordinador TEXT,
+    ADD COLUMN IF NOT EXISTS pdf_url         TEXT;

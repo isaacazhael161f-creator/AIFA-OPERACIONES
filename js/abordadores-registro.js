@@ -226,8 +226,18 @@
                 created_by:        user?.id || null,
             };
 
-            const { error } = await supabase.from(AO_TABLE).insert([payload]);
+            const { data: aoInserted, error } = await supabase.from(AO_TABLE).insert([payload]).select('id').single();
             if (error) throw error;
+
+            // Generar PDF de la boleta y guardarlo en Storage
+            const pdfBlob = await boletaCapturePdf('ao-boleta-card');
+            if (pdfBlob && aoInserted?.id) {
+                const pdfPath = `aerocares/${payload.folio || aoInserted.id}.pdf`;
+                const pdfUrl  = await boletaUploadPdf(pdfBlob, pdfPath, supabase);
+                if (pdfUrl) {
+                    await supabase.from(AO_TABLE).update({ pdf_url: pdfUrl }).eq('id', aoInserted.id);
+                }
+            }
 
             showFeedback('ao-form-feedback', 'success', `✅ Orden guardada correctamente (Folio ${payload.folio}).`);
             aoReset();
@@ -530,8 +540,18 @@
                 created_by:               user?.id || null,
             };
 
-            const { error } = await supabase.from(AP_TABLE).insert([payload]);
+            const { data: apInserted, error } = await supabase.from(AP_TABLE).insert([payload]).select('id').single();
             if (error) throw error;
+
+            // Generar PDF de la boleta y guardarlo en Storage
+            const pdfBlob = await boletaCapturePdf('ap-boleta-card');
+            if (pdfBlob && apInserted?.id) {
+                const pdfPath = `aeropasillos/${payload.folio || apInserted.id}.pdf`;
+                const pdfUrl  = await boletaUploadPdf(pdfBlob, pdfPath, supabase);
+                if (pdfUrl) {
+                    await supabase.from(AP_TABLE).update({ pdf_url: pdfUrl }).eq('id', apInserted.id);
+                }
+            }
 
             showFeedback('ap-form-feedback', 'success', `✅ Registro guardado correctamente (Folio ${payload.folio}).`);
             apReset();
@@ -760,6 +780,40 @@
             inp.value = hhmm;
             inp.dispatchEvent(new Event('change', { bubbles: true }));
         }, false);
+    }
+
+    // ── PDF boleta ─────────────────────────────────────────────────────────
+    // Genera un Blob PDF desde el elemento de la boleta.
+    async function boletaCapturePdf(elementId) {
+        const el = document.getElementById(elementId);
+        if (!el || !window.html2pdf) return null;
+        try {
+            return await html2pdf().set({
+                margin:      [4, 4],
+                image:       { type: 'jpeg', quality: 0.92 },
+                html2canvas: { scale: 2, useCORS: true, logging: false },
+                jsPDF:       { unit: 'mm', format: 'letter', orientation: 'portrait' },
+            }).from(el).output('blob');
+        } catch (err) {
+            console.warn('boletaCapturePdf error:', err);
+            return null;
+        }
+    }
+
+    // Sube un Blob PDF al bucket de Supabase Storage y devuelve la URL pública.
+    async function boletaUploadPdf(blob, storagePath, supabase) {
+        if (!blob) return null;
+        try {
+            const { error } = await supabase.storage
+                .from('manifiestos_pdfs')
+                .upload(storagePath, blob, { contentType: 'application/pdf', upsert: true });
+            if (error) { console.warn('PDF upload error:', error); return null; }
+            const { data } = supabase.storage.from('manifiestos_pdfs').getPublicUrl(storagePath);
+            return data?.publicUrl || null;
+        } catch (err) {
+            console.warn('boletaUploadPdf error:', err);
+            return null;
+        }
     }
 
     // ── Signature pads ─────────────────────────────────────────────────────

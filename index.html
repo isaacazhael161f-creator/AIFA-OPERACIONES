@@ -52,6 +52,8 @@
     </script>
     <!-- Signature Pad -->
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+    <!-- html2pdf: genera PDF desde HTML (incluye html2canvas + jsPDF) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <script src="js/supabase-client.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
@@ -10884,7 +10886,7 @@
                                         <!-- ── NUEVA ORDEN AEROCARES ── -->
                                         <div class="tab-pane fade show active" id="aerocar-pane-nueva" role="tabpanel">
                                             <form id="form-orden-aerocar" novalidate>
-                                              <div class="rounded-3 overflow-hidden shadow-sm border mb-3" style="border-color:#aab!important">
+                                              <div id="ao-boleta-card" class="rounded-3 overflow-hidden shadow-sm border mb-3" style="border-color:#aab!important">
                                                 <!-- HEADER INSTITUCIONAL -->
                                                 <div class="d-flex align-items-center py-2 px-3 gap-3" style="background:linear-gradient(135deg,#1a3a6b,#2462af);color:#fff">
                                                   <img src="images/aifa-logo.png" alt="AIFA" style="height:42px;width:auto;filter:brightness(0) invert(1);flex-shrink:0">
@@ -11121,7 +11123,7 @@
                                         <!-- ── NUEVO REGISTRO AEROPASILLO ── -->
                                         <div class="tab-pane fade show active" id="aeropasillo-pane-nuevo" role="tabpanel">
                                             <form id="form-registro-aeropasillo" novalidate>
-                                              <div class="rounded-3 overflow-hidden shadow-sm border mb-3" style="border-color:#8a9!important">
+                                              <div id="ap-boleta-card" class="rounded-3 overflow-hidden shadow-sm border mb-3" style="border-color:#8a9!important">
                                                 <!-- HEADER INSTITUCIONAL -->
                                                 <div class="d-flex align-items-center py-2 px-3 gap-3" style="background:linear-gradient(135deg,#14452f,#1d6b47);color:#fff">
                                                   <img src="images/aifa-logo.png" alt="AIFA" style="height:46px;width:auto;filter:brightness(0) invert(1);flex-shrink:0">
