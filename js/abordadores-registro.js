@@ -770,29 +770,33 @@
         if (!window.SignaturePad) return;
         const canvas = document.getElementById(canvasId);
         if (!canvas) return;
-        // Set internal dimensions for proper DPI rendering
-        function resizePad() {
-            const dpr = window.devicePixelRatio || 1;
-            const rect = canvas.getBoundingClientRect();
-            const w = rect.width || canvas.clientWidth || 280;
-            const h = rect.height || canvas.clientHeight || 80;
-            if (w === 0) return; // not visible yet – will resize on tab show
-            const data = _sigPads[canvasId]?.toData(); // preserve existing strokes
-            canvas.width  = w * dpr;
-            canvas.height = h * dpr;
-            const ctx = canvas.getContext('2d');
-            ctx.scale(dpr, dpr);
-            if (_sigPads[canvasId]) {
-                _sigPads[canvasId].clear();
-                if (data && data.length) _sigPads[canvasId].fromData(data);
-            }
+
+        // Sync canvas pixel buffer to its CSS layout size.
+        // Do NOT multiply by devicePixelRatio here — SignaturePad reads pointer
+        // coordinates in CSS pixels (clientX - rect.left), so the canvas buffer
+        // must also be in CSS pixels for coordinates to align.
+        function syncSize() {
+            const w = canvas.offsetWidth;
+            const h = canvas.offsetHeight;
+            if (!w || !h) return; // not yet visible
+            if (canvas.width === w && canvas.height === h) return; // already correct
+            canvas.width  = w;
+            canvas.height = h;
+            _sigPads[canvasId]?.clear(); // reset after resize
         }
-        resizePad();
-        _sigPads[canvasId] = new SignaturePad(canvas, { backgroundColor: 'rgb(250,250,250)', penColor: '#111' });
-        // Re-size when tabs become visible
+
+        syncSize();
+        _sigPads[canvasId] = new SignaturePad(canvas, {
+            backgroundColor: 'rgb(250,250,250)',
+            penColor: '#111',
+            minWidth: 1.5,
+            maxWidth: 3,
+        });
+
+        // When a hidden tab-pane is shown, re-sync (hidden elements have offsetWidth 0)
         const pane = canvas.closest('.tab-pane');
         if (pane) {
-            new MutationObserver(() => { if (!canvas.hidden && canvas.offsetWidth > 0) resizePad(); })
+            new MutationObserver(() => syncSize())
                 .observe(pane, { attributeFilter: ['class'] });
         }
     }
