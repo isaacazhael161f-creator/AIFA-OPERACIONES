@@ -1072,6 +1072,8 @@
                             class="fas fa-chart-line"></i><span>Comparativa</span></a>
                         <a class="menu-item" href="#" data-section="manifiestos"><i
                             class="fas fa-file-signature"></i><span>Manifiestos</span></a>
+                        <a class="menu-item" href="#" data-section="portal-digitalizacion" id="menu-portal-digital"><i
+                            class="fas fa-cloud-upload-alt"></i><span>Portal Digital</span></a>
                     <a class="menu-item" href="#" data-section="fauna"><i
                             class="fas fa-shield-alt"></i><span>GSO</span></a>
                     <a class="menu-item" href="#" data-section="medicas"><i
@@ -4500,32 +4502,97 @@
 
                 <!-- Aerolíneas Section -->
                 <div id="aerolineas-section" class="content-section">
-                    <div class="card shadow-sm border-0">
-                        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-                            <h2 class="section-title mb-0 fs-4 fw-bold text-primary"><i class="fas fa-plane me-2"></i>Catálogo de Aerolíneas</h2>
-                            <button class="btn btn-sm btn-outline-primary" onclick="loadAerolineasDashboard()">
-                                <i class="fas fa-sync-alt"></i> Actualizar
-                            </button>
+                    <div class="card shadow-lg border-0 rounded-4 overflow-hidden mb-4">
+                        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <h2 class="section-title mb-0 fs-4 fw-bold text-dark"><i class="fas fa-plane-departure me-2 text-primary opacity-75"></i>Histórico de Aerolíneas de Carga</h2>
+
+                            <!-- Filtros por año y mes -->
+                            <div class="d-flex align-items-center gap-2">
+                                <select class="form-select form-select-sm rounded-pill shadow-sm border-0 bg-light fw-semibold" id="aero-month-filter" style="width: auto; display: none;" onchange="applyAeroFilters()">
+                                    <option value="all">Todos los meses</option>
+                                    <option value="ene">Enero</option>
+                                    <option value="feb">Febrero</option>
+                                    <option value="mar">Marzo</option>
+                                    <option value="abr">Abril</option>
+                                    <option value="may">Mayo</option>
+                                    <option value="jun">Junio</option>
+                                    <option value="jul">Julio</option>
+                                    <option value="ago">Agosto</option>
+                                    <option value="sep">Septiembre</option>
+                                    <option value="oct">Octubre</option>
+                                    <option value="nov">Noviembre</option>
+                                    <option value="dic">Diciembre</option>
+                                </select>
+                                <div class="bg-white rounded-pill p-1 shadow-sm d-flex align-items-center border" role="group" aria-label="Filtro por año" id="btn-group-years">
+                                    <input type="radio" class="btn-check aero-year-filter" name="aeroYear" id="aeroYearAll" value="all" autocomplete="off" checked>
+                                    <label class="btn btn-sm btn-outline-primary rounded-pill px-3 border-0 fw-semibold" for="aeroYearAll">Histórico</label>
+
+                                    <input type="radio" class="btn-check aero-year-filter" name="aeroYear" id="aeroYear23" value="23" autocomplete="off">
+                                    <label class="btn btn-sm btn-outline-primary rounded-pill px-3 border-0 fw-semibold" for="aeroYear23">2023</label>
+
+                                    <input type="radio" class="btn-check aero-year-filter" name="aeroYear" id="aeroYear24" value="24" autocomplete="off">
+                                    <label class="btn btn-sm btn-outline-primary rounded-pill px-3 border-0 fw-semibold" for="aeroYear24">2024</label>
+
+                                    <input type="radio" class="btn-check aero-year-filter" name="aeroYear" id="aeroYear25" value="25" autocomplete="off">
+                                    <label class="btn btn-sm btn-outline-primary rounded-pill px-3 border-0 fw-semibold" for="aeroYear25">2025</label>
+
+                                    <input type="radio" class="btn-check aero-year-filter" name="aeroYear" id="aeroYear26" value="26" autocomplete="off">
+                                    <label class="btn btn-sm btn-outline-primary rounded-pill px-3 border-0 fw-semibold" for="aeroYear26">2026</label>
+                                </div>
+                                <button class="btn btn-light rounded-circle shadow-sm ms-1 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;" onclick="loadAerolineasDashboard()" title="Actualizar">
+                                    <i class="fas fa-sync-alt text-primary"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div class="card-body bg-light">
+                        <div class="card-body bg-light p-4">
                             <!-- KPIs -->
-                            <div class="row g-3 mb-4">
-                                <div class="col-md-4">
-                                    <div class="card h-100 border-0 shadow-sm text-center p-3">
-                                        <div class="text-muted small text-uppercase">Total de Aerolíneas</div>
-                                        <div class="fs-1 fw-bold text-primary" id="aero-kpi-total">-</div>
+                            <div class="row g-4 mb-4">
+                                <div class="col-md-3">
+                                    <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden position-relative">
+                                        <div class="position-absolute top-0 start-0 w-100" style="height: 4px; background: linear-gradient(90deg, #0d6efd, #0dcaf0);"></div>
+                                        <div class="card-body text-center p-4 d-flex flex-column justify-content-center align-items-center">
+                                            <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px;">
+                                                <i class="fas fa-globe-americas fs-4 text-primary"></i>
+                                            </div>
+                                            <h6 class="text-muted small text-uppercase fw-bold mb-1 letter-spacing-1">Total Operando</h6>
+                                            <h2 class="display-5 fw-black text-primary mb-0" id="aero-kpi-total">-</h2>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="card h-100 border-0 shadow-sm text-center p-3">
-                                        <div class="text-muted small text-uppercase">Aerolíneas de Pasajeros</div>
-                                        <div class="fs-1 fw-bold text-success" id="aero-kpi-pax">-</div>
+                                <div class="col-md-3">
+                                    <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden position-relative">
+                                        <div class="position-absolute top-0 start-0 w-100" style="height: 4px; background: linear-gradient(90deg, #198754, #20c997);"></div>
+                                        <div class="card-body text-center p-4 d-flex flex-column justify-content-center align-items-center">
+                                            <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px;">
+                                                <i class="fas fa-calendar-check fs-4 text-success"></i>
+                                            </div>
+                                            <h6 class="text-muted small text-uppercase fw-bold mb-1 letter-spacing-1">Regulares</h6>
+                                            <h2 class="display-5 fw-black text-success mb-0" id="aero-kpi-regulares">-</h2>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="card h-100 border-0 shadow-sm text-center p-3">
-                                        <div class="text-muted small text-uppercase">Aerolíneas de Carga</div>
-                                        <div class="fs-1 fw-bold" style="color: #6f42c1" id="aero-kpi-cargo">-</div>
+                                <div class="col-md-3">
+                                    <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden position-relative">
+                                        <div class="position-absolute top-0 start-0 w-100" style="height: 4px; background: linear-gradient(90deg, #fd7e14, #ffc107);"></div>
+                                        <div class="card-body text-center p-4 d-flex flex-column justify-content-center align-items-center">
+                                            <div class="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px;">
+                                                <i class="fas fa-box-open fs-4 text-warning" style="color: #fd7e14 !important;"></i>
+                                            </div>
+                                            <h6 class="text-muted small text-uppercase fw-bold mb-1 letter-spacing-1">Fletamento (Carga)</h6>
+                                            <h2 class="display-5 fw-black mb-0" style="color: #fd7e14;" id="aero-kpi-fletamento">-</h2>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden position-relative">
+                                        <div class="position-absolute top-0 start-0 w-100" style="height: 4px; background: linear-gradient(90deg, #6f42c1, #d63384);"></div>
+                                        <div class="card-body text-center p-4 d-flex flex-column justify-content-center align-items-center">
+                                            <div class="rounded-circle bg-purple bg-opacity-10 d-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px;">
+                                                <i class="fas fa-calendar-alt fs-4" style="color: #6f42c1;"></i>
+                                            </div>
+                                            <h6 class="text-muted small text-uppercase fw-bold mb-1 letter-spacing-1">Fletamento (Mensual)</h6>
+                                            <h2 class="display-5 fw-black mb-0" style="color: #6f42c1;" id="aero-kpi-mensual">-</h2>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -4533,27 +4600,32 @@
                             <!-- Search & Tables -->
                             <div class="row g-4">
                                 <div class="col-12">
-                                    <div class="card shadow-sm border-0">
-                                        <div class="card-body">
-                                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                                <h5 class="card-title text-primary mb-0"><i class="fas fa-list me-2"></i>Directorio General</h5>
-                                                <div class="input-group" style="max-width: 300px;">
-                                                    <span class="input-group-text bg-white"><i class="fas fa-search"></i></span>
-                                                    <input type="text" class="form-control" id="aero-search" placeholder="Buscar aerolínea..." onkeyup="filterAirlinesTable()">
+                                    <div class="card shadow-sm border-0 rounded-4">
+                                        <div class="card-body p-0">
+                                            <div class="d-flex justify-content-between align-items-center p-4 border-bottom bg-white rounded-top-4 flex-wrap gap-3">
+                                                <h5 class="card-title text-dark mb-0 fw-bold d-flex align-items-center" id="aero-table-title">
+                                                    <div class="bg-primary bg-opacity-10 text-primary p-2 rounded me-3 d-inline-flex">
+                                                        <i class="fas fa-list fs-5"></i>
+                                                    </div>
+                                                    Directorio y Volumen Operativo
+                                                </h5>
+                                                <div class="input-group shadow-sm rounded-pill overflow-hidden" style="max-width: 320px; border: 1px solid #dee2e6;">
+                                                    <span class="input-group-text bg-white border-0 ps-3 pe-2"><i class="fas fa-search text-muted"></i></span>
+                                                    <input type="text" class="form-control border-0 ps-1 rounded-end-pill shadow-none" id="aero-search" placeholder="Buscar aerolínea o categoría..." onkeyup="filterAirlinesTable()">
                                                 </div>
                                             </div>
-                                            <div class="table-responsive">
-                                                <table class="table table-hover table-striped align-middle" id="aero-main-table">
-                                                    <thead class="table-light">
+                                            <div class="table-responsive bg-white rounded-bottom-4">
+                                                <table class="table table-hover align-middle mb-0" id="aero-main-table">
+                                                    <thead style="background-color: #f8f9fa;">
                                                         <tr>
-                                                            <th>No.</th>
-                                                            <th>Aerolínea</th>
-                                                            <th>Categoría</th>
-                                                            <th>Tipo de Servicio</th>
+                                                            <th class="ps-4 py-3 text-muted fw-bold small text-uppercase">Rango</th>
+                                                            <th class="py-3 text-muted fw-bold small text-uppercase">Aerolínea</th>
+                                                            <th class="py-3 text-muted fw-bold small text-uppercase">Servicio</th>
+                                                            <th class="pe-4 py-3 text-muted fw-bold small text-uppercase text-end">Operaciones <span id="aero-ops-title" class="fw-normal text-muted">(Histórico)</span></th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody id="aero-table-body">
-                                                        <tr><td colspan="4" class="text-center py-4 text-muted">Cargando datos...</td></tr>
+                                                    <tbody id="aero-table-body" class="border-top-0">
+                                                        <tr><td colspan="4" class="text-center py-5 text-muted"><i class="fas fa-spinner fa-spin me-2 fs-4 text-primary"></i> <br><span class="mt-2 d-inline-block">Cargando catálogo aerocomercial...</span></td></tr>
                                                     </tbody>
                                                 </table>
                                             </div>
@@ -10792,90 +10864,210 @@
                             <div class="tab-content">
                                 <!-- Aerocares Content -->
                                 <div class="tab-pane fade show active" id="pane-mech-aerocares" role="tabpanel">
-                                    <h5 class="mb-3 fw-bold ps-1">Catálogo Aerocares</h5>
-                                    
-                                    <!-- Search Box -->
-                                    <div class="card mb-3 border-0 shadow-sm">
-                                        <div class="card-header bg-light fw-bold small text-muted border-0">Búsqueda</div>
-                                        <div class="card-body">
-                                            <div class="row g-3">
-                                                <div class="col-md-5">
-                                                    <label class="form-label small text-muted text-uppercase fw-bold">Aerocares:</label>
-                                                    <input type="text" class="form-control" placeholder="Ingresar">
+                                    <!-- Sub-tabs: Nueva Orden / Historial -->
+                                    <ul class="nav nav-pills mb-3 gap-1" id="aerocar-subtabs" role="tablist">
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link active small fw-semibold" id="aerocar-tab-nueva" data-bs-toggle="pill" data-bs-target="#aerocar-pane-nueva" type="button" role="tab">
+                                                <i class="fas fa-plus-circle me-1"></i>Nueva Orden
+                                            </button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link small fw-semibold" id="aerocar-tab-historial" data-bs-toggle="pill" data-bs-target="#aerocar-pane-historial" type="button" role="tab">
+                                                <i class="fas fa-history me-1"></i>Historial
+                                            </button>
+                                        </li>
+                                    </ul>
+
+                                    <div class="tab-content" id="aerocar-subtabs-content">
+                                        <!-- ── NUEVA ORDEN AEROCARES ── -->
+                                        <div class="tab-pane fade show active" id="aerocar-pane-nueva" role="tabpanel">
+                                            <form id="form-orden-aerocar" novalidate>
+                                                <!-- Cabecera: Fecha / H. Programada / Folio -->
+                                                <div class="card border-0 shadow-sm mb-3">
+                                                    <div class="card-header bg-primary bg-opacity-10 py-2">
+                                                        <span class="fw-bold small text-primary"><i class="fas fa-bus me-1"></i>ORDEN DE SERVICIO AEROCARES</span>
+                                                    </div>
+                                                    <div class="card-body pb-2">
+                                                        <div class="row g-2 align-items-end">
+                                                            <div class="col-6 col-md-3">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">FECHA</label>
+                                                                <input type="date" class="form-control form-control-sm" id="ao-fecha" required>
+                                                            </div>
+                                                            <div class="col-6 col-md-3">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">H. PROGRAMADA</label>
+                                                                <input type="time" class="form-control form-control-sm" id="ao-h-programada" required>
+                                                            </div>
+                                                            <div class="col-6 col-md-3">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">FOLIO</label>
+                                                                <input type="text" class="form-control form-control-sm bg-light" id="ao-folio" placeholder="Auto" readonly>
+                                                            </div>
+                                                            <div class="col-6 col-md-3">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">TIPO DE OPERACIÓN</label>
+                                                                <div class="d-flex gap-3 pt-1">
+                                                                    <div class="form-check form-check-inline mb-0">
+                                                                        <input class="form-check-input" type="radio" name="ao-tipo-op" id="ao-op-llegada" value="llegada" checked>
+                                                                        <label class="form-check-label small" for="ao-op-llegada">LLEGADA</label>
+                                                                    </div>
+                                                                    <div class="form-check form-check-inline mb-0">
+                                                                        <input class="form-check-input" type="radio" name="ao-tipo-op" id="ao-op-salida" value="salida">
+                                                                        <label class="form-check-label small" for="ao-op-salida">SALIDA</label>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Tipo vuelo / Base / Posición -->
+                                                        <div class="row g-2 mt-1">
+                                                            <div class="col-12 col-md-4">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">TIPO DE VUELO</label>
+                                                                <div class="d-flex gap-3 pt-1">
+                                                                    <div class="form-check form-check-inline mb-0">
+                                                                        <input class="form-check-input" type="radio" name="ao-tipo-vuelo" id="ao-tv-nal" value="nacional" checked>
+                                                                        <label class="form-check-label small" for="ao-tv-nal">NAL</label>
+                                                                    </div>
+                                                                    <div class="form-check form-check-inline mb-0">
+                                                                        <input class="form-check-input" type="radio" name="ao-tipo-vuelo" id="ao-tv-int" value="internacional">
+                                                                        <label class="form-check-label small" for="ao-tv-int">INTER</label>
+                                                                    </div>
+                                                                    <div class="form-check form-check-inline mb-0">
+                                                                        <input class="form-check-input" type="radio" name="ao-tipo-vuelo" id="ao-tv-mix" value="mixto">
+                                                                        <label class="form-check-label small" for="ao-tv-mix">MIXTO</label>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-6 col-md-4">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">BASE</label>
+                                                                <input type="text" class="form-control form-control-sm" id="ao-base" placeholder="Ej: MOD-H" maxlength="20">
+                                                            </div>
+                                                            <div class="col-6 col-md-4">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">POSICIÓN</label>
+                                                                <input type="text" class="form-control form-control-sm" id="ao-posicion" placeholder="Ej: 115-B" maxlength="20">
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Vuelo / Aerolínea / Matrícula -->
+                                                        <div class="row g-2 mt-1">
+                                                            <div class="col-6 col-md-2">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">No. VUELO</label>
+                                                                <input type="text" class="form-control form-control-sm" id="ao-no-vuelo" placeholder="Ej: 7428" maxlength="10" required>
+                                                            </div>
+                                                            <div class="col-6 col-md-3">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">ORIGEN / DESTINO</label>
+                                                                <input type="text" class="form-control form-control-sm" id="ao-origen-destino" placeholder="Ej: TIJ" maxlength="10">
+                                                            </div>
+                                                            <div class="col-6 col-md-3">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">AEROLÍNEA</label>
+                                                                <input type="text" class="form-control form-control-sm" id="ao-aerolinea" placeholder="Ej: VIV" maxlength="30">
+                                                            </div>
+                                                            <div class="col-6 col-md-2">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">MATRÍCULA</label>
+                                                                <input type="text" class="form-control form-control-sm" id="ao-matricula" placeholder="Ej: XA-VXU" maxlength="10">
+                                                            </div>
+                                                            <div class="col-6 col-md-1">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">H. SOLICITUD</label>
+                                                                <input type="time" class="form-control form-control-sm" id="ao-h-solicitud">
+                                                            </div>
+                                                            <div class="col-6 col-md-1">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">H. ENTREGA</label>
+                                                                <input type="time" class="form-control form-control-sm" id="ao-h-entrega">
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div class="col-md-5">
-                                                     <label class="form-label small text-muted text-uppercase fw-bold">Estatus:</label>
-                                                     <select class="form-select text-muted" aria-label="Filtrar por estatus">
-                                                         <option selected>Seleccionar estatus</option>
-                                                         <option value="1">Activo</option>
-                                                         <option value="0">Inactivo</option>
-                                                     </select>
+
+                                                <!-- Tabla de operaciones -->
+                                                <div class="card border-0 shadow-sm mb-3">
+                                                    <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+                                                        <span class="fw-bold small"><i class="fas fa-table me-1 text-primary"></i>AEROCARES ASIGNADOS</span>
+                                                        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" id="ao-btn-add-row">
+                                                            <i class="fas fa-plus me-1"></i>Agregar fila
+                                                        </button>
+                                                    </div>
+                                                    <div class="card-body p-0">
+                                                        <div class="table-responsive">
+                                                            <table class="table table-sm align-middle mb-0" id="ao-tabla-operaciones">
+                                                                <thead class="table-light">
+                                                                    <tr class="text-uppercase text-muted" style="font-size:.72rem">
+                                                                        <th class="ps-3 py-2" style="min-width:90px">AEROCAR</th>
+                                                                        <th class="py-2" style="min-width:100px">H. SAL. EDIF.</th>
+                                                                        <th class="py-2" style="min-width:100px">H. ABORDAJE</th>
+                                                                        <th class="py-2" style="min-width:100px">H. TER. SERV.</th>
+                                                                        <th class="py-2" style="min-width:70px">No. PAX</th>
+                                                                        <th class="py-2" style="min-width:110px">OPERADOR</th>
+                                                                        <th class="pe-3 py-2" style="width:40px"></th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody id="ao-operaciones-body">
+                                                                    <!-- 3 filas iniciales =>  JS agrega más -->
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                 <div class="col-md-2 d-flex align-items-end justify-content-end gap-2">
-                                                      <button class="btn btn-light border rounded-pill px-3 text-muted">Limpiar</button>
-                                                      <button class="btn btn-light border rounded-pill px-3 text-muted">Buscar</button>
-                                                 </div>
+
+                                                <!-- Observaciones -->
+                                                <div class="card border-0 shadow-sm mb-3">
+                                                    <div class="card-body">
+                                                        <div class="row g-3">
+                                                            <div class="col-md-6">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">OBSERVACIONES AEROLÍNEA</label>
+                                                                <textarea class="form-control form-control-sm" id="ao-obs-aerolinea" rows="2" maxlength="500"></textarea>
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">OBSERVACIONES OPERADOR</label>
+                                                                <textarea class="form-control form-control-sm" id="ao-obs-operador" rows="2" maxlength="500"></textarea>
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">NOMBRE — CONFORMIDAD</label>
+                                                                <input type="text" class="form-control form-control-sm" id="ao-nombre-conformidad" placeholder="Nombre de quien firma" maxlength="80">
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">COORDINADOR</label>
+                                                                <input type="text" class="form-control form-control-sm bg-light" id="ao-coordinador" readonly placeholder="(sesión activa)">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div id="ao-form-feedback" class="alert d-none mb-3"></div>
+                                                <div class="d-flex gap-2 justify-content-end">
+                                                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" id="ao-btn-limpiar"><i class="fas fa-times me-1"></i>Limpiar</button>
+                                                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold" id="ao-btn-guardar"><i class="fas fa-save me-1"></i>Guardar Orden</button>
+                                                </div>
+                                            </form>
+                                        </div>
+
+                                        <!-- ── HISTORIAL AEROCARES ── -->
+                                        <div class="tab-pane fade" id="aerocar-pane-historial" role="tabpanel">
+                                            <div class="row g-2 mb-3 align-items-end">
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label small fw-semibold text-muted mb-1">Desde</label>
+                                                    <input type="date" class="form-control form-control-sm" id="ao-hist-desde">
+                                                </div>
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label small fw-semibold text-muted mb-1">Hasta</label>
+                                                    <input type="date" class="form-control form-control-sm" id="ao-hist-hasta">
+                                                </div>
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label small fw-semibold text-muted mb-1">Vuelo / Aerolínea</label>
+                                                    <input type="text" class="form-control form-control-sm" id="ao-hist-filtro" placeholder="Buscar…">
+                                                </div>
+                                                <div class="col-6 col-md-3 d-flex gap-2 align-items-end">
+                                                    <button class="btn btn-primary btn-sm rounded-pill px-3" id="ao-btn-buscar"><i class="fas fa-search me-1"></i>Buscar</button>
+                                                    <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" id="ao-btn-exportar-hist"><i class="fas fa-file-excel me-1"></i>Excel</button>
+                                                </div>
+                                            </div>
+                                            <div id="ao-historial-container">
+                                                <div class="text-center py-5 text-muted">
+                                                    <i class="fas fa-search fa-2x mb-2 opacity-25"></i>
+                                                    <p class="small">Selecciona un rango de fechas y presiona Buscar.</p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-
-                                    <!-- Table -->
-                                    <div class="card border-0 shadow-sm">
-                                        <div class="table-responsive">
-                                            <table class="table table-hover align-middle mb-0">
-                                                <thead class="table-light">
-                                                    <tr class="text-muted small text-uppercase">
-                                                        <th class="ps-4 border-0 py-3 fw-semibold">Id</th>
-                                                        <th class="border-0 py-3 fw-semibold">Aerocares</th>
-                                                        <th class="border-0 py-3 fw-semibold">Fecha registro</th>
-                                                        <th class="border-0 py-3 fw-semibold">Estatus</th>
-                                                        <th class="text-end pe-4 border-0 py-3 fw-semibold">Acciones</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody class="bg-white">
-                                                    <!-- Mock Data -->
-                                                    <tr>
-                                                        <td class="ps-4 text-muted">1</td>
-                                                        <td class="fw-bold text-dark">AIFA-57</td>
-                                                        <td class="text-muted">12/11/2024</td>
-                                                        <td><span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 fw-normal"> Activo</span></td>
-                                                        <td class="text-end pe-4"><button class="btn btn-sm btn-light text-primary rounded-circle" aria-label="Opciones"><i class="fas fa-ellipsis-v"></i></button></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="ps-4 text-muted">2</td>
-                                                        <td class="fw-bold text-dark">AIFA-58</td>
-                                                        <td class="text-muted">12/11/2024</td>
-                                                        <td><span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 fw-normal"> Activo</span></td>
-                                                        <td class="text-end pe-4"><button class="btn btn-sm btn-light text-primary rounded-circle" aria-label="Opciones"><i class="fas fa-ellipsis-v"></i></button></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="ps-4 text-muted">3</td>
-                                                        <td class="fw-bold text-dark">AIFA-59</td>
-                                                        <td class="text-muted">12/11/2024</td>
-                                                        <td><span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 fw-normal"> Activo</span></td>
-                                                        <td class="text-end pe-4"><button class="btn btn-sm btn-light text-primary rounded-circle" aria-label="Opciones"><i class="fas fa-ellipsis-v"></i></button></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="ps-4 text-muted">4</td>
-                                                        <td class="fw-bold text-dark">AIFA-60</td>
-                                                        <td class="text-muted">12/11/2024</td>
-                                                        <td><span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 fw-normal"> Activo</span></td>
-                                                        <td class="text-end pe-4"><button class="btn btn-sm btn-light text-primary rounded-circle" aria-label="Opciones"><i class="fas fa-ellipsis-v"></i></button></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td class="ps-4 text-muted">5</td>
-                                                        <td class="fw-bold text-dark">AIFA-61</td>
-                                                        <td class="text-muted">12/11/2024</td>
-                                                        <td><span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 fw-normal"> Activo</span></td>
-                                                        <td class="text-end pe-4"><button class="btn btn-sm btn-light text-primary rounded-circle" aria-label="Opciones"><i class="fas fa-ellipsis-v"></i></button></td>
-                                                    </tr>
-                                                     <tr>
-                                                        <td class="ps-4 text-muted">6</td>
-                                                        <td class="fw-bold text-dark">AIFA-62</td>
-                                                        <td class="text-muted">12/11/2024</td>
-                                                        <td><span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 fw-normal"> Activo</span></td>
-                                                        <td class="text-end pe-4"><button class="btn btn-sm btn-light text-primary rounded-circle" aria-label="Opciones"><i class="fas fa-ellipsis-v"></i></button></td>
-                                                    </tr>
+                                <!-- MOCK DATA (catálogo estático anterior) hidden - now in Catálogo tab -->
+                                <!-- Dummy rows below kept only as structure reference, replaced by JS -->
+                                
                                                      <tr>
                                                         <td class="ps-4 text-muted">7</td>
                                                         <td class="fw-bold text-dark">AFIFA-PR1</td>
@@ -10896,18 +11088,279 @@
                                                         <td class="text-muted">10/12/2024</td>
                                                         <td><span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 fw-normal"> Activo</span></td>
                                                         <td class="text-end pe-4"><button class="btn btn-sm btn-light text-primary rounded-circle" aria-label="Opciones"><i class="fas fa-ellipsis-v"></i></button></td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
                                 </div>
                                 <div class="tab-pane fade" id="pane-mech-aeropasillos" role="tabpanel">
-                                     <div class="d-flex flex-column align-items-center justify-content-center p-5 text-muted">
-                                         <i class="fas fa-hard-hat fa-3x mb-3 text-secondary opacity-25"></i>
-                                         <h5>Módulo Aeropasillos</h5>
-                                         <p class="small">En construcción...</p>
-                                     </div>
+                                    <!-- Sub-tabs: Nuevo Registro / Historial -->
+                                    <ul class="nav nav-pills mb-3 gap-1" id="aeropasillo-subtabs" role="tablist">
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link active small fw-semibold" id="aeropasillo-tab-nuevo" data-bs-toggle="pill" data-bs-target="#aeropasillo-pane-nuevo" type="button" role="tab">
+                                                <i class="fas fa-plus-circle me-1"></i>Nuevo Registro
+                                            </button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link small fw-semibold" id="aeropasillo-tab-historial" data-bs-toggle="pill" data-bs-target="#aeropasillo-pane-historial" type="button" role="tab">
+                                                <i class="fas fa-history me-1"></i>Historial
+                                            </button>
+                                        </li>
+                                    </ul>
+
+                                    <div class="tab-content" id="aeropasillo-subtabs-content">
+                                        <!-- ── NUEVO REGISTRO AEROPASILLO ── -->
+                                        <div class="tab-pane fade show active" id="aeropasillo-pane-nuevo" role="tabpanel">
+                                            <form id="form-registro-aeropasillo" novalidate>
+                                                <!-- Cabecera -->
+                                                <div class="card border-0 shadow-sm mb-3">
+                                                    <div class="card-header bg-success bg-opacity-10 py-2 d-flex justify-content-between align-items-center">
+                                                        <span class="fw-bold small text-success"><i class="fas fa-tunnel me-1"></i>REGISTRO DE SERVICIO DE AEROPASILLOS</span>
+                                                        <div class="d-flex gap-3">
+                                                            <div class="form-check form-check-inline mb-0">
+                                                                <input class="form-check-input" type="radio" name="ap-tipo-vuelo" id="ap-tv-nal" value="nacional" checked>
+                                                                <label class="form-check-label small fw-semibold" for="ap-tv-nal">NACIONAL</label>
+                                                            </div>
+                                                            <div class="form-check form-check-inline mb-0">
+                                                                <input class="form-check-input" type="radio" name="ap-tipo-vuelo" id="ap-tv-int" value="internacional">
+                                                                <label class="form-check-label small fw-semibold" for="ap-tv-int">INTERNACIONAL</label>
+                                                            </div>
+                                                            <div class="form-check form-check-inline mb-0">
+                                                                <input class="form-check-input" type="radio" name="ap-tipo-vuelo" id="ap-tv-mix" value="mixto">
+                                                                <label class="form-check-label small fw-semibold" for="ap-tv-mix">MIXTO</label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-body pb-2">
+                                                        <div class="row g-2 align-items-end">
+                                                            <div class="col-6 col-md-2">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">FOLIO</label>
+                                                                <input type="text" class="form-control form-control-sm bg-light" id="ap-folio" placeholder="Auto" readonly>
+                                                            </div>
+                                                            <div class="col-6 col-md-2">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">FECHA</label>
+                                                                <input type="date" class="form-control form-control-sm" id="ap-fecha" required>
+                                                            </div>
+                                                            <div class="col-6 col-md-2">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">POSICIÓN</label>
+                                                                <input type="text" class="form-control form-control-sm" id="ap-posicion" placeholder="Ej: R07, 107" maxlength="10" required>
+                                                            </div>
+                                                            <div class="col-6 col-md-2">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">AEROPASILLO No.</label>
+                                                                <input type="text" class="form-control form-control-sm" id="ap-numero" placeholder="Ej: 1, 2" maxlength="5">
+                                                            </div>
+                                                            <div class="col-6 col-md-2">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">DEDO (A / B)</label>
+                                                                <select class="form-select form-select-sm" id="ap-dedo">
+                                                                    <option value="">—</option>
+                                                                    <option value="A">A</option>
+                                                                    <option value="B">B</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-6 col-md-2">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">MATRÍCULA</label>
+                                                                <input type="text" class="form-control form-control-sm" id="ap-matricula" placeholder="Ej: XA-VXV" maxlength="10">
+                                                            </div>
+                                                        </div>
+                                                        <div class="row g-2 mt-1">
+                                                            <div class="col-6 col-md-3">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">LÍNEA AÉREA</label>
+                                                                <input type="text" class="form-control form-control-sm" id="ap-linea-aerea" placeholder="Ej: Viva" maxlength="40">
+                                                            </div>
+                                                            <div class="col-6 col-md-3">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">AERONAVE</label>
+                                                                <input type="text" class="form-control form-control-sm" id="ap-aeronave" placeholder="Ej: A-321" maxlength="20">
+                                                            </div>
+                                                            <div class="col-12 col-md-6">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">No. EMPLEADO Y FIRMA — ACOPLE</label>
+                                                                <input type="text" class="form-control form-control-sm" id="ap-empleado-acople" placeholder="Ej: 579 HUIDOBRO M" maxlength="60">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- LLEGADA / SALIDA en dos columnas -->
+                                                <div class="row g-3 mb-3">
+                                                    <!-- LLEGADA -->
+                                                    <div class="col-md-6">
+                                                        <div class="card border-0 shadow-sm h-100">
+                                                            <div class="card-header py-2" style="background:linear-gradient(90deg,#e3f2fd,#fff)">
+                                                                <span class="fw-bold small text-primary"><i class="fas fa-plane-arrival me-1"></i>LLEGADA</span>
+                                                            </div>
+                                                            <div class="card-body">
+                                                                <div class="row g-2">
+                                                                    <div class="col-6">
+                                                                        <label class="form-label small text-muted fw-semibold mb-1">No. DE VUELO</label>
+                                                                        <input type="text" class="form-control form-control-sm" id="ap-lleg-vuelo" placeholder="Ej: 9411" maxlength="10">
+                                                                    </div>
+                                                                    <div class="col-6">
+                                                                        <label class="form-label small text-muted fw-semibold mb-1">ORIGEN</label>
+                                                                        <input type="text" class="form-control form-control-sm" id="ap-lleg-origen" placeholder="Ej: MID" maxlength="10">
+                                                                    </div>
+                                                                    <div class="col-6">
+                                                                        <label class="form-label small text-muted fw-semibold mb-1">HORA DE CALZOS</label>
+                                                                        <input type="time" class="form-control form-control-sm" id="ap-lleg-h-calzos">
+                                                                    </div>
+                                                                    <div class="col-6">
+                                                                        <label class="form-label small text-muted fw-semibold mb-1">AUTORIZACIÓN ACOPLE</label>
+                                                                        <input type="time" class="form-control form-control-sm" id="ap-lleg-auth-acople">
+                                                                    </div>
+                                                                    <div class="col-6">
+                                                                        <label class="form-label small text-muted fw-semibold mb-1">HORA DE ACOPLE</label>
+                                                                        <input type="time" class="form-control form-control-sm" id="ap-lleg-h-acople">
+                                                                    </div>
+                                                                    <div class="col-6">
+                                                                        <label class="form-label small text-muted fw-semibold mb-1">No. PASAJEROS</label>
+                                                                        <input type="text" class="form-control form-control-sm" id="ap-lleg-pax" placeholder="Ej: 196 / N/A" maxlength="10">
+                                                                    </div>
+                                                                    <div class="col-12">
+                                                                        <label class="form-label small text-muted fw-semibold mb-1">No. EMPLEADO — DESACOPLE</label>
+                                                                        <input type="text" class="form-control form-control-sm" id="ap-lleg-empleado-desacople" placeholder="Ej: 579 HUIDOBRO M" maxlength="60">
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- SALIDA -->
+                                                    <div class="col-md-6">
+                                                        <div class="card border-0 shadow-sm h-100">
+                                                            <div class="card-header py-2" style="background:linear-gradient(90deg,#fff3e0,#fff)">
+                                                                <span class="fw-bold small" style="color:#e65100"><i class="fas fa-plane-departure me-1"></i>SALIDA</span>
+                                                            </div>
+                                                            <div class="card-body">
+                                                                <div class="row g-2">
+                                                                    <div class="col-6">
+                                                                        <label class="form-label small text-muted fw-semibold mb-1">No. DE VUELO</label>
+                                                                        <input type="text" class="form-control form-control-sm" id="ap-sal-vuelo" placeholder="Ej: 2281" maxlength="10">
+                                                                    </div>
+                                                                    <div class="col-6">
+                                                                        <label class="form-label small text-muted fw-semibold mb-1">DESTINO</label>
+                                                                        <input type="text" class="form-control form-control-sm" id="ap-sal-destino" placeholder="Ej: CUN" maxlength="10">
+                                                                    </div>
+                                                                    <div class="col-6">
+                                                                        <label class="form-label small text-muted fw-semibold mb-1">No. PASAJEROS</label>
+                                                                        <input type="text" class="form-control form-control-sm" id="ap-sal-pax" placeholder="Ej: 123 / N/A" maxlength="10">
+                                                                    </div>
+                                                                    <div class="col-6">
+                                                                        <label class="form-label small text-muted fw-semibold mb-1">CIERRE DE PUERTA</label>
+                                                                        <input type="time" class="form-control form-control-sm" id="ap-sal-cierre-puerta">
+                                                                    </div>
+                                                                    <div class="col-6">
+                                                                        <label class="form-label small text-muted fw-semibold mb-1">HORA DE DESACOPLE</label>
+                                                                        <input type="time" class="form-control form-control-sm" id="ap-sal-h-desacople">
+                                                                    </div>
+                                                                    <div class="col-6">
+                                                                        <label class="form-label small text-muted fw-semibold mb-1">HORA DE SALIDA</label>
+                                                                        <input type="time" class="form-control form-control-sm" id="ap-sal-h-salida">
+                                                                    </div>
+                                                                    <div class="col-12">
+                                                                        <label class="form-label small text-muted fw-semibold mb-1">TIEMPO TOTAL</label>
+                                                                        <input type="text" class="form-control form-control-sm bg-light" id="ap-sal-tiempo-total" placeholder="Auto o manual (ej: 64 min)" maxlength="20">
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- SERVICIOS GPU / PCA -->
+                                                <div class="card border-0 shadow-sm mb-3">
+                                                    <div class="card-header bg-white py-2">
+                                                        <span class="fw-bold small"><i class="fas fa-plug me-1 text-warning"></i>SERVICIOS ESPECIALES</span>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div class="table-responsive">
+                                                            <table class="table table-sm align-middle mb-0">
+                                                                <thead class="table-light">
+                                                                    <tr class="text-uppercase text-muted" style="font-size:.72rem">
+                                                                        <th class="ps-2 py-2">SERVICIO</th>
+                                                                        <th class="py-2">HORA INICIO</th>
+                                                                        <th class="py-2">HORA TÉRMINO</th>
+                                                                        <th class="py-2">TIEMPO TOTAL</th>
+                                                                        <th class="py-2">ENCARGADO</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <tr>
+                                                                        <td class="ps-2 fw-bold small text-warning">GPU</td>
+                                                                        <td><input type="time" class="form-control form-control-sm" id="ap-gpu-inicio"></td>
+                                                                        <td><input type="time" class="form-control form-control-sm" id="ap-gpu-termino"></td>
+                                                                        <td><input type="text" class="form-control form-control-sm bg-light" id="ap-gpu-total" placeholder="Auto" readonly></td>
+                                                                        <td><input type="text" class="form-control form-control-sm" id="ap-gpu-encargado" placeholder="Nombre" maxlength="60"></td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="ps-2 fw-bold small text-info">PCA</td>
+                                                                        <td><input type="time" class="form-control form-control-sm" id="ap-pca-inicio"></td>
+                                                                        <td><input type="time" class="form-control form-control-sm" id="ap-pca-termino"></td>
+                                                                        <td><input type="text" class="form-control form-control-sm bg-light" id="ap-pca-total" placeholder="Auto" readonly></td>
+                                                                        <td><input type="text" class="form-control form-control-sm" id="ap-pca-encargado" placeholder="Nombre" maxlength="60"></td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- OBSERVACIONES -->
+                                                <div class="card border-0 shadow-sm mb-3">
+                                                    <div class="card-header bg-white py-2">
+                                                        <span class="fw-bold small"><i class="fas fa-comment-alt me-1 text-secondary"></i>OBSERVACIONES</span>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div class="row g-3">
+                                                            <div class="col-md-4">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">NOMBRE — AEROLÍNEA (CONFORMIDAD)</label>
+                                                                <input type="text" class="form-control form-control-sm" id="ap-obs-aerolinea-nombre" placeholder="Nombre" maxlength="80">
+                                                            </div>
+                                                            <div class="col-md-4">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">NOMBRE — OPERADOR</label>
+                                                                <input type="text" class="form-control form-control-sm" id="ap-obs-operador-nombre" placeholder="Nombre operador" maxlength="80">
+                                                            </div>
+                                                            <div class="col-md-4">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">COORDINADOR</label>
+                                                                <input type="text" class="form-control form-control-sm bg-light" id="ap-coordinador" readonly placeholder="(sesión activa)">
+                                                            </div>
+                                                            <div class="col-12">
+                                                                <label class="form-label small fw-semibold text-muted mb-1">OBSERVACIONES GENERALES</label>
+                                                                <textarea class="form-control form-control-sm" id="ap-observaciones" rows="2" maxlength="500" placeholder="Ej: Desacople por estancia prolongada"></textarea>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div id="ap-form-feedback" class="alert d-none mb-3"></div>
+                                                <div class="d-flex gap-2 justify-content-end">
+                                                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" id="ap-btn-limpiar"><i class="fas fa-times me-1"></i>Limpiar</button>
+                                                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold" id="ap-btn-guardar"><i class="fas fa-save me-1"></i>Guardar Registro</button>
+                                                </div>
+                                            </form>
+                                        </div>
+
+                                        <!-- ── HISTORIAL AEROPASILLOS ── -->
+                                        <div class="tab-pane fade" id="aeropasillo-pane-historial" role="tabpanel">
+                                            <div class="row g-2 mb-3 align-items-end">
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label small fw-semibold text-muted mb-1">Desde</label>
+                                                    <input type="date" class="form-control form-control-sm" id="ap-hist-desde">
+                                                </div>
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label small fw-semibold text-muted mb-1">Hasta</label>
+                                                    <input type="date" class="form-control form-control-sm" id="ap-hist-hasta">
+                                                </div>
+                                                <div class="col-6 col-md-3">
+                                                    <label class="form-label small fw-semibold text-muted mb-1">Vuelo / Posición</label>
+                                                    <input type="text" class="form-control form-control-sm" id="ap-hist-filtro" placeholder="Buscar…">
+                                                </div>
+                                                <div class="col-6 col-md-3 d-flex gap-2 align-items-end">
+                                                    <button class="btn btn-success btn-sm rounded-pill px-3" id="ap-btn-buscar"><i class="fas fa-search me-1"></i>Buscar</button>
+                                                    <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" id="ap-btn-exportar-hist"><i class="fas fa-file-excel me-1"></i>Excel</button>
+                                                </div>
+                                            </div>
+                                            <div id="ap-historial-container">
+                                                <div class="text-center py-5 text-muted">
+                                                    <i class="fas fa-search fa-2x mb-2 opacity-25"></i>
+                                                    <p class="small">Selecciona un rango de fechas y presiona Buscar.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="tab-pane fade" id="pane-mech-reportes" role="tabpanel">
                                      <div class="d-flex flex-column align-items-center justify-content-center p-5 text-muted">
@@ -10995,7 +11448,209 @@
                     </div>
                 </div>
 
+                <!-- =============================================
+                     PORTAL DIGITAL — REVISIÓN ADMIN
+                     ============================================= -->
+                <div id="portal-digitalizacion-section" class="content-section">
+                    <div class="container-fluid py-3">
+
+                        <!-- Header -->
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+                            <div>
+                                <h4 class="fw-bold mb-1" style="color:#0a1f44">
+                                    <i class="fas fa-cloud-upload-alt me-2 text-primary"></i>Portal Digital — Manifiestos Recibidos
+                                </h4>
+                                <p class="text-muted small mb-0">Revisa y gestiona todos los manifiestos enviados digitalmente por prestadores de servicio.</p>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2 align-items-center">
+                                <a href="portal.html" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-external-link-alt me-1"></i>Ir al portal de prestadores
+                                </a>
+                                <button class="btn btn-sm btn-outline-secondary" id="btn-padmin-refresh">
+                                    <i class="fas fa-sync-alt me-1"></i>Actualizar
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary" id="btn-padmin-export">
+                                    <i class="fas fa-file-excel me-1"></i>Exportar
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Stats cards -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-6 col-md-2">
+                                <div class="card border-0 shadow-sm text-center py-3">
+                                    <div class="fw-bold fs-4 text-primary" id="padmin-stat-total">—</div>
+                                    <div class="small text-muted">Total</div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <div class="card border-0 shadow-sm text-center py-3" style="border-left:4px solid #f57c00">
+                                    <div class="fw-bold fs-4" style="color:#f57c00" id="padmin-stat-pend">—</div>
+                                    <div class="small text-muted">Pendientes</div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <div class="card border-0 shadow-sm text-center py-3" style="border-left:4px solid #1565c0">
+                                    <div class="fw-bold fs-4 text-primary" id="padmin-stat-rev">—</div>
+                                    <div class="small text-muted">En revisión</div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <div class="card border-0 shadow-sm text-center py-3" style="border-left:4px solid #2e7d32">
+                                    <div class="fw-bold fs-4 text-success" id="padmin-stat-apro">—</div>
+                                    <div class="small text-muted">Aprobados</div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <div class="card border-0 shadow-sm text-center py-3" style="border-left:4px solid #c62828">
+                                    <div class="fw-bold fs-4 text-danger" id="padmin-stat-rech">—</div>
+                                    <div class="small text-muted">Rechazados</div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <div class="card border-0 shadow-sm text-center py-3">
+                                    <div class="fw-bold fs-4 text-info" id="padmin-stat-hoy">—</div>
+                                    <div class="small text-muted">Hoy</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Filters -->
+                        <div class="card border-0 shadow-sm mb-3">
+                            <div class="card-body py-2">
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-12 col-sm-6 col-md-2">
+                                        <label class="form-label small fw-semibold mb-1">Desde</label>
+                                        <input type="date" id="padmin-flt-from" class="form-control form-control-sm">
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-2">
+                                        <label class="form-label small fw-semibold mb-1">Hasta</label>
+                                        <input type="date" id="padmin-flt-to" class="form-control form-control-sm">
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-2">
+                                        <label class="form-label small fw-semibold mb-1">Aerolínea / Vuelo</label>
+                                        <input type="text" id="padmin-flt-airline" class="form-control form-control-sm" placeholder="Ej: AM, VB123">
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-2">
+                                        <label class="form-label small fw-semibold mb-1">Prestador</label>
+                                        <input type="text" id="padmin-flt-company" class="form-control form-control-sm" placeholder="Nombre empresa">
+                                    </div>
+                                    <div class="col-6 col-sm-4 col-md-1">
+                                        <label class="form-label small fw-semibold mb-1">Tipo</label>
+                                        <select id="padmin-flt-tipo" class="form-select form-select-sm">
+                                            <option value="">Todos</option>
+                                            <option value="llegada">Llegada</option>
+                                            <option value="salida">Salida</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6 col-sm-4 col-md-1">
+                                        <label class="form-label small fw-semibold mb-1">Estado</label>
+                                        <select id="padmin-flt-status" class="form-select form-select-sm">
+                                            <option value="">Todos</option>
+                                            <option value="pendiente">Pendiente</option>
+                                            <option value="en_revision">En revisión</option>
+                                            <option value="aprobado">Aprobado</option>
+                                            <option value="rechazado">Rechazado</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-sm-4 col-md-2 d-flex align-items-end">
+                                        <span class="small text-muted" id="padmin-count"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Table -->
+                        <div class="card border-0 shadow-sm">
+                            <div id="padmin-loading" class="text-center py-5 d-none">
+                                <div class="spinner-border text-primary spinner-border-sm"></div>
+                                <div class="small text-muted mt-2">Cargando manifiestos…</div>
+                            </div>
+                            <div class="table-responsive" id="padmin-table-wrap" style="max-height:62vh;overflow-y:auto">
+                                <table class="table table-hover table-sm align-middle mb-0" id="padmin-table" style="font-size:.78rem;min-width:1800px">
+                                    <thead class="table-light sticky-top" style="z-index:2">
+                                        <tr class="text-center text-uppercase text-muted" style="font-size:.68rem;letter-spacing:.04em">
+                                            <th class="text-start ps-3" style="white-space:nowrap">Vuelo</th>
+                                            <th style="white-space:nowrap">Tipo</th>
+                                            <th style="white-space:nowrap">Aerolínea</th>
+                                            <th style="white-space:nowrap">Fecha Vuelo</th>
+                                            <th style="white-space:nowrap">Destino / Origen</th>
+                                            <th style="white-space:nowrap">Tipo Oper.</th>
+                                            <th style="white-space:nowrap">Slot Asig.</th>
+                                            <th style="white-space:nowrap">Slot Coord.</th>
+                                            <th style="white-space:nowrap">HR. Oper.</th>
+                                            <th style="white-space:nowrap">HR. Emb/Des.</th>
+                                            <th style="white-space:nowrap">HR. Pernocta</th>
+                                            <th style="white-space:nowrap">Total PAX</th>
+                                            <th style="white-space:nowrap">Pagan TUA</th>
+                                            <th style="white-space:nowrap">Tránsitos</th>
+                                            <th style="white-space:nowrap">Conexiones</th>
+                                            <th style="white-space:nowrap">Exentos</th>
+                                            <th style="white-space:nowrap">Aeronave</th>
+                                            <th style="white-space:nowrap">Matrícula</th>
+                                            <th style="white-space:nowrap">Kg Carga</th>
+                                            <th style="white-space:nowrap">Kg Equip.</th>
+                                            <th style="white-space:nowrap">Correo</th>
+                                            <th style="white-space:nowrap">Demora</th>
+                                            <th style="white-space:nowrap">Cód. Demora</th>
+                                            <th style="white-space:nowrap">Observaciones</th>
+                                            <th style="white-space:nowrap">Prestador</th>
+                                            <th style="white-space:nowrap">Estado</th>
+                                            <th style="white-space:nowrap">Recibido</th>
+                                            <th style="white-space:nowrap">PDF / Revisar</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="padmin-tbody">
+                                        <tr><td colspan="28" class="text-center text-muted py-5">Haz clic en <strong>Actualizar</strong> para cargar los manifiestos.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </div><!-- /portal-digitalizacion-section -->
+
             </main>
+        </div>
+    </div>
+
+    <!-- Modal: Revisar Manifiesto Digital -->
+    <div class="modal fade" id="modal-revisar-manifest" tabindex="-1" aria-labelledby="modal-revisar-manifest-label">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title mb-0" id="modal-revisar-manifest-label">
+                        <i class="fas fa-clipboard-check me-2 text-primary"></i>Revisar Manifiesto
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="review-details"></div>
+                    <hr class="my-3">
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold">Estado</label>
+                            <select id="review-status" class="form-select">
+                                <option value="pendiente">⏳ Pendiente</option>
+                                <option value="en_revision">🔍 En revisión</option>
+                                <option value="aprobado">✅ Aprobado</option>
+                                <option value="rechazado">❌ Rechazado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label fw-semibold">Notas de revisión</label>
+                            <textarea id="review-notes" class="form-control" rows="3"
+                                placeholder="Observaciones, correcciones solicitadas, motivo de rechazo…"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-save-review">
+                        <i class="fas fa-save me-1"></i>Guardar revisión
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -12728,6 +13383,7 @@
     <script src="js/manifiestos.js"></script>
     <script src="js/manifiestos-analisis.js"></script>
     <script src="js/manifiestos-carga.js"></script>
+    <script src="js/portal-admin.js"></script>
     <script src="js/medicas.js?v=2"></script>
     <script src="js/fauna.js"></script>
 
@@ -12735,6 +13391,7 @@
     <script src="js/permissions.js"></script>
     <script src="js/admin-ui.js"></script>
     <script src="js/aerocares.js"></script>
+    <script src="js/abordadores-registro.js"></script>
     <script src="js/init-data.js"></script>
     <script src="js/data-management.js"></script>
     <script src="js/parte-ops-tab.js"></script>
