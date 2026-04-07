@@ -1069,10 +1069,21 @@
     // Captura HTML string → Blob PDF (renderiza en div off-screen temporal)
     async function boletaCaptureFromHtml(html) {
         if (!window.html2pdf) return null;
+
+        // html2pdf needs the element to be in the live DOM with real dimensions
+        // for html2canvas to capture it. We append it fixed at top-left (invisible
+        // to the user via pointer-events:none) then remove it after capture.
+        const wrap = document.createElement('div');
+        wrap.style.cssText =
+            'position:fixed;top:0;left:0;width:800px;background:#fff;' +
+            'z-index:99999;pointer-events:none;overflow:hidden;';
+        wrap.innerHTML = html;
+        document.body.appendChild(wrap);
+
+        // Wait two animation frames so the browser finishes layout + paint.
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
         try {
-            // Pass the HTML string directly to html2pdf — it manages its own DOM
-            // element lifecycle, avoiding the blank-page issue caused by html2canvas
-            // failing to capture off-screen position:fixed elements.
             return await html2pdf()
                 .set({
                     margin:      [8, 10],
@@ -1083,14 +1094,20 @@
                         logging:         false,
                         backgroundColor: '#fff',
                         windowWidth:     800,
+                        x:               0,
+                        y:               0,
+                        scrollX:         0,
+                        scrollY:         0,
                     },
                     jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
                 })
-                .from(html)
+                .from(wrap)
                 .output('blob');
         } catch (err) {
             console.warn('boletaCaptureFromHtml error:', err);
             return null;
+        } finally {
+            document.body.removeChild(wrap);
         }
     }
 
