@@ -805,10 +805,10 @@
         if (!blob) return null;
         try {
             const { error } = await supabase.storage
-                .from('manifiestos_pdfs')
+                .from('boletas_aerocares')
                 .upload(storagePath, blob, { contentType: 'application/pdf', upsert: true });
             if (error) { console.warn('PDF upload error:', error); return null; }
-            const { data } = supabase.storage.from('manifiestos_pdfs').getPublicUrl(storagePath);
+            const { data } = supabase.storage.from('boletas_aerocares').getPublicUrl(storagePath);
             return data?.publicUrl || null;
         } catch (err) {
             console.warn('boletaUploadPdf error:', err);
