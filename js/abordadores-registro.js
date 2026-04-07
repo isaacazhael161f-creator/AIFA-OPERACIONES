@@ -100,15 +100,15 @@
         const i = idx;
         return `
         <tr id="ao-row-${i}">
-            <td class="ps-2"><input type="text" class="form-control form-control-sm" name="ao-aerocar" placeholder="Ej: AIFA-61" maxlength="15" aria-label="Aerocar ${i}"></td>
-            <td><input type="time" class="form-control form-control-sm" name="ao-h-sal-edif"></td>
-            <td><input type="time" class="form-control form-control-sm" name="ao-h-abordaje"></td>
-            <td><input type="time" class="form-control form-control-sm" name="ao-h-ter-serv"></td>
-            <td><input type="number" class="form-control form-control-sm" name="ao-pax" min="0" max="999" placeholder="0" aria-label="Pasajeros ${i}"></td>
-            <td><input type="text" class="form-control form-control-sm" name="ao-operador" placeholder="Apellido" maxlength="40" aria-label="Operador ${i}"></td>
+            <td class="ps-2"><input type="text" class="form-control" name="ao-aerocar" placeholder="AIFA-61" maxlength="15" autocomplete="off"></td>
+            <td><div class="input-group"><input type="text" class="form-control time-24h" name="ao-h-sal-edif" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off"><button type="button" class="btn btn-outline-secondary btn-now" tabindex="-1" title="Ahora"><i class="fas fa-clock"></i></button></div></td>
+            <td><div class="input-group"><input type="text" class="form-control time-24h" name="ao-h-abordaje" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off"><button type="button" class="btn btn-outline-secondary btn-now" tabindex="-1" title="Ahora"><i class="fas fa-clock"></i></button></div></td>
+            <td><div class="input-group"><input type="text" class="form-control time-24h" name="ao-h-ter-serv" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off"><button type="button" class="btn btn-outline-secondary btn-now" tabindex="-1" title="Ahora"><i class="fas fa-clock"></i></button></div></td>
+            <td><input type="number" class="form-control" name="ao-pax" min="0" max="999" placeholder="Pax"></td>
+            <td><input type="text" class="form-control" name="ao-operador" placeholder="APELLIDO" maxlength="40" autocomplete="off"></td>
             <td class="pe-2 text-center">
-                <button type="button" class="btn btn-sm btn-outline-danger rounded-circle ao-btn-del-row" data-row="${i}" aria-label="Eliminar fila ${i}" title="Eliminar fila">
-                    <i class="fas fa-times" aria-hidden="true"></i>
+                <button type="button" class="btn btn-outline-danger rounded-circle ao-btn-del-row" data-row="${i}">
+                    <i class="fas fa-times"></i>
                 </button>
             </td>
         </tr>`;
@@ -702,9 +702,65 @@
         }
     }
 
+    // ── Global time field setup (24h, auto-colon, AHORA button) ──────────
+
+    function setupGlobalTimeHandling() {
+        // Auto-colon as user types: 1800 → 18:00
+        document.addEventListener('input', function (e) {
+            if (!e.target.classList.contains('time-24h')) return;
+            let digits = e.target.value.replace(/\D/g, '');
+            if (digits.length > 4) digits = digits.slice(0, 4);
+            e.target.value = digits.length >= 3 ? digits.slice(0, 2) + ':' + digits.slice(2) : digits;
+        }, false);
+
+        // Pad to HH:MM on blur (8:5 → 08:05) then fire change for auto-calc
+        document.addEventListener('blur', function (e) {
+            if (!e.target.classList.contains('time-24h')) return;
+            const m = e.target.value.match(/^(\d{1,2}):?(\d{0,2})$/);
+            if (!m) return;
+            const h = parseInt(m[1] || 0), min = parseInt(m[2] || 0);
+            if (h >= 0 && h <= 23 && min >= 0 && min <= 59) {
+                e.target.value = String(h).padStart(2, '0') + ':' + String(min).padStart(2, '0');
+                e.target.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }, true); // capture phase (blur doesn't bubble)
+
+        // AHORA button: fills the adjacent time-24h input with current HH:MM
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.btn-now');
+            if (!btn) return;
+            const now = new Date();
+            const hhmm = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+            const targetId = btn.dataset.target;
+            const inp = targetId
+                ? document.getElementById(targetId)
+                : btn.closest('.input-group')?.querySelector('input.time-24h');
+            if (!inp) return;
+            inp.value = hhmm;
+            inp.dispatchEvent(new Event('change', { bubbles: true }));
+        }, false);
+    }
+
+    // ── Tablet-friendly upgrade: remove -sm from form controls ────────────
+
+    function upgradeFormsForTablet() {
+        ['#pane-mech-aerocares', '#pane-mech-aeropasillos'].forEach(sel => {
+            const pane = document.querySelector(sel);
+            if (!pane) return;
+            pane.querySelectorAll('.form-control-sm').forEach(el => el.classList.remove('form-control-sm'));
+            pane.querySelectorAll('.form-select-sm').forEach(el => el.classList.remove('form-select-sm'));
+            pane.querySelectorAll('.form-label.small').forEach(el => el.classList.remove('small', 'text-muted'));
+            pane.querySelectorAll('.btn.btn-sm').forEach(el => el.classList.remove('btn-sm'));
+        });
+        document.querySelectorAll('#aerocar-subtabs .nav-link, #aeropasillo-subtabs .nav-link')
+            .forEach(el => el.classList.remove('small'));
+    }
+
     // ── Init ────────────────────────────────────────────────
 
     function init() {
+        setupGlobalTimeHandling();
+        upgradeFormsForTablet();
         aoInitEvents();
         apInitEvents();
         bindTabListeners();
