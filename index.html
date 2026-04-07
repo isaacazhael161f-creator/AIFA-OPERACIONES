@@ -10882,157 +10882,141 @@
                                         <!-- ── NUEVA ORDEN AEROCARES ── -->
                                         <div class="tab-pane fade show active" id="aerocar-pane-nueva" role="tabpanel">
                                             <form id="form-orden-aerocar" novalidate>
-                                                <!-- Cabecera: Fecha / H. Programada / Folio -->
-                                                <div class="card border-0 shadow-sm mb-3">
-                                                    <div class="card-header bg-primary bg-opacity-10 py-2">
-                                                        <span class="fw-bold small text-primary"><i class="fas fa-bus me-1"></i>ORDEN DE SERVICIO AEROCARES</span>
-                                                    </div>
-                                                    <div class="card-body pb-2">
-                                                        <div class="row g-3 mb-3">
-                                                            <div class="col-6 col-md-3">
-                                                                <label class="form-label fw-semibold mb-1">FECHA <span class="text-danger">*</span></label>
-                                                                <input type="date" class="form-control" id="ao-fecha" required>
-                                                            </div>
-                                                            <div class="col-6 col-md-3">
-                                                                <label class="form-label fw-semibold mb-1">H. PROGRAMADA</label>
-                                                                <div class="input-group">
-                                                                    <input type="text" class="form-control time-24h" id="ao-h-programada" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off" required>
-                                                                    <button type="button" class="btn btn-outline-secondary btn-now" data-target="ao-h-programada" tabindex="-1" title="Ahora"><i class="fas fa-clock"></i></button>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-6 col-md-3">
-                                                                <label class="form-label fw-semibold mb-1">FOLIO</label>
-                                                                <input type="text" class="form-control bg-light" id="ao-folio" placeholder="Auto" readonly>
-                                                            </div>
-                                                            <div class="col-6 col-md-3">
-                                                                <label class="form-label fw-semibold mb-1 d-block">OPERACIÓN</label>
-                                                                <div class="btn-group w-100" role="group">
-                                                                    <input type="radio" class="btn-check" name="ao-tipo-op" id="ao-op-llegada" value="llegada" autocomplete="off" checked>
-                                                                    <label class="btn btn-outline-primary" for="ao-op-llegada"><i class="fas fa-plane-arrival me-1"></i>LLEGADA</label>
-                                                                    <input type="radio" class="btn-check" name="ao-tipo-op" id="ao-op-salida" value="salida" autocomplete="off">
-                                                                    <label class="btn btn-outline-warning" for="ao-op-salida"><i class="fas fa-plane-departure me-1"></i>SALIDA</label>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        <!-- Tipo vuelo / Base / Posición -->
-                                                        <div class="row g-3 mt-2">
-                                                            <div class="col-12 col-md-4">
-                                                                <label class="form-label fw-semibold mb-1 d-block">TIPO DE VUELO</label>
-                                                                <div class="btn-group w-100" role="group">
-                                                                    <input type="radio" class="btn-check" name="ao-tipo-vuelo" id="ao-tv-nal" value="nacional" autocomplete="off" checked>
-                                                                    <label class="btn btn-outline-secondary" for="ao-tv-nal">NAL</label>
-                                                                    <input type="radio" class="btn-check" name="ao-tipo-vuelo" id="ao-tv-int" value="internacional" autocomplete="off">
-                                                                    <label class="btn btn-outline-secondary" for="ao-tv-int">INTER</label>
-                                                                    <input type="radio" class="btn-check" name="ao-tipo-vuelo" id="ao-tv-mix" value="mixto" autocomplete="off">
-                                                                    <label class="btn btn-outline-secondary" for="ao-tv-mix">MIXTO</label>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-6 col-md-4">
-                                                                <label class="form-label fw-semibold mb-1">BASE</label>
-                                                                <input type="text" class="form-control text-uppercase" id="ao-base" placeholder="Ej: MOD-H" maxlength="20" autocomplete="off">
-                                                            </div>
-                                                            <div class="col-6 col-md-4">
-                                                                <label class="form-label fw-semibold mb-1">POSICIÓN</label>
-                                                                <input type="text" class="form-control text-uppercase" id="ao-posicion" placeholder="Ej: 115-B" maxlength="20" autocomplete="off">
-                                                            </div>
-                                                        </div>
-
-                                                        <!-- Vuelo / Aerolínea / Matrícula -->
-                                                        <div class="row g-3 mt-2">
-                                                            <div class="col-6 col-md-2">
-                                                                <label class="form-label fw-semibold mb-1">No. VUELO <span class="text-danger">*</span></label>
-                                                                <input type="text" class="form-control text-uppercase" id="ao-no-vuelo" placeholder="Ej: 7428" maxlength="10" required autocomplete="off">
-                                                            </div>
-                                                            <div class="col-6 col-md-3">
-                                                                <label class="form-label fw-semibold mb-1">ORIGEN / DESTINO</label>
-                                                                <input type="text" class="form-control text-uppercase" id="ao-origen-destino" placeholder="Ej: TIJ" maxlength="10" autocomplete="off">
-                                                            </div>
-                                                            <div class="col-6 col-md-3">
-                                                                <label class="form-label fw-semibold mb-1">AEROLÍNEA</label>
-                                                                <input type="text" class="form-control text-uppercase" id="ao-aerolinea" placeholder="Ej: VIV" maxlength="30" autocomplete="off">
-                                                            </div>
-                                                            <div class="col-6 col-md-2">
-                                                                <label class="form-label fw-semibold mb-1">MATRÍCULA</label>
-                                                                <input type="text" class="form-control text-uppercase" id="ao-matricula" placeholder="Ej: XA-VXU" maxlength="10" autocomplete="off">
-                                                            </div>
-                                                            <div class="col-6 col-md-2">
-                                                                <label class="form-label fw-semibold mb-1">H. SOLICITUD</label>
-                                                                <div class="input-group">
-                                                                    <input type="text" class="form-control time-24h" id="ao-h-solicitud" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off">
-                                                                    <button type="button" class="btn btn-outline-secondary btn-now" data-target="ao-h-solicitud" tabindex="-1" title="Ahora"><i class="fas fa-clock"></i></button>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-6 col-md-2">
-                                                                <label class="form-label fw-semibold mb-1">H. ENTREGA</label>
-                                                                <div class="input-group">
-                                                                    <input type="text" class="form-control time-24h" id="ao-h-entrega" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off">
-                                                                    <button type="button" class="btn btn-outline-secondary btn-now" data-target="ao-h-entrega" tabindex="-1" title="Ahora"><i class="fas fa-clock"></i></button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                              <div class="rounded-3 overflow-hidden shadow-sm border mb-3" style="border-color:#aab!important">
+                                                <!-- HEADER INSTITUCIONAL -->
+                                                <div class="text-center py-2 px-3" style="background:linear-gradient(135deg,#1a3a6b,#2462af);color:#fff">
+                                                  <div style="font-size:.7rem;letter-spacing:.12em;opacity:.8;text-transform:uppercase">Aeropuerto Internacional Felipe Ángeles</div>
+                                                  <div class="fw-bold" style="font-size:1rem;letter-spacing:.07em;text-transform:uppercase">Orden de Servicio Aerocares</div>
                                                 </div>
-
-                                                <!-- Tabla de operaciones -->
-                                                <div class="card border-0 shadow-sm mb-3">
-                                                    <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
-                                                        <span class="fw-bold small"><i class="fas fa-table me-1 text-primary"></i>AEROCARES ASIGNADOS</span>
-                                                        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" id="ao-btn-add-row">
-                                                            <i class="fas fa-plus me-1"></i>Agregar fila
-                                                        </button>
+                                                <!-- FILA 1: FECHA | H.PROG | FOLIO -->
+                                                <div class="row g-0 border-bottom">
+                                                  <div class="col-5 col-md-3 border-end p-2">
+                                                    <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.06em;margin-bottom:4px">Fecha</div>
+                                                    <input type="date" class="form-control border-0 p-0 fw-semibold" id="ao-fecha" required>
+                                                  </div>
+                                                  <div class="col-7 col-md-3 border-end p-2">
+                                                    <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.06em;margin-bottom:4px">H. Programada</div>
+                                                    <div class="d-flex align-items-center gap-1">
+                                                      <input type="text" class="form-control border-0 p-0 fw-bold time-24h" id="ao-h-programada" placeholder="--:--" maxlength="5" inputmode="numeric" autocomplete="off" style="font-size:1.3rem;max-width:72px">
+                                                      <button type="button" class="btn btn-link p-0 text-secondary btn-now" data-target="ao-h-programada" tabindex="-1"><i class="fas fa-clock"></i></button>
                                                     </div>
-                                                    <div class="card-body p-0">
-                                                        <div class="table-responsive">
-                                                            <table class="table table-sm align-middle mb-0" id="ao-tabla-operaciones">
-                                                                <thead class="table-light">
-                                                                    <tr class="text-uppercase text-muted" style="font-size:.72rem">
-                                                                        <th class="ps-3 py-2" style="min-width:90px">AEROCAR</th>
-                                                                        <th class="py-2" style="min-width:100px">H. SAL. EDIF.</th>
-                                                                        <th class="py-2" style="min-width:100px">H. ABORDAJE</th>
-                                                                        <th class="py-2" style="min-width:100px">H. TER. SERV.</th>
-                                                                        <th class="py-2" style="min-width:70px">No. PAX</th>
-                                                                        <th class="py-2" style="min-width:110px">OPERADOR</th>
-                                                                        <th class="pe-3 py-2" style="width:40px"></th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody id="ao-operaciones-body">
-                                                                    <!-- 3 filas iniciales =>  JS agrega más -->
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
+                                                  </div>
+                                                  <div class="col-12 col-md-6 p-2 d-flex align-items-center gap-3">
+                                                    <span style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.06em">Folio</span>
+                                                    <input type="text" class="form-control border-0 p-0 fw-black text-primary" id="ao-folio" placeholder="AUTO" readonly style="font-size:2.2rem;letter-spacing:.18em;max-width:220px">
+                                                  </div>
+                                                </div>
+                                                <!-- FILA 2: NAL/INTER/MIXTO | BASE | POSICIÓN | SALIDA/LLEGADA -->
+                                                <div class="row g-0 border-bottom align-items-stretch" style="background:#f8f9fd">
+                                                  <div class="col-auto border-end px-3 py-2 d-flex align-items-center gap-3">
+                                                    <div class="form-check mb-0"><input class="form-check-input" type="radio" name="ao-tipo-vuelo" id="ao-tv-nal" value="nacional" autocomplete="off" checked><label class="form-check-label fw-bold" for="ao-tv-nal">NAL</label></div>
+                                                    <div class="form-check mb-0"><input class="form-check-input" type="radio" name="ao-tipo-vuelo" id="ao-tv-int" value="internacional" autocomplete="off"><label class="form-check-label fw-bold" for="ao-tv-int">INTER</label></div>
+                                                    <div class="form-check mb-0"><input class="form-check-input" type="radio" name="ao-tipo-vuelo" id="ao-tv-mix" value="mixto" autocomplete="off"><label class="form-check-label fw-bold" for="ao-tv-mix">MIXTO</label></div>
+                                                  </div>
+                                                  <div class="col border-end p-2">
+                                                    <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Base</div>
+                                                    <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase" id="ao-base" placeholder="MOD-H" maxlength="20" autocomplete="off">
+                                                  </div>
+                                                  <div class="col border-end p-2">
+                                                    <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Posición</div>
+                                                    <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase" id="ao-posicion" placeholder="115-B" maxlength="20" autocomplete="off">
+                                                  </div>
+                                                  <div class="col-auto p-2 d-flex align-items-center">
+                                                    <div class="btn-group" role="group">
+                                                      <input type="radio" class="btn-check" name="ao-tipo-op" id="ao-op-salida" value="salida" autocomplete="off">
+                                                      <label class="btn btn-outline-warning fw-bold px-3" for="ao-op-salida"><i class="fas fa-plane-departure me-1"></i>SALIDA</label>
+                                                      <input type="radio" class="btn-check" name="ao-tipo-op" id="ao-op-llegada" value="llegada" autocomplete="off" checked>
+                                                      <label class="btn btn-outline-primary fw-bold px-3" for="ao-op-llegada"><i class="fas fa-plane-arrival me-1"></i>LLEGADA</label>
                                                     </div>
+                                                  </div>
                                                 </div>
-
-                                                <!-- Observaciones -->
-                                                <div class="card border-0 shadow-sm mb-3">
-                                                    <div class="card-body">
-                                                        <div class="row g-3">
-                                                            <div class="col-md-6">
-                                                                <label class="form-label small fw-semibold text-muted mb-1">OBSERVACIONES AEROLÍNEA</label>
-                                                                <textarea class="form-control form-control-sm" id="ao-obs-aerolinea" rows="2" maxlength="500"></textarea>
-                                                            </div>
-                                                            <div class="col-md-6">
-                                                                <label class="form-label small fw-semibold text-muted mb-1">OBSERVACIONES OPERADOR</label>
-                                                                <textarea class="form-control form-control-sm" id="ao-obs-operador" rows="2" maxlength="500"></textarea>
-                                                            </div>
-                                                            <div class="col-md-6">
-                                                                <label class="form-label small fw-semibold text-muted mb-1">NOMBRE — CONFORMIDAD</label>
-                                                                <input type="text" class="form-control form-control-sm" id="ao-nombre-conformidad" placeholder="Nombre de quien firma" maxlength="80">
-                                                            </div>
-                                                            <div class="col-md-6">
-                                                                <label class="form-label small fw-semibold text-muted mb-1">COORDINADOR</label>
-                                                                <input type="text" class="form-control form-control-sm bg-light" id="ao-coordinador" readonly placeholder="(sesión activa)">
-                                                            </div>
-                                                        </div>
+                                                <!-- CUERPO: columna izq (vuelo) + tabla derecha -->
+                                                <div class="row g-0">
+                                                  <!-- COLUMNA IZQUIERDA: datos del vuelo -->
+                                                  <div class="col-12 col-md-3 col-lg-2 border-end" style="background:#fafbff">
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">No. Vuelo</div>
+                                                      <input type="text" class="form-control border-0 p-0 fw-bold text-uppercase" id="ao-no-vuelo" placeholder="7428" maxlength="10" required autocomplete="off" style="font-size:1.3rem">
                                                     </div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Origen / Destino</div>
+                                                      <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase" id="ao-origen-destino" placeholder="TIJ" maxlength="10" autocomplete="off">
+                                                    </div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Aerolínea</div>
+                                                      <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase" id="ao-aerolinea" placeholder="VIV" maxlength="30" autocomplete="off">
+                                                    </div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Matrícula</div>
+                                                      <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase" id="ao-matricula" placeholder="XA-VXU" maxlength="10" autocomplete="off">
+                                                    </div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">H. Solicitud</div>
+                                                      <div class="d-flex align-items-center gap-1">
+                                                        <input type="text" class="form-control border-0 p-0 fw-semibold time-24h" id="ao-h-solicitud" placeholder="--:--" maxlength="5" inputmode="numeric" autocomplete="off">
+                                                        <button type="button" class="btn btn-link p-0 text-secondary btn-now" data-target="ao-h-solicitud" tabindex="-1"><i class="fas fa-clock small"></i></button>
+                                                      </div>
+                                                    </div>
+                                                    <div class="p-2">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">H. Entrega</div>
+                                                      <div class="d-flex align-items-center gap-1">
+                                                        <input type="text" class="form-control border-0 p-0 fw-semibold time-24h" id="ao-h-entrega" placeholder="--:--" maxlength="5" inputmode="numeric" autocomplete="off">
+                                                        <button type="button" class="btn btn-link p-0 text-secondary btn-now" data-target="ao-h-entrega" tabindex="-1"><i class="fas fa-clock small"></i></button>
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                  <!-- TABLA DE AEROCARES -->
+                                                  <div class="col-12 col-md-9 col-lg-10">
+                                                    <div class="table-responsive">
+                                                      <table class="table table-bordered table-sm align-middle mb-0" id="ao-tabla-operaciones">
+                                                        <thead style="background:#e8eff8">
+                                                          <tr class="text-center text-uppercase fw-bold" style="font-size:.7rem;letter-spacing:.04em">
+                                                            <th class="py-2 ps-2" style="min-width:85px">Aerocar</th>
+                                                            <th class="py-2" style="min-width:88px">H. Sal. Edif.</th>
+                                                            <th class="py-2" style="min-width:88px">H. Abordaje</th>
+                                                            <th class="py-2" style="min-width:88px">H. Ter. Serv.</th>
+                                                            <th class="py-2" style="min-width:56px">No. Pax</th>
+                                                            <th class="py-2" style="min-width:110px">Operador</th>
+                                                            <th class="py-2" style="width:34px"></th>
+                                                          </tr>
+                                                        </thead>
+                                                        <tbody id="ao-operaciones-body"></tbody>
+                                                      </table>
+                                                    </div>
+                                                    <div class="p-2 border-top">
+                                                      <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" id="ao-btn-add-row"><i class="fas fa-plus me-1"></i>Agregar aerocar</button>
+                                                    </div>
+                                                  </div>
                                                 </div>
-
-                                                <div id="ao-form-feedback" class="alert d-none mb-3"></div>
-                                                <div class="d-flex gap-2 justify-content-end">
-                                                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" id="ao-btn-limpiar"><i class="fas fa-times me-1"></i>Limpiar</button>
-                                                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold" id="ao-btn-guardar"><i class="fas fa-save me-1"></i>Guardar Orden</button>
+                                                <!-- OBSERVACIONES + FIRMAS -->
+                                                <div class="row g-0 border-top">
+                                                  <div class="col-12 col-md-8 border-end">
+                                                    <div class="p-2 border-bottom" style="min-height:70px">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.06em;margin-bottom:4px">Observaciones Aerolínea</div>
+                                                      <textarea class="form-control border-0 p-0" id="ao-obs-aerolinea" rows="2" maxlength="500" placeholder="(ninguna)" style="resize:none"></textarea>
+                                                    </div>
+                                                    <div class="p-2" style="min-height:70px">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.06em;margin-bottom:4px">Observaciones Operador</div>
+                                                      <textarea class="form-control border-0 p-0" id="ao-obs-operador" rows="2" maxlength="500" placeholder="(ninguna)" style="resize:none"></textarea>
+                                                    </div>
+                                                  </div>
+                                                  <div class="col-12 col-md-4">
+                                                    <div class="p-2 border-bottom d-flex flex-column justify-content-end" style="min-height:70px">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:8px">Nombre y Firma de Conformidad</div>
+                                                      <input type="text" class="form-control border-0 border-bottom rounded-0 p-0 fw-semibold" id="ao-nombre-conformidad" placeholder="Nombre de quien recibe" maxlength="80" autocomplete="off">
+                                                    </div>
+                                                    <div class="p-2 d-flex flex-column justify-content-end" style="min-height:70px">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:8px">Nombre y Firma del Coordinador</div>
+                                                      <input type="text" class="form-control border-0 border-bottom rounded-0 p-0 fw-semibold bg-transparent" id="ao-coordinador" readonly placeholder="(sesión activa)">
+                                                    </div>
+                                                  </div>
                                                 </div>
+                                              </div>
+                                              <div id="ao-form-feedback" class="alert d-none mb-3"></div>
+                                              <div class="d-flex gap-2 justify-content-end pb-3">
+                                                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" id="ao-btn-limpiar"><i class="fas fa-rotate-left me-1"></i>Limpiar</button>
+                                                <button type="submit" class="btn btn-primary rounded-pill px-5 fw-semibold" id="ao-btn-guardar"><i class="fas fa-save me-1"></i>Guardar Orden</button>
+                                              </div>
                                             </form>
                                         </div>
 
@@ -11107,304 +11091,220 @@
                                         <!-- ── NUEVO REGISTRO AEROPASILLO ── -->
                                         <div class="tab-pane fade show active" id="aeropasillo-pane-nuevo" role="tabpanel">
                                             <form id="form-registro-aeropasillo" novalidate>
-                                                <!-- Cabecera -->
-                                                <div class="card border-0 shadow-sm mb-3">
-                                                    <div class="card-header bg-success bg-opacity-10 py-2 d-flex justify-content-between align-items-center">
-                                                        <span class="fw-bold small text-success"><i class="fas fa-tunnel me-1"></i>REGISTRO DE SERVICIO DE AEROPASILLOS</span>
-                                                        <div class="btn-group" role="group">
-                                                            <input type="radio" class="btn-check" name="ap-tipo-vuelo" id="ap-tv-nal" value="nacional" autocomplete="off" checked>
-                                                            <label class="btn btn-outline-secondary" for="ap-tv-nal">NAL</label>
-                                                            <input type="radio" class="btn-check" name="ap-tipo-vuelo" id="ap-tv-int" value="internacional" autocomplete="off">
-                                                            <label class="btn btn-outline-secondary" for="ap-tv-int">INTER</label>
-                                                            <input type="radio" class="btn-check" name="ap-tipo-vuelo" id="ap-tv-mix" value="mixto" autocomplete="off">
-                                                            <label class="btn btn-outline-secondary" for="ap-tv-mix">MIXTO</label>
-                                                        </div>
+                                              <div class="rounded-3 overflow-hidden shadow-sm border mb-3" style="border-color:#8a9!important">
+                                                <!-- HEADER INSTITUCIONAL -->
+                                                <div class="text-center py-2 px-3" style="background:linear-gradient(135deg,#14452f,#1d6b47);color:#fff">
+                                                  <div class="fw-black" style="font-size:1.4rem;letter-spacing:.18em">AIFA</div>
+                                                  <div class="fw-bold" style="font-size:.85rem;letter-spacing:.07em;text-transform:uppercase">Registro de Servicio de Aeropasillos</div>
+                                                  <div style="font-size:.65rem;opacity:.75;letter-spacing:.05em;text-transform:uppercase">Aeropuerto Internacional Felipe Ángeles S.A. de C.V.</div>
+                                                </div>
+                                                <!-- NACIONAL/INTER/MIXTO + FOLIO -->
+                                                <div class="d-flex align-items-center flex-wrap border-bottom gap-3 px-3 py-2" style="background:#f5fef8">
+                                                  <div class="d-flex gap-3">
+                                                    <div class="form-check mb-0"><input class="form-check-input" type="radio" name="ap-tipo-vuelo" id="ap-tv-nal" value="nacional" autocomplete="off" checked><label class="form-check-label fw-bold" for="ap-tv-nal">NACIONAL</label></div>
+                                                    <div class="form-check mb-0"><input class="form-check-input" type="radio" name="ap-tipo-vuelo" id="ap-tv-int" value="internacional" autocomplete="off"><label class="form-check-label fw-bold" for="ap-tv-int">INTERNACIONAL</label></div>
+                                                    <div class="form-check mb-0"><input class="form-check-input" type="radio" name="ap-tipo-vuelo" id="ap-tv-mix" value="mixto" autocomplete="off"><label class="form-check-label fw-bold" for="ap-tv-mix">MIXTO</label></div>
+                                                  </div>
+                                                  <div class="ms-auto d-flex align-items-center gap-2">
+                                                    <span style="font-size:.75rem;font-weight:700;text-transform:uppercase;color:#555;letter-spacing:.08em">Folio No.</span>
+                                                    <input type="text" class="form-control border-0 p-0 fw-black text-success" id="ap-folio" placeholder="AUTO" readonly style="font-size:2rem;letter-spacing:.15em;max-width:150px">
+                                                  </div>
+                                                </div>
+                                                <!-- 3 COLUMNAS: aeronave | llegada | salida -->
+                                                <div class="row g-0">
+                                                  <!-- IZQUIERDA: datos aeronave -->
+                                                  <div class="col-12 col-md-3 border-end" style="background:#f7fffe">
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Fecha</div>
+                                                      <input type="date" class="form-control border-0 p-0 fw-semibold" id="ap-fecha" required>
                                                     </div>
-                                                    <div class="card-body">
-                                                        <div class="row g-3 mb-3">
-                                                            <div class="col-6 col-md-2">
-                                                                <label class="form-label fw-semibold mb-1">FOLIO</label>
-                                                                <input type="text" class="form-control bg-light" id="ap-folio" placeholder="Auto" readonly>
-                                                            </div>
-                                                            <div class="col-6 col-md-2">
-                                                                <label class="form-label fw-semibold mb-1">FECHA <span class="text-danger">*</span></label>
-                                                                <input type="date" class="form-control" id="ap-fecha" required>
-                                                            </div>
-                                                            <div class="col-6 col-md-2">
-                                                                <label class="form-label fw-semibold mb-1">POSICIÓN <span class="text-danger">*</span></label>
-                                                                <input type="text" class="form-control text-uppercase" id="ap-posicion" placeholder="Ej: R07, 107" maxlength="10" required autocomplete="off">
-                                                            </div>
-                                                            <div class="col-6 col-md-2">
-                                                                <label class="form-label fw-semibold mb-1">AEROPASILLO No.</label>
-                                                                <input type="text" class="form-control" id="ap-numero" placeholder="1, 2…" maxlength="5" autocomplete="off">
-                                                            </div>
-                                                            <div class="col-6 col-md-1">
-                                                                <label class="form-label fw-semibold mb-1">DEDO</label>
-                                                                <select class="form-select" id="ap-dedo">
-                                                                    <option value="">—</option>
-                                                                    <option value="A">A</option>
-                                                                    <option value="B">B</option>
-                                                                </select>
-                                                            </div>
-                                                            <div class="col-6 col-md-3">
-                                                                <label class="form-label fw-semibold mb-1">MATRÍCULA</label>
-                                                                <input type="text" class="form-control text-uppercase" id="ap-matricula" placeholder="Ej: XA-VXV" maxlength="10" autocomplete="off">
-                                                            </div>
-                                                        </div>
-                                                        <div class="row g-3">
-                                                            <div class="col-6 col-md-3">
-                                                                <label class="form-label fw-semibold mb-1">LÍNEA AÉREA</label>
-                                                                <input type="text" class="form-control text-uppercase" id="ap-linea-aerea" placeholder="Ej: VIVA" maxlength="40" autocomplete="off">
-                                                            </div>
-                                                            <div class="col-6 col-md-3">
-                                                                <label class="form-label fw-semibold mb-1">AERONAVE</label>
-                                                                <input type="text" class="form-control text-uppercase" id="ap-aeronave" placeholder="Ej: A-321" maxlength="20" autocomplete="off">
-                                                            </div>
-                                                            <div class="col-12 col-md-6">
-                                                                <label class="form-label fw-semibold mb-1">No. EMPLEADO — ACOPLE</label>
-                                                                <input type="text" class="form-control text-uppercase" id="ap-empleado-acople" placeholder="Ej: 579 HUIDOBRO M" maxlength="60" autocomplete="off">
-                                                            </div>
-                                                        </div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Posición</div>
+                                                      <input type="text" class="form-control border-0 p-0 fw-bold text-uppercase" id="ap-posicion" placeholder="R07" maxlength="10" required autocomplete="off" style="font-size:1.3rem">
                                                     </div>
-                                                </div>
-
-                                                <!-- LLEGADA / SALIDA en dos columnas -->
-                                                <div class="row g-3 mb-3">
-                                                    <!-- LLEGADA -->
-                                                    <div class="col-md-6">
-                                                        <div class="card border-0 shadow-sm h-100">
-                                                            <div class="card-header py-2" style="background:linear-gradient(90deg,#e3f2fd,#fff)">
-                                                                <span class="fw-bold small text-primary"><i class="fas fa-plane-arrival me-1"></i>LLEGADA</span>
-                                                            </div>
-                                                            <div class="card-body">
-                                                                <div class="row g-3">
-                                                                    <div class="col-6">
-                                                                        <label class="form-label fw-semibold mb-1">No. DE VUELO</label>
-                                                                        <input type="text" class="form-control text-uppercase" id="ap-lleg-vuelo" placeholder="Ej: 9411" maxlength="10" autocomplete="off">
-                                                                    </div>
-                                                                    <div class="col-6">
-                                                                        <label class="form-label fw-semibold mb-1">ORIGEN</label>
-                                                                        <input type="text" class="form-control text-uppercase" id="ap-lleg-origen" placeholder="Ej: MID" maxlength="10" autocomplete="off">
-                                                                    </div>
-                                                                    <div class="col-6">
-                                                                        <label class="form-label fw-semibold mb-1">H. CALZOS</label>
-                                                                        <div class="input-group">
-                                                                            <input type="text" class="form-control time-24h" id="ap-lleg-h-calzos" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off">
-                                                                            <button type="button" class="btn btn-outline-secondary btn-now" data-target="ap-lleg-h-calzos" tabindex="-1" title="Ahora"><i class="fas fa-clock"></i></button>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="col-6">
-                                                                        <label class="form-label fw-semibold mb-1">AUTH. ACOPLE</label>
-                                                                        <div class="input-group">
-                                                                            <input type="text" class="form-control time-24h" id="ap-lleg-auth-acople" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off">
-                                                                            <button type="button" class="btn btn-outline-secondary btn-now" data-target="ap-lleg-auth-acople" tabindex="-1" title="Ahora"><i class="fas fa-clock"></i></button>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="col-6">
-                                                                        <label class="form-label fw-semibold mb-1">H. ACOPLE</label>
-                                                                        <div class="input-group">
-                                                                            <input type="text" class="form-control time-24h" id="ap-lleg-h-acople" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off">
-                                                                            <button type="button" class="btn btn-outline-secondary btn-now" data-target="ap-lleg-h-acople" tabindex="-1" title="Ahora"><i class="fas fa-clock"></i></button>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="col-6">
-                                                                        <label class="form-label fw-semibold mb-1">No. PAX</label>
-                                                                        <input type="text" class="form-control" id="ap-lleg-pax" placeholder="196 / N/A" maxlength="10" inputmode="numeric" autocomplete="off">
-                                                                    </div>
-                                                                    <div class="col-12">
-                                                                        <label class="form-label fw-semibold mb-1">No. EMPLEADO — DESACOPLE</label>
-                                                                        <input type="text" class="form-control text-uppercase" id="ap-lleg-empleado-desacople" placeholder="Ej: 579 HUIDOBRO M" maxlength="60" autocomplete="off">
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                                    <div class="p-2 border-bottom d-flex gap-2 align-items-start">
+                                                      <div class="flex-fill">
+                                                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Aeropasillo No.</div>
+                                                        <input type="text" class="form-control border-0 p-0 fw-semibold" id="ap-numero" placeholder="1, 2…" maxlength="5" autocomplete="off">
+                                                      </div>
+                                                      <div style="width:65px">
+                                                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Dedo</div>
+                                                        <select class="form-select border-0 p-0 fw-semibold" id="ap-dedo"><option value="">–</option><option value="A">A</option><option value="B">B</option></select>
+                                                      </div>
                                                     </div>
-
-                                                    <!-- SALIDA -->
-                                                    <div class="col-md-6">
-                                                        <div class="card border-0 shadow-sm h-100">
-                                                            <div class="card-header py-2" style="background:linear-gradient(90deg,#fff3e0,#fff)">
-                                                                <span class="fw-bold small" style="color:#e65100"><i class="fas fa-plane-departure me-1"></i>SALIDA</span>
-                                                            </div>
-                                                            <div class="card-body">
-                                                                <div class="row g-3">
-                                                                    <div class="col-6">
-                                                                        <label class="form-label fw-semibold mb-1">No. DE VUELO</label>
-                                                                        <input type="text" class="form-control text-uppercase" id="ap-sal-vuelo" placeholder="Ej: 2281" maxlength="10" autocomplete="off">
-                                                                    </div>
-                                                                    <div class="col-6">
-                                                                        <label class="form-label fw-semibold mb-1">DESTINO</label>
-                                                                        <input type="text" class="form-control text-uppercase" id="ap-sal-destino" placeholder="Ej: CUN" maxlength="10" autocomplete="off">
-                                                                    </div>
-                                                                    <div class="col-6">
-                                                                        <label class="form-label fw-semibold mb-1">No. PAX</label>
-                                                                        <input type="text" class="form-control" id="ap-sal-pax" placeholder="123 / N/A" maxlength="10" inputmode="numeric" autocomplete="off">
-                                                                    </div>
-                                                                    <div class="col-6">
-                                                                        <label class="form-label fw-semibold mb-1">CIERRE PUERTA</label>
-                                                                        <div class="input-group">
-                                                                            <input type="text" class="form-control time-24h" id="ap-sal-cierre-puerta" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off">
-                                                                            <button type="button" class="btn btn-outline-secondary btn-now" data-target="ap-sal-cierre-puerta" tabindex="-1" title="Ahora"><i class="fas fa-clock"></i></button>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="col-6">
-                                                                        <label class="form-label fw-semibold mb-1">H. DESACOPLE</label>
-                                                                        <div class="input-group">
-                                                                            <input type="text" class="form-control time-24h" id="ap-sal-h-desacople" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off">
-                                                                            <button type="button" class="btn btn-outline-secondary btn-now" data-target="ap-sal-h-desacople" tabindex="-1" title="Ahora"><i class="fas fa-clock"></i></button>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="col-6">
-                                                                        <label class="form-label fw-semibold mb-1">H. SALIDA</label>
-                                                                        <div class="input-group">
-                                                                            <input type="text" class="form-control time-24h" id="ap-sal-h-salida" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off">
-                                                                            <button type="button" class="btn btn-outline-secondary btn-now" data-target="ap-sal-h-salida" tabindex="-1" title="Ahora"><i class="fas fa-clock"></i></button>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="col-12">
-                                                                        <label class="form-label fw-semibold mb-1">TIEMPO TOTAL</label>
-                                                                        <input type="text" class="form-control bg-light" id="ap-sal-tiempo-total" placeholder="Auto (ej: 64 min)" maxlength="20" readonly>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Matrícula</div>
+                                                      <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase" id="ap-matricula" placeholder="XA-VXV" maxlength="10" autocomplete="off">
                                                     </div>
-                                                </div>
-
-                                                <!-- SERVICIOS GPU / PCA -->
-                                                <div class="card border-0 shadow-sm mb-3">
-                                                    <div class="card-header bg-white py-2">
-                                                        <span class="fw-bold"><i class="fas fa-plug me-1 text-warning"></i>SERVICIOS ESPECIALES</span>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Línea Aérea</div>
+                                                      <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase" id="ap-linea-aerea" placeholder="VIVA" maxlength="40" autocomplete="off">
                                                     </div>
-                                                    <div class="card-body">
-                                                        <p class="fw-bold mb-2"><span class="badge bg-warning text-dark me-2">GPU</span>Unidad de potencia de tierra</p>
-                                                        <div class="row g-3 mb-3">
-                                                            <div class="col-6 col-md-3">
-                                                                <label class="form-label fw-semibold mb-1">HORA INICIO</label>
-                                                                <div class="input-group">
-                                                                    <input type="text" class="form-control time-24h" id="ap-gpu-inicio" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off">
-                                                                    <button type="button" class="btn btn-outline-secondary btn-now" data-target="ap-gpu-inicio" tabindex="-1" title="Ahora"><i class="fas fa-clock"></i></button>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-6 col-md-3">
-                                                                <label class="form-label fw-semibold mb-1">HORA TÉRMINO</label>
-                                                                <div class="input-group">
-                                                                    <input type="text" class="form-control time-24h" id="ap-gpu-termino" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off">
-                                                                    <button type="button" class="btn btn-outline-secondary btn-now" data-target="ap-gpu-termino" tabindex="-1" title="Ahora"><i class="fas fa-clock"></i></button>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-6 col-md-2">
-                                                                <label class="form-label fw-semibold mb-1">TIEMPO TOTAL</label>
-                                                                <input type="text" class="form-control bg-light" id="ap-gpu-total" placeholder="Auto" readonly>
-                                                            </div>
-                                                            <div class="col-6 col-md-4">
-                                                                <label class="form-label fw-semibold mb-1">ENCARGADO</label>
-                                                                <input type="text" class="form-control text-uppercase" id="ap-gpu-encargado" placeholder="Nombre" maxlength="60" autocomplete="off">
-                                                            </div>
-                                                        </div>
-                                                        <hr class="my-2">
-                                                        <p class="fw-bold mb-2"><span class="badge bg-info text-dark me-2">PCA</span>Pre-conditioned air</p>
-                                                        <div class="row g-3">
-                                                            <div class="col-6 col-md-3">
-                                                                <label class="form-label fw-semibold mb-1">HORA INICIO</label>
-                                                                <div class="input-group">
-                                                                    <input type="text" class="form-control time-24h" id="ap-pca-inicio" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off">
-                                                                    <button type="button" class="btn btn-outline-secondary btn-now" data-target="ap-pca-inicio" tabindex="-1" title="Ahora"><i class="fas fa-clock"></i></button>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-6 col-md-3">
-                                                                <label class="form-label fw-semibold mb-1">HORA TÉRMINO</label>
-                                                                <div class="input-group">
-                                                                    <input type="text" class="form-control time-24h" id="ap-pca-termino" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off">
-                                                                    <button type="button" class="btn btn-outline-secondary btn-now" data-target="ap-pca-termino" tabindex="-1" title="Ahora"><i class="fas fa-clock"></i></button>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-6 col-md-2">
-                                                                <label class="form-label fw-semibold mb-1">TIEMPO TOTAL</label>
-                                                                <input type="text" class="form-control bg-light" id="ap-pca-total" placeholder="Auto" readonly>
-                                                            </div>
-                                                            <div class="col-6 col-md-4">
-                                                                <label class="form-label fw-semibold mb-1">ENCARGADO</label>
-                                                                <input type="text" class="form-control text-uppercase" id="ap-pca-encargado" placeholder="Nombre" maxlength="60" autocomplete="off">
-                                                            </div>
-                                                        </div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Aeronave</div>
+                                                      <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase" id="ap-aeronave" placeholder="A-321" maxlength="20" autocomplete="off">
                                                     </div>
-                                                </div>
-
-                                                <!-- OBSERVACIONES -->
-                                                <div class="card border-0 shadow-sm mb-3">
-                                                    <div class="card-header bg-white py-2">
-                                                        <span class="fw-bold small"><i class="fas fa-comment-alt me-1 text-secondary"></i>OBSERVACIONES</span>
+                                                    <div class="p-2">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">No. Empleado y Firma — Acople</div>
+                                                      <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase" id="ap-empleado-acople" placeholder="579 HUIDOBRO M" maxlength="60" autocomplete="off">
                                                     </div>
-                                                    <div class="card-body">
-                                                        <div class="row g-3">
-                                                            <div class="col-md-4">
-                                                                <label class="form-label small fw-semibold text-muted mb-1">NOMBRE — AEROLÍNEA (CONFORMIDAD)</label>
-                                                                <input type="text" class="form-control form-control-sm" id="ap-obs-aerolinea-nombre" placeholder="Nombre" maxlength="80">
-                                                            </div>
-                                                            <div class="col-md-4">
-                                                                <label class="form-label small fw-semibold text-muted mb-1">NOMBRE — OPERADOR</label>
-                                                                <input type="text" class="form-control form-control-sm" id="ap-obs-operador-nombre" placeholder="Nombre operador" maxlength="80">
-                                                            </div>
-                                                            <div class="col-md-4">
-                                                                <label class="form-label small fw-semibold text-muted mb-1">COORDINADOR</label>
-                                                                <input type="text" class="form-control form-control-sm bg-light" id="ap-coordinador" readonly placeholder="(sesión activa)">
-                                                            </div>
-                                                            <div class="col-12">
-                                                                <label class="form-label small fw-semibold text-muted mb-1">OBSERVACIONES GENERALES</label>
-                                                                <textarea class="form-control form-control-sm" id="ap-observaciones" rows="2" maxlength="500" placeholder="Ej: Desacople por estancia prolongada"></textarea>
-                                                            </div>
-                                                        </div>
+                                                  </div>
+                                                  <!-- CENTRO: Llegada -->
+                                                  <div class="col-12 col-md-4 border-end" style="background:#f0f7ff">
+                                                    <div class="text-center py-1 border-bottom fw-bold text-uppercase" style="background:#d4e8ff;color:#0a58ca;font-size:.8rem;letter-spacing:.08em"><i class="fas fa-plane-arrival me-1"></i>Llegada</div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Llegada Programada</div>
+                                                      <div class="d-flex align-items-center gap-1">
+                                                        <input type="text" class="form-control border-0 p-0 fw-bold time-24h" id="ap-lleg-programada" placeholder="--:--" maxlength="5" inputmode="numeric" autocomplete="off" style="font-size:1.2rem;max-width:74px">
+                                                        <button type="button" class="btn btn-link p-0 text-secondary btn-now" data-target="ap-lleg-programada" tabindex="-1"><i class="fas fa-clock"></i></button>
+                                                      </div>
                                                     </div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">No. de Vuelo</div>
+                                                      <input type="text" class="form-control border-0 p-0 fw-bold text-uppercase" id="ap-lleg-vuelo" placeholder="9411" maxlength="10" autocomplete="off" style="font-size:1.3rem">
+                                                    </div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Origen</div>
+                                                      <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase" id="ap-lleg-origen" placeholder="MID" maxlength="10" autocomplete="off">
+                                                    </div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Hora de Calzos</div>
+                                                      <div class="d-flex align-items-center gap-1">
+                                                        <input type="text" class="form-control border-0 p-0 fw-semibold time-24h" id="ap-lleg-h-calzos" placeholder="--:--" maxlength="5" inputmode="numeric" autocomplete="off">
+                                                        <button type="button" class="btn btn-link p-0 text-secondary btn-now" data-target="ap-lleg-h-calzos" tabindex="-1"><i class="fas fa-clock small"></i></button>
+                                                      </div>
+                                                    </div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Autorización para Acople</div>
+                                                      <div class="d-flex align-items-center gap-1">
+                                                        <input type="text" class="form-control border-0 p-0 fw-semibold time-24h" id="ap-lleg-auth-acople" placeholder="--:--" maxlength="5" inputmode="numeric" autocomplete="off">
+                                                        <button type="button" class="btn btn-link p-0 text-secondary btn-now" data-target="ap-lleg-auth-acople" tabindex="-1"><i class="fas fa-clock small"></i></button>
+                                                      </div>
+                                                    </div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Hora de Acople</div>
+                                                      <div class="d-flex align-items-center gap-1">
+                                                        <input type="text" class="form-control border-0 p-0 fw-semibold time-24h" id="ap-lleg-h-acople" placeholder="--:--" maxlength="5" inputmode="numeric" autocomplete="off">
+                                                        <button type="button" class="btn btn-link p-0 text-secondary btn-now" data-target="ap-lleg-h-acople" tabindex="-1"><i class="fas fa-clock small"></i></button>
+                                                      </div>
+                                                    </div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">No. Pasajeros</div>
+                                                      <input type="text" class="form-control border-0 p-0 fw-semibold" id="ap-lleg-pax" placeholder="196 / N/A" maxlength="10" inputmode="numeric" autocomplete="off">
+                                                    </div>
+                                                    <div class="p-2">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">No. Empleado y Firma — Desacople</div>
+                                                      <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase" id="ap-lleg-empleado-desacople" placeholder="579 HUIDOBRO M" maxlength="60" autocomplete="off">
+                                                    </div>
+                                                  </div>
+                                                  <!-- DERECHA: Salida -->
+                                                  <div class="col-12 col-md-5" style="background:#fffbf5">
+                                                    <div class="text-center py-1 border-bottom fw-bold text-uppercase" style="background:#feeacf;color:#a04000;font-size:.8rem;letter-spacing:.08em"><i class="fas fa-plane-departure me-1"></i>Salida</div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Salida Programada</div>
+                                                      <div class="d-flex align-items-center gap-1">
+                                                        <input type="text" class="form-control border-0 p-0 fw-bold time-24h" id="ap-sal-programada" placeholder="--:--" maxlength="5" inputmode="numeric" autocomplete="off" style="font-size:1.2rem;max-width:74px">
+                                                        <button type="button" class="btn btn-link p-0 text-secondary btn-now" data-target="ap-sal-programada" tabindex="-1"><i class="fas fa-clock"></i></button>
+                                                      </div>
+                                                    </div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">No. de Vuelo</div>
+                                                      <input type="text" class="form-control border-0 p-0 fw-bold text-uppercase" id="ap-sal-vuelo" placeholder="2281" maxlength="10" autocomplete="off" style="font-size:1.3rem">
+                                                    </div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Destino</div>
+                                                      <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase" id="ap-sal-destino" placeholder="CUN" maxlength="10" autocomplete="off">
+                                                    </div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">No. Pasajeros</div>
+                                                      <input type="text" class="form-control border-0 p-0 fw-semibold" id="ap-sal-pax" placeholder="123 / N/A" maxlength="10" inputmode="numeric" autocomplete="off">
+                                                    </div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Cierre de Puerta</div>
+                                                      <div class="d-flex align-items-center gap-1">
+                                                        <input type="text" class="form-control border-0 p-0 fw-semibold time-24h" id="ap-sal-cierre-puerta" placeholder="--:--" maxlength="5" inputmode="numeric" autocomplete="off">
+                                                        <button type="button" class="btn btn-link p-0 text-secondary btn-now" data-target="ap-sal-cierre-puerta" tabindex="-1"><i class="fas fa-clock small"></i></button>
+                                                      </div>
+                                                    </div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Hora de Desacople</div>
+                                                      <div class="d-flex align-items-center gap-1">
+                                                        <input type="text" class="form-control border-0 p-0 fw-semibold time-24h" id="ap-sal-h-desacople" placeholder="--:--" maxlength="5" inputmode="numeric" autocomplete="off">
+                                                        <button type="button" class="btn btn-link p-0 text-secondary btn-now" data-target="ap-sal-h-desacople" tabindex="-1"><i class="fas fa-clock small"></i></button>
+                                                      </div>
+                                                    </div>
+                                                    <div class="p-2 border-bottom">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Hora de Salida</div>
+                                                      <div class="d-flex align-items-center gap-1">
+                                                        <input type="text" class="form-control border-0 p-0 fw-semibold time-24h" id="ap-sal-h-salida" placeholder="--:--" maxlength="5" inputmode="numeric" autocomplete="off">
+                                                        <button type="button" class="btn btn-link p-0 text-secondary btn-now" data-target="ap-sal-h-salida" tabindex="-1"><i class="fas fa-clock small"></i></button>
+                                                      </div>
+                                                    </div>
+                                                    <div class="p-2">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Tiempo Total</div>
+                                                      <input type="text" class="form-control border-0 p-0 fw-black text-success" id="ap-sal-tiempo-total" placeholder="(automático)" maxlength="20" readonly style="font-size:1.4rem">
+                                                    </div>
+                                                  </div>
                                                 </div>
-
-                                                <div id="ap-form-feedback" class="alert d-none mb-3"></div>
-                                                <div class="d-flex gap-2 justify-content-end">
-                                                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" id="ap-btn-limpiar"><i class="fas fa-times me-1"></i>Limpiar</button>
-                                                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold" id="ap-btn-guardar"><i class="fas fa-save me-1"></i>Guardar Registro</button>
+                                                <!-- GPU / PCA -->
+                                                <div class="border-top">
+                                                  <div class="table-responsive">
+                                                    <table class="table table-bordered table-sm align-middle mb-0" style="font-size:.85rem">
+                                                      <thead style="background:#fff9e0">
+                                                        <tr class="text-center text-uppercase fw-bold" style="font-size:.68rem;letter-spacing:.04em">
+                                                          <th class="py-2 ps-3" style="width:70px">Servicio</th>
+                                                          <th class="py-2" style="min-width:120px">Hora de Inicio</th>
+                                                          <th class="py-2" style="min-width:120px">Hora de Término</th>
+                                                          <th class="py-2" style="min-width:90px">Tiempo Total</th>
+                                                          <th class="py-2">Encargado</th>
+                                                        </tr>
+                                                      </thead>
+                                                      <tbody>
+                                                        <tr>
+                                                          <td class="ps-3 fw-bold" style="color:#d97706">GPU</td>
+                                                          <td><div class="d-flex align-items-center gap-1 px-1"><input type="text" class="form-control form-control-sm border-0 fw-semibold text-center time-24h" id="ap-gpu-inicio" placeholder="--:--" maxlength="5" inputmode="numeric" autocomplete="off"><button type="button" class="btn btn-link p-0 text-secondary btn-now" data-target="ap-gpu-inicio" tabindex="-1"><i class="fas fa-clock" style="font-size:.75rem"></i></button></div></td>
+                                                          <td><div class="d-flex align-items-center gap-1 px-1"><input type="text" class="form-control form-control-sm border-0 fw-semibold text-center time-24h" id="ap-gpu-termino" placeholder="--:--" maxlength="5" inputmode="numeric" autocomplete="off"><button type="button" class="btn btn-link p-0 text-secondary btn-now" data-target="ap-gpu-termino" tabindex="-1"><i class="fas fa-clock" style="font-size:.75rem"></i></button></div></td>
+                                                          <td><input type="text" class="form-control form-control-sm border-0 fw-bold text-center bg-light" id="ap-gpu-total" placeholder="Auto" readonly></td>
+                                                          <td><input type="text" class="form-control form-control-sm border-0 fw-semibold text-uppercase px-1" id="ap-gpu-encargado" placeholder="Nombre" maxlength="60" autocomplete="off"></td>
+                                                        </tr>
+                                                        <tr>
+                                                          <td class="ps-3 fw-bold" style="color:#0891b2">PCA</td>
+                                                          <td><div class="d-flex align-items-center gap-1 px-1"><input type="text" class="form-control form-control-sm border-0 fw-semibold text-center time-24h" id="ap-pca-inicio" placeholder="--:--" maxlength="5" inputmode="numeric" autocomplete="off"><button type="button" class="btn btn-link p-0 text-secondary btn-now" data-target="ap-pca-inicio" tabindex="-1"><i class="fas fa-clock" style="font-size:.75rem"></i></button></div></td>
+                                                          <td><div class="d-flex align-items-center gap-1 px-1"><input type="text" class="form-control form-control-sm border-0 fw-semibold text-center time-24h" id="ap-pca-termino" placeholder="--:--" maxlength="5" inputmode="numeric" autocomplete="off"><button type="button" class="btn btn-link p-0 text-secondary btn-now" data-target="ap-pca-termino" tabindex="-1"><i class="fas fa-clock" style="font-size:.75rem"></i></button></div></td>
+                                                          <td><input type="text" class="form-control form-control-sm border-0 fw-bold text-center bg-light" id="ap-pca-total" placeholder="Auto" readonly></td>
+                                                          <td><input type="text" class="form-control form-control-sm border-0 fw-semibold text-uppercase px-1" id="ap-pca-encargado" placeholder="Nombre" maxlength="60" autocomplete="off"></td>
+                                                        </tr>
+                                                      </tbody>
+                                                    </table>
+                                                  </div>
                                                 </div>
-                                            </form>
-                                        </div>
-
-                                        <!-- ── HISTORIAL AEROPASILLOS ── -->
-                                        <div class="tab-pane fade" id="aeropasillo-pane-historial" role="tabpanel">
-                                            <div class="row g-2 mb-3 align-items-end">
-                                                <div class="col-6 col-md-3">
-                                                    <label class="form-label small fw-semibold text-muted mb-1">Desde</label>
-                                                    <input type="date" class="form-control form-control-sm" id="ap-hist-desde">
+                                                <!-- OBSERVACIONES + FIRMAS -->
+                                                <div class="row g-0 border-top">
+                                                  <div class="col-12 col-md-6 border-end p-2" style="min-height:90px">
+                                                    <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.06em;margin-bottom:4px">Observaciones</div>
+                                                    <textarea class="form-control border-0 p-0" id="ap-observaciones" rows="3" maxlength="500" placeholder="(ninguna)" style="resize:none"></textarea>
+                                                  </div>
+                                                  <div class="col-12 col-md-6 p-0">
+                                                    <div class="p-2 border-bottom d-flex flex-column justify-content-end" style="min-height:60px">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:8px">Línea Aérea — Nombre y Firma Conformidad</div>
+                                                      <input type="text" class="form-control border-0 border-bottom rounded-0 p-0 fw-semibold" id="ap-obs-aerolinea-nombre" placeholder="Nombre" maxlength="80" autocomplete="off">
+                                                    </div>
+                                                    <div class="p-2 border-bottom d-flex flex-column justify-content-end" style="min-height:60px">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:8px">Operador — Nombre y Firma</div>
+                                                      <input type="text" class="form-control border-0 border-bottom rounded-0 p-0 fw-semibold" id="ap-obs-operador-nombre" placeholder="Nombre del operador" maxlength="80" autocomplete="off">
+                                                    </div>
+                                                    <div class="p-2 d-flex flex-column justify-content-end" style="min-height:60px">
+                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:8px">Nombre y Firma del Coordinador</div>
+                                                      <input type="text" class="form-control border-0 border-bottom rounded-0 p-0 fw-semibold bg-transparent" id="ap-coordinador" readonly placeholder="(sesión activa)">
+                                                    </div>
+                                                  </div>
                                                 </div>
-                                                <div class="col-6 col-md-3">
-                                                    <label class="form-label small fw-semibold text-muted mb-1">Hasta</label>
-                                                    <input type="date" class="form-control form-control-sm" id="ap-hist-hasta">
-                                                </div>
-                                                <div class="col-6 col-md-3">
-                                                    <label class="form-label small fw-semibold text-muted mb-1">Vuelo / Posición</label>
-                                                    <input type="text" class="form-control form-control-sm" id="ap-hist-filtro" placeholder="Buscar…">
-                                                </div>
-                                                <div class="col-6 col-md-3 d-flex gap-2 align-items-end">
-                                                    <button class="btn btn-success btn-sm rounded-pill px-3" id="ap-btn-buscar"><i class="fas fa-search me-1"></i>Buscar</button>
-                                                    <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" id="ap-btn-exportar-hist"><i class="fas fa-file-excel me-1"></i>Excel</button>
-                                                </div>
-                                            </div>
-                                            <div id="ap-historial-container">
-                                                <div class="text-center py-5 text-muted">
-                                                    <i class="fas fa-search fa-2x mb-2 opacity-25"></i>
-                                                    <p class="small">Selecciona un rango de fechas y presiona Buscar.</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="tab-pane fade" id="pane-mech-reportes" role="tabpanel">
-                                     <div class="d-flex flex-column align-items-center justify-content-center p-5 text-muted">
-                                         <i class="fas fa-file-alt fa-3x mb-3 text-secondary opacity-25"></i>
-                                         <h5>Módulo Reportes</h5>
-                                         <p class="small">En construcción...</p>
-                                     </div>
-                                </div>
-                                <div class="tab-pane fade" id="pane-mech-catalogo" role="tabpanel">
-                                    <div class="card shadow-sm border-0">
-                                        <div class="card-header bg-white border-bottom-0">
+                                              </div>
+                                              <div id="ap-form-feedback" class="alert d-none mb-3"></div>
+                                              <div class="d-flex gap-2 justify-content-end pb-3">
+                                                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" id="ap-btn-limpiar"><i class="fas fa-rotate-left me-1"></i>Limpiar</button>
+                                                <button type="submit" class="btn btn-success rounded-pill px-5 fw-semibold" id="ap-btn-guardar"><i class="fas fa-save me-1"></i>Guardar Registro</button>
+                                      <div class="card-header bg-white border-bottom-0">
                                             <ul class="nav nav-tabs card-header-tabs" id="mechCatalogsTabs" role="tablist">
                                                 <li class="nav-item" role="presentation">
                                                     <button class="nav-link active" id="tab-mech-cat-aerocares"
