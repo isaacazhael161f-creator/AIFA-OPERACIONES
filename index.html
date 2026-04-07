@@ -50,6 +50,8 @@
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
+    <!-- Signature Pad -->
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 
     <script src="js/supabase-client.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
@@ -11006,22 +11008,37 @@
                                                 <!-- FIRMAS -->
                                                 <div class="row g-0 border-top">
                                                   <div class="col-12 col-md-4 border-end p-2">
-                                                    <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.07em;margin-bottom:6px">Representante Aerolínea</div>
-                                                    <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase" id="ao-nombre-conformidad" placeholder="Nombre de quien recibe" maxlength="80" autocomplete="off" style="font-size:.85rem">
-                                                    <div style="border-bottom:1.5px solid #444;height:36px;margin:10px 4px 3px"></div>
-                                                    <div style="font-size:.58rem;text-align:center;color:#bbb;letter-spacing:.06em;text-transform:uppercase">Nombre y Firma</div>
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.07em">Representante Aerolínea</div>
+                                                      <button type="button" class="btn btn-link p-0 text-muted sig-clear-btn" data-sig="ao-sig-aerolinea" style="font-size:.65rem" title="Borrar firma"><i class="fas fa-eraser"></i></button>
+                                                    </div>
+                                                    <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase mb-1" id="ao-nombre-conformidad" placeholder="Nombre de quien recibe" maxlength="80" autocomplete="off" style="font-size:.85rem">
+                                                    <div style="border:1px solid #d0d5dd;border-radius:6px;background:#fafafa;overflow:hidden;height:80px">
+                                                      <canvas id="ao-sig-aerolinea" style="width:100%;height:80px;display:block;touch-action:none;cursor:crosshair"></canvas>
+                                                    </div>
+                                                    <div style="font-size:.58rem;text-align:center;color:#bbb;letter-spacing:.06em;text-transform:uppercase;margin-top:2px">Firma</div>
                                                   </div>
                                                   <div class="col-12 col-md-4 border-end p-2">
-                                                    <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.07em;margin-bottom:6px">Operador(es)</div>
-                                                    <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase" id="ao-firma-operador" placeholder="Nombre del operador responsable" maxlength="80" autocomplete="off" style="font-size:.85rem">
-                                                    <div style="border-bottom:1.5px solid #444;height:36px;margin:10px 4px 3px"></div>
-                                                    <div style="font-size:.58rem;text-align:center;color:#bbb;letter-spacing:.06em;text-transform:uppercase">Nombre y Firma</div>
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.07em">Operador(es)</div>
+                                                      <button type="button" class="btn btn-link p-0 text-muted sig-clear-btn" data-sig="ao-sig-operador" style="font-size:.65rem" title="Borrar firma"><i class="fas fa-eraser"></i></button>
+                                                    </div>
+                                                    <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase mb-1" id="ao-firma-operador" placeholder="Nombre del operador responsable" maxlength="80" autocomplete="off" style="font-size:.85rem">
+                                                    <div style="border:1px solid #d0d5dd;border-radius:6px;background:#fafafa;overflow:hidden;height:80px">
+                                                      <canvas id="ao-sig-operador" style="width:100%;height:80px;display:block;touch-action:none;cursor:crosshair"></canvas>
+                                                    </div>
+                                                    <div style="font-size:.58rem;text-align:center;color:#bbb;letter-spacing:.06em;text-transform:uppercase;margin-top:2px">Firma</div>
                                                   </div>
                                                   <div class="col-12 col-md-4 p-2">
-                                                    <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.07em;margin-bottom:6px">Coordinador</div>
-                                                    <input type="text" class="form-control border-0 p-0 fw-semibold bg-transparent" id="ao-coordinador" readonly placeholder="(sesión activa)" style="font-size:.85rem">
-                                                    <div style="border-bottom:1.5px solid #444;height:36px;margin:10px 4px 3px"></div>
-                                                    <div style="font-size:.58rem;text-align:center;color:#bbb;letter-spacing:.06em;text-transform:uppercase">Nombre y Firma</div>
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.07em">Coordinador</div>
+                                                      <button type="button" class="btn btn-link p-0 text-muted sig-clear-btn" data-sig="ao-sig-coordinador" style="font-size:.65rem" title="Borrar firma"><i class="fas fa-eraser"></i></button>
+                                                    </div>
+                                                    <input type="text" class="form-control border-0 p-0 fw-semibold bg-transparent mb-1" id="ao-coordinador" readonly placeholder="(sesión activa)" style="font-size:.85rem">
+                                                    <div style="border:1px solid #d0d5dd;border-radius:6px;background:#fafafa;overflow:hidden;height:80px">
+                                                      <canvas id="ao-sig-coordinador" style="width:100%;height:80px;display:block;touch-action:none;cursor:crosshair"></canvas>
+                                                    </div>
+                                                    <div style="font-size:.58rem;text-align:center;color:#bbb;letter-spacing:.06em;text-transform:uppercase;margin-top:2px">Firma</div>
                                                   </div>
                                                 </div>
                                               </div>
@@ -11302,17 +11319,35 @@
                                                     <textarea class="form-control border-0 p-0" id="ap-observaciones" rows="3" maxlength="500" placeholder="(ninguna)" style="resize:none"></textarea>
                                                   </div>
                                                   <div class="col-12 col-md-6 p-0">
-                                                    <div class="p-2 border-bottom d-flex flex-column justify-content-end" style="min-height:60px">
-                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:8px">Línea Aérea — Nombre y Firma Conformidad</div>
-                                                      <input type="text" class="form-control border-0 border-bottom rounded-0 p-0 fw-semibold" id="ap-obs-aerolinea-nombre" placeholder="Nombre" maxlength="80" autocomplete="off">
+                                                    <div class="p-2 border-bottom">
+                                                      <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888">Línea Aérea — Conformidad</div>
+                                                        <button type="button" class="btn btn-link p-0 text-muted sig-clear-btn" data-sig="ap-sig-aerolinea" style="font-size:.65rem" title="Borrar firma"><i class="fas fa-eraser"></i></button>
+                                                      </div>
+                                                      <input type="text" class="form-control border-0 p-0 fw-semibold mb-1" id="ap-obs-aerolinea-nombre" placeholder="Nombre" maxlength="80" autocomplete="off" style="font-size:.85rem">
+                                                      <div style="border:1px solid #d0d5dd;border-radius:6px;background:#fafafa;overflow:hidden;height:72px">
+                                                        <canvas id="ap-sig-aerolinea" style="width:100%;height:72px;display:block;touch-action:none;cursor:crosshair"></canvas>
+                                                      </div>
                                                     </div>
-                                                    <div class="p-2 border-bottom d-flex flex-column justify-content-end" style="min-height:60px">
-                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:8px">Operador — Nombre y Firma</div>
-                                                      <input type="text" class="form-control border-0 border-bottom rounded-0 p-0 fw-semibold" id="ap-obs-operador-nombre" placeholder="Nombre del operador" maxlength="80" autocomplete="off">
+                                                    <div class="p-2 border-bottom">
+                                                      <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888">Operador — Firma</div>
+                                                        <button type="button" class="btn btn-link p-0 text-muted sig-clear-btn" data-sig="ap-sig-operador" style="font-size:.65rem" title="Borrar firma"><i class="fas fa-eraser"></i></button>
+                                                      </div>
+                                                      <input type="text" class="form-control border-0 p-0 fw-semibold mb-1" id="ap-obs-operador-nombre" placeholder="Nombre del operador" maxlength="80" autocomplete="off" style="font-size:.85rem">
+                                                      <div style="border:1px solid #d0d5dd;border-radius:6px;background:#fafafa;overflow:hidden;height:72px">
+                                                        <canvas id="ap-sig-operador" style="width:100%;height:72px;display:block;touch-action:none;cursor:crosshair"></canvas>
+                                                      </div>
                                                     </div>
-                                                    <div class="p-2 d-flex flex-column justify-content-end" style="min-height:60px">
-                                                      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:8px">Nombre y Firma del Coordinador</div>
-                                                      <input type="text" class="form-control border-0 border-bottom rounded-0 p-0 fw-semibold bg-transparent" id="ap-coordinador" readonly placeholder="(sesión activa)">
+                                                    <div class="p-2">
+                                                      <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888">Coordinador</div>
+                                                        <button type="button" class="btn btn-link p-0 text-muted sig-clear-btn" data-sig="ap-sig-coordinador" style="font-size:.65rem" title="Borrar firma"><i class="fas fa-eraser"></i></button>
+                                                      </div>
+                                                      <input type="text" class="form-control border-0 p-0 fw-semibold bg-transparent mb-1" id="ap-coordinador" readonly placeholder="(sesión activa)" style="font-size:.85rem">
+                                                      <div style="border:1px solid #d0d5dd;border-radius:6px;background:#fafafa;overflow:hidden;height:72px">
+                                                        <canvas id="ap-sig-coordinador" style="width:100%;height:72px;display:block;touch-action:none;cursor:crosshair"></canvas>
+                                                      </div>
                                                     </div>
                                                   </div>
                                                 </div>
