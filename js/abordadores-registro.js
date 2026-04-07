@@ -217,6 +217,7 @@
                 obs_aerolinea:     document.getElementById('ao-obs-aerolinea').value.trim() || null,
                 obs_operador:      document.getElementById('ao-obs-operador').value.trim() || null,
                 nombre_conformidad:document.getElementById('ao-nombre-conformidad').value.trim() || null,
+                firma_operador:    document.getElementById('ao-firma-operador').value.trim() || null,
                 nombre_coordinador:document.getElementById('ao-coordinador').value.trim() || null,
                 created_by:        user?.id || null,
             };
@@ -333,7 +334,7 @@
             </table>
             <p class="small text-muted mb-1"><b>Obs. Aerolínea:</b> ${r.obs_aerolinea||'—'}</p>
             <p class="small text-muted mb-1"><b>Obs. Operador:</b> ${r.obs_operador||'—'}</p>
-            <p class="small text-muted mb-0"><b>Coordinador:</b> ${r.nombre_coordinador||'—'} | <b>Conformidad:</b> ${r.nombre_conformidad||'—'}</p>`;
+            <p class="small text-muted mb-0"><b>Coordinador:</b> ${r.nombre_coordinador||'—'} | <b>Conformidad:</b> ${r.nombre_conformidad||'—'} | <b>Firma Operador:</b> ${r.firma_operador||'—'}</p>`;
 
         // Reuse / create a simple modal
         let modal = document.getElementById('ao-detalle-modal');
