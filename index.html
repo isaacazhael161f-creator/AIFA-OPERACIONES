@@ -11356,7 +11356,15 @@
                                               <div class="d-flex gap-2 justify-content-end pb-3">
                                                 <button type="button" class="btn btn-outline-secondary rounded-pill px-4" id="ap-btn-limpiar"><i class="fas fa-rotate-left me-1"></i>Limpiar</button>
                                                 <button type="submit" class="btn btn-success rounded-pill px-5 fw-semibold" id="ap-btn-guardar"><i class="fas fa-save me-1"></i>Guardar Registro</button>
-                                      <div class="card-header bg-white border-bottom-0">
+                                              </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- ── CATÁLOGO ── -->
+                                <div class="tab-pane fade" id="pane-mech-catalogo" role="tabpanel">
+                                    <div class="card border-0">
+                                        <div class="card-header bg-white border-bottom-0">
                                             <ul class="nav nav-tabs card-header-tabs" id="mechCatalogsTabs" role="tablist">
                                                 <li class="nav-item" role="presentation">
                                                     <button class="nav-link active" id="tab-mech-cat-aerocares"
@@ -11368,57 +11376,46 @@
                                                     <button class="nav-link" id="tab-mech-cat-operadores"
                                                         data-bs-toggle="tab"
                                                         data-bs-target="#subpane-mech-cat-operadores" type="button"
-                                                        role="tab" aria-selected="false">Operadores
-                                                        Aerocares</button>
+                                                        role="tab" aria-selected="false">Operadores Aerocares</button>
                                                 </li>
                                                 <li class="nav-item" role="presentation">
                                                     <button class="nav-link" id="tab-mech-cat-posiciones"
                                                         data-bs-toggle="tab"
                                                         data-bs-target="#subpane-mech-cat-posiciones" type="button"
-                                                        role="tab" aria-selected="false">Posiciones
-                                                        Aerocares</button>
+                                                        role="tab" aria-selected="false">Posiciones Aerocares</button>
                                                 </li>
                                             </ul>
                                         </div>
                                         <div class="card-body">
                                             <div class="tab-content" id="mechCatalogsTabsContent">
                                                 <!-- Aerocares -->
-                                                <div class="tab-pane fade show active"
-                                                    id="subpane-mech-cat-aerocares" role="tabpanel">
+                                                <div class="tab-pane fade show active" id="subpane-mech-cat-aerocares" role="tabpanel">
                                                     <div class="d-flex justify-content-between mb-3">
                                                         <h5>Listado de Aerocares</h5>
-                                                        <!-- <button class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i>Agregar</button> -->
                                                     </div>
-                                                    <div id="table-aerocares-container"
-                                                        class="table-responsive">
+                                                    <div id="table-aerocares-container" class="table-responsive">
                                                         <div class="text-center py-5 text-muted">
                                                             <i class="fas fa-spinner fa-spin me-2"></i>Cargando datos de Aerocares...
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <!-- Operadores -->
-                                                <div class="tab-pane fade" id="subpane-mech-cat-operadores"
-                                                    role="tabpanel">
-                                                     <div class="d-flex justify-content-between mb-3">
+                                                <div class="tab-pane fade" id="subpane-mech-cat-operadores" role="tabpanel">
+                                                    <div class="d-flex justify-content-between mb-3">
                                                         <h5>Listado de Operadores</h5>
-                                                        <!-- <button class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i>Agregar</button> -->
                                                     </div>
-                                                    <div id="table-operadores-aerocares-container"
-                                                        class="table-responsive">
+                                                    <div id="table-operadores-aerocares-container" class="table-responsive">
                                                         <div class="text-center py-5 text-muted">
                                                             <i class="fas fa-spinner fa-spin me-2"></i>Cargando datos de Operadores...
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <!-- Posiciones -->
-                                                <div class="tab-pane fade" id="subpane-mech-cat-posiciones"
-                                                    role="tabpanel">
-                                                     <div class="d-flex justify-content-between mb-3">
+                                                <div class="tab-pane fade" id="subpane-mech-cat-posiciones" role="tabpanel">
+                                                    <div class="d-flex justify-content-between mb-3">
                                                         <h5>Listado de Posiciones</h5>
-                                                        <!-- <button class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i>Agregar</button> -->
                                                     </div>
-                                                    <div id="table-posiciones-aerocares-container"
-                                                        class="table-responsive">
+                                                    <div id="table-posiciones-aerocares-container" class="table-responsive">
                                                         <div class="text-center py-5 text-muted">
                                                             <i class="fas fa-spinner fa-spin me-2"></i>Cargando datos de Posiciones...
                                                         </div>
