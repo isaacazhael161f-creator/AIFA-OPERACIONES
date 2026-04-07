@@ -230,7 +230,7 @@
             if (error) throw error;
 
             // Generar PDF de la boleta y guardarlo en Storage
-            const pdfBlob = await boletaCapturePdf('ao-boleta-card');
+            const pdfBlob = await boletaCaptureFromHtml(buildAoBoleta(payload, _aifaLogoB64));
             if (pdfBlob && aoInserted?.id) {
                 const pdfPath = `aerocares/${payload.folio || aoInserted.id}.pdf`;
                 const pdfUrl  = await boletaUploadPdf(pdfBlob, pdfPath, supabase);
@@ -544,7 +544,7 @@
             if (error) throw error;
 
             // Generar PDF de la boleta y guardarlo en Storage
-            const pdfBlob = await boletaCapturePdf('ap-boleta-card');
+            const pdfBlob = await boletaCaptureFromHtml(buildApBoleta(payload, _aifaLogoB64));
             if (pdfBlob && apInserted?.id) {
                 const pdfPath = `aeropasillos/${payload.folio || apInserted.id}.pdf`;
                 const pdfUrl  = await boletaUploadPdf(pdfBlob, pdfPath, supabase);
@@ -783,20 +783,308 @@
     }
 
     // ── PDF boleta ─────────────────────────────────────────────────────────
-    // Genera un Blob PDF desde el elemento de la boleta.
-    async function boletaCapturePdf(elementId) {
-        const el = document.getElementById(elementId);
-        if (!el || !window.html2pdf) return null;
+
+    // Logo AIFA en base64 (se carga al init para evitar cors en html2canvas)
+    let _aifaLogoB64 = '';
+    async function _loadAifaLogo() {
+        try {
+            const res  = await fetch('images/aifa-logo.png');
+            const blob = await res.blob();
+            return await new Promise(ok => {
+                const r = new FileReader();
+                r.onload = () => ok(r.result);
+                r.readAsDataURL(blob);
+            });
+        } catch { return ''; }
+    }
+
+    // Genera el HTML de la boleta Aerocares lista para imprimir
+    function buildAoBoleta(p, logo) {
+        const op = (p.operaciones || []).map((r, i) => `
+            <tr style="background:${i%2?'#f7f9ff':'#fff'}">
+              <td style="padding:4px 6px;border-bottom:1px solid #e0e6f0;border-right:1px solid #e0e6f0;font-weight:700">${r.aerocar||''}</td>
+              <td style="padding:4px 6px;border-bottom:1px solid #e0e6f0;border-right:1px solid #e0e6f0">${r.h_sal_edif||''}</td>
+              <td style="padding:4px 6px;border-bottom:1px solid #e0e6f0;border-right:1px solid #e0e6f0">${r.h_abordaje||''}</td>
+              <td style="padding:4px 6px;border-bottom:1px solid #e0e6f0;border-right:1px solid #e0e6f0">${r.h_ter_serv||''}</td>
+              <td style="padding:4px 6px;border-bottom:1px solid #e0e6f0;border-right:1px solid #e0e6f0;text-align:center">${r.no_pax||''}</td>
+              <td style="padding:4px 6px;border-bottom:1px solid #e0e6f0">${r.operador||''}</td>
+            </tr>`).join('');
+
+        const sigCell = (src, nombre, label) => `
+            <td style="width:33.3%;text-align:center;padding:8px;border-right:1px solid #ccc;vertical-align:top">
+              <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px;margin-bottom:4px">${label}</div>
+              ${src ? `<img src="${src}" style="max-width:140px;max-height:56px;display:block;margin:0 auto 2px">` : '<div style="height:56px;border-bottom:1px solid #aaa;margin:0 12px 2px"></div>'}
+              <div style="font-size:9px;font-weight:600;color:#222">${nombre||''}</div>
+            </td>`;
+
+        const opColor = p.tipo_operacion === 'llegada' ? '#1456c8' : '#d46000';
+        return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#111;width:710px;background:#fff">
+          <!-- HEADER -->
+          <table width="100%" cellspacing="0" cellpadding="0">
+            <tr style="background:linear-gradient(135deg,#1a3a6b,#2462af);color:#fff">
+              <td width="52" style="padding:6px 8px;vertical-align:middle">
+                ${logo ? `<img src="${logo}" style="height:38px;width:auto;filter:brightness(0) invert(1)">` : ''}
+              </td>
+              <td style="text-align:center;padding:6px">
+                <div style="font-size:8px;letter-spacing:1.2px;opacity:.8;text-transform:uppercase">Aeropuerto Internacional Felipe Ángeles</div>
+                <div style="font-size:13px;font-weight:900;letter-spacing:.8px;text-transform:uppercase">Orden de Servicio Aerocares</div>
+              </td>
+              <td width="52"></td>
+            </tr>
+          </table>
+          <!-- ROW INFO -->
+          <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #c8cfe0;border-top:0">
+            <tr>
+              <td style="width:22%;padding:5px 8px;border-right:1px solid #c8cfe0;border-bottom:1px solid #c8cfe0">
+                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">Fecha</div>
+                <div style="font-size:12px;font-weight:700">${p.fecha||''}</div>
+              </td>
+              <td style="width:22%;padding:5px 8px;border-right:1px solid #c8cfe0;border-bottom:1px solid #c8cfe0">
+                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">H. Programada</div>
+                <div style="font-size:12px;font-weight:700">${p.h_programada||''}</div>
+              </td>
+              <td style="width:56%;padding:5px 8px;border-bottom:1px solid #c8cfe0">
+                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">Folio No.</div>
+                <div style="font-size:18px;font-weight:900;letter-spacing:3px;color:#1456c8">${p.folio||''}</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:5px 8px;border-right:1px solid #c8cfe0;border-bottom:1px solid #c8cfe0">
+                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">Tipo Vuelo</div>
+                <div style="font-size:10px;font-weight:700;text-transform:uppercase">${(p.tipo_vuelo||'').toUpperCase()}</div>
+              </td>
+              <td style="padding:5px 8px;border-right:1px solid #c8cfe0;border-bottom:1px solid #c8cfe0">
+                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">Base</div>
+                <div style="font-size:10px;font-weight:700">${p.base||''}</div>
+              </td>
+              <td style="padding:5px 8px;border-bottom:1px solid #c8cfe0">
+                <span style="margin-right:18px">
+                  <span style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">Posición&nbsp;</span>
+                  <span style="font-size:10px;font-weight:700">${p.posicion||''}</span>
+                </span>
+                <span style="display:inline-block;padding:2px 10px;background:${opColor};color:#fff;border-radius:3px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">${(p.tipo_operacion||'').toUpperCase()}</span>
+              </td>
+            </tr>
+          </table>
+          <!-- BODY: left datos + right tabla operaciones -->
+          <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #c8cfe0;border-top:0">
+            <tr>
+              <td style="width:130px;vertical-align:top;border-right:1px solid #c8cfe0;padding:6px 8px">
+                ${[['No. Vuelo',p.no_vuelo,'13px'],['Origen / Destino',p.origen_destino,'11px'],['Aerolínea',p.aerolinea,'11px'],['Matrícula',p.matricula,'11px'],['H. Solicitud',p.h_solicitud,'11px'],['H. Entrega',p.h_entrega,'11px']].map(([lbl,val,sz]) =>`
+                <div style="margin-bottom:6px">
+                  <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">${lbl}</div>
+                  <div style="font-size:${sz};font-weight:700">${val||'—'}</div>
+                </div>`).join('')}
+              </td>
+              <td style="vertical-align:top;padding:0">
+                <table width="100%" cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-size:9px">
+                  <thead>
+                    <tr style="background:#edf1fb">
+                      ${['Aerocar','H. Sal. Edif.','H. Abordaje','H. Ter. Serv.','No. PAX','Operador'].map(h=>`<th style="padding:5px 6px;border-bottom:1px solid #c8cfe0;border-right:1px solid #e0e6f0;text-align:left;font-size:8px;font-weight:700;text-transform:uppercase;color:#556">${h}</th>`).join('')}
+                    </tr>
+                  </thead>
+                  <tbody>${op}</tbody>
+                </table>
+              </td>
+            </tr>
+          </table>
+          <!-- OBSERVACIONES -->
+          <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #c8cfe0;border-top:0">
+            <tr>
+              <td style="width:50%;padding:5px 8px;border-right:1px solid #c8cfe0;vertical-align:top">
+                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:2px">Observaciones Aerolínea</div>
+                <div style="font-size:9px;min-height:28px">${p.obs_aerolinea||''}</div>
+              </td>
+              <td style="padding:5px 8px;vertical-align:top">
+                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:2px">Observaciones Operador</div>
+                <div style="font-size:9px;min-height:28px">${p.obs_operador||''}</div>
+              </td>
+            </tr>
+          </table>
+          <!-- FIRMAS -->
+          <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #c8cfe0;border-top:0">
+            <tr>
+              ${sigCell(p.sig_aerolinea, p.nombre_conformidad, 'Conforme Aerolínea')}
+              ${sigCell(p.sig_operador,  p.firma_operador,     'Operadores')}
+              <td style="width:33.3%;text-align:center;padding:8px;vertical-align:top">
+                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px;margin-bottom:4px">Coordinador Mecánico</div>
+                ${p.sig_coordinador ? `<img src="${p.sig_coordinador}" style="max-width:140px;max-height:56px;display:block;margin:0 auto 2px">` : '<div style="height:56px;border-bottom:1px solid #aaa;margin:0 12px 2px"></div>'}
+                <div style="font-size:9px;font-weight:600;color:#222">${p.nombre_coordinador||''}</div>
+              </td>
+            </tr>
+          </table>
+        </div>`;
+    }
+
+    // Genera el HTML de la boleta Aeropasillos lista para imprimir
+    function buildApBoleta(p, logo) {
+        const cell = (lbl, val, extra='') => `
+          <td style="padding:4px 7px;border-right:1px solid #c8cfe0;border-bottom:1px solid #c8cfe0;vertical-align:top${extra}">
+            <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">${lbl}</div>
+            <div style="font-size:10px;font-weight:700">${val||'—'}</div>
+          </td>`;
+
+        const sigCell = (src, nombre, label) => `
+          <td style="width:33.3%;text-align:center;padding:8px;border-right:1px solid #c8cfe0;vertical-align:top">
+            <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px;margin-bottom:4px">${label}</div>
+            ${src ? `<img src="${src}" style="max-width:140px;max-height:56px;display:block;margin:0 auto 2px">` : '<div style="height:56px;border-bottom:1px solid #aaa;margin:0 12px 2px"></div>'}
+            <div style="font-size:9px;font-weight:600;color:#222">${nombre||''}</div>
+          </td>`;
+
+        return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#111;width:710px;background:#fff">
+          <!-- HEADER -->
+          <table width="100%" cellspacing="0" cellpadding="0">
+            <tr style="background:linear-gradient(135deg,#14452f,#1d6b47);color:#fff">
+              <td width="52" style="padding:6px 8px;vertical-align:middle">
+                ${logo ? `<img src="${logo}" style="height:38px;width:auto;filter:brightness(0) invert(1)">` : ''}
+              </td>
+              <td style="text-align:center;padding:6px">
+                <div style="font-size:9px;font-weight:900;letter-spacing:4px">AIFA</div>
+                <div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase">Registro de Servicio de Aeropasillos</div>
+                <div style="font-size:7px;opacity:.75;letter-spacing:.5px;text-transform:uppercase">Aeropuerto Internacional Felipe Ángeles S.A. de C.V.</div>
+              </td>
+              <td width="52"></td>
+            </tr>
+          </table>
+          <!-- FILA 1: tipo + posición + folio -->
+          <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #c8cfe0;border-top:0">
+            <tr>
+              ${cell('Fecha', p.fecha)}
+              ${cell('Tipo Vuelo', (p.tipo_vuelo||'').toUpperCase())}
+              ${cell('Posición', p.posicion)}
+              ${cell('Aeropasillo No.', p.aeropasillo_numero)}
+              ${cell('Dedo', p.aeropasillo_dedo)}
+              <td style="padding:5px 8px;border-bottom:1px solid #c8cfe0">
+                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">Folio No.</div>
+                <div style="font-size:16px;font-weight:900;letter-spacing:2px;color:#1d6b47">${p.folio||''}</div>
+              </td>
+            </tr>
+            <tr>
+              ${cell('Matrícula', p.matricula)}
+              ${cell('Línea Aérea', p.linea_aerea)}
+              ${cell('Aeronave', p.aeronave)}
+              ${cell('Empleado Acople', p.empleado_acople,';width:160px')}
+            </tr>
+          </table>
+          <!-- LLEGADA / SALIDA en 2 columnas -->
+          <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #c8cfe0;border-top:0">
+            <tr>
+              <td style="width:50%;vertical-align:top;border-right:1px solid #c8cfe0">
+                <div style="background:#dbeafe;padding:3px 8px;font-size:8px;font-weight:700;text-transform:uppercase;color:#1456c8;letter-spacing:.5px;border-bottom:1px solid #c8cfe0">Llegada</div>
+                <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse">
+                  <tr>
+                    ${cell('Programada',p.lleg_programada)}
+                    ${cell('No. Vuelo',p.lleg_no_vuelo)}
+                    ${cell('Origen',p.lleg_origen)}
+                  </tr>
+                  <tr>
+                    ${cell('H. Calzos',p.lleg_h_calzos)}
+                    ${cell('Auth. Acople',p.lleg_auth_acople)}
+                    ${cell('H. Acople',p.lleg_h_acople)}
+                  </tr>
+                  <tr>
+                    ${cell('No. PAX',p.lleg_no_pax)}
+                    <td colspan="2" style="padding:4px 7px;border-right:1px solid #c8cfe0;border-bottom:1px solid #c8cfe0">
+                      <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">Empleado Desacople</div>
+                      <div style="font-size:10px;font-weight:700">${p.lleg_empleado_desacople||'—'}</div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+              <td style="width:50%;vertical-align:top">
+                <div style="background:#fff3e0;padding:3px 8px;font-size:8px;font-weight:700;text-transform:uppercase;color:#d46000;letter-spacing:.5px;border-bottom:1px solid #c8cfe0">Salida</div>
+                <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse">
+                  <tr>
+                    ${cell('Programada',p.sal_programada)}
+                    ${cell('No. Vuelo',p.sal_no_vuelo)}
+                    ${cell('Destino',p.sal_destino)}
+                  </tr>
+                  <tr>
+                    ${cell('No. PAX',p.sal_no_pax)}
+                    ${cell('Cierre Puerta',p.sal_cierre_puerta)}
+                    ${cell('H. Desacople',p.sal_h_desacople)}
+                  </tr>
+                  <tr>
+                    ${cell('H. Salida',p.sal_h_salida)}
+                    <td colspan="2" style="padding:4px 7px;border-bottom:1px solid #c8cfe0">
+                      <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">Tiempo Total</div>
+                      <div style="font-size:10px;font-weight:700">${p.sal_tiempo_total||'—'}</div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+          <!-- GPU / PCA -->
+          <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #c8cfe0;border-top:0">
+            <tr>
+              <td style="width:50%;border-right:1px solid #c8cfe0">
+                <div style="background:#f0fdf4;padding:3px 8px;font-size:8px;font-weight:700;text-transform:uppercase;color:#166534;letter-spacing:.5px;border-bottom:1px solid #c8cfe0">GPU</div>
+                <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse">
+                  <tr>
+                    ${cell('H. Inicio',p.gpu_h_inicio)}
+                    ${cell('H. Término',p.gpu_h_termino)}
+                    ${cell('Tiempo Total',p.gpu_tiempo_total)}
+                    ${cell('Encargado',p.gpu_encargado)}
+                  </tr>
+                </table>
+              </td>
+              <td style="width:50%">
+                <div style="background:#f0fdf4;padding:3px 8px;font-size:8px;font-weight:700;text-transform:uppercase;color:#166534;letter-spacing:.5px;border-bottom:1px solid #c8cfe0">PCA</div>
+                <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse">
+                  <tr>
+                    ${cell('H. Inicio',p.pca_h_inicio)}
+                    ${cell('H. Término',p.pca_h_termino)}
+                    ${cell('Tiempo Total',p.pca_tiempo_total)}
+                    ${cell('Encargado',p.pca_encargado)}
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+          <!-- OBSERVACIONES -->
+          <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #c8cfe0;border-top:0">
+            <tr>
+              <td style="padding:5px 8px;vertical-align:top;border-bottom:1px solid #c8cfe0">
+                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:2px">Observaciones</div>
+                <div style="font-size:9px;min-height:24px">${p.observaciones||''}</div>
+              </td>
+            </tr>
+          </table>
+          <!-- FIRMAS -->
+          <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #c8cfe0;border-top:0">
+            <tr>
+              ${sigCell(p.sig_aerolinea, p.obs_aerolinea_nombre, 'Conforme Aerolínea')}
+              ${sigCell(p.sig_operador,  p.obs_operador_nombre,  'Operadores')}
+              <td style="width:33.3%;text-align:center;padding:8px;vertical-align:top">
+                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px;margin-bottom:4px">Coordinador Mecánico</div>
+                ${p.sig_coordinador ? `<img src="${p.sig_coordinador}" style="max-width:140px;max-height:56px;display:block;margin:0 auto 2px">` : '<div style="height:56px;border-bottom:1px solid #aaa;margin:0 12px 2px"></div>'}
+                <div style="font-size:9px;font-weight:600;color:#222">${p.nombre_coordinador||''}</div>
+              </td>
+            </tr>
+          </table>
+        </div>`;
+    }
+
+    // Captura HTML string → Blob PDF (renderiza en div off-screen temporal)
+    async function boletaCaptureFromHtml(html) {
+        if (!window.html2pdf) return null;
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:-999;background:#fff';
+        wrap.innerHTML = html;
+        document.body.appendChild(wrap);
         try {
             return await html2pdf().set({
-                margin:      [4, 4],
-                image:       { type: 'jpeg', quality: 0.92 },
-                html2canvas: { scale: 2, useCORS: true, logging: false },
+                margin:      [6, 10],
+                image:       { type: 'jpeg', quality: 0.97 },
+                html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#fff' },
                 jsPDF:       { unit: 'mm', format: 'letter', orientation: 'portrait' },
-            }).from(el).output('blob');
+            }).from(wrap).output('blob');
         } catch (err) {
-            console.warn('boletaCapturePdf error:', err);
+            console.warn('boletaCaptureFromHtml error:', err);
             return null;
+        } finally {
+            document.body.removeChild(wrap);
         }
     }
 
@@ -899,6 +1187,7 @@
     // ── Init ────────────────────────────────────────────────
 
     function init() {
+        _loadAifaLogo().then(b64 => { _aifaLogoB64 = b64; });
         setupGlobalTimeHandling();
         initAllSigPads();
         aoInitEvents();
