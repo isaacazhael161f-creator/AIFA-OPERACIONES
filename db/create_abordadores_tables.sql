@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS ordenes_servicio_aerocares (
     obs_aerolinea       TEXT,
     obs_operador        TEXT,
     nombre_conformidad  TEXT,
+    firma_operador      TEXT,
     nombre_coordinador  TEXT,
     created_by          UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     created_at          TIMESTAMPTZ DEFAULT NOW()
@@ -146,3 +147,13 @@ CREATE POLICY "rsa_delete_admin" ON registros_servicio_aeropasillos
               AND ur.role IN ('admin','editor')
         )
     );
+
+-- =============================================================
+--  MIGRACIONES (ejecutar si la tabla ya existe)
+-- =============================================================
+ALTER TABLE ordenes_servicio_aerocares
+    ADD COLUMN IF NOT EXISTS firma_operador TEXT;
+
+ALTER TABLE registros_servicio_aeropasillos
+    ADD COLUMN IF NOT EXISTS lleg_programada TIME,
+    ADD COLUMN IF NOT EXISTS sal_programada  TIME;
