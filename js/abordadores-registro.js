@@ -345,9 +345,12 @@
             modal.innerHTML = `
                 <div class="modal-dialog modal-lg modal-dialog-scrollable">
                     <div class="modal-content">
-                        <div class="modal-header">
-                            <h6 class="modal-title fw-bold"><i class="fas fa-bus me-2 text-primary"></i>Orden de Servicio Aerocares</h6>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <div class="modal-header py-2" style="background:linear-gradient(135deg,#1a3a6b,#2462af)">
+                            <div class="d-flex align-items-center gap-2">
+                                <img src="images/aifa-logo.png" alt="AIFA" style="height:30px;width:auto;filter:brightness(0) invert(1)">
+                                <h6 class="modal-title fw-bold text-white mb-0"><i class="fas fa-bus me-2"></i>Orden de Servicio Aerocares</h6>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body" id="ao-detalle-body"></div>
                     </div>
@@ -649,9 +652,12 @@
             modal.innerHTML = `
                 <div class="modal-dialog modal-lg modal-dialog-scrollable">
                     <div class="modal-content">
-                        <div class="modal-header">
-                            <h6 class="modal-title fw-bold"><i class="fas fa-tunnel me-2 text-success"></i>Registro de Servicio Aeropasillo</h6>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <div class="modal-header py-2" style="background:linear-gradient(135deg,#14452f,#1d6b47)">
+                            <div class="d-flex align-items-center gap-2">
+                                <img src="images/aifa-logo.png" alt="AIFA" style="height:30px;width:auto;filter:brightness(0) invert(1)">
+                                <h6 class="modal-title fw-bold text-white mb-0"><i class="fas fa-tunnel me-2"></i>Registro de Servicio Aeropasillo</h6>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body" id="ap-detalle-body"></div>
                     </div>
