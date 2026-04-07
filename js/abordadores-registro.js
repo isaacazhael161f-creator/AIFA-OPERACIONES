@@ -772,17 +772,16 @@
         if (!canvas) return;
 
         // Sync canvas pixel buffer to its CSS layout size.
-        // Do NOT multiply by devicePixelRatio here — SignaturePad reads pointer
-        // coordinates in CSS pixels (clientX - rect.left), so the canvas buffer
-        // must also be in CSS pixels for coordinates to align.
+        // SignaturePad v4 reads pointer coords as CSS px (clientX - rect.left),
+        // so canvas.width must equal offsetWidth exactly (no DPR scaling).
         function syncSize() {
             const w = canvas.offsetWidth;
             const h = canvas.offsetHeight;
-            if (!w || !h) return; // not yet visible
-            if (canvas.width === w && canvas.height === h) return; // already correct
+            if (!w || !h) return; // element not yet laid out
+            if (canvas.width === w && canvas.height === h) return;
             canvas.width  = w;
             canvas.height = h;
-            _sigPads[canvasId]?.clear(); // reset after resize
+            _sigPads[canvasId]?.clear();
         }
 
         syncSize();
@@ -793,11 +792,17 @@
             maxWidth: 3,
         });
 
-        // When a hidden tab-pane is shown, re-sync (hidden elements have offsetWidth 0)
-        const pane = canvas.closest('.tab-pane');
-        if (pane) {
-            new MutationObserver(() => syncSize())
-                .observe(pane, { attributeFilter: ['class'] });
+        // ResizeObserver fires when the canvas gains a real size (e.g. hidden tab
+        // becomes visible, modal opens). This is the most reliable way to handle
+        // canvases that start inside display:none containers.
+        if (window.ResizeObserver) {
+            new ResizeObserver(syncSize).observe(canvas);
+        } else {
+            // Fallback for older browsers: watch nearest tab-pane class changes
+            const pane = canvas.closest('.tab-pane');
+            if (pane) {
+                new MutationObserver(syncSize).observe(pane, { attributeFilter: ['class'] });
+            }
         }
     }
 
