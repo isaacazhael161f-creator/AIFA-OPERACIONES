@@ -28,6 +28,9 @@ CREATE TABLE IF NOT EXISTS ordenes_servicio_aerocares (
     nombre_conformidad  TEXT,
     firma_operador      TEXT,
     nombre_coordinador  TEXT,
+    sig_aerolinea       TEXT,          -- base64 PNG de firma
+    sig_operador        TEXT,          -- base64 PNG de firma
+    sig_coordinador     TEXT,          -- base64 PNG de firma
     created_by          UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     created_at          TIMESTAMPTZ DEFAULT NOW()
 );
@@ -112,6 +115,9 @@ CREATE TABLE IF NOT EXISTS registros_servicio_aeropasillos (
     obs_operador_nombre     TEXT,
     observaciones           TEXT,
     nombre_coordinador      TEXT,
+    sig_aerolinea           TEXT,          -- base64 PNG de firma
+    sig_operador            TEXT,          -- base64 PNG de firma
+    sig_coordinador         TEXT,          -- base64 PNG de firma
     created_by              UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     created_at              TIMESTAMPTZ DEFAULT NOW()
 );
@@ -152,8 +158,14 @@ CREATE POLICY "rsa_delete_admin" ON registros_servicio_aeropasillos
 --  MIGRACIONES (ejecutar si la tabla ya existe)
 -- =============================================================
 ALTER TABLE ordenes_servicio_aerocares
-    ADD COLUMN IF NOT EXISTS firma_operador TEXT;
+    ADD COLUMN IF NOT EXISTS firma_operador  TEXT,
+    ADD COLUMN IF NOT EXISTS sig_aerolinea   TEXT,
+    ADD COLUMN IF NOT EXISTS sig_operador    TEXT,
+    ADD COLUMN IF NOT EXISTS sig_coordinador TEXT;
 
 ALTER TABLE registros_servicio_aeropasillos
     ADD COLUMN IF NOT EXISTS lleg_programada TIME,
-    ADD COLUMN IF NOT EXISTS sal_programada  TIME;
+    ADD COLUMN IF NOT EXISTS sal_programada  TIME,
+    ADD COLUMN IF NOT EXISTS sig_aerolinea   TEXT,
+    ADD COLUMN IF NOT EXISTS sig_operador    TEXT,
+    ADD COLUMN IF NOT EXISTS sig_coordinador TEXT;

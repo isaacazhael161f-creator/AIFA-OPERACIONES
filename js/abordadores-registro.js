@@ -152,6 +152,7 @@
         aoFillCoordinador();
         const fb = document.getElementById('ao-form-feedback');
         if (fb) fb.classList.add('d-none');
+        ['ao-sig-aerolinea','ao-sig-operador','ao-sig-coordinador'].forEach(clearSigPad);
     }
 
     async function aoFillCoordinador() {
@@ -219,6 +220,9 @@
                 nombre_conformidad:document.getElementById('ao-nombre-conformidad').value.trim() || null,
                 firma_operador:    document.getElementById('ao-firma-operador').value.trim() || null,
                 nombre_coordinador:document.getElementById('ao-coordinador').value.trim() || null,
+                sig_aerolinea:     getSigData('ao-sig-aerolinea'),
+                sig_operador:      getSigData('ao-sig-operador'),
+                sig_coordinador:   getSigData('ao-sig-coordinador'),
                 created_by:        user?.id || null,
             };
 
@@ -463,6 +467,7 @@
         if (salProgEl)  salProgEl.value  = '';
         const fb = document.getElementById('ap-form-feedback');
         if (fb) fb.classList.add('d-none');
+        ['ap-sig-aerolinea','ap-sig-operador','ap-sig-coordinador'].forEach(clearSigPad);
     }
 
     async function apSubmit(e) {
@@ -519,6 +524,9 @@
                 obs_operador_nombre:      document.getElementById('ap-obs-operador-nombre').value.trim() || null,
                 observaciones:            document.getElementById('ap-observaciones').value.trim() || null,
                 nombre_coordinador:       document.getElementById('ap-coordinador').value.trim() || null,
+                sig_aerolinea:            getSigData('ap-sig-aerolinea'),
+                sig_operador:             getSigData('ap-sig-operador'),
+                sig_coordinador:          getSigData('ap-sig-coordinador'),
                 created_by:               user?.id || null,
             };
 
@@ -754,6 +762,62 @@
         }, false);
     }
 
+    // ── Signature pads ─────────────────────────────────────────────────────
+
+    const _sigPads = {};
+
+    function initSigPad(canvasId) {
+        if (!window.SignaturePad) return;
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        // Set internal dimensions for proper DPI rendering
+        function resizePad() {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            const w = rect.width || canvas.clientWidth || 280;
+            const h = rect.height || canvas.clientHeight || 80;
+            if (w === 0) return; // not visible yet – will resize on tab show
+            const data = _sigPads[canvasId]?.toData(); // preserve existing strokes
+            canvas.width  = w * dpr;
+            canvas.height = h * dpr;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+            if (_sigPads[canvasId]) {
+                _sigPads[canvasId].clear();
+                if (data && data.length) _sigPads[canvasId].fromData(data);
+            }
+        }
+        resizePad();
+        _sigPads[canvasId] = new SignaturePad(canvas, { backgroundColor: 'rgb(250,250,250)', penColor: '#111' });
+        // Re-size when tabs become visible
+        const pane = canvas.closest('.tab-pane');
+        if (pane) {
+            new MutationObserver(() => { if (!canvas.hidden && canvas.offsetWidth > 0) resizePad(); })
+                .observe(pane, { attributeFilter: ['class'] });
+        }
+    }
+
+    function getSigData(canvasId) {
+        const pad = _sigPads[canvasId];
+        if (!pad || pad.isEmpty()) return null;
+        return pad.toDataURL('image/png');
+    }
+
+    function clearSigPad(canvasId) {
+        _sigPads[canvasId]?.clear();
+    }
+
+    function initAllSigPads() {
+        ['ao-sig-aerolinea','ao-sig-operador','ao-sig-coordinador',
+         'ap-sig-aerolinea','ap-sig-operador','ap-sig-coordinador'].forEach(initSigPad);
+        // Wire the eraser buttons globally
+        document.addEventListener('click', e => {
+            const btn = e.target.closest('.sig-clear-btn');
+            if (!btn) return;
+            clearSigPad(btn.dataset.sig);
+        });
+    }
+
     // ── Tablet-friendly upgrade: remove -sm from form controls ────────────
 
     function upgradeFormsForTablet() {
@@ -773,6 +837,7 @@
 
     function init() {
         setupGlobalTimeHandling();
+        initAllSigPads();
         aoInitEvents();
         apInitEvents();
         bindTabListeners();
