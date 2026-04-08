@@ -827,270 +827,259 @@
 
     // Genera el HTML de la boleta Aerocares lista para imprimir
     function buildAoBoleta(p, logo) {
-        const op = (p.operaciones || []).map((r, i) => `
+        const ops = (p.operaciones || []).map((r, i) => `
             <tr style="background:${i%2?'#f7f9ff':'#fff'}">
-              <td style="padding:4px 6px;border-bottom:1px solid #e0e6f0;border-right:1px solid #e0e6f0;font-weight:700">${r.aerocar||''}</td>
-              <td style="padding:4px 6px;border-bottom:1px solid #e0e6f0;border-right:1px solid #e0e6f0">${r.h_sal_edif||''}</td>
-              <td style="padding:4px 6px;border-bottom:1px solid #e0e6f0;border-right:1px solid #e0e6f0">${r.h_abordaje||''}</td>
-              <td style="padding:4px 6px;border-bottom:1px solid #e0e6f0;border-right:1px solid #e0e6f0">${r.h_ter_serv||''}</td>
-              <td style="padding:4px 6px;border-bottom:1px solid #e0e6f0;border-right:1px solid #e0e6f0;text-align:center">${r.no_pax||''}</td>
-              <td style="padding:4px 6px;border-bottom:1px solid #e0e6f0">${r.operador||''}</td>
+              <td style="padding:8px 10px;border-bottom:1px solid #e8eef8;border-right:1px solid #e8eef8;font-weight:700">${r.aerocar||'—'}</td>
+              <td style="padding:8px 10px;border-bottom:1px solid #e8eef8;border-right:1px solid #e8eef8">${r.h_sal_edif||'—'}</td>
+              <td style="padding:8px 10px;border-bottom:1px solid #e8eef8;border-right:1px solid #e8eef8">${r.h_abordaje||'—'}</td>
+              <td style="padding:8px 10px;border-bottom:1px solid #e8eef8;border-right:1px solid #e8eef8">${r.h_ter_serv||'—'}</td>
+              <td style="padding:8px 10px;border-bottom:1px solid #e8eef8;border-right:1px solid #e8eef8;text-align:center;font-weight:700">${r.no_pax??'—'}</td>
+              <td style="padding:8px 10px;border-bottom:1px solid #e8eef8">${r.operador||'—'}</td>
             </tr>`).join('');
 
-        const sigCell = (src, nombre, label) => `
-            <td style="width:33.3%;text-align:center;padding:8px;border-right:1px solid #ccc;vertical-align:top">
-              <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px;margin-bottom:4px">${label}</div>
-              ${src ? `<img src="${src}" style="max-width:140px;max-height:56px;display:block;margin:0 auto 2px">` : '<div style="height:56px;border-bottom:1px solid #aaa;margin:0 12px 2px"></div>'}
-              <div style="font-size:9px;font-weight:600;color:#222">${nombre||''}</div>
-            </td>`;
+        const sigBlock = (src, nombre, label, br) =>
+            `<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:12px 18px;${br?'border-right:1px solid #c8cfe0;':''}">
+              <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px;margin-bottom:10px">${label}</div>
+              ${src ? `<img src="${src}" style="max-width:200px;max-height:76px;object-fit:contain;display:block;margin-bottom:8px">` : '<div style="height:76px;width:68%;border-bottom:1.5px solid #bbb;margin-bottom:8px"></div>'}
+              <div style="font-size:11px;font-weight:600;color:#222;text-align:center">${nombre||''}</div>
+            </div>`;
 
         const opColor = p.tipo_operacion === 'llegada' ? '#1456c8' : '#d46000';
-        return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#111;width:940px;background:#fff">
-          <!-- HEADER -->
-          <table width="100%" cellspacing="0" cellpadding="0">
-            <tr style="background:linear-gradient(135deg,#1a3a6b,#2462af);color:#fff">
-              <td width="52" style="padding:6px 8px;vertical-align:middle">
-                ${logo ? `<img src="${logo}" style="height:38px;width:auto;filter:brightness(0) invert(1)">` : ''}
-              </td>
-              <td style="text-align:center;padding:6px">
-                <div style="font-size:8px;letter-spacing:1.2px;opacity:.8;text-transform:uppercase">Aeropuerto Internacional Felipe Ángeles</div>
-                <div style="font-size:13px;font-weight:900;letter-spacing:.8px;text-transform:uppercase">Orden de Servicio Aerocares</div>
-              </td>
-              <td width="52"></td>
-            </tr>
-          </table>
-          <!-- ROW INFO -->
-          <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #c8cfe0;border-top:0">
-            <tr>
-              <td style="width:22%;padding:5px 8px;border-right:1px solid #c8cfe0;border-bottom:1px solid #c8cfe0">
-                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">Fecha</div>
-                <div style="font-size:12px;font-weight:700">${p.fecha||''}</div>
-              </td>
-              <td style="width:22%;padding:5px 8px;border-right:1px solid #c8cfe0;border-bottom:1px solid #c8cfe0">
-                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">H. Programada</div>
-                <div style="font-size:12px;font-weight:700">${p.h_programada||''}</div>
-              </td>
-              <td style="width:56%;padding:5px 8px;border-bottom:1px solid #c8cfe0">
-                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">Folio No.</div>
-                <div style="font-size:18px;font-weight:900;letter-spacing:3px;color:#1456c8">${p.folio||''}</div>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:5px 8px;border-right:1px solid #c8cfe0;border-bottom:1px solid #c8cfe0">
-                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">Tipo Vuelo</div>
-                <div style="font-size:10px;font-weight:700;text-transform:uppercase">${(p.tipo_vuelo||'').toUpperCase()}</div>
-              </td>
-              <td style="padding:5px 8px;border-right:1px solid #c8cfe0;border-bottom:1px solid #c8cfe0">
-                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">Base</div>
-                <div style="font-size:10px;font-weight:700">${p.base||''}</div>
-              </td>
-              <td style="padding:5px 8px;border-bottom:1px solid #c8cfe0">
-                <span style="margin-right:18px">
-                  <span style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">Posición&nbsp;</span>
-                  <span style="font-size:10px;font-weight:700">${p.posicion||''}</span>
-                </span>
-                <span style="display:inline-block;padding:2px 10px;background:${opColor};color:#fff;border-radius:3px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">${(p.tipo_operacion||'').toUpperCase()}</span>
-              </td>
-            </tr>
-          </table>
-          <!-- BODY: left datos + right tabla operaciones -->
-          <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #c8cfe0;border-top:0">
-            <tr>
-              <td style="width:130px;vertical-align:top;border-right:1px solid #c8cfe0;padding:6px 8px">
-                ${[['No. Vuelo',p.no_vuelo,'13px'],['Origen / Destino',p.origen_destino,'11px'],['Aerolínea',p.aerolinea,'11px'],['Matrícula',p.matricula,'11px'],['H. Solicitud',p.h_solicitud,'11px'],['H. Entrega',p.h_entrega,'11px']].map(([lbl,val,sz]) =>`
-                <div style="margin-bottom:6px">
-                  <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">${lbl}</div>
-                  <div style="font-size:${sz};font-weight:700">${val||'—'}</div>
-                </div>`).join('')}
-              </td>
-              <td style="vertical-align:top;padding:0">
-                <table width="100%" cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-size:9px">
-                  <thead>
-                    <tr style="background:#edf1fb">
-                      ${['Aerocar','H. Sal. Edif.','H. Abordaje','H. Ter. Serv.','No. PAX','Operador'].map(h=>`<th style="padding:5px 6px;border-bottom:1px solid #c8cfe0;border-right:1px solid #e0e6f0;text-align:left;font-size:8px;font-weight:700;text-transform:uppercase;color:#556">${h}</th>`).join('')}
-                    </tr>
-                  </thead>
-                  <tbody>${op}</tbody>
-                </table>
-              </td>
-            </tr>
-          </table>
-          <!-- OBSERVACIONES -->
-          <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #c8cfe0;border-top:0">
-            <tr>
-              <td style="width:50%;padding:5px 8px;border-right:1px solid #c8cfe0;vertical-align:top">
-                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:2px">Observaciones Aerolínea</div>
-                <div style="font-size:9px;min-height:28px">${p.obs_aerolinea||''}</div>
-              </td>
-              <td style="padding:5px 8px;vertical-align:top">
-                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:2px">Observaciones Operador</div>
-                <div style="font-size:9px;min-height:28px">${p.obs_operador||''}</div>
-              </td>
-            </tr>
-          </table>
-          <!-- FIRMAS -->
-          <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #c8cfe0;border-top:0">
-            <tr>
-              ${sigCell(p.sig_aerolinea, p.nombre_conformidad, 'Conforme Aerolínea')}
-              ${sigCell(p.sig_operador,  p.firma_operador,     'Operadores')}
-              <td style="width:33.3%;text-align:center;padding:8px;vertical-align:top">
-                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px;margin-bottom:4px">Coordinador Mecánico</div>
-                ${p.sig_coordinador ? `<img src="${p.sig_coordinador}" style="max-width:140px;max-height:56px;display:block;margin:0 auto 2px">` : '<div style="height:56px;border-bottom:1px solid #aaa;margin:0 12px 2px"></div>'}
-                <div style="font-size:9px;font-weight:600;color:#222">${p.nombre_coordinador||''}</div>
-              </td>
-            </tr>
-          </table>
-        </div>`;
+        return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#111;width:978px;height:750px;background:#fff;display:flex;flex-direction:column;border:1px solid #c8cfe0;overflow:hidden">
+
+  <!-- ① HEADER -->
+  <div style="flex-shrink:0;display:flex;align-items:center;gap:14px;padding:14px 18px;background:linear-gradient(135deg,#1a3a6b,#2462af);color:#fff">
+    ${logo ? `<img src="${logo}" style="height:48px;width:auto;filter:brightness(0) invert(1)">` : '<div style="width:48px"></div>'}
+    <div style="flex:1;text-align:center">
+      <div style="font-size:9px;letter-spacing:1.8px;opacity:.85;text-transform:uppercase">Aeropuerto Internacional Felipe Ángeles</div>
+      <div style="font-size:18px;font-weight:900;letter-spacing:1.6px;text-transform:uppercase;margin-top:3px">Orden de Servicio Aerocares</div>
+    </div>
+    <div style="width:48px"></div>
+  </div>
+
+  <!-- ② FECHA / H.PROGRAMADA / FOLIO -->
+  <div style="flex-shrink:0;display:flex;border-bottom:1px solid #c8cfe0">
+    <div style="flex:0 0 240px;padding:10px 14px;border-right:1px solid #c8cfe0">
+      <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px">Fecha</div>
+      <div style="font-size:17px;font-weight:700;margin-top:4px">${p.fecha||''}</div>
+    </div>
+    <div style="flex:0 0 240px;padding:10px 14px;border-right:1px solid #c8cfe0">
+      <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px">H. Programada</div>
+      <div style="font-size:17px;font-weight:700;margin-top:4px">${p.h_programada||'—'}</div>
+    </div>
+    <div style="flex:1;padding:10px 14px">
+      <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px">Folio No.</div>
+      <div style="font-size:28px;font-weight:900;letter-spacing:6px;color:#1456c8;margin-top:2px">${p.folio||''}</div>
+    </div>
+  </div>
+
+  <!-- ③ TIPO / BASE / POSICIÓN / OPERACIÓN -->
+  <div style="flex-shrink:0;display:flex;align-items:center;border-bottom:1px solid #c8cfe0;background:#f8f9fd">
+    <div style="flex:0 0 240px;padding:10px 14px;border-right:1px solid #c8cfe0">
+      <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px">Tipo Vuelo</div>
+      <div style="font-size:14px;font-weight:700;text-transform:uppercase;margin-top:4px">${(p.tipo_vuelo||'Nacional').toUpperCase()}</div>
+    </div>
+    <div style="flex:0 0 240px;padding:10px 14px;border-right:1px solid #c8cfe0">
+      <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px">Base</div>
+      <div style="font-size:14px;font-weight:700;margin-top:4px">${p.base||'—'}</div>
+    </div>
+    <div style="flex:1;padding:10px 14px;display:flex;align-items:center;gap:22px">
+      <div>
+        <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px">Posición</div>
+        <div style="font-size:14px;font-weight:700;margin-top:4px">${p.posicion||'—'}</div>
+      </div>
+      <span style="display:inline-block;padding:6px 20px;background:${opColor};color:#fff;border-radius:6px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.7px">${(p.tipo_operacion||'').toUpperCase()}</span>
+    </div>
+  </div>
+
+  <!-- ④ BODY: col. izq. datos vuelo + tabla operaciones — FLEX:1 -->
+  <div style="flex:1;display:flex;border-bottom:1px solid #c8cfe0;min-height:0;overflow:hidden">
+    <div style="flex:0 0 168px;border-right:1px solid #c8cfe0;padding:12px 14px;background:#fafbff;overflow:hidden">
+      ${[['No. Vuelo',p.no_vuelo,'18px'],['Origen / Destino',p.origen_destino,'13px'],
+         ['Aerolínea',p.aerolinea,'13px'],['Matrícula',p.matricula,'13px'],
+         ['H. Solicitud',p.h_solicitud,'13px'],['H. Entrega',p.h_entrega,'13px']].map(([lbl,val,sz]) => `
+      <div style="margin-bottom:13px">
+        <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.4px">${lbl}</div>
+        <div style="font-size:${sz};font-weight:700;margin-top:3px">${val||'—'}</div>
+      </div>`).join('')}
+    </div>
+    <div style="flex:1;overflow:hidden">
+      <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;font-size:11px">
+        <thead>
+          <tr style="background:#edf1fb">
+            ${['Aerocar','H. Sal. Edif.','H. Abordaje','H. Ter. Serv.','No. PAX','Operador'].map(h =>
+              `<th style="padding:10px 12px;border-bottom:1px solid #c8cfe0;border-right:1px solid #e0e6f0;text-align:left;font-size:8.5px;font-weight:700;text-transform:uppercase;color:#556;letter-spacing:.3px">${h}</th>`
+            ).join('')}
+          </tr>
+        </thead>
+        <tbody>${ops}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ⑤ OBSERVACIONES -->
+  <div style="flex-shrink:0;display:flex;border-bottom:1px solid #c8cfe0">
+    <div style="flex:1;padding:10px 14px;border-right:1px solid #c8cfe0;min-height:60px">
+      <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px;margin-bottom:5px">Observaciones Aerolínea</div>
+      <div style="font-size:10px">${p.obs_aerolinea||''}</div>
+    </div>
+    <div style="flex:1;padding:10px 14px;min-height:60px">
+      <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px;margin-bottom:5px">Observaciones Operador</div>
+      <div style="font-size:10px">${p.obs_operador||''}</div>
+    </div>
+  </div>
+
+  <!-- ⑥ FIRMAS -->
+  <div style="flex-shrink:0;display:flex;height:138px">
+    ${sigBlock(p.sig_aerolinea, p.nombre_conformidad, 'Conforme Aerolínea',   true)}
+    ${sigBlock(p.sig_operador,  p.firma_operador,     'Operadores',           true)}
+    ${sigBlock(p.sig_coordinador, p.nombre_coordinador, 'Coordinador Mecánico', false)}
+  </div>
+
+</div>`;
     }
 
     // Genera el HTML de la boleta Aeropasillos lista para imprimir
     function buildApBoleta(p, logo) {
-        const cell = (lbl, val, extra='') => `
-          <td style="padding:4px 7px;border-right:1px solid #c8cfe0;border-bottom:1px solid #c8cfe0;vertical-align:top${extra}">
-            <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">${lbl}</div>
-            <div style="font-size:10px;font-weight:700">${val||'—'}</div>
-          </td>`;
+        // fc: flex cell — border-right controlled by `br`, NO border-bottom (handled by parent row)
+        const fc = (lbl, val, br=true) =>
+            `<div style="flex:1;padding:9px 11px;${br?'border-right:1px solid #c8cfe0;':''}">
+              <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.4px">${lbl}</div>
+              <div style="font-size:10px;font-weight:700;margin-top:3px">${val||'—'}</div>
+            </div>`;
 
-        const sigCell = (src, nombre, label) => `
-          <td style="width:33.3%;text-align:center;padding:8px;border-right:1px solid #c8cfe0;vertical-align:top">
-            <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px;margin-bottom:4px">${label}</div>
-            ${src ? `<img src="${src}" style="max-width:140px;max-height:56px;display:block;margin:0 auto 2px">` : '<div style="height:56px;border-bottom:1px solid #aaa;margin:0 12px 2px"></div>'}
-            <div style="font-size:9px;font-weight:600;color:#222">${nombre||''}</div>
-          </td>`;
+        const sigBlock = (src, nombre, label, br) =>
+            `<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:12px 18px;${br?'border-right:1px solid #c8cfe0;':''}">
+              <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px;margin-bottom:10px">${label}</div>
+              ${src ? `<img src="${src}" style="max-width:200px;max-height:76px;object-fit:contain;display:block;margin-bottom:8px">` : '<div style="height:76px;width:68%;border-bottom:1.5px solid #bbb;margin-bottom:8px"></div>'}
+              <div style="font-size:11px;font-weight:600;color:#222;text-align:center">${nombre||''}</div>
+            </div>`;
 
-        return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#111;width:940px;background:#fff">
-          <!-- HEADER -->
-          <table width="100%" cellspacing="0" cellpadding="0">
-            <tr style="background:linear-gradient(135deg,#14452f,#1d6b47);color:#fff">
-              <td width="52" style="padding:6px 8px;vertical-align:middle">
-                ${logo ? `<img src="${logo}" style="height:38px;width:auto;filter:brightness(0) invert(1)">` : ''}
-              </td>
-              <td style="text-align:center;padding:6px">
-                <div style="font-size:9px;font-weight:900;letter-spacing:4px">AIFA</div>
-                <div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase">Registro de Servicio de Aeropasillos</div>
-                <div style="font-size:7px;opacity:.75;letter-spacing:.5px;text-transform:uppercase">Aeropuerto Internacional Felipe Ángeles S.A. de C.V.</div>
-              </td>
-              <td width="52"></td>
-            </tr>
-          </table>
-          <!-- FILA 1: tipo + posición + folio -->
-          <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #c8cfe0;border-top:0">
-            <tr>
-              ${cell('Fecha', p.fecha)}
-              ${cell('Tipo Vuelo', (p.tipo_vuelo||'').toUpperCase())}
-              ${cell('Posición', p.posicion)}
-              ${cell('Aeropasillo No.', p.aeropasillo_numero)}
-              ${cell('Dedo', p.aeropasillo_dedo)}
-              <td style="padding:5px 8px;border-bottom:1px solid #c8cfe0">
-                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">Folio No.</div>
-                <div style="font-size:16px;font-weight:900;letter-spacing:2px;color:#1d6b47">${p.folio||''}</div>
-              </td>
-            </tr>
-            <tr>
-              ${cell('Matrícula', p.matricula)}
-              ${cell('Línea Aérea', p.linea_aerea)}
-              ${cell('Aeronave', p.aeronave)}
-              ${cell('Empleado Acople', p.empleado_acople,';width:160px')}
-            </tr>
-          </table>
-          <!-- LLEGADA / SALIDA en 2 columnas -->
-          <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #c8cfe0;border-top:0">
-            <tr>
-              <td style="width:50%;vertical-align:top;border-right:1px solid #c8cfe0">
-                <div style="background:#dbeafe;padding:3px 8px;font-size:8px;font-weight:700;text-transform:uppercase;color:#1456c8;letter-spacing:.5px;border-bottom:1px solid #c8cfe0">Llegada</div>
-                <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse">
-                  <tr>
-                    ${cell('Programada',p.lleg_programada)}
-                    ${cell('No. Vuelo',p.lleg_no_vuelo)}
-                    ${cell('Origen',p.lleg_origen)}
-                  </tr>
-                  <tr>
-                    ${cell('H. Calzos',p.lleg_h_calzos)}
-                    ${cell('Auth. Acople',p.lleg_auth_acople)}
-                    ${cell('H. Acople',p.lleg_h_acople)}
-                  </tr>
-                  <tr>
-                    ${cell('No. PAX',p.lleg_no_pax)}
-                    <td colspan="2" style="padding:4px 7px;border-right:1px solid #c8cfe0;border-bottom:1px solid #c8cfe0">
-                      <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">Empleado Desacople</div>
-                      <div style="font-size:10px;font-weight:700">${p.lleg_empleado_desacople||'—'}</div>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-              <td style="width:50%;vertical-align:top">
-                <div style="background:#fff3e0;padding:3px 8px;font-size:8px;font-weight:700;text-transform:uppercase;color:#d46000;letter-spacing:.5px;border-bottom:1px solid #c8cfe0">Salida</div>
-                <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse">
-                  <tr>
-                    ${cell('Programada',p.sal_programada)}
-                    ${cell('No. Vuelo',p.sal_no_vuelo)}
-                    ${cell('Destino',p.sal_destino)}
-                  </tr>
-                  <tr>
-                    ${cell('No. PAX',p.sal_no_pax)}
-                    ${cell('Cierre Puerta',p.sal_cierre_puerta)}
-                    ${cell('H. Desacople',p.sal_h_desacople)}
-                  </tr>
-                  <tr>
-                    ${cell('H. Salida',p.sal_h_salida)}
-                    <td colspan="2" style="padding:4px 7px;border-bottom:1px solid #c8cfe0">
-                      <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888">Tiempo Total</div>
-                      <div style="font-size:10px;font-weight:700">${p.sal_tiempo_total||'—'}</div>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          </table>
-          <!-- GPU / PCA -->
-          <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #c8cfe0;border-top:0">
-            <tr>
-              <td style="width:50%;border-right:1px solid #c8cfe0">
-                <div style="background:#f0fdf4;padding:3px 8px;font-size:8px;font-weight:700;text-transform:uppercase;color:#166534;letter-spacing:.5px;border-bottom:1px solid #c8cfe0">GPU</div>
-                <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse">
-                  <tr>
-                    ${cell('H. Inicio',p.gpu_h_inicio)}
-                    ${cell('H. Término',p.gpu_h_termino)}
-                    ${cell('Tiempo Total',p.gpu_tiempo_total)}
-                    ${cell('Encargado',p.gpu_encargado)}
-                  </tr>
-                </table>
-              </td>
-              <td style="width:50%">
-                <div style="background:#f0fdf4;padding:3px 8px;font-size:8px;font-weight:700;text-transform:uppercase;color:#166534;letter-spacing:.5px;border-bottom:1px solid #c8cfe0">PCA</div>
-                <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse">
-                  <tr>
-                    ${cell('H. Inicio',p.pca_h_inicio)}
-                    ${cell('H. Término',p.pca_h_termino)}
-                    ${cell('Tiempo Total',p.pca_tiempo_total)}
-                    ${cell('Encargado',p.pca_encargado)}
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          </table>
-          <!-- OBSERVACIONES -->
-          <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #c8cfe0;border-top:0">
-            <tr>
-              <td style="padding:5px 8px;vertical-align:top;border-bottom:1px solid #c8cfe0">
-                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:2px">Observaciones</div>
-                <div style="font-size:9px;min-height:24px">${p.observaciones||''}</div>
-              </td>
-            </tr>
-          </table>
-          <!-- FIRMAS -->
-          <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #c8cfe0;border-top:0">
-            <tr>
-              ${sigCell(p.sig_aerolinea, p.obs_aerolinea_nombre, 'Conforme Aerolínea')}
-              ${sigCell(p.sig_operador,  p.obs_operador_nombre,  'Operadores')}
-              <td style="width:33.3%;text-align:center;padding:8px;vertical-align:top">
-                <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px;margin-bottom:4px">Coordinador Mecánico</div>
-                ${p.sig_coordinador ? `<img src="${p.sig_coordinador}" style="max-width:140px;max-height:56px;display:block;margin:0 auto 2px">` : '<div style="height:56px;border-bottom:1px solid #aaa;margin:0 12px 2px"></div>'}
-                <div style="font-size:9px;font-weight:600;color:#222">${p.nombre_coordinador||''}</div>
-              </td>
-            </tr>
-          </table>
-        </div>`;
+        return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#111;width:978px;height:750px;background:#fff;display:flex;flex-direction:column;border:1px solid #c8cfe0;overflow:hidden">
+
+  <!-- ① HEADER -->
+  <div style="flex-shrink:0;display:flex;align-items:center;gap:14px;padding:14px 18px;background:linear-gradient(135deg,#14452f,#1d6b47);color:#fff">
+    ${logo ? `<img src="${logo}" style="height:48px;width:auto;filter:brightness(0) invert(1)">` : '<div style="width:48px"></div>'}
+    <div style="flex:1;text-align:center">
+      <div style="font-size:9px;letter-spacing:1.8px;opacity:.85;text-transform:uppercase">Aeropuerto Internacional Felipe Ángeles</div>
+      <div style="font-size:18px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;margin-top:3px">Registro de Servicio de Aeropasillos</div>
+    </div>
+    <div style="width:48px"></div>
+  </div>
+
+  <!-- ② FILA 1: fecha / tipo / posición / pasillo / dedo / folio -->
+  <div style="flex-shrink:0;display:flex;border-bottom:1px solid #c8cfe0">
+    ${fc('Fecha', p.fecha)}
+    ${fc('Tipo Vuelo', (p.tipo_vuelo||'').toUpperCase())}
+    ${fc('Posición', p.posicion)}
+    ${fc('Aeropasillo No.', p.aeropasillo_numero)}
+    ${fc('Dedo', p.aeropasillo_dedo)}
+    <div style="flex:2;padding:9px 11px">
+      <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.4px">Folio No.</div>
+      <div style="font-size:22px;font-weight:900;letter-spacing:4px;color:#1d6b47;margin-top:2px">${p.folio||''}</div>
+    </div>
+  </div>
+
+  <!-- ③ FILA 2: matrícula / aerolínea / aeronave / empleado acople -->
+  <div style="flex-shrink:0;display:flex;border-bottom:1px solid #c8cfe0">
+    ${fc('Matrícula', p.matricula)}
+    ${fc('Línea Aérea', p.linea_aerea)}
+    ${fc('Aeronave', p.aeronave)}
+    <div style="flex:1;padding:9px 11px">
+      <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.4px">Empleado Acople</div>
+      <div style="font-size:10px;font-weight:700;margin-top:3px">${p.empleado_acople||'—'}</div>
+    </div>
+  </div>
+
+  <!-- ④ LLEGADA + SALIDA — FLEX:1 -->
+  <div style="flex:1;display:flex;border-bottom:1px solid #c8cfe0;min-height:0">
+
+    <!-- LLEGADA -->
+    <div style="flex:1;display:flex;flex-direction:column;border-right:1px solid #c8cfe0">
+      <div style="flex-shrink:0;padding:5px 11px;background:#dbeafe;font-size:9px;font-weight:700;text-transform:uppercase;color:#1456c8;letter-spacing:.6px;border-bottom:1px solid #c8cfe0">Llegada</div>
+      <div style="flex:1;display:flex;flex-direction:column">
+        <div style="display:flex;flex:1;border-bottom:1px solid #e8eef8">
+          ${fc('Programada', p.lleg_programada)}
+          ${fc('No. Vuelo', p.lleg_no_vuelo)}
+          ${fc('Origen', p.lleg_origen, false)}
+        </div>
+        <div style="display:flex;flex:1;border-bottom:1px solid #e8eef8">
+          ${fc('H. Calzos', p.lleg_h_calzos)}
+          ${fc('Auth. Acople', p.lleg_auth_acople)}
+          ${fc('H. Acople', p.lleg_h_acople, false)}
+        </div>
+        <div style="display:flex;flex:1">
+          ${fc('No. PAX', p.lleg_no_pax)}
+          <div style="flex:2;padding:9px 11px">
+            <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.4px">Empleado Desacople</div>
+            <div style="font-size:10px;font-weight:700;margin-top:3px">${p.lleg_empleado_desacople||'—'}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SALIDA -->
+    <div style="flex:1;display:flex;flex-direction:column">
+      <div style="flex-shrink:0;padding:5px 11px;background:#fff3e0;font-size:9px;font-weight:700;text-transform:uppercase;color:#d46000;letter-spacing:.6px;border-bottom:1px solid #c8cfe0">Salida</div>
+      <div style="flex:1;display:flex;flex-direction:column">
+        <div style="display:flex;flex:1;border-bottom:1px solid #e8eef8">
+          ${fc('Programada', p.sal_programada)}
+          ${fc('No. Vuelo', p.sal_no_vuelo)}
+          ${fc('Destino', p.sal_destino, false)}
+        </div>
+        <div style="display:flex;flex:1;border-bottom:1px solid #e8eef8">
+          ${fc('No. PAX', p.sal_no_pax)}
+          ${fc('Cierre Puerta', p.sal_cierre_puerta)}
+          ${fc('H. Desacople', p.sal_h_desacople, false)}
+        </div>
+        <div style="display:flex;flex:1">
+          ${fc('H. Salida', p.sal_h_salida)}
+          <div style="flex:2;padding:9px 11px">
+            <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.4px">Tiempo Total</div>
+            <div style="font-size:13px;font-weight:700;color:#166534;margin-top:3px">${p.sal_tiempo_total||'—'}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ⑤ GPU / PCA -->
+  <div style="flex-shrink:0;display:flex;border-bottom:1px solid #c8cfe0">
+    <div style="flex:1;border-right:1px solid #c8cfe0">
+      <div style="padding:4px 11px;background:#f0fdf4;font-size:8px;font-weight:700;text-transform:uppercase;color:#166534;letter-spacing:.5px;border-bottom:1px solid #c8cfe0">GPU</div>
+      <div style="display:flex">
+        ${fc('H. Inicio', p.gpu_h_inicio)}
+        ${fc('H. Término', p.gpu_h_termino)}
+        ${fc('Tiempo Total', p.gpu_tiempo_total)}
+        ${fc('Encargado', p.gpu_encargado, false)}
+      </div>
+    </div>
+    <div style="flex:1">
+      <div style="padding:4px 11px;background:#f0fdf4;font-size:8px;font-weight:700;text-transform:uppercase;color:#166534;letter-spacing:.5px;border-bottom:1px solid #c8cfe0">PCA</div>
+      <div style="display:flex">
+        ${fc('H. Inicio', p.pca_h_inicio)}
+        ${fc('H. Término', p.pca_h_termino)}
+        ${fc('Tiempo Total', p.pca_tiempo_total)}
+        ${fc('Encargado', p.pca_encargado, false)}
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑥ OBSERVACIONES -->
+  <div style="flex-shrink:0;padding:10px 14px;border-bottom:1px solid #c8cfe0;min-height:48px">
+    <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px;margin-bottom:5px">Observaciones</div>
+    <div style="font-size:10px">${p.observaciones||''}</div>
+  </div>
+
+  <!-- ⑦ FIRMAS -->
+  <div style="flex-shrink:0;display:flex;height:138px">
+    ${sigBlock(p.sig_aerolinea, p.obs_aerolinea_nombre, 'Conforme Aerolínea',   true)}
+    ${sigBlock(p.sig_operador,  p.obs_operador_nombre,  'Operadores',           true)}
+    ${sigBlock(p.sig_coordinador, p.nombre_coordinador, 'Coordinador Mecánico', false)}
+  </div>
+
+</div>`;
     }
 
     // Captura HTML string → Blob PDF (renderiza en div off-screen temporal)
@@ -1106,20 +1095,20 @@
         const iframeDoc = `<!DOCTYPE html><html><head>
 <meta charset="utf-8">
 <script src="${H2P}"><\/script>
-<style>*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;width:960px}</style>
+<style>*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;width:1060px}</style>
 </head><body>
-<div id="r" style="width:940px;background:#fff">${html}</div>
+<div id="r" style="width:978px;background:#fff">${html}</div>
 <script>
 window.onload = async function() {
   try {
     var el = document.getElementById('r');
     var blob = await html2pdf().set({
-      margin: [8, 10],
+      margin: [5, 5],
       image: { type: 'jpeg', quality: 0.97 },
       html2canvas: {
         scale: 2, useCORS: true, allowTaint: true,
         logging: false, backgroundColor: '#ffffff',
-        scrollX: 0, scrollY: 0, windowWidth: 960
+        scrollX: 0, scrollY: 0, windowWidth: 1060
       },
       jsPDF: { unit: 'mm', format: 'letter', orientation: 'landscape' }
     }).from(el).output('blob');
@@ -1142,7 +1131,7 @@ window.onload = async function() {
                 position:      'absolute',
                 top:           '-9999px',
                 left:          '0',
-                width:         '960px',
+                width:         '1060px',
                 height:        '1400px',
                 border:        'none',
                 visibility:    'hidden',
