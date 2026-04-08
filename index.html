@@ -2299,12 +2299,17 @@
                                                         onclick="dataManagement.loadPunctualityStats()"><i
                                                             class="fas fa-search"></i> Filtrar</button>
                                                 </div>
-                                                <button class="btn btn-primary btn-sm"
-                                                    onclick="dataManagement.addItem('punctuality_stats')"><i
-                                                        class="fas fa-plus"></i> Agregar Registro</button>
+                                                <div class="d-flex gap-2">
+                                                    <button class="btn btn-success btn-sm"
+                                                        onclick="dataManagement.importPunctualityCsv()"><i
+                                                            class="fas fa-file-csv me-1"></i> Importar CSV</button>
+                                                    <button class="btn btn-primary btn-sm"
+                                                        onclick="dataManagement.addItem('punctuality_stats')"><i
+                                                            class="fas fa-plus"></i> Agregar Registro</button>
+                                                </div>
                                             </div>
                                             <div class="table-responsive">
-                                                <table class="table table-striped table-hover"
+                                                    <table class="table table-striped table-hover"
                                                     id="table-punctuality-stats">
                                                     <thead>
                                                         <tr>
@@ -2316,6 +2321,9 @@
                                                             <th class="text-end">Demorados</th>
                                                             <th class="text-end">Cancelados</th>
                                                             <th class="text-end">Total</th>
+                                                            <th class="text-end">Imp. Aerolínea</th>
+                                                            <th class="text-end">Canc. Imputables</th>
+                                                            <th class="text-end">Total Imputables</th>
                                                             <th>Acciones</th>
                                                         </tr>
                                                     </thead>

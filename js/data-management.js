@@ -2456,10 +2456,138 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
                 return 0;
             });
 
-            this.renderTable('table-punctuality-stats', data, ['year', 'month', 'airline', 'category', 'on_time', 'delayed', 'cancelled', 'total_flights'], 'punctuality_stats');
+            this.renderTable('table-punctuality-stats', data, ['year', 'month', 'airline', 'category', 'on_time', 'delayed', 'cancelled', 'total_flights', 'imputable_airline', 'cancelled_imputable', 'total_imputable'], 'punctuality_stats');
         } catch (error) {
             console.error('Error loading punctuality stats:', error);
         }
+    }
+
+    // ─── Importar CSV de Puntualidad ──────────────────────────────────────────
+    importPunctualityCsv() {
+        const MONTH_MAP = {
+            'enero': 1, 'febrero': 2, 'marzo': 3, 'abril': 4, 'mayo': 5, 'junio': 6,
+            'julio': 7, 'agosto': 8, 'septiembre': 9, 'octubre': 10, 'noviembre': 11, 'diciembre': 12
+        };
+
+        // Ask for the year (default current)
+        const yearVal = prompt('¿A qué año corresponde el CSV? (ejemplo: 2026)', new Date().getFullYear());
+        if (!yearVal) return;
+        const year = parseInt(yearVal, 10);
+        if (isNaN(year) || year < 2020 || year > 2100) {
+            alert('Año inválido.');
+            return;
+        }
+
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.csv,text/csv';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const text = await file.text();
+            const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+            if (lines.length < 2) { alert('El CSV está vacío o no tiene datos.'); return; }
+
+            // Parse CSV (simple split — assumes no quoted commas in data)
+            const parseRow = (line) => line.split(',').map(c => c.trim());
+            const headers = parseRow(lines[0]).map(h => h.toLowerCase());
+
+            // Column index lookup
+            const idx = (candidates) => {
+                for (const c of candidates) {
+                    const i = headers.findIndex(h => h.includes(c));
+                    if (i >= 0) return i;
+                }
+                return -1;
+            };
+
+            const colMes       = idx(['mes']);
+            const colAerolinea = idx(['aerolinea', 'aerolínea', 'airline']);
+            const colCategoria = idx(['categoria', 'categoría', 'category']);
+            const colATiempo   = idx(['a tiempo', 'on_time', 'tiempo']);
+            const colDemora    = idx(['demora', 'delayed']);
+            const colCancelado = idx(['cancelado', 'cancelled']);
+            const colTotal     = idx(['total_flights', 'total vuelos', 'total']);
+            const colImp       = idx(['imputables a la', 'imputable_airline', 'imp. aerolínea']);
+            const colCancImp   = idx(['cancelados imputables', 'cancelled_imputable']);
+            const colTotImp    = idx(['total imputables', 'total_imputable']);
+
+            if (colAerolinea < 0 || colTotal < 0) {
+                alert('No se reconoció el formato del CSV. Asegúrese de que tenga columnas: Aerolinea, A tiempo, Demora, Cancelado, Total.');
+                return;
+            }
+
+            const hasImputables = (colImp >= 0 && colCancImp >= 0 && colTotImp >= 0);
+            const rows = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const cells = parseRow(lines[i]);
+                if (cells.length < 4) continue;
+
+                const mesRaw = colMes >= 0 ? (cells[colMes] || '').toLowerCase() : '';
+                const month = MONTH_MAP[mesRaw] || null;
+                if (!month) { console.warn(`Mes no reconocido: "${mesRaw}" en línea ${i + 1}`); continue; }
+
+                const row = {
+                    year,
+                    month,
+                    airline: cells[colAerolinea] || '',
+                    category: cells[colCategoria] || 'Carga',
+                    on_time: parseInt(cells[colATiempo], 10) || 0,
+                    delayed: parseInt(cells[colDemora], 10) || 0,
+                    cancelled: parseInt(cells[colCancelado], 10) || 0,
+                    total_flights: parseInt(cells[colTotal], 10) || 0
+                };
+
+                if (hasImputables) {
+                    row.imputable_airline   = parseInt(cells[colImp], 10) || 0;
+                    row.cancelled_imputable = parseInt(cells[colCancImp], 10) || 0;
+                    row.total_imputable     = parseInt(cells[colTotImp], 10) || 0;
+                }
+
+                if (!row.airline) continue;
+                rows.push(row);
+            }
+
+            if (rows.length === 0) {
+                alert('No se encontraron filas válidas en el CSV.');
+                return;
+            }
+
+            // Group rows by month for confirmation message
+            const months = [...new Set(rows.map(r => r.month))];
+            const monthNames = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            const monthsStr = months.map(m => monthNames[m] || m).join(', ');
+            const confirm1 = confirm(`Se encontraron ${rows.length} filas para ${monthsStr} ${year}.\n${hasImputables ? '✓ Incluye columnas de imputables.' : '⚠ Sin columnas de imputables.'}\n\n¿Desea importar los datos? Los registros existentes para estos meses serán reemplazados.`);
+            if (!confirm1) return;
+
+            try {
+                // Delete existing records for the months in this CSV
+                for (const m of months) {
+                    const { error: delErr } = await this.client
+                        .from('punctuality_stats')
+                        .delete()
+                        .eq('year', year)
+                        .eq('month', m);
+                    if (delErr) throw new Error('Error al borrar registros previos: ' + delErr.message);
+                }
+
+                // Insert
+                const { data: inserted, error: insErr } = await this.client
+                    .from('punctuality_stats')
+                    .insert(rows)
+                    .select();
+                if (insErr) throw new Error('Error al insertar: ' + insErr.message);
+
+                alert(`✓ ${inserted.length} registros importados correctamente para ${monthsStr} ${year}.`);
+                this.loadPunctualityStats();
+            } catch (err) {
+                console.error(err);
+                alert('Error al importar: ' + err.message);
+            }
+        };
+        input.click();
     }
 
     renderTable(tableId, data, columns, tableName) {
