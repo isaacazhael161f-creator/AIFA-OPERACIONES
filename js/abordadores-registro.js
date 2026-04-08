@@ -294,30 +294,36 @@
                     <td>${r.fecha || ''}</td>
                     <td>${r.no_vuelo || '—'}</td>
                     <td>${r.aerolinea || '—'}</td>
-                    <td>${r.matricula || '—'}</td>
-                    <td>${r.tipo_operacion || '—'}</td>
+                    <td class="font-monospace">${r.matricula || '—'}</td>
+                    <td><span class="badge ${r.tipo_operacion === 'salida' ? 'text-bg-warning' : 'text-bg-info'} fw-normal">${r.tipo_operacion || '—'}</span></td>
                     <td>${r.posicion || '—'}</td>
                     <td class="text-center">${ops.length}</td>
                     <td class="text-center fw-bold">${totalPax || '—'}</td>
                     <td class="text-muted small">${r.nombre_coordinador || '—'}</td>
-                    <td><button class="btn btn-sm btn-outline-primary rounded-pill px-2" onclick="window.aoVerDetalle(${r.id})" title="Ver detalle"><i class="fas fa-eye"></i></button></td>
+                    <td class="text-end pe-1" style="white-space:nowrap">
+                        <button class="btn btn-sm btn-outline-primary rounded-pill px-2 me-1" onclick="window.aoVerDetalle(${r.id})" title="Ver detalle"><i class="fas fa-eye"></i></button>
+                        ${r.pdf_url ? `<a href="${r.pdf_url}" target="_blank" class="btn btn-sm btn-outline-danger rounded-pill px-2" title="Ver PDF boleta"><i class="fas fa-file-pdf"></i></a>` : '<span class="text-muted" title="Sin PDF"><i class="fas fa-file-pdf opacity-25" style="font-size:.75rem"></i></span>'}
+                    </td>
                 </tr>`;
             }).join('');
 
             cont.innerHTML = `
                 <div class="table-responsive" style="max-height:60vh;overflow-y:auto">
                     <table class="table table-hover table-sm align-middle mb-0" style="font-size:.82rem">
-                        <thead class="table-light sticky-top" style="z-index:1">
-                            <tr class="text-uppercase text-muted" style="font-size:.7rem">
-                                <th>Folio</th><th>Fecha</th><th>Vuelo</th><th>Aerolínea</th>
+                        <thead class="sticky-top" style="z-index:1;background:linear-gradient(135deg,#1a3a6b,#2462af)">
+                            <tr style="font-size:.7rem;color:rgba(255,255,255,.85)">
+                                <th class="fw-semibold py-2 ps-2">Folio</th><th>Fecha</th><th>Vuelo</th><th>Aerolínea</th>
                                 <th>Matrícula</th><th>Operación</th><th>Posición</th>
                                 <th class="text-center">Aerocares</th><th class="text-center">Pax</th>
-                                <th>Coordinador</th><th></th>
+                                <th>Coordinador</th><th class="text-end pe-2">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>${tRows}</tbody>
                     </table>
-                    <div class="p-2 bg-light border-top small text-muted">${rows.length} registro(s)</div>
+                    <div class="px-3 py-2 border-top small text-muted d-flex align-items-center gap-2">
+                        <i class="fas fa-list-ul opacity-50"></i>${rows.length} registro(s)
+                        <span class="ms-auto" style="font-size:.65rem"><i class="fas fa-file-pdf text-danger me-1"></i>= PDF disponible</span>
+                    </div>
                 </div>`;
 
         } catch (err) {
@@ -348,7 +354,12 @@
             </table>
             <p class="small text-muted mb-1"><b>Obs. Aerolínea:</b> ${r.obs_aerolinea||'—'}</p>
             <p class="small text-muted mb-1"><b>Obs. Operador:</b> ${r.obs_operador||'—'}</p>
-            <p class="small text-muted mb-0"><b>Coordinador:</b> ${r.nombre_coordinador||'—'} | <b>Conformidad:</b> ${r.nombre_conformidad||'—'} | <b>Firma Operador:</b> ${r.firma_operador||'—'}</p>`;
+            <p class="small text-muted mb-0"><b>Coordinador:</b> ${r.nombre_coordinador||'—'} | <b>Conformidad:</b> ${r.nombre_conformidad||'—'} | <b>Firma Operador:</b> ${r.firma_operador||'—'}</p>
+            <div class="mt-3 pt-2 border-top">
+                ${r.pdf_url
+                    ? `<a href="${r.pdf_url}" target="_blank" class="btn btn-danger btn-sm rounded-pill px-3"><i class="fas fa-file-pdf me-1"></i>Ver / Descargar Boleta PDF</a>`
+                    : `<span class="small text-muted fst-italic"><i class="fas fa-file-pdf me-1 opacity-50"></i>Boleta PDF no disponible para este registro.</span>`}
+            </div>`;
 
         // Reuse / create a simple modal
         let modal = document.getElementById('ao-detalle-modal');
@@ -602,34 +613,45 @@
                 return;
             }
 
-            const tRows = rows.map(r => `<tr>
-                <td class="fw-bold">${r.folio || '—'}</td>
-                <td>${r.fecha || ''}</td>
+            const tRows = rows.map(r => {
+                const pdfBtn = r.pdf_url
+                    ? `<a href="${r.pdf_url}" target="_blank" class="btn btn-sm btn-outline-danger rounded-pill px-2" title="Ver PDF boleta"><i class="fas fa-file-pdf"></i></a>`
+                    : `<span class="text-muted" title="Sin PDF"><i class="fas fa-file-pdf opacity-25" style="font-size:.75rem"></i></span>`;
+                return `<tr>
+                <td class="fw-bold text-success">${r.folio || '—'}</td>
+                <td class="text-muted">${r.fecha || ''}</td>
                 <td>${r.posicion || '—'}</td>
-                <td>${r.aeropasillo_numero || '—'}${r.aeropasillo_dedo ? '-' + r.aeropasillo_dedo : ''}</td>
+                <td class="fw-semibold">${r.aeropasillo_numero || '—'}${r.aeropasillo_dedo ? '-' + r.aeropasillo_dedo : ''}</td>
                 <td>${r.linea_aerea || '—'}</td>
-                <td>${r.matricula || '—'}</td>
+                <td class="font-monospace">${r.matricula || '—'}</td>
                 <td>${r.lleg_no_vuelo || '—'}</td>
                 <td>${r.sal_no_vuelo || '—'}</td>
-                <td>${r.sal_tiempo_total || '—'}</td>
+                <td class="fw-semibold">${r.sal_tiempo_total || '—'}</td>
                 <td class="text-muted small">${r.nombre_coordinador || '—'}</td>
-                <td><button class="btn btn-sm btn-outline-success rounded-pill px-2" onclick="window.apVerDetalle(${r.id})" title="Ver detalle"><i class="fas fa-eye"></i></button></td>
-            </tr>`).join('');
+                <td class="text-end pe-1" style="white-space:nowrap">
+                    <button class="btn btn-sm btn-outline-success rounded-pill px-2 me-1" onclick="window.apVerDetalle(${r.id})" title="Ver detalle"><i class="fas fa-eye"></i></button>
+                    ${pdfBtn}
+                </td>
+            </tr>`;
+            }).join('');
 
             cont.innerHTML = `
                 <div class="table-responsive" style="max-height:60vh;overflow-y:auto">
                     <table class="table table-hover table-sm align-middle mb-0" style="font-size:.82rem">
-                        <thead class="table-light sticky-top" style="z-index:1">
-                            <tr class="text-uppercase text-muted" style="font-size:.7rem">
-                                <th>Folio</th><th>Fecha</th><th>Posición</th><th>Pasillo</th>
+                        <thead class="sticky-top" style="z-index:1;background:linear-gradient(135deg,#14452f,#1d6b47)">
+                            <tr style="font-size:.7rem;color:rgba(255,255,255,.85)">
+                                <th class="fw-semibold py-2 ps-2">Folio</th><th>Fecha</th><th>Posición</th><th>Pasillo</th>
                                 <th>Aerolínea</th><th>Matrícula</th>
                                 <th>Vuelo Lleg.</th><th>Vuelo Sal.</th>
-                                <th>T. Total</th><th>Coordinador</th><th></th>
+                                <th>T. Total</th><th>Coordinador</th><th class="text-end pe-2">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>${tRows}</tbody>
                     </table>
-                    <div class="p-2 bg-light border-top small text-muted">${rows.length} registro(s)</div>
+                    <div class="px-3 py-2 border-top small text-muted d-flex align-items-center gap-2">
+                        <i class="fas fa-list-ul opacity-50"></i>${rows.length} registro(s)
+                        <span class="ms-auto" style="font-size:.65rem"><i class="fas fa-file-pdf text-danger me-1"></i>= PDF disponible</span>
+                    </div>
                 </div>`;
 
         } catch (err) {
@@ -669,6 +691,11 @@
                     <b>Obs. Aerolínea:</b> ${r.obs_aerolinea_nombre||'—'} &nbsp;|&nbsp; <b>Obs. Operador:</b> ${r.obs_operador_nombre||'—'}<br>
                     <b>Observaciones:</b> ${r.observaciones||'—'}<br>
                     <b>Coordinador:</b> ${r.nombre_coordinador||'—'}
+                </div>
+                <div class="col-12 mt-2 pt-2 border-top">
+                    ${r.pdf_url
+                        ? `<a href="${r.pdf_url}" target="_blank" class="btn btn-danger btn-sm rounded-pill px-3"><i class="fas fa-file-pdf me-1"></i>Ver / Descargar Boleta PDF</a>`
+                        : `<span class="small text-muted fst-italic"><i class="fas fa-file-pdf me-1 opacity-50"></i>Boleta PDF no disponible para este registro.</span>`}
                 </div>
             </div>`;
 
