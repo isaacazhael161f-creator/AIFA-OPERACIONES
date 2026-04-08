@@ -1095,69 +1095,93 @@
 
     // Captura HTML string → Blob PDF (renderiza en div off-screen temporal)
     async function boletaCaptureFromHtml(html) {
-        if (!window.html2pdf) return null;
+        // html2canvas reads window.scrollX/Y from the CALLING window context.
+        // When called on an iframe element from the parent window it uses the
+        // parent page's scroll offset, clipping the left/top of the content.
+        // Fix: inject html2pdf INTO the iframe so it runs in that window's own
+        // context (scrollX/Y are always 0,0 there) and send the blob back via postMessage.
+        const H2P   = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+        const nonce = Math.random().toString(36).slice(2);
 
-        // Use an isolated iframe placed off-screen (absolute, not fixed) so that
-        // body { overflow-x: hidden } on the main page never clips the capture area.
+        const iframeDoc = `<!DOCTYPE html><html><head>
+<meta charset="utf-8">
+<script src="${H2P}"><\/script>
+<style>*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;width:960px}</style>
+</head><body>
+<div id="r" style="width:940px;background:#fff">${html}</div>
+<script>
+window.onload = async function() {
+  try {
+    var el = document.getElementById('r');
+    var blob = await html2pdf().set({
+      margin: [8, 10],
+      image: { type: 'jpeg', quality: 0.97 },
+      html2canvas: {
+        scale: 2, useCORS: true, allowTaint: true,
+        logging: false, backgroundColor: '#ffffff',
+        scrollX: 0, scrollY: 0, windowWidth: 960
+      },
+      jsPDF: { unit: 'mm', format: 'letter', orientation: 'landscape' }
+    }).from(el).output('blob');
+    var fr = new FileReader();
+    fr.onload = function() {
+      window.parent.postMessage({ _boleta: '${nonce}', ok: true, d: fr.result }, '*');
+    };
+    fr.readAsDataURL(blob);
+  } catch(err) {
+    window.parent.postMessage({ _boleta: '${nonce}', ok: false, msg: String(err) }, '*');
+  }
+};
+<\/script>
+</body></html>`;
+
         return new Promise((resolve) => {
-            const iframe = document.createElement('iframe');
-            iframe.setAttribute('aria-hidden', 'true');
+            const blobUrl = URL.createObjectURL(new Blob([iframeDoc], { type: 'text/html' }));
+            const iframe  = document.createElement('iframe');
             Object.assign(iframe.style, {
                 position:      'absolute',
                 top:           '-9999px',
                 left:          '0',
                 width:         '960px',
-                height:        '1400px',   // generous starting height, avoids scroll
+                height:        '1400px',
                 border:        'none',
+                visibility:    'hidden',
                 zIndex:        '-1',
                 pointerEvents: 'none',
             });
+            iframe.src = blobUrl;
+
+            const cleanup = (result) => {
+                clearTimeout(timer);
+                window.removeEventListener('message', onMsg);
+                if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+                URL.revokeObjectURL(blobUrl);
+                resolve(result);
+            };
+
+            const onMsg = (e) => {
+                if (!e.data || e.data._boleta !== nonce) return;
+                if (!e.data.ok) {
+                    console.warn('boletaCaptureFromHtml iframe error:', e.data.msg);
+                    cleanup(null);
+                    return;
+                }
+                // Convert dataURL back to Blob
+                const parts = e.data.d.split(',');
+                const mime  = parts[0].match(/:(.*?);/)[1];
+                const bin   = atob(parts[1]);
+                const bytes = new Uint8Array(bin.length);
+                for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                cleanup(new Blob([bytes], { type: mime }));
+            };
+
+            const timer = setTimeout(() => {
+                console.warn('boletaCaptureFromHtml: timeout after 30s');
+                cleanup(null);
+            }, 30000);
+
+            window.addEventListener('message', onMsg);
             document.body.appendChild(iframe);
-
-            const iDoc = iframe.contentDocument || iframe.contentWindow.document;
-            iDoc.open();
-            iDoc.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
-<style>*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;width:960px}</style>
-</head><body><div id="boleta-root" style="width:940px;background:#fff">${html}</div></body></html>`);
-            iDoc.close();
-
-            // 450 ms gives the browser time to fully lay out + paint data-URL signature images
-            setTimeout(async () => {
-                const el = iDoc.getElementById('boleta-root');
-                if (el) {
-                    // Expand iframe to real content so nothing is clipped
-                    const realH = Math.max(el.scrollHeight, el.offsetHeight, 600);
-                    iframe.style.height = (realH + 60) + 'px';
-                }
-                await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-                try {
-                    const blob = await html2pdf()
-                        .set({
-                            margin:      [8, 10],
-                            image:       { type: 'jpeg', quality: 0.97 },
-                            html2canvas: {
-                                scale:           2,
-                                useCORS:         true,
-                                allowTaint:      true,
-                                logging:         false,
-                                backgroundColor: '#ffffff',
-                                scrollX:         0,
-                                scrollY:         0,
-                                windowWidth:     960,
-                            },
-                            jsPDF: { unit: 'mm', format: 'letter', orientation: 'landscape' },
-                        })
-                        .from(el || iDoc.body)
-                        .output('blob');
-                    resolve(blob);
-                } catch (err) {
-                    console.warn('boletaCaptureFromHtml error:', err);
-                    resolve(null);
-                } finally {
-                    if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-                }
-            }, 450);
         });
     }
 
