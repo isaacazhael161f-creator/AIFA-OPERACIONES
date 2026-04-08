@@ -845,7 +845,7 @@
             </td>`;
 
         const opColor = p.tipo_operacion === 'llegada' ? '#1456c8' : '#d46000';
-        return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#111;width:710px;background:#fff">
+        return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#111;width:940px;background:#fff">
           <!-- HEADER -->
           <table width="100%" cellspacing="0" cellpadding="0">
             <tr style="background:linear-gradient(135deg,#1a3a6b,#2462af);color:#fff">
@@ -958,7 +958,7 @@
             <div style="font-size:9px;font-weight:600;color:#222">${nombre||''}</div>
           </td>`;
 
-        return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#111;width:710px;background:#fff">
+        return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#111;width:940px;background:#fff">
           <!-- HEADER -->
           <table width="100%" cellspacing="0" cellpadding="0">
             <tr style="background:linear-gradient(135deg,#14452f,#1d6b47);color:#fff">
@@ -1097,19 +1097,19 @@
     async function boletaCaptureFromHtml(html) {
         if (!window.html2pdf) return null;
 
-        // Use an isolated iframe so the main page CSS/overflow never interfere
-        // with html2canvas capture (position:fixed + body overflow-x:hidden = blank PDFs)
+        // Use an isolated iframe placed off-screen (absolute, not fixed) so that
+        // body { overflow-x: hidden } on the main page never clips the capture area.
         return new Promise((resolve) => {
             const iframe = document.createElement('iframe');
             iframe.setAttribute('aria-hidden', 'true');
             Object.assign(iframe.style, {
-                position:      'fixed',
-                top:           '0',
+                position:      'absolute',
+                top:           '-9999px',
                 left:          '0',
-                width:         '820px',
-                height:        '1px',      // expanded once content renders
+                width:         '960px',
+                height:        '1400px',   // generous starting height, avoids scroll
                 border:        'none',
-                zIndex:        '2147483647',
+                zIndex:        '-1',
                 pointerEvents: 'none',
             });
             document.body.appendChild(iframe);
@@ -1117,17 +1117,18 @@
             const iDoc = iframe.contentDocument || iframe.contentWindow.document;
             iDoc.open();
             iDoc.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
-<style>*{box-sizing:border-box}body{margin:0;padding:0;background:#fff}</style>
-</head><body>${html}</body></html>`);
+<style>*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;width:960px}</style>
+</head><body><div id="boleta-root" style="width:940px;background:#fff">${html}</div></body></html>`);
             iDoc.close();
 
-            // 250 ms lets the browser finish layout + any data-URL <img> loads
+            // 450 ms gives the browser time to fully lay out + paint data-URL signature images
             setTimeout(async () => {
-                const iBody = iDoc.body;
-                const h = Math.max(iBody.scrollHeight, 400);
-                iframe.style.height = h + 'px';
-
-                // Two animation frames after height expansion
+                const el = iDoc.getElementById('boleta-root');
+                if (el) {
+                    // Expand iframe to real content so nothing is clipped
+                    const realH = Math.max(el.scrollHeight, el.offsetHeight, 600);
+                    iframe.style.height = (realH + 60) + 'px';
+                }
                 await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
                 try {
@@ -1143,11 +1144,11 @@
                                 backgroundColor: '#ffffff',
                                 scrollX:         0,
                                 scrollY:         0,
-                                windowWidth:     820,
+                                windowWidth:     960,
                             },
-                            jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+                            jsPDF: { unit: 'mm', format: 'letter', orientation: 'landscape' },
                         })
-                        .from(iBody)
+                        .from(el || iDoc.body)
                         .output('blob');
                     resolve(blob);
                 } catch (err) {
@@ -1156,7 +1157,7 @@
                 } finally {
                     if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
                 }
-            }, 250);
+            }, 450);
         });
     }
 
