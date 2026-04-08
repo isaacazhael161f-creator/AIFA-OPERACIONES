@@ -1097,45 +1097,67 @@
     async function boletaCaptureFromHtml(html) {
         if (!window.html2pdf) return null;
 
-        // html2pdf needs the element to be in the live DOM with real dimensions
-        // for html2canvas to capture it. We append it fixed at top-left (invisible
-        // to the user via pointer-events:none) then remove it after capture.
-        const wrap = document.createElement('div');
-        wrap.style.cssText =
-            'position:fixed;top:0;left:0;width:800px;background:#fff;' +
-            'z-index:99999;pointer-events:none;overflow:hidden;';
-        wrap.innerHTML = html;
-        document.body.appendChild(wrap);
+        // Use an isolated iframe so the main page CSS/overflow never interfere
+        // with html2canvas capture (position:fixed + body overflow-x:hidden = blank PDFs)
+        return new Promise((resolve) => {
+            const iframe = document.createElement('iframe');
+            iframe.setAttribute('aria-hidden', 'true');
+            Object.assign(iframe.style, {
+                position:      'fixed',
+                top:           '0',
+                left:          '0',
+                width:         '820px',
+                height:        '1px',      // expanded once content renders
+                border:        'none',
+                zIndex:        '2147483647',
+                pointerEvents: 'none',
+            });
+            document.body.appendChild(iframe);
 
-        // Wait two animation frames so the browser finishes layout + paint.
-        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+            const iDoc = iframe.contentDocument || iframe.contentWindow.document;
+            iDoc.open();
+            iDoc.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>*{box-sizing:border-box}body{margin:0;padding:0;background:#fff}</style>
+</head><body>${html}</body></html>`);
+            iDoc.close();
 
-        try {
-            return await html2pdf()
-                .set({
-                    margin:      [8, 10],
-                    image:       { type: 'jpeg', quality: 0.97 },
-                    html2canvas: {
-                        scale:           2,
-                        useCORS:         true,
-                        logging:         false,
-                        backgroundColor: '#fff',
-                        windowWidth:     800,
-                        x:               0,
-                        y:               0,
-                        scrollX:         0,
-                        scrollY:         0,
-                    },
-                    jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
-                })
-                .from(wrap)
-                .output('blob');
-        } catch (err) {
-            console.warn('boletaCaptureFromHtml error:', err);
-            return null;
-        } finally {
-            document.body.removeChild(wrap);
-        }
+            // 250 ms lets the browser finish layout + any data-URL <img> loads
+            setTimeout(async () => {
+                const iBody = iDoc.body;
+                const h = Math.max(iBody.scrollHeight, 400);
+                iframe.style.height = h + 'px';
+
+                // Two animation frames after height expansion
+                await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+                try {
+                    const blob = await html2pdf()
+                        .set({
+                            margin:      [8, 10],
+                            image:       { type: 'jpeg', quality: 0.97 },
+                            html2canvas: {
+                                scale:           2,
+                                useCORS:         true,
+                                allowTaint:      true,
+                                logging:         false,
+                                backgroundColor: '#ffffff',
+                                scrollX:         0,
+                                scrollY:         0,
+                                windowWidth:     820,
+                            },
+                            jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+                        })
+                        .from(iBody)
+                        .output('blob');
+                    resolve(blob);
+                } catch (err) {
+                    console.warn('boletaCaptureFromHtml error:', err);
+                    resolve(null);
+                } finally {
+                    if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+                }
+            }, 250);
+        });
     }
 
     // Sube un Blob PDF al bucket de Supabase Storage y devuelve la URL pública.
