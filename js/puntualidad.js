@@ -3,7 +3,7 @@
   const THRESHOLD = 85; // % threshold for punctual vs not punctual
   const TOP_N = 3; // Mostrar Top 3 por solicitud
   let _data = null;
-  let _minFlights = 5;
+  let _minFlights = 10;
 
   async function loadData() {
     try {
@@ -315,7 +315,7 @@
       if (sel) {
         sel.addEventListener('change', function () {
           const v = parseInt(sel.value, 10);
-          _minFlights = isNaN(v) ? 5 : v;
+          _minFlights = isNaN(v) ? 10 : v;
           renderTopLists();
         });
       }
