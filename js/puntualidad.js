@@ -151,7 +151,7 @@
         li.innerHTML = `
           <span class="airline-header d-flex align-items-center gap-2 text-truncate" title="${r.aerolinea}">${logo}<span class="airline-name">${r.aerolinea}</span></span>
           <span class="d-flex align-items-center gap-2">
-            <span class="badge ${clsForPct(pct)}">${pct.toFixed(0)}%</span>
+            <span class="badge ${clsForPct(pct)}">${pct.toFixed(1)}%</span>
             <span class="small text-muted">(${r.total} vuelos)</span>
           </span>
         `;
@@ -185,7 +185,7 @@
           indexAxis: 'y',
           maintainAspectRatio: false,
           responsive: true,
-          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.parsed.x.toFixed(0)}%` } } },
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.parsed.x.toFixed(1)}%` } } },
           scales: {
             x: { suggestedMin: 0, suggestedMax: 100, ticks: { callback: v => v + '%' } },
             y: { ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } }
@@ -278,7 +278,7 @@
                 <td class="text-end">${Number(r.total || 0)}</td>${imputableCells}
                 <td>
                   <div class="progress" style="height: 18px;">
-                    <div class="progress-bar ${clsForPct(pct)}" role="progressbar" style="width: ${Math.max(0, Math.min(100, pct))}%">${pct.toFixed(0)}%</div>
+                    <div class="progress-bar ${clsForPct(pct)}" role="progressbar" style="width: ${Math.max(0, Math.min(100, pct))}%">${pct.toFixed(1)}%</div>
                   </div>
                 </td>
               `;
