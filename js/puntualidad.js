@@ -47,7 +47,12 @@
         _data = (_data || []).map(row => {
           const total = row.total_flights || 0;
           const onTime = row.on_time || 0;
-          const pct = total > 0 ? ((onTime / total) * 100).toFixed(1) : 0;
+          const hasImputable = row.total_imputable !== undefined && row.total_imputable !== null;
+          const pct = total > 0
+            ? (hasImputable
+               ? (((total - Number(row.total_imputable)) / total) * 100).toFixed(1)
+               : ((onTime / total) * 100).toFixed(1))
+            : 0;
           return {
             aerolinea: row.airline,
             categoria: row.category,
@@ -55,7 +60,11 @@
             demora: row.delayed,
             cancelado: row.cancelled,
             total: row.total_flights,
-            puntualidad: pct + '%'
+            puntualidad: pct + '%',
+            // Nuevas columnas (Marzo 2026+) — null para meses sin estos datos
+            imputable_aerolinea: (row.imputable_airline !== undefined && row.imputable_airline !== null) ? row.imputable_airline : null,
+            cancelados_imputables: (row.cancelled_imputable !== undefined && row.cancelled_imputable !== null) ? row.cancelled_imputable : null,
+            total_imputables: (row.total_imputable !== undefined && row.total_imputable !== null) ? row.total_imputable : null
           };
         });
 
@@ -196,12 +205,14 @@
     if (!container) return;
     container.innerHTML = '';
 
+    // Detect if any row has imputables data (Marzo 2026+)
+    const hasImputables = _data.some(r => r.imputable_aerolinea !== null && r.imputable_aerolinea !== undefined);
+    const colSpan = hasImputables ? 9 : 6;
+
     const categories = ['Pasajeros', 'Carga'];
 
     categories.forEach(cat => {
       const filtered = byCategory(_data, cat);
-      // Always render table, even if empty, to show structure
-      // if (filtered.length === 0) return;
 
       // Header for category
       const header = document.createElement('h5');
@@ -212,6 +223,12 @@
       // Build table
       const table = document.createElement('table');
       table.className = 'table table-hover align-middle mb-4';
+
+      const imputableHeaders = hasImputables ? `
+              <th class="text-end" title="Demoras imputables a la aerolínea">Imp. Aerolínea</th>
+              <th class="text-end" title="Cancelados imputables a la aerolínea">Canc. Imputables</th>
+              <th class="text-end" title="Total imputables a la aerolínea">Total Imputables</th>` : '';
+
       table.innerHTML = `
           <thead class="table-light">
             <tr>
@@ -219,7 +236,7 @@
               <th class="text-end">A tiempo</th>
               <th class="text-end">Demora</th>
               <th class="text-end">Cancelado</th>
-              <th class="text-end">Total</th>
+              <th class="text-end">Total</th>${imputableHeaders}
               <th style="min-width:160px;">Puntualidad</th>
             </tr>
           </thead>
@@ -228,7 +245,7 @@
       const tbody = table.querySelector('tbody');
 
       if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted p-3">No hay registros de ${cat} para este periodo</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted p-3">No hay registros de ${cat} para este periodo</td></tr>`;
       } else {
         filtered.forEach(r => {
           const pct = parsePercent(r.puntualidad);
@@ -237,7 +254,6 @@
           let logoHtml = '';
           try {
             if (typeof window.getAirlineLogoCandidates === 'function') {
-              // ... existing logo logic ...
               const raw = window.getAirlineLogoCandidates(r.aerolinea || '') || [];
               const cands = raw.filter(path => !/default-airline-logo/i.test(path));
               const logoPath = cands[0];
@@ -249,12 +265,17 @@
             }
           } catch (_) { }
 
+          const imputableCells = hasImputables ? `
+                <td class="text-end">${r.imputable_aerolinea !== null ? Number(r.imputable_aerolinea || 0) : '—'}</td>
+                <td class="text-end">${r.cancelados_imputables !== null ? Number(r.cancelados_imputables || 0) : '—'}</td>
+                <td class="text-end">${r.total_imputables !== null ? Number(r.total_imputables || 0) : '—'}</td>` : '';
+
           tr.innerHTML = `
                 <td><div class="airline-cell">${logoHtml}<span class="airline-name">${r.aerolinea || ''}</span></div></td>
                 <td class="text-end">${Number(r.a_tiempo || 0)}</td>
                 <td class="text-end">${Number(r.demora || 0)}</td>
                 <td class="text-end">${Number(r.cancelado || 0)}</td>
-                <td class="text-end">${Number(r.total || 0)}</td>
+                <td class="text-end">${Number(r.total || 0)}</td>${imputableCells}
                 <td>
                   <div class="progress" style="height: 18px;">
                     <div class="progress-bar ${clsForPct(pct)}" role="progressbar" style="width: ${Math.max(0, Math.min(100, pct))}%">${pct.toFixed(0)}%</div>
