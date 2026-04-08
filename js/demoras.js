@@ -151,6 +151,9 @@
     if (!force && demorasDataCache) return Promise.resolve(demorasDataCache);
     if (!force && demorasDataPromise) return demorasDataPromise;
 
+    // When forcing, clear cache and pending promise so fresh data is fetched
+    if (force) { demorasDataCache = null; demorasDataPromise = null; }
+
     try {
       // Use DataManager if available to fetch from Supabase
       if (window.dataManager) {
@@ -1055,15 +1058,16 @@
     }
   }
 
-  function safeRender() {
-    loadDemorasData()
+  function safeRender(force = false) {
+    loadDemorasData(force)
       .then((dataset) => refreshDemorasView(dataset))
       .catch((error) => {
         console.warn('demoras.json no disponible, usando datos locales.', error);
         refreshDemorasView();
       });
   }
-  document.addEventListener('DOMContentLoaded', safeRender);
-  document.addEventListener('click', (e) => { if (e.target.closest('[data-section="demoras"]')) setTimeout(safeRender, 50); });
+  document.addEventListener('DOMContentLoaded', () => safeRender(false));
+  // Al hacer click en el menú de Demoras, forzar re-fetch para que siempre muestre datos frescos
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-section="demoras"]')) setTimeout(() => safeRender(true), 50); });
   // Nota: evitamos observar cambios en tbody para no provocar bucles de re-render.
 })();
