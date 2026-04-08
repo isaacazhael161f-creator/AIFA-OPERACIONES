@@ -47,7 +47,12 @@
         _data = (_data || []).map(row => {
           const total = row.total_flights || 0;
           const onTime = row.on_time || 0;
-          const pct = total > 0 ? ((onTime / total) * 100).toFixed(1) : 0;
+          const hasImputable = row.total_imputable !== undefined && row.total_imputable !== null;
+          const pct = total > 0
+            ? (hasImputable
+               ? (((total - Number(row.total_imputable)) / total) * 100).toFixed(1)
+               : ((onTime / total) * 100).toFixed(1))
+            : 0;
           return {
             aerolinea: row.airline,
             categoria: row.category,
