@@ -1733,6 +1733,11 @@
                                             id="tab-aerolineas" data-bs-toggle="pill"
                                             data-bs-target="#pane-aerolineas" type="button" role="tab"><i
                                                 class="fas fa-plane me-2 text-primary"></i>Aerolíneas</button>
+
+                                        <button class="nav-link text-start mb-2 border shadow-sm rounded"
+                                            id="tab-aerolineas-mensual" data-bs-toggle="pill"
+                                            data-bs-target="#pane-aerolineas-mensual" type="button" role="tab"><i
+                                                class="fas fa-calendar-alt me-2 text-warning"></i>Aerolíneas Mensuales</button>
                                     </div>
                                 </div>
                                 <div class="col-md-9" id="dm-content">
@@ -3120,6 +3125,64 @@
                                             </div>
                                             <div class="text-muted small mt-2" id="al-count"></div>
                                         </div><!-- /pane-aerolineas -->
+
+                                        <!-- Pane: Aerolíneas – Datos Mensuales -->
+                                        <div class="tab-pane fade" id="pane-aerolineas-mensual" role="tabpanel">
+                                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                                <h5 class="mb-0"><i class="fas fa-calendar-alt me-2 text-warning"></i>Operaciones Mensuales por Aerolínea</h5>
+                                                <span class="text-muted small">Edita y guarda los datos mensuales de la tabla <strong>Aerolíneas</strong></span>
+                                            </div>
+
+                                            <!-- Selector -->
+                                            <div class="card border-0 shadow-sm rounded-4 mb-4 p-3">
+                                                <div class="row g-3 align-items-end">
+                                                    <div class="col-md-5">
+                                                        <label class="form-label fw-semibold text-muted small text-uppercase mb-1">Aerolínea</label>
+                                                        <select class="form-select shadow-sm" id="am-airline-select">
+                                                            <option value="">— Selecciona una aerolínea —</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-semibold text-muted small text-uppercase mb-1">Año</label>
+                                                        <div class="d-flex gap-2 flex-wrap" id="am-year-pills">
+                                                            <button type="button" class="btn btn-sm btn-outline-primary am-yr-btn active" data-yr="23">2023</button>
+                                                            <button type="button" class="btn btn-sm btn-outline-primary am-yr-btn" data-yr="24">2024</button>
+                                                            <button type="button" class="btn btn-sm btn-outline-primary am-yr-btn" data-yr="25">2025</button>
+                                                            <button type="button" class="btn btn-sm btn-outline-primary am-yr-btn" data-yr="26">2026</button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3 d-flex gap-2">
+                                                        <button class="btn btn-secondary w-100" onclick="amLoad()" id="am-load-btn" disabled>
+                                                            <i class="fas fa-download me-1"></i>Cargar
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Month grid editor -->
+                                            <div id="am-editor" class="d-none">
+                                                <div class="card border-0 shadow-sm rounded-4 mb-3">
+                                                    <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between py-3">
+                                                        <span class="fw-bold" id="am-editor-title"><i class="fas fa-edit me-2 text-primary"></i></span>
+                                                        <button class="btn btn-primary btn-sm rounded-pill px-3" onclick="amSave()">
+                                                            <i class="fas fa-save me-1"></i>Guardar cambios
+                                                        </button>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div class="row g-3" id="am-month-grid">
+                                                            <!-- Injected by JS: 12 inputs -->
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div id="am-status" class="mb-2"></div>
+                                            </div>
+
+                                            <!-- Placeholder -->
+                                            <div id="am-placeholder" class="text-center py-5 text-muted">
+                                                <i class="fas fa-hand-pointer fa-2x mb-3 opacity-25"></i>
+                                                <p class="mb-0">Selecciona una aerolínea y un año, luego presiona <strong>Cargar</strong></p>
+                                            </div>
+                                        </div><!-- /pane-aerolineas-mensual -->
 
                                         <!-- Modal aerolínea (dentro de data-management) -->
                                         <div class="modal fade" id="dm-airline-modal" tabindex="-1">
