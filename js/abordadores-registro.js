@@ -100,12 +100,18 @@
         const i = idx;
         return `
         <tr id="ao-row-${i}">
-            <td class="ps-2"><input type="text" class="form-control" name="ao-aerocar" placeholder="AIFA-61" maxlength="15" autocomplete="off"></td>
+            <td class="ps-2"><input type="text" class="form-control" name="ao-aerocar" list="ao-aerocar-list" placeholder="AIFA-61" maxlength="30" autocomplete="off"></td>
             <td><div class="input-group"><input type="text" class="form-control time-24h" name="ao-h-sal-edif" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off"><button type="button" class="btn btn-outline-secondary btn-now" tabindex="-1" title="Ahora"><i class="fas fa-clock"></i></button></div></td>
             <td><div class="input-group"><input type="text" class="form-control time-24h" name="ao-h-abordaje" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off"><button type="button" class="btn btn-outline-secondary btn-now" tabindex="-1" title="Ahora"><i class="fas fa-clock"></i></button></div></td>
             <td><div class="input-group"><input type="text" class="form-control time-24h" name="ao-h-ter-serv" placeholder="HH:MM" maxlength="5" inputmode="numeric" autocomplete="off"><button type="button" class="btn btn-outline-secondary btn-now" tabindex="-1" title="Ahora"><i class="fas fa-clock"></i></button></div></td>
             <td><input type="number" class="form-control" name="ao-pax" min="0" max="999" placeholder="Pax"></td>
             <td><input type="text" class="form-control" name="ao-operador" placeholder="APELLIDO" maxlength="40" autocomplete="off"></td>
+            <td class="text-center" style="padding:4px;min-width:90px">
+                <div style="border:1px solid #d0d5dd;border-radius:4px;background:#fafafa;overflow:hidden;height:54px;">
+                    <canvas id="ao-sig-row-${i}" style="width:100%;height:54px;display:block;touch-action:none;cursor:crosshair"></canvas>
+                </div>
+                <button type="button" class="btn btn-link p-0 text-muted sig-clear-btn" data-sig="ao-sig-row-${i}" style="font-size:.6rem;line-height:1.2" title="Borrar firma"><i class="fas fa-eraser"></i></button>
+            </td>
             <td class="pe-2 text-center">
                 <button type="button" class="btn btn-outline-danger rounded-circle ao-btn-del-row" data-row="${i}">
                     <i class="fas fa-times"></i>
@@ -119,6 +125,7 @@
         const tbody = document.getElementById('ao-operaciones-body');
         if (!tbody) return;
         tbody.insertAdjacentHTML('beforeend', aoMakeRow(aoRowCount));
+        initSigPad(`ao-sig-row-${aoRowCount}`);
     }
 
     function aoCollectRows() {
@@ -126,6 +133,7 @@
         if (!tbody) return [];
         const rows = [];
         tbody.querySelectorAll('tr').forEach(tr => {
+            const rowId = tr.id.replace('ao-row-', '');
             const vals = {
                 aerocar:     tr.querySelector('[name="ao-aerocar"]')?.value.trim() || '',
                 h_sal_edif:  tr.querySelector('[name="ao-h-sal-edif"]')?.value || null,
@@ -133,6 +141,7 @@
                 h_ter_serv:  tr.querySelector('[name="ao-h-ter-serv"]')?.value || null,
                 no_pax:      parseInt(tr.querySelector('[name="ao-pax"]')?.value) || null,
                 operador:    tr.querySelector('[name="ao-operador"]')?.value.trim() || '',
+                firma:       getSigData(`ao-sig-row-${rowId}`) || null,
             };
             if (vals.aerocar || vals.h_abordaje || vals.operador) rows.push(vals);
         });
@@ -152,7 +161,12 @@
         aoFillCoordinador();
         const fb = document.getElementById('ao-form-feedback');
         if (fb) fb.classList.add('d-none');
-        ['ao-sig-aerolinea','ao-sig-operador','ao-sig-coordinador'].forEach(clearSigPad);
+        ['ao-sig-aerolinea','ao-sig-coordinador'].forEach(clearSigPad);
+        // Clear airport/airline info hints
+        const airInfo = document.getElementById('ao-airport-info');
+        if (airInfo) airInfo.innerHTML = '';
+        const alInfo = document.getElementById('ao-airline-info');
+        if (alInfo) alInfo.innerHTML = '';
     }
 
     async function aoFillCoordinador() {
@@ -218,10 +232,8 @@
                 obs_aerolinea:     document.getElementById('ao-obs-aerolinea').value.trim() || null,
                 obs_operador:      document.getElementById('ao-obs-operador').value.trim() || null,
                 nombre_conformidad:document.getElementById('ao-nombre-conformidad').value.trim() || null,
-                firma_operador:    document.getElementById('ao-firma-operador').value.trim() || null,
                 nombre_coordinador:document.getElementById('ao-coordinador').value.trim() || null,
                 sig_aerolinea:     getSigData('ao-sig-aerolinea'),
-                sig_operador:      getSigData('ao-sig-operador'),
                 sig_coordinador:   getSigData('ao-sig-coordinador'),
                 created_by:        user?.id || null,
             };
@@ -251,18 +263,29 @@
         }
     }
 
+    function aoFmtDateTime(iso) {
+        if (!iso) return '—';
+        try {
+            const d = new Date(iso);
+            const date = d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const time = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+            return `${date} ${time}`;
+        } catch (_) { return iso; }
+    }
+
+    let _aoSearchDebounce = null;
     async function aoSearch() {
-        const desde  = document.getElementById('ao-hist-desde').value;
-        const hasta  = document.getElementById('ao-hist-hasta').value;
-        const filtro = document.getElementById('ao-hist-filtro').value.trim().toUpperCase();
+        const desde  = document.getElementById('ao-hist-desde')?.value || '';
+        const hasta  = document.getElementById('ao-hist-hasta')?.value || '';
+        const filtro = (document.getElementById('ao-hist-filtro')?.value || '').trim().toUpperCase();
         const cont   = document.getElementById('ao-historial-container');
         if (!cont) return;
 
-        cont.innerHTML = '<div class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span> Buscando…</div>';
+        cont.innerHTML = '<div class="text-center py-5 text-primary"><span class="spinner-border spinner-border-sm me-2"></span>Cargando boletas…</div>';
 
         try {
             const supabase = await window.ensureSupabaseClient();
-            let q = supabase.from(AO_TABLE).select('*').order('fecha', { ascending: false }).order('created_at', { ascending: false }).limit(200);
+            let q = supabase.from(AO_TABLE).select('*').order('created_at', { ascending: false }).limit(300);
             if (desde) q = q.gte('fecha', desde);
             if (hasta) q = q.lte('fecha', hasta);
 
@@ -279,50 +302,68 @@
                 );
             }
 
-            window._aoHistData = rows; // Store for export
+            window._aoHistData = rows;
 
             if (!rows.length) {
-                cont.innerHTML = '<div class="alert alert-info text-center">No se encontraron órdenes con esos criterios.</div>';
+                cont.innerHTML = '<div class="alert alert-info text-center mt-2"><i class="fas fa-info-circle me-1"></i>No se encontraron órdenes con esos criterios.</div>';
                 return;
             }
 
-            const tRows = rows.map(r => {
+            const thStyle = 'padding:10px 10px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#fff;background:linear-gradient(135deg,#1a3a6b,#2462af);position:sticky;top:0;z-index:2;white-space:nowrap;border-bottom:2px solid #0d2657;';
+            const tRows = rows.map((r, idx) => {
                 const ops = r.operaciones || [];
                 const totalPax = ops.reduce((s, o) => s + (o.no_pax || 0), 0);
-                return `<tr>
-                    <td class="fw-bold">${r.folio || '—'}</td>
-                    <td>${r.fecha || ''}</td>
-                    <td>${r.no_vuelo || '—'}</td>
-                    <td>${r.aerolinea || '—'}</td>
-                    <td class="font-monospace">${r.matricula || '—'}</td>
-                    <td><span class="badge ${r.tipo_operacion === 'salida' ? 'text-bg-warning' : 'text-bg-info'} fw-normal">${r.tipo_operacion || '—'}</span></td>
-                    <td>${r.posicion || '—'}</td>
-                    <td class="text-center">${ops.length}</td>
-                    <td class="text-center fw-bold">${totalPax || '—'}</td>
-                    <td class="text-muted small">${r.nombre_coordinador || '—'}</td>
-                    <td class="text-end pe-1" style="white-space:nowrap">
+                const rowBg = idx % 2 === 0 ? '#fff' : '#f5f8ff';
+                const opBadge = r.tipo_operacion === 'salida'
+                    ? '<span style="background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:20px;padding:2px 10px;font-size:.7rem;font-weight:700">SALIDA</span>'
+                    : '<span style="background:#cfe2ff;color:#05356a;border:1px solid #9ec5fe;border-radius:20px;padding:2px 10px;font-size:.7rem;font-weight:700">LLEGADA</span>';
+                return `<tr style="background:${rowBg};transition:background .15s" onmouseover="this.style.background='#e8f0fe'" onmouseout="this.style.background='${rowBg}'">
+                    <td style="padding:8px 10px;font-weight:700;color:#1456c8;white-space:nowrap">${r.folio || '—'}</td>
+                    <td style="padding:8px 10px;white-space:nowrap;font-size:.8rem">${r.fecha || '—'}</td>
+                    <td style="padding:8px 10px;white-space:nowrap;font-size:.78rem;color:#555">${aoFmtDateTime(r.created_at)}</td>
+                    <td style="padding:8px 10px;font-weight:600">${r.no_vuelo || '—'}</td>
+                    <td style="padding:8px 10px">${r.aerolinea || '—'}</td>
+                    <td style="padding:8px 10px;font-family:monospace">${r.matricula || '—'}</td>
+                    <td style="padding:8px 10px">${opBadge}</td>
+                    <td style="padding:8px 10px">${r.posicion || '—'}</td>
+                    <td style="padding:8px 10px;text-align:center;font-weight:700;color:#1456c8">${ops.length}</td>
+                    <td style="padding:8px 10px;text-align:center;font-weight:700">${totalPax || '—'}</td>
+                    <td style="padding:8px 10px;font-size:.8rem;color:#555">${r.nombre_coordinador || '—'}</td>
+                    <td style="padding:8px 10px;text-align:right;white-space:nowrap">
                         <button class="btn btn-sm btn-outline-primary rounded-pill px-2 me-1" onclick="window.aoVerDetalle(${r.id})" title="Ver detalle"><i class="fas fa-eye"></i></button>
-                        ${r.pdf_url ? `<a href="${r.pdf_url}" target="_blank" class="btn btn-sm btn-outline-danger rounded-pill px-2" title="Ver PDF boleta"><i class="fas fa-file-pdf"></i></a>` : '<span class="text-muted" title="Sin PDF"><i class="fas fa-file-pdf opacity-25" style="font-size:.75rem"></i></span>'}
+                        ${r.pdf_url
+                            ? `<a href="${r.pdf_url}" target="_blank" class="btn btn-sm btn-outline-danger rounded-pill px-2" title="Ver PDF"><i class="fas fa-file-pdf"></i></a>`
+                            : '<span class="text-muted" title="Sin PDF" style="font-size:.75rem"><i class="fas fa-file-pdf opacity-25"></i></span>'}
                     </td>
                 </tr>`;
             }).join('');
 
             cont.innerHTML = `
-                <div class="table-responsive" style="max-height:60vh;overflow-y:auto">
-                    <table class="table table-hover table-sm align-middle mb-0" style="font-size:.82rem">
-                        <thead class="sticky-top" style="z-index:1;background:linear-gradient(135deg,#1a3a6b,#2462af)">
-                            <tr style="font-size:.7rem;color:rgba(255,255,255,.85)">
-                                <th class="fw-semibold py-2 ps-2">Folio</th><th>Fecha</th><th>Vuelo</th><th>Aerolínea</th>
-                                <th>Matrícula</th><th>Operación</th><th>Posición</th>
-                                <th class="text-center">Aerocares</th><th class="text-center">Pax</th>
-                                <th>Coordinador</th><th class="text-end pe-2">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>${tRows}</tbody>
-                    </table>
-                    <div class="px-3 py-2 border-top small text-muted d-flex align-items-center gap-2">
-                        <i class="fas fa-list-ul opacity-50"></i>${rows.length} registro(s)
-                        <span class="ms-auto" style="font-size:.65rem"><i class="fas fa-file-pdf text-danger me-1"></i>= PDF disponible</span>
+                <div style="border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(26,58,107,.10);border:1px solid #d0daf0">
+                    <div style="max-height:62vh;overflow-y:auto">
+                        <table style="width:100%;border-collapse:collapse;font-size:.84rem">
+                            <thead>
+                                <tr>
+                                    <th style="${thStyle}padding-left:14px">Folio</th>
+                                    <th style="${thStyle}">Fecha</th>
+                                    <th style="${thStyle}">Hora registro</th>
+                                    <th style="${thStyle}">Vuelo</th>
+                                    <th style="${thStyle}">Aerolínea</th>
+                                    <th style="${thStyle}">Matrícula</th>
+                                    <th style="${thStyle}">Operación</th>
+                                    <th style="${thStyle}">Posición</th>
+                                    <th style="${thStyle}text-align:center">Aerocares</th>
+                                    <th style="${thStyle}text-align:center">Pax</th>
+                                    <th style="${thStyle}">Coordinador</th>
+                                    <th style="${thStyle}text-align:right;padding-right:14px">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>${tRows}</tbody>
+                        </table>
+                    </div>
+                    <div style="padding:8px 14px;background:#f0f4ff;border-top:1px solid #d0daf0;font-size:.75rem;color:#667;display:flex;align-items:center;gap:8px">
+                        <i class="fas fa-list-ul" style="opacity:.5"></i><strong>${rows.length}</strong> registro(s)
+                        <span style="margin-left:auto;font-size:.68rem"><i class="fas fa-file-pdf" style="color:#dc3545;margin-right:3px"></i>= PDF disponible</span>
                     </div>
                 </div>`;
 
@@ -387,6 +428,82 @@
         new bootstrap.Modal(modal).show();
     };
 
+    // ── Aerocar catalog for datalist autocomplete ────────────────
+
+    function aoFillDatalistFromRows(data) {
+        const datalist = document.getElementById('ao-aerocar-list');
+        if (!datalist || !data || !data.length) return;
+
+        const cols = Object.keys(data[0]);
+        const sysCols = new Set(['id','created_at','updated_at','deleted_at']);
+
+        // Score each column: prefer short text columns that look like identifiers
+        const preferredCols = ['nombre','name','aerocar','identificador','unidad','numero','descripcion','clave','codigo'];
+        const labelCol =
+            preferredCols.find(c => cols.includes(c)) ||
+            preferredCols.find(c => cols.map(x=>x.toLowerCase()).includes(c)) ||
+            cols.find(c => !sysCols.has(c.toLowerCase())) ||
+            cols[0];
+
+        // Use exact match (preserving original case)
+        const actualCol = cols.find(c => c === labelCol) ||
+                          cols.find(c => c.toLowerCase() === labelCol.toLowerCase()) ||
+                          cols[0];
+
+        datalist.innerHTML = data
+            .map(r => r[actualCol])
+            .filter(v => v != null && String(v).trim() !== '')
+            .map(v => `<option value="${String(v).replace(/"/g, '&quot;')}">`) 
+            .join('');
+
+        datalist.dataset.loaded = '1';
+        console.log(`[aerocares] datalist filled: ${datalist.options.length} options from column "${actualCol}"`);
+    }
+
+    async function aoLoadAerocarCatalog() {
+        const datalist = document.getElementById('ao-aerocar-list');
+        if (!datalist) return;
+        if (datalist.dataset.loaded) return;
+
+        // If aerocares.js already fetched the data, use it immediately
+        if (window._aerocaresCatalogData?.length) {
+            aoFillDatalistFromRows(window._aerocaresCatalogData);
+            return;
+        }
+
+        // Otherwise listen for the event fired by aerocares.js
+        document.addEventListener('aerocaresCatalogLoaded', e => {
+            if (!document.getElementById('ao-aerocar-list')?.dataset.loaded) {
+                aoFillDatalistFromRows(e.detail);
+            }
+        }, { once: true });
+
+        // Also fetch directly (in case user never visits the Catálogo tab)
+        try {
+            const supabase = await window.ensureSupabaseClient();
+            for (const tbl of ['Aerocares', 'aerocares']) {
+                const res = await supabase.from(tbl).select('*').order('id', { ascending: true });
+                if (!res.error && res.data?.length) {
+                    window._aerocaresCatalogData = res.data;
+                    aoFillDatalistFromRows(res.data);
+                    return;
+                }
+                if (res.error) console.warn(`[aoLoadAerocarCatalog] table ${tbl}:`, res.error.message);
+            }
+            console.warn('[aoLoadAerocarCatalog] No data found in Aerocares table.');
+        } catch (e) {
+            console.warn('[aoLoadAerocarCatalog] fetch error:', e);
+        }
+    }
+
+    // Expose for external refresh (e.g. after catalog edit)
+    window.aoReloadAerocarCatalog = function () {
+        const dl = document.getElementById('ao-aerocar-list');
+        if (dl) { delete dl.dataset.loaded; dl.innerHTML = ''; }
+        delete window._aerocaresCatalogData;
+        aoLoadAerocarCatalog();
+    };
+
     function aoInitEvents() {
         const form = document.getElementById('form-orden-aerocar');
         if (!form) return;
@@ -408,9 +525,26 @@
             if (window._aoHistData) exportToCSV(window._aoHistData, `aerocares_${todayISO()}.csv`);
         });
 
+        // Debounced auto-search on filter inputs
+        const aoAutoSearch = () => {
+            clearTimeout(_aoSearchDebounce);
+            _aoSearchDebounce = setTimeout(aoSearch, 400);
+        };
+        document.getElementById('ao-hist-filtro')?.addEventListener('input', aoAutoSearch);
+        document.getElementById('ao-hist-desde')?.addEventListener('change', aoSearch);
+        document.getElementById('ao-hist-hasta')?.addEventListener('change', aoSearch);
+
+        // Auto-load when historial tab is activated
+        document.getElementById('aerocar-tab-historial')?.addEventListener('shown.bs.tab', aoSearch);
+
         // Init form state
         aoReset();
         aoLoadNextFolio();
+        aoLoadAerocarCatalog();
+        // Airport autocomplete for Origen/Destino
+        if (window.initAirportSearchInput) window.initAirportSearchInput('ao-origen-destino');
+        // Airline autocomplete for Aerolínea
+        if (window.initAirlineSearchInput) window.initAirlineSearchInput('ao-aerolinea');
     }
 
     // ════════════════════════════════════════════════════════════
@@ -829,19 +963,25 @@
     function buildAoBoleta(p, logo) {
         const ops = (p.operaciones || []).map((r, i) => `
             <tr style="background:${i%2?'#f7f9ff':'#fff'}">
-              <td style="padding:8px 10px;border-bottom:1px solid #e8eef8;border-right:1px solid #e8eef8;font-weight:700">${r.aerocar||'—'}</td>
-              <td style="padding:8px 10px;border-bottom:1px solid #e8eef8;border-right:1px solid #e8eef8">${r.h_sal_edif||'—'}</td>
-              <td style="padding:8px 10px;border-bottom:1px solid #e8eef8;border-right:1px solid #e8eef8">${r.h_abordaje||'—'}</td>
-              <td style="padding:8px 10px;border-bottom:1px solid #e8eef8;border-right:1px solid #e8eef8">${r.h_ter_serv||'—'}</td>
-              <td style="padding:8px 10px;border-bottom:1px solid #e8eef8;border-right:1px solid #e8eef8;text-align:center;font-weight:700">${r.no_pax??'—'}</td>
-              <td style="padding:8px 10px;border-bottom:1px solid #e8eef8">${r.operador||'—'}</td>
+              <td style="padding:10px 10px;border-bottom:1px solid #e8eef8;border-right:1px solid #e8eef8;font-size:15px;font-weight:700">${r.aerocar||'—'}</td>
+              <td style="padding:10px 10px;border-bottom:1px solid #e8eef8;border-right:1px solid #e8eef8;font-size:15px">${r.h_sal_edif||'—'}</td>
+              <td style="padding:10px 10px;border-bottom:1px solid #e8eef8;border-right:1px solid #e8eef8;font-size:15px">${r.h_abordaje||'—'}</td>
+              <td style="padding:10px 10px;border-bottom:1px solid #e8eef8;border-right:1px solid #e8eef8;font-size:15px">${r.h_ter_serv||'—'}</td>
+              <td style="padding:10px 10px;border-bottom:1px solid #e8eef8;border-right:1px solid #e8eef8;font-size:15px;text-align:center;font-weight:700">${r.no_pax??'—'}</td>
+              <td style="padding:10px 10px;border-bottom:1px solid #e8eef8;border-right:1px solid #e8eef8;font-size:15px">${r.operador||'—'}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid #e8eef8;text-align:center;vertical-align:middle">
+                ${r.firma ? `<img src="${r.firma}" style="max-width:120px;max-height:52px;object-fit:contain;display:block;margin:0 auto">` : '<div style="height:44px;width:80%;border-bottom:1px solid #ccc;margin:0 auto"></div>'}
+              </td>
             </tr>`).join('');
 
-        const sigBlock = (src, nombre, label, br) =>
-            `<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:12px 18px;${br?'border-right:1px solid #c8cfe0;':''}">
-              <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px;margin-bottom:10px">${label}</div>
-              ${src ? `<img src="${src}" style="max-width:200px;max-height:76px;object-fit:contain;display:block;margin-bottom:8px">` : '<div style="height:76px;width:68%;border-bottom:1.5px solid #bbb;margin-bottom:8px"></div>'}
-              <div style="font-size:11px;font-weight:600;color:#222;text-align:center">${nombre||''}</div>
+        const sigRight = (src, nombre, label) =>
+            `<div style="display:flex;flex-direction:column;padding:10px 14px;min-height:90px">
+              <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px;margin-bottom:6px">${label}</div>
+              <div style="font-size:10px;font-weight:600;color:#222;margin-bottom:6px">${nombre||''}</div>
+              ${src
+                ? `<img src="${src}" style="max-height:60px;max-width:100%;object-fit:contain;display:block;">`
+                : `<div style="flex:1;border-bottom:1.5px solid #bbb;min-height:50px"></div>`}
+              <div style="font-size:6.5px;text-align:center;color:#bbb;letter-spacing:.5px;text-transform:uppercase;margin-top:3px">Firma</div>
             </div>`;
 
         const opColor = p.tipo_operacion === 'llegada' ? '#1456c8' : '#d46000';
@@ -894,21 +1034,21 @@
 
   <!-- ④ BODY: col. izq. datos vuelo + tabla operaciones — FLEX:1 -->
   <div style="flex:1;display:flex;border-bottom:1px solid #c8cfe0;min-height:0;overflow:hidden">
-    <div style="flex:0 0 168px;border-right:1px solid #c8cfe0;padding:12px 14px;background:#fafbff;overflow:hidden">
-      ${[['No. Vuelo',p.no_vuelo,'18px'],['Origen / Destino',p.origen_destino,'13px'],
-         ['Aerolínea',p.aerolinea,'13px'],['Matrícula',p.matricula,'13px'],
-         ['H. Solicitud',p.h_solicitud,'13px'],['H. Entrega',p.h_entrega,'13px']].map(([lbl,val,sz]) => `
-      <div style="margin-bottom:13px">
-        <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.4px">${lbl}</div>
+    <div style="flex:0 0 200px;border-right:1px solid #c8cfe0;padding:12px 14px;background:#fafbff;overflow:hidden">
+      ${[['No. Vuelo',p.no_vuelo,'22px'],['Origen / Destino',p.origen_destino,'16px'],
+         ['Aerolínea',p.aerolinea,'16px'],['Matrícula',p.matricula,'16px'],
+         ['H. Solicitud',p.h_solicitud,'16px'],['H. Entrega',p.h_entrega,'16px']].map(([lbl,val,sz]) => `
+      <div style="margin-bottom:11px">
+        <div style="font-size:8px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.4px">${lbl}</div>
         <div style="font-size:${sz};font-weight:700;margin-top:3px">${val||'—'}</div>
       </div>`).join('')}
     </div>
     <div style="flex:1;overflow:hidden">
-      <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;font-size:11px">
+      <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;font-size:15px">
         <thead>
           <tr style="background:#edf1fb">
-            ${['Aerocar','H. Sal. Edif.','H. Abordaje','H. Ter. Serv.','No. PAX','Operador'].map(h =>
-              `<th style="padding:10px 12px;border-bottom:1px solid #c8cfe0;border-right:1px solid #e0e6f0;text-align:left;font-size:8.5px;font-weight:700;text-transform:uppercase;color:#556;letter-spacing:.3px">${h}</th>`
+            ${['Aerocar','H. Sal. Edif.','H. Abordaje','H. Ter. Serv.','No. PAX','Operador','Firma'].map(h =>
+              `<th style="padding:10px 10px;border-bottom:1px solid #c8cfe0;border-right:1px solid #e0e6f0;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#556;letter-spacing:.3px">${h}</th>`
             ).join('')}
           </tr>
         </thead>
@@ -917,23 +1057,26 @@
     </div>
   </div>
 
-  <!-- ⑤ OBSERVACIONES -->
+  <!-- ⑤ OBSERVACIONES AEROLÍNEA + NOMBRE Y FIRMA DE CONFORMIDAD -->
   <div style="flex-shrink:0;display:flex;border-bottom:1px solid #c8cfe0">
-    <div style="flex:1;padding:10px 14px;border-right:1px solid #c8cfe0;min-height:60px">
+    <div style="flex:7;padding:10px 14px;border-right:1px solid #c8cfe0;min-height:90px">
       <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px;margin-bottom:5px">Observaciones Aerolínea</div>
       <div style="font-size:10px">${p.obs_aerolinea||''}</div>
     </div>
-    <div style="flex:1;padding:10px 14px;min-height:60px">
-      <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px;margin-bottom:5px">Observaciones Operador</div>
-      <div style="font-size:10px">${p.obs_operador||''}</div>
+    <div style="flex:5;border-right:none">
+      ${sigRight(p.sig_aerolinea, p.nombre_conformidad, 'Nombre y Firma de Conformidad')}
     </div>
   </div>
 
-  <!-- ⑥ FIRMAS -->
-  <div style="flex-shrink:0;display:flex;height:138px">
-    ${sigBlock(p.sig_aerolinea, p.nombre_conformidad, 'Conforme Aerolínea',   true)}
-    ${sigBlock(p.sig_operador,  p.firma_operador,     'Operadores',           true)}
-    ${sigBlock(p.sig_coordinador, p.nombre_coordinador, 'Coordinador Mecánico', false)}
+  <!-- ⑥ OBSERVACIONES OPERADOR + NOMBRE Y FIRMA DEL COORDINADOR -->
+  <div style="flex-shrink:0;display:flex">
+    <div style="flex:7;padding:10px 14px;border-right:1px solid #c8cfe0;min-height:90px">
+      <div style="font-size:7px;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.5px;margin-bottom:5px">Observaciones Operador</div>
+      <div style="font-size:10px">${p.obs_operador||''}</div>
+    </div>
+    <div style="flex:5">
+      ${sigRight(p.sig_coordinador, p.nombre_coordinador, 'Nombre y Firma del Coordinador')}
+    </div>
   </div>
 
 </div>`;
@@ -1245,7 +1388,7 @@ window.onload = async function() {
     }
 
     function initAllSigPads() {
-        ['ao-sig-aerolinea','ao-sig-operador','ao-sig-coordinador',
+        ['ao-sig-aerolinea','ao-sig-coordinador',
          'ap-sig-aerolinea','ap-sig-operador','ap-sig-coordinador'].forEach(initSigPad);
         // Wire the eraser buttons globally
         document.addEventListener('click', e => {

@@ -1,4 +1,193 @@
 ﻿let aeroDataCache = null;
+let aeroDetailChart = null;
+let aeroSelectedRow = null;
+
+const AERO_MONTH_ORDER = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const AERO_MONTH_LABELS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const AERO_YEAR_COLORS = { '23':'#06b3e8', '24':'#4caf50', '25':'#2196f3', '26':'#e91e63' };
+
+function closeAeroDetail() {
+    const panel = document.getElementById('aero-detail-panel');
+    if (panel) panel.classList.add('d-none');
+    if (aeroDetailChart) { aeroDetailChart.destroy(); aeroDetailChart = null; }
+    if (aeroSelectedRow) { aeroSelectedRow.classList.remove('table-active'); aeroSelectedRow = null; }
+}
+
+function openAeroDetail(item) {
+    const panel = document.getElementById('aero-detail-panel');
+    const titleEl = document.getElementById('aero-detail-title');
+    const canvas = document.getElementById('aero-detail-chart');
+    if (!panel || !canvas) return;
+
+    titleEl.innerHTML = '<i class="fas fa-chart-line me-2 text-primary"></i>' + item.nombre
+        + ' <span class="text-muted fw-normal fs-6 ms-2">— Evolución mensual de operaciones</span>';
+
+    // Group monthlyOps by year
+    const byYear = {};
+    Object.entries(item.monthlyOps).forEach(([key, val]) => {
+        const match = /^([a-z]+)-(\d{2})$/.exec(key);
+        if (!match) return;
+        const [, mon, yr] = match;
+        if (!byYear[yr]) byYear[yr] = {};
+        byYear[yr][mon] = val;
+    });
+
+    const years = Object.keys(byYear).sort();
+    const datasets = years.map(yr => {
+        const col = AERO_YEAR_COLORS[yr] || '#78909c';
+        const last = yr === years[years.length - 1];
+        const dataPoints = AERO_MONTH_ORDER.map(m => byYear[yr][m] ?? null);
+        return {
+            label: '20' + yr,
+            data: dataPoints,
+            borderColor: col,
+            backgroundColor: last ? col + '18' : col + '08',
+            borderWidth: last ? 3 : 2,
+            pointRadius: last ? 4 : 2,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#fff',
+            pointBorderColor: col,
+            pointBorderWidth: 2,
+            fill: last,
+            tension: 0.4,
+            spanGaps: true
+        };
+    });
+
+    if (aeroDetailChart) { aeroDetailChart.destroy(); aeroDetailChart = null; }
+
+    aeroDetailChart = new Chart(canvas, {
+        type: 'line',
+        data: { labels: AERO_MONTH_LABELS, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 600, easing: 'easeInOutQuart' },
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                itemSort: function(a, b){ return b.datasetIndex - a.datasetIndex; },
+                legend: { position: 'top', align: 'end', labels: { usePointStyle: true, boxWidth: 10, padding: 14, font: { family: "'Inter','Segoe UI',sans-serif", size: 12, weight: '600' }, color: '#334155' } },
+                tooltip: {
+                    itemSort: function(a, b){ return b.datasetIndex - a.datasetIndex; },
+                    backgroundColor: 'rgba(30,41,59,0.95)', titleColor: '#f1f5f9', bodyColor: '#e2e8f0',
+                    borderColor: '#475569', borderWidth: 1, padding: 12, boxPadding: 6,
+                    usePointStyle: true, cornerRadius: 8,
+                    callbacks: {
+                        title: function(c){ return '📅 ' + c[0].label; },
+                        label: function(c){ return (c.dataset.label ? c.dataset.label + ': ' : '') + (c.parsed.y !== null ? '✈️ ' + new Intl.NumberFormat('es-MX').format(c.parsed.y) + ' ops' : '–'); }
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 12 } } },
+                y: { beginAtZero: true, border: { display: false }, grid: { color: '#f1f5f9', borderDash: [4, 4] },
+                    ticks: { color: '#94a3b8', padding: 8, font: { size: 11 }, callback: function(v){ return v >= 1000 ? (v/1000).toFixed(0)+'k' : v; } } }
+            }
+        }
+    });
+
+    panel.classList.remove('d-none');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    // Render variation table
+    const tblEl = document.getElementById('aero-detail-table');
+    if (!tblEl) return;
+    const thead = tblEl.querySelector('thead');
+    const tbody = tblEl.querySelector('tbody');
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+
+    const CELL_BORDER = 'border-bottom:1px solid #e4eaf0;';
+    const COL_W = years.length <= 2 ? '200px' : years.length <= 3 ? '160px' : '140px';
+
+    // Header row — matches screenshot: gray bg, bold, "Periodo" left / years centered
+    const hRow = document.createElement('tr');
+    hRow.style.cssText = 'background:#dde3ea;';
+    hRow.innerHTML = '<th style="width:110px;font-weight:700;color:#374151;padding:13px 18px;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.4px;'+CELL_BORDER+'">Periodo</th>'
+        + years.map(function(yr) {
+            return '<th style="text-align:center;font-weight:700;color:#1e293b;padding:13px 18px;font-size:0.97rem;min-width:'+COL_W+';'+CELL_BORDER+'">20'+yr+'</th>';
+        }).join('');
+    thead.appendChild(hRow);
+
+    // Helper: get value (null if no entry for that month/year)
+    function getVal(yr, mon) {
+        if (!byYear[yr]) return null;
+        const v = byYear[yr][mon];
+        return (v !== undefined && v !== null) ? v : null;
+    }
+
+    // Variation badge — inline small ▲/▼ + %
+    function varBadge(val, pv) {
+        if (pv === null) return '';
+        if (pv === 0 && val > 0) return ' <span style="font-size:0.73em;color:#16a34a;font-weight:700;">▲ nuevo</span>';
+        if (pv === 0) return '';
+        const g = ((val - pv) / pv) * 100;
+        const pos = g >= 0;
+        const color = pos ? '#16a34a' : '#dc2626';
+        const arrow = pos ? '▲' : '▼';
+        return ' <span style="font-size:0.73em;color:'+color+';font-weight:700;">'+arrow+' '+Math.abs(g).toFixed(1)+'%</span>';
+    }
+
+    // One row per month — alternating colors matching screenshot
+    AERO_MONTH_ORDER.forEach(function(mon, mIdx) {
+        const tr = document.createElement('tr');
+        // Odd rows (0,2,4…) = light blue-tinted; even rows = white — same as screenshot
+        const rowBg = (mIdx % 2 === 0) ? '#edf2f7' : '#ffffff';
+        tr.style.cssText = 'background:'+rowBg+';';
+        let html = '<td style="font-weight:600;color:#4b5563;padding:11px 18px;font-size:0.92rem;'+CELL_BORDER+'">'+AERO_MONTH_LABELS[mIdx]+'</td>';
+        years.forEach(function(yr, idx) {
+            const val = getVal(yr, mon);
+            if (val === null) {
+                html += '<td style="text-align:center;color:#94a3b8;padding:11px 18px;font-size:0.93rem;'+CELL_BORDER+'">–</td>';
+                return;
+            }
+            let badge = '';
+            if (idx > 0) {
+                badge = varBadge(val, getVal(years[idx - 1], mon));
+            }
+            html += '<td style="text-align:center;padding:11px 18px;font-size:0.93rem;color:#1e293b;'+CELL_BORDER+'">'+new Intl.NumberFormat('es-MX').format(val)+badge+'</td>';
+        });
+        tr.innerHTML = html;
+        tbody.appendChild(tr);
+    });
+
+    // TOTAL row — comparable: only months where current year has data
+    const tfRow = document.createElement('tr');
+    tfRow.style.cssText = 'background:#dde3ea;border-top:2px solid #c5cdd6;';
+    let totHtml = '<td style="font-weight:800;color:#111827;padding:13px 18px;font-size:0.93rem;text-transform:uppercase;letter-spacing:0.5px;">TOTAL</td>';
+
+    years.forEach(function(yr, idx) {
+        let fullTotal = 0;
+        AERO_MONTH_ORDER.forEach(function(mon) {
+            const v = getVal(yr, mon);
+            if (v !== null) fullTotal += v;
+        });
+
+        let pct = '';
+        if (idx > 0) {
+            const prevYr = years[idx - 1];
+            let curSum = 0, prevSum = 0, hasPrev = false;
+            AERO_MONTH_ORDER.forEach(function(mon) {
+                const curV = getVal(yr, mon);
+                const prevV = getVal(prevYr, mon);
+                if (curV !== null) {
+                    curSum += curV;
+                    if (prevV !== null) { prevSum += prevV; hasPrev = true; }
+                }
+            });
+            if (hasPrev && prevSum > 0) {
+                const g = ((curSum - prevSum) / prevSum) * 100;
+                const pos = g >= 0;
+                const color = pos ? '#16a34a' : '#dc2626';
+                const icon = pos ? 'fa-arrow-up' : 'fa-arrow-down';
+                pct = '<br><span style="font-size:0.78em;color:'+color+';font-weight:700;"><i class="fas '+icon+'" style="font-size:0.75em;margin-right:2px;"></i>'+Math.abs(g).toFixed(1)+'%</span>';
+            }
+        }
+        totHtml += '<td style="text-align:center;font-weight:800;font-size:0.97rem;color:#111827;padding:13px 18px;">'+new Intl.NumberFormat('es-MX').format(fullTotal)+pct+'</td>';
+    });
+    tfRow.innerHTML = totHtml;
+    tbody.appendChild(tfRow);
+}
 
 async function loadAerolineasDashboard() {
     console.log('[loadAerolineas] Iniciando carga de aerolíneas...');
@@ -9,7 +198,7 @@ async function loadAerolineasDashboard() {
 
     if(!tblBody) return; // Not on page
 
-    tblBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Cargando datos...</td></tr>';
+    tblBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Cargando datos...</td></tr>';
 
     try {
         // Use an anon-only client (no auth session) so RLS treats this as the
@@ -82,12 +271,13 @@ async function loadAerolineasDashboard() {
     } catch (err) {
         console.error('Error al cargar aerolíneas:', err);
         const msg = err?.message || err?.error_description || String(err);
-        tblBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Error al consultar base de datos.<br><small class="text-muted">${msg}</small></td></tr>`;
+        tblBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Error al consultar base de datos.<br><small class="text-muted">${msg}</small></td></tr>`;
     }
 }
 
 function applyAeroFilters() {
     if(!aeroDataCache) return;
+    closeAeroDetail();
 
     // Determine selected year (all, 23, 24, 25, 26)
     const yearRadios = document.getElementsByName('aeroYear');
@@ -209,7 +399,7 @@ function renderAirlinesTable(data) {
     if(!tblBody) return;
 
     if(!data || data.length === 0) {
-        tblBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted"><i class="fas fa-info-circle me-2"></i>No se encontraron aerolíneas para este periodo.</td></tr>';
+        tblBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted"><i class="fas fa-info-circle me-2"></i>No se encontraron aerolíneas para este periodo.</td></tr>';
         return;
     }
 
@@ -259,7 +449,24 @@ function renderAirlinesTable(data) {
                     <span class="small text-muted text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;">Operaciones</span>
                 </div>
             </td>
+            <td class="text-center align-middle pe-2" style="width:42px;">
+                <span class="text-primary opacity-50" style="font-size:0.8rem;"><i class="fas fa-chart-line"></i></span>
+            </td>
         `;
+        tr.style.cursor = 'pointer';
+        tr.title = 'Clic para ver gráfica de ' + item.nombre;
+        tr.addEventListener('click', function() {
+            if (aeroSelectedRow) aeroSelectedRow.classList.remove('table-active');
+            const panel = document.getElementById('aero-detail-panel');
+            const isSame = aeroSelectedRow === tr;
+            if (isSame && panel && !panel.classList.contains('d-none')) {
+                closeAeroDetail();
+                return;
+            }
+            aeroSelectedRow = tr;
+            tr.classList.add('table-active');
+            openAeroDetail(item);
+        });
         tblBody.appendChild(tr);
     });
 }

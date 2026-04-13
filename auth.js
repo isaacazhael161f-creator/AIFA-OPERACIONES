@@ -80,12 +80,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Lógica para el LOGIN ---
     if (loginForm) {
+        // Auto-rellenar desde credenciales guardadas (Credential Management API)
+        if (window.PasswordCredential && navigator.credentials) {
+            navigator.credentials.get({ password: true, mediation: 'optional' })
+                .then(cred => {
+                    if (cred && cred.type === 'password') {
+                        const eInput = document.getElementById('login-email') || document.getElementById('username');
+                        const pInput = document.getElementById('login-password') || document.getElementById('password');
+                        if (eInput) eInput.value = cred.id;
+                        if (pInput) pInput.value = cred.password;
+                    }
+                }).catch(() => {});
+        }
+
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const emailInput = document.getElementById('login-email') || document.getElementById('username');
             const passwordInput = document.getElementById('login-password') || document.getElementById('password');
             
-            let email = emailInput ? emailInput.value : '';
+            const originalUsername = emailInput ? emailInput.value.trim() : '';
+            let email = originalUsername;
             const password = passwordInput ? passwordInput.value : '';
 
             try {
@@ -125,6 +139,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (roleData && roleData.role) role = roleData.role;
                 } catch (_) {}
                 sessionStorage.setItem('user_role', role);
+
+                // Guardar credenciales en el gestor del navegador (funciona en Android/Chrome)
+                if (window.PasswordCredential && navigator.credentials) {
+                    try {
+                        const cred = new PasswordCredential({
+                            id: originalUsername,
+                            password: password
+                        });
+                        await navigator.credentials.store(cred);
+                    } catch (_) {}
+                }
 
                 alert('✅ Inicio de sesión exitoso');
             } catch (error) {

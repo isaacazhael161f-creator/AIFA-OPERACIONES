@@ -7,7 +7,46 @@
     let dataLoaded = false;
     let opsDataCache = [];
     let activeYears = new Set();
-    let currentMetric = 'operaciones'; // 'operaciones' o 'pasajeros'
+    let currentMetric = 'operaciones'; // 'operaciones' | 'pasajeros'
+    let currentGranularity = 'mensual'; // 'mensual' | 'bimestral' | 'trimestral'
+
+    // Period groups per granularity
+    const GRANULARITY_CONFIG = {
+        mensual: {
+            groups: [
+                { label: 'Ene',  months: [1] },
+                { label: 'Feb',  months: [2] },
+                { label: 'Mar',  months: [3] },
+                { label: 'Abr',  months: [4] },
+                { label: 'May',  months: [5] },
+                { label: 'Jun',  months: [6] },
+                { label: 'Jul',  months: [7] },
+                { label: 'Ago',  months: [8] },
+                { label: 'Sep',  months: [9] },
+                { label: 'Oct',  months: [10] },
+                { label: 'Nov',  months: [11] },
+                { label: 'Dic',  months: [12] },
+            ]
+        },
+        bimestral: {
+            groups: [
+                { label: 'Ene-Feb', months: [1, 2] },
+                { label: 'Mar-Abr', months: [3, 4] },
+                { label: 'May-Jun', months: [5, 6] },
+                { label: 'Jul-Ago', months: [7, 8] },
+                { label: 'Sep-Oct', months: [9, 10] },
+                { label: 'Nov-Dic', months: [11, 12] },
+            ]
+        },
+        trimestral: {
+            groups: [
+                { label: 'T1 (Ene-Mar)', months: [1, 2, 3] },
+                { label: 'T2 (Abr-Jun)', months: [4, 5, 6] },
+                { label: 'T3 (Jul-Sep)', months: [7, 8, 9] },
+                { label: 'T4 (Oct-Dic)', months: [10, 11, 12] },
+            ]
+        }
+    };
 
     // Colores mejorados para cada año - con mayor saturación y contraste
     const yearColors = {
@@ -53,6 +92,15 @@
         if (exportBtn) {
             exportBtn.addEventListener('click', exportYOYtoCSV);
         }
+
+        // Granularity toggle buttons
+        document.querySelectorAll('input[name="yoy-granularity"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                currentGranularity = e.target.value;
+                renderYoYChart();
+                renderYoYTable();
+            });
+        });
     });
 
     function updateChartTitle() {
@@ -130,48 +178,58 @@
         });
     }
 
+    /** Get value for a given year+month from cache */
+    function getVal(yr, month) {
+        const match = opsDataCache.find(d => d.year === yr && d.month === month);
+        if (!match) return null;
+        return currentMetric === 'operaciones' ? (match.comercial_ops || 0) : (match.comercial_pax || 0);
+    }
+
+    /** Sum values for a year across a group of months; null if no data */
+    function sumGroup(yr, months) {
+        let total = 0, hasData = false;
+        months.forEach(m => { const v = getVal(yr, m); if (v !== null) { total += v; hasData = true; } });
+        return hasData ? total : null;
+    }
+
+    /** Returns true only if ALL months in the group have data for the given year */
+    function isGroupComplete(yr, months) {
+        return months.every(m => getVal(yr, m) !== null);
+    }
+
+    /** Render a % variation badge HTML */
+    function renderPctBadge(current, prev, prevYr, small) {
+        if (prev === null || prev === 0) return '';
+        const growth = ((current - prev) / prev) * 100;
+        const isPos = growth >= 0;
+        const color = isPos ? 'text-success' : 'text-danger';
+        const icon = isPos ? '<i class="fas fa-caret-up"></i>' : '<i class="fas fa-caret-down"></i>';
+        const sz = small ? '0.75em' : '0.8em';
+        return `<span class="small ms-2 ${color}" style="font-size:${sz};" title="vs ${prevYr}">${icon} ${Math.abs(growth).toFixed(1)}%</span>`;
+    }
+
     function renderYoYChart() {
         const canvas = document.getElementById('yoyCompChart');
         if (!canvas) return;
 
-        // Limpiar gráfica vieja
         if (yoyChart) yoyChart.destroy();
-
-        // Si no hay años activos
-        if (activeYears.size === 0) {
-            return;
-        }
+        if (activeYears.size === 0) return;
 
         const ctx = canvas.getContext('2d');
         const sortedYears = Array.from(activeYears).sort();
+        const groups = GRANULARITY_CONFIG[currentGranularity].groups;
         const datasets = [];
 
-        // Por cada año activo, armamos su dataset
         sortedYears.forEach((year, idx) => {
-            // Filtrar datos de current year
-            const yearData = opsDataCache.filter(d => d.year === year);
-            
-            // Llenar arreglo de 12 meses
-            const dataArr = new Array(12).fill(null);
-            
-            yearData.forEach(row => {
-                const moIndex = row.month - 1;
-                if (currentMetric === 'operaciones') {
-                    dataArr[moIndex] = (row.comercial_ops || 0);
-                } else {
-                    dataArr[moIndex] = (row.comercial_pax || 0);
-                }
-            });
-
+            const dataArr = groups.map(g => sumGroup(year, g.months));
             const yColor = yearColors[year] || yearColors['default'];
             const isLast = idx === sortedYears.length - 1;
 
-            // Gradient para el último año
             let backgroundColor = yColor + '20';
             if (isLast) {
                 const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-                gradient.addColorStop(0, yColor + '60'); // Más opaco arriba
-                gradient.addColorStop(1, yColor + '05'); // Transparente abajo
+                gradient.addColorStop(0, yColor + '60');
+                gradient.addColorStop(1, yColor + '05');
                 backgroundColor = gradient;
             }
 
@@ -181,7 +239,6 @@
                 borderColor: yColor,
                 backgroundColor: backgroundColor,
                 borderWidth: isLast ? 3 : 2,
-                // Puntos solo visibles en el último año o al hacer hover
                 pointRadius: isLast ? 4 : 0,
                 pointBackgroundColor: '#ffffff',
                 pointBorderColor: yColor,
@@ -190,16 +247,16 @@
                 pointHoverBackgroundColor: yColor,
                 pointHoverBorderColor: '#ffffff',
                 pointHoverBorderWidth: 3,
-                fill: isLast, // Solo llenar el área del último año
-                tension: 0.4, // Curva suave
-                order: isLast ? 0 : 1 // El último año se dibuja encima
+                fill: isLast,
+                tension: 0.4,
+                order: isLast ? 0 : 1
             });
         });
 
         yoyChart = new Chart(canvas, {
             type: 'line',
             data: {
-                labels: monthNames,
+                labels: groups.map(g => g.label),
                 datasets: datasets
             },
             options: {
@@ -231,6 +288,7 @@
                         }
                     },
                     tooltip: {
+                        itemSort: function(a, b){ return b.datasetIndex - a.datasetIndex; },
                         backgroundColor: 'rgba(30, 41, 59, 0.95)',
                         titleColor: '#f1f5f9',
                         bodyColor: '#e2e8f0',
@@ -319,74 +377,76 @@
         const yearsList = Array.from(activeYears).sort();
 
         if (yearsList.length === 0) {
-            tbody.innerHTML = '<tr><td class="text-muted">No hay aï¿½os seleccionados</td></tr>';
+            tbody.innerHTML = '<tr><td class="text-muted">No hay años seleccionados</td></tr>';
             return;
         }
 
-        // Construir encabezado
+        const groups = GRANULARITY_CONFIG[currentGranularity].groups;
+
+        // Header row
         const headerRow = document.createElement('tr');
-        headerRow.innerHTML = `<th>Mes</th>` + yearsList.map(y => `<th>${y}</th>`).join('');
+        headerRow.innerHTML = `<th>Periodo</th>` + yearsList.map(y => `<th>${y}</th>`).join('');
         thead.appendChild(headerRow);
 
-        let grandTotals = new Array(yearsList.length).fill(0);
+        const grandTotals = new Array(yearsList.length).fill(0);
+        const comparablePrevTotals = new Array(yearsList.length).fill(0);
+        // For TOTAL %: only sum periods that are complete in the current year
+        const completeCurrentTotals = new Array(yearsList.length).fill(0);
 
-        // Filas por mes
-        monthNames.forEach((mName, moIndex) => {
+        // Period rows
+        groups.forEach(group => {
             const tr = document.createElement('tr');
-            
-            // Celda mes principal
-            let cellsHTML = `<td><strong>${mName}</strong></td>`;
-            
-            yearsList.forEach((yr, idx) => {
-                const match = opsDataCache.find(d => d.year === yr && d.month === (moIndex + 1));
-                if (!match) {
-                    cellsHTML += `<td class="text-muted">--</td>`;
-                } else {
-                    let val = 0;
-                    if (currentMetric === 'operaciones') {
-                        val = (match.comercial_ops || 0);
-                    } else {
-                        val = (match.comercial_pax || 0);
-                    }
-                    grandTotals[idx] += val;
-                    
-                    let percentHtml = '';
-                    if (idx > 0) {
-                        const prevYr = yearsList[idx - 1];
-                        const prevMatch = opsDataCache.find(d => d.year === prevYr && d.month === (moIndex + 1));
-                        if (prevMatch) {
-                            let prevVal = currentMetric === 'operaciones' ? (prevMatch.comercial_ops || 0) : (prevMatch.comercial_pax || 0);
-                            if (prevVal > 0) {
-                                const growth = ((val - prevVal) / prevVal) * 100;
-                                const isPositive = growth >= 0;
-                                const color = isPositive ? 'text-success' : 'text-danger';
-                                const icon = isPositive ? '<i class="fas fa-caret-up"></i>' : '<i class="fas fa-caret-down"></i>';
-                                percentHtml = `<span class="small ms-2 ${color}" style="font-size: 0.75em;" title="vs ${prevYr}">${icon} ${Math.abs(growth).toFixed(1)}%</span>`;
-                            }
-                        }
-                    }
+            let cellsHTML = `<td><strong>${group.label}</strong></td>`;
 
-                    cellsHTML += `<td>${new Intl.NumberFormat('es-MX').format(val)}${percentHtml}</td>`;
+            yearsList.forEach((yr, idx) => {
+                const val = sumGroup(yr, group.months);
+
+                if (val === null) {
+                    cellsHTML += `<td class="text-muted">–</td>`;
+                    return;
                 }
+
+                grandTotals[idx] += val;
+
+                // Only show % and include in proportional total if the period is fully closed
+                const complete = isGroupComplete(yr, group.months);
+
+                let percentHtml = '';
+                if (idx > 0 && complete) {
+                    const prevYr = yearsList[idx - 1];
+                    const prevVal = sumGroup(prevYr, group.months);
+                    if (prevVal !== null) {
+                        comparablePrevTotals[idx] += prevVal;
+                        completeCurrentTotals[idx] += val;
+                        percentHtml = renderPctBadge(val, prevVal, prevYr, true);
+                    }
+                } else if (idx === 0 && complete) {
+                    completeCurrentTotals[idx] += val;
+                }
+
+                cellsHTML += `<td>${new Intl.NumberFormat('es-MX').format(val)}${percentHtml}</td>`;
             });
 
             tr.innerHTML = cellsHTML;
             tbody.appendChild(tr);
         });
 
-        // Fila Total
+        // TOTAL row
         const tfRow = document.createElement('tr');
         tfRow.className = 'table-light fw-bold';
         let totalsHTML = `<td>TOTAL</td>`;
         grandTotals.forEach((t, idx) => {
             let percentHtml = '';
-            if (idx > 0 && grandTotals[idx - 1] > 0) {
-                const prevTotal = grandTotals[idx - 1];
-                const growth = ((t - prevTotal) / prevTotal) * 100;
-                const isPositive = growth >= 0;
-                const color = isPositive ? 'text-success' : 'text-danger';
-                const icon = isPositive ? '<i class="fas fa-arrow-up"></i>' : '<i class="fas fa-arrow-down"></i>';
-                percentHtml = `<br><span class="small ${color}" style="font-size: 0.8em;" title="vs ${yearsList[idx - 1]}">${icon} ${Math.abs(growth).toFixed(1)}%</span>`;
+            if (idx > 0) {
+                const prevComparable = comparablePrevTotals[idx];
+                const curComparable = completeCurrentTotals[idx];
+                if (prevComparable > 0) {
+                    const growth = ((curComparable - prevComparable) / prevComparable) * 100;
+                    const isPos = growth >= 0;
+                    const color = isPos ? 'text-success' : 'text-danger';
+                    const icon = isPos ? '<i class="fas fa-arrow-up"></i>' : '<i class="fas fa-arrow-down"></i>';
+                    percentHtml = `<br><span class="small ${color}" style="font-size:0.8em;" title="vs ${yearsList[idx - 1]} (periodos cerrados)">${icon} ${Math.abs(growth).toFixed(1)}%</span>`;
+                }
             }
             totalsHTML += `<td>${new Intl.NumberFormat('es-MX').format(t)}${percentHtml}</td>`;
         });
