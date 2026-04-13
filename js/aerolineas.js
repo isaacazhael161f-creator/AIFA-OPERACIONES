@@ -88,6 +88,76 @@ function openAeroDetail(item) {
 
     panel.classList.remove('d-none');
     panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    // Render variation table
+    const tblEl = document.getElementById('aero-detail-table');
+    if (!tblEl) return;
+    const thead = tblEl.querySelector('thead');
+    const tbody = tblEl.querySelector('tbody');
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+
+    // Header: Mes | 2023 | 2024 | 2025 | 2026
+    const hRow = document.createElement('tr');
+    hRow.innerHTML = '<th class="text-muted fw-semibold small text-uppercase" style="width:80px;">Mes</th>'
+        + years.map(function(yr) {
+            const col = AERO_YEAR_COLORS[yr] || '#78909c';
+            return '<th class="text-center fw-semibold small" style="border-left:3px solid '+col+';padding-left:12px;">20'+yr+'</th>';
+        }).join('');
+    thead.appendChild(hRow);
+
+    // One row per month
+    let grandTotal = {};
+    years.forEach(function(yr){ grandTotal[yr] = 0; });
+
+    AERO_MONTH_ORDER.forEach(function(mon, mIdx) {
+        const tr = document.createElement('tr');
+        let html = '<td class="fw-semibold text-muted small py-2">'+AERO_MONTH_LABELS[mIdx]+'</td>';
+        years.forEach(function(yr, idx) {
+            const val = (byYear[yr] && byYear[yr][mon] != null) ? byYear[yr][mon] : null;
+            if (val === null) { html += '<td class="text-center text-muted small">–</td>'; return; }
+            grandTotal[yr] += val;
+            let pct = '';
+            if (idx > 0) {
+                const prevYr = years[idx - 1];
+                const pv = (byYear[prevYr] && byYear[prevYr][mon] != null) ? byYear[prevYr][mon] : null;
+                if (pv !== null && pv > 0) {
+                    const g = ((val - pv) / pv) * 100;
+                    const pos = g >= 0;
+                    const cls = pos ? 'text-success' : 'text-danger';
+                    const arrow = pos ? '▲' : '▼';
+                    pct = ' <span class="small '+cls+'" style="font-size:0.72em;">'+arrow+' '+Math.abs(g).toFixed(1)+'%</span>';
+                } else if (pv === 0 && val > 0) {
+                    pct = ' <span class="small text-success" style="font-size:0.72em;">▲ nuevo</span>';
+                }
+            }
+            html += '<td class="text-center small py-2">'+new Intl.NumberFormat('es-MX').format(val)+pct+'</td>';
+        });
+        tr.innerHTML = html;
+        tbody.appendChild(tr);
+    });
+
+    // Total row
+    const tfRow = document.createElement('tr');
+    tfRow.className = 'table-light fw-bold';
+    let totHtml = '<td class="small text-uppercase py-2" style="letter-spacing:0.5px;">Total</td>';
+    years.forEach(function(yr, idx) {
+        const t = grandTotal[yr];
+        let pct = '';
+        if (idx > 0) {
+            const pt = grandTotal[years[idx - 1]];
+            if (pt > 0) {
+                const g = ((t - pt) / pt) * 100;
+                const pos = g >= 0;
+                const cls = pos ? 'text-success' : 'text-danger';
+                const arrow = pos ? '▲' : '▼';
+                pct = '<br><span class="small '+cls+'" style="font-size:0.72em;">'+arrow+' '+Math.abs(g).toFixed(1)+'%</span>';
+            }
+        }
+        totHtml += '<td class="text-center py-2">'+new Intl.NumberFormat('es-MX').format(t)+pct+'</td>';
+    });
+    tfRow.innerHTML = totHtml;
+    tbody.appendChild(tfRow);
 }
 
 async function loadAerolineasDashboard() {
