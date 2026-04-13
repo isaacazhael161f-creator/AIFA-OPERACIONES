@@ -177,6 +177,18 @@
                                                     <input class="form-check-input reg-section-check" type="checkbox" value="conciliacion" id="reg-sec-conc">
                                                     <label class="form-check-label small" for="reg-sec-conc">Conciliación</label>
                                                 </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input reg-section-check" type="checkbox" value="comparativa" id="reg-sec-comparativa">
+                                                    <label class="form-check-label small" for="reg-sec-comparativa">Comparativa (YoY)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input reg-section-check" type="checkbox" value="manifiestos" id="reg-sec-manifiestos">
+                                                    <label class="form-check-label small" for="reg-sec-manifiestos">Manifiestos</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input reg-section-check" type="checkbox" value="historia" id="reg-sec-historia">
+                                                    <label class="form-check-label small" for="reg-sec-historia">Historia</label>
+                                                </div>
                                             </div>
                                             <div class="col-6">
                                                 <div class="form-check">
@@ -186,6 +198,10 @@
                                                 <div class="form-check">
                                                     <input class="form-check-input reg-section-check" type="checkbox" value="demoras" id="reg-sec-dem">
                                                     <label class="form-check-label small" for="reg-sec-dem">Demoras</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input reg-section-check" type="checkbox" value="aerolineas" id="reg-sec-aero">
+                                                    <label class="form-check-label small" for="reg-sec-aero">Aerolíneas</label>
                                                 </div>
                                                 <div class="form-check">
                                                     <input class="form-check-input reg-section-check" type="checkbox" value="fauna" id="reg-sec-fauna">
@@ -202,6 +218,10 @@
                                                 <div class="form-check">
                                                     <input class="form-check-input reg-section-check" type="checkbox" value="biblioteca" id="reg-sec-bib">
                                                     <label class="form-check-label small" for="reg-sec-bib">Biblioteca y Docs</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input reg-section-check" type="checkbox" value="portal-digitalizacion" id="reg-sec-portal">
+                                                    <label class="form-check-label small" for="reg-sec-portal">Portal Digitalización</label>
                                                 </div>
                                             </div>
                                         </div>
@@ -462,10 +482,10 @@
                     // Based on script.js, checking includes(). 
                     // Better approach: Populate with ALL known sections if Full Access.
                     permissions.allowed_sections = [
-                        'operaciones-totales', 'parte-operaciones', 'inicio', 'frecuencias-semana', 
-                        'itinerario-mensual', 'analisis-operaciones', 'conciliacion', 'puntualidad-agosto',
-                        'demoras', 'fauna', 'medicas', 'abordadores-mecanicos',
-                        'biblioteca', 'comparativa', 'manifiestos', 'data-management', 'historia'
+                        'operaciones-totales', 'parte-operaciones', 'inicio', 'frecuencias-semana',
+                        'itinerario-mensual', 'analisis-operaciones', 'conciliacion', 'aerolineas',
+                        'puntualidad-agosto', 'demoras', 'fauna', 'medicas', 'abordadores-mecanicos',
+                        'biblioteca', 'comparativa', 'manifiestos', 'portal-digitalizacion', 'historia'
                     ];
                 } else {
                     const checks = document.querySelectorAll('.reg-section-check:checked');
