@@ -7690,10 +7690,6 @@
                                     </div>
                                     <h5 class="text-uppercase text-muted fw-bold mb-3 mt-4" id="cargo-heading"><span
                                             class="section-icon icon-cargo">⛟</span>Operaciones de Carga</h5>
-                                    <div class="update-note d-flex align-items-center mb-2" id="cargo-update-note">
-                                        <i class="fas fa-calendar-check me-2" aria-hidden="true"></i>
-                                        <small>Datos actualizados al <strong>31 de octubre 2025</strong></small>
-                                    </div>
                                     <div class="row g-3 mb-4" id="cargo-group">
                                         <div class="col-12">
                                             <div class="chart-container ops-chart"><canvas id="cargoOpsChart"></canvas>
@@ -10864,9 +10860,6 @@
                                     <button class="nav-link active fw-bold text-primary" data-bs-toggle="tab" data-bs-target="#pane-mech-aerocares" type="button" role="tab">Aerocares</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link text-muted" data-bs-toggle="tab" data-bs-target="#pane-mech-reportes" type="button" role="tab">Reportes</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
                                     <button class="nav-link text-muted" data-bs-toggle="tab" data-bs-target="#pane-mech-catalogo" type="button" role="tab">Catálogo</button>
                                 </li>
                             </ul>
@@ -10894,6 +10887,8 @@
                                         <!-- ── NUEVA ORDEN AEROCARES ── -->
                                         <div class="tab-pane fade show active" id="aerocar-pane-nueva" role="tabpanel">
                                             <form id="form-orden-aerocar" novalidate>
+                                              <!-- Datalist for aerocar autocomplete — populated from catalog -->
+                                              <datalist id="ao-aerocar-list"></datalist>
                                               <div id="ao-boleta-card" class="rounded-3 overflow-hidden shadow-sm border mb-3" style="border-color:#aab!important">
                                                 <!-- HEADER INSTITUCIONAL -->
                                                 <div class="d-flex align-items-center py-2 px-3 gap-3" style="background:linear-gradient(135deg,#1a3a6b,#2462af);color:#fff">
@@ -10956,11 +10951,19 @@
                                                     </div>
                                                     <div class="p-2 border-bottom">
                                                       <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Origen / Destino</div>
-                                                      <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase" id="ao-origen-destino" placeholder="TIJ" maxlength="10" autocomplete="off">
+                                                      <div style="position:relative">
+                                                        <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase" id="ao-origen-destino" placeholder="TIJ" maxlength="3" autocomplete="off">
+                                                        <div id="ao-airport-dropdown" style="display:none;position:absolute;left:-8px;right:-8px;top:calc(100% + 2px);z-index:1060;background:#fff;border:1px solid #d0d5dd;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.15);overflow:hidden;max-height:280px;overflow-y:auto"></div>
+                                                        <div id="ao-airport-info" style="font-size:.6rem;color:#4b5563;line-height:1.3;margin-top:3px;min-height:1.6em"></div>
+                                                      </div>
                                                     </div>
                                                     <div class="p-2 border-bottom">
                                                       <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Aerolínea</div>
-                                                      <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase" id="ao-aerolinea" placeholder="VIV" maxlength="30" autocomplete="off">
+                                                      <div style="position:relative">
+                                                        <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase" id="ao-aerolinea" placeholder="AMX" maxlength="4" autocomplete="off">
+                                                        <div id="ao-airline-dropdown" style="display:none;position:absolute;left:-8px;right:-8px;top:calc(100% + 2px);z-index:1060;background:#fff;border:1px solid #d0d5dd;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.15);overflow:hidden;max-height:280px;overflow-y:auto"></div>
+                                                        <div id="ao-airline-info" style="font-size:.6rem;color:#4b5563;line-height:1.3;margin-top:3px;min-height:1.6em"></div>
+                                                      </div>
                                                     </div>
                                                     <div class="p-2 border-bottom">
                                                       <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Matrícula</div>
@@ -10993,6 +10996,7 @@
                                                             <th class="py-2" style="min-width:88px">H. Ter. Serv.</th>
                                                             <th class="py-2" style="min-width:56px">No. Pax</th>
                                                             <th class="py-2" style="min-width:110px">Operador</th>
+                                                            <th class="py-2" style="min-width:90px">Firma</th>
                                                             <th class="py-2" style="width:34px"></th>
                                                           </tr>
                                                         </thead>
@@ -11004,22 +11008,15 @@
                                                     </div>
                                                   </div>
                                                 </div>
-                                                <!-- OBSERVACIONES -->
+                                                <!-- OBSERVACIONES AEROLÍNEA + NOMBRE Y FIRMA DE CONFORMIDAD -->
                                                 <div class="row g-0 border-top">
-                                                  <div class="col-12 col-md-6 border-end p-2" style="min-height:70px">
+                                                  <div class="col-12 col-md-7 border-end p-2" style="min-height:80px">
                                                     <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.06em;margin-bottom:4px">Observaciones Aerolínea</div>
-                                                    <textarea class="form-control border-0 p-0" id="ao-obs-aerolinea" rows="2" maxlength="500" placeholder="(ninguna)" style="resize:none"></textarea>
+                                                    <textarea class="form-control border-0 p-0" id="ao-obs-aerolinea" rows="3" maxlength="500" placeholder="(ninguna)" style="resize:none"></textarea>
                                                   </div>
-                                                  <div class="col-12 col-md-6 p-2" style="min-height:70px">
-                                                    <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.06em;margin-bottom:4px">Observaciones Operador</div>
-                                                    <textarea class="form-control border-0 p-0" id="ao-obs-operador" rows="2" maxlength="500" placeholder="(ninguna)" style="resize:none"></textarea>
-                                                  </div>
-                                                </div>
-                                                <!-- FIRMAS -->
-                                                <div class="row g-0 border-top">
-                                                  <div class="col-12 col-md-4 border-end p-2">
+                                                  <div class="col-12 col-md-5 p-2">
                                                     <div class="d-flex justify-content-between align-items-center mb-1">
-                                                      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.07em">Representante Aerolínea</div>
+                                                      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.07em">Nombre y Firma de Conformidad</div>
                                                       <button type="button" class="btn btn-link p-0 text-muted sig-clear-btn" data-sig="ao-sig-aerolinea" style="font-size:.65rem" title="Borrar firma"><i class="fas fa-eraser"></i></button>
                                                     </div>
                                                     <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase mb-1" id="ao-nombre-conformidad" placeholder="Nombre de quien recibe" maxlength="80" autocomplete="off" style="font-size:.85rem">
@@ -11028,20 +11025,16 @@
                                                     </div>
                                                     <div style="font-size:.58rem;text-align:center;color:#bbb;letter-spacing:.06em;text-transform:uppercase;margin-top:2px">Firma</div>
                                                   </div>
-                                                  <div class="col-12 col-md-4 border-end p-2">
-                                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                                      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.07em">Operador(es)</div>
-                                                      <button type="button" class="btn btn-link p-0 text-muted sig-clear-btn" data-sig="ao-sig-operador" style="font-size:.65rem" title="Borrar firma"><i class="fas fa-eraser"></i></button>
-                                                    </div>
-                                                    <input type="text" class="form-control border-0 p-0 fw-semibold text-uppercase mb-1" id="ao-firma-operador" placeholder="Nombre del operador responsable" maxlength="80" autocomplete="off" style="font-size:.85rem">
-                                                    <div style="border:1px solid #d0d5dd;border-radius:6px;background:#fafafa;overflow:hidden;height:80px">
-                                                      <canvas id="ao-sig-operador" style="width:100%;height:80px;display:block;touch-action:none;cursor:crosshair"></canvas>
-                                                    </div>
-                                                    <div style="font-size:.58rem;text-align:center;color:#bbb;letter-spacing:.06em;text-transform:uppercase;margin-top:2px">Firma</div>
+                                                </div>
+                                                <!-- OBSERVACIONES OPERADOR + NOMBRE Y FIRMA DEL COORDINADOR -->
+                                                <div class="row g-0 border-top">
+                                                  <div class="col-12 col-md-7 border-end p-2" style="min-height:80px">
+                                                    <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.06em;margin-bottom:4px">Observaciones Operador</div>
+                                                    <textarea class="form-control border-0 p-0" id="ao-obs-operador" rows="3" maxlength="500" placeholder="(ninguna)" style="resize:none"></textarea>
                                                   </div>
-                                                  <div class="col-12 col-md-4 p-2">
+                                                  <div class="col-12 col-md-5 p-2">
                                                     <div class="d-flex justify-content-between align-items-center mb-1">
-                                                      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.07em">Coordinador</div>
+                                                      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#888;letter-spacing:.07em">Nombre y Firma del Coordinador</div>
                                                       <button type="button" class="btn btn-link p-0 text-muted sig-clear-btn" data-sig="ao-sig-coordinador" style="font-size:.65rem" title="Borrar firma"><i class="fas fa-eraser"></i></button>
                                                     </div>
                                                     <input type="text" class="form-control border-0 p-0 fw-semibold bg-transparent mb-1" id="ao-coordinador" readonly placeholder="(sesión activa)" style="font-size:.85rem">
@@ -11076,14 +11069,13 @@
                                                     <input type="text" class="form-control form-control-sm" id="ao-hist-filtro" placeholder="Buscar…">
                                                 </div>
                                                 <div class="col-6 col-md-3 d-flex gap-2 align-items-end">
-                                                    <button class="btn btn-primary btn-sm rounded-pill px-3" id="ao-btn-buscar"><i class="fas fa-search me-1"></i>Buscar</button>
+                                                    <button class="btn btn-primary btn-sm rounded-pill px-3" id="ao-btn-buscar"><i class="fas fa-sync-alt me-1"></i>Actualizar</button>
                                                     <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" id="ao-btn-exportar-hist"><i class="fas fa-file-excel me-1"></i>Excel</button>
                                                 </div>
                                             </div>
                                             <div id="ao-historial-container">
-                                                <div class="text-center py-5 text-muted">
-                                                    <i class="fas fa-search fa-2x mb-2 opacity-25"></i>
-                                                    <p class="small">Selecciona un rango de fechas y presiona Buscar.</p>
+                                                <div class="text-center py-5 text-primary">
+                                                    <span class="spinner-border spinner-border-sm me-2"></span>Cargando boletas…
                                                 </div>
                                             </div>
                                         </div>
@@ -11399,6 +11391,18 @@
                                                         data-bs-target="#subpane-mech-cat-posiciones" type="button"
                                                         role="tab" aria-selected="false">Posiciones Aerocares</button>
                                                 </li>
+                                                <li class="nav-item" role="presentation">
+                                                    <button class="nav-link" id="tab-mech-cat-aeropuertos"
+                                                        data-bs-toggle="tab"
+                                                        data-bs-target="#subpane-mech-cat-aeropuertos" type="button"
+                                                        role="tab" aria-selected="false"><i class="fas fa-plane-arrival me-1"></i>Aeropuertos</button>
+                                                </li>
+                                                <li class="nav-item" role="presentation">
+                                                    <button class="nav-link" id="tab-mech-cat-aerolineas"
+                                                        data-bs-toggle="tab"
+                                                        data-bs-target="#subpane-mech-cat-aerolineas" type="button"
+                                                        role="tab" aria-selected="false"><i class="fas fa-plane me-1"></i>Aerolíneas</button>
+                                                </li>
                                             </ul>
                                         </div>
                                         <div class="card-body">
@@ -11433,6 +11437,37 @@
                                                     <div id="table-posiciones-aerocares-container" class="table-responsive">
                                                         <div class="text-center py-5 text-muted">
                                                             <i class="fas fa-spinner fa-spin me-2"></i>Cargando datos de Posiciones...
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- Aeropuertos -->
+                                                <div class="tab-pane fade" id="subpane-mech-cat-aeropuertos" role="tabpanel">
+                                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                                        <h5>Catálogo de Aeropuertos</h5>
+                                                        <input type="text" id="mech-cat-aeropuertos-search" class="form-control form-control-sm" placeholder="Buscar IATA, nombre, ciudad..." style="width:220px" oninput="window.mechCatAeropuertosFilter && window.mechCatAeropuertosFilter()">
+                                                    </div>
+                                                    <div id="table-mech-cat-aeropuertos-container" class="table-responsive" style="max-height:460px;overflow-y:auto">
+                                                        <div class="text-center py-5 text-muted">
+                                                            <i class="fas fa-spinner fa-spin me-2"></i>Cargando aeropuertos...
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- Aerolíneas de pasajeros -->
+                                                <div class="tab-pane fade" id="subpane-mech-cat-aerolineas" role="tabpanel">
+                                                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                                        <h5 class="mb-0">Aerolíneas de Pasajeros</h5>
+                                                        <div class="d-flex gap-2 align-items-center">
+                                                            <input type="text" id="mech-cat-aerolineas-search" class="form-control form-control-sm" placeholder="Nombre, IATA, ICAO..." style="width:200px" oninput="window.mechCatAerolineasFilter && window.mechCatAerolineasFilter()">
+                                                            <div class="btn-group btn-group-sm">
+                                                                <button class="btn btn-outline-secondary active" id="mech-al-f-all" onclick="window.mechCatAerolineasSetFilter('all',this)">Todas</button>
+                                                                <button class="btn btn-outline-secondary" id="mech-al-f-nac" onclick="window.mechCatAerolineasSetFilter('nacional',this)">Nacional</button>
+                                                                <button class="btn btn-outline-secondary" id="mech-al-f-int" onclick="window.mechCatAerolineasSetFilter('internacional',this)">Internacional</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div id="table-mech-cat-aerolineas-container" class="table-responsive" style="max-height:460px;overflow-y:auto">
+                                                        <div class="text-center py-5 text-muted">
+                                                            <i class="fas fa-spinner fa-spin me-2"></i>Cargando aerolíneas...
                                                         </div>
                                                     </div>
                                                 </div>
