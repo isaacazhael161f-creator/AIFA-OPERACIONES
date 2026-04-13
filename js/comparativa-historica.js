@@ -329,6 +329,9 @@
         thead.appendChild(headerRow);
 
         let grandTotals = new Array(yearsList.length).fill(0);
+        // Para el porcentaje del total: sumar el año anterior sólo en los meses
+        // donde el año actual (idx) tiene datos, para que la comparación sea proporcional.
+        let comparablePrevTotals = new Array(yearsList.length).fill(0);
 
         // Filas por mes
         monthNames.forEach((mName, moIndex) => {
@@ -349,6 +352,16 @@
                         val = (match.comercial_pax || 0);
                     }
                     grandTotals[idx] += val;
+
+                    // Acumular el total del año anterior para los mismos meses con datos
+                    if (idx > 0) {
+                        const prevYr = yearsList[idx - 1];
+                        const prevMatch = opsDataCache.find(d => d.year === prevYr && d.month === (moIndex + 1));
+                        if (prevMatch) {
+                            const prevVal = currentMetric === 'operaciones' ? (prevMatch.comercial_ops || 0) : (prevMatch.comercial_pax || 0);
+                            comparablePrevTotals[idx] += prevVal;
+                        }
+                    }
                     
                     let percentHtml = '';
                     if (idx > 0) {
@@ -380,13 +393,16 @@
         let totalsHTML = `<td>TOTAL</td>`;
         grandTotals.forEach((t, idx) => {
             let percentHtml = '';
-            if (idx > 0 && grandTotals[idx - 1] > 0) {
-                const prevTotal = grandTotals[idx - 1];
-                const growth = ((t - prevTotal) / prevTotal) * 100;
-                const isPositive = growth >= 0;
-                const color = isPositive ? 'text-success' : 'text-danger';
-                const icon = isPositive ? '<i class="fas fa-arrow-up"></i>' : '<i class="fas fa-arrow-down"></i>';
-                percentHtml = `<br><span class="small ${color}" style="font-size: 0.8em;" title="vs ${yearsList[idx - 1]}">${icon} ${Math.abs(growth).toFixed(1)}%</span>`;
+            if (idx > 0) {
+                // Usar el total proporcional del año anterior (mismos meses con datos)
+                const prevComparable = comparablePrevTotals[idx];
+                if (prevComparable > 0) {
+                    const growth = ((t - prevComparable) / prevComparable) * 100;
+                    const isPositive = growth >= 0;
+                    const color = isPositive ? 'text-success' : 'text-danger';
+                    const icon = isPositive ? '<i class="fas fa-arrow-up"></i>' : '<i class="fas fa-arrow-down"></i>';
+                    percentHtml = `<br><span class="small ${color}" style="font-size: 0.8em;" title="vs ${yearsList[idx - 1]} (mismos meses)">${icon} ${Math.abs(growth).toFixed(1)}%</span>`;
+                }
             }
             totalsHTML += `<td>${new Intl.NumberFormat('es-MX').format(t)}${percentHtml}</td>`;
         });
