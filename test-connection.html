@@ -274,7 +274,13 @@
                                     </div>
 
                                     <div class="mb-3">
-                                        <label class="form-label small fw-bold">Secciones Permitidas (Solo para Viewer)</label>
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <label class="form-label small fw-bold mb-0">Secciones Permitidas (Solo para Viewer)</label>
+                                            <div class="form-check form-switch mb-0">
+                                                <input class="form-check-input" type="checkbox" id="sec-all-toggle" onchange="toggleAllSections(this.checked)">
+                                                <label class="form-check-label small fw-semibold" for="sec-all-toggle">Todas</label>
+                                            </div>
+                                        </div>
                                         <div class="row g-2">
                                             <div class="col-6">
                                                 <div class="form-check">
@@ -294,12 +300,24 @@
                                                     <label class="form-check-label small" for="sec-frec">Frecuencias</label>
                                                 </div>
                                                 <div class="form-check">
+                                                    <input class="form-check-input section-check" type="checkbox" value="itinerario-mensual" id="sec-itin-mensual">
+                                                    <label class="form-check-label small" for="sec-itin-mensual">Itinerario Mensual</label>
+                                                </div>
+                                                <div class="form-check">
                                                     <input class="form-check-input section-check" type="checkbox" value="analisis-operaciones" id="sec-analisis">
                                                     <label class="form-check-label small" for="sec-analisis">Análisis de Operaciones</label>
                                                 </div>
                                                 <div class="form-check">
                                                     <input class="form-check-input section-check" type="checkbox" value="conciliacion" id="sec-conc">
                                                     <label class="form-check-label small" for="sec-conc">Conciliación</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input section-check" type="checkbox" value="aerolineas" id="sec-aero">
+                                                    <label class="form-check-label small" for="sec-aero">Aerolíneas</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input section-check" type="checkbox" value="comparativa" id="sec-comparativa">
+                                                    <label class="form-check-label small" for="sec-comparativa">Comparativa (YoY)</label>
                                                 </div>
                                             </div>
                                             <div class="col-6">
@@ -324,8 +342,20 @@
                                                     <label class="form-check-label small" for="sec-abord">Abordadores/Mecánicos</label>
                                                 </div>
                                                 <div class="form-check">
+                                                    <input class="form-check-input section-check" type="checkbox" value="manifiestos" id="sec-manifiestos">
+                                                    <label class="form-check-label small" for="sec-manifiestos">Manifiestos</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input section-check" type="checkbox" value="portal-digitalizacion" id="sec-portal">
+                                                    <label class="form-check-label small" for="sec-portal">Portal Digitalización</label>
+                                                </div>
+                                                <div class="form-check">
                                                     <input class="form-check-input section-check" type="checkbox" value="biblioteca" id="sec-bib">
                                                     <label class="form-check-label small" for="sec-bib">Biblioteca</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input section-check" type="checkbox" value="historia" id="sec-historia">
+                                                    <label class="form-check-label small" for="sec-historia">Historia</label>
                                                 </div>
                                             </div>
                                         </div>
@@ -657,6 +687,10 @@
         }
 
         // --- Generator Logic ---
+        function toggleAllSections(checked) {
+            document.querySelectorAll('.section-check').forEach(function(cb){ cb.checked = checked; });
+        }
+
         function generateViewerSQL() {
             const email = document.getElementById('gen-email').value;
             if (!email) {
