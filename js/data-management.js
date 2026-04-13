@@ -5125,166 +5125,231 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
 })();
 
 /* ══════════════════════════════════════════════════════════════════════════
-   MÓDULO AEROLÍNEAS MENSUALES — edición de operaciones en tabla 'Aerolíneas'
+   MÓDULO AEROLÍNEAS MENSUALES — tabla completa inline-editable
    ══════════════════════════════════════════════════════════════════════════ */
 (function () {
     const AM_TABLE = 'Aerolíneas';
     const AM_MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-    const AM_MONTH_LABELS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const AM_MON_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
-    let amAllRows = [];   // raw rows from Supabase
-    let amSelectedYr = '23';
-    let amCurrentRow = null; // row being edited
+    let amAllRows = [];
+    let amSelectedYr = '25';
+    let amSearchTerm = '';
+    let amNewRowIdx = 0; // for new-row temp keys
 
     function sb() { return window.supabaseClient; }
 
+    function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
     function amToast(msg, type) {
         const t = document.createElement('div');
-        t.className = `alert alert-${type || 'success'} position-fixed bottom-0 end-0 m-3 shadow`;
+        t.className = 'alert alert-' + (type || 'success') + ' position-fixed bottom-0 end-0 m-3 shadow';
         t.style.cssText = 'z-index:9999;min-width:280px;';
         t.textContent = msg;
         document.body.appendChild(t);
-        setTimeout(() => t.remove(), 4000);
+        setTimeout(function() { t.remove(); }, 4000);
     }
 
-    function amSetStatus(msg, type) {
-        const el = document.getElementById('am-status');
-        if (!el) return;
-        if (!msg) { el.innerHTML = ''; return; }
-        el.innerHTML = `<div class="alert alert-${type||'info'} py-2 small">${msg}</div>`;
-    }
+    // ── Render ────────────────────────────────────────────────────────────────
+    function amRender() {
+        const thead = document.getElementById('am-thead');
+        const tbody = document.getElementById('am-tbody');
+        const countEl = document.getElementById('am-count');
+        if (!thead || !tbody) return;
 
-    // Load all airlines into dropdown
-    async function amLoadAirlines() {
-        const sel = document.getElementById('am-airline-select');
-        if (!sel || amAllRows.length) return; // already loaded
-        const client = sb();
-        if (!client) return;
-        const { data, error } = await client.from(AM_TABLE).select('*').order('AEROLINEA');
-        if (error || !data) return;
-        amAllRows = data;
-        sel.innerHTML = '<option value="">— Selecciona una aerolínea —</option>';
-        data.forEach(function(row) {
-            const nombre = row['AEROLINEA'] || row['AEROLINEA '] || '?';
-            const opt = document.createElement('option');
-            opt.value = nombre;
-            opt.textContent = nombre;
-            sel.appendChild(opt);
+        // Header
+        thead.innerHTML = '<tr>'
+            + '<th style="min-width:220px;padding:10px 12px;">Aerolínea</th>'
+            + '<th style="min-width:140px;padding:10px 12px;">Tipo de Servicio</th>'
+            + AM_MON_SHORT.map(function(m){ return '<th style="min-width:68px;text-align:center;padding:10px 6px;">' + m + '</th>'; }).join('')
+            + '<th style="min-width:80px;text-align:center;padding:10px 6px;">Acciones</th>'
+            + '</tr>';
+
+        const term = amSearchTerm.toLowerCase();
+        const visible = amAllRows.filter(function(r) {
+            if (!term) return true;
+            const n = (r['AEROLINEA'] || r['AEROLINEA '] || '').toLowerCase();
+            const s = (r['TIPO DE SERVICIO'] || '').toLowerCase();
+            return n.includes(term) || s.includes(term);
         });
+
+        tbody.innerHTML = '';
+        visible.forEach(function(row) {
+            tbody.appendChild(amBuildRow(row));
+        });
+
+        if (countEl) countEl.textContent = visible.length + ' aerolínea(s) mostradas de ' + amAllRows.length + ' en total.';
     }
 
-    // Load current year values for selected airline into the month grid
-    window.amLoad = function () {
-        const sel = document.getElementById('am-airline-select');
-        const editor = document.getElementById('am-editor');
-        const placeholder = document.getElementById('am-placeholder');
-        const titleEl = document.getElementById('am-editor-title');
-        const grid = document.getElementById('am-month-grid');
-        if (!sel || !editor || !grid) return;
+    function amBuildRow(row) {
+        const isNew = !!row._new;
+        const rowKey = row.id !== undefined ? row.id : (row['AEROLINEA'] || row['AEROLINEA '] || '');
+        const nombre = row['AEROLINEA'] || row['AEROLINEA '] || '';
+        const servicio = row['TIPO DE SERVICIO'] || '';
+        const tr = document.createElement('tr');
+        tr.dataset.rowkey = rowKey;
+        if (isNew) tr.classList.add('table-warning');
 
-        const nombre = sel.value;
-        if (!nombre) { amToast('Selecciona una aerolínea primero.', 'warning'); return; }
+        let cells = '<td style="padding:4px 8px;"><input type="text" class="form-control form-control-sm am-cell-nombre" value="' + esc(nombre) + '" placeholder="Nombre aerolínea" style="min-width:180px;"></td>'
+            + '<td style="padding:4px 8px;"><input type="text" class="form-control form-control-sm am-cell-servicio" value="' + esc(servicio) + '" placeholder="Ej. Regular de Carga" style="min-width:120px;"></td>';
 
-        amCurrentRow = amAllRows.find(function(r) {
-            return (r['AEROLINEA'] || r['AEROLINEA '] || '') === nombre;
-        });
-        if (!amCurrentRow) { amToast('Aerolínea no encontrada.', 'danger'); return; }
-
-        titleEl.innerHTML = '<i class="fas fa-edit me-2 text-primary"></i><strong>' + nombre + '</strong>'
-            + ' — <span class="text-muted fw-normal">20' + amSelectedYr + '</span>';
-
-        // Build 12 month inputs from the row columns
-        grid.innerHTML = '';
-        AM_MONTHS.forEach(function(mon, i) {
+        AM_MONTHS.forEach(function(mon) {
             const colKey = mon + '-' + amSelectedYr;
-            const current = amCurrentRow[colKey];
-            const val = (current !== null && current !== undefined) ? current : '';
-            const div = document.createElement('div');
-            div.className = 'col-6 col-md-3 col-lg-2';
-            div.innerHTML = `
-                <label class="form-label text-muted small fw-semibold text-uppercase mb-1" style="font-size:0.72rem;">${AM_MONTH_LABELS[i]}</label>
-                <input type="number" class="form-control form-control-sm text-center shadow-sm am-month-input"
-                    id="am-input-${mon}" data-col="${colKey}" min="0" step="1"
-                    value="${val}" placeholder="0">
-            `;
-            grid.appendChild(div);
+            const v = row[colKey];
+            const val = (v !== null && v !== undefined && v !== '') ? v : '';
+            cells += '<td style="padding:4px 4px;"><input type="number" class="form-control form-control-sm text-center am-cell-month" data-col="' + colKey + '" value="' + esc(val) + '" placeholder="—" min="0" step="1" style="min-width:60px;padding:4px 2px;"></td>';
         });
 
-        amSetStatus('');
-        editor.classList.remove('d-none');
-        if (placeholder) placeholder.classList.add('d-none');
-        editor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        cells += '<td style="text-align:center;padding:4px 6px;">'
+            + '<button class="btn btn-xs btn-success me-1" style="font-size:0.75rem;padding:3px 7px;" onclick="amSaveRow(this)" title="Guardar"><i class="fas fa-save"></i></button>'
+            + '<button class="btn btn-xs btn-outline-danger" style="font-size:0.75rem;padding:3px 7px;" onclick="amDeleteRow(this)" title="Eliminar"><i class="fas fa-trash"></i></button>'
+            + '</td>';
+
+        tr.innerHTML = cells;
+        // store reference to data object on the row
+        tr._amRow = row;
+        // re-attach since innerHTML re-creates elements
+        tr.querySelectorAll('button').forEach(function(btn) {
+            btn._amTr = tr;
+        });
+        return tr;
+    }
+
+    // ── Load all data ─────────────────────────────────────────────────────────
+    window.amRefresh = async function () {
+        const tbody = document.getElementById('am-tbody');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="16" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Cargando…</td></tr>';
+        const client = sb();
+        if (!client) { amToast('Cliente Supabase no disponible.', 'danger'); return; }
+        const { data, error } = await client.from(AM_TABLE).select('*').order('AEROLINEA');
+        if (error) { amToast('Error al cargar: ' + error.message, 'danger'); return; }
+        amAllRows = data || [];
+        amRender();
     };
 
-    // Save updated values back to Supabase
-    window.amSave = async function () {
-        if (!amCurrentRow) return;
+    // ── Filter ────────────────────────────────────────────────────────────────
+    window.amFilterTable = function () {
+        const inp = document.getElementById('am-search');
+        amSearchTerm = inp ? inp.value : '';
+        amRender();
+    };
+
+    // ── Add new row ───────────────────────────────────────────────────────────
+    window.amAddRow = function () {
+        const newRow = { _new: true, _tmpKey: '__new_' + (++amNewRowIdx), 'AEROLINEA': '', 'TIPO DE SERVICIO': '' };
+        AM_MONTHS.forEach(function(mon) { newRow[mon + '-' + amSelectedYr] = null; });
+        amAllRows.unshift(newRow);
+        amRender();
+        const tbody = document.getElementById('am-tbody');
+        if (tbody && tbody.firstChild) {
+            tbody.firstChild.querySelector('.am-cell-nombre')?.focus();
+            tbody.firstChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    };
+
+    // ── Save single row ───────────────────────────────────────────────────────
+    window.amSaveRow = async function (btn) {
+        const tr = btn.closest('tr');
+        if (!tr) return;
         const client = sb();
         if (!client) { amToast('Cliente Supabase no disponible.', 'danger'); return; }
 
-        const updates = {};
-        document.querySelectorAll('.am-month-input').forEach(function(inp) {
-            const col = inp.dataset.col;
+        const nombre = tr.querySelector('.am-cell-nombre')?.value.trim() || '';
+        const servicio = tr.querySelector('.am-cell-servicio')?.value.trim() || '';
+        if (!nombre) { amToast('El nombre de la aerolínea no puede estar vacío.', 'warning'); return; }
+
+        const updates = { 'AEROLINEA': nombre, 'TIPO DE SERVICIO': servicio };
+        tr.querySelectorAll('.am-cell-month').forEach(function(inp) {
             const v = inp.value.trim();
-            updates[col] = (v === '' || isNaN(v)) ? null : parseFloat(v);
+            updates[inp.dataset.col] = (v === '' || isNaN(v)) ? null : parseFloat(v);
         });
 
-        amSetStatus('<i class="fas fa-spinner fa-spin me-1"></i>Guardando…', 'secondary');
+        // Identify the cached row
+        const cachedRow = tr._amRow;
+        const isNew = cachedRow && !!cachedRow._new;
 
-        // Identify row: try id, fallback to AEROLINEA match
-        let query;
-        if (amCurrentRow.id !== undefined) {
-            query = client.from(AM_TABLE).update(updates).eq('id', amCurrentRow.id);
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        let queryError;
+        if (isNew) {
+            const { error } = await client.from(AM_TABLE).insert(updates);
+            queryError = error;
         } else {
-            const nombre = amCurrentRow['AEROLINEA'] || amCurrentRow['AEROLINEA '];
-            query = client.from(AM_TABLE).update(updates).eq('AEROLINEA', nombre);
+            let q;
+            if (cachedRow && cachedRow.id !== undefined) {
+                q = client.from(AM_TABLE).update(updates).eq('id', cachedRow.id);
+            } else {
+                const oldNombre = cachedRow ? (cachedRow['AEROLINEA'] || cachedRow['AEROLINEA '] || '') : '';
+                q = client.from(AM_TABLE).update(updates).eq('AEROLINEA', oldNombre || nombre);
+            }
+            const { error } = await q;
+            queryError = error;
         }
 
-        const { error } = await query;
-        if (error) {
-            amSetStatus('Error al guardar: ' + error.message, 'danger');
-            amToast('Error al guardar: ' + error.message, 'danger');
+        if (queryError) {
+            amToast('Error: ' + queryError.message, 'danger');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i>';
             return;
         }
 
-        // Update local cache
-        Object.assign(amCurrentRow, updates);
-
-        amSetStatus('<i class="fas fa-check-circle me-1"></i>Cambios guardados correctamente.', 'success');
-        amToast('Operaciones actualizadas.', 'success');
-
-        // Invalidate aerolineas dashboard cache so it reloads next visit
-        if (typeof aeroDataCache !== 'undefined') {
-            try { window.aeroDataCache = null; } catch(_) {}
-        }
+        amToast((isNew ? 'Aerolínea agregada' : 'Cambios guardados') + ': ' + nombre, 'success');
+        // Reload fresh data
+        await amRefresh();
+        try { window.aeroDataCache = null; } catch(_) {}
     };
 
-    // Wire year pill buttons
+    // ── Delete row ────────────────────────────────────────────────────────────
+    window.amDeleteRow = async function (btn) {
+        const tr = btn.closest('tr');
+        if (!tr) return;
+        const cachedRow = tr._amRow;
+        const isNew = cachedRow && !!cachedRow._new;
+        const nombre = tr.querySelector('.am-cell-nombre')?.value.trim() || (cachedRow && (cachedRow['AEROLINEA'] || cachedRow['AEROLINEA '])) || '';
+
+        if (isNew) {
+            // Just remove from local array and re-render
+            amAllRows = amAllRows.filter(function(r) { return r !== cachedRow; });
+            amRender();
+            return;
+        }
+
+        if (!confirm('¿Eliminar la aerolínea "' + nombre + '"? Esta acción no se puede deshacer.')) return;
+
+        const client = sb();
+        if (!client) { amToast('Cliente Supabase no disponible.', 'danger'); return; }
+
+        let queryError;
+        if (cachedRow && cachedRow.id !== undefined) {
+            const { error } = await client.from(AM_TABLE).delete().eq('id', cachedRow.id);
+            queryError = error;
+        } else {
+            const { error } = await client.from(AM_TABLE).delete().eq('AEROLINEA', nombre);
+            queryError = error;
+        }
+
+        if (queryError) { amToast('Error: ' + queryError.message, 'danger'); return; }
+        amToast('Aerolínea eliminada: ' + nombre, 'warning');
+        await amRefresh();
+        try { window.aeroDataCache = null; } catch(_) {}
+    };
+
+    // ── Wire events ───────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.am-yr-btn').forEach(function(btn) {
             btn.addEventListener('click', function () {
                 document.querySelectorAll('.am-yr-btn').forEach(function(b) { b.classList.remove('active'); });
                 btn.classList.add('active');
                 amSelectedYr = btn.dataset.yr;
-                // Reload grid if an airline is already selected
-                if (document.getElementById('am-airline-select')?.value) amLoad();
+                amRender();
             });
         });
 
-        // Enable load button when airline selected
-        const sel = document.getElementById('am-airline-select');
-        const loadBtn = document.getElementById('am-load-btn');
-        if (sel && loadBtn) {
-            sel.addEventListener('change', function () {
-                loadBtn.disabled = !sel.value;
-            });
-        }
-
-        // Load airlines when tab is shown
         const tabBtn = document.getElementById('tab-aerolineas-mensual');
         if (tabBtn) {
             tabBtn.addEventListener('shown.bs.tab', function () {
-                amLoadAirlines();
+                if (!amAllRows.length) amRefresh();
             });
         }
     });
