@@ -192,6 +192,11 @@
         return hasData ? total : null;
     }
 
+    /** Returns true only if ALL months in the group have data for the given year */
+    function isGroupComplete(yr, months) {
+        return months.every(m => getVal(yr, m) !== null);
+    }
+
     /** Render a % variation badge HTML */
     function renderPctBadge(current, prev, prevYr, small) {
         if (prev === null || prev === 0) return '';
@@ -384,6 +389,8 @@
 
         const grandTotals = new Array(yearsList.length).fill(0);
         const comparablePrevTotals = new Array(yearsList.length).fill(0);
+        // For TOTAL %: only sum periods that are complete in the current year
+        const completeCurrentTotals = new Array(yearsList.length).fill(0);
 
         // Period rows
         groups.forEach(group => {
@@ -400,14 +407,20 @@
 
                 grandTotals[idx] += val;
 
+                // Only show % and include in proportional total if the period is fully closed
+                const complete = isGroupComplete(yr, group.months);
+
                 let percentHtml = '';
-                if (idx > 0) {
+                if (idx > 0 && complete) {
                     const prevYr = yearsList[idx - 1];
                     const prevVal = sumGroup(prevYr, group.months);
                     if (prevVal !== null) {
                         comparablePrevTotals[idx] += prevVal;
+                        completeCurrentTotals[idx] += val;
                         percentHtml = renderPctBadge(val, prevVal, prevYr, true);
                     }
+                } else if (idx === 0 && complete) {
+                    completeCurrentTotals[idx] += val;
                 }
 
                 cellsHTML += `<td>${new Intl.NumberFormat('es-MX').format(val)}${percentHtml}</td>`;
@@ -425,12 +438,13 @@
             let percentHtml = '';
             if (idx > 0) {
                 const prevComparable = comparablePrevTotals[idx];
+                const curComparable = completeCurrentTotals[idx];
                 if (prevComparable > 0) {
-                    const growth = ((t - prevComparable) / prevComparable) * 100;
+                    const growth = ((curComparable - prevComparable) / prevComparable) * 100;
                     const isPos = growth >= 0;
                     const color = isPos ? 'text-success' : 'text-danger';
                     const icon = isPos ? '<i class="fas fa-arrow-up"></i>' : '<i class="fas fa-arrow-down"></i>';
-                    percentHtml = `<br><span class="small ${color}" style="font-size:0.8em;" title="vs ${yearsList[idx - 1]} (mismos periodos)">${icon} ${Math.abs(growth).toFixed(1)}%</span>`;
+                    percentHtml = `<br><span class="small ${color}" style="font-size:0.8em;" title="vs ${yearsList[idx - 1]} (periodos cerrados)">${icon} ${Math.abs(growth).toFixed(1)}%</span>`;
                 }
             }
             totalsHTML += `<td>${new Intl.NumberFormat('es-MX').format(t)}${percentHtml}</td>`;
