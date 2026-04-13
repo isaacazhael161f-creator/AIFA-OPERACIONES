@@ -4629,12 +4629,23 @@
                                                             <th class="py-3 text-muted fw-bold small text-uppercase">Aerolínea</th>
                                                             <th class="py-3 text-muted fw-bold small text-uppercase">Servicio</th>
                                                             <th class="pe-4 py-3 text-muted fw-bold small text-uppercase text-end">Operaciones <span id="aero-ops-title" class="fw-normal text-muted">(Histórico)</span></th>
+                                                            <th class="py-3" style="width:42px;"></th>
                                                         </tr>
                                                     </thead>
                                                     <tbody id="aero-table-body" class="border-top-0">
-                                                        <tr><td colspan="4" class="text-center py-5 text-muted"><i class="fas fa-spinner fa-spin me-2 fs-4 text-primary"></i> <br><span class="mt-2 d-inline-block">Cargando catálogo aerocomercial...</span></td></tr>
+                                                        <tr><td colspan="5" class="text-center py-5 text-muted"><i class="fas fa-spinner fa-spin me-2 fs-4 text-primary"></i> <br><span class="mt-2 d-inline-block">Cargando catálogo aerocomercial...</span></td></tr>
                                                     </tbody>
                                                 </table>
+                                            </div>
+                                            <!-- Detalle de aerolínea con gráfica -->
+                                            <div id="aero-detail-panel" class="d-none bg-white border-top rounded-bottom-4 p-4">
+                                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                                    <h6 class="fw-bold mb-0 text-dark" id="aero-detail-title" style="font-size:1.05rem;"></h6>
+                                                    <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="closeAeroDetail()"><i class="fas fa-times me-1"></i>Cerrar</button>
+                                                </div>
+                                                <div style="position:relative;height:340px;">
+                                                    <canvas id="aero-detail-chart"></canvas>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
