@@ -1120,12 +1120,7 @@
                     <!-- Biblioteca Tabs Navigation -->
                     <ul class="nav nav-pills mb-4" id="biblioteca-tabs" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="bib-docs-tab" data-bs-toggle="pill"
-                                data-bs-target="#bib-docs" type="button" role="tab"><i
-                                    class="fas fa-file-alt me-2"></i>Documentos</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="bib-map-tab" data-bs-toggle="pill" data-bs-target="#bib-map"
+                  tton class="nav-link" id="bib-map-tab" data-bs-toggle="pill" data-bs-target="#bib-map"
                                 type="button" role="tab"><i class="fas fa-satellite me-2"></i>Mapa Satelital</button>
                         </li>
                         <li class="nav-item" role="presentation">
@@ -8327,12 +8322,19 @@
                                                         <div class="card h-100 shadow-sm border-0" style="background:linear-gradient(135deg,#f5f7fa 0%,#f0f3f8 100%);border-left:4px solid #ff9800;">
                                                             <div class="card-body">
                                                                 <h6 class="text-uppercase text-muted fw-bold mb-3" style="letter-spacing:0.5px;"><i class="fas fa-filter me-2 text-warning"></i>Filtros de Comparación</h6>
+                                                                <div class="mb-4">
+                                                                    <label for="cargo-yoy-metric-select" class="form-label small fw-semibold mb-2" style="color:#334155;">📊 Indicador</label>
+                                                                    <select id="cargo-yoy-metric-select" class="form-select form-select-sm" style="border-color:#cbd5e1;border-radius:6px;">
+                                                                        <option value="operaciones" selected>Operaciones</option>
+                                                                        <option value="toneladas">Toneladas transportadas</option>
+                                                                    </select>
+                                                                </div>
                                                                 <div class="mb-3">
                                                                     <label class="form-label small fw-semibold mb-2" style="color:#334155;">📅 Años a Comparar</label>
                                                                     <div id="cargo-yoy-years" class="d-flex flex-column gap-2"></div>
                                                                 </div>
                                                                 <hr class="my-3">
-                                                                <p class="small mb-0" style="color:#64748b;line-height:1.6;">✨ Compara las operaciones de carga año a año para identificar tendencias y variaciones estacionales.</p>
+                                                                <p class="small mb-0" style="color:#64748b;line-height:1.6;">✨ Compara las operaciones y toneladas de carga año a año para identificar tendencias y variaciones estacionales.</p>
                                                             </div>
                                                         </div>
                                                     </div>

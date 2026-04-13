@@ -1,6 +1,6 @@
 /**
  * YOY Comparativa — Aviación de Carga
- * Uses: carga_ops from monthly_operations.
+ * Uses: carga_ops, carga_tons from monthly_operations.
  */
 (function () {
     let chart = null;
@@ -8,6 +8,7 @@
     let cache = [];
     let activeYears = new Set();
     let currentGranularity = 'mensual';
+    let currentMetric = 'operaciones';
 
     const yearColors = {
         2022: '#06b3e8', 2023: '#ff9800', 2024: '#4caf50',
@@ -34,7 +35,8 @@
 
     function getVal(yr, month) {
         const row = cache.find(function(d){ return d.year === yr && d.month === month; });
-        return row ? (row.carga_ops || 0) : null;
+        if (!row) return null;
+        return currentMetric === 'toneladas' ? (row.carga_tons ?? null) : (row.carga_ops || 0);
     }
     function sumGroup(yr, months) {
         let t = 0, has = false;
@@ -113,8 +115,15 @@
                         bodyFont:{size:13,family:"'Inter',sans-serif"},
                         callbacks:{
                             title:function(c){ return '📅 '+c[0].label; },
-                            label:function(c){ return (c.dataset.label?c.dataset.label+': ':'')+( c.parsed.y!==null?'📊 '+new Intl.NumberFormat('es-MX').format(c.parsed.y):''); },
-                            footer:function(c){ if(c.length>1){ const t=c.reduce(function(a,x){return a+(x.parsed.y||0);},0); return '📈 Total: '+new Intl.NumberFormat('es-MX').format(t); } return ''; }
+                            label:function(c){
+                                const isTons = currentMetric === 'toneladas';
+                                const fmt = isTons
+                                    ? new Intl.NumberFormat('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}).format(c.parsed.y)
+                                    : new Intl.NumberFormat('es-MX').format(c.parsed.y);
+                                const icon = isTons ? '⚖️' : '📊';
+                                return (c.dataset.label?c.dataset.label+': ':'')+( c.parsed.y!==null?icon+' '+fmt:'');
+                            },
+                            footer:function(c){ if(c.length>1){ const t=c.reduce(function(a,x){return a+(x.parsed.y||0);},0); const isTons=currentMetric==='toneladas'; const fmt=isTons?new Intl.NumberFormat('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}).format(t):new Intl.NumberFormat('es-MX').format(t); return '📈 Total: '+fmt; } return ''; }
                         }
                     }
                 },
@@ -155,7 +164,7 @@
                     const pv = sumGroup(yrs[idx-1], grp.months);
                     if (pv !== null) { prevTot[idx] += pv; curTot[idx] += val; pct = pctBadge(val, pv, yrs[idx-1], true); }
                 } else if (idx === 0 && done) { curTot[idx] += val; }
-                html += '<td>'+new Intl.NumberFormat('es-MX').format(val)+pct+'</td>';
+                html += '<td>'+new Intl.NumberFormat('es-MX', currentMetric==='toneladas'?{minimumFractionDigits:2,maximumFractionDigits:2}:{}).format(val)+pct+'</td>';
             });
             tr.innerHTML = html; tbody.appendChild(tr);
         });
@@ -171,9 +180,16 @@
                 const arrow = pos ? '<i class="fas fa-arrow-up"></i>' : '<i class="fas fa-arrow-down"></i>';
                 pct = '<br><span class="small '+cls+'" style="font-size:0.8em;" title="vs '+yrs[idx-1]+' (periodos cerrados)">'+arrow+' '+Math.abs(g).toFixed(1)+'%</span>';
             }
-            tot += '<td>'+new Intl.NumberFormat('es-MX').format(t)+pct+'</td>';
+            tot += '<td>'+new Intl.NumberFormat('es-MX', currentMetric==='toneladas'?{minimumFractionDigits:2,maximumFractionDigits:2}:{}).format(t)+pct+'</td>';
         });
         tfRow.innerHTML = tot; tbody.appendChild(tfRow);
+    }
+
+    function updateChartTitle() {
+        const el = document.getElementById('cargo-yoy-chart-title');
+        if (!el) return;
+        const label = currentMetric === 'toneladas' ? 'Toneladas Transportadas' : 'Operaciones';
+        el.innerHTML = '<i class="fas fa-box-open me-2"></i>Comparativa de ' + label + ' — Aviación de Carga';
     }
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -185,7 +201,7 @@
                 if (!client) return;
                 if (!dataLoaded) {
                     client.from('monthly_operations')
-                        .select('year, month, carga_ops')
+                        .select('year, month, carga_ops, carga_tons')
                         .order('year',{ascending:true}).order('month',{ascending:true})
                         .then(function(res){
                             if (res.error) { console.error('YoY Carga:', res.error); return; }
@@ -196,6 +212,7 @@
                             buildYearsFilter(years);
                             renderChart();
                             renderTable();
+                            updateChartTitle();
                             if (!wired) {
                                 wired = true;
                                 document.querySelectorAll('input[name="cargo-yoy-granularity"]').forEach(function(r){
@@ -204,9 +221,18 @@
                                         renderChart(); renderTable();
                                     });
                                 });
+                                const metricSel = document.getElementById('cargo-yoy-metric-select');
+                                if (metricSel) {
+                                    metricSel.addEventListener('change', function(e){
+                                        currentMetric = e.target.value;
+                                        updateChartTitle();
+                                        renderChart(); renderTable();
+                                    });
+                                }
                             }
                         });
                 } else {
+                    updateChartTitle();
                     renderChart();
                     renderTable();
                 }
