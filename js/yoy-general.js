@@ -187,7 +187,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        const triggers = document.querySelectorAll('button[data-bs-target="#aviacion-general-pane"]');
+        const triggers = document.querySelectorAll('button[data-bs-target="#yoy-sub-general"]');
         triggers.forEach(function(btn){
             btn.addEventListener('shown.bs.tab', function(){
                 const client = window.supabaseClient;

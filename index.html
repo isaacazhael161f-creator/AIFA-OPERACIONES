@@ -8007,75 +8007,6 @@
                                             </div>
                                         </div>
                                         <div class="ag-insights d-none mt-3" id="gen-insights"></div>
-
-                                        <!-- YoY Comparativa — Aviación General -->
-                                        <hr class="my-4">
-                                        <div class="d-flex align-items-center gap-2 mb-3">
-                                            <i class="fas fa-chart-line text-success"></i>
-                                            <h5 class="mb-0 fw-bold text-success">Comparativa Interanual (YoY)</h5>
-                                        </div>
-                                        <div class="row g-3 mt-3">
-                                            <div class="col-12 col-xl-3">
-                                                <div class="card h-100 shadow-sm border-0" style="background:linear-gradient(135deg,#f5f7fa 0%,#f0f3f8 100%);border-left:4px solid #4caf50;">
-                                                    <div class="card-body">
-                                                        <h6 class="text-uppercase text-muted fw-bold mb-3" style="letter-spacing:0.5px;"><i class="fas fa-filter me-2 text-success"></i>Comparativa Interanual</h6>
-                                                        <div class="mb-4">
-                                                            <label for="gen-yoy-metric-select" class="form-label small fw-semibold mb-2" style="color:#334155;">📊 Indicador</label>
-                                                            <select id="gen-yoy-metric-select" class="form-select form-select-sm" style="border-color:#cbd5e1;border-radius:6px;">
-                                                                <option value="operaciones" selected>Operaciones</option>
-                                                                <option value="pasajeros">Pasajeros</option>
-                                                            </select>
-                                                        </div>
-                                                        <div class="mb-3">
-                                                            <label class="form-label small fw-semibold mb-2" style="color:#334155;">📅 Años a Comparar</label>
-                                                            <div id="gen-yoy-years" class="d-flex flex-column gap-2"></div>
-                                                        </div>
-                                                        <hr class="my-3">
-                                                        <p class="small mb-0" style="color:#64748b;line-height:1.6;">✨ Esta vista superpone los datos de cada año seleccionado para facilitar el análisis de tendencias estacionales.</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-12 col-xl-9">
-                                                <div class="card shadow-sm border-0 h-100">
-                                                    <div class="card-header bg-white border-bottom" style="border-color:#f0f4f8;">
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <h5 class="card-title fw-bold mb-0" id="gen-yoy-chart-title" style="font-size:1.1rem;color:#334155;"><i class="fas fa-paper-plane me-2"></i>Comparativa de Operaciones — Aviación General</h5>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding:1.5rem;">
-                                                        <div class="chart-container" style="position:relative;height:420px;width:100%;margin-bottom:1.5rem;">
-                                                            <canvas id="gen-yoy-chart" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,0.05));"></canvas>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row mt-3">
-                                            <div class="col-12">
-                                                <div class="card shadow-sm border-0">
-                                                    <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-color:#f0f4f8;">
-                                                        <h6 class="mb-0 fw-bold text-secondary" style="font-size:0.95rem;">📋 Detalles por Periodo</h6>
-                                                        <div class="btn-group btn-group-sm" role="group" aria-label="Granularidad">
-                                                            <input type="radio" class="btn-check" name="gen-yoy-granularity" id="gen-gran-mensual" value="mensual" autocomplete="off" checked>
-                                                            <label class="btn btn-outline-success" for="gen-gran-mensual">Mensual</label>
-                                                            <input type="radio" class="btn-check" name="gen-yoy-granularity" id="gen-gran-bimestral" value="bimestral" autocomplete="off">
-                                                            <label class="btn btn-outline-success" for="gen-gran-bimestral">Bimestral</label>
-                                                            <input type="radio" class="btn-check" name="gen-yoy-granularity" id="gen-gran-trimestral" value="trimestral" autocomplete="off">
-                                                            <label class="btn btn-outline-success" for="gen-gran-trimestral">Trimestral</label>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body p-0">
-                                                        <div class="table-responsive">
-                                                            <table class="table table-hover table-bordered table-sm align-middle mb-0 text-center" id="gen-yoy-table">
-                                                                <thead class="table-light"></thead>
-                                                                <tbody></tbody>
-                                                            </table>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
                                     </div>
                                 </div>
                                 <div class="tab-pane fade" id="aviacion-carga-pane" role="tabpanel"
@@ -8226,152 +8157,228 @@
                                             </div>
                                         </div>
                                         <div class="ag-insights d-none mt-3" id="cargo-insights"></div>
-
-                                        <!-- YoY Comparativa — Aviación de Carga -->
-                                        <hr class="my-4">
-                                        <div class="d-flex align-items-center gap-2 mb-3">
-                                            <i class="fas fa-chart-line text-warning"></i>
-                                            <h5 class="mb-0 fw-bold text-warning">Comparativa Interanual (YoY)</h5>
-                                        </div>
-                                        <div class="row g-3 mt-3">
-                                            <div class="col-12 col-xl-3">
-                                                <div class="card h-100 shadow-sm border-0" style="background:linear-gradient(135deg,#f5f7fa 0%,#f0f3f8 100%);border-left:4px solid #ff9800;">
-                                                    <div class="card-body">
-                                                        <h6 class="text-uppercase text-muted fw-bold mb-3" style="letter-spacing:0.5px;"><i class="fas fa-filter me-2 text-warning"></i>Comparativa Interanual</h6>
-                                                        <div class="mb-3">
-                                                            <label class="form-label small fw-semibold mb-2" style="color:#334155;">📅 Años a Comparar</label>
-                                                            <div id="cargo-yoy-years" class="d-flex flex-column gap-2"></div>
-                                                        </div>
-                                                        <hr class="my-3">
-                                                        <p class="small mb-0" style="color:#64748b;line-height:1.6;">✨ Compara las operaciones de carga año a año para identificar tendencias y variaciones estacionales.</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-12 col-xl-9">
-                                                <div class="card shadow-sm border-0 h-100">
-                                                    <div class="card-header bg-white border-bottom" style="border-color:#f0f4f8;">
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <h5 class="card-title fw-bold mb-0" id="cargo-yoy-chart-title" style="font-size:1.1rem;color:#334155;"><i class="fas fa-box-open me-2"></i>Comparativa de Operaciones — Aviación de Carga</h5>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding:1.5rem;">
-                                                        <div class="chart-container" style="position:relative;height:420px;width:100%;margin-bottom:1.5rem;">
-                                                            <canvas id="cargo-yoy-chart" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,0.05));"></canvas>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row mt-3">
-                                            <div class="col-12">
-                                                <div class="card shadow-sm border-0">
-                                                    <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-color:#f0f4f8;">
-                                                        <h6 class="mb-0 fw-bold text-secondary" style="font-size:0.95rem;">📋 Detalles por Periodo</h6>
-                                                        <div class="btn-group btn-group-sm" role="group" aria-label="Granularidad">
-                                                            <input type="radio" class="btn-check" name="cargo-yoy-granularity" id="cargo-gran-mensual" value="mensual" autocomplete="off" checked>
-                                                            <label class="btn btn-outline-warning" for="cargo-gran-mensual">Mensual</label>
-                                                            <input type="radio" class="btn-check" name="cargo-yoy-granularity" id="cargo-gran-bimestral" value="bimestral" autocomplete="off">
-                                                            <label class="btn btn-outline-warning" for="cargo-gran-bimestral">Bimestral</label>
-                                                            <input type="radio" class="btn-check" name="cargo-yoy-granularity" id="cargo-gran-trimestral" value="trimestral" autocomplete="off">
-                                                            <label class="btn btn-outline-warning" for="cargo-gran-trimestral">Trimestral</label>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body p-0">
-                                                        <div class="table-responsive">
-                                                            <table class="table table-hover table-bordered table-sm align-middle mb-0 text-center" id="cargo-yoy-table">
-                                                                <thead class="table-light"></thead>
-                                                                <tbody></tbody>
-                                                            </table>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
                                     </div>
                                 </div>
                                 
                                 <div class="tab-pane fade" id="analisis-yoy-pane" role="tabpanel" aria-labelledby="comparativa-yoy-tab" tabindex="0">
                                     <div class="ag-wrapper">
-                                        <div class="row g-3 mb-4">
-                                            <div class="col-12 col-xl-3">
-                                                <div class="card h-100 shadow-sm border-0" style="background: linear-gradient(135deg, #f5f7fa 0%, #f0f3f8 100%); border-left: 4px solid #2196f3;">
-                                                    <div class="card-body">
-                                                        <h6 class="text-uppercase text-muted fw-bold mb-3" style="letter-spacing: 0.5px;"><i class="fas fa-filter me-2 text-primary"></i>Filtros de Comparación</h6>
-                                                        <div class="mb-4">
-                                                            <label for="yoy-metric-select" class="form-label small fw-semibold mb-2" style="color: #334155;">📊 Indicador</label>
-                                                            <select id="yoy-metric-select" class="form-select form-select-sm" style="border-color: #cbd5e1; border-radius: 6px;">
-                                                                <option value="operaciones" selected>Operaciones Comerciales</option>
-                                                                <option value="pasajeros">Pasajeros Comerciales</option>
-                                                            </select>
-                                                        </div>
-                                                        <div class="mb-3">
-                                                            <label class="form-label small fw-semibold mb-2" style="color: #334155;">📅 Años a Comparar</label>
-                                                            <div id="yoy-years-container" class="d-flex flex-column gap-2">
-                                                                <!-- Se llenará dinámicamente -->
+
+                                        <!-- Sub-navegación YoY -->
+                                        <ul class="nav nav-pills mb-4 gap-1" id="yoy-sub-tabs" role="tablist">
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link active" id="yoy-sub-comercial-btn" data-bs-toggle="pill" data-bs-target="#yoy-sub-comercial" type="button" role="tab" aria-controls="yoy-sub-comercial" aria-selected="true">
+                                                    <i class="fas fa-plane me-1"></i>Comercial
+                                                </button>
+                                            </li>
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="yoy-sub-general-btn" data-bs-toggle="pill" data-bs-target="#yoy-sub-general" type="button" role="tab" aria-controls="yoy-sub-general" aria-selected="false">
+                                                    <i class="fas fa-paper-plane me-1"></i>General
+                                                </button>
+                                            </li>
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="yoy-sub-carga-btn" data-bs-toggle="pill" data-bs-target="#yoy-sub-carga" type="button" role="tab" aria-controls="yoy-sub-carga" aria-selected="false">
+                                                    <i class="fas fa-box-open me-1"></i>Carga
+                                                </button>
+                                            </li>
+                                        </ul>
+
+                                        <div class="tab-content" id="yoy-sub-content">
+
+                                            <!-- ── COMERCIAL ────────────────────────────────── -->
+                                            <div class="tab-pane fade show active" id="yoy-sub-comercial" role="tabpanel" aria-labelledby="yoy-sub-comercial-btn" tabindex="0">
+                                                <div class="row g-3 mb-4">
+                                                    <div class="col-12 col-xl-3">
+                                                        <div class="card h-100 shadow-sm border-0" style="background: linear-gradient(135deg, #f5f7fa 0%, #f0f3f8 100%); border-left: 4px solid #2196f3;">
+                                                            <div class="card-body">
+                                                                <h6 class="text-uppercase text-muted fw-bold mb-3" style="letter-spacing: 0.5px;"><i class="fas fa-filter me-2 text-primary"></i>Filtros de Comparación</h6>
+                                                                <div class="mb-4">
+                                                                    <label for="yoy-metric-select" class="form-label small fw-semibold mb-2" style="color: #334155;">📊 Indicador</label>
+                                                                    <select id="yoy-metric-select" class="form-select form-select-sm" style="border-color: #cbd5e1; border-radius: 6px;">
+                                                                        <option value="operaciones" selected>Operaciones Comerciales</option>
+                                                                        <option value="pasajeros">Pasajeros Comerciales</option>
+                                                                    </select>
+                                                                </div>
+                                                                <div class="mb-3">
+                                                                    <label class="form-label small fw-semibold mb-2" style="color: #334155;">📅 Años a Comparar</label>
+                                                                    <div id="yoy-years-container" class="d-flex flex-column gap-2"></div>
+                                                                </div>
+                                                                <hr class="my-3" />
+                                                                <p class="small mb-0" style="color: #64748b; line-height: 1.6;">✨ Esta vista superpone los 12 meses de cada año seleccionado para facilitar el análisis de tendencias y patrones estacionales.</p>
                                                             </div>
                                                         </div>
-                                                        <hr class="my-3" />
-                                                        <p class="small mb-0" style="color: #64748b; line-height: 1.6;">✨ Esta vista superpone los 12 meses de cada año seleccionado para facilitar el análisis de tendencias y patrones estacionales.</p>
                                                     </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-12 col-xl-9">
-                                                <div class="card shadow-sm border-0 h-100">
-                                                    <div class="card-header bg-white border-bottom" style="border-color: #f0f4f8;">
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <div>
-                                                                <h5 class="card-title fw-bold mb-0 text-primary" id="yoy-chart-title" style="font-size: 1.1rem; letter-spacing: -0.02em;">📈 Comparativa Mensual de Operaciones Comerciales</h5>
-                                                                <small class="text-muted d-block mt-2">Análisis de tendencias año a año</small>
+                                                    <div class="col-12 col-xl-9">
+                                                        <div class="card shadow-sm border-0 h-100">
+                                                            <div class="card-header bg-white border-bottom" style="border-color: #f0f4f8;">
+                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                    <div>
+                                                                        <h5 class="card-title fw-bold mb-0 text-primary" id="yoy-chart-title" style="font-size: 1.1rem; letter-spacing: -0.02em;">📈 Comparativa Mensual de Operaciones Comerciales</h5>
+                                                                        <small class="text-muted d-block mt-2">Análisis de tendencias año a año</small>
+                                                                    </div>
+                                                                    <button class="btn btn-sm btn-outline-secondary" id="yoy-export-btn" title="Exportar a CSV" aria-label="Exportar gráfica a CSV">
+                                                                        <i class="fas fa-download me-1"></i>Exportar
+                                                                    </button>
+                                                                </div>
                                                             </div>
-                                                            <button class="btn btn-sm btn-outline-secondary" id="yoy-export-btn" title="Exportar a CSV" aria-label="Exportar gráfica a CSV">
-                                                                <i class="fas fa-download me-1"></i>Exportar
-                                                            </button>
+                                                            <div class="card-body" style="padding: 1.5rem;">
+                                                                <div class="chart-container" style="position: relative; height: 420px; width: 100%; margin-bottom: 1.5rem;">
+                                                                    <canvas id="yoyCompChart" style="filter: drop-shadow(0 2px 8px rgba(0,0,0,0.05));"></canvas>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                    <div class="card-body" style="padding: 1.5rem;">
-                                                        <div class="chart-container" style="position: relative; height: 420px; width: 100%; margin-bottom: 1.5rem;">
-                                                            <canvas id="yoyCompChart" style="filter: drop-shadow(0 2px 8px rgba(0,0,0,0.05));"></canvas>
-                                                        </div>
-                                                        <div id="yoy-insights" class="alert alert-info border-0 shadow-sm d-none" role="alert" style="background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%); border-left: 4px solid #0284c7;">
-                                                            <h6 class="alert-heading fw-bold mb-2" style="color: #0c4a6e;"><i class="fas fa-lightbulb me-2" style="color: #f59e0b;"></i>💡 Insights y Tendencias</h6>
-                                                            <ul id="yoy-insights-list" class="mb-0 small ps-3" style="color: #1e3a8a;">
-                                                                <!-- Generado mediante JS -->
-                                                            </ul>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-12">
+                                                        <div class="card shadow-sm border-0">
+                                                            <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-color: #f0f4f8;">
+                                                                <h6 class="mb-0 fw-bold text-secondary" style="font-size: 0.95rem;">📋 Detalles por Periodo</h6>
+                                                                <div class="btn-group btn-group-sm" role="group" id="yoy-granularity-group" aria-label="Granularidad">
+                                                                    <input type="radio" class="btn-check" name="yoy-granularity" id="gran-mensual" value="mensual" autocomplete="off" checked>
+                                                                    <label class="btn btn-outline-primary" for="gran-mensual">Mensual</label>
+                                                                    <input type="radio" class="btn-check" name="yoy-granularity" id="gran-bimestral" value="bimestral" autocomplete="off">
+                                                                    <label class="btn btn-outline-primary" for="gran-bimestral">Bimestral</label>
+                                                                    <input type="radio" class="btn-check" name="yoy-granularity" id="gran-trimestral" value="trimestral" autocomplete="off">
+                                                                    <label class="btn btn-outline-primary" for="gran-trimestral">Trimestral</label>
+                                                                </div>
+                                                            </div>
+                                                            <div class="card-body p-0">
+                                                                <div class="table-responsive">
+                                                                    <table class="table table-hover table-bordered table-sm align-middle mb-0 text-center" id="yoy-data-table">
+                                                                        <thead class="table-light"></thead>
+                                                                        <tbody></tbody>
+                                                                    </table>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <div class="card shadow-sm border-0">
-                                                    <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-color: #f0f4f8;">
-                                                        <h6 class="mb-0 fw-bold text-secondary" style="font-size: 0.95rem;">📋 Detalles por Periodo</h6>
-                                                        <div class="btn-group btn-group-sm" role="group" id="yoy-granularity-group" aria-label="Granularidad">
-                                                            <input type="radio" class="btn-check" name="yoy-granularity" id="gran-mensual" value="mensual" autocomplete="off" checked>
-                                                            <label class="btn btn-outline-primary" for="gran-mensual">Mensual</label>
-                                                            <input type="radio" class="btn-check" name="yoy-granularity" id="gran-bimestral" value="bimestral" autocomplete="off">
-                                                            <label class="btn btn-outline-primary" for="gran-bimestral">Bimestral</label>
-                                                            <input type="radio" class="btn-check" name="yoy-granularity" id="gran-trimestral" value="trimestral" autocomplete="off">
-                                                            <label class="btn btn-outline-primary" for="gran-trimestral">Trimestral</label>
+
+                                            <!-- ── GENERAL ─────────────────────────────────── -->
+                                            <div class="tab-pane fade" id="yoy-sub-general" role="tabpanel" aria-labelledby="yoy-sub-general-btn" tabindex="0">
+                                                <div class="row g-3 mb-4">
+                                                    <div class="col-12 col-xl-3">
+                                                        <div class="card h-100 shadow-sm border-0" style="background:linear-gradient(135deg,#f5f7fa 0%,#f0f3f8 100%);border-left:4px solid #4caf50;">
+                                                            <div class="card-body">
+                                                                <h6 class="text-uppercase text-muted fw-bold mb-3" style="letter-spacing:0.5px;"><i class="fas fa-filter me-2 text-success"></i>Filtros de Comparación</h6>
+                                                                <div class="mb-4">
+                                                                    <label for="gen-yoy-metric-select" class="form-label small fw-semibold mb-2" style="color:#334155;">📊 Indicador</label>
+                                                                    <select id="gen-yoy-metric-select" class="form-select form-select-sm" style="border-color:#cbd5e1;border-radius:6px;">
+                                                                        <option value="operaciones" selected>Operaciones</option>
+                                                                        <option value="pasajeros">Pasajeros</option>
+                                                                    </select>
+                                                                </div>
+                                                                <div class="mb-3">
+                                                                    <label class="form-label small fw-semibold mb-2" style="color:#334155;">📅 Años a Comparar</label>
+                                                                    <div id="gen-yoy-years" class="d-flex flex-column gap-2"></div>
+                                                                </div>
+                                                                <hr class="my-3">
+                                                                <p class="small mb-0" style="color:#64748b;line-height:1.6;">✨ Esta vista superpone los datos de cada año seleccionado para facilitar el análisis de tendencias estacionales.</p>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                    <div class="card-body p-0">
-                                                        <div class="table-responsive">
-                                                            <table class="table table-hover table-bordered table-sm align-middle mb-0 text-center" id="yoy-data-table">
-                                                                <thead class="table-light">
-                                                                    <!-- Se llenará dinámicamente -->
-                                                                </thead>
-                                                                <tbody>
-                                                                    <!-- Se llenará dinámicamente -->
-                                                                </tbody>
-                                                            </table>
+                                                    <div class="col-12 col-xl-9">
+                                                        <div class="card shadow-sm border-0 h-100">
+                                                            <div class="card-header bg-white border-bottom" style="border-color:#f0f4f8;">
+                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                    <h5 class="card-title fw-bold mb-0" id="gen-yoy-chart-title" style="font-size:1.1rem;color:#334155;"><i class="fas fa-paper-plane me-2"></i>Comparativa de Operaciones — Aviación General</h5>
+                                                                </div>
+                                                            </div>
+                                                            <div class="card-body" style="padding:1.5rem;">
+                                                                <div class="chart-container" style="position:relative;height:420px;width:100%;margin-bottom:1.5rem;">
+                                                                    <canvas id="gen-yoy-chart" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,0.05));"></canvas>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-12">
+                                                        <div class="card shadow-sm border-0">
+                                                            <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-color:#f0f4f8;">
+                                                                <h6 class="mb-0 fw-bold text-secondary" style="font-size:0.95rem;">📋 Detalles por Periodo</h6>
+                                                                <div class="btn-group btn-group-sm" role="group" aria-label="Granularidad">
+                                                                    <input type="radio" class="btn-check" name="gen-yoy-granularity" id="gen-gran-mensual" value="mensual" autocomplete="off" checked>
+                                                                    <label class="btn btn-outline-success" for="gen-gran-mensual">Mensual</label>
+                                                                    <input type="radio" class="btn-check" name="gen-yoy-granularity" id="gen-gran-bimestral" value="bimestral" autocomplete="off">
+                                                                    <label class="btn btn-outline-success" for="gen-gran-bimestral">Bimestral</label>
+                                                                    <input type="radio" class="btn-check" name="gen-yoy-granularity" id="gen-gran-trimestral" value="trimestral" autocomplete="off">
+                                                                    <label class="btn btn-outline-success" for="gen-gran-trimestral">Trimestral</label>
+                                                                </div>
+                                                            </div>
+                                                            <div class="card-body p-0">
+                                                                <div class="table-responsive">
+                                                                    <table class="table table-hover table-bordered table-sm align-middle mb-0 text-center" id="gen-yoy-table">
+                                                                        <thead class="table-light"></thead>
+                                                                        <tbody></tbody>
+                                                                    </table>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
+
+                                            <!-- ── CARGA ───────────────────────────────────── -->
+                                            <div class="tab-pane fade" id="yoy-sub-carga" role="tabpanel" aria-labelledby="yoy-sub-carga-btn" tabindex="0">
+                                                <div class="row g-3 mb-4">
+                                                    <div class="col-12 col-xl-3">
+                                                        <div class="card h-100 shadow-sm border-0" style="background:linear-gradient(135deg,#f5f7fa 0%,#f0f3f8 100%);border-left:4px solid #ff9800;">
+                                                            <div class="card-body">
+                                                                <h6 class="text-uppercase text-muted fw-bold mb-3" style="letter-spacing:0.5px;"><i class="fas fa-filter me-2 text-warning"></i>Filtros de Comparación</h6>
+                                                                <div class="mb-3">
+                                                                    <label class="form-label small fw-semibold mb-2" style="color:#334155;">📅 Años a Comparar</label>
+                                                                    <div id="cargo-yoy-years" class="d-flex flex-column gap-2"></div>
+                                                                </div>
+                                                                <hr class="my-3">
+                                                                <p class="small mb-0" style="color:#64748b;line-height:1.6;">✨ Compara las operaciones de carga año a año para identificar tendencias y variaciones estacionales.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12 col-xl-9">
+                                                        <div class="card shadow-sm border-0 h-100">
+                                                            <div class="card-header bg-white border-bottom" style="border-color:#f0f4f8;">
+                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                    <h5 class="card-title fw-bold mb-0" id="cargo-yoy-chart-title" style="font-size:1.1rem;color:#334155;"><i class="fas fa-box-open me-2"></i>Comparativa de Operaciones — Aviación de Carga</h5>
+                                                                </div>
+                                                            </div>
+                                                            <div class="card-body" style="padding:1.5rem;">
+                                                                <div class="chart-container" style="position:relative;height:420px;width:100%;margin-bottom:1.5rem;">
+                                                                    <canvas id="cargo-yoy-chart" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,0.05));"></canvas>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-12">
+                                                        <div class="card shadow-sm border-0">
+                                                            <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-color:#f0f4f8;">
+                                                                <h6 class="mb-0 fw-bold text-secondary" style="font-size:0.95rem;">📋 Detalles por Periodo</h6>
+                                                                <div class="btn-group btn-group-sm" role="group" aria-label="Granularidad">
+                                                                    <input type="radio" class="btn-check" name="cargo-yoy-granularity" id="cargo-gran-mensual" value="mensual" autocomplete="off" checked>
+                                                                    <label class="btn btn-outline-warning" for="cargo-gran-mensual">Mensual</label>
+                                                                    <input type="radio" class="btn-check" name="cargo-yoy-granularity" id="cargo-gran-bimestral" value="bimestral" autocomplete="off">
+                                                                    <label class="btn btn-outline-warning" for="cargo-gran-bimestral">Bimestral</label>
+                                                                    <input type="radio" class="btn-check" name="cargo-yoy-granularity" id="cargo-gran-trimestral" value="trimestral" autocomplete="off">
+                                                                    <label class="btn btn-outline-warning" for="cargo-gran-trimestral">Trimestral</label>
+                                                                </div>
+                                                            </div>
+                                                            <div class="card-body p-0">
+                                                                <div class="table-responsive">
+                                                                    <table class="table table-hover table-bordered table-sm align-middle mb-0 text-center" id="cargo-yoy-table">
+                                                                        <thead class="table-light"></thead>
+                                                                        <tbody></tbody>
+                                                                    </table>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div><!-- /tab-content yoy-sub-content -->
                                     </div>
                                 </div>
 

@@ -178,7 +178,7 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         let wired = false;
-        const triggers = document.querySelectorAll('button[data-bs-target="#aviacion-carga-pane"]');
+        const triggers = document.querySelectorAll('button[data-bs-target="#yoy-sub-carga"]');
         triggers.forEach(function(btn){
             btn.addEventListener('shown.bs.tab', function(){
                 const client = window.supabaseClient;
