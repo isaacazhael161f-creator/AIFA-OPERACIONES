@@ -8215,8 +8215,16 @@
                                         <div class="row">
                                             <div class="col-12">
                                                 <div class="card shadow-sm border-0">
-                                                    <div class="card-header bg-white border-bottom" style="border-color: #f0f4f8;">
-                                                        <h6 class="mb-0 fw-bold text-secondary" style="font-size: 0.95rem;">📋 Detalles por Mes</h6>
+                                                    <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-color: #f0f4f8;">
+                                                        <h6 class="mb-0 fw-bold text-secondary" style="font-size: 0.95rem;">📋 Detalles por Periodo</h6>
+                                                        <div class="btn-group btn-group-sm" role="group" id="yoy-granularity-group" aria-label="Granularidad">
+                                                            <input type="radio" class="btn-check" name="yoy-granularity" id="gran-mensual" value="mensual" autocomplete="off" checked>
+                                                            <label class="btn btn-outline-primary" for="gran-mensual">Mensual</label>
+                                                            <input type="radio" class="btn-check" name="yoy-granularity" id="gran-bimestral" value="bimestral" autocomplete="off">
+                                                            <label class="btn btn-outline-primary" for="gran-bimestral">Bimestral</label>
+                                                            <input type="radio" class="btn-check" name="yoy-granularity" id="gran-trimestral" value="trimestral" autocomplete="off">
+                                                            <label class="btn btn-outline-primary" for="gran-trimestral">Trimestral</label>
+                                                        </div>
                                                     </div>
                                                     <div class="card-body p-0">
                                                         <div class="table-responsive">
