@@ -97,64 +97,66 @@ function openAeroDetail(item) {
     thead.innerHTML = '';
     tbody.innerHTML = '';
 
-    // Header: Periodo | 20XX | 20XX ...
+    const CELL_BORDER = 'border-bottom:1px solid #e4eaf0;';
+    const COL_W = years.length <= 2 ? '200px' : years.length <= 3 ? '160px' : '140px';
+
+    // Header row — matches screenshot: gray bg, bold, "Periodo" left / years centered
     const hRow = document.createElement('tr');
-    hRow.innerHTML = '<th style="width:100px;font-weight:600;color:#374151;padding:12px 16px;">Periodo</th>'
+    hRow.style.cssText = 'background:#dde3ea;';
+    hRow.innerHTML = '<th style="width:110px;font-weight:700;color:#374151;padding:13px 18px;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.4px;'+CELL_BORDER+'">Periodo</th>'
         + years.map(function(yr) {
-            return '<th style="text-align:center;font-weight:700;color:#1e293b;padding:12px 16px;font-size:0.97rem;">20'+yr+'</th>';
+            return '<th style="text-align:center;font-weight:700;color:#1e293b;padding:13px 18px;font-size:0.97rem;min-width:'+COL_W+';'+CELL_BORDER+'">20'+yr+'</th>';
         }).join('');
     thead.appendChild(hRow);
 
-    // Helper: get value (null if no data at all for that month/year)
+    // Helper: get value (null if no entry for that month/year)
     function getVal(yr, mon) {
         if (!byYear[yr]) return null;
         const v = byYear[yr][mon];
         return (v !== undefined && v !== null) ? v : null;
     }
 
-    // For each year, track which months have data — used for comparable-total calculation
-    // comparable[yr] = sum of months that also have data in yr, only for months the NEXT year has data
-    // We compute per-pair comparables in the total row
+    // Variation badge — inline small ▲/▼ + %
+    function varBadge(val, pv) {
+        if (pv === null) return '';
+        if (pv === 0 && val > 0) return ' <span style="font-size:0.73em;color:#16a34a;font-weight:700;">▲ nuevo</span>';
+        if (pv === 0) return '';
+        const g = ((val - pv) / pv) * 100;
+        const pos = g >= 0;
+        const color = pos ? '#16a34a' : '#dc2626';
+        const arrow = pos ? '▲' : '▼';
+        return ' <span style="font-size:0.73em;color:'+color+';font-weight:700;">'+arrow+' '+Math.abs(g).toFixed(1)+'%</span>';
+    }
 
-    // One row per month
+    // One row per month — alternating colors matching screenshot
     AERO_MONTH_ORDER.forEach(function(mon, mIdx) {
         const tr = document.createElement('tr');
-        const isEven = mIdx % 2 === 0;
-        tr.style.backgroundColor = isEven ? '#fff' : '#f8fafc';
-        let html = '<td style="font-weight:600;color:#64748b;padding:10px 16px;font-size:0.93rem;">'+AERO_MONTH_LABELS[mIdx]+'</td>';
+        // Odd rows (0,2,4…) = light blue-tinted; even rows = white — same as screenshot
+        const rowBg = (mIdx % 2 === 0) ? '#edf2f7' : '#ffffff';
+        tr.style.cssText = 'background:'+rowBg+';';
+        let html = '<td style="font-weight:600;color:#4b5563;padding:11px 18px;font-size:0.92rem;'+CELL_BORDER+'">'+AERO_MONTH_LABELS[mIdx]+'</td>';
         years.forEach(function(yr, idx) {
             const val = getVal(yr, mon);
             if (val === null) {
-                html += '<td style="text-align:center;color:#94a3b8;padding:10px 16px;">–</td>';
+                html += '<td style="text-align:center;color:#94a3b8;padding:11px 18px;font-size:0.93rem;'+CELL_BORDER+'">–</td>';
                 return;
             }
-            let pct = '';
+            let badge = '';
             if (idx > 0) {
-                const prevYr = years[idx - 1];
-                const pv = getVal(prevYr, mon);
-                if (pv !== null && pv > 0) {
-                    const g = ((val - pv) / pv) * 100;
-                    const pos = g >= 0;
-                    const cls = pos ? '#16a34a' : '#dc2626';
-                    const arrow = pos ? '▲' : '▼';
-                    pct = ' <span style="font-size:0.72em;color:'+cls+';font-weight:600;">'+arrow+' '+Math.abs(g).toFixed(1)+'%</span>';
-                } else if (pv === 0 && val > 0) {
-                    pct = ' <span style="font-size:0.72em;color:#16a34a;font-weight:600;">▲ nuevo</span>';
-                }
+                badge = varBadge(val, getVal(years[idx - 1], mon));
             }
-            html += '<td style="text-align:center;padding:10px 16px;font-size:0.93rem;">'+new Intl.NumberFormat('es-MX').format(val)+pct+'</td>';
+            html += '<td style="text-align:center;padding:11px 18px;font-size:0.93rem;color:#1e293b;'+CELL_BORDER+'">'+new Intl.NumberFormat('es-MX').format(val)+badge+'</td>';
         });
         tr.innerHTML = html;
         tbody.appendChild(tr);
     });
 
-    // Total row — comparable totals: for each pair (prevYr, curYr), only sum months where curYr has data
+    // TOTAL row — comparable: only months where current year has data
     const tfRow = document.createElement('tr');
-    tfRow.style.cssText = 'background:#f1f5f9;border-top:2px solid #e2e8f0;';
-    let totHtml = '<td style="font-weight:800;color:#1e293b;padding:12px 16px;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.5px;">TOTAL</td>';
+    tfRow.style.cssText = 'background:#dde3ea;border-top:2px solid #c5cdd6;';
+    let totHtml = '<td style="font-weight:800;color:#111827;padding:13px 18px;font-size:0.93rem;text-transform:uppercase;letter-spacing:0.5px;">TOTAL</td>';
 
     years.forEach(function(yr, idx) {
-        // Sum ALL months with data for this year (full total)
         let fullTotal = 0;
         AERO_MONTH_ORDER.forEach(function(mon) {
             const v = getVal(yr, mon);
@@ -164,25 +166,24 @@ function openAeroDetail(item) {
         let pct = '';
         if (idx > 0) {
             const prevYr = years[idx - 1];
-            // Only count months where CURRENT year has data
-            let curSum = 0, prevSum = 0;
+            let curSum = 0, prevSum = 0, hasPrev = false;
             AERO_MONTH_ORDER.forEach(function(mon) {
                 const curV = getVal(yr, mon);
                 const prevV = getVal(prevYr, mon);
                 if (curV !== null) {
                     curSum += curV;
-                    if (prevV !== null) prevSum += prevV;
+                    if (prevV !== null) { prevSum += prevV; hasPrev = true; }
                 }
             });
-            if (prevSum > 0) {
+            if (hasPrev && prevSum > 0) {
                 const g = ((curSum - prevSum) / prevSum) * 100;
                 const pos = g >= 0;
-                const cls = pos ? '#16a34a' : '#dc2626';
+                const color = pos ? '#16a34a' : '#dc2626';
                 const icon = pos ? 'fa-arrow-up' : 'fa-arrow-down';
-                pct = '<br><span style="font-size:0.78em;color:'+cls+';font-weight:700;"><i class="fas '+icon+'" style="font-size:0.7em;"></i> '+Math.abs(g).toFixed(1)+'%</span>';
+                pct = '<br><span style="font-size:0.78em;color:'+color+';font-weight:700;"><i class="fas '+icon+'" style="font-size:0.75em;margin-right:2px;"></i>'+Math.abs(g).toFixed(1)+'%</span>';
             }
         }
-        totHtml += '<td style="text-align:center;font-weight:800;font-size:0.95rem;color:#1e293b;padding:12px 16px;">'+new Intl.NumberFormat('es-MX').format(fullTotal)+pct+'</td>';
+        totHtml += '<td style="text-align:center;font-weight:800;font-size:0.97rem;color:#111827;padding:13px 18px;">'+new Intl.NumberFormat('es-MX').format(fullTotal)+pct+'</td>';
     });
     tfRow.innerHTML = totHtml;
     tbody.appendChild(tfRow);
