@@ -3132,27 +3132,32 @@
                                             <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3">
                                                 <h5 class="mb-0"><i class="fas fa-calendar-alt me-2 text-warning"></i>Operaciones Mensuales por Aerolínea</h5>
                                                 <div class="d-flex align-items-center gap-2 flex-wrap">
-                                                    <div class="input-group input-group-sm" style="width:210px;">
+                                                    <!-- Search -->
+                                                    <div class="input-group input-group-sm" style="width:200px;">
                                                         <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
                                                         <input type="text" id="am-search" class="form-control border-start-0 ps-0" placeholder="Buscar aerolínea…" oninput="amFilterTable()">
                                                     </div>
+                                                    <!-- Year pills -->
                                                     <div class="btn-group btn-group-sm" role="group">
                                                         <button type="button" class="btn btn-outline-primary am-yr-btn" data-yr="23">2023</button>
                                                         <button type="button" class="btn btn-outline-primary am-yr-btn" data-yr="24">2024</button>
                                                         <button type="button" class="btn btn-outline-primary am-yr-btn active" data-yr="25">2025</button>
                                                         <button type="button" class="btn btn-outline-primary am-yr-btn" data-yr="26">2026</button>
                                                     </div>
-                                                    <button class="btn btn-sm btn-outline-secondary" onclick="amRefresh()" title="Recargar datos"><i class="fas fa-sync-alt"></i></button>
+                                                    <button class="btn btn-sm btn-outline-secondary" onclick="amRefresh()" title="Recargar"><i class="fas fa-sync-alt"></i></button>
+                                                    <button class="btn btn-sm btn-primary" onclick="amSaveAll(this)" id="am-save-all-btn">
+                                                        <i class="fas fa-save me-1"></i>Guardar todo
+                                                    </button>
                                                     <button class="btn btn-sm btn-success" onclick="amAddRow()">
                                                         <i class="fas fa-plus me-1"></i>Nueva aerolínea
                                                     </button>
                                                 </div>
                                             </div>
 
-                                            <!-- Summary table (read-only) -->
-                                            <div class="table-responsive rounded-3 border shadow-sm" style="max-height:72vh;">
+                                            <!-- Table -->
+                                            <div class="table-responsive rounded-3 border" style="max-height:72vh;">
                                                 <table class="table table-sm table-hover align-middle mb-0" id="am-main-table">
-                                                    <thead class="sticky-top" id="am-thead"></thead>
+                                                    <thead class="table-dark sticky-top" id="am-thead"></thead>
                                                     <tbody id="am-tbody">
                                                         <tr><td colspan="16" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Cargando…</td></tr>
                                                     </tbody>
@@ -3160,46 +3165,6 @@
                                             </div>
                                             <div class="text-muted small mt-2" id="am-count"></div>
                                         </div><!-- /pane-aerolineas-mensual -->
-
-                                        <!-- ── Modal de edición / nueva aerolínea ── -->
-                                        <div class="modal fade" id="am-modal" tabindex="-1" aria-labelledby="am-modal-label" aria-hidden="true">
-                                            <div class="modal-dialog modal-lg modal-dialog-centered">
-                                                <div class="modal-content border-0 shadow-lg">
-                                                    <div class="modal-header text-white" style="background:linear-gradient(135deg,#1565c0,#0288d1);">
-                                                        <h5 class="modal-title fw-bold" id="am-modal-label">
-                                                            <i class="fas fa-edit me-2"></i><span id="am-modal-title">Editar aerolínea</span>
-                                                        </h5>
-                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <!-- Nombre + Servicio -->
-                                                        <div class="row g-3 mb-3">
-                                                            <div class="col-md-7">
-                                                                <label class="form-label fw-semibold text-muted small text-uppercase mb-1" style="letter-spacing:.04em;">Aerolínea</label>
-                                                                <input type="text" id="am-modal-nombre" class="form-control fw-bold" placeholder="Nombre de la aerolínea">
-                                                            </div>
-                                                            <div class="col-md-5">
-                                                                <label class="form-label fw-semibold text-muted small text-uppercase mb-1" style="letter-spacing:.04em;">Tipo de Servicio</label>
-                                                                <input type="text" id="am-modal-servicio" class="form-control" placeholder="Ej. Regular de Carga">
-                                                            </div>
-                                                        </div>
-                                                        <!-- Year badge -->
-                                                        <div class="d-flex align-items-center gap-3 mb-3 pb-2 border-bottom">
-                                                            <span class="badge fs-6 px-3 py-2" style="background:#1565c0;" id="am-modal-year-badge">2025</span>
-                                                            <span class="text-muted small">Ingresa las operaciones mensuales — deja vacío si no hubo vuelos</span>
-                                                        </div>
-                                                        <!-- 4 quarter cards -->
-                                                        <div class="row g-3" id="am-modal-months"></div>
-                                                    </div>
-                                                    <div class="modal-footer border-0 bg-light">
-                                                        <button type="button" class="btn btn-light border" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i>Cancelar</button>
-                                                        <button type="button" class="btn btn-primary px-4" id="am-modal-save-btn" onclick="amSaveModal()">
-                                                            <i class="fas fa-save me-2"></i>Guardar cambios
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div><!-- /am-modal -->
 
                                         <!-- Modal aerolínea (dentro de data-management) -->
                                         <div class="modal fade" id="dm-airline-modal" tabindex="-1">

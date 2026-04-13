@@ -5125,243 +5125,100 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
 })();
 
 /* ══════════════════════════════════════════════════════════════════════════
-   MÓDULO AEROLÍNEAS MENSUALES — tabla resumen + modal de edición
+   MÓDULO AEROLÍNEAS MENSUALES — tabla completa inline-editable
    ══════════════════════════════════════════════════════════════════════════ */
 (function () {
     const AM_TABLE = 'Aerolíneas';
-    const AM_MONTHS   = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    const AM_MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
     const AM_MON_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    const AM_MON_FULL  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-    const AM_QUARTERS  = [
-        { name: '1er Trimestre', months: [0,1,2],   bg: '#e3f2fd', border: '#90caf9' },
-        { name: '2do Trimestre', months: [3,4,5],   bg: '#e8f5e9', border: '#a5d6a7' },
-        { name: '3er Trimestre', months: [6,7,8],   bg: '#fff8e1', border: '#ffe082' },
-        { name: '4to Trimestre', months: [9,10,11], bg: '#fce4ec', border: '#f48fb1' }
-    ];
 
-    let amAllRows    = [];
+    let amAllRows = [];
     let amSelectedYr = '25';
     let amSearchTerm = '';
-    let amModalRow   = null;
+    let amNewRowIdx = 0; // for new-row temp keys
 
-    function sb()  { return window.supabaseClient; }
-    function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function sb() { return window.supabaseClient; }
+
+    function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
     function amToast(msg, type) {
         const t = document.createElement('div');
-        t.className = 'alert alert-' + (type || 'success') + ' position-fixed bottom-0 end-0 m-3 shadow-lg';
-        t.style.cssText = 'z-index:9999;min-width:300px;font-weight:500;border-radius:10px;';
-        t.innerHTML = msg;
+        t.className = 'alert alert-' + (type || 'success') + ' position-fixed bottom-0 end-0 m-3 shadow';
+        t.style.cssText = 'z-index:9999;min-width:280px;';
+        t.textContent = msg;
         document.body.appendChild(t);
-        setTimeout(function() { t.remove(); }, 4500);
+        setTimeout(function() { t.remove(); }, 4000);
     }
 
-    // ── Render summary table ──────────────────────────────────────────────────
+    // ── Render ────────────────────────────────────────────────────────────────
     function amRender() {
-        const thead  = document.getElementById('am-thead');
-        const tbody  = document.getElementById('am-tbody');
+        const thead = document.getElementById('am-thead');
+        const tbody = document.getElementById('am-tbody');
         const countEl = document.getElementById('am-count');
         if (!thead || !tbody) return;
 
-        thead.innerHTML = '<tr style="background:#1565c0;color:#fff;font-size:0.8rem;">'
-            + '<th style="padding:11px 14px;min-width:190px;">Aerolínea</th>'
-            + '<th style="padding:11px 14px;min-width:150px;">Tipo de Servicio</th>'
-            + AM_MON_SHORT.map(function(m) {
-                return '<th style="text-align:center;padding:11px 6px;min-width:52px;">' + m + '</th>';
-              }).join('')
-            + '<th style="text-align:center;padding:11px 10px;min-width:68px;">Total</th>'
-            + '<th style="text-align:center;padding:11px 10px;min-width:88px;">Acciones</th>'
+        // Header
+        thead.innerHTML = '<tr>'
+            + '<th style="min-width:220px;padding:10px 12px;">Aerolínea</th>'
+            + '<th style="min-width:140px;padding:10px 12px;">Tipo de Servicio</th>'
+            + AM_MON_SHORT.map(function(m){ return '<th style="min-width:68px;text-align:center;padding:10px 6px;">' + m + '</th>'; }).join('')
+            + '<th style="min-width:80px;text-align:center;padding:10px 6px;">Acciones</th>'
             + '</tr>';
 
         const term = amSearchTerm.toLowerCase();
         const visible = amAllRows.filter(function(r) {
             if (!term) return true;
-            return (r['AEROLINEA'] || r['AEROLINEA '] || '').toLowerCase().includes(term)
-                || (r['TIPO DE SERVICIO'] || '').toLowerCase().includes(term);
+            const n = (r['AEROLINEA'] || r['AEROLINEA '] || '').toLowerCase();
+            const s = (r['TIPO DE SERVICIO'] || '').toLowerCase();
+            return n.includes(term) || s.includes(term);
         });
 
         tbody.innerHTML = '';
-        visible.forEach(function(row, i) { tbody.appendChild(amBuildRow(row, i)); });
+        visible.forEach(function(row) {
+            tbody.appendChild(amBuildRow(row));
+        });
 
-        if (countEl) countEl.textContent = visible.length + ' aerolínea(s) de ' + amAllRows.length + ' en total.';
+        if (countEl) countEl.textContent = visible.length + ' aerolínea(s) mostradas de ' + amAllRows.length + ' en total.';
     }
 
-    function amBuildRow(row, idx) {
-        const nombre   = row['AEROLINEA'] || row['AEROLINEA '] || '';
+    function amBuildRow(row) {
+        const isNew = !!row._new;
+        const rowKey = row.id !== undefined ? row.id : (row['AEROLINEA'] || row['AEROLINEA '] || '');
+        const nombre = row['AEROLINEA'] || row['AEROLINEA '] || '';
         const servicio = row['TIPO DE SERVICIO'] || '';
         const tr = document.createElement('tr');
-        tr.style.cssText = (idx % 2 === 0 ? 'background:#fff;' : 'background:#f5f8fc;')
-                         + 'transition:background .15s;';
-        tr.onmouseover = function() { this.style.background = '#e8f4fd'; };
-        tr.onmouseout  = function() { this.style.background = idx % 2 === 0 ? '#fff' : '#f5f8fc'; };
+        tr.dataset.rowkey = rowKey;
+        if (isNew) tr.classList.add('table-warning');
 
-        // Month value cells
-        let total = 0;
-        let hasData = false;
-        let monthCells = AM_MONTHS.map(function(mon) {
-            const v = row[mon + '-' + amSelectedYr];
-            const num = (v !== null && v !== undefined && v !== '') ? Number(v) : NaN;
-            if (!isNaN(num)) { total += num; hasData = true; }
-            const disp  = isNaN(num) ? '—' : num.toLocaleString('es-MX');
-            const color = isNaN(num) ? '#ccc' : (num === 0 ? '#aaa' : '#1a1a2e');
-            const weight = (!isNaN(num) && num > 0) ? '600' : '400';
-            return '<td style="text-align:center;padding:7px 5px;font-size:0.82rem;color:' + color + ';font-weight:' + weight + ';">' + disp + '</td>';
-        }).join('');
+        let cells = '<td style="padding:4px 8px;"><input type="text" class="form-control form-control-sm am-cell-nombre" value="' + esc(nombre) + '" placeholder="Nombre aerolínea" style="min-width:180px;"></td>'
+            + '<td style="padding:4px 8px;"><input type="text" class="form-control form-control-sm am-cell-servicio" value="' + esc(servicio) + '" placeholder="Ej. Regular de Carga" style="min-width:120px;"></td>';
 
-        const totalCell = hasData
-            ? '<td style="text-align:center;padding:7px 8px;font-weight:700;font-size:0.85rem;color:#1565c0;">' + total.toLocaleString('es-MX') + '</td>'
-            : '<td style="text-align:center;color:#ccc;font-size:0.82rem;">—</td>';
+        AM_MONTHS.forEach(function(mon) {
+            const colKey = mon + '-' + amSelectedYr;
+            const v = row[colKey];
+            const val = (v !== null && v !== undefined && v !== '') ? v : '';
+            cells += '<td style="padding:4px 4px;"><input type="number" class="form-control form-control-sm text-center am-cell-month" data-col="' + colKey + '" value="' + esc(val) + '" placeholder="—" min="0" step="1" style="min-width:60px;padding:4px 2px;"></td>';
+        });
 
-        tr.innerHTML = '<td style="padding:8px 14px;font-weight:600;font-size:0.87rem;color:#1a1a2e;">' + esc(nombre) + '</td>'
-            + '<td style="padding:8px 14px;font-size:0.81rem;color:#555;">' + esc(servicio) + '</td>'
-            + monthCells
-            + totalCell
-            + '<td style="text-align:center;padding:7px 8px;">'
-            + '<button class="btn btn-sm me-1" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:7px;padding:4px 9px;" onclick="amOpenModal(this)" title="Editar operaciones"><i class="fas fa-pencil-alt"></i></button>'
-            + '<button class="btn btn-sm" style="background:#fce4ec;color:#c62828;border:1px solid #f48fb1;border-radius:7px;padding:4px 9px;" onclick="amDeleteRow(this)" title="Eliminar aerolínea"><i class="fas fa-trash"></i></button>'
+        cells += '<td style="text-align:center;padding:4px 6px;">'
+            + '<button class="btn btn-xs btn-success me-1" style="font-size:0.75rem;padding:3px 7px;" onclick="amSaveRow(this)" title="Guardar"><i class="fas fa-save"></i></button>'
+            + '<button class="btn btn-xs btn-outline-danger" style="font-size:0.75rem;padding:3px 7px;" onclick="amDeleteRow(this)" title="Eliminar"><i class="fas fa-trash"></i></button>'
             + '</td>';
 
+        tr.innerHTML = cells;
+        // store reference to data object on the row
         tr._amRow = row;
+        // re-attach since innerHTML re-creates elements
+        tr.querySelectorAll('button').forEach(function(btn) {
+            btn._amTr = tr;
+        });
         return tr;
     }
 
-    // ── Show modal (shared by edit & new) ─────────────────────────────────────
-    function amShowModal(row) {
-        amModalRow = row;
-        const isNew   = !!row._new;
-        const nombre  = row['AEROLINEA'] || row['AEROLINEA '] || '';
-        const servicio= row['TIPO DE SERVICIO'] || '';
-
-        document.getElementById('am-modal-title').textContent = isNew ? 'Nueva aerolínea' : 'Editando: ' + nombre;
-        document.getElementById('am-modal-nombre').value   = nombre;
-        document.getElementById('am-modal-servicio').value = servicio;
-        document.getElementById('am-modal-year-badge').textContent = '20' + amSelectedYr;
-
-        const saveBtn = document.getElementById('am-modal-save-btn');
-        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar cambios'; }
-
-        // Build quarter cards
-        const grid = document.getElementById('am-modal-months');
-        grid.innerHTML = '';
-        AM_QUARTERS.forEach(function(q) {
-            const wrap = document.createElement('div');
-            wrap.className = 'col-sm-6';
-
-            let inputs = q.months.map(function(mi) {
-                const colKey = AM_MONTHS[mi] + '-' + amSelectedYr;
-                const v   = row[colKey];
-                const val = (v !== null && v !== undefined && v !== '') ? v : '';
-                return '<div class="col-4">'
-                    + '<label class="form-label fw-bold mb-1 text-center w-100" style="font-size:0.78rem;color:#444;">' + AM_MON_FULL[mi] + '</label>'
-                    + '<input type="number" class="form-control text-center fw-bold am-modal-month" data-col="' + colKey + '" value="' + esc(val) + '" placeholder="0" min="0" step="1" style="font-size:1.1rem;padding:9px 4px;">'
-                    + '</div>';
-            }).join('');
-
-            wrap.innerHTML = '<div class="rounded-3 p-3 h-100" style="background:' + q.bg + ';border:1.5px solid ' + q.border + ';">'
-                + '<div class="fw-bold text-uppercase mb-2" style="font-size:0.7rem;letter-spacing:.08em;color:#666;">' + q.name + '</div>'
-                + '<div class="row g-2">' + inputs + '</div>'
-                + '</div>';
-            grid.appendChild(wrap);
-        });
-
-        const bsModal = bootstrap.Modal.getOrCreate(document.getElementById('am-modal'));
-        bsModal.show();
-        setTimeout(function() { document.getElementById('am-modal-nombre').focus(); }, 380);
-    }
-
-    // ── Open modal from table row button ─────────────────────────────────────
-    window.amOpenModal = function(btn) {
-        const tr = btn.closest('tr');
-        if (tr && tr._amRow) amShowModal(tr._amRow);
-    };
-
-    // ── Add new airline (opens modal) ─────────────────────────────────────────
-    window.amAddRow = function() {
-        const row = { _new: true, 'AEROLINEA': '', 'TIPO DE SERVICIO': '' };
-        AM_MONTHS.forEach(function(mon) { row[mon + '-' + amSelectedYr] = null; });
-        amShowModal(row);
-    };
-
-    // ── Save from modal ───────────────────────────────────────────────────────
-    window.amSaveModal = async function() {
-        const row = amModalRow;
-        if (!row) return;
-        const client = sb();
-        if (!client) { amToast('<i class="fas fa-exclamation-circle me-2"></i>Cliente Supabase no disponible.', 'danger'); return; }
-
-        const nombre  = (document.getElementById('am-modal-nombre')?.value || '').trim();
-        const servicio= (document.getElementById('am-modal-servicio')?.value || '').trim();
-        if (!nombre) { amToast('<i class="fas fa-exclamation-triangle me-2"></i>El nombre no puede estar vacío.', 'warning'); return; }
-
-        const updates = { 'AEROLINEA': nombre, 'TIPO DE SERVICIO': servicio };
-        document.querySelectorAll('.am-modal-month').forEach(function(inp) {
-            const v = inp.value.trim();
-            updates[inp.dataset.col] = (v === '' || isNaN(v)) ? null : parseFloat(v);
-        });
-
-        const isNew   = !!row._new;
-        const saveBtn = document.getElementById('am-modal-save-btn');
-        if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando…'; }
-
-        let queryError;
-        if (isNew) {
-            const { error } = await client.from(AM_TABLE).insert(updates);
-            queryError = error;
-        } else {
-            let q;
-            if (row.id !== undefined) {
-                q = client.from(AM_TABLE).update(updates).eq('id', row.id);
-            } else {
-                q = client.from(AM_TABLE).update(updates).eq('AEROLINEA', row['AEROLINEA'] || row['AEROLINEA '] || nombre);
-            }
-            const { error } = await q;
-            queryError = error;
-        }
-
-        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar cambios'; }
-
-        if (queryError) {
-            amToast('<i class="fas fa-times-circle me-2"></i>Error: ' + queryError.message, 'danger');
-            return;
-        }
-
-        bootstrap.Modal.getInstance(document.getElementById('am-modal'))?.hide();
-        amModalRow = null;
-        amToast('<i class="fas fa-check-circle me-2"></i>' + (isNew ? 'Aerolínea agregada' : 'Cambios guardados') + ': <strong>' + nombre + '</strong>', 'success');
-        await amRefresh();
-        try { window.aeroDataCache = null; } catch(_) {}
-    };
-
-    // ── Delete row ────────────────────────────────────────────────────────────
-    window.amDeleteRow = async function(btn) {
-        const tr = btn.closest('tr');
-        if (!tr || !tr._amRow) return;
-        const row    = tr._amRow;
-        const nombre = row['AEROLINEA'] || row['AEROLINEA '] || '';
-        if (!confirm('¿Eliminar "' + nombre + '"? Esta acción no se puede deshacer.')) return;
-
-        const client = sb();
-        if (!client) { amToast('Cliente Supabase no disponible.', 'danger'); return; }
-
-        let queryError;
-        if (row.id !== undefined) {
-            const { error } = await client.from(AM_TABLE).delete().eq('id', row.id);
-            queryError = error;
-        } else {
-            const { error } = await client.from(AM_TABLE).delete().eq('AEROLINEA', nombre);
-            queryError = error;
-        }
-
-        if (queryError) { amToast('Error: ' + queryError.message, 'danger'); return; }
-        amToast('<i class="fas fa-check-circle me-2"></i>Aerolínea eliminada: <strong>' + nombre + '</strong>', 'warning');
-        await amRefresh();
-        try { window.aeroDataCache = null; } catch(_) {}
-    };
-
     // ── Load all data ─────────────────────────────────────────────────────────
-    window.amRefresh = async function() {
+    window.amRefresh = async function () {
         const tbody = document.getElementById('am-tbody');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="16" class="text-center py-5 text-muted"><i class="fas fa-spinner fa-spin fa-lg me-2"></i>Cargando datos…</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="16" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Cargando…</td></tr>';
         const client = sb();
         if (!client) { amToast('Cliente Supabase no disponible.', 'danger'); return; }
         const { data, error } = await client.from(AM_TABLE).select('*').order('AEROLINEA');
@@ -5371,16 +5228,175 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
     };
 
     // ── Filter ────────────────────────────────────────────────────────────────
-    window.amFilterTable = function() {
+    window.amFilterTable = function () {
         const inp = document.getElementById('am-search');
         amSearchTerm = inp ? inp.value : '';
         amRender();
     };
 
+    // ── Add new row ───────────────────────────────────────────────────────────
+    window.amAddRow = function () {
+        const newRow = { _new: true, _tmpKey: '__new_' + (++amNewRowIdx), 'AEROLINEA': '', 'TIPO DE SERVICIO': '' };
+        AM_MONTHS.forEach(function(mon) { newRow[mon + '-' + amSelectedYr] = null; });
+        amAllRows.unshift(newRow);
+        amRender();
+        const tbody = document.getElementById('am-tbody');
+        if (tbody && tbody.firstChild) {
+            tbody.firstChild.querySelector('.am-cell-nombre')?.focus();
+            tbody.firstChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    };
+
+    // ── Save single row ───────────────────────────────────────────────────────
+    window.amSaveRow = async function (btn) {
+        const tr = btn.closest('tr');
+        if (!tr) return;
+        const client = sb();
+        if (!client) { amToast('Cliente Supabase no disponible.', 'danger'); return; }
+
+        const nombre = tr.querySelector('.am-cell-nombre')?.value.trim() || '';
+        const servicio = tr.querySelector('.am-cell-servicio')?.value.trim() || '';
+        if (!nombre) { amToast('El nombre de la aerolínea no puede estar vacío.', 'warning'); return; }
+
+        const updates = { 'AEROLINEA': nombre, 'TIPO DE SERVICIO': servicio };
+        tr.querySelectorAll('.am-cell-month').forEach(function(inp) {
+            const v = inp.value.trim();
+            updates[inp.dataset.col] = (v === '' || isNaN(v)) ? null : parseFloat(v);
+        });
+
+        // Identify the cached row
+        const cachedRow = tr._amRow;
+        const isNew = cachedRow && !!cachedRow._new;
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        let queryError;
+        if (isNew) {
+            const { error } = await client.from(AM_TABLE).insert(updates);
+            queryError = error;
+        } else {
+            let q;
+            if (cachedRow && cachedRow.id !== undefined) {
+                q = client.from(AM_TABLE).update(updates).eq('id', cachedRow.id);
+            } else {
+                const oldNombre = cachedRow ? (cachedRow['AEROLINEA'] || cachedRow['AEROLINEA '] || '') : '';
+                q = client.from(AM_TABLE).update(updates).eq('AEROLINEA', oldNombre || nombre);
+            }
+            const { error } = await q;
+            queryError = error;
+        }
+
+        if (queryError) {
+            amToast('Error: ' + queryError.message, 'danger');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i>';
+            return;
+        }
+
+        amToast((isNew ? 'Aerolínea agregada' : 'Cambios guardados') + ': ' + nombre, 'success');
+        // Reload fresh data
+        await amRefresh();
+        try { window.aeroDataCache = null; } catch(_) {}
+    };
+
+    // ── Delete row ────────────────────────────────────────────────────────────
+    window.amDeleteRow = async function (btn) {
+        const tr = btn.closest('tr');
+        if (!tr) return;
+        const cachedRow = tr._amRow;
+        const isNew = cachedRow && !!cachedRow._new;
+        const nombre = tr.querySelector('.am-cell-nombre')?.value.trim() || (cachedRow && (cachedRow['AEROLINEA'] || cachedRow['AEROLINEA '])) || '';
+
+        if (isNew) {
+            // Just remove from local array and re-render
+            amAllRows = amAllRows.filter(function(r) { return r !== cachedRow; });
+            amRender();
+            return;
+        }
+
+        if (!confirm('¿Eliminar la aerolínea "' + nombre + '"? Esta acción no se puede deshacer.')) return;
+
+        const client = sb();
+        if (!client) { amToast('Cliente Supabase no disponible.', 'danger'); return; }
+
+        let queryError;
+        if (cachedRow && cachedRow.id !== undefined) {
+            const { error } = await client.from(AM_TABLE).delete().eq('id', cachedRow.id);
+            queryError = error;
+        } else {
+            const { error } = await client.from(AM_TABLE).delete().eq('AEROLINEA', nombre);
+            queryError = error;
+        }
+
+        if (queryError) { amToast('Error: ' + queryError.message, 'danger'); return; }
+        amToast('Aerolínea eliminada: ' + nombre, 'warning');
+        await amRefresh();
+        try { window.aeroDataCache = null; } catch(_) {}
+    };
+
+    // ── Save all rows ─────────────────────────────────────────────────────────
+    window.amSaveAll = async function (btn) {
+        const tbody = document.getElementById('am-tbody');
+        if (!tbody) return;
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        if (!rows.length) return;
+
+        const client = sb();
+        if (!client) { amToast('Cliente Supabase no disponible.', 'danger'); return; }
+
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando…'; }
+
+        let ok = 0, fail = 0;
+        for (const tr of rows) {
+            const cachedRow = tr._amRow;
+            if (!cachedRow) continue;
+            const isNew = !!cachedRow._new;
+
+            const nombre = tr.querySelector('.am-cell-nombre')?.value.trim() || '';
+            const servicio = tr.querySelector('.am-cell-servicio')?.value.trim() || '';
+            if (!nombre) continue; // skip empty new rows
+
+            const updates = { 'AEROLINEA': nombre, 'TIPO DE SERVICIO': servicio };
+            tr.querySelectorAll('.am-cell-month').forEach(function(inp) {
+                const v = inp.value.trim();
+                updates[inp.dataset.col] = (v === '' || isNaN(v)) ? null : parseFloat(v);
+            });
+
+            let queryError;
+            if (isNew) {
+                const { error } = await client.from(AM_TABLE).insert(updates);
+                queryError = error;
+            } else {
+                let q;
+                if (cachedRow.id !== undefined) {
+                    q = client.from(AM_TABLE).update(updates).eq('id', cachedRow.id);
+                } else {
+                    const oldNombre = cachedRow['AEROLINEA'] || cachedRow['AEROLINEA '] || nombre;
+                    q = client.from(AM_TABLE).update(updates).eq('AEROLINEA', oldNombre);
+                }
+                const { error } = await q;
+                queryError = error;
+            }
+
+            if (queryError) { fail++; } else { ok++; }
+        }
+
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save me-1"></i>Guardar todo'; }
+
+        if (fail === 0) {
+            amToast('Todas las filas guardadas correctamente (' + ok + ').', 'success');
+        } else {
+            amToast(ok + ' guardadas, ' + fail + ' con error.', 'warning');
+        }
+        await amRefresh();
+        try { window.aeroDataCache = null; } catch(_) {}
+    };
+
     // ── Wire events ───────────────────────────────────────────────────────────
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.am-yr-btn').forEach(function(btn) {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function () {
                 document.querySelectorAll('.am-yr-btn').forEach(function(b) { b.classList.remove('active'); });
                 btn.classList.add('active');
                 amSelectedYr = btn.dataset.yr;
@@ -5390,7 +5406,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
 
         const tabBtn = document.getElementById('tab-aerolineas-mensual');
         if (tabBtn) {
-            tabBtn.addEventListener('shown.bs.tab', function() {
+            tabBtn.addEventListener('shown.bs.tab', function () {
                 if (!amAllRows.length) amRefresh();
             });
         }
