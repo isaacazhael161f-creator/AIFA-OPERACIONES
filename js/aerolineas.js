@@ -97,64 +97,92 @@ function openAeroDetail(item) {
     thead.innerHTML = '';
     tbody.innerHTML = '';
 
-    // Header: Mes | 2023 | 2024 | 2025 | 2026
+    // Header: Periodo | 20XX | 20XX ...
     const hRow = document.createElement('tr');
-    hRow.innerHTML = '<th class="text-muted fw-semibold small text-uppercase" style="width:80px;">Mes</th>'
+    hRow.innerHTML = '<th style="width:100px;font-weight:600;color:#374151;padding:12px 16px;">Periodo</th>'
         + years.map(function(yr) {
-            const col = AERO_YEAR_COLORS[yr] || '#78909c';
-            return '<th class="text-center fw-semibold small" style="border-left:3px solid '+col+';padding-left:12px;">20'+yr+'</th>';
+            return '<th style="text-align:center;font-weight:700;color:#1e293b;padding:12px 16px;font-size:0.97rem;">20'+yr+'</th>';
         }).join('');
     thead.appendChild(hRow);
 
-    // One row per month
-    let grandTotal = {};
-    years.forEach(function(yr){ grandTotal[yr] = 0; });
+    // Helper: get value (null if no data at all for that month/year)
+    function getVal(yr, mon) {
+        if (!byYear[yr]) return null;
+        const v = byYear[yr][mon];
+        return (v !== undefined && v !== null) ? v : null;
+    }
 
+    // For each year, track which months have data — used for comparable-total calculation
+    // comparable[yr] = sum of months that also have data in yr, only for months the NEXT year has data
+    // We compute per-pair comparables in the total row
+
+    // One row per month
     AERO_MONTH_ORDER.forEach(function(mon, mIdx) {
         const tr = document.createElement('tr');
-        let html = '<td class="fw-semibold text-muted small py-2">'+AERO_MONTH_LABELS[mIdx]+'</td>';
+        const isEven = mIdx % 2 === 0;
+        tr.style.backgroundColor = isEven ? '#fff' : '#f8fafc';
+        let html = '<td style="font-weight:600;color:#64748b;padding:10px 16px;font-size:0.93rem;">'+AERO_MONTH_LABELS[mIdx]+'</td>';
         years.forEach(function(yr, idx) {
-            const val = (byYear[yr] && byYear[yr][mon] != null) ? byYear[yr][mon] : null;
-            if (val === null) { html += '<td class="text-center text-muted small">–</td>'; return; }
-            grandTotal[yr] += val;
+            const val = getVal(yr, mon);
+            if (val === null) {
+                html += '<td style="text-align:center;color:#94a3b8;padding:10px 16px;">–</td>';
+                return;
+            }
             let pct = '';
             if (idx > 0) {
                 const prevYr = years[idx - 1];
-                const pv = (byYear[prevYr] && byYear[prevYr][mon] != null) ? byYear[prevYr][mon] : null;
+                const pv = getVal(prevYr, mon);
                 if (pv !== null && pv > 0) {
                     const g = ((val - pv) / pv) * 100;
                     const pos = g >= 0;
-                    const cls = pos ? 'text-success' : 'text-danger';
+                    const cls = pos ? '#16a34a' : '#dc2626';
                     const arrow = pos ? '▲' : '▼';
-                    pct = ' <span class="small '+cls+'" style="font-size:0.72em;">'+arrow+' '+Math.abs(g).toFixed(1)+'%</span>';
+                    pct = ' <span style="font-size:0.72em;color:'+cls+';font-weight:600;">'+arrow+' '+Math.abs(g).toFixed(1)+'%</span>';
                 } else if (pv === 0 && val > 0) {
-                    pct = ' <span class="small text-success" style="font-size:0.72em;">▲ nuevo</span>';
+                    pct = ' <span style="font-size:0.72em;color:#16a34a;font-weight:600;">▲ nuevo</span>';
                 }
             }
-            html += '<td class="text-center small py-2">'+new Intl.NumberFormat('es-MX').format(val)+pct+'</td>';
+            html += '<td style="text-align:center;padding:10px 16px;font-size:0.93rem;">'+new Intl.NumberFormat('es-MX').format(val)+pct+'</td>';
         });
         tr.innerHTML = html;
         tbody.appendChild(tr);
     });
 
-    // Total row
+    // Total row — comparable totals: for each pair (prevYr, curYr), only sum months where curYr has data
     const tfRow = document.createElement('tr');
-    tfRow.className = 'table-light fw-bold';
-    let totHtml = '<td class="small text-uppercase py-2" style="letter-spacing:0.5px;">Total</td>';
+    tfRow.style.cssText = 'background:#f1f5f9;border-top:2px solid #e2e8f0;';
+    let totHtml = '<td style="font-weight:800;color:#1e293b;padding:12px 16px;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.5px;">TOTAL</td>';
+
     years.forEach(function(yr, idx) {
-        const t = grandTotal[yr];
+        // Sum ALL months with data for this year (full total)
+        let fullTotal = 0;
+        AERO_MONTH_ORDER.forEach(function(mon) {
+            const v = getVal(yr, mon);
+            if (v !== null) fullTotal += v;
+        });
+
         let pct = '';
         if (idx > 0) {
-            const pt = grandTotal[years[idx - 1]];
-            if (pt > 0) {
-                const g = ((t - pt) / pt) * 100;
+            const prevYr = years[idx - 1];
+            // Only count months where CURRENT year has data
+            let curSum = 0, prevSum = 0;
+            AERO_MONTH_ORDER.forEach(function(mon) {
+                const curV = getVal(yr, mon);
+                const prevV = getVal(prevYr, mon);
+                if (curV !== null) {
+                    curSum += curV;
+                    if (prevV !== null) prevSum += prevV;
+                }
+            });
+            if (prevSum > 0) {
+                const g = ((curSum - prevSum) / prevSum) * 100;
                 const pos = g >= 0;
-                const cls = pos ? 'text-success' : 'text-danger';
-                const arrow = pos ? '▲' : '▼';
-                pct = '<br><span class="small '+cls+'" style="font-size:0.72em;">'+arrow+' '+Math.abs(g).toFixed(1)+'%</span>';
+                const cls = pos ? '#16a34a' : '#dc2626';
+                const icon = pos ? 'fa-arrow-up' : 'fa-arrow-down';
+                pct = '<br><span style="font-size:0.78em;color:'+cls+';font-weight:700;"><i class="fas '+icon+'" style="font-size:0.7em;"></i> '+Math.abs(g).toFixed(1)+'%</span>';
             }
         }
-        totHtml += '<td class="text-center py-2">'+new Intl.NumberFormat('es-MX').format(t)+pct+'</td>';
+        totHtml += '<td style="text-align:center;font-weight:800;font-size:0.95rem;color:#1e293b;padding:12px 16px;">'+new Intl.NumberFormat('es-MX').format(fullTotal)+pct+'</td>';
     });
     tfRow.innerHTML = totHtml;
     tbody.appendChild(tfRow);
