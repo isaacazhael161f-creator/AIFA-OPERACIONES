@@ -116,6 +116,7 @@
                 plugins:{
                     legend:{ position:'top', align:'end', labels:{ usePointStyle:true, boxWidth:12, padding:15, font:{family:"'Inter','Segoe UI',sans-serif",size:13,weight:'600'}, color:'#334155' } },
                     tooltip:{
+                        itemSort:function(a,b){ return b.datasetIndex-a.datasetIndex; },
                         backgroundColor:'rgba(30,41,59,0.95)', titleColor:'#f1f5f9', bodyColor:'#e2e8f0',
                         borderColor:'#475569', borderWidth:2, padding:14, boxPadding:8,
                         usePointStyle:true, cornerRadius:8,
