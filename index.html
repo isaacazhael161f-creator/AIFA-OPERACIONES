@@ -247,7 +247,7 @@
             cursor: pointer;
             transition: background-color .16s ease, box-shadow .16s ease;
         }
-
+FF
         #table-ops-flights-csv tbody tr:nth-child(4n+1) > td { background-color: #ffffff; }
         #table-ops-flights-csv tbody tr:nth-child(4n+2) > td { background-color: #f8fbff; }
         #table-ops-flights-csv tbody tr:nth-child(4n+3) > td { background-color: #f6fff8; }
@@ -8334,6 +8334,29 @@
                                                                     <label class="form-label small fw-semibold mb-2" style="color:#334155;">📅 Años a Comparar</label>
                                                                     <div id="gen-yoy-years" class="d-flex flex-column gap-2"></div>
                                                                 </div>
+                                                                <div class="mb-3">
+                                                                    <label class="form-label small fw-semibold mb-2" style="color:#334155;">🗓️ Meses a incluir</label>
+                                                                    <div class="d-flex flex-wrap gap-1 mb-2">
+                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="1" onclick="genYoyToggleMonth(1,this)">Ene</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="2" onclick="genYoyToggleMonth(2,this)">Feb</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="3" onclick="genYoyToggleMonth(3,this)">Mar</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="4" onclick="genYoyToggleMonth(4,this)">Abr</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="5" onclick="genYoyToggleMonth(5,this)">May</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="6" onclick="genYoyToggleMonth(6,this)">Jun</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="7" onclick="genYoyToggleMonth(7,this)">Jul</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="8" onclick="genYoyToggleMonth(8,this)">Ago</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="9" onclick="genYoyToggleMonth(9,this)">Sep</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="10" onclick="genYoyToggleMonth(10,this)">Oct</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="11" onclick="genYoyToggleMonth(11,this)">Nov</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="12" onclick="genYoyToggleMonth(12,this)">Dic</button>
+                                                                    </div>
+                                                                    <div class="d-flex flex-wrap gap-1">
+                                                                        <button type="button" class="btn btn-xs btn-secondary" onclick="genYoyMonthPreset('ytd')" title="Enero hasta el mes actual">Hasta hoy</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="genYoyMonthPreset('h1')">S1 (Ene-Jun)</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="genYoyMonthPreset('h2')">S2 (Jul-Dic)</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="genYoyMonthPreset('all')">Todo el año</button>
+                                                                    </div>
+                                                                </div>
                                                                 <hr class="my-3">
                                                                 <p class="small mb-0" style="color:#64748b;line-height:1.6;">✨ Esta vista superpone los datos de cada año seleccionado para facilitar el análisis de tendencias estacionales.</p>
                                                             </div>
@@ -8366,6 +8389,8 @@
                                                                     <label class="btn btn-outline-success" for="gen-gran-bimestral">Bimestral</label>
                                                                     <input type="radio" class="btn-check" name="gen-yoy-granularity" id="gen-gran-trimestral" value="trimestral" autocomplete="off">
                                                                     <label class="btn btn-outline-success" for="gen-gran-trimestral">Trimestral</label>
+                                                                    <input type="radio" class="btn-check" name="gen-yoy-granularity" id="gen-gran-semestral" value="semestral" autocomplete="off">
+                                                                    <label class="btn btn-outline-success" for="gen-gran-semestral">Semestral</label>
                                                                 </div>
                                                             </div>
                                                             <div class="card-body p-0">
@@ -8399,6 +8424,29 @@
                                                                     <label class="form-label small fw-semibold mb-2" style="color:#334155;">📅 Años a Comparar</label>
                                                                     <div id="cargo-yoy-years" class="d-flex flex-column gap-2"></div>
                                                                 </div>
+                                                                <div class="mb-3">
+                                                                    <label class="form-label small fw-semibold mb-2" style="color:#334155;">🗓️ Meses a incluir</label>
+                                                                    <div class="d-flex flex-wrap gap-1 mb-2">
+                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="1" onclick="cargoYoyToggleMonth(1,this)">Ene</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="2" onclick="cargoYoyToggleMonth(2,this)">Feb</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="3" onclick="cargoYoyToggleMonth(3,this)">Mar</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="4" onclick="cargoYoyToggleMonth(4,this)">Abr</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="5" onclick="cargoYoyToggleMonth(5,this)">May</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="6" onclick="cargoYoyToggleMonth(6,this)">Jun</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="7" onclick="cargoYoyToggleMonth(7,this)">Jul</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="8" onclick="cargoYoyToggleMonth(8,this)">Ago</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="9" onclick="cargoYoyToggleMonth(9,this)">Sep</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="10" onclick="cargoYoyToggleMonth(10,this)">Oct</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="11" onclick="cargoYoyToggleMonth(11,this)">Nov</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="12" onclick="cargoYoyToggleMonth(12,this)">Dic</button>
+                                                                    </div>
+                                                                    <div class="d-flex flex-wrap gap-1">
+                                                                        <button type="button" class="btn btn-xs btn-secondary" onclick="cargoYoyMonthPreset('ytd')" title="Enero hasta el mes actual">Hasta hoy</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="cargoYoyMonthPreset('h1')">S1 (Ene-Jun)</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="cargoYoyMonthPreset('h2')">S2 (Jul-Dic)</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="cargoYoyMonthPreset('all')">Todo el año</button>
+                                                                    </div>
+                                                                </div>
                                                                 <hr class="my-3">
                                                                 <p class="small mb-0" style="color:#64748b;line-height:1.6;">✨ Compara las operaciones y toneladas de carga año a año para identificar tendencias y variaciones estacionales.</p>
                                                             </div>
@@ -8431,6 +8479,8 @@
                                                                     <label class="btn btn-outline-warning" for="cargo-gran-bimestral">Bimestral</label>
                                                                     <input type="radio" class="btn-check" name="cargo-yoy-granularity" id="cargo-gran-trimestral" value="trimestral" autocomplete="off">
                                                                     <label class="btn btn-outline-warning" for="cargo-gran-trimestral">Trimestral</label>
+                                                                    <input type="radio" class="btn-check" name="cargo-yoy-granularity" id="cargo-gran-semestral" value="semestral" autocomplete="off">
+                                                                    <label class="btn btn-outline-warning" for="cargo-gran-semestral">Semestral</label>
                                                                 </div>
                                                             </div>
                                                             <div class="card-body p-0">

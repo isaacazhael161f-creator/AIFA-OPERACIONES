@@ -9,6 +9,7 @@
     let activeYears = new Set();
     let currentMetric = 'operaciones';
     let currentGranularity = 'mensual';
+    let activeMonths = new Set([1,2,3,4,5,6,7,8,9,10,11,12]);
 
     const yearColors = {
         2022: '#06b3e8', 2023: '#ff9800', 2024: '#4caf50',
@@ -30,6 +31,9 @@
         trimestral: { groups: [
             {label:'T1 (Ene-Mar)',months:[1,2,3]},{label:'T2 (Abr-Jun)',months:[4,5,6]},
             {label:'T3 (Jul-Sep)',months:[7,8,9]},{label:'T4 (Oct-Dic)',months:[10,11,12]}
+        ]},
+        semestral: { groups: [
+            {label:'S1 (Ene-Jun)',months:[1,2,3,4,5,6]},{label:'S2 (Jul-Dic)',months:[7,8,9,10,11,12]}
         ]}
     };
 
@@ -91,7 +95,10 @@
         if (!activeYears.size) return;
         const ctx = canvas.getContext('2d');
         const sorted = Array.from(activeYears).sort();
-        const groups = GRANULARITY_CONFIG[currentGranularity].groups;
+        const groups = GRANULARITY_CONFIG[currentGranularity].groups.filter(function(g){
+            return g.months.every(function(m){ return activeMonths.has(m); });
+        });
+        if (!groups.length) return;
         const datasets = sorted.map(function(yr, idx){
             const col = yearColors[yr] || yearColors['default'];
             const last = idx === sorted.length - 1;
@@ -146,7 +153,10 @@
         thead.innerHTML = ''; tbody.innerHTML = '';
         const yrs = Array.from(activeYears).sort();
         if (!yrs.length) { tbody.innerHTML = '<tr><td class="text-muted">No hay años seleccionados</td></tr>'; return; }
-        const groups = GRANULARITY_CONFIG[currentGranularity].groups;
+        const groups = GRANULARITY_CONFIG[currentGranularity].groups.filter(function(g){
+            return g.months.every(function(m){ return activeMonths.has(m); });
+        });
+        if (!groups.length) { tbody.innerHTML = '<tr><td class="text-muted" colspan="10">Selecciona al menos un mes completo para el periodo elegido.</td></tr>'; return; }
         const hRow = document.createElement('tr');
         hRow.innerHTML = '<th>Periodo</th>' + yrs.map(function(y){ return '<th>'+y+'</th>'; }).join('');
         thead.appendChild(hRow);
@@ -235,4 +245,34 @@
             }
         }
     });
+
+    window.genYoyToggleMonth = function(mon, btn) {
+        if (activeMonths.has(mon)) {
+            if (activeMonths.size === 1) return;
+            activeMonths.delete(mon);
+            btn.classList.remove('active');
+        } else {
+            activeMonths.add(mon);
+            btn.classList.add('active');
+        }
+        renderChart(); renderTable();
+    };
+
+    window.genYoyMonthPreset = function(preset) {
+        const now = new Date();
+        if (preset === 'ytd') {
+            activeMonths = new Set(Array.from({length: now.getMonth() + 1}, function(_, i){ return i + 1; }));
+        } else if (preset === 'h1') {
+            activeMonths = new Set([1,2,3,4,5,6]);
+        } else if (preset === 'h2') {
+            activeMonths = new Set([7,8,9,10,11,12]);
+        } else {
+            activeMonths = new Set([1,2,3,4,5,6,7,8,9,10,11,12]);
+        }
+        document.querySelectorAll('.gen-yoy-mon-btn').forEach(function(b) {
+            if (activeMonths.has(parseInt(b.dataset.mon))) b.classList.add('active');
+            else b.classList.remove('active');
+        });
+        renderChart(); renderTable();
+    };
 })();
