@@ -8263,6 +8263,29 @@ FF
                                                                     <label class="form-label small fw-semibold mb-2" style="color: #334155;">📅 Años a Comparar</label>
                                                                     <div id="yoy-years-container" class="d-flex flex-column gap-2"></div>
                                                                 </div>
+                                                                <div class="mb-3">
+                                                                    <label class="form-label small fw-semibold mb-2" style="color:#334155;">🗓️ Meses a incluir</label>
+                                                                    <div class="d-flex flex-wrap gap-1 mb-2">
+                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="1"  onclick="comYoyToggleMonth(1,this)">Ene</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="2"  onclick="comYoyToggleMonth(2,this)">Feb</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="3"  onclick="comYoyToggleMonth(3,this)">Mar</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="4"  onclick="comYoyToggleMonth(4,this)">Abr</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="5"  onclick="comYoyToggleMonth(5,this)">May</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="6"  onclick="comYoyToggleMonth(6,this)">Jun</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="7"  onclick="comYoyToggleMonth(7,this)">Jul</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="8"  onclick="comYoyToggleMonth(8,this)">Ago</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="9"  onclick="comYoyToggleMonth(9,this)">Sep</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="10" onclick="comYoyToggleMonth(10,this)">Oct</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="11" onclick="comYoyToggleMonth(11,this)">Nov</button>
+                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="12" onclick="comYoyToggleMonth(12,this)">Dic</button>
+                                                                    </div>
+                                                                    <div class="d-flex flex-wrap gap-1">
+                                                                        <button type="button" class="btn btn-xs btn-secondary" onclick="comYoyMonthPreset('ytd')">Hasta hoy</button>
+                                                                        <button type="button" class="btn btn-xs btn-secondary" onclick="comYoyMonthPreset('h1')">S1</button>
+                                                                        <button type="button" class="btn btn-xs btn-secondary" onclick="comYoyMonthPreset('h2')">S2</button>
+                                                                        <button type="button" class="btn btn-xs btn-secondary" onclick="comYoyMonthPreset('all')">Todo el año</button>
+                                                                    </div>
+                                                                </div>
                                                                 <hr class="my-3" />
                                                                 <p class="small mb-0" style="color: #64748b; line-height: 1.6;">✨ Esta vista superpone los 12 meses de cada año seleccionado para facilitar el análisis de tendencias y patrones estacionales.</p>
                                                             </div>
@@ -8301,6 +8324,8 @@ FF
                                                                     <label class="btn btn-outline-primary" for="gran-bimestral">Bimestral</label>
                                                                     <input type="radio" class="btn-check" name="yoy-granularity" id="gran-trimestral" value="trimestral" autocomplete="off">
                                                                     <label class="btn btn-outline-primary" for="gran-trimestral">Trimestral</label>
+                                                                    <input type="radio" class="btn-check" name="yoy-granularity" id="gran-semestral" value="semestral" autocomplete="off">
+                                                                    <label class="btn btn-outline-primary" for="gran-semestral">Semestral</label>
                                                                 </div>
                                                             </div>
                                                             <div class="card-body p-0">
