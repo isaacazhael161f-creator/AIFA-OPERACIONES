@@ -5335,6 +5335,64 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         try { window.aeroDataCache = null; } catch(_) {}
     };
 
+    // ── Save all rows ─────────────────────────────────────────────────────────
+    window.amSaveAll = async function (btn) {
+        const tbody = document.getElementById('am-tbody');
+        if (!tbody) return;
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        if (!rows.length) return;
+
+        const client = sb();
+        if (!client) { amToast('Cliente Supabase no disponible.', 'danger'); return; }
+
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando…'; }
+
+        let ok = 0, fail = 0;
+        for (const tr of rows) {
+            const cachedRow = tr._amRow;
+            if (!cachedRow) continue;
+            const isNew = !!cachedRow._new;
+
+            const nombre = tr.querySelector('.am-cell-nombre')?.value.trim() || '';
+            const servicio = tr.querySelector('.am-cell-servicio')?.value.trim() || '';
+            if (!nombre) continue; // skip empty new rows
+
+            const updates = { 'AEROLINEA': nombre, 'TIPO DE SERVICIO': servicio };
+            tr.querySelectorAll('.am-cell-month').forEach(function(inp) {
+                const v = inp.value.trim();
+                updates[inp.dataset.col] = (v === '' || isNaN(v)) ? null : parseFloat(v);
+            });
+
+            let queryError;
+            if (isNew) {
+                const { error } = await client.from(AM_TABLE).insert(updates);
+                queryError = error;
+            } else {
+                let q;
+                if (cachedRow.id !== undefined) {
+                    q = client.from(AM_TABLE).update(updates).eq('id', cachedRow.id);
+                } else {
+                    const oldNombre = cachedRow['AEROLINEA'] || cachedRow['AEROLINEA '] || nombre;
+                    q = client.from(AM_TABLE).update(updates).eq('AEROLINEA', oldNombre);
+                }
+                const { error } = await q;
+                queryError = error;
+            }
+
+            if (queryError) { fail++; } else { ok++; }
+        }
+
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save me-1"></i>Guardar todo'; }
+
+        if (fail === 0) {
+            amToast('Todas las filas guardadas correctamente (' + ok + ').', 'success');
+        } else {
+            amToast(ok + ' guardadas, ' + fail + ' con error.', 'warning');
+        }
+        await amRefresh();
+        try { window.aeroDataCache = null; } catch(_) {}
+    };
+
     // ── Wire events ───────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.am-yr-btn').forEach(function(btn) {

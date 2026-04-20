@@ -8,7 +8,8 @@
     let opsDataCache = [];
     let activeYears = new Set();
     let currentMetric = 'operaciones'; // 'operaciones' | 'pasajeros'
-    let currentGranularity = 'mensual'; // 'mensual' | 'bimestral' | 'trimestral'
+    let currentGranularity = 'mensual'; // 'mensual' | 'bimestral' | 'trimestral' | 'semestral'
+    let activeMonths = new Set([1,2,3,4,5,6,7,8,9,10,11,12]);
 
     // Period groups per granularity
     const GRANULARITY_CONFIG = {
@@ -45,6 +46,12 @@
                 { label: 'T3 (Jul-Sep)', months: [7, 8, 9] },
                 { label: 'T4 (Oct-Dic)', months: [10, 11, 12] },
             ]
+        },
+        semestral: {
+            groups: [
+                { label: 'S1 (Ene-Jun)', months: [1, 2, 3, 4, 5, 6] },
+                { label: 'S2 (Jul-Dic)', months: [7, 8, 9, 10, 11, 12] },
+            ]
         }
     };
 
@@ -59,6 +66,10 @@
     };
 
     const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+    // Expose shared state so external month-filter globals can interact
+    window._comYoyActiveMonths = activeMonths;
+    window._comYoyRender = function() { renderYoYChart(); renderYoYTable(); };
 
     document.addEventListener('DOMContentLoaded', () => {
         const triggers = document.querySelectorAll('button[data-bs-target="#analisis-yoy-pane"]');
@@ -217,7 +228,10 @@
 
         const ctx = canvas.getContext('2d');
         const sortedYears = Array.from(activeYears).sort();
-        const groups = GRANULARITY_CONFIG[currentGranularity].groups;
+        const groups = GRANULARITY_CONFIG[currentGranularity].groups.filter(g =>
+            g.months.every(m => activeMonths.has(m))
+        );
+        if (!groups.length) return;
         const datasets = [];
 
         sortedYears.forEach((year, idx) => {
@@ -381,7 +395,13 @@
             return;
         }
 
-        const groups = GRANULARITY_CONFIG[currentGranularity].groups;
+        const groups = GRANULARITY_CONFIG[currentGranularity].groups.filter(g =>
+            g.months.every(m => activeMonths.has(m))
+        );
+        if (!groups.length) {
+            tbody.innerHTML = '<tr><td class="text-muted" colspan="10">Selecciona al menos un mes completo para el periodo elegido.</td></tr>';
+            return;
+        }
 
         // Header row
         const headerRow = document.createElement('tr');
@@ -488,3 +508,31 @@
         document.body.removeChild(link);
     }
 })();
+
+// ── Month filter globals for Comercial YoY ──────────────────────────────────
+window.comYoyToggleMonth = function(mon, btn) {
+    const s = window._comYoyActiveMonths;
+    if (!s) return;
+    if (s.has(mon)) { s.delete(mon); btn.classList.remove('active'); }
+    else            { s.add(mon);    btn.classList.add('active');    }
+    window._comYoyRender && window._comYoyRender();
+};
+
+window.comYoyMonthPreset = function(preset) {
+    const s = window._comYoyActiveMonths;
+    if (!s) return;
+    const now = new Date();
+    const curMon = now.getMonth() + 1;
+    let months;
+    if (preset === 'ytd')      months = Array.from({length: curMon}, (_, i) => i + 1);
+    else if (preset === 'h1')  months = [1,2,3,4,5,6];
+    else if (preset === 'h2')  months = [7,8,9,10,11,12];
+    else                       months = [1,2,3,4,5,6,7,8,9,10,11,12];
+    s.clear();
+    months.forEach(m => s.add(m));
+    document.querySelectorAll('.com-yoy-mon-btn').forEach(btn => {
+        const m = parseInt(btn.dataset.month, 10);
+        btn.classList.toggle('active', s.has(m));
+    });
+    window._comYoyRender && window._comYoyRender();
+};
