@@ -4125,6 +4125,69 @@ FF
                             font-weight: 700; color: var(--col-navy);
                             font-size: .78rem;
                         }
+                        /* Fila clickeable en tabla de profesión */
+                        .cd-tbl-row.clickable { cursor: pointer; }
+                        .cd-tbl-row.clickable:hover { background: #ede7f6; }
+                        .cd-tbl-name.clickable-label { color: #5e35b1; text-decoration: underline dotted; }
+                        /* Buscador dentro de la card */
+                        .cd-tbl-search-wrap {
+                            padding: .4rem .7rem;
+                            border-bottom: 1px solid #eef0f7;
+                            background: #fafbff;
+                        }
+                        .cd-tbl-search-inp {
+                            width: 100%; border: 1.5px solid #dde3ef; border-radius: 7px;
+                            padding: .28rem .55rem; font-size: .78rem; outline: none;
+                            background: #fff; color: var(--col-text);
+                        }
+                        .cd-tbl-search-inp:focus { border-color: #7b1fa2; }
+                        /* Modal de drill-down por profesión */
+                        #colab-prof-modal-backdrop {
+                            display: none; position: fixed; inset: 0;
+                            background: rgba(0,0,0,.45); z-index: 1000050;
+                            align-items: center; justify-content: center;
+                        }
+                        #colab-prof-modal-backdrop.open { display: flex; }
+                        #colab-prof-modal {
+                            background: #fff; border-radius: 14px;
+                            width: min(560px, 95vw); max-height: 80vh;
+                            display: flex; flex-direction: column;
+                            box-shadow: 0 16px 48px rgba(0,0,0,.28);
+                            overflow: hidden;
+                        }
+                        #colab-prof-modal-header {
+                            background: #5e35b1; color: #fff;
+                            padding: .75rem 1.1rem; display: flex;
+                            align-items: center; gap: .6rem;
+                        }
+                        #colab-prof-modal-header h6 { margin: 0; font-size: .95rem; flex: 1; }
+                        #colab-prof-modal-close {
+                            background: none; border: none; color: #fff;
+                            font-size: 1.2rem; cursor: pointer; line-height: 1;
+                        }
+                        #colab-prof-modal-search {
+                            padding: .5rem .9rem; border-bottom: 1px solid #eee;
+                        }
+                        #colab-prof-modal-search input {
+                            width: 100%; border: 1.5px solid #dde3ef; border-radius: 8px;
+                            padding: .35rem .7rem; font-size: .82rem; outline: none;
+                        }
+                        #colab-prof-modal-search input:focus { border-color: #7b1fa2; }
+                        #colab-prof-modal-list { overflow-y: auto; flex: 1; }
+                        .colab-prof-item {
+                            display: flex; align-items: center; gap: .65rem;
+                            padding: .45rem 1rem; border-bottom: 1px solid #f3f3f3;
+                            cursor: pointer; transition: background .13s;
+                        }
+                        .colab-prof-item:last-child { border-bottom: none; }
+                        .colab-prof-item:hover { background: #ede7f6; }
+                        .colab-prof-item-num {
+                            background: #ede7f6; color: #5e35b1; border-radius: 5px;
+                            font-size: .72rem; font-weight: 700; padding: .1rem .38rem;
+                            white-space: nowrap;
+                        }
+                        .colab-prof-item-name { flex: 1; font-size: .84rem; font-weight: 600; color: #1a1a2e; }
+                        .colab-prof-item-puesto { font-size: .76rem; color: #888; }
 
                         /* ─── TABLA COMPACTA DE FICHA ─── */
                         .colab-tabla {
@@ -4359,6 +4422,11 @@ FF
                                         <div class="cd-table-card">
                                             <div class="cd-table-title">
                                                 <i class="fas fa-graduation-cap me-1"></i> Por Profesión
+                                            </div>
+                                            <div class="cd-tbl-search-wrap">
+                                                <input class="cd-tbl-search-inp" id="prof-filter-inp"
+                                                       type="text" placeholder="🔍 Buscar profesión..."
+                                                       autocomplete="off" oninput="colabFiltrarProf(this.value)">
                                             </div>
                                             <div class="cd-table-body" id="cd-tbl-profesion">
                                                 <div class="cd-tbl-loading">Cargando…</div>
@@ -4723,6 +4791,22 @@ FF
 
                         </div><!-- /colab-card-wrapper -->
                     </div><!-- /colab-results-area -->
+
+                    <!-- ── Modal drill-down: colaboradores por profesión ── -->
+                    <div id="colab-prof-modal-backdrop" onclick="colabProfModalClose(event)">
+                        <div id="colab-prof-modal" role="dialog" aria-modal="true" aria-labelledby="colab-prof-modal-title">
+                            <div id="colab-prof-modal-header">
+                                <i class="fas fa-graduation-cap me-2"></i>
+                                <h6 id="colab-prof-modal-title">Profesión</h6>
+                                <button id="colab-prof-modal-close" onclick="colabProfModalClose()" aria-label="Cerrar">&times;</button>
+                            </div>
+                            <div id="colab-prof-modal-search">
+                                <input type="text" id="colab-prof-modal-inp" placeholder="🔍 Buscar colaborador…"
+                                       autocomplete="off" oninput="colabProfModalFiltrar(this.value)">
+                            </div>
+                            <div id="colab-prof-modal-list"></div>
+                        </div>
+                    </div>
 
                     <!-- ── MODAL EDITAR COLABORADOR ── -->
                     <div class="modal fade" id="colabEditModal" tabindex="-1" aria-labelledby="colabEditModalLabel" aria-hidden="true">
@@ -5412,13 +5496,112 @@ FF
                                 }).join('') || '<div class="cd-tbl-loading">Sin datos</div>';
                             }
 
-                            renderTable('cd-tbl-profesion', byProf);
+                            /* Tabla de Profesión: clickeable con buscador */
+                            let _profAllRows = byProf; // guardamos referencia global para filtro
+                            function renderProfTable(rows) {
+                                const el = document.getElementById('cd-tbl-profesion');
+                                if (!el) return;
+                                const max = rows.length ? rows[0][1] : 1;
+                                el.innerHTML = rows.map(([name, count]) => {
+                                    const pct  = Math.round((count / max) * 100);
+                                    const safe = name.replace(/"/g, '&quot;');
+                                    return `<div class="cd-tbl-row clickable" onclick="colabAbrirProfModal(${JSON.stringify(name)})">
+                                        <span class="cd-tbl-name clickable-label" title="${safe}">${name}</span>
+                                        <span class="cd-tbl-bar-wrap"><span class="cd-tbl-bar" style="width:${pct}%;background:#7b1fa2"></span></span>
+                                        <span class="cd-tbl-count">${count}</span>
+                                    </div>`;
+                                }).join('') || '<div class="cd-tbl-loading">Sin datos</div>';
+                            }
+                            renderProfTable(_profAllRows);
+
+                            /* Filtro del buscador de profesión */
+                            window.colabFiltrarProf = function(q) {
+                                const query = (q || '').toLowerCase().trim();
+                                const filtered = query
+                                    ? _profAllRows.filter(([name]) => name.toLowerCase().includes(query))
+                                    : _profAllRows;
+                                renderProfTable(filtered);
+                            };
+
                             renderTable('cd-tbl-direccion',  byDir);
                             renderTable('cd-tbl-subdir',     bySubDir);
                             renderTable('cd-tbl-gerencia',   byGer);
                             renderTable('cd-tbl-nivel',      byNivel);
                             renderTable('cd-tbl-turno',      byTurno);
-                        }
+
+                            /* ── Modal drill-down: colaboradores por profesión ── */
+                            let _profModalRecords = [];
+
+                            window.colabAbrirProfModal = function(profName) {
+                                const todos = colabCache || [];
+                                _profModalRecords = todos.filter(r => {
+                                    const v = (gc(r, 'profesion') || '').toString().trim();
+                                    return v === profName;
+                                }).sort((a, b) => {
+                                    const na = (gc(a, 'nombre') || '').toLowerCase();
+                                    const nb = (gc(b, 'nombre') || '').toLowerCase();
+                                    return na.localeCompare(nb, 'es');
+                                });
+                                const title = document.getElementById('colab-prof-modal-title');
+                                if (title) title.textContent = `${profName} (${_profModalRecords.length})`;
+                                const inp = document.getElementById('colab-prof-modal-inp');
+                                if (inp) inp.value = '';
+                                _renderProfModalList(_profModalRecords);
+                                const bd = document.getElementById('colab-prof-modal-backdrop');
+                                if (bd) bd.classList.add('open');
+                            };
+
+                            function _renderProfModalList(records) {
+                                const list = document.getElementById('colab-prof-modal-list');
+                                if (!list) return;
+                                if (!records.length) {
+                                    list.innerHTML = '<div style="padding:1.5rem;text-align:center;color:#aaa;font-size:.85rem;">Sin resultados</div>';
+                                    return;
+                                }
+                                list.innerHTML = records.map((r, i) => {
+                                    const num    = val(gc(r, 'num'))    || '—';
+                                    const nombre = val(gc(r, 'nombre')) || '(Sin nombre)';
+                                    const puesto = val(gc(r, 'puesto')) || '';
+                                    return `<div class="colab-prof-item" onclick="colabAbrirDesdeModal(${i})">
+                                        <span class="colab-prof-item-num"># ${num}</span>
+                                        <span class="colab-prof-item-name">${nombre}</span>
+                                        <span class="colab-prof-item-puesto">${puesto}</span>
+                                    </div>`;
+                                }).join('');
+                                list._records = records;
+                            }
+
+                            window.colabProfModalFiltrar = function(q) {
+                                const query = (q || '').toLowerCase().trim();
+                                const filtered = query
+                                    ? _profModalRecords.filter(r => {
+                                        const nombre = (gc(r, 'nombre') || '').toLowerCase();
+                                        const num    = (gc(r, 'num')    || '').toString().toLowerCase();
+                                        const puesto = (gc(r, 'puesto') || '').toLowerCase();
+                                        return nombre.includes(query) || num.includes(query) || puesto.includes(query);
+                                      })
+                                    : _profModalRecords;
+                                _renderProfModalList(filtered);
+                            };
+
+                            window.colabAbrirDesdeModal = function(idx) {
+                                const list   = document.getElementById('colab-prof-modal-list');
+                                const record = list && list._records ? list._records[idx] : null;
+                                if (!record) return;
+                                colabProfModalClose();
+                                renderFicha(record);
+                            };
+
+                            window.colabProfModalClose = function(evt) {
+                                /* Sin argumento = cierre directo (botón ×) */
+                                if (evt) {
+                                    const bd = document.getElementById('colab-prof-modal-backdrop');
+                                    /* Solo cerrar si hicieron click en el fondo oscuro, no en el modal */
+                                    if (evt.target !== bd) return;
+                                }
+                                const bd = document.getElementById('colab-prof-modal-backdrop');
+                                if (bd) bd.classList.remove('open');
+                            };
 
                         /* ── Autocomplete ── */
                         async function colabAutocompletar(query) {
