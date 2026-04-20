@@ -4920,7 +4920,7 @@ FF
                                 celular:         find('cel[uú]lar', 'm[oó]vil', 'celular', 'cel', 'tel[eé]f[oó]nico', 'no\\.?\\s*tel', 'tel[eé]fono'),
                                 extension:       find('^ext\\.?$', 'extensi'),
                                 correo:          find('correo', 'email', 'mail'),
-                                profesion:       find('profes', 'licenciatura', 'maestr[ií]a', 'nombre.*lic', 'nombre.*maest'),
+                                profesion:       find('licenciatura', 'maestr[ií]a', 'nombre.*lic', 'nombre.*maest', 'profesi[oó]n$', '^profes[^i]'),
                                 militar:         find('militar', '^civil$'),
                                 nivel:           find('^nivel$'),
                                 plaza:           find('^plaza$'),
