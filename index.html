@@ -3521,8 +3521,8 @@ FF
                             background: #fff;
                             border-radius: 12px;
                             box-shadow: 0 8px 32px rgba(0,0,0,.22);
-                            z-index: 9999;
-                            max-height: 280px;
+                            z-index: 999999;
+                            max-height: 320px;
                             overflow-y: auto;
                             display: none;
                         }
@@ -5560,6 +5560,12 @@ FF
                             const nameInput = document.getElementById('colab-name-input');
                             const numInput  = document.getElementById('colab-num-input');
                             let numDebounce = null;
+
+                            /* Teleportar el dropdown al <body> para que ningún ancestro lo recorte */
+                            const sugBox = document.getElementById('colab-suggestions-list');
+                            if (sugBox && sugBox.parentElement !== document.body) {
+                                document.body.appendChild(sugBox);
+                            }
 
                             if (nameInput) {
                                 nameInput.addEventListener('input', () => colabAutocompletar(nameInput.value, nameInput));
