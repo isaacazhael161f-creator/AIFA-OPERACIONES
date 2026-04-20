@@ -134,6 +134,9 @@
                                         <option value="control_fauna">🦅 Control Fauna</option>
                                         <option value="servicio_medico">🚑 Servicio Médico</option>
                                         <option value="admin">🛠️ Administrador</option>
+                                        <option disabled>── Directorio de Colaboradores ──</option>
+                                        <option value="colab_viewer">📋 Colaboradores — Solo Lectura</option>
+                                        <option value="colab_editor">✏️ Colaboradores — Edición</option>
                                     </select>
                                 </div>
 
@@ -249,8 +252,41 @@
                                 </fieldset>
                             </div>
 
-                            <!-- Usuarios (Generador de Permisos) -->
+                            <!-- Usuarios (Gestión + Generador de Permisos) -->
                             <div class="tab-pane fade" id="pills-users" role="tabpanel">
+
+                                <!-- ── Panel: Gestión de usuarios ── -->
+                                <div class="card border-0 bg-light rounded-3 mb-3 p-3">
+                                    <h6 class="fw-bold mb-2"><i class="fas fa-users-cog me-2 text-primary"></i>Gestión de Usuarios</h6>
+
+                                    <!-- Buscador -->
+                                    <div class="input-group input-group-sm mb-2">
+                                        <input type="text" class="form-control" id="um-search" placeholder="Buscar por email o nombre…" onkeyup="umFilter()">
+                                        <button class="btn btn-primary" onclick="loadUsers()">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </div>
+
+                                    <!-- Tabla de usuarios -->
+                                    <div id="um-table-wrap" style="max-height:300px;overflow-y:auto;">
+                                        <table class="table table-sm table-hover align-middle mb-0 small">
+                                            <thead class="table-dark sticky-top">
+                                                <tr>
+                                                    <th>Email / Nombre</th>
+                                                    <th style="width:160px">Rol</th>
+                                                    <th style="width:46px" class="text-center" title="Acceso a sección Colaboradores">Colab</th>
+                                                    <th style="width:42px">Acc.</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="um-tbody">
+                                                <tr><td colspan="4" class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-1"></i>Cargando…</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div id="um-status" class="small mt-2 text-muted"></div>
+                                </div>
+
+                                <hr class="my-3">
                                 <div class="alert alert-info small mb-3">
                                     <i class="fas fa-tools me-1"></i> Generador de SQL para Usuarios Viewer.
                                 </div>
@@ -264,13 +300,20 @@
 
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold" for="gen-role">Rol</label>
-                                        <select class="form-select" id="gen-role">
+                                        <select class="form-select" id="gen-role" onchange="toggleGenSections()">
                                             <option value="viewer" selected>Viewer (Solo lectura selectiva)</option>
                                             <option value="editor">Editor</option>
                                             <option value="control_fauna">Control Fauna</option>
                                             <option value="servicio_medico">Servicio Médico</option>
                                             <option value="admin">Admin</option>
+                                            <option disabled>── Directorio de Colaboradores ──</option>
+                                            <option value="colab_viewer">📋 Colaboradores — Solo Lectura</option>
+                                            <option value="colab_editor">✏️ Colaboradores — Edición</option>
                                         </select>
+                                    <div id="colab-role-notice" class="alert alert-info py-2 px-3 mt-2 small d-none">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Este rol restringe automáticamente al usuario <strong>solo a la sección de Colaboradores</strong>. No es necesario seleccionar secciones.
+                                    </div>
                                     </div>
 
                                     <div class="mb-3">
@@ -475,10 +518,30 @@
         function toggleRegPermissions() {
             const role = document.getElementById('reg-role').value;
             const container = document.getElementById('reg-permissions-container');
+            // Mostrar selector de secciones solo para viewer; colab_* y demás tienen lógica propia
             if (role === 'viewer') {
                 container.classList.remove('d-none');
             } else {
                 container.classList.add('d-none');
+            }
+        }
+
+        function toggleGenSections() {
+            const role = document.getElementById('gen-role').value;
+            const isColabRole = role === 'colab_viewer' || role === 'colab_editor';
+            const notice = document.getElementById('colab-role-notice');
+            const sectionsContainer = document.querySelector('#viewer-gen-form .row.g-2');
+            const secLabel = document.querySelector('#viewer-gen-form .form-label.small.fw-bold.mb-0');
+            const secToggle = document.getElementById('sec-all-toggle').closest('.d-flex');
+
+            if (isColabRole) {
+                notice.classList.remove('d-none');
+                if (sectionsContainer) sectionsContainer.style.opacity = '0.3';
+                if (secToggle) secToggle.style.opacity = '0.3';
+            } else {
+                notice.classList.add('d-none');
+                if (sectionsContainer) sectionsContainer.style.opacity = '';
+                if (secToggle) secToggle.style.opacity = '';
             }
         }
 
@@ -493,111 +556,92 @@
         }
 
         async function testRegister() {
-            let username = document.getElementById('reg-username').value;
-            const emailInput = document.getElementById('reg-email').value;
-            const fullName = document.getElementById('reg-fullname').value;
+            let username = document.getElementById('reg-username').value.trim();
+            const emailInput = document.getElementById('reg-email').value.trim();
+            const fullName = document.getElementById('reg-fullname').value.trim();
             const password = document.getElementById('reg-password').value;
-            
-            // New Fields
             const role = document.getElementById('reg-role').value;
-            const isViewer = role === 'viewer';
-            const isFullAccess = document.getElementById('reg-full-access').checked;
-            
-            let permissions = {};
-            if (isViewer) {
-                if (isFullAccess) {
-                    // Empty allowed_sections implies no restrictions if logic handles it that way, 
-                    // BUT current app logic might treat empty as "nothing allowed".
-                    // Let's explicitly list ALL known sections to be safe, or use a special "all" token if supported.
-                    // Based on script.js, checking includes(). 
-                    // Better approach: Populate with ALL known sections if Full Access.
-                    permissions.allowed_sections = [
-                        'operaciones-totales', 'parte-operaciones', 'inicio', 'frecuencias-semana',
-                        'itinerario-mensual', 'analisis-operaciones', 'conciliacion', 'aerolineas',
-                        'puntualidad-agosto', 'demoras', 'fauna', 'medicas', 'abordadores-mecanicos',
-                        'biblioteca', 'comparativa', 'manifiestos', 'portal-digitalizacion', 'historia'
-                    ];
-                } else {
-                    const checks = document.querySelectorAll('.reg-section-check:checked');
-                    permissions.allowed_sections = Array.from(checks).map(c => c.value);
-                }
-            } else {
-                // Non-viewers usually have full access by role definition, but we can set empty
-                permissions.allowed_sections = []; 
-            }
 
             if (!username || !password) {
-                alert('Usuario y contraseña requeridos');
+                alert('Usuario y contraseña son obligatorios.');
                 return;
             }
 
-            updateStatus('info', 'Registrando nuevo tripulante y configurando permisos...');
+            updateStatus('info', 'Creando usuario…');
 
             try {
+                // ── Paso 1: normalizar email ──────────────────────────────
                 let authEmail = username;
                 if (!authEmail.includes('@')) {
-                    const normalized = username.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '.');
+                    const normalized = username.toLowerCase()
+                        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                        .replace(/\s+/g, '.');
                     authEmail = `${normalized}@aifa.operaciones`;
                 }
 
-                // 1. Create User via SignUp
-                // We store role/permissions in metadata so a Trigger can pick it up
+                // ── Paso 2: signUp — SIN role/permissions en metadata ─────
+                // Si el trigger lee metadata.role y el rol no está en el CHECK
+                // constraint de user_roles, el INSERT del trigger falla y
+                // Supabase devuelve "Database error saving new user".
+                // Solución: solo enviar datos de perfil en metadata; el rol
+                // se asigna en el Paso 3 con un upsert independiente.
                 const { data, error } = await window.supabaseClient.auth.signUp({
                     email: authEmail,
                     password: password,
-                    options: { 
-                        data: { 
-                            full_name: fullName,
-                            username: username,
-                            contact_email: emailInput || '',
-                            // CRITICAL: Storing role/perms in metadata
-                            role: role, 
-                            permissions: permissions 
-                        } 
+                    options: {
+                        data: {
+                            full_name: fullName || username,
+                            username:  username,
+                            contact_email: emailInput || ''
+                        }
                     }
                 });
 
                 if (error) throw error;
 
-                // 2. Attempt to write to user_roles directly (Best Effort)
-                if (data.user) {
-                    const userId = data.user.id;
-                    try {
-                        const { error: roleErr } = await window.supabaseClient
-                            .from('user_roles')
-                            .insert({
-                                user_id: userId,
-                                role: role,
-                                permissions: permissions
-                            });
-                        
-                        if (roleErr) {
-                            console.warn('Direct role insert failed (expected if non-admin):', roleErr);
-                            // Do not throw, we rely on metadata + trigger (if set up) or manual SQL
-                        } else {
-                            console.log('Direct role insert successful!');
-                        }
-                    } catch (ignore) {}
+                const userId = data.user?.id;
+
+                // ── Paso 3: asignar rol via RPC (SECURITY DEFINER, bypasa RLS) ─
+                let roleOk   = false;
+                let roleNote = '';
+                if (userId) {
+                    const { error: roleErr } = await window.supabaseClient
+                        .rpc('assign_user_role', { p_user_id: userId, p_role: role });
+
+                    if (roleErr) {
+                        console.warn('[Registro] RPC assign_user_role falló:', roleErr.message);
+                        roleNote = ` ⚠️ Rol no asignado (${roleErr.message}). Verifica que la función assign_user_role exista y que hayas iniciado sesión como admin.`;
+                    } else {
+                        roleOk = true;
+                    }
                 }
 
+                // ── Paso 4: resultado ─────────────────────────────────────
                 if (data.user && !data.session) {
-                    updateStatus('warning', `Usuario creado (ID: ${data.user.id}). Requiere confirmación/Trigger para permisos.`);
-                } else {
-                    updateStatus('success', `Usuario ${username} creado con rol ${role.toUpperCase()}.`);
-                    
-                    // Clear fields
+                    updateStatus('warning',
+                        `Usuario creado pero requiere confirmación de email. ID: ${userId?.substring(0,8)}…${roleNote}`);
+                } else if (roleOk) {
+                    updateStatus('success',
+                        `✅ Usuario <strong>${username}</strong> creado con rol <strong>${role.toUpperCase()}</strong>.`);
                     document.getElementById('reg-username').value = '';
                     document.getElementById('reg-fullname').value = '';
                     document.getElementById('reg-password').value = '';
-                    // Reset defaults
                     document.getElementById('reg-role').value = 'viewer';
                     toggleRegPermissions();
+                } else {
+                    updateStatus('warning',
+                        `Usuario creado pero el rol no se asignó.${roleNote}`);
                 }
 
             } catch (err) {
-                console.error(err);
-                let msg = err.message;
-                updateStatus('danger', 'Error al registrar: ' + msg);
+                console.error('[Registro] Error:', err);
+                let hint = '';
+                if (err.message?.includes('Database error')) {
+                    hint = ' → Verifica que el trigger on_auth_user_created funcione correctamente en Supabase.';
+                } else if (err.message?.includes('already registered')) {
+                    hint = ' → El usuario ya existe. Usa la pestaña Usuarios para cambiar su rol.';
+                }
+                updateStatus('danger', `Error al registrar: ${err.message}${hint}`);
             }
         }
 
@@ -698,51 +742,281 @@
                 return;
             }
             const role = document.getElementById('gen-role').value;
-            
-            // Get checked sections
+            const isColabRole = role === 'colab_viewer' || role === 'colab_editor';
+
+            // Secciones (irrelevante para roles colab_*, ya que el JS de la app las restringe)
             const checks = document.querySelectorAll('.section-check:checked');
-            const sections = Array.from(checks).map(c => c.value);
-            
-            // Construct JSON
+            const sections = isColabRole ? [] : Array.from(checks).map(c => c.value);
             const permissions = { allowed_sections: sections };
             const jsonPermissions = JSON.stringify(permissions);
 
-            // Construct SQL Block
-            const sql = `
--- 1. Asegurar que la columna permissions existe (Ejecutar esto primero si falla)
-ALTER TABLE public.user_roles 
-ADD COLUMN IF NOT EXISTS permissions JSONB DEFAULT '{}'::jsonb;
+            // Descripción amigable del rol
+            const roleLabels = {
+                viewer: 'Visualizador (lectura selectiva)',
+                editor: 'Editor de Operaciones',
+                control_fauna: 'Control Fauna',
+                servicio_medico: 'Servicio Médico',
+                admin: 'Administrador',
+                colab_viewer: 'Colaboradores — Solo Lectura',
+                colab_editor: 'Colaboradores — Edición'
+            };
 
+            const colabNote = isColabRole ? `
+-- NOTA: Los roles colab_viewer y colab_editor restringen automáticamente
+-- al usuario a ver ÚNICAMENTE la sección "Directorio de Colaboradores".
+-- El rol colab_editor puede además editar fichas en esa sección.
+` : '';
+
+            const permissionsBlock = isColabRole ? `` : `
+    -- 2b. Agregar columna permissions si no existe
+    ALTER TABLE public.user_roles
+        ADD COLUMN IF NOT EXISTS permissions JSONB DEFAULT '{}'::jsonb;
+
+    -- 2c. Actualizar permisos de secciones
+    UPDATE public.user_roles
+    SET permissions = '${jsonPermissions}'::jsonb
+    WHERE user_id = v_user_id;
+`;
+
+            const sql = `-- ============================================================
+--  Asignar rol: ${roleLabels[role] || role}
+--  Usuario: ${email.trim()}
+-- ============================================================
+${colabNote}
 DO $$
 DECLARE
     v_target_email TEXT := '${email.trim()}';
     v_user_id UUID;
     v_role TEXT := '${role}';
-    v_permissions JSONB := '${jsonPermissions}'::jsonb;
 BEGIN
-    -- 1. Buscar ID del usuario por email en auth.users
-    SELECT id INTO v_user_id FROM auth.users WHERE email = v_target_email;
+    -- 1. Buscar ID del usuario por email
+    SELECT id INTO v_user_id
+    FROM auth.users
+    WHERE email = v_target_email;
 
     IF v_user_id IS NULL THEN
-        RAISE EXCEPTION 'Usuario con email % no encontrado. Asegúrese de haberlo creado en Authentication primero.', v_target_email;
+        RAISE EXCEPTION 'Usuario con email % no encontrado. Créalo primero en Supabase > Authentication.', v_target_email;
     END IF;
 
-    -- 2. Insertar o Actualizar Rol y Permisos en public.user_roles
-    INSERT INTO public.user_roles (user_id, role, permissions)
-    VALUES (v_user_id, v_role, v_permissions)
-    ON CONFLICT (user_id) 
-    DO UPDATE SET 
-        role = EXCLUDED.role,
-        permissions = EXCLUDED.permissions;
-
-    RAISE NOTICE 'Permisos actualizados para usuario % (Rol: %, Secciones: count=%)', v_target_email, v_role, jsonb_array_length(v_permissions->'allowed_sections');
+    -- 2. Insertar o actualizar rol
+    INSERT INTO public.user_roles (user_id, role)
+    VALUES (v_user_id, v_role)
+    ON CONFLICT (user_id)
+    DO UPDATE SET role = EXCLUDED.role;
+${permissionsBlock}
+    RAISE NOTICE 'Rol "%" asignado a % correctamente.', v_role, v_target_email;
 END $$;
+
+-- Verificar resultado:
+SELECT u.email, p.full_name, r.role
+FROM auth.users u
+JOIN public.user_roles r ON r.user_id = u.id
+LEFT JOIN public.profiles p ON p.id = u.id
+WHERE u.email = '${email.trim()}';
 `;
             document.getElementById('gen-output').value = sql.trim();
         }
 
-        async function loadUsers() { console.log('Legacy loadUsers stub'); }
-        async function assignRole(userId) { console.log('Legacy assignRole stub'); }
+        // ── Gestión de usuarios ──────────────────────────────────────────────
+        let _umAllRows = [];
+
+        async function loadUsers() {
+            const tbody = document.getElementById('um-tbody');
+            const statusEl = document.getElementById('um-status');
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-1"></i>Cargando…</td></tr>';
+            statusEl.textContent = '';
+
+            try {
+                const [{ data, error }, { data: permData }] = await Promise.all([
+                    window.supabaseClient
+                        .from('v_usuarios_roles')
+                        .select('user_id, email, full_name, username, role, created_at')
+                        .order('email'),
+                    window.supabaseClient
+                        .from('user_roles')
+                        .select('user_id, permissions')
+                ]);
+
+                if (error) throw error;
+
+                const permMap = {};
+                (permData || []).forEach(r => permMap[r.user_id] = r.permissions);
+
+                _umAllRows = (data || []).map(u => ({ ...u, permissions: permMap[u.user_id] || {} }));
+                umRenderRows(_umAllRows);
+                statusEl.textContent = `${_umAllRows.length} usuario(s) encontrado(s).`;
+            } catch (err) {
+                console.error('[loadUsers]', err);
+                tbody.innerHTML = `<tr><td colspan="4" class="text-danger text-center small py-2">Error: ${err.message}</td></tr>`;
+                statusEl.textContent = '';
+            }
+        }
+
+        function umFilter() {
+            const q = document.getElementById('um-search').value.toLowerCase();
+            const filtered = _umAllRows.filter(u =>
+                (u.email || '').toLowerCase().includes(q) ||
+                (u.full_name || '').toLowerCase().includes(q) ||
+                (u.username || '').toLowerCase().includes(q)
+            );
+            umRenderRows(filtered);
+        }
+
+        const ROLE_LABELS = {
+            admin:        'Admin',
+            editor:       'Editor',
+            viewer:       'Viewer',
+            colab_viewer: 'Colab Viewer',
+            colab_editor: 'Colab Editor',
+            control_fauna:    'Control Fauna',
+            servicio_medico:  'Serv. Médico'
+        };
+        const ROLE_COLORS = {
+            admin: 'danger', editor: 'warning', viewer: 'secondary',
+            colab_viewer: 'info', colab_editor: 'primary',
+            control_fauna: 'success', servicio_medico: 'success'
+        };
+        const ALL_ROLES = ['admin','editor','viewer','colab_viewer','colab_editor','control_fauna','servicio_medico'];
+
+        function umRenderRows(rows) {
+            const tbody = document.getElementById('um-tbody');
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Sin resultados</td></tr>';
+                return;
+            }
+            tbody.innerHTML = rows.map(u => {
+                const badge = `<span class="badge bg-${ROLE_COLORS[u.role] || 'secondary'}">${ROLE_LABELS[u.role] || u.role || '–'}</span>`;
+                const roleOpts = ALL_ROLES.map(r =>
+                    `<option value="${r}" ${u.role === r ? 'selected' : ''}>${ROLE_LABELS[r] || r}</option>`
+                ).join('');
+                const shortId = (u.user_id || '').substring(0, 8);
+                // Colab toggle: colab roles always have access (show lock icon), others show toggle
+                const isColabRole = ['colab_viewer', 'colab_editor'].includes(u.role);
+                const hasColab = isColabRole || (Array.isArray(u.permissions?.allowed_sections) && u.permissions.allowed_sections.includes('colaboradores'));
+                let colabCell;
+                if (isColabRole) {
+                    colabCell = `<td class="text-center"><i class="fas fa-users text-primary" title="Acceso incluido por rol" style="font-size:.85rem"></i></td>`;
+                } else {
+                    colabCell = `<td class="text-center">
+                        <button class="btn btn-sm p-0 border-0" style="width:28px;height:28px;background:${hasColab ? 'rgba(13,110,253,.12)' : 'rgba(0,0,0,.05)'};border-radius:6px"
+                            onclick="toggleColabAccess('${u.user_id}', ${hasColab}, '${shortId}')"
+                            title="${hasColab ? 'Quitar' : 'Dar'} acceso a Colaboradores">
+                            <i class="fas fa-users${hasColab ? '' : '-slash'}" style="font-size:.75rem;color:${hasColab ? '#0d6efd' : '#aaa'}"></i>
+                        </button>
+                    </td>`;
+                }
+                return `
+                <tr id="um-row-${shortId}">
+                    <td>
+                        <div class="fw-semibold">${u.email || '–'}</div>
+                        <div class="text-muted" style="font-size:0.75em">${u.full_name || u.username || ''}</div>
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm" id="um-sel-${shortId}" onchange="assignRole('${u.user_id}', this.value, '${shortId}')">
+                            ${roleOpts}
+                        </select>
+                    </td>
+                    ${colabCell}
+                    <td>
+                        <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="deleteUser('${u.user_id}', '${(u.email||'').replace(/'/g,'')}')"
+                            title="Eliminar usuario">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function assignRole(userId, newRole, shortId) {
+            const sel = document.getElementById(`um-sel-${shortId}`);
+            if (sel) sel.disabled = true;
+            const statusEl = document.getElementById('um-status');
+            statusEl.textContent = `Cambiando rol…`;
+
+            try {
+                const { error } = await window.supabaseClient
+                    .rpc('assign_user_role', { p_user_id: userId, p_role: newRole });
+                if (error) throw error;
+                statusEl.textContent = `✅ Rol actualizado a "${newRole}" correctamente.`;
+                // actualizar fila local
+                const u = _umAllRows.find(x => x.user_id === userId);
+                if (u) u.role = newRole;
+            } catch (err) {
+                console.error('[assignRole]', err);
+                statusEl.textContent = `⚠️ ${err.message}`;
+                await loadUsers(); // refrescar para revertir selector
+            } finally {
+                if (sel) sel.disabled = false;
+            }
+        }
+
+        async function toggleColabAccess(userId, currentlyHas, shortId) {
+            const statusEl = document.getElementById('um-status');
+            statusEl.textContent = currentlyHas ? 'Quitando acceso a Colaboradores…' : 'Dando acceso a Colaboradores…';
+
+            try {
+                // Fetch current permissions
+                const { data: ur, error: fetchErr } = await window.supabaseClient
+                    .from('user_roles')
+                    .select('permissions')
+                    .eq('user_id', userId)
+                    .single();
+                if (fetchErr) throw fetchErr;
+
+                const perms = ur?.permissions || {};
+                let sections = Array.isArray(perms.allowed_sections) ? [...perms.allowed_sections] : [];
+
+                if (currentlyHas) {
+                    sections = sections.filter(s => s !== 'colaboradores');
+                } else {
+                    if (!sections.includes('colaboradores')) sections.push('colaboradores');
+                }
+
+                const { error: updErr } = await window.supabaseClient
+                    .from('user_roles')
+                    .update({ permissions: { ...perms, allowed_sections: sections } })
+                    .eq('user_id', userId);
+                if (updErr) throw updErr;
+
+                // Update local data and re-render
+                const row = _umAllRows.find(x => x.user_id === userId);
+                if (row) {
+                    row.permissions = { ...perms, allowed_sections: sections };
+                }
+                umRenderRows(_umAllRows.filter(u => {
+                    const q = document.getElementById('um-search').value.toLowerCase();
+                    return !q || (u.email||'').toLowerCase().includes(q) || (u.full_name||'').toLowerCase().includes(q);
+                }));
+                statusEl.textContent = currentlyHas
+                    ? '✅ Acceso a Colaboradores removido.'
+                    : '✅ Acceso a Colaboradores otorgado.';
+            } catch (err) {
+                statusEl.textContent = '❌ Error: ' + err.message;
+            }
+        }
+
+        async function deleteUser(userId, email) {
+            if (!confirm(`¿Eliminar al usuario "${email}"?\n\nEsta acción no se puede deshacer.`)) return;
+            const statusEl = document.getElementById('um-status');
+            statusEl.textContent = 'Eliminando…';
+
+            try {
+                const { error } = await window.supabaseClient
+                    .rpc('delete_user_by_admin', { p_user_id: userId });
+                if (error) throw error;
+                statusEl.textContent = `✅ Usuario ${email} eliminado.`;
+                _umAllRows = _umAllRows.filter(u => u.user_id !== userId);
+                umRenderRows(_umAllRows);
+            } catch (err) {
+                console.error('[deleteUser]', err);
+                // Fallback: mostrar UN SOLO comando SQL listo para copiar
+                const sql = `DELETE FROM auth.users WHERE id = '${userId}';`;
+                statusEl.innerHTML = `⚠️ No se pudo eliminar automáticamente: <em>${err.message}</em><br>
+                    <span class="text-muted small">Ejecuta este SQL en <strong>Supabase > SQL Editor</strong> y luego recarga la tabla:</span><br>
+                    <code class="small user-select-all bg-dark text-white px-2 py-1 d-inline-block rounded mt-1">${sql}</code>
+                    <button class="btn btn-outline-secondary btn-sm ms-2 py-0" onclick="navigator.clipboard.writeText('${sql}')">Copiar</button>`;
+            }
+        }
 
         checkSession();
     </script>

@@ -503,7 +503,6 @@ const LANDSCAPE_HINT_SECTIONS = new Set([
     'puntualidad-agosto',
     'demoras',
     'comparativa',
-    'manifiestos',
     'biblioteca'
 ]);
 
@@ -517,7 +516,6 @@ const LANDSCAPE_HINT_MESSAGES = {
     'puntualidad-agosto': 'La vista de puntualidad se muestra completa en horizontal.',
     'demoras': 'Gira tu dispositivo para ver todos los detalles de las demoras.',
     'comparativa': 'El reporte comparativo se visualiza mejor en horizontal.',
-    'manifiestos': 'Los manifiestos se leen mejor con el dispositivo en horizontal.',
     'biblioteca': 'La biblioteca digital se visualiza mejor en modo horizontal.'
 };
 
@@ -2142,11 +2140,30 @@ function applySectionPermissions(userName) {
     // SUPERADMIN / ADMIN / EDITOR / CONTROL_FAUNA / SERVICIO_MEDICO BYPASS
     const role = sessionStorage.getItem('user_role') || 'viewer';
     const isPowerUser = ['admin', 'editor', 'superadmin', 'control_fauna', 'servicio_medico'].includes(role);
+    const isColabOnly  = ['colab_viewer', 'colab_editor'].includes(role);
 
     if (isPowerUser) {
         // If technical role, do not hide anything via permissions
-        // AdminUI will handle specific visibility (e.g. only showing wildlife for fauna)
-        // This function just ensures the *potential* to see sections isn't hard-blocked by "perm-hidden"
+        return;
+    }
+
+    // Roles de solo-Colaboradores: ocultar todo el menú excepto la sección de colaboradores
+    if (isColabOnly) {
+        document.querySelectorAll('.menu-item[data-section]').forEach(item => {
+            if (item.dataset.section !== 'colaboradores') {
+                item.classList.add('perm-hidden');
+            }
+        });
+        document.querySelectorAll('.content-section').forEach(sectionEl => {
+            const key = (sectionEl.id || '').replace(/-section$/, '');
+            if (key !== 'colaboradores') {
+                sectionEl.classList.add('perm-hidden');
+                sectionEl.classList.remove('active');
+            }
+        });
+        // Navegar a colaboradores automáticamente
+        const colabLink = document.querySelector('.menu-item[data-section="colaboradores"]');
+        if (typeof showSection === 'function' && colabLink) showSection('colaboradores', colabLink);
         return;
     }
 
@@ -2178,6 +2195,7 @@ function applySectionPermissions(userName) {
     if (rawWhitelist.length) {
         if (!rawWhitelist.includes('historia')) rawWhitelist.push('historia');
         if (!rawWhitelist.includes('biblioteca')) rawWhitelist.push('biblioteca');
+        // colaboradores: solo si el usuario lo tiene explícitamente en su legacy whitelist
     }
 
     if (rawWhitelist.length) {
@@ -2206,6 +2224,23 @@ function applySectionPermissions(userName) {
             const fallbackLink = document.querySelector(`.menu-item[data-section="${fallback}"]`);
             showSection(fallback, fallbackLink);
         }
+    }
+
+    // Colaboradores: oculto para viewers a menos que se haya otorgado acceso explícito
+    const colabGranted = (() => {
+        try {
+            const secs = JSON.parse(sessionStorage.getItem('user_allowed_sections') || 'null');
+            if (Array.isArray(secs) && secs.includes('colaboradores')) return true;
+        } catch (_) {}
+        const legacyUser = (dashboardData?.users || {})[userName];
+        return Array.isArray(legacyUser?.allowedSections) &&
+            legacyUser.allowedSections.some(s => normalizeSectionKey(s) === 'colaboradores');
+    })();
+    if (!colabGranted) {
+        const colabMenuItem = document.querySelector('.menu-item[data-section="colaboradores"]');
+        if (colabMenuItem) colabMenuItem.classList.add('perm-hidden');
+        const colabSection = document.getElementById('colaboradores-section');
+        if (colabSection) { colabSection.classList.add('perm-hidden'); colabSection.classList.remove('active'); }
     }
 }
 // Hashes de contraseñas (generados en cliente al inicio y luego se descartan passwords en claro)
@@ -3154,10 +3189,14 @@ async function ensureRoleInSessionStorage(userId) {
         if (!window.supabaseClient || !userId) return;
         const { data: roleData } = await window.supabaseClient
             .from('user_roles')
-            .select('role')
+            .select('role, permissions')
             .eq('user_id', userId)
             .single();
         sessionStorage.setItem('user_role', (roleData && roleData.role) ? roleData.role : 'viewer');
+        try {
+            const secs = roleData?.permissions?.allowed_sections;
+            if (Array.isArray(secs)) sessionStorage.setItem('user_allowed_sections', JSON.stringify(secs));
+        } catch (_) {}
     } catch (_) {
         try { sessionStorage.setItem('user_role', sessionStorage.getItem('user_role') || 'viewer'); } catch (_) { }
     }
@@ -3204,6 +3243,7 @@ async function bindSupabaseAuthSessionBridge() {
                     sessionStorage.removeItem(SESSION_USER);
                     sessionStorage.removeItem('user_fullname');
                     sessionStorage.removeItem('user_role');
+                    sessionStorage.removeItem('user_allowed_sections');
                 } catch (_) { }
             }
         });
@@ -3502,18 +3542,22 @@ async function handleLogin(e) {
         }
         sessionStorage.setItem('user_fullname', fullName || data.user.email);
 
-        // Obtener rol del usuario
+        // Obtener rol y permisos del usuario
         let role = 'viewer';
         try {
             const { data: roleData } = await window.supabaseClient
                 .from('user_roles')
-                .select('role')
+                .select('role, permissions')
                 .eq('user_id', data.user.id)
                 .single();
 
             if (roleData && roleData.role) {
                 role = roleData.role;
             }
+            try {
+                const secs = roleData?.permissions?.allowed_sections;
+                if (Array.isArray(secs)) sessionStorage.setItem('user_allowed_sections', JSON.stringify(secs));
+            } catch (_) {}
         } catch (e) {
             console.warn('No se pudo obtener el rol del usuario, asignando viewer por defecto', e);
         }
@@ -6345,6 +6389,13 @@ function showSection(sectionKey, linkEl) {
                     console.error('loadHistory no está definida');
                 }
             }, 100);
+        }
+
+        // Hook: Colaboradores – precarga en segundo plano
+        if (targetKey === 'colaboradores') {
+            // el módulo IIFE interno maneja su propia precarga via override de showSection;
+            // este log sirve como trazabilidad
+            console.log('[Colaboradores] Sección activa');
         }
 
         // Cerrar sidebar en móvil

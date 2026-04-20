@@ -1205,8 +1205,24 @@ ${cells}
             });
         }
 
+        // ── Rutas activas esta semana (latest valid_from en datos raw) ─────────
+        const _rvf = [..._raw.nac, ..._raw.int, ..._raw.carga]
+            .filter(r => r.valid_from)
+            .reduce((mx, r) => r.valid_from > mx ? r.valid_from : mx, '');
+        const _rlbl = ([..._raw.nac, ..._raw.int, ..._raw.carga]
+            .find(r => r.valid_from === _rvf) || {}).week_label || _rvf;
+        const _activeNow = {};  // { canonicalAirline → Set<IATA> }
+        [..._raw.nac, ..._raw.int, ..._raw.carga]
+            .filter(r => r.valid_from === _rvf && rowTotal(r) > 0)
+            .forEach(r => {
+                const canon = resolveAirline(r.airline || 'Desconocida').canonical;
+                const iata  = (r.iata || '?').toUpperCase();
+                if (!_activeNow[canon]) _activeNow[canon] = new Set();
+                _activeNow[canon].add(iata);
+            });
+
         // ── Overview cards tab ────────────────────────────────────────────────
-        renderAirlinesOverview(airlineMap, months);
+        renderAirlinesOverview(airlineMap, months, _activeNow, _rlbl);
     }
 
     // ─── Airlines Overview (resumen con tarjetas) ────────────────────────────
@@ -1223,7 +1239,7 @@ ${cells}
         return { src: `images/destinos/${name}.jpg`, fallback: `images/destinos_int/${name}.jpg` };
     }
 
-    function renderAirlinesOverview(airlineMap, months) {
+    function renderAirlinesOverview(airlineMap, months, activeThisWeek, latestWeekLbl) {
         const container = document.getElementById('monthly-airlines-overview');
         if (!container) return;
 
@@ -1242,11 +1258,13 @@ ${cells}
         // Sort airlines by grand total desc
         const sorted = keys
             .map(name => {
-                const data   = airlineMap[name];
-                const values = (months || []).map(mk => data.months[mk] || 0);
-                const total  = values.reduce((s, v) => s + v, 0);
-                const routeCount = Object.keys(data.routes || {}).length;
-                return { name, data, values, total, routeCount };
+                const data             = airlineMap[name];
+                const values           = (months || []).map(mk => data.months[mk] || 0);
+                const total            = values.reduce((s, v) => s + v, 0);
+                const routeCount       = Object.keys(data.routes || {}).length;
+                const activeSet        = (activeThisWeek || {})[name] || new Set();
+                const activeRouteCount = activeSet.size;
+                return { name, data, values, total, routeCount, activeRouteCount, activeSet };
             })
             .sort((a, b) => b.total - a.total);
 
@@ -1319,8 +1337,9 @@ ${cells}
         <!-- KPIs -->
         <div class="d-flex gap-3 mb-2">
             <div>
-                <div style="font-size:.65rem;text-transform:uppercase;color:#6c757d;letter-spacing:.05em">Rutas</div>
-                <div class="fw-bold" style="font-size:1.35rem;line-height:1.1;color:${meta.color}">${entry.routeCount}</div>
+                <div style="font-size:.65rem;text-transform:uppercase;color:#6c757d;letter-spacing:.05em">Rutas activas</div>
+                <div class="fw-bold" style="font-size:1.35rem;line-height:1.1;color:${meta.color}">${entry.activeRouteCount}</div>
+                ${entry.routeCount > entry.activeRouteCount ? `<div style="font-size:.6rem;color:#9ca3af">${entry.routeCount} históricas</div>` : ''}
             </div>
             <div>
                 <div style="font-size:.65rem;text-transform:uppercase;color:#6c757d;letter-spacing:.05em">Total freq</div>
@@ -1398,13 +1417,20 @@ ${cells}
             const meta   = entry.data.meta;
             const mths   = container._ovMonths || [];
 
-            // Sort routes by total freq desc
+            // Sort routes: activas esta semana primero, luego históricas
             const routesSorted = Object.values(entry.data.routes)
                 .map(rt => {
-                    const vals = mths.map(mk => rt.months[mk] || 0);
-                    return { ...rt, values: vals, total: vals.reduce((s,v)=>s+v,0) };
+                    const vals         = mths.map(mk => rt.months[mk] || 0);
+                    const iataUp       = (rt.iata || '?').toUpperCase();
+                    const isActive     = entry.activeSet.has(iataUp);
+                    const lastActiveMk = isActive ? null
+                        : ([...mths].reverse().find(mk => (rt.months[mk] || 0) > 0) || null);
+                    return { ...rt, values: vals, total: vals.reduce((s,v)=>s+v,0), isActive, lastActiveMk };
                 })
-                .sort((a,b) => b.total - a.total);
+                .sort((a, b) => {
+                    if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+                    return b.total - a.total;
+                });
 
             function routeTrendBadge(values) {
                 const first = values.find(v => v > 0) || 0;
@@ -1417,10 +1443,9 @@ ${cells}
                 return '';
             }
 
-            const routeCards = routesSorted.map(rt => {
+            function buildRouteCard(rt) {
                 const { src: imgSrc, fallback: imgFallback } = destImageSrc(rt.iata, rt.city);
                 const defFallback = 'images/icons/destino-default.svg';
-                // Build onerror chain: src → fallback (if any) → default placeholder
                 const onerrorAttr = imgFallback
                     ? `this.src='${imgFallback}';this.onerror=function(){this.onerror=null;this.src='${defFallback}'}`
                     : `this.onerror=null;this.src='${defFallback}'`;
@@ -1440,47 +1465,61 @@ ${cells}
 </div>`;
                 }).join('');
 
-                return `<div class="col">
-<div class="card border-0 overflow-hidden" style="border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.18)">
-    <!-- Photo -->
+                const topBadge = rt.isActive
+                    ? `<div style="position:absolute;top:8px;right:10px;background:rgba(0,0,0,.55);color:#fff;font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:20px;backdrop-filter:blur(4px)">${rt.total} freq</div>`
+                    : `<div style="position:absolute;top:8px;right:10px;background:rgba(100,60,0,.85);color:#fde68a;font-size:.63rem;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap"><i class="fas fa-history" style="font-size:.55rem"></i> Operó hasta ${rt.lastActiveMk ? monthShort(rt.lastActiveMk) + ' ' + rt.lastActiveMk.split('-')[0] : '—'}</div>`;
+
+                return `<div class="col"><div class="card border-0 overflow-hidden" style="border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.18);${!rt.isActive ? 'opacity:.7' : ''}">
     <div style="position:relative;height:150px;overflow:hidden;flex-shrink:0">
-        <img src="${imgSrc}"
-            onerror="${onerrorAttr}"
-            style="width:100%;height:100%;object-fit:cover;display:block">
-        <!-- Gradient -->
+        <img src="${imgSrc}" onerror="${onerrorAttr}"
+            style="width:100%;height:100%;object-fit:cover;display:block;${!rt.isActive ? 'filter:grayscale(60%)' : ''}">
         <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.82) 0%,rgba(0,0,0,.1) 55%,transparent 100%)"></div>
-        <!-- City label -->
         <div style="position:absolute;bottom:10px;left:12px;right:8px">
             <div style="font-size:1rem;font-weight:800;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.6);line-height:1.1">${rt.city}</div>
             <span style="font-size:.65rem;background:rgba(255,255,255,.2);color:#fff;border-radius:4px;padding:1px 6px;backdrop-filter:blur(4px)">${rt.iata}</span>
-            <span style="float:right;margin-top:2px">${routeTrendBadge(rt.values)}</span>
+            <span style="float:right;margin-top:2px">${rt.isActive ? routeTrendBadge(rt.values) : ''}</span>
         </div>
-        <!-- Total badge -->
-        <div style="position:absolute;top:8px;right:10px;background:rgba(0,0,0,.55);color:#fff;font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:20px;backdrop-filter:blur(4px)">
-            ${rt.total} freq
-        </div>
+        ${topBadge}
     </div>
-    <!-- Month breakdown -->
-    <div style="background:#1e293b;padding:8px 10px;display:flex;flex-wrap:wrap;gap:2px">
-        ${monthCells}
-    </div>
-</div>
-</div>`;
-            }).join('');
+    <div style="background:#1e293b;padding:8px 10px;display:flex;flex-wrap:wrap;gap:2px">${monthCells}</div>
+</div></div>`;
+            }
+
+            const activeRoutes   = routesSorted.filter(r => r.isActive);
+            const inactiveRoutes = routesSorted.filter(r => !r.isActive);
+
+            const activeCount   = activeRoutes.length;
+            const inactiveCount = inactiveRoutes.length;
+            const activeIatas   = activeRoutes.map(r => `<strong>${r.iata}</strong> ${r.city}`).join(' · ');
+            const routeSummary  = `${activeCount} ruta${activeCount !== 1 ? 's' : ''} activa${activeCount !== 1 ? 's' : ''}`
+                + (inactiveCount > 0 ? ` · <span style="color:#9ca3af;font-size:.8rem">${inactiveCount} histórica${inactiveCount !== 1 ? 's' : ''}</span>` : '')
+                + ` · ${entry.total.toLocaleString()} frecuencias totales`;
+
+            const contextNote = inactiveCount > 0 ? `
+<div class="alert alert-info py-2 px-3 mb-3 small" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);border-radius:8px;color:#93c5fd">
+    <div class="mb-1"><i class="fas fa-check-circle me-1 text-success"></i><strong>Destinos activos (contemplados en el total):</strong> ${activeIatas}</div>
+    <div><i class="fas fa-history me-1" style="color:#fde68a"></i><span style="color:#fbbf24">Destinos históricos: no operan en la semana actual y <strong>no están incluidos</strong> en el conteo de frecuencias totales.</span></div>
+</div>` : '';
+
+            const inactiveSection = inactiveCount > 0 ? `
+<hr style="border-color:rgba(255,255,255,.12);margin:18px 0 10px">
+<div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-3">${inactiveRoutes.map(buildRouteCard).join('')}</div>` : '';
 
             inner.innerHTML = `
-<div style="border-left:4px solid ${meta.color};padding-left:14px;margin-bottom:16px">
+<div style="border-left:4px solid ${meta.color};padding-left:14px;margin-bottom:12px">
     <div class="d-flex align-items-center gap-2">
         <img src="${meta.logo || 'images/airlines/default-airline-logo.svg'}"
             onerror="this.src='images/airlines/default-airline-logo.svg'"
             style="height:28px;max-width:80px;object-fit:contain">
         <div>
             <span class="fw-bold" style="font-size:1.05rem">${entry.name}</span>
-            <span class="text-muted ms-2" style="font-size:.85rem">${routesSorted.length} rutas · ${entry.total.toLocaleString()} frecuencias totales</span>
+            <span class="text-muted ms-2" style="font-size:.85rem">${routeSummary}</span>
         </div>
     </div>
 </div>
-<div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-3">${routeCards}</div>`;
+${contextNote}
+<div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-3">${activeRoutes.map(buildRouteCard).join('')}</div>
+${inactiveSection}`;
 
             panel.style.display = 'block';
             panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
