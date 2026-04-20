@@ -5562,7 +5562,7 @@ FF
                             let numDebounce = null;
 
                             if (nameInput) {
-                                nameInput.addEventListener('input', () => colabAutocompletar(nameInput.value));
+                                nameInput.addEventListener('input', () => colabAutocompletar(nameInput.value, nameInput));
                                 nameInput.addEventListener('keydown', e => {
                                     if (e.key === 'Enter') { colabBuscar(); }
                                     if (e.key === 'Escape') {
@@ -5573,8 +5573,8 @@ FF
                             }
                             if (numInput) {
                                 numInput.addEventListener('input', () => {
-                                    /* Mostrar sugerencias por número */
-                                    colabAutocompletar(numInput.value);
+                                    /* Mostrar sugerencias anclándose al input numérico */
+                                    colabAutocompletar(numInput.value, numInput);
                                     /* Auto-buscar tras 600 ms de inactividad */
                                     clearTimeout(numDebounce);
                                     numDebounce = setTimeout(() => {
@@ -5596,11 +5596,15 @@ FF
                             window.addEventListener('scroll', () => {
                                 const sb = document.getElementById('colab-suggestions-list');
                                 if (!sb || !sb.classList.contains('visible')) return;
-                                const anchor = document.getElementById('colab-name-input') || document.getElementById('colab-num-input');
+                                const bar = document.querySelector('.colab-search-bar');
+                                const barRect = bar ? bar.getBoundingClientRect() : null;
+                                const anchor = document.activeElement && document.activeElement.id === 'colab-num-input'
+                                    ? document.getElementById('colab-num-input')
+                                    : document.getElementById('colab-name-input') || document.getElementById('colab-num-input');
                                 if (anchor) {
                                     const rect = anchor.getBoundingClientRect();
-                                    sb.style.top  = (rect.bottom + 6) + 'px';
-                                    sb.style.left = rect.left + 'px';
+                                    sb.style.top  = (rect.bottom + 4) + 'px';
+                                    sb.style.left = (barRect ? barRect.left : rect.left) + 'px';
                                 }
                             }, { passive: true });
                         }
