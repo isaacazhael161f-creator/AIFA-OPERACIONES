@@ -5526,7 +5526,7 @@ FF
                                 el.innerHTML = rows.map(([name, count]) => {
                                     const pct  = Math.round((count / max) * 100);
                                     const safe = name.replace(/"/g, '&quot;');
-                                    return `<div class="cd-tbl-row clickable" onclick="colabAbrirProfModal(${JSON.stringify(name)})">
+                                    return `<div class="cd-tbl-row clickable" onclick="colabAbrirProfModal('${name.replace(/\\/g,"\\\\").replace(/'/g,"\\'")}')">
                                         <span class="cd-tbl-name clickable-label" title="${safe}">${name}</span>
                                         <span class="cd-tbl-bar-wrap"><span class="cd-tbl-bar" style="width:${pct}%;background:#7b1fa2"></span></span>
                                         <span class="cd-tbl-count">${count}</span>
