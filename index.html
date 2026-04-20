@@ -5380,26 +5380,31 @@ FF
 
                             colabLoadPromise = (async () => {
                                 try {
-                                    // Usar window.supabaseClient directo (como el resto de la app)
-                                    const client = window.supabaseClient;
+                                    // Esperar hasta que supabaseClient esté disponible (máx 5 s)
+                                    let client = window.supabaseClient;
                                     if (!client) {
-                                        // Si aún no está listo, intentar inicializar
                                         if (typeof window.ensureSupabaseClient === 'function') {
-                                            await window.ensureSupabaseClient();
+                                            client = await window.ensureSupabaseClient();
                                         }
-                                        if (!window.supabaseClient) throw new Error('Cliente Supabase no disponible');
+                                        if (!client) {
+                                            // Reintentar hasta 10 veces cada 500 ms
+                                            for (let i = 0; i < 10; i++) {
+                                                await new Promise(r => setTimeout(r, 500));
+                                                if (window.supabaseClient) { client = window.supabaseClient; break; }
+                                            }
+                                        }
+                                        if (!client) throw new Error('Cliente Supabase no disponible después de esperar');
                                     }
-                                    const sb = window.supabaseClient;
 
-                                    // Sin order() para evitar errores si el nombre de columna difiere
-                                    const { data, error } = await sb
+                                    const { data, error } = await client
                                         .from('agenda_2026')
                                         .select('*')
                                         .limit(2000);
 
                                     if (error) throw error;
-                                    colabCache = data || [];
+                                    colabCache  = data || [];
                                     colabLoaded = true;
+                                    colabLoadPromise = null; // limpiar para posibles recargas futuras
                                     if (colabCache.length) {
                                         colabCols = colabDetectarColumnas(colabCache[0]);
                                     } else {
@@ -5409,8 +5414,8 @@ FF
                                 } catch (err) {
                                     console.error('[Colaboradores] Error al cargar agenda_2026:', err?.message || err);
                                     colabLastError = err?.message || String(err);
-                                    colabCache = [];
-                                    colabLoaded = false;
+                                    colabCache       = [];
+                                    colabLoaded      = false;
                                     colabLoadPromise = null;
                                     return [];
                                 }
@@ -5427,10 +5432,26 @@ FF
                         function colabRenderDashboard() {
                             // Si los datos aún no están, arrancar la carga y volver a intentar al terminar
                             if (!colabLoaded) {
-                                colabCargarTodos().then(() => colabRenderDashboard()).catch(() => {});
+                                colabCargarTodos().then(result => {
+                                    if (result && result.length) {
+                                        colabRenderDashboard();
+                                    } else {
+                                        // Mostrar error en el spinner
+                                        const loading = document.getElementById('cd-loading');
+                                        if (loading) {
+                                            const errMsg = colabLastError ? ` (${colabLastError})` : '';
+                                            loading.innerHTML = `<i class="fas fa-exclamation-triangle text-danger me-2"></i>
+                                                <span class="text-danger" style="font-size:.85rem">No se pudieron cargar los datos del directorio${errMsg}. Recarga la página o revisa la conexión.</span>`;
+                                        }
+                                    }
+                                }).catch(() => {});
                                 return;
                             }
-                            if (!colabCache.length) return;
+                            if (!colabCache || !colabCache.length) {
+                                const loading = document.getElementById('cd-loading');
+                                if (loading) loading.innerHTML = `<span class="text-muted" style="font-size:.85rem">El directorio no tiene registros.</span>`;
+                                return;
+                            }
 
                             // Ocultar spinner, mostrar contenido
                             const loading = document.getElementById('cd-loading');
