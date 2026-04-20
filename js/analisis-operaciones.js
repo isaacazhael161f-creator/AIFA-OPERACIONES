@@ -48,139 +48,152 @@ function initOpsAnalysisTabs() {
 async function loadOpsMonthData(month) {
     currentMonthOps = month;
 
-    // UI Updates
     const badge = document.getElementById('current-month-badge');
-    if(badge) badge.textContent = `${month} ${currentYearOps}`;
-    
+    if (badge) badge.textContent = `${month} ${currentYearOps}`;
+
     const countBadge = document.getElementById('record-count-badge');
-    if(countBadge) countBadge.textContent = 'Cargando datos...';
-    
-    // Destroy existing instances
+    if (countBadge) countBadge.textContent = 'Cargando datos...';
+
     if (opsDataTable) {
         opsDataTable.destroy();
-        $('#ops-datatable').empty(); 
+        $('#ops-datatable').empty();
         opsDataTable = null;
     }
-    $('#pivot-output').empty();
-    
-    // Check Cache first
-    const cacheKey = `${OPS_CACHE_KEY}${currentYearOps}_${month}`;
-    const cached = getFromCache(cacheKey);
 
-    if (cached) {
-        console.log(`Loaded ${month} from cache.`);
-        opsRawData = cached;
-        if(countBadge) countBadge.textContent = `${cached.length.toLocaleString()} registros (Caché)`;
-        
-        // Render immediately without spinner
-        renderOpsTable(cached);
-        const activeMode = document.querySelector('input[name="viewmode"]:checked').id.replace('view-', '');
-        if(activeMode !== 'table') window.toggleViewMode(activeMode);
+    $('#pivot-output').empty();
+
+    // 🔥 MAPA DE MESES (clave del cambio)
+    const monthMap = {
+        'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+        'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+        'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+    };
+
+    const mesNumero = monthMap[month];
+
+    if (!mesNumero) {
+        console.error("Mes inválido:", month);
         return;
     }
 
-    // Show Loading
-    // If table is empty (no header yet), we can't easily append a row effectively without a thead, 
-    // but DataTables usually handles empty tables. We'll set a placeholder in the wrapper or table if possible.
-    if(document.getElementById('ops-datatable')) {
-        $('#ops-datatable').html('<tbody><tr><td colspan="100%" class="text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">Consultando Demoras...</p></td></tr></tbody>');
+    const cacheKey = `${OPS_CACHE_KEY}${currentYearOps}_${mesNumero}`;
+    const cached = getFromCache(cacheKey);
+
+    if (cached) {
+        opsRawData = cached;
+        if (countBadge) countBadge.textContent = `${cached.length.toLocaleString()} registros (Caché)`;
+
+        renderOpsTable(cached);
+
+        const activeMode = document.querySelector('input[name="viewmode"]:checked').id.replace('view-', '');
+        if (activeMode !== 'table') window.toggleViewMode(activeMode);
+        return;
+    }
+
+    if (document.getElementById('ops-datatable')) {
+        $('#ops-datatable').html(`
+            <tbody>
+                <tr>
+                    <td colspan="100%" class="text-center py-5">
+                        <div class="spinner-border text-primary"></div>
+                        <p class="mt-2 text-muted">Consultando Demoras...</p>
+                    </td>
+                </tr>
+            </tbody>
+        `);
     }
 
     try {
-        // 2025 tables: "Demoras Enero" (sin año). 2026+ tables: "Demoras Enero 2026", etc.
-        const tableName = currentYearOps === 2025 ? `Demoras ${month}` : `Demoras ${month} ${currentYearOps}`;
-        
         let client = window.supabaseClient;
         if (!client && window.ensureSupabaseClient) {
-             client = await window.ensureSupabaseClient();
+            client = await window.ensureSupabaseClient();
         }
-        
-        if (!client) throw new Error("Supabase client failed to initialize.");
 
-        console.log(`Fetching ${tableName} using client...`);
+        if (!client) throw new Error("Supabase client failed.");
 
-        // Fetch ALL columns, overcoming the 1000 row limit by paging
+        console.log(`Consultando Demoras (MES=${mesNumero}, ANIO=${currentYearOps})`);
+
         let allData = [];
         let from = 0;
         const batchSize = 1000;
         let moreData = true;
 
         while (moreData) {
-            // Update UI with progress
-            if(countBadge) countBadge.textContent = `Cargando... (${allData.length} registros)`;
-            
+
+            if (countBadge) countBadge.textContent = `Cargando... (${allData.length})`;
+
             const { data, error } = await client
-                .from(tableName)
+                .from('Demoras') // 🔥 YA NO CAMBIA
                 .select('*')
+                .eq('MES', mesNumero)
+                .eq('ANIO', currentYearOps)
                 .range(from, from + batchSize - 1);
-            
+
             if (error) {
-                console.error("Supabase Error:", error);
+                console.error("Supabase error:", error);
                 throw error;
             }
 
             if (data && data.length > 0) {
                 allData = allData.concat(data);
                 from += batchSize;
-                // If we got less than batchSize, we are done
+
                 if (data.length < batchSize) {
                     moreData = false;
                 }
             } else {
                 moreData = false;
             }
-            
-            // Safety break for infinite loops (e.g. > 50k records is unlikely for 1 month)
-            if(allData.length > 20000) {
-                 console.warn("Safety break: >20k records loaded");
-                 moreData = false;
+
+            if (allData.length > 20000) {
+                console.warn("Safety break >20k registros");
+                moreData = false;
             }
         }
-        
-        const data = allData;
 
-        // Sort data by Date (DD/MM/YYYY)
-        if (data && data.length > 0) {
-            // Prefer exact 'Fecha' or 'fecha', fallback to containing 'fecha'
-            const keys = Object.keys(data[0]);
-            const dateKey = keys.find(k => k.toLowerCase() === 'fecha') || keys.find(k => /fecha/i.test(k));
+        if (!allData.length) {
+            if (countBadge) countBadge.textContent = '0 registros';
 
-            if (dateKey) {
-                data.sort((a, b) => {
-                    const da = parseDate(a[dateKey]);
-                    const db = parseDate(b[dateKey]);
-                    return da - db;
-                });
-            }
-        }
-        
-        if (!data || data.length === 0) {
-            if(countBadge) countBadge.textContent = '0 registros';
-            $('#ops-datatable').html('<tbody><tr><td colspan="100%" class="text-center text-muted py-5">No se encontraron registros para este mes.</td></tr></tbody>');
+            $('#ops-datatable').html(`
+                <tbody>
+                    <tr>
+                        <td colspan="100%" class="text-center text-muted py-5">
+                            No se encontraron registros.
+                        </td>
+                    </tr>
+                </tbody>
+            `);
+
             opsRawData = [];
             return;
         }
 
-        opsRawData = data;
-        saveToCache(cacheKey, data);
-        if(countBadge) countBadge.textContent = `${data.length.toLocaleString()} registros`;
+        opsRawData = allData;
+        saveToCache(cacheKey, allData);
 
-        // Render DataTable
-        renderOpsTable(data);
-        
-        // Refresh whatever view is active
+        if (countBadge) countBadge.textContent = `${allData.length.toLocaleString()} registros`;
+
+        renderOpsTable(allData);
+
         const activeMode = document.querySelector('input[name="viewmode"]:checked').id.replace('view-', '');
-        if(activeMode !== 'table') {
+        if (activeMode !== 'table') {
             window.toggleViewMode(activeMode);
         }
 
     } catch (err) {
         console.error("Error:", err);
-        if(countBadge) countBadge.textContent = 'Error';
-        $('#ops-datatable').html(`<tbody><tr><td colspan="100%" class="text-center text-danger py-5">
-            Error al cargar datos: ${err.message}<br>
-            <small>Verifique que la tabla existan y tenga permisos.</small>
-        </td></tr></tbody>`);
+
+        if (countBadge) countBadge.textContent = 'Error';
+
+        $('#ops-datatable').html(`
+            <tbody>
+                <tr>
+                    <td colspan="100%" class="text-center text-danger py-5">
+                        Error al cargar datos: ${err.message}
+                    </td>
+                </tr>
+            </tbody>
+        `);
     }
 }
 
