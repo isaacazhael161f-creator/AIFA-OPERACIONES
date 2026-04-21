@@ -4775,7 +4775,7 @@ FF
                                     <div id="cf-amonestaciones-list"></div>
 
                                     <div class="colab-section-title mt-2"><i class="fas fa-comment-alt me-1" aria-hidden="true"></i> Comentarios</div>
-                                    <div class="colab-text-block" id="cf-comentarios">—</div>
+                                    <div id="cf-comentarios-list"></div>
 
                                     <!-- ── BLOQUE 6: EMERGENCIAS ── -->
                                     <div class="colab-emergency-panel">
@@ -4903,6 +4903,7 @@ FF
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-docs" data-bs-toggle="tab" data-bs-target="#cedit-docs" type="button">Documentos</button></li>
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-emerg" data-bs-toggle="tab" data-bs-target="#cedit-emerg" type="button">Emergencias</button></li>
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-amonest" data-bs-toggle="tab" data-bs-target="#cedit-amonest" type="button"><i class="fas fa-exclamation-triangle me-1 text-warning"></i>Amonest.</button></li>
+                                        <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-coment" data-bs-toggle="tab" data-bs-target="#cedit-coment" type="button"><i class="fas fa-comment-alt me-1 text-info"></i>Coment.</button></li>
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-foto" data-bs-toggle="tab" data-bs-target="#cedit-foto" type="button"><i class="fas fa-camera me-1"></i>Foto</button></li>
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-cv" data-bs-toggle="tab" data-bs-target="#cedit-cv" type="button"><i class="fas fa-file-pdf me-1 text-danger"></i>CV</button></li>
                                     </ul>
@@ -4920,8 +4921,7 @@ FF
                                                 <div class="col-12 col-md-5"><label class="form-label fw-semibold small">Correo Institucional</label><input type="email" class="form-control form-control-sm" id="ce-correo" data-field="correo"></div>
                                                 <div class="col-12 col-md-3"><label class="form-label fw-semibold small">Profesión</label><input type="text" class="form-control form-control-sm" id="ce-profesion" data-field="profesion"></div>
                                                 <div class="col-12 col-md-2"><label class="form-label fw-semibold small">Militar / Civil</label><input type="text" class="form-control form-control-sm" id="ce-militar" data-field="militar"></div>
-                                                <div class="col-12"><label class="form-label fw-semibold small">Comentarios</label><textarea class="form-control form-control-sm" id="ce-comentarios" data-field="comentarios" rows="2"></textarea></div>
-                                                <div class="col-12"><p class="text-muted small mb-0"><i class="fas fa-info-circle me-1"></i>Para editar amonestaciones y adjuntar PDFs usa la pestaña <strong>Amonest.</strong></p></div>
+                                                <div class="col-12"><p class="text-muted small mb-0"><i class="fas fa-info-circle me-1"></i>Para editar amonestaciones y adjuntar PDFs usa la pestaña <strong>Amonest.</strong> &nbsp;·&nbsp; Para comentarios usa <strong>Coment.</strong></p></div>
                                             </div>
                                         </div>
 
@@ -4999,6 +4999,21 @@ FF
                                             <div class="mb-1">
                                                 <span class="form-label fw-semibold small d-block mb-2"><i class="fas fa-paperclip me-1"></i>PDFs por amonestación</span>
                                                 <div id="cedit-amonest-pdf-list"></div>
+                                            </div>
+                                        </div>
+
+                                        <!-- TAB: Comentarios -->
+                                        <div class="tab-pane fade" id="cedit-coment" role="tabpanel">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-semibold small"><i class="fas fa-list-ol me-1"></i>Líneas de comentarios <span class="text-muted fw-normal">(una por línea)</span></label>
+                                                <textarea class="form-control form-control-sm font-monospace" id="ce-comentarios" data-field="comentarios" rows="5"
+                                                    placeholder="1- Comisión laboral AIFA-DO-CA-0873-3360 12. Sep. 2025, Se le comisiona a…"
+                                                    oninput="colabEditorComentariosPreview()"></textarea>
+                                                <div class="form-text">Escribe o edita cada comentario en su propia línea. Al guardar se actualizará la ficha.</div>
+                                            </div>
+                                            <div class="mb-1">
+                                                <span class="form-label fw-semibold small d-block mb-2"><i class="fas fa-paperclip me-1"></i>PDFs por comentario</span>
+                                                <div id="cedit-coment-pdf-list"></div>
                                             </div>
                                         </div>
 
@@ -5503,7 +5518,7 @@ FF
 
                             // Sección 5: Amonestaciones y comentarios
                             renderAmonestaciones(c);
-                            fillField('cf-comentarios',    gc(c, 'comentarios'));
+                            renderComentarios(c);
 
                             // Sección 6: Emergencias
                             buildContacts(c);
@@ -6415,6 +6430,7 @@ FF
 
                             // Poblar preview de PDFs en tab Amonestaciones
                             colabEditorAmonestPreview();
+                            colabEditorComentariosPreview();
 
                             const modal = new bootstrap.Modal(document.getElementById('colabEditModal'));
                             modal.show();
@@ -6455,6 +6471,115 @@ FF
                                     if (existingSet.has(fileName)) {
                                         const div = document.getElementById(`cedit-ca-actions-${numEmpleado}-${idx}`);
                                         if (div) div.innerHTML = colabAmonestBtns(numEmpleado, idx, EMPLOYEE_DOCS_BASE + fileName, true);
+                                    }
+                                });
+                            } catch (e) { /* silenciar */ }
+                        };
+
+                        /* ── PDFs por comentario: constantes ── */
+                        const EMPLOYEE_COMENT_PREFIX = 'comentarios/';
+                        const EMPLOYEE_COMENT_BASE   = 'https://fgstncvuuhpgyzmjceyr.supabase.co/storage/v1/object/public/employee-cvs/comentarios/';
+
+                        // Generar botones para un ítem de comentario
+                        function colabComentBtns(numEmpleado, idx, existingUrl, canEdit) {
+                            const viewBtn = existingUrl
+                                ? `<a class="ca-btn-view" href="${existingUrl}" target="_blank" rel="noopener"><i class="fas fa-file-pdf me-1"></i>Ver PDF</a>`
+                                : '';
+                            const attachBtn = canEdit
+                                ? `<label class="ca-btn-attach" title="Adjuntar PDF">
+                                    <i class="fas fa-paperclip me-1"></i>${existingUrl ? 'Reemplazar' : 'Adjuntar PDF'}
+                                    <input type="file" accept="application/pdf" style="display:none"
+                                        onchange="colabComentUpload('${numEmpleado}',${idx},this)">
+                                   </label>`
+                                : '';
+                            return viewBtn + attachBtn;
+                        }
+
+                        // Subir PDF de comentario
+                        window.colabComentUpload = async function(numEmpleado, idx, inputEl) {
+                            const file = inputEl?.files?.[0];
+                            if (!file) return;
+                            const actionsDiv = inputEl.closest('.ca-item')?.querySelector('.ca-actions');
+                            if (actionsDiv) actionsDiv.innerHTML = '<span class="ca-uploading"><i class="fas fa-spinner fa-spin me-1"></i>Subiendo…</span>';
+                            try {
+                                const sb = window.supabaseClient;
+                                if (!sb) throw new Error('Sin conexión Supabase');
+                                const path = numEmpleado + '_' + idx + '.pdf';
+                                const { error } = await sb.storage.from(EMPLOYEE_DOCS_BUCKET).upload(EMPLOYEE_COMENT_PREFIX + path, file, { upsert: true, contentType: 'application/pdf' });
+                                if (error) throw error;
+                                const url = EMPLOYEE_COMENT_BASE + path;
+                                if (actionsDiv) actionsDiv.innerHTML = colabComentBtns(numEmpleado, idx, url, true);
+                            } catch (err) {
+                                console.error('[Colaboradores] Error subiendo comentario PDF:', err);
+                                if (actionsDiv) actionsDiv.innerHTML = '<span class="ca-uploading text-danger"><i class="fas fa-times-circle me-1"></i>Error al subir</span>';
+                            }
+                        };
+
+                        // Renderizar bloque comentarios en la ficha
+                        async function renderComentarios(c) {
+                            const container = document.getElementById('cf-comentarios-list');
+                            if (!container) return;
+                            const rawText = gc(c, 'comentarios');
+                            const canEdit = colabCanEdit();
+                            const numEmpleado = val(gc(c, 'num')) || 'sin_num';
+                            if (!val(rawText)) { container.innerHTML = '<p class="ca-empty">—</p>'; return; }
+                            const lines = String(rawText).split(/\n/).map(l => l.trim()).filter(Boolean);
+                            container.innerHTML = `<ul class="ca-list">${lines.map((line, i) => {
+                                const idx = i + 1;
+                                return `<li class="ca-item">
+                                    <span class="ca-text">${line.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
+                                    <div class="ca-actions" id="cc-actions-${numEmpleado}-${idx}">
+                                        ${colabComentBtns(numEmpleado, idx, null, canEdit)}
+                                    </div>
+                                </li>`;
+                            }).join('')}</ul>`;
+                            try {
+                                const sb = window.supabaseClient;
+                                if (!sb) return;
+                                const { data: files } = await sb.storage.from(EMPLOYEE_DOCS_BUCKET).list(EMPLOYEE_COMENT_PREFIX.replace(/\/$/, ''), { search: numEmpleado + '_' });
+                                if (!files?.length) return;
+                                const existingSet = new Set(files.map(f => f.name));
+                                lines.forEach((_, i) => {
+                                    const idx = i + 1;
+                                    const fileName = numEmpleado + '_' + idx + '.pdf';
+                                    if (existingSet.has(fileName)) {
+                                        const div = document.getElementById(`cc-actions-${numEmpleado}-${idx}`);
+                                        if (div) div.innerHTML = colabComentBtns(numEmpleado, idx, EMPLOYEE_COMENT_BASE + fileName, canEdit);
+                                    }
+                                });
+                            } catch (e) { /* silenciar */ }
+                        }
+
+                        // Preview PDFs de comentarios en editor
+                        window.colabEditorComentariosPreview = async function() {
+                            const ta   = document.getElementById('ce-comentarios');
+                            const list = document.getElementById('cedit-coment-pdf-list');
+                            if (!ta || !list) return;
+                            const c = colabCurrentRow;
+                            const numEmpleado = c ? (val(gc(c, 'num')) || 'sin_num') : 'sin_num';
+                            const lines = String(ta.value || '').split(/\n/).map(l => l.trim()).filter(Boolean);
+                            if (!lines.length) { list.innerHTML = '<p class="ca-empty">Sin comentarios registrados.</p>'; return; }
+                            list.innerHTML = `<ul class="ca-list">${lines.map((line, i) => {
+                                const idx = i + 1;
+                                return `<li class="ca-item">
+                                    <span class="ca-text">${line.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
+                                    <div class="ca-actions" id="cedit-cc-actions-${numEmpleado}-${idx}">
+                                        ${colabComentBtns(numEmpleado, idx, null, true)}
+                                    </div>
+                                </li>`;
+                            }).join('')}</ul>`;
+                            try {
+                                const sb = window.supabaseClient;
+                                if (!sb) return;
+                                const { data: files } = await sb.storage.from(EMPLOYEE_DOCS_BUCKET).list(EMPLOYEE_COMENT_PREFIX.replace(/\/$/, ''), { search: numEmpleado + '_' });
+                                if (!files?.length) return;
+                                const existingSet = new Set(files.map(f => f.name));
+                                lines.forEach((_, i) => {
+                                    const idx = i + 1;
+                                    const fileName = numEmpleado + '_' + idx + '.pdf';
+                                    if (existingSet.has(fileName)) {
+                                        const div = document.getElementById(`cedit-cc-actions-${numEmpleado}-${idx}`);
+                                        if (div) div.innerHTML = colabComentBtns(numEmpleado, idx, EMPLOYEE_COMENT_BASE + fileName, true);
                                     }
                                 });
                             } catch (e) { /* silenciar */ }
