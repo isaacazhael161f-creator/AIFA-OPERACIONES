@@ -10616,9 +10616,13 @@ function showMainApp() {
         } catch (_) { }
         if (mainWasHidden) {
             try {
-                const startLink = document.querySelector('.menu-item[data-section="operaciones-totales"]');
-                if (startLink && startLink.dataset?.section) {
-                    showSection(startLink.dataset.section, startLink);
+                const _loginRole = sessionStorage.getItem('user_role') || 'viewer';
+                const _isColabOnly = ['colab_viewer', 'colab_editor'].includes(_loginRole);
+                if (!_isColabOnly) {
+                    const startLink = document.querySelector('.menu-item[data-section="operaciones-totales"]');
+                    if (startLink && startLink.dataset?.section) {
+                        showSection(startLink.dataset.section, startLink);
+                    }
                 }
             } catch (_) { }
             try {
