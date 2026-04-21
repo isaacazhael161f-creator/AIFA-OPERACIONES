@@ -4101,11 +4101,11 @@ FF
                             padding: .45rem .85rem;
                         }
                         .cd-chart-body {
-                            padding: .6rem .75rem;
+                            padding: .75rem 1rem;
                             display: flex;
                             align-items: center;
                             justify-content: center;
-                            min-height: 200px;
+                            min-height: 260px;
                         }
                         .cd-table-card {
                             background: #fff;
@@ -4479,11 +4479,11 @@ FF
                                         </div>
                                         <div class="cd-chart-card">
                                             <div class="cd-chart-title"><i class="fas fa-sitemap me-1"></i> Top Subdirecciones</div>
-                                            <div class="cd-chart-body"><canvas id="cd-chart-subdir" height="180"></canvas></div>
+                                            <div class="cd-chart-body"><canvas id="cd-chart-subdir" height="260"></canvas></div>
                                         </div>
                                         <div class="cd-chart-card">
                                             <div class="cd-chart-title"><i class="fas fa-user-tie me-1"></i> Top Gerencias</div>
-                                            <div class="cd-chart-body"><canvas id="cd-chart-ger" height="180"></canvas></div>
+                                            <div class="cd-chart-body"><canvas id="cd-chart-ger" height="260"></canvas></div>
                                         </div>
                                         <div class="cd-chart-card">
                                             <div class="cd-chart-title"><i class="fas fa-layer-group me-1"></i> Por Nivel</div>
@@ -5840,13 +5840,14 @@ FF
                                             x: { display: false },
                                             y: {
                                                 ticks: {
-                                                    font: { size: 9 },
+                                                    font: { size: 9.5 },
+                                                    padding: 10,
                                                     autoSkip: false,
                                                     callback: function(val) {
                                                         return wrapLabel(String(this.getLabelForValue(val) || ''), 22);
                                                     }
                                                 },
-                                                afterFit: function(scale) { scale.width = Math.max(scale.width, 155); }
+                                                afterFit: function(scale) { scale.width = Math.max(scale.width, 160); }
                                             }
                                         }
                                     };
@@ -5867,7 +5868,7 @@ FF
                                             responsive: true, maintainAspectRatio: false,
                                             cutout: '55%',
                                             plugins: {
-                                                legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } },
+                                                legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 13, padding: 14 } },
                                                 tooltip: { callbacks: { label: ctx => { const t = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0); return ` ${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed/t*100)}%)`; } } },
                                                 datalabels: doughnutDatalabels
                                             }
@@ -5886,7 +5887,7 @@ FF
                                         type: 'bar',
                                         data: {
                                             labels: data.map(([k]) => k),
-                                            datasets: [{ label: 'Colaboradores', data: data.map(([,v]) => v), backgroundColor: PALETTE_BAR.slice(0, data.length), borderRadius: 6 }]
+                                            datasets: [{ label: 'Colaboradores', data: data.map(([,v]) => v), backgroundColor: PALETTE_BAR.slice(0, data.length), borderRadius: 6, barThickness: 18, borderSkipped: false }]
                                         },
                                         options: opts
                                     });
@@ -5904,7 +5905,7 @@ FF
                                         type: 'bar',
                                         data: {
                                             labels: data.map(([k]) => k),
-                                            datasets: [{ label: 'Colaboradores', data: data.map(([,v]) => v), backgroundColor: gerColors.slice(0, data.length), borderRadius: 6 }]
+                                            datasets: [{ label: 'Colaboradores', data: data.map(([,v]) => v), backgroundColor: gerColors.slice(0, data.length), borderRadius: 6, barThickness: 18, borderSkipped: false }]
                                         },
                                         options: opts
                                     });
@@ -5925,7 +5926,7 @@ FF
                                             responsive: true, maintainAspectRatio: false,
                                             cutout: '50%',
                                             plugins: {
-                                                legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } },
+                                                legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 13, padding: 14 } },
                                                 tooltip: { callbacks: { label: ctx => { const t = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0); return ` ${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed/t*100)}%)`; } } },
                                                 datalabels: doughnutDatalabels
                                             }
