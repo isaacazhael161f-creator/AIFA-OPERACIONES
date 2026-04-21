@@ -5882,8 +5882,10 @@ FF
                                 const cNombre = val(gc(c, 'nombre'));
                                 const cPuesto = val(gc(c, 'puesto'));
                                 const selQuery = cNum || cNombre || '';
+                                const safeQ = encodeURIComponent(selQuery);
                                 return `<div class="colab-sug-item" role="option" tabindex="-1" data-idx="${i}"
-                                      onclick="colabSeleccionarSugerencia(${JSON.stringify(selQuery)})">
+                                      data-q="${safeQ}"
+                                      onclick="colabSeleccionarSugerencia(decodeURIComponent(this.getAttribute('data-q')))">
                                     <span class="colab-sug-num"># ${cNum || '—'}</span>
                                     <span class="colab-sug-name">${cNombre || '—'}</span>
                                     <span class="colab-sug-puesto">${cPuesto || ''}</span>
