@@ -5640,6 +5640,34 @@ FF
                                     if (existing) existing.destroy();
                                 }
 
+                                // Datalabels: porcentaje en donuts
+                                const doughnutDatalabels = {
+                                    display: function(ctx) {
+                                        return ctx.dataset.data[ctx.dataIndex] / ctx.chart.data.datasets[0].data.reduce((a,b) => a+b, 0) >= 0.03;
+                                    },
+                                    formatter: function(value, ctx) {
+                                        const total = ctx.chart.data.datasets[0].data.reduce((a,b) => a+b, 0);
+                                        return Math.round(value / total * 100) + '%';
+                                    },
+                                    color: '#fff',
+                                    font: { size: 11, weight: '700' },
+                                    textShadowBlur: 4,
+                                    textShadowColor: 'rgba(0,0,0,0.5)'
+                                };
+
+                                // Datalabels: porcentaje en barras horizontales
+                                function barDatalabels(dataArr, color) {
+                                    const tot = dataArr.reduce((a, [,v]) => a + v, 0);
+                                    return {
+                                        anchor: 'end', align: 'right',
+                                        font: { size: 10, weight: '700' },
+                                        color: color,
+                                        formatter: function(value) {
+                                            return value + ' (' + Math.round(value / tot * 100) + '%)';
+                                        }
+                                    };
+                                }
+
                                 // 1. Dirección — Doughnut
                                 (function() {
                                     const data = byDir.slice(0, 8).filter(([k]) => k !== '(Sin dato)');
@@ -5653,11 +5681,11 @@ FF
                                         },
                                         options: {
                                             responsive: true, maintainAspectRatio: false,
-                                            cutout: '60%',
+                                            cutout: '55%',
                                             plugins: {
                                                 legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } },
-                                                tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} colaboradores` } },
-                                                datalabels: { display: false }
+                                                tooltip: { callbacks: { label: ctx => { const t = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0); return ` ${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed/t*100)}%)`; } } },
+                                                datalabels: doughnutDatalabels
                                             }
                                         }
                                     });
@@ -5676,12 +5704,13 @@ FF
                                         },
                                         options: {
                                             indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                                            layout: { padding: { right: 75 } },
                                             plugins: {
                                                 legend: { display: false },
                                                 tooltip: { callbacks: { title: ctx => bySubDir[ctx[0].dataIndex]?.[0] || ctx[0].label } },
-                                                datalabels: { anchor: 'end', align: 'right', font: { size: 10, weight: '700' }, color: '#1558d6' }
+                                                datalabels: barDatalabels(data, '#1558d6')
                                             },
-                                            scales: { x: { grid: { display: false }, ticks: { font: { size: 10 } } }, y: { ticks: { font: { size: 10 } } } }
+                                            scales: { x: { display: false }, y: { ticks: { font: { size: 10 } } } }
                                         }
                                     });
                                 })();
@@ -5700,12 +5729,13 @@ FF
                                         },
                                         options: {
                                             indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                                            layout: { padding: { right: 75 } },
                                             plugins: {
                                                 legend: { display: false },
                                                 tooltip: { callbacks: { title: ctx => byGer[ctx[0].dataIndex]?.[0] || ctx[0].label } },
-                                                datalabels: { anchor: 'end', align: 'right', font: { size: 10, weight: '700' }, color: '#0277bd' }
+                                                datalabels: barDatalabels(data, '#0277bd')
                                             },
-                                            scales: { x: { grid: { display: false }, ticks: { font: { size: 10 } } }, y: { ticks: { font: { size: 10 } } } }
+                                            scales: { x: { display: false }, y: { ticks: { font: { size: 10 } } } }
                                         }
                                     });
                                 })();
@@ -5723,11 +5753,11 @@ FF
                                         },
                                         options: {
                                             responsive: true, maintainAspectRatio: false,
-                                            cutout: '55%',
+                                            cutout: '50%',
                                             plugins: {
                                                 legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } },
-                                                tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} colaboradores` } },
-                                                datalabels: { display: false }
+                                                tooltip: { callbacks: { label: ctx => { const t = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0); return ` ${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed/t*100)}%)`; } } },
+                                                datalabels: doughnutDatalabels
                                             }
                                         }
                                     });
