@@ -5770,6 +5770,11 @@ FF
                             (function renderColabCharts() {
                                 if (typeof Chart === 'undefined') return;
 
+                                // Registrar plugin de etiquetas (obligatorio en Chart.js v3+)
+                                if (typeof ChartDataLabels !== 'undefined') {
+                                    Chart.register(ChartDataLabels);
+                                }
+
                                 const PALETTE_RING = [
                                     '#1558d6','#2e7d32','#e65100','#7b1fa2',
                                     '#0277bd','#00695c','#c62828','#f57f17',
@@ -5784,6 +5789,14 @@ FF
                                 function destroyChart(id) {
                                     const existing = Chart.getChart(id);
                                     if (existing) existing.destroy();
+                                }
+
+                                // Partir etiqueta larga en 2 líneas (Chart.js acepta arrays)
+                                function wrapLabel(s, maxLen) {
+                                    maxLen = maxLen || 20;
+                                    if (s.length <= maxLen) return s;
+                                    const cut = s.lastIndexOf(' ', maxLen);
+                                    return cut > 0 ? [s.slice(0, cut), s.slice(cut + 1)] : [s.slice(0, maxLen), s.slice(maxLen)];
                                 }
 
                                 // Datalabels: porcentaje en donuts
@@ -5805,11 +5818,36 @@ FF
                                 function barDatalabels(dataArr, color) {
                                     const tot = dataArr.reduce((a, [,v]) => a + v, 0);
                                     return {
-                                        anchor: 'end', align: 'right',
+                                        anchor: 'end', align: 'right', clamp: true,
                                         font: { size: 10, weight: '700' },
                                         color: color,
                                         formatter: function(value) {
                                             return value + ' (' + Math.round(value / tot * 100) + '%)';
+                                        }
+                                    };
+                                }
+
+                                // Opciones comunes para barras horizontales
+                                function barOpts(data, datalabelsColor) {
+                                    return {
+                                        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                                        layout: { padding: { right: 80, left: 4 } },
+                                        plugins: {
+                                            legend: { display: false },
+                                            datalabels: barDatalabels(data, datalabelsColor)
+                                        },
+                                        scales: {
+                                            x: { display: false },
+                                            y: {
+                                                ticks: {
+                                                    font: { size: 9 },
+                                                    autoSkip: false,
+                                                    callback: function(val) {
+                                                        return wrapLabel(String(this.getLabelForValue(val) || ''), 22);
+                                                    }
+                                                },
+                                                afterFit: function(scale) { scale.width = Math.max(scale.width, 155); }
+                                            }
                                         }
                                     };
                                 }
@@ -5842,22 +5880,15 @@ FF
                                     const data = bySubDir.slice(0, 8).filter(([k]) => k !== '(Sin dato)');
                                     if (!data.length) return;
                                     destroyChart('cd-chart-subdir');
+                                    const opts = barOpts(data, '#1558d6');
+                                    opts.plugins.tooltip = { callbacks: { title: ctx => bySubDir[ctx[0].dataIndex]?.[0] || ctx[0].label } };
                                     new Chart(document.getElementById('cd-chart-subdir'), {
                                         type: 'bar',
                                         data: {
-                                            labels: data.map(([k]) => k.length > 28 ? k.slice(0,26)+'…' : k),
+                                            labels: data.map(([k]) => k),
                                             datasets: [{ label: 'Colaboradores', data: data.map(([,v]) => v), backgroundColor: PALETTE_BAR.slice(0, data.length), borderRadius: 6 }]
                                         },
-                                        options: {
-                                            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                                            layout: { padding: { right: 75 } },
-                                            plugins: {
-                                                legend: { display: false },
-                                                tooltip: { callbacks: { title: ctx => bySubDir[ctx[0].dataIndex]?.[0] || ctx[0].label } },
-                                                datalabels: barDatalabels(data, '#1558d6')
-                                            },
-                                            scales: { x: { display: false }, y: { ticks: { font: { size: 10 } } } }
-                                        }
+                                        options: opts
                                     });
                                 })();
 
@@ -5867,22 +5898,15 @@ FF
                                     if (!data.length) return;
                                     destroyChart('cd-chart-ger');
                                     const gerColors = ['#0277bd','#0288d1','#039be5','#29b6f6','#4fc3f7','#81d4fa','#b3e5fc','#e1f5fe'];
+                                    const opts = barOpts(data, '#0277bd');
+                                    opts.plugins.tooltip = { callbacks: { title: ctx => byGer[ctx[0].dataIndex]?.[0] || ctx[0].label } };
                                     new Chart(document.getElementById('cd-chart-ger'), {
                                         type: 'bar',
                                         data: {
-                                            labels: data.map(([k]) => k.length > 28 ? k.slice(0,26)+'…' : k),
+                                            labels: data.map(([k]) => k),
                                             datasets: [{ label: 'Colaboradores', data: data.map(([,v]) => v), backgroundColor: gerColors.slice(0, data.length), borderRadius: 6 }]
                                         },
-                                        options: {
-                                            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                                            layout: { padding: { right: 75 } },
-                                            plugins: {
-                                                legend: { display: false },
-                                                tooltip: { callbacks: { title: ctx => byGer[ctx[0].dataIndex]?.[0] || ctx[0].label } },
-                                                datalabels: barDatalabels(data, '#0277bd')
-                                            },
-                                            scales: { x: { display: false }, y: { ticks: { font: { size: 10 } } } }
-                                        }
+                                        options: opts
                                     });
                                 })();
 
