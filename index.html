@@ -4374,6 +4374,109 @@ FF
                             .colab-ficha { box-shadow: none !important; border: 1px solid #ddd; }
                             .colab-ficha::before { opacity: 0.06; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                         }
+
+                        /* ─── BOTÓN NUEVO COLABORADOR ─── */
+                        .colab-btn-nuevo {
+                            background: linear-gradient(135deg, #1b5e20, #388e3c);
+                            color: #fff;
+                            border: none;
+                            border-radius: 12px;
+                            padding: .72rem 1.35rem;
+                            font-weight: 700;
+                            font-size: .9rem;
+                            cursor: pointer;
+                            display: flex;
+                            align-items: center;
+                            gap: .45rem;
+                            transition: all .22s ease;
+                            box-shadow: 0 4px 18px rgba(27,94,32,.45);
+                            white-space: nowrap;
+                        }
+                        .colab-btn-nuevo:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(27,94,32,.55); }
+
+                        /* ─── TABLA COMPLETA ─── */
+                        #colabTablaModal .modal-header { background: linear-gradient(135deg,#0d2152,#1565c0); }
+                        .ctbl-toolbar {
+                            display: flex;
+                            flex-wrap: wrap;
+                            gap: .5rem;
+                            align-items: center;
+                            padding: .75rem 1rem;
+                            background: #f5f8ff;
+                            border-bottom: 1px solid #dde3ef;
+                        }
+                        .ctbl-search-inp {
+                            flex: 1;
+                            min-width: 200px;
+                            border: 1.5px solid #c5cfe0;
+                            border-radius: 9px;
+                            padding: .42rem .9rem;
+                            font-size: .85rem;
+                            outline: none;
+                            background: #fff;
+                            color: #1a2540;
+                            transition: border-color .2s;
+                        }
+                        .ctbl-search-inp:focus { border-color: #1565c0; }
+                        .ctbl-select {
+                            border: 1.5px solid #c5cfe0;
+                            border-radius: 9px;
+                            padding: .4rem .75rem;
+                            font-size: .82rem;
+                            outline: none;
+                            background: #fff;
+                            color: #1a2540;
+                            cursor: pointer;
+                            min-width: 130px;
+                        }
+                        .ctbl-select:focus { border-color: #1565c0; }
+                        .ctbl-btn-export {
+                            background: #fff;
+                            border: 1.5px solid #c5cfe0;
+                            border-radius: 9px;
+                            padding: .4rem .85rem;
+                            font-size: .8rem;
+                            font-weight: 600;
+                            cursor: pointer;
+                            color: #1a2540;
+                            display: flex; align-items: center; gap: .35rem;
+                            transition: background .18s;
+                            white-space: nowrap;
+                        }
+                        .ctbl-btn-export:hover { background: #eef3ff; border-color: #1565c0; color: #1565c0; }
+                        .ctbl-btn-export.green { color: #1b5e20; border-color: #81c784; }
+                        .ctbl-btn-export.green:hover { background: #e8f5e9; border-color: #388e3c; }
+                        .ctbl-table-wrap { overflow: auto; max-height: 62vh; }
+                        .ctbl-table {
+                            width: 100%; border-collapse: collapse; font-size: .82rem;
+                            white-space: nowrap;
+                        }
+                        .ctbl-table thead th {
+                            position: sticky; top: 0; z-index: 2;
+                            background: #0d2152; color: #fff;
+                            padding: .45rem .8rem;
+                            font-size: .72rem; font-weight: 700;
+                            text-transform: uppercase; letter-spacing: .04em;
+                            border: 1px solid #1e3a7e;
+                            user-select: none; cursor: pointer;
+                        }
+                        .ctbl-table thead th:hover { background: #1565c0; }
+                        .ctbl-table thead th .sort-arrow { margin-left: .3rem; opacity: .55; font-size: .65rem; }
+                        .ctbl-table tbody tr { border-bottom: 1px solid #edf0f8; transition: background .12s; cursor: pointer; }
+                        .ctbl-table tbody tr:hover { background: #edf4ff; }
+                        .ctbl-table tbody td { padding: .38rem .8rem; color: #1a2540; max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
+                        .ctbl-table tbody td:first-child { font-weight: 700; color: #1565c0; }
+                        .ctbl-count-badge {
+                            background: #e8eef8; color: #1558d6;
+                            border-radius: 999px; padding: .12rem .65rem;
+                            font-size: .75rem; font-weight: 700;
+                        }
+
+                        /* ─── MODAL NUEVO COLABORADOR ─── */
+                        #colabNuevoModal .modal-header { background: linear-gradient(135deg,#1b5e20,#388e3c); }
+                        #colabNuevoModal .modal-body { background: #f8faff; }
+                        #colabNuevoModal .nav-tabs .nav-link { font-size: .82rem; }
+                        #colabNuevoModal .tab-content { min-height: 240px; }
                     </style>
 
                     <!-- ── HERO DE BÚSQUEDA ── -->
@@ -4405,6 +4508,9 @@ FF
                                 <button class="colab-btn-clear" id="colab-btn-limpiar" onclick="colabLimpiar()" title="Limpiar búsqueda">
                                     <i class="fas fa-times" aria-hidden="true"></i>
                                 </button>
+                                <button class="colab-btn-nuevo d-none" id="colab-btn-nuevo" onclick="colabAbrirNuevo()" aria-label="Agregar nuevo colaborador">
+                                    <i class="fas fa-user-plus" aria-hidden="true"></i> Nuevo
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -4430,6 +4536,9 @@ FF
                                     <div class="cd-dash-header">
                                         <span class="cd-dash-title"><i class="fas fa-chart-bar me-2"></i>Resumen del Directorio</span>
                                         <span class="cd-dash-sub text-muted">Selecciona o busca un colaborador para ver su ficha completa</span>
+                                        <button class="btn btn-sm btn-outline-primary ms-auto" onclick="colabAbrirTabla()" title="Ver lista completa de colaboradores">
+                                            <i class="fas fa-table me-1"></i> Tabla completa
+                                        </button>
                                     </div>
 
                                     <!-- Fila KPIs -->
@@ -5075,6 +5184,188 @@ FF
                         </div>
                     </div><!-- /colabEditModal -->
 
+                    <!-- ══════════════════════════════════════════════
+                         MODAL: NUEVO COLABORADOR
+                    ══════════════════════════════════════════════ -->
+                    <div class="modal fade" id="colabNuevoModal" tabindex="-1" aria-labelledby="colabNuevoModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                            <div class="modal-content">
+                                <div class="modal-header py-2">
+                                    <div>
+                                        <h5 class="modal-title text-white mb-0" id="colabNuevoModalLabel"><i class="fas fa-user-plus me-2"></i>Nuevo Colaborador</h5>
+                                        <small class="text-white opacity-75">Completa los campos y guarda para registrar al nuevo colaborador</small>
+                                    </div>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                </div>
+                                <div class="modal-body p-0">
+                                    <ul class="nav nav-tabs nav-fill px-3 pt-2 bg-light border-bottom" id="colabNuevoTabs" role="tablist">
+                                        <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#cnuevo-gen" type="button">Generales</button></li>
+                                        <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cnuevo-clas" type="button">Clasificación</button></li>
+                                        <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cnuevo-org" type="button">Organización</button></li>
+                                        <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cnuevo-docs" type="button">Documentos</button></li>
+                                        <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cnuevo-emerg" type="button">Emergencias</button></li>
+                                    </ul>
+                                    <div class="tab-content p-3" id="colabNuevoContent">
+
+                                        <!-- TAB: Generales -->
+                                        <div class="tab-pane fade show active" id="cnuevo-gen" role="tabpanel">
+                                            <div class="alert alert-info py-2 small mb-3">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                Los campos marcados con <strong>*</strong> son obligatorios.
+                                            </div>
+                                            <div class="row g-3">
+                                                <div class="col-12 col-md-3"><label class="form-label fw-semibold small">No. Empleado <span class="text-danger">*</span></label><input type="text" class="form-control form-control-sm" id="cn-num" placeholder="Ej: 1234" required></div>
+                                                <div class="col-12 col-md-6"><label class="form-label fw-semibold small">Nombre completo <span class="text-danger">*</span></label><input type="text" class="form-control form-control-sm" id="cn-nombre" placeholder="Apellido Apellido Nombre" required></div>
+                                                <div class="col-12 col-md-3"><label class="form-label fw-semibold small">Profesión</label><input type="text" class="form-control form-control-sm" id="cn-profesion" placeholder="Ing. Industrial…"></div>
+                                                <div class="col-12 col-md-6"><label class="form-label fw-semibold small">Puesto</label><input type="text" class="form-control form-control-sm" id="cn-puesto" placeholder="Analista de Operaciones…"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">Militar / Civil</label><input type="text" class="form-control form-control-sm" id="cn-militar" placeholder="Civil"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">Turno</label><input type="text" class="form-control form-control-sm" id="cn-turno" placeholder="Matutino"></div>
+                                                <div class="col-12 col-md-4"><label class="form-label fw-semibold small">Fecha de Ingreso</label><input type="text" class="form-control form-control-sm" id="cn-fecha-ingreso" placeholder="DD/MM/YYYY"></div>
+                                                <div class="col-12 col-md-4"><label class="form-label fw-semibold small">Fecha Nacimiento / Onomástico</label><input type="text" class="form-control form-control-sm" id="cn-onomastico" placeholder="DD/MM/YYYY"></div>
+                                                <div class="col-12 col-md-4"><label class="form-label fw-semibold small">No. Celular</label><input type="text" class="form-control form-control-sm" id="cn-celular" placeholder="55 xxxx xxxx"></div>
+                                                <div class="col-6 col-md-2"><label class="form-label fw-semibold small">Ext.</label><input type="text" class="form-control form-control-sm" id="cn-extension"></div>
+                                                <div class="col-12 col-md-6"><label class="form-label fw-semibold small">Correo Institucional</label><input type="email" class="form-control form-control-sm" id="cn-correo" placeholder="nombre@aifa.com.mx"></div>
+                                            </div>
+                                        </div>
+
+                                        <!-- TAB: Clasificación -->
+                                        <div class="tab-pane fade" id="cnuevo-clas" role="tabpanel">
+                                            <div class="row g-3">
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">Nivel</label><input type="text" class="form-control form-control-sm" id="cn-nivel"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">Plaza</label><input type="text" class="form-control form-control-sm" id="cn-plaza"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">RyR</label><input type="text" class="form-control form-control-sm" id="cn-ryr"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">Grado</label><input type="text" class="form-control form-control-sm" id="cn-grado"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">Matrícula</label><input type="text" class="form-control form-control-sm" id="cn-matricula"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">Grado Académico</label><input type="text" class="form-control form-control-sm" id="cn-grado-academico"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">Cédula Profesional</label><input type="text" class="form-control form-control-sm" id="cn-cedula"></div>
+                                            </div>
+                                        </div>
+
+                                        <!-- TAB: Organización -->
+                                        <div class="tab-pane fade" id="cnuevo-org" role="tabpanel">
+                                            <div class="row g-3">
+                                                <div class="col-12 col-md-6"><label class="form-label fw-semibold small">Personal Comisionado</label><input type="text" class="form-control form-control-sm" id="cn-comisionado"></div>
+                                                <div class="col-12 col-md-6"><label class="form-label fw-semibold small">Dirección</label><input type="text" class="form-control form-control-sm" id="cn-direccion"></div>
+                                                <div class="col-12 col-md-6"><label class="form-label fw-semibold small">Subdirección</label><input type="text" class="form-control form-control-sm" id="cn-subdireccion"></div>
+                                                <div class="col-12 col-md-3"><label class="form-label fw-semibold small">Gerencia</label><input type="text" class="form-control form-control-sm" id="cn-gerencia"></div>
+                                                <div class="col-12 col-md-3"><label class="form-label fw-semibold small">Coordinación</label><input type="text" class="form-control form-control-sm" id="cn-coordinacion"></div>
+                                            </div>
+                                        </div>
+
+                                        <!-- TAB: Documentos -->
+                                        <div class="tab-pane fade" id="cnuevo-docs" role="tabpanel">
+                                            <div class="row g-3">
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">RFC</label><input type="text" class="form-control form-control-sm" id="cn-rfc" style="text-transform:uppercase" placeholder="AAAA000000AAA"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">CURP</label><input type="text" class="form-control form-control-sm" id="cn-curp" style="text-transform:uppercase"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">Licencia</label><input type="text" class="form-control form-control-sm" id="cn-licencia"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">Tipo Licencia</label><input type="text" class="form-control form-control-sm" id="cn-licencia-tipo"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">Vigencia Licencia</label><input type="text" class="form-control form-control-sm" id="cn-vig-licencia"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">Vigencia Credencial</label><input type="text" class="form-control form-control-sm" id="cn-vig-credencial"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">Vigencia INE</label><input type="text" class="form-control form-control-sm" id="cn-vig-ine"></div>
+                                                <div class="col-12"><label class="form-label fw-semibold small">Domicilio</label><input type="text" class="form-control form-control-sm" id="cn-domicilio"></div>
+                                                <div class="col-12 col-md-4"><label class="form-label fw-semibold small">Estado Civil</label><select class="form-select form-select-sm" id="cn-estado-civil"><option value="">-- Seleccionar --</option><option>Soltero(a)</option><option>Casado(a)</option><option>Divorciado(a)</option><option>Viudo(a)</option><option>Unión libre</option></select></div>
+                                                <div class="col-6 col-md-2"><label class="form-label fw-semibold small">Dependientes</label><input type="number" min="0" class="form-control form-control-sm" id="cn-dependientes"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">Rúbrica</label><input type="text" class="form-control form-control-sm" id="cn-rubrica"></div>
+                                                <div class="col-12 col-md-3"><label class="form-label fw-semibold small">Doc. Ingreso</label><input type="text" class="form-control form-control-sm" id="cn-doc-ingreso"></div>
+                                            </div>
+                                        </div>
+
+                                        <!-- TAB: Emergencias -->
+                                        <div class="tab-pane fade" id="cnuevo-emerg" role="tabpanel">
+                                            <div class="row g-3">
+                                                <div class="col-12"><h6 class="text-muted fw-semibold small mb-0">Contacto de Emergencia 1</h6><hr class="mt-1 mb-2"></div>
+                                                <div class="col-12 col-md-5"><label class="form-label fw-semibold small">Nombre</label><input type="text" class="form-control form-control-sm" id="cn-c1-nombre"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">Parentesco</label><input type="text" class="form-control form-control-sm" id="cn-c1-parentesco"></div>
+                                                <div class="col-6 col-md-4"><label class="form-label fw-semibold small">Teléfono</label><input type="text" class="form-control form-control-sm" id="cn-c1-tel"></div>
+                                                <div class="col-12"><h6 class="text-muted fw-semibold small mb-0">Contacto de Emergencia 2</h6><hr class="mt-1 mb-2"></div>
+                                                <div class="col-12 col-md-5"><label class="form-label fw-semibold small">Nombre</label><input type="text" class="form-control form-control-sm" id="cn-c2-nombre"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">Parentesco</label><input type="text" class="form-control form-control-sm" id="cn-c2-parentesco"></div>
+                                                <div class="col-6 col-md-4"><label class="form-label fw-semibold small">Teléfono</label><input type="text" class="form-control form-control-sm" id="cn-c2-tel"></div>
+                                                <div class="col-12"><h6 class="text-muted fw-semibold small mb-0">Datos Médicos</h6><hr class="mt-1 mb-2"></div>
+                                                <div class="col-6 col-md-2"><label class="form-label fw-semibold small">Tipo de Sangre</label><input type="text" class="form-control form-control-sm" id="cn-sangre" placeholder="A+"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">Alergia Medicamento</label><input type="text" class="form-control form-control-sm" id="cn-alerg-med"></div>
+                                                <div class="col-6 col-md-3"><label class="form-label fw-semibold small">Alergia Alimento</label><input type="text" class="form-control form-control-sm" id="cn-alerg-ali"></div>
+                                                <div class="col-6 col-md-4"><label class="form-label fw-semibold small">NSS</label><input type="text" class="form-control form-control-sm" id="cn-nss"></div>
+                                            </div>
+                                        </div>
+
+                                    </div><!-- /tab-content -->
+                                </div><!-- /modal-body -->
+                                <div class="modal-footer justify-content-between">
+                                    <small class="text-danger fw-semibold" id="colab-nuevo-error" style="display:none"></small>
+                                    <div>
+                                        <button type="button" class="btn btn-secondary btn-sm me-2" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="button" class="btn btn-success btn-sm" id="btn-colab-nuevo-save" onclick="colabGuardarNuevo()">
+                                            <i class="fas fa-save me-1"></i>Registrar Colaborador
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- /colabNuevoModal -->
+
+                    <!-- ══════════════════════════════════════════════
+                         MODAL: TABLA COMPLETA DE COLABORADORES
+                    ══════════════════════════════════════════════ -->
+                    <div class="modal fade" id="colabTablaModal" tabindex="-1" aria-labelledby="colabTablaModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-fullscreen-lg-down modal-xl modal-dialog-scrollable">
+                            <div class="modal-content">
+                                <div class="modal-header py-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <h5 class="modal-title text-white mb-0" id="colabTablaModalLabel"><i class="fas fa-table me-2"></i>Tabla Completa de Colaboradores</h5>
+                                        <span class="ctbl-count-badge" id="ctbl-badge">—</span>
+                                    </div>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                </div>
+                                <!-- Barra de herramientas: filtros + exportar -->
+                                <div class="ctbl-toolbar">
+                                    <input type="text" class="ctbl-search-inp" id="ctbl-search" placeholder="🔍 Buscar por nombre, puesto, número…" autocomplete="off" oninput="colabTablaFiltrar()">
+                                    <select class="ctbl-select" id="ctbl-dir" onchange="colabTablaFiltrar()" aria-label="Filtrar por dirección">
+                                        <option value="">Todas las Direcciones</option>
+                                    </select>
+                                    <select class="ctbl-select" id="ctbl-nivel" onchange="colabTablaFiltrar()" aria-label="Filtrar por nivel">
+                                        <option value="">Todos los Niveles</option>
+                                    </select>
+                                    <select class="ctbl-select" id="ctbl-turno" onchange="colabTablaFiltrar()" aria-label="Filtrar por turno">
+                                        <option value="">Todos los Turnos</option>
+                                    </select>
+                                    <button class="ctbl-btn-export" onclick="colabDescargarCSV()" title="Descargar CSV con los registros visibles">
+                                        <i class="fas fa-file-csv"></i> CSV
+                                    </button>
+                                    <button class="ctbl-btn-export green" onclick="colabDescargarExcel()" title="Descargar Excel con los registros visibles">
+                                        <i class="fas fa-file-excel"></i> Excel
+                                    </button>
+                                </div>
+                                <!-- Tabla -->
+                                <div class="ctbl-table-wrap" id="ctbl-table-wrap">
+                                    <div class="d-flex align-items-center justify-content-center p-4 gap-2 text-muted" id="ctbl-loading">
+                                        <div class="spinner-border spinner-border-sm text-primary"></div>
+                                        <span style="font-size:.85rem">Cargando colaboradores…</span>
+                                    </div>
+                                    <table class="ctbl-table d-none" id="ctbl-table" aria-label="Tabla completa de colaboradores">
+                                        <thead>
+                                            <tr>
+                                                <th onclick="colabTablaOrdenar('num')" title="Ordenar por No.">No. <span class="sort-arrow" id="ctbl-sort-num"></span></th>
+                                                <th onclick="colabTablaOrdenar('nombre')" title="Ordenar por Nombre">Nombre <span class="sort-arrow" id="ctbl-sort-nombre"></span></th>
+                                                <th onclick="colabTablaOrdenar('puesto')" title="Ordenar por Puesto">Puesto <span class="sort-arrow" id="ctbl-sort-puesto"></span></th>
+                                                <th onclick="colabTablaOrdenar('direccion')" title="Ordenar por Dirección">Dirección <span class="sort-arrow" id="ctbl-sort-direccion"></span></th>
+                                                <th onclick="colabTablaOrdenar('subdireccion')" title="Ordenar por Subdirección">Subdirección <span class="sort-arrow" id="ctbl-sort-subdireccion"></span></th>
+                                                <th onclick="colabTablaOrdenar('gerencia')" title="Ordenar por Gerencia">Gerencia <span class="sort-arrow" id="ctbl-sort-gerencia"></span></th>
+                                                <th onclick="colabTablaOrdenar('nivel')" title="Ordenar por Nivel">Nivel <span class="sort-arrow" id="ctbl-sort-nivel"></span></th>
+                                                <th onclick="colabTablaOrdenar('turno')" title="Ordenar por Turno">Turno <span class="sort-arrow" id="ctbl-sort-turno"></span></th>
+                                                <th onclick="colabTablaOrdenar('fecha_ingreso')" title="Ordenar por Ingreso">Ingreso <span class="sort-arrow" id="ctbl-sort-fecha_ingreso"></span></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="ctbl-tbody"></tbody>
+                                    </table>
+                                    <div class="text-center text-muted p-4 d-none" id="ctbl-empty" style="font-size:.85rem">
+                                        <i class="fas fa-search me-2"></i>Sin resultados para los filtros aplicados.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- /colabTablaModal -->
+
                     <!-- ── JAVASCRIPT DE LA SECCIÓN ── -->
                     <script>
                     (function() {
@@ -5562,6 +5853,7 @@ FF
                             colabCurrentRow = c;
                             const editBtn = document.getElementById('colab-btn-edit');
                             if (editBtn) editBtn.classList.toggle('d-none', !colabCanEdit());
+                            colabActualizarBotonesAdmin();
 
                             // Cargar historial (async, sin bloquear el render)
                             colabCargarHistorial(val(gc(c, 'num')));
@@ -6731,8 +7023,331 @@ FF
 
 
                         /* ── Init cuando el DOM está listo ── */
+                        /* ═══════════════════════════════════════════
+                           NUEVO COLABORADOR
+                        ═══════════════════════════════════════════ */
+
+                        /* Mapeo de campos del form "nuevo" → clave semántica (igual que editar) */
+                        const COLAB_NUEVO_FIELD_MAP = {
+                            'cn-num':'num','cn-nombre':'nombre','cn-puesto':'puesto',
+                            'cn-fecha-ingreso':'fecha_ingreso','cn-onomastico':'onomastico',
+                            'cn-celular':'celular','cn-extension':'extension','cn-correo':'correo',
+                            'cn-profesion':'profesion','cn-militar':'militar',
+                            'cn-nivel':'nivel','cn-plaza':'plaza','cn-turno':'turno','cn-ryr':'ryr',
+                            'cn-grado':'grado','cn-matricula':'matricula',
+                            'cn-grado-academico':'grado_academico','cn-cedula':'cedula',
+                            'cn-comisionado':'comisionado','cn-direccion':'direccion',
+                            'cn-subdireccion':'subdireccion','cn-gerencia':'gerencia',
+                            'cn-coordinacion':'coordinacion',
+                            'cn-licencia':'licencia','cn-licencia-tipo':'licencia_tipo',
+                            'cn-vig-licencia':'vig_licencia','cn-vig-credencial':'vig_credencial',
+                            'cn-vig-ine':'vig_ine','cn-domicilio':'domicilio',
+                            'cn-rfc':'rfc','cn-curp':'curp','cn-estado-civil':'estado_civil',
+                            'cn-dependientes':'dependientes','cn-rubrica':'rubrica',
+                            'cn-doc-ingreso':'doc_ingreso',
+                            'cn-c1-nombre':'c1_nombre','cn-c1-parentesco':'c1_parentesco',
+                            'cn-c1-tel':'c1_tel','cn-c2-nombre':'c2_nombre',
+                            'cn-c2-parentesco':'c2_parentesco','cn-c2-tel':'c2_tel',
+                            'cn-sangre':'sangre','cn-alerg-med':'alerg_med',
+                            'cn-alerg-ali':'alerg_ali','cn-nss':'nss',
+                        };
+
+                        /** Abrir modal de nuevo colaborador */
+                        window.colabAbrirNuevo = function() {
+                            if (!colabCanEdit()) return;
+                            // Limpiar todos los campos
+                            Object.keys(COLAB_NUEVO_FIELD_MAP).forEach(id => {
+                                const el = document.getElementById(id);
+                                if (el) el.value = '';
+                            });
+                            // Limpiar errores
+                            const errEl = document.getElementById('colab-nuevo-error');
+                            if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+                            // Ir al primer tab
+                            const firstTab = document.querySelector('#colabNuevoTabs .nav-link');
+                            if (firstTab && typeof bootstrap !== 'undefined') {
+                                bootstrap.Tab.getOrCreateInstance(firstTab).show();
+                            }
+                            new bootstrap.Modal(document.getElementById('colabNuevoModal')).show();
+                        };
+
+                        /** Guardar nuevo colaborador en Supabase */
+                        window.colabGuardarNuevo = async function() {
+                            if (!colabCanEdit()) return;
+
+                            const errEl = document.getElementById('colab-nuevo-error');
+                            const btnEl = document.getElementById('btn-colab-nuevo-save');
+
+                            // Validar campos requeridos
+                            const numVal    = (document.getElementById('cn-num')?.value || '').trim();
+                            const nombreVal = (document.getElementById('cn-nombre')?.value || '').trim();
+                            if (!numVal || !nombreVal) {
+                                if (errEl) { errEl.textContent = 'El No. Empleado y el Nombre son obligatorios.'; errEl.style.display = ''; }
+                                // Ir al tab Generales
+                                const genTab = document.querySelector('#colabNuevoTabs .nav-link');
+                                if (genTab && typeof bootstrap !== 'undefined') bootstrap.Tab.getOrCreateInstance(genTab).show();
+                                return;
+                            }
+                            if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+
+                            if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando…'; }
+
+                            try {
+                                const sb = window.supabaseClient;
+                                if (!sb) throw new Error('Supabase no disponible');
+
+                                // Esperar a que las columnas sean detectadas
+                                await colabCargarTodos();
+                                if (!colabCols) throw new Error('No se detectaron las columnas de la tabla.');
+
+                                // Verificar que el número de empleado no exista ya
+                                const todos = colabCache || [];
+                                const yaExiste = todos.some(r => String(gc(r, 'num') || '').trim() === numVal);
+                                if (yaExiste) throw new Error(`Ya existe un colaborador con el No. de Empleado "${numVal}".`);
+
+                                // Construir payload con las columnas reales
+                                const payload = {};
+                                Object.entries(COLAB_NUEVO_FIELD_MAP).forEach(([formId, colKey]) => {
+                                    const realCol = colabCols?.[colKey];
+                                    if (!realCol) return;
+                                    const el = document.getElementById(formId);
+                                    const v  = (el?.value || '').trim();
+                                    if (v) payload[realCol] = v;
+                                });
+
+                                const { error } = await sb.from('agenda_2026').insert([payload]);
+                                if (error) throw error;
+
+                                // Invalidar caché
+                                colabCache = null; colabLoaded = false; colabLoadPromise = null;
+
+                                bootstrap.Modal.getInstance(document.getElementById('colabNuevoModal'))?.hide();
+
+                                // Refrescar dashboard
+                                await colabCargarTodos();
+                                colabRenderDashboard();
+
+                                // Mostrar la ficha del nuevo
+                                const nuevoRegistro = (colabCache || []).find(r => String(gc(r, 'num') || '').trim() === numVal);
+                                if (nuevoRegistro) {
+                                    renderFicha(nuevoRegistro);
+                                    document.getElementById('colab-num-input').value = numVal;
+                                }
+
+                                // Toast de éxito (si Bootstrap toast no está, usar alert)
+                                if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
+                                    const toastHtml = `<div class="position-fixed bottom-0 end-0 p-3" style="z-index:999999">
+                                        <div class="toast align-items-center text-white bg-success border-0 show" role="alert">
+                                            <div class="d-flex">
+                                                <div class="toast-body"><i class="fas fa-check-circle me-2"></i>Colaborador registrado con éxito.</div>
+                                                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+                                            </div>
+                                        </div>
+                                    </div>`;
+                                    const toastWrap = document.createElement('div');
+                                    toastWrap.innerHTML = toastHtml;
+                                    document.body.appendChild(toastWrap);
+                                    setTimeout(() => toastWrap.remove(), 4000);
+                                }
+
+                            } catch (err) {
+                                console.error('[Colaboradores] Error al crear nuevo:', err);
+                                if (errEl) { errEl.textContent = 'Error: ' + (err?.message || String(err)); errEl.style.display = ''; }
+                            } finally {
+                                if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '<i class="fas fa-save me-1"></i>Registrar Colaborador'; }
+                            }
+                        };
+
+                        /* ═══════════════════════════════════════════
+                           TABLA COMPLETA DE COLABORADORES
+                        ═══════════════════════════════════════════ */
+
+                        let ctblData = [];        // datos actuales filtrados
+                        let ctblAllData = [];     // todos los datos sin filtrar
+                        let ctblSortCol = 'nombre';
+                        let ctblSortAsc = true;
+
+                        /** Abrir modal y cargar tabla */
+                        window.colabAbrirTabla = async function() {
+                            const modal = new bootstrap.Modal(document.getElementById('colabTablaModal'));
+                            modal.show();
+                            const loadingEl = document.getElementById('ctbl-loading');
+                            const tableEl   = document.getElementById('ctbl-table');
+                            const emptyEl   = document.getElementById('ctbl-empty');
+                            if (loadingEl) loadingEl.classList.remove('d-none');
+                            if (tableEl)   tableEl.classList.add('d-none');
+                            if (emptyEl)   emptyEl.classList.add('d-none');
+
+                            const todos = await colabCargarTodos();
+                            ctblAllData = todos || [];
+
+                            // Poblar dropdowns de filtros
+                            function poblarSelect(elId, colKey) {
+                                const el = document.getElementById(elId);
+                                if (!el) return;
+                                const firstOpt = el.options[0];
+                                el.innerHTML = '';
+                                el.appendChild(firstOpt);
+                                const valores = [...new Set(ctblAllData.map(r => val(gc(r, colKey))).filter(Boolean))].sort();
+                                valores.forEach(v => {
+                                    const opt = document.createElement('option');
+                                    opt.value = v; opt.textContent = v;
+                                    el.appendChild(opt);
+                                });
+                            }
+                            poblarSelect('ctbl-dir', 'direccion');
+                            poblarSelect('ctbl-nivel', 'nivel');
+                            poblarSelect('ctbl-turno', 'turno');
+
+                            // Limpiar búsqueda
+                            const searchEl = document.getElementById('ctbl-search');
+                            if (searchEl) searchEl.value = '';
+
+                            if (loadingEl) loadingEl.classList.add('d-none');
+                            colabTablaFiltrar();
+                        };
+
+                        /** Filtrar tabla por texto y selects */
+                        window.colabTablaFiltrar = function() {
+                            const q      = norm((document.getElementById('ctbl-search')?.value || ''));
+                            const dir    = (document.getElementById('ctbl-dir')?.value || '');
+                            const nivel  = (document.getElementById('ctbl-nivel')?.value || '');
+                            const turno  = (document.getElementById('ctbl-turno')?.value || '');
+
+                            ctblData = ctblAllData.filter(r => {
+                                if (dir   && val(gc(r,'direccion')) !== dir)   return false;
+                                if (nivel && val(gc(r,'nivel'))    !== nivel)  return false;
+                                if (turno && val(gc(r,'turno'))    !== turno)  return false;
+                                if (q) {
+                                    const hay = ['num','nombre','puesto','direccion','subdireccion','gerencia','nivel','turno','correo','celular'].some(k => norm(gc(r,k)).includes(q));
+                                    if (!hay) return false;
+                                }
+                                return true;
+                            });
+
+                            // Aplicar orden actual
+                            const col = ctblSortCol;
+                            ctblData.sort((a,b) => {
+                                const va = norm(gc(a,col)), vb = norm(gc(b,col));
+                                return ctblSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+                            });
+
+                            colabTablaRender();
+                        };
+
+                        /** Ordenar tabla por columna */
+                        window.colabTablaOrdenar = function(col) {
+                            if (ctblSortCol === col) {
+                                ctblSortAsc = !ctblSortAsc;
+                            } else {
+                                ctblSortCol = col;
+                                ctblSortAsc = true;
+                            }
+                            // Actualizar flechas
+                            document.querySelectorAll('[id^="ctbl-sort-"]').forEach(el => el.textContent = '');
+                            const arrow = document.getElementById('ctbl-sort-' + col);
+                            if (arrow) arrow.textContent = ctblSortAsc ? '▲' : '▼';
+                            colabTablaFiltrar();
+                        };
+
+                        /** Renderizar filas de la tabla */
+                        function colabTablaRender() {
+                            const tbody  = document.getElementById('ctbl-tbody');
+                            const tableEl = document.getElementById('ctbl-table');
+                            const emptyEl = document.getElementById('ctbl-empty');
+                            const badge   = document.getElementById('ctbl-badge');
+
+                            if (badge) badge.textContent = ctblData.length + (ctblData.length !== ctblAllData.length ? ` / ${ctblAllData.length}` : '');
+
+                            if (!ctblData.length) {
+                                if (tableEl) tableEl.classList.add('d-none');
+                                if (emptyEl) emptyEl.classList.remove('d-none');
+                                return;
+                            }
+                            if (emptyEl) emptyEl.classList.add('d-none');
+                            if (tableEl) tableEl.classList.remove('d-none');
+
+                            const html = ctblData.map(r => {
+                                const num     = val(gc(r,'num'))         || '—';
+                                const nombre  = val(gc(r,'nombre'))      || '—';
+                                const puesto  = val(gc(r,'puesto'))      || '—';
+                                const dir     = val(gc(r,'direccion'))   || '—';
+                                const subdir  = val(gc(r,'subdireccion'))|| '—';
+                                const ger     = val(gc(r,'gerencia'))    || '—';
+                                const niv     = val(gc(r,'nivel'))       || '—';
+                                const turno   = val(gc(r,'turno'))       || '—';
+                                const ingreso = val(gc(r,'fecha_ingreso'))|| '—';
+                                const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                                return `<tr onclick="colabTablaVerFicha('${esc(num)}')" title="Ver ficha de ${esc(nombre)}">
+                                    <td>${esc(num)}</td>
+                                    <td style="max-width:220px;white-space:normal">${esc(nombre)}</td>
+                                    <td style="max-width:200px;white-space:normal">${esc(puesto)}</td>
+                                    <td>${esc(dir)}</td>
+                                    <td>${esc(subdir)}</td>
+                                    <td>${esc(ger)}</td>
+                                    <td>${esc(niv)}</td>
+                                    <td>${esc(turno)}</td>
+                                    <td>${esc(ingreso)}</td>
+                                </tr>`;
+                            }).join('');
+                            if (tbody) tbody.innerHTML = html;
+                        }
+
+                        /** Click en fila: cerrar modal y mostrar ficha */
+                        window.colabTablaVerFicha = function(numEmpl) {
+                            bootstrap.Modal.getInstance(document.getElementById('colabTablaModal'))?.hide();
+                            const rec = (colabCache || []).find(r => String(gc(r,'num') || '').trim() === numEmpl);
+                            if (rec) {
+                                const numInput = document.getElementById('colab-num-input');
+                                if (numInput) numInput.value = numEmpl;
+                                renderFicha(rec);
+                            }
+                        };
+
+                        /** Descargar CSV con los datos actualmente visibles */
+                        window.colabDescargarCSV = function() {
+                            if (!ctblData.length) return;
+                            const cols = ['num','nombre','puesto','direccion','subdireccion','gerencia','coordinacion','nivel','turno','fecha_ingreso','correo','celular','militar','profesion'];
+                            const headers = ['No.Empleado','Nombre','Puesto','Dirección','Subdirección','Gerencia','Coordinación','Nivel','Turno','Fecha Ingreso','Correo','Celular','Militar/Civil','Profesión'];
+                            const esc = s => `"${String(s||'').replace(/"/g,'""')}"`;
+                            const rows = [headers.join(',')];
+                            ctblData.forEach(r => {
+                                rows.push(cols.map(k => esc(val(gc(r,k)) || '')).join(','));
+                            });
+                            const blob = new Blob(['\uFEFF' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+                            const url  = URL.createObjectURL(blob);
+                            const a    = document.createElement('a');
+                            a.href = url; a.download = `colaboradores_${new Date().toISOString().slice(0,10)}.csv`;
+                            a.click(); URL.revokeObjectURL(url);
+                        };
+
+                        /** Descargar Excel usando SheetJS */
+                        window.colabDescargarExcel = function() {
+                            if (!ctblData.length) return;
+                            if (typeof XLSX === 'undefined') {
+                                alert('La librería Excel aún no ha cargado. Espera un momento e intenta de nuevo.');
+                                return;
+                            }
+                            const cols    = ['num','nombre','puesto','direccion','subdireccion','gerencia','coordinacion','nivel','turno','fecha_ingreso','correo','celular','militar','profesion'];
+                            const headers = ['No. Empleado','Nombre','Puesto','Dirección','Subdirección','Gerencia','Coordinación','Nivel','Turno','Fecha Ingreso','Correo','Celular','Militar/Civil','Profesión'];
+                            const wsData = [headers, ...ctblData.map(r => cols.map(k => val(gc(r,k)) || ''))];
+                            const ws = XLSX.utils.aoa_to_sheet(wsData);
+                            // Ancho de columnas
+                            ws['!cols'] = [8,30,30,20,20,20,20,8,12,14,30,14,10,20].map(w => ({wch:w}));
+                            const wb = XLSX.utils.book_new();
+                            XLSX.utils.book_append_sheet(wb, ws, 'Colaboradores');
+                            XLSX.writeFile(wb, `colaboradores_${new Date().toISOString().slice(0,10)}.xlsx`);
+                        };
+
+                        /** Mostrar/ocultar botón "Nuevo Colaborador" según permisos */
+                        function colabActualizarBotonesAdmin() {
+                            const btnNuevo = document.getElementById('colab-btn-nuevo');
+                            if (btnNuevo) btnNuevo.classList.toggle('d-none', !colabCanEdit());
+                        }
+
                         function _colabBootstrap() {
                             initColabEvents();
+                            colabActualizarBotonesAdmin();
                             // Arrancar dashboard si la sección ya es visible al cargar la página
                             const sec = document.getElementById('colaboradores-section');
                             if (sec && !sec.classList.contains('d-none') && getComputedStyle(sec).display !== 'none') {
