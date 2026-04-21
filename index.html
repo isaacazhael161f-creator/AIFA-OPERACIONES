@@ -4533,16 +4533,6 @@ FF
                                             </div>
                                         </div>
 
-                                        <!-- Turno -->
-                                        <div class="cd-table-card">
-                                            <div class="cd-table-title">
-                                                <i class="fas fa-clock me-1"></i> Por Turno
-                                            </div>
-                                            <div class="cd-table-body" id="cd-tbl-turno">
-                                                <div class="cd-tbl-loading">Cargando…</div>
-                                            </div>
-                                        </div>
-
                                     </div><!-- /cd-tables-row -->
                                 </div><!-- /cd-content -->
                             </div><!-- /cd-dash -->
@@ -5541,7 +5531,6 @@ FF
                             const byGer    = countBy('gerencia');
                             const byCoord  = countBy('coordinacion');
                             const byNivel  = countBy('nivel');
-                            const byTurno  = countBy('turno');
 
                             // KPIs
                             const setKpi = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
@@ -5559,7 +5548,6 @@ FF
                                 'cd-tbl-gerencia':     '#0277bd',
                                 'cd-tbl-coordinacion': '#00695c',
                                 'cd-tbl-nivel':        '#1558d6',
-                                'cd-tbl-turno':        '#c62828',
                             };
 
                             // Renderizar tabla de desglose (no clickeable — solo Turno)
@@ -5631,7 +5619,6 @@ FF
                             renderClickableTable('cd-tbl-gerencia',     byGer,    'gerencia');
                             renderClickableTable('cd-tbl-coordinacion', byCoord,  'coordinacion');
                             renderClickableTable('cd-tbl-nivel',        byNivel,  'nivel');
-                            renderTable('cd-tbl-turno', byTurno);
 
                             /* ── Gráficas Chart.js ── */
                             (function renderColabCharts() {
