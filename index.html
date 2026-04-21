@@ -4902,6 +4902,7 @@ FF
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-org" data-bs-toggle="tab" data-bs-target="#cedit-org" type="button">Organización</button></li>
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-docs" data-bs-toggle="tab" data-bs-target="#cedit-docs" type="button">Documentos</button></li>
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-emerg" data-bs-toggle="tab" data-bs-target="#cedit-emerg" type="button">Emergencias</button></li>
+                                        <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-amonest" data-bs-toggle="tab" data-bs-target="#cedit-amonest" type="button"><i class="fas fa-exclamation-triangle me-1 text-warning"></i>Amonest.</button></li>
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-foto" data-bs-toggle="tab" data-bs-target="#cedit-foto" type="button"><i class="fas fa-camera me-1"></i>Foto</button></li>
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-cv" data-bs-toggle="tab" data-bs-target="#cedit-cv" type="button"><i class="fas fa-file-pdf me-1 text-danger"></i>CV</button></li>
                                     </ul>
@@ -4919,8 +4920,8 @@ FF
                                                 <div class="col-12 col-md-5"><label class="form-label fw-semibold small">Correo Institucional</label><input type="email" class="form-control form-control-sm" id="ce-correo" data-field="correo"></div>
                                                 <div class="col-12 col-md-3"><label class="form-label fw-semibold small">Profesión</label><input type="text" class="form-control form-control-sm" id="ce-profesion" data-field="profesion"></div>
                                                 <div class="col-12 col-md-2"><label class="form-label fw-semibold small">Militar / Civil</label><input type="text" class="form-control form-control-sm" id="ce-militar" data-field="militar"></div>
-                                                <div class="col-12"><label class="form-label fw-semibold small">Amonestaciones</label><textarea class="form-control form-control-sm" id="ce-amonestaciones" data-field="amonestaciones" rows="2"></textarea></div>
                                                 <div class="col-12"><label class="form-label fw-semibold small">Comentarios</label><textarea class="form-control form-control-sm" id="ce-comentarios" data-field="comentarios" rows="2"></textarea></div>
+                                                <div class="col-12"><p class="text-muted small mb-0"><i class="fas fa-info-circle me-1"></i>Para editar amonestaciones y adjuntar PDFs usa la pestaña <strong>Amonest.</strong></p></div>
                                             </div>
                                         </div>
 
@@ -4983,6 +4984,21 @@ FF
                                                 <div class="col-6 col-md-3"><label class="form-label fw-semibold small">Alergia Medicamento</label><input type="text" class="form-control form-control-sm" id="ce-alerg-med" data-field="alerg_med"></div>
                                                 <div class="col-6 col-md-3"><label class="form-label fw-semibold small">Alergia Alimento</label><input type="text" class="form-control form-control-sm" id="ce-alerg-ali" data-field="alerg_ali"></div>
                                                 <div class="col-6 col-md-4"><label class="form-label fw-semibold small">NSS</label><input type="text" class="form-control form-control-sm" id="ce-nss" data-field="nss"></div>
+                                            </div>
+                                        </div>
+
+                                        <!-- TAB: Amonestaciones -->
+                                        <div class="tab-pane fade" id="cedit-amonest" role="tabpanel">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-semibold small"><i class="fas fa-list-ol me-1"></i>Líneas de amonestaciones <span class="text-muted fw-normal">(una por línea)</span></label>
+                                                <textarea class="form-control form-control-sm font-monospace" id="ce-amonestaciones" data-field="amonestaciones" rows="5"
+                                                    placeholder="1- Invitación AIFA/DO/... 01 Ene. 2024&#10;2- Amonestación AIFA-DO-... 15 Mar. 2025"
+                                                    oninput="colabEditorAmonestPreview()"></textarea>
+                                                <div class="form-text">Escribe o edita cada amonestación en su propia línea. Al guardar se actualizará la ficha.</div>
+                                            </div>
+                                            <div class="mb-1">
+                                                <span class="form-label fw-semibold small d-block mb-2"><i class="fas fa-paperclip me-1"></i>PDFs por amonestación</span>
+                                                <div id="cedit-amonest-pdf-list"></div>
                                             </div>
                                         </div>
 
@@ -6397,8 +6413,51 @@ FF
                             const saveLabel = document.getElementById('colab-edit-last-save');
                             if (saveLabel) saveLabel.textContent = '';
 
+                            // Poblar preview de PDFs en tab Amonestaciones
+                            colabEditorAmonestPreview();
+
                             const modal = new bootstrap.Modal(document.getElementById('colabEditModal'));
                             modal.show();
+                        };
+
+                        /* ── Preview PDFs en el tab Amonestaciones del editor ── */
+                        window.colabEditorAmonestPreview = async function() {
+                            const ta   = document.getElementById('ce-amonestaciones');
+                            const list = document.getElementById('cedit-amonest-pdf-list');
+                            if (!ta || !list) return;
+                            const c = colabCurrentRow;
+                            const numEmpleado = c ? (val(gc(c, 'num')) || 'sin_num') : 'sin_num';
+                            const lines = String(ta.value || '').split(/\n/).map(l => l.trim()).filter(Boolean);
+                            if (!lines.length) {
+                                list.innerHTML = '<p class="ca-empty">Sin amonestaciones registradas.</p>';
+                                return;
+                            }
+                            // Render inicial con botones
+                            list.innerHTML = `<ul class="ca-list">${lines.map((line, i) => {
+                                const idx = i + 1;
+                                return `<li class="ca-item">
+                                    <span class="ca-text">${line.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
+                                    <div class="ca-actions" id="cedit-ca-actions-${numEmpleado}-${idx}">
+                                        ${colabAmonestBtns(numEmpleado, idx, null, true)}
+                                    </div>
+                                </li>`;
+                            }).join('')}</ul>`;
+                            // Verificar archivos existentes
+                            try {
+                                const sb = window.supabaseClient;
+                                if (!sb) return;
+                                const { data: files } = await sb.storage.from(EMPLOYEE_DOCS_BUCKET).list(EMPLOYEE_DOCS_PREFIX.replace(/\/$/, ''), { search: numEmpleado + '_' });
+                                if (!files?.length) return;
+                                const existingSet = new Set(files.map(f => f.name));
+                                lines.forEach((_, i) => {
+                                    const idx = i + 1;
+                                    const fileName = numEmpleado + '_' + idx + '.pdf';
+                                    if (existingSet.has(fileName)) {
+                                        const div = document.getElementById(`cedit-ca-actions-${numEmpleado}-${idx}`);
+                                        if (div) div.innerHTML = colabAmonestBtns(numEmpleado, idx, EMPLOYEE_DOCS_BASE + fileName, true);
+                                    }
+                                });
+                            } catch (e) { /* silenciar */ }
                         };
 
                         /* ── Guardar cambios ── */
