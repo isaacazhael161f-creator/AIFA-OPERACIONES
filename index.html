@@ -4257,6 +4257,32 @@ FF
                             min-height: 2rem;
                             margin-bottom: .75rem;
                         }
+                        /* ── Amonestaciones con PDF adjunto ── */
+                        .ca-list { list-style: none; padding: 0; margin: 0 0 .75rem 0; }
+                        .ca-item {
+                            display: flex; align-items: flex-start; gap: .6rem;
+                            padding: .45rem .7rem; border: 1px solid #dde3ef;
+                            border-radius: 6px; margin-bottom: .4rem; background: #fafbfd;
+                            font-size: .82rem; color: var(--col-text);
+                        }
+                        .ca-text { flex: 1; line-height: 1.45; word-break: break-word; }
+                        .ca-actions { display: flex; gap: .3rem; flex-shrink: 0; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+                        .ca-btn-attach {
+                            cursor: pointer; border: 1px solid #1558d6; background: transparent;
+                            color: #1558d6; border-radius: 4px; padding: .18rem .5rem;
+                            font-size: .72rem; font-weight: 600; white-space: nowrap;
+                            transition: background .15s, color .15s;
+                        }
+                        .ca-btn-attach:hover { background: #1558d6; color: #fff; }
+                        .ca-btn-view {
+                            cursor: pointer; border: 1px solid #2e7d32; background: transparent;
+                            color: #2e7d32; border-radius: 4px; padding: .18rem .5rem;
+                            font-size: .72rem; font-weight: 600; white-space: nowrap;
+                            text-decoration: none; transition: background .15s, color .15s;
+                        }
+                        .ca-btn-view:hover { background: #2e7d32; color: #fff; }
+                        .ca-uploading { font-size: .72rem; color: #1558d6; white-space: nowrap; }
+                        .ca-empty { padding: .4rem .8rem; font-size: .82rem; color: #9e9e9e; }
 
                         /* ─── BOTÓN EDITAR ─── */
                         .colab-btn-edit {
@@ -4746,7 +4772,7 @@ FF
 
                                     <!-- ── BLOQUE 5: AMONESTACIONES Y COMENTARIOS ── -->
                                     <div class="colab-section-title mt-2"><i class="fas fa-exclamation-triangle me-1" aria-hidden="true"></i> Amonestaciones</div>
-                                    <div class="colab-text-block" id="cf-amonestaciones">—</div>
+                                    <div id="cf-amonestaciones-list"></div>
 
                                     <div class="colab-section-title mt-2"><i class="fas fa-comment-alt me-1" aria-hidden="true"></i> Comentarios</div>
                                     <div class="colab-text-block" id="cf-comentarios">—</div>
@@ -5254,6 +5280,95 @@ FF
                         }
 
                         /* ── Renderizar ficha ── */
+                        const EMPLOYEE_DOCS_BUCKET = 'employee-cvs';
+                        const EMPLOYEE_DOCS_PREFIX = 'amonest/';
+                        const EMPLOYEE_DOCS_BASE   = 'https://fgstncvuuhpgyzmjceyr.supabase.co/storage/v1/object/public/employee-cvs/amonest/';
+
+                        // Subir PDF de amonestación
+                        window.colabAmonestacionUpload = async function(numEmpleado, idx, inputEl) {
+                            const file = inputEl?.files?.[0];
+                            if (!file) return;
+                            const actionsDiv = inputEl.closest('.ca-item')?.querySelector('.ca-actions');
+                            if (actionsDiv) actionsDiv.innerHTML = '<span class="ca-uploading"><i class="fas fa-spinner fa-spin me-1"></i>Subiendo…</span>';
+                            try {
+                                const sb = window.supabaseClient;
+                                if (!sb) throw new Error('Sin conexión Supabase');
+                                const path = numEmpleado + '_' + idx + '.pdf';
+                                const { error } = await sb.storage.from(EMPLOYEE_DOCS_BUCKET).upload(EMPLOYEE_DOCS_PREFIX + path, file, { upsert: true, contentType: 'application/pdf' });
+                                if (error) throw error;
+                                const url = EMPLOYEE_DOCS_BASE + path;
+                                if (actionsDiv) {
+                                    actionsDiv.innerHTML = colabAmonestBtns(numEmpleado, idx, url, true);
+                                }
+                            } catch (err) {
+                                console.error('[Colaboradores] Error subiendo amonestación PDF:', err);
+                                if (actionsDiv) actionsDiv.innerHTML = '<span class="ca-uploading text-danger"><i class="fas fa-times-circle me-1"></i>Error al subir</span>';
+                            }
+                        };
+
+                        // Generar HTML de botones para un item
+                        function colabAmonestBtns(numEmpleado, idx, existingUrl, canEdit) {
+                            const urlAttr = existingUrl ? ` data-url="${encodeURIComponent(existingUrl)}"` : '';
+                            const viewBtn = existingUrl
+                                ? `<a class="ca-btn-view" href="${existingUrl}" target="_blank" rel="noopener"><i class="fas fa-file-pdf me-1"></i>Ver PDF</a>`
+                                : '';
+                            const attachBtn = canEdit
+                                ? `<label class="ca-btn-attach" title="Adjuntar PDF">
+                                    <i class="fas fa-paperclip me-1"></i>${existingUrl ? 'Reemplazar' : 'Adjuntar PDF'}
+                                    <input type="file" accept="application/pdf" style="display:none"
+                                        onchange="colabAmonestacionUpload('${numEmpleado}',${idx},this)">
+                                   </label>`
+                                : '';
+                            return viewBtn + attachBtn;
+                        }
+
+                        // Renderizar el bloque de amonestaciones
+                        async function renderAmonestaciones(c) {
+                            const container = document.getElementById('cf-amonestaciones-list');
+                            if (!container) return;
+                            const rawText = gc(c, 'amonestaciones');
+                            const canEdit = colabCanEdit();
+                            const numEmpleado = val(gc(c, 'num')) || 'sin_num';
+
+                            if (!val(rawText)) {
+                                container.innerHTML = '<p class="ca-empty">—</p>';
+                                return;
+                            }
+
+                            // Separar en líneas, filtrar vacías
+                            const lines = String(rawText).split(/\n/).map(l => l.trim()).filter(Boolean);
+
+                            // Render inicial sin info de archivos existentes
+                            container.innerHTML = `<ul class="ca-list">${lines.map((line, i) => {
+                                const idx = i + 1;
+                                return `<li class="ca-item">
+                                    <span class="ca-text">${line.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
+                                    <div class="ca-actions" id="ca-actions-${numEmpleado}-${idx}">
+                                        ${colabAmonestBtns(numEmpleado, idx, null, canEdit)}
+                                    </div>
+                                </li>`;
+                            }).join('')}</ul>`;
+
+                            // En background: verificar cuáles ya tienen PDF
+                            try {
+                                const sb = window.supabaseClient;
+                                if (!sb) return;
+                                const { data: files } = await sb.storage.from(EMPLOYEE_DOCS_BUCKET).list(EMPLOYEE_DOCS_PREFIX.replace(/\/$/, ''), { search: numEmpleado + '_' });
+                                if (!files?.length) return;
+                                const existingSet = new Set(files.map(f => f.name));
+                                lines.forEach((_, i) => {
+                                    const idx = i + 1;
+                                    const fileName = numEmpleado + '_' + idx + '.pdf';
+                                    if (existingSet.has(fileName)) {
+                                        const actionsDiv = document.getElementById(`ca-actions-${numEmpleado}-${idx}`);
+                                        if (actionsDiv) actionsDiv.innerHTML = colabAmonestBtns(numEmpleado, idx, EMPLOYEE_DOCS_BASE + fileName, canEdit);
+                                    }
+                                });
+                            } catch (e) {
+                                // silenciar — los botones "Ver PDF" simplemente no aparecen
+                            }
+                        }
+
                         function renderFicha(c) {
                             // Breadcrumb
                             const actionNombre = document.getElementById('colab-action-nombre');
@@ -5371,7 +5486,7 @@ FF
                             fillField('cf-coordinacion', gc(c, 'coordinacion'));
 
                             // Sección 5: Amonestaciones y comentarios
-                            fillField('cf-amonestaciones', gc(c, 'amonestaciones'));
+                            renderAmonestaciones(c);
                             fillField('cf-comentarios',    gc(c, 'comentarios'));
 
                             // Sección 6: Emergencias
