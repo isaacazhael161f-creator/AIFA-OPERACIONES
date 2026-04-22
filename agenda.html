@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agenda de Comités · AIFA 2026</title>
+  <meta name="description" content="Calendario anual de comités — Aeropuerto Internacional Felipe Ángeles 2026">
+  <meta name="theme-color" content="#6b1a28">
+  <link rel="icon" type="image/png" href="images/icons/aifa-app-icon-192.png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --wine:#6b1a28; --wine2:#8b2736; --wine3:#4a1018;
+  --gold:#c9a84c; --gold2:#e8c87a;
+  --dpe-c:#E8AB2A;   --dpe-bg:#fdf4df;
+  --da-c:#E05555;    --da-bg:#fde8e8;
+  --gso-c:#5B6BBF;   --gso-bg:#eaecf9;
+  --do-c:#3a9e4f;    --do-bg:#e6f5ea;
+  --dcs-c:#e08b2a;   --dcs-bg:#fdf0e0;
+  --gc-c:#7b5ea7;    --gc-bg:#f0eaf7;
+  --afac-c:#bf3a3a;  --afac-bg:#faeaea;
+  --ut-c:#1da7c4;    --ut-bg:#e3f5f9;
+  --conflict-c:#dc2626; --conflict-bg:#fee2e2;
+  --bg:#f4f1ee; --surface:#fff; --border:#e2d8d0;
+  --muted:#7a6a62; --text:#2a1f1a;
+  --r:14px; --sh:0 2px 10px rgba(0,0,0,.07);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;margin:0}
+
+/* NAV */
+#top-nav{background:var(--wine);padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;position:sticky;top:0;z-index:500;box-shadow:0 2px 20px rgba(0,0,0,.35)}
+.nav-brand{display:flex;align-items:center;gap:.75rem;color:#fff;text-decoration:none}
+.nav-brand-ico{font-size:1.5rem;opacity:.9}
+.nav-brand-name{font-weight:800;font-size:1rem;line-height:1.2}
+.nav-brand-sub{font-size:.65rem;opacity:.55;letter-spacing:.06em}
+.nav-right{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.btn-nav{border:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.85);background:rgba(255,255,255,.07);border-radius:9px;padding:.3rem .75rem;font-size:.78rem;font-weight:500;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:.35rem;text-decoration:none}
+.btn-nav:hover{background:rgba(255,255,255,.18);color:#fff}
+.btn-nav.active{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.5);color:#fff}
+
+/* MAIN */
+#app-main{max-width:1260px;margin:0 auto;padding:1.75rem 1.25rem 4rem}
+
+/* HEADER BANNER */
+.agenda-banner{background:linear-gradient(135deg,var(--wine3) 0%,var(--wine) 50%,var(--wine2) 100%);border-radius:20px;padding:2rem 2.25rem;margin-bottom:1.75rem;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(107,26,40,.35)}
+.agenda-banner::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
+.agenda-banner h2{color:#fff;font-weight:800;font-size:1.6rem;margin:0 0 .3rem}
+.agenda-banner p{color:rgba(255,255,255,.6);font-size:.85rem;margin:0}
+.banner-year{position:absolute;right:2.5rem;top:50%;transform:translateY(-50%);font-size:5.5rem;font-weight:900;color:rgba(255,255,255,.05);letter-spacing:-.02em;pointer-events:none;-webkit-user-select:none;user-select:none}
+
+/* LEGEND */
+.legend-strip{display:flex;flex-wrap:wrap;gap:.45rem;margin-bottom:1.5rem}
+.leg-chip{display:flex;align-items:center;gap:.4rem;padding:.28rem .7rem;border-radius:999px;font-size:.71rem;font-weight:700;cursor:pointer;border:2px solid transparent;transition:all .18s;-webkit-user-select:none;user-select:none}
+.leg-chip:hover{filter:brightness(.95);transform:translateY(-1px)}
+.leg-chip.off{opacity:.35;filter:grayscale(1)}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* TOOLBAR */
+.toolbar{display:flex;align-items:center;gap:.65rem;margin-bottom:1.4rem;flex-wrap:wrap}
+.toolbar .view-btns{display:flex;border-radius:10px;overflow:hidden;border:1.5px solid var(--border)}
+.view-btn{padding:.38rem .9rem;font-size:.78rem;font-weight:600;background:#fff;border:none;cursor:pointer;color:var(--muted);transition:all .18s}
+.view-btn:not(:last-child){border-right:1.5px solid var(--border)}
+.view-btn.active{background:var(--wine);color:#fff}
+.search-box{flex:1;min-width:160px;max-width:300px;position:relative}
+.search-box i{position:absolute;left:.75rem;top:50%;transform:translateY(-50%);font-size:.8rem;color:var(--muted);pointer-events:none}
+.search-box input{width:100%;padding:.4rem .9rem .4rem 2.1rem;border:1.5px solid var(--border);border-radius:10px;font-size:.82rem;outline:none;background:#fff;transition:all .2s}
+.search-box input:focus{border-color:var(--wine2);box-shadow:0 0 0 3px rgba(107,26,40,.12)}
+.month-nav{display:flex;align-items:center;gap:.5rem;margin-left:auto}
+.month-nav button{width:32px;height:32px;border-radius:8px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:.85rem;color:var(--muted);transition:all .2s;display:flex;align-items:center;justify-content:center}
+.month-nav button:hover{border-color:var(--wine);color:var(--wine)}
+.month-lbl{font-weight:700;font-size:.88rem;color:var(--text);min-width:130px;text-align:center}
+#btn-today{padding:.38rem .9rem;font-size:.78rem;font-weight:600;border:1.5px solid var(--wine);color:var(--wine);background:#fff;border-radius:10px;cursor:pointer;transition:all .18s}
+#btn-today:hover{background:var(--wine);color:#fff}
+
+/* CONFLICT ALERT */
+#conflict-alert{display:none;background:var(--conflict-bg);border:1.5px solid #fca5a5;border-radius:12px;padding:.75rem 1rem;margin-bottom:1rem;font-size:.83rem;color:var(--conflict-c)}
+#conflict-alert.show{display:flex;align-items:flex-start;gap:.5rem}
+
+/* ── CALENDAR GRID VIEW ── */
+#view-calendar{display:none}
+#view-calendar.show{display:block}
+.cal-grid-header{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-bottom:1px;background:var(--border);border-radius:12px 12px 0 0;overflow:hidden}
+.cal-day-name{background:var(--wine);color:rgba(255,255,255,.9);font-size:.72rem;font-weight:700;text-align:center;padding:.5rem;letter-spacing:.04em}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);border-radius:0 0 12px 12px;overflow:hidden}
+.cal-cell{background:#fff;min-height:100px;padding:.4rem .35rem;position:relative;transition:background .15s}
+.cal-cell.other-month{background:#f8f5f2}
+.cal-cell.today{background:#fffdf0}
+.cal-cell.today .cal-cell-num{background:var(--wine);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.cal-cell-num{font-size:.75rem;font-weight:700;color:var(--muted);margin-bottom:.3rem;width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.cal-ev{font-size:.65rem;font-weight:700;padding:.15rem .35rem .15rem 0;border-radius:6px;margin-bottom:.25rem;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:all .15s;line-height:1.3;display:flex;align-items:center;gap:.35rem;border-left:4px solid transparent;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+.cal-ev:hover{filter:brightness(.9);transform:translateX(1px)}
+.cal-ev.conflict-border{box-shadow:inset 0 0 0 1.5px var(--conflict-c); border-left-color: var(--conflict-c) !important;}
+.cal-ev-area{font-weight:900;opacity:1;flex-shrink:0;font-size:.58rem;background:rgba(255,255,255,0.7);padding:.1rem .35rem;border-radius:0 3px 3px 0;text-transform:uppercase;color:inherit;mix-blend-mode:multiply}
+.cal-more{font-size:.6rem;color:var(--wine);font-weight:700;cursor:pointer;padding:.1rem .3rem}
+.cal-more:hover{text-decoration:underline}
+
+/* ── LIST VIEW ── */
+#view-list{display:none}
+#view-list.show{display:block}
+.month-block{margin-bottom:1.75rem}
+.month-h{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;padding-bottom:.6rem;border-bottom:2px solid var(--border)}
+.month-h h3{font-size:1rem;font-weight:800;color:var(--wine);margin:0}
+.month-count{background:var(--wine);color:#fff;font-size:.68rem;font-weight:700;padding:.15rem .55rem;border-radius:999px}
+.ev-card{background:#fff;border-radius:12px;padding:.9rem 1.1rem;margin-bottom:.55rem;display:flex;align-items:flex-start;gap:.85rem;cursor:pointer;transition:all .2s;box-shadow:var(--sh);border:1.5px solid transparent}
+.ev-card:hover{box-shadow:0 4px 18px rgba(107,26,40,.13);border-color:rgba(107,26,40,.18);transform:translateX(2px)}
+.ev-card.conflict{border-left:3px solid var(--conflict-c)}
+.ev-date-col{flex-shrink:0;width:42px;text-align:center}
+.ev-date-num{font-size:1.4rem;font-weight:800;line-height:1;color:var(--wine)}
+.ev-date-wd{font-size:.62rem;color:var(--muted);font-weight:600;text-transform:uppercase;margin-top:.15rem}
+.ev-body{flex:1;min-width:0}
+.ev-title-row{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.25rem}
+.ev-name{font-size:.88rem;font-weight:700;color:var(--text)}
+.ev-chip{font-size:.65rem;font-weight:700;padding:.15rem .5rem;border-radius:999px;white-space:nowrap}
+.ev-time{font-size:.75rem;color:var(--muted);display:flex;align-items:center;gap:.3rem}
+.ev-norm{font-size:.72rem;color:var(--muted);margin-top:.25rem;font-style:italic}
+.ev-obs{font-size:.72rem;color:#6b7280;margin-top:.2rem;display:flex;align-items:flex-start;gap:.3rem}
+.ev-obs i{margin-top:.15rem;flex-shrink:0;color:var(--gold)}
+.ev-conflict-tag{font-size:.65rem;font-weight:700;color:var(--conflict-c);background:var(--conflict-bg);padding:.15rem .5rem;border-radius:4px;border:1px solid #fca5a5;display:flex;align-items:center;gap:.25rem}
+.ev-actions{display:flex;gap:.4rem;align-items:center;flex-shrink:0}
+.ev-btn-del{width:28px;height:28px;border-radius:8px;border:1.5px solid #fca5a5;color:var(--conflict-c);background:transparent;cursor:pointer;font-size:.75rem;display:flex;align-items:center;justify-content:center;transition:all .18s}
+.ev-btn-del:hover{background:var(--conflict-bg)}
+
+/* ── YEAR OVERVIEW ── */
+#view-year{display:none}
+#view-year.show{display:block}
+.year-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem}
+.year-month{background:#fff;border-radius:14px;padding:1rem;box-shadow:var(--sh)}
+.year-month-hdr{font-weight:800;font-size:.85rem;color:var(--wine);margin-bottom:.65rem;padding-bottom:.45rem;border-bottom:1.5px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.year-ev-row{font-size:.72rem;padding:.22rem .4rem;border-radius:5px;margin-bottom:.25rem;cursor:pointer;display:flex;align-items:center;gap:.4rem}
+.year-ev-row:hover{filter:brightness(.93)}
+.year-ev-day{font-weight:700;flex-shrink:0;width:22px;text-align:right}
+.year-ev-nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.year-conflict{border-left:2.5px solid var(--conflict-c)}
+
+/* ── DETAIL MODAL ── */
+#ev-modal-bg{position:fixed;inset:0;background:rgba(20,5,8,.65);z-index:800;display:none;align-items:center;justify-content:center;padding:1rem;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);animation:fadein .18s}
+#ev-modal-bg.open{display:flex}
+.ev-modal{background:#fff;border-radius:20px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;box-shadow:0 10px 50px rgba(0,0,0,.2);animation:slideup .25s cubic-bezier(.22,.68,0,1.1)}
+@keyframes slideup{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.ev-mo-hdr{padding:1.35rem 1.6rem;border-radius:20px 20px 0 0;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.ev-mo-hdr h4{font-size:1.05rem;font-weight:800;color:#fff;margin:0}
+.btn-mo-x{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:rgba(255,255,255,.9);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .18s}
+.btn-mo-x:hover{background:rgba(255,255,255,.3)}
+.ev-mo-body{padding:1.5rem 1.6rem}
+.mo-sec{margin-bottom:1.25rem}
+.mo-sec-ttl{font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;padding-bottom:.4rem;border-bottom:1px solid var(--border);margin-bottom:.7rem}
+.mo-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem .85rem}
+.mo-kv{display:flex;flex-direction:column;gap:.1rem}
+.mo-k{font-size:.68rem;color:var(--muted);font-weight:500}
+.mo-v{font-size:.85rem;font-weight:700;color:var(--text)}
+.norm-pill{display:inline-block;background:#f0eaf7;color:#6b2fa0;font-size:.7rem;font-weight:600;padding:.2rem .55rem;border-radius:6px;border:1px solid #d8bfee;margin:.15rem .15rem 0 0}
+.mo-obs-box{background:#fffdf4;border:1px solid #e8c87a;border-radius:10px;padding:.8rem 1rem;font-size:.8rem;color:#5a4a1a;line-height:1.55}
+.tags-row{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.4rem}
+
+/* ── ADD SESSION FORM ── */
+#add-session-form{background:#fff;border-radius:16px;padding:1.25rem 1.5rem;margin-top:1.5rem;box-shadow:var(--sh);border:2px dashed var(--border)}
+#add-session-form h5{font-size:.88rem;font-weight:700;color:var(--wine);margin:0 0 1rem;display:flex;align-items:center;gap:.5rem}
+.fs-label{font-size:.77rem;font-weight:600;color:#475569;margin-bottom:.3rem;display:block}
+.fs-input,.fs-select,.fs-textarea{width:100%;border:1.5px solid var(--border);border-radius:9px;padding:.5rem .8rem;font-size:.82rem;outline:none;transition:all .2s;background:#fff;color:var(--text)}
+.fs-input:focus,.fs-select:focus,.fs-textarea:focus{border-color:var(--wine2);box-shadow:0 0 0 3px rgba(107,26,40,.1)}
+.btn-add-ev{padding:.5rem 1.25rem;background:var(--wine);color:#fff;border:none;border-radius:10px;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-add-ev:hover{background:var(--wine2)}
+.btn-add-ev:disabled{opacity:.55;cursor:not-allowed}
+
+/* UTILS */
+.d-none{display:none!important}
+.spin-wrap{text-align:center;padding:3rem 1rem;color:var(--muted)}
+.empty-st{text-align:center;padding:3rem 1rem;color:var(--muted)}
+.empty-st i{font-size:2.5rem;opacity:.3;margin-bottom:.75rem}
+@media(max-width:640px){
+  .cal-cell{min-height:60px;padding:.25rem .2rem}
+  .cal-ev{font-size:.55rem;padding:.1rem .2rem}
+  .cal-cell-num{font-size:.68rem}
+  .ev-modal{border-radius:14px 14px 0 0;max-height:95vh;margin-top:auto}
+  #app-main{padding:1rem .75rem 3rem}
+  .mo-info-grid{grid-template-columns:1fr}
+}
+.agenda-banner-content { position: relative; z-index: 1; }
+.icon-gold { color: var(--gold2); }
+.icon-conflict { margin-top: .15rem; flex-shrink: 0; }
+.msg-small { font-size: .8rem; }
+.conf-sec-ttl { color: var(--conflict-c); }
+.conf-list { font-size: .8rem; color: var(--conflict-c); }
+.members-list { font-size: .8rem; }
+#emo-conf-sec, #emo-members-sec { display: none; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="top-nav">
+  <a class="nav-brand" href="portal.html">
+    <span class="nav-brand-ico">✈</span>
+    <div>
+      <div class="nav-brand-name">AIFA · Agenda de Comités</div>
+      <div class="nav-brand-sub">AEROPUERTO INTERNACIONAL FELIPE ÁNGELES · 2026</div>
+    </div>
+  </a>
+  <div class="nav-right">
+    <button class="btn-nav" id="btn-add-session-toggle"><i class="fas fa-plus"></i> Agregar sesión</button>
+    <button class="btn-nav" id="btn-export-csv"><i class="fas fa-file-csv"></i> Exportar</button>
+  </div>
+</nav>
+
+<div id="app-main">
+
+  <!-- BANNER -->
+  <div class="agenda-banner">
+    <div class="agenda-banner-content">
+      <h2><i class="fas fa-calendar-alt me-2 icon-gold"></i>Agenda de Comités AIFA 2026</h2>
+      <p>Calendario anual integrado · Todas las áreas · Detección automática de empalmes</p>
+    </div>
+    <div class="banner-year">2026</div>
+  </div>
+
+  <!-- LEYENDA DE ÁREAS -->
+  <div class="legend-strip" id="legend-strip"></div>
+
+  <!-- ALERTA DE CONFLICTOS -->
+  <div id="conflict-alert">
+    <i class="fas fa-exclamation-triangle icon-conflict"></i>
+    <div id="conflict-alert-text"></div>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <div class="view-btns">
+      <button class="view-btn active" data-view="calendar"><i class="fas fa-th"></i> Mensual</button>
+      <button class="view-btn" data-view="list"><i class="fas fa-list-ul"></i> Lista</button>
+      <button class="view-btn" data-view="year"><i class="fas fa-calendar"></i> Anual</button>
+    </div>
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" id="search-inp" placeholder="Buscar comité, área…">
+    </div>
+    <button id="btn-today">Hoy</button>
+    <div class="month-nav" id="month-nav">
+      <button id="btn-prev" title="Mes anterior"><i class="fas fa-chevron-left"></i></button>
+      <div class="month-lbl" id="month-lbl"></div>
+      <button id="btn-next" title="Mes siguiente"><i class="fas fa-chevron-right"></i></button>
+    </div>
+  </div>
+
+  <!-- CALENDAR VIEW -->
+  <div id="view-calendar">
+    <div class="cal-grid-header">
+      <div class="cal-day-name">Lun</div>
+      <div class="cal-day-name">Mar</div>
+      <div class="cal-day-name">Mié</div>
+      <div class="cal-day-name">Jue</div>
+      <div class="cal-day-name">Vie</div>
+      <div class="cal-day-name">Sáb</div>
+      <div class="cal-day-name">Dom</div>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+
+  <!-- LIST VIEW -->
+  <div id="view-list">
+    <div id="list-container"></div>
+  </div>
+
+  <!-- YEAR VIEW -->
+  <div id="view-year">
+    <div class="year-grid" id="year-grid"></div>
+  </div>
+
+  <!-- ADD SESSION FORM -->
+  <div id="add-session-form" class="d-none">
+    <h5><i class="fas fa-calendar-plus"></i> Agregar sesión personalizada (tu área)</h5>
+    <div class="row g-2">
+      <div class="col-md-4">
+        <label class="fs-label">Comité / Nombre del evento</label>
+        <input type="text" class="fs-input" id="fs-name" placeholder="Ej: Reunión mensual DO">
+      </div>
+      <div class="col-md-2">
+        <label class="fs-label">Fecha</label>
+        <input type="date" class="fs-input" id="fs-date">
+      </div>
+      <div class="col-md-2">
+        <label class="fs-label">Hora</label>
+        <input type="time" class="fs-input" id="fs-time" value="10:00">
+      </div>
+      <div class="col-md-2">
+        <label class="fs-label">Área</label>
+        <select class="fs-select" id="fs-area">
+          <option value="DPE">DPE – Dir. Planeación Estratégica</option>
+          <option value="DA">DA – Dir. Administración</option>
+          <option value="GSO">GSO – Gestión Seg. Operacional</option>
+          <option value="DO">DO – Dir. Operación</option>
+          <option value="DCS">DCS – Dir. Comercial y Servicios</option>
+          <option value="GC">GC – Gestión de Calidad</option>
+          <option value="AFAC">AFAC (Externo)</option>
+          <option value="UT">UT – Unidad Transparencia</option>
+        </select>
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button class="btn-add-ev w-100" id="btn-save-session"><i class="fas fa-check me-1"></i>Guardar</button>
+      </div>
+      <div class="col-12">
+        <label class="fs-label">Tipo de sesión y observaciones</label>
+        <textarea class="fs-textarea" id="fs-obs" rows="2" placeholder="Ej: Sesión extraordinaria · Motivo: revisión urgente…"></textarea>
+      </div>
+    </div>
+    <div id="fs-msg" class="mt-2 msg-small"></div>
+  </div>
+
+</div>
+
+<!-- EVENT DETAIL MODAL -->
+<div id="ev-modal-bg">
+  <div class="ev-modal" id="ev-modal">
+    <div class="ev-mo-hdr" id="ev-mo-hdr">
+      <h4 id="emo-title">—</h4>
+      <button class="btn-mo-x" id="btn-emo-x" title="Cerrar"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="ev-mo-body">
+      <div class="mo-sec">
+        <div class="mo-sec-ttl">Información general</div>
+        <div class="mo-info-grid">
+          <div class="mo-kv"><div class="mo-k">Fecha</div><div class="mo-v" id="emo-date">—</div></div>
+          <div class="mo-kv"><div class="mo-k">Hora</div><div class="mo-v" id="emo-time">—</div></div>
+          <div class="mo-kv"><div class="mo-k">No. de sesión</div><div class="mo-v" id="emo-session">—</div></div>
+          <div class="mo-kv"><div class="mo-k">Área responsable</div><div class="mo-v" id="emo-area">—</div></div>
+          <div class="mo-kv"><div class="mo-k">Acrónimo</div><div class="mo-v" id="emo-acr">—</div></div>
+          <div class="mo-kv"><div class="mo-k">Tipo</div><div class="mo-v" id="emo-tipo">—</div></div>
+        </div>
+      </div>
+      <div class="mo-sec" id="emo-norm-sec">
+        <div class="mo-sec-ttl">Fundamento normativo</div>
+        <div id="emo-norm"></div>
+      </div>
+      <div class="mo-sec" id="emo-obs-sec">
+        <div class="mo-sec-ttl"><i class="fas fa-lightbulb me-1 icon-gold"></i>Observaciones / Periodicidad</div>
+        <div class="mo-obs-box" id="emo-obs"></div>
+      </div>
+      <div class="mo-sec" id="emo-conf-sec">
+        <div class="mo-sec-ttl conf-sec-ttl"><i class="fas fa-exclamation-triangle me-1"></i>Empalme detectado</div>
+        <div id="emo-conf-list" class="conf-list"></div>
+      </div>
+      <div class="mo-sec" id="emo-members-sec">
+        <div class="mo-sec-ttl">Integrantes conocidos</div>
+        <div id="emo-members" class="members-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// DATA – Comités AIFA 2026 (extraída del PDF oficial)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Paleta de áreas
+const AREAS = {
+  DPE:  { label:'DPE',  full:'Dir. Planeación Estratégica', color:'#0d9488', bg:'#f0fdfa' },
+  DA:   { label:'DA',   full:'Dir. Administración',          color:'#2563eb', bg:'#eff6ff' },
+  GSO:  { label:'GSO',  full:'Gestión Seg. Operacional',     color:'#7c3aed', bg:'#f5f3ff' },
+  DO:   { label:'DO',   full:'Dir. Operación',               color:'#059669', bg:'#ecfdf5' },
+  DCS:  { label:'DCS',  full:'Dir. Comercial y Servicios',   color:'#d97706', bg:'#fffbeb' },
+  GC:   { label:'GC',   full:'Gestión de Calidad',           color:'#0284c7', bg:'#e0f2fe' },
+  AFAC: { label:'AFAC', full:'AFAC (Externo)',                color:'#4f46e5', bg:'#eef2ff' },
+  UT:   { label:'UT',   full:'Unidad Transparencia',         color:'#0891b2', bg:'#cffafe' },
+};
+
+const WD = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+// ─── BASE DE COMITÉS (sesiones ordinarias 2026) ───────────────────────────
+// Cada entrada tiene: id, nombre, acr, area, hora, tipo ('ordinaria'|'informe'|'extraordinaria'|'personalizada'),
+// normativa[], obs, miembros (opcional), dates como array de 'YYYY-MM-DD'
+const BASE_COMMITTEES = [
+
+  { id:'hca', nombre:'H. Consejo de Administración', acr:'HCA', area:'DPE',
+    hora:'A definir (SDN)',
+    tipo:'ordinaria',
+    normativa:['Ley Federal de Entidades Paraestatales Art. 35, 36, 58'],
+    obs:'4 sesiones ordinarias al año. Presidido por Subsecretario de Defensa Nacional. Sesiona válidamente con mayoría de asistentes que sean representantes del Gobierno Federal. Convocado a través de la Dirección de Planeación Estratégica.',
+    miembros:'Gral. Div. Enrique Martínez López (Presidente), Gral. Div. Hernán Cortés H. (Suplente), y 10 consejeros adicionales.',
+    prepTimeline:'Recepción info: 5 días; Integración: 3 días; Revisión Dir. Gral: 5 días; Remisión SDN: 7 días; Envío a consejeros: 5 días hábiles antes.',
+    dates:['2026-03-01','2026-06-01','2026-09-01','2026-12-01'] },
+
+  { id:'cc', nombre:'Comisión Consultiva', acr:'CC', area:'DPE',
+    hora:'11:00',
+    tipo:'ordinaria',
+    normativa:['Ley de Aeropuertos Art. 44','Reglamento de la Ley de Aeropuertos Arts. 173-174'],
+    obs:'2 sesiones ordinarias + 5 mesas de trabajo al año. El concesionario preside. Se reúne al menos 1 vez al año. Levanta minuta de cada sesión. Compuesta por representantes de gobierno estatal/municipal, cámaras y transportistas.',
+    prepTimeline:'Solicitud escrita: 5-15 días post-cierre; Reunión coordinación: 2 días; Subdirectores: 2 días; Titular: 3 días; Miembros: hasta 7 días hábiles antes.',
+    dates:['2026-01-22','2026-02-26','2026-04-30','2026-07-23','2026-08-27','2026-10-29','2026-11-26'] },
+
+  { id:'cocodi', nombre:'COCODI', acr:'COCODI', area:'DA',
+    hora:'11:00',
+    tipo:'ordinaria',
+    normativa:['Acuerdo MAAGMCI DOF 3-Nov-2016 (reform. 5-Sep-2018) Numeral 32 y 42'],
+    obs:'4 sesiones al año mínimo, al menos 15 días antes de cada sesión del H. Consejo de Administración. Preside el titular de la institución. Sesiones extraordinarias según necesidad.',
+    prepTimeline:'Solicitud: 5 días post-mes previo; Coordinación: 2 días; Subdirectores: 2 días; Titular: 3 días; Miembros: hasta 7 días hábiles antes (extraordinarias: 2 días hábiles).',
+    dates:['2026-03-11','2026-05-01','2026-08-01','2026-11-01'] },
+
+  { id:'caas', nombre:'CAAS – Comité Adquisiciones, Arrendamientos y Servicios', acr:'CAAS', area:'DA',
+    hora:'10:00',
+    tipo:'ordinaria',
+    normativa:['Ley ASSP Art. 22','Reglamento LAASSP Arts. 19-23'],
+    obs:'12 sesiones ordinarias al año (último viernes del mes, excepto Diciembre). Informes trimestrales en sesión inmediata posterior al cierre del trimestre. Sesiones extraordinarias según necesidades. Convocatoria con mínimo 3 días hábiles de anticipación.',
+    prepTimeline:'Secretario Técnico: 5 días antes; Titular: 2 días revisión; Miembros: 3 días hábiles antes (extraordinarias: 1 día hábil).',
+    miembros:'Mtro. Orlando Vázquez Osalde (Pte.), Mtro. Gonzalo Sandoval (Vocal 1), Ing. Héctor Reyes Vega (Vocal 2), Mtro. Tomás Ramírez (Vocal Suplente), Ing. Fabiola Sánchez (Vocal), Mtro. Eleazar Ramírez (Asesor jurídico), Lic. Isidro Morales (Asesor OIC).',
+    dates:['2026-01-30','2026-02-27','2026-03-27','2026-04-24','2026-05-29','2026-06-26','2026-07-31','2026-08-28','2026-09-25','2026-10-30','2026-11-27','2026-12-18'] },
+
+  { id:'cbm', nombre:'Comité de Bienes Muebles', acr:'CBM', area:'DA',
+    hora:'10:00',
+    tipo:'ordinaria',
+    normativa:['Ley General de Bienes Nacionales Arts. 140-141','Acuerdo Comités Enajenación APF Art. 5-7'],
+    obs:'12 sesiones ordinarias al año. Informes trimestrales. Sesiones extraordinarias según necesidad. El orden del día se entrega con mínimo 3 días hábiles (1 día para extraordinarias).',
+    prepTimeline:'Secretario Técnico: 5 días antes; Titular: 2 días; Miembros: 3 días hábiles antes.',
+    miembros:'Lic. Orlando Vázquez (Pte.), Mtro. Thomás Ramírez (Vocal 1), Mtro. Gonzalo Sandoval (Vocal 2), Ing. Héctor Reyes Vega (Vocal 3), Mtro. Antonio López (Vocal 4), Ing. Fabiola Sánchez (Vocal 5).',
+    dates:['2026-01-27','2026-02-24','2026-03-31','2026-04-28','2026-05-26','2026-06-30','2026-07-28','2026-08-25','2026-09-29','2026-10-27','2026-11-24','2026-12-15'] },
+
+  { id:'csh', nombre:'Comité de Seguridad e Higiene en el Trabajo', acr:'CSH', area:'DA',
+    hora:'10:00',
+    tipo:'ordinaria',
+    normativa:['LFT Arts. 2, 153-J, 475 Bis, 509-510','RFSS Art. 7, 45','NOM-019-STPS-2011'],
+    obs:'3 sesiones ordinarias al año. Recorridos de verificación con periodicidad mínima trimestral. El programa anual de recorridos debe integrarse dentro de los 30 días naturales siguientes a constitución o al inicio del año.',
+    miembros:'Gonzalo Sandoval González (Coordinador – Dir. de Operación).',
+    dates:['2026-04-07','2026-09-01','2026-11-01'] },
+
+  { id:'cmcap', nombre:'Comisión Mixta Capacitación, Adiestramiento y Productividad', acr:'CMCAP', area:'DA',
+    hora:'Variable',
+    tipo:'ordinaria',
+    normativa:['LFT Art. 153-E'],
+    obs:'Al menos 3 sesiones por año (se programaron 4 en 2026). Convocatoria mínimo 15 días previos. Para sesiones extraordinarias: material 2 días hábiles antes.',
+    miembros:'Patrón: Lic. Orlando Vázquez Osalde (Pte.), Lic. Fernando Esteves, Lic. Héctor Reyes, Lic. Juan Carlos Ramírez, Lic. Cinthia Dávila. Trabajadores: Lic. Roberto González, Mtro. Emmanuel Tapia, Lic. Miroslawa Gordillo, Mtra. Nelly Meza, Lic. Mitzi González (Sec.).',
+    dates:['2026-05-01','2026-08-01','2026-10-01','2026-12-01'] },
+
+  { id:'gia', nombre:'Grupo Interdisciplinario de Archivo', acr:'GIA', area:'DA',
+    hora:'Variable',
+    tipo:'ordinaria',
+    normativa:['Ley General de Archivos Arts. 11, 50-54'],
+    obs:'4 sesiones ordinarias al año (pendiente definir fechas). El responsable del área coordinadora de archivos propicia la integración. Se deberán realizar calendarios de visitas a áreas productoras de documentación.',
+    prepTimeline:'Solicitud: 8 días antes; Coordinación: 2 días; Subdirectores: 2 días; Titular: 5 días; Miembros: 3 días hábiles antes (extraordinarias: 1 día).',
+    miembros:'Director Jurídico, Director Planeación Estratégica, Coordinación Archivos, Subdirector TI, Titular UT, OIC, áreas productoras.',
+    dates:['2026-06-01','2026-11-01'] },
+
+  { id:'jcso', nombre:'Junta de Control de Seguridad Operacional', acr:'JCSO', area:'GSO',
+    hora:'11:00',
+    tipo:'ordinaria',
+    normativa:['NOM-064-SCT3-2023 Secc.3','Manual SMS AIFA (oficio AFAC 4.1.2.2.040/VUS 10-Ene-2022) Acápite 3.5'],
+    obs:'4 sesiones ordinarias al año (miércoles de la 2ª semana del mes). Sesiones extraordinarias: cuando el Presidente la convoque, a petición de miembros, o después de incidente grave/accidente.',
+    prepTimeline:'Preparación material: 10 días antes; Titular: 1 día; Miembros: 3 días hábiles antes.',
+    miembros:'Isidoro Pastor Román (Pte. – Dir. Gral.), Cinthia Ivette Dávila Cantero (Sec. – Gte. GSO), Eleazar Ramírez Espíndola (Dir. Jurídico), Orlando Vázquez Osalde (Dir. Admin.), Gonzalo Sandoval González (Dir. Operación), Héctor Reyes Vega (Dir. PE), Antonio López Ramírez (Dir. Comercial).',
+    dates:['2026-01-07','2026-04-08','2026-07-08','2026-10-08'] },
+
+  { id:'clfs', nombre:'Comité Local de Fauna Silvestre', acr:'CLFS', area:'DO',
+    hora:'Variable',
+    tipo:'ordinaria',
+    normativa:['Circular AFAC CO-SA-10/22 (21-Oct-2022)','OACI Anexo 14 Vol.I Secc. 9.4','Doc. 9137 OACI Parte 3'],
+    obs:'4 sesiones ordinarias al año. Sesiones extraordinarias según necesidad. Debe estudiar datos de choques con aves/fauna, evaluar riesgos y determinar medidas de control.',
+    prepTimeline:'Solicitud: 5 días post-mes previo; Coordinación: 2 días; Subdirectores: 2 días; Titular: 5 días; Miembros: hasta 5 días hábiles antes.',
+    miembros:'Resp. Seg. Operacional Aeródromo (AIFA), Coord. fauna silvestre (AIFA), Representante aerolineas (Ext.), SENEAM, RST (GSO), Autoridades Locales, Comandancia AFAC.',
+    dates:['2026-03-05','2026-06-04','2026-09-03','2026-12-03'] },
+
+  { id:'coyh', nombre:'Comité de Operación y Horarios', acr:'COYH', area:'DO',
+    hora:'11:00',
+    tipo:'ordinaria',
+    normativa:['Ley de Aeropuertos Arts. 61-62','Reglamento Ley Aeropuertos Arts. 129, 131'],
+    obs:'12 sesiones ordinarias al año (2° martes de cada mes). Sesionará al menos una vez al mes. Levanta acta por cada sesión firmada por asistentes. El reglamento interno debe aprobarse dentro de los 90 días hábiles siguientes a constitución.',
+    prepTimeline:'Solicitud: 5 días post-mes; Coordinación: 2 días; Subdirectores: 2 días; Titular: 3 días; Miembros: hasta 5 días hábiles antes.',
+    miembros:'Dir. Gral. AIFA (Pte.), Comandante AFAC (Vocal Ejecutivo), SENEAM (Jefe Estación), representantes aerolineas, operadores, prestadores y autoridades.',
+    dates:['2026-01-13','2026-02-10','2026-03-10','2026-04-14','2026-05-12','2026-06-09','2026-07-14','2026-08-11','2026-09-08','2026-10-13','2026-11-10','2026-12-08'] },
+
+  { id:'sdem', nombre:'Subcomité de Demoras', acr:'SDEM', area:'DO',
+    hora:'11:00',
+    tipo:'ordinaria',
+    normativa:['Reglamento Ley Aeropuertos Arts. 97, 132 Bis, 132 Ter'],
+    obs:'Sesiona al menos 2 veces al mes (1 en la agenda). Presidido por el Comandante de Aeródromo (AFAC). Sesiones extraordinarias a juicio del Presidente. Aplica a demoras/cancelaciones en aterrizajes y despegues.',
+    dates:['2026-01-12','2026-02-09','2026-03-09','2026-04-13','2026-05-11','2026-06-08','2026-07-13','2026-08-10','2026-09-14','2026-10-12','2026-11-09','2026-12-14'] },
+
+  { id:'rst', nombre:'Subcomité Seg. Operacional en Pista (RST)', acr:'RST', area:'GSO',
+    hora:'11:00',
+    tipo:'ordinaria',
+    normativa:['Ley de Aeropuertos','NOM-064-SCT3-2023','Manual SMS AIFA'],
+    obs:'6 sesiones ordinarias al año (miércoles de la 3ª semana del mes, meses alternos). Subcomité del COYH.',
+    dates:['2026-02-18','2026-04-15','2026-06-17','2026-08-19','2026-10-21','2026-12-16'] },
+
+  { id:'sobras', nombre:'Subcomité de Obras', acr:'S-OBRAS', area:'DO',
+    hora:'11:30',
+    tipo:'ordinaria',
+    normativa:['Reglamento Ley Aeropuertos','Ley Aeropuertos Art. 62'],
+    obs:'Una vez al mes conforme a sesiones del COYH. Subcomité del COYH.',
+    dates:['2026-01-12','2026-02-09','2026-03-09','2026-04-13','2026-05-11','2026-06-08','2026-07-13','2026-08-10','2026-09-07','2026-10-12','2026-11-09','2026-12-07'] },
+
+  { id:'ctrans', nombre:'Comité de Transparencia', acr:'C-TRANS', area:'UT',
+    hora:'11:00',
+    tipo:'ordinaria',
+    normativa:['Ley General de Transparencia','Ley Federal de Transparencia y Acceso a la Información'],
+    obs:'24 sesiones al año (2 por mes, miércoles). Sesiones el 2° y 4° miércoles de cada mes.',
+    dates:['2026-01-08','2026-01-22','2026-02-12','2026-02-26','2026-03-12','2026-03-26','2026-04-09','2026-04-23','2026-05-14','2026-05-28','2026-06-11','2026-06-25','2026-07-09','2026-07-23','2026-08-06','2026-08-20','2026-09-03','2026-09-17','2026-10-08','2026-10-22','2026-11-05','2026-11-19','2026-12-03','2026-12-17'] },
+
+  { id:'cetica', nombre:'Comité de Ética', acr:'C-ÉTICA', area:'UT',
+    hora:'11:00',
+    tipo:'ordinaria',
+    normativa:['Ley General de Responsabilidades Administrativas','Lineamientos del Comité de Ética'],
+    obs:'5 sesiones en 2026.',
+    dates:['2026-01-31','2026-04-17','2026-07-15','2026-10-15','2026-12-15'] },
+
+  { id:'cocosa', nombre:'COCOSA – Contratación, Tarifas y Crédito (Servicios Aeroportuarios)', acr:'COCOSA', area:'DCS',
+    hora:'12:30',
+    tipo:'ordinaria',
+    normativa:['Ley de Aeropuertos Art. 62','Reglamento Ley Aeropuertos'],
+    obs:'12 sesiones ordinarias al año, conforme al calendario del COYH. Ses. misma semana que COYH.',
+    dates:['2026-01-13','2026-02-10','2026-03-10','2026-04-14','2026-05-12','2026-06-09','2026-07-14','2026-08-11','2026-09-08','2026-10-13','2026-11-10','2026-12-08'] },
+
+  { id:'calidad', nombre:'Comité de Calidad y Mejora Continua', acr:'CALIDAD', area:'GC',
+    hora:'11:00',
+    tipo:'ordinaria',
+    normativa:['ISO 9001:2015','Normativa interna AIFA'],
+    obs:'5 sesiones en 2026.',
+    dates:['2026-01-23','2026-04-24','2026-07-24','2026-10-23','2026-12-18'] },
+
+  { id:'cocoa', nombre:'Comisión Coordinadora de Autoridades', acr:'COCOA', area:'AFAC',
+    hora:'11:00',
+    tipo:'ordinaria',
+    normativa:['Ley de Aeropuertos','Regulación AFAC'],
+    obs:'12 sesiones ordinarias al año, una cada mes. Externo – presidido por AFAC.',
+    dates:['2026-01-09','2026-02-13','2026-03-13','2026-04-10','2026-05-08','2026-06-12','2026-07-10','2026-08-14','2026-09-11','2026-10-09','2026-11-13','2026-12-11'] },
+
+  { id:'clsa', nombre:'Comité Local de Seguridad Aeroportuaria', acr:'CLSA', area:'AFAC',
+    hora:'11:00',
+    tipo:'ordinaria',
+    normativa:['Ley de Aeropuertos','Regulación AFAC – Seguridad Aeroportuaria'],
+    obs:'12 sesiones ordinarias al año (tercer jueves de cada mes). Externo – coordinado por AFAC.',
+    dates:['2026-01-15','2026-02-19','2026-03-19','2026-04-16','2026-05-21','2026-06-18','2026-07-16','2026-08-20','2026-09-17','2026-10-15','2026-11-19','2026-12-17'] },
+
+  { id:'ciafa', nombre:'Comité de Innovación del AIFA', acr:'CIAFA', area:'DPE',
+    hora:'Variable',
+    tipo:'ordinaria',
+    normativa:['Estatutos AIFA S.A. de C.V.','Ley Federal de Entidades Paraestatales Art. 10 X (autorización comités de apoyo)'],
+    obs:'3 sesiones en 2026.',
+    dates:['2026-03-30','2026-07-27','2026-11-30'] },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════════
+let currentView = 'calendar';
+let currentMonth = 3; // April (0-indexed) → April 2026
+let searchQuery = '';
+let hiddenAreas = new Set();
+let customSessions = []; // Loaded from Supabase
+let allEvents = []; // Flattened from BASE_COMMITTEES + customSessions
+let conflictMap = {}; // dateStr → [ev,...]
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+  buildLegend();
+  buildEvents();
+  detectConflicts();
+  renderAll();
+  bindUI();
+  await loadCustomSessions();
+});
+
+function buildEvents(){
+  allEvents = [];
+  BASE_COMMITTEES.forEach(c=>{
+    c.dates.forEach((d,i)=>{
+      allEvents.push({
+        id: c.id + '-' + i,
+        baseId: c.id,
+        nombre: c.nombre,
+        acr: c.acr,
+        area: c.area,
+        hora: c.hora,
+        tipo: c.tipo,
+        normativa: c.normativa,
+        obs: c.obs,
+        miembros: c.miembros || null,
+        prepTimeline: c.prepTimeline || null,
+        sesionNum: i+1,
+        date: d,
+        custom: false,
+      });
+    });
+  });
+  // Add custom sessions
+  customSessions.forEach((cs,i)=>{
+    allEvents.push({
+      id: 'custom-'+i,
+      baseId:'custom',
+      nombre: cs.name,
+      acr: cs.area,
+      area: cs.area,
+      hora: cs.time || '—',
+      tipo: 'personalizada',
+      normativa: [],
+      obs: cs.obs || '',
+      miembros: null,
+      sesionNum: null,
+      date: cs.date,
+      custom: true,
+      raw: cs,
+    });
+  });
+  allEvents.sort((a,b)=>(a.date > b.date ? 1 : -1));
+}
+
+function detectConflicts(){
+  conflictMap = {};
+  const byDate = {};
+  allEvents.forEach(ev=>{
+    if(!byDate[ev.date]) byDate[ev.date]=[];
+    byDate[ev.date].push(ev);
+  });
+  Object.entries(byDate).forEach(([d, evs])=>{
+    if(evs.length > 1){
+      conflictMap[d] = evs;
+    }
+  });
+  // Show/hide conflict alert
+  const conflictDays = Object.keys(conflictMap).length;
+  const alertEl = document.getElementById('conflict-alert');
+  const alertTxt = document.getElementById('conflict-alert-text');
+  if(conflictDays > 0){
+    alertEl.classList.add('show');
+    alertTxt.innerHTML = `<strong>⚠ Se detectaron ${conflictDays} día(s) con empalmes de comités en 2026.</strong> Los eventos marcados en rojo comparten fecha. Considera reprogramar con la dirección correspondiente.`;
+  } else {
+    alertEl.classList.remove('show');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LEGEND
+// ═══════════════════════════════════════════════════════════════════════════
+function buildLegend(){
+  const strip = document.getElementById('legend-strip');
+  strip.innerHTML = '';
+  Object.entries(AREAS).forEach(([key, area])=>{
+    const chip = document.createElement('div');
+    chip.className = 'leg-chip';
+    chip.dataset.area = key;
+    chip.style.background = area.bg;
+    chip.style.color = area.color;
+    chip.style.borderColor = area.color + '55';
+    chip.innerHTML = `<span class="leg-dot" style="background:${area.color}"></span>${area.label} <span style="opacity:.65;font-weight:400;font-size:.65rem">— ${area.full}</span>`;
+    chip.addEventListener('click', ()=>{
+      if(hiddenAreas.has(key)) hiddenAreas.delete(key); else hiddenAreas.add(key);
+      chip.classList.toggle('off', hiddenAreas.has(key));
+      renderAll();
+    });
+    strip.appendChild(chip);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FILTERING
+// ═══════════════════════════════════════════════════════════════════════════
+function filteredEvents(){
+  return allEvents.filter(ev=>{
+    if(hiddenAreas.has(ev.area)) return false;
+    if(searchQuery){
+      const q = searchQuery.toLowerCase();
+      return ev.nombre.toLowerCase().includes(q)
+          || ev.acr.toLowerCase().includes(q)
+          || ev.area.toLowerCase().includes(q)
+          || (ev.obs||'').toLowerCase().includes(q);
+    }
+    return true;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RENDER DISPATCHER
+// ═══════════════════════════════════════════════════════════════════════════
+function renderAll(){
+  if(currentView==='calendar') renderCalendar();
+  else if(currentView==='list') renderList();
+  else if(currentView==='year') renderYear();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CALENDAR VIEW
+// ═══════════════════════════════════════════════════════════════════════════
+function renderCalendar(){
+  const year = 2026;
+  const month = currentMonth; // 0-indexed
+  document.getElementById('month-lbl').textContent = `${MONTHS_ES[month]} 2026`;
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+  // Convert to Mon-based: Sun=6, Mon=0
+  const startOffset = (firstDay === 0) ? 6 : firstDay - 1;
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const daysInPrev = new Date(year, month, 0).getDate();
+
+  const evs = filteredEvents();
+  const todayStr = toDateStr(new Date());
+
+  // Build cells: prev month overflow + current + next overflow
+  const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+
+  for(let i=0; i<totalCells; i++){
+    let cellDay, cellMonth = month, cellYear = year, otherMonth = false;
+
+    if(i < startOffset){
+      cellDay = daysInPrev - startOffset + i + 1;
+      cellMonth = month - 1;
+      if(cellMonth < 0){ cellMonth = 11; cellYear = 2025; }
+      otherMonth = true;
+    } else if(i < startOffset + daysInMonth){
+      cellDay = i - startOffset + 1;
+    } else {
+      cellDay = i - startOffset - daysInMonth + 1;
+      cellMonth = month + 1;
+      if(cellMonth > 11){ cellMonth = 0; cellYear = 2027; }
+      otherMonth = true;
+    }
+
+    const dateStr = `${cellYear}-${String(cellMonth+1).padStart(2,'0')}-${String(cellDay).padStart(2,'0')}`;
+    const dayEvs = evs.filter(e=>e.date === dateStr);
+    const isToday = dateStr === todayStr;
+    const hasConflict = !otherMonth && conflictMap[dateStr] && conflictMap[dateStr].length > 1;
+
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell' + (otherMonth ? ' other-month' : '') + (isToday ? ' today' : '');
+    if(hasConflict && !otherMonth) cell.style.background = '#fff8f8';
+
+    const numDiv = document.createElement('div');
+    numDiv.className = 'cal-cell-num';
+    numDiv.textContent = cellDay;
+    cell.appendChild(numDiv);
+
+    const MAX_SHOW = 3;
+    dayEvs.slice(0, MAX_SHOW).forEach(ev=>{
+      const areaC = AREAS[ev.area];
+      const chip = document.createElement('div');
+      chip.className = 'cal-ev';
+      if(areaC) {
+        chip.style.background = areaC.bg;
+        chip.style.color = areaC.color;
+        chip.style.borderLeftColor = areaC.color;
+      } else {
+        chip.style.background = '#f5f5f5';
+        chip.style.color = '#333';
+        chip.style.borderLeftColor = '#ccc';
+      }
+      
+      const areaSpan = document.createElement('span');
+      areaSpan.className = 'cal-ev-area';
+      areaSpan.textContent = ev.area;
+
+      const txtSpan = document.createElement('span');
+      txtSpan.style.overflow = 'hidden';
+      txtSpan.style.textOverflow = 'ellipsis';
+      txtSpan.textContent = (ev.acr || ev.nombre.slice(0,14));
+
+      chip.appendChild(areaSpan);
+      chip.appendChild(txtSpan);
+      
+      if(hasConflict && evs.filter(e => e.date === dateStr).length > 1) {
+        const others = evs.filter(e => e.date === dateStr && e.id !== ev.id);
+        if(others.some(o => o.hora === ev.hora)) {
+          chip.classList.add('conflict-border');
+        }
+      }
+      
+      chip.title = `[${ev.area}] ${ev.nombre} · ${ev.hora}`;
+      chip.addEventListener('click', ()=>openModal(ev));
+      cell.appendChild(chip);
+    });
+    if(dayEvs.length > MAX_SHOW){
+      const more = document.createElement('div');
+      more.className = 'cal-more';
+      more.textContent = `+${dayEvs.length - MAX_SHOW} más`;
+      more.addEventListener('click', ()=>{ currentView='list'; setView('list'); renderList(month); });
+      cell.appendChild(more);
+    }
+    grid.appendChild(cell);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LIST VIEW
+// ═══════════════════════════════════════════════════════════════════════════
+function renderList(filterMonth = null){
+  const container = document.getElementById('list-container');
+  container.innerHTML = '';
+  const evs = filteredEvents();
+  const byMonth = {};
+  evs.forEach(ev=>{
+    const m = parseInt(ev.date.split('-')[1]) - 1;
+    if(filterMonth !== null && m !== filterMonth) return;
+    if(!byMonth[m]) byMonth[m] = [];
+    byMonth[m].push(ev);
+  });
+
+  if(Object.keys(byMonth).length === 0){
+    container.innerHTML = '<div class="empty-st"><i class="fas fa-calendar-times"></i><div>No hay eventos que coincidan con los filtros.</div></div>';
+    return;
+  }
+
+  Object.keys(byMonth).sort((a,b)=>a-b).forEach(mIdx=>{
+    const monthEvs = byMonth[mIdx];
+    const block = document.createElement('div');
+    block.className = 'month-block';
+    block.innerHTML = `<div class="month-h"><h3>${MONTHS_ES[mIdx]}</h3><span class="month-count">${monthEvs.length} sesiones</span></div>`;
+
+    monthEvs.forEach(ev=>{
+      const areaC = AREAS[ev.area];
+      const dt = new Date(ev.date + 'T12:00:00');
+      const wdIdx = (dt.getDay() + 6) % 7; // Monday=0
+      const isConflict = conflictMap[ev.date] && conflictMap[ev.date].length > 1;
+      const card = document.createElement('div');
+      card.className = 'ev-card' + (isConflict ? ' conflict' : '');
+      card.innerHTML = `
+        <div class="ev-date-col">
+          <div class="ev-date-num">${dt.getDate()}</div>
+          <div class="ev-date-wd">${WD[wdIdx]}</div>
+        </div>
+        <div class="ev-body">
+          <div class="ev-title-row">
+            <span class="ev-name">${ev.nombre}</span>
+            ${areaC ? `<span class="ev-chip" style="background:${areaC.bg};color:${areaC.color};border:1px solid ${areaC.color}40">${ev.area}</span>` : ''}
+            ${ev.tipo === 'personalizada' ? '<span class="ev-chip" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0">Personalizada</span>' : ''}
+            ${isConflict ? '<span class="ev-conflict-tag"><i class="fas fa-exclamation-triangle"></i> Empalme</span>' : ''}
+          </div>
+          <div class="ev-time"><i class="fas fa-clock"></i> ${ev.hora}${ev.sesionNum ? ` · Sesión ${ev.sesionNum}ª` : ''}</div>
+          ${ev.obs ? `<div class="ev-obs"><i class="fas fa-info-circle"></i><span>${ev.obs.slice(0,120)}${ev.obs.length>120?'…':''}</span></div>` : ''}
+        </div>
+        <div class="ev-actions">
+          ${ev.custom ? `<button class="ev-btn-del" title="Eliminar" data-id="${ev.id}"><i class="fas fa-trash-alt"></i></button>` : ''}
+        </div>`;
+      card.querySelector('.ev-body').addEventListener('click', ()=>openModal(ev));
+      card.querySelector('.ev-date-col').addEventListener('click', ()=>openModal(ev));
+      const delBtn = card.querySelector('.ev-btn-del');
+      if(delBtn) delBtn.addEventListener('click', (e)=>{ e.stopPropagation(); deleteCustomSession(ev); });
+      block.appendChild(card);
+    });
+    container.appendChild(block);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// YEAR VIEW
+// ═══════════════════════════════════════════════════════════════════════════
+function renderYear(){
+  const grid = document.getElementById('year-grid');
+  grid.innerHTML = '';
+  const evs = filteredEvents();
+  for(let m=0; m<12; m++){
+    const monthEvs = evs.filter(ev=>parseInt(ev.date.split('-')[1])-1===m).sort((a,b)=>a.date>b.date?1:-1);
+    const box = document.createElement('div');
+    box.className = 'year-month';
+    box.innerHTML = `<div class="year-month-hdr">${MONTHS_ES[m]} <span style="font-size:.7rem;font-weight:600;color:var(--muted)">${monthEvs.length} sesiones</span></div>`;
+    if(monthEvs.length === 0){
+      box.innerHTML += '<div style="font-size:.72rem;color:var(--muted);text-align:center;padding:.5rem">Sin sesiones</div>';
+    }
+    monthEvs.forEach(ev=>{
+      const areaC = AREAS[ev.area];
+      const dt = new Date(ev.date+'T12:00:00');
+      const isConflict = conflictMap[ev.date] && conflictMap[ev.date].length > 1;
+      const row = document.createElement('div');
+      row.className = 'year-ev-row' + (isConflict ? ' year-conflict' : '');
+      row.style.background = areaC ? areaC.bg : '#f5f5f5';
+      row.style.color = areaC ? areaC.color : '#333';
+      row.innerHTML = `<span class="year-ev-day">${dt.getDate()}</span><span class="year-ev-nm">${ev.acr||ev.nombre.slice(0,16)}</span>`;
+      row.title = `${ev.nombre} · ${ev.hora}`;
+      row.addEventListener('click', ()=>openModal(ev));
+      box.appendChild(row);
+    });
+    grid.appendChild(box);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════════════════════════
+function openModal(ev){
+  const areaC = AREAS[ev.area];
+  const hdr = document.getElementById('ev-mo-hdr');
+  hdr.style.background = areaC ? `linear-gradient(135deg,${areaC.color},${areaC.color}cc)` : 'var(--wine)';
+
+  document.getElementById('emo-title').textContent = ev.nombre;
+  const dt = new Date(ev.date+'T12:00:00');
+  const wdIdx = (dt.getDay()+6)%7;
+  document.getElementById('emo-date').textContent = `${WD[wdIdx]}, ${dt.getDate()} de ${MONTHS_ES[parseInt(ev.date.split('-')[1])-1]} de 2026`;
+  document.getElementById('emo-time').textContent = ev.hora;
+  document.getElementById('emo-session').textContent = ev.sesionNum ? `${ev.sesionNum}ª sesión ordinaria` : ev.tipo;
+  document.getElementById('emo-area').textContent = areaC ? areaC.full : ev.area;
+  document.getElementById('emo-acr').textContent = ev.acr || '—';
+  document.getElementById('emo-tipo').textContent = ev.tipo.charAt(0).toUpperCase() + ev.tipo.slice(1);
+
+  // Normativa
+  const normSec = document.getElementById('emo-norm-sec');
+  const normDiv = document.getElementById('emo-norm');
+  if(ev.normativa && ev.normativa.length){
+    normDiv.innerHTML = ev.normativa.map(n=>`<span class="norm-pill"><i class="fas fa-gavel" style="font-size:.6rem;margin-right:.3rem"></i>${n}</span>`).join('');
+    normSec.style.display='block';
+  } else normSec.style.display='none';
+
+  // Observaciones
+  const obsSec = document.getElementById('emo-obs-sec');
+  const obsDiv = document.getElementById('emo-obs');
+  if(ev.obs){
+    let obsHtml = ev.obs;
+    if(ev.prepTimeline) obsHtml += `<br><br><strong>📋 Preparación:</strong> ${ev.prepTimeline}`;
+    obsDiv.innerHTML = obsHtml;
+    obsSec.style.display='block';
+  } else obsSec.style.display='none';
+
+  // Conflicts
+  const confSec = document.getElementById('emo-conf-sec');
+  const confList = document.getElementById('emo-conf-list');
+  if(conflictMap[ev.date] && conflictMap[ev.date].length > 1){
+    const others = conflictMap[ev.date].filter(e=>e.id !== ev.id);
+    confList.innerHTML = others.map(o=>`▸ <strong>${o.nombre}</strong> (${o.area}) a las ${o.hora}`).join('<br>');
+    confSec.style.display='block';
+  } else confSec.style.display='none';
+
+  // Members
+  const memSec = document.getElementById('emo-members-sec');
+  const memDiv = document.getElementById('emo-members');
+  if(ev.miembros){
+    memDiv.textContent = ev.miembros;
+    memSec.style.display='block';
+  } else memSec.style.display='none';
+
+  document.getElementById('ev-modal-bg').classList.add('open');
+}
+
+function closeModal(){
+  document.getElementById('ev-modal-bg').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VIEW SWITCHING + NAV
+// ═══════════════════════════════════════════════════════════════════════════
+function setView(v){
+  currentView = v;
+  document.querySelectorAll('.view-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+  document.getElementById('view-calendar').classList.toggle('show', v==='calendar');
+  document.getElementById('view-list').classList.toggle('show', v==='list');
+  document.getElementById('view-year').classList.toggle('show', v==='year');
+  document.getElementById('month-nav').style.display = v==='calendar' ? 'flex' : 'none';
+  renderAll();
+}
+
+function bindUI(){
+  // View buttons
+  document.querySelectorAll('.view-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>setView(btn.dataset.view));
+  });
+
+  // Month nav
+  document.getElementById('btn-prev').addEventListener('click', ()=>{
+    currentMonth = (currentMonth - 1 + 12) % 12;
+    renderCalendar();
+  });
+  document.getElementById('btn-next').addEventListener('click', ()=>{
+    currentMonth = (currentMonth + 1) % 12;
+    renderCalendar();
+  });
+  document.getElementById('btn-today').addEventListener('click', ()=>{
+    currentMonth = new Date().getMonth();
+    setView('calendar');
+  });
+
+  // Search
+  document.getElementById('search-inp').addEventListener('input', e=>{
+    searchQuery = e.target.value.trim();
+    renderAll();
+  });
+
+  // Modal close
+  document.getElementById('btn-emo-x').addEventListener('click', closeModal);
+  document.getElementById('ev-modal-bg').addEventListener('click', e=>{
+    if(e.target === document.getElementById('ev-modal-bg')) closeModal();
+  });
+
+  // Add session toggle
+  document.getElementById('btn-add-session-toggle').addEventListener('click', ()=>{
+    const form = document.getElementById('add-session-form');
+    form.classList.toggle('d-none');
+    if(!form.classList.contains('d-none')){
+      document.getElementById('fs-date').value = toDateStr(new Date());
+      form.scrollIntoView({behavior:'smooth'});
+    }
+  });
+
+  // Save session
+  document.getElementById('btn-save-session').addEventListener('click', saveCustomSession);
+
+  // Export CSV
+  document.getElementById('btn-export-csv').addEventListener('click', exportCSV);
+
+  // Initial view
+  setView('calendar');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SUPABASE – Custom sessions
+// ═══════════════════════════════════════════════════════════════════════════
+async function loadCustomSessions(){
+  try {
+    const sb = await window.ensureSupabaseClient();
+    const { data, error } = await sb.from('committee_sessions')
+      .select('*').order('date', {ascending:true});
+    if(error) throw error;
+    customSessions = data || [];
+  } catch(e){
+    console.warn('committee_sessions table not found or error:', e.message);
+    customSessions = [];
+  }
+  buildEvents();
+  detectConflicts();
+  renderAll();
+}
+
+async function saveCustomSession(){
+  const name = document.getElementById('fs-name').value.trim();
+  const date = document.getElementById('fs-date').value;
+  const time = document.getElementById('fs-time').value;
+  const area = document.getElementById('fs-area').value;
+  const obs  = document.getElementById('fs-obs').value.trim();
+  const msg  = document.getElementById('fs-msg');
+
+  if(!name || !date){ msg.style.color='#c62828'; msg.textContent='Por favor completa nombre y fecha.'; return; }
+
+  const btn = document.getElementById('btn-save-session');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando…';
+
+  try {
+    const sb = await window.ensureSupabaseClient();
+    // Get current user
+    const { data: { user } } = await sb.auth.getUser();
+    const row = { name, date, time, area, obs, created_by: user?.email || 'anon' };
+    const { data, error } = await sb.from('committee_sessions').insert([row]).select().single();
+    if(error) throw error;
+    customSessions.push(data);
+    buildEvents();
+    detectConflicts();
+    renderAll();
+    msg.style.color='#166534';
+    msg.textContent='✅ Sesión agregada correctamente.';
+    document.getElementById('fs-name').value = '';
+    document.getElementById('fs-obs').value = '';
+  } catch(e){
+    msg.style.color='#c62828';
+    msg.textContent = '⚠ Error al guardar: ' + e.message;
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-check me-1"></i>Guardar';
+  }
+}
+
+async function deleteCustomSession(ev){
+  if(!confirm(`¿Eliminar la sesión "${ev.nombre}" del ${ev.date}?`)) return;
+  try {
+    const sb = await window.ensureSupabaseClient();
+    const { error } = await sb.from('committee_sessions').delete().eq('id', ev.raw.id);
+    if(error) throw error;
+    customSessions = customSessions.filter(cs=>cs.id !== ev.raw.id);
+    buildEvents();
+    detectConflicts();
+    renderAll();
+  } catch(e){
+    alert('Error al eliminar: ' + e.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EXPORT CSV
+// ═══════════════════════════════════════════════════════════════════════════
+function exportCSV(){
+  const evs = filteredEvents();
+  const rows = [['Fecha','Día','Comité','Acrónimo','Área','Hora','Tipo','Normativa','Observaciones']];
+  evs.forEach(ev=>{
+    const dt = new Date(ev.date+'T12:00:00');
+    const wdIdx = (dt.getDay()+6)%7;
+    rows.push([
+      ev.date,
+      WD[wdIdx],
+      ev.nombre,
+      ev.acr||'',
+      ev.area,
+      ev.hora,
+      ev.tipo,
+      (ev.normativa||[]).join('; '),
+      (ev.obs||'').replace(/\n/g,' '),
+    ]);
+  });
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'AIFA_Comites_2026.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════════════════
+function toDateStr(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+</script>
+</body>
+</html>

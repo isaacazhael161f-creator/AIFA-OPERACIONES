@@ -1,0 +1,1 @@
+﻿const fs=require('fs'); const files=fs.readdirSync('js'); files.forEach(f=>{if(f.endsWith('.js')){const ht=fs.readFileSync('js/'+f,'utf8'); if(ht.indexOf('BSERVAC')>-1 || ht.indexOf('bservac')>-1) console.log(f);}})

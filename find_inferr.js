@@ -1,0 +1,1 @@
+﻿const fs=require('fs'); const files=fs.readdirSync('js'); files.forEach(f=>{if(f.endsWith('.js')){const ht=fs.readFileSync('js/'+f,'utf8'); const m = ht.match(/include[/s\S]{0,50}fecha/g); if(m) console.log(f, m);}});

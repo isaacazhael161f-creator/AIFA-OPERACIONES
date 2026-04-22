@@ -167,10 +167,14 @@ function openAeroDetail(item) {
         if (idx > 0) {
             const prevYr = years[idx - 1];
             let curSum = 0, prevSum = 0, hasPrev = false;
+            // For the most recent year, only compare months with actual data (> 0)
+            // to avoid inflating prevSum with future/unreported months
+            const isLatestYear = (idx === years.length - 1);
             AERO_MONTH_ORDER.forEach(function(mon) {
                 const curV = getVal(yr, mon);
                 const prevV = getVal(prevYr, mon);
-                if (curV !== null) {
+                const hasActualData = curV !== null && (!isLatestYear || curV > 0);
+                if (hasActualData) {
                     curSum += curV;
                     if (prevV !== null) { prevSum += prevV; hasPrev = true; }
                 }

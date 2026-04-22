@@ -1,0 +1,1 @@
+﻿const fs = require('fs'); const ht = fs.readFileSync('js/admin-ui.js', 'utf8'); console.log(ht.match(/field(?:\[(?:\'|"|)type(?:\'|"|)\]|\.type)\s*=\s*['"]date['"]/gi) || []); console.log(ht.match(/includes.*date/gi) || []);

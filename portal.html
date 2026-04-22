@@ -1,0 +1,1681 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal de Manifiestos · AIFA</title>
+  <meta name="description" content="Portal digital de manifiestos de vuelo — Aeropuerto Internacional Felipe Ángeles">
+  <meta name="theme-color" content="#0d2152">
+  <link rel="icon" type="image/png" href="images/icons/aifa-app-icon-192.png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy:#0d2152; --navy2:#142966; --blue:#1565c0; --sky:#1e88e5;
+      --teal:#00897b; --green:#2e7d32; --amber:#e65100; --orange:#f57c00;
+      --red:#c62828; --indigo:#3949ab; --bg:#eef2f7; --surface:#fff;
+      --border:#e2e8f0; --muted:#64748b; --text:#1e293b;
+      --r:14px; --sh:0 2px 10px rgba(0,0,0,.07); --sh2:0 4px 20px rgba(0,0,0,.11);
+      --tr:all .22s ease;
+    }
+    *,*::before,*::after{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;margin:0}
+
+    /* ── LOADING ── */
+    #app-loading{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6rem;z-index:9999;transition:opacity .5s}
+    #app-loading.out{opacity:0;pointer-events:none}
+    .ld-ring{width:64px;height:64px;border-radius:50%;border:3px solid rgba(255,255,255,.15);border-top-color:rgba(255,255,255,.85);animation:spin 1s linear infinite;position:absolute;inset:0;margin:auto}
+    .ld-ico{font-size:2rem;color:rgba(255,255,255,.8);line-height:64px;text-align:center}
+    .ld-name{color:#fff;font-size:1.4rem;font-weight:800;letter-spacing:.08em;margin-top:.5rem}
+    .ld-sub{color:rgba(255,255,255,.45);font-size:.78rem;letter-spacing:.05em}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ── LOGIN ── */
+    #screen-login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#050e25 0%,#0d2152 45%,#1a3a7e 100%);padding:1.5rem;position:relative;overflow:hidden}
+    #screen-login::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 70% 20%,rgba(30,136,229,.18) 0%,transparent 60%),radial-gradient(ellipse 40% 40% at 10% 80%,rgba(57,73,171,.22) 0%,transparent 55%);pointer-events:none}
+    .login-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:24px;overflow:hidden;-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:0 32px 80px rgba(0,0,0,.5);width:100%;max-width:430px;position:relative;z-index:1}
+    .login-hero{padding:2.75rem 2.5rem 2rem;text-align:center}
+    .login-ring{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,rgba(255,255,255,.18),rgba(255,255,255,.05));border:2px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:2.4rem;color:#fff;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+    .login-hero h1{color:#fff;font-size:1.35rem;font-weight:800;margin:0 0 .35rem}
+    .login-hero p{color:rgba(255,255,255,.5);font-size:.82rem;margin:0}
+    .login-body{padding:1.75rem 2.25rem 2.25rem}
+    .login-lbl{font-size:.79rem;font-weight:600;color:rgba(255,255,255,.7);margin-bottom:.4rem;display:block}
+    .login-iw{position:relative;margin-bottom:1rem}
+    .login-iw i{position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.4);font-size:.85rem;pointer-events:none}
+    .login-inp{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:.75rem 1rem .75rem 2.6rem;color:#fff;font-size:.9rem;transition:var(--tr);outline:none}
+    .login-inp::placeholder{color:rgba(255,255,255,.3)}
+    .login-inp:focus{border-color:var(--sky);background:rgba(255,255,255,.12);box-shadow:0 0 0 3px rgba(30,136,229,.25)}
+    #login-alert{border-radius:10px;padding:.65rem 1rem;font-size:.83rem;margin-bottom:1rem;display:none}
+    #login-alert.show{display:block}
+    #login-alert.danger{background:rgba(198,40,40,.25);border:1px solid rgba(198,40,40,.4);color:#fca5a5}
+    #login-alert.warn{background:rgba(245,124,0,.2);border:1px solid rgba(245,124,0,.35);color:#fcd34d}
+    .btn-login{width:100%;padding:.85rem;background:linear-gradient(135deg,var(--blue),var(--sky));color:#fff;font-weight:700;font-size:.95rem;border:none;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.5rem;transition:var(--tr);box-shadow:0 4px 20px rgba(21,101,192,.45)}
+    .btn-login:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 28px rgba(21,101,192,.55)}
+    .btn-login:disabled{opacity:.65;cursor:not-allowed;transform:none}
+    .login-foot{padding:1rem 2.25rem;border-top:1px solid rgba(255,255,255,.08);text-align:center;font-size:.75rem;color:rgba(255,255,255,.35)}
+
+    /* ── NAVBAR ── */
+    #portal-nav{background:var(--navy);padding:.8rem 1.5rem;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 20px rgba(0,0,0,.35);position:sticky;top:0;z-index:400}
+    .nav-brand{display:flex;align-items:center;gap:.85rem;text-decoration:none}
+    .nav-brand-ico{font-size:1.6rem;color:rgba(255,255,255,.85)}
+    .nav-brand-name{color:#fff;font-weight:800;font-size:1rem;line-height:1.2}
+    .nav-brand-sub{color:rgba(255,255,255,.45);font-size:.68rem;letter-spacing:.04em}
+    .nav-right{display:flex;align-items:center;gap:.65rem}
+    .nav-badge{padding:.2rem .65rem;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+    .nb-admin{background:rgba(106,27,154,.4);color:#e9d5ff;border:1px solid rgba(196,148,255,.3)}
+    .nb-prov{background:rgba(0,137,123,.3);color:#a7f3d0;border:1px solid rgba(110,231,183,.25)}
+    .nav-user{color:rgba(255,255,255,.75);font-size:.8rem;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .btn-nav{border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);background:rgba(255,255,255,.06);border-radius:9px;padding:.35rem .85rem;font-size:.78rem;font-weight:500;cursor:pointer;transition:var(--tr);display:flex;align-items:center;gap:.35rem}
+    .btn-nav:hover{background:rgba(255,255,255,.15);color:#fff}
+
+    /* ── MAIN ── */
+    #portal-main{max-width:1120px;margin:0 auto;padding:1.75rem 1.25rem 3rem}
+
+    /* ── BANNERS ── */
+    .welcome-banner{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 55%,var(--blue) 100%);border-radius:20px;padding:1.75rem 2rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(13,33,82,.35)}
+    .welcome-banner::after{content:'✈';position:absolute;right:2rem;top:50%;transform:translateY(-50%);font-size:5rem;opacity:.06;color:#fff;pointer-events:none}
+    .welcome-txt h4{color:#fff;font-size:1.25rem;font-weight:800;margin:0 0 .25rem}
+    .welcome-txt p{color:rgba(255,255,255,.55);font-size:.83rem;margin:0}
+    .btn-new{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;border-radius:12px;padding:.8rem 1.6rem;font-weight:700;font-size:.92rem;cursor:pointer;transition:var(--tr);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:inline-flex;align-items:center;gap:.55rem;white-space:nowrap}
+    .btn-new:hover{background:rgba(255,255,255,.28);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.25)}
+    .admin-banner{background:linear-gradient(135deg,#0d0829 0%,var(--navy) 40%,#1a1f6e 100%);border-radius:20px;padding:1.5rem 2rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;box-shadow:0 8px 32px rgba(13,8,41,.4);border:1px solid rgba(106,27,154,.3)}
+    .admin-banner-txt h4{color:#fff;font-size:1.15rem;font-weight:800;margin:0 0 .25rem}
+    .admin-banner-txt p{color:rgba(255,255,255,.5);font-size:.8rem;margin:0}
+    .admin-acts{display:flex;gap:.6rem;flex-wrap:wrap}
+
+    /* ── KPI CARDS ── */
+    .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:1rem;margin-bottom:1.5rem}
+    .kpi{background:var(--surface);border-radius:var(--r);padding:1.1rem 1.2rem;display:flex;align-items:center;gap:1rem;box-shadow:var(--sh);border:1px solid var(--border);border-left:4px solid transparent;transition:var(--tr)}
+    .kpi:hover{box-shadow:var(--sh2);transform:translateY(-2px)}
+    .kpi.blue{border-left-color:var(--blue)} .kpi.teal{border-left-color:var(--teal)} .kpi.amber{border-left-color:var(--orange)} .kpi.green{border-left-color:var(--green)} .kpi.red{border-left-color:var(--red)} .kpi.indigo{border-left-color:var(--indigo)}
+    .kpi-ico{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+    .kpi-ico.blue{background:rgba(21,101,192,.1);color:var(--blue)} .kpi-ico.teal{background:rgba(0,137,123,.1);color:var(--teal)} .kpi-ico.amber{background:rgba(230,81,0,.1);color:var(--amber)} .kpi-ico.green{background:rgba(46,125,50,.1);color:var(--green)} .kpi-ico.red{background:rgba(198,40,40,.1);color:var(--red)} .kpi-ico.indigo{background:rgba(57,73,171,.1);color:var(--indigo)}
+    .kpi-val{font-size:1.75rem;font-weight:900;line-height:1;color:var(--text)}
+    .kpi-lbl{font-size:.69rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:.15rem}
+
+    /* ── PANEL ── */
+    .panel{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);box-shadow:var(--sh);overflow:hidden;margin-bottom:1.25rem}
+    .panel-head{padding:.95rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem}
+    .panel-head h5{margin:0;font-weight:700;font-size:.95rem;display:flex;align-items:center;gap:.5rem;color:var(--text)}
+    .panel-body{padding:1.4rem 1.5rem}
+
+    /* ── FILTERS BAR ── */
+    .filters-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.25rem;margin-bottom:1.25rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(162px,1fr));gap:.65rem}
+    .fl-grp{display:flex;flex-direction:column;gap:.3rem}
+    .fl-lbl{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+    .fl-inp,.fl-sel{border:1px solid var(--border);border-radius:9px;padding:.48rem .75rem;font-size:.84rem;transition:var(--tr);outline:none;background:var(--bg);color:var(--text)}
+    .fl-inp:focus,.fl-sel:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(30,136,229,.12);background:#fff}
+
+    /* ── TABLE ── */
+    .tbl-scroll{overflow-x:auto}
+    .mf-table{font-size:.83rem;width:100%;border-collapse:separate;border-spacing:0}
+    .mf-table thead th{background:#f8fafc;border-bottom:2px solid var(--border);font-weight:700;font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:.75rem 1rem;white-space:nowrap}
+    .mf-table thead th:first-child{padding-left:1.5rem}.mf-table thead th:last-child{padding-right:1.5rem}
+    .mf-table tbody td{padding:.7rem 1rem;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+    .mf-table tbody td:first-child{padding-left:1.5rem}.mf-table tbody td:last-child{padding-right:1.5rem}
+    .mf-table tbody tr{transition:background .12s;cursor:pointer}
+    .mf-table tbody tr:hover td{background:#f0f4f9}
+    .mf-table tbody tr:last-child td{border-bottom:none}
+    .fl-num{font-weight:800;color:var(--blue);font-size:.88rem}
+    .fl-rt{color:var(--muted);font-size:.8rem;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+    /* ── BADGES ── */
+    .sbadge{display:inline-flex;align-items:center;gap:.3rem;padding:.22rem .65rem;border-radius:999px;font-size:.7rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+    .sbadge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+    .sb-pendiente{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa}
+    .sb-en_revision{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+    .sb-aprobado{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
+    .sb-rechazado{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+
+    /* ── BUTTONS ── */
+    .btn-aifa{background:var(--blue);color:#fff;border:none;border-radius:11px;font-weight:600;font-size:.88rem;padding:.65rem 1.5rem;cursor:pointer;display:inline-flex;align-items:center;gap:.5rem;transition:var(--tr);white-space:nowrap}
+    .btn-aifa:hover{background:var(--sky);transform:translateY(-1px);box-shadow:0 5px 16px rgba(21,101,192,.32)}
+    .btn-aifa:active{transform:none}.btn-aifa:disabled{opacity:.6;cursor:not-allowed;transform:none}
+    .btn-aifa-ol{border:2px solid var(--blue);color:var(--blue);background:transparent;border-radius:11px;font-weight:600;font-size:.88rem;padding:.6rem 1.4rem;cursor:pointer;transition:var(--tr);display:inline-flex;align-items:center;gap:.5rem}
+    .btn-aifa-ol:hover{background:var(--blue);color:#fff}
+    .btn-sm{padding:.3rem .65rem;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:.75rem;font-weight:500;cursor:pointer;transition:var(--tr);color:var(--muted);display:inline-flex;align-items:center;gap:.3rem}
+    .btn-sm:hover{border-color:var(--sky);color:var(--sky);background:rgba(30,136,229,.06)}
+    .cnt-chip{font-size:.72rem;font-weight:700;background:var(--bg);border:1px solid var(--border);border-radius:999px;padding:.12rem .55rem;color:var(--muted)}
+
+    /* ── EMPTY STATE ── */
+    .empty-st{text-align:center;padding:3.5rem 1.5rem}
+    .empty-icn{font-size:3.25rem;margin-bottom:1rem;opacity:.55}
+    .empty-ttl{font-size:.98rem;font-weight:700;color:var(--muted)}
+    .empty-sub{font-size:.82rem;color:#94a3b8;margin-top:.35rem}
+
+    /* ── WIZARD PANEL ── */
+    #wiz-bg{position:fixed;inset:0;background:rgba(7,15,35,.65);z-index:500;display:none;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);animation:fadein .2s}
+    #wiz-bg.open{display:block}
+    #wiz-panel{position:fixed;top:0;right:0;bottom:0;width:min(590px,100%);background:#fff;z-index:501;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .32s cubic-bezier(.22,.68,0,1.15);box-shadow:-8px 0 60px rgba(0,0,0,.2);overflow:hidden}
+    #wiz-panel.open{transform:translateX(0)}
+    .wiz-hdr{background:var(--navy);padding:1.25rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-shrink:0}
+    .wiz-hdr h4{color:#fff;font-size:1rem;font-weight:700;margin:0}
+    .wiz-hdr p{color:rgba(255,255,255,.5);font-size:.75rem;margin:0}
+    .btn-wiz-x{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.12);border:none;color:rgba(255,255,255,.8);cursor:pointer;transition:var(--tr);font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .btn-wiz-x:hover{background:rgba(255,255,255,.25);color:#fff}
+    .wiz-steps-bar{padding:.9rem 1.5rem;border-bottom:1px solid var(--border);background:#f8fafc;flex-shrink:0}
+    .steps-track{display:flex;align-items:center}
+    .step-nd{display:flex;align-items:center;gap:.35rem;flex:1;min-width:0}
+    .step-nd:not(:last-child)::after{content:'';flex:1;height:2px;background:#e2e8f0;border-radius:1px;margin:0 .25rem;transition:background .3s}
+    .step-nd.done:not(:last-child)::after{background:var(--teal)}
+    .step-nd.cur:not(:last-child)::after{background:var(--blue);opacity:.4}
+    .step-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.76rem;font-weight:700;border:2px solid #e2e8f0;background:#fff;color:#94a3b8;flex-shrink:0;transition:all .25s}
+    .step-nd.cur .step-dot{border-color:var(--blue);background:var(--blue);color:#fff;box-shadow:0 0 0 4px rgba(21,101,192,.2)}
+    .step-nd.done .step-dot{border-color:var(--teal);background:var(--teal);color:#fff}
+    .step-lbl{font-size:.68rem;font-weight:600;color:#94a3b8;white-space:nowrap;display:none}
+    @media(min-width:420px){.step-lbl{display:block}}
+    .step-nd.cur .step-lbl{color:var(--blue)}.step-nd.done .step-lbl{color:var(--teal)}
+    .wiz-body{flex:1;overflow-y:auto;padding:1.5rem;scrollbar-width:thin;scrollbar-color:#e2e8f0 transparent}
+    .wiz-ftr{padding:1rem 1.5rem;border-top:1px solid var(--border);background:#f8fafc;display:flex;justify-content:flex-end;align-items:center;flex-shrink:0;gap:1rem}
+    /* type-selector cards */
+    .mtype-card{display:flex;align-items:center;gap:1rem;padding:1rem 1.1rem;border-radius:14px;border:2px solid var(--border);background:#fff;cursor:pointer;transition:var(--tr);text-align:left;width:100%}
+    .mtype-card:hover{border-color:var(--sky);background:#f0f9ff;transform:translateX(3px)}
+    .mtype-ico{font-size:2rem;line-height:1;flex-shrink:0}
+    .mtype-info{flex:1}
+    .mtype-title{font-weight:700;font-size:.95rem;color:var(--navy)}
+    .mtype-sub{font-size:.75rem;color:var(--muted);margin-top:.15rem}
+    .mtype-arrow{color:var(--muted);font-size:.8rem;flex-shrink:0;transition:var(--tr)}
+    .mtype-card:hover .mtype-arrow{color:var(--sky);transform:translateX(3px)}
+
+    /* ── FORM ── */
+    .form-label{font-size:.8rem;font-weight:600;color:#475569;margin-bottom:.35rem}
+    .form-control,.form-select{border:1.5px solid var(--border);border-radius:10px;padding:.62rem .9rem;font-size:.88rem;outline:none;transition:var(--tr);background:#fff;width:100%;color:var(--text)}
+    .form-control:focus,.form-select:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(30,136,229,.14)}
+    .form-control::placeholder{color:#c0ccda}
+    .pax-ctrl{display:flex;align-items:center}
+    .pax-btn{width:36px;height:38px;border:1.5px solid var(--border);background:#f8fafc;cursor:pointer;font-size:1rem;font-weight:700;color:var(--muted);transition:var(--tr);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+    .pax-btn:hover{background:var(--bg);color:var(--blue);border-color:var(--blue)}
+    .pax-btn.minus{border-radius:8px 0 0 8px;border-right:none}.pax-btn.plus{border-radius:0 8px 8px 0;border-left:none}
+    .pax-ctrl .form-control{border-radius:0;border-left-color:transparent;border-right-color:transparent;text-align:center;font-weight:700;font-size:1rem}
+    .pax-ctrl .form-control:focus{z-index:1;border-left-color:var(--sky);border-right-color:var(--sky)}
+    .type-toggle{display:grid;grid-template-columns:1fr 1fr;gap:.85rem}
+    .type-opt{border:2px solid var(--border);background:#fff;border-radius:14px;padding:1.2rem .75rem;text-align:center;cursor:pointer;transition:var(--tr);-webkit-user-select:none;user-select:none}
+    .t-icon{font-size:1.9rem;display:block;margin-bottom:.45rem}
+    .t-label{font-size:.88rem;font-weight:600;color:var(--muted)}
+    .t-sub{font-size:.72rem;color:#94a3b8;margin-top:.15rem}
+    .type-opt:hover:not(.sel){border-color:var(--sky);background:rgba(30,136,229,.04)}
+    .type-opt.sel{border-color:var(--blue);background:linear-gradient(135deg,rgba(21,101,192,.07),rgba(30,136,229,.04));box-shadow:0 2px 14px rgba(21,101,192,.2)}
+    .type-opt.sel .t-label{color:var(--blue)}
+    .upload-zone{border:2px dashed var(--border);border-radius:14px;padding:2.25rem 1.5rem;text-align:center;cursor:pointer;transition:var(--tr)}
+    .upload-zone:hover,.upload-zone.drag-over{border-color:var(--sky);background:rgba(30,136,229,.04)}
+    .upload-icon{font-size:2.5rem;color:#c8d6e5;margin-bottom:.75rem}
+    .summ-grid{display:grid;grid-template-columns:1fr 1fr;gap:.85rem}
+    @media(max-width:420px){.summ-grid{grid-template-columns:1fr}}
+    .summ-blk{background:#f8fafc;border-radius:12px;padding:.95rem 1.1rem;border:1px solid var(--border)}
+    .summ-ttl{font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.7rem}
+    .summ-row{display:flex;font-size:.78rem;margin-bottom:.35rem}
+    .summ-k{flex:0 0 118px;color:var(--muted)}
+    .summ-v{font-weight:600;color:var(--text);word-break:break-word}
+
+    /* ── DETAIL MODAL ── */
+    .mo-overlay{position:fixed;inset:0;background:rgba(7,15,35,.7);z-index:600;display:flex;align-items:center;justify-content:center;padding:1rem;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);animation:fadein .2s}
+    .mo-overlay.hidden{display:none}
+    .detail-mo{background:#fff;border-radius:20px;width:100%;max-width:650px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.16);animation:slideup .28s cubic-bezier(.22,.68,0,1.15)}
+    @keyframes slideup{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+    .dmo-hdr{background:var(--navy);padding:1.4rem 1.75rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;border-radius:20px 20px 0 0}
+    .dmo-hdr h5{color:#fff;font-size:1rem;font-weight:700;margin:0}
+    .btn-mo-x{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.12);border:none;color:rgba(255,255,255,.8);cursor:pointer;transition:var(--tr);display:flex;align-items:center;justify-content:center;font-size:.95rem}
+    .btn-mo-x:hover{background:rgba(255,255,255,.25);color:#fff}
+    .dmo-body{padding:1.5rem 1.75rem}
+    .det-sec{margin-bottom:1.35rem}
+    .det-sec h6{font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.7rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)}
+    .det-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem .8rem}
+    @media(max-width:450px){.det-grid{grid-template-columns:1fr}}
+    .det-k{font-size:.72rem;color:var(--muted);margin-bottom:.15rem;font-weight:500}
+    .det-v{font-size:.88rem;font-weight:600;color:var(--text)}
+    .rev-actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem}
+    .btn-rev{flex:1;min-width:90px;padding:.55rem .9rem;border:2px solid var(--border);border-radius:10px;font-weight:700;font-size:.8rem;cursor:pointer;transition:var(--tr);background:#fff;display:flex;align-items:center;justify-content:center;gap:.35rem}
+    .btn-rev-pend{border-color:var(--orange);color:var(--orange)}.btn-rev-pend:hover{background:var(--orange);color:#fff}
+    .btn-rev-rev{border-color:var(--indigo);color:var(--indigo)}.btn-rev-rev:hover{background:var(--indigo);color:#fff}
+    .btn-rev-apro{border-color:var(--green);color:var(--green)}.btn-rev-apro:hover{background:var(--green);color:#fff}
+    .btn-rev-rech{border-color:var(--red);color:var(--red)}.btn-rev-rech:hover{background:var(--red);color:#fff}
+
+    /* ── SUCCESS OVERLAY ── */
+    #success-ov{position:fixed;inset:0;background:rgba(7,15,35,.75);z-index:700;display:none;align-items:center;justify-content:center;padding:1.5rem;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+    #success-ov.show{display:flex}
+    .succ-card{background:#fff;border-radius:24px;width:100%;max-width:440px;padding:3rem 2.5rem;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.16);animation:popin .4s cubic-bezier(.175,.885,.32,1.275)}
+    @keyframes popin{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+    .succ-ring{width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,#d1fae5,#6ee7b7);display:flex;align-items:center;justify-content:center;font-size:2.6rem;color:var(--green);margin:0 auto 1.5rem;box-shadow:0 8px 32px rgba(46,125,50,.3)}
+    .succ-card h4{font-size:1.25rem;font-weight:800;color:var(--navy);margin:0 0 .5rem}
+    .succ-card p{color:var(--muted);font-size:.85rem;margin-bottom:1.5rem}
+    .folio-chip{display:inline-block;padding:.45rem 1.2rem;background:#f1f5f9;border:1px solid var(--border);border-radius:10px;font-size:.9rem;font-weight:800;color:#334155;margin-bottom:1.75rem;letter-spacing:.04em}
+    .succ-btns{display:flex;gap:.65rem;justify-content:center;flex-wrap:wrap}
+
+    /* ── MISC ── */
+    .spin-wrap{text-align:center;padding:3rem 1.5rem;color:var(--muted)}
+    .isp{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+    .d-none{display:none!important}
+    @keyframes fadein{from{opacity:0}to{opacity:1}}
+
+    @media(max-width:575px){
+      #portal-main{padding:1rem .85rem 2.5rem}
+      .panel-head,.panel-body{padding:.9rem 1rem}
+      .stats-row{grid-template-columns:1fr 1fr}
+      .welcome-banner{padding:1.25rem 1.25rem}
+      .welcome-banner::after{display:none}
+      .kpi-val{font-size:1.4rem}
+      .filters-bar{grid-template-columns:1fr 1fr}
+    }
+    @media(max-width:360px){
+      .stats-row{grid-template-columns:1fr}
+      .filters-bar{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+
+<!-- =========================================================
+     LOADING
+     ========================================================= -->
+<div id="app-loading">
+  <div style="position:relative;width:64px;height:64px">
+    <div class="ld-ring"></div>
+    <div class="ld-ico">✈</div>
+  </div>
+  <div class="ld-name">AIFA</div>
+  <div class="ld-sub">Portal de Manifiestos</div>
+</div>
+
+<!-- =========================================================
+     LOGIN
+     ========================================================= -->
+<div id="screen-login" class="d-none">
+  <div class="login-card">
+    <div class="login-hero">
+      <div class="login-ring">✈</div>
+      <h1>Portal de Manifiestos</h1>
+      <p>Aeropuerto Internacional Felipe Ángeles</p>
+    </div>
+    <div class="login-body">
+      <div id="login-alert"></div>
+      <div class="login-iw">
+        <label class="login-lbl" for="inp-user">Usuario o correo electrónico</label>
+        <div style="position:relative">
+          <i class="fas fa-user-circle" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.4);pointer-events:none"></i>
+          <input type="text" id="inp-user" class="login-inp" placeholder="Ej: aeromexico.ops" autocomplete="username">
+        </div>
+      </div>
+      <div class="login-iw">
+        <label class="login-lbl" for="inp-pass">Contraseña</label>
+        <div style="position:relative">
+          <i class="fas fa-lock" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.4);pointer-events:none"></i>
+          <input type="password" id="inp-pass" class="login-inp" placeholder="••••••••" autocomplete="current-password">
+        </div>
+      </div>
+      <button class="btn-login" id="btn-do-login">
+        <span id="login-txt"><i class="fas fa-sign-in-alt"></i> Iniciar sesión</span>
+        <span id="login-spin" class="d-none"><span class="isp"></span> Verificando…</span>
+      </button>
+    </div>
+    <div class="login-foot">¿Necesitas acceso? Contacta a <strong>AIFA — Operaciones</strong></div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MAIN APP
+     ========================================================= -->
+<div id="screen-app" class="d-none">
+
+  <!-- NAVBAR -->
+  <nav id="portal-nav">
+    <a class="nav-brand" href="#">
+      <span class="nav-brand-ico">✈</span>
+      <div>
+        <div class="nav-brand-name">Portal de Manifiestos</div>
+        <div class="nav-brand-sub">AIFA · OPERACIONES</div>
+      </div>
+    </a>
+    <div class="nav-right">
+      <span id="nav-badge" class="nav-badge nb-prov d-none d-sm-inline"></span>
+      <span id="nav-user" class="nav-user d-none d-md-inline"></span>
+      <a href="agenda.html" class="btn-nav" title="Agenda de Comités 2026">
+        <i class="fas fa-calendar-alt"></i><span class="d-none d-sm-inline">Agenda</span>
+      </a>
+      <button id="btn-switch-view" class="btn-nav d-none">
+        <i class="fas fa-exchange-alt"></i><span id="switch-lbl">Vista Admin</span>
+      </button>
+      <button id="btn-logout" class="btn-nav"><i class="fas fa-sign-out-alt"></i><span class="d-none d-sm-inline">Salir</span></button>
+    </div>
+  </nav>
+
+  <main id="portal-main">
+
+    <!-- =======================================================
+         VISTA PRESTADOR
+         ======================================================= -->
+    <div id="view-provider">
+
+      <div class="welcome-banner">
+        <div class="welcome-txt">
+          <h4>Hola, <span id="prov-name">—</span> 👋</h4>
+          <p>Envía y da seguimiento a tus manifiestos de vuelo digitalmente.</p>
+        </div>
+        <button class="btn-new" id="btn-open-wizard">
+          <i class="fas fa-plus-circle"></i> Nuevo Manifiesto
+        </button>
+      </div>
+
+      <div class="stats-row">
+        <div class="kpi blue"><div class="kpi-ico blue"><i class="fas fa-file-alt"></i></div><div><div class="kpi-val" id="ps-total">—</div><div class="kpi-lbl">Enviados</div></div></div>
+        <div class="kpi amber"><div class="kpi-ico amber"><i class="fas fa-hourglass-half"></i></div><div><div class="kpi-val" id="ps-pend">—</div><div class="kpi-lbl">Pendientes</div></div></div>
+        <div class="kpi green"><div class="kpi-ico green"><i class="fas fa-check-circle"></i></div><div><div class="kpi-val" id="ps-apro">—</div><div class="kpi-lbl">Aprobados</div></div></div>
+        <div class="kpi red"><div class="kpi-ico red"><i class="fas fa-times-circle"></i></div><div><div class="kpi-val" id="ps-rech">—</div><div class="kpi-lbl">Rechazados</div></div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h5><i class="fas fa-list-alt text-primary"></i> Mis manifiestos <span class="cnt-chip" id="prov-cnt">0</span></h5>
+          <div style="display:flex;gap:.5rem;align-items:center">
+            <select id="prov-flt-st" class="fl-sel" style="width:auto;min-width:136px;padding:.38rem .75rem">
+              <option value="">Todos los estados</option>
+              <option value="pendiente">Pendiente</option>
+              <option value="en_revision">En revisión</option>
+              <option value="aprobado">Aprobado</option>
+              <option value="rechazado">Rechazado</option>
+            </select>
+            <button class="btn-sm" id="btn-prov-ref" title="Actualizar"><i class="fas fa-sync-alt"></i></button>
+          </div>
+        </div>
+        <div id="prov-loading" class="spin-wrap d-none"><div class="spinner-border spinner-border-sm text-primary"></div><div class="small mt-2">Cargando…</div></div>
+        <div id="prov-empty" class="empty-st d-none">
+          <div class="empty-icn"><i class="fas fa-folder-open"></i></div>
+          <div class="empty-ttl">Aún no has enviado manifiestos</div>
+          <div class="empty-sub">Haz clic en "Nuevo Manifiesto" para comenzar.</div>
+        </div>
+        <div class="tbl-scroll" id="prov-tbl-wrap">
+          <table class="mf-table">
+            <thead><tr>
+              <th>Vuelo</th><th></th><th>Aerolínea</th><th>Fecha</th><th>Ruta</th>
+              <th style="text-align:center">PAX</th><th>Estado</th><th>Enviado</th><th></th>
+            </tr></thead>
+            <tbody id="prov-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /view-provider -->
+
+
+    <!-- =======================================================
+         VISTA ADMIN
+         ======================================================= -->
+    <div id="view-admin" class="d-none">
+
+      <div class="admin-banner">
+        <div class="admin-banner-txt">
+          <h4><i class="fas fa-shield-alt me-2" style="color:#c084fc"></i>Panel de Control — AIFA</h4>
+          <p>Revisión y gestión de todos los manifiestos digitales recibidos de los prestadores.</p>
+        </div>
+        <div class="admin-acts">
+          <button class="btn-aifa-ol" id="btn-admin-ref" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.3);color:#fff">
+            <i class="fas fa-sync-alt"></i> Actualizar
+          </button>
+          <button class="btn-aifa" id="btn-admin-exp" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3)">
+            <i class="fas fa-file-csv"></i> Exportar CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="stats-row" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
+        <div class="kpi blue"><div class="kpi-ico blue"><i class="fas fa-database"></i></div><div><div class="kpi-val" id="as-total">—</div><div class="kpi-lbl">Total</div></div></div>
+        <div class="kpi amber"><div class="kpi-ico amber"><i class="fas fa-hourglass"></i></div><div><div class="kpi-val" id="as-pend">—</div><div class="kpi-lbl">Pendientes</div></div></div>
+        <div class="kpi indigo"><div class="kpi-ico indigo"><i class="fas fa-eye"></i></div><div><div class="kpi-val" id="as-rev">—</div><div class="kpi-lbl">En revisión</div></div></div>
+        <div class="kpi green"><div class="kpi-ico green"><i class="fas fa-check-circle"></i></div><div><div class="kpi-val" id="as-apro">—</div><div class="kpi-lbl">Aprobados</div></div></div>
+        <div class="kpi red"><div class="kpi-ico red"><i class="fas fa-times-circle"></i></div><div><div class="kpi-val" id="as-rech">—</div><div class="kpi-lbl">Rechazados</div></div></div>
+        <div class="kpi teal"><div class="kpi-ico teal"><i class="fas fa-calendar-day"></i></div><div><div class="kpi-val" id="as-hoy">—</div><div class="kpi-lbl">Hoy</div></div></div>
+      </div>
+
+      <div class="filters-bar">
+        <div class="fl-grp"><label class="fl-lbl">Fecha desde</label><input type="date" id="af-from" class="fl-inp"></div>
+        <div class="fl-grp"><label class="fl-lbl">Fecha hasta</label><input type="date" id="af-to" class="fl-inp"></div>
+        <div class="fl-grp"><label class="fl-lbl">Aerolínea / Vuelo</label><input type="text" id="af-airline" class="fl-inp" placeholder="Ej: AM123"></div>
+        <div class="fl-grp"><label class="fl-lbl">Empresa prestadora</label><input type="text" id="af-company" class="fl-inp" placeholder="Nombre empresa"></div>
+        <div class="fl-grp"><label class="fl-lbl">Tipo vuelo</label>
+          <select id="af-tipo" class="fl-sel"><option value="">Todos</option><option value="llegada">Llegada</option><option value="salida">Salida</option></select>
+        </div>
+        <div class="fl-grp"><label class="fl-lbl">Estado</label>
+          <select id="af-status" class="fl-sel"><option value="">Todos</option><option value="pendiente">Pendiente</option><option value="en_revision">En revisión</option><option value="aprobado">Aprobado</option><option value="rechazado">Rechazado</option></select>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h5><i class="fas fa-inbox text-primary"></i> Manifiestos recibidos <span class="cnt-chip" id="admin-cnt">0</span></h5>
+        </div>
+        <div id="admin-loading" class="spin-wrap d-none"><div class="spinner-border spinner-border-sm text-primary"></div><div class="small mt-2">Cargando…</div></div>
+        <div id="admin-empty" class="empty-st d-none">
+          <div class="empty-icn"><i class="fas fa-inbox"></i></div>
+          <div class="empty-ttl">No hay manifiestos con esos filtros</div>
+        </div>
+        <div class="tbl-scroll" id="admin-tbl-wrap">
+          <table class="mf-table">
+            <thead><tr>
+              <th>Vuelo</th><th></th><th>Aerolínea</th><th>Fecha</th><th>Ruta</th>
+              <th style="text-align:center">PAX</th><th>Empresa</th><th>Capturó</th><th>Estado</th><th>Recibido</th><th>Acciones</th>
+            </tr></thead>
+            <tbody id="admin-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /view-admin -->
+
+  </main>
+</div><!-- /screen-app -->
+
+
+<!-- =========================================================
+     WIZARD PANEL (slide-in derecha)
+     ========================================================= -->
+<div id="wiz-bg"></div>
+<div id="wiz-panel" role="dialog" aria-modal="true" aria-label="Nuevo manifiesto">
+
+  <div class="wiz-hdr">
+    <div>
+      <h4>Nuevo Manifiesto de Vuelo</h4>
+      <p id="wiz-subtitle">Selecciona el tipo de manifiesto</p>
+    </div>
+    <button class="btn-wiz-x" id="btn-wiz-x" title="Cerrar"><i class="fas fa-times"></i></button>
+  </div>
+
+  <div class="wiz-body" style="padding:1.75rem;display:flex;flex-direction:column;gap:.85rem">
+    <p style="font-size:.8rem;color:var(--muted);margin:0 0 .25rem">Selecciona el tipo de manifiesto que deseas capturar:</p>
+
+    <button class="mtype-card" id="mtype-llegada" data-bs-toggle="modal" data-bs-target="#modalPortalLlegada">
+      <span class="mtype-ico">🛬</span>
+      <div class="mtype-info">
+        <div class="mtype-title">Manifiesto de Llegada</div>
+        <div class="mtype-sub">Vuelo de pasajeros — Aterrizaje en AIFA</div>
+      </div>
+      <i class="fas fa-chevron-right mtype-arrow"></i>
+    </button>
+
+    <button class="mtype-card" id="mtype-salida" data-bs-toggle="modal" data-bs-target="#modalPortalSalida">
+      <span class="mtype-ico">🛫</span>
+      <div class="mtype-info">
+        <div class="mtype-title">Manifiesto de Salida</div>
+        <div class="mtype-sub">Vuelo de pasajeros — Despegue desde AIFA</div>
+      </div>
+      <i class="fas fa-chevron-right mtype-arrow"></i>
+    </button>
+
+    <button class="mtype-card" id="mtype-llegada-carga" data-bs-toggle="modal" data-bs-target="#modalPortalLlegadaCarga">
+      <span class="mtype-ico">📦</span>
+      <div class="mtype-info">
+        <div class="mtype-title">Manifiesto de Llegada Carga</div>
+        <div class="mtype-sub">Vuelo de carga — Aterrizaje en AIFA</div>
+      </div>
+      <i class="fas fa-chevron-right mtype-arrow"></i>
+    </button>
+
+    <button class="mtype-card" id="mtype-salida-carga" data-bs-toggle="modal" data-bs-target="#modalPortalSalidaCarga">
+      <span class="mtype-ico">🚀</span>
+      <div class="mtype-info">
+        <div class="mtype-title">Manifiesto de Salida Carga</div>
+        <div class="mtype-sub">Vuelo de carga — Despegue desde AIFA</div>
+      </div>
+      <i class="fas fa-chevron-right mtype-arrow"></i>
+    </button>
+
+  </div><!-- /wiz-body -->
+
+  <div class="wiz-ftr">
+    <button class="btn-aifa-ol" id="btn-wiz-cancel" onclick="closeWizard()">
+      <i class="fas fa-times me-1"></i> Cancelar
+    </button>
+  </div>
+</div><!-- /wiz-panel -->
+
+<!-- =========================================================
+     SHARED MANIFEST FORM STYLES
+     ========================================================= -->
+<style>
+  .portal-manifest .manifest-container { max-width:1000px; margin:0 auto; padding:1.75rem; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,.1); }
+  .portal-manifest .manifest-container .header-title { font-weight:bold; font-size:1.5rem; color:#1a202c; text-transform:uppercase; }
+  .portal-manifest .manifest-container .section-box { border:2px solid #1a202c; border-radius:8px; padding:.8rem; margin-bottom:.8rem; background-color:transparent; }
+  .portal-manifest .manifest-container .section-title { font-weight:bold; text-transform:uppercase; }
+  .portal-manifest .manifest-container .form-label { font-size:.70rem; font-weight:bold; margin-bottom:0; color:#1a202c; text-align:center; width:100%; display:block; }
+  .portal-manifest .manifest-container .form-control { border:none; border-bottom:1px solid #1a202c; border-radius:0; background-color:transparent; padding:.1rem; text-align:center; font-weight:bold; color:#1a202c; height:auto; font-size:.95rem; }
+  .portal-manifest .manifest-container .form-control:focus { background-color:rgba(255,255,255,.7); box-shadow:none; border-bottom:2px solid #2b6cb0; }
+  .portal-manifest .manifest-container .sub-label { font-size:.55rem; color:#4a5568; text-align:center; display:block; line-height:1; margin-top:2px; }
+  .portal-manifest .manifest-container .signature-box { border:2px solid #1a202c; border-radius:8px; height:130px; display:flex; flex-direction:column; justify-content:space-between; padding:.5rem; text-align:center; position:relative; }
+  .portal-manifest .manifest-container .signature-line { border-top:1px solid #1a202c; width:80%; margin:0 auto; }
+  .portal-manifest .manifest-container .demora-row { display:flex; align-items:center; }
+  .portal-manifest .manifest-container input[type="number"] { -moz-appearance:textfield; appearance:textfield; }
+  .portal-manifest .manifest-container input[type="number"]::-webkit-outer-spin-button,
+  .portal-manifest .manifest-container input[type="number"]::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+  @media print {
+    .portal-manifest .manifest-container { margin:0; padding:0; border:none; box-shadow:none; background-color:white !important; }
+    body * { visibility:hidden; }
+    .modal-body.print-target, .modal-body.print-target * { visibility:visible; }
+    .modal-body.print-target { position:absolute; left:0; top:0; margin:0; padding:0; width:100%; }
+  }
+</style>
+
+<!-- =========================================================
+     MODAL: MANIFIESTO DE LLEGADA (Pasajeros)
+     ========================================================= -->
+<div class="modal fade portal-manifest" id="modalPortalLlegada" tabindex="-1" aria-labelledby="modalPortalLlegadaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="modalPortalLlegadaLabel"><i class="fas fa-plane-arrival me-2 text-success"></i>Manifiesto de Llegada — Pasajeros</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body print-target" style="background-color:#f0fdf4;">
+        <div class="manifest-container" style="background-color:#e2fce6; border:2px solid #2a4365;">
+
+          <!-- ENCABEZADO -->
+          <div class="row align-items-center mb-4 g-2">
+            <div class="col-md-5">
+              <h1 class="header-title mb-0">MANIFIESTO DE LLEGADA</h1>
+            </div>
+            <div class="col-md-4 text-center">
+              <div class="d-flex align-items-end justify-content-center">
+                <span class="me-2 fw-bold" style="font-size:.85rem;">FECHA</span>
+                <input type="text" id="ml-fecha-dd" class="form-control w-25 text-center px-1 mx-1" placeholder="DD" maxlength="2" aria-label="Día">
+                /
+                <input type="text" id="ml-fecha-mm" class="form-control w-25 text-center px-1 mx-1" placeholder="MM" maxlength="2" aria-label="Mes">
+                /
+                <input type="text" id="ml-fecha-aaaa" class="form-control w-25 text-center px-1 mx-1" placeholder="AAAA" maxlength="4" aria-label="Año">
+              </div>
+            </div>
+            <div class="col-md-3 text-end">
+              <div class="d-flex align-items-end justify-content-end">
+                <span class="me-2 fw-bold" style="font-size:.85rem;">FOLIO</span>
+                <input type="text" id="ml-folio" class="form-control w-50" placeholder="" aria-label="Folio" readonly style="background:rgba(255,255,255,.4);">
+              </div>
+              <span class="sub-label text-end mt-1">Espacio reservado para la Administración</span>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 1: DATOS DEL VUELO -->
+          <div class="section-box">
+            <div class="row mb-3 g-2">
+              <div class="col-md-3">
+                <label class="form-label w-100" for="ml-apto">AEROPUERTO DE LLEGADA</label>
+                <input type="text" id="ml-apto" class="form-control" value="NLU" aria-label="Aeropuerto de llegada">
+                <span class="sub-label">Código 3 letras</span>
+              </div>
+              <div class="col-md-3 offset-md-3">
+                <label class="form-label w-100" for="ml-tipo-vuelo">TIPO DE VUELO</label>
+                <input type="text" id="ml-tipo-vuelo" class="form-control" placeholder="RP" aria-label="Tipo de vuelo">
+                <span class="sub-label">Calificador hasta 3 letras</span>
+              </div>
+            </div>
+            <div class="row mb-3 g-2 align-items-center">
+              <div class="col-md-3">
+                <label class="form-label text-start" style="line-height:1.2;">TRANSPORTISTA /<br>OPERADOR AÉREO</label>
+              </div>
+              <div class="col-md-2">
+                <input type="text" id="ml-transp-cod" class="form-control" placeholder="AMC" aria-label="Código transportista">
+                <span class="sub-label">Código 3 letras</span>
+              </div>
+              <div class="col-md-7">
+                <input type="text" id="ml-transp-nom" class="form-control" placeholder="Nombre o razón social" aria-label="Nombre transportista">
+                <span class="sub-label">Nombre o razón social del Transportista u Operador Aéreo</span>
+              </div>
+            </div>
+            <div class="row mb-3 g-2 align-items-center">
+              <div class="col-md-1"><label class="form-label text-start mt-2" for="ml-equipo">EQUIPO</label></div>
+              <div class="col-md-3">
+                <input type="text" id="ml-equipo" class="form-control" placeholder="B737-800" aria-label="Tipo de equipo">
+                <span class="sub-label">Caracteres alfanuméricos</span>
+              </div>
+              <div class="col-md-2"><label class="form-label text-end mt-2" for="ml-matricula">MATRÍCULA</label></div>
+              <div class="col-md-3">
+                <input type="text" id="ml-matricula" class="form-control" placeholder="XA-AMX" aria-label="Matrícula">
+                <span class="sub-label">Marca de nacionalidad y matrícula completa</span>
+              </div>
+              <div class="col-md-1"><label class="form-label mt-2" for="ml-num-vuelo">No. VUELO</label></div>
+              <div class="col-md-2"><input type="text" id="ml-num-vuelo" class="form-control" placeholder="AM 001" aria-label="Número de vuelo"></div>
+            </div>
+            <div class="row g-2 align-items-center">
+              <div class="col-md-2"><label class="form-label text-start mt-2" for="ml-piloto" style="line-height:1.2;">PILOTO AL<br>MANDO</label></div>
+              <div class="col-md-4">
+                <input type="text" id="ml-piloto" class="form-control" placeholder="Nombre del comandante" aria-label="Piloto al mando">
+                <span class="sub-label">Nombre del comandante de vuelo</span>
+              </div>
+              <div class="col-md-1"><label class="form-label mt-2 text-end" for="ml-licencia">No.<br>LIC.</label></div>
+              <div class="col-md-2">
+                <input type="text" id="ml-licencia" class="form-control" placeholder="Nº licencia" aria-label="Número de licencia">
+                <span class="sub-label">No. de licencia o No. de empleado</span>
+              </div>
+              <div class="col-md-2"><label class="form-label mt-2 text-end" for="ml-tripulacion">TRIPULACIÓN</label></div>
+              <div class="col-md-1">
+                <input type="text" id="ml-tripulacion" class="form-control" placeholder="2/4" aria-label="Tripulación">
+                <span class="sub-label" style="font-size:.55rem">Pilotos/Sobrec.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 2: MOVIMIENTO DE OPERACIONES -->
+          <div class="section-box">
+            <div class="row">
+              <div class="col-md-6 border-end border-dark">
+                <h6 class="section-title text-center text-md-start">MOVIMIENTO DE OPERACIONES</h6>
+                <div class="row align-items-center mb-3">
+                  <div class="col-4"><label class="form-label text-start" style="font-size:.7rem;" for="ml-origen-nom">ORIGEN DEL VUELO</label></div>
+                  <div class="col-6">
+                    <input type="text" id="ml-origen-nom" class="form-control" placeholder="Nombre del aeropuerto" aria-label="Nombre origen">
+                    <span class="sub-label">Registrar nombre completo del aeropuerto</span>
+                  </div>
+                  <div class="col-2">
+                    <input type="text" id="ml-origen-cod" class="form-control" placeholder="MEX" aria-label="Código origen">
+                    <span class="sub-label">Código 3 letras</span>
+                  </div>
+                </div>
+                <div class="row align-items-center">
+                  <div class="col-4"><label class="form-label text-start" style="font-size:.7rem;" for="ml-escala-nom">ESCALA ANTERIOR</label></div>
+                  <div class="col-6">
+                    <input type="text" id="ml-escala-nom" class="form-control" placeholder="Nombre del aeropuerto" aria-label="Nombre escala anterior">
+                    <span class="sub-label">Registrar nombre completo del aeropuerto</span>
+                  </div>
+                  <div class="col-2">
+                    <input type="text" id="ml-escala-cod" class="form-control" placeholder="GDL" aria-label="Código escala anterior">
+                    <span class="sub-label">Código 3 letras</span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6 ps-md-4 mt-3 mt-md-0">
+                <div class="row mb-2 align-items-center">
+                  <div class="col-8"><label class="form-label text-start mt-1" for="ml-slot-asig">HORA DE SLOT ASIGNADO</label></div>
+                  <div class="col-4"><input type="text" id="ml-slot-asig" class="form-control" placeholder="HH:MM" aria-label="Slot asignado"></div>
+                </div>
+                <div class="row mb-2 align-items-center">
+                  <div class="col-8"><label class="form-label text-start mt-1" for="ml-slot-coord">HORA DE SLOT COORDINADO</label></div>
+                  <div class="col-4">
+                    <input type="text" id="ml-slot-coord" class="form-control" placeholder="N/A" aria-label="Slot coordinado">
+                    <span class="sub-label">Hora local</span>
+                  </div>
+                </div>
+                <div class="row mb-2 align-items-center">
+                  <div class="col-8"><label class="form-label text-start mt-1" for="ml-hr-posicion">HORA DE ENTRADA A POSICIÓN</label></div>
+                  <div class="col-4">
+                    <input type="text" id="ml-hr-posicion" class="form-control" placeholder="HH:MM" aria-label="Hora entrada posición">
+                    <span class="sub-label">Hora local</span>
+                  </div>
+                </div>
+                <div class="row mb-2 align-items-center">
+                  <div class="col-8"><label class="form-label text-start mt-1" style="font-size:.65rem;">HORA DE TÉRMINO DE MANIOBRAS DE DESEMBARQUE</label></div>
+                  <div class="col-4">
+                    <input type="text" id="ml-hr-desembarque" class="form-control" placeholder="HH:MM" aria-label="Hora término desembarque">
+                    <span class="sub-label">Hora local</span>
+                  </div>
+                </div>
+                <div class="row align-items-center">
+                  <div class="col-8"><label class="form-label text-start mt-1" for="ml-hr-pernocta">HORA DE INICIO DE PERNOCTA</label></div>
+                  <div class="col-4">
+                    <input type="text" id="ml-hr-pernocta" class="form-control" placeholder="N/A" aria-label="Hora inicio pernocta">
+                    <span class="sub-label">Hora local</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 3: CAUSA DE LA DEMORA -->
+          <div class="section-box">
+            <h6 class="section-title text-start mb-0">CAUSA DE LA DEMORA</h6>
+            <div class="text-end me-5 mb-1"><span class="sub-label d-inline-block" style="width:auto;">Código 3 Letras</span></div>
+            <div class="row align-items-center g-3">
+              <div class="col-md-3"><span class="sub-label text-start" style="font-size:.7rem;">Desglose cada una de las causas de la Demora incluyendo el tiempo de afectación a cada causa.</span></div>
+              <div class="col-md-9">
+                <div class="demora-row gap-2">
+                  <input type="text" id="ml-dem1" class="form-control w-100" placeholder="Descripción primera demora" aria-label="Demora 1 descripción">
+                  <input type="text" id="ml-dem1-cod" class="form-control" style="width:80px;" placeholder="COD" aria-label="Demora 1 código">
+                </div>
+                <div class="text-end me-2 mb-1"><span class="sub-label d-inline-block">Código 3 Letras</span></div>
+                <div class="demora-row gap-2 mt-1">
+                  <input type="text" id="ml-dem2" class="form-control w-100" placeholder="Descripción segunda demora" aria-label="Demora 2 descripción">
+                  <input type="text" id="ml-dem2-cod" class="form-control" style="width:80px;" placeholder="COD" aria-label="Demora 2 código">
+                </div>
+                <div class="text-end me-2 mb-1"><span class="sub-label d-inline-block">Código 3 Letras</span></div>
+                <div class="demora-row gap-2 mt-1">
+                  <div class="w-100 text-center">
+                    <input type="text" id="ml-dem3" class="form-control w-100" placeholder="Descripción tercera demora" aria-label="Demora 3 descripción">
+                    <span class="sub-label mt-1">Descripción de la(s) causa(s) de la Demora</span>
+                  </div>
+                  <div class="text-center" style="width:80px;align-self:flex-start;">
+                    <input type="text" id="ml-dem3-cod" class="form-control w-100" placeholder="COD" aria-label="Demora 3 código">
+                    <span class="sub-label mt-1">Código 3 Letras</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 4: DESEMBARQUE -->
+          <div class="section-box text-center">
+            <h6 class="section-title mb-2">DESEMBARQUE</h6>
+            <div class="row align-items-end g-2">
+              <div class="col-md-2"></div>
+              <div class="col"><label class="form-label text-center w-100">NACIONAL</label></div>
+              <div class="col"><label class="form-label" style="font-size:.7rem;">INTERNACIONAL</label></div>
+              <div class="col"><label class="form-label mb-1">EQUIPAJE</label><span class="sub-label mt-0">kilogramos</span></div>
+              <div class="col"><label class="form-label mb-1">CARGA</label><span class="sub-label mt-0">en kilogramos</span></div>
+              <div class="col"><label class="form-label mb-1">CORREO</label><span class="sub-label mt-0">en kilogramos</span></div>
+            </div>
+            <div class="row align-items-center mt-2 g-2">
+              <div class="col-md-2 text-start"><label class="form-label mt-1">No. PAX</label></div>
+              <div class="col"><input type="number" id="ml-pax-nac" class="form-control" value="0" min="0" aria-label="PAX nacional"></div>
+              <div class="col"><input type="number" id="ml-pax-int" class="form-control" value="0" min="0" aria-label="PAX internacional"></div>
+              <div class="col"><input type="number" id="ml-equip-kg" class="form-control" value="0" min="0" aria-label="Equipaje kg"></div>
+              <div class="col"><input type="number" id="ml-carga-kg" class="form-control" value="0" min="0" aria-label="Carga kg"></div>
+              <div class="col"><input type="number" id="ml-correo-kg" class="form-control" value="0" min="0" aria-label="Correo kg"></div>
+            </div>
+            <div class="row align-items-center mt-3 g-2">
+              <div class="col-md-2 text-start"><label class="form-label mt-1">CONEXIÓN</label></div>
+              <div class="col"><input type="number" id="ml-conex-nac" class="form-control" value="0" min="0" aria-label="Conexión nacional"></div>
+              <div class="col"><input type="number" id="ml-conex-int" class="form-control" value="0" min="0" aria-label="Conexión internacional"></div>
+              <div class="col"></div><div class="col"></div><div class="col"></div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 5: OBSERVACIONES -->
+          <div class="section-box">
+            <h6 class="section-title text-center mb-2">OBSERVACIONES</h6>
+            <textarea id="ml-obs" class="form-control border-0 text-center fw-bold text-dark" rows="2" style="resize:none;background-color:transparent;" placeholder="Escriba sus observaciones aquí..." aria-label="Observaciones"></textarea>
+          </div>
+
+          <!-- SECCIÓN 6: FIRMAS -->
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="signature-box" style="padding-top:1rem;">
+                <span class="form-label" style="font-size:.65rem;line-height:1.2;">TRANSPORTISTA / OPERADOR AÉREO<br>ELABORADO POR</span>
+                <div class="mt-4 pb-2">
+                  <div class="signature-line"></div>
+                  <input type="text" id="ml-elaborado" class="form-control text-center p-0 m-0 border-0 bg-transparent fw-bold text-dark mt-1" style="font-size:.8rem;box-shadow:none;" placeholder="Nombre completo" aria-label="Elaborado por">
+                  <span class="sub-label d-block text-center" style="font-size:.55rem;line-height:1;">Nombre y Firma</span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="signature-box position-relative" style="padding-top:1rem;">
+                <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:110px;height:110px;border:2px dashed #3b82f6;border-radius:50%;opacity:.15;pointer-events:none;"></div>
+                <div style="position:absolute;top:25px;left:50%;transform:translateX(-50%) rotate(-15deg);color:#3b82f6;opacity:.6;pointer-events:none;text-align:center;font-size:.55rem;line-height:1;">ADMINISTRACIÓN AEROPUERTO<br>RECIBIDO POR<br><br><span id="ml-stamp-fecha" style="font-size:.8rem;font-weight:bold;"></span><br><br>RECIBIÓ</div>
+                <span class="form-label" style="font-size:.65rem;line-height:1.2;z-index:1;">ADMINISTRACIÓN AEROPUERTO<br>RECIBIDO POR</span>
+                <div class="mt-auto pb-2">
+                  <div class="signature-line"></div>
+                  <span class="sub-label mt-1" style="font-size:.55rem;">Sello, Firma y Fecha</span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="signature-box" style="padding-top:1rem;">
+                <span class="form-label" style="font-size:.65rem;line-height:1.2;">COMANDANCIA AEROPUERTO<br>RECIBIDO POR</span>
+                <div class="mt-auto pb-2">
+                  <div class="signature-line"></div>
+                  <span class="sub-label mt-1" style="font-size:.55rem;">Sello, Firma y Fecha</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="text-center mt-3">
+            <span class="sub-label text-dark" style="font-size:.5rem;letter-spacing:.5px;">DOCUMENTO DE CARÁCTER LEGAL EN EL QUE EL TRANSPORTISTA U OPERADOR AÉREO MANIFIESTA QUE LA INFORMACIÓN QUE CONTIENE ES CORRECTA Y CORRESPONDE A LOS DATOS ASENTADOS EN EL MANIFIESTO DE DESPACHO DE LA AERONAVE.</span>
+          </div>
+
+        </div><!-- /manifest-container -->
+      </div><!-- /modal-body -->
+      <div class="modal-footer d-print-none bg-light">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="printManifest('modalPortalLlegada')"><i class="fas fa-print me-1"></i>Imprimir/PDF</button>
+        <button type="button" class="btn btn-success" id="btn-save-portal-llegada"><i class="fas fa-save me-1"></i>Guardar y Enviar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL: MANIFIESTO DE SALIDA (Pasajeros)
+     ========================================================= -->
+<div class="modal fade portal-manifest" id="modalPortalSalida" tabindex="-1" aria-labelledby="modalPortalSalidaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="modalPortalSalidaLabel"><i class="fas fa-plane-departure me-2 text-primary"></i>Manifiesto de Salida — Pasajeros</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body print-target" style="background-color:#eff6ff;">
+        <div class="manifest-container" style="background-color:#e0f2fe; border:2px solid #2a4365;">
+
+          <!-- ENCABEZADO -->
+          <div class="row align-items-center mb-4 g-2">
+            <div class="col-md-5">
+              <h1 class="header-title mb-0">MANIFIESTO DE SALIDA</h1>
+            </div>
+            <div class="col-md-4 text-center">
+              <div class="d-flex align-items-end justify-content-center">
+                <span class="me-2 fw-bold" style="font-size:.85rem;">FECHA</span>
+                <input type="text" id="ms-fecha-dd" class="form-control w-25 text-center px-1 mx-1" placeholder="DD" maxlength="2" aria-label="Día">
+                /
+                <input type="text" id="ms-fecha-mm" class="form-control w-25 text-center px-1 mx-1" placeholder="MM" maxlength="2" aria-label="Mes">
+                /
+                <input type="text" id="ms-fecha-aaaa" class="form-control w-25 text-center px-1 mx-1" placeholder="AAAA" maxlength="4" aria-label="Año">
+              </div>
+            </div>
+            <div class="col-md-3 text-end">
+              <div class="d-flex align-items-end justify-content-end">
+                <span class="me-2 fw-bold" style="font-size:.85rem;">FOLIO</span>
+                <input type="text" id="ms-folio" class="form-control w-50" placeholder="" aria-label="Folio" readonly style="background:rgba(255,255,255,.4);">
+              </div>
+              <span class="sub-label text-end mt-1">Espacio reservado para la Administración</span>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 1: DATOS DEL VUELO -->
+          <div class="section-box">
+            <div class="row mb-3 g-2">
+              <div class="col-md-3">
+                <label class="form-label w-100" for="ms-apto">AEROPUERTO DE SALIDA</label>
+                <input type="text" id="ms-apto" class="form-control" value="NLU" aria-label="Aeropuerto de salida">
+                <span class="sub-label">Código 3 letras</span>
+              </div>
+              <div class="col-md-3 offset-md-3">
+                <label class="form-label w-100" for="ms-tipo-vuelo">TIPO DE VUELO</label>
+                <input type="text" id="ms-tipo-vuelo" class="form-control" placeholder="RP" aria-label="Tipo de vuelo">
+                <span class="sub-label">Calificador hasta 3 letras</span>
+              </div>
+            </div>
+            <div class="row mb-3 g-2 align-items-center">
+              <div class="col-md-3">
+                <label class="form-label text-start" style="line-height:1.2;">TRANSPORTISTA /<br>OPERADOR AÉREO</label>
+              </div>
+              <div class="col-md-2">
+                <input type="text" id="ms-transp-cod" class="form-control" placeholder="AMC" aria-label="Código transportista">
+                <span class="sub-label">Código 3 letras</span>
+              </div>
+              <div class="col-md-7">
+                <input type="text" id="ms-transp-nom" class="form-control" placeholder="Nombre o razón social" aria-label="Nombre transportista">
+                <span class="sub-label">Nombre o razón social del Transportista u Operador Aéreo</span>
+              </div>
+            </div>
+            <div class="row mb-3 g-2 align-items-center">
+              <div class="col-md-1"><label class="form-label text-start mt-2" for="ms-equipo">EQUIPO</label></div>
+              <div class="col-md-3">
+                <input type="text" id="ms-equipo" class="form-control" placeholder="B737-800" aria-label="Tipo de equipo">
+                <span class="sub-label">Caracteres alfanuméricos</span>
+              </div>
+              <div class="col-md-2"><label class="form-label text-end mt-2" for="ms-matricula">MATRÍCULA</label></div>
+              <div class="col-md-3">
+                <input type="text" id="ms-matricula" class="form-control" placeholder="XA-AMX" aria-label="Matrícula">
+                <span class="sub-label">Marca de nacionalidad y matrícula completa</span>
+              </div>
+              <div class="col-md-1"><label class="form-label mt-2" for="ms-num-vuelo">No. VUELO</label></div>
+              <div class="col-md-2"><input type="text" id="ms-num-vuelo" class="form-control" placeholder="AM 001" aria-label="Número de vuelo"></div>
+            </div>
+            <div class="row g-2 align-items-center">
+              <div class="col-md-2"><label class="form-label text-start mt-2" for="ms-piloto" style="line-height:1.2;">PILOTO AL<br>MANDO</label></div>
+              <div class="col-md-4">
+                <input type="text" id="ms-piloto" class="form-control" placeholder="Nombre del comandante" aria-label="Piloto al mando">
+                <span class="sub-label">Nombre del comandante de vuelo</span>
+              </div>
+              <div class="col-md-1"><label class="form-label mt-2 text-end" for="ms-licencia">No.<br>LIC.</label></div>
+              <div class="col-md-2">
+                <input type="text" id="ms-licencia" class="form-control" placeholder="Nº licencia" aria-label="Número de licencia">
+                <span class="sub-label">No. de licencia o No. de empleado</span>
+              </div>
+              <div class="col-md-2"><label class="form-label mt-2 text-end" for="ms-tripulacion">TRIPULACIÓN</label></div>
+              <div class="col-md-1">
+                <input type="text" id="ms-tripulacion" class="form-control" placeholder="2/4" aria-label="Tripulación">
+                <span class="sub-label" style="font-size:.55rem">Pilotos/Sobrec.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 2: MOVIMIENTO DE OPERACIONES -->
+          <div class="section-box">
+            <div class="row">
+              <div class="col-md-6 border-end border-dark">
+                <h6 class="section-title text-center text-md-start">MOVIMIENTO DE OPERACIONES</h6>
+                <div class="row align-items-center mb-3">
+                  <div class="col-4"><label class="form-label text-start" style="font-size:.7rem;" for="ms-destino-nom">DESTINO DEL VUELO</label></div>
+                  <div class="col-6">
+                    <input type="text" id="ms-destino-nom" class="form-control" placeholder="Nombre del aeropuerto" aria-label="Nombre destino">
+                    <span class="sub-label">Registrar nombre completo del aeropuerto</span>
+                  </div>
+                  <div class="col-2">
+                    <input type="text" id="ms-destino-cod" class="form-control" placeholder="MEX" aria-label="Código destino">
+                    <span class="sub-label">Código 3 letras</span>
+                  </div>
+                </div>
+                <div class="row align-items-center">
+                  <div class="col-4"><label class="form-label text-start" style="font-size:.7rem;" for="ms-escala-nom">ESCALA SIGUIENTE</label></div>
+                  <div class="col-6">
+                    <input type="text" id="ms-escala-nom" class="form-control" placeholder="Nombre del aeropuerto" aria-label="Nombre escala siguiente">
+                    <span class="sub-label">Registrar nombre completo del aeropuerto</span>
+                  </div>
+                  <div class="col-2">
+                    <input type="text" id="ms-escala-cod" class="form-control" placeholder="GDL" aria-label="Código escala siguiente">
+                    <span class="sub-label">Código 3 letras</span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6 ps-md-4 mt-3 mt-md-0">
+                <div class="row mb-2 align-items-center">
+                  <div class="col-8"><label class="form-label text-start mt-1" for="ms-slot-asig">HORA DE SLOT ASIGNADO</label></div>
+                  <div class="col-4"><input type="text" id="ms-slot-asig" class="form-control" placeholder="HH:MM" aria-label="Slot asignado"></div>
+                </div>
+                <div class="row mb-2 align-items-center">
+                  <div class="col-8"><label class="form-label text-start mt-1" for="ms-slot-coord">HORA DE SLOT COORDINADO</label></div>
+                  <div class="col-4">
+                    <input type="text" id="ms-slot-coord" class="form-control" placeholder="N/A" aria-label="Slot coordinado">
+                    <span class="sub-label">Hora local</span>
+                  </div>
+                </div>
+                <div class="row mb-2 align-items-center">
+                  <div class="col-8"><label class="form-label text-start mt-1" for="ms-hr-salida-pos">HORA DE SALIDA DE POSICIÓN / EMPUJE</label></div>
+                  <div class="col-4">
+                    <input type="text" id="ms-hr-salida-pos" class="form-control" placeholder="HH:MM" aria-label="Hora salida posición">
+                    <span class="sub-label">Hora local</span>
+                  </div>
+                </div>
+                <div class="row mb-2 align-items-center">
+                  <div class="col-8"><label class="form-label text-start mt-1" style="font-size:.65rem;">HORA DE CIERRE DE PUERTAS / TÉRMINO DE EMBARQUE</label></div>
+                  <div class="col-4">
+                    <input type="text" id="ms-hr-cierre" class="form-control" placeholder="HH:MM" aria-label="Hora cierre puertas">
+                    <span class="sub-label">Hora local</span>
+                  </div>
+                </div>
+                <div class="row align-items-center">
+                  <div class="col-8"><label class="form-label text-start mt-1" for="ms-hr-despegue">HORA REAL DE DESPEGUE</label></div>
+                  <div class="col-4">
+                    <input type="text" id="ms-hr-despegue" class="form-control" placeholder="HH:MM" aria-label="Hora real despegue">
+                    <span class="sub-label">Hora local</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 3: CAUSA DE LA DEMORA -->
+          <div class="section-box">
+            <h6 class="section-title text-start mb-0">CAUSA DE LA DEMORA</h6>
+            <div class="text-end me-5 mb-1"><span class="sub-label d-inline-block" style="width:auto;">Código 3 Letras</span></div>
+            <div class="row align-items-center g-3">
+              <div class="col-md-3"><span class="sub-label text-start" style="font-size:.7rem;">Desglose cada una de las causas de la Demora incluyendo el tiempo de afectación a cada causa.</span></div>
+              <div class="col-md-9">
+                <div class="demora-row gap-2">
+                  <input type="text" id="ms-dem1" class="form-control w-100" placeholder="Descripción primera demora" aria-label="Demora 1 descripción">
+                  <input type="text" id="ms-dem1-cod" class="form-control" style="width:80px;" placeholder="COD" aria-label="Demora 1 código">
+                </div>
+                <div class="text-end me-2 mb-1"><span class="sub-label d-inline-block">Código 3 Letras</span></div>
+                <div class="demora-row gap-2 mt-1">
+                  <input type="text" id="ms-dem2" class="form-control w-100" placeholder="Descripción segunda demora" aria-label="Demora 2 descripción">
+                  <input type="text" id="ms-dem2-cod" class="form-control" style="width:80px;" placeholder="COD" aria-label="Demora 2 código">
+                </div>
+                <div class="text-end me-2 mb-1"><span class="sub-label d-inline-block">Código 3 Letras</span></div>
+                <div class="demora-row gap-2 mt-1">
+                  <div class="w-100 text-center">
+                    <input type="text" id="ms-dem3" class="form-control w-100" placeholder="Descripción tercera demora" aria-label="Demora 3 descripción">
+                    <span class="sub-label mt-1">Descripción de la(s) causa(s) de la Demora</span>
+                  </div>
+                  <div class="text-center" style="width:80px;align-self:flex-start;">
+                    <input type="text" id="ms-dem3-cod" class="form-control w-100" placeholder="COD" aria-label="Demora 3 código">
+                    <span class="sub-label mt-1">Código 3 Letras</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 4: EMBARQUE -->
+          <div class="section-box text-center">
+            <h6 class="section-title mb-2">EMBARQUE</h6>
+            <div class="row align-items-end g-2">
+              <div class="col-md-2"></div>
+              <div class="col"><label class="form-label text-center w-100">NACIONAL</label></div>
+              <div class="col"><label class="form-label" style="font-size:.7rem;">INTERNACIONAL</label></div>
+              <div class="col"><label class="form-label mb-1">EQUIPAJE</label><span class="sub-label mt-0">kilogramos</span></div>
+              <div class="col"><label class="form-label mb-1">CARGA</label><span class="sub-label mt-0">en kilogramos</span></div>
+              <div class="col"><label class="form-label mb-1">CORREO</label><span class="sub-label mt-0">en kilogramos</span></div>
+            </div>
+            <div class="row align-items-center mt-2 g-2">
+              <div class="col-md-2 text-start"><label class="form-label mt-1">No. PAX</label></div>
+              <div class="col"><input type="number" id="ms-pax-nac" class="form-control" value="0" min="0" aria-label="PAX nacional"></div>
+              <div class="col"><input type="number" id="ms-pax-int" class="form-control" value="0" min="0" aria-label="PAX internacional"></div>
+              <div class="col"><input type="number" id="ms-equip-kg" class="form-control" value="0" min="0" aria-label="Equipaje kg"></div>
+              <div class="col"><input type="number" id="ms-carga-kg" class="form-control" value="0" min="0" aria-label="Carga kg"></div>
+              <div class="col"><input type="number" id="ms-correo-kg" class="form-control" value="0" min="0" aria-label="Correo kg"></div>
+            </div>
+            <div class="row align-items-center mt-3 g-2">
+              <div class="col-md-2 text-start"><label class="form-label mt-1">CONEXIÓN</label></div>
+              <div class="col"><input type="number" id="ms-conex-nac" class="form-control" value="0" min="0" aria-label="Conexión nacional"></div>
+              <div class="col"><input type="number" id="ms-conex-int" class="form-control" value="0" min="0" aria-label="Conexión internacional"></div>
+              <div class="col"></div><div class="col"></div><div class="col"></div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 5: OBSERVACIONES -->
+          <div class="section-box">
+            <h6 class="section-title text-center mb-2">OBSERVACIONES</h6>
+            <textarea id="ms-obs" class="form-control border-0 text-center fw-bold text-dark" rows="2" style="resize:none;background-color:transparent;" placeholder="Escriba sus observaciones aquí..." aria-label="Observaciones"></textarea>
+          </div>
+
+          <!-- SECCIÓN 6: FIRMAS -->
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="signature-box" style="padding-top:1rem;">
+                <span class="form-label" style="font-size:.65rem;line-height:1.2;">TRANSPORTISTA / OPERADOR AÉREO<br>ELABORADO POR</span>
+                <div class="mt-4 pb-2">
+                  <div class="signature-line"></div>
+                  <input type="text" id="ms-elaborado" class="form-control text-center p-0 m-0 border-0 bg-transparent fw-bold text-dark mt-1" style="font-size:.8rem;box-shadow:none;" placeholder="Nombre completo" aria-label="Elaborado por">
+                  <span class="sub-label d-block text-center" style="font-size:.55rem;line-height:1;">Nombre y Firma</span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="signature-box position-relative" style="padding-top:1rem;">
+                <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:110px;height:110px;border:2px dashed #3b82f6;border-radius:50%;opacity:.15;pointer-events:none;"></div>
+                <span class="form-label" style="font-size:.65rem;line-height:1.2;z-index:1;">ADMINISTRACIÓN AEROPUERTO<br>RECIBIDO POR</span>
+                <div class="mt-auto pb-2">
+                  <div class="signature-line"></div>
+                  <span class="sub-label mt-1" style="font-size:.55rem;">Sello, Firma y Fecha</span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="signature-box" style="padding-top:1rem;">
+                <span class="form-label" style="font-size:.65rem;line-height:1.2;">COMANDANCIA AEROPUERTO<br>RECIBIDO POR</span>
+                <div class="mt-auto pb-2">
+                  <div class="signature-line"></div>
+                  <span class="sub-label mt-1" style="font-size:.55rem;">Sello, Firma y Fecha</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="text-center mt-3">
+            <span class="sub-label text-dark" style="font-size:.5rem;letter-spacing:.5px;">DOCUMENTO DE CARÁCTER LEGAL EN EL QUE EL TRANSPORTISTA U OPERADOR AÉREO MANIFIESTA QUE LA INFORMACIÓN QUE CONTIENE ES CORRECTA Y CORRESPONDE A LOS DATOS ASENTADOS EN EL MANIFIESTO DE DESPACHO DE LA AERONAVE.</span>
+          </div>
+
+        </div><!-- /manifest-container -->
+      </div><!-- /modal-body -->
+      <div class="modal-footer d-print-none bg-light">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="printManifest('modalPortalSalida')"><i class="fas fa-print me-1"></i>Imprimir/PDF</button>
+        <button type="button" class="btn btn-primary" id="btn-save-portal-salida"><i class="fas fa-save me-1"></i>Guardar y Enviar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL: MANIFIESTO DE LLEGADA CARGA
+     ========================================================= -->
+<div class="modal fade portal-manifest" id="modalPortalLlegadaCarga" tabindex="-1" aria-labelledby="modalPortalLlegadaCargaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="modalPortalLlegadaCargaLabel"><i class="fas fa-boxes me-2 text-success"></i>Manifiesto de Llegada — Carga</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body print-target" style="background-color:#f0fdf4;">
+        <div class="manifest-container" style="background-color:#e2fce6; border:2px solid #2a4365;">
+
+          <!-- ENCABEZADO -->
+          <div class="row align-items-center mb-4 g-2">
+            <div class="col-md-5">
+              <h1 class="header-title mb-0">MANIFIESTO DE LLEGADA</h1>
+              <div class="fw-bold" style="font-size:.75rem;color:#2d6a4f;">CARGA</div>
+            </div>
+            <div class="col-md-4 text-center">
+              <div class="d-flex align-items-end justify-content-center">
+                <span class="me-2 fw-bold" style="font-size:.85rem;">FECHA</span>
+                <input type="text" id="mlc-fecha-dd" class="form-control w-25 text-center px-1 mx-1" placeholder="DD" maxlength="2" aria-label="Día">
+                /
+                <input type="text" id="mlc-fecha-mm" class="form-control w-25 text-center px-1 mx-1" placeholder="MM" maxlength="2" aria-label="Mes">
+                /
+                <input type="text" id="mlc-fecha-aaaa" class="form-control w-25 text-center px-1 mx-1" placeholder="AAAA" maxlength="4" aria-label="Año">
+              </div>
+            </div>
+            <div class="col-md-3 text-end">
+              <div class="d-flex align-items-end justify-content-end">
+                <span class="me-2 fw-bold" style="font-size:.85rem;">FOLIO</span>
+                <input type="text" id="mlc-folio" class="form-control w-50" placeholder="" aria-label="Folio" readonly style="background:rgba(255,255,255,.4);">
+              </div>
+              <span class="sub-label text-end mt-1">Espacio reservado para la Administración</span>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 1: DATOS DEL VUELO -->
+          <div class="section-box">
+            <div class="row mb-3 g-2">
+              <div class="col-md-3">
+                <label class="form-label w-100" for="mlc-apto">AEROPUERTO DE LLEGADA</label>
+                <input type="text" id="mlc-apto" class="form-control" value="NLU" aria-label="Aeropuerto de llegada">
+                <span class="sub-label">Código 3 letras</span>
+              </div>
+              <div class="col-md-3 offset-md-3">
+                <label class="form-label w-100" for="mlc-tipo-vuelo">TIPO DE VUELO</label>
+                <input type="text" id="mlc-tipo-vuelo" class="form-control" placeholder="RC" aria-label="Tipo de vuelo">
+                <span class="sub-label">Calificador hasta 3 letras</span>
+              </div>
+            </div>
+            <div class="row mb-3 g-2 align-items-center">
+              <div class="col-md-3"><label class="form-label text-start" style="line-height:1.2;">TRANSPORTISTA /<br>OPERADOR AÉREO</label></div>
+              <div class="col-md-2">
+                <input type="text" id="mlc-transp-cod" class="form-control" placeholder="TNO" aria-label="Código transportista">
+                <span class="sub-label">Código 3 letras</span>
+              </div>
+              <div class="col-md-7">
+                <input type="text" id="mlc-transp-nom" class="form-control" placeholder="Nombre o razón social" aria-label="Nombre transportista">
+                <span class="sub-label">Nombre o razón social del Transportista u Operador Aéreo</span>
+              </div>
+            </div>
+            <div class="row mb-3 g-2 align-items-center">
+              <div class="col-md-1"><label class="form-label text-start mt-2" for="mlc-equipo">EQUIPO</label></div>
+              <div class="col-md-3">
+                <input type="text" id="mlc-equipo" class="form-control" placeholder="A330-300" aria-label="Tipo de equipo">
+                <span class="sub-label">Caracteres alfanuméricos</span>
+              </div>
+              <div class="col-md-2"><label class="form-label text-end mt-2" for="mlc-matricula">MATRÍCULA</label></div>
+              <div class="col-md-3">
+                <input type="text" id="mlc-matricula" class="form-control" placeholder="N338QT" aria-label="Matrícula">
+                <span class="sub-label">Marca de nacionalidad y matrícula completa</span>
+              </div>
+              <div class="col-md-1"><label class="form-label mt-2" for="mlc-num-vuelo">No. VUELO</label></div>
+              <div class="col-md-2"><input type="text" id="mlc-num-vuelo" class="form-control" placeholder="TNO 7087" aria-label="Número de vuelo"></div>
+            </div>
+            <div class="row g-2 align-items-center">
+              <div class="col-md-2"><label class="form-label text-start mt-2" for="mlc-piloto" style="line-height:1.2;">PILOTO AL<br>MANDO</label></div>
+              <div class="col-md-4">
+                <input type="text" id="mlc-piloto" class="form-control" placeholder="Nombre del comandante" aria-label="Piloto al mando">
+                <span class="sub-label">Nombre del comandante de vuelo</span>
+              </div>
+              <div class="col-md-1"><label class="form-label mt-2 text-end" for="mlc-licencia">No.<br>LIC.</label></div>
+              <div class="col-md-2">
+                <input type="text" id="mlc-licencia" class="form-control" placeholder="Nº licencia" aria-label="Número de licencia">
+                <span class="sub-label">No. de licencia o No. de empleado</span>
+              </div>
+              <div class="col-md-2"><label class="form-label mt-2 text-end" for="mlc-tripulacion">TRIPULACIÓN</label></div>
+              <div class="col-md-1">
+                <input type="text" id="mlc-tripulacion" class="form-control" placeholder="2/0" aria-label="Tripulación">
+                <span class="sub-label" style="font-size:.55rem">Pilotos/Sobrec.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 2: MOVIMIENTO DE OPERACIONES -->
+          <div class="section-box">
+            <div class="row">
+              <div class="col-md-6 border-end border-dark">
+                <h6 class="section-title text-center text-md-start">MOVIMIENTO DE OPERACIONES</h6>
+                <div class="row align-items-center mb-3">
+                  <div class="col-4"><label class="form-label text-start" style="font-size:.7rem;" for="mlc-origen-nom">ORIGEN DEL VUELO</label></div>
+                  <div class="col-6">
+                    <input type="text" id="mlc-origen-nom" class="form-control" placeholder="Nombre del aeropuerto" aria-label="Nombre origen">
+                    <span class="sub-label">Registrar nombre completo del aeropuerto</span>
+                  </div>
+                  <div class="col-2">
+                    <input type="text" id="mlc-origen-cod" class="form-control" placeholder="LAX" aria-label="Código origen">
+                    <span class="sub-label">Código 3 letras</span>
+                  </div>
+                </div>
+                <div class="row align-items-center">
+                  <div class="col-4"><label class="form-label text-start" style="font-size:.7rem;" for="mlc-escala-nom">ESCALA ANTERIOR</label></div>
+                  <div class="col-6">
+                    <input type="text" id="mlc-escala-nom" class="form-control" placeholder="Nombre del aeropuerto" aria-label="Nombre escala anterior">
+                    <span class="sub-label">Registrar nombre completo del aeropuerto</span>
+                  </div>
+                  <div class="col-2">
+                    <input type="text" id="mlc-escala-cod" class="form-control" placeholder="GDL" aria-label="Código escala anterior">
+                    <span class="sub-label">Código 3 letras</span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6 ps-md-4 mt-3 mt-md-0">
+                <div class="row mb-2 align-items-center">
+                  <div class="col-8"><label class="form-label text-start mt-1" for="mlc-slot-asig">HORA DE SLOT ASIGNADO</label></div>
+                  <div class="col-4"><input type="text" id="mlc-slot-asig" class="form-control" placeholder="HH:MM" aria-label="Slot asignado"></div>
+                </div>
+                <div class="row mb-2 align-items-center">
+                  <div class="col-8"><label class="form-label text-start mt-1" for="mlc-slot-coord">HORA DE SLOT COORDINADO</label></div>
+                  <div class="col-4">
+                    <input type="text" id="mlc-slot-coord" class="form-control" placeholder="N/A" aria-label="Slot coordinado">
+                    <span class="sub-label">Hora local</span>
+                  </div>
+                </div>
+                <div class="row mb-2 align-items-center">
+                  <div class="col-8"><label class="form-label text-start mt-1" for="mlc-hr-posicion">HORA DE ENTRADA A POSICIÓN</label></div>
+                  <div class="col-4">
+                    <input type="text" id="mlc-hr-posicion" class="form-control" placeholder="HH:MM" aria-label="Hora entrada posición">
+                    <span class="sub-label">Hora local</span>
+                  </div>
+                </div>
+                <div class="row mb-2 align-items-center">
+                  <div class="col-8"><label class="form-label text-start mt-1" style="font-size:.65rem;">HORA DE TÉRMINO DE MANIOBRAS DE DESEMBARQUE</label></div>
+                  <div class="col-4">
+                    <input type="text" id="mlc-hr-desembarque" class="form-control" placeholder="HH:MM" aria-label="Hora término desembarque">
+                    <span class="sub-label">Hora local</span>
+                  </div>
+                </div>
+                <div class="row align-items-center">
+                  <div class="col-8"><label class="form-label text-start mt-1" for="mlc-hr-pernocta">HORA DE INICIO DE PERNOCTA</label></div>
+                  <div class="col-4">
+                    <input type="text" id="mlc-hr-pernocta" class="form-control" placeholder="N/A" aria-label="Hora inicio pernocta">
+                    <span class="sub-label">Hora local</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 3: CAUSA DE LA DEMORA -->
+          <div class="section-box">
+            <h6 class="section-title text-start mb-0">CAUSA DE LA DEMORA</h6>
+            <div class="text-end me-5 mb-1"><span class="sub-label d-inline-block" style="width:auto;">Código 3 Letras</span></div>
+            <div class="row align-items-center g-3">
+              <div class="col-md-3"><span class="sub-label text-start" style="font-size:.7rem;">Desglose cada una de las causas de la Demora incluyendo el tiempo de afectación a cada causa.</span></div>
+              <div class="col-md-9">
+                <div class="demora-row gap-2">
+                  <input type="text" id="mlc-dem1" class="form-control w-100" placeholder="Descripción primera demora" aria-label="Demora 1">
+                  <input type="text" id="mlc-dem1-cod" class="form-control" style="width:80px;" placeholder="COD" aria-label="Demora 1 código">
+                </div>
+                <div class="text-end me-2 mb-1"><span class="sub-label d-inline-block">Código 3 Letras</span></div>
+                <div class="demora-row gap-2 mt-1">
+                  <input type="text" id="mlc-dem2" class="form-control w-100" placeholder="Descripción segunda demora" aria-label="Demora 2">
+                  <input type="text" id="mlc-dem2-cod" class="form-control" style="width:80px;" placeholder="COD" aria-label="Demora 2 código">
+                </div>
+                <div class="text-end me-2 mb-1"><span class="sub-label d-inline-block">Código 3 Letras</span></div>
+                <div class="demora-row gap-2 mt-1">
+                  <div class="w-100 text-center">
+                    <input type="text" id="mlc-dem3" class="form-control w-100" placeholder="Descripción tercera demora" aria-label="Demora 3">
+                    <span class="sub-label mt-1">Descripción de la(s) causa(s) de la Demora</span>
+                  </div>
+                  <div class="text-center" style="width:80px;align-self:flex-start;">
+                    <input type="text" id="mlc-dem3-cod" class="form-control w-100" placeholder="COD" aria-label="Demora 3 código">
+                    <span class="sub-label mt-1">Código 3 Letras</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 4: DESEMBARQUE CARGA -->
+          <div class="section-box text-center">
+            <h6 class="section-title mb-2">DESEMBARQUE</h6>
+            <div class="row align-items-end g-2">
+              <div class="col-md-2"></div>
+              <div class="col"><label class="form-label text-center w-100">NACIONAL</label></div>
+              <div class="col"><label class="form-label" style="font-size:.7rem;">INTERNACIONAL</label></div>
+              <div class="col"><label class="form-label mb-1">EQUIPAJE</label><span class="sub-label mt-0">kilogramos</span></div>
+              <div class="col"><label class="form-label mb-1">CARGA</label><span class="sub-label mt-0">en kilogramos</span></div>
+              <div class="col"><label class="form-label mb-1">CORREO</label><span class="sub-label mt-0">en kilogramos</span></div>
+            </div>
+            <div class="row align-items-center mt-2 g-2">
+              <div class="col-md-2 text-start"><label class="form-label mt-1">No. PAX</label></div>
+              <div class="col"><input type="number" id="mlc-pax-nac" class="form-control" value="0" min="0" aria-label="PAX nacional"></div>
+              <div class="col"><input type="number" id="mlc-pax-int" class="form-control" value="0" min="0" aria-label="PAX internacional"></div>
+              <div class="col"><input type="number" id="mlc-equip-kg" class="form-control" value="0" min="0" aria-label="Equipaje kg"></div>
+              <div class="col"><input type="number" id="mlc-carga-kg" class="form-control" value="0" min="0" aria-label="Carga kg"></div>
+              <div class="col"><input type="number" id="mlc-correo-kg" class="form-control" value="0" min="0" aria-label="Correo kg"></div>
+            </div>
+            <div class="row align-items-center mt-3 g-2">
+              <div class="col-md-2 text-start"><label class="form-label mt-1">CONEXIÓN</label></div>
+              <div class="col"><input type="number" id="mlc-conex-nac" class="form-control" value="0" min="0" aria-label="Conexión nacional"></div>
+              <div class="col"><input type="number" id="mlc-conex-int" class="form-control" value="0" min="0" aria-label="Conexión internacional"></div>
+              <div class="col"></div><div class="col"></div><div class="col"></div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 5: OBSERVACIONES -->
+          <div class="section-box">
+            <h6 class="section-title text-center mb-2">OBSERVACIONES</h6>
+            <textarea id="mlc-obs" class="form-control border-0 text-center fw-bold text-dark" rows="2" style="resize:none;background-color:transparent;" placeholder="Escriba sus observaciones aquí..." aria-label="Observaciones"></textarea>
+          </div>
+
+          <!-- SECCIÓN 6: FIRMAS -->
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="signature-box" style="padding-top:1rem;">
+                <span class="form-label" style="font-size:.65rem;line-height:1.2;">TRANSPORTISTA / OPERADOR AÉREO<br>ELABORADO POR</span>
+                <div class="mt-4 pb-2">
+                  <div class="signature-line"></div>
+                  <input type="text" id="mlc-elaborado" class="form-control text-center p-0 m-0 border-0 bg-transparent fw-bold text-dark mt-1" style="font-size:.8rem;box-shadow:none;" placeholder="Nombre completo" aria-label="Elaborado por">
+                  <span class="sub-label d-block text-center" style="font-size:.55rem;line-height:1;">Nombre y Firma</span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="signature-box position-relative" style="padding-top:1rem;">
+                <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:110px;height:110px;border:2px dashed #3b82f6;border-radius:50%;opacity:.15;pointer-events:none;"></div>
+                <span class="form-label" style="font-size:.65rem;line-height:1.2;z-index:1;">ADMINISTRACIÓN AEROPUERTO<br>RECIBIDO POR</span>
+                <div class="mt-auto pb-2">
+                  <div class="signature-line"></div>
+                  <span class="sub-label mt-1" style="font-size:.55rem;">Sello, Firma y Fecha</span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="signature-box" style="padding-top:1rem;">
+                <span class="form-label" style="font-size:.65rem;line-height:1.2;">COMANDANCIA AEROPUERTO<br>RECIBIDO POR</span>
+                <div class="mt-auto pb-2">
+                  <div class="signature-line"></div>
+                  <span class="sub-label mt-1" style="font-size:.55rem;">Sello, Firma y Fecha</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="text-center mt-3">
+            <span class="sub-label text-dark" style="font-size:.5rem;letter-spacing:.5px;">DOCUMENTO DE CARÁCTER LEGAL EN EL QUE EL TRANSPORTISTA U OPERADOR AÉREO MANIFIESTA QUE LA INFORMACIÓN QUE CONTIENE ES CORRECTA Y CORRESPONDE A LOS DATOS ASENTADOS EN EL MANIFIESTO DE DESPACHO DE LA AERONAVE.</span>
+          </div>
+
+        </div><!-- /manifest-container -->
+      </div><!-- /modal-body -->
+      <div class="modal-footer d-print-none bg-light">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="printManifest('modalPortalLlegadaCarga')"><i class="fas fa-print me-1"></i>Imprimir/PDF</button>
+        <button type="button" class="btn btn-success" id="btn-save-portal-llegada-carga"><i class="fas fa-save me-1"></i>Guardar y Enviar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL: MANIFIESTO DE SALIDA CARGA
+     ========================================================= -->
+<div class="modal fade portal-manifest" id="modalPortalSalidaCarga" tabindex="-1" aria-labelledby="modalPortalSalidaCargaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="modalPortalSalidaCargaLabel"><i class="fas fa-truck-loading me-2 text-info"></i>Manifiesto de Salida — Carga</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body print-target" style="background-color:#eff6ff;">
+        <div class="manifest-container" style="background-color:#e0f2fe; border:2px solid #2a4365;">
+
+          <!-- ENCABEZADO -->
+          <div class="row align-items-center mb-4 g-2">
+            <div class="col-md-5">
+              <h1 class="header-title mb-0">MANIFIESTO DE SALIDA</h1>
+              <div class="fw-bold" style="font-size:.75rem;color:#1e40af;">CARGA</div>
+            </div>
+            <div class="col-md-4 text-center">
+              <div class="d-flex align-items-end justify-content-center">
+                <span class="me-2 fw-bold" style="font-size:.85rem;">FECHA</span>
+                <input type="text" id="msc-fecha-dd" class="form-control w-25 text-center px-1 mx-1" placeholder="DD" maxlength="2" aria-label="Día">
+                /
+                <input type="text" id="msc-fecha-mm" class="form-control w-25 text-center px-1 mx-1" placeholder="MM" maxlength="2" aria-label="Mes">
+                /
+                <input type="text" id="msc-fecha-aaaa" class="form-control w-25 text-center px-1 mx-1" placeholder="AAAA" maxlength="4" aria-label="Año">
+              </div>
+            </div>
+            <div class="col-md-3 text-end">
+              <div class="d-flex align-items-end justify-content-end">
+                <span class="me-2 fw-bold" style="font-size:.85rem;">FOLIO</span>
+                <input type="text" id="msc-folio" class="form-control w-50" placeholder="" aria-label="Folio" readonly style="background:rgba(255,255,255,.4);">
+              </div>
+              <span class="sub-label text-end mt-1">Espacio reservado para la Administración</span>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 1: DATOS DEL VUELO -->
+          <div class="section-box">
+            <div class="row mb-3 g-2">
+              <div class="col-md-3">
+                <label class="form-label w-100" for="msc-apto">AEROPUERTO DE SALIDA</label>
+                <input type="text" id="msc-apto" class="form-control" value="NLU" aria-label="Aeropuerto de salida">
+                <span class="sub-label">Código 3 letras</span>
+              </div>
+              <div class="col-md-3 offset-md-3">
+                <label class="form-label w-100" for="msc-tipo-vuelo">TIPO DE VUELO</label>
+                <input type="text" id="msc-tipo-vuelo" class="form-control" placeholder="FC" aria-label="Tipo de vuelo">
+                <span class="sub-label">Calificador hasta 3 letras</span>
+              </div>
+            </div>
+            <div class="row mb-3 g-2 align-items-center">
+              <div class="col-md-3"><label class="form-label text-start" style="line-height:1.2;">TRANSPORTISTA /<br>OPERADOR AÉREO</label></div>
+              <div class="col-md-2">
+                <input type="text" id="msc-transp-cod" class="form-control" placeholder="TSM" aria-label="Código transportista">
+                <span class="sub-label">Código 3 letras</span>
+              </div>
+              <div class="col-md-7">
+                <input type="text" id="msc-transp-nom" class="form-control" placeholder="Nombre o razón social" aria-label="Nombre transportista">
+                <span class="sub-label">Nombre o razón social del Transportista u Operador Aéreo</span>
+              </div>
+            </div>
+            <div class="row mb-3 g-2 align-items-center">
+              <div class="col-md-1"><label class="form-label text-start mt-2" for="msc-equipo">EQUIPO</label></div>
+              <div class="col-md-3">
+                <input type="text" id="msc-equipo" class="form-control" placeholder="DC9" aria-label="Tipo de equipo">
+                <span class="sub-label">Caracteres alfanuméricos</span>
+              </div>
+              <div class="col-md-2"><label class="form-label text-end mt-2" for="msc-matricula">MATRÍCULA</label></div>
+              <div class="col-md-3">
+                <input type="text" id="msc-matricula" class="form-control" placeholder="XA-TSM" aria-label="Matrícula">
+                <span class="sub-label">Marca de nacionalidad y matrícula completa</span>
+              </div>
+              <div class="col-md-1"><label class="form-label mt-2" for="msc-num-vuelo">No. VUELO</label></div>
+              <div class="col-md-2"><input type="text" id="msc-num-vuelo" class="form-control" placeholder="VTM 0001" aria-label="Número de vuelo"></div>
+            </div>
+            <div class="row g-2 align-items-center">
+              <div class="col-md-2"><label class="form-label text-start mt-2" for="msc-piloto" style="line-height:1.2;">PILOTO AL<br>MANDO</label></div>
+              <div class="col-md-4">
+                <input type="text" id="msc-piloto" class="form-control" placeholder="Nombre del comandante" aria-label="Piloto al mando">
+                <span class="sub-label">Nombre del comandante de vuelo</span>
+              </div>
+              <div class="col-md-1"><label class="form-label mt-2 text-end" for="msc-licencia">No.<br>LIC.</label></div>
+              <div class="col-md-2">
+                <input type="text" id="msc-licencia" class="form-control" placeholder="Nº licencia" aria-label="Número de licencia">
+                <span class="sub-label">No. de licencia o No. de empleado</span>
+              </div>
+              <div class="col-md-2"><label class="form-label mt-2 text-end" for="msc-tripulacion">TRIPULACIÓN</label></div>
+              <div class="col-md-1">
+                <input type="text" id="msc-tripulacion" class="form-control" placeholder="3/0" aria-label="Tripulación">
+                <span class="sub-label" style="font-size:.55rem">Pilotos/Sobrec.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 2: MOVIMIENTO DE OPERACIONES -->
+          <div class="section-box">
+            <div class="row">
+              <div class="col-md-6 border-end border-dark">
+                <h6 class="section-title text-center text-md-start">MOVIMIENTO DE OPERACIONES</h6>
+                <div class="row align-items-center mb-3">
+                  <div class="col-4"><label class="form-label text-start" style="font-size:.7rem;" for="msc-prox-escala-nom">PRÓXIMA ESCALA</label></div>
+                  <div class="col-6">
+                    <input type="text" id="msc-prox-escala-nom" class="form-control" placeholder="Nombre del aeropuerto" aria-label="Nombre próxima escala">
+                    <span class="sub-label">Registrar nombre completo del aeropuerto</span>
+                  </div>
+                  <div class="col-2">
+                    <input type="text" id="msc-prox-escala-cod" class="form-control" placeholder="VSA" aria-label="Código próxima escala">
+                    <span class="sub-label">Código 3 letras</span>
+                  </div>
+                </div>
+                <div class="row align-items-center">
+                  <div class="col-4"><label class="form-label text-start" style="font-size:.7rem;" for="msc-destino-nom">DESTINO DEL VUELO</label></div>
+                  <div class="col-6">
+                    <input type="text" id="msc-destino-nom" class="form-control" placeholder="Nombre del aeropuerto" aria-label="Nombre destino">
+                    <span class="sub-label">Registrar nombre completo del aeropuerto</span>
+                  </div>
+                  <div class="col-2">
+                    <input type="text" id="msc-destino-cod" class="form-control" placeholder="VSA" aria-label="Código destino">
+                    <span class="sub-label">Código 3 letras</span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6 ps-md-4 mt-3 mt-md-0">
+                <div class="row mb-2 align-items-center">
+                  <div class="col-8"><label class="form-label text-start mt-1" for="msc-slot-asig">HORA DE SLOT ASIGNADO</label></div>
+                  <div class="col-4"><input type="text" id="msc-slot-asig" class="form-control" placeholder="HH:MM" aria-label="Slot asignado"></div>
+                </div>
+                <div class="row mb-2 align-items-center">
+                  <div class="col-8"><label class="form-label text-start mt-1" for="msc-slot-coord">HORA DE SLOT COORDINADO</label></div>
+                  <div class="col-4">
+                    <input type="text" id="msc-slot-coord" class="form-control" placeholder="N/A" aria-label="Slot coordinado">
+                    <span class="sub-label">Hora local</span>
+                  </div>
+                </div>
+                <div class="row mb-2 align-items-center">
+                  <div class="col-8"><label class="form-label text-start mt-1" for="msc-hr-term-pernocta">HORA DE TÉRMINO DE PERNOCTA</label></div>
+                  <div class="col-4">
+                    <input type="text" id="msc-hr-term-pernocta" class="form-control" placeholder="N/A" aria-label="Hora término pernocta">
+                    <span class="sub-label">Hora local</span>
+                  </div>
+                </div>
+                <div class="row mb-2 align-items-center">
+                  <div class="col-8"><label class="form-label text-start mt-1" style="font-size:.65rem;">HORA DE INICIO DE MANIOBRAS DE EMBARQUE</label></div>
+                  <div class="col-4">
+                    <input type="text" id="msc-hr-inicio-embarque" class="form-control" placeholder="HH:MM" aria-label="Hora inicio maniobras embarque">
+                    <span class="sub-label">Hora local</span>
+                  </div>
+                </div>
+                <div class="row align-items-center">
+                  <div class="col-8"><label class="form-label text-start mt-1" for="msc-hr-salida-pos">HORA DE SALIDA DE LA POSICIÓN</label></div>
+                  <div class="col-4">
+                    <input type="text" id="msc-hr-salida-pos" class="form-control" placeholder="HH:MM" aria-label="Hora salida posición">
+                    <span class="sub-label">Hora local</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 3: CAUSA DE LA DEMORA -->
+          <div class="section-box">
+            <h6 class="section-title text-start mb-0">CAUSA DE LA DEMORA</h6>
+            <div class="text-end me-5 mb-1"><span class="sub-label d-inline-block" style="width:auto;">Código 3 Letras</span></div>
+            <div class="row align-items-center g-3">
+              <div class="col-md-3"><span class="sub-label text-start" style="font-size:.7rem;">Desglose cada una de las causas de la Demora incluyendo el tiempo de afectación a cada causa.</span></div>
+              <div class="col-md-9">
+                <div class="demora-row gap-2">
+                  <input type="text" id="msc-dem1" class="form-control w-100" placeholder="Descripción primera demora" aria-label="Demora 1">
+                  <input type="text" id="msc-dem1-cod" class="form-control" style="width:80px;" placeholder="COD" aria-label="Demora 1 código">
+                </div>
+                <div class="text-end me-2 mb-1"><span class="sub-label d-inline-block">Código 3 Letras</span></div>
+                <div class="demora-row gap-2 mt-1">
+                  <input type="text" id="msc-dem2" class="form-control w-100" placeholder="Descripción segunda demora" aria-label="Demora 2">
+                  <input type="text" id="msc-dem2-cod" class="form-control" style="width:80px;" placeholder="COD" aria-label="Demora 2 código">
+                </div>
+                <div class="text-end me-2 mb-1"><span class="sub-label d-inline-block">Código 3 Letras</span></div>
+                <div class="demora-row gap-2 mt-1">
+                  <div class="w-100 text-center">
+                    <input type="text" id="msc-dem3" class="form-control w-100" placeholder="Descripción tercera demora" aria-label="Demora 3">
+                    <span class="sub-label mt-1">Descripción de la(s) causa(s) de la Demora</span>
+                  </div>
+                  <div class="text-center" style="width:80px;align-self:flex-start;">
+                    <input type="text" id="msc-dem3-cod" class="form-control w-100" placeholder="COD" aria-label="Demora 3 código">
+                    <span class="sub-label mt-1">Código 3 Letras</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 4: EMBARQUE CARGA -->
+          <div class="section-box text-center">
+            <h6 class="section-title mb-2">EMBARQUE</h6>
+            <div class="row align-items-end g-2">
+              <div class="col-md-2"></div>
+              <div class="col"><label class="form-label text-center w-100">NACIONAL</label></div>
+              <div class="col"><label class="form-label" style="font-size:.7rem;">INTERNACIONAL</label></div>
+              <div class="col"><label class="form-label mb-1">EQUIPAJE</label><span class="sub-label mt-0">kilogramos</span></div>
+              <div class="col"><label class="form-label mb-1">CARGA</label><span class="sub-label mt-0">en kilogramos</span></div>
+              <div class="col"><label class="form-label mb-1">CORREO</label><span class="sub-label mt-0">en kilogramos</span></div>
+            </div>
+            <div class="row align-items-center mt-2 g-2">
+              <div class="col-md-2 text-start"><label class="form-label mt-1">No. PAX</label></div>
+              <div class="col"><input type="number" id="msc-pax-nac" class="form-control" value="0" min="0" aria-label="PAX nacional"></div>
+              <div class="col"><input type="number" id="msc-pax-int" class="form-control" value="0" min="0" aria-label="PAX internacional"></div>
+              <div class="col"><input type="number" id="msc-equip-kg" class="form-control" value="0" min="0" aria-label="Equipaje kg"></div>
+              <div class="col"><input type="number" id="msc-carga-kg" class="form-control" value="0" min="0" aria-label="Carga kg"></div>
+              <div class="col"><input type="number" id="msc-correo-kg" class="form-control" value="0" min="0" aria-label="Correo kg"></div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 5: OBSERVACIONES -->
+          <div class="section-box">
+            <h6 class="section-title text-center mb-2">OBSERVACIONES</h6>
+            <textarea id="msc-obs" class="form-control border-0 text-center fw-bold text-dark" rows="2" style="resize:none;background-color:transparent;" placeholder="Escriba sus observaciones aquí..." aria-label="Observaciones"></textarea>
+          </div>
+
+          <!-- SECCIÓN 6: FIRMAS -->
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="signature-box" style="padding-top:1rem;">
+                <span class="form-label" style="font-size:.65rem;line-height:1.2;">TRANSPORTISTA / OPERADOR AÉREO<br>ELABORADO POR</span>
+                <div class="mt-4 pb-2">
+                  <div class="signature-line"></div>
+                  <input type="text" id="msc-elaborado" class="form-control text-center p-0 m-0 border-0 bg-transparent fw-bold text-dark mt-1" style="font-size:.8rem;box-shadow:none;" placeholder="Nombre completo" aria-label="Elaborado por">
+                  <span class="sub-label d-block text-center" style="font-size:.55rem;line-height:1;">Nombre y Firma</span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="signature-box position-relative" style="padding-top:1rem;">
+                <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:110px;height:110px;border:2px dashed #3b82f6;border-radius:50%;opacity:.15;pointer-events:none;"></div>
+                <span class="form-label" style="font-size:.65rem;line-height:1.2;z-index:1;">ADMINISTRACIÓN AEROPUERTO<br>RECIBIDO POR</span>
+                <div class="mt-auto pb-2">
+                  <div class="signature-line"></div>
+                  <span class="sub-label mt-1" style="font-size:.55rem;">Sello, Firma y Fecha</span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="signature-box" style="padding-top:1rem;">
+                <span class="form-label" style="font-size:.65rem;line-height:1.2;">COMANDANCIA AEROPUERTO<br>RECIBIDO POR</span>
+                <div class="mt-auto pb-2">
+                  <div class="signature-line"></div>
+                  <span class="sub-label mt-1" style="font-size:.55rem;">Sello, Firma y Fecha</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="text-center mt-3">
+            <span class="sub-label text-dark" style="font-size:.5rem;letter-spacing:.5px;">DOCUMENTO DE CARÁCTER LEGAL EN EL QUE EL TRANSPORTISTA U OPERADOR AÉREO MANIFIESTA QUE LA INFORMACIÓN QUE CONTIENE ES CORRECTA Y CORRESPONDE A LOS DATOS ASENTADOS EN EL MANIFIESTO DE DESPACHO DE LA AERONAVE.</span>
+          </div>
+
+        </div><!-- /manifest-container -->
+      </div><!-- /modal-body -->
+      <div class="modal-footer d-print-none bg-light">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="printManifest('modalPortalSalidaCarga')"><i class="fas fa-print me-1"></i>Imprimir/PDF</button>
+        <button type="button" class="btn btn-primary" id="btn-save-portal-salida-carga"><i class="fas fa-save me-1"></i>Guardar y Enviar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     DETAIL / REVIEW MODAL
+     ========================================================= -->
+<div class="mo-overlay hidden" id="detail-mo-ov">
+  <div class="detail-mo">
+    <div class="dmo-hdr">
+      <h5 id="dmo-title">Detalle del Manifiesto</h5>
+      <button class="btn-mo-x" id="btn-dmo-x"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="dmo-body" id="dmo-body"></div>
+  </div>
+</div>
+
+
+<!-- =========================================================
+     SUCCESS OVERLAY
+     ========================================================= -->
+<div id="success-ov">
+  <div class="succ-card">
+    <div class="succ-ring">✓</div>
+    <h4>¡Manifiesto enviado!</h4>
+    <p>Tu manifiesto fue recibido por AIFA.<br>Recibirás actualización de estado pronto.</p>
+    <div class="folio-chip" id="succ-folio">—</div>
+    <div class="succ-btns">
+      <button class="btn-aifa-ol" id="btn-another"><i class="fas fa-plus me-1"></i>Enviar otro</button>
+      <button class="btn-aifa" id="btn-go-dash"><i class="fas fa-th-large me-1"></i>Mis manifiestos</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/portal-manifiestos.js?v=20260406"></script>
+</body>
+</html>
+

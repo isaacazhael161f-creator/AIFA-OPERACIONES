@@ -1,0 +1,1 @@
+﻿const fs=require('fs'); const ht=fs.readFileSync('js/analisis-operaciones.js','utf8'); console.log(ht.substring(ht.indexOf('function applyExcelFilters'), ht.indexOf('function applyExcelFilters')+1000));

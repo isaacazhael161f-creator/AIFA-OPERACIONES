@@ -1,0 +1,1 @@
+﻿const fs=require('fs'); const ht=fs.readFileSync('js/data-management.js','utf8'); const start = ht.indexOf('this.schemas = {'); console.log(ht.substring(start, start + 30000));

@@ -1,0 +1,1 @@
+﻿const fs=require('fs'); const ht=fs.readFileSync('js/admin-ui.js','utf8'); const rx = /document\.createElement\('input'\)[\s\S]{0,100}type\s*=\s*'date'/g; console.log(ht.match(rx)); console.log(ht.substring(ht.search(rx)-200, ht.search(rx)+500));

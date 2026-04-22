@@ -1,0 +1,1 @@
+﻿const fs = require('fs'); const ht = fs.readFileSync('js/data-management.js', 'utf8'); const res = ht.match(/this\.schemas\s*=\s*{([\s\S]*?)};/); console.log(res ? res[1].substring(0, 1000) : 'none');
