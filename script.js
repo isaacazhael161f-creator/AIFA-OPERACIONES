@@ -2187,12 +2187,27 @@ function applySectionPermissions(userName) {
 
     const users = dashboardData?.users || {};
     const user = users[userName];
-    const rawWhitelist = Array.isArray(user?.allowedSections)
+    const legacyList = Array.isArray(user?.allowedSections)
         ? user.allowedSections.map((section) => normalizeSectionKey(section)).filter(Boolean)
         : [];
 
-    // Permitir siempre la sección de historia y biblioteca si el usuario está autenticado
-    if (rawWhitelist.length) {
+    // Para usuarios Supabase: leer allowed_sections desde sessionStorage
+    let supabaseList = [];
+    try {
+        const raw = sessionStorage.getItem('user_allowed_sections');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                supabaseList = parsed.map(s => normalizeSectionKey(s)).filter(Boolean);
+            }
+        }
+    } catch (_) {}
+
+    // Preferir Supabase; caer en legacy si no hay Supabase
+    const rawWhitelist = supabaseList.length ? supabaseList : legacyList;
+
+    // Permitir siempre la sección de historia y biblioteca SOLO en whitelist legacy (no Supabase)
+    if (rawWhitelist.length && !supabaseList.length) {
         if (!rawWhitelist.includes('historia')) rawWhitelist.push('historia');
         if (!rawWhitelist.includes('biblioteca')) rawWhitelist.push('biblioteca');
         // colaboradores: solo si el usuario lo tiene explícitamente en su legacy whitelist
