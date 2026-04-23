@@ -16852,22 +16852,39 @@ async function _conciSaveBulkEdits() {
     // ── Cambiar rol ───────────────────────────────────────────────────────
     window.auAssignRole = async function (userId, newRole, shortId) {
         const sel = document.getElementById(`au-sel-${shortId}`);
+        const row = document.getElementById(`au-row-${shortId}`);
         if (sel) sel.disabled = true;
         const st = document.getElementById('au-status');
         if (st) st.textContent = 'Cambiando rol…';
         try {
+            // Obtener permisos actuales para no pisar otros campos
+            const { data: existing } = await window.supabaseClient
+                .from('user_roles')
+                .select('permissions')
+                .eq('user_id', userId)
+                .maybeSingle();
+            const perms = (existing?.permissions) || {};
             const { error } = await window.supabaseClient
-                .rpc('assign_user_role', { p_user_id: userId, p_role: newRole });
+                .from('user_roles')
+                .upsert({ user_id: userId, role: newRole, permissions: perms },
+                         { onConflict: 'user_id' });
             if (error) throw error;
             const u = _auRows.find(x => x.user_id === userId);
             if (u) u.role = newRole;
-            if (st) st.textContent = `✅ Rol actualizado a "${newRole}".`;
+            // feedback visual rápido en la fila
+            if (row) {
+                row.style.transition = 'background .4s';
+                row.style.background = '#d1fae5';
+                setTimeout(() => { row.style.background = ''; }, 1200);
+            }
+            if (st) st.textContent = `✅ Rol de ${userId.substring(0,8)}… cambiado a "${AU_ROLE_LABELS[newRole] || newRole}".`;
         } catch (e) {
             if (st) st.textContent = '❌ ' + e.message;
+            if (sel) { sel.disabled = false; }
             adminUsersLoad();
-        } finally {
-            if (sel) sel.disabled = false;
+            return;
         }
+        if (sel) sel.disabled = false;
     };
 
     // ── Edición inline de área ────────────────────────────────────────────
@@ -17001,15 +17018,14 @@ async function _conciSaveBulkEdits() {
             if (error) throw error;
             const userId = data.user?.id;
             if (userId) {
+                // upsert directo, sin depender del RPC assign_user_role
+                const perms = {};
+                if (dirId)    perms.direccion_id    = dirId;
+                if (subdirId) perms.subdireccion_id = subdirId;
                 const { error: re } = await window.supabaseClient
-                    .rpc('assign_user_role', { p_user_id: userId, p_role: role });
+                    .from('user_roles')
+                    .upsert({ user_id: userId, role, permissions: perms }, { onConflict: 'user_id' });
                 if (re) throw re;
-                if (dirId || subdirId) {
-                    const { data: ur } = await window.supabaseClient
-                        .from('user_roles').select('permissions').eq('user_id', userId).single();
-                    const perms = { ...(ur?.permissions || {}), direccion_id: dirId, subdireccion_id: subdirId };
-                    await window.supabaseClient.from('user_roles').update({ permissions: perms }).eq('user_id', userId);
-                }
             }
             if (msgEl) msgEl.innerHTML = `<span class="text-success"><i class="fas fa-check me-1"></i>Usuario <strong>${username}</strong> creado con rol <strong>${role}</strong>.</span>`;
             ['au-reg-username','au-reg-password','au-reg-fullname','au-reg-email'].forEach(id => {
