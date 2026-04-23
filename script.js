@@ -2137,13 +2137,12 @@ function getDefaultAllowedSection() {
 function applySectionPermissions(userName) {
     resetSectionPermissions();
 
-    // SUPERADMIN / ADMIN / EDITOR / CONTROL_FAUNA / SERVICIO_MEDICO BYPASS
     const role = sessionStorage.getItem('user_role') || 'viewer';
-    const isPowerUser = ['admin', 'editor', 'superadmin', 'control_fauna', 'servicio_medico', 'operaciones', 'abordadores'].includes(role);
-    const isColabOnly  = ['colab_viewer', 'colab_editor'].includes(role);
+    const isColabOnly = ['colab_viewer', 'colab_editor'].includes(role);
 
-    if (isPowerUser) {
-        // If technical role, do not hide anything via permissions
+    // admin y superadmin: acceso total siempre, sin importar allowed_sections
+    const isFullAdmin = ['admin', 'superadmin'].includes(role);
+    if (isFullAdmin) {
         return;
     }
 
