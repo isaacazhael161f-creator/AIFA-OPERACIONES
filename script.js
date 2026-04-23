@@ -10653,6 +10653,29 @@ function showMainApp() {
         }
         applySectionPermissions(name);
 
+        // Re-fetch allowed_sections desde Supabase siempre para garantizar datos frescos
+        // (sessionStorage puede estar obsoleto si el admin cambió los permisos)
+        (async () => {
+            try {
+                const { data: { user } } = await window.supabaseClient.auth.getUser();
+                if (!user) return;
+                const { data: roleData } = await window.supabaseClient
+                    .from('user_roles').select('role, permissions').eq('user_id', user.id).single();
+                if (!roleData) return;
+                // Actualizar rol si cambió
+                if (roleData.role) sessionStorage.setItem('user_role', roleData.role);
+                // Actualizar allowed_sections
+                const secs = roleData?.permissions?.allowed_sections;
+                const prev = sessionStorage.getItem('user_allowed_sections');
+                const next = Array.isArray(secs) && secs.length > 0 ? JSON.stringify(secs) : null;
+                if (next !== prev) {
+                    if (next) sessionStorage.setItem('user_allowed_sections', next);
+                    else sessionStorage.removeItem('user_allowed_sections');
+                    applySectionPermissions(sessionStorage.getItem(SESSION_USER) || name);
+                }
+            } catch (_) {}
+        })();
+
         // Notificar cambio de rol a AdminUI para actualizar menú gestión de datos
         const currentRole = sessionStorage.getItem('user_role') || 'viewer';
         const isAdmin = ['admin', 'superadmin', 'editor'].includes(currentRole);
@@ -16815,7 +16838,7 @@ async function _conciSaveBulkEdits() {
         { key: 'colaboradores',       label: 'Colaboradores',     icon: 'address-book',      group: 'Personal' },
         { key: 'agenda',              label: 'Agenda',            icon: 'calendar-alt',      group: 'Personal' },
         { key: 'biblioteca',          label: 'Biblioteca',        icon: 'book',              group: 'Personal' },
-        { key: 'historia',            label: 'Historia AIFA',     icon: 'landmark',          group: 'Personal' },
+        { key: 'historia',            label: 'Historia',     icon: 'landmark',          group: 'Personal' },
     ];
 
     // ── Renderizar tarjetas de usuario ────────────────────────────────────
