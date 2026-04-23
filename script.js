@@ -16854,26 +16854,42 @@ async function _conciSaveBulkEdits() {
         const sel = document.getElementById(`au-sel-${shortId}`);
         const row = document.getElementById(`au-row-${shortId}`);
         const st  = document.getElementById('au-status');
-        const prevRole = sel?.value;
+        // Guardar valor previo para revertir si falla
+        const prevRole = _auRows.find(x => x.user_id === userId)?.role || (sel?.value);
         if (sel) sel.disabled = true;
-        if (st) st.textContent = 'Cambiando rol…';
+        if (st) st.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Cambiando rol…';
         try {
             const { data, error } = await window.supabaseClient
                 .rpc('admin_update_user_role', { p_user_id: userId, p_role: newRole });
             if (error) throw error;
             if (data && data.ok === false) throw new Error(data.error || 'Error desconocido');
-            // Actualizar cache local
+
+            // ── Verificar desde la vista que el cambio quedó en BD ──────────
+            const { data: confirmed, error: ve } = await window.supabaseClient
+                .from('v_usuarios_roles')
+                .select('user_id, role')
+                .eq('user_id', userId)
+                .maybeSingle();
+            if (ve) throw ve;
+
+            const savedRole = confirmed?.role;
+            if (savedRole !== newRole) {
+                throw new Error(`La BD devolvió rol "${savedRole}" en lugar de "${newRole}" — verifica permisos RLS.`);
+            }
+
+            // Actualizar caché local con el rol confirmado
             const u = _auRows.find(x => x.user_id === userId);
-            if (u) u.role = newRole;
+            if (u) u.role = savedRole;
+
             // Feedback visual en la fila
             if (row) {
                 row.style.transition = 'background .4s';
                 row.style.background = '#d1fae5';
                 setTimeout(() => { row.style.background = ''; }, 1400);
             }
-            if (st) st.innerHTML = `<span class="text-success"><i class="fas fa-check-circle me-1"></i>Rol cambiado a <strong>${AU_ROLE_LABELS[newRole] || newRole}</strong>.</span>`;
+            if (st) st.innerHTML = `<span class="text-success"><i class="fas fa-check-circle me-1"></i>Rol confirmado: <strong>${AU_ROLE_LABELS[savedRole] || savedRole}</strong>.</span>`;
         } catch (e) {
-            // Revertir el select al valor anterior
+            // Revertir el select al rol anterior
             if (sel && prevRole) sel.value = prevRole;
             if (st) st.innerHTML = `<span class="text-danger"><i class="fas fa-times-circle me-1"></i>${e.message}</span>`;
         } finally {
