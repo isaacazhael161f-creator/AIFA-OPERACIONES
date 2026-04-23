@@ -4,11 +4,15 @@
 -- (bypasea RLS en user_roles al insertar el rol inicial)
 -- ============================================================
 
+-- Eliminar versión anterior para evitar sobrecarga de funciones
+DROP FUNCTION IF EXISTS public.admin_create_user_role(UUID, TEXT, TEXT, TEXT);
+
 CREATE OR REPLACE FUNCTION public.admin_create_user_role(
-    p_user_id    UUID,
-    p_role       TEXT,
-    p_dir_id     TEXT DEFAULT NULL,
-    p_subdir_id  TEXT DEFAULT NULL
+    p_user_id          UUID,
+    p_role             TEXT,
+    p_dir_id           TEXT    DEFAULT NULL,
+    p_subdir_id        TEXT    DEFAULT NULL,
+    p_allowed_sections TEXT[]  DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -41,6 +45,9 @@ BEGIN
     IF p_subdir_id IS NOT NULL AND p_subdir_id <> '' THEN
         perms := perms || jsonb_build_object('subdireccion_id', p_subdir_id);
     END IF;
+    IF p_allowed_sections IS NOT NULL THEN
+        perms := perms || jsonb_build_object('allowed_sections', to_jsonb(p_allowed_sections));
+    END IF;
 
     INSERT INTO public.user_roles (user_id, role, permissions)
     VALUES (p_user_id, p_role, perms)
@@ -51,4 +58,4 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.admin_create_user_role(UUID, TEXT, TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_create_user_role(UUID, TEXT, TEXT, TEXT, TEXT[]) TO authenticated;

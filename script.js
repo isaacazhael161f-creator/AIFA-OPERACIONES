@@ -17157,6 +17157,37 @@ async function _conciSaveBulkEdits() {
         }
     };
 
+    // ── Selector de vistas en formulario de creación ──────────────────────
+    window.auRegViewsToggle = function () {
+        const mode = document.querySelector('input[name="au-reg-vmode"]:checked')?.value || 'all';
+        const box  = document.getElementById('au-reg-views-box');
+        if (!box) return;
+        if (mode === 'manual') {
+            box.classList.remove('d-none');
+            const grid = document.getElementById('au-reg-views-grid');
+            if (grid && !grid.querySelector('input')) {
+                const groups = [...new Set(AU_SECTIONS.map(s => s.group))];
+                grid.innerHTML = groups.map(g => `
+                    <div class="col-12 col-md-4">
+                        <div class="small fw-bold text-uppercase text-muted mb-1" style="font-size:.68rem;letter-spacing:.06em">${g}</div>
+                        ${AU_SECTIONS.filter(s => s.group === g).map(s => `
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="au-reg-vc-${s.key}" value="${s.key}" checked>
+                            <label class="form-check-label small" for="au-reg-vc-${s.key}">
+                                <i class="fas fa-${s.icon} me-1 text-muted" style="width:14px"></i>${s.label}
+                            </label>
+                        </div>`).join('')}
+                    </div>`).join('');
+            }
+        } else {
+            box.classList.add('d-none');
+        }
+    };
+
+    window.auRegViewsSelectAll = function (checked) {
+        document.querySelectorAll('#au-reg-views-grid input[type="checkbox"]').forEach(cb => cb.checked = checked);
+    };
+
     // ── Crear nuevo usuario ───────────────────────────────────────────────
     window.auCreateUser = async function () {
         const username   = document.getElementById('au-reg-username')?.value.trim() || '';
@@ -17166,6 +17197,10 @@ async function _conciSaveBulkEdits() {
         const role       = document.getElementById('au-reg-role')?.value || 'viewer';
         const dirId      = document.getElementById('au-reg-dir')?.value || '';
         const subdirId   = document.getElementById('au-reg-subdir')?.value || '';
+        const viewMode   = document.querySelector('input[name="au-reg-vmode"]:checked')?.value || 'all';
+        const allowedSections = viewMode === 'manual'
+            ? Array.from(document.querySelectorAll('#au-reg-views-grid input[type="checkbox"]:checked')).map(cb => cb.value)
+            : [];
         const msgEl      = document.getElementById('au-reg-msg');
 
         if (!username || !password) {
@@ -17192,15 +17227,19 @@ async function _conciSaveBulkEdits() {
                 // Usar RPC SECURITY DEFINER para bypasar RLS en user_roles
                 const { data: rd, error: re } = await window.supabaseClient
                     .rpc('admin_create_user_role', {
-                        p_user_id:   userId,
-                        p_role:      role,
-                        p_dir_id:    dirId    || null,
-                        p_subdir_id: subdirId || null
+                        p_user_id:          userId,
+                        p_role:             role,
+                        p_dir_id:           dirId    || null,
+                        p_subdir_id:        subdirId || null,
+                        p_allowed_sections: allowedSections.length ? allowedSections : null
                     });
                 if (re) throw re;
                 if (rd && rd.ok === false) throw new Error(rd.error || 'Error asignando rol');
             }
             if (msgEl) msgEl.innerHTML = `<span class="text-success"><i class="fas fa-check me-1"></i>Usuario <strong>${username}</strong> creado con rol <strong>${role}</strong>.</span>`;
+            // Resetear selector de vistas
+            const vModeAll = document.getElementById('au-reg-vmode-all');
+            if (vModeAll) { vModeAll.checked = true; const vBox = document.getElementById('au-reg-views-box'); if (vBox) vBox.classList.add('d-none'); }
             ['au-reg-username','au-reg-password','au-reg-fullname','au-reg-email'].forEach(id => {
                 const el = document.getElementById(id); if (el) el.value = '';
             });

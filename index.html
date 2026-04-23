@@ -1713,6 +1713,34 @@ FF
                                             </select>
                                         </div>
                                     </div>
+                                    <!-- Acceso a vistas -->
+                                    <div class="col-12 mt-1">
+                                        <div class="border rounded-3 p-3 bg-white">
+                                            <div class="d-flex flex-wrap align-items-center gap-3 mb-1">
+                                                <span class="small fw-semibold"><i class="fas fa-eye me-1 text-primary"></i>Acceso a vistas:</span>
+                                                <div class="form-check form-check-inline mb-0">
+                                                    <input class="form-check-input" type="radio" name="au-reg-vmode" id="au-reg-vmode-all" value="all" checked onchange="auRegViewsToggle()">
+                                                    <label class="form-check-label small fw-semibold text-success" for="au-reg-vmode-all"><i class="fas fa-check-double me-1"></i>Acceso completo</label>
+                                                </div>
+                                                <div class="form-check form-check-inline mb-0">
+                                                    <input class="form-check-input" type="radio" name="au-reg-vmode" id="au-reg-vmode-manual" value="manual" onchange="auRegViewsToggle()">
+                                                    <label class="form-check-label small fw-semibold text-warning" for="au-reg-vmode-manual"><i class="fas fa-list-check me-1"></i>Seleccionar vistas</label>
+                                                </div>
+                                            </div>
+                                            <div id="au-reg-views-box" class="d-none mt-2">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <span class="small text-muted">Marca las secciones a las que tendrá acceso</span>
+                                                    <div class="d-flex gap-1">
+                                                        <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2" onclick="auRegViewsSelectAll(true)">Marcar todo</button>
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="auRegViewsSelectAll(false)">Desmarcar</button>
+                                                    </div>
+                                                </div>
+                                                <div id="au-reg-views-grid" class="row g-2">
+                                                    <!-- Checkboxes renderizados por JS -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div id="au-reg-msg" class="small mt-2"></div>
                                 <div class="mt-2">
