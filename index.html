@@ -5184,6 +5184,12 @@ FF
                                 <div id="colab-historial-list"></div>
                             </div>
 
+                            <!-- Panel historial de plaza -->
+                            <div class="colab-historial-panel d-none" id="colab-historial-plaza-panel">
+                                <div class="colab-section-title"><i class="fas fa-id-badge me-1" aria-hidden="true"></i> Historial de Plaza</div>
+                                <div id="colab-historial-plaza-list"></div>
+                            </div>
+
                         </div><!-- /colab-card-wrapper -->
                     </div><!-- /colab-results-area -->
 
@@ -5585,17 +5591,12 @@ FF
                                         <span style="font-size:.85rem">Cargando colaboradores…</span>
                                     </div>
                                     <table class="ctbl-table d-none" id="ctbl-table" aria-label="Tabla completa de colaboradores">
-                                        <thead>
+                                        <thead id="ctbl-thead">
                                             <tr>
-                                                <th onclick="colabTablaOrdenar('num')" title="Ordenar por No.">No. <span class="sort-arrow" id="ctbl-sort-num"></span></th>
-                                                <th onclick="colabTablaOrdenar('nombre')" title="Ordenar por Nombre">Nombre <span class="sort-arrow" id="ctbl-sort-nombre"></span></th>
-                                                <th onclick="colabTablaOrdenar('puesto')" title="Ordenar por Puesto">Puesto <span class="sort-arrow" id="ctbl-sort-puesto"></span></th>
-                                                <th onclick="colabTablaOrdenar('direccion')" title="Ordenar por Dirección">Dirección <span class="sort-arrow" id="ctbl-sort-direccion"></span></th>
-                                                <th onclick="colabTablaOrdenar('subdireccion')" title="Ordenar por Subdirección">Subdirección <span class="sort-arrow" id="ctbl-sort-subdireccion"></span></th>
-                                                <th onclick="colabTablaOrdenar('gerencia')" title="Ordenar por Gerencia">Gerencia <span class="sort-arrow" id="ctbl-sort-gerencia"></span></th>
-                                                <th onclick="colabTablaOrdenar('nivel')" title="Ordenar por Nivel">Nivel <span class="sort-arrow" id="ctbl-sort-nivel"></span></th>
-                                                <th onclick="colabTablaOrdenar('turno')" title="Ordenar por Turno">Turno <span class="sort-arrow" id="ctbl-sort-turno"></span></th>
-                                                <th onclick="colabTablaOrdenar('fecha_ingreso')" title="Ordenar por Ingreso">Ingreso <span class="sort-arrow" id="ctbl-sort-fecha_ingreso"></span></th>
+                                                <th>No.</th>
+                                                <th>Nombre</th>
+                                                <th>Puesto</th>
+                                                <th>Dirección</th>
                                             </tr>
                                         </thead>
                                         <tbody id="ctbl-tbody"></tbody>
@@ -6104,6 +6105,7 @@ FF
 
                             // Cargar historial (async, sin bloquear el render)
                             colabCargarHistorial(val(gc(c, 'num')));
+                            colabCargarHistorialPlaza(val(gc(c, 'num')));
 
                             colabSetState('ficha');
                         }
@@ -6985,6 +6987,47 @@ FF
                             }
                         }
 
+                        /* ── Historial de Plaza: cargar y renderizar ── */
+                        async function colabCargarHistorialPlaza(numEmpleado) {
+                            const panel = document.getElementById('colab-historial-plaza-panel');
+                            const list  = document.getElementById('colab-historial-plaza-list');
+                            if (!panel || !list) return;
+                            if (!numEmpleado) { panel.classList.add('d-none'); return; }
+                            try {
+                                const sb = window.supabaseClient;
+                                if (!sb) return;
+                                const { data, error } = await sb
+                                    .from('colab_historial')
+                                    .select('*')
+                                    .eq('num_empleado', String(numEmpleado))
+                                    .eq('campo', 'plaza')
+                                    .order('fecha', { ascending: false })
+                                    .limit(50);
+                                if (error) throw error;
+                                panel.classList.remove('d-none');
+                                if (!data || !data.length) {
+                                    list.innerHTML = '<div class="colab-historial-empty"><i class="fas fa-id-badge me-1"></i>Sin cambios de plaza registrados aún.</div>';
+                                    return;
+                                }
+                                list.innerHTML = `<div class="colab-hist-timeline">${data.map(h => {
+                                    const fecha = new Date(h.fecha).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
+                                    return `<div class="colab-hist-item">
+                                        <div><span class="colab-hist-campo">Plaza:</span>
+                                        <span class="colab-hist-valores">
+                                            <span class="colab-hist-ant">${h.valor_anterior || '(vacío)'}</span>
+                                            <i class="fas fa-arrow-right" style="font-size:.65rem;color:#9e9e9e"></i>
+                                            <span class="colab-hist-nvo">${h.valor_nuevo || '(vacío)'}</span>
+                                        </span></div>
+                                        <div class="colab-hist-meta"><i class="fas fa-user-edit me-1"></i>${h.usuario_nombre || 'Sistema'} &nbsp;·&nbsp; ${fecha}</div>
+                                    </div>`;
+                                }).join('')}</div>`;
+                            } catch (err) {
+                                console.warn('[Colaboradores] Error historial plaza:', err);
+                                panel.classList.remove('d-none');
+                                list.innerHTML = '<div class="colab-historial-empty text-danger">Error al cargar historial de plaza.</div>';
+                            }
+                        }
+
                         /* ── Abrir modal editor ── */
                         window.colabAbrirEditor = function() {
                             if (!colabCurrentRow || !colabCanEdit()) return;
@@ -7347,6 +7390,7 @@ FF
                                 if (updated) renderFicha(updated);
 
                                 await colabCargarHistorial(numEmpl);
+                                colabCargarHistorialPlaza(numEmpl);
 
                             } catch (err) {
                                 console.error('[Colaboradores] Error al guardar:', err);
@@ -7501,6 +7545,68 @@ FF
                         let ctblAllData = [];     // todos los datos sin filtrar
                         let ctblSortCol = 'nombre';
                         let ctblSortAsc = true;
+                        let ctblCols = [];        // columnas detectadas del primer registro
+                        let ctblFilterKeys = { dir: 'direccion', nivel: 'nivel', turno: 'turno' };
+
+                        // Orden preferido de columnas
+                        const CTBL_COL_ORDER = [
+                            'num_empleado','nombre','puesto','plaza','nivel','turno',
+                            'direccion','subdireccion','gerencia','coordinacion',
+                            'fecha_ingreso','correo','celular','extension','profesion',
+                            'grado_academico','grado','matricula','cedula',
+                            'militar','comisionado','ryr','onomastico',
+                            'estado_civil','dependientes','nss','sangre',
+                            'domicilio','rfc','curp','licencia','licencia_tipo',
+                            'vig_licencia','vig_credencial','vig_ine',
+                            'c1_nombre','c1_parentesco','c1_tel',
+                            'c2_nombre','c2_parentesco','c2_tel',
+                            'alerg_med','alerg_ali','amonestaciones','comentarios',
+                            'doc_ingreso','medidas','permisos','rubrica'
+                        ];
+
+                        // Etiquetas legibles
+                        const CTBL_COL_LABELS = {
+                            'num_empleado':'No. Empleado','nombre':'Nombre','puesto':'Puesto',
+                            'plaza':'Plaza','nivel':'Nivel','turno':'Turno',
+                            'direccion':'Dirección','subdireccion':'Subdirección',
+                            'gerencia':'Gerencia','coordinacion':'Coordinación',
+                            'fecha_ingreso':'Fecha Ingreso','correo':'Correo',
+                            'celular':'Celular','extension':'Ext.','profesion':'Profesión',
+                            'grado_academico':'Grado Académico','grado':'Grado Militar',
+                            'matricula':'Matrícula','cedula':'Cédula',
+                            'militar':'Mil./Civil','comisionado':'Comisionado','ryr':'R y R',
+                            'onomastico':'Onomástico','estado_civil':'Edo. Civil',
+                            'dependientes':'Dependientes','nss':'NSS','sangre':'Sangre',
+                            'domicilio':'Domicilio','rfc':'RFC','curp':'CURP',
+                            'licencia':'Licencia','licencia_tipo':'Tipo Lic.',
+                            'vig_licencia':'Vig. Lic.','vig_credencial':'Vig. Cred.',
+                            'vig_ine':'Vig. INE',
+                            'c1_nombre':'Contacto 1','c1_parentesco':'Parentesco 1','c1_tel':'Tel. C1',
+                            'c2_nombre':'Contacto 2','c2_parentesco':'Parentesco 2','c2_tel':'Tel. C2',
+                            'alerg_med':'Alergia Med.','alerg_ali':'Alergia Ali.',
+                            'amonestaciones':'Amonestaciones','comentarios':'Comentarios',
+                            'doc_ingreso':'Doc. Ingreso','medidas':'Medidas',
+                            'permisos':'Permisos','rubrica':'Rúbrica',
+                            'foto_url':'Foto URL','cv_url':'CV URL',
+                            'id':'ID','created_at':'Creado'
+                        };
+
+                        // Columnas a ocultar de la tabla (internas)
+                        const CTBL_HIDDEN_COLS = new Set(['id','created_at','foto_url','cv_url']);
+
+                        // Columnas de texto largo que necesitan wrap
+                        const CTBL_WRAP_COLS = new Set(['nombre','puesto','domicilio','comentarios','amonestaciones','profesion','grado_academico','coordinacion']);
+
+                        /** Generar thead dinámico con todas las columnas */
+                        function ctblGenerarThead() {
+                            const thead = document.getElementById('ctbl-thead');
+                            if (!thead || !ctblCols.length) return;
+                            const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                            thead.innerHTML = `<tr>${ctblCols.map(col => {
+                                const label = CTBL_COL_LABELS[col] || col;
+                                return `<th onclick="colabTablaOrdenar('${esc(col)}')" title="Ordenar por ${esc(label)}" style="white-space:nowrap">${esc(label)} <span class="sort-arrow" id="ctbl-sort-${esc(col)}"></span></th>`;
+                            }).join('')}</tr>`;
+                        }
 
                         /** Abrir modal y cargar tabla */
                         window.colabAbrirTabla = async function() {
@@ -7516,23 +7622,41 @@ FF
                             const todos = await colabCargarTodos();
                             ctblAllData = todos || [];
 
+                            // Detectar columnas del primer registro, ordenarlas por prioridad
+                            if (ctblAllData.length) {
+                                const allKeys = Object.keys(ctblAllData[0]).filter(k => !CTBL_HIDDEN_COLS.has(k));
+                                const preferred = CTBL_COL_ORDER.filter(k => allKeys.includes(k));
+                                const rest = allKeys.filter(k => !CTBL_COL_ORDER.includes(k) && !CTBL_HIDDEN_COLS.has(k));
+                                ctblCols = [...preferred, ...rest];
+                                // Columna de sort inicial: preferir num_empleado
+                                ctblSortCol = ctblCols.find(k => k === 'num_empleado' || k === 'num') || ctblCols[0] || 'nombre';
+                                ctblSortAsc = true;
+                                // Detectar raw keys para los filtros
+                                const dirKey   = allKeys.find(k => /direcc/i.test(k)) || 'direccion';
+                                const nivelKey = allKeys.find(k => /^nivel$/i.test(k)) || 'nivel';
+                                const turnoKey = allKeys.find(k => /^turno$/i.test(k)) || 'turno';
+                                ctblFilterKeys = { dir: dirKey, nivel: nivelKey, turno: turnoKey };
+                            }
+
+                            ctblGenerarThead();
+
                             // Poblar dropdowns de filtros
-                            function poblarSelect(elId, colKey) {
+                            function poblarSelect(elId, rawKey) {
                                 const el = document.getElementById(elId);
                                 if (!el) return;
                                 const firstOpt = el.options[0];
                                 el.innerHTML = '';
                                 el.appendChild(firstOpt);
-                                const valores = [...new Set(ctblAllData.map(r => val(gc(r, colKey))).filter(Boolean))].sort();
+                                const valores = [...new Set(ctblAllData.map(r => String(r[rawKey] || '').trim()).filter(Boolean))].sort();
                                 valores.forEach(v => {
                                     const opt = document.createElement('option');
                                     opt.value = v; opt.textContent = v;
                                     el.appendChild(opt);
                                 });
                             }
-                            poblarSelect('ctbl-dir', 'direccion');
-                            poblarSelect('ctbl-nivel', 'nivel');
-                            poblarSelect('ctbl-turno', 'turno');
+                            poblarSelect('ctbl-dir',   ctblFilterKeys.dir);
+                            poblarSelect('ctbl-nivel', ctblFilterKeys.nivel);
+                            poblarSelect('ctbl-turno', ctblFilterKeys.turno);
 
                             // Limpiar búsqueda
                             const searchEl = document.getElementById('ctbl-search');
@@ -7544,17 +7668,17 @@ FF
 
                         /** Filtrar tabla por texto y selects */
                         window.colabTablaFiltrar = function() {
-                            const q      = norm((document.getElementById('ctbl-search')?.value || ''));
-                            const dir    = (document.getElementById('ctbl-dir')?.value || '');
-                            const nivel  = (document.getElementById('ctbl-nivel')?.value || '');
-                            const turno  = (document.getElementById('ctbl-turno')?.value || '');
+                            const q     = norm((document.getElementById('ctbl-search')?.value || ''));
+                            const dir   = (document.getElementById('ctbl-dir')?.value   || '');
+                            const nivel = (document.getElementById('ctbl-nivel')?.value || '');
+                            const turno = (document.getElementById('ctbl-turno')?.value || '');
 
                             ctblData = ctblAllData.filter(r => {
-                                if (dir   && val(gc(r,'direccion')) !== dir)   return false;
-                                if (nivel && val(gc(r,'nivel'))    !== nivel)  return false;
-                                if (turno && val(gc(r,'turno'))    !== turno)  return false;
+                                if (dir   && String(r[ctblFilterKeys.dir]   || '').trim() !== dir)   return false;
+                                if (nivel && String(r[ctblFilterKeys.nivel] || '').trim() !== nivel) return false;
+                                if (turno && String(r[ctblFilterKeys.turno] || '').trim() !== turno) return false;
                                 if (q) {
-                                    const hay = ['num','nombre','puesto','direccion','subdireccion','gerencia','nivel','turno','correo','celular'].some(k => norm(gc(r,k)).includes(q));
+                                    const hay = Object.values(r).some(v => norm(String(v ?? '')).includes(q));
                                     if (!hay) return false;
                                 }
                                 return true;
@@ -7562,8 +7686,8 @@ FF
 
                             // Aplicar orden actual
                             const col = ctblSortCol;
-                            ctblData.sort((a,b) => {
-                                const va = norm(gc(a,col)), vb = norm(gc(b,col));
+                            ctblData.sort((a, b) => {
+                                const va = norm(String(a[col] ?? '')), vb = norm(String(b[col] ?? ''));
                                 return ctblSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
                             });
 
@@ -7578,7 +7702,6 @@ FF
                                 ctblSortCol = col;
                                 ctblSortAsc = true;
                             }
-                            // Actualizar flechas
                             document.querySelectorAll('[id^="ctbl-sort-"]').forEach(el => el.textContent = '');
                             const arrow = document.getElementById('ctbl-sort-' + col);
                             if (arrow) arrow.textContent = ctblSortAsc ? '▲' : '▼';
@@ -7587,7 +7710,7 @@ FF
 
                         /** Renderizar filas de la tabla */
                         function colabTablaRender() {
-                            const tbody  = document.getElementById('ctbl-tbody');
+                            const tbody   = document.getElementById('ctbl-tbody');
                             const tableEl = document.getElementById('ctbl-table');
                             const emptyEl = document.getElementById('ctbl-empty');
                             const badge   = document.getElementById('ctbl-badge');
@@ -7602,28 +7725,20 @@ FF
                             if (emptyEl) emptyEl.classList.add('d-none');
                             if (tableEl) tableEl.classList.remove('d-none');
 
+                            const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                            // Raw key para número de empleado (para click en fila)
+                            const numKey    = ctblCols.find(k => k === 'num_empleado' || k === 'num') || 'num_empleado';
+                            const nombreKey = ctblCols.find(k => k === 'nombre') || 'nombre';
+
                             const html = ctblData.map(r => {
-                                const num     = val(gc(r,'num'))         || '—';
-                                const nombre  = val(gc(r,'nombre'))      || '—';
-                                const puesto  = val(gc(r,'puesto'))      || '—';
-                                const dir     = val(gc(r,'direccion'))   || '—';
-                                const subdir  = val(gc(r,'subdireccion'))|| '—';
-                                const ger     = val(gc(r,'gerencia'))    || '—';
-                                const niv     = val(gc(r,'nivel'))       || '—';
-                                const turno   = val(gc(r,'turno'))       || '—';
-                                const ingreso = val(gc(r,'fecha_ingreso'))|| '—';
-                                const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-                                return `<tr onclick="colabTablaVerFicha('${esc(num)}')" title="Ver ficha de ${esc(nombre)}">
-                                    <td>${esc(num)}</td>
-                                    <td style="max-width:220px;white-space:normal">${esc(nombre)}</td>
-                                    <td style="max-width:200px;white-space:normal">${esc(puesto)}</td>
-                                    <td>${esc(dir)}</td>
-                                    <td>${esc(subdir)}</td>
-                                    <td>${esc(ger)}</td>
-                                    <td>${esc(niv)}</td>
-                                    <td>${esc(turno)}</td>
-                                    <td>${esc(ingreso)}</td>
-                                </tr>`;
+                                const numVal    = esc(String(r[numKey]    ?? '—'));
+                                const nombreVal = esc(String(r[nombreKey] ?? '—'));
+                                const tds = ctblCols.map(col => {
+                                    const v = String(r[col] ?? '').trim() || '—';
+                                    const style = CTBL_WRAP_COLS.has(col) ? ' style="max-width:200px;white-space:normal"' : '';
+                                    return `<td${style}>${esc(v)}</td>`;
+                                }).join('');
+                                return `<tr onclick="colabTablaVerFicha('${numVal}')" title="Ver ficha de ${nombreVal}">${tds}</tr>`;
                             }).join('');
                             if (tbody) tbody.innerHTML = html;
                         }
@@ -7639,15 +7754,15 @@ FF
                             }
                         };
 
-                        /** Descargar CSV con los datos actualmente visibles */
+                        /** Descargar CSV con todos los campos visibles */
                         window.colabDescargarCSV = function() {
                             if (!ctblData.length) return;
-                            const cols = ['num','nombre','puesto','direccion','subdireccion','gerencia','coordinacion','nivel','turno','fecha_ingreso','correo','celular','militar','profesion'];
-                            const headers = ['No.Empleado','Nombre','Puesto','Dirección','Subdirección','Gerencia','Coordinación','Nivel','Turno','Fecha Ingreso','Correo','Celular','Militar/Civil','Profesión'];
-                            const esc = s => `"${String(s||'').replace(/"/g,'""')}"`;
+                            const cols    = ctblCols.length ? ctblCols : ['num_empleado','nombre','puesto','plaza','nivel','turno','direccion','subdireccion','gerencia','fecha_ingreso','correo','celular'];
+                            const headers = cols.map(k => CTBL_COL_LABELS[k] || k);
+                            const esc = s => `"${String(s ?? '').replace(/"/g,'""')}"`;
                             const rows = [headers.join(',')];
                             ctblData.forEach(r => {
-                                rows.push(cols.map(k => esc(val(gc(r,k)) || '')).join(','));
+                                rows.push(cols.map(k => esc(String(r[k] ?? ''))).join(','));
                             });
                             const blob = new Blob(['\uFEFF' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
                             const url  = URL.createObjectURL(blob);
@@ -7656,19 +7771,18 @@ FF
                             a.click(); URL.revokeObjectURL(url);
                         };
 
-                        /** Descargar Excel usando SheetJS */
+                        /** Descargar Excel con todos los campos visibles */
                         window.colabDescargarExcel = function() {
                             if (!ctblData.length) return;
                             if (typeof XLSX === 'undefined') {
                                 alert('La librería Excel aún no ha cargado. Espera un momento e intenta de nuevo.');
                                 return;
                             }
-                            const cols    = ['num','nombre','puesto','direccion','subdireccion','gerencia','coordinacion','nivel','turno','fecha_ingreso','correo','celular','militar','profesion'];
-                            const headers = ['No. Empleado','Nombre','Puesto','Dirección','Subdirección','Gerencia','Coordinación','Nivel','Turno','Fecha Ingreso','Correo','Celular','Militar/Civil','Profesión'];
-                            const wsData = [headers, ...ctblData.map(r => cols.map(k => val(gc(r,k)) || ''))];
+                            const cols    = ctblCols.length ? ctblCols : ['num_empleado','nombre','puesto','plaza','nivel','turno','direccion','subdireccion','gerencia','fecha_ingreso','correo','celular'];
+                            const headers = cols.map(k => CTBL_COL_LABELS[k] || k);
+                            const wsData  = [headers, ...ctblData.map(r => cols.map(k => String(r[k] ?? '')))];
                             const ws = XLSX.utils.aoa_to_sheet(wsData);
-                            // Ancho de columnas
-                            ws['!cols'] = [8,30,30,20,20,20,20,8,12,14,30,14,10,20].map(w => ({wch:w}));
+                            ws['!cols'] = cols.map(k => ({ wch: CTBL_WRAP_COLS.has(k) ? 28 : 14 }));
                             const wb = XLSX.utils.book_new();
                             XLSX.utils.book_append_sheet(wb, ws, 'Colaboradores');
                             XLSX.writeFile(wb, `colaboradores_${new Date().toISOString().slice(0,10)}.xlsx`);
