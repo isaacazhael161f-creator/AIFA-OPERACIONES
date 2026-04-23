@@ -3192,6 +3192,23 @@ async function ensureRoleInSessionStorage(userId) {
             .select('role, permissions')
             .eq('user_id', userId)
             .single();
+
+        // Verificar si el usuario fue dado de baja
+        if (roleData?.permissions?.estado === 'INACTIVO') {
+            await window.supabaseClient.auth.signOut();
+            sessionStorage.clear();
+            localStorage.removeItem('user_role');
+            document.getElementById('main-app')?.classList.add('hidden');
+            document.getElementById('login-screen')?.classList.remove('hidden');
+            const msg = document.getElementById('login-error') || document.getElementById('login-msg');
+            if (msg) {
+                msg.textContent = 'Tu cuenta ha sido desactivada. Contacta al administrador.';
+                msg.classList.remove('d-none', 'text-danger');
+                msg.classList.add('text-danger');
+            }
+            return;
+        }
+
         sessionStorage.setItem('user_role', (roleData && roleData.role) ? roleData.role : 'viewer');
         try {
             const secs = roleData?.permissions?.allowed_sections;

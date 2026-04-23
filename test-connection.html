@@ -80,6 +80,11 @@
                                     <i class="fas fa-users-cog me-2"></i>Usuarios
                                 </button>
                             </li>
+                            <li class="nav-item d-none" id="tab-control-li" role="presentation">
+                                <button class="nav-link rounded-pill small fw-bold" id="pills-control-tab" data-bs-toggle="pill" data-bs-target="#pills-control" type="button" role="tab" aria-controls="pills-control" aria-selected="false" onclick="loadActivityLog()">
+                                    <i class="fas fa-shield-alt me-2"></i>Control
+                                </button>
+                            </li>
                         </ul>
 
                         <div class="tab-content" id="pills-tabContent">
@@ -231,6 +236,22 @@
                                     </div>
                                 </div>
 
+                                <h6 class="text-primary mb-3 small fw-bold text-uppercase border-bottom pb-2 mt-4">
+                                    <i class="fas fa-sitemap me-2"></i>3. Organización
+                                </h6>
+                                <div class="mb-3">
+                                    <label for="reg-direccion" class="form-label small fw-bold text-muted">Dirección</label>
+                                    <select class="form-select bg-light border-0" id="reg-direccion" onchange="updateRegSubdir()">
+                                        <option value="">— Sin asignar —</option>
+                                    </select>
+                                </div>
+                                <div class="mb-4">
+                                    <label for="reg-subdireccion" class="form-label small fw-bold text-muted">Subdirección</label>
+                                    <select class="form-select bg-light border-0" id="reg-subdireccion" disabled>
+                                        <option value="">— Sin asignar —</option>
+                                    </select>
+                                </div>
+
                                 <button class="btn btn-success w-100 py-3 rounded-3 fw-bold shadow-sm" onclick="testRegister()">
                                     <i class="fas fa-user-plus me-2"></i>CREAR USUARIO Y PERMISOS
                                 </button>
@@ -273,7 +294,8 @@
                                             <thead class="table-dark sticky-top">
                                                 <tr>
                                                     <th>Email / Nombre</th>
-                                                    <th style="width:160px">Rol</th>
+                                                    <th style="width:140px">Rol</th>
+                                                    <th style="width:130px">Área</th>
                                                     <th style="width:46px" class="text-center" title="Acceso a sección Colaboradores">Colab</th>
                                                     <th style="width:42px">Acc.</th>
                                                 </tr>
@@ -418,6 +440,50 @@
                                     <button type="button" class="btn btn-outline-secondary btn-sm w-100" onclick="navigator.clipboard.writeText(document.getElementById('gen-output').value)">Copiar al Portapapeles</button>
                                 </form>
                             </div>
+
+                            <!-- ── Control (Solo Admin) ── -->
+                            <div class="tab-pane fade" id="pills-control" role="tabpanel">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="fw-bold mb-0 text-danger"><i class="fas fa-shield-alt me-2"></i>Panel de Control</h6>
+                                    <button class="btn btn-outline-primary btn-sm" onclick="loadActivityLog()">
+                                        <i class="fas fa-sync-alt me-1"></i>Actualizar
+                                    </button>
+                                </div>
+                                <div id="ctrl-status" class="small text-muted mb-2"></div>
+
+                                <!-- Filtros rápidos -->
+                                <div class="d-flex gap-2 mb-2 flex-wrap">
+                                    <button class="btn btn-outline-secondary btn-sm active" id="ctrl-filter-all"    onclick="ctrlSetFilter('all')">Todos</button>
+                                    <button class="btn btn-outline-success btn-sm"          id="ctrl-filter-activo" onclick="ctrlSetFilter('activo')">Activos</button>
+                                    <button class="btn btn-outline-danger btn-sm"           id="ctrl-filter-baja"   onclick="ctrlSetFilter('baja')">Baja</button>
+                                </div>
+
+                                <div style="overflow-x:auto;max-height:420px;overflow-y:auto;">
+                                    <table class="table table-sm table-hover align-middle mb-0 small">
+                                        <thead class="table-dark sticky-top">
+                                            <tr>
+                                                <th>Email / Nombre</th>
+                                                <th style="width:105px">Rol</th>
+                                                <th style="width:130px">Último acceso</th>
+                                                <th style="width:82px">Alta</th>
+                                                <th style="width:95px" class="text-center">Estado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="ctrl-tbody">
+                                            <tr><td colspan="5" class="text-center text-muted py-3">
+                                                <i class="fas fa-info-circle me-1"></i>Clic en "Actualizar" para cargar.
+                                            </td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="alert alert-warning small mt-3 mb-0 py-2">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    <strong>Dar de baja</strong> bloquea el acceso del usuario a la aplicación sin eliminar su cuenta.
+                                    El ícono <i class="fas fa-user-slash text-warning mx-1"></i> da de baja;
+                                    <i class="fas fa-user-check text-success mx-1"></i> reactiva.
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 </div>
@@ -470,7 +536,7 @@
                 return;
             }
             updateStatus('success', 'Cliente Supabase listo. Conectado.');
-
+            loadAreas(); // cargar áreas en segundo plano
             const { data: { session } } = await window.supabaseClient.auth.getSession();
             if (session) {
                 showUser(session.user);
@@ -616,7 +682,19 @@
                     }
                 }
 
-                // ── Paso 4: resultado ─────────────────────────────────────
+                // ── Paso 4: guardar área (dirección/subdirección) ─────────
+                if (userId) {
+                    const dirId    = document.getElementById('reg-direccion').value;
+                    const subdirId = document.getElementById('reg-subdireccion').value;
+                    if (dirId || subdirId) {
+                        await window.supabaseClient
+                            .from('user_roles')
+                            .update({ permissions: { direccion_id: dirId, subdireccion_id: subdirId } })
+                            .eq('user_id', userId);
+                    }
+                }
+
+                // ── Paso 5: resultado ─────────────────────────────────────
                 if (data.user && !data.session) {
                     updateStatus('warning',
                         `Usuario creado pero requiere confirmación de email. ID: ${userId?.substring(0,8)}…${roleNote}`);
@@ -627,6 +705,9 @@
                     document.getElementById('reg-fullname').value = '';
                     document.getElementById('reg-password').value = '';
                     document.getElementById('reg-role').value = 'viewer';
+                    document.getElementById('reg-direccion').value = '';
+                    document.getElementById('reg-subdireccion').innerHTML = '<option value="">— Sin asignar —</option>';
+                    document.getElementById('reg-subdireccion').disabled = true;
                     toggleRegPermissions();
                 } else {
                     updateStatus('warning',
@@ -671,6 +752,10 @@
                 if (data) {
                     roleBadge.className = 'badge bg-primary text-white mb-3 p-2 w-100';
                     roleBadge.innerHTML = `<i class="fas fa-user-tag me-2"></i>${data.role.toUpperCase()}`;
+                    // Revelar pestaña Control solo para admin
+                    if (data.role === 'admin') {
+                        document.getElementById('tab-control-li').classList.remove('d-none');
+                    }
                 } else {
                     roleBadge.className = 'badge bg-secondary text-white mb-3 p-2 w-100';
                     roleBadge.innerHTML = 'Viewer (Por defecto)';
@@ -823,7 +908,7 @@ WHERE u.email = '${email.trim()}';
         async function loadUsers() {
             const tbody = document.getElementById('um-tbody');
             const statusEl = document.getElementById('um-status');
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-1"></i>Cargando…</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-1"></i>Cargando…</td></tr>';
             statusEl.textContent = '';
 
             try {
@@ -881,7 +966,7 @@ WHERE u.email = '${email.trim()}';
         function umRenderRows(rows) {
             const tbody = document.getElementById('um-tbody');
             if (!rows.length) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Sin resultados</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Sin resultados</td></tr>';
                 return;
             }
             tbody.innerHTML = rows.map(u => {
@@ -890,7 +975,25 @@ WHERE u.email = '${email.trim()}';
                     `<option value="${r}" ${u.role === r ? 'selected' : ''}>${ROLE_LABELS[r] || r}</option>`
                 ).join('');
                 const shortId = (u.user_id || '').substring(0, 8);
-                // Colab toggle: colab roles always have access (show lock icon), others show toggle
+
+                // Área asignada
+                const perms    = u.permissions || {};
+                const dirId    = perms.direccion_id    || '';
+                const subdirId = perms.subdireccion_id || '';
+                const dirName  = dirId    ? (_areasAll.find(a => a.id === dirId)?.clave    || '?') : '—';
+                const subdirName = subdirId ? (_areasAll.find(a => a.id === subdirId)?.clave || '') : '';
+                const areaCell = `<td>
+                    <div style="font-size:.75rem;line-height:1.3">
+                        <span class="fw-semibold text-primary">${dirName}</span>
+                        ${subdirName ? `<br><span class="text-muted">${subdirName}</span>` : ''}
+                    </div>
+                    <button class="btn p-0 border-0 mt-1" style="width:20px;height:20px;background:rgba(13,110,253,.1);border-radius:4px"
+                        onclick="toggleAreaEdit('${u.user_id}','${shortId}')" title="Editar área">
+                        <i class="fas fa-pencil-alt" style="font-size:.6rem;color:#0d6efd"></i>
+                    </button>
+                </td>`;
+
+                // Colab toggle
                 const isColabRole = ['colab_viewer', 'colab_editor'].includes(u.role);
                 const hasColab = isColabRole || (Array.isArray(u.permissions?.allowed_sections) && u.permissions.allowed_sections.includes('colaboradores'));
                 let colabCell;
@@ -916,6 +1019,7 @@ WHERE u.email = '${email.trim()}';
                             ${roleOpts}
                         </select>
                     </td>
+                    ${areaCell}
                     ${colabCell}
                     <td>
                         <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="deleteUser('${u.user_id}', '${(u.email||'').replace(/'/g,'')}')"
@@ -1015,6 +1119,218 @@ WHERE u.email = '${email.trim()}';
                     <span class="text-muted small">Ejecuta este SQL en <strong>Supabase > SQL Editor</strong> y luego recarga la tabla:</span><br>
                     <code class="small user-select-all bg-dark text-white px-2 py-1 d-inline-block rounded mt-1">${sql}</code>
                     <button class="btn btn-outline-secondary btn-sm ms-2 py-0" onclick="navigator.clipboard.writeText('${sql}')">Copiar</button>`;
+            }
+        }
+
+        // ── Areas ─────────────────────────────────────────────────────────
+        let _areasAll = [], _dirList = [], _subdirMap = {};
+
+        async function loadAreas() {
+            try {
+                const { data } = await window.supabaseClient
+                    .from('areas')
+                    .select('id, clave, nombre, nivel, parent_area_id, orden_visualizacion')
+                    .eq('estado', 'ACTIVO')
+                    .order('orden_visualizacion');
+                _areasAll  = data || [];
+                _dirList   = _areasAll.filter(a => a.nivel === 2);
+                _subdirMap = {};
+                _areasAll.filter(a => a.nivel === 3).forEach(a => {
+                    if (!_subdirMap[a.parent_area_id]) _subdirMap[a.parent_area_id] = [];
+                    _subdirMap[a.parent_area_id].push(a);
+                });
+                _populateDirSelect('reg-direccion');
+            } catch(e) {
+                console.warn('[loadAreas]', e.message);
+            }
+        }
+
+        function _populateDirSelect(selectId, selected = '') {
+            const sel = document.getElementById(selectId);
+            if (!sel) return;
+            sel.innerHTML = '<option value="">— Sin asignar —</option>' +
+                _dirList.map(d =>
+                    `<option value="${d.id}" ${d.id === selected ? 'selected' : ''}>${d.clave} \u2014 ${d.nombre}<\/option>`
+                ).join('');
+        }
+
+        function _populateSubdirSelect(selectId, parentId, selected = '') {
+            const sel = document.getElementById(selectId);
+            if (!sel) return;
+            const subs = parentId ? (_subdirMap[parentId] || []) : [];
+            sel.innerHTML = '<option value="">— Sin asignar —</option>' +
+                subs.map(s =>
+                    `<option value="${s.id}" ${s.id === selected ? 'selected' : ''}>${s.clave} \u2014 ${s.nombre}<\/option>`
+                ).join('');
+            sel.disabled = subs.length === 0;
+        }
+
+        function updateRegSubdir() {
+            const dirId = document.getElementById('reg-direccion').value;
+            _populateSubdirSelect('reg-subdireccion', dirId);
+        }
+
+        function updateInlineSubdir(dirSelectId, subdirSelectId) {
+            const dirId = document.getElementById(dirSelectId).value;
+            _populateSubdirSelect(subdirSelectId, dirId);
+        }
+
+        function toggleAreaEdit(userId, shortId) {
+            const existingPanel = document.getElementById(`um-area-panel-${shortId}`);
+            if (existingPanel) { existingPanel.remove(); return; }
+
+            const row = document.getElementById(`um-row-${shortId}`);
+            if (!row) return;
+            const u       = _umAllRows.find(x => x.user_id === userId);
+            const perms   = u?.permissions || {};
+            const curDir    = perms.direccion_id    || '';
+            const curSubdir = perms.subdireccion_id || '';
+            const colspan   = row.cells.length;
+
+            const tr = document.createElement('tr');
+            tr.id    = `um-area-panel-${shortId}`;
+            tr.style.background = '#eef5ff';
+            tr.innerHTML = `<td colspan="${colspan}" class="py-2 px-3">
+                <div class="d-flex align-items-center gap-2 flex-wrap small">
+                    <i class="fas fa-sitemap text-primary"></i>
+                    <select id="um-dir-${shortId}" class="form-select form-select-sm" style="max-width:220px"
+                        onchange="updateInlineSubdir('um-dir-${shortId}','um-subdir-${shortId}')">
+                    </select>
+                    <select id="um-subdir-${shortId}" class="form-select form-select-sm" style="max-width:220px" disabled>
+                    </select>
+                    <button class="btn btn-primary btn-sm py-0 px-2" onclick="saveUserArea('${userId}','${shortId}')">
+                        <i class="fas fa-save me-1"></i>Guardar
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="toggleAreaEdit('${userId}','${shortId}')">
+                        Cancelar
+                    </button>
+                </div>
+            </td>`;
+            row.parentNode.insertBefore(tr, row.nextSibling);
+            _populateDirSelect(`um-dir-${shortId}`, curDir);
+            _populateSubdirSelect(`um-subdir-${shortId}`, curDir, curSubdir);
+        }
+
+        async function saveUserArea(userId, shortId) {
+            const dirId    = document.getElementById(`um-dir-${shortId}`)?.value || '';
+            const subdirId = document.getElementById(`um-subdir-${shortId}`)?.value || '';
+            const statusEl = document.getElementById('um-status');
+            statusEl.textContent = 'Guardando área…';
+            try {
+                const { data: ur } = await window.supabaseClient
+                    .from('user_roles').select('permissions').eq('user_id', userId).single();
+                const perms = { ...(ur?.permissions || {}), direccion_id: dirId, subdireccion_id: subdirId };
+                const { error } = await window.supabaseClient
+                    .from('user_roles').update({ permissions: perms }).eq('user_id', userId);
+                if (error) throw error;
+                const u = _umAllRows.find(x => x.user_id === userId);
+                if (u) u.permissions = perms;
+                const panel = document.getElementById(`um-area-panel-${shortId}`);
+                if (panel) panel.remove();
+                umRenderRows(_umAllRows.filter(u2 => {
+                    const q = (document.getElementById('um-search').value || '').toLowerCase();
+                    return !q || (u2.email||'').toLowerCase().includes(q) || (u2.full_name||'').toLowerCase().includes(q);
+                }));
+                statusEl.textContent = '✅ Área asignada correctamente.';
+            } catch(e) {
+                statusEl.textContent = '❌ Error: ' + e.message;
+            }
+        }
+
+        // ── Control: Actividad y baja ─────────────────────────────────────
+        let _ctrlRows = [], _ctrlFilter = 'all';
+
+        function ctrlSetFilter(f) {
+            _ctrlFilter = f;
+            ['all','activo','baja'].forEach(k => {
+                document.getElementById(`ctrl-filter-${k}`)?.classList.toggle('active', k === f);
+            });
+            ctrlRenderRows();
+        }
+
+        function ctrlRenderRows() {
+            const tbody = document.getElementById('ctrl-tbody');
+            if (!tbody) return;
+            const rows = _ctrlFilter === 'all'    ? _ctrlRows :
+                         _ctrlFilter === 'baja'   ? _ctrlRows.filter(u => u.permissions?.estado === 'INACTIVO') :
+                         _ctrlRows.filter(u => u.permissions?.estado !== 'INACTIVO');
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-muted text-center py-3">Sin resultados</td></tr>';
+                return;
+            }
+            tbody.innerHTML = rows.map(u => {
+                const isInactivo = u.permissions?.estado === 'INACTIVO';
+                const lastLogin  = u.last_sign_in_at
+                    ? new Date(u.last_sign_in_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
+                    : '—';
+                const created    = u.created_at
+                    ? new Date(u.created_at).toLocaleDateString('es-MX', { dateStyle: 'short' })
+                    : '—';
+                const shortId  = (u.user_id || '').substring(0, 8);
+                const badge    = isInactivo
+                    ? '<span class="badge bg-danger">BAJA</span>'
+                    : '<span class="badge bg-success">ACTIVO</span>';
+                const bajaBtn  = isInactivo
+                    ? `<button class="btn btn-outline-success btn-sm py-0 px-1 ms-1" onclick="toggleBaja('${u.user_id}',true,'${shortId}')" title="Reactivar usuario"><i class="fas fa-user-check"></i></button>`
+                    : `<button class="btn btn-outline-warning btn-sm py-0 px-1 ms-1" onclick="toggleBaja('${u.user_id}',false,'${shortId}')" title="Dar de baja"><i class="fas fa-user-slash"></i></button>`;
+                const roleBadgeCtrl = `<span class="badge bg-${ROLE_COLORS[u.role] || 'secondary'}">${ROLE_LABELS[u.role] || u.role || '–'}</span>`;
+                return `<tr id="ctrl-row-${shortId}" class="${isInactivo ? 'table-secondary text-muted' : ''}">
+                    <td>
+                        <div class="fw-semibold" style="font-size:.82rem">${u.email || '–'}</div>
+                        <div class="text-muted" style="font-size:.72rem">${u.full_name || u.username || ''}</div>
+                    </td>
+                    <td>${roleBadgeCtrl}</td>
+                    <td style="font-size:.78rem">${lastLogin}</td>
+                    <td style="font-size:.78rem">${created}</td>
+                    <td class="text-center">${badge}${bajaBtn}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function loadActivityLog() {
+            const tbody = document.getElementById('ctrl-tbody');
+            const statusEl = document.getElementById('ctrl-status');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-1"></i>Cargando…</td></tr>';
+            try {
+                const [{ data: usersData, error: ue }, { data: permsData }] = await Promise.all([
+                    window.supabaseClient
+                        .from('v_usuarios_roles')
+                        .select('user_id, email, full_name, username, role, created_at, last_sign_in_at')
+                        .order('last_sign_in_at', { ascending: false, nullsFirst: false }),
+                    window.supabaseClient
+                        .from('user_roles')
+                        .select('user_id, permissions')
+                ]);
+                if (ue) throw ue;
+                const pMap = {};
+                (permsData || []).forEach(r => pMap[r.user_id] = r.permissions || {});
+                _ctrlRows = (usersData || []).map(u => ({ ...u, permissions: pMap[u.user_id] || {} }));
+                if (statusEl) statusEl.textContent = `${_ctrlRows.length} usuario(s).`;
+                ctrlRenderRows();
+            } catch(e) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-danger text-center small py-2">Error: ${e.message}</td></tr>`;
+            }
+        }
+
+        async function toggleBaja(userId, currentlyInactivo, shortId) {
+            const newEstado = currentlyInactivo ? 'ACTIVO' : 'INACTIVO';
+            const statusEl  = document.getElementById('ctrl-status');
+            if (statusEl) statusEl.textContent = 'Actualizando estado…';
+            try {
+                const { data: ur } = await window.supabaseClient
+                    .from('user_roles').select('permissions').eq('user_id', userId).single();
+                const perms = { ...(ur?.permissions || {}), estado: newEstado };
+                const { error } = await window.supabaseClient
+                    .from('user_roles').update({ permissions: perms }).eq('user_id', userId);
+                if (error) throw error;
+                const row = _ctrlRows.find(x => x.user_id === userId);
+                if (row) row.permissions = perms;
+                if (statusEl) statusEl.textContent = newEstado === 'INACTIVO'
+                    ? '✅ Usuario dado de baja.' : '✅ Usuario reactivado.';
+                ctrlRenderRows();
+            } catch(e) {
+                if (statusEl) statusEl.textContent = '❌ Error: ' + e.message;
             }
         }
 
