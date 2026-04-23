@@ -37,7 +37,7 @@
 <body class="bg-light d-flex align-items-center min-vh-100">
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-md-8 col-lg-6 col-xl-5">
+            <div class="col-md-8 col-lg-6 col-xl-5" id="main-col">
                 
                 <div class="text-center mb-4">
                     <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm mb-3 logo-icon">
@@ -443,45 +443,113 @@
 
                             <!-- ── Control (Solo Admin) ── -->
                             <div class="tab-pane fade" id="pills-control" role="tabpanel">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="fw-bold mb-0 text-danger"><i class="fas fa-shield-alt me-2"></i>Panel de Control</h6>
-                                    <button class="btn btn-outline-primary btn-sm" onclick="loadActivityLog()">
-                                        <i class="fas fa-sync-alt me-1"></i>Actualizar
+
+                                <!-- Stats -->
+                                <div class="row g-2 mb-3">
+                                    <div class="col-4">
+                                        <div class="text-center p-2 bg-primary bg-opacity-10 rounded-3">
+                                            <div class="fw-bold text-primary" id="ctrl-stat-total" style="font-size:1.5rem">—</div>
+                                            <div class="text-muted" style="font-size:.7rem">Total</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="text-center p-2 bg-success bg-opacity-10 rounded-3">
+                                            <div class="fw-bold text-success" id="ctrl-stat-activos" style="font-size:1.5rem">—</div>
+                                            <div class="text-muted" style="font-size:.7rem">Activos</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="text-center p-2 bg-danger bg-opacity-10 rounded-3">
+                                            <div class="fw-bold text-danger" id="ctrl-stat-bajas" style="font-size:1.5rem">—</div>
+                                            <div class="text-muted" style="font-size:.7rem">Bajas</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Crear nuevo usuario (collapse) -->
+                                <div class="mb-3">
+                                    <button class="btn btn-success btn-sm w-100 fw-bold d-flex align-items-center justify-content-between py-2"
+                                        type="button" data-bs-toggle="collapse" data-bs-target="#ctrl-new-user-collapse" aria-expanded="false">
+                                        <span><i class="fas fa-user-plus me-2"></i>Crear Nuevo Usuario</span>
+                                        <i class="fas fa-chevron-down"></i>
                                     </button>
+                                    <div class="collapse" id="ctrl-new-user-collapse">
+                                        <div class="card border-0 bg-light rounded-3 p-3 mt-1">
+                                            <div class="row g-2">
+                                                <div class="col-12 col-sm-6">
+                                                    <input type="text" class="form-control form-control-sm bg-white" id="ctrl-reg-username" placeholder="Usuario (ID) *">
+                                                </div>
+                                                <div class="col-12 col-sm-6">
+                                                    <input type="password" class="form-control form-control-sm bg-white" id="ctrl-reg-password" placeholder="Contraseña *">
+                                                </div>
+                                                <div class="col-12">
+                                                    <input type="text" class="form-control form-control-sm bg-white" id="ctrl-reg-fullname" placeholder="Nombre Completo">
+                                                </div>
+                                                <div class="col-12 col-sm-6">
+                                                    <input type="email" class="form-control form-control-sm bg-white" id="ctrl-reg-email" placeholder="Email (opcional)">
+                                                </div>
+                                                <div class="col-12 col-sm-6">
+                                                    <select class="form-select form-select-sm bg-white" id="ctrl-reg-role" aria-label="Rol del usuario">
+                                                        <option value="viewer">👀 Viewer</option>
+                                                        <option value="editor">✏️ Editor</option>
+                                                        <option value="control_fauna">🦅 Control Fauna</option>
+                                                        <option value="servicio_medico">🚑 Serv. Médico</option>
+                                                        <option value="colab_viewer">📋 Colab Viewer</option>
+                                                        <option value="colab_editor">✏️ Colab Editor</option>
+                                                        <option value="admin">🛠️ Admin</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-12 col-sm-6">
+                                                    <select class="form-select form-select-sm bg-white" id="ctrl-reg-dir" onchange="updateCtrlSubdir()" aria-label="Dirección">
+                                                        <option value="">— Sin Dirección —</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-12 col-sm-6">
+                                                    <select class="form-select form-select-sm bg-white" id="ctrl-reg-subdir" disabled aria-label="Subdirección">
+                                                        <option value="">— Sin Subdirección —</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div id="ctrl-reg-msg" class="small mt-2"></div>
+                                            <button class="btn btn-success btn-sm mt-2 w-100 fw-bold" onclick="ctrlCreateUser()">
+                                                <i class="fas fa-user-plus me-1"></i>Crear Usuario
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div id="ctrl-status" class="small text-muted mb-2"></div>
 
-                                <!-- Filtros rápidos -->
-                                <div class="d-flex gap-2 mb-2 flex-wrap">
-                                    <button class="btn btn-outline-secondary btn-sm active" id="ctrl-filter-all"    onclick="ctrlSetFilter('all')">Todos</button>
-                                    <button class="btn btn-outline-success btn-sm"          id="ctrl-filter-activo" onclick="ctrlSetFilter('activo')">Activos</button>
-                                    <button class="btn btn-outline-danger btn-sm"           id="ctrl-filter-baja"   onclick="ctrlSetFilter('baja')">Baja</button>
+                                <!-- Filtros + búsqueda -->
+                                <div class="d-flex gap-1 mb-2 flex-wrap align-items-center">
+                                    <button class="btn btn-outline-secondary btn-sm active" id="ctrl-filter-all" onclick="ctrlSetFilter('all')">Todos</button>
+                                    <button class="btn btn-outline-success btn-sm" id="ctrl-filter-activo" onclick="ctrlSetFilter('activo')">Activos</button>
+                                    <button class="btn btn-outline-danger btn-sm" id="ctrl-filter-baja" onclick="ctrlSetFilter('baja')">Baja</button>
+                                    <div class="ms-auto d-flex gap-1">
+                                        <input type="text" class="form-control form-control-sm" id="ctrl-search" placeholder="Buscar…" style="max-width:150px" onkeyup="ctrlRenderRows()">
+                                        <button class="btn btn-outline-primary btn-sm" onclick="loadActivityLog()" title="Actualizar lista"><i class="fas fa-sync-alt"></i></button>
+                                    </div>
                                 </div>
+                                <div id="ctrl-status" class="small text-muted mb-1"></div>
 
-                                <div style="overflow-x:auto;max-height:420px;overflow-y:auto;">
-                                    <table class="table table-sm table-hover align-middle mb-0 small">
+                                <!-- Tabla de usuarios -->
+                                <div style="overflow-x:auto; max-height:380px; overflow-y:auto;">
+                                    <table class="table table-sm table-hover align-middle mb-0" style="font-size:.8rem">
                                         <thead class="table-dark sticky-top">
                                             <tr>
-                                                <th>Email / Nombre</th>
-                                                <th style="width:105px">Rol</th>
-                                                <th style="width:130px">Último acceso</th>
-                                                <th style="width:82px">Alta</th>
-                                                <th style="width:95px" class="text-center">Estado</th>
+                                                <th>Usuario</th>
+                                                <th style="width:115px">Rol</th>
+                                                <th style="width:80px">Área</th>
+                                                <th style="width:100px">Último acceso</th>
+                                                <th style="width:95px" class="text-center">Estado / Acc.</th>
                                             </tr>
                                         </thead>
                                         <tbody id="ctrl-tbody">
                                             <tr><td colspan="5" class="text-center text-muted py-3">
-                                                <i class="fas fa-info-circle me-1"></i>Clic en "Actualizar" para cargar.
+                                                <i class="fas fa-info-circle me-1"></i>Pulsa <strong>Actualizar</strong> para cargar.
                                             </td></tr>
                                         </tbody>
                                     </table>
                                 </div>
-                                <div class="alert alert-warning small mt-3 mb-0 py-2">
-                                    <i class="fas fa-exclamation-triangle me-1"></i>
-                                    <strong>Dar de baja</strong> bloquea el acceso del usuario a la aplicación sin eliminar su cuenta.
-                                    El ícono <i class="fas fa-user-slash text-warning mx-1"></i> da de baja;
-                                    <i class="fas fa-user-check text-success mx-1"></i> reactiva.
-                                </div>
+
                             </div>
 
                         </div>
@@ -755,6 +823,15 @@
                     // Revelar pestaña Control solo para admin
                     if (data.role === 'admin') {
                         document.getElementById('tab-control-li').classList.remove('d-none');
+                        // Ampliar el contenedor para el panel de administración
+                        const mainCol = document.getElementById('main-col');
+                        if (mainCol) mainCol.className = 'col-md-11 col-lg-9 col-xl-8';
+                        // Auto-redirigir al Panel de Control
+                        setTimeout(() => {
+                            const ctrlTab = document.getElementById('pills-control-tab');
+                            if (ctrlTab) ctrlTab.click();
+                            loadActivityLog();
+                        }, 250);
                     }
                 } else {
                     roleBadge.className = 'badge bg-secondary text-white mb-3 p-2 w-100';
@@ -1140,6 +1217,7 @@ WHERE u.email = '${email.trim()}';
                     _subdirMap[a.parent_area_id].push(a);
                 });
                 _populateDirSelect('reg-direccion');
+                _populateDirSelect('ctrl-reg-dir');
             } catch(e) {
                 console.warn('[loadAreas]', e.message);
             }
@@ -1179,7 +1257,7 @@ WHERE u.email = '${email.trim()}';
             const existingPanel = document.getElementById(`um-area-panel-${shortId}`);
             if (existingPanel) { existingPanel.remove(); return; }
 
-            const row = document.getElementById(`um-row-${shortId}`);
+            const row = document.getElementById(`um-row-${shortId}`) || document.getElementById(`ctrl-row-${shortId}`);
             if (!row) return;
             const u       = _umAllRows.find(x => x.user_id === userId);
             const perms   = u?.permissions || {};
@@ -1225,13 +1303,19 @@ WHERE u.email = '${email.trim()}';
                 if (error) throw error;
                 const u = _umAllRows.find(x => x.user_id === userId);
                 if (u) u.permissions = perms;
+                const uc = _ctrlRows.find(x => x.user_id === userId);
+                if (uc) uc.permissions = perms;
                 const panel = document.getElementById(`um-area-panel-${shortId}`);
                 if (panel) panel.remove();
                 umRenderRows(_umAllRows.filter(u2 => {
                     const q = (document.getElementById('um-search').value || '').toLowerCase();
                     return !q || (u2.email||'').toLowerCase().includes(q) || (u2.full_name||'').toLowerCase().includes(q);
                 }));
-                statusEl.textContent = '✅ Área asignada correctamente.';
+                ctrlRenderRows();
+                const areaMsg = '✅ Área asignada correctamente.';
+                statusEl.textContent = areaMsg;
+                const ctrlSt = document.getElementById('ctrl-status');
+                if (ctrlSt) ctrlSt.textContent = areaMsg;
             } catch(e) {
                 statusEl.textContent = '❌ Error: ' + e.message;
             }
@@ -1251,38 +1335,64 @@ WHERE u.email = '${email.trim()}';
         function ctrlRenderRows() {
             const tbody = document.getElementById('ctrl-tbody');
             if (!tbody) return;
-            const rows = _ctrlFilter === 'all'    ? _ctrlRows :
-                         _ctrlFilter === 'baja'   ? _ctrlRows.filter(u => u.permissions?.estado === 'INACTIVO') :
-                         _ctrlRows.filter(u => u.permissions?.estado !== 'INACTIVO');
+            const q = (document.getElementById('ctrl-search')?.value || '').toLowerCase();
+            let rows = _ctrlFilter === 'baja'   ? _ctrlRows.filter(u => u.permissions?.estado === 'INACTIVO') :
+                       _ctrlFilter === 'activo' ? _ctrlRows.filter(u => u.permissions?.estado !== 'INACTIVO') :
+                       _ctrlRows;
+            if (q) rows = rows.filter(u =>
+                (u.email || '').toLowerCase().includes(q) ||
+                (u.full_name || '').toLowerCase().includes(q) ||
+                (u.username || '').toLowerCase().includes(q)
+            );
             if (!rows.length) {
                 tbody.innerHTML = '<tr><td colspan="5" class="text-muted text-center py-3">Sin resultados</td></tr>';
                 return;
             }
             tbody.innerHTML = rows.map(u => {
                 const isInactivo = u.permissions?.estado === 'INACTIVO';
-                const lastLogin  = u.last_sign_in_at
+                const shortId = (u.user_id || '').substring(0, 8);
+                const lastLogin = u.last_sign_in_at
                     ? new Date(u.last_sign_in_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
                     : '—';
-                const created    = u.created_at
-                    ? new Date(u.created_at).toLocaleDateString('es-MX', { dateStyle: 'short' })
-                    : '—';
-                const shortId  = (u.user_id || '').substring(0, 8);
-                const badge    = isInactivo
-                    ? '<span class="badge bg-danger">BAJA</span>'
-                    : '<span class="badge bg-success">ACTIVO</span>';
-                const bajaBtn  = isInactivo
-                    ? `<button class="btn btn-outline-success btn-sm py-0 px-1 ms-1" onclick="toggleBaja('${u.user_id}',true,'${shortId}')" title="Reactivar usuario"><i class="fas fa-user-check"></i></button>`
-                    : `<button class="btn btn-outline-warning btn-sm py-0 px-1 ms-1" onclick="toggleBaja('${u.user_id}',false,'${shortId}')" title="Dar de baja"><i class="fas fa-user-slash"></i></button>`;
-                const roleBadgeCtrl = `<span class="badge bg-${ROLE_COLORS[u.role] || 'secondary'}">${ROLE_LABELS[u.role] || u.role || '–'}</span>`;
-                return `<tr id="ctrl-row-${shortId}" class="${isInactivo ? 'table-secondary text-muted' : ''}">
+                const roleOpts = ALL_ROLES.map(r =>
+                    `<option value="${r}" ${u.role === r ? 'selected' : ''}>${ROLE_LABELS[r] || r}</option>`
+                ).join('');
+                const perms = u.permissions || {};
+                const dirId = perms.direccion_id || '';
+                const subdirId = perms.subdireccion_id || '';
+                const dirName = dirId ? (_areasAll.find(a => a.id === dirId)?.clave || '?') : '—';
+                const subdirName = subdirId ? (_areasAll.find(a => a.id === subdirId)?.clave || '') : '';
+                const statusBadge = isInactivo
+                    ? '<span class="badge bg-danger" style="font-size:.62rem">BAJA</span>'
+                    : '<span class="badge bg-success" style="font-size:.62rem">ACTIVO</span>';
+                const bajaBtn = isInactivo
+                    ? `<button class="btn btn-outline-success p-0 ms-1" style="width:24px;height:24px;font-size:.7rem" onclick="toggleBaja('${u.user_id}',true,'${shortId}')" title="Reactivar"><i class="fas fa-user-check"></i></button>`
+                    : `<button class="btn btn-outline-warning p-0 ms-1" style="width:24px;height:24px;font-size:.7rem" onclick="toggleBaja('${u.user_id}',false,'${shortId}')" title="Dar de baja"><i class="fas fa-user-slash"></i></button>`;
+                const safeEmail = (u.email || '').replace(/'/g, '&#39;');
+                const delBtn = `<button class="btn btn-outline-danger p-0 ms-1" style="width:24px;height:24px;font-size:.65rem" onclick="ctrlDeleteUser('${u.user_id}','${safeEmail}')" title="Eliminar usuario"><i class="fas fa-trash-alt"></i></button>`;
+                return `<tr id="ctrl-row-${shortId}" class="${isInactivo ? 'table-secondary' : ''}">
                     <td>
                         <div class="fw-semibold" style="font-size:.82rem">${u.email || '–'}</div>
                         <div class="text-muted" style="font-size:.72rem">${u.full_name || u.username || ''}</div>
                     </td>
-                    <td>${roleBadgeCtrl}</td>
-                    <td style="font-size:.78rem">${lastLogin}</td>
-                    <td style="font-size:.78rem">${created}</td>
-                    <td class="text-center">${badge}${bajaBtn}</td>
+                    <td>
+                        <select class="form-select form-select-sm py-0 px-1" id="ctrl-sel-${shortId}" style="font-size:.75rem"
+                            onchange="ctrlAssignRole('${u.user_id}',this.value,'${shortId}')">
+                            ${roleOpts}
+                        </select>
+                    </td>
+                    <td>
+                        <div style="font-size:.72rem;line-height:1.3">
+                            <span class="fw-semibold text-primary">${dirName}</span>
+                            ${subdirName ? `<br><span class="text-muted">${subdirName}</span>` : ''}
+                        </div>
+                        <button class="btn p-0 border-0 mt-1" style="width:20px;height:20px;background:rgba(13,110,253,.1);border-radius:4px"
+                            onclick="toggleAreaEdit('${u.user_id}','${shortId}')" title="Editar área">
+                            <i class="fas fa-pencil-alt" style="font-size:.6rem;color:#0d6efd"></i>
+                        </button>
+                    </td>
+                    <td style="font-size:.72rem">${lastLogin}</td>
+                    <td class="text-center">${statusBadge}${bajaBtn}${delBtn}</td>
                 </tr>`;
             }).join('');
         }
@@ -1306,7 +1416,17 @@ WHERE u.email = '${email.trim()}';
                 const pMap = {};
                 (permsData || []).forEach(r => pMap[r.user_id] = r.permissions || {});
                 _ctrlRows = (usersData || []).map(u => ({ ...u, permissions: pMap[u.user_id] || {} }));
-                if (statusEl) statusEl.textContent = `${_ctrlRows.length} usuario(s).`;
+                // Actualizar estadísticas
+                const total  = _ctrlRows.length;
+                const bajas  = _ctrlRows.filter(u => u.permissions?.estado === 'INACTIVO').length;
+                const activos = total - bajas;
+                const elTotal  = document.getElementById('ctrl-stat-total');
+                const elActivos = document.getElementById('ctrl-stat-activos');
+                const elBajas  = document.getElementById('ctrl-stat-bajas');
+                if (elTotal)   elTotal.textContent  = total;
+                if (elActivos) elActivos.textContent = activos;
+                if (elBajas)   elBajas.textContent   = bajas;
+                if (statusEl) statusEl.textContent = `${total} usuario(s) — Actualizado ${new Date().toLocaleTimeString('es-MX')}`;
                 ctrlRenderRows();
             } catch(e) {
                 tbody.innerHTML = `<tr><td colspan="5" class="text-danger text-center small py-2">Error: ${e.message}</td></tr>`;
@@ -1328,9 +1448,132 @@ WHERE u.email = '${email.trim()}';
                 if (row) row.permissions = perms;
                 if (statusEl) statusEl.textContent = newEstado === 'INACTIVO'
                     ? '✅ Usuario dado de baja.' : '✅ Usuario reactivado.';
+                // Refresh stats
+                const bajas  = _ctrlRows.filter(u => u.permissions?.estado === 'INACTIVO').length;
+                const total  = _ctrlRows.length;
+                const elActivos = document.getElementById('ctrl-stat-activos');
+                const elBajas   = document.getElementById('ctrl-stat-bajas');
+                if (elActivos) elActivos.textContent = total - bajas;
+                if (elBajas)   elBajas.textContent   = bajas;
                 ctrlRenderRows();
             } catch(e) {
                 if (statusEl) statusEl.textContent = '❌ Error: ' + e.message;
+            }
+        }
+
+        // ── Funciones del panel de control ──────────────────────────────────────────────────
+        function updateCtrlSubdir() {
+            const dirId = document.getElementById('ctrl-reg-dir').value;
+            _populateSubdirSelect('ctrl-reg-subdir', dirId);
+        }
+
+        async function ctrlCreateUser() {
+            const username  = document.getElementById('ctrl-reg-username').value.trim();
+            const password  = document.getElementById('ctrl-reg-password').value;
+            const fullName  = document.getElementById('ctrl-reg-fullname').value.trim();
+            const emailInput = document.getElementById('ctrl-reg-email').value.trim();
+            const role      = document.getElementById('ctrl-reg-role').value;
+            const dirId     = document.getElementById('ctrl-reg-dir').value;
+            const subdirId  = document.getElementById('ctrl-reg-subdir').value;
+            const msgEl     = document.getElementById('ctrl-reg-msg');
+
+            if (!username || !password) {
+                msgEl.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>Usuario y contraseña son obligatorios.</span>';
+                return;
+            }
+
+            msgEl.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creando usuario…';
+            try {
+                let authEmail = username;
+                if (!authEmail.includes('@')) {
+                    const normalized = username.toLowerCase()
+                        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                        .replace(/\s+/g, '.');
+                    authEmail = `${normalized}@aifa.operaciones`;
+                }
+
+                const { data, error } = await window.supabaseClient.auth.signUp({
+                    email: authEmail,
+                    password,
+                    options: { data: { full_name: fullName || username, username, contact_email: emailInput || '' } }
+                });
+                if (error) throw error;
+
+                const userId = data.user?.id;
+                if (userId) {
+                    const { error: roleErr } = await window.supabaseClient
+                        .rpc('assign_user_role', { p_user_id: userId, p_role: role });
+                    if (roleErr) throw roleErr;
+
+                    if (dirId || subdirId) {
+                        const { data: ur } = await window.supabaseClient
+                            .from('user_roles').select('permissions').eq('user_id', userId).single();
+                        const perms = { ...(ur?.permissions || {}), direccion_id: dirId, subdireccion_id: subdirId };
+                        await window.supabaseClient.from('user_roles').update({ permissions: perms }).eq('user_id', userId);
+                    }
+                }
+
+                msgEl.innerHTML = `<span class="text-success"><i class="fas fa-check me-1"></i>Usuario <strong>${username}</strong> creado con rol <strong>${role}</strong>.</span>`;
+                document.getElementById('ctrl-reg-username').value = '';
+                document.getElementById('ctrl-reg-password').value = '';
+                document.getElementById('ctrl-reg-fullname').value = '';
+                document.getElementById('ctrl-reg-email').value    = '';
+                document.getElementById('ctrl-reg-dir').value      = '';
+                document.getElementById('ctrl-reg-subdir').innerHTML = '<option value="">— Sin Subdirección —</option>';
+                document.getElementById('ctrl-reg-subdir').disabled = true;
+                // Recargar la lista después de un momento
+                setTimeout(() => loadActivityLog(), 900);
+            } catch (err) {
+                let hint = '';
+                if (err.message?.includes('already registered')) hint = ' (el usuario ya existe)';
+                msgEl.innerHTML = `<span class="text-danger"><i class="fas fa-times me-1"></i>Error: ${err.message}${hint}</span>`;
+            }
+        }
+
+        async function ctrlAssignRole(userId, newRole, shortId) {
+            const sel = document.getElementById(`ctrl-sel-${shortId}`);
+            if (sel) sel.disabled = true;
+            const statusEl = document.getElementById('ctrl-status');
+            if (statusEl) statusEl.textContent = 'Cambiando rol…';
+            try {
+                const { error } = await window.supabaseClient
+                    .rpc('assign_user_role', { p_user_id: userId, p_role: newRole });
+                if (error) throw error;
+                const u = _ctrlRows.find(x => x.user_id === userId);
+                if (u) u.role = newRole;
+                if (statusEl) statusEl.textContent = `✅ Rol actualizado a "${newRole}".`;
+            } catch (err) {
+                if (statusEl) statusEl.textContent = '❌ ' + err.message;
+                await loadActivityLog();
+            } finally {
+                if (sel) sel.disabled = false;
+            }
+        }
+
+        async function ctrlDeleteUser(userId, email) {
+            if (!confirm(`¿Eliminar al usuario "${email}"?\n\nEsta acción no se puede deshacer.`)) return;
+            const statusEl = document.getElementById('ctrl-status');
+            if (statusEl) statusEl.textContent = 'Eliminando…';
+            try {
+                const { error } = await window.supabaseClient
+                    .rpc('delete_user_by_admin', { p_user_id: userId });
+                if (error) throw error;
+                _ctrlRows = _ctrlRows.filter(u => u.user_id !== userId);
+                if (statusEl) statusEl.textContent = `✅ Usuario ${email} eliminado.`;
+                const total  = _ctrlRows.length;
+                const bajas  = _ctrlRows.filter(u => u.permissions?.estado === 'INACTIVO').length;
+                const elTotal   = document.getElementById('ctrl-stat-total');
+                const elActivos = document.getElementById('ctrl-stat-activos');
+                const elBajas   = document.getElementById('ctrl-stat-bajas');
+                if (elTotal)   elTotal.textContent   = total;
+                if (elActivos) elActivos.textContent  = total - bajas;
+                if (elBajas)   elBajas.textContent    = bajas;
+                ctrlRenderRows();
+            } catch (err) {
+                const sql = `DELETE FROM auth.users WHERE id = '${userId}';`;
+                if (statusEl) statusEl.innerHTML =
+                    `⚠️ No automático: <code class="bg-dark text-white px-1 rounded small">${sql}</code>
+                    <button class="btn btn-outline-secondary btn-sm py-0 ms-1" onclick="navigator.clipboard.writeText('${sql}')">Copiar</button>`;
             }
         }
 
