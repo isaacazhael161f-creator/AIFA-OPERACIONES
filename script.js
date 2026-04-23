@@ -17190,14 +17190,16 @@ async function _conciSaveBulkEdits() {
             if (error) throw error;
             const userId = data.user?.id;
             if (userId) {
-                // upsert directo, sin depender del RPC assign_user_role
-                const perms = {};
-                if (dirId)    perms.direccion_id    = dirId;
-                if (subdirId) perms.subdireccion_id = subdirId;
-                const { error: re } = await window.supabaseClient
-                    .from('user_roles')
-                    .upsert({ user_id: userId, role, permissions: perms }, { onConflict: 'user_id' });
+                // Usar RPC SECURITY DEFINER para bypasar RLS en user_roles
+                const { data: rd, error: re } = await window.supabaseClient
+                    .rpc('admin_create_user_role', {
+                        p_user_id:   userId,
+                        p_role:      role,
+                        p_dir_id:    dirId    || null,
+                        p_subdir_id: subdirId || null
+                    });
                 if (re) throw re;
+                if (rd && rd.ok === false) throw new Error(rd.error || 'Error asignando rol');
             }
             if (msgEl) msgEl.innerHTML = `<span class="text-success"><i class="fas fa-check me-1"></i>Usuario <strong>${username}</strong> creado con rol <strong>${role}</strong>.</span>`;
             ['au-reg-username','au-reg-password','au-reg-fullname','au-reg-email'].forEach(id => {
