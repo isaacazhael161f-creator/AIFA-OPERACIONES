@@ -4486,6 +4486,23 @@ FF
                         }
                         .colab-btn-edit:hover { background: linear-gradient(135deg,#0d47a1,#1565c0); }
 
+                        .colab-btn-delete {
+                            background: linear-gradient(135deg, #b71c1c, #e53935);
+                            color: #fff;
+                            border: none;
+                            border-radius: 10px;
+                            padding: .52rem 1.1rem;
+                            font-weight: 700;
+                            font-size: .82rem;
+                            cursor: pointer;
+                            display: flex;
+                            align-items: center;
+                            gap: .4rem;
+                            transition: background .2s, opacity .2s;
+                            white-space: nowrap;
+                        }
+                        .colab-btn-delete:hover { background: linear-gradient(135deg,#7f0000,#b71c1c); }
+
                         /* ─── PANEL HISTORIAL ─── */
                         .colab-historial-panel {
                             background: #f8faff;
@@ -4884,6 +4901,9 @@ FF
                                 <div class="d-flex gap-2">
                                     <button class="colab-btn-edit d-none" id="colab-btn-edit" onclick="colabAbrirEditor()" aria-label="Editar colaborador">
                                         <i class="fas fa-pen" aria-hidden="true"></i> Editar
+                                    </button>
+                                    <button class="colab-btn-delete d-none" id="colab-btn-delete" onclick="colabEliminarColaborador()" aria-label="Eliminar colaborador">
+                                        <i class="fas fa-trash-alt" aria-hidden="true"></i> Eliminar
                                     </button>
                                     <button class="colab-btn-print" onclick="window.print()" aria-label="Imprimir ficha">
                                         <i class="fas fa-print" aria-hidden="true"></i> Imprimir ficha
@@ -5356,7 +5376,12 @@ FF
                                     </div><!-- /tab-content -->
                                 </div><!-- /modal-body -->
                                 <div class="modal-footer justify-content-between">
-                                    <small class="text-muted" id="colab-edit-last-save">—</small>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <small class="text-muted" id="colab-edit-last-save">—</small>
+                                        <button type="button" class="btn btn-danger btn-sm d-none" id="btn-colab-delete-from-modal" onclick="colabEliminarColaborador()">
+                                            <i class="fas fa-trash-alt me-1"></i>Eliminar colaborador
+                                        </button>
+                                    </div>
                                     <div>
                                         <button type="button" class="btn btn-secondary btn-sm me-2" data-bs-dismiss="modal">Cancelar</button>
                                         <button type="button" class="btn btn-primary btn-sm" id="btn-colab-save" onclick="colabGuardarCambios()">
@@ -5367,6 +5392,33 @@ FF
                             </div>
                         </div>
                     </div><!-- /colabEditModal -->
+
+                    <!-- ══════════════════════════════════════════════
+                         MODAL: CONFIRMAR ELIMINACIÓN DE COLABORADOR
+                    ══════════════════════════════════════════════ -->
+                    <div class="modal fade" id="colabEliminarModal" tabindex="-1" aria-labelledby="colabEliminarModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header py-2 bg-danger text-white">
+                                    <h5 class="modal-title mb-0" id="colabEliminarModalLabel">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>Eliminar colaborador
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p class="mb-1">¿Estás seguro de que deseas eliminar permanentemente al colaborador:</p>
+                                    <p class="fw-bold fs-6 mb-2" id="colab-delete-nombre-confirm">—</p>
+                                    <p class="text-danger small mb-0"><i class="fas fa-info-circle me-1"></i>Esta acción no se puede deshacer. El registro se eliminará de la base de datos.</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="button" class="btn btn-danger btn-sm" id="btn-colab-confirmar-eliminar" onclick="colabConfirmarEliminar()">
+                                        <i class="fas fa-trash-alt me-1"></i>Sí, eliminar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- /colabEliminarModal -->
 
                     <!-- ══════════════════════════════════════════════
                          MODAL: NUEVO COLABORADOR
@@ -6038,6 +6090,10 @@ FF
                             colabCurrentRow = c;
                             const editBtn = document.getElementById('colab-btn-edit');
                             if (editBtn) editBtn.classList.toggle('d-none', !colabCanEdit());
+                            const deleteBtn = document.getElementById('colab-btn-delete');
+                            if (deleteBtn) deleteBtn.classList.toggle('d-none', !colabCanDelete());
+                            const deleteFromModalBtn = document.getElementById('btn-colab-delete-from-modal');
+                            if (deleteFromModalBtn) deleteFromModalBtn.classList.toggle('d-none', !colabCanDelete());
                             colabActualizarBotonesAdmin();
 
                             // Cargar historial (async, sin bloquear el render)
@@ -6657,6 +6713,67 @@ FF
                             const loading = document.getElementById('cd-loading');
                             if (loading) loading.innerHTML = '<div class="spinner-border spinner-border-sm text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>';
                             colabRenderDashboard();
+                        };
+
+                        /* ── Permiso de eliminación: solo admin y colab_editor ── */
+                        function colabCanDelete() {
+                            const role = sessionStorage.getItem('user_role');
+                            return role === 'admin' || role === 'colab_editor';
+                        }
+
+                        /* ── Abrir modal de confirmación de eliminación ── */
+                        window.colabEliminarColaborador = function() {
+                            if (!colabCurrentRow || !colabCanDelete()) return;
+                            const c = colabCurrentRow;
+                            const nombre = val(gc(c, 'nombre')) || '(sin nombre)';
+                            const numEmpl = val(gc(c, 'num')) || '—';
+                            const label = document.getElementById('colab-delete-nombre-confirm');
+                            if (label) label.textContent = `No. ${numEmpl} — ${nombre}`;
+                            // Cerrar el modal de edición si estuviera abierto
+                            try {
+                                bootstrap.Modal.getInstance(document.getElementById('colabEditModal'))?.hide();
+                            } catch (_) { }
+                            const modal = new bootstrap.Modal(document.getElementById('colabEliminarModal'));
+                            modal.show();
+                        };
+
+                        /* ── Ejecutar la eliminación tras confirmar ── */
+                        window.colabConfirmarEliminar = async function() {
+                            if (!colabCurrentRow || !colabCanDelete()) return;
+                            const c = colabCurrentRow;
+                            const numEmpl = String(gc(c, 'num') || '').trim();
+                            const numCol  = colabCols?.num;
+                            if (!numCol || !numEmpl) { alert('No se puede identificar al colaborador para eliminarlo.'); return; }
+
+                            const btnConfirm = document.getElementById('btn-colab-confirmar-eliminar');
+                            if (btnConfirm) { btnConfirm.disabled = true; btnConfirm.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Eliminando…'; }
+
+                            try {
+                                const sb = window.supabaseClient;
+                                if (!sb) throw new Error('Supabase no disponible');
+
+                                const safeNumCol = /[\s.]/.test(numCol) ? `"${numCol}"` : numCol;
+                                const { error } = await sb.from('agenda_2026').delete().eq(safeNumCol, numEmpl);
+                                if (error) throw error;
+
+                                // Cerrar modal de confirmación
+                                bootstrap.Modal.getInstance(document.getElementById('colabEliminarModal'))?.hide();
+
+                                // Invalidar caché
+                                colabCache = null; colabLoaded = false; colabLoadPromise = null;
+                                colabCurrentRow = null;
+
+                                // Volver a la vista inicial y recargar dashboard
+                                colabSetState('inicial');
+                                const todos = await colabCargarTodos();
+                                if (todos.length) colabRenderDashboard();
+
+                            } catch (err) {
+                                console.error('[Colaboradores] Error al eliminar:', err);
+                                alert('Error al eliminar: ' + (err?.message || String(err)));
+                            } finally {
+                                if (btnConfirm) { btnConfirm.disabled = false; btnConfirm.innerHTML = '<i class="fas fa-trash-alt me-1"></i>Sí, eliminar'; }
+                            }
                         };
 
                         /* ── Eventos del input de nombre y número ── */
