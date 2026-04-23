@@ -16780,10 +16780,33 @@ async function _conciSaveBulkEdits() {
         auRenderRows();
     };
 
-    // ── Renderizar tabla ──────────────────────────────────────────────────
+    // ── Secciones disponibles para control de vistas ─────────────────────
+    const AU_SECTIONS = [
+        { key: 'operaciones-totales', label: 'Dashboard',        icon: 'tachometer-alt',    group: 'Operaciones' },
+        { key: 'inicio',              label: 'Inicio / KPIs',     icon: 'home',              group: 'Operaciones' },
+        { key: 'frecuencias-semana',  label: 'Frecuencias',       icon: 'calendar-week',     group: 'Operaciones' },
+        { key: 'parte-operaciones',   label: 'Parte Operaciones', icon: 'clipboard-list',    group: 'Operaciones' },
+        { key: 'analisis-operaciones',label: 'Análisis',          icon: 'chart-bar',         group: 'Operaciones' },
+        { key: 'conciliacion',        label: 'Conciliación',      icon: 'balance-scale',     group: 'Operaciones' },
+        { key: 'puntualidad-agosto',  label: 'Puntualidad',       icon: 'clock',             group: 'Operaciones' },
+        { key: 'demoras',             label: 'Demoras',           icon: 'exclamation-circle', group: 'Operaciones' },
+        { key: 'itinerario-mensual',  label: 'Itinerario',        icon: 'route',             group: 'Operaciones' },
+        { key: 'comparativa',         label: 'Comparativa',       icon: 'exchange-alt',      group: 'Operaciones' },
+        { key: 'aerolineas',          label: 'Aerolíneas',        icon: 'plane',             group: 'Módulos' },
+        { key: 'portal-digitalizacion',label:'Portal Digital',    icon: 'digital-tachograph',group: 'Módulos' },
+        { key: 'fauna',               label: 'Control Fauna',     icon: 'dove',              group: 'Módulos' },
+        { key: 'medicas',             label: 'Médicas',           icon: 'heartbeat',         group: 'Módulos' },
+        { key: 'abordadores-mecanicos',label:'Abordadores',       icon: 'hard-hat',          group: 'Módulos' },
+        { key: 'colaboradores',       label: 'Colaboradores',     icon: 'address-book',      group: 'Personal' },
+        { key: 'agenda',              label: 'Agenda',            icon: 'calendar-alt',      group: 'Personal' },
+        { key: 'biblioteca',          label: 'Biblioteca',        icon: 'book',              group: 'Personal' },
+        { key: 'historia',            label: 'Historia AIFA',     icon: 'landmark',          group: 'Personal' },
+    ];
+
+    // ── Renderizar tarjetas de usuario ────────────────────────────────────
     window.auRenderRows = function () {
-        const tbody = document.getElementById('au-tbody');
-        if (!tbody) return;
+        const container = document.getElementById('au-tbody');
+        if (!container) return;
         const q = (document.getElementById('au-search')?.value || '').toLowerCase();
         let rows = _auFilter === 'baja'   ? _auRows.filter(u => u.permissions?.estado === 'INACTIVO') :
                    _auFilter === 'activo' ? _auRows.filter(u => u.permissions?.estado !== 'INACTIVO') :
@@ -16794,65 +16817,199 @@ async function _conciSaveBulkEdits() {
             (u.username || '').toLowerCase().includes(q)
         );
         if (!rows.length) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Sin resultados</td></tr>';
+            container.innerHTML = '<div class="text-center text-muted py-5"><i class="fas fa-search fa-2x mb-2 d-block"></i>Sin resultados</div>';
             return;
         }
-        tbody.innerHTML = rows.map(u => {
+
+        const ROLE_COLORS = { admin:'danger', editor:'warning', viewer:'secondary', colab_viewer:'info', colab_editor:'primary', control_fauna:'success', servicio_medico:'success' };
+        const AVATAR_COLORS = ['#4361ee','#3a0ca3','#7209b7','#f72585','#4cc9f0','#06d6a0','#ef233c','#e76f51'];
+
+        container.innerHTML = rows.map(u => {
             const isInactivo = u.permissions?.estado === 'INACTIVO';
-            const shortId = (u.user_id || '').substring(0, 8);
-            const onlineDot = u.is_online
-                ? '<span class="badge bg-success me-1" style="font-size:0.65rem;vertical-align:middle">● En línea</span>'
+            const shortId    = (u.user_id || '').substring(0, 8);
+            const displayName = u.full_name || u.username || u.email?.split('@')[0] || '?';
+            const initials   = displayName.split(' ').slice(0,2).map(w => w[0]?.toUpperCase() || '').join('');
+            const avatarColor = AVATAR_COLORS[(displayName.charCodeAt(0) || 0) % AVATAR_COLORS.length];
+            const roleLabel  = AU_ROLE_LABELS[u.role] || u.role || '—';
+            const roleColor  = ROLE_COLORS[u.role] || 'secondary';
+            const perms      = u.permissions || {};
+            const dirId      = perms.direccion_id || '';
+            const subId      = perms.subdireccion_id || '';
+            const dirName    = dirId ? (_auAreas.find(a => a.id === dirId)?.clave || '?') : null;
+            const subName    = subId ? (_auAreas.find(a => a.id === subId)?.clave  || '') : '';
+            const onlineBadge = u.is_online
+                ? '<span class="badge bg-success" style="font-size:.65rem"><i class="fas fa-circle me-1" style="font-size:.5rem"></i>En línea</span>'
                 : '';
-            const lastLogin = u.last_sign_in_at
+            const lastLogin   = u.last_sign_in_at
                 ? new Date(u.last_sign_in_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
-                : '—';
-            const roleOpts = AU_ALL_ROLES.map(r =>
+                : 'Sin acceso';
+            const safeEmail  = (u.email || '').replace(/'/g, '&#39;');
+            const roleOpts   = AU_ALL_ROLES.map(r =>
                 `<option value="${r}" ${u.role === r ? 'selected' : ''}>${AU_ROLE_LABELS[r] || r}</option>`
             ).join('');
-            const perms  = u.permissions || {};
-            const dirId  = perms.direccion_id || '';
-            const subId  = perms.subdireccion_id || '';
-            const dirName  = dirId ? (_auAreas.find(a => a.id === dirId)?.clave || '?') : '—';
-            const subName  = subId ? (_auAreas.find(a => a.id === subId)?.clave  || '') : '';
-            const statusBadge = isInactivo
-                ? '<span class="badge bg-danger">BAJA</span>'
-                : '<span class="badge bg-success">ACTIVO</span>';
-            const bajaBtn = isInactivo
-                ? `<button class="btn btn-outline-success btn-sm py-0 px-1 ms-1" onclick="auToggleBaja('${u.user_id}',true,'${shortId}')" title="Reactivar"><i class="fas fa-user-check"></i></button>`
-                : `<button class="btn btn-outline-warning btn-sm py-0 px-1 ms-1" onclick="auToggleBaja('${u.user_id}',false,'${shortId}')" title="Dar de baja"><i class="fas fa-user-slash"></i></button>`;
-            const safeEmail = (u.email || '').replace(/'/g, '&#39;');
-            const delBtn  = `<button class="btn btn-outline-danger btn-sm py-0 px-1 ms-1" onclick="auDeleteUser('${u.user_id}','${safeEmail}')" title="Eliminar"><i class="fas fa-trash-alt"></i></button>`;
-            return `<tr id="au-row-${shortId}" class="${isInactivo ? 'table-secondary' : ''}">
-                <td>
-                    <div class="fw-semibold">${u.email || '–'}</div>
-                    <div class="text-muted" style="font-size:.78rem">${u.full_name || u.username || ''}</div>
-                </td>
-                <td>
-                    <select class="form-select form-select-sm py-0" id="au-sel-${shortId}"
-                        onchange="auAssignRole('${u.user_id}',this.value,'${shortId}')">
-                        ${roleOpts}
-                    </select>
-                </td>
-                <td>
-                    <div style="font-size:.78rem;line-height:1.3">
-                        <span class="fw-semibold text-primary">${dirName}</span>
-                        ${subName ? `<br><span class="text-muted">${subName}</span>` : ''}
+
+            return `<div id="au-row-${shortId}" class="card border-0 shadow-sm${isInactivo ? ' opacity-60' : ''}" style="border-left:4px solid ${isInactivo ? '#dc3545' : avatarColor}!important;transition:box-shadow .2s">
+                <div class="card-body py-3 px-3">
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+
+                        <!-- Avatar -->
+                        <div class="flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle text-white fw-bold"
+                            style="width:46px;height:46px;font-size:1rem;background:${isInactivo ? '#adb5bd' : avatarColor}">
+                            ${initials || '?'}
+                        </div>
+
+                        <!-- Nombre + email + badges -->
+                        <div class="flex-grow-1 min-width-0">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="fw-bold" style="font-size:1rem">${displayName}</span>
+                                ${onlineBadge}
+                                ${isInactivo ? '<span class="badge bg-danger">BAJA</span>' : ''}
+                            </div>
+                            <div class="text-muted small">${u.email || '—'}</div>
+                            <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
+                                <span class="badge bg-${roleColor}" style="font-size:.72rem">${roleLabel}</span>
+                                ${dirName ? `<span class="badge bg-light text-primary border" style="font-size:.7rem"><i class="fas fa-sitemap me-1"></i>${dirName}${subName ? ' / ' + subName : ''}</span>` : ''}
+                                <span class="text-muted" style="font-size:.72rem"><i class="fas fa-clock me-1 opacity-50"></i>${lastLogin}</span>
+                            </div>
+                        </div>
+
+                        <!-- Acciones rápidas -->
+                        <div class="d-flex align-items-center gap-2 flex-shrink-0 flex-wrap">
+                            <!-- Cambiar rol inline -->
+                            <select class="form-select form-select-sm py-0 px-2 border-0 bg-light rounded-pill" id="au-sel-${shortId}"
+                                style="font-size:.78rem;max-width:130px;cursor:pointer"
+                                onchange="auAssignRole('${u.user_id}',this.value,'${shortId}')"
+                                title="Cambiar rol">
+                                ${roleOpts}
+                            </select>
+                            <!-- Área -->
+                            <button class="btn btn-sm btn-outline-primary rounded-pill px-2 py-0" style="font-size:.75rem"
+                                onclick="auToggleAreaEdit('${u.user_id}','${shortId}')" title="Editar área">
+                                <i class="fas fa-sitemap me-1"></i>Área
+                            </button>
+                            <!-- Vistas -->
+                            <button class="btn btn-sm btn-outline-info rounded-pill px-2 py-0" style="font-size:.75rem"
+                                id="au-views-btn-${shortId}"
+                                onclick="auToggleViews('${u.user_id}','${shortId}')" title="Gestionar vistas">
+                                <i class="fas fa-eye me-1"></i>Vistas
+                            </button>
+                            <!-- Baja / Reactivar -->
+                            ${isInactivo
+                                ? `<button class="btn btn-sm btn-outline-success rounded-pill px-2 py-0" style="font-size:.75rem" onclick="auToggleBaja('${u.user_id}',true,'${shortId}')" title="Reactivar"><i class="fas fa-user-check me-1"></i>Reactivar</button>`
+                                : `<button class="btn btn-sm btn-outline-warning rounded-pill px-2 py-0" style="font-size:.75rem" onclick="auToggleBaja('${u.user_id}',false,'${shortId}')" title="Dar de baja"><i class="fas fa-user-slash me-1"></i>Baja</button>`
+                            }
+                            <!-- Eliminar -->
+                            <button class="btn btn-sm btn-outline-danger rounded-circle p-0 d-flex align-items-center justify-content-center"
+                                style="width:28px;height:28px" onclick="auDeleteUser('${u.user_id}','${safeEmail}')" title="Eliminar usuario">
+                                <i class="fas fa-trash-alt" style="font-size:.7rem"></i>
+                            </button>
+                        </div>
                     </div>
-                    <button class="btn p-0 border-0 mt-1" style="width:20px;height:20px;background:rgba(13,110,253,.1);border-radius:4px"
-                        onclick="auToggleAreaEdit('${u.user_id}','${shortId}')" title="Editar área">
-                        <i class="fas fa-pencil-alt" style="font-size:.6rem;color:#0d6efd"></i>
-                    </button>
-                </td>
-                <td style="font-size:.8rem">${onlineDot}${lastLogin}</td>
-                <td class="text-center">${statusBadge}${bajaBtn}${delBtn}</td>
-            </tr>`;
+                </div>
+                <!-- Panel expandible (área / vistas / inline) -->
+                <div id="au-panel-${shortId}" style="display:none"></div>
+            </div>`;
         }).join('');
+    };
+
+    // ── Toggle panel de vistas por usuario ───────────────────────────────
+    window.auToggleViews = function (userId, shortId) {
+        const panel = document.getElementById(`au-panel-${shortId}`);
+        const btn   = document.getElementById(`au-views-btn-${shortId}`);
+        if (!panel) return;
+        if (panel.dataset.mode === 'views') {
+            panel.style.display = 'none';
+            panel.dataset.mode = '';
+            btn?.classList.remove('active','btn-info');
+            btn?.classList.add('btn-outline-info');
+            return;
+        }
+        panel.dataset.mode = 'views';
+        btn?.classList.add('active','btn-info');
+        btn?.classList.remove('btn-outline-info');
+
+        const u = _auRows.find(x => x.user_id === userId);
+        const currentSecs = Array.isArray(u?.permissions?.allowed_sections)
+            ? u.permissions.allowed_sections : [];
+
+        // Agrupar secciones
+        const groups = {};
+        AU_SECTIONS.forEach(s => {
+            if (!groups[s.group]) groups[s.group] = [];
+            groups[s.group].push(s);
+        });
+        const groupColors = { 'Operaciones': '#0d6efd', 'Módulos': '#6f42c1', 'Personal': '#198754' };
+
+        const isAllAccess = currentSecs.length === 0; // sin restricción = acceso total
+        const sectionsHtml = Object.entries(groups).map(([grp, secs]) => `
+            <div class="mb-2">
+                <div class="fw-semibold small mb-1" style="color:${groupColors[grp] || '#333'};text-transform:uppercase;letter-spacing:.05em;font-size:.7rem">
+                    <i class="fas fa-layer-group me-1"></i>${grp}
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    ${secs.map(s => {
+                        const checked = isAllAccess || currentSecs.includes(s.key);
+                        return `<label class="d-flex align-items-center gap-1 px-2 py-1 rounded-pill border small" style="cursor:pointer;font-size:.75rem;background:${checked?'rgba(13,110,253,.07)':'#fff'}">
+                            <input type="checkbox" class="form-check-input m-0 me-1" id="auv-${shortId}-${s.key}" value="${s.key}" ${checked ? 'checked' : ''} style="cursor:pointer">
+                            <i class="fas fa-${s.icon} text-muted" style="font-size:.7rem"></i>${s.label}
+                        </label>`;
+                    }).join('')}
+                </div>
+            </div>`).join('');
+
+        panel.style.display = 'block';
+        panel.innerHTML = `<div class="border-top px-3 py-3" style="background:#f8f9ff">
+            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                <span class="fw-semibold small"><i class="fas fa-eye me-1 text-info"></i>Vistas accesibles</span>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size:.72rem"
+                        onclick="auSelectAllViews('${shortId}',true)"><i class="fas fa-check-double me-1"></i>Todas</button>
+                    <button class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size:.72rem"
+                        onclick="auSelectAllViews('${shortId}',false)"><i class="fas fa-times me-1"></i>Ninguna</button>
+                    <button class="btn btn-success btn-sm py-0 px-3 fw-semibold" style="font-size:.75rem"
+                        onclick="auSaveViews('${userId}','${shortId}')"><i class="fas fa-save me-1"></i>Guardar</button>
+                    <button class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size:.72rem"
+                        onclick="auToggleViews('${userId}','${shortId}')">Cerrar</button>
+                </div>
+            </div>
+            <div class="small text-muted mb-2">
+                <i class="fas fa-info-circle me-1"></i>Sin selección = acceso total (roles Editor/Admin ignoran esta lista).
+            </div>
+            ${sectionsHtml}
+        </div>`;
+    };
+
+    window.auSelectAllViews = function (shortId, selectAll) {
+        document.querySelectorAll(`[id^="auv-${shortId}-"]`).forEach(cb => { cb.checked = selectAll; });
+    };
+
+    window.auSaveViews = async function (userId, shortId) {
+        const checkboxes = document.querySelectorAll(`[id^="auv-${shortId}-"]`);
+        const selected   = Array.from(checkboxes).filter(c => c.checked).map(c => c.value);
+        const st = document.getElementById('au-status');
+        if (st) st.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando vistas…';
+        try {
+            const { data: ur } = await window.supabaseClient
+                .from('user_roles').select('permissions').eq('user_id', userId).maybeSingle();
+            const perms = { ...(ur?.permissions || {}), allowed_sections: selected };
+            const { error } = await window.supabaseClient
+                .from('user_roles').update({ permissions: perms }).eq('user_id', userId);
+            if (error) throw error;
+            // Actualizar caché local
+            const u = _auRows.find(x => x.user_id === userId);
+            if (u) u.permissions = perms;
+            if (st) st.innerHTML = `<span class="text-success"><i class="fas fa-check-circle me-1"></i>Vistas guardadas: <strong>${selected.length || 'todas'}</strong> secciones.</span>`;
+            // Cerrar panel y refrescar tarjeta
+            auToggleViews(userId, shortId);
+            auRenderRows();
+        } catch (e) {
+            if (st) st.innerHTML = `<span class="text-danger"><i class="fas fa-times-circle me-1"></i>${e.message}</span>`;
+        }
     };
 
     // ── Cambiar rol ───────────────────────────────────────────────────────
     window.auAssignRole = async function (userId, newRole, shortId) {
         const sel = document.getElementById(`au-sel-${shortId}`);
-        const row = document.getElementById(`au-row-${shortId}`);
         const st  = document.getElementById('au-status');
         // Guardar valor previo para revertir si falla
         const prevRole = _auRows.find(x => x.user_id === userId)?.role || (sel?.value);
@@ -16899,30 +17056,32 @@ async function _conciSaveBulkEdits() {
 
     // ── Edición inline de área ────────────────────────────────────────────
     window.auToggleAreaEdit = function (userId, shortId) {
-        const existing = document.getElementById(`au-area-panel-${shortId}`);
-        if (existing) { existing.remove(); return; }
-        const row = document.getElementById(`au-row-${shortId}`);
-        if (!row) return;
+        const panel = document.getElementById(`au-panel-${shortId}`);
+        if (!panel) return;
+        if (panel.dataset.mode === 'area') {
+            panel.style.display = 'none';
+            panel.dataset.mode = '';
+            return;
+        }
+        // Cerrar panel de vistas si está abierto
+        const viewsBtn = document.getElementById(`au-views-btn-${shortId}`);
+        if (viewsBtn) { viewsBtn.classList.remove('active','btn-info'); viewsBtn.classList.add('btn-outline-info'); }
+
         const u = _auRows.find(x => x.user_id === userId);
-        const curDir  = u?.permissions?.direccion_id    || '';
-        const curSub  = u?.permissions?.subdireccion_id || '';
-        const colspan = row.cells.length;
-        const tr = document.createElement('tr');
-        tr.id = `au-area-panel-${shortId}`;
-        tr.style.background = '#eef5ff';
-        tr.innerHTML = `<td colspan="${colspan}" class="py-2 px-3">
-            <div class="d-flex align-items-center gap-2 flex-wrap small">
-                <i class="fas fa-sitemap text-primary"></i>
-                <select id="au-dir-${shortId}" class="form-select form-select-sm" style="max-width:210px"
-                    onchange="auInlineSubdir('au-dir-${shortId}','au-subdir-${shortId}')"></select>
-                <select id="au-subdir-${shortId}" class="form-select form-select-sm" style="max-width:210px" disabled></select>
-                <button class="btn btn-primary btn-sm py-0 px-2" onclick="auSaveArea('${userId}','${shortId}')">
-                    <i class="fas fa-save me-1"></i>Guardar
-                </button>
-                <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="auToggleAreaEdit('${userId}','${shortId}')">Cancelar</button>
-            </div>
-        </td>`;
-        row.parentNode.insertBefore(tr, row.nextSibling);
+        const curDir = u?.permissions?.direccion_id    || '';
+        const curSub = u?.permissions?.subdireccion_id || '';
+        panel.dataset.mode = 'area';
+        panel.style.display = 'block';
+        panel.innerHTML = `<div class="border-top px-3 py-2 d-flex align-items-center gap-2 flex-wrap" style="background:#f0f7ff">
+            <i class="fas fa-sitemap text-primary"></i>
+            <select id="au-dir-${shortId}" class="form-select form-select-sm" style="max-width:210px"
+                onchange="auInlineSubdir('au-dir-${shortId}','au-subdir-${shortId}')"></select>
+            <select id="au-subdir-${shortId}" class="form-select form-select-sm" style="max-width:210px" disabled></select>
+            <button class="btn btn-primary btn-sm py-0 px-3 fw-semibold" onclick="auSaveArea('${userId}','${shortId}')">
+                <i class="fas fa-save me-1"></i>Guardar
+            </button>
+            <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="auToggleAreaEdit('${userId}','${shortId}')">Cancelar</button>
+        </div>`;
         _auPopulateDirSelect(`au-dir-${shortId}`, curDir);
         _auPopulateSubdirSelect(`au-subdir-${shortId}`, curDir, curSub);
     };
@@ -16946,8 +17105,9 @@ async function _conciSaveBulkEdits() {
             if (error) throw error;
             const u = _auRows.find(x => x.user_id === userId);
             if (u) u.permissions = perms;
-            document.getElementById(`au-area-panel-${shortId}`)?.remove();
-            if (st) st.textContent = '✅ Área asignada.';
+            const panel = document.getElementById(`au-panel-${shortId}`);
+            if (panel) { panel.style.display = 'none'; panel.dataset.mode = ''; }
+            if (st) st.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Área asignada.</span>';
             auRenderRows();
         } catch (e) {
             if (st) st.textContent = '❌ ' + e.message;
@@ -16968,7 +17128,9 @@ async function _conciSaveBulkEdits() {
             if (error) throw error;
             const row = _auRows.find(x => x.user_id === userId);
             if (row) row.permissions = perms;
-            if (st) st.textContent = newEstado === 'INACTIVO' ? '✅ Usuario dado de baja.' : '✅ Usuario reactivado.';
+            if (st) st.innerHTML = newEstado === 'INACTIVO'
+                ? '<span class="text-warning"><i class="fas fa-user-slash me-1"></i>Usuario dado de baja.</span>'
+                : '<span class="text-success"><i class="fas fa-user-check me-1"></i>Usuario reactivado.</span>';
             _auUpdateStats();
             auRenderRows();
         } catch (e) {

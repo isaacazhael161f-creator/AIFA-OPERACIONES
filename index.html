@@ -1631,9 +1631,13 @@ FF
 
                 <!-- Administración de Usuarios (solo admin) -->
                 <div id="admin-usuarios-section" class="content-section">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h2 class="section-heading mb-0"><i class="fas fa-users-cog me-2"></i>Administración de Usuarios</h2>
-                        <button class="btn btn-outline-primary btn-sm" onclick="adminUsersLoad()">
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="section-heading mb-0"><i class="fas fa-users-cog me-2 text-primary"></i>Administración de Usuarios</h2>
+                            <p class="text-muted small mb-0 mt-1">Gestión de accesos, roles y vistas por usuario</p>
+                        </div>
+                        <button class="btn btn-outline-primary btn-sm px-3" onclick="adminUsersLoad()">
                             <i class="fas fa-sync-alt me-1"></i>Actualizar
                         </button>
                     </div>
@@ -1641,59 +1645,65 @@ FF
                     <!-- Stats -->
                     <div class="row g-3 mb-4">
                         <div class="col-4">
-                            <div class="card border-0 shadow-sm text-center py-3">
-                                <div class="fw-bold text-primary fs-3" id="au-stat-total">—</div>
-                                <div class="text-muted small">Total</div>
+                            <div class="card border-0 shadow-sm text-center py-3" style="border-left:4px solid #0d6efd!important">
+                                <div class="fw-bold text-primary" style="font-size:2rem;line-height:1" id="au-stat-total">—</div>
+                                <div class="text-muted small mt-1"><i class="fas fa-users me-1"></i>Total</div>
                             </div>
                         </div>
                         <div class="col-4">
-                            <div class="card border-0 shadow-sm text-center py-3">
-                                <div class="fw-bold text-success fs-3" id="au-stat-activos">—</div>
-                                <div class="text-muted small">Activos</div>
+                            <div class="card border-0 shadow-sm text-center py-3" style="border-left:4px solid #198754!important">
+                                <div class="fw-bold text-success" style="font-size:2rem;line-height:1" id="au-stat-activos">—</div>
+                                <div class="text-muted small mt-1"><i class="fas fa-user-check me-1"></i>Activos</div>
                             </div>
                         </div>
                         <div class="col-4">
-                            <div class="card border-0 shadow-sm text-center py-3">
-                                <div class="fw-bold text-danger fs-3" id="au-stat-bajas">—</div>
-                                <div class="text-muted small">Baja</div>
+                            <div class="card border-0 shadow-sm text-center py-3" style="border-left:4px solid #dc3545!important">
+                                <div class="fw-bold text-danger" style="font-size:2rem;line-height:1" id="au-stat-bajas">—</div>
+                                <div class="text-muted small mt-1"><i class="fas fa-user-times me-1"></i>Baja</div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Crear nuevo usuario (collapse) -->
                     <div class="mb-4">
-                        <button class="btn btn-success fw-bold d-flex align-items-center justify-content-between w-100 py-2"
+                        <button class="btn btn-success fw-semibold d-flex align-items-center justify-content-between w-100 py-2 px-3 rounded-3"
                             type="button" data-bs-toggle="collapse" data-bs-target="#au-new-collapse" aria-expanded="false">
                             <span><i class="fas fa-user-plus me-2"></i>Crear Nuevo Usuario</span>
                             <i class="fas fa-chevron-down"></i>
                         </button>
                         <div class="collapse" id="au-new-collapse">
-                            <div class="card border-0 bg-light p-3 rounded-bottom">
+                            <div class="card border-0 bg-light p-3 rounded-bottom-3">
                                 <div class="row g-2">
                                     <div class="col-12 col-md-4">
-                                        <input type="text" class="form-control form-control-sm" id="au-reg-username" placeholder="Usuario (ID) *">
+                                        <label class="form-label small fw-semibold mb-1">Nombre completo</label>
+                                        <input type="text" class="form-control form-control-sm" id="au-reg-fullname" placeholder="Ej: Juan Pérez García">
                                     </div>
                                     <div class="col-12 col-md-4">
-                                        <input type="password" class="form-control form-control-sm" id="au-reg-password" placeholder="Contraseña *">
+                                        <label class="form-label small fw-semibold mb-1">Usuario (ID) *</label>
+                                        <input type="text" class="form-control form-control-sm" id="au-reg-username" placeholder="Ej: juan.perez">
                                     </div>
                                     <div class="col-12 col-md-4">
-                                        <input type="text" class="form-control form-control-sm" id="au-reg-fullname" placeholder="Nombre Completo">
+                                        <label class="form-label small fw-semibold mb-1">Contraseña *</label>
+                                        <input type="password" class="form-control form-control-sm" id="au-reg-password" placeholder="Contraseña segura">
                                     </div>
                                     <div class="col-12 col-md-4">
+                                        <label class="form-label small fw-semibold mb-1">Email de contacto</label>
                                         <input type="email" class="form-control form-control-sm" id="au-reg-email" placeholder="Email (opcional)">
                                     </div>
                                     <div class="col-12 col-md-4">
+                                        <label class="form-label small fw-semibold mb-1">Rol</label>
                                         <select class="form-select form-select-sm" id="au-reg-role" aria-label="Rol">
                                             <option value="viewer">👀 Viewer</option>
                                             <option value="editor">✏️ Editor</option>
                                             <option value="control_fauna">🦅 Control Fauna</option>
                                             <option value="servicio_medico">🚑 Serv. Médico</option>
                                             <option value="colab_viewer">📋 Colab Viewer</option>
-                                            <option value="colab_editor">✏️ Colab Editor</option>
+                                            <option value="colab_editor">📝 Colab Editor</option>
                                             <option value="admin">🛠️ Admin</option>
                                         </select>
                                     </div>
                                     <div class="col-12 col-md-4">
+                                        <label class="form-label small fw-semibold mb-1">Área</label>
                                         <div class="d-flex gap-2">
                                             <select class="form-select form-select-sm" id="au-reg-dir" aria-label="Dirección" onchange="auUpdateSubdir()">
                                                 <option value="">— Dirección —</option>
@@ -1705,42 +1715,31 @@ FF
                                     </div>
                                 </div>
                                 <div id="au-reg-msg" class="small mt-2"></div>
-                                <button class="btn btn-success btn-sm mt-2 fw-bold" onclick="auCreateUser()">
-                                    <i class="fas fa-user-plus me-1"></i>Crear Usuario
-                                </button>
+                                <div class="mt-2">
+                                    <button class="btn btn-success btn-sm fw-semibold px-4" onclick="auCreateUser()">
+                                        <i class="fas fa-user-plus me-1"></i>Crear Usuario
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Filtros + búsqueda -->
+                    <!-- Barra filtros + búsqueda -->
                     <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-                        <button class="btn btn-outline-secondary btn-sm active" id="au-filter-all" onclick="auSetFilter('all')">Todos</button>
-                        <button class="btn btn-outline-success btn-sm" id="au-filter-activo" onclick="auSetFilter('activo')">Activos</button>
-                        <button class="btn btn-outline-danger btn-sm" id="au-filter-baja" onclick="auSetFilter('baja')">Baja</button>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-secondary active" id="au-filter-all" onclick="auSetFilter('all')">Todos</button>
+                            <button class="btn btn-outline-success" id="au-filter-activo" onclick="auSetFilter('activo')">Activos</button>
+                            <button class="btn btn-outline-danger" id="au-filter-baja" onclick="auSetFilter('baja')">Baja</button>
+                        </div>
                         <input type="text" class="form-control form-control-sm ms-auto" id="au-search"
-                            placeholder="Buscar…" style="max-width:220px" onkeyup="auRenderRows()">
+                            placeholder="🔍 Buscar por nombre, email…" style="max-width:260px" onkeyup="auRenderRows()">
                     </div>
-                    <div id="au-status" class="small text-muted mb-2"></div>
+                    <div id="au-status" class="small mb-2 ps-1"></div>
 
-                    <!-- Tabla -->
-                    <div class="card border-0 shadow-sm">
-                        <div class="table-responsive" style="max-height:480px;overflow-y:auto">
-                            <table class="table table-hover align-middle mb-0 small">
-                                <thead class="table-dark sticky-top">
-                                    <tr>
-                                        <th>Usuario</th>
-                                        <th style="width:130px">Rol</th>
-                                        <th style="width:110px">Área</th>
-                                        <th style="width:120px">Último acceso</th>
-                                        <th style="width:100px" class="text-center">Estado</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="au-tbody">
-                                    <tr><td colspan="5" class="text-center text-muted py-4">
-                                        <i class="fas fa-users me-2 text-muted"></i>Cargando…
-                                    </td></tr>
-                                </tbody>
-                            </table>
+                    <!-- Lista de usuarios -->
+                    <div id="au-tbody" class="d-flex flex-column gap-2">
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>Cargando usuarios…
                         </div>
                     </div>
                 </div>
