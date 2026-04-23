@@ -52,10 +52,6 @@ class AdminUI {
         // Toggle Data Management menu item
         const dataMenu = document.getElementById('data-management-menu');
         if (dataMenu) {
-            // Keep visible for service_medico too
-            // Admin, superadmin, editor, servicio_medico should see it.
-            // control_fauna sees it but only filtered tabs
-            
             // Allow all authorized roles to see the container
             if (isAdmin || ['servicio_medico', 'control_fauna'].includes(role)) {
                 dataMenu.classList.remove('d-none');
@@ -64,6 +60,19 @@ class AdminUI {
             } else {
                 dataMenu.classList.add('d-none');
                 dataMenu.style.display = 'none';
+            }
+        }
+
+        // Toggle Admin Usuarios menu — SOLO para role estrictamente 'admin'
+        const adminUsersMenu = document.getElementById('admin-users-menu');
+        if (adminUsersMenu) {
+            if (role === 'admin') {
+                adminUsersMenu.classList.remove('d-none');
+                adminUsersMenu.classList.remove('perm-hidden');
+                adminUsersMenu.style.display = 'flex';
+            } else {
+                adminUsersMenu.classList.add('d-none');
+                adminUsersMenu.style.display = 'none';
             }
         }
 

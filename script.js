@@ -2169,7 +2169,7 @@ function applySectionPermissions(userName) {
 
     // Force hide sensitive sections for non-power users (Viewers)
     // This adds a second layer of security beyond AdminUI's d-none
-    const sensitive = ['data-management'];
+    const sensitive = ['data-management', 'admin-usuarios'];
 
     sensitive.forEach(secKey => {
         const item = document.querySelector(`.menu-item[data-section="${secKey}"]`);
@@ -6419,6 +6419,13 @@ function showSection(sectionKey, linkEl) {
         if (targetKey === 'agenda') {
             setTimeout(() => {
                 if (typeof agInitSection === 'function') agInitSection();
+            }, 80);
+        }
+
+        // Hook: Administración de Usuarios (solo admin)
+        if (targetKey === 'admin-usuarios') {
+            setTimeout(() => {
+                if (typeof adminUsersLoad === 'function') adminUsersLoad();
             }, 80);
         }
 
@@ -16649,7 +16656,376 @@ async function _conciSaveBulkEdits() {
 // End of script
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  MÓDULO: AGENDA DE COMITÉS
+//  MÓDULO: ADMINISTRACIÓN DE USUARIOS (solo role='admin')
+// ═══════════════════════════════════════════════════════════════════════════
+(function () {
+    'use strict';
+
+    // ── Estado ───────────────────────────────────────────────────────────
+    let _auRows   = [];
+    let _auFilter = 'all';
+    let _auAreas  = [];
+    let _auDirList  = [];
+    let _auSubdirMap = {};
+
+    const AU_ROLE_LABELS = {
+        admin: 'Admin', editor: 'Editor', viewer: 'Viewer',
+        colab_viewer: 'Colab Viewer', colab_editor: 'Colab Editor',
+        control_fauna: 'Control Fauna', servicio_medico: 'Serv. Médico'
+    };
+    const AU_ROLE_COLORS = {
+        admin: 'danger', editor: 'warning', viewer: 'secondary',
+        colab_viewer: 'info', colab_editor: 'primary',
+        control_fauna: 'success', servicio_medico: 'success'
+    };
+    const AU_ALL_ROLES = ['admin','editor','viewer','colab_viewer','colab_editor','control_fauna','servicio_medico'];
+
+    // ── Cargar áreas ─────────────────────────────────────────────────────
+    async function _auLoadAreas() {
+        if (_auAreas.length) return; // ya cargadas
+        try {
+            const { data } = await window.supabaseClient
+                .from('areas')
+                .select('id, clave, nombre, nivel, parent_area_id, orden_visualizacion')
+                .eq('estado', 'ACTIVO')
+                .order('orden_visualizacion');
+            _auAreas    = data || [];
+            _auDirList  = _auAreas.filter(a => a.nivel === 2);
+            _auSubdirMap = {};
+            _auAreas.filter(a => a.nivel === 3).forEach(a => {
+                if (!_auSubdirMap[a.parent_area_id]) _auSubdirMap[a.parent_area_id] = [];
+                _auSubdirMap[a.parent_area_id].push(a);
+            });
+            _auPopulateDirSelect('au-reg-dir');
+        } catch (e) {
+            console.warn('[adminUsers] loadAreas:', e.message);
+        }
+    }
+
+    function _auPopulateDirSelect(selectId, selected = '') {
+        const sel = document.getElementById(selectId);
+        if (!sel) return;
+        sel.innerHTML = '<option value="">— Dirección —</option>' +
+            _auDirList.map(d =>
+                `<option value="${d.id}" ${d.id === selected ? 'selected' : ''}>${d.clave} — ${d.nombre}</option>`
+            ).join('');
+    }
+
+    function _auPopulateSubdirSelect(selectId, parentId, selected = '') {
+        const sel = document.getElementById(selectId);
+        if (!sel) return;
+        const subs = parentId ? (_auSubdirMap[parentId] || []) : [];
+        sel.innerHTML = '<option value="">— Subdir —</option>' +
+            subs.map(s =>
+                `<option value="${s.id}" ${s.id === selected ? 'selected' : ''}>${s.clave} — ${s.nombre}</option>`
+            ).join('');
+        sel.disabled = subs.length === 0;
+    }
+
+    window.auUpdateSubdir = function () {
+        const dirId = document.getElementById('au-reg-dir')?.value || '';
+        _auPopulateSubdirSelect('au-reg-subdir', dirId);
+    };
+
+    // ── Helpers stats ─────────────────────────────────────────────────────
+    function _auUpdateStats() {
+        const total  = _auRows.length;
+        const bajas  = _auRows.filter(u => u.permissions?.estado === 'INACTIVO').length;
+        const el = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+        el('au-stat-total',   total);
+        el('au-stat-activos', total - bajas);
+        el('au-stat-bajas',   bajas);
+    }
+
+    // ── Cargar lista de usuarios ──────────────────────────────────────────
+    window.adminUsersLoad = async function () {
+        if (!window.supabaseClient) return;
+        // Verificar que solo se ejecute para admin
+        const role = sessionStorage.getItem('user_role');
+        if (role !== 'admin') return;
+
+        await _auLoadAreas();
+
+        const tbody   = document.getElementById('au-tbody');
+        const statusEl = document.getElementById('au-status');
+        if (!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Cargando…</td></tr>';
+
+        try {
+            const [{ data: users, error: ue }, { data: perms }] = await Promise.all([
+                window.supabaseClient
+                    .from('v_usuarios_roles')
+                    .select('user_id, email, full_name, username, role, created_at, last_sign_in_at')
+                    .order('last_sign_in_at', { ascending: false, nullsFirst: false }),
+                window.supabaseClient.from('user_roles').select('user_id, permissions')
+            ]);
+            if (ue) throw ue;
+            const pMap = {};
+            (perms || []).forEach(r => pMap[r.user_id] = r.permissions || {});
+            _auRows = (users || []).map(u => ({ ...u, permissions: pMap[u.user_id] || {} }));
+            _auUpdateStats();
+            if (statusEl) statusEl.textContent = `${_auRows.length} usuario(s) — Actualizado ${new Date().toLocaleTimeString('es-MX')}`;
+            auRenderRows();
+        } catch (e) {
+            if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="text-danger text-center small py-3">Error: ${e.message}</td></tr>`;
+        }
+    };
+
+    // ── Filtro ────────────────────────────────────────────────────────────
+    window.auSetFilter = function (f) {
+        _auFilter = f;
+        ['all','activo','baja'].forEach(k => {
+            document.getElementById(`au-filter-${k}`)?.classList.toggle('active', k === f);
+        });
+        auRenderRows();
+    };
+
+    // ── Renderizar tabla ──────────────────────────────────────────────────
+    window.auRenderRows = function () {
+        const tbody = document.getElementById('au-tbody');
+        if (!tbody) return;
+        const q = (document.getElementById('au-search')?.value || '').toLowerCase();
+        let rows = _auFilter === 'baja'   ? _auRows.filter(u => u.permissions?.estado === 'INACTIVO') :
+                   _auFilter === 'activo' ? _auRows.filter(u => u.permissions?.estado !== 'INACTIVO') :
+                   _auRows;
+        if (q) rows = rows.filter(u =>
+            (u.email || '').toLowerCase().includes(q) ||
+            (u.full_name || '').toLowerCase().includes(q) ||
+            (u.username || '').toLowerCase().includes(q)
+        );
+        if (!rows.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Sin resultados</td></tr>';
+            return;
+        }
+        tbody.innerHTML = rows.map(u => {
+            const isInactivo = u.permissions?.estado === 'INACTIVO';
+            const shortId = (u.user_id || '').substring(0, 8);
+            const lastLogin = u.last_sign_in_at
+                ? new Date(u.last_sign_in_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
+                : '—';
+            const roleOpts = AU_ALL_ROLES.map(r =>
+                `<option value="${r}" ${u.role === r ? 'selected' : ''}>${AU_ROLE_LABELS[r] || r}</option>`
+            ).join('');
+            const perms  = u.permissions || {};
+            const dirId  = perms.direccion_id || '';
+            const subId  = perms.subdireccion_id || '';
+            const dirName  = dirId ? (_auAreas.find(a => a.id === dirId)?.clave || '?') : '—';
+            const subName  = subId ? (_auAreas.find(a => a.id === subId)?.clave  || '') : '';
+            const statusBadge = isInactivo
+                ? '<span class="badge bg-danger">BAJA</span>'
+                : '<span class="badge bg-success">ACTIVO</span>';
+            const bajaBtn = isInactivo
+                ? `<button class="btn btn-outline-success btn-sm py-0 px-1 ms-1" onclick="auToggleBaja('${u.user_id}',true,'${shortId}')" title="Reactivar"><i class="fas fa-user-check"></i></button>`
+                : `<button class="btn btn-outline-warning btn-sm py-0 px-1 ms-1" onclick="auToggleBaja('${u.user_id}',false,'${shortId}')" title="Dar de baja"><i class="fas fa-user-slash"></i></button>`;
+            const safeEmail = (u.email || '').replace(/'/g, '&#39;');
+            const delBtn  = `<button class="btn btn-outline-danger btn-sm py-0 px-1 ms-1" onclick="auDeleteUser('${u.user_id}','${safeEmail}')" title="Eliminar"><i class="fas fa-trash-alt"></i></button>`;
+            return `<tr id="au-row-${shortId}" class="${isInactivo ? 'table-secondary' : ''}">
+                <td>
+                    <div class="fw-semibold">${u.email || '–'}</div>
+                    <div class="text-muted" style="font-size:.78rem">${u.full_name || u.username || ''}</div>
+                </td>
+                <td>
+                    <select class="form-select form-select-sm py-0" id="au-sel-${shortId}"
+                        onchange="auAssignRole('${u.user_id}',this.value,'${shortId}')">
+                        ${roleOpts}
+                    </select>
+                </td>
+                <td>
+                    <div style="font-size:.78rem;line-height:1.3">
+                        <span class="fw-semibold text-primary">${dirName}</span>
+                        ${subName ? `<br><span class="text-muted">${subName}</span>` : ''}
+                    </div>
+                    <button class="btn p-0 border-0 mt-1" style="width:20px;height:20px;background:rgba(13,110,253,.1);border-radius:4px"
+                        onclick="auToggleAreaEdit('${u.user_id}','${shortId}')" title="Editar área">
+                        <i class="fas fa-pencil-alt" style="font-size:.6rem;color:#0d6efd"></i>
+                    </button>
+                </td>
+                <td style="font-size:.8rem">${lastLogin}</td>
+                <td class="text-center">${statusBadge}${bajaBtn}${delBtn}</td>
+            </tr>`;
+        }).join('');
+    };
+
+    // ── Cambiar rol ───────────────────────────────────────────────────────
+    window.auAssignRole = async function (userId, newRole, shortId) {
+        const sel = document.getElementById(`au-sel-${shortId}`);
+        if (sel) sel.disabled = true;
+        const st = document.getElementById('au-status');
+        if (st) st.textContent = 'Cambiando rol…';
+        try {
+            const { error } = await window.supabaseClient
+                .rpc('assign_user_role', { p_user_id: userId, p_role: newRole });
+            if (error) throw error;
+            const u = _auRows.find(x => x.user_id === userId);
+            if (u) u.role = newRole;
+            if (st) st.textContent = `✅ Rol actualizado a "${newRole}".`;
+        } catch (e) {
+            if (st) st.textContent = '❌ ' + e.message;
+            adminUsersLoad();
+        } finally {
+            if (sel) sel.disabled = false;
+        }
+    };
+
+    // ── Edición inline de área ────────────────────────────────────────────
+    window.auToggleAreaEdit = function (userId, shortId) {
+        const existing = document.getElementById(`au-area-panel-${shortId}`);
+        if (existing) { existing.remove(); return; }
+        const row = document.getElementById(`au-row-${shortId}`);
+        if (!row) return;
+        const u = _auRows.find(x => x.user_id === userId);
+        const curDir  = u?.permissions?.direccion_id    || '';
+        const curSub  = u?.permissions?.subdireccion_id || '';
+        const colspan = row.cells.length;
+        const tr = document.createElement('tr');
+        tr.id = `au-area-panel-${shortId}`;
+        tr.style.background = '#eef5ff';
+        tr.innerHTML = `<td colspan="${colspan}" class="py-2 px-3">
+            <div class="d-flex align-items-center gap-2 flex-wrap small">
+                <i class="fas fa-sitemap text-primary"></i>
+                <select id="au-dir-${shortId}" class="form-select form-select-sm" style="max-width:210px"
+                    onchange="auInlineSubdir('au-dir-${shortId}','au-subdir-${shortId}')"></select>
+                <select id="au-subdir-${shortId}" class="form-select form-select-sm" style="max-width:210px" disabled></select>
+                <button class="btn btn-primary btn-sm py-0 px-2" onclick="auSaveArea('${userId}','${shortId}')">
+                    <i class="fas fa-save me-1"></i>Guardar
+                </button>
+                <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="auToggleAreaEdit('${userId}','${shortId}')">Cancelar</button>
+            </div>
+        </td>`;
+        row.parentNode.insertBefore(tr, row.nextSibling);
+        _auPopulateDirSelect(`au-dir-${shortId}`, curDir);
+        _auPopulateSubdirSelect(`au-subdir-${shortId}`, curDir, curSub);
+    };
+
+    window.auInlineSubdir = function (dirId, subId) {
+        const parentId = document.getElementById(dirId)?.value || '';
+        _auPopulateSubdirSelect(subId, parentId);
+    };
+
+    window.auSaveArea = async function (userId, shortId) {
+        const dirId   = document.getElementById(`au-dir-${shortId}`)?.value || '';
+        const subdirId = document.getElementById(`au-subdir-${shortId}`)?.value || '';
+        const st = document.getElementById('au-status');
+        if (st) st.textContent = 'Guardando área…';
+        try {
+            const { data: ur } = await window.supabaseClient
+                .from('user_roles').select('permissions').eq('user_id', userId).single();
+            const perms = { ...(ur?.permissions || {}), direccion_id: dirId, subdireccion_id: subdirId };
+            const { error } = await window.supabaseClient
+                .from('user_roles').update({ permissions: perms }).eq('user_id', userId);
+            if (error) throw error;
+            const u = _auRows.find(x => x.user_id === userId);
+            if (u) u.permissions = perms;
+            document.getElementById(`au-area-panel-${shortId}`)?.remove();
+            if (st) st.textContent = '✅ Área asignada.';
+            auRenderRows();
+        } catch (e) {
+            if (st) st.textContent = '❌ ' + e.message;
+        }
+    };
+
+    // ── Dar de baja / reactivar ───────────────────────────────────────────
+    window.auToggleBaja = async function (userId, currentlyInactivo, shortId) {
+        const newEstado = currentlyInactivo ? 'ACTIVO' : 'INACTIVO';
+        const st = document.getElementById('au-status');
+        if (st) st.textContent = 'Actualizando estado…';
+        try {
+            const { data: ur } = await window.supabaseClient
+                .from('user_roles').select('permissions').eq('user_id', userId).single();
+            const perms = { ...(ur?.permissions || {}), estado: newEstado };
+            const { error } = await window.supabaseClient
+                .from('user_roles').update({ permissions: perms }).eq('user_id', userId);
+            if (error) throw error;
+            const row = _auRows.find(x => x.user_id === userId);
+            if (row) row.permissions = perms;
+            if (st) st.textContent = newEstado === 'INACTIVO' ? '✅ Usuario dado de baja.' : '✅ Usuario reactivado.';
+            _auUpdateStats();
+            auRenderRows();
+        } catch (e) {
+            if (st) st.textContent = '❌ ' + e.message;
+        }
+    };
+
+    // ── Eliminar usuario ──────────────────────────────────────────────────
+    window.auDeleteUser = async function (userId, email) {
+        if (!confirm(`¿Eliminar al usuario "${email}"?\n\nEsta acción no se puede deshacer.`)) return;
+        const st = document.getElementById('au-status');
+        if (st) st.textContent = 'Eliminando…';
+        try {
+            const { error } = await window.supabaseClient
+                .rpc('delete_user_by_admin', { p_user_id: userId });
+            if (error) throw error;
+            _auRows = _auRows.filter(u => u.user_id !== userId);
+            _auUpdateStats();
+            if (st) st.textContent = `✅ Usuario ${email} eliminado.`;
+            auRenderRows();
+        } catch (e) {
+            const sql = `DELETE FROM auth.users WHERE id = '${userId}';`;
+            if (st) st.innerHTML = `⚠️ No automático: <code class="bg-dark text-white px-1 rounded small user-select-all">${sql}</code>
+                <button class="btn btn-outline-secondary btn-sm py-0 ms-1" onclick="navigator.clipboard.writeText('${sql}')">Copiar</button>`;
+        }
+    };
+
+    // ── Crear nuevo usuario ───────────────────────────────────────────────
+    window.auCreateUser = async function () {
+        const username   = document.getElementById('au-reg-username')?.value.trim() || '';
+        const password   = document.getElementById('au-reg-password')?.value || '';
+        const fullName   = document.getElementById('au-reg-fullname')?.value.trim() || '';
+        const emailInput = document.getElementById('au-reg-email')?.value.trim() || '';
+        const role       = document.getElementById('au-reg-role')?.value || 'viewer';
+        const dirId      = document.getElementById('au-reg-dir')?.value || '';
+        const subdirId   = document.getElementById('au-reg-subdir')?.value || '';
+        const msgEl      = document.getElementById('au-reg-msg');
+
+        if (!username || !password) {
+            if (msgEl) msgEl.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>Usuario y contraseña son obligatorios.</span>';
+            return;
+        }
+        if (msgEl) msgEl.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creando usuario…';
+
+        try {
+            let authEmail = username;
+            if (!authEmail.includes('@')) {
+                const normalized = username.toLowerCase()
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '.');
+                authEmail = `${normalized}@aifa.operaciones`;
+            }
+            const { data, error } = await window.supabaseClient.auth.signUp({
+                email: authEmail,
+                password,
+                options: { data: { full_name: fullName || username, username, contact_email: emailInput } }
+            });
+            if (error) throw error;
+            const userId = data.user?.id;
+            if (userId) {
+                const { error: re } = await window.supabaseClient
+                    .rpc('assign_user_role', { p_user_id: userId, p_role: role });
+                if (re) throw re;
+                if (dirId || subdirId) {
+                    const { data: ur } = await window.supabaseClient
+                        .from('user_roles').select('permissions').eq('user_id', userId).single();
+                    const perms = { ...(ur?.permissions || {}), direccion_id: dirId, subdireccion_id: subdirId };
+                    await window.supabaseClient.from('user_roles').update({ permissions: perms }).eq('user_id', userId);
+                }
+            }
+            if (msgEl) msgEl.innerHTML = `<span class="text-success"><i class="fas fa-check me-1"></i>Usuario <strong>${username}</strong> creado con rol <strong>${role}</strong>.</span>`;
+            ['au-reg-username','au-reg-password','au-reg-fullname','au-reg-email'].forEach(id => {
+                const el = document.getElementById(id); if (el) el.value = '';
+            });
+            const dirSel = document.getElementById('au-reg-dir');
+            if (dirSel) dirSel.value = '';
+            const subSel = document.getElementById('au-reg-subdir');
+            if (subSel) { subSel.innerHTML = '<option value="">— Subdir —</option>'; subSel.disabled = true; }
+            setTimeout(() => adminUsersLoad(), 900);
+        } catch (e) {
+            let hint = e.message?.includes('already registered') ? ' (ya existe)' : '';
+            if (msgEl) msgEl.innerHTML = `<span class="text-danger"><i class="fas fa-times me-1"></i>Error: ${e.message}${hint}</span>`;
+        }
+    };
+
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════
 //  Gestión de comités, reuniones, temas y acuerdos por área.
 //  RLS en Supabase garantiza que cada área solo pueda modificar lo propio.
 // ═══════════════════════════════════════════════════════════════════════════

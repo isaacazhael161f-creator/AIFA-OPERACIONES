@@ -1088,6 +1088,8 @@ FF
                             class="fas fa-book"></i><span>Biblioteca</span></a>
                     <a class="menu-item d-none" href="#" data-section="data-management" id="data-management-menu"><i
                             class="fas fa-database"></i><span>Gestión de Datos</span></a>
+                    <a class="menu-item d-none" href="#" data-section="admin-usuarios" id="admin-users-menu"><i
+                            class="fas fa-users-cog"></i><span>Administración</span></a>
                     <a class="menu-item" href="#" data-section="historia"><i
                             class="fas fa-history"></i><span>Historia</span></a>
                     <a class="menu-item" href="#" data-section="agenda"><i
@@ -1626,6 +1628,122 @@ FF
                         </div><!-- end #bib-guia -->
                     </div> <!-- End of tab-content -->
                 </div> <!-- End of biblioteca-section -->
+
+                <!-- Administración de Usuarios (solo admin) -->
+                <div id="admin-usuarios-section" class="content-section">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="section-heading mb-0"><i class="fas fa-users-cog me-2"></i>Administración de Usuarios</h2>
+                        <button class="btn btn-outline-primary btn-sm" onclick="adminUsersLoad()">
+                            <i class="fas fa-sync-alt me-1"></i>Actualizar
+                        </button>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-4">
+                            <div class="card border-0 shadow-sm text-center py-3">
+                                <div class="fw-bold text-primary fs-3" id="au-stat-total">—</div>
+                                <div class="text-muted small">Total</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="card border-0 shadow-sm text-center py-3">
+                                <div class="fw-bold text-success fs-3" id="au-stat-activos">—</div>
+                                <div class="text-muted small">Activos</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="card border-0 shadow-sm text-center py-3">
+                                <div class="fw-bold text-danger fs-3" id="au-stat-bajas">—</div>
+                                <div class="text-muted small">Baja</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Crear nuevo usuario (collapse) -->
+                    <div class="mb-4">
+                        <button class="btn btn-success fw-bold d-flex align-items-center justify-content-between w-100 py-2"
+                            type="button" data-bs-toggle="collapse" data-bs-target="#au-new-collapse" aria-expanded="false">
+                            <span><i class="fas fa-user-plus me-2"></i>Crear Nuevo Usuario</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="collapse" id="au-new-collapse">
+                            <div class="card border-0 bg-light p-3 rounded-bottom">
+                                <div class="row g-2">
+                                    <div class="col-12 col-md-4">
+                                        <input type="text" class="form-control form-control-sm" id="au-reg-username" placeholder="Usuario (ID) *">
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <input type="password" class="form-control form-control-sm" id="au-reg-password" placeholder="Contraseña *">
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <input type="text" class="form-control form-control-sm" id="au-reg-fullname" placeholder="Nombre Completo">
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <input type="email" class="form-control form-control-sm" id="au-reg-email" placeholder="Email (opcional)">
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <select class="form-select form-select-sm" id="au-reg-role" aria-label="Rol">
+                                            <option value="viewer">👀 Viewer</option>
+                                            <option value="editor">✏️ Editor</option>
+                                            <option value="control_fauna">🦅 Control Fauna</option>
+                                            <option value="servicio_medico">🚑 Serv. Médico</option>
+                                            <option value="colab_viewer">📋 Colab Viewer</option>
+                                            <option value="colab_editor">✏️ Colab Editor</option>
+                                            <option value="admin">🛠️ Admin</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <div class="d-flex gap-2">
+                                            <select class="form-select form-select-sm" id="au-reg-dir" aria-label="Dirección" onchange="auUpdateSubdir()">
+                                                <option value="">— Dirección —</option>
+                                            </select>
+                                            <select class="form-select form-select-sm" id="au-reg-subdir" aria-label="Subdirección" disabled>
+                                                <option value="">— Subdir —</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="au-reg-msg" class="small mt-2"></div>
+                                <button class="btn btn-success btn-sm mt-2 fw-bold" onclick="auCreateUser()">
+                                    <i class="fas fa-user-plus me-1"></i>Crear Usuario
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filtros + búsqueda -->
+                    <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                        <button class="btn btn-outline-secondary btn-sm active" id="au-filter-all" onclick="auSetFilter('all')">Todos</button>
+                        <button class="btn btn-outline-success btn-sm" id="au-filter-activo" onclick="auSetFilter('activo')">Activos</button>
+                        <button class="btn btn-outline-danger btn-sm" id="au-filter-baja" onclick="auSetFilter('baja')">Baja</button>
+                        <input type="text" class="form-control form-control-sm ms-auto" id="au-search"
+                            placeholder="Buscar…" style="max-width:220px" onkeyup="auRenderRows()">
+                    </div>
+                    <div id="au-status" class="small text-muted mb-2"></div>
+
+                    <!-- Tabla -->
+                    <div class="card border-0 shadow-sm">
+                        <div class="table-responsive" style="max-height:480px;overflow-y:auto">
+                            <table class="table table-hover align-middle mb-0 small">
+                                <thead class="table-dark sticky-top">
+                                    <tr>
+                                        <th>Usuario</th>
+                                        <th style="width:130px">Rol</th>
+                                        <th style="width:110px">Área</th>
+                                        <th style="width:120px">Último acceso</th>
+                                        <th style="width:100px" class="text-center">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="au-tbody">
+                                    <tr><td colspan="5" class="text-center text-muted py-4">
+                                        <i class="fas fa-users me-2 text-muted"></i>Cargando…
+                                    </td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
 
                 <div id="data-management-section" class="content-section">
                     <div class="d-flex justify-content-between align-items-center mb-4">
