@@ -17142,19 +17142,18 @@ async function _conciSaveBulkEdits() {
     window.auDeleteUser = async function (userId, email) {
         if (!confirm(`¿Eliminar al usuario "${email}"?\n\nEsta acción no se puede deshacer.`)) return;
         const st = document.getElementById('au-status');
-        if (st) st.textContent = 'Eliminando…';
+        if (st) st.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Eliminando usuario…';
         try {
-            const { error } = await window.supabaseClient
-                .rpc('delete_user_by_admin', { p_user_id: userId });
+            const { data, error } = await window.supabaseClient
+                .rpc('admin_delete_user', { p_user_id: userId });
             if (error) throw error;
+            if (data && data.ok === false) throw new Error(data.error || 'Error desconocido');
             _auRows = _auRows.filter(u => u.user_id !== userId);
             _auUpdateStats();
-            if (st) st.textContent = `✅ Usuario ${email} eliminado.`;
+            if (st) st.innerHTML = `<span class="text-success"><i class="fas fa-check-circle me-1"></i>Usuario <strong>${email}</strong> eliminado.</span>`;
             auRenderRows();
         } catch (e) {
-            const sql = `DELETE FROM auth.users WHERE id = '${userId}';`;
-            if (st) st.innerHTML = `⚠️ No automático: <code class="bg-dark text-white px-1 rounded small user-select-all">${sql}</code>
-                <button class="btn btn-outline-secondary btn-sm py-0 ms-1" onclick="navigator.clipboard.writeText('${sql}')">Copiar</button>`;
+            if (st) st.innerHTML = `<span class="text-danger"><i class="fas fa-times-circle me-1"></i>${e.message}</span>`;
         }
     };
 
