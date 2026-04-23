@@ -16850,6 +16850,16 @@ async function _conciSaveBulkEdits() {
             (u.full_name || '').toLowerCase().includes(q) ||
             (u.username || '').toLowerCase().includes(q)
         );
+
+        // Ordenar por rol (jerarquía), luego por nombre
+        const ROLE_ORDER = { superadmin:0, admin:1, editor:2, control_fauna:3, servicio_medico:4, colab_editor:5, colab_viewer:6, viewer:7 };
+        rows = [...rows].sort((a, b) => {
+            const ra = ROLE_ORDER[a.role] ?? 99;
+            const rb = ROLE_ORDER[b.role] ?? 99;
+            if (ra !== rb) return ra - rb;
+            return (a.full_name || a.email || '').localeCompare(b.full_name || b.email || '', 'es');
+        });
+
         if (!rows.length) {
             container.innerHTML = '<div class="text-center text-muted py-5"><i class="fas fa-search fa-2x mb-2 d-block"></i>Sin resultados</div>';
             return;
