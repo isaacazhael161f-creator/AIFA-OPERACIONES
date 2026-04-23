@@ -16755,8 +16755,8 @@ async function _conciSaveBulkEdits() {
             const [{ data: users, error: ue }, { data: perms }] = await Promise.all([
                 window.supabaseClient
                     .from('v_usuarios_roles')
-                    .select('user_id, email, full_name, username, role, created_at, last_sign_in_at')
-                    .order('last_sign_in_at', { ascending: false, nullsFirst: false }),
+                    .select('user_id, email, full_name, username, role, created_at')
+                    .order('created_at', { ascending: false, nullsFirst: false }),
                 window.supabaseClient.from('user_roles').select('user_id, permissions')
             ]);
             if (ue) throw ue;
