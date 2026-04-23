@@ -16755,8 +16755,8 @@ async function _conciSaveBulkEdits() {
             const [{ data: users, error: ue }, { data: perms }] = await Promise.all([
                 window.supabaseClient
                     .from('v_usuarios_roles')
-                    .select('user_id, email, full_name, username, role, created_at')
-                    .order('created_at', { ascending: false, nullsFirst: false }),
+                    .select('user_id, email, full_name, username, role, created_at, last_sign_in_at, is_online')
+                    .order('last_sign_in_at', { ascending: false, nullsFirst: false }),
                 window.supabaseClient.from('user_roles').select('user_id, permissions')
             ]);
             if (ue) throw ue;
@@ -16800,6 +16800,9 @@ async function _conciSaveBulkEdits() {
         tbody.innerHTML = rows.map(u => {
             const isInactivo = u.permissions?.estado === 'INACTIVO';
             const shortId = (u.user_id || '').substring(0, 8);
+            const onlineDot = u.is_online
+                ? '<span class="badge bg-success me-1" style="font-size:0.65rem;vertical-align:middle">● En línea</span>'
+                : '';
             const lastLogin = u.last_sign_in_at
                 ? new Date(u.last_sign_in_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
                 : '—';
@@ -16840,7 +16843,7 @@ async function _conciSaveBulkEdits() {
                         <i class="fas fa-pencil-alt" style="font-size:.6rem;color:#0d6efd"></i>
                     </button>
                 </td>
-                <td style="font-size:.8rem">${lastLogin}</td>
+                <td style="font-size:.8rem">${onlineDot}${lastLogin}</td>
                 <td class="text-center">${statusBadge}${bajaBtn}${delBtn}</td>
             </tr>`;
         }).join('');
