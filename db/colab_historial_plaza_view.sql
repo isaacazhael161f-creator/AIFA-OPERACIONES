@@ -11,14 +11,12 @@ CREATE OR REPLACE VIEW colab_historial_plaza AS
 SELECT
     h.id,
     h.num_empleado,
-    a.nombre,
     h.valor_anterior  AS plaza_anterior,
     h.valor_nuevo     AS plaza_nueva,
     h.usuario_nombre  AS modificado_por,
     h.usuario_id,
     h.fecha           AS fecha_cambio
 FROM colab_historial h
-LEFT JOIN agenda_2026 a ON a.num_empleado = h.num_empleado
 WHERE h.campo = 'plaza'
 ORDER BY h.fecha DESC;
 
@@ -33,7 +31,7 @@ GRANT SELECT ON colab_historial_plaza TO authenticated;
 -- ============================================================
 -- Consulta de ejemplo: ver quiénes han ocupado una plaza específica
 -- ============================================================
--- SELECT num_empleado, nombre, plaza_anterior, plaza_nueva, fecha_cambio, modificado_por
+-- SELECT num_empleado, plaza_anterior, plaza_nueva, fecha_cambio, modificado_por
 -- FROM colab_historial_plaza
 -- WHERE plaza_nueva = '001'
 -- ORDER BY fecha_cambio DESC;
