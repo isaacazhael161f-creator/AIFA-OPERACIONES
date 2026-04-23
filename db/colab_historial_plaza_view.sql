@@ -11,7 +11,7 @@ CREATE OR REPLACE VIEW colab_historial_plaza AS
 SELECT
     h.id,
     h.num_empleado,
-    a.nombre,
+    a."Nombre",
     h.valor_anterior  AS plaza_anterior,
     h.valor_nuevo     AS plaza_nueva,
     h.usuario_nombre  AS modificado_por,
