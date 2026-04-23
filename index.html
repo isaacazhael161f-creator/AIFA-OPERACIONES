@@ -3835,12 +3835,14 @@ FF
                             justify-content: center;
                         }
                         .colab-maza-img {
-                            height: 72px;
+                            height: 64px;
                             width: auto;
-                            max-width: 220px;
+                            max-width: 260px;
                             object-fit: contain;
                             mix-blend-mode: multiply;   /* elimina el fondo blanco */
                             filter: contrast(1.05);
+                            display: block;             /* nunca colapsa a inline */
+                            flex-shrink: 0;
                         }
                         .colab-year-num {
                             display: none;
@@ -4920,7 +4922,11 @@ FF
                                     <div class="colab-ficha-topstrip">
                                         <img src="images/aifa-logo.png" class="colab-logo-img" alt="Logo AIFA">
                                         <div class="colab-year-badge">
-                                            <img src="images/Margarita_Maza.jpeg" class="colab-maza-img" alt="2026, año de Margarita Maza">
+                                            <img src="images/AIFA/maza_parada_2006.jpg"
+                                                 class="colab-maza-img"
+                                                 alt="2026, año de Margarita Maza"
+                                                 data-fallback-applied="1"
+                                                 onerror="this.onerror=null;this.src='images/AIFA/maza_parada_2006.jpg';">
                                         </div>
                                         <div class="colab-header-corner" id="colab-h-corner">
                                             <!-- líneas de organigrama dinámicas -->
