@@ -16853,38 +16853,32 @@ async function _conciSaveBulkEdits() {
     window.auAssignRole = async function (userId, newRole, shortId) {
         const sel = document.getElementById(`au-sel-${shortId}`);
         const row = document.getElementById(`au-row-${shortId}`);
+        const st  = document.getElementById('au-status');
+        const prevRole = sel?.value;
         if (sel) sel.disabled = true;
-        const st = document.getElementById('au-status');
         if (st) st.textContent = 'Cambiando rol…';
         try {
-            // Obtener permisos actuales para no pisar otros campos
-            const { data: existing } = await window.supabaseClient
-                .from('user_roles')
-                .select('permissions')
-                .eq('user_id', userId)
-                .maybeSingle();
-            const perms = (existing?.permissions) || {};
-            const { error } = await window.supabaseClient
-                .from('user_roles')
-                .upsert({ user_id: userId, role: newRole, permissions: perms },
-                         { onConflict: 'user_id' });
+            const { data, error } = await window.supabaseClient
+                .rpc('admin_update_user_role', { p_user_id: userId, p_role: newRole });
             if (error) throw error;
+            if (data && data.ok === false) throw new Error(data.error || 'Error desconocido');
+            // Actualizar cache local
             const u = _auRows.find(x => x.user_id === userId);
             if (u) u.role = newRole;
-            // feedback visual rápido en la fila
+            // Feedback visual en la fila
             if (row) {
                 row.style.transition = 'background .4s';
                 row.style.background = '#d1fae5';
-                setTimeout(() => { row.style.background = ''; }, 1200);
+                setTimeout(() => { row.style.background = ''; }, 1400);
             }
-            if (st) st.textContent = `✅ Rol de ${userId.substring(0,8)}… cambiado a "${AU_ROLE_LABELS[newRole] || newRole}".`;
+            if (st) st.innerHTML = `<span class="text-success"><i class="fas fa-check-circle me-1"></i>Rol cambiado a <strong>${AU_ROLE_LABELS[newRole] || newRole}</strong>.</span>`;
         } catch (e) {
-            if (st) st.textContent = '❌ ' + e.message;
-            if (sel) { sel.disabled = false; }
-            adminUsersLoad();
-            return;
+            // Revertir el select al valor anterior
+            if (sel && prevRole) sel.value = prevRole;
+            if (st) st.innerHTML = `<span class="text-danger"><i class="fas fa-times-circle me-1"></i>${e.message}</span>`;
+        } finally {
+            if (sel) sel.disabled = false;
         }
-        if (sel) sel.disabled = false;
     };
 
     // ── Edición inline de área ────────────────────────────────────────────
