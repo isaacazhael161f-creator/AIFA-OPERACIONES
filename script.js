@@ -2168,20 +2168,17 @@ function applySectionPermissions(userName) {
     }
 
     // Force hide sensitive sections for non-power users (Viewers)
-    // This adds a second layer of security beyond AdminUI's d-none
-    const sensitive = ['data-management', 'admin-usuarios'];
+    // data-management puede desbloquearse si el admin lo añade al allowed_sections del usuario
+    const sensitive = ['admin-usuarios'];
+    // data-management: ocultar solo si no está en el whitelist
+    const supabaseWhitelistForSensitive = (() => { try { const r = sessionStorage.getItem('user_allowed_sections'); return r ? JSON.parse(r) : []; } catch(_) { return []; } })();
+    if (!supabaseWhitelistForSensitive.includes('data-management')) sensitive.push('data-management');
 
     sensitive.forEach(secKey => {
         const item = document.querySelector(`.menu-item[data-section="${secKey}"]`);
         if (item) item.classList.add('perm-hidden');
 
         const content = document.getElementById(`${secKey}-section`);
-        // The Data Management section might not be a standard content-section div if handled dynamically
-        // but if it exists, hide it.
-        // Actually, in index.html, it's a tab-pane usually or similar? 
-        // No, it's <section id="data-management-section" class="content-section d-none">
-
-        // Wait, let's find the section via ID in index.html
         if (content) content.classList.add('perm-hidden');
     });
 
@@ -16828,7 +16825,6 @@ async function _conciSaveBulkEdits() {
         { key: 'conciliacion',         label: 'Conciliación',            icon: 'tasks',             group: 'Operaciones' },
         { key: 'puntualidad-agosto',   label: 'Puntualidad',             icon: 'clock',             group: 'Operaciones' },
         { key: 'demoras',              label: 'Demoras',                 icon: 'clock',             group: 'Operaciones' },
-        { key: 'itinerario-mensual',   label: 'Itinerario Mensual',      icon: 'table',             group: 'Operaciones' },
         { key: 'comparativa',          label: 'Comparativa',             icon: 'chart-line',        group: 'Operaciones' },
         { key: 'aerolineas',           label: 'Aerolíneas',              icon: 'plane',             group: 'Módulos' },
         { key: 'portal-digitalizacion',label: 'Portal Digital',          icon: 'cloud-upload-alt',  group: 'Módulos' },
@@ -16839,6 +16835,7 @@ async function _conciSaveBulkEdits() {
         { key: 'agenda',               label: 'Agenda de Comités',       icon: 'calendar-check',    group: 'Personal' },
         { key: 'biblioteca',           label: 'Biblioteca',              icon: 'book',              group: 'Personal' },
         { key: 'historia',             label: 'Historia',                icon: 'history',           group: 'Personal' },
+        { key: 'data-management',      label: 'Gestión de Datos',        icon: 'database',          group: 'Personal' },
     ];
 
     // ── Renderizar tarjetas de usuario ────────────────────────────────────
