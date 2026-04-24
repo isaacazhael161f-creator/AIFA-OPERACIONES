@@ -95,13 +95,25 @@
         return out;
     }
 
+    // Columnas autogeneradas por Supabase — nunca enviarlas en el INSERT
+    const AUTOGEN_COLS = new Set(['id', 'created_at']);
+
+    /** Elimina columnas autogeneradas (PK, timestamps) antes de insertar */
+    function stripAutogen(row) {
+        const clean = {};
+        for (const [k, v] of Object.entries(row)) {
+            if (!AUTOGEN_COLS.has(k) && !AUTOGEN_COLS.has(normCol(k))) clean[k] = v;
+        }
+        return clean;
+    }
+
     /** Sube filas en lotes de 500 con callback de progreso */
     async function uploadInBatches(rows, onProgress) {
         const client = window.supabaseClient;
         const BATCH = 500;
         let done = 0;
         for (let i = 0; i < rows.length; i += BATCH) {
-            const chunk = rows.slice(i, i + BATCH);
+            const chunk = rows.slice(i, i + BATCH).map(stripAutogen);
             const { error } = await client.from('Demoras').insert(chunk);
             if (error) throw error;
             done += chunk.length;
