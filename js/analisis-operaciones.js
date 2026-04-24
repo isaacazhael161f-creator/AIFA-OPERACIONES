@@ -1042,6 +1042,8 @@ async function renderOpsCharts() {
             const horaSource = horaActualRaw || horaFallbackRaw;
             if (horaSource) {
                 let hStr = horaSource;
+                // Si es ISO timestamp (2026-03-16T18:00:00Z) extraer solo la parte de tiempo
+                if (hStr.includes('T')) hStr = hStr.split('T')[1] || hStr;
                 let h = hStr.includes(':') ? hStr.split(':')[0] : hStr.substring(0, 2);
                 h = h.trim();
                 if (h.length === 1) h = '0' + h;
@@ -1289,7 +1291,7 @@ async function renderOpsCharts() {
         
         // Peak Hour
         let peakH = '-', maxH = 0;
-        Object.entries(hoursMap).forEach(([h,c]) => { if(c > maxH) { maxH = c; peakH = h+':00'; } });
+        Object.entries(hoursMap).forEach(([h,c]) => { if(c > maxH) { maxH = c; peakH = String(h).padStart(2,'0')+':00'; } });
 
         // Busiest Day
         let busyD = '-', maxD = 0;
