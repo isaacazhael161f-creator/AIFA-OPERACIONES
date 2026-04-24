@@ -95,8 +95,8 @@
         return out;
     }
 
-    // Columnas autogeneradas por Supabase — nunca enviarlas en el INSERT
-    const AUTOGEN_COLS = new Set(['id', 'created_at']);
+    // Columnas que NO se toman del Excel — se generan aquí o las gestiona Supabase
+    const AUTOGEN_COLS = new Set(['id', 'created_at', 'no']);
 
     /** Elimina columnas autogeneradas (PK, timestamps) antes de insertar */
     function stripAutogen(row) {
@@ -243,13 +243,15 @@
 
                         setStatus('<i class="fas fa-spinner fa-spin me-1"></i>Subiendo datos a Supabase…');
 
-                        // Transformar filas y descartar filas vacías / de totales
-                        // (filas donde la columna "No" sea nula son encabezados extra, totales o filas en blanco)
+                        // Transformar filas (la columna "No" ya fue excluida por AUTOGEN_COLS)
+                        // Filtrar filas completamente vacías (sin ningún valor relevante)
                         const noEntry  = mapping.find(m => normCol(m.excelHeader) === 'no');
-                        const noDbCol  = noEntry ? noEntry.dbCol : null;
+                        const noDbCol  = noEntry ? noEntry.dbCol : 'No';
                         const dbRows   = dataRows
                             .map(r => transformRow(r, mapping))
-                            .filter(r => !noDbCol || (r[noDbCol] !== null && r[noDbCol] !== undefined && r[noDbCol] !== ''));
+                            .filter(r => Object.values(r).some(v => v !== null && v !== undefined && v !== ''))
+                            // Asignar número de fila secuencial para evitar duplicados en la PK
+                            .map((r, i) => ({ ...r, [noDbCol]: i + 1 }));
                         await uploadInBatches(dbRows, (done, total) => {
                             setProgress(done, total);
                             setStatus(`<i class="fas fa-spinner fa-spin me-1"></i>Subiendo… <strong>${done.toLocaleString()}</strong> / ${total.toLocaleString()} registros`);
