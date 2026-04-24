@@ -231,8 +231,13 @@
 
                         setStatus('<i class="fas fa-spinner fa-spin me-1"></i>Subiendo datos a Supabase…');
 
-                        // Transformar y subir
-                        const dbRows = dataRows.map(r => transformRow(r, mapping));
+                        // Transformar filas y descartar filas vacías / de totales
+                        // (filas donde la columna "No" sea nula son encabezados extra, totales o filas en blanco)
+                        const noEntry  = mapping.find(m => normCol(m.excelHeader) === 'no');
+                        const noDbCol  = noEntry ? noEntry.dbCol : null;
+                        const dbRows   = dataRows
+                            .map(r => transformRow(r, mapping))
+                            .filter(r => !noDbCol || (r[noDbCol] !== null && r[noDbCol] !== undefined && r[noDbCol] !== ''));
                         await uploadInBatches(dbRows, (done, total) => {
                             setProgress(done, total);
                             setStatus(`<i class="fas fa-spinner fa-spin me-1"></i>Subiendo… <strong>${done.toLocaleString()}</strong> / ${total.toLocaleString()} registros`);
