@@ -18,35 +18,46 @@ document.addEventListener('DOMContentLoaded', () => {
     initOpsAnalysisTabs();
 });
 
+const OPS_MONTHS_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
 function initOpsAnalysisTabs() {
-    const monthTabsContainer = document.getElementById('ops-month-tabs-2025');
-    if (!monthTabsContainer) return;
-
-    // Clear tabs first
-    monthTabsContainer.innerHTML = '';
-    
-    OPS_MONTHS.forEach((m) => {
-        const isActive = (m === 'Enero') ? 'active' : '';
-        const li = document.createElement('li');
-        li.className = 'nav-item';
-        
-        li.innerHTML = `
-            <button class="nav-link ${isActive}" id="tab-month-${m}" 
-                data-bs-toggle="tab" data-bs-target="#month-view-container" 
-                type="button" role="tab"
-                onclick="loadOpsMonthData('${m}')">
-                ${m}
-            </button>
-        `;
-        monthTabsContainer.appendChild(li);
-    });
-
-    // Auto-load Enero
+    if (!document.getElementById('ops-month-pills')) return;
+    renderMonthPills();
     loadOpsMonthData('Enero');
+}
+
+function renderMonthPills() {
+    const container = document.getElementById('ops-month-pills');
+    if (!container) return;
+    container.innerHTML = '';
+    const today = new Date();
+    OPS_MONTHS.forEach((m, i) => {
+        const isFuture = (currentYearOps === today.getFullYear()) && (i > today.getMonth());
+        const isActive = (m === currentMonthOps);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn ops-month-pill' + (isActive ? ' active' : '');
+        btn.textContent = OPS_MONTHS_SHORT[i];
+        btn.title = `${m} ${currentYearOps}`;
+        btn.setAttribute('data-month', m);
+        btn.disabled = isFuture;
+        if (!isFuture) btn.addEventListener('click', () => loadOpsMonthData(m));
+        container.appendChild(btn);
+    });
+    const disp = document.getElementById('ops-year-display');
+    if (disp) disp.textContent = currentYearOps;
+    // Disable next-year button if already at or past current year
+    const btnNext = document.getElementById('ops-year-next-btn');
+    if (btnNext) btnNext.disabled = currentYearOps >= today.getFullYear();
 }
 
 async function loadOpsMonthData(month) {
     currentMonthOps = month;
+
+    // Sync active state on pills
+    document.querySelectorAll('#ops-month-pills .ops-month-pill').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-month') === month);
+    });
 
     const badge = document.getElementById('current-month-badge');
     if (badge) badge.textContent = `${month} ${currentYearOps}`;
@@ -1971,12 +1982,16 @@ function renderPivotTable() {
     }
 }
 
+window.opsNavYear = function(delta) {
+    const today = new Date();
+    const next = currentYearOps + delta;
+    if (next < 2024 || next > today.getFullYear()) return;
+    window.loadOperationsYear(next);
+};
+
 window.loadOperationsYear = function(year) {
     currentYearOps = year;
-    // Update active pill state
-    document.querySelectorAll('#ops-year-tabs .nav-link').forEach(btn => btn.classList.remove('active'));
-    const activeYearTab = document.getElementById(`tab-year-${year}`);
-    if (activeYearTab) activeYearTab.classList.add('active');
+    renderMonthPills();
     loadOpsMonthData(currentMonthOps);
 };
 
