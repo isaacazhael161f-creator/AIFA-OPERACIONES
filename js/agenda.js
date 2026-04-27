@@ -135,21 +135,55 @@ function _agCalDraw() {
         const s = document.createElement('style');
         s.id = 'ag-cal-style';
         s.textContent = `
-        .ag-cal-cell { border-radius:10px; vertical-align:top; padding:10px 8px 8px; min-height:165px; position:relative; transition:box-shadow .15s; }
-        .ag-cal-cell:hover { box-shadow:0 3px 12px rgba(0,0,0,.12) !important; z-index:1; }
-        .ag-chip { display:block; padding:4px 7px 4px 6px; margin:2px 0; border-radius:0 6px 6px 0;
-                   font-size:.72rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-                   cursor:pointer; line-height:1.45; border-left-width:3px; border-left-style:solid;
-                   transition:filter .12s; }
-        .ag-chip:hover { filter:brightness(.94); }
-        .ag-chip-past { opacity:.7; }
-        .ag-chip-can  { text-decoration:line-through; opacity:.5; }
-        .ag-chip-soon { animation:ag-pulse .9s infinite alternate; }
-        @keyframes ag-pulse { from { filter:brightness(1); } to { filter:brightness(1.12); } }
-        .ag-dow-weekend { background:#f8f7ff !important; }
-        .ag-day-num-today { background:#7c3aed; color:#fff !important; border-radius:50%;
-                            width:24px; height:24px; display:inline-flex; align-items:center;
-                            justify-content:center; font-size:.75rem; }
+        /* ── Celda ── */
+        .ag-cal-cell {
+            border-radius:12px; vertical-align:top;
+            padding:14px 11px 10px; min-height:200px;
+            position:relative; transition:box-shadow .18s, transform .12s;
+        }
+        .ag-cal-cell:hover {
+            box-shadow:0 6px 22px rgba(0,0,0,.13) !important;
+            z-index:2; transform:translateY(-1px);
+        }
+        .ag-cal-cell-has-sessions {
+            box-shadow:0 1px 6px rgba(0,0,0,.06);
+        }
+        /* ── Chips ── */
+        .ag-chip {
+            display:flex; align-items:center; gap:0;
+            padding:5px 9px 5px 7px; margin:3px 0;
+            border-radius:0 8px 8px 0;
+            font-size:.76rem; font-weight:600;
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+            cursor:pointer; line-height:1.35;
+            border-left-width:4px; border-left-style:solid;
+            transition:filter .12s, transform .1s;
+            box-shadow:0 1px 3px rgba(0,0,0,.06);
+        }
+        .ag-chip:hover { filter:brightness(.93); transform:translateX(2px); }
+        .ag-chip-past { opacity:.68; }
+        .ag-chip-can  { text-decoration:line-through; opacity:.45; }
+        .ag-chip-soon { animation:ag-pulse 1s infinite alternate; }
+        @keyframes ag-pulse {
+            from { filter:brightness(1); box-shadow:0 1px 3px rgba(0,0,0,.06); }
+            to   { filter:brightness(1.06); box-shadow:0 2px 8px rgba(124,58,237,.22); }
+        }
+        /* ── Weekend cols ── */
+        .ag-dow-weekend { background:#f7f5ff !important; }
+        /* ── Número de día hoy ── */
+        .ag-day-num-today {
+            background:#7c3aed; color:#fff !important;
+            border-radius:50%; width:28px; height:28px;
+            display:inline-flex; align-items:center; justify-content:center;
+            font-size:.8rem; font-weight:800;
+            box-shadow:0 0 0 3px #c4b5fd60;
+        }
+        /* ── Cabecera de columna día ── */
+        .ag-col-header {
+            font-size:.72rem; font-weight:700; letter-spacing:.06em;
+            text-transform:uppercase; padding:10px 0 10px;
+            border-bottom:2px solid #e5e7eb;
+        }
         `;
         document.head.appendChild(s);
     }
@@ -158,45 +192,71 @@ function _agCalDraw() {
        CABECERA
     ───────────────────────────────────────────────────────── */
     let html = `
-    <div style="background:linear-gradient(135deg,#1e1b4b 0%,#312e81 100%);border-radius:14px;padding:16px 20px;margin-bottom:16px">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-            <!-- Navegación -->
-            <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-sm px-3 py-1" onclick="agCalNavMonth(-1)"
-                    style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px">
-                    <i class="fas fa-chevron-left"></i>
+    <div style="background:linear-gradient(135deg,#0f0c29 0%,#1e1b4b 45%,#312e81 100%);
+        border-radius:16px;padding:20px 28px;margin-bottom:20px;
+        box-shadow:0 8px 32px rgba(15,12,41,.35)">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-4">
+
+            <!-- Navegación + título -->
+            <div class="d-flex align-items-center gap-3">
+                <button onclick="agCalNavMonth(-1)"
+                    style="background:rgba(255,255,255,.10);color:#fff;
+                    border:1px solid rgba(255,255,255,.2);border-radius:10px;
+                    width:38px;height:38px;display:flex;align-items:center;justify-content:center;
+                    cursor:pointer;transition:background .15s"
+                    onmouseover="this.style.background='rgba(255,255,255,.2)'"
+                    onmouseout="this.style.background='rgba(255,255,255,.10)'">
+                    <i class="fas fa-chevron-left" style="font-size:.8rem"></i>
                 </button>
-                <div style="text-align:center;min-width:200px">
-                    <div style="color:#a5b4fc;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase">${year}</div>
-                    <div style="color:#fff;font-size:1.4rem;font-weight:800;line-height:1.1">${AG_MONTHS_FULL[month]}</div>
+                <div style="text-align:center;min-width:220px">
+                    <div style="color:#a5b4fc;font-size:.68rem;font-weight:700;
+                        letter-spacing:.14em;text-transform:uppercase;margin-bottom:2px">${year}</div>
+                    <div style="color:#fff;font-size:2rem;font-weight:900;line-height:1;
+                        letter-spacing:-.01em">${AG_MONTHS_FULL[month]}</div>
                 </div>
-                <button class="btn btn-sm px-3 py-1" onclick="agCalNavMonth(1)"
-                    style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px">
-                    <i class="fas fa-chevron-right"></i>
+                <button onclick="agCalNavMonth(1)"
+                    style="background:rgba(255,255,255,.10);color:#fff;
+                    border:1px solid rgba(255,255,255,.2);border-radius:10px;
+                    width:38px;height:38px;display:flex;align-items:center;justify-content:center;
+                    cursor:pointer;transition:background .15s"
+                    onmouseover="this.style.background='rgba(255,255,255,.2)'"
+                    onmouseout="this.style.background='rgba(255,255,255,.10)'">
+                    <i class="fas fa-chevron-right" style="font-size:.8rem"></i>
                 </button>
             </div>
+
             <!-- KPIs -->
-            <div class="d-flex gap-2 flex-wrap">
-                <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:8px 14px;text-align:center;min-width:70px">
-                    <div style="color:#fff;font-size:1.3rem;font-weight:800;line-height:1">${totalMes}</div>
-                    <div style="color:#a5b4fc;font-size:.65rem">Sesiones</div>
+            <div class="d-flex gap-3 flex-wrap">
+                <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
+                    border-radius:12px;padding:12px 20px;text-align:center;min-width:82px">
+                    <div style="color:#fff;font-size:1.9rem;font-weight:900;line-height:1">${totalMes}</div>
+                    <div style="color:#a5b4fc;font-size:.63rem;font-weight:600;
+                        letter-spacing:.06em;text-transform:uppercase;margin-top:3px">Sesiones</div>
                 </div>
-                <div style="background:rgba(134,239,172,.15);border-radius:10px;padding:8px 14px;text-align:center;min-width:70px">
-                    <div style="color:#86efac;font-size:1.3rem;font-weight:800;line-height:1">${celeb}</div>
-                    <div style="color:#86efac;font-size:.65rem;opacity:.8">Celebradas</div>
+                <div style="background:rgba(134,239,172,.12);border:1px solid rgba(134,239,172,.25);
+                    border-radius:12px;padding:12px 20px;text-align:center;min-width:82px">
+                    <div style="color:#86efac;font-size:1.9rem;font-weight:900;line-height:1">${celeb}</div>
+                    <div style="color:#86efac;font-size:.63rem;font-weight:600;
+                        letter-spacing:.06em;text-transform:uppercase;opacity:.9;margin-top:3px">Celebradas</div>
                 </div>
-                ${cancel > 0 ? `<div style="background:rgba(252,165,165,.15);border-radius:10px;padding:8px 14px;text-align:center;min-width:70px">
-                    <div style="color:#fca5a5;font-size:1.3rem;font-weight:800;line-height:1">${cancel}</div>
-                    <div style="color:#fca5a5;font-size:.65rem;opacity:.8">Canceladas</div>
+                ${cancel > 0 ? `<div style="background:rgba(252,165,165,.12);border:1px solid rgba(252,165,165,.25);
+                    border-radius:12px;padding:12px 20px;text-align:center;min-width:82px">
+                    <div style="color:#fca5a5;font-size:1.9rem;font-weight:900;line-height:1">${cancel}</div>
+                    <div style="color:#fca5a5;font-size:.63rem;font-weight:600;
+                        letter-spacing:.06em;text-transform:uppercase;opacity:.9;margin-top:3px">Canceladas</div>
                 </div>` : ''}
                 ${nConfl > 0
-                    ? `<div style="background:rgba(251,191,36,.15);border-radius:10px;padding:8px 14px;text-align:center;min-width:70px">
-                        <div style="color:#fbbf24;font-size:1.3rem;font-weight:800;line-height:1">${nConfl}</div>
-                        <div style="color:#fbbf24;font-size:.65rem;opacity:.8">Conflictos</div>
+                    ? `<div style="background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.28);
+                        border-radius:12px;padding:12px 20px;text-align:center;min-width:82px">
+                        <div style="color:#fbbf24;font-size:1.9rem;font-weight:900;line-height:1">${nConfl}</div>
+                        <div style="color:#fbbf24;font-size:.63rem;font-weight:600;
+                            letter-spacing:.06em;text-transform:uppercase;opacity:.9;margin-top:3px">Conflictos</div>
                        </div>`
-                    : `<div style="background:rgba(134,239,172,.1);border-radius:10px;padding:8px 14px;text-align:center">
-                        <i class="fas fa-shield-alt" style="color:#86efac;font-size:1.1rem"></i>
-                        <div style="color:#86efac;font-size:.62rem;opacity:.8;margin-top:2px">Sin conflictos</div>
+                    : `<div style="background:rgba(134,239,172,.08);border:1px solid rgba(134,239,172,.2);
+                        border-radius:12px;padding:12px 20px;text-align:center;min-width:82px">
+                        <i class="fas fa-shield-alt" style="color:#86efac;font-size:1.3rem"></i>
+                        <div style="color:#86efac;font-size:.63rem;font-weight:600;
+                            letter-spacing:.06em;opacity:.9;margin-top:4px">Sin conflictos</div>
                        </div>`}
             </div>
         </div>
@@ -211,19 +271,19 @@ function _agCalDraw() {
     const startDow  = (firstDay.getDay() + 6) % 7;
 
     html += `<div style="overflow-x:auto">
-    <table style="border-collapse:separate;border-spacing:6px;min-width:980px;width:100%">
+    <table style="border-collapse:separate;border-spacing:8px;min-width:1080px;width:100%">
       <thead><tr>`;
     DAYS_H.forEach((d, i) => {
         const isWe = i >= 5;
-        html += `<th class="text-center pb-2" style="width:14.28%;font-size:.75rem;font-weight:700;
-            color:${isWe ? '#8b5cf6' : '#6b7280'};letter-spacing:.04em;padding-bottom:8px">${d}</th>`;
+        html += `<th class="ag-col-header text-center" style="width:14.28%;
+            color:${isWe ? '#7c3aed' : '#374151'}">${d}</th>`;
     });
     html += `</tr></thead><tbody>`;
 
     let day = 1, col = startDow;
     let row = '<tr>';
     for (let i = 0; i < startDow; i++) {
-        row += `<td class="ag-cal-cell" style="background:#f9fafb;border:1px solid #f1f5f9"></td>`;
+        row += `<td class="ag-cal-cell" style="background:#f8f9fb;border:1px solid #eef0f4"></td>`;
     }
 
     while (day <= totalDays) {
@@ -256,19 +316,25 @@ function _agCalDraw() {
             cBg = isWe ? '#f5f3ff' : '#fff'; cBorder = '1px solid #e5e7eb';
         }
 
-        row += `<td class="ag-cal-cell${isWe?' ag-dow-weekend':''}"
+        const hasSessions = sessions.length > 0;
+        row += `<td class="ag-cal-cell${isWe?' ag-dow-weekend':''}${hasSessions?' ag-cal-cell-has-sessions':''}"
             style="background:${cBg};border:${cBorder};${cShadow}">`;
 
         /* Número de día */
-        const numStyle = isToday ? 'class="ag-day-num-today"' : `style="font-size:.82rem;font-weight:700;color:${isPastDay?'#9ca3af':'#1f2937'}"`;
-        row += `<div class="d-flex justify-content-between align-items-start mb-1">
+        const numStyle = isToday
+            ? 'class="ag-day-num-today"'
+            : `style="font-size:.9rem;font-weight:${hasSessions?'800':'600'};color:${isPastDay?'#b0b8c8':'#1e293b'};line-height:1"`;
+        row += `<div class="d-flex justify-content-between align-items-center mb-2">
             <span ${numStyle}>${day}</span>
             ${isConfl
                 ? `<span style="background:${hasHourConfl?'#f43f5e':'#f59e0b'};color:#fff;
-                    font-size:.58rem;padding:1px 5px;border-radius:10px;font-weight:700"
+                    font-size:.6rem;padding:2px 7px;border-radius:20px;font-weight:700;letter-spacing:.02em"
                     title="${sessions.filter(r=>r.estatus!=='Cancelada').length} comités coinciden">
                     ⚠ ×${sessions.filter(r=>r.estatus!=='Cancelada').length}</span>`
-                : (sessions.length > 1 ? `<span style="color:#9ca3af;font-size:.6rem">${sessions.length}</span>` : '')}
+                : (sessions.length > 1
+                    ? `<span style="background:#f1f5f9;color:#64748b;font-size:.6rem;font-weight:700;
+                        padding:1px 6px;border-radius:10px">${sessions.length}</span>`
+                    : '')}
         </div>`;
 
         /* Chips de sesión — siempre coloreados por área */
@@ -299,12 +365,13 @@ function _agCalDraw() {
                 title="${comite.nombre || ''}\n${r.numero_sesion || ''} | ${r.estatus}${hora ? ' · ' + hora + 'h' : ''}${r.observaciones ? '\n' + r.observaciones : ''}\n\n🔍 Haz clic para ver información normativa"
                 style="background:${ac.bg};color:${ac.color};border-left-color:${ac.border}"
                 onclick="_agShowComiteDetail('${r.comite_id}')">
-                ${statusIcon}<span style="background:${ac.border};color:${ac.color};font-size:.57rem;font-weight:800;
-                    padding:0 4px;border-radius:3px;margin-right:4px;opacity:.85">${r.area}</span>${hora ? `<span style="opacity:.55;font-size:.6rem;margin-right:2px">${hora}</span>` : ''}${label}
+                ${statusIcon}<span style="background:${ac.color};color:#fff;font-size:.58rem;font-weight:800;
+                    padding:1px 5px;border-radius:4px;margin-right:5px;flex-shrink:0;opacity:.9">${r.area}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${hora ? `<span style="opacity:.55;font-size:.62rem;margin-right:3px">${hora}</span>` : ''}${label}</span>
             </span>`;
         });
         if (overflow > 0) {
-            row += `<div style="font-size:.6rem;color:#6b7280;text-align:right;margin-top:2px">+${overflow} más</div>`;
+            row += `<div style="font-size:.63rem;color:#94a3b8;text-align:right;margin-top:4px;
+                font-weight:600">+${overflow} más…</div>`;
         }
         row += `</td>`;
         col++; day++;
@@ -312,7 +379,7 @@ function _agCalDraw() {
         if (col === 7 || day > totalDays) {
             if (day > totalDays && col < 7)
                 for (let i = col; i < 7; i++)
-                    row += `<td class="ag-cal-cell" style="background:#f9fafb;border:1px solid #f1f5f9"></td>`;
+                    row += `<td class="ag-cal-cell" style="background:#f8f9fb;border:1px solid #eef0f4"></td>`;
             row += '</tr>';
             html += row;
             if (day <= totalDays) { row = '<tr>'; col = 0; }
