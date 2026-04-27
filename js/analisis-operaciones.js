@@ -235,6 +235,21 @@ function getFromCache(key) {
     }
 }
 
+// ── ISO timestamp display helpers ─────────────────────────────────────────
+const _ISO_RE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/;
+function _fmtIsoDateTime(val) {
+    if (!val) return '—';
+    const m = String(val).match(_ISO_RE);
+    if (!m) return val;
+    return `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}`;
+}
+function _fmtIsoTime(val) {
+    if (!val) return '—';
+    const m = String(val).match(_ISO_RE);
+    if (!m) return val;
+    return `${m[4]}:${m[5]}`;
+}
+
 function renderOpsTable(data) {
     if (!data || !data.length) return;
 
@@ -1844,8 +1859,8 @@ function _showBarDrilldown(title, records) {
             if (hasServicio)   html += `<td>${r.servicio   || '—'}</td>`;
             if (hasAeronave)   html += `<td>${r.aeronave   || '—'}</td>`;
             if (hasPosicion)   html += `<td class="fw-semibold">${r.posicion   || '—'}</td>`;
-            if (hasFecha)      html += `<td class="text-nowrap">${r.fecha     || '—'}</td>`;
-            if (hasHora)       html += `<td class="text-nowrap fw-semibold text-primary">${r.hora || '—'}</td>`;
+            if (hasFecha)      html += `<td class="text-nowrap">${_fmtIsoDateTime(r.fecha)}</td>`;
+            if (hasHora)       html += `<td class="text-nowrap fw-semibold text-primary">${_fmtIsoTime(r.hora)}</td>`;
             if (hasPax)        html += `<td class="text-end fw-bold">${(r.pax || 0) > 0 ? r.pax.toLocaleString() : '—'}</td>`;
             if (hasEstatus)    html += `<td>${r.estatus    || '—'}</td>`;
             html += '</tr>';
@@ -2296,8 +2311,8 @@ function _showHeatmapDrilldown(hour, dayIdx) {
             if (hasDestino)    html += `<td>${r.destino    || '—'}</td>`;
             if (hasServicio)   html += `<td>${r.servicio   || '—'}</td>`;
             if (hasAeronave)   html += `<td>${r.aeronave   || '—'}</td>`;
-            if (hasFecha)      html += `<td class="text-nowrap">${r.fecha     || '—'}</td>`;
-            if (hasHora)       html += `<td class="text-nowrap fw-semibold text-primary">${r.hora || '—'}</td>`;
+            if (hasFecha)      html += `<td class="text-nowrap">${_fmtIsoDateTime(r.fecha)}</td>`;
+            if (hasHora)       html += `<td class="text-nowrap fw-semibold text-primary">${_fmtIsoTime(r.hora)}</td>`;
             if (hasPax)        html += `<td class="text-end fw-bold">${r.pax > 0 ? r.pax.toLocaleString() : '—'}</td>`;
             html += '</tr>';
         });
@@ -2525,8 +2540,8 @@ function _showOpsHourDrilldown(hour, dayIdx) {
             if (hasServicio)   html += `<td>${r.servicio   || '—'}</td>`;
             if (hasAeronave)   html += `<td>${r.aeronave   || '—'}</td>`;
             if (hasEstatus)    html += `<td><span class="badge bg-secondary fw-normal">${r.estatus || '—'}</span></td>`;
-            if (hasFecha)      html += `<td class="text-nowrap">${r.fecha || '—'}</td>`;
-            if (hasHora)       html += `<td class="text-nowrap fw-semibold text-warning">${r.hora || '—'}</td>`;
+            if (hasFecha)      html += `<td class="text-nowrap">${_fmtIsoDateTime(r.fecha)}</td>`;
+            if (hasHora)       html += `<td class="text-nowrap fw-semibold text-warning">${_fmtIsoTime(r.hora)}</td>`;
             html += '</tr>';
         });
 
