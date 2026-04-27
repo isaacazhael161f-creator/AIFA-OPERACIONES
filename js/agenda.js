@@ -20,7 +20,7 @@ const AG_MONTHS_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                         'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
 /* ── Estado interno ─────────────────────────────────────────────── */
-let _ag = { comites:[], reuniones:[], acuerdos:[], ready:false, activeArea:'all' };
+let _ag = { comites:[], reuniones:[], acuerdos:[], ready:false, activeArea:'all', calView:'anual', calMonth: new Date().getMonth() };
 
 /* ── Supabase helper ────────────────────────────────────────────── */
 function _agSB() { return window._supabase || window.sb || null; }
@@ -63,87 +63,98 @@ function agFilterArea(area, btn) {
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   CALENDARIO GENERAL
+   CALENDARIO GENERAL — tres vistas: Año · Mes · Conflictos
 ───────────────────────────────────────────────────────────────────*/
 async function agLoadCalendario() {
     const pane = document.getElementById('ag-pane-calendario');
     if (!pane) return;
-    pane.innerHTML = `<div class="text-center py-5">
-        <div class="spinner-border text-primary" role="status"></div>
-        <p class="text-muted mt-2 small">Cargando calendario…</p></div>`;
-
+    if (!_ag.ready) {
+        pane.innerHTML = `<div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="text-muted mt-2 small">Cargando calendario…</p></div>`;
+    }
     await _agEnsureData();
+    _agCalRender();
+}
 
-    const area   = _ag.activeArea || 'all';
-    const now    = new Date();
-    const today  = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const soon   = new Date(today.getTime() + 30 * 86400000);
+/* Cambia la vista activa y re-renderiza */
+function agCalSetView(v) {
+    _ag.calView = v;
+    _agCalRender();
+}
 
-    /* Filtrar comités y reuniones según área activa */
-    const comites   = area === 'all' ? _ag.comites : _ag.comites.filter(c => c.area === area);
+/* Navega mes ±1 en vista mensual */
+function agCalNavMonth(delta) {
+    _ag.calMonth = ((_ag.calMonth + delta + 12) % 12);
+    _agCalRender();
+}
+
+/* Renderiza el pane-calendario según la vista activa */
+function _agCalRender() {
+    const pane = document.getElementById('ag-pane-calendario');
+    if (!pane) return;
+
+    const now       = new Date();
+    const today     = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const soon      = new Date(today.getTime() + 30 * 86400000);
+    const area      = _ag.activeArea || 'all';
+    const comites   = area === 'all' ? _ag.comites   : _ag.comites.filter(c => c.area === area);
     const reuniones = area === 'all' ? _ag.reuniones : _ag.reuniones.filter(r => r.area === area);
 
-    /* Index reuniones por comite_id + mes */
-    const byComMes = {}; // [comite_id][mes 0-11] → [ reunion... ]
+    /* ── Toolbar de vistas ── */
+    const views = [
+        { v:'anual',      icon:'fa-table',                label:'Año completo' },
+        { v:'mensual',    icon:'fa-calendar-alt',          label:'Por mes'      },
+        { v:'conflictos', icon:'fa-exclamation-triangle',  label:'Conflictos'   },
+    ];
+    let html = `<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div class="btn-group btn-group-sm" role="group">`;
+    views.forEach(({ v, icon, label }) => {
+        const active = _ag.calView === v;
+        const danger = v === 'conflictos';
+        html += `<button type="button"
+            class="btn ${active ? (danger ? 'btn-danger' : 'btn-primary') : (danger ? 'btn-outline-danger' : 'btn-outline-secondary')}"
+            onclick="agCalSetView('${v}')">
+            <i class="fas ${icon} me-1"></i>${label}
+        </button>`;
+    });
+    html += `</div>`;
+
+    /* Badge de próximas sesiones */
+    const nUpcoming = reuniones.filter(r => {
+        const d = new Date(r.fecha_sesion + 'T00:00:00');
+        return d >= today && d <= soon && r.estatus !== 'Cancelada';
+    }).length;
+    if (nUpcoming > 0) {
+        html += `<span class="badge bg-warning text-dark" style="font-size:.78rem">
+            <i class="fas fa-bell me-1"></i>${nUpcoming} sesión${nUpcoming > 1 ? 'es' : ''} en 30 días
+        </span>`;
+    }
+    html += `</div>`;
+
+    /* ── Contenido según vista ── */
+    if (_ag.calView === 'mensual') {
+        html += _agCalMensual(comites, reuniones, today, soon, now);
+    } else if (_ag.calView === 'conflictos') {
+        html += _agCalConflictos(reuniones, today);
+    } else {
+        html += _agCalAnual(comites, reuniones, today, soon, now);
+    }
+
+    pane.innerHTML = html;
+}
+
+/* ── VISTA ANUAL ── tabla comités × meses ────────────────────── */
+function _agCalAnual(comites, reuniones, today, soon, now) {
+    const byComMes = {};
     reuniones.forEach(r => {
         const mes = new Date(r.fecha_sesion + 'T00:00:00').getMonth();
-        if (!byComMes[r.comite_id]) byComMes[r.comite_id] = {};
+        if (!byComMes[r.comite_id])      byComMes[r.comite_id] = {};
         if (!byComMes[r.comite_id][mes]) byComMes[r.comite_id][mes] = [];
         byComMes[r.comite_id][mes].push(r);
     });
 
-    /* Próximas sesiones (next 30 days) */
-    const upcoming = reuniones.filter(r => {
-        const d = new Date(r.fecha_sesion + 'T00:00:00');
-        return d >= today && d <= soon && r.estatus !== 'Cancelada';
-    }).slice(0, 12);
-
-    let html = '';
-
-    /* ── Banner: Próximas sesiones ─────────────────────────────── */
-    if (upcoming.length) {
-        html += `<div class="card border-0 mb-3" style="box-shadow:0 2px 8px rgba(0,0,0,.1)">
-          <div class="card-header py-2 text-white" style="background:#1e1b4b">
-            <i class="fas fa-bell me-1"></i><strong>Próximas sesiones — 30 días</strong>
-            <span class="badge bg-light text-dark ms-2">${upcoming.length}</span>
-          </div>
-          <div class="card-body p-2">
-            <div class="row g-2">`;
-        upcoming.forEach(r => {
-            const comite = _ag.comites.find(c => c.id === r.comite_id) || {};
-            const ac  = AG_AREA[r.area] || AG_AREA.AFAC;
-            const d   = new Date(r.fecha_sesion + 'T00:00:00');
-            const diff = Math.ceil((d - today) / 86400000);
-            const label = comite.acronimo || (comite.nombre || '').split(' ').slice(0,3).join(' ');
-            html += `<div class="col-6 col-md-4 col-lg-3">
-              <div class="d-flex align-items-center gap-2 rounded p-2"
-                   style="background:${ac.bg};border:1px solid ${ac.border}">
-                <div class="text-center flex-shrink-0" style="min-width:38px;color:${ac.color}">
-                  <div style="font-size:1.05rem;font-weight:700;line-height:1.1">${d.getDate()}</div>
-                  <div style="font-size:.6rem;text-transform:uppercase">${AG_MONTHS[d.getMonth()]}</div>
-                </div>
-                <div style="flex:1;min-width:0">
-                  <div class="fw-semibold text-truncate" style="font-size:.78rem;color:${ac.color}"
-                       title="${comite.nombre}">${label}</div>
-                  <div class="text-muted" style="font-size:.68rem">
-                    ${r.numero_sesion ? r.numero_sesion + ' · ' : ''}${r.hora_inicio ? r.hora_inicio.slice(0,5)+'h' : ''}
-                  </div>
-                </div>
-                <span class="badge flex-shrink-0"
-                      style="font-size:.62rem;background:${diff<=7?'#dc2626':'#2563eb'};color:#fff">
-                  ${diff}d
-                </span>
-              </div>
-            </div>`;
-        });
-        html += `</div></div></div>`;
-    } else {
-        html += `<div class="alert alert-info py-2 small mb-3">
-            <i class="fas fa-info-circle me-1"></i>No hay sesiones programadas en los próximos 30 días.</div>`;
-    }
-
-    /* ── Tabla año completo ────────────────────────────────────── */
-    html += `<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+    let html = `<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
         <span class="fw-semibold text-secondary small">
             <i class="fas fa-table me-1"></i>Calendario 2026 — ${comites.length} comités
         </span>
@@ -163,19 +174,18 @@ async function agLoadCalendario() {
 
     AG_MONTHS.forEach((m, i) => {
         const isCur = (i === now.getMonth());
-        html += `<th class="text-center" style="width:64px;${isCur?'background:#312e81;':''}">
-                   ${m}${isCur?' <span style="font-size:.6rem;vertical-align:super">◀</span>':''}
+        html += `<th class="text-center" style="width:64px;${isCur ? 'background:#312e81;' : ''}">
+                   ${m}${isCur ? ' <span style="font-size:.6rem;vertical-align:super">◀</span>' : ''}
                  </th>`;
     });
     html += `</tr></thead><tbody>`;
 
-    if (comites.length === 0) {
-        html += `<tr><td colspan="14" class="text-center text-muted py-4">
-            No hay comités registrados para esta área.</td></tr>`;
+    if (!comites.length) {
+        html += `<tr><td colspan="14" class="text-center text-muted py-4">No hay comités registrados.</td></tr>`;
     }
 
     comites.forEach(c => {
-        const ac        = AG_AREA[c.area] || AG_AREA.AFAC;
+        const ac          = AG_AREA[c.area] || AG_AREA.AFAC;
         const mesSesiones = byComMes[c.id] || {};
         html += `<tr>
           <td style="position:sticky;left:0;background:#fff;z-index:1;padding:3px 8px;font-size:.78rem;font-weight:600"
@@ -186,54 +196,269 @@ async function agLoadCalendario() {
           <td class="text-center p-1">
             <span class="badge" style="background:${ac.bg};color:${ac.color};font-size:.68rem;border:1px solid ${ac.border}">${c.area}</span>
           </td>`;
-
         for (let m = 0; m < 12; m++) {
             const sesiones = mesSesiones[m] || [];
             const isCur    = (m === now.getMonth());
-            html += `<td class="text-center p-1" style="${isCur?'background:#f5f3ff;':''}">`; 
+            html += `<td class="text-center p-1" style="${isCur ? 'background:#f5f3ff;' : ''}">`;
             sesiones.forEach(r => {
                 const d      = new Date(r.fecha_sesion + 'T00:00:00');
                 const isPast = d < today;
                 const isNext = !isPast && d <= soon;
                 const isCan  = r.estatus === 'Cancelada';
                 let chipBg, chipColor, chipBorder;
-                if (isCan) {
-                    chipBg = '#fee2e2'; chipColor = '#991b1b'; chipBorder = '#fca5a5';
-                } else if (isPast) {
-                    chipBg = '#d1fae5'; chipColor = '#166534'; chipBorder = '#86efac';
-                } else if (isNext) {
-                    chipBg = '#fef08a'; chipColor = '#854d0e'; chipBorder = '#fde047';
-                } else {
-                    chipBg = ac.bg; chipColor = ac.color; chipBorder = ac.border;
-                }
+                if (isCan)       { chipBg = '#fee2e2'; chipColor = '#991b1b'; chipBorder = '#fca5a5'; }
+                else if (isPast) { chipBg = '#d1fae5'; chipColor = '#166534'; chipBorder = '#86efac'; }
+                else if (isNext) { chipBg = '#fef08a'; chipColor = '#854d0e'; chipBorder = '#fde047'; }
+                else             { chipBg = ac.bg;     chipColor = ac.color;  chipBorder = ac.border; }
                 html += `<span class="ag-cal-chip"
                     style="background:${chipBg};color:${chipColor};border:1px solid ${chipBorder};
-                           ${isCan?'text-decoration:line-through;opacity:.6':''}
+                           ${isCan ? 'text-decoration:line-through;opacity:.6' : ''}
                            font-size:.72rem;padding:1px 5px;cursor:pointer"
-                    title="${r.numero_sesion || ''} — ${r.estatus}${r.observaciones ? '\n'+r.observaciones : ''}"
+                    title="${r.numero_sesion || ''} — ${r.estatus}${r.observaciones ? '\n' + r.observaciones : ''}"
                     data-reunion-id="${r.id}">
                     ${d.getDate()}
                 </span>`;
             });
-            if (sesiones.length === 0) html += `<span class="text-muted" style="font-size:.6rem">—</span>`;
+            if (!sesiones.length) html += `<span class="text-muted" style="font-size:.6rem">—</span>`;
             html += `</td>`;
         }
         html += `</tr>`;
     });
 
     html += `</tbody></table></div>
-
-    <!-- Leyenda de áreas -->
     <div class="d-flex flex-wrap gap-2 mt-3">
       <span class="small fw-semibold text-muted me-1">Áreas:</span>`;
     Object.entries(AG_AREA).forEach(([key, ac]) => {
-        html += `<span class="badge" style="background:${ac.bg};color:${ac.color};border:1px solid ${ac.border};font-size:.72rem">
-            ${key} — ${ac.name}</span>`;
+        html += `<span class="badge" style="background:${ac.bg};color:${ac.color};border:1px solid ${ac.border};font-size:.72rem">${key} — ${ac.name}</span>`;
     });
     html += `</div>`;
-
-    pane.innerHTML = html;
+    return html;
 }
+
+/* ── VISTA MENSUAL ── grid de días ────────────────────────────── */
+function _agCalMensual(comites, reuniones, today, soon, now) {
+    const month    = _ag.calMonth;
+    const year     = 2026;
+    const firstDay = new Date(year, month, 1);
+    const lastDay  = new Date(year, month + 1, 0);
+
+    /* Agrupar sesiones del mes por día */
+    const byDay = {};
+    reuniones.forEach(r => {
+        const d = new Date(r.fecha_sesion + 'T00:00:00');
+        if (d.getFullYear() === year && d.getMonth() === month) {
+            const k = d.getDate();
+            if (!byDay[k]) byDay[k] = [];
+            byDay[k].push(r);
+        }
+    });
+    const conflictDays = new Set(
+        Object.entries(byDay).filter(([, arr]) => arr.length >= 2).map(([k]) => +k)
+    );
+
+    /* Navegación */
+    let html = `<div class="d-flex align-items-center justify-content-between mb-3">
+        <button class="btn btn-sm btn-outline-secondary" onclick="agCalNavMonth(-1)">
+            <i class="fas fa-chevron-left me-1"></i>${AG_MONTHS_FULL[(month + 11) % 12]}
+        </button>
+        <h5 class="mb-0 fw-bold" style="color:#1e1b4b">
+            <i class="fas fa-calendar-alt me-2 text-primary"></i>${AG_MONTHS_FULL[month]} 2026
+        </h5>
+        <button class="btn btn-sm btn-outline-secondary" onclick="agCalNavMonth(1)">
+            ${AG_MONTHS_FULL[(month + 1) % 12]}<i class="fas fa-chevron-right ms-1"></i>
+        </button>
+    </div>`;
+
+    /* Resumen del mes */
+    const totalMes = Object.values(byDay).flat().length;
+    html += `<div class="d-flex gap-3 mb-3 flex-wrap">
+        <span class="small text-muted"><strong class="text-dark">${totalMes}</strong> sesiones este mes</span>
+        ${conflictDays.size > 0
+            ? `<span class="small text-danger fw-semibold"><i class="fas fa-exclamation-triangle me-1"></i>${conflictDays.size} día${conflictDays.size > 1 ? 's' : ''} con múltiples comités — <a href="#" onclick="agCalSetView('conflictos');return false" class="text-danger">ver detalle</a></span>`
+            : `<span class="small text-success"><i class="fas fa-check-circle me-1"></i>Sin días con sesiones coincidentes</span>`}
+    </div>`;
+
+    /* Grid — semana empieza en Lunes */
+    html += `<div class="table-responsive"><table class="table table-bordered mb-0" style="min-width:700px;table-layout:fixed">
+        <thead style="background:#1e1b4b;color:#fff"><tr>`;
+    ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].forEach(d => {
+        html += `<th class="text-center py-2" style="font-size:.82rem">${d}</th>`;
+    });
+    html += `</tr></thead><tbody>`;
+
+    const startDow  = (firstDay.getDay() + 6) % 7; /* 0=Lun … 6=Dom */
+    const totalDays = lastDay.getDate();
+    let day = 1, col = startDow;
+    let row = `<tr style="vertical-align:top">`;
+    for (let i = 0; i < startDow; i++) row += `<td style="background:#f9fafb;height:90px"></td>`;
+
+    while (day <= totalDays) {
+        const sessions  = byDay[day] || [];
+        const cellDate  = new Date(year, month, day);
+        const isToday   = (year === now.getFullYear() && month === now.getMonth() && day === now.getDate());
+        const isConfl   = conflictDays.has(day);
+        const isPastDay = cellDate < today;
+        let cellBg = '';
+        if (isToday)      cellBg = 'background:#ede9fe;';
+        else if (isConfl) cellBg = 'background:#fff7ed;';
+
+        row += `<td style="padding:5px 6px;height:90px;${cellBg}">
+            <div class="d-flex justify-content-between align-items-start mb-1">
+                <span style="font-size:.82rem;font-weight:${isToday ? '800' : '600'};
+                    color:${isToday ? '#6d28d9' : isPastDay ? '#9ca3af' : '#374151'}">${day}</span>
+                ${isConfl ? `<span class="badge" style="background:#ea580c;color:#fff;font-size:.58rem"
+                    title="${sessions.length} comités este día">×${sessions.length}</span>` : ''}
+            </div>`;
+
+        sessions.forEach(r => {
+            const comite = _ag.comites.find(c => c.id === r.comite_id) || {};
+            const ac     = AG_AREA[r.area] || AG_AREA.AFAC;
+            const label  = comite.acronimo || (comite.nombre || '').split(' ').slice(0, 2).join(' ');
+            const isCan  = r.estatus === 'Cancelada';
+            let chipBg, chipColor, chipBorder;
+            if (isCan)         { chipBg = '#fee2e2'; chipColor = '#991b1b'; chipBorder = '#fca5a5'; }
+            else if (isPastDay){ chipBg = '#d1fae5'; chipColor = '#166534'; chipBorder = '#86efac'; }
+            else if (cellDate <= soon) { chipBg = '#fef08a'; chipColor = '#854d0e'; chipBorder = '#fde047'; }
+            else               { chipBg = ac.bg;     chipColor = ac.color;  chipBorder = ac.border; }
+            row += `<div title="${comite.nombre || ''}\n${r.numero_sesion || ''}\n${r.hora_inicio ? r.hora_inicio.slice(0, 5) + 'h' : ''}"
+                style="background:${chipBg};color:${chipColor};border-left:3px solid ${chipBorder};
+                       padding:1px 4px;margin:1px 0;border-radius:3px;font-size:.68rem;
+                       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+                       ${isCan ? 'text-decoration:line-through;opacity:.6' : ''}">
+                ${r.hora_inicio ? `<span style="opacity:.7;font-size:.6rem">${r.hora_inicio.slice(0, 5)}</span> ` : ''}${label}
+            </div>`;
+        });
+        row += `</td>`;
+        col++; day++;
+        if (col === 7 || day > totalDays) {
+            if (day > totalDays && col < 7) {
+                for (let i = col; i < 7; i++) row += `<td style="background:#f9fafb;height:90px"></td>`;
+            }
+            row += `</tr>`;
+            html += row;
+            if (day <= totalDays) { row = `<tr style="vertical-align:top">`; col = 0; }
+        }
+    }
+
+    html += `</tbody></table></div>
+    <div class="d-flex flex-wrap gap-2 mt-3 align-items-center small">
+        <span class="fw-semibold text-muted me-1">Leyenda:</span>
+        <span style="background:#ede9fe;padding:2px 8px;border-radius:4px;color:#6d28d9">Hoy</span>
+        <span style="background:#fff7ed;padding:2px 8px;border-radius:4px;color:#ea580c">×N — Múltiples comités</span>
+        <span style="background:#d1fae5;padding:2px 8px;border-radius:4px;color:#166534">Celebrada</span>
+        <span style="background:#fef08a;padding:2px 8px;border-radius:4px;color:#854d0e">Próxima</span>
+        <span style="background:#dbeafe;padding:2px 8px;border-radius:4px;color:#1e40af">Programada</span>
+    </div>`;
+    return html;
+}
+
+/* ── VISTA CONFLICTOS ── días con sesiones coincidentes ──────── */
+function _agCalConflictos(reuniones, today) {
+    const byDate = {};
+    reuniones.forEach(r => {
+        if (!byDate[r.fecha_sesion]) byDate[r.fecha_sesion] = [];
+        byDate[r.fecha_sesion].push(r);
+    });
+
+    const conflictDates = Object.entries(byDate)
+        .filter(([, arr]) => arr.length >= 2)
+        .sort(([a], [b]) => a.localeCompare(b));
+
+    let html = `<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h6 class="mb-0 fw-bold" style="color:#1e1b4b">
+            <i class="fas fa-exclamation-triangle me-2 text-warning"></i>Días con múltiples comités — 2026
+        </h6>
+        <span class="badge ${conflictDates.length === 0 ? 'bg-success' : 'bg-warning text-dark'}" style="font-size:.82rem">
+            ${conflictDates.length} día${conflictDates.length !== 1 ? 's' : ''}
+        </span>
+    </div>`;
+
+    if (!conflictDates.length) {
+        html += `<div class="alert alert-success py-3">
+            <i class="fas fa-check-circle me-2"></i>No hay días con sesiones coincidentes para la selección actual.
+        </div>`;
+        return html;
+    }
+
+    const DOW = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+
+    conflictDates.forEach(([fecha, sesiones]) => {
+        const d      = new Date(fecha + 'T00:00:00');
+        const isPast = d < today;
+
+        /* Minutos desde medianoche para sesiones con hora */
+        const hMins = sesiones
+            .filter(r => r.hora_inicio)
+            .map(r => { const [h, m] = r.hora_inicio.split(':').map(Number); return h * 60 + m; });
+
+        /* ¿Dos sesiones a menos de 60 min entre sí? */
+        let tieneConflictoHora = false;
+        outer: for (let i = 0; i < hMins.length; i++) {
+            for (let j = i + 1; j < hMins.length; j++) {
+                if (Math.abs(hMins[i] - hMins[j]) < 60) { tieneConflictoHora = true; break outer; }
+            }
+        }
+
+        const headerBg     = tieneConflictoHora ? '#fef2f2' : (isPast ? '#f0fdf4' : '#fffbeb');
+        const headerBorder = tieneConflictoHora ? '#dc2626' : (isPast ? '#16a34a' : '#d97706');
+        const headerColor  = tieneConflictoHora ? '#991b1b' : '#374151';
+
+        html += `<div class="card border-0 mb-3" style="box-shadow:0 2px 8px rgba(0,0,0,.09)">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center flex-wrap gap-2"
+                 style="background:${headerBg};border-left:4px solid ${headerBorder}">
+                <span class="fw-semibold" style="font-size:.88rem;color:${headerColor}">
+                    <i class="fas fa-${tieneConflictoHora ? 'times-circle' : 'calendar-day'} me-2"></i>
+                    ${DOW[d.getDay()]} ${d.getDate()} de ${AG_MONTHS_FULL[d.getMonth()]}
+                    ${isPast ? '<span class="badge bg-secondary ms-1" style="font-size:.65rem">Pasado</span>' : ''}
+                </span>
+                <div class="d-flex gap-2 align-items-center">
+                    ${tieneConflictoHora
+                        ? '<span class="badge bg-danger" style="font-size:.68rem"><i class="fas fa-clock me-1"></i>Horas solapadas</span>'
+                        : '<span class="badge bg-warning text-dark" style="font-size:.68rem">Horarios distintos</span>'}
+                    <span class="badge bg-secondary" style="font-size:.68rem">${sesiones.length} comités</span>
+                </div>
+            </div>
+            <div class="card-body p-0">
+            <table class="table table-sm mb-0" style="font-size:.78rem">
+                <thead class="table-light"><tr>
+                    <th class="ps-3" style="width:70px">Hora</th>
+                    <th style="width:60px">Área</th>
+                    <th>Comité</th>
+                    <th>Sesión</th>
+                    <th>Estatus</th>
+                </tr></thead><tbody>`;
+
+        sesiones
+            .slice()
+            .sort((a, b) => (a.hora_inicio || '').localeCompare(b.hora_inicio || ''))
+            .forEach(r => {
+                const comite = _ag.comites.find(c => c.id === r.comite_id) || {};
+                const ac     = AG_AREA[r.area] || AG_AREA.AFAC;
+                const rHMin  = r.hora_inicio
+                    ? (() => { const [h, m] = r.hora_inicio.split(':').map(Number); return h * 60 + m; })()
+                    : null;
+                const solapa = rHMin !== null && hMins.some(hm => hm !== rHMin && Math.abs(hm - rHMin) < 60);
+
+                html += `<tr class="${solapa ? 'table-danger' : ''}">
+                    <td class="fw-semibold text-nowrap ps-3">${r.hora_inicio ? r.hora_inicio.slice(0, 5) + 'h' : '—'}</td>
+                    <td><span class="badge" style="background:${ac.bg};color:${ac.color};font-size:.65rem;border:1px solid ${ac.border}">${r.area}</span></td>
+                    <td title="${comite.nombre || ''}">${comite.acronimo || (comite.nombre || '').slice(0, 35)}</td>
+                    <td class="text-muted small">${r.numero_sesion || '—'}</td>
+                    <td><span class="ag-status-badge ag-status-${r.estatus}">${r.estatus}</span></td>
+                </tr>`;
+            });
+
+        html += `</tbody></table></div></div>`;
+    });
+
+    html += `<div class="text-muted small mt-2">
+        <i class="fas fa-info-circle me-1"></i>
+        <span class="badge bg-danger" style="font-size:.65rem">Horas solapadas</span> = dos o más comités con inicio a menos de 60 min de diferencia.
+        <span class="badge bg-warning text-dark" style="font-size:.65rem">Horarios distintos</span> = mismo día pero en horarios separados.
+    </div>`;
+    return html;
+}
+
 
 /* ─────────────────────────────────────────────────────────────────
    COMITÉS (TARJETAS)
