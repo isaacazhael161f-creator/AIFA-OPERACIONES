@@ -1060,7 +1060,7 @@ async function renderOpsCharts() {
                     fecha:      kFecha       ? String(r[kFecha]       || '').trim() : '',
                     hora:       kHoraActual  ? String(r[kHoraActual]  || '').trim() :
                                 (kHora       ? String(r[kHora]        || '').trim() : ''),
-                    horaProg:   kHora        ? String(r[kHora]        || '').trim() : '',
+                    horaProg:   kFecha       ? String(r[kFecha]       || '').trim() : '',
                     pax
                 };
                 heatmapDetails[hourKey][dayIndex].push(_hmRec);
@@ -1128,7 +1128,7 @@ async function renderOpsCharts() {
                     fecha:      kFecha       ? String(r[kFecha]       || '').trim() : '',
                     hora:       kHoraActual  ? String(r[kHoraActual]  || '').trim() :
                                 (kHora       ? String(r[kHora]        || '').trim() : ''),
-                    horaProg:   kHora        ? String(r[kHora]        || '').trim() : '',
+                    horaProg:   kFecha       ? String(r[kFecha]       || '').trim() : '',
                     pax:        kPasajeros   ? parsePassengers(r[kPasajeros]) : 0,
                     estatus:    kEstatus     ? String(r[kEstatus]     || '').trim() : ''
                 });
@@ -1230,7 +1230,7 @@ async function renderOpsCharts() {
                     fecha:      kFecha       ? String(r[kFecha]       || '').trim() : '',
                     hora:       kHoraActual  ? String(r[kHoraActual]  || '').trim() :
                                 (kHora       ? String(r[kHora]        || '').trim() : ''),
-                    horaProg:   kHora        ? String(r[kHora]        || '').trim() : '',
+                    horaProg:   kFecha       ? String(r[kFecha]       || '').trim() : '',
                     pax:        kPasajeros   ? parsePassengers(r[kPasajeros]) : 0,
                     estatus:    kEstatus     ? String(r[kEstatus]     || '').trim() : ''
                 });
@@ -1866,10 +1866,10 @@ function _showBarDrilldown(title, records) {
         if (hasAeronave)   html += '<th>Aeronave</th>';
         if (hasPosicion)   html += '<th>Posición</th>';
         const hasPuntualidad = records.some(r => r.horaProg && r.hora && r.horaProg !== r.hora);
-        if (hasFecha)        html += '<th>Fecha</th>';
-        if (hasHora)         html += '<th>Hora</th>';
-        if (hasPuntualidad)  html += '<th>Puntualidad</th>';
-        if (hasPax)          html += '<th class="text-end">Pax</th>';
+        if (hasFecha)         html += '<th>Hora Prog.</th>';
+        if (hasHora)          html += '<th>Hora Actual</th>';
+        if (hasPuntualidad)   html += '<th>Puntualidad</th>';
+        if (hasPax)           html += '<th class="text-end">Pax</th>';
         html += '</tr></thead><tbody>';
 
         sorted.forEach(r => {
@@ -1882,7 +1882,7 @@ function _showBarDrilldown(title, records) {
             if (hasServicio)     html += `<td>${r.servicio   || '—'}</td>`;
             if (hasAeronave)     html += `<td>${r.aeronave   || '—'}</td>`;
             if (hasPosicion)     html += `<td class="fw-semibold">${r.posicion   || '—'}</td>`;
-            if (hasFecha)        html += `<td class="text-nowrap">${_fmtIsoDateTime(r.fecha)}</td>`;
+            if (hasFecha)        html += `<td class="text-nowrap">${_fmtIsoTime(r.horaProg)}</td>`;
             if (hasHora)         html += `<td class="text-nowrap fw-semibold text-primary">${_fmtIsoTime(r.hora)}</td>`;
             if (hasPuntualidad)  html += `<td class="text-center">${_puntualidadBadge(r.horaProg, r.hora) || '—'}</td>`;
             if (hasPax)          html += `<td class="text-end fw-bold">${(r.pax || 0) > 0 ? r.pax.toLocaleString() : '—'}</td>`;
@@ -2321,10 +2321,10 @@ function _showHeatmapDrilldown(hour, dayIdx) {
         if (hasServicio)   html += '<th>Servicio</th>';
         if (hasAeronave)   html += '<th>Aeronave</th>';
         const hasPuntualidad = records.some(r => r.horaProg && r.hora && r.horaProg !== r.hora);
-        if (hasFecha)        html += '<th>Fecha</th>';
-        if (hasHora)         html += '<th>Hora actual</th>';
-        if (hasPuntualidad)  html += '<th>Puntualidad</th>';
-        if (hasPax)          html += '<th class="text-end">Pax</th>';
+        if (hasFecha)         html += '<th>Hora Prog.</th>';
+        if (hasHora)          html += '<th>Hora Actual</th>';
+        if (hasPuntualidad)   html += '<th>Puntualidad</th>';
+        if (hasPax)           html += '<th class="text-end">Pax</th>';
         html += '</tr></thead><tbody>';
 
         sorted.forEach(r => {
@@ -2336,7 +2336,7 @@ function _showHeatmapDrilldown(hour, dayIdx) {
             if (hasDestino)      html += `<td>${r.destino    || '—'}</td>`;
             if (hasServicio)     html += `<td>${r.servicio   || '—'}</td>`;
             if (hasAeronave)     html += `<td>${r.aeronave   || '—'}</td>`;
-            if (hasFecha)        html += `<td class="text-nowrap">${_fmtIsoDateTime(r.fecha)}</td>`;
+            if (hasFecha)        html += `<td class="text-nowrap">${_fmtIsoTime(r.horaProg)}</td>`;
             if (hasHora)         html += `<td class="text-nowrap fw-semibold text-primary">${_fmtIsoTime(r.hora)}</td>`;
             if (hasPuntualidad)  html += `<td class="text-center">${_puntualidadBadge(r.horaProg, r.hora) || '—'}</td>`;
             if (hasPax)          html += `<td class="text-end fw-bold">${r.pax > 0 ? r.pax.toLocaleString() : '—'}</td>`;
@@ -2552,9 +2552,9 @@ function _showOpsHourDrilldown(hour, dayIdx) {
         if (hasServicio)   html += '<th>Servicio</th>';
         if (hasAeronave)   html += '<th>Aeronave</th>';
         const hasPuntualidad = records.some(r => r.horaProg && r.hora && r.horaProg !== r.hora);
-        if (hasFecha)        html += '<th>Fecha</th>';
-        if (hasHora)         html += '<th>Hora</th>';
-        if (hasPuntualidad)  html += '<th>Puntualidad</th>';
+        if (hasFecha)         html += '<th>Hora Prog.</th>';
+        if (hasHora)          html += '<th>Hora Actual</th>';
+        if (hasPuntualidad)   html += '<th>Puntualidad</th>';
         html += '</tr></thead><tbody>';
 
         sorted.forEach(r => {
@@ -2566,7 +2566,7 @@ function _showOpsHourDrilldown(hour, dayIdx) {
             if (hasDestino)      html += `<td>${r.destino    || '—'}</td>`;
             if (hasServicio)     html += `<td>${r.servicio   || '—'}</td>`;
             if (hasAeronave)     html += `<td>${r.aeronave   || '—'}</td>`;
-            if (hasFecha)        html += `<td class="text-nowrap">${_fmtIsoDateTime(r.fecha)}</td>`;
+            if (hasFecha)        html += `<td class="text-nowrap">${_fmtIsoTime(r.horaProg)}</td>`;
             if (hasHora)         html += `<td class="text-nowrap fw-semibold text-warning">${_fmtIsoTime(r.hora)}</td>`;
             if (hasPuntualidad)  html += `<td class="text-center">${_puntualidadBadge(r.horaProg, r.hora) || '—'}</td>`;
             html += '</tr>';
