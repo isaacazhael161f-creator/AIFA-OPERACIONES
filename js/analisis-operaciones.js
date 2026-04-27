@@ -250,6 +250,25 @@ function _fmtIsoTime(val) {
     return `${m[4]}:${m[5]}`;
 }
 
+function _puntualidadBadge(horaProg, horaActual) {
+    if (!horaProg || !horaActual || horaProg === horaActual) return '';
+    const toMin = v => {
+        const si = String(v).match(/T(\d{2}):(\d{2})/);
+        if (si) return parseInt(si[1]) * 60 + parseInt(si[2]);
+        const sm = String(v).match(/^(\d{2}):(\d{2})/);
+        if (sm) return parseInt(sm[1]) * 60 + parseInt(sm[2]);
+        return null;
+    };
+    const mSched  = toMin(horaProg);
+    const mActual = toMin(horaActual);
+    if (mSched === null || mActual === null) return '';
+    const diff = mActual - mSched;
+    if (diff < 0)  return `<span class="badge bg-success fw-normal">${Math.abs(diff)} min antes</span>`;
+    if (diff === 0) return `<span class="badge bg-success fw-normal">A tiempo</span>`;
+    if (diff <= 15) return `<span class="badge bg-warning text-dark fw-normal">+${diff} min</span>`;
+    return `<span class="badge bg-danger fw-normal">+${diff} min</span>`;
+}
+
 function renderOpsTable(data) {
     if (!data || !data.length) return;
 
@@ -1042,6 +1061,7 @@ async function renderOpsCharts() {
                     fecha:      kFecha       ? String(r[kFecha]       || '').trim() : '',
                     hora:       kHoraActual  ? String(r[kHoraActual]  || '').trim() :
                                 (kHora       ? String(r[kHora]        || '').trim() : ''),
+                    horaProg:   kHora        ? String(r[kHora]        || '').trim() : '',
                     pax
                 };
                 heatmapDetails[hourKey][dayIndex].push(_hmRec);
@@ -1108,6 +1128,7 @@ async function renderOpsCharts() {
                     fecha:      kFecha       ? String(r[kFecha]       || '').trim() : '',
                     hora:       kHoraActual  ? String(r[kHoraActual]  || '').trim() :
                                 (kHora       ? String(r[kHora]        || '').trim() : ''),
+                    horaProg:   kHora        ? String(r[kHora]        || '').trim() : '',
                     pax:        kPasajeros   ? parsePassengers(r[kPasajeros]) : 0,
                     estatus:    kEstatus     ? String(r[kEstatus]     || '').trim() : ''
                 });
@@ -1209,6 +1230,7 @@ async function renderOpsCharts() {
                     fecha:      kFecha       ? String(r[kFecha]       || '').trim() : '',
                     hora:       kHoraActual  ? String(r[kHoraActual]  || '').trim() :
                                 (kHora       ? String(r[kHora]        || '').trim() : ''),
+                    horaProg:   kHora        ? String(r[kHora]        || '').trim() : '',
                     pax:        kPasajeros   ? parsePassengers(r[kPasajeros]) : 0,
                     estatus:    kEstatus     ? String(r[kEstatus]     || '').trim() : ''
                 });
@@ -1843,26 +1865,27 @@ function _showBarDrilldown(title, records) {
         if (hasServicio)   html += '<th>Servicio</th>';
         if (hasAeronave)   html += '<th>Aeronave</th>';
         if (hasPosicion)   html += '<th>Posición</th>';
-        if (hasFecha)      html += '<th>Fecha</th>';
-        if (hasHora)       html += '<th>Hora</th>';
-        if (hasPax)        html += '<th class="text-end">Pax</th>';
-        if (hasEstatus)    html += '<th>Estatus</th>';
+        const hasPuntualidad = records.some(r => r.horaProg && r.hora && r.horaProg !== r.hora);
+        if (hasFecha)        html += '<th>Fecha</th>';
+        if (hasHora)         html += '<th>Hora</th>';
+        if (hasPuntualidad)  html += '<th>Puntualidad</th>';
+        if (hasPax)          html += '<th class="text-end">Pax</th>';
         html += '</tr></thead><tbody>';
 
         sorted.forEach(r => {
             html += '<tr>';
-            if (hasVuelo)      html += `<td class="fw-semibold">${r.vuelo      || '—'}</td>`;
-            if (hasAerolinea)  html += `<td>${r.aerolinea  || '—'}</td>`;
-            if (hasMovimiento) html += `<td>${r.movimiento || '—'}</td>`;
-            if (hasOrigen)     html += `<td>${r.origen     || '—'}</td>`;
-            if (hasDestino)    html += `<td>${r.destino    || '—'}</td>`;
-            if (hasServicio)   html += `<td>${r.servicio   || '—'}</td>`;
-            if (hasAeronave)   html += `<td>${r.aeronave   || '—'}</td>`;
-            if (hasPosicion)   html += `<td class="fw-semibold">${r.posicion   || '—'}</td>`;
-            if (hasFecha)      html += `<td class="text-nowrap">${_fmtIsoDateTime(r.fecha)}</td>`;
-            if (hasHora)       html += `<td class="text-nowrap fw-semibold text-primary">${_fmtIsoTime(r.hora)}</td>`;
-            if (hasPax)        html += `<td class="text-end fw-bold">${(r.pax || 0) > 0 ? r.pax.toLocaleString() : '—'}</td>`;
-            if (hasEstatus)    html += `<td>${r.estatus    || '—'}</td>`;
+            if (hasVuelo)        html += `<td class="fw-semibold">${r.vuelo      || '—'}</td>`;
+            if (hasAerolinea)    html += `<td>${r.aerolinea  || '—'}</td>`;
+            if (hasMovimiento)   html += `<td>${r.movimiento || '—'}</td>`;
+            if (hasOrigen)       html += `<td>${r.origen     || '—'}</td>`;
+            if (hasDestino)      html += `<td>${r.destino    || '—'}</td>`;
+            if (hasServicio)     html += `<td>${r.servicio   || '—'}</td>`;
+            if (hasAeronave)     html += `<td>${r.aeronave   || '—'}</td>`;
+            if (hasPosicion)     html += `<td class="fw-semibold">${r.posicion   || '—'}</td>`;
+            if (hasFecha)        html += `<td class="text-nowrap">${_fmtIsoDateTime(r.fecha)}</td>`;
+            if (hasHora)         html += `<td class="text-nowrap fw-semibold text-primary">${_fmtIsoTime(r.hora)}</td>`;
+            if (hasPuntualidad)  html += `<td class="text-center">${_puntualidadBadge(r.horaProg, r.hora) || '—'}</td>`;
+            if (hasPax)          html += `<td class="text-end fw-bold">${(r.pax || 0) > 0 ? r.pax.toLocaleString() : '—'}</td>`;
             html += '</tr>';
         });
 
@@ -2297,23 +2320,26 @@ function _showHeatmapDrilldown(hour, dayIdx) {
         if (hasDestino)    html += '<th>Destino</th>';
         if (hasServicio)   html += '<th>Servicio</th>';
         if (hasAeronave)   html += '<th>Aeronave</th>';
-        if (hasFecha)      html += '<th>Fecha</th>';
-        if (hasHora)       html += '<th>Hora actual</th>';
-        if (hasPax)        html += '<th class="text-end">Pax</th>';
+        const hasPuntualidad = records.some(r => r.horaProg && r.hora && r.horaProg !== r.hora);
+        if (hasFecha)        html += '<th>Fecha</th>';
+        if (hasHora)         html += '<th>Hora actual</th>';
+        if (hasPuntualidad)  html += '<th>Puntualidad</th>';
+        if (hasPax)          html += '<th class="text-end">Pax</th>';
         html += '</tr></thead><tbody>';
 
         sorted.forEach(r => {
             html += '<tr>';
-            if (hasVuelo)      html += `<td class="fw-semibold">${r.vuelo      || '—'}</td>`;
-            if (hasAerolinea)  html += `<td>${r.aerolinea  || '—'}</td>`;
-            if (hasMovimiento) html += `<td>${r.movimiento || '—'}</td>`;
-            if (hasOrigen)     html += `<td>${r.origen     || '—'}</td>`;
-            if (hasDestino)    html += `<td>${r.destino    || '—'}</td>`;
-            if (hasServicio)   html += `<td>${r.servicio   || '—'}</td>`;
-            if (hasAeronave)   html += `<td>${r.aeronave   || '—'}</td>`;
-            if (hasFecha)      html += `<td class="text-nowrap">${_fmtIsoDateTime(r.fecha)}</td>`;
-            if (hasHora)       html += `<td class="text-nowrap fw-semibold text-primary">${_fmtIsoTime(r.hora)}</td>`;
-            if (hasPax)        html += `<td class="text-end fw-bold">${r.pax > 0 ? r.pax.toLocaleString() : '—'}</td>`;
+            if (hasVuelo)        html += `<td class="fw-semibold">${r.vuelo      || '—'}</td>`;
+            if (hasAerolinea)    html += `<td>${r.aerolinea  || '—'}</td>`;
+            if (hasMovimiento)   html += `<td>${r.movimiento || '—'}</td>`;
+            if (hasOrigen)       html += `<td>${r.origen     || '—'}</td>`;
+            if (hasDestino)      html += `<td>${r.destino    || '—'}</td>`;
+            if (hasServicio)     html += `<td>${r.servicio   || '—'}</td>`;
+            if (hasAeronave)     html += `<td>${r.aeronave   || '—'}</td>`;
+            if (hasFecha)        html += `<td class="text-nowrap">${_fmtIsoDateTime(r.fecha)}</td>`;
+            if (hasHora)         html += `<td class="text-nowrap fw-semibold text-primary">${_fmtIsoTime(r.hora)}</td>`;
+            if (hasPuntualidad)  html += `<td class="text-center">${_puntualidadBadge(r.horaProg, r.hora) || '—'}</td>`;
+            if (hasPax)          html += `<td class="text-end fw-bold">${r.pax > 0 ? r.pax.toLocaleString() : '—'}</td>`;
             html += '</tr>';
         });
 
@@ -2525,23 +2551,24 @@ function _showOpsHourDrilldown(hour, dayIdx) {
         if (hasDestino)    html += '<th>Destino</th>';
         if (hasServicio)   html += '<th>Servicio</th>';
         if (hasAeronave)   html += '<th>Aeronave</th>';
-        if (hasEstatus)    html += '<th>Estatus</th>';
-        if (hasFecha)      html += '<th>Fecha</th>';
-        if (hasHora)       html += '<th>Hora</th>';
+        const hasPuntualidad = records.some(r => r.horaProg && r.hora && r.horaProg !== r.hora);
+        if (hasFecha)        html += '<th>Fecha</th>';
+        if (hasHora)         html += '<th>Hora</th>';
+        if (hasPuntualidad)  html += '<th>Puntualidad</th>';
         html += '</tr></thead><tbody>';
 
         sorted.forEach(r => {
             html += '<tr>';
-            if (hasVuelo)      html += `<td class="fw-semibold">${r.vuelo      || '—'}</td>`;
-            if (hasAerolinea)  html += `<td>${r.aerolinea  || '—'}</td>`;
-            if (hasMovimiento) html += `<td>${r.movimiento || '—'}</td>`;
-            if (hasOrigen)     html += `<td>${r.origen     || '—'}</td>`;
-            if (hasDestino)    html += `<td>${r.destino    || '—'}</td>`;
-            if (hasServicio)   html += `<td>${r.servicio   || '—'}</td>`;
-            if (hasAeronave)   html += `<td>${r.aeronave   || '—'}</td>`;
-            if (hasEstatus)    html += `<td><span class="badge bg-secondary fw-normal">${r.estatus || '—'}</span></td>`;
-            if (hasFecha)      html += `<td class="text-nowrap">${_fmtIsoDateTime(r.fecha)}</td>`;
-            if (hasHora)       html += `<td class="text-nowrap fw-semibold text-warning">${_fmtIsoTime(r.hora)}</td>`;
+            if (hasVuelo)        html += `<td class="fw-semibold">${r.vuelo      || '—'}</td>`;
+            if (hasAerolinea)    html += `<td>${r.aerolinea  || '—'}</td>`;
+            if (hasMovimiento)   html += `<td>${r.movimiento || '—'}</td>`;
+            if (hasOrigen)       html += `<td>${r.origen     || '—'}</td>`;
+            if (hasDestino)      html += `<td>${r.destino    || '—'}</td>`;
+            if (hasServicio)     html += `<td>${r.servicio   || '—'}</td>`;
+            if (hasAeronave)     html += `<td>${r.aeronave   || '—'}</td>`;
+            if (hasFecha)        html += `<td class="text-nowrap">${_fmtIsoDateTime(r.fecha)}</td>`;
+            if (hasHora)         html += `<td class="text-nowrap fw-semibold text-warning">${_fmtIsoTime(r.hora)}</td>`;
+            if (hasPuntualidad)  html += `<td class="text-center">${_puntualidadBadge(r.horaProg, r.hora) || '—'}</td>`;
             html += '</tr>';
         });
 
