@@ -876,10 +876,9 @@ async function renderOpsCharts() {
         const allColKeys = Object.keys(data[0]);
         let kEstatus = getKey('demoras', 'estatus', 'status', 'estado', 'estatus_vuelo', 'flight_status');
         if (!kEstatus) {
-            // Fallback: scan up to 200 rows to find whichever column has 'CANCELADO'
-            const sample = data.slice(0, 200);
+            // Fallback: scan all rows to find whichever column has 'CANCELADO'
             kEstatus = allColKeys.find(col =>
-                sample.some(r => /^CANCELAD[AO]$/i.test(String(r[col] || '').trim()))
+                data.some(r => /^CANCELAD[AO]$/i.test(String(r[col] || '').trim()))
             );
         }
 
@@ -1108,15 +1107,16 @@ async function renderOpsCharts() {
                     simultMap[slotKey] = (simultMap[slotKey] || 0) + 1;
                 }
             }
-            // Pos
-            if(kPos && r[kPos]) {
-                posMap[r[kPos]] = (posMap[r[kPos]] || 0) + 1;
+            // Pos — skip empty/null/dash-only values (cancelled or unassigned flights)
+            const _rawPos = kPos ? String(r[kPos] || '').trim() : '';
+            if(_rawPos && !/^[-—–\s.]+$/.test(_rawPos)) {
+                posMap[_rawPos] = (posMap[_rawPos] || 0) + 1;
                 // Accumulate by position category
                 const _sm = catalogs.standsMap || {};
-                const _posCat = (_sm[r[kPos]] && _sm[r[kPos]].category) || 'Sin clasificar';
+                const _posCat = (_sm[_rawPos] && _sm[_rawPos].category) || 'Sin clasificar';
                 posTypeMap[_posCat] = (posTypeMap[_posCat] || 0) + 1;
-                if (!posFlights[r[kPos]]) posFlights[r[kPos]] = [];
-                posFlights[r[kPos]].push({
+                if (!posFlights[_rawPos]) posFlights[_rawPos] = [];
+                posFlights[_rawPos].push({
                     vuelo:      kVuelo       ? String(r[kVuelo]       || '').trim() : '',
                     aerolinea:  kAerolinea   ? String(r[kAerolinea]   || '').trim() : '',
                     origen:     kOrigen      ? String(r[kOrigen]      || '').trim() : '',
