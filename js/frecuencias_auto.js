@@ -2123,13 +2123,13 @@
       if (!state.currentDetailDest) return;
 
       const dest = state.currentDetailDest;
-      const lines = [`?? *${dest.city} (${dest.iata})*`];
+      const lines = [`✈️ *${dest.city} (${dest.iata})*`];
       
       const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
       dest.viewAirlines.forEach(air => {
           lines.push('');
-          lines.push(`?? *${air.name}* (${air.weeklyTotal} frec/sem)`);
+          lines.push(`*${air.name}* (${air.weeklyTotal} frec/sem)`);
           
           dayNames.forEach((dayName, idx) => {
               const detail = air.dailyDetails?.[idx];
@@ -2150,9 +2150,9 @@
                      
                      // Add direction emoji
                      if (f.toLowerCase().includes('lleg') || f.toLowerCase().includes('arr')) {
-                         clean = `?? LLEG ${clean}`;
+                         clean = `🛬 LLEG ${clean}`;
                      } else {
-                         clean = `?? SAL ${clean}`;
+                         clean = `🛫 SAL ${clean}`;
                      }
                      lines.push(`  ${clean}`);
                  });
