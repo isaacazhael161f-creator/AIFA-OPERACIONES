@@ -6,7 +6,7 @@
 /* ── Constantes de colores por área ─────────────────────────────── */
 const AG_AREA = {
     DPE:  { bg:'#fef9c3', color:'#854d0e', border:'#fde047', name:'Planeación' },
-    DA:   { bg:'#fee2e2', color:'#991b1b', border:'#fca5a5', name:'Administración' },
+    DA:   { bg:'#ffedd5', color:'#9a3412', border:'#fb923c', name:'Administración' },
     DO:   { bg:'#dcfce7', color:'#166534', border:'#86efac', name:'Operación' },
     DCS:  { bg:'#dbeafe', color:'#1e40af', border:'#93c5fd', name:'Comercial' },
     GSO:  { bg:'#ede9fe', color:'#5b21b6', border:'#c4b5fd', name:'Seg. Operacional' },
@@ -134,11 +134,13 @@ function _agCalDraw() {
         const s = document.createElement('style');
         s.id = 'ag-cal-style';
         s.textContent = `
-        .ag-cal-cell { border-radius:10px; vertical-align:top; padding:8px 7px 6px; min-height:120px; position:relative; transition:box-shadow .15s; }
+        .ag-cal-cell { border-radius:10px; vertical-align:top; padding:10px 8px 8px; min-height:165px; position:relative; transition:box-shadow .15s; }
         .ag-cal-cell:hover { box-shadow:0 3px 12px rgba(0,0,0,.12) !important; z-index:1; }
-        .ag-chip { display:block; padding:3px 6px 3px 5px; margin:2px 0; border-radius:0 5px 5px 0;
-                   font-size:.69rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-                   cursor:default; line-height:1.4; border-left-width:3px; border-left-style:solid; }
+        .ag-chip { display:block; padding:4px 7px 4px 6px; margin:2px 0; border-radius:0 6px 6px 0;
+                   font-size:.72rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+                   cursor:pointer; line-height:1.45; border-left-width:3px; border-left-style:solid;
+                   transition:filter .12s; }
+        .ag-chip:hover { filter:brightness(.94); }
         .ag-chip-past { opacity:.7; }
         .ag-chip-can  { text-decoration:line-through; opacity:.5; }
         .ag-chip-soon { animation:ag-pulse .9s infinite alternate; }
@@ -208,7 +210,7 @@ function _agCalDraw() {
     const startDow  = (firstDay.getDay() + 6) % 7;
 
     html += `<div style="overflow-x:auto">
-    <table style="border-collapse:separate;border-spacing:4px;min-width:720px;width:100%">
+    <table style="border-collapse:separate;border-spacing:6px;min-width:980px;width:100%">
       <thead><tr>`;
     DAYS_H.forEach((d, i) => {
         const isWe = i >= 5;
@@ -293,8 +295,9 @@ function _agCalDraw() {
             const hora = r.hora_inicio ? r.hora_inicio.slice(0, 5) : '';
 
             row += `<span class="ag-chip${extraCls}"
-                title="${comite.nombre || ''}\n${r.numero_sesion || ''} | ${r.estatus}${hora ? ' · ' + hora + 'h' : ''}${r.observaciones ? '\n' + r.observaciones : ''}"
-                style="background:${ac.bg};color:${ac.color};border-left-color:${ac.border}">
+                title="${comite.nombre || ''}\n${r.numero_sesion || ''} | ${r.estatus}${hora ? ' · ' + hora + 'h' : ''}${r.observaciones ? '\n' + r.observaciones : ''}\n\n🔍 Haz clic para ver información normativa"
+                style="background:${ac.bg};color:${ac.color};border-left-color:${ac.border}"
+                onclick="_agShowComiteDetail('${r.comite_id}')">
                 ${statusIcon}${hora ? `<span style="opacity:.6;font-size:.6rem;margin-right:2px">${hora}</span>` : ''}${label}
             </span>`;
         });
@@ -393,6 +396,137 @@ function _agCalDraw() {
     }
 
     pane.innerHTML = html;
+}
+
+/* ── Modal de detalle de comité ─────────────────────────────────── */
+function _agShowComiteDetail(comiteId) {
+    const comite = _ag.comites.find(c => c.id === comiteId);
+    if (!comite) return;
+
+    const ac      = AG_AREA[comite.area] || AG_AREA.AFAC;
+    const today   = new Date();
+    const sesiones = _ag.reuniones
+        .filter(r => r.comite_id === comiteId)
+        .sort((a, b) => a.fecha_sesion.localeCompare(b.fecha_sesion));
+
+    /* ── Integrantes ── */
+    let integrantesHtml = '<p class="text-muted small mb-0">Sin información de integrantes registrada.</p>';
+    if (comite.integrantes) {
+        const items = comite.integrantes.split('|').map(s => s.trim()).filter(Boolean);
+        integrantesHtml = `<ul class="list-unstyled mb-0">${
+            items.map(item => {
+                const [nombre, rol = ''] = item.split('—').map(s => s.trim());
+                return `<li class="d-flex align-items-start gap-2 py-1" style="border-bottom:1px solid #f3f4f6">
+                    <i class="fas fa-user-tie mt-1 flex-shrink-0" style="font-size:.6rem;color:${ac.color}"></i>
+                    <span style="font-size:.82rem"><strong>${nombre}</strong>${rol ? `<span class="text-muted"> — ${rol}</span>` : ''}</span>
+                </li>`;
+            }).join('')
+        }</ul>`;
+    }
+
+    /* ── Sesiones ── */
+    let sesionesHtml = '<tr><td colspan="5" class="text-center text-muted py-3 small">Sin sesiones registradas para 2026</td></tr>';
+    if (sesiones.length) {
+        sesionesHtml = sesiones.map(r => {
+            const d      = new Date(r.fecha_sesion + 'T00:00:00');
+            const isCan  = r.estatus === 'Cancelada';
+            const isCel  = r.estatus === 'Celebrada';
+            const isPast = d < today;
+            const badge  = isCan ? '#dc2626' : isCel ? '#16a34a' : isPast ? '#6b7280' : '#2563eb';
+            return `<tr style="${isCan ? 'opacity:.55;text-decoration:line-through' : isCel ? 'background:#f0fdf4' : ''}">
+                <td class="text-center fw-semibold" style="font-size:.78rem">${r.numero_sesion || '—'}</td>
+                <td style="font-size:.78rem">${d.getDate()} ${AG_MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}</td>
+                <td class="text-center" style="font-size:.78rem">${r.hora_inicio ? r.hora_inicio.slice(0,5) + 'h' : '—'}</td>
+                <td><span class="badge" style="background:${badge};font-size:.63rem">${r.estatus}</span></td>
+                <td class="text-muted" style="font-size:.73rem">${r.observaciones || ''}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    /* ── Eliminar modal previo ── */
+    document.getElementById('_ag-det-modal')?.remove();
+
+    const html = `
+    <div class="modal fade" id="_ag-det-modal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0" style="border-radius:14px;overflow:hidden">
+          <div class="modal-header border-0 pb-2" style="background:${ac.bg}">
+            <div class="flex-grow-1">
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge fw-bold" style="background:${ac.bg};color:${ac.color};border:2px solid ${ac.border};font-size:.72rem">
+                  ${comite.area}${comite.acronimo ? ' — ' + comite.acronimo : ''}
+                </span>
+                <span class="text-muted" style="font-size:.75rem">#${comite.numero}</span>
+              </div>
+              <h5 class="modal-title fw-bold mb-0" style="color:${ac.color};font-size:1rem;line-height:1.35">${comite.nombre}</h5>
+              ${comite.frecuencia ? `<div class="mt-1 text-muted" style="font-size:.74rem"><i class="fas fa-redo me-1" style="color:${ac.color};opacity:.7"></i>${comite.frecuencia}</div>` : ''}
+            </div>
+            <button type="button" class="btn-close ms-3" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div style="height:4px;background:linear-gradient(90deg,${ac.border},${ac.color})"></div>
+
+          <div class="modal-body p-4">
+
+            ${comite.descripcion ? `
+            <div class="mb-4">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <i class="fas fa-info-circle" style="color:${ac.color}"></i>
+                <span class="fw-bold text-uppercase" style="font-size:.7rem;color:#6b7280;letter-spacing:.05em">Descripción General</span>
+              </div>
+              <p class="mb-0" style="font-size:.87rem">${comite.descripcion}</p>
+            </div>` : ''}
+
+            ${comite.fundamento ? `
+            <div class="mb-4 p-3 rounded-3" style="background:#f8fafc;border-left:4px solid ${ac.border}">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <i class="fas fa-balance-scale" style="color:${ac.color}"></i>
+                <span class="fw-bold text-uppercase" style="font-size:.7rem;color:${ac.color};letter-spacing:.05em">Fundamento Legal</span>
+              </div>
+              <p class="mb-0" style="font-size:.82rem;color:#374151">${comite.fundamento}</p>
+            </div>` : ''}
+
+            ${comite.integrantes ? `
+            <div class="mb-4">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <i class="fas fa-users" style="color:${ac.color}"></i>
+                <span class="fw-bold text-uppercase" style="font-size:.7rem;color:#6b7280;letter-spacing:.05em">Integrantes</span>
+              </div>
+              ${integrantesHtml}
+            </div>` : ''}
+
+            <div>
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <i class="fas fa-calendar-alt" style="color:${ac.color}"></i>
+                <span class="fw-bold text-uppercase" style="font-size:.7rem;color:#6b7280;letter-spacing:.05em">Sesiones 2026</span>
+                <span class="badge bg-secondary" style="font-size:.63rem">${sesiones.length}</span>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0" style="font-size:.77rem">
+                  <thead class="table-light">
+                    <tr>
+                      <th class="text-center" style="width:80px">No. Sesión</th>
+                      <th>Fecha</th>
+                      <th class="text-center" style="width:75px">Hora</th>
+                      <th style="width:95px">Estatus</th>
+                      <th>Observaciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>${sesionesHtml}</tbody>
+                </table>
+              </div>
+            </div>
+
+          </div><!-- /modal-body -->
+        </div>
+      </div>
+    </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+    const bsM = new bootstrap.Modal(document.getElementById('_ag-det-modal'), { backdrop: true });
+    document.getElementById('_ag-det-modal').addEventListener('hidden.bs.modal', () => {
+        document.getElementById('_ag-det-modal')?.remove();
+    });
+    bsM.show();
 }
 
 
