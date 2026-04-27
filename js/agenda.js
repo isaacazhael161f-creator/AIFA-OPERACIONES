@@ -23,13 +23,18 @@ const AG_MONTHS_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
 let _ag = { comites:[], reuniones:[], acuerdos:[], ready:false, activeArea:'all', calMonth: new Date().getMonth() };
 
 /* ── Supabase helper ────────────────────────────────────────────── */
-function _agSB() { return window._supabase || window.sb || null; }
+function _agSB() { return window.supabaseClient || window._supabase || null; }
 
 /* ── Carga de datos (lazy, con caché) ──────────────────────────── */
 async function _agEnsureData(force) {
     if (_ag.ready && !force) return;
+
+    /* Asegurar cliente Supabase (igual que el resto de la app) */
+    if (typeof window.ensureSupabaseClient === 'function') {
+        try { await window.ensureSupabaseClient(); } catch (_) {}
+    }
     const sb = _agSB();
-    if (!sb) return;
+    if (!sb) { console.warn('[Agenda] Supabase client not available'); return; }
 
     const [rC, rR] = await Promise.all([
         sb.from('agenda_comites')
@@ -43,9 +48,13 @@ async function _agEnsureData(force) {
           .order('fecha_sesion'),
     ]);
 
+    if (rC.error) console.error('[Agenda] comites error:', rC.error);
+    if (rR.error) console.error('[Agenda] reuniones error:', rR.error);
+
     _ag.comites   = rC.data  || [];
     _ag.reuniones = rR.data  || [];
     _ag.ready = true;
+    console.log(`[Agenda] Loaded: ${_ag.comites.length} comités, ${_ag.reuniones.length} reuniones`);
 }
 
 /* ─────────────────────────────────────────────────────────────────
