@@ -97,27 +97,16 @@ function _agCalDraw() {
 
     const now     = new Date();
     const today   = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const soon    = new Date(today.getTime() + 30 * 86400000);
+    const soon    = new Date(today.getTime() + 14 * 86400000); /* próximas 2 semanas */
     const area    = _ag.activeArea || 'all';
     const year    = 2026;
     const month   = _ag.calMonth;
 
-    /* Filtrar por área seleccionada */
     const reuniones = area === 'all'
         ? _ag.reuniones
         : _ag.reuniones.filter(r => r.area === area);
 
-    /* ── Agrupar sesiones del año completo por fecha ── */
-    const byDate = {};
-    reuniones.forEach(r => {
-        if (!byDate[r.fecha_sesion]) byDate[r.fecha_sesion] = [];
-        byDate[r.fecha_sesion].push(r);
-    });
-
-    /* ── Días con múltiples sesiones (conflictos) ── */
-    const conflictDates = Object.keys(byDate).filter(d => byDate[d].length >= 2);
-
-    /* ── Sesiones del mes visible ── */
+    /* Agrupar sesiones del mes visible */
     const byDay = {};
     reuniones.forEach(r => {
         const d = new Date(r.fecha_sesion + 'T00:00:00');
@@ -128,162 +117,197 @@ function _agCalDraw() {
         }
     });
 
+    /* Conflictos del mes */
     const conflictDaysMonth = new Set(
-        Object.entries(byDay).filter(([, a]) => a.length >= 2).map(([k]) => +k)
+        Object.entries(byDay).filter(([, a]) => a.filter(r=>r.estatus!=='Cancelada').length >= 2).map(([k]) => +k)
     );
 
-    /* ── Estadísticas del mes ── */
-    const totalMes     = Object.values(byDay).flat().length;
-    const celebradas   = Object.values(byDay).flat().filter(r => r.estatus === 'Celebrada').length;
-    const canceladas   = Object.values(byDay).flat().filter(r => r.estatus === 'Cancelada').length;
-    const nConflMes    = conflictDaysMonth.size;
+    /* Estadísticas */
+    const allSes    = Object.values(byDay).flat();
+    const totalMes  = allSes.length;
+    const celeb     = allSes.filter(r => r.estatus === 'Celebrada').length;
+    const cancel    = allSes.filter(r => r.estatus === 'Cancelada').length;
+    const nConfl    = conflictDaysMonth.size;
 
-    /* ══════════════════════════════════════════════════════════════
-       CABECERA: navegación de mes + estadísticas
-    ══════════════════════════════════════════════════════════════ */
+    /* ── CSS inyectado una vez ──────────────────────────────────── */
+    if (!document.getElementById('ag-cal-style')) {
+        const s = document.createElement('style');
+        s.id = 'ag-cal-style';
+        s.textContent = `
+        .ag-cal-cell { border-radius:10px; vertical-align:top; padding:8px 7px 6px; min-height:120px; position:relative; transition:box-shadow .15s; }
+        .ag-cal-cell:hover { box-shadow:0 3px 12px rgba(0,0,0,.12) !important; z-index:1; }
+        .ag-chip { display:block; padding:3px 6px 3px 5px; margin:2px 0; border-radius:0 5px 5px 0;
+                   font-size:.69rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+                   cursor:default; line-height:1.4; border-left-width:3px; border-left-style:solid; }
+        .ag-chip-past { opacity:.7; }
+        .ag-chip-can  { text-decoration:line-through; opacity:.5; }
+        .ag-chip-soon { animation:ag-pulse .9s infinite alternate; }
+        @keyframes ag-pulse { from { filter:brightness(1); } to { filter:brightness(1.12); } }
+        .ag-dow-weekend { background:#f8f7ff !important; }
+        .ag-day-num-today { background:#7c3aed; color:#fff !important; border-radius:50%;
+                            width:24px; height:24px; display:inline-flex; align-items:center;
+                            justify-content:center; font-size:.75rem; }
+        `;
+        document.head.appendChild(s);
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       CABECERA
+    ───────────────────────────────────────────────────────── */
     let html = `
-    <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
-        <!-- Navegación -->
-        <div class="d-flex align-items-center gap-2">
-            <button class="btn btn-sm btn-outline-secondary px-2" onclick="agCalNavMonth(-1)" title="Mes anterior">
-                <i class="fas fa-chevron-left"></i>
-            </button>
-            <h5 class="mb-0 fw-bold px-1" style="color:#1e1b4b;min-width:210px;text-align:center">
-                <i class="fas fa-calendar-alt me-2 text-primary opacity-75"></i>${AG_MONTHS_FULL[month]} ${year}
-            </h5>
-            <button class="btn btn-sm btn-outline-secondary px-2" onclick="agCalNavMonth(1)" title="Mes siguiente">
-                <i class="fas fa-chevron-right"></i>
-            </button>
-        </div>
-        <!-- Estadísticas rápidas -->
-        <div class="d-flex gap-2 flex-wrap ms-auto">
-            <span class="badge rounded-pill" style="background:#1e1b4b;font-size:.75rem;padding:5px 10px">
-                <i class="fas fa-calendar-check me-1"></i>${totalMes} sesión${totalMes !== 1 ? 'es' : ''}
-            </span>
-            ${celebradas > 0 ? `<span class="badge rounded-pill bg-success" style="font-size:.75rem;padding:5px 10px">
-                <i class="fas fa-check me-1"></i>${celebradas} celebrada${celebradas !== 1 ? 's' : ''}
-            </span>` : ''}
-            ${canceladas > 0 ? `<span class="badge rounded-pill bg-danger" style="font-size:.75rem;padding:5px 10px">
-                <i class="fas fa-times me-1"></i>${canceladas} cancelada${canceladas !== 1 ? 's' : ''}
-            </span>` : ''}
-            ${nConflMes > 0
-                ? `<span class="badge rounded-pill bg-warning text-dark" style="font-size:.75rem;padding:5px 10px">
-                    <i class="fas fa-exclamation-triangle me-1"></i>${nConflMes} día${nConflMes !== 1 ? 's' : ''} con coincidencia
-                   </span>`
-                : `<span class="badge rounded-pill bg-success" style="font-size:.75rem;padding:5px 10px">
-                    <i class="fas fa-shield-alt me-1"></i>Sin coincidencias
-                   </span>`}
+    <div style="background:linear-gradient(135deg,#1e1b4b 0%,#312e81 100%);border-radius:14px;padding:16px 20px;margin-bottom:16px">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <!-- Navegación -->
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm px-3 py-1" onclick="agCalNavMonth(-1)"
+                    style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div style="text-align:center;min-width:200px">
+                    <div style="color:#a5b4fc;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase">${year}</div>
+                    <div style="color:#fff;font-size:1.4rem;font-weight:800;line-height:1.1">${AG_MONTHS_FULL[month]}</div>
+                </div>
+                <button class="btn btn-sm px-3 py-1" onclick="agCalNavMonth(1)"
+                    style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <!-- KPIs -->
+            <div class="d-flex gap-2 flex-wrap">
+                <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:8px 14px;text-align:center;min-width:70px">
+                    <div style="color:#fff;font-size:1.3rem;font-weight:800;line-height:1">${totalMes}</div>
+                    <div style="color:#a5b4fc;font-size:.65rem">Sesiones</div>
+                </div>
+                <div style="background:rgba(134,239,172,.15);border-radius:10px;padding:8px 14px;text-align:center;min-width:70px">
+                    <div style="color:#86efac;font-size:1.3rem;font-weight:800;line-height:1">${celeb}</div>
+                    <div style="color:#86efac;font-size:.65rem;opacity:.8">Celebradas</div>
+                </div>
+                ${cancel > 0 ? `<div style="background:rgba(252,165,165,.15);border-radius:10px;padding:8px 14px;text-align:center;min-width:70px">
+                    <div style="color:#fca5a5;font-size:1.3rem;font-weight:800;line-height:1">${cancel}</div>
+                    <div style="color:#fca5a5;font-size:.65rem;opacity:.8">Canceladas</div>
+                </div>` : ''}
+                ${nConfl > 0
+                    ? `<div style="background:rgba(251,191,36,.15);border-radius:10px;padding:8px 14px;text-align:center;min-width:70px">
+                        <div style="color:#fbbf24;font-size:1.3rem;font-weight:800;line-height:1">${nConfl}</div>
+                        <div style="color:#fbbf24;font-size:.65rem;opacity:.8">Conflictos</div>
+                       </div>`
+                    : `<div style="background:rgba(134,239,172,.1);border-radius:10px;padding:8px 14px;text-align:center">
+                        <i class="fas fa-shield-alt" style="color:#86efac;font-size:1.1rem"></i>
+                        <div style="color:#86efac;font-size:.62rem;opacity:.8;margin-top:2px">Sin conflictos</div>
+                       </div>`}
+            </div>
         </div>
     </div>`;
 
-    /* ══════════════════════════════════════════════════════════════
-       GRID DE DÍAS
-    ══════════════════════════════════════════════════════════════ */
-    const DAYS_HEADER = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
-    const firstDay    = new Date(year, month, 1);
-    const totalDays   = new Date(year, month + 1, 0).getDate();
-    const startDow    = (firstDay.getDay() + 6) % 7; /* 0=Lun … 6=Dom */
+    /* ─────────────────────────────────────────────────────────
+       GRID
+    ───────────────────────────────────────────────────────── */
+    const DAYS_H = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+    const firstDay  = new Date(year, month, 1);
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    const startDow  = (firstDay.getDay() + 6) % 7;
 
-    html += `<div class="ag-cal-grid-wrap" style="overflow-x:auto">
-    <table class="ag-cal-grid w-100" style="border-collapse:separate;border-spacing:3px;min-width:700px">
-      <thead>
-        <tr>`;
-    DAYS_HEADER.forEach(d => {
-        html += `<th class="text-center pb-2" style="font-size:.78rem;font-weight:700;
-            color:#6b7280;width:14.28%;letter-spacing:.03em">${d}</th>`;
+    html += `<div style="overflow-x:auto">
+    <table style="border-collapse:separate;border-spacing:4px;min-width:720px;width:100%">
+      <thead><tr>`;
+    DAYS_H.forEach((d, i) => {
+        const isWe = i >= 5;
+        html += `<th class="text-center pb-2" style="width:14.28%;font-size:.75rem;font-weight:700;
+            color:${isWe ? '#8b5cf6' : '#6b7280'};letter-spacing:.04em;padding-bottom:8px">${d}</th>`;
     });
     html += `</tr></thead><tbody>`;
 
     let day = 1, col = startDow;
     let row = '<tr>';
-    /* celdas vacías al inicio */
     for (let i = 0; i < startDow; i++) {
-        row += `<td style="background:#f9fafb;border-radius:8px;min-height:110px;padding:6px"></td>`;
+        row += `<td class="ag-cal-cell" style="background:#f9fafb;border:1px solid #f1f5f9"></td>`;
     }
 
     while (day <= totalDays) {
-        const dateStr   = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const sessions  = byDay[day] || [];
         const cellDate  = new Date(year, month, day);
         const isToday   = (year === now.getFullYear() && month === now.getMonth() && day === now.getDate());
         const isPastDay = cellDate < today;
         const isConfl   = conflictDaysMonth.has(day);
-        const hasHourConflict = isConfl && (() => {
-            const hMins = sessions.filter(r => r.hora_inicio)
-                .map(r => { const [h, m] = r.hora_inicio.split(':').map(Number); return h * 60 + m; });
-            for (let i = 0; i < hMins.length; i++)
-                for (let j = i + 1; j < hMins.length; j++)
-                    if (Math.abs(hMins[i] - hMins[j]) < 60) return true;
+        const isWe      = col >= 5;
+
+        const hasHourConfl = isConfl && (() => {
+            const hm = sessions.filter(r=>r.hora_inicio&&r.estatus!=='Cancelada')
+                .map(r=>{ const [h,m]=r.hora_inicio.split(':').map(Number); return h*60+m; });
+            for (let i=0;i<hm.length;i++) for (let j=i+1;j<hm.length;j++)
+                if (Math.abs(hm[i]-hm[j])<60) return true;
             return false;
         })();
 
-        /* Estilos de celda */
-        let cellBg, cellBorder, cellShadow = '';
+        /* Estilo de celda */
+        let cBg, cBorder, cShadow = '';
         if (isToday) {
-            cellBg = '#ede9fe'; cellBorder = '2px solid #7c3aed'; cellShadow = 'box-shadow:0 0 0 3px #c4b5fd40;';
-        } else if (hasHourConflict) {
-            cellBg = '#fef2f2'; cellBorder = '2px solid #dc2626';
+            cBg = '#ede9fe'; cBorder = '2px solid #7c3aed'; cShadow = 'box-shadow:0 0 0 3px #c4b5fd50;';
+        } else if (hasHourConfl) {
+            cBg = '#fff1f2'; cBorder = '2px solid #f43f5e';
         } else if (isConfl) {
-            cellBg = '#fff7ed'; cellBorder = '2px solid #f97316';
+            cBg = '#fffbeb'; cBorder = '2px solid #f59e0b';
         } else if (sessions.length > 0) {
-            cellBg = '#f0fdf4'; cellBorder = '1.5px solid #86efac';
+            cBg = isPastDay ? '#fafafa' : '#fafffe'; cBorder = '1.5px solid #d1d5db';
         } else {
-            cellBg = '#fff'; cellBorder = '1px solid #e5e7eb';
+            cBg = isWe ? '#f5f3ff' : '#fff'; cBorder = '1px solid #e5e7eb';
         }
 
-        row += `<td style="background:${cellBg};border:${cellBorder};${cellShadow}
-            border-radius:8px;vertical-align:top;padding:7px 7px 5px 7px;min-height:110px;position:relative">`;
+        row += `<td class="ag-cal-cell${isWe?' ag-dow-weekend':''}"
+            style="background:${cBg};border:${cBorder};${cShadow}">`;
 
         /* Número de día */
+        const numStyle = isToday ? 'class="ag-day-num-today"' : `style="font-size:.82rem;font-weight:700;color:${isPastDay?'#9ca3af':'#1f2937'}"`;
         row += `<div class="d-flex justify-content-between align-items-start mb-1">
-            <span style="font-size:.85rem;font-weight:${isToday ? '800' : '600'};
-                color:${isToday ? '#6d28d9' : isPastDay ? '#9ca3af' : '#111827'};
-                ${isToday ? 'background:#7c3aed;color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.75rem' : ''}">${day}</span>
+            <span ${numStyle}>${day}</span>
             ${isConfl
-                ? `<span style="background:${hasHourConflict ? '#dc2626' : '#f97316'};color:#fff;
-                    font-size:.6rem;padding:1px 5px;border-radius:10px;font-weight:700;white-space:nowrap"
-                    title="${sessions.length} comités coinciden${hasHourConflict ? ' — horas solapadas' : ''}">
-                    ×${sessions.length} ${hasHourConflict ? '⚠' : ''}
-                   </span>`
-                : (sessions.length > 0 ? `<span style="color:#9ca3af;font-size:.62rem">${sessions.length}</span>` : '')}
+                ? `<span style="background:${hasHourConfl?'#f43f5e':'#f59e0b'};color:#fff;
+                    font-size:.58rem;padding:1px 5px;border-radius:10px;font-weight:700"
+                    title="${sessions.filter(r=>r.estatus!=='Cancelada').length} comités coinciden">
+                    ⚠ ×${sessions.filter(r=>r.estatus!=='Cancelada').length}</span>`
+                : (sessions.length > 1 ? `<span style="color:#9ca3af;font-size:.6rem">${sessions.length}</span>` : '')}
         </div>`;
 
-        /* Sesiones del día — máx 3 visibles, resto colapsado */
-        const visible  = sessions.slice(0, 3);
-        const overflow = sessions.length - 3;
+        /* Chips de sesión — siempre coloreados por área */
+        const visible  = sessions.slice(0, 4);
+        const overflow = sessions.length - 4;
         visible.forEach(r => {
-            const comite = _ag.comites.find(c => c.id === r.comite_id) || {};
-            const ac     = AG_AREA[r.area] || AG_AREA.AFAC;
-            const label  = comite.acronimo || (comite.nombre || '').split(' ').slice(0, 2).join(' ');
-            const isCan  = r.estatus === 'Cancelada';
-            /* Color de chip */
-            let cBg, cColor, cBorder;
-            if (isCan)         { cBg = '#fee2e2'; cColor = '#991b1b'; cBorder = '#fca5a5'; }
-            else if (isPastDay){ cBg = '#d1fae5'; cColor = '#166534'; cBorder = '#86efac'; }
-            else if (cellDate <= soon){ cBg = '#fef08a'; cColor = '#854d0e'; cBorder = '#fde047'; }
-            else               { cBg = ac.bg;     cColor = ac.color;  cBorder = ac.border; }
-            const hLabel = r.hora_inicio ? r.hora_inicio.slice(0, 5) : '';
-            row += `<div title="${comite.nombre || ''} | ${r.numero_sesion || ''} | ${r.estatus}${r.observaciones ? '\n' + r.observaciones : ''}"
-                style="background:${cBg};color:${cColor};border-left:3px solid ${cBorder};
-                       padding:2px 5px;margin:2px 0;border-radius:0 4px 4px 0;
-                       font-size:.69rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-                       ${isCan ? 'text-decoration:line-through;opacity:.55' : ''}cursor:default">
-                ${hLabel ? `<span style="opacity:.65;font-size:.62rem;margin-right:3px">${hLabel}</span>` : ''}${label}
-            </div>`;
+            const comite   = _ag.comites.find(c => c.id === r.comite_id) || {};
+            const ac       = AG_AREA[r.area] || AG_AREA.AFAC;
+            const label    = comite.acronimo || (comite.nombre || '').split(' ').slice(0, 3).join(' ');
+            const isCan    = r.estatus === 'Cancelada';
+            const isCel    = r.estatus === 'Celebrada';
+            const isUpSoon = !isPastDay && cellDate <= soon && !isCan;
+
+            let extraCls = '';
+            if (isCan)     extraCls = ' ag-chip-can';
+            else if (isCel || isPastDay) extraCls = ' ag-chip-past';
+            else if (isUpSoon)           extraCls = ' ag-chip-soon';
+
+            /* Icono de estado (pequeño, al inicio) */
+            let statusIcon = '';
+            if (isCel)     statusIcon = `<i class="fas fa-check" style="font-size:.55rem;opacity:.7;margin-right:3px"></i>`;
+            else if (isCan) statusIcon = `<i class="fas fa-times" style="font-size:.55rem;opacity:.7;margin-right:3px"></i>`;
+            else if (isUpSoon) statusIcon = `<i class="fas fa-bell" style="font-size:.55rem;margin-right:3px"></i>`;
+
+            const hora = r.hora_inicio ? r.hora_inicio.slice(0, 5) : '';
+
+            row += `<span class="ag-chip${extraCls}"
+                title="${comite.nombre || ''}\n${r.numero_sesion || ''} | ${r.estatus}${hora ? ' · ' + hora + 'h' : ''}${r.observaciones ? '\n' + r.observaciones : ''}"
+                style="background:${ac.bg};color:${ac.color};border-left-color:${ac.border}">
+                ${statusIcon}${hora ? `<span style="opacity:.6;font-size:.6rem;margin-right:2px">${hora}</span>` : ''}${label}
+            </span>`;
         });
         if (overflow > 0) {
-            row += `<div style="font-size:.62rem;color:#6b7280;margin-top:2px;text-align:right">+${overflow} más</div>`;
+            row += `<div style="font-size:.6rem;color:#6b7280;text-align:right;margin-top:2px">+${overflow} más</div>`;
         }
         row += `</td>`;
         col++; day++;
 
         if (col === 7 || day > totalDays) {
-            /* celdas vacías al final de la semana */
-            if (day > totalDays && col < 7) {
-                for (let i = col; i < 7; i++) {
-                    row += `<td style="background:#f9fafb;border-radius:8px;min-height:110px;padding:6px"></td>`;
-                }
-            }
+            if (day > totalDays && col < 7)
+                for (let i = col; i < 7; i++)
+                    row += `<td class="ag-cal-cell" style="background:#f9fafb;border:1px solid #f1f5f9"></td>`;
             row += '</tr>';
             html += row;
             if (day <= totalDays) { row = '<tr>'; col = 0; }
@@ -292,32 +316,39 @@ function _agCalDraw() {
 
     html += `</tbody></table></div>`;
 
-    /* ── Leyenda ── */
-    html += `<div class="d-flex flex-wrap gap-2 mt-3 align-items-center" style="font-size:.75rem">
-        <span class="text-muted fw-semibold me-1">Leyenda:</span>
-        <span style="background:#ede9fe;border:2px solid #7c3aed;padding:2px 9px;border-radius:6px;color:#6d28d9;font-weight:600">Hoy</span>
-        <span style="background:#fef2f2;border:2px solid #dc2626;padding:2px 9px;border-radius:6px;color:#991b1b">Horas solapadas</span>
-        <span style="background:#fff7ed;border:2px solid #f97316;padding:2px 9px;border-radius:6px;color:#c2410c">Mismo día</span>
-        <span style="background:#d1fae5;border-left:3px solid #86efac;padding:2px 9px;border-radius:0 4px 4px 0;color:#166534">Celebrada</span>
-        <span style="background:#fef08a;border-left:3px solid #fde047;padding:2px 9px;border-radius:0 4px 4px 0;color:#854d0e">Próxima (30d)</span>
-        <span style="background:#dbeafe;border-left:3px solid #93c5fd;padding:2px 9px;border-radius:0 4px 4px 0;color:#1e40af">Programada</span>
-        <span style="background:#fee2e2;border-left:3px solid #fca5a5;padding:2px 9px;border-radius:0 4px 4px 0;color:#991b1b;text-decoration:line-through">Cancelada</span>
+    /* ── Leyenda de áreas ───────────────────────────────────────── */
+    html += `<div class="d-flex flex-wrap gap-2 mt-3 align-items-center" style="font-size:.72rem">
+        <span class="text-muted fw-semibold me-1">Áreas:</span>`;
+    Object.entries(AG_AREA).forEach(([key, ac]) => {
+        html += `<span style="background:${ac.bg};color:${ac.color};border-left:3px solid ${ac.border};
+            padding:3px 8px;border-radius:0 5px 5px 0;font-weight:600">${key} <span style="font-weight:400;opacity:.8">— ${ac.name}</span></span>`;
+    });
+    html += `</div>
+    <div class="d-flex flex-wrap gap-3 mt-2 align-items-center" style="font-size:.71rem;color:#6b7280">
+        <span class="fw-semibold">Estado:</span>
+        <span><i class="fas fa-check" style="font-size:.6rem;margin-right:3px"></i>Celebrada (misma área, atenuada)</span>
+        <span><i class="fas fa-bell" style="font-size:.6rem;margin-right:3px"></i>Próxima ≤14 días (brilla)</span>
+        <span><i class="fas fa-times" style="font-size:.6rem;margin-right:3px"></i>Cancelada (tachada)</span>
+        <span style="background:#ede9fe;border:2px solid #7c3aed;padding:1px 7px;border-radius:5px;color:#6d28d9;font-weight:600">Hoy</span>
+        <span style="background:#fff1f2;border:2px solid #f43f5e;padding:1px 7px;border-radius:5px;color:#f43f5e">⚠ Horas solapadas</span>
+        <span style="background:#fffbeb;border:2px solid #f59e0b;padding:1px 7px;border-radius:5px;color:#b45309">⚠ Mismo día</span>
     </div>`;
 
-    /* ══════════════════════════════════════════════════════════════
-       SECCIÓN DE COINCIDENCIAS DEL MES (si las hay)
-    ══════════════════════════════════════════════════════════════ */
-    if (nConflMes > 0) {
+    /* ── Detalle de conflictos del mes ──────────────────────────── */
+    if (nConfl > 0) {
         const DOW = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-        html += `<div class="mt-4">
-            <div class="d-flex align-items-center gap-2 mb-2">
-                <i class="fas fa-exclamation-triangle text-warning"></i>
-                <h6 class="mb-0 fw-bold" style="color:#1e1b4b">Coincidencias en ${AG_MONTHS_FULL[month]}</h6>
-                <span class="badge bg-warning text-dark">${nConflMes} día${nConflMes !== 1 ? 's' : ''}</span>
-            </div>`;
+        html += `<div class="mt-4 pt-3" style="border-top:2px dashed #e5e7eb">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <i class="fas fa-exclamation-triangle" style="color:#f59e0b"></i>
+                <h6 class="mb-0 fw-bold" style="color:#1e1b4b">Días con sesiones coincidentes — ${AG_MONTHS_FULL[month]}</h6>
+                <span class="badge bg-warning text-dark">${nConfl} día${nConfl !== 1 ? 's' : ''}</span>
+            </div>
+            <div class="row g-2">`;
+
         [...conflictDaysMonth].sort((a, b) => a - b).forEach(d => {
-            const sesiones = byDay[d];
-            const dDate    = new Date(year, month, d);
+            const sesiones = byDay[d].filter(r => r.estatus !== 'Cancelada');
+            if (sesiones.length < 2) return;
+            const dDate = new Date(year, month, d);
             const hMins = sesiones.filter(r => r.hora_inicio)
                 .map(r => { const [h, m] = r.hora_inicio.split(':').map(Number); return h * 60 + m; });
             let hourConfl = false;
@@ -325,46 +356,40 @@ function _agCalDraw() {
                 for (let j = i + 1; j < hMins.length; j++)
                     if (Math.abs(hMins[i] - hMins[j]) < 60) { hourConfl = true; break outer; }
 
-            html += `<div class="card border-0 mb-2" style="box-shadow:0 1px 6px rgba(0,0,0,.08)">
+            html += `<div class="col-12 col-md-6">
+            <div class="card border-0" style="box-shadow:0 2px 8px rgba(0,0,0,.08);border-top:3px solid ${hourConfl?'#f43f5e':'#f59e0b'}!important">
                 <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center"
-                     style="background:${hourConfl ? '#fef2f2' : '#fff7ed'};
-                            border-left:4px solid ${hourConfl ? '#dc2626' : '#f97316'}">
-                    <span class="fw-semibold" style="font-size:.83rem;color:${hourConfl ? '#991b1b' : '#9a3412'}">
-                        <i class="fas fa-calendar-day me-1"></i>
+                     style="background:${hourConfl?'#fff1f2':'#fffbeb'}">
+                    <span class="fw-semibold" style="font-size:.82rem;color:${hourConfl?'#be123c':'#92400e'}">
                         ${DOW[dDate.getDay()]} ${d} de ${AG_MONTHS_FULL[month]}
                     </span>
-                    <div class="d-flex gap-1">
-                        <span class="badge ${hourConfl ? 'bg-danger' : 'bg-warning text-dark'}" style="font-size:.65rem">
-                            ${hourConfl ? '<i class="fas fa-clock me-1"></i>Horas solapadas' : 'Horarios distintos'}
-                        </span>
-                        <span class="badge bg-secondary" style="font-size:.65rem">${sesiones.length} comités</span>
-                    </div>
+                    <span class="badge" style="background:${hourConfl?'#f43f5e':'#f59e0b'};color:#fff;font-size:.62rem">
+                        ${hourConfl ? '⚠ Horas solapadas' : 'Mismo día'}
+                    </span>
                 </div>
                 <div class="card-body p-0">
-                <table class="table table-sm mb-0" style="font-size:.77rem">
+                <table class="table table-sm mb-0" style="font-size:.76rem">
                     <thead class="table-light"><tr>
-                        <th class="ps-3" style="width:65px">Hora</th>
-                        <th style="width:55px">Área</th><th>Comité</th><th>Sesión</th><th>Estatus</th>
+                        <th class="ps-3" style="width:60px">Hora</th>
+                        <th>Área</th><th>Comité</th><th>Sesión</th>
                     </tr></thead><tbody>`;
-            sesiones.slice().sort((a, b) => (a.hora_inicio || '').localeCompare(b.hora_inicio || ''))
-                .forEach(r => {
-                    const comite = _ag.comites.find(c => c.id === r.comite_id) || {};
-                    const ac     = AG_AREA[r.area] || AG_AREA.AFAC;
-                    const rHMin  = r.hora_inicio
-                        ? (() => { const [h, m] = r.hora_inicio.split(':').map(Number); return h * 60 + m; })()
-                        : null;
-                    const solapa = rHMin !== null && hMins.some(hm => hm !== rHMin && Math.abs(hm - rHMin) < 60);
-                    html += `<tr ${solapa ? 'class="table-danger"' : ''}>
-                        <td class="ps-3 fw-semibold text-nowrap">${r.hora_inicio ? r.hora_inicio.slice(0,5) + 'h' : '—'}</td>
-                        <td><span class="badge" style="background:${ac.bg};color:${ac.color};border:1px solid ${ac.border};font-size:.63rem">${r.area}</span></td>
-                        <td title="${comite.nombre || ''}">${comite.acronimo || (comite.nombre || '').slice(0, 38)}</td>
-                        <td class="text-muted">${r.numero_sesion || '—'}</td>
-                        <td><span class="ag-status-badge ag-status-${r.estatus}">${r.estatus}</span></td>
-                    </tr>`;
-                });
-            html += `</tbody></table></div></div>`;
+            sesiones.slice().sort((a, b) => (a.hora_inicio||'').localeCompare(b.hora_inicio||'')).forEach(r => {
+                const comite = _ag.comites.find(c => c.id === r.comite_id) || {};
+                const ac     = AG_AREA[r.area] || AG_AREA.AFAC;
+                const rHMin  = r.hora_inicio ? (() => { const [h,m]=r.hora_inicio.split(':').map(Number); return h*60+m; })() : null;
+                const solapa = rHMin !== null && hMins.some(hm => hm !== rHMin && Math.abs(hm - rHMin) < 60);
+                html += `<tr style="${solapa?'background:#fff1f2':''}" >
+                    <td class="ps-3 fw-bold text-nowrap">${r.hora_inicio ? r.hora_inicio.slice(0,5)+'h' : '—'}</td>
+                    <td><span style="background:${ac.bg};color:${ac.color};border:1px solid ${ac.border};
+                        padding:1px 6px;border-radius:4px;font-size:.65rem;font-weight:600">${r.area}</span></td>
+                    <td title="${comite.nombre||''}" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                        ${comite.acronimo || (comite.nombre||'').slice(0,30)}</td>
+                    <td class="text-muted pe-2">${r.numero_sesion||'—'}</td>
+                </tr>`;
+            });
+            html += `</tbody></table></div></div></div>`;
         });
-        html += `</div>`;
+        html += `</div></div>`;
     }
 
     pane.innerHTML = html;
