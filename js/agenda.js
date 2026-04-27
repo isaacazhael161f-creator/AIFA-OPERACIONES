@@ -554,7 +554,6 @@ function _agAnualDraw() {
     const soon   = new Date(today.getTime() + 14 * 86400000);
     const area   = _ag.activeArea || 'all';
     const year   = 2026;
-    const DAYS_H = ['L','M','X','J','V','S','D'];
 
     const reuniones = area === 'all'
         ? _ag.reuniones
@@ -643,120 +642,114 @@ function _agAnualDraw() {
         const totalMes  = Object.values(byDay).flat().length;
         const celebMes  = Object.values(byDay).flat().filter(r=>r.estatus==='Celebrada').length;
 
+        /* Sesiones ordenadas por día/hora para el mes */
+        const allSess = Object.entries(byDay)
+            .flatMap(([d, sess]) => sess.map(r => ({...r, _day: +d})))
+            .sort((a,b) => a._day - b._day || (a.hora_inicio||'').localeCompare(b.hora_inicio||''));
+
+        /* Agrupar por día */
+        const byDayOrdered = [];
+        allSess.forEach(r => {
+            const last = byDayOrdered[byDayOrdered.length - 1];
+            if (last && last.day === r._day) last.sessions.push(r);
+            else byDayOrdered.push({ day: r._day, sessions: [r] });
+        });
+
+        const DOW_SHORT = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+        const pendMes   = totalMes - celebMes;
+        const pct       = totalMes > 0 ? Math.round(celebMes / totalMes * 100) : 0;
+
         html += `
         <div class="col-12 col-sm-6 col-xl-4">
-          <div class="card border-0 h-100" style="border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.07);
-              ${isCurrentMonth ? 'border:2px solid #7c3aed!important;' : ''}">
+          <div class="card border-0" style="border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);
+              ${isCurrentMonth ? 'outline:2px solid #4f46e5;outline-offset:-1px;' : ''}">
 
             <!-- Cabecera del mes -->
-            <div class="card-header border-0 py-2 px-3 d-flex justify-content-between align-items-center"
-                 style="background:${isCurrentMonth?'#ede9fe':'#f8fafc'};border-radius:12px 12px 0 0;
-                 cursor:pointer" onclick="_agAnualGoMonth(${m})">
-              <div>
-                <span class="fw-bold" style="font-size:.9rem;color:${isCurrentMonth?'#7c3aed':'#1e293b'}">${AG_MONTHS_FULL[m]}</span>
-                ${totalMes > 0
-                    ? `<span class="badge ms-2" style="background:${isCurrentMonth?'#7c3aed':'#475569'};font-size:.6rem">${totalMes} ses.</span>`
-                    : `<span style="font-size:.65rem;color:#9ca3af;margin-left:6px">Sin sesiones</span>`}
+            <div class="card-header border-0 px-3 py-0" style="background:${isCurrentMonth?'#eef2ff':'#f8fafc'};
+                border-radius:12px 12px 0 0;cursor:pointer" onclick="_agAnualGoMonth(${m})">
+              <div class="d-flex align-items-center justify-content-between" style="padding:10px 0 6px">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="fw-bold" style="font-size:1rem;color:${isCurrentMonth?'#4338ca':'#1e293b'}">${AG_MONTHS_FULL[m]}</span>
+                  ${totalMes > 0
+                    ? `<span style="background:${isCurrentMonth?'#4f46e5':'#475569'};color:#fff;border-radius:20px;padding:1px 8px;font-size:.62rem;font-weight:700">${totalMes} ses.</span>`
+                    : `<span style="font-size:.65rem;color:#9ca3af">Sin sesiones</span>`}
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  ${celebMes > 0 ? `<span style="font-size:.68rem;color:#059669;font-weight:600"><i class="fas fa-check-circle me-1"></i>${celebMes} realizadas</span>` : ''}
+                  ${pendMes > 0  ? `<span style="font-size:.68rem;color:#d97706;font-weight:600">${pendMes} pend.</span>` : ''}
+                  <i class="fas fa-calendar-alt" style="font-size:.65rem;color:#94a3b8"></i>
+                </div>
               </div>
-              <div class="d-flex align-items-center gap-1">
-                ${celebMes > 0 ? `<span style="font-size:.62rem;color:#16a34a"><i class="fas fa-check"></i> ${celebMes}</span>` : ''}
-                <i class="fas fa-external-link-alt" style="font-size:.6rem;color:#94a3b8"></i>
-              </div>
+              ${totalMes > 0 ? `
+              <div style="height:3px;background:#e2e8f0;border-radius:2px;margin-bottom:8px">
+                <div style="height:3px;width:${pct}%;background:${pct===100?'#059669':'#4f46e5'};border-radius:2px;transition:width .3s"></div>
+              </div>` : ''}
             </div>
 
-            <!-- Mini calendario -->
-            <div class="card-body p-2">
-              <table style="width:100%;border-collapse:separate;border-spacing:1px;table-layout:fixed">
-                <thead><tr>${DAYS_H.map((d,i)=>`<th style="text-align:center;font-size:.58rem;font-weight:700;
-                    color:${i>=5?'#8b5cf6':'#9ca3af'};padding-bottom:3px">${d}</th>`).join('')}</tr></thead>
-                <tbody>`;
+            <!-- Agenda por día -->
+            <div class="card-body p-0" style="max-height:320px;overflow-y:auto">`;
 
-        let day = 1, col = startDow;
-        let rowHtml = '<tr>';
-        for (let i = 0; i < startDow; i++) rowHtml += `<td></td>`;
-
-        while (day <= totalDays) {
-            const isToday = (now.getFullYear()===year && now.getMonth()===m && now.getDate()===day);
-            const isPast  = new Date(year,m,day) < today;
-            const sessDay = byDay[day] || [];
-            const isWe    = col >= 5;
-
-            let cellBg = 'transparent', cellRadius = '4px', cellFw = '400', cellColor = isPast ? '#cbd5e1':'#1e293b';
-            let dotHtml = '';
-
-            if (isToday) {
-                cellBg = '#7c3aed'; cellColor = '#fff'; cellFw = '800'; cellRadius = '50%';
-            } else if (sessDay.length > 0) {
-                const allCan = sessDay.every(r => r.estatus === 'Cancelada');
-                const allCel = sessDay.every(r => r.estatus === 'Celebrada');
-                cellBg = allCan ? '#fee2e2' : allCel ? '#dcfce7' : '#ede9fe';
-                cellColor = allCan ? '#dc2626' : allCel ? '#166534' : '#7c3aed';
-                cellFw = '700';
-            }
-
-            /* Puntos de color de área debajo del número */
-            if (sessDay.length > 0 && !isToday) {
-                const uniqueAreas = [...new Set(sessDay.filter(r=>r.estatus!=='Cancelada').map(r=>r.area))];
-                dotHtml = `<div style="display:flex;justify-content:center;gap:1px;margin-top:1px">${
-                    uniqueAreas.slice(0,3).map(a=>{
-                        const ac = AG_AREA[a] || AG_AREA.AFAC;
-                        return `<span style="width:5px;height:5px;border-radius:50%;background:${ac.color};display:inline-block"></span>`;
-                    }).join('')
-                }${uniqueAreas.length > 3 ? `<span style="font-size:.45rem;color:#6b7280">+</span>` : ''}</div>`;
-            }
-
-            const clickAttr = sessDay.length > 0
-                ? `onclick="_agAnualGoMonth(${m})" style="cursor:pointer"`
-                : '';
-
-            rowHtml += `<td style="text-align:center;padding:1px 0;vertical-align:top" ${clickAttr}>
-                <div style="display:inline-flex;flex-direction:column;align-items:center;width:22px;min-height:24px
-                    ;background:${cellBg};border-radius:${cellRadius};">
-                  <span style="font-size:.65rem;font-weight:${cellFw};color:${cellColor};line-height:1.6">${day}</span>
-                  ${dotHtml}
-                </div>
-            </td>`;
-            col++; day++;
-
-            if (col === 7) {
-                rowHtml += '</tr><tr>';
-                col = 0;
-            }
-        }
-        if (col > 0 && col < 7) {
-            for (let i = col; i < 7; i++) rowHtml += '<td></td>';
-        }
-        rowHtml += '</tr>';
-        html += rowHtml + `</tbody></table>`;
-
-        /* Lista de sesiones del mes */
-        if (totalMes > 0) {
-            const allSess = Object.entries(byDay)
-                .flatMap(([d, sess]) => sess.map(r => ({...r, _day: +d})))
-                .sort((a,b) => a._day - b._day || (a.hora_inicio||'').localeCompare(b.hora_inicio||''));
-
-            html += `<div class="mt-2 pt-2" style="border-top:1px solid #f1f5f9;max-height:160px;overflow-y:auto">`;
-            allSess.forEach(r => {
-                const comite = _ag.comites.find(c => c.id === r.comite_id) || {};
-                const ac     = AG_AREA[r.area] || AG_AREA.AFAC;
-                const isCan  = r.estatus === 'Cancelada';
-                const isCel  = r.estatus === 'Celebrada';
-                html += `<div class="d-flex align-items-center gap-1 py-1 px-1"
-                    style="cursor:pointer;border-radius:5px;${isCan?'opacity:.5':''};
-                    border-bottom:1px solid #f8fafc;text-decoration:${isCan?'line-through':'none'}"
-                    onclick="_agShowComiteDetail('${r.comite_id}')">
-                  <span style="background:${ac.bg};color:${ac.color};border:1px solid ${ac.border};
-                    font-size:.55rem;font-weight:800;padding:0 4px;border-radius:3px;white-space:nowrap">${r.area}</span>
-                  <span style="font-size:.67rem;font-weight:700;color:#374151;min-width:20px">${r._day}</span>
-                  <span style="font-size:.67rem;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">
-                    ${comite.acronimo || (comite.nombre||'').split(' ').slice(0,3).join(' ')}</span>
-                  ${isCel ? `<i class="fas fa-check" style="font-size:.55rem;color:#16a34a"></i>` : ''}
-                  ${isCan ? `<i class="fas fa-times" style="font-size:.55rem;color:#dc2626"></i>` : ''}
-                </div>`;
-            });
-            html += `</div>`;
+        if (byDayOrdered.length === 0) {
+            html += `<div class="text-center py-4" style="color:#cbd5e1;font-size:.8rem">
+                <i class="fas fa-calendar-times d-block mb-1" style="font-size:1.4rem;opacity:.3"></i>
+                Sin sesiones programadas</div>`;
         } else {
-            html += `<div class="text-center py-2" style="color:#cbd5e1;font-size:.72rem">Sin sesiones programadas</div>`;
+            byDayOrdered.forEach(({ day: d, sessions: daySess }) => {
+                const dDate  = new Date(year, m, d);
+                const isToday2 = (now.getFullYear()===year && now.getMonth()===m && now.getDate()===d);
+                const isPast2  = dDate < today;
+                const isSoon2  = !isPast2 && dDate <= soon;
+                const dow    = DOW_SHORT[dDate.getDay()];
+                const allCel = daySess.every(r => r.estatus === 'Celebrada');
+                const allCan = daySess.every(r => r.estatus === 'Cancelada');
+
+                /* Color del encabezado de día */
+                let dayBg = '#f8fafc', dayColor = '#64748b';
+                if (isToday2)      { dayBg = '#4f46e5'; dayColor = '#fff'; }
+                else if (allCel)   { dayBg = '#ecfdf5'; dayColor = '#059669'; }
+                else if (allCan)   { dayBg = '#fef2f2'; dayColor = '#dc2626'; }
+                else if (isSoon2)  { dayBg = '#fffbeb'; dayColor = '#92400e'; }
+
+                html += `<div style="border-bottom:1px solid #f1f5f9">
+                  <!-- Encabezado del día -->
+                  <div style="display:flex;align-items:center;gap:6px;padding:5px 12px 3px;background:${dayBg}">
+                    <span style="background:${isToday2?'#fff':'rgba(0,0,0,.08)'};color:${isToday2?'#4f46e5':dayColor};
+                      border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;
+                      font-size:.72rem;font-weight:800;flex-shrink:0">${d}</span>
+                    <span style="font-size:.65rem;font-weight:600;color:${dayColor};text-transform:uppercase;letter-spacing:.05em">${dow}</span>
+                    ${isToday2 ? `<span style="font-size:.57rem;background:#fff;color:#4f46e5;border-radius:10px;padding:0 5px;font-weight:700">HOY</span>` : ''}
+                    ${isSoon2 && !isToday2 ? `<span style="font-size:.57rem;color:#d97706"><i class="fas fa-bell"></i></span>` : ''}
+                  </div>
+                  <!-- Sesiones del día -->
+                  <div style="padding:2px 6px 4px 6px">`;
+
+                daySess.forEach(r => {
+                    const comite  = _ag.comites.find(c => c.id === r.comite_id) || {};
+                    const ac      = AG_AREA[r.area] || AG_AREA.AFAC;
+                    const isCan   = r.estatus === 'Cancelada';
+                    const isCel   = r.estatus === 'Celebrada';
+                    const hora    = r.hora_inicio ? r.hora_inicio.slice(0,5) : '';
+                    const nombre  = comite.nombre || comite.acronimo || '—';
+
+                    html += `<div style="display:flex;align-items:center;gap:5px;padding:3px 4px;border-radius:6px;
+                        cursor:pointer;transition:background .12s;${isCan?'opacity:.45;text-decoration:line-through':''}
+                        border-left:3px solid ${isCan?'#e5e7eb':ac.border};background:${isCan?'transparent':ac.bg}20;
+                        margin-bottom:2px"
+                        onmouseover="this.style.background='${ac.bg}'"
+                        onmouseout="this.style.background='${isCan?'transparent':ac.bg}20'"
+                        onclick="_agShowComiteDetail('${r.comite_id}')">
+                      <span style="background:${ac.bg};color:${ac.color};border:1px solid ${ac.border};
+                        font-size:.53rem;font-weight:800;padding:1px 4px;border-radius:3px;white-space:nowrap;flex-shrink:0">${r.area}</span>
+                      ${hora ? `<span style="font-size:.62rem;color:#94a3b8;font-weight:600;flex-shrink:0;min-width:32px">${hora}</span>` : ''}
+                      <span style="font-size:.73rem;color:${isCel?'#374151':'#1e293b'};font-weight:${isCel?'400':'600'};
+                        line-height:1.3;flex:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${nombre}</span>
+                      ${isCel ? `<i class="fas fa-check-circle flex-shrink-0" style="font-size:.65rem;color:#059669"></i>` : ''}
+                      ${isCan ? `<i class="fas fa-times-circle flex-shrink-0" style="font-size:.65rem;color:#dc2626"></i>` : ''}
+                    </div>`;
+                });
+
+                html += `</div></div>`;
+            });
         }
 
         html += `</div></div></div>`; // card-body / card / col
