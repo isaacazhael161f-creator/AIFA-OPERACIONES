@@ -3629,6 +3629,13 @@ FF
                             </button>
                         </li>
                         <li class="nav-item">
+                            <button class="nav-link" id="ag-tab-anual" data-bs-toggle="tab"
+                                data-bs-target="#ag-pane-anual" type="button"
+                                onclick="agLoadAnual()">
+                                <i class="fas fa-calendar-alt me-1"></i>Vista Anual 2026
+                            </button>
+                        </li>
+                        <li class="nav-item">
                             <button class="nav-link" id="ag-tab-comites" data-bs-toggle="tab"
                                 data-bs-target="#ag-pane-comites" type="button">
                                 <i class="fas fa-users-cog me-1"></i>Comités
@@ -3638,7 +3645,7 @@ FF
                             <button class="nav-link" id="ag-tab-reuniones" data-bs-toggle="tab"
                                 data-bs-target="#ag-pane-reuniones" type="button"
                                 onclick="agLoadReuniones()">
-                                <i class="fas fa-calendar-alt me-1"></i>Reuniones
+                                <i class="fas fa-list me-1"></i>Reuniones
                             </button>
                         </li>
                         <li class="nav-item">
@@ -3655,6 +3662,11 @@ FF
                         <!-- ── PESTAÑA: CALENDARIO GENERAL ── -->
                         <div class="tab-pane fade show active" id="ag-pane-calendario">
                             <!-- Contenido generado por agLoadCalendario() -->
+                        </div>
+
+                        <!-- ── PESTAÑA: VISTA ANUAL ── -->
+                        <div class="tab-pane fade" id="ag-pane-anual">
+                            <!-- Contenido generado por agLoadAnual() -->
                         </div>
 
                         <!-- ── PESTAÑA: COMITÉS ── -->
@@ -17349,7 +17361,7 @@ FF
     <script src="js/portal-admin.js"></script>
     <script src="js/medicas.js?v=2"></script>
     <script src="js/fauna.js"></script>
-    <script src="js/agenda.js?v=5"></script>
+    <script src="js/agenda.js?v=6"></script>
 
     <script src="js/data-manager.js"></script>
     <script src="js/permissions.js"></script>

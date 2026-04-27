@@ -67,6 +67,7 @@ function agFilterArea(area, btn) {
 
     const activeTabId = document.querySelector('#ag-main-tabs .nav-link.active')?.id;
     if (activeTabId === 'ag-tab-calendario') agLoadCalendario();
+    else if (activeTabId === 'ag-tab-anual')     agLoadAnual();
     else if (activeTabId === 'ag-tab-comites')   agLoadComites();
     else if (activeTabId === 'ag-tab-reuniones') agLoadReuniones();
 }
@@ -298,7 +299,8 @@ function _agCalDraw() {
                 title="${comite.nombre || ''}\n${r.numero_sesion || ''} | ${r.estatus}${hora ? ' · ' + hora + 'h' : ''}${r.observaciones ? '\n' + r.observaciones : ''}\n\n🔍 Haz clic para ver información normativa"
                 style="background:${ac.bg};color:${ac.color};border-left-color:${ac.border}"
                 onclick="_agShowComiteDetail('${r.comite_id}')">
-                ${statusIcon}${hora ? `<span style="opacity:.6;font-size:.6rem;margin-right:2px">${hora}</span>` : ''}${label}
+                ${statusIcon}<span style="background:${ac.border};color:${ac.color};font-size:.57rem;font-weight:800;
+                    padding:0 4px;border-radius:3px;margin-right:4px;opacity:.85">${r.area}</span>${hora ? `<span style="opacity:.55;font-size:.6rem;margin-right:2px">${hora}</span>` : ''}${label}
             </span>`;
         });
         if (overflow > 0) {
@@ -528,7 +530,264 @@ function _agShowComiteDetail(comiteId) {
     });
     bsM.show();
 }
+/* ─────────────────────────────────────────────────────────────────
+   VISTA ANUAL 2026
+─────────────────────────────────────────────────────────────────*/
+async function agLoadAnual() {
+    const pane = document.getElementById('ag-pane-anual');
+    if (!pane) return;
+    pane.innerHTML = `<div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="text-muted mt-2 small">Cargando vista anual…</p></div>`;
+    await _agEnsureData();
+    _agAnualDraw();
+}
 
+function _agAnualDraw() {
+    const pane = document.getElementById('ag-pane-anual');
+    if (!pane) return;
+
+    const now    = new Date();
+    const today  = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const soon   = new Date(today.getTime() + 14 * 86400000);
+    const area   = _ag.activeArea || 'all';
+    const year   = 2026;
+    const DAYS_H = ['L','M','X','J','V','S','D'];
+
+    const reuniones = area === 'all'
+        ? _ag.reuniones
+        : _ag.reuniones.filter(r => r.area === area);
+
+    /* Estadísticas anuales */
+    const totalYear  = reuniones.length;
+    const celebYear  = reuniones.filter(r => r.estatus === 'Celebrada').length;
+    const cancelYear = reuniones.filter(r => r.estatus === 'Cancelada').length;
+    const pendYear   = reuniones.filter(r => r.estatus !== 'Celebrada' && r.estatus !== 'Cancelada').length;
+
+    /* Conteo por área para el resumen */
+    const areaCounts = {};
+    reuniones.forEach(r => {
+        const k = r.area || 'AFAC';
+        areaCounts[k] = (areaCounts[k] || 0) + 1;
+    });
+
+    let html = `
+    <!-- Encabezado anual -->
+    <div style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);border-radius:14px;padding:18px 22px;margin-bottom:20px">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div>
+          <div style="color:#7dd3fc;font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase">Agenda de Comités</div>
+          <div style="color:#fff;font-size:1.6rem;font-weight:900;line-height:1.1">Vista Anual 2026</div>
+          <div style="color:#94a3b8;font-size:.76rem;margin-top:4px">${area === 'all' ? 'Todas las áreas' : 'Área: ' + area + ' — ' + (AG_AREA[area]?.name || '')}</div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:10px 16px;text-align:center;min-width:75px">
+            <div style="color:#fff;font-size:1.5rem;font-weight:900;line-height:1">${totalYear}</div>
+            <div style="color:#94a3b8;font-size:.62rem">Total sesiones</div>
+          </div>
+          <div style="background:rgba(134,239,172,.12);border-radius:10px;padding:10px 16px;text-align:center;min-width:75px">
+            <div style="color:#86efac;font-size:1.5rem;font-weight:900;line-height:1">${celebYear}</div>
+            <div style="color:#86efac;font-size:.62rem;opacity:.8">Celebradas</div>
+          </div>
+          <div style="background:rgba(251,146,60,.12);border-radius:10px;padding:10px 16px;text-align:center;min-width:75px">
+            <div style="color:#fb923c;font-size:1.5rem;font-weight:900;line-height:1">${pendYear}</div>
+            <div style="color:#fb923c;font-size:.62rem;opacity:.8">Pendientes</div>
+          </div>
+          ${cancelYear > 0 ? `<div style="background:rgba(248,113,113,.12);border-radius:10px;padding:10px 16px;text-align:center;min-width:75px">
+            <div style="color:#f87171;font-size:1.5rem;font-weight:900;line-height:1">${cancelYear}</div>
+            <div style="color:#f87171;font-size:.62rem;opacity:.8">Canceladas</div>
+          </div>` : ''}
+        </div>
+      </div>
+    </div>
+
+    <!-- Resumen por área -->
+    <div class="d-flex flex-wrap gap-2 mb-4">
+      ${Object.entries(areaCounts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{
+        const ac = AG_AREA[k] || AG_AREA.AFAC;
+        return `<div style="background:${ac.bg};border:1.5px solid ${ac.border};border-radius:8px;padding:5px 11px;
+          cursor:pointer;transition:box-shadow .15s" onclick="agFilterArea('${k}',null)">
+          <span style="color:${ac.color};font-weight:700;font-size:.75rem">${k}</span>
+          <span style="color:${ac.color};opacity:.7;font-size:.7rem"> — ${ac.name}</span>
+          <span style="background:${ac.color};color:#fff;border-radius:10px;padding:1px 7px;font-size:.65rem;font-weight:700;margin-left:6px">${v}</span>
+        </div>`;
+      }).join('')}
+      ${area !== 'all' ? `<div style="background:#f1f5f9;border:1.5px solid #cbd5e1;border-radius:8px;padding:5px 11px;cursor:pointer"
+        onclick="agFilterArea('all',document.querySelector('[data-ag-area=all]'))">
+        <span style="color:#475569;font-size:.75rem">← Todas las áreas</span>
+      </div>` : ''}
+    </div>
+
+    <!-- Grid de 12 meses -->
+    <div class="row g-3">`;
+
+    for (let m = 0; m < 12; m++) {
+        const firstDay  = new Date(year, m, 1);
+        const totalDays = new Date(year, m + 1, 0).getDate();
+        const startDow  = (firstDay.getDay() + 6) % 7; // Lunes=0
+        const isCurrentMonth = (now.getFullYear() === year && now.getMonth() === m);
+
+        /* Sesiones de este mes */
+        const byDay = {};
+        reuniones.forEach(r => {
+            const d = new Date(r.fecha_sesion + 'T00:00:00');
+            if (d.getFullYear() === year && d.getMonth() === m) {
+                const k = d.getDate();
+                if (!byDay[k]) byDay[k] = [];
+                byDay[k].push(r);
+            }
+        });
+
+        const totalMes  = Object.values(byDay).flat().length;
+        const celebMes  = Object.values(byDay).flat().filter(r=>r.estatus==='Celebrada').length;
+
+        html += `
+        <div class="col-12 col-sm-6 col-xl-4">
+          <div class="card border-0 h-100" style="border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.07);
+              ${isCurrentMonth ? 'border:2px solid #7c3aed!important;' : ''}">
+
+            <!-- Cabecera del mes -->
+            <div class="card-header border-0 py-2 px-3 d-flex justify-content-between align-items-center"
+                 style="background:${isCurrentMonth?'#ede9fe':'#f8fafc'};border-radius:12px 12px 0 0;
+                 cursor:pointer" onclick="_agAnualGoMonth(${m})">
+              <div>
+                <span class="fw-bold" style="font-size:.9rem;color:${isCurrentMonth?'#7c3aed':'#1e293b'}">${AG_MONTHS_FULL[m]}</span>
+                ${totalMes > 0
+                    ? `<span class="badge ms-2" style="background:${isCurrentMonth?'#7c3aed':'#475569'};font-size:.6rem">${totalMes} ses.</span>`
+                    : `<span style="font-size:.65rem;color:#9ca3af;margin-left:6px">Sin sesiones</span>`}
+              </div>
+              <div class="d-flex align-items-center gap-1">
+                ${celebMes > 0 ? `<span style="font-size:.62rem;color:#16a34a"><i class="fas fa-check"></i> ${celebMes}</span>` : ''}
+                <i class="fas fa-external-link-alt" style="font-size:.6rem;color:#94a3b8"></i>
+              </div>
+            </div>
+
+            <!-- Mini calendario -->
+            <div class="card-body p-2">
+              <table style="width:100%;border-collapse:separate;border-spacing:1px;table-layout:fixed">
+                <thead><tr>${DAYS_H.map((d,i)=>`<th style="text-align:center;font-size:.58rem;font-weight:700;
+                    color:${i>=5?'#8b5cf6':'#9ca3af'};padding-bottom:3px">${d}</th>`).join('')}</tr></thead>
+                <tbody>`;
+
+        let day = 1, col = startDow;
+        let rowHtml = '<tr>';
+        for (let i = 0; i < startDow; i++) rowHtml += `<td></td>`;
+
+        while (day <= totalDays) {
+            const isToday = (now.getFullYear()===year && now.getMonth()===m && now.getDate()===day);
+            const isPast  = new Date(year,m,day) < today;
+            const sessDay = byDay[day] || [];
+            const isWe    = col >= 5;
+
+            let cellBg = 'transparent', cellRadius = '4px', cellFw = '400', cellColor = isPast ? '#cbd5e1':'#1e293b';
+            let dotHtml = '';
+
+            if (isToday) {
+                cellBg = '#7c3aed'; cellColor = '#fff'; cellFw = '800'; cellRadius = '50%';
+            } else if (sessDay.length > 0) {
+                const allCan = sessDay.every(r => r.estatus === 'Cancelada');
+                const allCel = sessDay.every(r => r.estatus === 'Celebrada');
+                cellBg = allCan ? '#fee2e2' : allCel ? '#dcfce7' : '#ede9fe';
+                cellColor = allCan ? '#dc2626' : allCel ? '#166534' : '#7c3aed';
+                cellFw = '700';
+            }
+
+            /* Puntos de color de área debajo del número */
+            if (sessDay.length > 0 && !isToday) {
+                const uniqueAreas = [...new Set(sessDay.filter(r=>r.estatus!=='Cancelada').map(r=>r.area))];
+                dotHtml = `<div style="display:flex;justify-content:center;gap:1px;margin-top:1px">${
+                    uniqueAreas.slice(0,3).map(a=>{
+                        const ac = AG_AREA[a] || AG_AREA.AFAC;
+                        return `<span style="width:5px;height:5px;border-radius:50%;background:${ac.color};display:inline-block"></span>`;
+                    }).join('')
+                }${uniqueAreas.length > 3 ? `<span style="font-size:.45rem;color:#6b7280">+</span>` : ''}</div>`;
+            }
+
+            const clickAttr = sessDay.length > 0
+                ? `onclick="_agAnualGoMonth(${m})" style="cursor:pointer"`
+                : '';
+
+            rowHtml += `<td style="text-align:center;padding:1px 0;vertical-align:top" ${clickAttr}>
+                <div style="display:inline-flex;flex-direction:column;align-items:center;width:22px;min-height:24px
+                    ;background:${cellBg};border-radius:${cellRadius};">
+                  <span style="font-size:.65rem;font-weight:${cellFw};color:${cellColor};line-height:1.6">${day}</span>
+                  ${dotHtml}
+                </div>
+            </td>`;
+            col++; day++;
+
+            if (col === 7) {
+                rowHtml += '</tr><tr>';
+                col = 0;
+            }
+        }
+        if (col > 0 && col < 7) {
+            for (let i = col; i < 7; i++) rowHtml += '<td></td>';
+        }
+        rowHtml += '</tr>';
+        html += rowHtml + `</tbody></table>`;
+
+        /* Lista de sesiones del mes */
+        if (totalMes > 0) {
+            const allSess = Object.entries(byDay)
+                .flatMap(([d, sess]) => sess.map(r => ({...r, _day: +d})))
+                .sort((a,b) => a._day - b._day || (a.hora_inicio||'').localeCompare(b.hora_inicio||''));
+
+            html += `<div class="mt-2 pt-2" style="border-top:1px solid #f1f5f9;max-height:160px;overflow-y:auto">`;
+            allSess.forEach(r => {
+                const comite = _ag.comites.find(c => c.id === r.comite_id) || {};
+                const ac     = AG_AREA[r.area] || AG_AREA.AFAC;
+                const isCan  = r.estatus === 'Cancelada';
+                const isCel  = r.estatus === 'Celebrada';
+                html += `<div class="d-flex align-items-center gap-1 py-1 px-1"
+                    style="cursor:pointer;border-radius:5px;${isCan?'opacity:.5':''};
+                    border-bottom:1px solid #f8fafc;text-decoration:${isCan?'line-through':'none'}"
+                    onclick="_agShowComiteDetail('${r.comite_id}')">
+                  <span style="background:${ac.bg};color:${ac.color};border:1px solid ${ac.border};
+                    font-size:.55rem;font-weight:800;padding:0 4px;border-radius:3px;white-space:nowrap">${r.area}</span>
+                  <span style="font-size:.67rem;font-weight:700;color:#374151;min-width:20px">${r._day}</span>
+                  <span style="font-size:.67rem;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">
+                    ${comite.acronimo || (comite.nombre||'').split(' ').slice(0,3).join(' ')}</span>
+                  ${isCel ? `<i class="fas fa-check" style="font-size:.55rem;color:#16a34a"></i>` : ''}
+                  ${isCan ? `<i class="fas fa-times" style="font-size:.55rem;color:#dc2626"></i>` : ''}
+                </div>`;
+            });
+            html += `</div>`;
+        } else {
+            html += `<div class="text-center py-2" style="color:#cbd5e1;font-size:.72rem">Sin sesiones programadas</div>`;
+        }
+
+        html += `</div></div></div>`; // card-body / card / col
+    }
+
+    html += `</div>`; // row
+
+    /* Leyenda de áreas al pie */
+    html += `<div class="d-flex flex-wrap gap-2 mt-4 align-items-center" style="font-size:.72rem">
+        <span class="text-muted fw-semibold me-1">Áreas:</span>`;
+    Object.entries(AG_AREA).forEach(([key, ac]) => {
+        html += `<span style="background:${ac.bg};color:${ac.color};border-left:3px solid ${ac.border};
+            padding:3px 8px;border-radius:0 5px 5px 0;font-weight:600">${key} <span style="font-weight:400;opacity:.8">— ${ac.name}</span></span>`;
+    });
+    html += `</div>`;
+
+    pane.innerHTML = html;
+}
+
+/* Navega al mes desde la vista anual */
+function _agAnualGoMonth(m) {
+    _ag.calMonth = m;
+    /* Activar tab de calendario general */
+    const tabBtn = document.getElementById('ag-tab-calendario');
+    const tabPane = document.getElementById('ag-pane-calendario');
+    if (tabBtn && tabPane) {
+        document.querySelectorAll('#ag-main-tabs .nav-link').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('#agenda-section .tab-pane').forEach(p => { p.classList.remove('show','active'); });
+        tabBtn.classList.add('active');
+        tabPane.classList.add('show','active');
+    }
+    agLoadCalendario();
+}
 
 /* ─────────────────────────────────────────────────────────────────
    COMITÉS (TARJETAS)
