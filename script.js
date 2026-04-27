@@ -17316,20 +17316,38 @@ async function _conciSaveBulkEdits() {
 
     // Mapa área → etiqueta legible
     const AREA_LABELS = {
-        operaciones:     'Operaciones',
-        control_fauna:   'GSO / Fauna',
-        servicio_medico: 'Servicio Médico',
-        abordadores:     'Abordadores Mecánicos',
-        colab_editor:    'RH / Colaboradores',
+        DO:   'Dir. de Operación',
+        DA:   'Dir. de Administración',
+        DPE:  'Dir. Planeación',
+        DCS:  'Dir. Comercial',
+        GSO:  'Seg. Operacional',
+        UT:   'Transparencia',
+        GC:   'Calidad',
+        AFAC: 'AFAC',
     };
 
     // Iconos por área
     const AREA_ICONS = {
-        operaciones:     'fa-plane',
-        control_fauna:   'fa-shield-alt',
-        servicio_medico: 'fa-briefcase-medical',
-        abordadores:     'fa-cogs',
-        colab_editor:    'fa-id-badge',
+        DO:   'fa-plane',
+        DA:   'fa-briefcase',
+        DPE:  'fa-chart-line',
+        DCS:  'fa-store',
+        GSO:  'fa-shield-alt',
+        UT:   'fa-eye',
+        GC:   'fa-medal',
+        AFAC: 'fa-id-card',
+    };
+
+    // Colores por área (badge background / text)
+    const AREA_COLORS = {
+        DO:   { bg:'#dbeafe', text:'#1e40af' },
+        DA:   { bg:'#fee2e2', text:'#991b1b' },
+        DPE:  { bg:'#ede9fe', text:'#5b21b6' },
+        DCS:  { bg:'#fef3c7', text:'#92400e' },
+        GSO:  { bg:'#dcfce7', text:'#166534' },
+        UT:   { bg:'#e0f2fe', text:'#0c4a6e' },
+        GC:   { bg:'#fdf4ff', text:'#7e22ce' },
+        AFAC: { bg:'#f1f5f9', text:'#334155' },
     };
 
     // Determina qué áreas puede editar según el rol del usuario
@@ -17337,12 +17355,14 @@ async function _conciSaveBulkEdits() {
         if (['admin', 'editor', 'superadmin'].includes(role)) {
             return Object.keys(AREA_LABELS);
         }
-        if (role === 'operaciones')     return ['operaciones'];
-        if (role === 'control_fauna')   return ['control_fauna'];
-        if (role === 'servicio_medico') return ['servicio_medico'];
-        if (role === 'abordadores')     return ['abordadores'];
-        if (role === 'colab_editor')    return ['colab_editor'];
-        return [];  // viewer / colab_viewer → solo lectura
+        if (role === 'operacion')      return ['DO'];
+        if (role === 'administracion') return ['DA'];
+        if (role === 'planeacion')     return ['DPE'];
+        if (role === 'comercial')      return ['DCS'];
+        if (role === 'seguridad_op')   return ['GSO'];
+        if (role === 'transparencia')  return ['UT'];
+        if (role === 'calidad')        return ['GC'];
+        return [];  // afac / viewer → solo lectura
     }
 
     // ── Inicialización ──
@@ -17359,16 +17379,17 @@ async function _conciSaveBulkEdits() {
         if (!_initialized) {
             _initialized = true;
         }
-        agLoadComites();
+        agLoadCalendario();
     };
 
     // ── Utilidades ──
     function sb() { return window.supabaseClient; }
 
     function agAreaBadge(area) {
-        const label = AREA_LABELS[area] || area;
-        const icon  = AREA_ICONS[area]  || 'fa-tag';
-        return `<span class="ag-area-badge ag-area-${area}"><i class="fas ${icon}"></i>${label}</span>`;
+        const label  = AREA_LABELS[area]  || area;
+        const icon   = AREA_ICONS[area]   || 'fa-tag';
+        const colors = AREA_COLORS[area]  || { bg:'#e5e7eb', text:'#374151' };
+        return `<span class="ag-area-badge" style="background:${colors.bg};color:${colors.text}"><i class="fas ${icon}"></i>${label}</span>`;
     }
 
     function agStatusBadge(status) {
@@ -17390,9 +17411,10 @@ async function _conciSaveBulkEdits() {
         const activeTab = document.querySelector('#ag-main-tabs .nav-link.active');
         if (activeTab) {
             const target = activeTab.getAttribute('data-bs-target');
-            if (target === '#ag-pane-comites')  agLoadComites();
-            if (target === '#ag-pane-reuniones') agLoadReuniones();
-            if (target === '#ag-pane-acuerdos')  agLoadAcuerdos();
+            if (target === '#ag-pane-comites')    agLoadComites();
+            if (target === '#ag-pane-reuniones')  agLoadReuniones();
+            if (target === '#ag-pane-acuerdos')   agLoadAcuerdos();
+            if (target === '#ag-pane-calendario') agLoadCalendario();
         }
     };
 
@@ -18259,5 +18281,7 @@ async function _conciSaveBulkEdits() {
             btn.innerHTML = prevHtml;
         }
     };
+
+    // agLoadCalendario delegated to js/agenda.js
 
 })(); // end Agenda module
