@@ -248,12 +248,28 @@ function renderOpsTable(data) {
         return '140px';
     };
 
+    // Format ISO timestamps into readable date/time strings
+    const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+    const isTimeOnlyKey = (k) => /^hora/.test(String(k || '').toLowerCase().replace(/[^a-z_]/g, ''));
+
+    function formatOpsValue(key, value) {
+        if (value === null || value === undefined || value === '') return '';
+        const str = String(value);
+        if (!ISO_RE.test(str)) return str;
+        // Parse parts directly from the string to avoid TZ shifts
+        const [datePart, timePart] = str.split('T');
+        const [y, m, d] = datePart.split('-');
+        const hhmm = timePart ? timePart.substring(0, 5) : '';
+        if (isTimeOnlyKey(key)) return hhmm;          // hora_* columns → HH:MM
+        return `${d}/${m}/${y} ${hhmm}`;               // other date/time columns → DD/MM/YYYY HH:MM
+    }
+
     // 1. Dynamic Headers
     const columns = Object.keys(data[0]).map(key => ({
         title: formatHeader(key),
         data: function (row) {
             const value = row ? row[key] : '';
-            return value === null || value === undefined ? '' : value;
+            return formatOpsValue(key, value);
         },
         defaultContent: '',
         className: 'text-center align-middle',
