@@ -199,7 +199,7 @@ function _agCalDraw() {
                     : `<div style="background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.18);border-radius:10px;padding:8px 14px;text-align:center">
                         <i class="fas fa-shield-alt" style="color:#34d399;font-size:1.1rem"></i>
                         <div style="color:#34d399;font-size:.62rem;opacity:.85;margin-top:3px;font-weight:500">Sin conflictos</div>
-                       </div>`
+                       </div>`}
             </div>
         </div>
     </div>`;
