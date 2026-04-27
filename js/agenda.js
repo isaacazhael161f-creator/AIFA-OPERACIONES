@@ -130,102 +130,104 @@ function _agCalDraw() {
     const cancel    = allSes.filter(r => r.estatus === 'Cancelada').length;
     const nConfl    = conflictDaysMonth.size;
 
-    /* ── CSS inyectado una vez ──────────────────────────────────── */
-    if (!document.getElementById('ag-cal-style')) {
-        const s = document.createElement('style');
-        s.id = 'ag-cal-style';
-        s.textContent = `
-        .ag-cal-cell { border-radius:10px; vertical-align:top; padding:10px 8px 8px; min-height:165px; position:relative; transition:box-shadow .15s; }
-        .ag-cal-cell:hover { box-shadow:0 3px 12px rgba(0,0,0,.12) !important; z-index:1; }
-        .ag-chip { display:block; padding:4px 7px 4px 6px; margin:2px 0; border-radius:0 6px 6px 0;
-                   font-size:.72rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-                   cursor:pointer; line-height:1.45; border-left-width:3px; border-left-style:solid;
-                   transition:filter .12s; }
-        .ag-chip:hover { filter:brightness(.94); }
-        .ag-chip-past { opacity:.7; }
-        .ag-chip-can  { text-decoration:line-through; opacity:.5; }
-        .ag-chip-soon { animation:ag-pulse .9s infinite alternate; }
-        @keyframes ag-pulse { from { filter:brightness(1); } to { filter:brightness(1.12); } }
-        .ag-dow-weekend { background:#f8fafc !important; }
-        .ag-day-num-today { background:#4f46e5; color:#fff !important; border-radius:50%;
-                            width:24px; height:24px; display:inline-flex; align-items:center;
-                            justify-content:center; font-size:.75rem; font-weight:700; }
-        `;
-        document.head.appendChild(s);
-    }
+    /* ── CSS (siempre refrescado) ───────────────────────────────── */
+    document.getElementById('ag-cal-style')?.remove();
+    const s = document.createElement('style');
+    s.id = 'ag-cal-style';
+    s.textContent = `
+    .ag-cal-cell { vertical-align:top; padding:7px 6px 5px; height:140px; position:relative; background:#fff; }
+    .ag-cal-cell:hover { background:#f8fafc !important; }
+    .ag-ev { display:block; padding:2px 7px; margin:1px 0; border-radius:4px; font-size:.69rem;
+             white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;
+             line-height:1.6; font-weight:600; color:#fff; transition:filter .12s; }
+    .ag-ev:hover { filter:brightness(.84); }
+    .ag-ev-past { opacity:.45; }
+    .ag-ev-can  { text-decoration:line-through; opacity:.3; }
+    .ag-ev-soon { box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.55); }
+    .ag-dn { width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center;
+             font-size:.8rem; font-weight:600; border-radius:50%; color:#374151; }
+    .ag-dn-today { background:#4f46e5; color:#fff !important; font-weight:800; }
+    .ag-dn-past { color:#c9d2de; }
+    `;
+    document.head.appendChild(s);
 
     /* ─────────────────────────────────────────────────────────
        CABECERA
     ───────────────────────────────────────────────────────── */
     let html = `
-    <div style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 60%,#1e40af 100%);border-radius:14px;padding:16px 20px;margin-bottom:16px">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-            <!-- Navegación -->
-            <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-sm px-3 py-1" onclick="agCalNavMonth(-1)"
-                    style="background:rgba(255,255,255,.1);color:#e2e8f0;border:1px solid rgba(255,255,255,.2);border-radius:8px;transition:background .15s"
-                    onmouseover="this.style.background='rgba(255,255,255,.18)'" onmouseout="this.style.background='rgba(255,255,255,.1)'">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                <div style="text-align:center;min-width:200px">
-                    <div style="color:#93c5fd;font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase">${year}</div>
-                    <div style="color:#fff;font-size:1.45rem;font-weight:800;line-height:1.15;letter-spacing:-.01em">${AG_MONTHS_FULL[month]}</div>
-                </div>
-                <button class="btn btn-sm px-3 py-1" onclick="agCalNavMonth(1)"
-                    style="background:rgba(255,255,255,.1);color:#e2e8f0;border:1px solid rgba(255,255,255,.2);border-radius:8px;transition:background .15s"
-                    onmouseover="this.style.background='rgba(255,255,255,.18)'" onmouseout="this.style.background='rgba(255,255,255,.1)'">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-            </div>
-            <!-- KPIs -->
-            <div class="d-flex gap-2 flex-wrap">
-                <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:8px 14px;text-align:center;min-width:70px">
-                    <div style="color:#fff;font-size:1.3rem;font-weight:800;line-height:1">${totalMes}</div>
-                    <div style="color:#93c5fd;font-size:.65rem;font-weight:500">Sesiones</div>
-                </div>
-                <div style="background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);border-radius:10px;padding:8px 14px;text-align:center;min-width:70px">
-                    <div style="color:#34d399;font-size:1.3rem;font-weight:800;line-height:1">${celeb}</div>
-                    <div style="color:#34d399;font-size:.65rem;opacity:.85;font-weight:500">Celebradas</div>
-                </div>
-                ${cancel > 0 ? `<div style="background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.25);border-radius:10px;padding:8px 14px;text-align:center;min-width:70px">
-                    <div style="color:#f87171;font-size:1.3rem;font-weight:800;line-height:1">${cancel}</div>
-                    <div style="color:#f87171;font-size:.65rem;opacity:.85;font-weight:500">Canceladas</div>
-                </div>` : ''}
-                ${nConfl > 0
-                    ? `<div style="background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.25);border-radius:10px;padding:8px 14px;text-align:center;min-width:70px">
-                        <div style="color:#fbbf24;font-size:1.3rem;font-weight:800;line-height:1">${nConfl}</div>
-                        <div style="color:#fbbf24;font-size:.65rem;opacity:.85;font-weight:500">Conflictos</div>
-                       </div>`
-                    : `<div style="background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.18);border-radius:10px;padding:8px 14px;text-align:center">
-                        <i class="fas fa-shield-alt" style="color:#34d399;font-size:1.1rem"></i>
-                        <div style="color:#34d399;font-size:.62rem;opacity:.85;margin-top:3px;font-weight:500">Sin conflictos</div>
-                       </div>`}
-            </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-bottom:14px;border-bottom:1px solid #f1f5f9;margin-bottom:2px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <button onclick="agCalNavMonth(-1)"
+            style="width:34px;height:34px;border:1px solid #e2e8f0;background:#fff;border-radius:8px;cursor:pointer;
+            color:#64748b;display:flex;align-items:center;justify-content:center;transition:all .12s"
+            onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">
+            <i class="fas fa-chevron-left" style="font-size:.62rem"></i>
+        </button>
+        <div style="padding:0 6px">
+            <span style="font-size:1.6rem;font-weight:800;color:#0f172a;letter-spacing:-.025em">${AG_MONTHS_FULL[month]}</span>
+            <span style="font-size:.95rem;color:#94a3b8;margin-left:7px;font-weight:400">${year}</span>
         </div>
+        <button onclick="agCalNavMonth(1)"
+            style="width:34px;height:34px;border:1px solid #e2e8f0;background:#fff;border-radius:8px;cursor:pointer;
+            color:#64748b;display:flex;align-items:center;justify-content:center;transition:all .12s"
+            onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">
+            <i class="fas fa-chevron-right" style="font-size:.62rem"></i>
+        </button>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span style="display:inline-flex;align-items:center;gap:5px;background:#f1f5f9;border-radius:20px;padding:5px 13px">
+            <i class="fas fa-calendar-check" style="color:#4f46e5;font-size:.65rem"></i>
+            <strong style="font-size:.8rem;color:#0f172a">${totalMes}</strong>
+            <span style="font-size:.73rem;color:#94a3b8">sesiones</span>
+        </span>
+        <span style="display:inline-flex;align-items:center;gap:5px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:20px;padding:5px 13px">
+            <i class="fas fa-check-circle" style="color:#059669;font-size:.65rem"></i>
+            <strong style="font-size:.8rem;color:#065f46">${celeb}</strong>
+            <span style="font-size:.73rem;color:#6ee7b7">realizadas</span>
+        </span>
+        ${cancel > 0 ? `<span style="display:inline-flex;align-items:center;gap:5px;background:#fef2f2;border:1px solid #fecaca;border-radius:20px;padding:5px 13px">
+            <i class="fas fa-times-circle" style="color:#dc2626;font-size:.65rem"></i>
+            <strong style="font-size:.8rem;color:#991b1b">${cancel}</strong>
+            <span style="font-size:.73rem;color:#fca5a5">canceladas</span>
+        </span>` : ''}
+        ${nConfl > 0
+            ? `<span style="display:inline-flex;align-items:center;gap:5px;background:#fffbeb;border:1px solid #fde68a;border-radius:20px;padding:5px 13px">
+                <i class="fas fa-exclamation-triangle" style="color:#d97706;font-size:.65rem"></i>
+                <strong style="font-size:.8rem;color:#92400e">${nConfl}</strong>
+                <span style="font-size:.73rem;color:#fbbf24">conflictos</span>
+               </span>`
+            : `<span style="display:inline-flex;align-items:center;gap:5px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:20px;padding:5px 13px">
+                <i class="fas fa-shield-alt" style="color:#059669;font-size:.65rem"></i>
+                <span style="font-size:.73rem;color:#065f46">Sin conflictos</span>
+               </span>`}
+      </div>
     </div>`;
 
     /* ─────────────────────────────────────────────────────────
        GRID
     ───────────────────────────────────────────────────────── */
-    const DAYS_H = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+    const DAYS_H = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
     const firstDay  = new Date(year, month, 1);
     const totalDays = new Date(year, month + 1, 0).getDate();
     const startDow  = (firstDay.getDay() + 6) % 7;
 
-    html += `<div style="overflow-x:auto">
-    <table style="border-collapse:separate;border-spacing:6px;min-width:980px;width:100%">
-      <thead><tr>`;
+    html += `<div style="overflow-x:auto;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;margin-top:14px">
+    <table style="border-collapse:collapse;min-width:980px;width:100%">
+      <thead><tr style="background:#f8fafc">`;
     DAYS_H.forEach((d, i) => {
         const isWe = i >= 5;
-        html += `<th class="text-center pb-2" style="width:14.28%;font-size:.75rem;font-weight:700;
-            color:${isWe ? '#8b5cf6' : '#6b7280'};letter-spacing:.04em;padding-bottom:8px">${d}</th>`;
+        html += `<th style="width:14.28%;padding:9px 8px;text-align:center;font-size:.68rem;font-weight:700;
+            letter-spacing:.08em;text-transform:uppercase;
+            color:${isWe?'#7c3aed':'#64748b'};
+            border-bottom:1px solid #e2e8f0;
+            border-right:${i<6?'1px solid #f1f5f9':'none'}">${d}</th>`;
     });
     html += `</tr></thead><tbody>`;
 
     let day = 1, col = startDow;
     let row = '<tr>';
     for (let i = 0; i < startDow; i++) {
-        row += `<td class="ag-cal-cell" style="background:#f9fafb;border:1px solid #f1f5f9"></td>`;
+        row += `<td class="ag-cal-cell" style="background:#f8fafc;border-right:${i<6?'1px solid #f1f5f9':'none'}"></td>`;
     }
 
     while (day <= totalDays) {
@@ -244,36 +246,31 @@ function _agCalDraw() {
             return false;
         })();
 
-        /* Estilo de celda */
-        let cBg, cBorder, cShadow = '';
-        if (isToday) {
-            cBg = '#eef2ff'; cBorder = '2px solid #4f46e5'; cShadow = 'box-shadow:0 0 0 3px #6366f125;';
-        } else if (hasHourConfl) {
-            cBg = '#fff5f5'; cBorder = '2px solid #dc2626';
-        } else if (isConfl) {
-            cBg = '#fffbeb'; cBorder = '2px solid #d97706';
-        } else if (sessions.length > 0) {
-            cBg = isPastDay ? '#fafafa' : '#fcfcfe'; cBorder = '1.5px solid #cbd5e1';
-        } else {
-            cBg = isWe ? '#f8fafc' : '#fff'; cBorder = '1px solid #e2e8f0';
-        }
+        /* Estilo de celda — minimalista, borde superior como indicador */
+        let cellTopBorder = '';
+        let cellBg = isWe ? '#fafafa' : '#fff';
+        if (isToday)           { cellBg = '#eef2ff'; cellTopBorder = 'border-top:3px solid #4f46e5;'; }
+        else if (hasHourConfl) { cellBg = '#fef2f2'; cellTopBorder = 'border-top:3px solid #dc2626;'; }
+        else if (isConfl)      { cellBg = '#fffbeb'; cellTopBorder = 'border-top:3px solid #d97706;'; }
+        else if (isPastDay)    { cellBg = '#fafafa'; }
 
-        row += `<td class="ag-cal-cell${isWe?' ag-dow-weekend':''}"
-            style="background:${cBg};border:${cBorder};${cShadow}">`;
+        row += `<td class="ag-cal-cell"
+            style="background:${cellBg};${cellTopBorder}border-right:${col<6?'1px solid #f1f5f9':'none'}">`;
 
-        /* Número de día */
-        const numStyle = isToday ? 'class="ag-day-num-today"' : `style="font-size:.82rem;font-weight:700;color:${isPastDay?'#9ca3af':'#1f2937'}"`;
-        row += `<div class="d-flex justify-content-between align-items-start mb-1">
-            <span ${numStyle}>${day}</span>
+
+        /* Número de día — círculo limpio */
+        const dnCls = isToday ? 'ag-dn ag-dn-today' : isPastDay ? 'ag-dn ag-dn-past' : 'ag-dn';
+        row += `<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px">
+            <span class="${dnCls}">${day}</span>
             ${isConfl
-                ? `<span style="background:${hasHourConfl?'#f43f5e':'#f59e0b'};color:#fff;
-                    font-size:.58rem;padding:1px 5px;border-radius:10px;font-weight:700"
+                ? `<span style="background:${hasHourConfl?'#dc2626':'#d97706'};color:#fff;
+                    font-size:.54rem;padding:1px 5px;border-radius:10px;font-weight:700;margin-top:4px"
                     title="${sessions.filter(r=>r.estatus!=='Cancelada').length} comités coinciden">
-                    ⚠ ×${sessions.filter(r=>r.estatus!=='Cancelada').length}</span>`
-                : (sessions.length > 1 ? `<span style="color:#9ca3af;font-size:.6rem">${sessions.length}</span>` : '')}
+                    ×${sessions.filter(r=>r.estatus!=='Cancelada').length}</span>`
+                : (sessions.length > 1 ? `<span style="color:#cbd5e1;font-size:.58rem;margin-top:6px">${sessions.length}</span>` : '')}
         </div>`;
 
-        /* Chips de sesión — siempre coloreados por área */
+        /* Eventos — pills sólidos con color de área, texto blanco */
         const visible  = sessions.slice(0, 4);
         const overflow = sessions.length - 4;
         visible.forEach(r => {
@@ -285,28 +282,22 @@ function _agCalDraw() {
             const isUpSoon = !isPastDay && cellDate <= soon && !isCan;
 
             let extraCls = '';
-            if (isCan)     extraCls = ' ag-chip-can';
-            else if (isCel || isPastDay) extraCls = ' ag-chip-past';
-            else if (isUpSoon)           extraCls = ' ag-chip-soon';
-
-            /* Icono de estado (pequeño, al inicio) */
-            let statusIcon = '';
-            if (isCel)     statusIcon = `<i class="fas fa-check" style="font-size:.55rem;opacity:.7;margin-right:3px"></i>`;
-            else if (isCan) statusIcon = `<i class="fas fa-times" style="font-size:.55rem;opacity:.7;margin-right:3px"></i>`;
-            else if (isUpSoon) statusIcon = `<i class="fas fa-bell" style="font-size:.55rem;margin-right:3px"></i>`;
+            if (isCan)     extraCls = ' ag-ev-can';
+            else if (isCel || isPastDay) extraCls = ' ag-ev-past';
+            else if (isUpSoon)           extraCls = ' ag-ev-soon';
 
             const hora = r.hora_inicio ? r.hora_inicio.slice(0, 5) : '';
+            const evBg = isCan ? '#9ca3af' : ac.border;
 
-            row += `<span class="ag-chip${extraCls}"
-                title="${comite.nombre || ''}\n${r.numero_sesion || ''} | ${r.estatus}${hora ? ' · ' + hora + 'h' : ''}${r.observaciones ? '\n' + r.observaciones : ''}\n\n🔍 Haz clic para ver información normativa"
-                style="background:${ac.bg};color:${ac.color};border-left-color:${ac.border}"
+            row += `<span class="ag-ev${extraCls}"
+                title="${comite.nombre || ''} — ${r.estatus}${hora?' · '+hora+'h':''}${r.observaciones?'\n'+r.observaciones:''}"
+                style="background:${evBg}"
                 onclick="_agShowComiteDetail('${r.comite_id}')">
-                ${statusIcon}<span style="background:${ac.bg};color:${ac.color};border:1px solid ${ac.border}60;font-size:.56rem;font-weight:700;
-                    padding:0 3px;border-radius:3px;margin-right:4px;letter-spacing:.01em">${r.area}</span>${hora ? `<span style="opacity:.5;font-size:.6rem;margin-right:2px">${hora}</span>` : ''}${label}
+                <span style="opacity:.7;font-size:.6rem;font-weight:700;margin-right:3px">${r.area}</span>${hora?`<span style="opacity:.7;font-size:.62rem;margin-right:2px">${hora}</span>`:''}${label}${isCel?'<span style="opacity:.65;margin-left:3px">✓</span>':''}${isUpSoon?'<span style="opacity:.65;margin-left:2px;font-size:.58rem">●</span>':''}
             </span>`;
         });
         if (overflow > 0) {
-            row += `<div style="font-size:.6rem;color:#6b7280;text-align:right;margin-top:2px">+${overflow} más</div>`;
+            row += `<div style="font-size:.6rem;color:#94a3b8;text-align:center;margin-top:1px;font-weight:500">+${overflow} más</div>`;
         }
         row += `</td>`;
         col++; day++;
@@ -314,7 +305,7 @@ function _agCalDraw() {
         if (col === 7 || day > totalDays) {
             if (day > totalDays && col < 7)
                 for (let i = col; i < 7; i++)
-                    row += `<td class="ag-cal-cell" style="background:#f9fafb;border:1px solid #f1f5f9"></td>`;
+                    row += `<td class="ag-cal-cell" style="background:#f8fafc;border-right:${i<6?'1px solid #f1f5f9':'none'}"></td>`;
             row += '</tr>';
             html += row;
             if (day <= totalDays) { row = '<tr>'; col = 0; }
@@ -323,22 +314,27 @@ function _agCalDraw() {
 
     html += `</tbody></table></div>`;
 
-    /* ── Leyenda de áreas ───────────────────────────────────────── */
-    html += `<div class="d-flex flex-wrap gap-2 mt-3 align-items-center" style="font-size:.72rem">
-        <span class="text-muted fw-semibold me-1">Áreas:</span>`;
+    /* ── Leyenda ────────────────────────────────────────────────── */
+    html += `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:14px;align-items:center">
+        <span style="font-size:.68rem;color:#94a3b8;font-weight:600;margin-right:3px">Áreas:</span>`;
     Object.entries(AG_AREA).forEach(([key, ac]) => {
-        html += `<span style="background:${ac.bg};color:${ac.color};border-left:3px solid ${ac.border};
-            padding:3px 8px;border-radius:0 5px 5px 0;font-weight:600">${key} <span style="font-weight:400;opacity:.8">— ${ac.name}</span></span>`;
+        html += `<span style="display:inline-flex;align-items:center;gap:4px;background:${ac.bg};
+            border:1px solid ${ac.border}55;border-radius:5px;padding:2px 9px;cursor:pointer;font-size:.67rem"
+            onclick="agFilterArea('${key}',null)" title="Filtrar — ${ac.name}">
+            <span style="width:8px;height:8px;border-radius:2px;background:${ac.border};flex-shrink:0;display:inline-block"></span>
+            <span style="font-weight:700;color:${ac.color}">${key}</span>
+            <span style="color:${ac.color};opacity:.65">— ${ac.name}</span>
+        </span>`;
     });
     html += `</div>
-    <div class="d-flex flex-wrap gap-3 mt-2 align-items-center" style="font-size:.71rem;color:#6b7280">
-        <span class="fw-semibold">Estado:</span>
-        <span><i class="fas fa-check" style="font-size:.6rem;margin-right:3px"></i>Celebrada (misma área, atenuada)</span>
-        <span><i class="fas fa-bell" style="font-size:.6rem;margin-right:3px"></i>Próxima ≤14 días (brilla)</span>
-        <span><i class="fas fa-times" style="font-size:.6rem;margin-right:3px"></i>Cancelada (tachada)</span>
-        <span style="background:#eef2ff;border:2px solid #4f46e5;padding:1px 7px;border-radius:5px;color:#3730a3;font-weight:600">Hoy</span>
-        <span style="background:#fff5f5;border:2px solid #dc2626;padding:1px 7px;border-radius:5px;color:#dc2626">⚠ Horas solapadas</span>
-        <span style="background:#fffbeb;border:2px solid #d97706;padding:1px 7px;border-radius:5px;color:#92400e">⚠ Mismo día</span>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;align-items:center;font-size:.67rem;color:#94a3b8">
+        <span style="font-weight:600">Estados:</span>
+        <span><span style="display:inline-block;background:#4f46e5;opacity:.45;color:#fff;padding:1px 7px;border-radius:3px;font-size:.62rem">Celebrada</span> atenuado</span>
+        <span><span style="display:inline-block;background:#9ca3af;text-decoration:line-through;color:#fff;padding:1px 7px;border-radius:3px;font-size:.62rem">Cancelada</span> tachado</span>
+        <span><span style="display:inline-block;background:#4f46e5;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.55);color:#fff;padding:1px 7px;border-radius:3px;font-size:.62rem">● Próxima</span> ≤14 días</span>
+        <span style="background:#eef2ff;border-top:3px solid #4f46e5;padding:1px 7px;border-radius:0 0 4px 4px;color:#3730a3;font-weight:600;font-size:.62rem">Hoy</span>
+        <span style="background:#fef2f2;border-top:3px solid #dc2626;padding:1px 7px;border-radius:0 0 4px 4px;color:#dc2626;font-size:.62rem">Horas solapadas</span>
+        <span style="background:#fffbeb;border-top:3px solid #d97706;padding:1px 7px;border-radius:0 0 4px 4px;color:#92400e;font-size:.62rem">Mismo día</span>
     </div>`;
 
     /* ── Detalle de conflictos del mes ──────────────────────────── */
