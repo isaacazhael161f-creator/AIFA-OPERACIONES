@@ -1074,6 +1074,7 @@ function _agShowModal(id) {
     const m = document.getElementById(id);
     if (m) new bootstrap.Modal(m).show();
 }
+window._agToast = _agToast;
 function _agToast(msg, color = '#1e293b') {
     const t = document.createElement('div');
     t.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:9999;` +
@@ -1507,5 +1508,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const agSection = document.getElementById('agenda-section');
     if (agSection && agSection.classList.contains('active')) {
         agLoadCalendario();
+    }
+
+    /* Inicializar estado del botón de notificaciones */
+    if (typeof window.agNotificationsInit === 'function') {
+        window.agNotificationsInit();
     }
 });

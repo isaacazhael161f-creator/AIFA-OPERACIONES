@@ -3577,10 +3577,21 @@ FF
                             <h2 class="mb-1 fs-4 fw-bold"><i class="fas fa-calendar-check me-2"></i>Agenda de Comités</h2>
                             <p class="mb-0 opacity-75 small">Gestión de reuniones, temas y acuerdos por área</p>
                         </div>
-                        <button class="btn btn-light btn-sm fw-semibold" id="ag-btn-nueva-reunion" style="display:none"
-                            onclick="agOpenNuevaReunion()">
-                            <i class="fas fa-plus me-1"></i>Nueva Reunión
-                        </button>
+                        <div class="d-flex align-items-center gap-2">
+                            <!-- Botón push notifications -->
+                            <button class="btn btn-outline-light btn-sm" id="ag-notif-btn"
+                                title="Recibir recordatorios de sesiones"
+                                onclick="window.agToggleNotifications && window.agToggleNotifications()"
+                                data-active="0"
+                                style="font-size:.8rem;padding:5px 11px;border-color:rgba(255,255,255,.4);white-space:nowrap">
+                                <i class="fas fa-bell-slash me-1" id="ag-notif-icon"></i>
+                                <span id="ag-notif-label">Notificaciones</span>
+                            </button>
+                            <button class="btn btn-light btn-sm fw-semibold" id="ag-btn-nueva-reunion" style="display:none"
+                                onclick="agOpenNuevaReunion()">
+                                <i class="fas fa-plus me-1"></i>Nueva Reunión
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Filtro de Área (solo visible en Comités, Reuniones y Acuerdos) -->
@@ -19935,8 +19946,23 @@ window.AeropuertosModule = (function () {
 </div>
 <!-- /MODAL IMPORTAR DEMORAS -->
 
+<script src="js/notifications.js?v=1"></script>
 <script>
 /* ── Pestañas Análisis y Estadísticas de Frecuencias: solo usuario autorizado ── */
+/* ── Push Notifications: registro del Service Worker (solo producción) ── */
+
+(function registerPushSW() {
+    const isLocalHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) || location.protocol === 'file:';
+    if (isLocalHost || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .then(reg => {
+            console.info('[AIFA] Service Worker registrado:', reg.scope);
+            /* Inicializar notificaciones una vez el SW esté listo */
+            if (typeof window.agNotificationsInit === 'function') window.agNotificationsInit();
+        })
+        .catch(err => console.warn('[AIFA] Error al registrar SW:', err));
+})();
+
 (function _frecAnalisisAccess() {
     const ALLOWED_USER = '768c3f5f-24b7-4c68-9617-742932b8a7f0';
     function _check() {

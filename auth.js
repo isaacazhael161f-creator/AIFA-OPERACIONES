@@ -139,6 +139,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (roleData && roleData.role) role = roleData.role;
                 } catch (_) {}
                 sessionStorage.setItem('user_role', role);
+                /* Avisar a otros módulos (p. ej. notificaciones) que el usuario ya está autenticado */
+                window.dispatchEvent(new CustomEvent('aifa:login', { detail: { role } }));
 
                 // Guardar credenciales en el gestor del navegador (funciona en Android/Chrome)
                 if (window.PasswordCredential && navigator.credentials) {
