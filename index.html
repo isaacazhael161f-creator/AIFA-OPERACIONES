@@ -13425,29 +13425,6 @@ FF
                                                                 class="form-control form-control-sm"
                                                                 placeholder="Ciudad, estado o aerolínea">
                                                         </div>
-                                                        <div class="col-12">
-                                                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                                                <i class="fas fa-clock text-muted" style="font-size:.8rem"></i>
-                                                                <span class="small text-uppercase text-muted fw-semibold">Filtrar por franja horaria</span>
-                                                                <div class="d-flex align-items-center gap-1">
-                                                                    <label for="frecuencias-time-from" class="small text-muted mb-0">De</label>
-                                                                    <input type="time" id="frecuencias-time-from"
-                                                                        class="form-control form-control-sm"
-                                                                        style="width:110px"
-                                                                        aria-label="Hora de inicio del filtro">
-                                                                </div>
-                                                                <div class="d-flex align-items-center gap-1">
-                                                                    <label for="frecuencias-time-to" class="small text-muted mb-0">a</label>
-                                                                    <input type="time" id="frecuencias-time-to"
-                                                                        class="form-control form-control-sm"
-                                                                        style="width:110px"
-                                                                        aria-label="Hora de fin del filtro">
-                                                                </div>
-                                                                <span id="frecuencias-time-badge" class="badge bg-primary-subtle text-primary d-none">
-                                                                    <i class="fas fa-clock me-1"></i><span id="frecuencias-time-badge-text"></span>
-                                                                </span>
-                                                            </div>
-                                                        </div>
                                                     </div>
                                                     <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
                                                         <button class="btn btn-outline-secondary btn-sm"
@@ -13457,9 +13434,6 @@ FF
                                                         <button class="btn btn-outline-success btn-sm"
                                                             id="frecuencias-download-excel"><i
                                                                 class="fas fa-file-excel me-1"></i>Descargar Excel</button>
-                                                        <button class="btn btn-outline-primary btn-sm"
-                                                            id="frecuencias-ver-horarios" data-bs-toggle="modal" data-bs-target="#modalTodosHorarios"><i
-                                                                class="fas fa-clock me-1"></i>Ver todos los horarios</button>
                                                         <span class="small text-muted"
                                                             id="frecuencias-active-filters">Mostrando
                                                             todos los
@@ -17378,7 +17352,7 @@ FF
     <script src="js/demoras-upload.js?v=1"></script>
     <script src="js/operaciones.js"></script>
     <script src="js/frecuencias.js"></script>
-    <script src="js/frecuencias_auto.js?v=5"></script>
+    <script src="js/frecuencias_auto.js?v=2"></script>
     <script src="js/frecuencias_auto_int.js?v=2"></script>
     <script src="js/frecuencias_auto_cargo.js?v=2"></script>
     <script src="js/manifiestos.js"></script>
@@ -17387,7 +17361,7 @@ FF
     <script src="js/portal-admin.js"></script>
     <script src="js/medicas.js?v=2"></script>
     <script src="js/fauna.js"></script>
-    <script src="js/agenda.js?v=9"></script>
+    <script src="js/agenda.js?v=8"></script>
 
     <script src="js/data-manager.js"></script>
     <script src="js/permissions.js"></script>
@@ -19975,49 +19949,58 @@ window.AeropuertosModule = (function () {
 </div>
 <!-- /MODAL IMPORTAR DEMORAS -->
 
-<!-- MODAL TODOS LOS HORARIOS -->
-<div class="modal fade" id="modalTodosHorarios" tabindex="-1" aria-labelledby="modalTodosHorariosLabel" aria-modal="true" role="dialog">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div>
-                    <h5 class="modal-title mb-0" id="modalTodosHorariosLabel">
-                        <i class="fas fa-clock me-2 text-primary"></i>Todos los horarios de vuelo
-                    </h5>
-                    <p class="text-muted small mb-0 mt-1" id="modal-horarios-subtitle">Detalle por destino, aerolínea y día</p>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <div class="modal-body p-0">
-                <div id="modal-horarios-loading" class="text-center py-5 d-none">
-                    <div class="spinner-border text-primary" role="status"></div>
-                    <p class="mt-2 text-muted">Cargando horarios…</p>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-bordered table-sm mb-0 align-middle" id="modal-horarios-table">
-                        <thead class="table-dark sticky-top" id="modal-horarios-thead"></thead>
-                        <tbody id="modal-horarios-tbody"></tbody>
-                    </table>
-                </div>
-                <div id="modal-horarios-empty" class="text-center text-muted py-5 d-none">
-                    <i class="fas fa-calendar-times fa-2x mb-2"></i>
-                    <p class="mb-0">No hay horarios disponibles con los filtros actuales.</p>
-                </div>
-            </div>
-            <div class="modal-footer border-top">
-                <span class="text-muted small me-auto" id="modal-horarios-count"></span>
-                <button type="button" class="btn btn-outline-success" id="modal-horarios-export-excel">
-                    <i class="fas fa-file-excel me-1"></i>Exportar a Excel
-                </button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i>Cerrar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- /MODAL TODOS LOS HORARIOS -->
+<style>
+  /* Ocultar pestaña Estadísticas y su panel por defecto */
+  #frecuencias-estadisticas-tab,
+  #frecuencias-estadisticas-tab + * ,
+  li:has(#frecuencias-estadisticas-tab) { display: none !important; }
+  #frecuencias-estadisticas-pane        { display: none !important; }
+</style>
+<script>
+(function _initEstadisticasVisibility() {
+    const ALLOWED_USER = '768c3f5f-24b7-4c68-9617-742932b8a7f0';
 
+    function applyVisibility() {
+        try {
+            const userObj = JSON.parse(sessionStorage.getItem('user') || '{}');
+            const uid = userObj.id || userObj.sub || '';
+            if (uid === ALLOWED_USER) {
+                /* Mostrar la pestaña y el panel */
+                const tabEl  = document.getElementById('frecuencias-estadisticas-tab');
+                const paneEl = document.getElementById('frecuencias-estadisticas-pane');
+                const liEl   = tabEl?.closest('li.nav-item');
+                if (tabEl)  tabEl.style.removeProperty('display');
+                if (paneEl) paneEl.style.removeProperty('display');
+                if (liEl)   liEl.style.removeProperty('display');
+                /* Eliminar regla CSS de ocultamiento */
+                document.querySelectorAll('style').forEach(s => {
+                    if (s.textContent.includes('frecuencias-estadisticas-tab')) s.remove();
+                });
+            }
+        } catch (_) {}
+    }
+
+    /* Intentar al cargar DOM */
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyVisibility);
+    } else {
+        applyVisibility();
+    }
+
+    /* También re-evaluar si cambia el sessionStorage (inicio/cierre de sesión) */
+    window.addEventListener('storage', applyVisibility);
+
+    /* Re-evaluar cuando el usuario inicia sesión via el botón de login */
+    document.addEventListener('DOMContentLoaded', function () {
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', function () {
+                setTimeout(applyVisibility, 1200);
+            });
+        }
+    });
+})();
+</script>
 </body>
 </html>
 
