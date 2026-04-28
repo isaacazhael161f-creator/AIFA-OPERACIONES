@@ -203,15 +203,7 @@
     detailsTitle: pane.querySelector('#frecuencias-details-title'),
     detailsBody: pane.querySelector('#frecuencias-details-body'),
     detailsClose: pane.querySelector('#frecuencias-details-close'),
-    detailsCopy: pane.querySelector('#frecuencias-copy-whatsapp'),
-    verHorariosBtn: document.querySelector('#frecuencias-ver-horarios'),
-    modalHorariosTbody: document.querySelector('#modal-horarios-tbody'),
-    modalHorariosThead: document.querySelector('#modal-horarios-thead'),
-    modalHorariosCount: document.querySelector('#modal-horarios-count'),
-    modalHorariosEmpty: document.querySelector('#modal-horarios-empty'),
-    modalHorariosLoading: document.querySelector('#modal-horarios-loading'),
-    modalHorariosSubtitle: document.querySelector('#modal-horarios-subtitle'),
-    modalHorariosExcel: document.querySelector('#modal-horarios-export-excel')
+    detailsCopy: pane.querySelector('#frecuencias-copy-whatsapp')
   };
 
   const state = {
@@ -513,12 +505,13 @@
       applyFilters();
     });
     if (dom.excelButton) dom.excelButton.addEventListener('click', downloadExcel);
-    // Modal "Ver todos los horarios"
-    const modalEl = document.getElementById('modalTodosHorarios');
-    if (modalEl) {
-      modalEl.addEventListener('show.bs.modal', () => renderModalHorarios());
-    }
-    if (dom.modalHorariosExcel) dom.modalHorariosExcel.addEventListener('click', downloadExcelHorarios);
+    // Modal "Ver todos los horarios" — use event delegation so elements don't need to exist at init
+    document.addEventListener('show.bs.modal', evt => {
+      if (evt.target && evt.target.id === 'modalTodosHorarios') renderModalHorarios();
+    });
+    document.addEventListener('click', evt => {
+      if (evt.target && evt.target.closest('#modal-horarios-export-excel')) downloadExcelHorarios();
+    });
     if (dom.fitButton) {
       // Agrupar botones en un contenedor para mantener el layout
       const header = dom.fitButton.parentNode;
@@ -2281,8 +2274,8 @@
 
   function renderModalHorarios() {
     const { rows, headers } = buildHorariosData();
-    const tbody = dom.modalHorariosTbody;
-    const thead = dom.modalHorariosThead;
+    const tbody = document.getElementById('modal-horarios-tbody');
+    const thead = document.getElementById('modal-horarios-thead');
     if (!tbody || !thead) return;
 
     // Header
@@ -2297,12 +2290,15 @@
     thead.appendChild(trH);
 
     tbody.innerHTML = '';
+    const modalEmpty   = document.getElementById('modal-horarios-empty');
+    const modalCount   = document.getElementById('modal-horarios-count');
+    const modalSubtitle = document.getElementById('modal-horarios-subtitle');
     if (!rows.length) {
-      dom.modalHorariosEmpty?.classList.remove('d-none');
-      if (dom.modalHorariosCount) dom.modalHorariosCount.textContent = '';
+      modalEmpty?.classList.remove('d-none');
+      if (modalCount) modalCount.textContent = '';
       return;
     }
-    dom.modalHorariosEmpty?.classList.add('d-none');
+    modalEmpty?.classList.add('d-none');
 
     // Track merging
     let lastDestCity = null, lastAirlineName = null;
@@ -2377,11 +2373,11 @@
     });
 
     const totalFlights = rows.reduce((s, r) => s + r.dayFlightRow.filter(Boolean).length, 0);
-    if (dom.modalHorariosCount) dom.modalHorariosCount.textContent = `${state.filtered.length} destinos · ${totalFlights} vuelos mostrados`;
+    if (modalCount) modalCount.textContent = `${state.filtered.length} destinos · ${totalFlights} vuelos mostrados`;
 
     const hasTimeFilter = state.filters.timeFrom || state.filters.timeTo;
-    if (dom.modalHorariosSubtitle) {
-      dom.modalHorariosSubtitle.textContent = hasTimeFilter
+    if (modalSubtitle) {
+      modalSubtitle.textContent = hasTimeFilter
         ? `Filtro horario activo: ${state.filters.timeFrom || '00:00'} – ${state.filters.timeTo || '23:59'}`
         : 'Detalle por destino, aerolínea y día';
     }
