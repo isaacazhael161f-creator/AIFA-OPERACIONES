@@ -55,6 +55,7 @@ async function _agEnsureData(force) {
     _ag.reuniones = rR.data  || [];
     _ag.ready = true;
     console.log(`[Agenda] Loaded: ${_ag.comites.length} comités, ${_ag.reuniones.length} reuniones`);
+    _agShowAdminButtons();
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -130,104 +131,102 @@ function _agCalDraw() {
     const cancel    = allSes.filter(r => r.estatus === 'Cancelada').length;
     const nConfl    = conflictDaysMonth.size;
 
-    /* ── CSS (siempre refrescado) ───────────────────────────────── */
-    document.getElementById('ag-cal-style')?.remove();
-    const s = document.createElement('style');
-    s.id = 'ag-cal-style';
-    s.textContent = `
-    .ag-cal-cell { vertical-align:top; padding:7px 6px 5px; height:140px; position:relative; background:#fff; }
-    .ag-cal-cell:hover { background:#f8fafc !important; }
-    .ag-ev { display:block; padding:2px 7px; margin:1px 0; border-radius:4px; font-size:.69rem;
-             white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;
-             line-height:1.6; font-weight:600; color:#fff; transition:filter .12s; }
-    .ag-ev:hover { filter:brightness(.84); }
-    .ag-ev-past { opacity:.45; }
-    .ag-ev-can  { text-decoration:line-through; opacity:.3; }
-    .ag-ev-soon { box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.55); }
-    .ag-dn { width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center;
-             font-size:.8rem; font-weight:600; border-radius:50%; color:#374151; }
-    .ag-dn-today { background:#4f46e5; color:#fff !important; font-weight:800; }
-    .ag-dn-past { color:#c9d2de; }
-    `;
-    document.head.appendChild(s);
+    /* ── CSS inyectado una vez ──────────────────────────────────── */
+    if (!document.getElementById('ag-cal-style')) {
+        const s = document.createElement('style');
+        s.id = 'ag-cal-style';
+        s.textContent = `
+        .ag-cal-cell { border-radius:10px; vertical-align:top; padding:10px 8px 8px; min-height:165px; position:relative; transition:box-shadow .15s; }
+        .ag-cal-cell:hover { box-shadow:0 3px 12px rgba(0,0,0,.12) !important; z-index:1; }
+        .ag-chip { display:block; padding:4px 7px 4px 6px; margin:2px 0; border-radius:0 6px 6px 0;
+                   font-size:.72rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+                   cursor:pointer; line-height:1.45; border-left-width:3px; border-left-style:solid;
+                   transition:filter .12s; }
+        .ag-chip:hover { filter:brightness(.94); }
+        .ag-chip-past { opacity:.7; }
+        .ag-chip-can  { text-decoration:line-through; opacity:.5; }
+        .ag-chip-soon { animation:ag-pulse .9s infinite alternate; }
+        @keyframes ag-pulse { from { filter:brightness(1); } to { filter:brightness(1.12); } }
+        .ag-dow-weekend { background:#f8fafc !important; }
+        .ag-day-num-today { background:#4f46e5; color:#fff !important; border-radius:50%;
+                            width:24px; height:24px; display:inline-flex; align-items:center;
+                            justify-content:center; font-size:.75rem; font-weight:700; }
+        `;
+        document.head.appendChild(s);
+    }
 
     /* ─────────────────────────────────────────────────────────
        CABECERA
     ───────────────────────────────────────────────────────── */
     let html = `
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-bottom:14px;border-bottom:1px solid #f1f5f9;margin-bottom:2px">
-      <div style="display:flex;align-items:center;gap:6px">
-        <button onclick="agCalNavMonth(-1)"
-            style="width:34px;height:34px;border:1px solid #e2e8f0;background:#fff;border-radius:8px;cursor:pointer;
-            color:#64748b;display:flex;align-items:center;justify-content:center;transition:all .12s"
-            onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">
-            <i class="fas fa-chevron-left" style="font-size:.62rem"></i>
-        </button>
-        <div style="padding:0 6px">
-            <span style="font-size:1.6rem;font-weight:800;color:#0f172a;letter-spacing:-.025em">${AG_MONTHS_FULL[month]}</span>
-            <span style="font-size:.95rem;color:#94a3b8;margin-left:7px;font-weight:400">${year}</span>
+    <div style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 60%,#1e40af 100%);border-radius:14px;padding:16px 20px;margin-bottom:16px">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <!-- Navegación -->
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm px-3 py-1" onclick="agCalNavMonth(-1)"
+                    style="background:rgba(255,255,255,.1);color:#e2e8f0;border:1px solid rgba(255,255,255,.2);border-radius:8px;transition:background .15s"
+                    onmouseover="this.style.background='rgba(255,255,255,.18)'" onmouseout="this.style.background='rgba(255,255,255,.1)'">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div style="text-align:center;min-width:200px">
+                    <div style="color:#93c5fd;font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase">${year}</div>
+                    <div style="color:#fff;font-size:1.45rem;font-weight:800;line-height:1.15;letter-spacing:-.01em">${AG_MONTHS_FULL[month]}</div>
+                </div>
+                <button class="btn btn-sm px-3 py-1" onclick="agCalNavMonth(1)"
+                    style="background:rgba(255,255,255,.1);color:#e2e8f0;border:1px solid rgba(255,255,255,.2);border-radius:8px;transition:background .15s"
+                    onmouseover="this.style.background='rgba(255,255,255,.18)'" onmouseout="this.style.background='rgba(255,255,255,.1)'">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <!-- KPIs -->
+            <div class="d-flex gap-2 flex-wrap">
+                <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:8px 14px;text-align:center;min-width:70px">
+                    <div style="color:#fff;font-size:1.3rem;font-weight:800;line-height:1">${totalMes}</div>
+                    <div style="color:#93c5fd;font-size:.65rem;font-weight:500">Sesiones</div>
+                </div>
+                <div style="background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);border-radius:10px;padding:8px 14px;text-align:center;min-width:70px">
+                    <div style="color:#34d399;font-size:1.3rem;font-weight:800;line-height:1">${celeb}</div>
+                    <div style="color:#34d399;font-size:.65rem;opacity:.85;font-weight:500">Celebradas</div>
+                </div>
+                ${cancel > 0 ? `<div style="background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.25);border-radius:10px;padding:8px 14px;text-align:center;min-width:70px">
+                    <div style="color:#f87171;font-size:1.3rem;font-weight:800;line-height:1">${cancel}</div>
+                    <div style="color:#f87171;font-size:.65rem;opacity:.85;font-weight:500">Canceladas</div>
+                </div>` : ''}
+                ${nConfl > 0
+                    ? `<div style="background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.25);border-radius:10px;padding:8px 14px;text-align:center;min-width:70px">
+                        <div style="color:#fbbf24;font-size:1.3rem;font-weight:800;line-height:1">${nConfl}</div>
+                        <div style="color:#fbbf24;font-size:.65rem;opacity:.85;font-weight:500">Conflictos</div>
+                       </div>`
+                    : `<div style="background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.18);border-radius:10px;padding:8px 14px;text-align:center">
+                        <i class="fas fa-shield-alt" style="color:#34d399;font-size:1.1rem"></i>
+                        <div style="color:#34d399;font-size:.62rem;opacity:.85;margin-top:3px;font-weight:500">Sin conflictos</div>
+                       </div>`}
+            </div>
         </div>
-        <button onclick="agCalNavMonth(1)"
-            style="width:34px;height:34px;border:1px solid #e2e8f0;background:#fff;border-radius:8px;cursor:pointer;
-            color:#64748b;display:flex;align-items:center;justify-content:center;transition:all .12s"
-            onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">
-            <i class="fas fa-chevron-right" style="font-size:.62rem"></i>
-        </button>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-        <span style="display:inline-flex;align-items:center;gap:5px;background:#f1f5f9;border-radius:20px;padding:5px 13px">
-            <i class="fas fa-calendar-check" style="color:#4f46e5;font-size:.65rem"></i>
-            <strong style="font-size:.8rem;color:#0f172a">${totalMes}</strong>
-            <span style="font-size:.73rem;color:#94a3b8">sesiones</span>
-        </span>
-        <span style="display:inline-flex;align-items:center;gap:5px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:20px;padding:5px 13px">
-            <i class="fas fa-check-circle" style="color:#059669;font-size:.65rem"></i>
-            <strong style="font-size:.8rem;color:#065f46">${celeb}</strong>
-            <span style="font-size:.73rem;color:#6ee7b7">realizadas</span>
-        </span>
-        ${cancel > 0 ? `<span style="display:inline-flex;align-items:center;gap:5px;background:#fef2f2;border:1px solid #fecaca;border-radius:20px;padding:5px 13px">
-            <i class="fas fa-times-circle" style="color:#dc2626;font-size:.65rem"></i>
-            <strong style="font-size:.8rem;color:#991b1b">${cancel}</strong>
-            <span style="font-size:.73rem;color:#fca5a5">canceladas</span>
-        </span>` : ''}
-        ${nConfl > 0
-            ? `<span style="display:inline-flex;align-items:center;gap:5px;background:#fffbeb;border:1px solid #fde68a;border-radius:20px;padding:5px 13px">
-                <i class="fas fa-exclamation-triangle" style="color:#d97706;font-size:.65rem"></i>
-                <strong style="font-size:.8rem;color:#92400e">${nConfl}</strong>
-                <span style="font-size:.73rem;color:#fbbf24">conflictos</span>
-               </span>`
-            : `<span style="display:inline-flex;align-items:center;gap:5px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:20px;padding:5px 13px">
-                <i class="fas fa-shield-alt" style="color:#059669;font-size:.65rem"></i>
-                <span style="font-size:.73rem;color:#065f46">Sin conflictos</span>
-               </span>`}
-      </div>
     </div>`;
 
     /* ─────────────────────────────────────────────────────────
        GRID
     ───────────────────────────────────────────────────────── */
-    const DAYS_H = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+    const DAYS_H = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
     const firstDay  = new Date(year, month, 1);
     const totalDays = new Date(year, month + 1, 0).getDate();
     const startDow  = (firstDay.getDay() + 6) % 7;
 
-    html += `<div style="overflow-x:auto;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;margin-top:14px">
-    <table style="border-collapse:collapse;min-width:980px;width:100%">
-      <thead><tr style="background:#f8fafc">`;
+    html += `<div style="overflow-x:auto">
+    <table style="border-collapse:separate;border-spacing:6px;min-width:980px;width:100%">
+      <thead><tr>`;
     DAYS_H.forEach((d, i) => {
         const isWe = i >= 5;
-        html += `<th style="width:14.28%;padding:9px 8px;text-align:center;font-size:.68rem;font-weight:700;
-            letter-spacing:.08em;text-transform:uppercase;
-            color:${isWe?'#7c3aed':'#64748b'};
-            border-bottom:1px solid #e2e8f0;
-            border-right:${i<6?'1px solid #f1f5f9':'none'}">${d}</th>`;
+        html += `<th class="text-center pb-2" style="width:14.28%;font-size:.75rem;font-weight:700;
+            color:${isWe ? '#8b5cf6' : '#6b7280'};letter-spacing:.04em;padding-bottom:8px">${d}</th>`;
     });
     html += `</tr></thead><tbody>`;
 
     let day = 1, col = startDow;
     let row = '<tr>';
     for (let i = 0; i < startDow; i++) {
-        row += `<td class="ag-cal-cell" style="background:#f8fafc;border-right:${i<6?'1px solid #f1f5f9':'none'}"></td>`;
+        row += `<td class="ag-cal-cell" style="background:#f9fafb;border:1px solid #f1f5f9"></td>`;
     }
 
     while (day <= totalDays) {
@@ -246,31 +245,36 @@ function _agCalDraw() {
             return false;
         })();
 
-        /* Estilo de celda — minimalista, borde superior como indicador */
-        let cellTopBorder = '';
-        let cellBg = isWe ? '#fafafa' : '#fff';
-        if (isToday)           { cellBg = '#eef2ff'; cellTopBorder = 'border-top:3px solid #4f46e5;'; }
-        else if (hasHourConfl) { cellBg = '#fef2f2'; cellTopBorder = 'border-top:3px solid #dc2626;'; }
-        else if (isConfl)      { cellBg = '#fffbeb'; cellTopBorder = 'border-top:3px solid #d97706;'; }
-        else if (isPastDay)    { cellBg = '#fafafa'; }
+        /* Estilo de celda */
+        let cBg, cBorder, cShadow = '';
+        if (isToday) {
+            cBg = '#eef2ff'; cBorder = '2px solid #4f46e5'; cShadow = 'box-shadow:0 0 0 3px #6366f125;';
+        } else if (hasHourConfl) {
+            cBg = '#fff5f5'; cBorder = '2px solid #dc2626';
+        } else if (isConfl) {
+            cBg = '#fffbeb'; cBorder = '2px solid #d97706';
+        } else if (sessions.length > 0) {
+            cBg = isPastDay ? '#fafafa' : '#fcfcfe'; cBorder = '1.5px solid #cbd5e1';
+        } else {
+            cBg = isWe ? '#f8fafc' : '#fff'; cBorder = '1px solid #e2e8f0';
+        }
 
-        row += `<td class="ag-cal-cell"
-            style="background:${cellBg};${cellTopBorder}border-right:${col<6?'1px solid #f1f5f9':'none'}">`;
+        row += `<td class="ag-cal-cell${isWe?' ag-dow-weekend':''}"
+            style="background:${cBg};border:${cBorder};${cShadow}">`;
 
-
-        /* Número de día — círculo limpio */
-        const dnCls = isToday ? 'ag-dn ag-dn-today' : isPastDay ? 'ag-dn ag-dn-past' : 'ag-dn';
-        row += `<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px">
-            <span class="${dnCls}">${day}</span>
+        /* Número de día */
+        const numStyle = isToday ? 'class="ag-day-num-today"' : `style="font-size:.82rem;font-weight:700;color:${isPastDay?'#9ca3af':'#1f2937'}"`;
+        row += `<div class="d-flex justify-content-between align-items-start mb-1">
+            <span ${numStyle}>${day}</span>
             ${isConfl
-                ? `<span style="background:${hasHourConfl?'#dc2626':'#d97706'};color:#fff;
-                    font-size:.54rem;padding:1px 5px;border-radius:10px;font-weight:700;margin-top:4px"
+                ? `<span style="background:${hasHourConfl?'#f43f5e':'#f59e0b'};color:#fff;
+                    font-size:.58rem;padding:1px 5px;border-radius:10px;font-weight:700"
                     title="${sessions.filter(r=>r.estatus!=='Cancelada').length} comités coinciden">
-                    ×${sessions.filter(r=>r.estatus!=='Cancelada').length}</span>`
-                : (sessions.length > 1 ? `<span style="color:#cbd5e1;font-size:.58rem;margin-top:6px">${sessions.length}</span>` : '')}
+                    ⚠ ×${sessions.filter(r=>r.estatus!=='Cancelada').length}</span>`
+                : (sessions.length > 1 ? `<span style="color:#9ca3af;font-size:.6rem">${sessions.length}</span>` : '')}
         </div>`;
 
-        /* Eventos — pills sólidos con color de área, texto blanco */
+        /* Chips de sesión — siempre coloreados por área */
         const visible  = sessions.slice(0, 4);
         const overflow = sessions.length - 4;
         visible.forEach(r => {
@@ -282,22 +286,28 @@ function _agCalDraw() {
             const isUpSoon = !isPastDay && cellDate <= soon && !isCan;
 
             let extraCls = '';
-            if (isCan)     extraCls = ' ag-ev-can';
-            else if (isCel || isPastDay) extraCls = ' ag-ev-past';
-            else if (isUpSoon)           extraCls = ' ag-ev-soon';
+            if (isCan)     extraCls = ' ag-chip-can';
+            else if (isCel || isPastDay) extraCls = ' ag-chip-past';
+            else if (isUpSoon)           extraCls = ' ag-chip-soon';
+
+            /* Icono de estado (pequeño, al inicio) */
+            let statusIcon = '';
+            if (isCel)     statusIcon = `<i class="fas fa-check" style="font-size:.55rem;opacity:.7;margin-right:3px"></i>`;
+            else if (isCan) statusIcon = `<i class="fas fa-times" style="font-size:.55rem;opacity:.7;margin-right:3px"></i>`;
+            else if (isUpSoon) statusIcon = `<i class="fas fa-bell" style="font-size:.55rem;margin-right:3px"></i>`;
 
             const hora = r.hora_inicio ? r.hora_inicio.slice(0, 5) : '';
-            const evBg = isCan ? '#9ca3af' : ac.border;
 
-            row += `<span class="ag-ev${extraCls}"
-                title="${comite.nombre || ''} — ${r.estatus}${hora?' · '+hora+'h':''}${r.observaciones?'\n'+r.observaciones:''}"
-                style="background:${evBg}"
+            row += `<span class="ag-chip${extraCls}"
+                title="${comite.nombre || ''}\n${r.numero_sesion || ''} | ${r.estatus}${hora ? ' · ' + hora + 'h' : ''}${r.observaciones ? '\n' + r.observaciones : ''}\n\n🔍 Haz clic para ver información normativa"
+                style="background:${ac.bg};color:${ac.color};border-left-color:${ac.border}"
                 onclick="_agShowComiteDetail('${r.comite_id}')">
-                <span style="opacity:.7;font-size:.6rem;font-weight:700;margin-right:3px">${r.area}</span>${hora?`<span style="opacity:.7;font-size:.62rem;margin-right:2px">${hora}</span>`:''}${label}${isCel?'<span style="opacity:.65;margin-left:3px">✓</span>':''}${isUpSoon?'<span style="opacity:.65;margin-left:2px;font-size:.58rem">●</span>':''}
+                ${statusIcon}<span style="background:${ac.bg};color:${ac.color};border:1px solid ${ac.border}60;font-size:.56rem;font-weight:700;
+                    padding:0 3px;border-radius:3px;margin-right:4px;letter-spacing:.01em">${r.area}</span>${hora ? `<span style="opacity:.5;font-size:.6rem;margin-right:2px">${hora}</span>` : ''}${label}
             </span>`;
         });
         if (overflow > 0) {
-            row += `<div style="font-size:.6rem;color:#94a3b8;text-align:center;margin-top:1px;font-weight:500">+${overflow} más</div>`;
+            row += `<div style="font-size:.6rem;color:#6b7280;text-align:right;margin-top:2px">+${overflow} más</div>`;
         }
         row += `</td>`;
         col++; day++;
@@ -305,7 +315,7 @@ function _agCalDraw() {
         if (col === 7 || day > totalDays) {
             if (day > totalDays && col < 7)
                 for (let i = col; i < 7; i++)
-                    row += `<td class="ag-cal-cell" style="background:#f8fafc;border-right:${i<6?'1px solid #f1f5f9':'none'}"></td>`;
+                    row += `<td class="ag-cal-cell" style="background:#f9fafb;border:1px solid #f1f5f9"></td>`;
             row += '</tr>';
             html += row;
             if (day <= totalDays) { row = '<tr>'; col = 0; }
@@ -314,27 +324,22 @@ function _agCalDraw() {
 
     html += `</tbody></table></div>`;
 
-    /* ── Leyenda ────────────────────────────────────────────────── */
-    html += `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:14px;align-items:center">
-        <span style="font-size:.68rem;color:#94a3b8;font-weight:600;margin-right:3px">Áreas:</span>`;
+    /* ── Leyenda de áreas ───────────────────────────────────────── */
+    html += `<div class="d-flex flex-wrap gap-2 mt-3 align-items-center" style="font-size:.72rem">
+        <span class="text-muted fw-semibold me-1">Áreas:</span>`;
     Object.entries(AG_AREA).forEach(([key, ac]) => {
-        html += `<span style="display:inline-flex;align-items:center;gap:4px;background:${ac.bg};
-            border:1px solid ${ac.border}55;border-radius:5px;padding:2px 9px;cursor:pointer;font-size:.67rem"
-            onclick="agFilterArea('${key}',null)" title="Filtrar — ${ac.name}">
-            <span style="width:8px;height:8px;border-radius:2px;background:${ac.border};flex-shrink:0;display:inline-block"></span>
-            <span style="font-weight:700;color:${ac.color}">${key}</span>
-            <span style="color:${ac.color};opacity:.65">— ${ac.name}</span>
-        </span>`;
+        html += `<span style="background:${ac.bg};color:${ac.color};border-left:3px solid ${ac.border};
+            padding:3px 8px;border-radius:0 5px 5px 0;font-weight:600">${key} <span style="font-weight:400;opacity:.8">— ${ac.name}</span></span>`;
     });
     html += `</div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;align-items:center;font-size:.67rem;color:#94a3b8">
-        <span style="font-weight:600">Estados:</span>
-        <span><span style="display:inline-block;background:#4f46e5;opacity:.45;color:#fff;padding:1px 7px;border-radius:3px;font-size:.62rem">Celebrada</span> atenuado</span>
-        <span><span style="display:inline-block;background:#9ca3af;text-decoration:line-through;color:#fff;padding:1px 7px;border-radius:3px;font-size:.62rem">Cancelada</span> tachado</span>
-        <span><span style="display:inline-block;background:#4f46e5;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.55);color:#fff;padding:1px 7px;border-radius:3px;font-size:.62rem">● Próxima</span> ≤14 días</span>
-        <span style="background:#eef2ff;border-top:3px solid #4f46e5;padding:1px 7px;border-radius:0 0 4px 4px;color:#3730a3;font-weight:600;font-size:.62rem">Hoy</span>
-        <span style="background:#fef2f2;border-top:3px solid #dc2626;padding:1px 7px;border-radius:0 0 4px 4px;color:#dc2626;font-size:.62rem">Horas solapadas</span>
-        <span style="background:#fffbeb;border-top:3px solid #d97706;padding:1px 7px;border-radius:0 0 4px 4px;color:#92400e;font-size:.62rem">Mismo día</span>
+    <div class="d-flex flex-wrap gap-3 mt-2 align-items-center" style="font-size:.71rem;color:#6b7280">
+        <span class="fw-semibold">Estado:</span>
+        <span><i class="fas fa-check" style="font-size:.6rem;margin-right:3px"></i>Celebrada (misma área, atenuada)</span>
+        <span><i class="fas fa-bell" style="font-size:.6rem;margin-right:3px"></i>Próxima ≤14 días (brilla)</span>
+        <span><i class="fas fa-times" style="font-size:.6rem;margin-right:3px"></i>Cancelada (tachada)</span>
+        <span style="background:#eef2ff;border:2px solid #4f46e5;padding:1px 7px;border-radius:5px;color:#3730a3;font-weight:600">Hoy</span>
+        <span style="background:#fff5f5;border:2px solid #dc2626;padding:1px 7px;border-radius:5px;color:#dc2626">⚠ Horas solapadas</span>
+        <span style="background:#fffbeb;border:2px solid #d97706;padding:1px 7px;border-radius:5px;color:#92400e">⚠ Mismo día</span>
     </div>`;
 
     /* ── Detalle de conflictos del mes ──────────────────────────── */
@@ -439,6 +444,13 @@ function _agShowComiteDetail(comiteId) {
                 <td class="text-center" style="font-size:.78rem">${r.hora_inicio ? r.hora_inicio.slice(0,5) + 'h' : '—'}</td>
                 <td><span class="badge" style="background:${badge};font-size:.63rem">${r.estatus}</span></td>
                 <td class="text-muted" style="font-size:.73rem">${r.observaciones || ''}</td>
+                ${_agCanEdit(comite.area) ? `
+                <td class="text-center">
+                  <button class="btn btn-link btn-sm p-0" style="color:#6b7280" title="Editar sesión"
+                    onclick="event.stopPropagation();agOpenEditSesion('${r.id}','${comite.id}')">
+                    <i class='fas fa-pen' style='font-size:.7rem'></i>
+                  </button>
+                </td>` : ''}
             </tr>`;
         }).join('');
     }
@@ -461,6 +473,11 @@ function _agShowComiteDetail(comiteId) {
               <h5 class="modal-title fw-bold mb-0" style="color:${ac.color};font-size:1rem;line-height:1.35">${comite.nombre}</h5>
               ${comite.frecuencia ? `<div class="mt-1 text-muted" style="font-size:.74rem"><i class="fas fa-redo me-1" style="color:${ac.color};opacity:.7"></i>${comite.frecuencia}</div>` : ''}
             </div>
+            ${_agCanEdit(comite.area) ? `
+            <button class="btn btn-sm ms-2 flex-shrink-0"
+              style="background:${ac.color};color:#fff;border:none;border-radius:8px;font-size:.75rem;padding:5px 12px"
+              onclick="bootstrap.Modal.getInstance(document.getElementById('_ag-det-modal'))?.hide();setTimeout(()=>agOpenEditComite('${comite.id}'),300)">
+              <i class='fas fa-pen me-1'></i>Editar comité</button>` : ''}
             <button type="button" class="btn-close ms-3" data-bs-dismiss="modal" aria-label="Cerrar"></button>
           </div>
           <div style="height:4px;background:linear-gradient(90deg,${ac.border},${ac.color})"></div>
@@ -499,6 +516,11 @@ function _agShowComiteDetail(comiteId) {
                 <i class="fas fa-calendar-alt" style="color:${ac.color}"></i>
                 <span class="fw-bold text-uppercase" style="font-size:.7rem;color:#6b7280;letter-spacing:.05em">Sesiones 2026</span>
                 <span class="badge bg-secondary" style="font-size:.63rem">${sesiones.length}</span>
+                ${_agCanEdit(comite.area) ? `
+                <button class="btn btn-sm ms-auto py-1 px-2"
+                  style="background:${ac.color};color:#fff;font-size:.7rem;border:none;border-radius:6px"
+                  onclick="agOpenEditSesion(null,'${comite.id}')">
+                  <i class='fas fa-plus me-1'></i>Agregar sesión</button>` : ''}
               </div>
               <div class="table-responsive">
                 <table class="table table-sm table-hover mb-0" style="font-size:.77rem">
@@ -509,6 +531,7 @@ function _agShowComiteDetail(comiteId) {
                       <th class="text-center" style="width:75px">Hora</th>
                       <th style="width:95px">Estatus</th>
                       <th>Observaciones</th>
+                      ${_agCanEdit(comite.area) ? '<th style="width:46px"></th>' : ''}
                     </tr>
                   </thead>
                   <tbody>${sesionesHtml}</tbody>
@@ -857,6 +880,15 @@ async function agLoadComites() {
                 <div class="progress-bar" style="width:${pct}%;background:${ac.color}" role="progressbar"></div>
               </div>
             </div>` : ''}
+            ${_agCanEdit(c.area) ? `
+            <div class="d-flex gap-1 mt-2 pt-2" style="border-top:1px solid #e5e7eb">
+              <button class="btn btn-outline-secondary btn-sm py-0 px-2 flex-fill" style="font-size:.7rem"
+                onclick="event.stopPropagation();agOpenEditComite('${c.id}')">
+                <i class="fas fa-pen me-1"></i>Editar</button>
+              <button class="btn btn-outline-primary btn-sm py-0 px-2 flex-fill" style="font-size:.7rem"
+                onclick="event.stopPropagation();agOpenEditSesion(null,'${c.id}')">
+                <i class="fas fa-calendar-plus me-1"></i>+ Sesión</button>
+            </div>` : ''}
             ${nextHtml}
           </div>
         </div>`;
@@ -993,14 +1025,429 @@ async function agLoadAcuerdos() {
     list.style.display = '';
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   STUBS PARA MODALES (admin)
-───────────────────────────────────────────────────────────────────*/
-function agOpenNuevaReunion() {
-    alert('Funcionalidad de administrador — próximamente disponible.');
+/* ═══════════════════════════════════════════════════════════════════
+   ADMINISTRACIÓN — Módulo de Gestión de Comités y Sesiones
+   admin/editor/superadmin → acceso total
+   Roles de dirección → solo su área
+═══════════════════════════════════════════════════════════════════ */
+
+/* ── Helpers de permisos ─────────────────────────────────────────── */
+function _agUserRole()   { return sessionStorage.getItem('user_role') || 'viewer'; }
+const _AG_ROLE_AREA = {
+    operacion:    'DO',
+    administracion:'DA',
+    planeacion:   'DPE',
+    comercial:    'DCS',
+    seguridad_op: 'GSO',
+    transparencia:'UT',
+    calidad:      'GC',
+};
+function _agIsAdmin()    { return ['admin','editor','superadmin'].includes(_agUserRole()); }
+function _agCanEditAny() { return _agIsAdmin() || (_agUserRole() in _AG_ROLE_AREA); }
+function _agCanEdit(area){ return _agIsAdmin() || _AG_ROLE_AREA[_agUserRole()] === area; }
+function _agUserArea()   { return _AG_ROLE_AREA[_agUserRole()] || null; }
+
+/* ── Muestra botones admin según rol (llamado después de cargar datos) ── */
+function _agShowAdminButtons() {
+    const can = _agCanEditAny();
+    const b1 = document.getElementById('ag-btn-nueva-reunion');
+    const b2 = document.getElementById('ag-btn-nuevo-comite');
+    const b3 = document.getElementById('ag-comites-actions');
+    const b4 = document.getElementById('ag-btn-nueva-reunion-tab');
+    if (b1) b1.style.display = can ? '' : 'none';
+    if (b2) b2.style.display = can ? '' : 'none';
+    if (b3 && can) b3.style.removeProperty('display');
+    if (b4) b4.style.display = can ? '' : 'none';
 }
+
+/* ── Helpers UI ──────────────────────────────────────────────────── */
+function _agRemoveModal(id) {
+    const m = document.getElementById(id);
+    if (!m) return;
+    const inst = bootstrap.Modal.getInstance(m);
+    if (inst) { inst.hide(); setTimeout(() => m.remove(), 300); }
+    else m.remove();
+}
+function _agShowModal(id) {
+    const m = document.getElementById(id);
+    if (m) new bootstrap.Modal(m).show();
+}
+function _agToast(msg, color = '#1e293b') {
+    const t = document.createElement('div');
+    t.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:9999;` +
+        `background:${color};color:#fff;padding:10px 18px;border-radius:10px;` +
+        `font-size:.85rem;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.2);` +
+        `animation:_ag-toast-in .2s ease`;
+    t.textContent = msg;
+    if (!document.getElementById('_ag-toast-style')) {
+        const s = document.createElement('style');
+        s.id = '_ag-toast-style';
+        s.textContent = '@keyframes _ag-toast-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}';
+        document.head.appendChild(s);
+    }
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2800);
+}
+function _agRefreshActiveTab() {
+    const id = document.querySelector('#ag-main-tabs .nav-link.active')?.id;
+    if (id === 'ag-tab-calendario') agLoadCalendario();
+    else if (id === 'ag-tab-anual')     agLoadAnual();
+    else if (id === 'ag-tab-comites')   agLoadComites();
+    else if (id === 'ag-tab-reuniones') agLoadReuniones();
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   1. EDITAR / NUEVO COMITÉ
+══════════════════════════════════════════════════════════════════ */
+function agOpenEditComite(comiteId) {
+    const comite = comiteId ? _ag.comites.find(c => c.id === comiteId) : null;
+    if (comiteId && (!comite || !_agCanEdit(comite.area))) return;
+    if (!comiteId && !_agCanEditAny()) return;
+
+    const isAdmin  = _agIsAdmin();
+    const userArea = _agUserArea();
+    const isNew    = !comiteId;
+    const curArea  = comite?.area || userArea || 'DO';
+    const ac       = AG_AREA[curArea] || AG_AREA.AFAC;
+
+    /* Integrantes pipe-sep → líneas */
+    const integrantesLines = comite?.integrantes
+        ? comite.integrantes.split('|').map(s => s.trim()).join('\n')
+        : '';
+
+    const FRECS = ['Quincenal','Mensual','Bimestral','Trimestral','Cuatrimestral','Semestral','Anual','Extraordinaria'];
+    const AREAS = Object.entries(AG_AREA)
+        .map(([k, v]) => `<option value="${k}" ${curArea === k ? 'selected' : ''}>${k} — ${v.name}</option>`)
+        .join('');
+
+    const areaHtml = isAdmin
+        ? `<select class="form-select form-select-sm" id="_ag-ec-area">${AREAS}</select>`
+        : `<input type="text" class="form-control form-control-sm" value="${curArea}" readonly style="background:#f8f9fa">`;
+
+    const numReadonly = (!isAdmin && !isNew) ? 'readonly style="background:#f8f9fa"' : '';
+
+    _agRemoveModal('_ag-edit-comite-modal');
+
+    document.body.insertAdjacentHTML('beforeend', `
+    <div class="modal fade" id="_ag-edit-comite-modal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0" style="border-radius:14px">
+          <div class="modal-header border-0 pb-2" style="background:${ac.bg}">
+            <h5 class="modal-title fw-bold" style="color:${ac.color}">
+              <i class="fas fa-${isNew ? 'plus-circle' : 'edit'} me-2"></i>
+              ${isNew ? 'Nuevo Comité' : 'Editar Comité'}
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div style="height:3px;background:linear-gradient(90deg,${ac.border},${ac.color})"></div>
+          <div class="modal-body p-4">
+            <input type="hidden" id="_ag-ec-id" value="${comiteId || ''}">
+            <div class="row g-3">
+              <div class="col-sm-8">
+                <label class="form-label small fw-semibold mb-1">Nombre completo <span class="text-danger">*</span></label>
+                <input class="form-control form-control-sm" id="_ag-ec-nombre"
+                  value="${(comite?.nombre || '').replace(/"/g, '&quot;')}"
+                  placeholder="Nombre del comité">
+              </div>
+              <div class="col-sm-4">
+                <label class="form-label small fw-semibold mb-1">Acrónimo</label>
+                <input class="form-control form-control-sm" id="_ag-ec-acronimo"
+                  value="${comite?.acronimo || ''}" placeholder="Ej: CAAS">
+              </div>
+              <div class="col-sm-3">
+                <label class="form-label small fw-semibold mb-1">Número</label>
+                <input class="form-control form-control-sm" id="_ag-ec-numero"
+                  value="${comite?.numero || ''}" placeholder="1, 11.1…" ${numReadonly}>
+              </div>
+              <div class="col-sm-3">
+                <label class="form-label small fw-semibold mb-1">Área</label>
+                ${areaHtml}
+              </div>
+              <div class="col-sm-3">
+                <label class="form-label small fw-semibold mb-1">Frecuencia</label>
+                <select class="form-select form-select-sm" id="_ag-ec-frecuencia">
+                  ${FRECS.map(f => `<option ${comite?.frecuencia === f ? 'selected' : ''}>${f}</option>`).join('')}
+                </select>
+              </div>
+              <div class="col-sm-3">
+                <label class="form-label small fw-semibold mb-1">Hora de sesión</label>
+                <input type="time" class="form-control form-control-sm" id="_ag-ec-hora"
+                  value="${comite?.hora_sesion?.slice(0, 5) || ''}">
+              </div>
+              <div class="col-12">
+                <label class="form-label small fw-semibold mb-1">Presidente / Coordinador</label>
+                <input class="form-control form-control-sm" id="_ag-ec-presidente"
+                  value="${(comite?.presidente || '').replace(/"/g, '&quot;')}"
+                  placeholder="Nombre del presidente o coordinador">
+              </div>
+              <div class="col-12">
+                <label class="form-label small fw-semibold mb-1">Descripción general</label>
+                <textarea class="form-control form-control-sm" id="_ag-ec-descripcion" rows="2"
+                  placeholder="Propósito u objetivo del comité">${comite?.descripcion || ''}</textarea>
+              </div>
+              <div class="col-12">
+                <label class="form-label small fw-semibold mb-1">Fundamento legal / Normativa</label>
+                <textarea class="form-control form-control-sm" id="_ag-ec-fundamento" rows="3"
+                  placeholder="Artículo, decreto o acuerdo que le da origen…">${comite?.fundamento || ''}</textarea>
+              </div>
+              <div class="col-12">
+                <label class="form-label small fw-semibold mb-1">
+                  Integrantes
+                  <span class="text-muted fw-normal">(una persona por línea &mdash; Nombre — Cargo)</span>
+                </label>
+                <textarea class="form-control form-control-sm" id="_ag-ec-integrantes" rows="5"
+                  placeholder="Juan Pérez — Director General&#10;María García — Secretaria Técnica">${integrantesLines}</textarea>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-0 pt-0">
+            <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button class="btn btn-sm btn-primary fw-semibold" onclick="_agSaveComite()">
+              <i class="fas fa-save me-1"></i>Guardar cambios
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>`);
+
+    document.getElementById('_ag-edit-comite-modal')
+        .addEventListener('hidden.bs.modal', () => document.getElementById('_ag-edit-comite-modal')?.remove());
+    _agShowModal('_ag-edit-comite-modal');
+}
+
+async function _agSaveComite() {
+    const id     = document.getElementById('_ag-ec-id').value;
+    const nombre = document.getElementById('_ag-ec-nombre').value.trim();
+    if (!nombre) { alert('El nombre es obligatorio'); return; }
+
+    /* Integrantes: líneas → pipe-sep */
+    const integrantes = document.getElementById('_ag-ec-integrantes').value
+        .split('\n').map(s => s.trim()).filter(Boolean).join('|') || null;
+
+    const isAdmin = _agIsAdmin();
+    const data = {
+        nombre,
+        acronimo:    document.getElementById('_ag-ec-acronimo').value.trim()    || null,
+        descripcion: document.getElementById('_ag-ec-descripcion').value.trim() || null,
+        fundamento:  document.getElementById('_ag-ec-fundamento').value.trim()  || null,
+        integrantes,
+        frecuencia:  document.getElementById('_ag-ec-frecuencia').value         || null,
+        hora_sesion: document.getElementById('_ag-ec-hora').value               || null,
+        presidente:  document.getElementById('_ag-ec-presidente').value.trim()  || null,
+    };
+    if (isAdmin) {
+        data.area   = document.getElementById('_ag-ec-area').value;
+        const num   = document.getElementById('_ag-ec-numero').value.trim();
+        if (num) data.numero = num;
+    }
+
+    const sb = _agSB();
+    if (!sb) return;
+
+    let error;
+    if (id) {
+        ({ error } = await sb.from('agenda_comites').update(data).eq('id', id));
+    } else {
+        if (!data.area) data.area = _agUserArea();
+        ({ error } = await sb.from('agenda_comites').insert(data));
+    }
+
+    if (error) { alert('Error al guardar: ' + error.message); return; }
+
+    _agRemoveModal('_ag-edit-comite-modal');
+    _ag.ready = false;
+    await _agEnsureData(true);
+    _agRefreshActiveTab();
+    _agToast(id ? 'Comité actualizado ✓' : 'Comité creado ✓', '#059669');
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   2. AGREGAR / EDITAR SESIÓN
+══════════════════════════════════════════════════════════════════ */
+function agOpenEditSesion(sesionId, comiteId) {
+    const sesion = sesionId ? _ag.reuniones.find(r => r.id === sesionId) : null;
+    const cid    = sesion?.comite_id || comiteId;
+    const comite = _ag.comites.find(c => c.id === cid);
+    if (!comite || !_agCanEdit(comite.area)) return;
+
+    const ac    = AG_AREA[comite.area] || AG_AREA.AFAC;
+    const isNew = !sesionId;
+
+    _agRemoveModal('_ag-edit-sesion-modal');
+
+    document.body.insertAdjacentHTML('beforeend', `
+    <div class="modal fade" id="_ag-edit-sesion-modal" tabindex="-1" style="z-index:1060">
+      <div class="modal-dialog modal-dialog-scrollable" style="max-width:480px">
+        <div class="modal-content border-0" style="border-radius:14px">
+          <div class="modal-header border-0 pb-2" style="background:${ac.bg}">
+            <h6 class="modal-title fw-bold" style="color:${ac.color}">
+              <i class="fas fa-calendar-${isNew ? 'plus' : 'check'} me-2"></i>
+              ${isNew ? 'Nueva Sesión' : 'Editar Sesión'}
+              <span class="text-muted fw-normal ms-1" style="font-size:.78rem">
+                — ${comite.acronimo || comite.nombre}
+              </span>
+            </h6>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div style="height:3px;background:linear-gradient(90deg,${ac.border},${ac.color})"></div>
+          <div class="modal-body p-4">
+            <input type="hidden" id="_ag-es-id"        value="${sesionId || ''}">
+            <input type="hidden" id="_ag-es-comite-id" value="${cid || ''}">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label small fw-semibold mb-1">Número / Nombre de sesión</label>
+                <input class="form-control form-control-sm" id="_ag-es-numero"
+                  value="${(sesion?.numero_sesion || '').replace(/"/g, '&quot;')}"
+                  placeholder="Ej: 5a Sesión Ordinaria 2026">
+              </div>
+              <div class="col-sm-7">
+                <label class="form-label small fw-semibold mb-1">Fecha <span class="text-danger">*</span></label>
+                <input type="date" class="form-control form-control-sm" id="_ag-es-fecha"
+                  value="${sesion?.fecha_sesion || ''}">
+              </div>
+              <div class="col-sm-5">
+                <label class="form-label small fw-semibold mb-1">Hora de inicio</label>
+                <input type="time" class="form-control form-control-sm" id="_ag-es-hora"
+                  value="${sesion?.hora_inicio?.slice(0, 5) || comite?.hora_sesion?.slice(0, 5) || ''}">
+              </div>
+              <div class="col-12">
+                <label class="form-label small fw-semibold mb-1">Estatus</label>
+                <select class="form-select form-select-sm" id="_ag-es-estatus">
+                  ${['Programada','Celebrada','Cancelada','Pospuesta'].map(e =>
+                      `<option ${(sesion?.estatus || 'Programada') === e ? 'selected' : ''}>${e}</option>`
+                  ).join('')}
+                </select>
+              </div>
+              <div class="col-12">
+                <label class="form-label small fw-semibold mb-1">Observaciones</label>
+                <textarea class="form-control form-control-sm" id="_ag-es-obs" rows="2"
+                  placeholder="Notas, lugar, confirmación pendiente…">${sesion?.observaciones || ''}</textarea>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-0 pt-0 ${!isNew ? 'justify-content-between' : ''}">
+            ${!isNew ? `<button class="btn btn-sm btn-outline-danger"
+                onclick="_agDeleteSesion('${sesionId}')">
+                <i class="fas fa-trash me-1"></i>Eliminar</button>` : ''}
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+              <button class="btn btn-sm btn-primary fw-semibold" onclick="_agSaveSesion()">
+                <i class="fas fa-save me-1"></i>Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`);
+
+    document.getElementById('_ag-edit-sesion-modal')
+        .addEventListener('hidden.bs.modal', () => document.getElementById('_ag-edit-sesion-modal')?.remove());
+    _agShowModal('_ag-edit-sesion-modal');
+}
+
+async function _agSaveSesion() {
+    const id    = document.getElementById('_ag-es-id').value;
+    const cid   = document.getElementById('_ag-es-comite-id').value;
+    const fecha = document.getElementById('_ag-es-fecha').value;
+    if (!fecha) { alert('La fecha es obligatoria'); return; }
+
+    const comite = _ag.comites.find(c => c.id === cid);
+    if (!comite || !_agCanEdit(comite.area)) return;
+
+    const data = {
+        comite_id:     cid,
+        area:          comite.area,
+        numero_sesion: document.getElementById('_ag-es-numero').value.trim() || null,
+        fecha_sesion:  fecha,
+        hora_inicio:   document.getElementById('_ag-es-hora').value || null,
+        estatus:       document.getElementById('_ag-es-estatus').value,
+        observaciones: document.getElementById('_ag-es-obs').value.trim() || null,
+    };
+
+    const sb = _agSB();
+    if (!sb) return;
+
+    let error;
+    if (id) {
+        ({ error } = await sb.from('agenda_reuniones').update(data).eq('id', id));
+    } else {
+        ({ error } = await sb.from('agenda_reuniones').insert(data));
+    }
+
+    if (error) { alert('Error al guardar: ' + error.message); return; }
+
+    _agRemoveModal('_ag-edit-sesion-modal');
+    _ag.ready = false;
+    await _agEnsureData(true);
+    _agRefreshActiveTab();
+    _agToast(id ? 'Sesión actualizada ✓' : 'Sesión agregada ✓', '#2563eb');
+}
+
+async function _agDeleteSesion(sesionId) {
+    if (!confirm('¿Eliminar esta sesión permanentemente? Esta acción no se puede deshacer.')) return;
+    const sesion = _ag.reuniones.find(r => r.id === sesionId);
+    if (!sesion) return;
+    const comite = _ag.comites.find(c => c.id === sesion.comite_id);
+    if (!comite || !_agCanEdit(comite.area)) return;
+
+    const sb = _agSB();
+    const { error } = await sb.from('agenda_reuniones').delete().eq('id', sesionId);
+    if (error) { alert('Error al eliminar: ' + error.message); return; }
+
+    _agRemoveModal('_ag-edit-sesion-modal');
+    _ag.ready = false;
+    await _agEnsureData(true);
+    _agRefreshActiveTab();
+    _agToast('Sesión eliminada', '#dc2626');
+}
+
+/* ── Selección de comité cuando se abre "Nueva Reunión" ─────────── */
+function _agPickComiteForSesion(lista) {
+    _agRemoveModal('_ag-pick-comite-modal');
+    const opts = lista.map(c => {
+        const ac = AG_AREA[c.area] || AG_AREA.AFAC;
+        return `<button class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2"
+            onclick="agOpenEditSesion(null,'${c.id}');_agRemoveModal('_ag-pick-comite-modal')">
+            <span style="background:${ac.bg};color:${ac.color};border:1px solid ${ac.border};
+              font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap">${c.area}</span>
+            <span style="font-size:.84rem">${c.nombre}</span>
+        </button>`;
+    }).join('');
+
+    document.body.insertAdjacentHTML('beforeend', `
+    <div class="modal fade" id="_ag-pick-comite-modal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-scrollable" style="max-width:520px">
+        <div class="modal-content border-0" style="border-radius:14px">
+          <div class="modal-header">
+            <h6 class="modal-title fw-bold">
+              <i class="fas fa-calendar-plus me-2 text-primary"></i>
+              ¿A qué comité agregar la sesión?
+            </h6>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-2">
+            <div class="list-group list-group-flush">${opts}</div>
+          </div>
+        </div>
+      </div>
+    </div>`);
+
+    document.getElementById('_ag-pick-comite-modal')
+        .addEventListener('hidden.bs.modal', () => document.getElementById('_ag-pick-comite-modal')?.remove());
+    _agShowModal('_ag-pick-comite-modal');
+}
+
+/* ── Punto de entrada para "Nueva Reunión" (header) ─────────────── */
+function agOpenNuevaReunion() {
+    if (!_agCanEditAny()) return;
+    const area    = _ag.activeArea !== 'all' ? _ag.activeArea : _agUserArea();
+    const lista   = area ? _ag.comites.filter(c => c.area === area) : _ag.comites;
+    _agPickComiteForSesion(lista);
+}
+
+/* ── Punto de entrada para "Nuevo Comité" ──────────────────────── */
 function agOpenNuevoComite() {
-    alert('Funcionalidad de administrador — próximamente disponible.');
+    agOpenEditComite(null);
 }
 
 /* ─────────────────────────────────────────────────────────────────
