@@ -13457,6 +13457,9 @@ FF
                                                         <button class="btn btn-outline-success btn-sm"
                                                             id="frecuencias-download-excel"><i
                                                                 class="fas fa-file-excel me-1"></i>Descargar Excel</button>
+                                                        <button class="btn btn-outline-primary btn-sm"
+                                                            id="frecuencias-ver-horarios" data-bs-toggle="modal" data-bs-target="#modalTodosHorarios"><i
+                                                                class="fas fa-clock me-1"></i>Ver todos los horarios</button>
                                                         <span class="small text-muted"
                                                             id="frecuencias-active-filters">Mostrando
                                                             todos los
@@ -17375,7 +17378,7 @@ FF
     <script src="js/demoras-upload.js?v=1"></script>
     <script src="js/operaciones.js"></script>
     <script src="js/frecuencias.js"></script>
-    <script src="js/frecuencias_auto.js?v=3"></script>
+    <script src="js/frecuencias_auto.js?v=4"></script>
     <script src="js/frecuencias_auto_int.js?v=2"></script>
     <script src="js/frecuencias_auto_cargo.js?v=2"></script>
     <script src="js/manifiestos.js"></script>
@@ -19971,6 +19974,50 @@ window.AeropuertosModule = (function () {
     </div>
 </div>
 <!-- /MODAL IMPORTAR DEMORAS -->
+
+<!-- MODAL TODOS LOS HORARIOS -->
+<div class="modal fade" id="modalTodosHorarios" tabindex="-1" aria-labelledby="modalTodosHorariosLabel" aria-modal="true" role="dialog">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-0" id="modalTodosHorariosLabel">
+                        <i class="fas fa-clock me-2 text-primary"></i>Todos los horarios de vuelo
+                    </h5>
+                    <p class="text-muted small mb-0 mt-1" id="modal-horarios-subtitle">Detalle por destino, aerolínea y día</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div id="modal-horarios-loading" class="text-center py-5 d-none">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Cargando horarios…</p>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-sm mb-0 align-middle" id="modal-horarios-table">
+                        <thead class="table-dark sticky-top" id="modal-horarios-thead"></thead>
+                        <tbody id="modal-horarios-tbody"></tbody>
+                    </table>
+                </div>
+                <div id="modal-horarios-empty" class="text-center text-muted py-5 d-none">
+                    <i class="fas fa-calendar-times fa-2x mb-2"></i>
+                    <p class="mb-0">No hay horarios disponibles con los filtros actuales.</p>
+                </div>
+            </div>
+            <div class="modal-footer border-top">
+                <span class="text-muted small me-auto" id="modal-horarios-count"></span>
+                <button type="button" class="btn btn-outline-success" id="modal-horarios-export-excel">
+                    <i class="fas fa-file-excel me-1"></i>Exportar a Excel
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- /MODAL TODOS LOS HORARIOS -->
+
 </body>
 </html>
 

@@ -203,7 +203,15 @@
     detailsTitle: pane.querySelector('#frecuencias-details-title'),
     detailsBody: pane.querySelector('#frecuencias-details-body'),
     detailsClose: pane.querySelector('#frecuencias-details-close'),
-    detailsCopy: pane.querySelector('#frecuencias-copy-whatsapp')
+    detailsCopy: pane.querySelector('#frecuencias-copy-whatsapp'),
+    verHorariosBtn: document.querySelector('#frecuencias-ver-horarios'),
+    modalHorariosTbody: document.querySelector('#modal-horarios-tbody'),
+    modalHorariosThead: document.querySelector('#modal-horarios-thead'),
+    modalHorariosCount: document.querySelector('#modal-horarios-count'),
+    modalHorariosEmpty: document.querySelector('#modal-horarios-empty'),
+    modalHorariosLoading: document.querySelector('#modal-horarios-loading'),
+    modalHorariosSubtitle: document.querySelector('#modal-horarios-subtitle'),
+    modalHorariosExcel: document.querySelector('#modal-horarios-export-excel')
   };
 
   const state = {
@@ -505,6 +513,12 @@
       applyFilters();
     });
     if (dom.excelButton) dom.excelButton.addEventListener('click', downloadExcel);
+    // Modal "Ver todos los horarios"
+    const modalEl = document.getElementById('modalTodosHorarios');
+    if (modalEl) {
+      modalEl.addEventListener('show.bs.modal', () => renderModalHorarios());
+    }
+    if (dom.modalHorariosExcel) dom.modalHorariosExcel.addEventListener('click', downloadExcelHorarios);
     if (dom.fitButton) {
       // Agrupar botones en un contenedor para mantener el layout
       const header = dom.fitButton.parentNode;
@@ -2193,6 +2207,252 @@
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     saveAs(blob, 'Frecuencias_Nacionales_AIFA.xlsx');
   }
+
+  // ─── MODAL: VER TODOS LOS HORARIOS ────────────────────────────────────────
+  function parseFlightDetail(rawStr) {
+    /** Returns [{flightNum, time, type}] from a dailyDetails string */
+    if (!rawStr) return [];
+    return rawStr.split('<br>').map(f => {
+      const raw = f.trim();
+      if (!raw) return null;
+      const parts = raw.split(' ');
+      let flightNum = '', time = '', type = '';
+      const arrIdx = parts.findIndex(p => p.includes('(Lleg)') || p.includes('(Arr)'));
+      const depIdx = parts.findIndex(p => p.includes('(Sal)') || p.includes('(Dep)'));
+      if (arrIdx !== -1) {
+        type = 'Lleg'; flightNum = parts.slice(0, arrIdx).join(' '); time = parts[arrIdx + 1] || '';
+      } else if (depIdx !== -1) {
+        type = 'Sal'; flightNum = parts.slice(0, depIdx).join(' '); time = parts[depIdx + 1] || '';
+      } else {
+        // Legacy: last token is time
+        time = parts[parts.length - 1] || '';
+        flightNum = parts.slice(0, parts.length - 1).join(' ');
+        type = raw.toLowerCase().includes('lleg') || raw.toLowerCase().includes('arr') ? 'Lleg' : 'Sal';
+      }
+      time = time.replace(/[()a-z]/gi, '').trim();
+      flightNum = flightNum.replace(/\(Dep\)|\(Arr\)|\(Sal\)|\(Lleg\)/gi, '').trim();
+      return { flightNum, time, type };
+    }).filter(Boolean);
+  }
+
+  function buildHorariosData() {
+    /** Returns flat array of rows for the modal table / excel */
+    const rows = [];
+    if (!state.filtered || !state.filtered.length) return rows;
+    let headers = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+    if (state.raw?.validFrom) {
+      const start = new Date(state.raw.validFrom + 'T00:00:00');
+      headers = headers.map((d, i) => {
+        const dt = new Date(start); dt.setDate(dt.getDate() + i);
+        return `${d} ${dt.getDate()}/${dt.getMonth()+1}`;
+      });
+    }
+    state.filtered.forEach((dest, destIdx) => {
+      const airlines = (dest.viewAirlines?.length ? dest.viewAirlines : dest.airlines) || [];
+      airlines.forEach(air => {
+        const dayFlights = DAY_CODES.map((_, dayIdx) => {
+          const detail = (air.viewDailyDetails ?? air.dailyDetails)?.[dayIdx] || '';
+          return parseFlightDetail(detail).sort((a, b) => a.time.localeCompare(b.time));
+        });
+        // Max rows needed = max flights in any day
+        const maxRows = Math.max(...dayFlights.map(d => d.length), 1);
+        for (let r = 0; r < maxRows; r++) {
+          rows.push({
+            routeId: destIdx + 1,
+            city: dest.city,
+            state: dest.state,
+            airlineName: air.name,
+            airlineSlug: air.slug,
+            airlineColor: air.color || AIRLINE_CONFIG[air.slug]?.color || '#444',
+            dayFlightRow: dayFlights.map(d => d[r] || null),
+            isFirst: r === 0,
+            rowSpan: maxRows,
+            weeklyTotal: air.viewWeeklyTotal ?? air.weeklyTotal,
+            destRowSpan: airlines.reduce((s, a) => {
+              const d2 = (a.viewDailyDetails ?? a.dailyDetails) || [];
+              return s + Math.max(...d2.map(x => parseFlightDetail(x).length), 1);
+            }, 0)
+          });
+        }
+      });
+    });
+    return { rows, headers };
+  }
+
+  function renderModalHorarios() {
+    const { rows, headers } = buildHorariosData();
+    const tbody = dom.modalHorariosTbody;
+    const thead = dom.modalHorariosThead;
+    if (!tbody || !thead) return;
+
+    // Header
+    thead.innerHTML = '';
+    const trH = document.createElement('tr');
+    ['#', 'Destino', 'Aerolínea', ...headers, 'Total'].forEach(h => {
+      const th = document.createElement('th');
+      th.textContent = h;
+      th.style.cssText = 'text-align:center; white-space:nowrap; padding:8px 10px;';
+      trH.appendChild(th);
+    });
+    thead.appendChild(trH);
+
+    tbody.innerHTML = '';
+    if (!rows.length) {
+      dom.modalHorariosEmpty?.classList.remove('d-none');
+      if (dom.modalHorariosCount) dom.modalHorariosCount.textContent = '';
+      return;
+    }
+    dom.modalHorariosEmpty?.classList.add('d-none');
+
+    // Track merging
+    let lastDestCity = null, lastAirlineName = null;
+    let tdDestRef = null, tdAirlineRef = null;
+    let tdIdRef = null, pendingDestRowSpan = 0, pendingAirlineRowSpan = 0;
+
+    rows.forEach((row, i) => {
+      const tr = document.createElement('tr');
+
+      // ── ID cell
+      if (i === 0 || row.city !== lastDestCity) {
+        tdIdRef = document.createElement('td');
+        tdIdRef.textContent = row.routeId;
+        tdIdRef.style.cssText = 'text-align:center; vertical-align:middle; font-weight:bold; background:#f8f9fa;';
+        tdIdRef.rowSpan = row.destRowSpan;
+        tr.appendChild(tdIdRef);
+
+        tdDestRef = document.createElement('td');
+        tdDestRef.innerHTML = `<strong>${row.city}</strong><br><small class="text-muted">${row.state}</small>`;
+        tdDestRef.style.cssText = 'vertical-align:middle; white-space:nowrap; background:#f8f9fa; padding:6px 10px;';
+        tdDestRef.rowSpan = row.destRowSpan;
+        tr.appendChild(tdDestRef);
+        lastDestCity = row.city;
+        lastAirlineName = null;
+      }
+
+      // ── Airline cell (merge all time rows for same airline)
+      if (row.isFirst) {
+        tdAirlineRef = document.createElement('td');
+        const legCfg = AIRLINE_CONFIG[row.airlineSlug] || AIRLINE_CONFIG['default'];
+        const logoFile = (AIRLINE_CONFIG[row.airlineSlug]?.logo) || '';
+        if (logoFile) {
+          tdAirlineRef.innerHTML = `<img src="images/airlines/${logoFile}" alt="${row.airlineName}" style="height:32px;max-width:100px;">`;
+        } else {
+          tdAirlineRef.textContent = row.airlineName;
+        }
+        tdAirlineRef.style.cssText = `text-align:center; vertical-align:middle; border-left:6px solid ${row.airlineColor}; background:#fff; padding:4px 8px;`;
+        tdAirlineRef.rowSpan = row.rowSpan;
+        tr.appendChild(tdAirlineRef);
+      }
+
+      // ── Day flight cells
+      row.dayFlightRow.forEach(flight => {
+        const td = document.createElement('td');
+        if (flight) {
+          const isArr = flight.type === 'Lleg';
+          td.innerHTML = `
+            <div style="display:flex;align-items:center;gap:4px;justify-content:center;font-size:0.82rem;">
+              <span style="background:${isArr ? '#0d6efd' : '#198754'};color:#fff;border-radius:3px;padding:1px 4px;font-size:0.7rem;">
+                <i class="fas ${isArr ? 'fa-plane-arrival' : 'fa-plane-departure'}"></i>
+              </span>
+              <strong>${flight.flightNum}</strong>
+              <span class="font-monospace" style="color:#555;">${flight.time}</span>
+            </div>`;
+        } else {
+          td.textContent = '';
+        }
+        td.style.cssText = 'vertical-align:middle; padding:4px 6px; text-align:center;';
+        tr.appendChild(td);
+      });
+
+      // ── Total (only on first row of airline)
+      if (row.isFirst) {
+        const tdTot = document.createElement('td');
+        tdTot.textContent = row.weeklyTotal;
+        tdTot.style.cssText = `text-align:center; vertical-align:middle; font-weight:bold; background:${row.airlineColor}; color:#fff;`;
+        tdTot.rowSpan = row.rowSpan;
+        tr.appendChild(tdTot);
+      }
+
+      tbody.appendChild(tr);
+    });
+
+    const totalFlights = rows.reduce((s, r) => s + r.dayFlightRow.filter(Boolean).length, 0);
+    if (dom.modalHorariosCount) dom.modalHorariosCount.textContent = `${state.filtered.length} destinos · ${totalFlights} vuelos mostrados`;
+
+    const hasTimeFilter = state.filters.timeFrom || state.filters.timeTo;
+    if (dom.modalHorariosSubtitle) {
+      dom.modalHorariosSubtitle.textContent = hasTimeFilter
+        ? `Filtro horario activo: ${state.filters.timeFrom || '00:00'} – ${state.filters.timeTo || '23:59'}`
+        : 'Detalle por destino, aerolínea y día';
+    }
+  }
+
+  async function downloadExcelHorarios() {
+    const { rows, headers } = buildHorariosData();
+    if (!rows.length) { alert('No hay horarios para exportar.'); return; }
+    if (typeof ExcelJS === 'undefined') { alert('Librería Excel no disponible.'); return; }
+
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet('Horarios de Vuelo');
+
+    ws.columns = [
+      { header: '#',        key: 'id',      width: 6  },
+      { header: 'Destino',  key: 'dest',    width: 22 },
+      { header: 'Aerolínea',key: 'airline', width: 16 },
+      ...headers.map((h, i) => ({ header: h, key: `d${i}`, width: 22 })),
+      { header: 'Total',    key: 'total',   width: 8  }
+    ];
+
+    // Style header
+    ws.getRow(1).eachCell(cell => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0A1F44' } };
+      cell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    });
+    ws.getRow(1).height = 28;
+
+    rows.forEach(row => {
+      const colorHex = 'FF' + row.airlineColor.replace('#','');
+      const rowData = {
+        id:      row.isFirst ? row.routeId : '',
+        dest:    row.isFirst ? `${row.city}\n${row.state}` : '',
+        airline: row.isFirst ? row.airlineName : '',
+        total:   row.isFirst ? row.weeklyTotal : ''
+      };
+      row.dayFlightRow.forEach((f, i) => {
+        rowData[`d${i}`] = f ? `${f.flightNum}  ${f.time}  (${f.type})` : '';
+      });
+      const exRow = ws.addRow(rowData);
+      exRow.height = 22;
+      exRow.eachCell({ includeEmpty: true }, (cell, col) => {
+        cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        if (col <= 3) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FA' } };
+          cell.font = { color: { argb: 'FF212529' } };
+        } else if (col === headers.length + 4) {
+          // Total col
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colorHex } };
+          cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        } else {
+          const f = row.dayFlightRow[col - 4];
+          if (f) {
+            const bg = f.type === 'Lleg' ? 'FFCFE2FF' : 'FFD1E7DD';
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+            cell.font = { color: { argb: 'FF212529' } };
+          }
+        }
+      });
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const rangeLabel = (state.filters.timeFrom || state.filters.timeTo)
+      ? `_${state.filters.timeFrom||'0000'}-${state.filters.timeTo||'2359'}`.replace(/:/g,'')
+      : '';
+    saveAs(blob, `Horarios_Vuelo_AIFA${rangeLabel}.xlsx`);
+  }
+  // ─── FIN MODAL HORARIOS ────────────────────────────────────────────────────
 
   function copyToWhatsApp() {
       if (!state.currentDetailDest) return;
