@@ -62,9 +62,11 @@ async function _agEnsureData(force) {
    FILTRO DE ÁREA
 ───────────────────────────────────────────────────────────────────*/
 function agFilterArea(area, btn) {
-    document.querySelectorAll('.ag-filter-btn').forEach(b => b.classList.remove('active'));
-    if (btn) btn.classList.add('active');
     _ag.activeArea = area;
+
+    /* Sincronizar el select desplegable */
+    const sel = document.getElementById('ag-area-select');
+    if (sel) sel.value = area;
 
     const activeTabId = document.querySelector('#ag-main-tabs .nav-link.active')?.id;
     if (activeTabId === 'ag-tab-calendario') agLoadCalendario();
@@ -1486,8 +1488,16 @@ function agOpenNuevoComite() {
     }
 })();
 
-/* Bootstrap tab events — cargar comités cuando se activa esa pestaña */
+/* Bootstrap tab events */
 document.addEventListener('DOMContentLoaded', function() {
+    const TABS_WITH_FILTER  = new Set(['ag-tab-comites','ag-tab-reuniones','ag-tab-acuerdos']);
+
+    document.getElementById('ag-main-tabs')?.addEventListener('shown.bs.tab', function(e) {
+        const tabId  = e.target?.id;
+        const filter = document.getElementById('ag-area-filters');
+        if (filter) filter.style.display = TABS_WITH_FILTER.has(tabId) ? '' : 'none';
+    });
+
     const tabComites = document.getElementById('ag-tab-comites');
     if (tabComites) {
         tabComites.addEventListener('shown.bs.tab', agLoadComites);
