@@ -13238,7 +13238,7 @@ FF
                                         aria-controls="frecuencias-cargo-pane" aria-selected="false">Frecuencias
                                         Carga</button>
                                 </li>
-                                <li class="nav-item" role="presentation">
+                                <li class="nav-item" role="presentation" id="frec-li-analisis" style="display:none">
                                     <button class="nav-link" id="frecuencias-analisis-tab" data-bs-toggle="tab"
                                         data-bs-target="#frecuencias-analisis-pane" type="button" role="tab"
                                         aria-controls="frecuencias-analisis-pane" aria-selected="false"
@@ -13246,7 +13246,7 @@ FF
                                         <i class="fas fa-chart-bar me-1"></i>Análisis
                                     </button>
                                 </li>
-                                <li class="nav-item" role="presentation">
+                                <li class="nav-item" role="presentation" id="frec-li-estadisticas" style="display:none">
                                     <button class="nav-link" id="frecuencias-estadisticas-tab" data-bs-toggle="tab"
                                         data-bs-target="#frecuencias-estadisticas-pane" type="button" role="tab"
                                         aria-controls="frecuencias-estadisticas-pane" aria-selected="false"
@@ -19949,55 +19949,30 @@ window.AeropuertosModule = (function () {
 </div>
 <!-- /MODAL IMPORTAR DEMORAS -->
 
-<style>
-  /* Ocultar pestaña Estadísticas y su panel por defecto */
-  #frecuencias-estadisticas-tab,
-  #frecuencias-estadisticas-tab + * ,
-  li:has(#frecuencias-estadisticas-tab) { display: none !important; }
-  #frecuencias-estadisticas-pane        { display: none !important; }
-</style>
 <script>
-(function _initEstadisticasVisibility() {
+/* ── Pestañas Análisis y Estadísticas de Frecuencias: solo usuario autorizado ── */
+(function _frecAnalisisAccess() {
     const ALLOWED_USER = '768c3f5f-24b7-4c68-9617-742932b8a7f0';
-
-    function applyVisibility() {
+    function _check() {
         try {
-            const userObj = JSON.parse(sessionStorage.getItem('user') || '{}');
-            const uid = userObj.id || userObj.sub || '';
+            const raw = sessionStorage.getItem('user');
+            const uid = raw ? JSON.parse(raw)?.id : null;
             if (uid === ALLOWED_USER) {
-                /* Mostrar la pestaña y el panel */
-                const tabEl  = document.getElementById('frecuencias-estadisticas-tab');
-                const paneEl = document.getElementById('frecuencias-estadisticas-pane');
-                const liEl   = tabEl?.closest('li.nav-item');
-                if (tabEl)  tabEl.style.removeProperty('display');
-                if (paneEl) paneEl.style.removeProperty('display');
-                if (liEl)   liEl.style.removeProperty('display');
-                /* Eliminar regla CSS de ocultamiento */
-                document.querySelectorAll('style').forEach(s => {
-                    if (s.textContent.includes('frecuencias-estadisticas-tab')) s.remove();
-                });
+                const liA = document.getElementById('frec-li-analisis');
+                const liE = document.getElementById('frec-li-estadisticas');
+                if (liA) liA.style.display = '';
+                if (liE) liE.style.display = '';
             }
         } catch (_) {}
     }
-
-    /* Intentar al cargar DOM */
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', applyVisibility);
+        document.addEventListener('DOMContentLoaded', _check);
     } else {
-        applyVisibility();
+        _check();
     }
-
-    /* También re-evaluar si cambia el sessionStorage (inicio/cierre de sesión) */
-    window.addEventListener('storage', applyVisibility);
-
-    /* Re-evaluar cuando el usuario inicia sesión via el botón de login */
-    document.addEventListener('DOMContentLoaded', function () {
-        const loginForm = document.getElementById('loginForm');
-        if (loginForm) {
-            loginForm.addEventListener('submit', function () {
-                setTimeout(applyVisibility, 1200);
-            });
-        }
+    /* Re-evaluar si el usuario inicia sesión después de cargar la página */
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'user') _check();
     });
 })();
 </script>
