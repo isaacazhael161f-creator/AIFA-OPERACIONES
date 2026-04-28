@@ -29,10 +29,11 @@ BEGIN
         RETURN jsonb_build_object('ok', false, 'error', 'No puedes eliminar tu propia cuenta');
     END IF;
 
-    -- Eliminar rol primero (por si no hay FK en cascada)
+    -- Eliminar en orden para respetar FKs
     DELETE FROM public.user_roles WHERE user_id = p_user_id;
+    DELETE FROM public.profiles WHERE id = p_user_id;
 
-    -- Eliminar de auth.users
+    -- Eliminar de auth.users (debe ser lo último)
     DELETE FROM auth.users WHERE id = p_user_id;
 
     RETURN jsonb_build_object('ok', true);
