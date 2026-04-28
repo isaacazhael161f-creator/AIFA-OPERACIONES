@@ -181,8 +181,12 @@
       airline: pane.querySelector('#frecuencias-airline-filter'),
       destination: pane.querySelector('#frecuencias-destination-filter'),
       day: pane.querySelector('#frecuencias-day-filter'),
-      search: pane.querySelector('#frecuencias-search')
+      search: pane.querySelector('#frecuencias-search'),
+      timeFrom: pane.querySelector('#frecuencias-time-from'),
+      timeTo: pane.querySelector('#frecuencias-time-to')
     },
+    timeBadge: pane.querySelector('#frecuencias-time-badge'),
+    timeBadgeText: pane.querySelector('#frecuencias-time-badge-text'),
     resetFilters: pane.querySelector('#frecuencias-reset-filters'),
     excelButton: pane.querySelector('#frecuencias-download-excel'),
     activeFilters: pane.querySelector('#frecuencias-active-filters'),
@@ -206,7 +210,7 @@
     raw: null,
     destinations: [],
     filtered: [],
-    filters: { airline: 'all', destination: 'all', day: 'all', search: '' },
+    filters: { airline: 'all', destination: 'all', day: 'all', search: '', timeFrom: '', timeTo: '' },
     uniqueAirlines: [],
     map: null,
     markerLayer: null,
@@ -474,12 +478,30 @@
       }, 220);
       dom.filters.search.addEventListener('input', onSearch);
     }
+    const onTimeChange = debounce(() => {
+      state.filters.timeFrom = dom.filters.timeFrom?.value || '';
+      state.filters.timeTo   = dom.filters.timeTo?.value   || '';
+      // Update badge
+      const hasTime = state.filters.timeFrom || state.filters.timeTo;
+      if (dom.timeBadge) dom.timeBadge.classList.toggle('d-none', !hasTime);
+      if (dom.timeBadgeText && hasTime) {
+        const from = state.filters.timeFrom || '00:00';
+        const to   = state.filters.timeTo   || '23:59';
+        dom.timeBadgeText.textContent = `${from} – ${to}`;
+      }
+      applyFilters();
+    }, 300);
+    if (dom.filters.timeFrom) dom.filters.timeFrom.addEventListener('input', onTimeChange);
+    if (dom.filters.timeTo)   dom.filters.timeTo.addEventListener('input', onTimeChange);
     if (dom.resetFilters) dom.resetFilters.addEventListener('click', () => {
-      state.filters = { airline: 'all', destination: 'all', day: 'all', search: '' };
+      state.filters = { airline: 'all', destination: 'all', day: 'all', search: '', timeFrom: '', timeTo: '' };
       if (dom.filters.airline) dom.filters.airline.value = 'all';
       if (dom.filters.destination) dom.filters.destination.value = 'all';
       if (dom.filters.day) dom.filters.day.value = 'all';
       if (dom.filters.search) dom.filters.search.value = '';
+      if (dom.filters.timeFrom) dom.filters.timeFrom.value = '';
+      if (dom.filters.timeTo)   dom.filters.timeTo.value = '';
+      if (dom.timeBadge) dom.timeBadge.classList.add('d-none');
       applyFilters();
     });
     if (dom.excelButton) dom.excelButton.addEventListener('click', downloadExcel);
@@ -541,6 +563,8 @@
         if (state.filters.search) {
           if (!dest.searchText.includes(state.filters.search)) return false;
         }
+        // Exclude destinations with 0 flights after time filtering
+        if ((state.filters.timeFrom || state.filters.timeTo) && (dest.viewWeeklyTotal ?? 0) === 0) return false;
         return true;
       });
 
@@ -814,8 +838,8 @@
 
         DAY_CODES.forEach((code, dayIdx) => {
           const tdDay = document.createElement('td');
-          const count = airline.daily?.[dayIdx] ?? 0;
-          const detail = airline.dailyDetails?.[dayIdx];
+          const count  = (airline.viewDaily  ?? airline.daily)?.[dayIdx]        ?? 0;
+          const detail = (airline.viewDailyDetails ?? airline.dailyDetails)?.[dayIdx];
           
           // Default: Show Count
           tdDay.textContent = count > 0 ? count : '-';
@@ -839,7 +863,7 @@
           tr.appendChild(tdDay);
         });
         const tdTotal = document.createElement('td');
-        tdTotal.textContent = intlNumber.format(airline.weeklyTotal);
+        tdTotal.textContent = intlNumber.format(airline.viewWeeklyTotal ?? airline.weeklyTotal);
         tdTotal.style.backgroundColor = config.color;
         tdTotal.style.color = '#ffffff';
         tr.appendChild(tdTotal);
@@ -1652,14 +1676,65 @@
     };
   }
 
+  /* ── Helpers de filtro horario ─────────────────────────────── */
+  function timeToMins(t) {
+    if (!t) return null;
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + (m || 0);
+  }
+
+  function extractFlightTime(flightStr) {
+    // Matches HH:MM anywhere in the string (last match wins, handles "(Sal) 14:00" style)
+    const matches = flightStr.match(/\b(\d{1,2}:\d{2})\b/g);
+    return matches ? matches[matches.length - 1] : null;
+  }
+
+  function filterDetailByTimeRange(detailHtml, fromMins, toMins) {
+    if (!detailHtml) return { count: 0, html: '' };
+    const flights = detailHtml.split('<br>').filter(f => f.trim());
+    const filtered = flights.filter(f => {
+      const t = extractFlightTime(f.trim());
+      if (!t) return true; // keep if no time found
+      const mins = timeToMins(t);
+      if (fromMins !== null && mins < fromMins) return false;
+      if (toMins   !== null && mins > toMins)   return false;
+      return true;
+    });
+    return { count: filtered.length, html: filtered.join('<br>') };
+  }
+
   function projectDestination(dest){
     const airlines = state.filters.airline === 'all'
       ? dest.airlines
       : dest.airlines.filter(air => air.slug === state.filters.airline);
     if (!airlines.length && state.filters.airline !== 'all') return null;
-    const viewWeekly = airlines.reduce((sum, air) => sum + air.weeklyTotal, 0);
-    const viewDaily = DAY_CODES.map((_, idx) => airlines.reduce((sum, air) => sum + (air.daily[idx] || 0), 0));
-    return { ...dest, viewAirlines: airlines, viewWeeklyTotal: viewWeekly, viewDailyTotals: viewDaily };
+
+    // Apply time range filter if active
+    const fromMins = timeToMins(state.filters.timeFrom);
+    const toMins   = timeToMins(state.filters.timeTo);
+    const hasTimeFilter = fromMins !== null || toMins !== null;
+
+    let viewAirlines = airlines;
+    if (hasTimeFilter) {
+      viewAirlines = airlines.map(air => {
+        const viewDaily = air.daily.map((count, dayIdx) => {
+          if (count === 0) return 0;
+          const detail = air.dailyDetails?.[dayIdx] || '';
+          if (!detail) return count; // no detail string — keep original count
+          return filterDetailByTimeRange(detail, fromMins, toMins).count;
+        });
+        const viewDailyDetails = (air.dailyDetails || []).map((detail, dayIdx) => {
+          if (!detail) return '';
+          return filterDetailByTimeRange(detail, fromMins, toMins).html;
+        });
+        const viewWeeklyTotal = viewDaily.reduce((s, v) => s + v, 0);
+        return { ...air, viewDaily, viewDailyDetails, viewWeeklyTotal };
+      }).filter(air => air.viewWeeklyTotal > 0); // drop airlines with 0 flights in range
+    }
+
+    const viewWeekly = viewAirlines.reduce((sum, air) => sum + (air.viewWeeklyTotal ?? air.weeklyTotal), 0);
+    const viewDaily  = DAY_CODES.map((_, idx) => viewAirlines.reduce((sum, air) => sum + ((air.viewDaily ?? air.daily)[idx] || 0), 0));
+    return { ...dest, viewAirlines, viewWeeklyTotal: viewWeekly, viewDailyTotals: viewDaily };
   }
 
   function collectAirlines(destinations){

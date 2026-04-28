@@ -13425,6 +13425,29 @@ FF
                                                                 class="form-control form-control-sm"
                                                                 placeholder="Ciudad, estado o aerolínea">
                                                         </div>
+                                                        <div class="col-12">
+                                                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                                <i class="fas fa-clock text-muted" style="font-size:.8rem"></i>
+                                                                <span class="small text-uppercase text-muted fw-semibold">Filtrar por franja horaria</span>
+                                                                <div class="d-flex align-items-center gap-1">
+                                                                    <label for="frecuencias-time-from" class="small text-muted mb-0">De</label>
+                                                                    <input type="time" id="frecuencias-time-from"
+                                                                        class="form-control form-control-sm"
+                                                                        style="width:110px"
+                                                                        aria-label="Hora de inicio del filtro">
+                                                                </div>
+                                                                <div class="d-flex align-items-center gap-1">
+                                                                    <label for="frecuencias-time-to" class="small text-muted mb-0">a</label>
+                                                                    <input type="time" id="frecuencias-time-to"
+                                                                        class="form-control form-control-sm"
+                                                                        style="width:110px"
+                                                                        aria-label="Hora de fin del filtro">
+                                                                </div>
+                                                                <span id="frecuencias-time-badge" class="badge bg-primary-subtle text-primary d-none">
+                                                                    <i class="fas fa-clock me-1"></i><span id="frecuencias-time-badge-text"></span>
+                                                                </span>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                     <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
                                                         <button class="btn btn-outline-secondary btn-sm"
@@ -17352,7 +17375,7 @@ FF
     <script src="js/demoras-upload.js?v=1"></script>
     <script src="js/operaciones.js"></script>
     <script src="js/frecuencias.js"></script>
-    <script src="js/frecuencias_auto.js?v=2"></script>
+    <script src="js/frecuencias_auto.js?v=3"></script>
     <script src="js/frecuencias_auto_int.js?v=2"></script>
     <script src="js/frecuencias_auto_cargo.js?v=2"></script>
     <script src="js/manifiestos.js"></script>
