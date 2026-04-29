@@ -323,18 +323,58 @@
     /* ══════════════════════════════════════════════════════════════
        VOZ — reconocimiento de voz (input)
     ══════════════════════════════════════════════════════════════ */
-    const _agaHasSR = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
-    /* iOS Safari NO soporta SpeechRecognition (solo lectura de texto) */
-    const _agaIsIOS = /ipad|iphone|ipod/i.test(navigator.userAgent) && !/chrome/i.test(navigator.userAgent);
+    const _agaHasSR  = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    /* iOS Safari NO soporta SpeechRecognition */
+    const _agaIsIOS  = /ipad|iphone|ipod/i.test(navigator.userAgent) && !/chrome/i.test(navigator.userAgent);
+    /* En Android Chrome la API falla con error network desde páginas externas.
+       La solución más confiable: usar el micrófono del teclado virtual del sistema. */
+    const _agaIsMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent)
+                      || ('ontouchstart' in window && navigator.maxTouchPoints > 1);
+
+    /* ── Estrategia móvil: enfocar el input para que el teclado muestre su 🎤 ── */
+    function _agaStartVoiceMobile() {
+        const inp = document.getElementById('_aga-input');
+        if (!inp) return;
+        inp.focus();
+        /* Mostrar tooltip sobre el input */
+        let tip = document.getElementById('_aga-kb-tip');
+        if (!tip) {
+            tip = document.createElement('div');
+            tip.id = '_aga-kb-tip';
+            tip.style.cssText = [
+                'position:absolute','left:50%','transform:translateX(-50%)',
+                'bottom:calc(100% + 6px)',
+                'background:#1e293b','color:#fff','font-size:.72rem',
+                'padding:6px 12px','border-radius:8px','white-space:nowrap',
+                'z-index:9999','pointer-events:none','box-shadow:0 2px 8px rgba(0,0,0,.3)',
+                'text-align:center','line-height:1.4',
+            ].join(';');
+            tip.innerHTML = '🎤 Toca el micrófono de tu teclado<br><span style="opacity:.7;font-size:.65rem">aparece en la barra del teclado</span>';
+            const foot = document.querySelector('._aga-foot');
+            if (foot) { foot.style.position = 'relative'; foot.appendChild(tip); }
+        }
+        tip.style.display = '';
+        /* Ocultar después de 4s o al escribir */
+        const hideTip = () => { if (tip) tip.style.display = 'none'; };
+        setTimeout(hideTip, 4000);
+        inp.addEventListener('input', hideTip, { once: true });
+    }
 
     function _agaStartVoice() {
+        /* ── MÓVIL: delegar al teclado del sistema ───────────────── */
+        if (_agaIsMobile) {
+            _agaStartVoiceMobile();
+            return;
+        }
+
+        /* ── iOS Safari ──────────────────────────────────────────── */
         if (_agaIsIOS) {
-            _agaAddMsg('bot', '⚠️ El reconocimiento de voz no está disponible en Safari iOS. Puedes escribir tu pregunta, o activar la respuesta por voz para que el asistente te hable.', false);
+            _agaAddMsg('bot', '⚠️ El reconocimiento de voz no está disponible en Safari iOS. Puedes escribir tu pregunta.', false);
             return;
         }
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SR) {
-            _agaAddMsg('bot', '⚠️ Tu navegador no soporta reconocimiento de voz. Usa Chrome en Android o en escritorio.', false);
+            _agaAddMsg('bot', '⚠️ Tu navegador no soporta reconocimiento de voz. Usa Chrome en escritorio.', false);
             return;
         }
         /* Si ya está escuchando, cancelar */
@@ -438,8 +478,13 @@
         const btn = document.getElementById('_aga-mic-btn');
         if (!btn) return;
         btn.classList.toggle('_aga-mic-on', on);
-        btn.title = on ? 'Escuchando… (toca para cancelar)' : (_agaIsIOS ? 'Voz no disponible en Safari iOS' : 'Hablar por voz');
-        btn.querySelector('i').className = on ? 'fas fa-stop-circle' : (_agaHasSR && !_agaIsIOS ? 'fas fa-microphone' : 'fas fa-microphone-slash');
+        if (_agaIsMobile) {
+            btn.title = '🎤 Usa el micrófono del teclado';
+            btn.querySelector('i').className = 'fas fa-keyboard';
+        } else {
+            btn.title = on ? 'Escuchando… (toca para cancelar)' : (_agaIsIOS ? 'Voz no disponible en Safari iOS' : 'Hablar por voz');
+            btn.querySelector('i').className = on ? 'fas fa-stop-circle' : (_agaHasSR && !_agaIsIOS ? 'fas fa-microphone' : 'fas fa-microphone-slash');
+        }
     }
 
     /* ══════════════════════════════════════════════════════════════
@@ -527,10 +572,9 @@
 
           <div class="_aga-foot">
             <button id="_aga-mic-btn" class="_aga-ibtn _aga-mic"
-              title="${_agaIsIOS ? 'Voz no disponible en Safari iOS' : (_agaHasSR ? 'Hablar por voz' : 'Voz no disponible en este navegador')}"
-              onclick="window._agaStartVoice()" aria-label="Activar micrófono"
-              ${(!_agaHasSR || _agaIsIOS) ? 'style="opacity:.45;cursor:not-allowed"' : ''}>
-              <i class="${_agaHasSR && !_agaIsIOS ? 'fas fa-microphone' : 'fas fa-microphone-slash'}"></i>
+              title="${_agaIsMobile ? 'Usa el micrófono del teclado' : (_agaIsIOS ? 'Voz no disponible en Safari iOS' : (_agaHasSR ? 'Hablar por voz' : 'Voz no disponible'))}"
+              onclick="window._agaStartVoice()" aria-label="Activar micrófono">
+              <i class="${_agaIsMobile ? 'fas fa-keyboard' : (_agaHasSR && !_agaIsIOS ? 'fas fa-microphone' : 'fas fa-microphone-slash')}"></i>
             </button>
             <input id="_aga-input" class="_aga-inp" type="text" autocomplete="off"
               placeholder="Escribe tu pregunta…"
