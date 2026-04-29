@@ -10654,10 +10654,32 @@ function showMainApp() {
         const userEl = document.getElementById('current-user');
         if (userEl) {
             const fullName = sessionStorage.getItem('user_fullname') || name;
-            const role = sessionStorage.getItem('user_role') || 'viewer';
+            const role     = sessionStorage.getItem('user_role') || 'viewer';
+            const userArea = sessionStorage.getItem('user_area') || null;
             // Capitalizar rol
-            const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1);
-            userEl.innerHTML = `<div>${fullName}</div><div style="font-size: 0.8em; font-weight: 400; opacity: 0.9;">${roleDisplay}</div>`;
+            const _ROLE_DISPLAY = {
+                admin:'Admin', superadmin:'Superadmin', editor:'Editor', viewer:'Viewer',
+                colab_viewer:'Colaborador', colab_editor:'Colaborador Ed.',
+            };
+            const roleDisplay = _ROLE_DISPLAY[role] || (role.charAt(0).toUpperCase() + role.slice(1));
+            // Badge de área (si aplica) usando colores de AG_AREA si está disponible
+            let areaHtml = '';
+            if (userArea) {
+                const ac  = (typeof AG_AREA !== 'undefined' && AG_AREA[userArea]) || null;
+                const bg  = ac ? ac.border  : '#6366f1';
+                const txt = ac ? ac.name    : userArea;
+                areaHtml = `<div style="margin-top:3px">
+                    <span style="display:inline-flex;align-items:center;gap:4px;
+                        background:${bg}22;color:${bg};border:1px solid ${bg}55;
+                        border-radius:20px;padding:1px 8px;font-size:.68em;font-weight:600;letter-spacing:.3px">
+                        <span style="width:6px;height:6px;border-radius:50%;background:${bg};display:inline-block"></span>
+                        ${txt}
+                    </span>
+                </div>`;
+            }
+            userEl.innerHTML = `<div>${fullName}</div>
+                <div style="font-size:.8em;font-weight:400;opacity:.9">${roleDisplay}</div>
+                ${areaHtml}`;
         }
         applySectionPermissions(name);
 
@@ -10679,6 +10701,22 @@ function showMainApp() {
                 const _area = roleData?.permissions?.area || _LG[_rr] || (!_GL.includes(_rr) && _rr ? _rr : null);
                 if (_area) sessionStorage.setItem('user_area', _area);
                 else sessionStorage.removeItem('user_area');
+                // Refrescar badge de área en el header si cambió
+                if (userEl) {
+                    const _freshArea = _area || null;
+                    const _freshRole = roleData.role || sessionStorage.getItem('user_role') || 'viewer';
+                    const _RDISPLAY  = { admin:'Admin', superadmin:'Superadmin', editor:'Editor', viewer:'Viewer', colab_viewer:'Colaborador', colab_editor:'Colaborador Ed.' };
+                    const _rdLabel   = _RDISPLAY[_freshRole] || (_freshRole.charAt(0).toUpperCase() + _freshRole.slice(1));
+                    let _aHtml = '';
+                    if (_freshArea) {
+                        const _ac  = (typeof AG_AREA !== 'undefined' && AG_AREA[_freshArea]) || null;
+                        const _bg  = _ac ? _ac.border : '#6366f1';
+                        const _txt = _ac ? _ac.name   : _freshArea;
+                        _aHtml = `<div style="margin-top:3px"><span style="display:inline-flex;align-items:center;gap:4px;background:${_bg}22;color:${_bg};border:1px solid ${_bg}55;border-radius:20px;padding:1px 8px;font-size:.68em;font-weight:600;letter-spacing:.3px"><span style="width:6px;height:6px;border-radius:50%;background:${_bg};display:inline-block"></span>${_txt}</span></div>`;
+                    }
+                    const _fn = sessionStorage.getItem('user_fullname') || name;
+                    userEl.innerHTML = `<div>${_fn}</div><div style="font-size:.8em;font-weight:400;opacity:.9">${_rdLabel}</div>${_aHtml}`;
+                }
                 // Actualizar allowed_sections
                 const secs = roleData?.permissions?.allowed_sections;
                 const prev = sessionStorage.getItem('user_allowed_sections');
