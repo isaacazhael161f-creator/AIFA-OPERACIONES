@@ -45,14 +45,26 @@
     async function registerServiceWorker() {
         if (!('serviceWorker' in navigator)) return null;
         try {
-            /* Usar el SW activo registrado por script.js.
-               Si no hay ninguno aún, registrar con ruta relativa. */
-            const existing = await Promise.race([
-                navigator.serviceWorker.ready,
-                new Promise(resolve => setTimeout(() => resolve(null), 3000)),
-            ]);
-            if (existing) return existing;
-            return await navigator.serviceWorker.register('sw.js');
+            /* Intentar registrar/obtener el SW con ruta relativa */
+            const reg = await navigator.serviceWorker.register('sw.js');
+            /* Esperar a que esté activo (máx 5s) */
+            if (reg.active) return reg;
+            return await new Promise((resolve) => {
+                const timeout = setTimeout(() => resolve(reg), 5000);
+                const sw = reg.installing || reg.waiting;
+                if (sw) {
+                    sw.addEventListener('statechange', function onState() {
+                        if (sw.state === 'activated') {
+                            clearTimeout(timeout);
+                            sw.removeEventListener('statechange', onState);
+                            resolve(reg);
+                        }
+                    });
+                } else {
+                    clearTimeout(timeout);
+                    resolve(reg);
+                }
+            });
         } catch (err) {
             console.warn('[AIFA Notif] Error registrando SW:', err);
             return null;
@@ -184,14 +196,16 @@
 
             /* Registrar SW y suscribir */
             const swReg = await registerServiceWorker();
+            console.log('[AIFA Notif] swReg:', swReg);
             if (!swReg) {
-                _agToastNotif('No se pudo registrar el servicio', '#ef4444');
+                _agToastNotif('No se pudo registrar el servicio de notificaciones', '#ef4444');
                 return;
             }
 
             const sub = await subscribePush(swReg);
+            console.log('[AIFA Notif] sub:', sub);
             if (!sub) {
-                _agToastNotif('No se pudo crear la suscripción', '#ef4444');
+                _agToastNotif('No se pudo crear la suscripción push', '#ef4444');
                 return;
             }
 
