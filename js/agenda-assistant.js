@@ -325,11 +325,11 @@
     ══════════════════════════════════════════════════════════════ */
     const _agaHasSR  = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
     /* iOS Safari NO soporta SpeechRecognition */
-    const _agaIsIOS  = /ipad|iphone|ipod/i.test(navigator.userAgent) && !/chrome/i.test(navigator.userAgent);
-    /* En Android Chrome la API falla con error network desde páginas externas.
-       La solución más confiable: usar el micrófono del teclado virtual del sistema. */
-    const _agaIsMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent)
-                      || ('ontouchstart' in window && navigator.maxTouchPoints > 1);
+    const _agaIsIOS  = /ipad|iphone|ipod/i.test(navigator.userAgent) && !/chrome|crios|edgios/i.test(navigator.userAgent);
+    /* Solo considerar móvil si el UA incluye explícitamente Android/iPhone/iPad.
+       NO usar maxTouchPoints: laptops con pantalla táctil lo tienen pero sí soportan Web Speech API. */
+    const _agaIsMobile = /android/i.test(navigator.userAgent)
+                      || (/iphone|ipad|ipod/i.test(navigator.userAgent) && !/macintosh/i.test(navigator.userAgent));
 
     /* ── Estrategia móvil: enfocar el input para que el teclado muestre su 🎤 ── */
     function _agaStartVoiceMobile() {
