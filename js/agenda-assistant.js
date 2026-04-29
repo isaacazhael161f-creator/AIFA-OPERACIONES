@@ -1,622 +1,153 @@
-/* ===================================================================
-   AIFA OPERACIONES — Asistente IA Integral
-   js/agenda-assistant.js  (v3 — sin voz, alcance completo)
-
-   Dominios de conocimiento:
-     1. Destinos / Aeropuertos de AIFA
-     2. Aerolíneas (pasajeros, carga, nacionales, internacionales)
-     3. Frecuencias semanales y vuelos programados por destino
-     4. Operaciones anuales / mensuales
-     5. Agenda de Comités (sesiones, acuerdos)
+﻿/* ===================================================================
+   AIFA OPERACIONES â€” Asistente IA con Google Gemini
+   js/agenda-assistant.js  (v4 â€” Gemini 2.0 Flash)
    =================================================================== */
+
 
 (function () {
     'use strict';
 
-    /* ── Caché de datos cargados bajo demanda ───────────────────── */
-    const _cache = {
-        airports  : null,  // tabla aeropuertos
-        airlines  : null,  // tabla Aerolíneas (mensual histórico)
-        freqNac   : null,  // weekly_frequencies (nacional) – semana más reciente
-        freqInt   : null,  // weekly_frequencies_int (internacional)
-        freqCargo : null,  // weekly_frequencies_cargo (carga)
-        annualOps : null,  // tabla annual_operations
-    };
+    /* ── Configuración ──────────────────────────────────────────── */
+    const _KEY_STORE   = 'aifa.gemini.key';
+    const _GEMINI_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=';
+    const _MAX_HISTORY = 20;
+
+    let _history = [];
 
     /* ── Cliente Supabase ────────────────────────────────────────── */
     function _sb() {
-        return window.supabaseClient
-            || window.dataManager?.client
-            || null;
+        return window.supabaseClient || window.dataManager?.client || null;
     }
 
-    /* ── Normalizar texto ────────────────────────────────────────── */
-    function _n(s) {
-        return (s || '').toLowerCase()
-            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^a-z0-9\s]/g, ' ')
-            .replace(/\s+/g, ' ').trim();
-    }
+    /* ── API Key helpers ─────────────────────────────────────────── */
+    function _getKey() { return localStorage.getItem(_KEY_STORE) || ''; }
+    function _saveKey(k) { localStorage.setItem(_KEY_STORE, k.trim()); }
 
-    /* ── Número formateado ───────────────────────────────────────── */
-    function _fmt(n) {
-        return typeof n === 'number'
-            ? n.toLocaleString('es-MX')
-            : (n ?? '—');
-    }
-
-    /* ══════════════════════════════════════════════════════════════
-       LOADERS — carga lazy desde Supabase (con caché)
-    ══════════════════════════════════════════════════════════════ */
-
-    async function _loadAirports() {
-        if (_cache.airports) return _cache.airports;
-        const sb = _sb();
-        if (!sb) return [];
-        const { data } = await sb.from('aeropuertos').select('*').order('iata');
-        _cache.airports = data || [];
-        return _cache.airports;
-    }
-
-    async function _loadAirlines() {
-        if (_cache.airlines) return _cache.airlines;
-        const sb = _sb();
-        if (!sb) return [];
-        const { data } = await sb.from('Aerolíneas').select('*');
-        if (!data?.length) { _cache.airlines = []; return []; }
-        _cache.airlines = data.map(row => {
-            const nombre = (row['AEROLINEA'] || row['AEROLINEA '] || 'Desconocida')
-                .replace(/\bAEROUNION\b/gi, 'AEROUNIÓN')
-                .replace(/\bAEROLINEAS\b/gi, 'AEROLÍNEAS')
-                .replace(/\bAEROLINEA\b/gi, 'AEROLÍNEA')
-                .replace(/\bAEREO\b/gi, 'AÉREO')
-                .replace(/\bMAS DE CARGA\b/gi, 'MÁS DE CARGA')
-                .replace(/\bCOMPANIA\b/gi, 'COMPAÑÍA')
-                .replace(/\bCOMPAÑIA\b/gi, 'COMPAÑÍA')
-                .replace(/\bMEXICO\b/gi, 'MÉXICO');
-            const servicio = row['TIPO DE SERVICIO'] || '';
-            const monthly  = {};
-            const years    = { '2023': 0, '2024': 0, '2025': 0, '2026': 0 };
-            Object.keys(row).forEach(k => {
-                const m = /^([a-z]{3})-(\d{2})$/.exec(k.toLowerCase().trim());
-                if (m) {
-                    const val = parseFloat(row[k]) || 0;
-                    monthly[k.toLowerCase()] = val;
-                    const yr = '20' + m[2];
-                    if (yr in years) years[yr] += val;
-                }
-            });
-            return { nombre, servicio, monthly, years };
-        });
-        return _cache.airlines;
-    }
-
-    async function _loadFreqLatest(table) {
-        const key = table === 'weekly_frequencies'      ? 'freqNac'
-                  : table === 'weekly_frequencies_int'   ? 'freqInt'
-                  :                                        'freqCargo';
-        if (_cache[key]) return _cache[key];
-        const sb = _sb();
-        if (!sb) return [];
-        /* Semana más reciente disponible */
-        const { data: latest } = await sb
-            .from(table)
-            .select('valid_from')
-            .order('valid_from', { ascending: false })
-            .limit(1);
-        if (!latest?.length) { _cache[key] = []; return []; }
-        const { data } = await sb
-            .from(table)
-            .select('*')
-            .eq('valid_from', latest[0].valid_from);
-        _cache[key] = data || [];
-        return _cache[key];
-    }
-
-    async function _loadAnnualOps() {
-        if (_cache.annualOps) return _cache.annualOps;
-        const sb = _sb();
-        if (!sb) return [];
-        const { data } = await sb
-            .from('annual_operations')
-            .select('*')
-            .order('year', { ascending: false });
-        _cache.annualOps = data || [];
-        return _cache.annualOps;
-    }
-
-    /* ── Acceso a datos de agenda cargados por agenda.js ─────────── */
-    function _agData() {
-        return (typeof _ag !== 'undefined')
-            ? _ag
-            : { comites: [], reuniones: [], ready: false };
-    }
-
-    /* ══════════════════════════════════════════════════════════════
-       HELPERS — fechas y agenda
-    ══════════════════════════════════════════════════════════════ */
-    const DIAS  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    /* ── Formateadores ───────────────────────────────────────────── */
     const MESES = ['enero','febrero','marzo','abril','mayo','junio',
                    'julio','agosto','septiembre','octubre','noviembre','diciembre'];
-
     function _fmtDate(ds) {
         const d = new Date(ds + 'T00:00:00');
-        return `${DIAS[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]}`;
+        return `${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`;
     }
     function _daysFromNow(ds) {
         const d = new Date(ds + 'T00:00:00'), t = new Date();
-        t.setHours(0,0,0,0);
+        t.setHours(0, 0, 0, 0);
         return Math.ceil((d - t) / 86400000);
     }
-    function _startOfWeek() {
-        const d = new Date(); d.setHours(0,0,0,0);
-        d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d;
-    }
-    function _endOfWeek() { const d = _startOfWeek(); d.setDate(d.getDate() + 6); return d; }
 
-    const AREA_SYNS = {
-        DO  : ['operacion','operaciones','do ','operativo'],
-        DA  : ['administracion','administrativa','da '],
-        DPE : ['planeacion','planeamiento','dpe','planeacion estrategica'],
-        DCS : ['comercial','comerciales','dcs'],
-        GSO : ['seguridad','seguridad operacional','gso'],
-        UT  : ['transparencia','ut '],
-        GC  : ['calidad','gestion de calidad','gc '],
-        AFAC: ['afac','autoridad federal'],
-    };
-    function _matchArea(n) {
-        for (const [key, syns] of Object.entries(AREA_SYNS)) {
-            if (syns.some(s => n.includes(s) || n === s.trim())) return key;
-        }
-        return null;
-    }
-    function _matchComite(q) {
-        const { comites } = _agData();
-        const words = _n(q).split(' ').filter(w => w.length > 2);
-        if (!words.length) return null;
-        let best = null, bestScore = 0;
-        comites.forEach(c => {
-            const cn = _n((c.nombre || '') + ' ' + (c.acronimo || ''));
-            const score = words.filter(w => cn.includes(w)).length;
-            if (score > bestScore) { bestScore = score; best = c; }
-        });
-        return bestScore > 0 ? best : null;
+    /* ══════════════════════════════════════════════════════════════
+       CONTEXTO — reúne datos reales para el system prompt
+    ══════════════════════════════════════════════════════════════ */
+    async function _buildContext() {
+        const parts = [];
+
+        const now = new Date();
+        parts.push(`Fecha y hora actual: ${now.toLocaleDateString('es-MX', {
+            weekday:'long', day:'2-digit', month:'long', year:'numeric'
+        })}, ${now.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' })}.`);
+
+        try {
+            const role  = sessionStorage.getItem('user_role')  || '';
+            const area  = sessionStorage.getItem('user_area')  || '';
+            const email = sessionStorage.getItem('user_email') || '';
+            if (email) parts.push(`Usuario en sesión: ${email}${role ? ` (${role})` : ''}${area ? `, área ${area}` : ''}.`);
+        } catch (_) {}
+
+        try {
+            const ag = (typeof _ag !== 'undefined') ? _ag : null;
+            if (ag && ag.comites && ag.comites.length) {
+                const today = new Date().toISOString().slice(0, 10);
+                const resumen = ag.comites.slice(0, 40).map(c => {
+                    const upcoming = (ag.reuniones || [])
+                        .filter(r => r.comite_id === c.id && r.fecha_sesion >= today)
+                        .sort((a, b) => a.fecha_sesion.localeCompare(b.fecha_sesion));
+                    const prox = upcoming[0];
+                    return `- ${c.acronimo || c.numero || '?'} | ${c.nombre} | Área: ${c.area}`
+                         + (prox ? ` | Próxima: ${_fmtDate(prox.fecha_sesion)} (en ${_daysFromNow(prox.fecha_sesion)} días), estatus: ${prox.estatus}` : ' | Sin sesiones próximas');
+                }).join('\n');
+                parts.push(`\nComités registrados (${ag.comites.length}):\n${resumen}`);
+
+                const en30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+                const proximas = (ag.reuniones || [])
+                    .filter(r => r.fecha_sesion >= today && r.fecha_sesion <= en30)
+                    .sort((a, b) => a.fecha_sesion.localeCompare(b.fecha_sesion))
+                    .slice(0, 20);
+                if (proximas.length) {
+                    const sesStr = proximas.map(r => {
+                        const c = ag.comites.find(x => x.id === r.comite_id);
+                        return `- ${_fmtDate(r.fecha_sesion)}${r.hora_inicio ? ' a las '+r.hora_inicio.slice(0,5) : ''}: ${c ? (c.acronimo || c.nombre) : '?'} — ${r.estatus}`;
+                    }).join('\n');
+                    parts.push(`\nSesiones próximas (30 días):\n${sesStr}`);
+                }
+            }
+        } catch (_) {}
+
+        try {
+            const sb = _sb();
+            if (sb) {
+                const { data: ops } = await sb.from('annual_operations')
+                    .select('year, total_ops, total_pax')
+                    .order('year', { ascending: false }).limit(3);
+                if (ops && ops.length) {
+                    const opsStr = ops.map(o =>
+                        `${o.year}: ${(o.total_ops||0).toLocaleString('es-MX')} ops, ${(o.total_pax||0).toLocaleString('es-MX')} pax`
+                    ).join(' | ');
+                    parts.push(`\nOperaciones anuales AIFA: ${opsStr}`);
+                }
+            }
+        } catch (_) {}
+
+        return parts.join('\n');
     }
 
     /* ══════════════════════════════════════════════════════════════
-       MOTOR DE RESPUESTA — solo agenda de comités
+       GEMINI — llamada a la API REST
     ══════════════════════════════════════════════════════════════ */
-    async function _agaAnswer(rawQuery) {
-        const q = _n(rawQuery);
+    async function _callGemini(userText) {
+        const apiKey = _getKey();
+        if (!apiKey) throw new Error('NO_KEY');
 
-        /* SALUDO */
-        if (/^(hola|hi|hey|buenas?|buenos?)/.test(q)) {
-            const h  = new Date().getHours();
-            const gr = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
-            return `👋 ${gr}! Soy el asistente de la **Agenda de Comités**.\n\nPuedo ayudarte a saber:\n• ¿Cuándo es la próxima sesión?\n• ¿A qué hora es el comité de calidad?\n• ¿Qué sesiones hay esta semana?\n• Resumen de sesiones pendientes\n• ¿Qué es el comité GSO?`;
-        }
+        const context = await _buildContext();
 
-        /* AYUDA */
-        if (/ayuda|help|que puedes|para que sirves|como funciona|que sabes/.test(q)) {
-            return `💡 **¿Qué puedo hacer?**\n\n**📅 Próximas sesiones:**\n• "¿Cuándo es la próxima sesión?"\n• "¿Cuándo es el COCOA?"\n\n**⏰ Horarios:**\n• "¿A qué hora es el comité de calidad?"\n• "¿A qué hora es la próxima sesión de DO?"\n\n**📆 Esta semana / mes:**\n• "¿Qué sesiones hay esta semana?"\n• "Sesiones de este mes"\n\n**📊 Resumen:**\n• "¿Cuántas sesiones pendientes hay?"\n• "Resumen de sesiones de DA"\n\n**🗂️ Información de comités:**\n• "¿Qué comités hay en DPE?"\n• "¿Qué es el GSO?"\n• "Lista de comités"`;
-        }
-
-        /* Todo lo demás → agenda */
-        return _respAgenda(q);
-    }
-
-    /* ══════════════════════════════════════════════════════════════
-       RESPUESTA: DESTINOS
-    ══════════════════════════════════════════════════════════════ */
-    async function _respDestinos(q) {
-        const [freqNac, freqInt, freqCargo] = await Promise.all([
-            _loadFreqLatest('weekly_frequencies'),
-            _loadFreqLatest('weekly_frequencies_int'),
-            _loadFreqLatest('weekly_frequencies_cargo'),
-        ]);
-
-        const toMap = rows => {
-            const m = new Map();
-            rows.forEach(r => { if (r.city && !m.has(r.iata)) m.set(r.iata, r.city); });
-            return m;
-        };
-        const nacMap   = toMap(freqNac);
-        const intMap   = toMap(freqInt);
-        const cargoMap = toMap(freqCargo);
-
-        const isNac   = /nacionales?|domestico|interior/.test(q);
-        const isInt   = /internacionales?|exterior/.test(q);
-        const isCargo = /carga/.test(q);
-
-        const fmtList = (map, emoji, label) => {
-            const sorted = [...map.entries()].sort((a,b) => a[1].localeCompare(b[1]));
-            const lines  = sorted.map(([iata, city]) => `• **${city}** _(${iata})_`);
-            return `${emoji} **${label} (${sorted.length}):**\n${lines.join('\n')}`;
+        const systemInstruction = {
+            parts: [{
+                text: `Eres el Asistente IA del sistema AIFA Operaciones del Aeropuerto Internacional Felipe Ángeles (AIFA), México.\n\nRol: Ayudar a los usuarios con información sobre agenda de comités, sesiones, acuerdos y operaciones del aeropuerto.\n\nInstrucciones:\n- Responde siempre en español, de forma concisa y profesional.\n- Usa los datos de contexto para dar respuestas precisas y actualizadas.\n- Si no tienes la información exacta, dilo claramente.\n- Formatea con listas o negritas cuando ayude a la claridad.\n- No inventes datos de operaciones o fechas que no estén en el contexto.\n\nContexto actual del sistema:\n${context}`
+            }]
         };
 
-        if (isNac)   return fmtList(nacMap,   '🇲🇽', 'Destinos nacionales de AIFA');
-        if (isInt)   return fmtList(intMap,   '🌎', 'Destinos internacionales de AIFA');
-        if (isCargo) return fmtList(cargoMap, '📦', 'Destinos de carga de AIFA');
-
-        /* Resumen general */
-        const allDest = new Set([...nacMap.keys(), ...intMap.keys(), ...cargoMap.keys()]);
-        return `✈️ **Destinos operados desde AIFA:**\n\n• 🇲🇽 **Nacionales:** ${nacMap.size} destinos\n• 🌎 **Internacionales:** ${intMap.size} destinos\n• 📦 **Carga:** ${cargoMap.size} destinos\n\n**Total: ${allDest.size} destinos únicos.**\n\n_Pregunta más: "Destinos nacionales", "Destinos internacionales", "Vuelos a [ciudad]"_`;
-    }
-
-    /* ══════════════════════════════════════════════════════════════
-       RESPUESTA: VUELOS A UN DESTINO ESPECÍFICO
-    ══════════════════════════════════════════════════════════════ */
-    async function _respVuelosADestino(q) {
-        const [freqNac, freqInt, freqCargo] = await Promise.all([
-            _loadFreqLatest('weekly_frequencies'),
-            _loadFreqLatest('weekly_frequencies_int'),
-            _loadFreqLatest('weekly_frequencies_cargo'),
-        ]);
-
-        const destWord = _extractDestino(q);
-        if (!destWord) {
-            return `✈️ ¿A qué destino quieres consultar vuelos?\nEjemplo: "Vuelos a Palenque" o "Frecuencias a Monterrey"`;
-        }
-
-        const match = r => _n(r.city || '').includes(destWord)
-                        || _n(r.iata  || '').includes(destWord)
-                        || _n(r.state || '').includes(destWord);
-
-        const nacRows   = freqNac.filter(match);
-        const intRows   = freqInt.filter(match);
-        const cargoRows = freqCargo.filter(match);
-        const allRows   = [...nacRows, ...intRows, ...cargoRows];
-
-        if (!allRows.length) {
-            const allCities = [
-                ...freqNac.map(r => r.city),
-                ...freqInt.map(r => r.city),
-                ...freqCargo.map(r => r.city),
-            ].filter(Boolean);
-            const similar = [...new Set(allCities)]
-                .filter(c => _n(c).includes(destWord.slice(0,4)))
-                .slice(0, 5);
-            let msg = `🔍 No encontré vuelos a **"${destWord}"** en el itinerario actual.`;
-            if (similar.length) msg += `\n\n¿Quisiste decir?\n${similar.map(c => `• ${c}`).join('\n')}`;
-            return msg;
-        }
-
-        const cityName  = allRows[0].city;
-        const iataCode  = allRows[0].iata;
-        const weekLabel = allRows[0].week_label;
-
-        let resp = `✈️ **Vuelos desde AIFA a ${cityName}** _(${iataCode})_\n_Semana: ${weekLabel}_\n\n`;
-
-        const DIAS_LABELS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
-        const DIAS_KEYS   = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
-        const fmtRow = (r, tipo) => {
-            const operaDias = DIAS_KEYS.map((d,i) => r[d] > 0 ? DIAS_LABELS[i] : null).filter(Boolean);
-            return `• **${r.airline}** — ${operaDias.length ? operaDias.join(', ') : 'sin días registrados'} · _${r.weekly_total} frecuencias/semana_ [${tipo}]`;
-        };
-
-        const groupByAirline = rows => {
-            const byAl = {};
-            rows.forEach(r => {
-                if (!byAl[r.airline]) { byAl[r.airline] = { ...r }; }
-                else { byAl[r.airline].weekly_total += r.weekly_total; }
-            });
-            return Object.values(byAl);
-        };
-
-        if (nacRows.length) {
-            resp += `🇲🇽 **Nacional:**\n`;
-            groupByAirline(nacRows).forEach(r => { resp += fmtRow(r, 'PAX') + '\n'; });
-        }
-        if (intRows.length) {
-            resp += `\n🌎 **Internacional:**\n`;
-            groupByAirline(intRows).forEach(r => { resp += fmtRow(r, 'INT') + '\n'; });
-        }
-        if (cargoRows.length) {
-            resp += `\n📦 **Carga:**\n`;
-            groupByAirline(cargoRows).forEach(r => { resp += fmtRow(r, 'CARGA') + '\n'; });
-        }
-
-        const totalSemanal = allRows.reduce((s,r) => s + (r.weekly_total || 0), 0);
-        resp += `\n**Total: ${totalSemanal} frecuencias/semana**`;
-        return resp;
-    }
-
-    /* ── Extraer nombre de destino ───────────────────────────────── */
-    function _extractDestino(q) {
-        const patterns = [
-            /(?:vuelos?|frecuencias?|ruta|destino|programa\w*\s+a|viaje\s+a|salida\s+a)\s+(?:a\s+)?(?:el\s+|la\s+|los\s+|las\s+)?([a-záéíóúüñ\s]{3,25?})(?:\s*[\?.!,]|$)/i,
-            /\ba\s+([a-záéíóúüñ\s]{4,20?})\s*(?:\?|\.|\!|$)/i,
+        const contents = [
+            ..._history.slice(-_MAX_HISTORY),
+            { role: 'user', parts: [{ text: userText }] }
         ];
-        for (const p of patterns) {
-            const m = p.exec(q);
-            if (m?.[1]) {
-                const dest = m[1].trim().replace(/\s+/g, ' ');
-                const STOPS = new Set(['aifa','vuelos','frecuencias','programados','tiene','hay','cuantos','semana','diarios','destino','destinos']);
-                if (!STOPS.has(dest)) return dest;
-            }
-        }
-        const STOPS = new Set(['vuelos','frecuencias','programados','programadas','destino','hacia','tiene','hay','aifa','cuantos','cuantas','ruta','rutas','semana','semanas','diarios','diarias','vuela','esta','quiero','saber']);
-        const words = q.split(' ').filter(w => w.length >= 4 && !STOPS.has(w));
-        return words[0] || null;
-    }
 
-    /* ══════════════════════════════════════════════════════════════
-       RESPUESTA: AEROLÍNEAS (lista por tipo)
-    ══════════════════════════════════════════════════════════════ */
-    async function _respAerolineas(q) {
-        const airlines = await _loadAirlines();
-        if (!airlines.length) return '⚠️ No se pudieron cargar los datos de aerolíneas. Intenta de nuevo.';
-
-        const isNac   = /nacionales?|domestica|interior|pasajeros?/.test(q);
-        const isInt   = /internacionales?|exterior/.test(q);
-        const isCargo = /carga/.test(q);
-
-        let filtradas = airlines;
-        if (isCargo) {
-            filtradas = airlines.filter(a => _n(a.servicio).includes('carga'));
-        } else if (isInt) {
-            filtradas = airlines.filter(a => _n(a.servicio).includes('internacional'));
-        } else if (isNac) {
-            filtradas = airlines.filter(a => {
-                const s = _n(a.servicio);
-                return s.includes('nacional') || s.includes('pasajero') || (s.includes('regular') && !s.includes('carga'));
-            });
-        }
-
-        /* Solo las que tienen actividad reciente */
-        const activas = filtradas.filter(a => (a.years['2025']||0) + (a.years['2026']||0) > 0);
-        const lista   = activas.length ? activas : filtradas;
-        if (!lista.length) return `🔍 No encontré aerolíneas para ese criterio. Prueba: "aerolíneas de pasajeros", "de carga" o "internacionales".`;
-
-        const tipoLabel = isCargo ? 'de carga' : isInt ? 'internacionales' : isNac ? 'nacionales de pasajeros' : 'que operan en AIFA';
-        const lines = lista
-            .sort((a,b) => ((b.years['2025']||0)+(b.years['2026']||0)) - ((a.years['2025']||0)+(a.years['2026']||0)))
-            .map(a => {
-                const total = (a.years['2025']||0) + (a.years['2026']||0);
-                return `• **${a.nombre}**${total > 0 ? ` — _${_fmt(total)} ops (2025–2026)_` : ''}`;
-            });
-
-        let resp = `✈️ **Aerolíneas ${tipoLabel} (${lista.length}):**\n${lines.join('\n')}`;
-        if (activas.length && activas.length < filtradas.length) {
-            resp += `\n\n_Con actividad reciente. Total en catálogo: ${filtradas.length}_`;
-        }
-        return resp;
-    }
-
-    /* ══════════════════════════════════════════════════════════════
-       RESPUESTA: INFO / OPS DE UNA AEROLÍNEA ESPECÍFICA
-    ══════════════════════════════════════════════════════════════ */
-    async function _respInfoAerolinea(q) {
-        const airlines = await _loadAirlines();
-        if (!airlines.length) return '⚠️ No se pudieron cargar datos de aerolíneas.';
-
-        const words = q.split(' ').filter(w => w.length > 3);
-        let best = null, bestScore = 0;
-        airlines.forEach(a => {
-            const nm = _n(a.nombre);
-            const score = words.filter(w => nm.includes(w)).length;
-            if (score > bestScore) { bestScore = score; best = a; }
+        const res = await fetch(_GEMINI_URL + encodeURIComponent(apiKey), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents,
+                systemInstruction,
+                generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
+            })
         });
 
-        if (!best || bestScore === 0) {
-            return `🔍 No identifiqué la aerolínea. Intenta: "operaciones de Volaris en 2025" o "info de Aeroméxico".`;
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            const msg = err && err.error ? err.error.message : ('HTTP ' + res.status);
+            if (res.status === 400 && msg.toLowerCase().includes('api key')) throw new Error('INVALID_KEY');
+            throw new Error(msg);
         }
 
-        const [freqNac, freqInt, freqCargo] = await Promise.all([
-            _loadFreqLatest('weekly_frequencies'),
-            _loadFreqLatest('weekly_frequencies_int'),
-            _loadFreqLatest('weekly_frequencies_cargo'),
-        ]);
-        const nm = _n(best.nombre);
-        const matchAl = r => _n(r.airline).includes(nm) || nm.includes(_n(r.airline).slice(0,6));
-        const destinos = [
-            ...freqNac.filter(matchAl).map(r => r.city),
-            ...freqInt.filter(matchAl).map(r => r.city),
-            ...freqCargo.filter(matchAl).map(r => r.city),
-        ].filter(Boolean);
-        const uniqueDest = [...new Set(destinos)];
+        const json = await res.json();
+        const text = (json.candidates && json.candidates[0] && json.candidates[0].content &&
+                      json.candidates[0].content.parts && json.candidates[0].content.parts[0] &&
+                      json.candidates[0].content.parts[0].text) || '(sin respuesta)';
 
-        let resp = `✈️ **${best.nombre}**\n`;
-        if (best.servicio) resp += `Tipo de servicio: _${best.servicio}_\n`;
-        resp += `\n📊 **Operaciones por año:**\n`;
-        ['2023','2024','2025','2026'].forEach(yr => {
-            const tot = best.years[yr] || 0;
-            if (tot > 0) resp += `• **${yr}:** ${_fmt(tot)} operaciones\n`;
-        });
-        if (uniqueDest.length) {
-            resp += `\n🗺️ **Destinos actuales (${uniqueDest.length}):**\n`;
-            resp += uniqueDest.map(c => `• ${c}`).join('\n');
-        } else {
-            resp += `\n_Sin frecuencias semanales activas registradas actualmente._`;
-        }
-        return resp;
-    }
+        _history.push({ role: 'user',  parts: [{ text: userText }] });
+        _history.push({ role: 'model', parts: [{ text }] });
+        if (_history.length > _MAX_HISTORY * 2) _history = _history.slice(-_MAX_HISTORY * 2);
 
-    /* ══════════════════════════════════════════════════════════════
-       RESPUESTA: OPERACIONES ANUALES
-    ══════════════════════════════════════════════════════════════ */
-    async function _respOperaciones(q) {
-        const annualRows = await _loadAnnualOps();
-        const yr1Match   = /\b(20\d{2})\b/.exec(q);
-        const yr1        = yr1Match ? yr1Match[1] : null;
-        const restQ      = yr1 ? q.replace(yr1, '') : q;
-        const yr2Match   = /\b(20\d{2})\b/.exec(restQ);
-        const yr2        = yr2Match ? yr2Match[1] : null;
-        const isVs       = /vs|versus|comparar|comparativa|frente a/.test(q);
-
-        if (annualRows.length) {
-            if (yr1 && !isVs) {
-                const row = annualRows.find(r => String(r.year) === yr1);
-                if (!row) return `📊 No hay datos registrados para el año **${yr1}**.`;
-                const total = row.total_ops || row.total_operations || row.operaciones || 0;
-                let resp = `📊 **Operaciones en ${yr1}: ${_fmt(total)}**\n`;
-                if (row.arrivals)   resp += `• Llegadas: ${_fmt(row.arrivals)}\n`;
-                if (row.departures) resp += `• Salidas:  ${_fmt(row.departures)}\n`;
-                if (row.passengers) resp += `• Pasajeros transportados: ${_fmt(row.passengers)}\n`;
-                return resp;
-            }
-            if (isVs && yr1 && yr2) {
-                const r1 = annualRows.find(r => String(r.year) === yr1);
-                const r2 = annualRows.find(r => String(r.year) === yr2);
-                if (!r1 || !r2) return `📊 No se encontraron datos para comparar ${yr1} vs ${yr2}.`;
-                const v1 = r1.total_ops||r1.total_operations||0, v2 = r2.total_ops||r2.total_operations||0;
-                const diff = v1 - v2;
-                const pct  = v2 > 0 ? ((diff/v2)*100).toFixed(1) : '—';
-                const icon = diff > 0 ? '📈' : diff < 0 ? '📉' : '➡️';
-                return `${icon} **${yr1} vs ${yr2}:**\n• ${yr1}: ${_fmt(v1)} ops\n• ${yr2}: ${_fmt(v2)} ops\n• Diferencia: **${diff > 0 ? '+' : ''}${_fmt(diff)}** (${pct}%)`;
-            }
-            /* Resumen general */
-            const sorted = [...annualRows].sort((a,b) => b.year - a.year).slice(0, 6);
-            const lines  = sorted.map(r => {
-                const t = r.total_ops||r.total_operations||r.operaciones||0;
-                return `• **${r.year}:** ${_fmt(t)} operaciones`;
-            });
-            const best = [...annualRows].sort((a,b) =>
-                (b.total_ops||b.total_operations||0) - (a.total_ops||a.total_operations||0)
-            )[0];
-            return `📊 **Operaciones anuales en AIFA:**\n${lines.join('\n')}\n\n_Año récord: **${best.year}** · ${_fmt(best.total_ops||best.total_operations||0)} ops_`;
-        }
-
-        /* Fallback: calcular desde tabla Aerolíneas */
-        const airlines = await _loadAirlines();
-        if (!airlines.length) return '⚠️ No hay datos de operaciones disponibles.';
-        const totByYear = { '2023':0, '2024':0, '2025':0, '2026':0 };
-        airlines.forEach(a => {
-            Object.keys(totByYear).forEach(yr => { totByYear[yr] += (a.years[yr]||0); });
-        });
-        if (yr1 && totByYear[yr1] !== undefined) {
-            return `📊 **Operaciones en ${yr1}: ${_fmt(totByYear[yr1])}**\n_Dato calculado sumando todas las aerolíneas del catálogo._`;
-        }
-        const lines = Object.entries(totByYear).filter(([,v]) => v > 0)
-            .sort((a,b) => b[0].localeCompare(a[0]))
-            .map(([yr,v]) => `• **${yr}:** ${_fmt(v)} operaciones`);
-        const best = Object.entries(totByYear).sort((a,b) => b[1]-a[1])[0];
-        return `📊 **Operaciones anuales en AIFA:**\n${lines.join('\n')}\n\n_Año con más operaciones registradas: **${best[0]}** · ${_fmt(best[1])}_`;
-    }
-
-    /* ══════════════════════════════════════════════════════════════
-       RESPUESTA: AGENDA DE COMITÉS
-    ══════════════════════════════════════════════════════════════ */
-    function _respAgenda(q) {
-        const { comites, reuniones, ready } = _agData();
-        if (!ready) return '⏳ Los datos de Agenda están cargando. Espera un momento e inténtalo de nuevo.';
-
-        const today    = new Date(); today.setHours(0,0,0,0);
-        const userArea = (typeof _agUserArea === 'function') ? _agUserArea() : null;
-        const isAdmin  = (typeof _agIsAdmin  === 'function') ? _agIsAdmin()  : true;
-
-        const upcoming = reuniones
-            .filter(r => new Date(r.fecha_sesion + 'T00:00:00') >= today && r.estatus !== 'Cancelada')
-            .sort((a,b) => a.fecha_sesion.localeCompare(b.fecha_sesion));
-
-        /* PRÓXIMA sesión */
-        if (/proxi(m|n)|siguient|cuand(o es|o hay|o sera)|cuando|prox/.test(q)) {
-            const comite = _matchComite(q);
-            const area   = _matchArea(q) || (!isAdmin && !comite ? userArea : null);
-            let pool = upcoming;
-            if (comite) pool = pool.filter(r => r.comite_id === comite.id);
-            else if (area) pool = pool.filter(r => r.area === area);
-            if (!pool.length) return `📭 No hay sesiones próximas ${comite ? 'para **'+(comite.acronimo||comite.nombre)+'**' : ''}.`;
-            const r = pool[0];
-            const c = comites.find(x => x.id === r.comite_id) || {};
-            const diff    = _daysFromNow(r.fecha_sesion);
-            const diffTxt = diff === 0 ? '¡es **hoy**! 🎉' : diff === 1 ? 'es **mañana**' : `es en **${diff} días**`;
-            const hora    = r.hora_inicio ? ` a las **${r.hora_inicio.slice(0,5)} h**` : '';
-            return `📅 La próxima sesión ${diffTxt}.\n**${_fmtDate(r.fecha_sesion)}**${hora}.\n_${c.acronimo||c.nombre||'—'} · Sesión ${r.numero_sesion||'—'} · ${r.estatus}_`;
-        }
-        /* HORA */
-        if (/que hora|a que hora|horario de|hora de|a que hora es/.test(q)) {
-            const comite = _matchComite(q);
-            const area   = _matchArea(q) || (!isAdmin && !comite ? userArea : null);
-            let pool = upcoming;
-            if (comite) pool = pool.filter(r => r.comite_id === comite.id);
-            else if (area) pool = pool.filter(r => r.area === area);
-            if (!pool.length) return '⏰ No encontré sesiones próximas para consultar la hora.';
-            const r = pool[0];
-            const c = comites.find(x => x.id === r.comite_id) || {};
-            if (!r.hora_inicio) return `⏰ La sesión de **${c.acronimo||c.nombre}** (${_fmtDate(r.fecha_sesion)}) aún no tiene hora registrada.`;
-            return `⏰ La próxima sesión de **${c.acronimo||c.nombre}** es el **${_fmtDate(r.fecha_sesion)}** a las **${r.hora_inicio.slice(0,5)} h**.`;
-        }
-        /* ESTA SEMANA */
-        if (/esta semana|semana/.test(q)) {
-            const sw = _startOfWeek(), ew = _endOfWeek();
-            let pool = upcoming.filter(r => {
-                const d = new Date(r.fecha_sesion + 'T00:00:00');
-                return d >= sw && d <= ew;
-            });
-            const area = _matchArea(q) || (!isAdmin ? userArea : null);
-            if (area) pool = pool.filter(r => r.area === area);
-            if (!pool.length) return '📆 No hay sesiones esta semana.';
-            const lines = pool.map(r => {
-                const c = comites.find(x => x.id === r.comite_id) || {};
-                return `• **${_fmtDate(r.fecha_sesion)}**${r.hora_inicio ? ' · '+r.hora_inicio.slice(0,5)+'h' : ''} — ${c.acronimo||c.nombre||'—'} [${r.area}]`;
-            });
-            return `📆 **Sesiones esta semana (${pool.length}):**\n${lines.join('\n')}`;
-        }
-        /* ESTE MES */
-        if (/este mes|mes actual|del mes/.test(q)) {
-            const mm = today.getMonth(), yy = today.getFullYear();
-            let pool = upcoming.filter(r => {
-                const d = new Date(r.fecha_sesion + 'T00:00:00');
-                return d.getMonth() === mm && d.getFullYear() === yy;
-            });
-            const area = _matchArea(q) || (!isAdmin ? userArea : null);
-            if (area) pool = pool.filter(r => r.area === area);
-            if (!pool.length) return '📅 No hay sesiones pendientes este mes.';
-            const lines = pool.map(r => {
-                const c = comites.find(x => x.id === r.comite_id) || {};
-                return `• ${_fmtDate(r.fecha_sesion)}${r.hora_inicio ? ' · '+r.hora_inicio.slice(0,5)+'h' : ''} — **${c.acronimo||c.nombre}**`;
-            });
-            return `📅 **Sesiones pendientes en ${MESES[mm]} (${pool.length}):**\n${lines.join('\n')}`;
-        }
-        /* RESUMEN */
-        if (/resumen|cuantas|total|faltan|pendiente/.test(q)) {
-            const area = _matchArea(q);
-            let pool   = area ? upcoming.filter(r => r.area === area)
-                              : (!isAdmin && userArea ? upcoming.filter(r => r.area === userArea) : upcoming);
-            if (!pool.length) return '✅ ¡No quedan sesiones pendientes!';
-            const porArea = {};
-            pool.forEach(r => { porArea[r.area] = (porArea[r.area]||0) + 1; });
-            const lines = Object.entries(porArea).sort((a,b)=>b[1]-a[1])
-                .map(([a,n]) => `• **${a}**: ${n} sesión${n>1?'es':''}`);
-            return `📊 **${pool.length} sesión${pool.length>1?'es':''} pendiente${pool.length>1?'s':''}:**\n${lines.join('\n')}`;
-        }
-        /* INFO COMITÉ */
-        if (/que es|informacion|descripcion|objetivo|quien preside/.test(q)) {
-            const comite = _matchComite(q);
-            if (!comite) return '🔍 ¿De qué comité necesitas información? Dime el nombre o las siglas.';
-            let resp = `📋 **${comite.nombre}**\n`;
-            if (comite.acronimo)    resp += `_${comite.acronimo}_\n`;
-            if (comite.area)        resp += `Área: **${comite.area}**\n`;
-            if (comite.frecuencia)  resp += `Frecuencia: ${comite.frecuencia}\n`;
-            if (comite.presidente)  resp += `Presidente: ${comite.presidente}\n`;
-            if (comite.hora_sesion) resp += `Hora habitual: ${comite.hora_sesion.slice(0,5)} h\n`;
-            if (comite.descripcion) resp += `\n${comite.descripcion}`;
-            return resp;
-        }
-        /* LISTAR COMITÉS */
-        if (/comites?\s*(de|del|en)?|lista.*comite|listar.*comite|hay comit/.test(q) || _matchArea(q)) {
-            const area  = _matchArea(q) || (!isAdmin ? userArea : null);
-            const lista = area ? comites.filter(c => c.area === area) : comites;
-            if (!lista.length) return '🔍 No encontré comités para ese criterio.';
-            const lines = lista.map(c => `• **${c.acronimo||'#'+c.numero}** — ${c.nombre}`);
-            return `🗂️ **Comités ${area ? 'del área **'+area+'**' : '(todas las áreas)'} (${lista.length}):**\n${lines.join('\n')}`;
-        }
-        /* Por nombre de comité */
-        const comite = _matchComite(q);
-        if (comite) {
-            const next = upcoming.find(r => r.comite_id === comite.id);
-            let resp = `📋 **${comite.acronimo||comite.nombre}** — ${comite.nombre}\nÁrea: **${comite.area}**`;
-            if (next) {
-                resp += `\nPróxima sesión: **${_fmtDate(next.fecha_sesion)}**`;
-                if (next.hora_inicio) resp += ` a las **${next.hora_inicio.slice(0,5)} h**`;
-                resp += ` _(en ${_daysFromNow(next.fecha_sesion)} días)_`;
-            } else {
-                resp += '\nSin sesiones próximas registradas.';
-            }
-            return resp;
-        }
-        return `🤔 No entendí esa consulta de Agenda. Prueba:\n• "¿Cuándo es la próxima sesión?"\n• "Sesiones de esta semana"\n• "Lista de comités de DO"`;
+        return text;
     }
 
     /* ══════════════════════════════════════════════════════════════
@@ -626,50 +157,115 @@
         return text
             .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
             .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-            .replace(/_(.+?)_/g,'<em>$1</em>')
+            .replace(/\*(.+?)\*/g,'<em>$1</em>')
+            .replace(/`(.+?)`/g,'<code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;font-size:.9em">$1</code>')
             .replace(/\n/g,'<br>');
     }
 
     /* ══════════════════════════════════════════════════════════════
-       CHAT UI
+       CHAT UI helpers
     ══════════════════════════════════════════════════════════════ */
-    function _agaAddMsg(role, text) {
+    function _addMsg(role, text) {
         const box = document.getElementById('_aga-messages');
         if (!box) return;
         const div = document.createElement('div');
-        div.className = `_aga-msg _aga-msg-${role}`;
-        div.innerHTML = `<div class="_aga-bubble">${_renderMd(text)}</div>`;
+        div.className = '_aga-msg _aga-msg-' + role;
+        div.innerHTML = '<div class="_aga-bubble">' + _renderMd(text) + '</div>';
         box.appendChild(div);
-        div.scrollIntoView({ behavior:'smooth', block:'end' });
+        div.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
 
+    /* ── Panel de API Key ────────────────────────────────────────── */
+    function _showKeyPanel() {
+        const existing = document.getElementById('_aga-keydlg');
+        if (existing) { existing.remove(); return; }
+        const dlg = document.createElement('div');
+        dlg.id = '_aga-keydlg';
+        dlg.innerHTML =
+            '<div style="padding:14px 16px">' +
+              '<p style="font-size:.78rem;color:#475569;margin:0 0 8px">' +
+                '<strong>API Key de Gemini</strong><br>' +
+                'Obtén tu clave gratis en ' +
+                '<a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color:#1a73e8">Google AI Studio</a>.' +
+                ' Se guarda solo en este navegador.' +
+              '</p>' +
+              '<div style="display:flex;gap:6px">' +
+                '<input id="_aga-keyinp" type="password" placeholder="AIza…" value="' + _getKey() + '" ' +
+                  'style="flex:1;border:1.5px solid #cbd5e1;border-radius:8px;padding:6px 10px;font-size:.8rem;outline:none;min-width:0" ' +
+                  'onkeydown="if(event.key===\'Enter\')window._agaSaveKey()">' +
+                '<button onclick="window._agaSaveKey()" ' +
+                  'style="background:#4285f4;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:.78rem;cursor:pointer;white-space:nowrap">' +
+                  'Guardar' +
+                '</button>' +
+              '</div>' +
+              '<p id="_aga-keystatus" style="font-size:.72rem;margin:6px 0 0;color:#059669"></p>' +
+            '</div>';
+        dlg.style.cssText = 'position:absolute;bottom:54px;left:0;right:0;background:#fff;border-top:1px solid #e2e8f0;box-shadow:0 -4px 16px rgba(0,0,0,.1);z-index:10;';
+        document.getElementById('_aga-panel').appendChild(dlg);
+        setTimeout(() => document.getElementById('_aga-keyinp').focus(), 60);
+    }
+
+    function _updateOnlineLabel() {
+        const lbl = document.getElementById('_aga-online-lbl');
+        if (!lbl) return;
+        if (_getKey()) {
+            lbl.textContent = 'Gemini 2.0 Flash · activo';
+            lbl.style.color = '';
+        } else {
+            lbl.textContent = 'Configura tu API Key';
+            lbl.style.color = '#fbbf24';
+        }
+    }
+
+    window._agaSaveKey = function () {
+        const val = (document.getElementById('_aga-keyinp') || {}).value;
+        if (!val || !val.trim()) return;
+        _saveKey(val.trim());
+        const st = document.getElementById('_aga-keystatus');
+        if (st) { st.textContent = '✓ Guardada correctamente'; st.style.color = '#059669'; }
+        setTimeout(function() { const d = document.getElementById('_aga-keydlg'); if(d) d.remove(); }, 900);
+        _updateOnlineLabel();
+    };
+
+    /* ══════════════════════════════════════════════════════════════
+       SEND — llama a Gemini y muestra la respuesta
+    ══════════════════════════════════════════════════════════════ */
     async function _agaSend() {
         const inp  = document.getElementById('_aga-input');
-        const text = inp?.value.trim();
+        const text = inp ? inp.value.trim() : '';
         if (!text) return;
         inp.value = '';
-        _agaAddMsg('user', text);
 
-        const box    = document.getElementById('_aga-messages');
+        const keydlg = document.getElementById('_aga-keydlg');
+        if (keydlg) keydlg.remove();
+
+        _addMsg('user', text);
+
+        const box = document.getElementById('_aga-messages');
         const typing = document.createElement('div');
         typing.className = '_aga-msg _aga-msg-bot _aga-typing';
         typing.innerHTML = '<div class="_aga-bubble"><span></span><span></span><span></span></div>';
-        box?.appendChild(typing);
-        typing.scrollIntoView({ behavior:'smooth', block:'end' });
+        if (box) { box.appendChild(typing); typing.scrollIntoView({ behavior:'smooth', block:'end' }); }
 
         try {
             if (typeof _agEnsureData === 'function') await _agEnsureData();
-            const answer = await _agaAnswer(text);
+            const answer = await _callGemini(text);
             typing.remove();
-            _agaAddMsg('bot', answer);
-        } catch(err) {
+            _addMsg('bot', answer);
+        } catch (err) {
             typing.remove();
-            _agaAddMsg('bot', `⚠️ Error al procesar la consulta: ${err.message || err}`);
+            if (err.message === 'NO_KEY') {
+                _addMsg('bot', '🔑 **Falta la API Key de Gemini.**\n\nHaz clic en el ícono 🔑 en la parte superior del chat para configurarla.\nEs gratis en [Google AI Studio](https://aistudio.google.com/app/apikey).');
+            } else if (err.message === 'INVALID_KEY') {
+                _addMsg('bot', '❌ **API Key inválida.** Verifica que sea correcta en Google AI Studio y vuelve a guardarla con el ícono 🔑.');
+            } else {
+                _addMsg('bot', '⚠️ Error al consultar a Gemini: ' + (err.message || err));
+            }
         }
     }
     window._agaSend = _agaSend;
 
-    window._agaQuick = function(txt) {
+    window._agaQuick = function (txt) {
         const inp = document.getElementById('_aga-input');
         if (inp) inp.value = txt;
         _agaSend();
@@ -683,66 +279,77 @@
         if (existing) {
             existing.classList.toggle('_aga-open');
             if (existing.classList.contains('_aga-open')) {
-                document.getElementById('_aga-input')?.focus();
+                const inp = document.getElementById('_aga-input');
+                if (inp) inp.focus();
             }
             return;
         }
 
         const panel = document.createElement('div');
         panel.id = '_aga-panel';
-        panel.setAttribute('role',       'dialog');
+        panel.setAttribute('role', 'dialog');
         panel.setAttribute('aria-modal', 'true');
-        panel.setAttribute('aria-label', 'Asistente AIFA');
+        panel.setAttribute('aria-label', 'Asistente AIFA Gemini');
 
-        panel.innerHTML = `
-          <div class="_aga-head">
-            <div class="_aga-head-l">
-              <div class="_aga-avatar"><i class="fas fa-robot"></i></div>
-              <div>
-                <div class="_aga-name">Asistente AIFA</div>
-                <div class="_aga-online"><span class="_aga-dot"></span>Agenda de Comités</div>
-              </div>
-            </div>
-            <div class="_aga-head-r">
-              <button class="_aga-ibtn" title="Limpiar conversación"
-                onclick="document.getElementById('_aga-messages').innerHTML=''" aria-label="Limpiar">
-                <i class="fas fa-broom"></i>
-              </button>
-              <button class="_aga-ibtn" title="Cerrar"
-                onclick="document.getElementById('_aga-panel').classList.remove('_aga-open')" aria-label="Cerrar">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
-          </div>
+        const keyStatus = _getKey() ? 'Gemini 2.0 Flash · activo' : 'Configura tu API Key';
+        const keyColor  = _getKey() ? '' : 'color:#fbbf24';
 
-          <div id="_aga-messages" class="_aga-msgs" role="log" aria-live="polite"></div>
-
-          <div class="_aga-chips">
-            <button class="_aga-chip" onclick="_agaQuick('¿Cuándo es la próxima sesión?')">📅 Próxima sesión</button>
-            <button class="_aga-chip" onclick="_agaQuick('¿Qué sesiones hay esta semana?')">📆 Esta semana</button>
-            <button class="_aga-chip" onclick="_agaQuick('Sesiones pendientes')">📊 Pendientes</button>
-            <button class="_aga-chip" onclick="_agaQuick('Lista de comités')">🗂️ Comités</button>
-          </div>
-
-          <div class="_aga-foot">
-            <input id="_aga-input" class="_aga-inp" type="text" autocomplete="off"
-              placeholder="Escribe tu pregunta…"
-              onkeydown="if(event.key==='Enter')window._agaSend()"
-              aria-label="Pregunta al asistente">
-            <button class="_aga-send" onclick="window._agaSend()" title="Enviar" aria-label="Enviar">
-              <i class="fas fa-paper-plane"></i>
-            </button>
-          </div>`;
+        panel.innerHTML =
+          '<div class="_aga-head">' +
+            '<div class="_aga-head-l">' +
+              '<div class="_aga-avatar" style="font-weight:800;font-size:1.1rem">G</div>' +
+              '<div>' +
+                '<div class="_aga-name">Asistente AIFA</div>' +
+                '<div class="_aga-online">' +
+                  '<span class="_aga-dot"></span>' +
+                  '<span id="_aga-online-lbl" style="' + keyColor + '">' + keyStatus + '</span>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="_aga-head-r">' +
+              '<button class="_aga-ibtn" title="API Key de Gemini" onclick="_showKeyPanel()" aria-label="Configurar API Key">' +
+                '<i class="fas fa-key"></i>' +
+              '</button>' +
+              '<button class="_aga-ibtn" title="Limpiar conversación" aria-label="Limpiar"' +
+                ' onclick="document.getElementById(\'_aga-messages\').innerHTML=\'\'">' +
+                '<i class="fas fa-broom"></i>' +
+              '</button>' +
+              '<button class="_aga-ibtn" title="Cerrar" aria-label="Cerrar"' +
+                ' onclick="document.getElementById(\'_aga-panel\').classList.remove(\'_aga-open\')">' +
+                '<i class="fas fa-times"></i>' +
+              '</button>' +
+            '</div>' +
+          '</div>' +
+          '<div id="_aga-messages" class="_aga-msgs" role="log" aria-live="polite"></div>' +
+          '<div class="_aga-chips">' +
+            '<button class="_aga-chip" onclick="_agaQuick(\'¿Cuándo es la próxima sesión de comité?\')">📅 Próxima sesión</button>' +
+            '<button class="_aga-chip" onclick="_agaQuick(\'¿Qué sesiones hay esta semana?\')">📆 Esta semana</button>' +
+            '<button class="_aga-chip" onclick="_agaQuick(\'Lista de comités con sesiones pendientes\')">📊 Pendientes</button>' +
+            '<button class="_aga-chip" onclick="_agaQuick(\'¿Cuántos vuelos operó el AIFA en 2025?\')">✈️ Operaciones</button>' +
+          '</div>' +
+          '<div class="_aga-foot">' +
+            '<input id="_aga-input" class="_aga-inp" type="text" autocomplete="off"' +
+              ' placeholder="Pregúntale algo a Gemini…"' +
+              ' onkeydown="if(event.key===\'Enter\')window._agaSend()"' +
+              ' aria-label="Pregunta al asistente">' +
+            '<button class="_aga-send" onclick="window._agaSend()" title="Enviar" aria-label="Enviar">' +
+              '<i class="fas fa-paper-plane"></i>' +
+            '</button>' +
+          '</div>';
 
         document.body.appendChild(panel);
 
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
                 panel.classList.add('_aga-open');
-                document.getElementById('_aga-input')?.focus();
-                setTimeout(async () => {
-                    if (typeof _agEnsureData === 'function') await _agEnsureData();
-                    _agaAddMsg('bot', await _agaAnswer('hola'));
+                const inp = document.getElementById('_aga-input');
+                if (inp) inp.focus();
+                setTimeout(function() {
+                    if (!_getKey()) {
+                        _addMsg('bot', '¡Hola! Soy el Asistente IA del AIFA con **Google Gemini**.\n\nPara empezar, configura tu **API Key** haciendo clic en el ícono 🔑 de arriba. Es gratuita en [Google AI Studio](https://aistudio.google.com/app/apikey).');
+                    } else {
+                        _addMsg('bot', '¡Hola! Soy el Asistente IA del AIFA con **Google Gemini**.\n\nTengo acceso a la agenda de comités y datos de operaciones en tiempo real. ¿En qué te puedo ayudar?');
+                    }
                 }, 120);
             });
         });
@@ -755,22 +362,23 @@
 #_aga-fab {
     position:fixed; bottom:24px; right:24px; z-index:1055;
     width:54px; height:54px; border-radius:50%;
-    background:linear-gradient(135deg,#1a73e8 0%,#0d47a1 100%);
+    background:linear-gradient(135deg,#4285f4 0%,#1a56db 50%,#0d47a1 100%);
     color:#fff; border:none; cursor:pointer;
-    box-shadow:0 4px 18px rgba(26,115,232,.5);
-    display:flex; align-items:center; justify-content:center; font-size:1.3rem;
+    box-shadow:0 4px 18px rgba(66,133,244,.5);
+    display:flex; align-items:center; justify-content:center;
     transition:transform .18s, box-shadow .18s;
+    font-weight:800; font-size:1.15rem; font-family:'Google Sans',Arial,sans-serif;
 }
-#_aga-fab:hover { transform:scale(1.1); box-shadow:0 6px 24px rgba(26,115,232,.6); }
+#_aga-fab:hover { transform:scale(1.1); box-shadow:0 6px 24px rgba(66,133,244,.65); }
 #_aga-fab:focus-visible { outline:3px solid #93c5fd; outline-offset:3px; }
 #_aga-fab.hidden { opacity:0; visibility:hidden; pointer-events:none; }
 
 #_aga-panel {
     position:fixed; bottom:88px; right:24px; z-index:1054;
-    width:360px; max-width:calc(100vw - 32px);
-    height:560px; max-height:calc(100dvh - 110px);
+    width:380px; max-width:calc(100vw - 32px);
+    height:580px; max-height:calc(100dvh - 110px);
     background:#fff; border-radius:18px;
-    box-shadow:0 10px 48px rgba(0,0,0,.2);
+    box-shadow:0 10px 48px rgba(0,0,0,.22);
     display:flex; flex-direction:column; overflow:hidden;
     transform:scale(.9) translateY(16px); opacity:0; pointer-events:none;
     transition:transform .24s cubic-bezier(.34,1.56,.64,1), opacity .18s ease;
@@ -789,17 +397,17 @@
 ._aga-head {
     display:flex; align-items:center; justify-content:space-between;
     padding:12px 14px; gap:8px; flex-shrink:0;
-    background:linear-gradient(135deg,#1a73e8 0%,#0d47a1 100%); color:#fff;
+    background:linear-gradient(135deg,#4285f4 0%,#1a56db 60%,#0d47a1 100%); color:#fff;
 }
 ._aga-head-l { display:flex; align-items:center; gap:10px; }
 ._aga-head-r { display:flex; align-items:center; gap:6px; }
 ._aga-avatar {
     width:38px; height:38px; border-radius:50%;
     background:rgba(255,255,255,.2);
-    display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
 }
 ._aga-name   { font-weight:700; font-size:.87rem; }
-._aga-online { font-size:.67rem; opacity:.85; display:flex; align-items:center; gap:4px; }
+._aga-online { font-size:.67rem; opacity:.9; display:flex; align-items:center; gap:4px; }
 ._aga-dot    { width:7px; height:7px; border-radius:50%; background:#4ade80; flex-shrink:0; }
 ._aga-ibtn {
     background:rgba(255,255,255,.15); border:none; color:#fff;
@@ -818,10 +426,10 @@
 ._aga-msg-user { justify-content:flex-end; }
 ._aga-msg-bot  { justify-content:flex-start; }
 ._aga-bubble {
-    max-width:88%; padding:9px 13px; border-radius:14px;
-    font-size:.79rem; line-height:1.65; word-break:break-word;
+    max-width:90%; padding:9px 13px; border-radius:14px;
+    font-size:.8rem; line-height:1.65; word-break:break-word;
 }
-._aga-msg-user ._aga-bubble { background:#1a73e8; color:#fff; border-bottom-right-radius:3px; }
+._aga-msg-user ._aga-bubble { background:#4285f4; color:#fff; border-bottom-right-radius:3px; }
 ._aga-msg-bot  ._aga-bubble {
     background:#fff; color:#1e293b;
     border-bottom-left-radius:3px; box-shadow:0 1px 5px rgba(0,0,0,.08);
@@ -839,11 +447,11 @@
 }
 ._aga-chip {
     background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;
-    border-radius:20px; padding:3px 10px; font-size:.71rem;
+    border-radius:20px; padding:3px 10px; font-size:.7rem;
     cursor:pointer; transition:background .13s, transform .1s; white-space:nowrap;
 }
 ._aga-chip:hover { background:#dbeafe; transform:translateY(-1px); }
-._aga-chip:focus-visible { outline:2px solid #1a73e8; }
+._aga-chip:focus-visible { outline:2px solid #4285f4; }
 ._aga-foot {
     display:flex; align-items:center; gap:6px;
     padding:8px 10px; background:#fff; border-top:1px solid #e5e7eb; flex-shrink:0;
@@ -853,14 +461,15 @@
     padding:7px 14px; font-size:.8rem; outline:none;
     background:#f8fafc; transition:border-color .15s; min-width:0;
 }
-._aga-inp:focus { border-color:#1a73e8; background:#fff; }
+._aga-inp:focus { border-color:#4285f4; background:#fff; }
 ._aga-send {
     width:34px; height:34px; border-radius:50%; border:none;
-    background:#1a73e8; color:#fff; cursor:pointer; flex-shrink:0;
+    background:linear-gradient(135deg,#4285f4,#1a56db);
+    color:#fff; cursor:pointer; flex-shrink:0;
     display:flex; align-items:center; justify-content:center;
-    font-size:.82rem; transition:background .15s;
+    font-size:.82rem; transition:opacity .15s;
 }
-._aga-send:hover { background:#1557b0; }
+._aga-send:hover { opacity:.85; }
 ._aga-send:focus-visible { outline:3px solid #93c5fd; }
 @keyframes _aga-bounce {
     0%,60%,100% { transform:translateY(0); }
@@ -886,7 +495,7 @@
             fab.classList.remove('hidden');
         } else {
             fab.classList.add('hidden');
-            panel?.classList.remove('_aga-open');
+            if (panel) panel.classList.remove('_aga-open');
         }
     }
 
@@ -894,17 +503,15 @@
         if (document.getElementById('_aga-fab')) return;
         const btn = document.createElement('button');
         btn.id    = '_aga-fab';
-        btn.title = 'Asistente Agenda';
-        btn.setAttribute('aria-label', 'Abrir Asistente Agenda de Comités');
-        btn.innerHTML = '<i class="fas fa-robot"></i>';
+        btn.title = 'Asistente IA AIFA (Gemini)';
+        btn.setAttribute('aria-label', 'Abrir Asistente IA con Gemini');
+        btn.textContent = 'G';
         btn.addEventListener('click', window.agaOpen);
         document.body.appendChild(btn);
 
-        // Estado inicial
         _updateFabVisibility();
 
-        // Observar cambios de clase en todas las secciones
-        document.querySelectorAll('.content-section').forEach(sec => {
+        document.querySelectorAll('.content-section').forEach(function(sec) {
             new MutationObserver(_updateFabVisibility).observe(sec, {
                 attributes: true, attributeFilter: ['class']
             });
