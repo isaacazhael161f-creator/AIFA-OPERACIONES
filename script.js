@@ -17679,6 +17679,20 @@ async function _conciSaveBulkEdits() {
         if (btnNuevoComite)  btnNuevoComite.style.display  = _editableAreas.length ? '' : 'none';
         if (btnNuevaReunion) btnNuevaReunion.style.display = _editableAreas.length ? '' : 'none';
 
+        // Mostrar/ocultar filtro de área según la pestaña activa
+        const TABS_WITH_FILTER = ['#ag-pane-comites', '#ag-pane-reuniones', '#ag-pane-acuerdos'];
+        function _toggleAreaFilter(targetPane) {
+            const fil = document.getElementById('ag-area-filters');
+            if (fil) fil.style.display = TABS_WITH_FILTER.includes(targetPane) ? '' : 'none';
+        }
+        document.querySelectorAll('#ag-main-tabs .nav-link').forEach(btn => {
+            btn.addEventListener('shown.bs.tab', function () {
+                _toggleAreaFilter(btn.getAttribute('data-bs-target'));
+            });
+        });
+        // Estado inicial (Calendario, empieza oculto)
+        _toggleAreaFilter('#ag-pane-calendario');
+
         if (!_initialized) {
             _initialized = true;
         }
@@ -17709,6 +17723,9 @@ async function _conciSaveBulkEdits() {
         _currentArea = area;
         document.querySelectorAll('.ag-filter-btn').forEach(b => b.classList.remove('active'));
         if (btn) btn.classList.add('active');
+        // Sincronizar select
+        const sel = document.getElementById('ag-area-select');
+        if (sel && sel.value !== area) sel.value = area;
 
         // Refrescar la pestaña activa
         const activeTab = document.querySelector('#ag-main-tabs .nav-link.active');

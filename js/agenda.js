@@ -457,12 +457,11 @@ function _agShowComiteDetail(comiteId) {
         }).join('');
     }
 
-    /* ── Eliminar modal previo ── */
-    document.getElementById('_ag-det-modal')?.remove();
+    /* ── Si el modal ya está abierto, actualizar contenido en lugar de recrearlo ── */
+    const _existingDet = document.getElementById('_ag-det-modal');
+    const _isRefresh   = _existingDet && _existingDet.classList.contains('show');
 
-    const html = `
-    <div class="modal fade" id="_ag-det-modal" tabindex="-1">
-      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    const _innerHtml = `
         <div class="modal-content border-0" style="border-radius:14px;overflow:hidden">
           <div class="modal-header border-0 pb-2" style="background:${ac.bg}">
             <div class="flex-grow-1">
@@ -542,16 +541,26 @@ function _agShowComiteDetail(comiteId) {
             </div>
 
           </div><!-- /modal-body -->
-        </div>
-      </div>
-    </div>`;
+        </div>`;
 
-    document.body.insertAdjacentHTML('beforeend', html);
-    const bsM = new bootstrap.Modal(document.getElementById('_ag-det-modal'), { backdrop: true });
-    document.getElementById('_ag-det-modal').addEventListener('hidden.bs.modal', () => {
-        document.getElementById('_ag-det-modal')?.remove();
-    });
-    bsM.show();
+    if (_isRefresh && _existingDet) {
+        /* Modal ya está visible: reemplazar solo el contenido sin tocarlo a nivel Bootstrap */
+        const dialogEl = _existingDet.querySelector('.modal-dialog');
+        if (dialogEl) dialogEl.innerHTML = _innerHtml;
+    } else {
+        if (_existingDet) _existingDet.remove();
+        document.body.insertAdjacentHTML('beforeend', `
+    <div class="modal fade" id="_ag-det-modal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        ${_innerHtml}
+      </div>
+    </div>`);
+        const bsM = new bootstrap.Modal(document.getElementById('_ag-det-modal'), { backdrop: true });
+        document.getElementById('_ag-det-modal').addEventListener('hidden.bs.modal', () => {
+            document.getElementById('_ag-det-modal')?.remove();
+        });
+        bsM.show();
+    }
 }
 /* ─────────────────────────────────────────────────────────────────
    VISTA ANUAL 2026
@@ -1261,6 +1270,10 @@ async function _agSaveComite() {
     _ag.ready = false;
     await _agEnsureData(true);
     _agRefreshActiveTab();
+    /* Si el modal de detalle sigue abierto, refrescarlo con los datos nuevos */
+    if (id && document.getElementById('_ag-det-modal')) {
+        _agShowComiteDetail(id);
+    }
     _agToast(id ? 'Comité actualizado ✓' : 'Comité creado ✓', '#059669');
 }
 
@@ -1383,6 +1396,10 @@ async function _agSaveSesion() {
     _ag.ready = false;
     await _agEnsureData(true);
     _agRefreshActiveTab();
+    /* Si el modal de detalle sigue abierto, refrescarlo con los datos nuevos */
+    if (document.getElementById('_ag-det-modal')) {
+        _agShowComiteDetail(cid);
+    }
     _agToast(id ? 'Sesión actualizada ✓' : 'Sesión agregada ✓', '#2563eb');
 }
 
@@ -1401,6 +1418,10 @@ async function _agDeleteSesion(sesionId) {
     _ag.ready = false;
     await _agEnsureData(true);
     _agRefreshActiveTab();
+    /* Si el modal de detalle sigue abierto, refrescarlo */
+    if (document.getElementById('_ag-det-modal') && sesion?.comite_id) {
+        _agShowComiteDetail(sesion.comite_id);
+    }
     _agToast('Sesión eliminada', '#dc2626');
 }
 
