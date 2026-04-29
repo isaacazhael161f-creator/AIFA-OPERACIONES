@@ -3683,14 +3683,13 @@ FF
                             <p class="mb-0 opacity-75 small">Gestión de reuniones, temas y acuerdos por área</p>
                         </div>
                         <div class="d-flex align-items-center gap-2">
-                            <!-- Botón push notifications -->
-                            <button class="btn btn-outline-light btn-sm" id="ag-notif-btn"
-                                title="Recibir recordatorios de sesiones"
-                                onclick="window.agToggleNotifications && window.agToggleNotifications()"
-                                data-active="0"
+                            <!-- Botón Google Calendar -->
+                            <button class="btn btn-outline-light btn-sm" id="ag-gcal-btn"
+                                title="Agregar sesiones a Google Calendar"
+                                onclick="agOpenGoogleCalendar()"
                                 style="font-size:.8rem;padding:5px 11px;border-color:rgba(255,255,255,.4);white-space:nowrap">
-                                <i class="fas fa-bell-slash me-1" id="ag-notif-icon"></i>
-                                <span id="ag-notif-label">Notificaciones</span>
+                                <i class="fab fa-google me-1"></i>
+                                <span>Google Calendar</span>
                             </button>
                             <button class="btn btn-light btn-sm fw-semibold" id="ag-btn-nueva-reunion" style="display:none"
                                 onclick="agOpenNuevaReunion()">

@@ -1474,6 +1474,217 @@ function agOpenNuevoComite() {
     agOpenEditComite(null);
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   EXPORTAR SESIONES A GOOGLE CALENDAR / .ICS
+   Muestra un modal con las sesiones próximas del área del usuario.
+   Cada evento tiene un link directo a Google Calendar y hay un
+   botón para descargar el archivo .ics (compatible con todos los
+   calendarios: Google, Apple, Outlook, etc.)
+═══════════════════════════════════════════════════════════════════ */
+async function agOpenGoogleCalendar() {
+    await _agEnsureData();
+
+    const userArea = _agUserArea();
+    const isAdmin  = _agIsAdmin();
+    const today    = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    /* ── Filtrar sesiones próximas (no canceladas) ────────────── */
+    let sesiones = _ag.reuniones.filter(r => {
+        const d = new Date(r.fecha_sesion + 'T00:00:00');
+        return d >= today && r.estatus !== 'Cancelada';
+    });
+    if (!isAdmin && userArea) {
+        sesiones = sesiones.filter(r => r.area === userArea);
+    }
+    sesiones.sort((a, b) => a.fecha_sesion.localeCompare(b.fecha_sesion));
+
+    /* ── Construir objetos de evento ──────────────────────────── */
+    function _padDT(r) {
+        const comite  = _ag.comites.find(c => c.id === r.comite_id) || {};
+        const dateStr = r.fecha_sesion.replace(/-/g, '');
+        const rawHora = r.hora_inicio || comite.hora_sesion || '09:00:00';
+        const hora6   = rawHora.replace(/:/g, '').slice(0, 6).padEnd(6, '0');
+        const startDT = dateStr + 'T' + hora6;
+
+        /* end = start + 2 h */
+        const startD  = new Date(r.fecha_sesion + 'T' + rawHora);
+        const endD    = new Date(startD.getTime() + 2 * 3600000);
+        const endDT   = endD.getFullYear().toString()
+            + String(endD.getMonth() + 1).padStart(2, '0')
+            + String(endD.getDate()).padStart(2, '0')
+            + 'T'
+            + String(endD.getHours()).padStart(2, '0')
+            + String(endD.getMinutes()).padStart(2, '0')
+            + '00';
+        return { startDT, endDT };
+    }
+
+    const eventos = sesiones.map(r => {
+        const comite  = _ag.comites.find(c => c.id === r.comite_id) || {};
+        const ac      = AG_AREA[r.area] || AG_AREA.AFAC;
+        const { startDT, endDT } = _padDT(r);
+        const title   = [comite.acronimo || comite.nombre || 'Comité',
+                         'Sesión ' + (r.numero_sesion || '')].filter(Boolean).join(' – ').trim();
+        const details = [
+            comite.nombre || '',
+            r.observaciones ? 'Observaciones: ' + r.observaciones : '',
+            'Área: ' + (ac.name || r.area),
+            comite.presidente ? 'Presidente: ' + comite.presidente : '',
+        ].filter(Boolean).join('\n');
+
+        const location = 'AIFA – Aeropuerto Internacional Felipe Ángeles, Zumpango, Estado de México';
+        const gcalUrl  = 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+            + '&text='     + encodeURIComponent(title)
+            + '&dates='    + startDT + '/' + endDT
+            + '&details='  + encodeURIComponent(details)
+            + '&location=' + encodeURIComponent(location);
+
+        return { r, comite, ac, title, startDT, endDT, gcalUrl, details, location };
+    });
+
+    /* ── Genera contenido ICS ─────────────────────────────────── */
+    function buildICS(evs) {
+        const escICS = s => (s || '').toString()
+            .replace(/\\/g, '\\\\')
+            .replace(/;/g, '\\;')
+            .replace(/,/g, '\\,')
+            .replace(/\n/g, '\\n');
+
+        const lines = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//AIFA OPERACIONES//Agenda Comités 2026//ES',
+            'CALSCALE:GREGORIAN',
+            'METHOD:PUBLISH',
+            'X-WR-CALNAME:AIFA – Sesiones 2026',
+            'X-WR-TIMEZONE:America/Mexico_City',
+        ];
+        evs.forEach(ev => {
+            lines.push(
+                'BEGIN:VEVENT',
+                'UID:aifa-sesion-' + ev.r.id + '@aifa.gob.mx',
+                'DTSTART;TZID=America/Mexico_City:' + ev.startDT,
+                'DTEND;TZID=America/Mexico_City:'   + ev.endDT,
+                'SUMMARY:'     + escICS(ev.title),
+                'DESCRIPTION:' + escICS(ev.details),
+                'LOCATION:'    + escICS(ev.location),
+                'STATUS:CONFIRMED',
+                'END:VEVENT',
+            );
+        });
+        lines.push('END:VCALENDAR');
+        return lines.join('\r\n');
+    }
+
+    /* ── Construir filas del modal ────────────────────────────── */
+    const areaLabel  = isAdmin ? 'Todas las áreas' : (AG_AREA[userArea]?.name || userArea || 'Tu área');
+    const countLabel = eventos.length
+        ? `${eventos.length} sesión${eventos.length !== 1 ? 'es' : ''} próxima${eventos.length !== 1 ? 's' : ''}`
+        : 'sin sesiones próximas';
+
+    let rows = '';
+    if (!eventos.length) {
+        rows = `<div class="text-center text-muted py-5">
+            <i class="fas fa-calendar-times fa-2x mb-2 d-block"></i>
+            No hay sesiones próximas para <strong>${areaLabel}</strong>
+        </div>`;
+    } else {
+        eventos.forEach(ev => {
+            const d  = new Date(ev.r.fecha_sesion + 'T00:00:00');
+            const ac = ev.ac;
+            rows += `
+            <div class="d-flex align-items-center gap-2 py-2 border-bottom">
+              <div class="flex-shrink-0 text-center rounded px-2 py-1"
+                   style="background:${ac.bg};color:${ac.color};border:1px solid ${ac.border};min-width:54px">
+                <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em">${AG_MONTHS[d.getMonth()]}</div>
+                <div style="font-size:1.15rem;font-weight:700;line-height:1.1">${d.getDate()}</div>
+                <div style="font-size:.58rem;opacity:.75">${d.getFullYear()}</div>
+              </div>
+              <div class="flex-grow-1" style="min-width:0">
+                <div class="fw-semibold text-truncate" style="font-size:.83rem" title="${ev.title}">${ev.title}</div>
+                <div class="text-muted d-flex align-items-center gap-1 flex-wrap mt-1" style="font-size:.72rem">
+                  ${ev.r.hora_inicio ? `<span><i class="fas fa-clock me-1"></i>${ev.r.hora_inicio.slice(0,5)} h</span>` : ''}
+                  <span class="badge" style="background:${ac.bg};color:${ac.color};border:1px solid ${ac.border};font-size:.6rem">${ev.r.area}</span>
+                </div>
+              </div>
+              <a href="${ev.gcalUrl}" target="_blank" rel="noopener noreferrer"
+                 class="btn btn-sm flex-shrink-0"
+                 style="background:#1a73e8;color:#fff;font-size:.72rem;white-space:nowrap;padding:5px 10px;border-radius:6px"
+                 aria-label="Agregar al calendario de Google: ${ev.title}">
+                <i class="fab fa-google me-1"></i><span class="d-none d-sm-inline">Agregar</span><span class="d-sm-none">+</span>
+              </a>
+            </div>`;
+        });
+    }
+
+    /* ── Montar y mostrar el modal ────────────────────────────── */
+    document.getElementById('_ag-gcal-modal')?.remove();
+    const modal = document.createElement('div');
+    modal.id        = '_ag-gcal-modal';
+    modal.className = 'modal fade';
+    modal.setAttribute('tabindex', '-1');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-labelledby', '_ag-gcal-title');
+
+    modal.innerHTML = `
+      <div class="modal-dialog modal-dialog-scrollable" style="max-width:500px">
+        <div class="modal-content">
+          <div class="modal-header border-0 pb-2 text-white"
+               style="background:linear-gradient(135deg,#1a73e8 0%,#0d47a1 100%)">
+            <div>
+              <h5 class="modal-title mb-0" id="_ag-gcal-title">
+                <i class="fab fa-google me-2"></i>Sincronizar con Google Calendar
+              </h5>
+              <div style="font-size:.74rem;opacity:.85;margin-top:2px">
+                ${areaLabel} &middot; ${countLabel}
+              </div>
+            </div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+
+          <div class="modal-body px-3 py-2">
+            ${eventos.length ? `
+            <div class="alert alert-light border mb-2 py-2 px-3" style="font-size:.76rem">
+              <i class="fas fa-info-circle me-1 text-primary"></i>
+              Haz clic en <strong>Agregar</strong> en cada sesión que quieras añadir a tu calendario,
+              o descarga el archivo <strong>.ics</strong> para importar todas de una vez.
+            </div>` : ''}
+            ${rows}
+          </div>
+
+          ${eventos.length ? `
+          <div class="modal-footer border-0 py-2 justify-content-between flex-wrap gap-2">
+            <small class="text-muted" style="font-size:.71rem">
+              <i class="fas fa-mobile-alt me-1"></i>
+              El archivo .ics se abre directamente con Google Calendar en Android e iOS
+            </small>
+            <button id="_ag-gcal-ics-btn" class="btn btn-outline-secondary btn-sm" style="font-size:.75rem">
+              <i class="fas fa-download me-1"></i>Descargar .ics (${eventos.length})
+            </button>
+          </div>` : ''}
+        </div>
+      </div>`;
+
+    document.body.appendChild(modal);
+
+    /* Descargar ICS */
+    modal.querySelector('#_ag-gcal-ics-btn')?.addEventListener('click', () => {
+        const ics  = buildICS(eventos);
+        const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+        const url  = URL.createObjectURL(blob);
+        const a    = Object.assign(document.createElement('a'), {
+            href: url, download: 'aifa-sesiones-2026.ics',
+        });
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    modal.addEventListener('hidden.bs.modal', () => modal.remove());
+    _agShowModal('_ag-gcal-modal');
+}
+
 /* ─────────────────────────────────────────────────────────────────
    HOOK EN showSection — auto-carga al navegar a la sección
 ───────────────────────────────────────────────────────────────────*/
