@@ -334,7 +334,8 @@ function _agCalDraw() {
         const overflow = sessions.length - 4;
         visible.forEach(r => {
             const comite   = _ag.comites.find(c => c.id === r.comite_id) || {};
-            const ac       = AG_AREA[r.area] || AG_AREA.AFAC;
+            const _chipArea = comite.area || r.area; // comite.area es la fuente de verdad
+            const ac       = AG_AREA[_chipArea] || AG_AREA.AFAC;
             const label    = comite.acronimo || (comite.nombre || '').split(' ').slice(0, 3).join(' ');
             const isCan    = r.estatus === 'Cancelada';
             const isCel    = r.estatus === 'Celebrada';
@@ -358,7 +359,7 @@ function _agCalDraw() {
                 style="background:${ac.bg};color:${ac.color};border-left-color:${ac.border}"
                 onclick="_agShowComiteDetail('${r.comite_id}')">
                 ${statusIcon}<span style="background:${ac.bg};color:${ac.color};border:1px solid ${ac.border}60;font-size:.56rem;font-weight:700;
-                    padding:0 3px;border-radius:3px;margin-right:4px;letter-spacing:.01em">${r.area}</span>${hora ? `<span style="opacity:.5;font-size:.6rem;margin-right:2px">${hora}</span>` : ''}${label}
+                    padding:0 3px;border-radius:3px;margin-right:4px;letter-spacing:.01em">${_chipArea}</span>${hora ? `<span style="opacity:.5;font-size:.6rem;margin-right:2px">${hora}</span>` : ''}${label}
             </span>`;
         });
         if (overflow > 0) {
@@ -813,7 +814,8 @@ function _agAnualDraw() {
 
                 daySess.forEach(r => {
                     const comite  = _ag.comites.find(c => c.id === r.comite_id) || {};
-                    const ac      = AG_AREA[r.area] || AG_AREA.AFAC;
+                    const _chipArea = comite.area || r.area; // comite.area es la fuente de verdad
+                    const ac      = AG_AREA[_chipArea] || AG_AREA.AFAC;
                     const isCan   = r.estatus === 'Cancelada';
                     const isCel   = r.estatus === 'Celebrada';
                     const hora    = r.hora_inicio ? r.hora_inicio.slice(0,5) : '';
@@ -827,7 +829,7 @@ function _agAnualDraw() {
                         onmouseout="this.style.background='${isCan?'transparent':ac.bg}20'"
                         onclick="_agShowComiteDetail('${r.comite_id}')">
                       <span style="background:${ac.bg};color:${ac.color};border:1px solid ${ac.border};
-                        font-size:.53rem;font-weight:800;padding:1px 4px;border-radius:3px;white-space:nowrap;flex-shrink:0">${r.area}</span>
+                        font-size:.53rem;font-weight:800;padding:1px 4px;border-radius:3px;white-space:nowrap;flex-shrink:0">${_chipArea}</span>
                       ${hora ? `<span style="font-size:.62rem;color:#94a3b8;font-weight:600;flex-shrink:0;min-width:32px">${hora}</span>` : ''}
                       <span style="font-size:.73rem;color:${isCel?'#374151':'#1e293b'};font-weight:${isCel?'400':'600'};
                         line-height:1.3;flex:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${nombre}</span>
