@@ -13223,13 +13223,126 @@ async function loadHistory() {
     const tableBody = document.getElementById('history-table-body');
     if (!tableBody) return;
 
-    tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 text-muted">Analizando bitácora de seguridad...</div></td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 text-muted">Cargando historial...</div></td></tr>';
 
     if (!window.supabaseClient) {
         tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Sistema desconectado.</td></tr>';
         return;
     }
 
+    // ── Helpers ──────────────────────────────────────────────────────────
+    const fieldMap = {
+        nombre: 'Nombre', area: 'Área', descripcion: 'Descripción',
+        activo: 'Activo', acronimo: 'Acrónimo', frecuencia: 'Frecuencia',
+        presidente: 'Presidente / Coordinador', integrantes: 'Integrantes',
+        fundamento: 'Fundamento legal', hora_sesion: 'Hora de sesión',
+        fecha_sesion: 'Fecha de sesión', hora_inicio: 'Hora de inicio',
+        numero_sesion: 'Número de sesión', estatus: 'Estatus',
+        observaciones: 'Observaciones', comite_id: 'Comité',
+        evidencia_url: 'Evidencia', comite: 'Comité', fecha: 'Fecha',
+        participantes: 'Participantes',
+        date: 'Fecha', comercial_ops: 'Ops. Comerciales',
+        comercial_pax: 'PAX Comerciales', general_ops: 'Ops. Generales',
+        general_pax: 'PAX Generales', carga_ops: 'Ops. de Carga',
+        carga_tons: 'Toneladas de carga', carga_cutoff_date: 'Fecha de corte carga',
+    };
+
+    function formatVal(val) {
+        if (val === null || val === undefined || val === '') return null;
+        if (typeof val === 'boolean') return val ? 'Sí' : 'No';
+        if (typeof val === 'string') {
+            if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val))
+                return new Date(val).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
+            if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+                const [y, m, d] = val.split('-').map(Number);
+                return new Date(y, m - 1, d).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
+            }
+            if (/^\d{2}:\d{2}:\d{2}$/.test(val)) return val.slice(0, 5);
+        }
+        return String(val);
+    }
+
+    function renderFieldLabel(key) {
+        return fieldMap[key] || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    function renderValue(val, isOld = false) {
+        const formatted = formatVal(val);
+        if (formatted === null) return '<em class="text-muted" style="font-size:.85em">vacío</em>';
+        const cls = isOld ? 'text-danger text-decoration-line-through' : 'text-success fw-semibold';
+        return `<span class="${cls}">${formatted}</span>`;
+    }
+
+    const SKIP_KEYS = new Set(['id', 'created_at', 'updated_at', 'mode', 'changes', 'summary']);
+
+    function buildDetailsHtml(details, actionType) {
+        if (!details) return '';
+
+        // Plain string
+        if (typeof details === 'string') {
+            return `<span class="text-muted small">${details}</span>`;
+        }
+
+        let html = '';
+
+        // Summary line (shown for both diff and create)
+        if (details.summary) {
+            html += `<div class="text-dark fw-semibold mb-1" style="font-size:.85rem">
+                       <i class="fas fa-info-circle me-1 text-muted"></i>${details.summary}
+                     </div>`;
+        }
+
+        // DIFF mode (edits)
+        if (details.mode === 'diff' && Array.isArray(details.changes) && details.changes.length) {
+            html += '<div class="vstack gap-1 mt-1">';
+            details.changes.forEach(c => {
+                html += `<div class="small d-flex align-items-center flex-wrap gap-1">
+                    <span class="text-secondary" style="min-width:100px">${renderFieldLabel(c.field)}</span>
+                    ${renderValue(c.old, true)}
+                    <i class="fas fa-arrow-right text-muted" style="font-size:.7em"></i>
+                    ${renderValue(c.new, false)}
+                </div>`;
+            });
+            html += '</div>';
+            return html;
+        }
+
+        // CREATE payload — show key-value pairs
+        const keys = Object.keys(details).filter(k => !SKIP_KEYS.has(k));
+        if (keys.length) {
+            html += '<div class="vstack gap-1 mt-1">';
+            keys.forEach(k => {
+                const formatted = formatVal(details[k]);
+                if (!formatted) return;
+                html += `<div class="small d-flex align-items-baseline gap-2">
+                    <span class="text-secondary" style="min-width:120px;font-size:.82em">${renderFieldLabel(k)}</span>
+                    <span class="text-success fw-semibold">${formatted}</span>
+                </div>`;
+            });
+            html += '</div>';
+        }
+
+        return html || '';
+    }
+
+    // ── Entity labels ─────────────────────────────────────────────────────
+    const entityMap = {
+        'daily_operations':   'Operaciones Diarias',
+        'monthly_operations': 'Operaciones Mensuales',
+        'medical_attentions': 'Atenciones Médicas',
+        'medical_types':      'Tipos de Atención',
+        'medical_directory':  'Directorio Médico',
+        'wildlife_strikes':   'Reporte de Fauna',
+        'rescued_wildlife':   'Fauna Rescatada',
+        'flights':            'Vuelos',
+        'flight_itinerary':   'Itinerario',
+        'vuelos_itinerario':  'Conciliación — Itinerario',
+        'agenda_comites':     'Agenda — Comité',
+        'agenda_reuniones':   'Agenda — Sesión',
+        'agenda_acuerdos':    'Agenda — Acuerdo',
+    };
+
+    // ── Fetch ─────────────────────────────────────────────────────────────
     try {
         const { data, error } = await window.supabaseClient
             .from('change_history')
@@ -13240,7 +13353,7 @@ async function loadHistory() {
         if (error) throw error;
 
         if (!data || data.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-shield-alt fa-3x mb-3 text-light"></i><br>No se han detectado eventos de seguridad recientes.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-5"><i class="fas fa-history fa-2x mb-2 d-block"></i>Aún no hay registros en el historial.</td></tr>';
             return;
         }
 
@@ -13250,103 +13363,61 @@ async function loadHistory() {
             const dateStr = dObj.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
             const timeStr = dObj.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
 
-            let badgeClass = 'bg-secondary';
-            let icon = 'fa-info-circle';
-
+            // Badge
+            let badgeClass = 'bg-secondary', icon = 'fa-info-circle', actionLabel = log.action_type;
             if (['CREAR', 'AGREGAR', 'IMPORTAR'].includes(log.action_type)) {
-                badgeClass = 'bg-success';
-                icon = 'fa-plus-circle';
-            }
-            if (['EDITAR', 'ACTUALIZAR', 'MODIFICAR'].includes(log.action_type)) {
-                badgeClass = 'bg-warning text-dark';
-                icon = 'fa-pencil-alt';
-            }
-            if (['ELIMINAR', 'BORRAR'].includes(log.action_type)) {
-                badgeClass = 'bg-danger';
-                icon = 'fa-trash-alt';
-            }
-            if (log.action_type === 'VALIDAR') {
-                badgeClass = 'bg-success';
-                icon = 'fa-check-circle';
-            }
-            if (log.action_type === 'DESVALIDAR') {
-                badgeClass = 'bg-secondary';
-                icon = 'fa-times-circle';
+                badgeClass = 'bg-success'; icon = 'fa-plus-circle'; actionLabel = 'Crear';
+            } else if (['EDITAR', 'ACTUALIZAR', 'MODIFICAR'].includes(log.action_type)) {
+                badgeClass = 'bg-warning text-dark'; icon = 'fa-pencil-alt'; actionLabel = 'Editar';
+            } else if (['ELIMINAR', 'BORRAR'].includes(log.action_type)) {
+                badgeClass = 'bg-danger'; icon = 'fa-trash-alt'; actionLabel = 'Eliminar';
+            } else if (log.action_type === 'VALIDAR') {
+                badgeClass = 'bg-success'; icon = 'fa-check-circle'; actionLabel = 'Validar';
+            } else if (log.action_type === 'DESVALIDAR') {
+                badgeClass = 'bg-secondary'; icon = 'fa-times-circle'; actionLabel = 'Desvalidar';
             }
 
-            // Render Diff/Details with Intelligence
-            let detailsHtml = '';
-            if (log.details) {
-                if (typeof log.details === 'string') {
-                    detailsHtml = `<span class="text-muted">${log.details}</span>`;
-                } else if (log.details.mode === 'diff') {
-                    // Render Diffs
-                    detailsHtml = '<ul class="list-unstyled mb-0 small">';
-                    if (log.details.changes) {
-                        log.details.changes.forEach(c => {
-                            const valOld = c.old === undefined || c.old === null ? '<em class="text-muted">vacío</em>' : `<span class="text-danger text-decoration-line-through">${c.old}</span>`;
-                            const valNew = c.new === undefined || c.new === null ? '<em class="text-muted">vacío</em>' : `<span class="text-success fw-bold">${c.new}</span>`;
-                            detailsHtml += `<li><strong class="text-dark">${c.field}:</strong> ${valOld} <i class="fas fa-arrow-right mx-1 text-muted" style="font-size: 0.8em;"></i> ${valNew}</li>`;
-                        });
-                    }
-                    detailsHtml += '</ul>';
-                } else {
-                    // Fallback generic object
-                    detailsHtml = `<code class="small text-muted">${JSON.stringify(log.details).substring(0, 100)}...</code>`;
-                }
-            }
+            // Entity + short ID
+            const friendlyEntity = entityMap[log.entity_type] || (log.entity_type || '').replace(/_/g, ' ');
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(log.record_id || '');
+            const shortId = log.record_id && log.record_id !== 'new' && log.record_id !== 'null'
+                ? (isUUID ? `#${log.record_id.slice(0, 6)}` : `#${log.record_id}`)
+                : '';
 
+            // User
             const userAvatar = (log.user_email || 'U').charAt(0).toUpperCase();
+            const userName   = (log.user_email || '').split('@')[0];
 
-            // Friendly Entity Names
-            const entityMap = {
-                'daily_operations': 'Operaciones Diarias',
-                'monthly_operations': 'Operaciones Mensuales',
-                'medical_attentions': 'Atenciones Médicas',
-                'medical_types': 'Tipos de Atención',
-                'medical_directory': 'Directorio Médico',
-                'wildlife_strikes': 'Reporte de Fauna',
-                'rescued_wildlife': 'Fauna Rescatada',
-                'flights': 'Vuelos',
-                'flight_itinerary': 'Itinerario',
-                'vuelos_itinerario': 'Conciliación — Itinerario',
-                'agenda_comites':   'Agenda — Comité',
-                'agenda_reuniones': 'Agenda — Sesión',
-                'agenda_acuerdos':  'Agenda — Acuerdo',
-            };
-            const friendlyEntity = entityMap[log.entity_type] || log.entity_type;
+            // Details
+            const detailsHtml = buildDetailsHtml(log.details, log.action_type);
 
             const row = `
-                <tr style="vertical-align: middle;">
-                    <td class="text-nowrap">
-                        <div class="fw-bold">${dateStr}</div>
-                        <div class="small text-muted">${timeStr}</div>
+                <tr style="vertical-align:top">
+                    <td class="text-nowrap pe-3" style="padding-top:14px">
+                        <div class="fw-semibold text-dark" style="font-size:.9rem">${dateStr}</div>
+                        <div class="text-muted" style="font-size:.8rem">${timeStr}</div>
                     </td>
-                    <td>
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-circle bg-dark text-white me-2 shadow-sm" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: bold;">
-                                ${userAvatar}
-                            </div>
-                            <div class="d-flex flex-column" style="line-height:1.2;">
-                                <span class="fw-bold text-dark" style="font-size: 0.9rem;">${log.user_email?.split('@')[0]}</span>
-                                <small class="text-muted" style="font-size: 0.75rem;">${log.user_id?.substring(0, 8)}...</small>
-                            </div>
+                    <td style="padding-top:14px;min-width:120px">
+                        <div class="d-flex align-items-center gap-2">
+                            <div style="width:30px;height:30px;border-radius:50%;background:#1f2937;color:#fff;
+                                 display:flex;align-items:center;justify-content:center;
+                                 font-weight:700;font-size:.85rem;flex-shrink:0">${userAvatar}</div>
+                            <span class="fw-semibold text-dark" style="font-size:.88rem">${userName}</span>
                         </div>
                     </td>
-                    <td>
-                        <span class="badge ${badgeClass} rounded-pill px-3 py-2">
-                            <i class="fas ${icon} me-1"></i> ${log.action_type}
+                    <td style="padding-top:14px">
+                        <span class="badge ${badgeClass} rounded-pill px-3 py-2" style="font-size:.78rem">
+                            <i class="fas ${icon} me-1"></i>${actionLabel}
                         </span>
                     </td>
-                    <td>
-                        <div class="fw-bold text-secondary">${friendlyEntity}</div>
-                        <div class="small text-muted font-monospace">${log.record_id || '#'}</div>
+                    <td style="padding-top:14px;min-width:150px">
+                        <div class="fw-semibold" style="color:#374151;font-size:.88rem">${friendlyEntity}</div>
+                        ${shortId ? `<div class="text-muted" style="font-size:.75rem;font-family:monospace">${shortId}</div>` : ''}
                     </td>
-                    <td class="bg-light border rounded">
+                    <td style="padding-top:10px;padding-bottom:10px">
                         ${detailsHtml}
                     </td>
-                </tr>
-            `;
+                </tr>`;
             tableBody.insertAdjacentHTML('beforeend', row);
         });
 
