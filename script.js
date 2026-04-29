@@ -17160,9 +17160,16 @@ async function _conciSaveBulkEdits() {
         const st = document.getElementById('au-status');
         if (st) st.textContent = 'Guardando área…';
         try {
+            // Derivar la clave del área (la más específica: subdir > dir)
+            const areaId    = subdirId || dirId;
+            const areaEntry = areaId ? _auAreas.find(a => a.id === areaId) : null;
+            const areaClave = areaEntry?.clave || null;
+
             const { data: ur } = await window.supabaseClient
                 .from('user_roles').select('permissions').eq('user_id', userId).single();
             const perms = { ...(ur?.permissions || {}), direccion_id: dirId, subdireccion_id: subdirId };
+            // Guardar clave para que el módulo de Agenda pueda leerla directamente
+            if (areaClave) perms.area = areaClave; else delete perms.area;
             const { error } = await window.supabaseClient
                 .from('user_roles').update({ permissions: perms }).eq('user_id', userId);
             if (error) throw error;
@@ -17170,7 +17177,7 @@ async function _conciSaveBulkEdits() {
             if (u) u.permissions = perms;
             const panel = document.getElementById(`au-panel-${shortId}`);
             if (panel) { panel.style.display = 'none'; panel.dataset.mode = ''; }
-            if (st) st.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Área asignada.</span>';
+            if (st) st.innerHTML = `<span class="text-success"><i class="fas fa-check-circle me-1"></i>Área asignada${areaClave ? `: <strong>${areaClave}</strong>` : ''}.</span>`;
             auRenderRows();
         } catch (e) {
             if (st) st.textContent = '❌ ' + e.message;
@@ -17298,6 +17305,18 @@ async function _conciSaveBulkEdits() {
                     });
                 if (re) throw re;
                 if (rd && rd.ok === false) throw new Error(rd.error || 'Error asignando rol');
+
+                // Guardar clave de área en permissions.area para que el módulo
+                // de Agenda pueda verificar permisos de edición correctamente
+                const areaId    = subdirId || dirId;
+                const areaEntry = areaId ? _auAreas.find(a => a.id === areaId) : null;
+                if (areaEntry?.clave) {
+                    const { data: ur2 } = await window.supabaseClient
+                        .from('user_roles').select('permissions').eq('user_id', userId).maybeSingle();
+                    const updatedPerms = { ...(ur2?.permissions || {}), area: areaEntry.clave };
+                    await window.supabaseClient
+                        .from('user_roles').update({ permissions: updatedPerms }).eq('user_id', userId);
+                }
             }
             if (msgEl) msgEl.innerHTML = `<span class="text-success"><i class="fas fa-check me-1"></i>Usuario <strong>${username}</strong> creado con rol <strong>${role}</strong>.</span>`;
             // Resetear selector de vistas
@@ -17636,106 +17655,55 @@ async function _conciSaveBulkEdits() {
     let _userRole = null;
     let _editableAreas = [];    // áreas que el usuario puede editar
 
-    // Mapa área → etiqueta legible (cubre todo el organigrama AIFA)
+    // Mapa área → etiqueta legible
     const AREA_LABELS = {
-        // Dirección General
-        DG:         'Dirección General',
-        // Direcciones
-        DO:         'Dir. de Operación',
-        DPE:        'Dir. Planeación',
-        DCS:        'Dir. Comercial',
-        DA:         'Dir. de Administración',
-        DJ:         'Dir. Jurídica',
-        // Entidades especiales nivel 2
-        GPE:        'Gerencia Procesos y Estadística',
-        SMS:        'SMS',
-        // Subdirecciones de DO
-        'SD-SO':    'Subdir. Seg. Operacional',
-        'SD-SA':    'Subdir. Seg. Aviación',
-        'SD-ING':   'Subdir. Ingeniería',
-        'SD-SC':    'Subdir. Servicios Conexos',
-        // Subdirecciones de DPE
-        'SD-CE':    'Subdir. Coordinación Estratégica',
-        'SD-PROY':  'Subdir. Proyectos',
-        'SD-SCPE':  'Subdir. Seguimiento y Control',
-        // Subdirecciones de DCS
-        'SD-CYS':   'Subdir. Comercial y Servicios',
-        'SD-SAYC':  'Subdir. Servicios Aeroportuarios',
-        'SD-MYC':   'Subdir. Movilidad y Calidad',
-        // Subdirecciones de DA
-        'SD-RH':    'Subdir. Recursos Humanos',
-        'SD-RM':    'Subdir. Recursos Materiales',
-        'SD-RF':    'Subdir. Recursos Financieros',
-        'SD-SIS':   'Subdir. Sistemas',
-        // Subdirecciones de DJ
-        'SD-CONS':  'Subdir. Consultiva',
-        'SD-CONT':  'Subdir. Contenciosa',
-        'SD-ACORP': 'Subdir. Asuntos Corporativos',
-        // Gerencias / Unidades
-        GSO:        'Gerencia Seg. Operacional',
-        GC:         'Gerencia de Calidad',
-        UT:         'Unidad de Transparencia',
-        AFAC:       'AFAC',
+        DO:   'Dir. de Operación',
+        DA:   'Dir. de Administración',
+        DPE:  'Dir. Planeación',
+        DCS:  'Dir. Comercial',
+        GSO:  'Seg. Operacional',
+        UT:   'Transparencia',
+        GC:   'Calidad',
+        AFAC: 'AFAC',
     };
 
     // Iconos por área
     const AREA_ICONS = {
-        DG: 'fa-building', DO: 'fa-plane', DPE: 'fa-chart-line',
-        DCS: 'fa-store', DA: 'fa-briefcase', DJ: 'fa-gavel',
-        GPE: 'fa-chart-bar', SMS: 'fa-shield-alt',
-        'SD-SO': 'fa-shield-alt', 'SD-SA': 'fa-lock', 'SD-ING': 'fa-cogs', 'SD-SC': 'fa-concierge-bell',
-        'SD-CE': 'fa-compass', 'SD-PROY': 'fa-project-diagram', 'SD-SCPE': 'fa-tasks',
-        'SD-CYS': 'fa-handshake', 'SD-SAYC': 'fa-plane-arrival', 'SD-MYC': 'fa-medal',
-        'SD-RH': 'fa-users', 'SD-RM': 'fa-boxes', 'SD-RF': 'fa-coins', 'SD-SIS': 'fa-laptop-code',
-        'SD-CONS': 'fa-balance-scale', 'SD-CONT': 'fa-file-contract', 'SD-ACORP': 'fa-building',
-        GSO: 'fa-shield-alt', GC: 'fa-medal', UT: 'fa-eye', AFAC: 'fa-id-card',
+        DO:   'fa-plane',
+        DA:   'fa-briefcase',
+        DPE:  'fa-chart-line',
+        DCS:  'fa-store',
+        GSO:  'fa-shield-alt',
+        UT:   'fa-eye',
+        GC:   'fa-medal',
+        AFAC: 'fa-id-card',
     };
 
     // Colores por área (badge background / text)
     const AREA_COLORS = {
-        DG:  { bg:'#f0f9ff', text:'#0c4a6e' },
-        DO:  { bg:'#dbeafe', text:'#1e40af' },
-        DPE: { bg:'#ede9fe', text:'#5b21b6' },
-        DCS: { bg:'#fef3c7', text:'#92400e' },
-        DA:  { bg:'#fee2e2', text:'#991b1b' },
-        DJ:  { bg:'#fee2e2', text:'#7f1d1d' },
-        GPE: { bg:'#e0f2fe', text:'#0369a1' },
-        SMS: { bg:'#ecfeff', text:'#155e75' },
-        'SD-SO':  { bg:'#e0f2fe', text:'#075985' }, 'SD-SA':  { bg:'#eef2ff', text:'#3730a3' },
-        'SD-ING': { bg:'#f5f3ff', text:'#4c1d95' }, 'SD-SC':  { bg:'#f0fdfa', text:'#134e4a' },
-        'SD-CE':  { bg:'#e0f2fe', text:'#075985' }, 'SD-PROY':{ bg:'#ecfeff', text:'#155e75' },
-        'SD-SCPE':{ bg:'#cffafe', text:'#164e63' },
-        'SD-CYS': { bg:'#eff6ff', text:'#1e3a8a' }, 'SD-SAYC':{ bg:'#dbeafe', text:'#1d4ed8' },
-        'SD-MYC': { bg:'#bfdbfe', text:'#1e40af' },
-        'SD-RH':  { bg:'#fffbeb', text:'#92400e' }, 'SD-RM':  { bg:'#fef3c7', text:'#78350f' },
-        'SD-RF':  { bg:'#fde68a', text:'#713f12' }, 'SD-SIS': { bg:'#faf5ff', text:'#581c87' },
-        'SD-CONS':{ bg:'#fef2f2', text:'#991b1b' }, 'SD-CONT':{ bg:'#fee2e2', text:'#7f1d1d' },
-        'SD-ACORP':{ bg:'#fecaca', text:'#6b2222' },
+        DO:   { bg:'#dbeafe', text:'#1e40af' },
+        DA:   { bg:'#fee2e2', text:'#991b1b' },
+        DPE:  { bg:'#ede9fe', text:'#5b21b6' },
+        DCS:  { bg:'#fef3c7', text:'#92400e' },
         GSO:  { bg:'#dcfce7', text:'#166534' },
-        GC:   { bg:'#fdf4ff', text:'#7e22ce' },
         UT:   { bg:'#e0f2fe', text:'#0c4a6e' },
+        GC:   { bg:'#fdf4ff', text:'#7e22ce' },
         AFAC: { bg:'#f1f5f9', text:'#334155' },
     };
 
-    // Roles globales (sin área asignada propia)
-    const _GLOBAL_ROLES_IIFE = ['admin','superadmin','editor','viewer','colab_viewer','colab_editor'];
-    const _LEGACY_AREA_IIFE  = { operacion:'DO', administracion:'DA', planeacion:'DPE', comercial:'DCS', seguridad_op:'GSO', transparencia:'UT', calidad:'GC' };
-
-    // Devuelve las claves de área que el usuario puede editar
+    // Determina qué áreas puede editar según el rol del usuario
     function resolveEditableAreas(role) {
-        if (['admin', 'superadmin'].includes(role)) return Object.keys(AREA_LABELS);
-
-        // Determinar área del usuario (misma lógica que _agUserArea en agenda.js)
-        const storedArea = (() => { try { return sessionStorage.getItem('user_area'); } catch(_) { return null; } })();
-        if (storedArea && AREA_LABELS[storedArea]) return [storedArea];
-
-        // Compatibilidad: roles legacy descriptivos
-        if (_LEGACY_AREA_IIFE[role]) return [_LEGACY_AREA_IIFE[role]];
-
-        // Nuevo esquema: role IS la clave de área
-        if (!_GLOBAL_ROLES_IIFE.includes(role) && role && AREA_LABELS[role]) return [role];
-
-        return []; // viewer / colab / sin área → solo lectura
+        if (['admin', 'editor', 'superadmin'].includes(role)) {
+            return Object.keys(AREA_LABELS);
+        }
+        if (role === 'operacion')      return ['DO'];
+        if (role === 'administracion') return ['DA'];
+        if (role === 'planeacion')     return ['DPE'];
+        if (role === 'comercial')      return ['DCS'];
+        if (role === 'seguridad_op')   return ['GSO'];
+        if (role === 'transparencia')  return ['UT'];
+        if (role === 'calidad')        return ['GC'];
+        return [];  // afac / viewer → solo lectura
     }
 
     // ── Inicialización ──
@@ -17995,7 +17963,7 @@ async function _conciSaveBulkEdits() {
         let comitesDisp = [];
         try {
             let q = sb().from('agenda_comites').select('id,nombre,area').eq('activo', true).order('nombre');
-            if (_editableAreas.length && !['admin','superadmin'].includes(_userRole)) {
+            if (_editableAreas.length && !['admin','editor','superadmin'].includes(_userRole)) {
                 q = q.in('area', _editableAreas);
             }
             const { data } = await q;
