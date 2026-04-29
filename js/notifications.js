@@ -90,12 +90,24 @@
 
     /* ── Guardar suscripción en Supabase ─────────────────────────── */
     async function saveSubscription(subscription) {
-        const userId = getUserId();
-        const area   = getUserArea();
-        if (!userId || !area || !subscription) return false;
+        const area = getUserArea();
+        if (!area || !subscription) return false;
 
         const sb = window.supabaseClient || (window.ensureSupabaseClient && window.ensureSupabaseClient());
         if (!sb) return false;
+
+        /* Obtener el userId desde Supabase auth (v2) */
+        let userId = null;
+        try {
+            const { data: { user } } = await sb.auth.getUser();
+            userId = user?.id || null;
+        } catch (_) {}
+
+        if (!userId) {
+            console.warn('[AIFA Notif] No se pudo obtener el userId de Supabase auth');
+            _agToastNotif('Inicia sesión antes de activar las notificaciones', '#ef4444');
+            return false;
+        }
 
         const role = sessionStorage.getItem('user_role') || 'viewer';
         const keys = subscription.toJSON().keys || {};
