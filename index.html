@@ -1726,12 +1726,15 @@ FF
                                     </div>
                                     <div class="col-12 col-md-4">
                                         <label class="form-label small fw-semibold mb-1">Área</label>
-                                        <div class="d-flex gap-2">
+                                        <div class="d-flex gap-2 flex-wrap">
                                             <select class="form-select form-select-sm" id="au-reg-dir" aria-label="Dirección" onchange="auUpdateSubdir()">
                                                 <option value="">— Dirección —</option>
                                             </select>
-                                            <select class="form-select form-select-sm" id="au-reg-subdir" aria-label="Subdirección" disabled>
+                                            <select class="form-select form-select-sm" id="au-reg-subdir" aria-label="Subdirección" disabled onchange="auUpdateGerencia()">
                                                 <option value="">— Subdir —</option>
+                                            </select>
+                                            <select class="form-select form-select-sm" id="au-reg-gerencia" aria-label="Gerencia" disabled>
+                                                <option value="">— Gerencia —</option>
                                             </select>
                                         </div>
                                     </div>

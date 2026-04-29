@@ -16756,8 +16756,9 @@ async function _conciSaveBulkEdits() {
     let _auRows   = [];
     let _auFilter = 'all';
     let _auAreas  = [];
-    let _auDirList  = [];
-    let _auSubdirMap = {};
+    let _auDirList     = [];
+    let _auSubdirMap  = {};
+    let _auGerenciaMap = {};
 
     const AU_ROLE_LABELS = {
         admin: 'Admin', editor: 'Editor', viewer: 'Viewer',
@@ -16787,6 +16788,13 @@ async function _conciSaveBulkEdits() {
                 if (!_auSubdirMap[a.parent_area_id]) _auSubdirMap[a.parent_area_id] = [];
                 _auSubdirMap[a.parent_area_id].push(a);
             });
+            // Gerencias: hijos de subdirecciones (nivel 3) → nivel 4
+            _auGerenciaMap = {};
+            const _nivel3Ids = new Set(_auAreas.filter(a => a.nivel === 3).map(a => a.id));
+            _auAreas.filter(a => a.parent_area_id && _nivel3Ids.has(a.parent_area_id)).forEach(a => {
+                if (!_auGerenciaMap[a.parent_area_id]) _auGerenciaMap[a.parent_area_id] = [];
+                _auGerenciaMap[a.parent_area_id].push(a);
+            });
             _auPopulateDirSelect('au-reg-dir');
         } catch (e) {
             console.warn('[adminUsers] loadAreas:', e.message);
@@ -16813,9 +16821,26 @@ async function _conciSaveBulkEdits() {
         sel.disabled = subs.length === 0;
     }
 
+    function _auPopulateGerenciaSelect(selectId, parentId, selected = '') {
+        const sel = document.getElementById(selectId);
+        if (!sel) return;
+        const gers = parentId ? (_auGerenciaMap[parentId] || []) : [];
+        sel.innerHTML = '<option value="">— Gerencia —</option>' +
+            gers.map(g =>
+                `<option value="${g.id}" ${g.id === selected ? 'selected' : ''}>${g.clave} — ${g.nombre}</option>`
+            ).join('');
+        sel.disabled = gers.length === 0;
+    }
+
     window.auUpdateSubdir = function () {
         const dirId = document.getElementById('au-reg-dir')?.value || '';
         _auPopulateSubdirSelect('au-reg-subdir', dirId);
+        _auPopulateGerenciaSelect('au-reg-gerencia', ''); // resetear gerencia al cambiar dir
+    };
+
+    window.auUpdateGerencia = function () {
+        const subdirId = document.getElementById('au-reg-subdir')?.value || '';
+        _auPopulateGerenciaSelect('au-reg-gerencia', subdirId);
     };
 
     // ── Helpers stats ─────────────────────────────────────────────────────
@@ -17171,13 +17196,16 @@ async function _conciSaveBulkEdits() {
         const u = _auRows.find(x => x.user_id === userId);
         const curDir = u?.permissions?.direccion_id    || '';
         const curSub = u?.permissions?.subdireccion_id || '';
+        const curGer = u?.permissions?.gerencia_id     || '';
         panel.dataset.mode = 'area';
         panel.style.display = 'block';
         panel.innerHTML = `<div class="border-top px-3 py-2 d-flex align-items-center gap-2 flex-wrap" style="background:#f0f7ff">
             <i class="fas fa-sitemap text-primary"></i>
-            <select id="au-dir-${shortId}" class="form-select form-select-sm" style="max-width:210px"
-                onchange="auInlineSubdir('au-dir-${shortId}','au-subdir-${shortId}')"></select>
-            <select id="au-subdir-${shortId}" class="form-select form-select-sm" style="max-width:210px" disabled></select>
+            <select id="au-dir-${shortId}" class="form-select form-select-sm" style="max-width:190px"
+                onchange="auInlineSubdir('au-dir-${shortId}','au-subdir-${shortId}','au-ger-${shortId}')"></select>
+            <select id="au-subdir-${shortId}" class="form-select form-select-sm" style="max-width:190px" disabled
+                onchange="auInlineGerencia('au-subdir-${shortId}','au-ger-${shortId}')"></select>
+            <select id="au-ger-${shortId}" class="form-select form-select-sm" style="max-width:190px" disabled></select>
             <button class="btn btn-primary btn-sm py-0 px-3 fw-semibold" onclick="auSaveArea('${userId}','${shortId}')">
                 <i class="fas fa-save me-1"></i>Guardar
             </button>
@@ -17185,27 +17213,36 @@ async function _conciSaveBulkEdits() {
         </div>`;
         _auPopulateDirSelect(`au-dir-${shortId}`, curDir);
         _auPopulateSubdirSelect(`au-subdir-${shortId}`, curDir, curSub);
+        _auPopulateGerenciaSelect(`au-ger-${shortId}`, curSub, curGer);
     };
 
-    window.auInlineSubdir = function (dirId, subId) {
+    window.auInlineSubdir = function (dirId, subId, gerId) {
         const parentId = document.getElementById(dirId)?.value || '';
         _auPopulateSubdirSelect(subId, parentId);
+        if (gerId) _auPopulateGerenciaSelect(gerId, ''); // reset gerencia al cambiar dir
+    };
+
+    window.auInlineGerencia = function (subId, gerId) {
+        const parentId = document.getElementById(subId)?.value || '';
+        _auPopulateGerenciaSelect(gerId, parentId);
     };
 
     window.auSaveArea = async function (userId, shortId) {
-        const dirId   = document.getElementById(`au-dir-${shortId}`)?.value || '';
-        const subdirId = document.getElementById(`au-subdir-${shortId}`)?.value || '';
+        const dirId      = document.getElementById(`au-dir-${shortId}`)?.value || '';
+        const subdirId   = document.getElementById(`au-subdir-${shortId}`)?.value || '';
+        const gerenciaId = document.getElementById(`au-ger-${shortId}`)?.value || '';
         const st = document.getElementById('au-status');
         if (st) st.textContent = 'Guardando área…';
         try {
-            // Derivar la clave del área (la más específica: subdir > dir)
-            const areaId    = subdirId || dirId;
+            // Derivar la clave del área (la más específica: gerencia > subdir > dir)
+            const areaId    = gerenciaId || subdirId || dirId;
             const areaEntry = areaId ? _auAreas.find(a => a.id === areaId) : null;
             const areaClave = areaEntry?.clave || null;
 
             const { data: ur } = await window.supabaseClient
                 .from('user_roles').select('permissions').eq('user_id', userId).single();
             const perms = { ...(ur?.permissions || {}), direccion_id: dirId, subdireccion_id: subdirId };
+            if (gerenciaId) perms.gerencia_id = gerenciaId; else delete perms.gerencia_id;
             // Guardar clave para que el módulo de Agenda pueda leerla directamente
             if (areaClave) perms.area = areaClave; else delete perms.area;
             const { error } = await window.supabaseClient
@@ -17305,6 +17342,7 @@ async function _conciSaveBulkEdits() {
         const role       = document.getElementById('au-reg-role')?.value || 'viewer';
         const dirId      = document.getElementById('au-reg-dir')?.value || '';
         const subdirId   = document.getElementById('au-reg-subdir')?.value || '';
+        const gerenciaId = document.getElementById('au-reg-gerencia')?.value || '';
         const viewMode   = document.querySelector('input[name="au-reg-vmode"]:checked')?.value || 'all';
         const allowedSections = viewMode === 'manual'
             ? Array.from(document.querySelectorAll('#au-reg-views-grid input[type="checkbox"]:checked')).map(cb => cb.value)
@@ -17346,7 +17384,7 @@ async function _conciSaveBulkEdits() {
 
                 // Guardar clave de área en permissions.area para que el módulo
                 // de Agenda pueda verificar permisos de edición correctamente
-                const areaId    = subdirId || dirId;
+                const areaId    = gerenciaId || subdirId || dirId;  // más específico
                 const areaEntry = areaId ? _auAreas.find(a => a.id === areaId) : null;
                 if (areaEntry?.clave) {
                     const { data: ur2 } = await window.supabaseClient
@@ -17367,6 +17405,8 @@ async function _conciSaveBulkEdits() {
             if (dirSel) dirSel.value = '';
             const subSel = document.getElementById('au-reg-subdir');
             if (subSel) { subSel.innerHTML = '<option value="">— Subdir —</option>'; subSel.disabled = true; }
+            const gerSel = document.getElementById('au-reg-gerencia');
+            if (gerSel) { gerSel.innerHTML = '<option value="">— Gerencia —</option>'; gerSel.disabled = true; }
             setTimeout(() => adminUsersLoad(), 900);
         } catch (e) {
             let hint = e.message?.includes('already registered') ? ' (ya existe)' : '';
