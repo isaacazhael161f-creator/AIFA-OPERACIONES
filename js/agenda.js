@@ -87,6 +87,28 @@ async function _agEnsureData(force) {
     _ag.ready = true;
     console.log(`[Agenda] Loaded: ${_ag.comites.length} comités, ${_ag.reuniones.length} reuniones`);
     _agShowAdminButtons();
+    _agPopulateAreaSelect();
+}
+
+/* Populate el <select> de filtro con solo las áreas que tienen datos */
+function _agPopulateAreaSelect() {
+    const sel = document.getElementById('ag-area-select');
+    if (!sel) return;
+    const current = sel.value;
+    const usedAreas = new Set([
+        ..._ag.comites.map(c => c.area),
+        ..._ag.reuniones.map(r => r.area),
+    ]);
+    sel.innerHTML = '<option value="all">Todas las áreas</option>';
+    Object.entries(AG_AREA).forEach(([key, ac]) => {
+        if (!usedAreas.has(key)) return;
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = `${ac.name} (${key})`;
+        sel.appendChild(opt);
+    });
+    // Restaurar selección previa si sigue siendo válida
+    if (current && (current === 'all' || usedAreas.has(current))) sel.value = current;
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -357,10 +379,15 @@ function _agCalDraw() {
 
     html += `</tbody></table></div>`;
 
-    /* ── Leyenda de áreas ───────────────────────────────────────── */
+    /* ── Leyenda de áreas (solo las que tienen comités o sesiones) ─ */
+    const _legendAreas = new Set([
+        ..._ag.comites.map(c => c.area),
+        ..._ag.reuniones.map(r => r.area),
+    ]);
     html += `<div class="d-flex flex-wrap gap-2 mt-3 align-items-center" style="font-size:.72rem">
         <span class="text-muted fw-semibold me-1">Áreas:</span>`;
     Object.entries(AG_AREA).forEach(([key, ac]) => {
+        if (!_legendAreas.has(key)) return;
         html += `<span style="background:${ac.bg};color:${ac.color};border-left:3px solid ${ac.border};
             padding:3px 8px;border-radius:0 5px 5px 0;font-weight:600">${key} <span style="font-weight:400;opacity:.8">— ${ac.name}</span></span>`;
     });
@@ -818,10 +845,15 @@ function _agAnualDraw() {
 
     html += `</div>`; // row
 
-    /* Leyenda de áreas al pie */
+    /* Leyenda de áreas al pie (solo las que tienen datos) */
+    const _legendAreasAnual = new Set([
+        ..._ag.comites.map(c => c.area),
+        ..._ag.reuniones.map(r => r.area),
+    ]);
     html += `<div class="d-flex flex-wrap gap-2 mt-4 align-items-center" style="font-size:.72rem">
         <span class="text-muted fw-semibold me-1">Áreas:</span>`;
     Object.entries(AG_AREA).forEach(([key, ac]) => {
+        if (!_legendAreasAnual.has(key)) return;
         html += `<span style="background:${ac.bg};color:${ac.color};border-left:3px solid ${ac.border};
             padding:3px 8px;border-radius:0 5px 5px 0;font-weight:600">${key} <span style="font-weight:400;opacity:.8">— ${ac.name}</span></span>`;
     });
