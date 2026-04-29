@@ -184,89 +184,25 @@
     }
 
     /* ══════════════════════════════════════════════════════════════
-       MOTOR DE RESPUESTA — detecta dominio y responde
+       MOTOR DE RESPUESTA — solo agenda de comités
     ══════════════════════════════════════════════════════════════ */
     async function _agaAnswer(rawQuery) {
         const q = _n(rawQuery);
 
-        /* ── SALUDO ─────────────────────────────────────────────── */
+        /* SALUDO */
         if (/^(hola|hi|hey|buenas?|buenos?)/.test(q)) {
             const h  = new Date().getHours();
             const gr = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
-            return `👋 ${gr}! Soy el **Asistente AIFA**.\n\nPuedo informarte sobre:\n• ✈️ **Destinos** — "¿Cuántos destinos tiene AIFA?"\n• 🏢 **Aerolíneas** — "¿Qué aerolíneas de pasajeros operan?"\n• 📊 **Operaciones** — "¿Cuántas operaciones en 2025?"\n• 🗓️ **Vuelos** — "Vuelos programados a Palenque"\n• 📋 **Agenda** — "¿Cuándo es la próxima sesión?"\n\nEscribe **ayuda** para ver más ejemplos.`;
+            return `👋 ${gr}! Soy el asistente de la **Agenda de Comités**.\n\nPuedo ayudarte a saber:\n• ¿Cuándo es la próxima sesión?\n• ¿A qué hora es el comité de calidad?\n• ¿Qué sesiones hay esta semana?\n• Resumen de sesiones pendientes\n• ¿Qué es el comité GSO?`;
         }
 
-        /* ── AYUDA ──────────────────────────────────────────────── */
-        if (/^ayuda$|help$|que puedes|para que sirves|como funciona|que sabes/.test(q)) {
-            return `💡 **¿Qué puedo hacer?**\n\n**✈️ Destinos y vuelos:**\n• "¿Cuántos destinos tiene AIFA?"\n• "¿Qué destinos nacionales hay?"\n• "Vuelos a Palenque"\n• "¿Qué destinos internacionales hay?"\n• "¿A dónde vuela Viva Aerobus?"\n\n**🏢 Aerolíneas:**\n• "¿Qué aerolíneas de pasajeros operan en AIFA?"\n• "¿Qué aerolíneas de carga hay?"\n• "Aerolíneas internacionales"\n• "¿Cuántas operaciones tuvo Volaris en 2025?"\n• "Información de Aeroméxico"\n\n**📊 Operaciones:**\n• "¿Cuántas operaciones en 2025?"\n• "Operaciones 2024 vs 2025"\n• "¿Cuál fue el año con más operaciones?"\n\n**📋 Agenda de Comités:**\n• "¿Cuándo es la próxima sesión?"\n• "Sesiones de esta semana"\n• "¿Qué comités hay en DO?"\n• "¿Qué es el COCOA?"`;
+        /* AYUDA */
+        if (/ayuda|help|que puedes|para que sirves|como funciona|que sabes/.test(q)) {
+            return `💡 **¿Qué puedo hacer?**\n\n**📅 Próximas sesiones:**\n• "¿Cuándo es la próxima sesión?"\n• "¿Cuándo es el COCOA?"\n\n**⏰ Horarios:**\n• "¿A qué hora es el comité de calidad?"\n• "¿A qué hora es la próxima sesión de DO?"\n\n**📆 Esta semana / mes:**\n• "¿Qué sesiones hay esta semana?"\n• "Sesiones de este mes"\n\n**📊 Resumen:**\n• "¿Cuántas sesiones pendientes hay?"\n• "Resumen de sesiones de DA"\n\n**🗂️ Información de comités:**\n• "¿Qué comités hay en DPE?"\n• "¿Qué es el GSO?"\n• "Lista de comités"`;
         }
 
-        /* ════════════════════════════════════════════════════════
-           DOMINIO 1 — DESTINOS / AEROPUERTOS
-        ═════════════════════════════════════════════════════════ */
-        if (/cuantos destinos|lista.*destinos?|destinos.*aifa|que destinos|a donde (vuela|opera|sale|llega)|destinos (nacionales?|internacionales?|de carga)|rutas (de|de aifa|actuales)|ciudades (con vuelo|conectadas?)/.test(q)) {
-            return await _respDestinos(q);
-        }
-
-        /* Vuelos a un destino específico */
-        if (/vuelos?\s+(a|al|hacia|para)\s+|frecuencias?\s+(a|al|hacia)\s+|ruta\s+(a|al|hacia)\s+|programa.*\ba\b|destino\s+(de\s+)?\w/.test(q)) {
-            return await _respVuelosADestino(q);
-        }
-
-        /* ════════════════════════════════════════════════════════
-           DOMINIO 2 — AEROLÍNEAS
-        ═════════════════════════════════════════════════════════ */
-        if (/que aerolineas?|cuales aerolineas?|aerolineas? (operan|de pasajeros?|de carga|nacionales?|internacionales?|que opera)|cuantas aerolineas?|lista.*aerolineas?/.test(q)) {
-            return await _respAerolineas(q);
-        }
-
-        /* Info / ops de una aerolínea específica */
-        if (/operaciones.*(tuvo|ha.*tenido|de)\s+\w|info(rmacion)?\s+(de|sobre)\s+\w|datos\s+(de|sobre)\s+\w/.test(q) && !/sesion|comite|reunion/.test(q)) {
-            return await _respInfoAerolinea(q);
-        }
-
-        /* ════════════════════════════════════════════════════════
-           DOMINIO 3 — OPERACIONES ANUALES
-        ═════════════════════════════════════════════════════════ */
-        if (/cuantas operaciones|total.*operaciones?|operaciones.*en \d{4}|\d{4}.*operaciones|operaciones anuales?|movimientos.*\d{4}|record de operaciones|mejor.*ano|ano.*record|operaciones.*2025|operaciones.*2024|operaciones.*2023/.test(q)) {
-            return await _respOperaciones(q);
-        }
-
-        /* ════════════════════════════════════════════════════════
-           DOMINIO 4 — AGENDA DE COMITÉS
-        ═════════════════════════════════════════════════════════ */
-        if (/sesion|reunion|comite|acuerdo|agenda|proxim|siguient|esta semana|este mes|cuand.*(es|hay)|hora.*comite|comite.*hora/.test(q)) {
-            return _respAgenda(q);
-        }
-
-        /* ════════════════════════════════════════════════════════
-           CAPTURA AMPLIA — intentar matching contra datos cargados
-        ═════════════════════════════════════════════════════════ */
-        const freqNac   = await _loadFreqLatest('weekly_frequencies');
-        const freqInt   = await _loadFreqLatest('weekly_frequencies_int');
-        const freqCargo = await _loadFreqLatest('weekly_frequencies_cargo');
-        const allFreq   = [...freqNac, ...freqInt, ...freqCargo];
-        const words     = q.split(' ').filter(w => w.length >= 4);
-
-        /* ¿Alguna palabra coincide con una ciudad en las frecuencias? */
-        for (const row of allFreq) {
-            const city = _n(row.city || '');
-            if (words.some(w => city.includes(w))) {
-                return await _respVuelosADestino(q);
-            }
-        }
-
-        /* ¿Alguna palabra coincide con nombre de aerolínea? */
-        const airlines = await _loadAirlines();
-        for (const al of airlines) {
-            const nm = _n(al.nombre);
-            if (words.some(w => w.length > 4 && nm.includes(w))) {
-                return await _respInfoAerolinea(q);
-            }
-        }
-
-        /* ── Fallback ────────────────────────────────────────────── */
-        return `🤔 No entendí bien tu pregunta. Puedes preguntar sobre:\n• "¿Qué aerolíneas de pasajeros operan?"\n• "Vuelos a Mérida"\n• "Operaciones en 2025"\n• "¿Cuándo es la próxima sesión?"\n\nEscribe **ayuda** para ver todos los temas disponibles.`;
+        /* Todo lo demás → agenda */
+        return _respAgenda(q);
     }
 
     /* ══════════════════════════════════════════════════════════════
@@ -764,7 +700,7 @@
               <div class="_aga-avatar"><i class="fas fa-robot"></i></div>
               <div>
                 <div class="_aga-name">Asistente AIFA</div>
-                <div class="_aga-online"><span class="_aga-dot"></span>Información del aeropuerto</div>
+                <div class="_aga-online"><span class="_aga-dot"></span>Agenda de Comités</div>
               </div>
             </div>
             <div class="_aga-head-r">
@@ -782,17 +718,15 @@
           <div id="_aga-messages" class="_aga-msgs" role="log" aria-live="polite"></div>
 
           <div class="_aga-chips">
-            <button class="_aga-chip" onclick="_agaQuick('¿Cuántos destinos tiene AIFA?')">🗺️ Destinos</button>
-            <button class="_aga-chip" onclick="_agaQuick('¿Qué aerolíneas de pasajeros operan en AIFA?')">✈️ Aerolíneas PAX</button>
-            <button class="_aga-chip" onclick="_agaQuick('¿Qué aerolíneas de carga operan en AIFA?')">📦 Aerolíneas carga</button>
-            <button class="_aga-chip" onclick="_agaQuick('¿Cuántas operaciones en 2025?')">📊 Operaciones</button>
-            <button class="_aga-chip" onclick="_agaQuick('¿Cuándo es la próxima sesión de comité?')">📋 Agenda</button>
-            <button class="_aga-chip" onclick="_agaQuick('ayuda')">💡 Ayuda</button>
+            <button class="_aga-chip" onclick="_agaQuick('¿Cuándo es la próxima sesión?')">📅 Próxima sesión</button>
+            <button class="_aga-chip" onclick="_agaQuick('¿Qué sesiones hay esta semana?')">📆 Esta semana</button>
+            <button class="_aga-chip" onclick="_agaQuick('Sesiones pendientes')">📊 Pendientes</button>
+            <button class="_aga-chip" onclick="_agaQuick('Lista de comités')">🗂️ Comités</button>
           </div>
 
           <div class="_aga-foot">
             <input id="_aga-input" class="_aga-inp" type="text" autocomplete="off"
-              placeholder="Ej: Vuelos a Palenque, aerolíneas de carga…"
+              placeholder="Escribe tu pregunta…"
               onkeydown="if(event.key==='Enter')window._agaSend()"
               aria-label="Pregunta al asistente">
             <button class="_aga-send" onclick="window._agaSend()" title="Enviar" aria-label="Enviar">
@@ -829,6 +763,7 @@
 }
 #_aga-fab:hover { transform:scale(1.1); box-shadow:0 6px 24px rgba(26,115,232,.6); }
 #_aga-fab:focus-visible { outline:3px solid #93c5fd; outline-offset:3px; }
+#_aga-fab.hidden { opacity:0; visibility:hidden; pointer-events:none; }
 
 #_aga-panel {
     position:fixed; bottom:88px; right:24px; z-index:1054;
@@ -937,17 +872,43 @@
     document.head.appendChild(style);
 
     /* ══════════════════════════════════════════════════════════════
-       FAB
+       FAB — visible solo en la sección Agenda de Comités
     ══════════════════════════════════════════════════════════════ */
+    function _isAgendaActive() {
+        return !!document.querySelector('#agenda-section.active');
+    }
+
+    function _updateFabVisibility() {
+        const fab   = document.getElementById('_aga-fab');
+        const panel = document.getElementById('_aga-panel');
+        if (!fab) return;
+        if (_isAgendaActive()) {
+            fab.classList.remove('hidden');
+        } else {
+            fab.classList.add('hidden');
+            panel?.classList.remove('_aga-open');
+        }
+    }
+
     function _injectFAB() {
         if (document.getElementById('_aga-fab')) return;
         const btn = document.createElement('button');
         btn.id    = '_aga-fab';
-        btn.title = 'Asistente AIFA';
-        btn.setAttribute('aria-label', 'Abrir Asistente AIFA');
+        btn.title = 'Asistente Agenda';
+        btn.setAttribute('aria-label', 'Abrir Asistente Agenda de Comités');
         btn.innerHTML = '<i class="fas fa-robot"></i>';
         btn.addEventListener('click', window.agaOpen);
         document.body.appendChild(btn);
+
+        // Estado inicial
+        _updateFabVisibility();
+
+        // Observar cambios de clase en todas las secciones
+        document.querySelectorAll('.content-section').forEach(sec => {
+            new MutationObserver(_updateFabVisibility).observe(sec, {
+                attributes: true, attributeFilter: ['class']
+            });
+        });
     }
 
     if (document.readyState === 'loading') {
