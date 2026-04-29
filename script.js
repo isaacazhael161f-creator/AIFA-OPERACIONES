@@ -16724,9 +16724,9 @@ async function _conciSaveBulkEdits() {
                 .eq('estado', 'ACTIVO')
                 .order('orden_visualizacion');
             _auAreas    = data || [];
-            _auDirList  = _auAreas.filter(a => a.nivel === 2);
+            _auDirList  = _auAreas.filter(a => a.nivel === 1 || a.nivel === 2);
             _auSubdirMap = {};
-            _auAreas.filter(a => a.nivel === 3).forEach(a => {
+            _auAreas.filter(a => (a.nivel === 2 || a.nivel === 3) && a.parent_area_id).forEach(a => {
                 if (!_auSubdirMap[a.parent_area_id]) _auSubdirMap[a.parent_area_id] = [];
                 _auSubdirMap[a.parent_area_id].push(a);
             });
@@ -17295,6 +17295,309 @@ async function _conciSaveBulkEdits() {
         } catch (e) {
             let hint = e.message?.includes('already registered') ? ' (ya existe)' : '';
             if (msgEl) msgEl.innerHTML = `<span class="text-danger"><i class="fas fa-times me-1"></i>Error: ${e.message}${hint}</span>`;
+        }
+    };
+
+    // ── ORGANIGRAMA ──────────────────────────────────────────────────────
+
+    async function _auOrgFetchAreas() {
+        _auAreas = [];
+        _auDirList = [];
+        _auSubdirMap = {};
+        const { data, error } = await window.supabaseClient
+            .from('areas')
+            .select('id, clave, nombre, nivel, parent_area_id, color_hex, orden_visualizacion')
+            .eq('estado', 'ACTIVO')
+            .order('nivel', { ascending: true, nullsLast: true })
+            .order('orden_visualizacion', { ascending: true, nullsLast: true });
+        if (error) throw error;
+        _auAreas = data || [];
+        _auDirList = _auAreas.filter(a => a.nivel === 1 || a.nivel === 2);
+        _auAreas.filter(a => a.parent_area_id).forEach(a => {
+            if (!_auSubdirMap[a.parent_area_id]) _auSubdirMap[a.parent_area_id] = [];
+            _auSubdirMap[a.parent_area_id].push(a);
+        });
+        _auPopulateDirSelect('au-reg-dir');
+    }
+
+    window.auOrgRender = async function () {
+        const container = document.getElementById('au-org-tree');
+        if (!container) return;
+        container.innerHTML = '<div class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Cargando…</div>';
+        try {
+            await _auOrgFetchAreas();
+        } catch (e) {
+            container.innerHTML = `<div class="text-danger small p-3">Error cargando áreas: ${e.message}</div>`;
+            return;
+        }
+
+        // Agrupar por padre, ya ordenados por nivel + orden_visualizacion
+        const byParent = {};
+        _auAreas.forEach(a => {
+            const key = a.parent_area_id || '__root__';
+            if (!byParent[key]) byParent[key] = [];
+            byParent[key].push(a);
+        });
+
+        const DEPTH_STYLES = [
+            { fontSize: '0.92rem', fontWeight: '700', py: '10px' },
+            { fontSize: '0.85rem', fontWeight: '600', py: '8px'  },
+            { fontSize: '0.80rem', fontWeight: '500', py: '6px'  },
+        ];
+
+        function renderNode(area, depth) {
+            const children  = byParent[area.id] || [];
+            const color     = area.color_hex || '#6c757d';
+            const ds        = DEPTH_STYLES[Math.min(depth, 2)];
+            const levelLabel = area.nivel != null ? `N${area.nivel}` : '—';
+            const childCount = children.length;
+            const countBadge = childCount
+                ? `<span class="badge rounded-pill bg-secondary bg-opacity-10 text-secondary border me-1" style="font-size:.62rem">${childCount}</span>`
+                : '';
+            const childrenHtml = children.map(c => renderNode(c, depth + 1)).join('');
+
+            return `
+            <div class="au-org-node mb-1">
+                <div class="au-org-row d-flex align-items-center gap-2 rounded-2 px-3"
+                     style="padding-top:${ds.py};padding-bottom:${ds.py};border-left:4px solid ${color};background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+                    <span class="badge rounded-pill flex-shrink-0"
+                          style="background:${color};font-size:.68rem;min-width:50px;text-align:center;letter-spacing:.3px">
+                        ${area.clave}
+                    </span>
+                    <span style="font-size:${ds.fontSize};font-weight:${ds.fontWeight}" class="flex-grow-1 text-truncate">
+                        ${area.nombre}
+                    </span>
+                    ${countBadge}
+                    <span class="badge bg-light text-secondary border" style="font-size:.62rem;min-width:28px;text-align:center">${levelLabel}</span>
+                    <button class="btn btn-sm btn-outline-secondary py-0 px-2 flex-shrink-0"
+                            onclick="auOrgEditArea('${area.id}')" title="Editar"
+                            style="font-size:.7rem;line-height:1.6;opacity:.75">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                </div>
+                ${childrenHtml ? `<div class="au-org-children pt-1 ps-4" style="border-left:2px solid ${color}33;margin-left:26px">${childrenHtml}</div>` : ''}
+            </div>`;
+        }
+
+        // Raíces = los que no tienen padre (excluir "SIN")
+        const roots = (byParent['__root__'] || []).filter(a => a.clave !== 'SIN');
+        if (!roots.length) {
+            container.innerHTML = '<div class="text-muted small text-center py-4">Sin áreas registradas.</div>';
+            return;
+        }
+
+        const isDir  = a => a.nombre.toLowerCase().startsWith('dirección') && a.nivel !== 1;
+        const isSub  = a => a.nombre.toLowerCase().startsWith('subdirección');
+        const totalAreas  = _auAreas.filter(a => a.clave !== 'SIN').length;
+        const totalDirs   = _auAreas.filter(isDir).length;
+        const totalSubs   = _auAreas.filter(isSub).length;
+        const totalOtros  = totalAreas - 1 /* DG */ - totalDirs - totalSubs; // gerencias, SMS, etc.
+
+        container.innerHTML = `
+            <div class="d-flex gap-3 mb-3 flex-wrap">
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2">
+                    <i class="fas fa-sitemap me-1"></i>${totalAreas} áreas totales
+                </span>
+                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2">
+                    <i class="fas fa-building me-1"></i>${totalDirs} Direcciones
+                </span>
+                <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3 py-2">
+                    <i class="fas fa-layer-group me-1"></i>${totalSubs} Subdirecciones
+                </span>
+                ${totalOtros > 0 ? `<span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-2">
+                    <i class="fas fa-tag me-1"></i>${totalOtros} Otras áreas
+                </span>` : ''}
+            </div>
+            <div class="au-org-tree-wrap">${roots.map(r => renderNode(r, 0)).join('')}</div>`;
+
+        _auOrgPopulateParentSelect();
+    };
+
+    function _auOrgPopulateParentSelect(excludeId = null, selectId = 'au-org-parent') {
+        const sel = document.getElementById(selectId);
+        if (!sel) return;
+        const sorted = [..._auAreas].sort((a, b) =>
+            ((a.nivel ?? 9) - (b.nivel ?? 9)) || ((a.orden_visualizacion ?? 999) - (b.orden_visualizacion ?? 999))
+        );
+        sel.innerHTML = '<option value="">— Sin padre (raíz) —</option>' +
+            sorted
+                .filter(a => a.id !== excludeId && a.clave !== 'SIN')
+                .map(a => {
+                    const prefix = '&nbsp;&nbsp;'.repeat((a.nivel || 1) - 1);
+                    return `<option value="${a.id}">${prefix}${a.clave} — ${a.nombre}</option>`;
+                }).join('');
+    }
+
+    window.auOrgSaveNewArea = async function () {
+        const clave  = document.getElementById('au-org-clave')?.value?.trim().toUpperCase();
+        const nombre = document.getElementById('au-org-nombre')?.value?.trim();
+        const parent = document.getElementById('au-org-parent')?.value || null;
+        const color  = document.getElementById('au-org-color')?.value || '#6c757d';
+        const orden  = parseInt(document.getElementById('au-org-orden')?.value) || 999;
+        const msgEl  = document.getElementById('au-org-msg');
+
+        if (!clave || !nombre) {
+            if (msgEl) msgEl.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>Clave y Nombre son obligatorios.</span>';
+            return;
+        }
+
+        let nivel = 1;
+        if (parent) {
+            const parentArea = _auAreas.find(a => a.id === parent);
+            nivel = (parentArea?.nivel || 0) + 1;
+        }
+
+        const btn      = document.getElementById('au-org-btn-save');
+        const prevHtml = btn?.innerHTML || '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando…'; }
+
+        try {
+            const { error } = await window.supabaseClient.from('areas').insert([{
+                clave, nombre,
+                parent_area_id: parent,
+                color_hex: color,
+                nivel,
+                estado: 'ACTIVO',
+                orden_visualizacion: orden,
+            }]);
+            if (error) throw error;
+            if (msgEl) msgEl.innerHTML = '<span class="text-success"><i class="fas fa-check me-1"></i>Área creada correctamente.</span>';
+            ['au-org-clave','au-org-nombre'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            const parentSel = document.getElementById('au-org-parent');
+            if (parentSel) parentSel.value = '';
+            const ordenEl = document.getElementById('au-org-orden');
+            if (ordenEl) ordenEl.value = '999';
+            const collapseEl = document.getElementById('au-org-add-collapse');
+            if (collapseEl) bootstrap.Collapse.getInstance(collapseEl)?.hide();
+            _auAreas = [];
+            await auOrgRender();
+        } catch (e) {
+            if (msgEl) msgEl.innerHTML = `<span class="text-danger"><i class="fas fa-times me-1"></i>Error: ${e.message}</span>`;
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = prevHtml; }
+        }
+    };
+
+    // ── Editar área existente ─────────────────────────────────────────────
+    window.auOrgEditArea = function (areaId) {
+        const area = _auAreas.find(a => a.id === areaId);
+        if (!area) return;
+
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.id = 'au-org-edit-modal';
+        modal.tabIndex = -1;
+        modal.innerHTML = `
+        <div class="modal-dialog modal-md modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header py-3" style="background:linear-gradient(135deg,#1e3a8a,#1d4ed8);color:#fff">
+                    <div>
+                        <h6 class="modal-title mb-0 fw-bold"><i class="fas fa-pen me-2"></i>Editar Área</h6>
+                        <div class="small opacity-75 mt-1">
+                            <span class="badge bg-white bg-opacity-25 rounded-pill px-2" style="font-size:.7rem">${area.clave}</span>
+                            ${area.nombre}
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-4">
+                            <label class="form-label small fw-semibold text-muted text-uppercase mb-1" style="font-size:.68rem;letter-spacing:.5px">Clave *</label>
+                            <input class="form-control form-control-sm fw-bold text-center"
+                                   id="au-oe-clave" value="${area.clave}"
+                                   style="text-transform:uppercase;font-size:.95rem;letter-spacing:.5px">
+                        </div>
+                        <div class="col-8">
+                            <label class="form-label small fw-semibold text-muted text-uppercase mb-1" style="font-size:.68rem;letter-spacing:.5px">Nombre *</label>
+                            <input class="form-control form-control-sm" id="au-oe-nombre" value="${area.nombre}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold text-muted text-uppercase mb-1" style="font-size:.68rem;letter-spacing:.5px">
+                                <i class="fas fa-sitemap me-1"></i>Pertenece a (área padre)
+                            </label>
+                            <select class="form-select form-select-sm" id="au-oe-parent">
+                                <!-- populado por JS -->
+                            </select>
+                            <div class="form-text"><i class="fas fa-info-circle me-1"></i>Al cambiar el padre, el nivel se recalcula automáticamente.</div>
+                        </div>
+                        <div class="col-5">
+                            <label class="form-label small fw-semibold text-muted text-uppercase mb-1" style="font-size:.68rem;letter-spacing:.5px">Color</label>
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="color" class="form-control-color rounded border" id="au-oe-color"
+                                       value="${area.color_hex || '#6c757d'}" style="width:42px;height:34px;cursor:pointer">
+                                <span class="small text-muted" id="au-oe-color-label">${area.color_hex || '#6c757d'}</span>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small fw-semibold text-muted text-uppercase mb-1" style="font-size:.68rem;letter-spacing:.5px">Orden</label>
+                            <input type="number" class="form-control form-control-sm text-center"
+                                   id="au-oe-orden" value="${area.orden_visualizacion ?? 999}" min="1" max="999">
+                        </div>
+                    </div>
+                    <div id="au-oe-msg" class="small mt-3"></div>
+                </div>
+                <div class="modal-footer border-0 pt-0 pb-3 px-4 gap-2">
+                    <button class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary btn-sm fw-semibold px-4" id="au-oe-btn"
+                            onclick="auOrgSaveEdit('${areaId}')">
+                        <i class="fas fa-save me-1"></i>Guardar cambios
+                    </button>
+                </div>
+            </div>
+        </div>`;
+
+        const prev = document.getElementById('au-org-edit-modal');
+        if (prev) prev.remove();
+        document.body.appendChild(modal);
+
+        // Poblar select de padre (excluyendo a sí mismo y sus descendientes)
+        _auOrgPopulateParentSelect(areaId, 'au-oe-parent');
+        document.getElementById('au-oe-parent').value = area.parent_area_id || '';
+
+        // Preview color en tiempo real
+        document.getElementById('au-oe-color').addEventListener('input', function () {
+            document.getElementById('au-oe-color-label').textContent = this.value;
+        });
+
+        new bootstrap.Modal(modal).show();
+    };
+
+    window.auOrgSaveEdit = async function (areaId) {
+        const clave  = document.getElementById('au-oe-clave')?.value?.trim().toUpperCase();
+        const nombre = document.getElementById('au-oe-nombre')?.value?.trim();
+        const parent = document.getElementById('au-oe-parent')?.value || null;
+        const color  = document.getElementById('au-oe-color')?.value || '#6c757d';
+        const orden  = parseInt(document.getElementById('au-oe-orden')?.value) || 999;
+        const msgEl  = document.getElementById('au-oe-msg');
+
+        if (!clave || !nombre) {
+            if (msgEl) msgEl.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>Clave y Nombre son obligatorios.</span>';
+            return;
+        }
+
+        let nivel = 1;
+        if (parent) {
+            const parentArea = _auAreas.find(a => a.id === parent);
+            nivel = (parentArea?.nivel || 0) + 1;
+        }
+
+        const btn = document.getElementById('au-oe-btn');
+        const prevHtml = btn?.innerHTML;
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando…'; }
+
+        try {
+            const { error } = await window.supabaseClient.from('areas').update({
+                clave, nombre, parent_area_id: parent, color_hex: color, nivel, orden_visualizacion: orden,
+            }).eq('id', areaId);
+            if (error) throw error;
+
+            bootstrap.Modal.getInstance(document.getElementById('au-org-edit-modal'))?.hide();
+            _auAreas = [];
+            await auOrgRender();
+        } catch (e) {
+            if (msgEl) msgEl.innerHTML = `<span class="text-danger"><i class="fas fa-times me-1"></i>${e.message}</span>`;
+            if (btn) { btn.disabled = false; btn.innerHTML = prevHtml; }
         }
     };
 

@@ -45,8 +45,14 @@
     async function registerServiceWorker() {
         if (!('serviceWorker' in navigator)) return null;
         try {
-            const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-            return reg;
+            /* Usar el SW activo registrado por script.js.
+               Si no hay ninguno aún, registrar con ruta relativa. */
+            const existing = await Promise.race([
+                navigator.serviceWorker.ready,
+                new Promise(resolve => setTimeout(() => resolve(null), 3000)),
+            ]);
+            if (existing) return existing;
+            return await navigator.serviceWorker.register('sw.js');
         } catch (err) {
             console.warn('[AIFA Notif] Error registrando SW:', err);
             return null;
@@ -158,6 +164,12 @@
             /* Verificar soporte */
             if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
                 _agToastNotif('Tu navegador no soporta notificaciones push', '#ef4444');
+                return;
+            }
+
+            /* En modo local (localhost) el SW está bloqueado intencionalmente */
+            if (window.__NO_SW__) {
+                _agToastNotif('Las notificaciones push solo están disponibles en producción', '#6b7280');
                 return;
             }
 

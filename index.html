@@ -1664,6 +1664,28 @@ FF
                         </div>
                     </div>
 
+                    <!-- Tabs: Usuarios / Organigrama -->
+                    <ul class="nav nav-tabs mb-4" id="au-main-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="au-tab-usuarios" data-bs-toggle="tab"
+                                data-bs-target="#au-pane-usuarios" type="button" role="tab">
+                                <i class="fas fa-users me-1"></i>Usuarios
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="au-tab-organigrama" data-bs-toggle="tab"
+                                data-bs-target="#au-pane-organigrama" type="button" role="tab"
+                                onclick="auOrgRender()">
+                                <i class="fas fa-sitemap me-1"></i>Organigrama
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="au-main-tabs-content">
+
+                    <!-- ── Pestaña Usuarios ───────────────────────────── -->
+                    <div class="tab-pane fade show active" id="au-pane-usuarios" role="tabpanel">
+
                     <!-- Crear nuevo usuario (collapse) -->
                     <div class="mb-4">
                         <button class="btn btn-success fw-semibold d-flex align-items-center justify-content-between w-100 py-2 px-3 rounded-3"
@@ -1770,6 +1792,89 @@ FF
                             <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>Cargando usuarios…
                         </div>
                     </div>
+
+                    </div><!-- end #au-pane-usuarios -->
+
+                    <!-- ── Pestaña Organigrama ────────────────────────── -->
+                    <div class="tab-pane fade" id="au-pane-organigrama" role="tabpanel">
+
+                        <!-- Cabecera + botón Agregar -->
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <p class="text-muted small mb-0">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Estructura jerárquica de áreas. Cada área puede asignarse a usuarios desde la pestaña <strong>Usuarios</strong>.
+                            </p>
+                            <button class="btn btn-primary btn-sm fw-semibold px-3 d-flex align-items-center gap-2"
+                                    type="button" data-bs-toggle="collapse" data-bs-target="#au-org-add-collapse" aria-expanded="false">
+                                <i class="fas fa-plus"></i><span>Agregar Área</span>
+                            </button>
+                        </div>
+
+                        <!-- Formulario Agregar Área (colapsable) -->
+                        <div class="collapse mb-4" id="au-org-add-collapse">
+                            <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+                                <div class="card-header py-2 px-3" style="background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff">
+                                    <h6 class="mb-0 fw-semibold small"><i class="fas fa-plus-circle me-2"></i>Nueva Área / Dirección / Subdirección</h6>
+                                </div>
+                                <div class="card-body p-3 bg-light">
+                                    <div class="row g-2 align-items-end">
+                                        <!-- Clave -->
+                                        <div class="col-6 col-md-2">
+                                            <label class="form-label small fw-semibold text-muted text-uppercase mb-1" style="font-size:.67rem;letter-spacing:.4px">Clave *</label>
+                                            <input type="text" class="form-control form-control-sm fw-bold text-center"
+                                                   id="au-org-clave" placeholder="DO" maxlength="12"
+                                                   style="text-transform:uppercase;letter-spacing:.5px">
+                                        </div>
+                                        <!-- Nombre -->
+                                        <div class="col-12 col-md-4">
+                                            <label class="form-label small fw-semibold text-muted text-uppercase mb-1" style="font-size:.67rem;letter-spacing:.4px">Nombre *</label>
+                                            <input type="text" class="form-control form-control-sm"
+                                                   id="au-org-nombre" placeholder="Ej: Dirección de Operación">
+                                        </div>
+                                        <!-- Área padre -->
+                                        <div class="col-12 col-md-3">
+                                            <label class="form-label small fw-semibold text-muted text-uppercase mb-1" style="font-size:.67rem;letter-spacing:.4px"><i class="fas fa-sitemap me-1"></i>Pertenece a</label>
+                                            <select class="form-select form-select-sm" id="au-org-parent">
+                                                <option value="">— Raíz (sin padre) —</option>
+                                            </select>
+                                        </div>
+                                        <!-- Color + Orden -->
+                                        <div class="col-6 col-md-1">
+                                            <label class="form-label small fw-semibold text-muted text-uppercase mb-1" style="font-size:.67rem;letter-spacing:.4px">Color</label>
+                                            <input type="color" class="form-control form-control-color rounded border w-100"
+                                                   id="au-org-color" value="#0EA5E9" style="height:31px;cursor:pointer">
+                                        </div>
+                                        <div class="col-6 col-md-1">
+                                            <label class="form-label small fw-semibold text-muted text-uppercase mb-1" style="font-size:.67rem;letter-spacing:.4px">Orden</label>
+                                            <input type="number" class="form-control form-control-sm text-center"
+                                                   id="au-org-orden" value="999" min="1" max="999">
+                                        </div>
+                                        <!-- Botón -->
+                                        <div class="col-12 col-md-1">
+                                            <button class="btn btn-primary btn-sm fw-semibold w-100" id="au-org-btn-save"
+                                                    onclick="auOrgSaveNewArea()">
+                                                <i class="fas fa-save me-1"></i>Guardar
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="au-org-msg" class="small mt-2 ps-1"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Árbol del organigrama -->
+                        <div class="card border-0 shadow-sm p-3" style="background:#f8fafc">
+                            <div id="au-org-tree">
+                                <div class="text-center text-muted py-5">
+                                    <i class="fas fa-sitemap fa-2x mb-2 d-block opacity-25"></i>
+                                    <span class="small">Haz clic en la pestaña <strong>Organigrama</strong> para cargar.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div><!-- end #au-pane-organigrama -->
+
+                    </div><!-- end .tab-content -->
                 </div>
 
                 <div id="data-management-section" class="content-section">
