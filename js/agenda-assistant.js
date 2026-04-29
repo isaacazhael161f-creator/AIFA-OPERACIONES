@@ -1,72 +1,140 @@
 /* ===================================================================
-   AIFA OPERACIONES — Asistente IA de Agenda de Comités
-   js/agenda-assistant.js
+   AIFA OPERACIONES — Asistente IA Integral
+   js/agenda-assistant.js  (v3 — sin voz, alcance completo)
 
-   • Responde preguntas en lenguaje natural sobre sesiones y comités
-   • Soporta voz (Web Speech API): input por micrófono + respuesta TTS
-   • Filtra automáticamente según el área del usuario
-   • Funciona en celular y escritorio
+   Dominios de conocimiento:
+     1. Destinos / Aeropuertos de AIFA
+     2. Aerolíneas (pasajeros, carga, nacionales, internacionales)
+     3. Frecuencias semanales y vuelos programados por destino
+     4. Operaciones anuales / mensuales
+     5. Agenda de Comités (sesiones, acuerdos)
    =================================================================== */
 
 (function () {
     'use strict';
 
-    /* ── Estado interno ─────────────────────────────────────────── */
-    const _aga = {
-        recognition : null,
-        listening   : false,
-        synth       : window.speechSynthesis || null,
+    /* ── Caché de datos cargados bajo demanda ───────────────────── */
+    const _cache = {
+        airports  : null,  // tabla aeropuertos
+        airlines  : null,  // tabla Aerolíneas (mensual histórico)
+        freqNac   : null,  // weekly_frequencies (nacional) – semana más reciente
+        freqInt   : null,  // weekly_frequencies_int (internacional)
+        freqCargo : null,  // weekly_frequencies_cargo (carga)
+        annualOps : null,  // tabla annual_operations
     };
 
-    /* ── Acceso a los datos ya cargados por agenda.js ───────────── */
-    function _agaData() {
-        return (typeof _ag !== 'undefined')
-            ? _ag
-            : { comites: [], reuniones: [], ready: false };
+    /* ── Cliente Supabase ────────────────────────────────────────── */
+    function _sb() {
+        return window.supabaseClient
+            || window.dataManager?.client
+            || null;
     }
 
-    /* ── Normalizar texto (quitar tildes, pasar a minús) ─────────── */
-    function _norm(s) {
+    /* ── Normalizar texto ────────────────────────────────────────── */
+    function _n(s) {
         return (s || '').toLowerCase()
             .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
             .replace(/[^a-z0-9\s]/g, ' ')
             .replace(/\s+/g, ' ').trim();
     }
 
-    /* ── Sinónimos de área para detección en texto libre ─────────── */
-    const AREA_SYNS = {
-        DO  : ['operacion','operaciones','do ','operativo'],
-        DA  : ['administracion','administrativa','da '],
-        DPE : ['planeacion','planeamiento','dpe','planeacion estrategica'],
-        DCS : ['comercial','comerciales','dcs'],
-        GSO : ['seguridad','seguridad operacional','gso'],
-        UT  : ['transparencia','ut '],
-        GC  : ['calidad','gestion de calidad','gc '],
-        AFAC: ['afac','autoridad federal'],
-    };
-
-    function _matchArea(n) {
-        for (const [key, syns] of Object.entries(AREA_SYNS)) {
-            if (syns.some(s => n.includes(s) || n === s.trim())) return key;
-        }
-        return null;
+    /* ── Número formateado ───────────────────────────────────────── */
+    function _fmt(n) {
+        return typeof n === 'number'
+            ? n.toLocaleString('es-MX')
+            : (n ?? '—');
     }
 
-    /* ── Buscar comité por nombre / siglas (fuzzy por palabras) ─── */
-    function _matchComite(q) {
-        const { comites } = _agaData();
-        const words = _norm(q).split(' ').filter(w => w.length > 2);
-        if (!words.length) return null;
-        let best = null, bestScore = 0;
-        comites.forEach(c => {
-            const cn = _norm((c.nombre || '') + ' ' + (c.acronimo || ''));
-            const score = words.filter(w => cn.includes(w)).length;
-            if (score > bestScore) { bestScore = score; best = c; }
+    /* ══════════════════════════════════════════════════════════════
+       LOADERS — carga lazy desde Supabase (con caché)
+    ══════════════════════════════════════════════════════════════ */
+
+    async function _loadAirports() {
+        if (_cache.airports) return _cache.airports;
+        const sb = _sb();
+        if (!sb) return [];
+        const { data } = await sb.from('aeropuertos').select('*').order('iata');
+        _cache.airports = data || [];
+        return _cache.airports;
+    }
+
+    async function _loadAirlines() {
+        if (_cache.airlines) return _cache.airlines;
+        const sb = _sb();
+        if (!sb) return [];
+        const { data } = await sb.from('Aerolíneas').select('*');
+        if (!data?.length) { _cache.airlines = []; return []; }
+        _cache.airlines = data.map(row => {
+            const nombre = (row['AEROLINEA'] || row['AEROLINEA '] || 'Desconocida')
+                .replace(/\bAEROUNION\b/gi, 'AEROUNIÓN')
+                .replace(/\bAEROLINEAS\b/gi, 'AEROLÍNEAS')
+                .replace(/\bAEROLINEA\b/gi, 'AEROLÍNEA')
+                .replace(/\bAEREO\b/gi, 'AÉREO')
+                .replace(/\bMAS DE CARGA\b/gi, 'MÁS DE CARGA')
+                .replace(/\bCOMPANIA\b/gi, 'COMPAÑÍA')
+                .replace(/\bCOMPAÑIA\b/gi, 'COMPAÑÍA')
+                .replace(/\bMEXICO\b/gi, 'MÉXICO');
+            const servicio = row['TIPO DE SERVICIO'] || '';
+            const monthly  = {};
+            const years    = { '2023': 0, '2024': 0, '2025': 0, '2026': 0 };
+            Object.keys(row).forEach(k => {
+                const m = /^([a-z]{3})-(\d{2})$/.exec(k.toLowerCase().trim());
+                if (m) {
+                    const val = parseFloat(row[k]) || 0;
+                    monthly[k.toLowerCase()] = val;
+                    const yr = '20' + m[2];
+                    if (yr in years) years[yr] += val;
+                }
+            });
+            return { nombre, servicio, monthly, years };
         });
-        return bestScore > 0 ? best : null;
+        return _cache.airlines;
     }
 
-    /* ── Helpers de fecha ───────────────────────────────────────── */
+    async function _loadFreqLatest(table) {
+        const key = table === 'weekly_frequencies'      ? 'freqNac'
+                  : table === 'weekly_frequencies_int'   ? 'freqInt'
+                  :                                        'freqCargo';
+        if (_cache[key]) return _cache[key];
+        const sb = _sb();
+        if (!sb) return [];
+        /* Semana más reciente disponible */
+        const { data: latest } = await sb
+            .from(table)
+            .select('valid_from')
+            .order('valid_from', { ascending: false })
+            .limit(1);
+        if (!latest?.length) { _cache[key] = []; return []; }
+        const { data } = await sb
+            .from(table)
+            .select('*')
+            .eq('valid_from', latest[0].valid_from);
+        _cache[key] = data || [];
+        return _cache[key];
+    }
+
+    async function _loadAnnualOps() {
+        if (_cache.annualOps) return _cache.annualOps;
+        const sb = _sb();
+        if (!sb) return [];
+        const { data } = await sb
+            .from('annual_operations')
+            .select('*')
+            .order('year', { ascending: false });
+        _cache.annualOps = data || [];
+        return _cache.annualOps;
+    }
+
+    /* ── Acceso a datos de agenda cargados por agenda.js ─────────── */
+    function _agData() {
+        return (typeof _ag !== 'undefined')
+            ? _ag
+            : { comites: [], reuniones: [], ready: false };
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       HELPERS — fechas y agenda
+    ══════════════════════════════════════════════════════════════ */
     const DIAS  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
     const MESES = ['enero','febrero','marzo','abril','mayo','junio',
                    'julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -82,90 +150,458 @@
     }
     function _startOfWeek() {
         const d = new Date(); d.setHours(0,0,0,0);
-        d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // lunes
-        return d;
+        d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d;
     }
-    function _endOfWeek() {
-        const d = _startOfWeek(); d.setDate(d.getDate() + 6); return d;
+    function _endOfWeek() { const d = _startOfWeek(); d.setDate(d.getDate() + 6); return d; }
+
+    const AREA_SYNS = {
+        DO  : ['operacion','operaciones','do ','operativo'],
+        DA  : ['administracion','administrativa','da '],
+        DPE : ['planeacion','planeamiento','dpe','planeacion estrategica'],
+        DCS : ['comercial','comerciales','dcs'],
+        GSO : ['seguridad','seguridad operacional','gso'],
+        UT  : ['transparencia','ut '],
+        GC  : ['calidad','gestion de calidad','gc '],
+        AFAC: ['afac','autoridad federal'],
+    };
+    function _matchArea(n) {
+        for (const [key, syns] of Object.entries(AREA_SYNS)) {
+            if (syns.some(s => n.includes(s) || n === s.trim())) return key;
+        }
+        return null;
+    }
+    function _matchComite(q) {
+        const { comites } = _agData();
+        const words = _n(q).split(' ').filter(w => w.length > 2);
+        if (!words.length) return null;
+        let best = null, bestScore = 0;
+        comites.forEach(c => {
+            const cn = _n((c.nombre || '') + ' ' + (c.acronimo || ''));
+            const score = words.filter(w => cn.includes(w)).length;
+            if (score > bestScore) { bestScore = score; best = c; }
+        });
+        return bestScore > 0 ? best : null;
     }
 
     /* ══════════════════════════════════════════════════════════════
-       MOTOR DE RESPUESTA — detección de intención + extracción de entidades
+       MOTOR DE RESPUESTA — detecta dominio y responde
     ══════════════════════════════════════════════════════════════ */
-    function _agaAnswer(rawQuery) {
-        const { comites, reuniones, ready } = _agaData();
-        if (!ready) return 'Los datos todavía se están cargando. Dame un momento e intenta de nuevo.';
+    async function _agaAnswer(rawQuery) {
+        const q = _n(rawQuery);
 
-        const q     = _norm(rawQuery);
-        const today = new Date(); today.setHours(0,0,0,0);
+        /* ── SALUDO ─────────────────────────────────────────────── */
+        if (/^(hola|hi|hey|buenas?|buenos?)/.test(q)) {
+            const h  = new Date().getHours();
+            const gr = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
+            return `👋 ${gr}! Soy el **Asistente AIFA**.\n\nPuedo informarte sobre:\n• ✈️ **Destinos** — "¿Cuántos destinos tiene AIFA?"\n• 🏢 **Aerolíneas** — "¿Qué aerolíneas de pasajeros operan?"\n• 📊 **Operaciones** — "¿Cuántas operaciones en 2025?"\n• 🗓️ **Vuelos** — "Vuelos programados a Palenque"\n• 📋 **Agenda** — "¿Cuándo es la próxima sesión?"\n\nEscribe **ayuda** para ver más ejemplos.`;
+        }
 
+        /* ── AYUDA ──────────────────────────────────────────────── */
+        if (/^ayuda$|help$|que puedes|para que sirves|como funciona|que sabes/.test(q)) {
+            return `💡 **¿Qué puedo hacer?**\n\n**✈️ Destinos y vuelos:**\n• "¿Cuántos destinos tiene AIFA?"\n• "¿Qué destinos nacionales hay?"\n• "Vuelos a Palenque"\n• "¿Qué destinos internacionales hay?"\n• "¿A dónde vuela Viva Aerobus?"\n\n**🏢 Aerolíneas:**\n• "¿Qué aerolíneas de pasajeros operan en AIFA?"\n• "¿Qué aerolíneas de carga hay?"\n• "Aerolíneas internacionales"\n• "¿Cuántas operaciones tuvo Volaris en 2025?"\n• "Información de Aeroméxico"\n\n**📊 Operaciones:**\n• "¿Cuántas operaciones en 2025?"\n• "Operaciones 2024 vs 2025"\n• "¿Cuál fue el año con más operaciones?"\n\n**📋 Agenda de Comités:**\n• "¿Cuándo es la próxima sesión?"\n• "Sesiones de esta semana"\n• "¿Qué comités hay en DO?"\n• "¿Qué es el COCOA?"`;
+        }
+
+        /* ════════════════════════════════════════════════════════
+           DOMINIO 1 — DESTINOS / AEROPUERTOS
+        ═════════════════════════════════════════════════════════ */
+        if (/cuantos destinos|lista.*destinos?|destinos.*aifa|que destinos|a donde (vuela|opera|sale|llega)|destinos (nacionales?|internacionales?|de carga)|rutas (de|de aifa|actuales)|ciudades (con vuelo|conectadas?)/.test(q)) {
+            return await _respDestinos(q);
+        }
+
+        /* Vuelos a un destino específico */
+        if (/vuelos?\s+(a|al|hacia|para)\s+|frecuencias?\s+(a|al|hacia)\s+|ruta\s+(a|al|hacia)\s+|programa.*\ba\b|destino\s+(de\s+)?\w/.test(q)) {
+            return await _respVuelosADestino(q);
+        }
+
+        /* ════════════════════════════════════════════════════════
+           DOMINIO 2 — AEROLÍNEAS
+        ═════════════════════════════════════════════════════════ */
+        if (/que aerolineas?|cuales aerolineas?|aerolineas? (operan|de pasajeros?|de carga|nacionales?|internacionales?|que opera)|cuantas aerolineas?|lista.*aerolineas?/.test(q)) {
+            return await _respAerolineas(q);
+        }
+
+        /* Info / ops de una aerolínea específica */
+        if (/operaciones.*(tuvo|ha.*tenido|de)\s+\w|info(rmacion)?\s+(de|sobre)\s+\w|datos\s+(de|sobre)\s+\w/.test(q) && !/sesion|comite|reunion/.test(q)) {
+            return await _respInfoAerolinea(q);
+        }
+
+        /* ════════════════════════════════════════════════════════
+           DOMINIO 3 — OPERACIONES ANUALES
+        ═════════════════════════════════════════════════════════ */
+        if (/cuantas operaciones|total.*operaciones?|operaciones.*en \d{4}|\d{4}.*operaciones|operaciones anuales?|movimientos.*\d{4}|record de operaciones|mejor.*ano|ano.*record|operaciones.*2025|operaciones.*2024|operaciones.*2023/.test(q)) {
+            return await _respOperaciones(q);
+        }
+
+        /* ════════════════════════════════════════════════════════
+           DOMINIO 4 — AGENDA DE COMITÉS
+        ═════════════════════════════════════════════════════════ */
+        if (/sesion|reunion|comite|acuerdo|agenda|proxim|siguient|esta semana|este mes|cuand.*(es|hay)|hora.*comite|comite.*hora/.test(q)) {
+            return _respAgenda(q);
+        }
+
+        /* ════════════════════════════════════════════════════════
+           CAPTURA AMPLIA — intentar matching contra datos cargados
+        ═════════════════════════════════════════════════════════ */
+        const freqNac   = await _loadFreqLatest('weekly_frequencies');
+        const freqInt   = await _loadFreqLatest('weekly_frequencies_int');
+        const freqCargo = await _loadFreqLatest('weekly_frequencies_cargo');
+        const allFreq   = [...freqNac, ...freqInt, ...freqCargo];
+        const words     = q.split(' ').filter(w => w.length >= 4);
+
+        /* ¿Alguna palabra coincide con una ciudad en las frecuencias? */
+        for (const row of allFreq) {
+            const city = _n(row.city || '');
+            if (words.some(w => city.includes(w))) {
+                return await _respVuelosADestino(q);
+            }
+        }
+
+        /* ¿Alguna palabra coincide con nombre de aerolínea? */
+        const airlines = await _loadAirlines();
+        for (const al of airlines) {
+            const nm = _n(al.nombre);
+            if (words.some(w => w.length > 4 && nm.includes(w))) {
+                return await _respInfoAerolinea(q);
+            }
+        }
+
+        /* ── Fallback ────────────────────────────────────────────── */
+        return `🤔 No entendí bien tu pregunta. Puedes preguntar sobre:\n• "¿Qué aerolíneas de pasajeros operan?"\n• "Vuelos a Mérida"\n• "Operaciones en 2025"\n• "¿Cuándo es la próxima sesión?"\n\nEscribe **ayuda** para ver todos los temas disponibles.`;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       RESPUESTA: DESTINOS
+    ══════════════════════════════════════════════════════════════ */
+    async function _respDestinos(q) {
+        const [freqNac, freqInt, freqCargo] = await Promise.all([
+            _loadFreqLatest('weekly_frequencies'),
+            _loadFreqLatest('weekly_frequencies_int'),
+            _loadFreqLatest('weekly_frequencies_cargo'),
+        ]);
+
+        const toMap = rows => {
+            const m = new Map();
+            rows.forEach(r => { if (r.city && !m.has(r.iata)) m.set(r.iata, r.city); });
+            return m;
+        };
+        const nacMap   = toMap(freqNac);
+        const intMap   = toMap(freqInt);
+        const cargoMap = toMap(freqCargo);
+
+        const isNac   = /nacionales?|domestico|interior/.test(q);
+        const isInt   = /internacionales?|exterior/.test(q);
+        const isCargo = /carga/.test(q);
+
+        const fmtList = (map, emoji, label) => {
+            const sorted = [...map.entries()].sort((a,b) => a[1].localeCompare(b[1]));
+            const lines  = sorted.map(([iata, city]) => `• **${city}** _(${iata})_`);
+            return `${emoji} **${label} (${sorted.length}):**\n${lines.join('\n')}`;
+        };
+
+        if (isNac)   return fmtList(nacMap,   '🇲🇽', 'Destinos nacionales de AIFA');
+        if (isInt)   return fmtList(intMap,   '🌎', 'Destinos internacionales de AIFA');
+        if (isCargo) return fmtList(cargoMap, '📦', 'Destinos de carga de AIFA');
+
+        /* Resumen general */
+        const allDest = new Set([...nacMap.keys(), ...intMap.keys(), ...cargoMap.keys()]);
+        return `✈️ **Destinos operados desde AIFA:**\n\n• 🇲🇽 **Nacionales:** ${nacMap.size} destinos\n• 🌎 **Internacionales:** ${intMap.size} destinos\n• 📦 **Carga:** ${cargoMap.size} destinos\n\n**Total: ${allDest.size} destinos únicos.**\n\n_Pregunta más: "Destinos nacionales", "Destinos internacionales", "Vuelos a [ciudad]"_`;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       RESPUESTA: VUELOS A UN DESTINO ESPECÍFICO
+    ══════════════════════════════════════════════════════════════ */
+    async function _respVuelosADestino(q) {
+        const [freqNac, freqInt, freqCargo] = await Promise.all([
+            _loadFreqLatest('weekly_frequencies'),
+            _loadFreqLatest('weekly_frequencies_int'),
+            _loadFreqLatest('weekly_frequencies_cargo'),
+        ]);
+
+        const destWord = _extractDestino(q);
+        if (!destWord) {
+            return `✈️ ¿A qué destino quieres consultar vuelos?\nEjemplo: "Vuelos a Palenque" o "Frecuencias a Monterrey"`;
+        }
+
+        const match = r => _n(r.city || '').includes(destWord)
+                        || _n(r.iata  || '').includes(destWord)
+                        || _n(r.state || '').includes(destWord);
+
+        const nacRows   = freqNac.filter(match);
+        const intRows   = freqInt.filter(match);
+        const cargoRows = freqCargo.filter(match);
+        const allRows   = [...nacRows, ...intRows, ...cargoRows];
+
+        if (!allRows.length) {
+            const allCities = [
+                ...freqNac.map(r => r.city),
+                ...freqInt.map(r => r.city),
+                ...freqCargo.map(r => r.city),
+            ].filter(Boolean);
+            const similar = [...new Set(allCities)]
+                .filter(c => _n(c).includes(destWord.slice(0,4)))
+                .slice(0, 5);
+            let msg = `🔍 No encontré vuelos a **"${destWord}"** en el itinerario actual.`;
+            if (similar.length) msg += `\n\n¿Quisiste decir?\n${similar.map(c => `• ${c}`).join('\n')}`;
+            return msg;
+        }
+
+        const cityName  = allRows[0].city;
+        const iataCode  = allRows[0].iata;
+        const weekLabel = allRows[0].week_label;
+
+        let resp = `✈️ **Vuelos desde AIFA a ${cityName}** _(${iataCode})_\n_Semana: ${weekLabel}_\n\n`;
+
+        const DIAS_LABELS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+        const DIAS_KEYS   = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+        const fmtRow = (r, tipo) => {
+            const operaDias = DIAS_KEYS.map((d,i) => r[d] > 0 ? DIAS_LABELS[i] : null).filter(Boolean);
+            return `• **${r.airline}** — ${operaDias.length ? operaDias.join(', ') : 'sin días registrados'} · _${r.weekly_total} frecuencias/semana_ [${tipo}]`;
+        };
+
+        const groupByAirline = rows => {
+            const byAl = {};
+            rows.forEach(r => {
+                if (!byAl[r.airline]) { byAl[r.airline] = { ...r }; }
+                else { byAl[r.airline].weekly_total += r.weekly_total; }
+            });
+            return Object.values(byAl);
+        };
+
+        if (nacRows.length) {
+            resp += `🇲🇽 **Nacional:**\n`;
+            groupByAirline(nacRows).forEach(r => { resp += fmtRow(r, 'PAX') + '\n'; });
+        }
+        if (intRows.length) {
+            resp += `\n🌎 **Internacional:**\n`;
+            groupByAirline(intRows).forEach(r => { resp += fmtRow(r, 'INT') + '\n'; });
+        }
+        if (cargoRows.length) {
+            resp += `\n📦 **Carga:**\n`;
+            groupByAirline(cargoRows).forEach(r => { resp += fmtRow(r, 'CARGA') + '\n'; });
+        }
+
+        const totalSemanal = allRows.reduce((s,r) => s + (r.weekly_total || 0), 0);
+        resp += `\n**Total: ${totalSemanal} frecuencias/semana**`;
+        return resp;
+    }
+
+    /* ── Extraer nombre de destino ───────────────────────────────── */
+    function _extractDestino(q) {
+        const patterns = [
+            /(?:vuelos?|frecuencias?|ruta|destino|programa\w*\s+a|viaje\s+a|salida\s+a)\s+(?:a\s+)?(?:el\s+|la\s+|los\s+|las\s+)?([a-záéíóúüñ\s]{3,25?})(?:\s*[\?.!,]|$)/i,
+            /\ba\s+([a-záéíóúüñ\s]{4,20?})\s*(?:\?|\.|\!|$)/i,
+        ];
+        for (const p of patterns) {
+            const m = p.exec(q);
+            if (m?.[1]) {
+                const dest = m[1].trim().replace(/\s+/g, ' ');
+                const STOPS = new Set(['aifa','vuelos','frecuencias','programados','tiene','hay','cuantos','semana','diarios','destino','destinos']);
+                if (!STOPS.has(dest)) return dest;
+            }
+        }
+        const STOPS = new Set(['vuelos','frecuencias','programados','programadas','destino','hacia','tiene','hay','aifa','cuantos','cuantas','ruta','rutas','semana','semanas','diarios','diarias','vuela','esta','quiero','saber']);
+        const words = q.split(' ').filter(w => w.length >= 4 && !STOPS.has(w));
+        return words[0] || null;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       RESPUESTA: AEROLÍNEAS (lista por tipo)
+    ══════════════════════════════════════════════════════════════ */
+    async function _respAerolineas(q) {
+        const airlines = await _loadAirlines();
+        if (!airlines.length) return '⚠️ No se pudieron cargar los datos de aerolíneas. Intenta de nuevo.';
+
+        const isNac   = /nacionales?|domestica|interior|pasajeros?/.test(q);
+        const isInt   = /internacionales?|exterior/.test(q);
+        const isCargo = /carga/.test(q);
+
+        let filtradas = airlines;
+        if (isCargo) {
+            filtradas = airlines.filter(a => _n(a.servicio).includes('carga'));
+        } else if (isInt) {
+            filtradas = airlines.filter(a => _n(a.servicio).includes('internacional'));
+        } else if (isNac) {
+            filtradas = airlines.filter(a => {
+                const s = _n(a.servicio);
+                return s.includes('nacional') || s.includes('pasajero') || (s.includes('regular') && !s.includes('carga'));
+            });
+        }
+
+        /* Solo las que tienen actividad reciente */
+        const activas = filtradas.filter(a => (a.years['2025']||0) + (a.years['2026']||0) > 0);
+        const lista   = activas.length ? activas : filtradas;
+        if (!lista.length) return `🔍 No encontré aerolíneas para ese criterio. Prueba: "aerolíneas de pasajeros", "de carga" o "internacionales".`;
+
+        const tipoLabel = isCargo ? 'de carga' : isInt ? 'internacionales' : isNac ? 'nacionales de pasajeros' : 'que operan en AIFA';
+        const lines = lista
+            .sort((a,b) => ((b.years['2025']||0)+(b.years['2026']||0)) - ((a.years['2025']||0)+(a.years['2026']||0)))
+            .map(a => {
+                const total = (a.years['2025']||0) + (a.years['2026']||0);
+                return `• **${a.nombre}**${total > 0 ? ` — _${_fmt(total)} ops (2025–2026)_` : ''}`;
+            });
+
+        let resp = `✈️ **Aerolíneas ${tipoLabel} (${lista.length}):**\n${lines.join('\n')}`;
+        if (activas.length && activas.length < filtradas.length) {
+            resp += `\n\n_Con actividad reciente. Total en catálogo: ${filtradas.length}_`;
+        }
+        return resp;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       RESPUESTA: INFO / OPS DE UNA AEROLÍNEA ESPECÍFICA
+    ══════════════════════════════════════════════════════════════ */
+    async function _respInfoAerolinea(q) {
+        const airlines = await _loadAirlines();
+        if (!airlines.length) return '⚠️ No se pudieron cargar datos de aerolíneas.';
+
+        const words = q.split(' ').filter(w => w.length > 3);
+        let best = null, bestScore = 0;
+        airlines.forEach(a => {
+            const nm = _n(a.nombre);
+            const score = words.filter(w => nm.includes(w)).length;
+            if (score > bestScore) { bestScore = score; best = a; }
+        });
+
+        if (!best || bestScore === 0) {
+            return `🔍 No identifiqué la aerolínea. Intenta: "operaciones de Volaris en 2025" o "info de Aeroméxico".`;
+        }
+
+        const [freqNac, freqInt, freqCargo] = await Promise.all([
+            _loadFreqLatest('weekly_frequencies'),
+            _loadFreqLatest('weekly_frequencies_int'),
+            _loadFreqLatest('weekly_frequencies_cargo'),
+        ]);
+        const nm = _n(best.nombre);
+        const matchAl = r => _n(r.airline).includes(nm) || nm.includes(_n(r.airline).slice(0,6));
+        const destinos = [
+            ...freqNac.filter(matchAl).map(r => r.city),
+            ...freqInt.filter(matchAl).map(r => r.city),
+            ...freqCargo.filter(matchAl).map(r => r.city),
+        ].filter(Boolean);
+        const uniqueDest = [...new Set(destinos)];
+
+        let resp = `✈️ **${best.nombre}**\n`;
+        if (best.servicio) resp += `Tipo de servicio: _${best.servicio}_\n`;
+        resp += `\n📊 **Operaciones por año:**\n`;
+        ['2023','2024','2025','2026'].forEach(yr => {
+            const tot = best.years[yr] || 0;
+            if (tot > 0) resp += `• **${yr}:** ${_fmt(tot)} operaciones\n`;
+        });
+        if (uniqueDest.length) {
+            resp += `\n🗺️ **Destinos actuales (${uniqueDest.length}):**\n`;
+            resp += uniqueDest.map(c => `• ${c}`).join('\n');
+        } else {
+            resp += `\n_Sin frecuencias semanales activas registradas actualmente._`;
+        }
+        return resp;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       RESPUESTA: OPERACIONES ANUALES
+    ══════════════════════════════════════════════════════════════ */
+    async function _respOperaciones(q) {
+        const annualRows = await _loadAnnualOps();
+        const yr1Match   = /\b(20\d{2})\b/.exec(q);
+        const yr1        = yr1Match ? yr1Match[1] : null;
+        const restQ      = yr1 ? q.replace(yr1, '') : q;
+        const yr2Match   = /\b(20\d{2})\b/.exec(restQ);
+        const yr2        = yr2Match ? yr2Match[1] : null;
+        const isVs       = /vs|versus|comparar|comparativa|frente a/.test(q);
+
+        if (annualRows.length) {
+            if (yr1 && !isVs) {
+                const row = annualRows.find(r => String(r.year) === yr1);
+                if (!row) return `📊 No hay datos registrados para el año **${yr1}**.`;
+                const total = row.total_ops || row.total_operations || row.operaciones || 0;
+                let resp = `📊 **Operaciones en ${yr1}: ${_fmt(total)}**\n`;
+                if (row.arrivals)   resp += `• Llegadas: ${_fmt(row.arrivals)}\n`;
+                if (row.departures) resp += `• Salidas:  ${_fmt(row.departures)}\n`;
+                if (row.passengers) resp += `• Pasajeros transportados: ${_fmt(row.passengers)}\n`;
+                return resp;
+            }
+            if (isVs && yr1 && yr2) {
+                const r1 = annualRows.find(r => String(r.year) === yr1);
+                const r2 = annualRows.find(r => String(r.year) === yr2);
+                if (!r1 || !r2) return `📊 No se encontraron datos para comparar ${yr1} vs ${yr2}.`;
+                const v1 = r1.total_ops||r1.total_operations||0, v2 = r2.total_ops||r2.total_operations||0;
+                const diff = v1 - v2;
+                const pct  = v2 > 0 ? ((diff/v2)*100).toFixed(1) : '—';
+                const icon = diff > 0 ? '📈' : diff < 0 ? '📉' : '➡️';
+                return `${icon} **${yr1} vs ${yr2}:**\n• ${yr1}: ${_fmt(v1)} ops\n• ${yr2}: ${_fmt(v2)} ops\n• Diferencia: **${diff > 0 ? '+' : ''}${_fmt(diff)}** (${pct}%)`;
+            }
+            /* Resumen general */
+            const sorted = [...annualRows].sort((a,b) => b.year - a.year).slice(0, 6);
+            const lines  = sorted.map(r => {
+                const t = r.total_ops||r.total_operations||r.operaciones||0;
+                return `• **${r.year}:** ${_fmt(t)} operaciones`;
+            });
+            const best = [...annualRows].sort((a,b) =>
+                (b.total_ops||b.total_operations||0) - (a.total_ops||a.total_operations||0)
+            )[0];
+            return `📊 **Operaciones anuales en AIFA:**\n${lines.join('\n')}\n\n_Año récord: **${best.year}** · ${_fmt(best.total_ops||best.total_operations||0)} ops_`;
+        }
+
+        /* Fallback: calcular desde tabla Aerolíneas */
+        const airlines = await _loadAirlines();
+        if (!airlines.length) return '⚠️ No hay datos de operaciones disponibles.';
+        const totByYear = { '2023':0, '2024':0, '2025':0, '2026':0 };
+        airlines.forEach(a => {
+            Object.keys(totByYear).forEach(yr => { totByYear[yr] += (a.years[yr]||0); });
+        });
+        if (yr1 && totByYear[yr1] !== undefined) {
+            return `📊 **Operaciones en ${yr1}: ${_fmt(totByYear[yr1])}**\n_Dato calculado sumando todas las aerolíneas del catálogo._`;
+        }
+        const lines = Object.entries(totByYear).filter(([,v]) => v > 0)
+            .sort((a,b) => b[0].localeCompare(a[0]))
+            .map(([yr,v]) => `• **${yr}:** ${_fmt(v)} operaciones`);
+        const best = Object.entries(totByYear).sort((a,b) => b[1]-a[1])[0];
+        return `📊 **Operaciones anuales en AIFA:**\n${lines.join('\n')}\n\n_Año con más operaciones registradas: **${best[0]}** · ${_fmt(best[1])}_`;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       RESPUESTA: AGENDA DE COMITÉS
+    ══════════════════════════════════════════════════════════════ */
+    function _respAgenda(q) {
+        const { comites, reuniones, ready } = _agData();
+        if (!ready) return '⏳ Los datos de Agenda están cargando. Espera un momento e inténtalo de nuevo.';
+
+        const today    = new Date(); today.setHours(0,0,0,0);
         const userArea = (typeof _agUserArea === 'function') ? _agUserArea() : null;
         const isAdmin  = (typeof _agIsAdmin  === 'function') ? _agIsAdmin()  : true;
 
-        /* Sesiones próximas (no canceladas) */
         const upcoming = reuniones
-            .filter(r => {
-                const d = new Date(r.fecha_sesion + 'T00:00:00');
-                return d >= today && r.estatus !== 'Cancelada';
-            })
+            .filter(r => new Date(r.fecha_sesion + 'T00:00:00') >= today && r.estatus !== 'Cancelada')
             .sort((a,b) => a.fecha_sesion.localeCompare(b.fecha_sesion));
 
-        /* ── SALUDO ───────────────────────────────────────────── */
-        if (/^(hola|hi|hey|buenas?|buenos?)/.test(q)) {
-            const h = new Date().getHours();
-            const gr = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
-            const txt = userArea
-                ? `soy el asistente del área **${userArea}**`
-                : 'soy el asistente de la Agenda de Comités';
-            return `👋 ${gr}! ${txt}.\n\nPuedo ayudarte a saber:\n• ¿Cuándo es la próxima sesión?\n• ¿A qué hora es el comité de calidad?\n• ¿Qué sesiones hay esta semana?\n• Resumen de sesiones pendientes\n• ¿Qué es el comité GSO?\n\nTambién puedes usar el 🎤 micrófono para preguntar.`;
-        }
-
-        /* ── AYUDA ────────────────────────────────────────────── */
-        if (/ayuda|help|que puedes|que sabes|para que sirves/.test(q)) {
-            return `💡 **Qué puedo hacer:**\n\n• **Próxima sesión** — "¿Cuándo es la próxima sesión?"\n• **Hora** — "¿A qué hora es el comité de calidad?"\n• **Esta semana** — "¿Qué hay esta semana?"\n• **Este mes** — "Sesiones de este mes"\n• **Resumen** — "¿Cuántas sesiones faltan?"\n• **Info** — "¿Qué es el comité DCS?"\n• **Lista** — "¿Qué comités tiene operación?"\n\nUsa el micrófono 🎤 para hablar directamente.`;
-        }
-
-        /* ── PRÓXIMA sesión ───────────────────────────────────── */
+        /* PRÓXIMA sesión */
         if (/proxi(m|n)|siguient|cuand(o es|o hay|o sera)|cuando|prox/.test(q)) {
             const comite = _matchComite(q);
             const area   = _matchArea(q) || (!isAdmin && !comite ? userArea : null);
             let pool = upcoming;
             if (comite) pool = pool.filter(r => r.comite_id === comite.id);
             else if (area) pool = pool.filter(r => r.area === area);
-
-            if (!pool.length) {
-                if (comite) return `📭 No hay sesiones próximas para **${comite.acronimo || comite.nombre}**.`;
-                if (area)   return `📭 No hay sesiones próximas para el área **${area}**.`;
-                return '📭 No hay sesiones próximas registradas.';
-            }
-            const r    = pool[0];
-            const c    = comites.find(x => x.id === r.comite_id) || {};
-            const diff = _daysFromNow(r.fecha_sesion);
+            if (!pool.length) return `📭 No hay sesiones próximas ${comite ? 'para **'+(comite.acronimo||comite.nombre)+'**' : ''}.`;
+            const r = pool[0];
+            const c = comites.find(x => x.id === r.comite_id) || {};
+            const diff    = _daysFromNow(r.fecha_sesion);
             const diffTxt = diff === 0 ? '¡es **hoy**! 🎉' : diff === 1 ? 'es **mañana**' : `es en **${diff} días**`;
             const hora    = r.hora_inicio ? ` a las **${r.hora_inicio.slice(0,5)} h**` : '';
-            const label   = comite ? `del comité **${c.acronimo||c.nombre}**` : area ? `del área **${area}**` : '';
-            return `📅 La próxima sesión ${label} ${diffTxt}.\n**${_fmtDate(r.fecha_sesion)}**${hora}.\n_Sesión ${r.numero_sesion||'—'} · ${r.estatus}_`;
+            return `📅 La próxima sesión ${diffTxt}.\n**${_fmtDate(r.fecha_sesion)}**${hora}.\n_${c.acronimo||c.nombre||'—'} · Sesión ${r.numero_sesion||'—'} · ${r.estatus}_`;
         }
-
-        /* ── HORA de una sesión ───────────────────────────────── */
-        if (/que hora|a que hora|horario|hora de|hora es/.test(q)) {
+        /* HORA */
+        if (/que hora|a que hora|horario de|hora de|a que hora es/.test(q)) {
             const comite = _matchComite(q);
             const area   = _matchArea(q) || (!isAdmin && !comite ? userArea : null);
             let pool = upcoming;
             if (comite) pool = pool.filter(r => r.comite_id === comite.id);
             else if (area) pool = pool.filter(r => r.area === area);
-
             if (!pool.length) return '⏰ No encontré sesiones próximas para consultar la hora.';
             const r = pool[0];
             const c = comites.find(x => x.id === r.comite_id) || {};
-            const comiteNombre = c.acronimo || c.nombre || 'el comité';
-            if (!r.hora_inicio) {
-                return `⏰ La sesión de **${comiteNombre}** (${_fmtDate(r.fecha_sesion)}) todavía no tiene hora registrada.`;
-            }
-            return `⏰ La próxima sesión de **${comiteNombre}** es el **${_fmtDate(r.fecha_sesion)}** a las **${r.hora_inicio.slice(0,5)} h**.`;
+            if (!r.hora_inicio) return `⏰ La sesión de **${c.acronimo||c.nombre}** (${_fmtDate(r.fecha_sesion)}) aún no tiene hora registrada.`;
+            return `⏰ La próxima sesión de **${c.acronimo||c.nombre}** es el **${_fmtDate(r.fecha_sesion)}** a las **${r.hora_inicio.slice(0,5)} h**.`;
         }
-
-        /* ── ESTA SEMANA ──────────────────────────────────────── */
+        /* ESTA SEMANA */
         if (/esta semana|semana/.test(q)) {
             const sw = _startOfWeek(), ew = _endOfWeek();
             let pool = upcoming.filter(r => {
@@ -174,17 +610,15 @@
             });
             const area = _matchArea(q) || (!isAdmin ? userArea : null);
             if (area) pool = pool.filter(r => r.area === area);
-
-            if (!pool.length) return '📆 No hay sesiones esta semana' + (area ? ` para **${area}**` : '') + '.';
+            if (!pool.length) return '📆 No hay sesiones esta semana.';
             const lines = pool.map(r => {
                 const c = comites.find(x => x.id === r.comite_id) || {};
-                return `• **${_fmtDate(r.fecha_sesion)}**${r.hora_inicio ? ' · ' + r.hora_inicio.slice(0,5) + 'h' : ''} — ${c.acronimo || c.nombre || 'Comité'} [${r.area}]`;
+                return `• **${_fmtDate(r.fecha_sesion)}**${r.hora_inicio ? ' · '+r.hora_inicio.slice(0,5)+'h' : ''} — ${c.acronimo||c.nombre||'—'} [${r.area}]`;
             });
             return `📆 **Sesiones esta semana (${pool.length}):**\n${lines.join('\n')}`;
         }
-
-        /* ── ESTE MES ─────────────────────────────────────────── */
-        if (/este mes|mes actual|del mes|cuantos hay/.test(q)) {
+        /* ESTE MES */
+        if (/este mes|mes actual|del mes/.test(q)) {
             const mm = today.getMonth(), yy = today.getFullYear();
             let pool = upcoming.filter(r => {
                 const d = new Date(r.fecha_sesion + 'T00:00:00');
@@ -192,74 +626,61 @@
             });
             const area = _matchArea(q) || (!isAdmin ? userArea : null);
             if (area) pool = pool.filter(r => r.area === area);
-
             if (!pool.length) return '📅 No hay sesiones pendientes este mes.';
             const lines = pool.map(r => {
                 const c = comites.find(x => x.id === r.comite_id) || {};
-                return `• ${_fmtDate(r.fecha_sesion)}${r.hora_inicio ? ' · ' + r.hora_inicio.slice(0,5) + 'h' : ''} — **${c.acronimo || c.nombre}**`;
+                return `• ${_fmtDate(r.fecha_sesion)}${r.hora_inicio ? ' · '+r.hora_inicio.slice(0,5)+'h' : ''} — **${c.acronimo||c.nombre}**`;
             });
             return `📅 **Sesiones pendientes en ${MESES[mm]} (${pool.length}):**\n${lines.join('\n')}`;
         }
-
-        /* ── RESUMEN / CUÁNTAS FALTAN ─────────────────────────── */
+        /* RESUMEN */
         if (/resumen|cuantas|total|faltan|pendiente/.test(q)) {
             const area = _matchArea(q);
-            let pool = area
-                ? upcoming.filter(r => r.area === area)
-                : (!isAdmin && userArea ? upcoming.filter(r => r.area === userArea) : upcoming);
-
+            let pool   = area ? upcoming.filter(r => r.area === area)
+                              : (!isAdmin && userArea ? upcoming.filter(r => r.area === userArea) : upcoming);
             if (!pool.length) return '✅ ¡No quedan sesiones pendientes!';
             const porArea = {};
-            pool.forEach(r => { porArea[r.area] = (porArea[r.area] || 0) + 1; });
-            const lines = Object.entries(porArea)
-                .sort((a,b) => b[1] - a[1])
-                .map(([a, n]) => `• **${a}**: ${n} sesión${n > 1 ? 'es' : ''}`);
-            return `📊 **${pool.length} sesión${pool.length > 1 ? 'es' : ''} pendiente${pool.length > 1 ? 's' : ''}:**\n${lines.join('\n')}`;
+            pool.forEach(r => { porArea[r.area] = (porArea[r.area]||0) + 1; });
+            const lines = Object.entries(porArea).sort((a,b)=>b[1]-a[1])
+                .map(([a,n]) => `• **${a}**: ${n} sesión${n>1?'es':''}`);
+            return `📊 **${pool.length} sesión${pool.length>1?'es':''} pendiente${pool.length>1?'s':''}:**\n${lines.join('\n')}`;
         }
-
-        /* ── INFO DE UN COMITÉ ────────────────────────────────── */
-        if (/que es|informacion|de que trata|fundamento|descripcion|objetivo|quien preside/.test(q)) {
+        /* INFO COMITÉ */
+        if (/que es|informacion|descripcion|objetivo|quien preside/.test(q)) {
             const comite = _matchComite(q);
             if (!comite) return '🔍 ¿De qué comité necesitas información? Dime el nombre o las siglas.';
             let resp = `📋 **${comite.nombre}**\n`;
-            if (comite.acronimo)   resp += `_${comite.acronimo}_\n`;
-            if (comite.area)       resp += `Área: **${comite.area}**\n`;
-            if (comite.frecuencia) resp += `Frecuencia: ${comite.frecuencia}\n`;
-            if (comite.presidente) resp += `Presidente: ${comite.presidente}\n`;
+            if (comite.acronimo)    resp += `_${comite.acronimo}_\n`;
+            if (comite.area)        resp += `Área: **${comite.area}**\n`;
+            if (comite.frecuencia)  resp += `Frecuencia: ${comite.frecuencia}\n`;
+            if (comite.presidente)  resp += `Presidente: ${comite.presidente}\n`;
             if (comite.hora_sesion) resp += `Hora habitual: ${comite.hora_sesion.slice(0,5)} h\n`;
             if (comite.descripcion) resp += `\n${comite.descripcion}`;
             return resp;
         }
-
-        /* ── LISTAR COMITÉS DE UN ÁREA ───────────────────────── */
-        if (/comites?\s*(de|del|en)?|lista|listar|hay comit/.test(q) || _matchArea(q)) {
+        /* LISTAR COMITÉS */
+        if (/comites?\s*(de|del|en)?|lista.*comite|listar.*comite|hay comit/.test(q) || _matchArea(q)) {
             const area  = _matchArea(q) || (!isAdmin ? userArea : null);
             const lista = area ? comites.filter(c => c.area === area) : comites;
             if (!lista.length) return '🔍 No encontré comités para ese criterio.';
-            const lines = lista.map(c => `• **${c.acronimo || '#' + c.numero}** — ${c.nombre}`);
-            const label = area ? `del área **${area}**` : '(todas las áreas)';
-            return `🗂️ **Comités ${label} (${lista.length}):**\n${lines.join('\n')}`;
+            const lines = lista.map(c => `• **${c.acronimo||'#'+c.numero}** — ${c.nombre}`);
+            return `🗂️ **Comités ${area ? 'del área **'+area+'**' : '(todas las áreas)'} (${lista.length}):**\n${lines.join('\n')}`;
         }
-
-        /* ── BUSCAR por nombre específico ─────────────────────── */
+        /* Por nombre de comité */
         const comite = _matchComite(q);
         if (comite) {
-            const pool  = upcoming.filter(r => r.comite_id === comite.id);
-            const next  = pool[0];
-            let resp = `📋 **${comite.acronimo || comite.nombre}** — ${comite.nombre}\nÁrea: **${comite.area}**`;
+            const next = upcoming.find(r => r.comite_id === comite.id);
+            let resp = `📋 **${comite.acronimo||comite.nombre}** — ${comite.nombre}\nÁrea: **${comite.area}**`;
             if (next) {
-                const diff = _daysFromNow(next.fecha_sesion);
                 resp += `\nPróxima sesión: **${_fmtDate(next.fecha_sesion)}**`;
                 if (next.hora_inicio) resp += ` a las **${next.hora_inicio.slice(0,5)} h**`;
-                resp += ` _(en ${diff} días)_`;
+                resp += ` _(en ${_daysFromNow(next.fecha_sesion)} días)_`;
             } else {
                 resp += '\nSin sesiones próximas registradas.';
             }
             return resp;
         }
-
-        /* ── Fallback ─────────────────────────────────────────── */
-        return `🤔 No entendí bien tu pregunta. Prueba con:\n• "¿Cuándo es la próxima sesión?"\n• "¿A qué hora es el comité de calidad?"\n• "Sesiones de esta semana"\n\nO escribe **ayuda** para ver todo lo que puedo hacer.`;
+        return `🤔 No entendí esa consulta de Agenda. Prueba:\n• "¿Cuándo es la próxima sesión?"\n• "Sesiones de esta semana"\n• "Lista de comités de DO"`;
     }
 
     /* ══════════════════════════════════════════════════════════════
@@ -268,48 +689,15 @@
     function _renderMd(text) {
         return text
             .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-            .replace(/_(.+?)_/g, '<em>$1</em>')
-            .replace(/\n/g, '<br>');
+            .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+            .replace(/_(.+?)_/g,'<em>$1</em>')
+            .replace(/\n/g,'<br>');
     }
 
     /* ══════════════════════════════════════════════════════════════
-       TTS — Texto a voz (respuesta hablada)
-       Las voces se cargan async en el primer evento voiceschanged
+       CHAT UI
     ══════════════════════════════════════════════════════════════ */
-    let _agaVoices = [];
-    function _agaLoadVoices() {
-        if (!_aga.synth) return;
-        const v = _aga.synth.getVoices();
-        if (v.length) { _agaVoices = v; return; }
-        _aga.synth.addEventListener('voiceschanged', () => {
-            _agaVoices = _aga.synth.getVoices();
-        }, { once: true });
-    }
-    _agaLoadVoices();
-
-    function _agaSpeak(text) {
-        if (!_aga.synth) return;
-        _aga.synth.cancel();
-        const plain = text
-            .replace(/\*\*/g,'').replace(/_/g,'')
-            .replace(/[📅📋📆📊🗂️💡👋⏰✅🎉📭🔍•]/gu, '')
-            .replace(/<[^>]+>/g, '');
-        const utt = new SpeechSynthesisUtterance(plain);
-        utt.lang = 'es-MX'; utt.rate = 1.0;
-        /* Buscar voz en español; si no hay, usar la del sistema */
-        const voices = _agaVoices.length ? _agaVoices : _aga.synth.getVoices();
-        const esVoice = voices.find(v => /es-MX/i.test(v.lang))
-                     || voices.find(v => /es/i.test(v.lang) && v.localService)
-                     || voices.find(v => /es/i.test(v.lang));
-        if (esVoice) utt.voice = esVoice;
-        _aga.synth.speak(utt);
-    }
-
-    /* ══════════════════════════════════════════════════════════════
-       CHAT UI — añadir mensaje
-    ══════════════════════════════════════════════════════════════ */
-    function _agaAddMsg(role, text, speak) {
+    function _agaAddMsg(role, text) {
         const box = document.getElementById('_aga-messages');
         if (!box) return;
         const div = document.createElement('div');
@@ -317,216 +705,39 @@
         div.innerHTML = `<div class="_aga-bubble">${_renderMd(text)}</div>`;
         box.appendChild(div);
         div.scrollIntoView({ behavior:'smooth', block:'end' });
-        if (role === 'bot' && speak) _agaSpeak(text);
     }
 
-    /* ══════════════════════════════════════════════════════════════
-       VOZ — reconocimiento de voz (input)
-    ══════════════════════════════════════════════════════════════ */
-    const _agaHasSR  = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
-    /* iOS Safari NO soporta SpeechRecognition */
-    const _agaIsIOS  = /ipad|iphone|ipod/i.test(navigator.userAgent) && !/chrome|crios|edgios/i.test(navigator.userAgent);
-    /* Solo considerar móvil si el UA incluye explícitamente Android/iPhone/iPad.
-       NO usar maxTouchPoints: laptops con pantalla táctil lo tienen pero sí soportan Web Speech API. */
-    const _agaIsMobile = /android/i.test(navigator.userAgent)
-                      || (/iphone|ipad|ipod/i.test(navigator.userAgent) && !/macintosh/i.test(navigator.userAgent));
-
-    /* ── Estrategia móvil: enfocar el input para que el teclado muestre su 🎤 ── */
-    function _agaStartVoiceMobile() {
-        const inp = document.getElementById('_aga-input');
-        if (!inp) return;
-        inp.focus();
-        /* Mostrar tooltip sobre el input */
-        let tip = document.getElementById('_aga-kb-tip');
-        if (!tip) {
-            tip = document.createElement('div');
-            tip.id = '_aga-kb-tip';
-            tip.style.cssText = [
-                'position:absolute','left:50%','transform:translateX(-50%)',
-                'bottom:calc(100% + 6px)',
-                'background:#1e293b','color:#fff','font-size:.72rem',
-                'padding:6px 12px','border-radius:8px','white-space:nowrap',
-                'z-index:9999','pointer-events:none','box-shadow:0 2px 8px rgba(0,0,0,.3)',
-                'text-align:center','line-height:1.4',
-            ].join(';');
-            tip.innerHTML = '🎤 Toca el micrófono de tu teclado<br><span style="opacity:.7;font-size:.65rem">aparece en la barra del teclado</span>';
-            const foot = document.querySelector('._aga-foot');
-            if (foot) { foot.style.position = 'relative'; foot.appendChild(tip); }
-        }
-        tip.style.display = '';
-        /* Ocultar después de 4s o al escribir */
-        const hideTip = () => { if (tip) tip.style.display = 'none'; };
-        setTimeout(hideTip, 4000);
-        inp.addEventListener('input', hideTip, { once: true });
-    }
-
-    function _agaStartVoice() {
-        /* ── MÓVIL: delegar al teclado del sistema ───────────────── */
-        if (_agaIsMobile) {
-            _agaStartVoiceMobile();
-            return;
-        }
-
-        /* ── iOS Safari ──────────────────────────────────────────── */
-        if (_agaIsIOS) {
-            _agaAddMsg('bot', '⚠️ El reconocimiento de voz no está disponible en Safari iOS. Puedes escribir tu pregunta.', false);
-            return;
-        }
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SR) {
-            _agaAddMsg('bot', '⚠️ Tu navegador no soporta reconocimiento de voz. Usa Chrome en escritorio.', false);
-            return;
-        }
-        /* Si ya está escuchando, cancelar */
-        if (_aga.listening) {
-            _aga.recognition?.abort();
-            _aga.listening = false;
-            _agaMicState(false);
-            return;
-        }
-
-        /* Verificar permiso de micrófono si la API está disponible */
-        const startRecognition = (attempt = 1) => {
-            const MAX_ATTEMPTS = 3;
-            const r = new SR();
-            r.lang            = 'es-MX';
-            r.interimResults  = false;
-            r.maxAlternatives = 1;
-            r.continuous      = false;
-            _aga.recognition  = r;
-            _aga.listening    = true;
-            _agaMicState(true);
-
-            let _gotResult = false;
-            let _hadError  = false;
-
-            r.onresult = e => {
-                _gotResult = true;
-                const txt = e.results[0][0].transcript.trim();
-                if (!txt) return;
-                const inp = document.getElementById('_aga-input');
-                if (inp) inp.value = txt;
-                _agaSend();
-            };
-
-            r.onerror = e => {
-                _hadError = true;
-                _aga.listening = false;
-                _agaMicState(false);
-
-                /* network → reintento automático silencioso */
-                if (e.error === 'network' && attempt < MAX_ATTEMPTS) {
-                    setTimeout(() => startRecognition(attempt + 1), 600);
-                    return;
-                }
-
-                /* network tras agotar reintentos */
-                if (e.error === 'network') {
-                    const isEdge = /edg\//i.test(navigator.userAgent);
-                    if (isEdge) {
-                        _agaAddMsg('bot',
-                            '📶 Edge no puede conectar con el servicio de voz.\n\n' +
-                            '**Activa el reconocimiento de voz en línea de Windows:**\n' +
-                            '1. Abre **Configuración de Windows** (Win + I)\n' +
-                            '2. Ve a **Privacidad y seguridad → Voz**\n' +
-                            '3. Activa **"Reconocimiento de voz en línea"**\n' +
-                            '4. Vuelve a intentarlo aquí.\n\n' +
-                            '_Mientras tanto puedes escribir tu pregunta en el campo de texto._',
-                            false);
-                    } else {
-                        _agaAddMsg('bot',
-                            '📶 No se pudo conectar con el servicio de voz.\n' +
-                            'Verifica tu conexión a internet e inténtalo de nuevo, o escribe tu pregunta directamente.',
-                            false);
-                    }
-                    return;
-                }
-
-                const MSGS = {
-                    'not-allowed' : '🚫 Permiso de micrófono denegado. Actívalo en Configuración del navegador → Privacidad → Micrófono.',
-                    'no-speech'   : null,
-                    'aborted'     : null,
-                    'audio-capture': '🎤 No se detectó micrófono. Verifica que esté conectado y no esté en uso por otra app.',
-                    'service-not-allowed': '🚫 El servicio de voz está bloqueado. Asegúrate de estar en una conexión segura (HTTPS).',
-                };
-                const msg = MSGS[e.error] !== undefined
-                    ? MSGS[e.error]
-                    : `⚠️ Error de voz (${e.error}). Inténtalo de nuevo.`;
-                if (msg) _agaAddMsg('bot', msg, false);
-            };
-
-            r.onend = () => {
-                _aga.listening = false;
-                _agaMicState(false);
-            };
-
-            try { r.start(); }
-            catch(err) {
-                _aga.listening = false; _agaMicState(false);
-                if (err.name === 'InvalidStateError' && attempt < MAX_ATTEMPTS) {
-                    setTimeout(() => startRecognition(attempt + 1), 400);
-                } else {
-                    _agaAddMsg('bot', '⚠️ No se pudo iniciar el micrófono. Recarga la página e intenta de nuevo.', false);
-                }
-            }
-        };
-
-        /* Pedir permiso explícito primero si disponible (mejora UX en Chrome) */
-        if (navigator.permissions) {
-            navigator.permissions.query({ name: 'microphone' }).then(status => {
-                if (status.state === 'denied') {
-                    _agaAddMsg('bot', '🚫 El micrófono está bloqueado. Ve a Configuración del navegador y permite el acceso al micrófono para este sitio.', false);
-                } else {
-                    startRecognition();
-                }
-            }).catch(() => startRecognition());
-        } else {
-            startRecognition();
-        }
-    }
-    window._agaStartVoice = _agaStartVoice;
-
-    function _agaMicState(on) {
-        const btn = document.getElementById('_aga-mic-btn');
-        if (!btn) return;
-        btn.classList.toggle('_aga-mic-on', on);
-        if (_agaIsMobile) {
-            btn.title = '🎤 Usa el micrófono del teclado';
-            btn.querySelector('i').className = 'fas fa-keyboard';
-        } else {
-            btn.title = on ? 'Escuchando… (toca para cancelar)' : (_agaIsIOS ? 'Voz no disponible en Safari iOS' : 'Hablar por voz');
-            btn.querySelector('i').className = on ? 'fas fa-stop-circle' : (_agaHasSR && !_agaIsIOS ? 'fas fa-microphone' : 'fas fa-microphone-slash');
-        }
-    }
-
-    /* ══════════════════════════════════════════════════════════════
-       ENVIAR consulta
-    ══════════════════════════════════════════════════════════════ */
-    function _agaSend() {
-        const inp = document.getElementById('_aga-input');
+    async function _agaSend() {
+        const inp  = document.getElementById('_aga-input');
         const text = inp?.value.trim();
         if (!text) return;
-        if (inp) inp.value = '';
+        inp.value = '';
+        _agaAddMsg('user', text);
 
-        _agaAddMsg('user', text, false);
-
-        /* Indicador "pensando" */
-        const box = document.getElementById('_aga-messages');
+        const box    = document.getElementById('_aga-messages');
         const typing = document.createElement('div');
         typing.className = '_aga-msg _aga-msg-bot _aga-typing';
         typing.innerHTML = '<div class="_aga-bubble"><span></span><span></span><span></span></div>';
         box?.appendChild(typing);
         typing.scrollIntoView({ behavior:'smooth', block:'end' });
 
-        setTimeout(async () => {
+        try {
             if (typeof _agEnsureData === 'function') await _agEnsureData();
+            const answer = await _agaAnswer(text);
             typing.remove();
-            const answer = _agaAnswer(text);
-            const speakOn = document.getElementById('_aga-speak-btn')?.dataset.on === '1';
-            _agaAddMsg('bot', answer, speakOn);
-        }, 300);
+            _agaAddMsg('bot', answer);
+        } catch(err) {
+            typing.remove();
+            _agaAddMsg('bot', `⚠️ Error al procesar la consulta: ${err.message || err}`);
+        }
     }
     window._agaSend = _agaSend;
+
+    window._agaQuick = function(txt) {
+        const inp = document.getElementById('_aga-input');
+        if (inp) inp.value = txt;
+        _agaSend();
+    };
 
     /* ══════════════════════════════════════════════════════════════
        PANEL — montar / abrir / cerrar
@@ -542,10 +753,10 @@
         }
 
         const panel = document.createElement('div');
-        panel.id   = '_aga-panel';
-        panel.setAttribute('role', 'dialog');
+        panel.id = '_aga-panel';
+        panel.setAttribute('role',       'dialog');
         panel.setAttribute('aria-modal', 'true');
-        panel.setAttribute('aria-label', 'Asistente de Agenda AIFA');
+        panel.setAttribute('aria-label', 'Asistente AIFA');
 
         panel.innerHTML = `
           <div class="_aga-head">
@@ -553,43 +764,35 @@
               <div class="_aga-avatar"><i class="fas fa-robot"></i></div>
               <div>
                 <div class="_aga-name">Asistente AIFA</div>
-                <div class="_aga-online"><span class="_aga-dot"></span>Agenda de Comités</div>
+                <div class="_aga-online"><span class="_aga-dot"></span>Información del aeropuerto</div>
               </div>
             </div>
             <div class="_aga-head-r">
-              <button id="_aga-speak-btn" class="_aga-ibtn" title="Activar respuesta por voz" data-on="0"
-                onclick="_agaToggleVoiceOut(this)" aria-pressed="false">
-                <i class="fas fa-volume-mute"></i>
-              </button>
               <button class="_aga-ibtn" title="Limpiar conversación"
                 onclick="document.getElementById('_aga-messages').innerHTML=''" aria-label="Limpiar">
                 <i class="fas fa-broom"></i>
               </button>
-              <button class="_aga-ibtn" title="Cerrar asistente"
+              <button class="_aga-ibtn" title="Cerrar"
                 onclick="document.getElementById('_aga-panel').classList.remove('_aga-open')" aria-label="Cerrar">
                 <i class="fas fa-times"></i>
               </button>
             </div>
           </div>
 
-          <div id="_aga-messages" class="_aga-msgs" role="log" aria-live="polite" aria-label="Mensajes del asistente"></div>
+          <div id="_aga-messages" class="_aga-msgs" role="log" aria-live="polite"></div>
 
-          <!-- Sugerencias rápidas -->
           <div class="_aga-chips">
-            <button class="_aga-chip" onclick="_agaQuick('¿Cuándo es la próxima sesión?')">Próxima sesión</button>
-            <button class="_aga-chip" onclick="_agaQuick('¿Qué hay esta semana?')">Esta semana</button>
-            <button class="_aga-chip" onclick="_agaQuick('Resumen de pendientes')">Pendientes</button>
-            <button class="_aga-chip" onclick="_agaQuick('Lista de comités')">Comités</button>
+            <button class="_aga-chip" onclick="_agaQuick('¿Cuántos destinos tiene AIFA?')">🗺️ Destinos</button>
+            <button class="_aga-chip" onclick="_agaQuick('¿Qué aerolíneas de pasajeros operan en AIFA?')">✈️ Aerolíneas PAX</button>
+            <button class="_aga-chip" onclick="_agaQuick('¿Qué aerolíneas de carga operan en AIFA?')">📦 Aerolíneas carga</button>
+            <button class="_aga-chip" onclick="_agaQuick('¿Cuántas operaciones en 2025?')">📊 Operaciones</button>
+            <button class="_aga-chip" onclick="_agaQuick('¿Cuándo es la próxima sesión de comité?')">📋 Agenda</button>
+            <button class="_aga-chip" onclick="_agaQuick('ayuda')">💡 Ayuda</button>
           </div>
 
           <div class="_aga-foot">
-            <button id="_aga-mic-btn" class="_aga-ibtn _aga-mic"
-              title="${_agaIsMobile ? 'Usa el micrófono del teclado' : (_agaIsIOS ? 'Voz no disponible en Safari iOS' : (_agaHasSR ? 'Hablar por voz' : 'Voz no disponible'))}"
-              onclick="window._agaStartVoice()" aria-label="Activar micrófono">
-              <i class="${_agaIsMobile ? 'fas fa-keyboard' : (_agaHasSR && !_agaIsIOS ? 'fas fa-microphone' : 'fas fa-microphone-slash')}"></i>
-            </button>
             <input id="_aga-input" class="_aga-inp" type="text" autocomplete="off"
-              placeholder="Escribe tu pregunta…"
+              placeholder="Ej: Vuelos a Palenque, aerolíneas de carga…"
               onkeydown="if(event.key==='Enter')window._agaSend()"
               aria-label="Pregunta al asistente">
             <button class="_aga-send" onclick="window._agaSend()" title="Enviar" aria-label="Enviar">
@@ -599,61 +802,38 @@
 
         document.body.appendChild(panel);
 
-        /* Pequeño delay para que la transición CSS se vea */
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 panel.classList.add('_aga-open');
                 document.getElementById('_aga-input')?.focus();
-                /* Bienvenida */
                 setTimeout(async () => {
                     if (typeof _agEnsureData === 'function') await _agEnsureData();
-                    _agaAddMsg('bot', _agaAnswer('hola'), false);
+                    _agaAddMsg('bot', await _agaAnswer('hola'));
                 }, 120);
             });
         });
-    };
-
-    /* Chip de sugerencia rápida */
-    window._agaQuick = function(txt) {
-        const inp = document.getElementById('_aga-input');
-        if (inp) inp.value = txt;
-        _agaSend();
-    };
-
-    /* Toggle voz de salida */
-    window._agaToggleVoiceOut = function(btn) {
-        const on = btn.dataset.on === '1' ? '0' : '1';
-        btn.dataset.on = on;
-        btn.classList.toggle('_aga-voice-on', on === '1');
-        btn.setAttribute('aria-pressed', on === '1');
-        btn.title  = on === '1' ? 'Voz activada (toca para desactivar)' : 'Activar respuesta por voz';
-        btn.querySelector('i').className = on === '1' ? 'fas fa-volume-up' : 'fas fa-volume-mute';
-        if (on === '1') _agaAddMsg('bot', '🔊 Respuesta por voz activada.', false);
     };
 
     /* ══════════════════════════════════════════════════════════════
        CSS
     ══════════════════════════════════════════════════════════════ */
     const CSS = `
-/* ── FAB ───────────────────────────────────────────────────────── */
 #_aga-fab {
     position:fixed; bottom:24px; right:24px; z-index:1055;
     width:54px; height:54px; border-radius:50%;
     background:linear-gradient(135deg,#1a73e8 0%,#0d47a1 100%);
     color:#fff; border:none; cursor:pointer;
     box-shadow:0 4px 18px rgba(26,115,232,.5);
-    display:flex; align-items:center; justify-content:center;
-    font-size:1.3rem;
+    display:flex; align-items:center; justify-content:center; font-size:1.3rem;
     transition:transform .18s, box-shadow .18s;
 }
 #_aga-fab:hover { transform:scale(1.1); box-shadow:0 6px 24px rgba(26,115,232,.6); }
 #_aga-fab:focus-visible { outline:3px solid #93c5fd; outline-offset:3px; }
 
-/* ── Panel ─────────────────────────────────────────────────────── */
 #_aga-panel {
     position:fixed; bottom:88px; right:24px; z-index:1054;
-    width:340px; max-width:calc(100vw - 32px);
-    height:520px; max-height:calc(100dvh - 110px);
+    width:360px; max-width:calc(100vw - 32px);
+    height:560px; max-height:calc(100dvh - 110px);
     background:#fff; border-radius:18px;
     box-shadow:0 10px 48px rgba(0,0,0,.2);
     display:flex; flex-direction:column; overflow:hidden;
@@ -667,80 +847,57 @@
     #_aga-panel {
         bottom:0; right:0; left:0; top:0;
         width:100dvw; height:100dvh;
-        max-width:100dvw; max-height:100dvh;
-        border-radius:0;
+        max-width:100dvw; max-height:100dvh; border-radius:0;
     }
     #_aga-fab { bottom:16px; right:16px; }
 }
-
-/* ── Header ────────────────────────────────────────────────────── */
 ._aga-head {
     display:flex; align-items:center; justify-content:space-between;
     padding:12px 14px; gap:8px; flex-shrink:0;
-    background:linear-gradient(135deg,#1a73e8 0%,#0d47a1 100%);
-    color:#fff;
+    background:linear-gradient(135deg,#1a73e8 0%,#0d47a1 100%); color:#fff;
 }
 ._aga-head-l { display:flex; align-items:center; gap:10px; }
 ._aga-head-r { display:flex; align-items:center; gap:6px; }
 ._aga-avatar {
     width:38px; height:38px; border-radius:50%;
     background:rgba(255,255,255,.2);
-    display:flex; align-items:center; justify-content:center; font-size:1rem;
-    flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0;
 }
 ._aga-name   { font-weight:700; font-size:.87rem; }
 ._aga-online { font-size:.67rem; opacity:.85; display:flex; align-items:center; gap:4px; }
 ._aga-dot    { width:7px; height:7px; border-radius:50%; background:#4ade80; flex-shrink:0; }
-
-/* ── Icon buttons ──────────────────────────────────────────────── */
 ._aga-ibtn {
     background:rgba(255,255,255,.15); border:none; color:#fff;
     width:28px; height:28px; border-radius:50%; cursor:pointer;
     display:flex; align-items:center; justify-content:center;
-    font-size:.78rem; transition:background .15s;
-    flex-shrink:0;
+    font-size:.78rem; transition:background .15s; flex-shrink:0;
 }
 ._aga-ibtn:hover { background:rgba(255,255,255,.3); }
 ._aga-ibtn:focus-visible { outline:2px solid #93c5fd; outline-offset:2px; }
-._aga-ibtn._aga-voice-on { background:rgba(74,222,128,.35); }
-._aga-ibtn._aga-mic-on   { background:rgba(239,68,68,.4); animation:_aga-pulse 1.2s infinite; }
-
-/* ── Messages ──────────────────────────────────────────────────── */
 ._aga-msgs {
     flex:1; overflow-y:auto; padding:12px 12px 4px;
     display:flex; flex-direction:column; gap:8px;
-    background:#f8fafc;
-    scroll-behavior:smooth;
+    background:#f8fafc; scroll-behavior:smooth;
 }
 ._aga-msg { display:flex; }
 ._aga-msg-user { justify-content:flex-end; }
 ._aga-msg-bot  { justify-content:flex-start; }
 ._aga-bubble {
-    max-width:84%; padding:9px 13px; border-radius:14px;
-    font-size:.79rem; line-height:1.6; word-break:break-word;
+    max-width:88%; padding:9px 13px; border-radius:14px;
+    font-size:.79rem; line-height:1.65; word-break:break-word;
 }
-._aga-msg-user ._aga-bubble {
-    background:#1a73e8; color:#fff;
-    border-bottom-right-radius:3px;
-}
-._aga-msg-bot ._aga-bubble {
+._aga-msg-user ._aga-bubble { background:#1a73e8; color:#fff; border-bottom-right-radius:3px; }
+._aga-msg-bot  ._aga-bubble {
     background:#fff; color:#1e293b;
-    border-bottom-left-radius:3px;
-    box-shadow:0 1px 5px rgba(0,0,0,.08);
+    border-bottom-left-radius:3px; box-shadow:0 1px 5px rgba(0,0,0,.08);
 }
-
-/* Typing dots */
-._aga-typing ._aga-bubble {
-    display:flex; gap:5px; align-items:center; padding:11px 15px;
-}
+._aga-typing ._aga-bubble { display:flex; gap:5px; align-items:center; padding:11px 15px; }
 ._aga-typing ._aga-bubble span {
     width:7px; height:7px; border-radius:50%; background:#94a3b8;
     animation:_aga-bounce .9s infinite;
 }
 ._aga-typing ._aga-bubble span:nth-child(2) { animation-delay:.15s; }
 ._aga-typing ._aga-bubble span:nth-child(3) { animation-delay:.30s; }
-
-/* ── Chips de sugerencias ──────────────────────────────────────── */
 ._aga-chips {
     display:flex; flex-wrap:wrap; gap:5px; padding:6px 10px 4px;
     background:#f8fafc; border-top:1px solid #e5e7eb; flex-shrink:0;
@@ -752,24 +909,14 @@
 }
 ._aga-chip:hover { background:#dbeafe; transform:translateY(-1px); }
 ._aga-chip:focus-visible { outline:2px solid #1a73e8; }
-
-/* ── Footer ────────────────────────────────────────────────────── */
 ._aga-foot {
     display:flex; align-items:center; gap:6px;
-    padding:8px 10px; background:#fff;
-    border-top:1px solid #e5e7eb; flex-shrink:0;
+    padding:8px 10px; background:#fff; border-top:1px solid #e5e7eb; flex-shrink:0;
 }
-._aga-foot ._aga-ibtn._aga-mic {
-    background:#f1f5f9; color:#475569;
-    width:34px; height:34px; font-size:.88rem;
-}
-._aga-foot ._aga-ibtn._aga-mic:hover   { background:#e2e8f0; }
-._aga-foot ._aga-ibtn._aga-mic-on { background:#fee2e2; color:#dc2626; }
 ._aga-inp {
     flex:1; border:1.5px solid #e2e8f0; border-radius:20px;
     padding:7px 14px; font-size:.8rem; outline:none;
-    background:#f8fafc; transition:border-color .15s;
-    min-width:0;
+    background:#f8fafc; transition:border-color .15s; min-width:0;
 }
 ._aga-inp:focus { border-color:#1a73e8; background:#fff; }
 ._aga-send {
@@ -780,15 +927,9 @@
 }
 ._aga-send:hover { background:#1557b0; }
 ._aga-send:focus-visible { outline:3px solid #93c5fd; }
-
-/* ── Animaciones ───────────────────────────────────────────────── */
 @keyframes _aga-bounce {
     0%,60%,100% { transform:translateY(0); }
     30%          { transform:translateY(-6px); }
-}
-@keyframes _aga-pulse {
-    0%,100% { box-shadow:0 0 0 0 rgba(239,68,68,.4); }
-    50%     { box-shadow:0 0 0 7px rgba(239,68,68,0); }
 }`;
 
     const style = document.createElement('style');
@@ -796,14 +937,14 @@
     document.head.appendChild(style);
 
     /* ══════════════════════════════════════════════════════════════
-       FAB — botón flotante
+       FAB
     ══════════════════════════════════════════════════════════════ */
     function _injectFAB() {
         if (document.getElementById('_aga-fab')) return;
         const btn = document.createElement('button');
-        btn.id   = '_aga-fab';
-        btn.title = 'Asistente de Agenda AIFA';
-        btn.setAttribute('aria-label', 'Abrir asistente de Agenda');
+        btn.id    = '_aga-fab';
+        btn.title = 'Asistente AIFA';
+        btn.setAttribute('aria-label', 'Abrir Asistente AIFA');
         btn.innerHTML = '<i class="fas fa-robot"></i>';
         btn.addEventListener('click', window.agaOpen);
         document.body.appendChild(btn);
