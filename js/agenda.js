@@ -1101,8 +1101,9 @@ async function agLoadAcuerdos() {
 
 /* ═══════════════════════════════════════════════════════════════════
    ADMINISTRACIÓN — Módulo de Gestión de Comités y Sesiones
-   admin/editor/superadmin → acceso total
-   Roles de dirección → solo su área
+   admin/superadmin → acceso total (todas las áreas)
+   editor         → solo puede editar el área asignada (permissions.area)
+   Clave de área  → solo su área (nuevo esquema: role = 'DPE', 'GSO', etc.)
 ═══════════════════════════════════════════════════════════════════ */
 
 /* ── Helpers de permisos ─────────────────────────────────────────── */
@@ -1117,7 +1118,7 @@ const _AG_ROLE_AREA = {
     comercial:'DCS', seguridad_op:'GSO', transparencia:'UT', calidad:'GC',
 };
 
-function _agIsAdmin()    { return ['admin','editor','superadmin'].includes(_agUserRole()); }
+function _agIsAdmin()    { return ['admin','superadmin'].includes(_agUserRole()); }
 
 // Puede editar algún comité (tiene área asignada o es admin)
 function _agCanEditAny() {

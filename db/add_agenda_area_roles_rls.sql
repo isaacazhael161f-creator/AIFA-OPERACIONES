@@ -77,8 +77,7 @@ CREATE TRIGGER trg_validate_user_role
 --      1. permissions->>'area'  (asignación explícita, override)
 --      2. role = clave de área  (nuevo esquema: el rol ES el área)
 --      3. mapeo legacy de nombres descriptivos → clave
---      → NULL si el usuario es admin/editor/viewer (sin área)
--- ─────────────────────────────────────────────────────────────────
+--      → NULL si el usuario es admin/editor/viewer (sin área)--    NOTA: 'editor' con permissions.area asignado resuelve al área (prioridad 1)-- ─────────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.get_user_agenda_area()
 RETURNS text
 LANGUAGE sql
@@ -125,7 +124,7 @@ CREATE POLICY "agenda_comites: lectura"
     FOR SELECT
     USING (auth.role() = 'authenticated');
 
--- INSERT / UPDATE / DELETE: admin/editor/superadmin escriben todo
+-- INSERT / UPDATE / DELETE: admin/superadmin escriben todo; editor solo edita su área asignada
 DROP POLICY IF EXISTS "agenda_comites: admin escribe todo" ON public.agenda_comites;
 CREATE POLICY "agenda_comites: admin escribe todo"
     ON public.agenda_comites
@@ -134,14 +133,14 @@ CREATE POLICY "agenda_comites: admin escribe todo"
         EXISTS (
             SELECT 1 FROM public.user_roles
             WHERE user_id = auth.uid()
-              AND role IN ('admin', 'superadmin', 'editor')
+              AND role IN ('admin', 'superadmin')
         )
     )
     WITH CHECK (
         EXISTS (
             SELECT 1 FROM public.user_roles
             WHERE user_id = auth.uid()
-              AND role IN ('admin', 'superadmin', 'editor')
+              AND role IN ('admin', 'superadmin')
         )
     );
 
@@ -166,7 +165,7 @@ CREATE POLICY "agenda_reuniones: lectura"
     FOR SELECT
     USING (auth.role() = 'authenticated');
 
--- INSERT / UPDATE / DELETE: admin/editor/superadmin escriben todo
+-- INSERT / UPDATE / DELETE: admin/superadmin escriben todo; editor solo edita su área asignada
 DROP POLICY IF EXISTS "agenda_reuniones: admin escribe todo" ON public.agenda_reuniones;
 CREATE POLICY "agenda_reuniones: admin escribe todo"
     ON public.agenda_reuniones
@@ -175,14 +174,14 @@ CREATE POLICY "agenda_reuniones: admin escribe todo"
         EXISTS (
             SELECT 1 FROM public.user_roles
             WHERE user_id = auth.uid()
-              AND role IN ('admin', 'superadmin', 'editor')
+              AND role IN ('admin', 'superadmin')
         )
     )
     WITH CHECK (
         EXISTS (
             SELECT 1 FROM public.user_roles
             WHERE user_id = auth.uid()
-              AND role IN ('admin', 'superadmin', 'editor')
+              AND role IN ('admin', 'superadmin')
         )
     );
 
