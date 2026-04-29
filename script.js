@@ -3224,13 +3224,18 @@ async function ensureRoleInSessionStorage(userId) {
         try {
             const secs = roleData?.permissions?.allowed_sections;
             if (Array.isArray(secs)) sessionStorage.setItem('user_allowed_sections', JSON.stringify(secs));
-            // Guardar área si está definida en permissions.area o inferida del rol
-            const _ROLE_AREA_MAP = {
-                operacion:'DO', administracion:'DA', planeacion:'DPE',
-                comercial:'DCS', seguridad_op:'GSO', transparencia:'UT', calidad:'GC',
-            };
-            const roleArea = roleData?.permissions?.area || _ROLE_AREA_MAP[roleData?.role] || null;
+            // Guardar área del usuario:
+            //   1. permissions.area  = override explícito
+            //   2. role IS clave de área (nuevo esquema v2: role='GSO', role='SD-SO', etc.)
+            //   3. roles legacy descriptivos por compatibilidad
+            const _GLOBAL_ROLES = ['admin','superadmin','editor','viewer','colab_viewer','colab_editor'];
+            const _LEGACY_AREA  = { operacion:'DO', administracion:'DA', planeacion:'DPE', comercial:'DCS', seguridad_op:'GSO', transparencia:'UT', calidad:'GC' };
+            const _r = roleData?.role;
+            const roleArea = roleData?.permissions?.area
+                || _LEGACY_AREA[_r]
+                || (!_GLOBAL_ROLES.includes(_r) && _r ? _r : null);
             if (roleArea) sessionStorage.setItem('user_area', roleArea);
+            else sessionStorage.removeItem('user_area');
         } catch (_) {}
     } catch (_) {
         try { sessionStorage.setItem('user_role', sessionStorage.getItem('user_role') || 'viewer'); } catch (_) { }
@@ -10667,9 +10672,11 @@ function showMainApp() {
                 if (!roleData) return;
                 // Actualizar rol si cambió
                 if (roleData.role) sessionStorage.setItem('user_role', roleData.role);
-                // Actualizar área inferida del rol o permissions.area
-                const _RM = { operacion:'DO', administracion:'DA', planeacion:'DPE', comercial:'DCS', seguridad_op:'GSO', transparencia:'UT', calidad:'GC' };
-                const _area = roleData?.permissions?.area || _RM[roleData?.role] || null;
+                // Actualizar área: override > role legacy > role=clave directa
+                const _GL = ['admin','superadmin','editor','viewer','colab_viewer','colab_editor'];
+                const _LG = { operacion:'DO', administracion:'DA', planeacion:'DPE', comercial:'DCS', seguridad_op:'GSO', transparencia:'UT', calidad:'GC' };
+                const _rr = roleData?.role;
+                const _area = roleData?.permissions?.area || _LG[_rr] || (!_GL.includes(_rr) && _rr ? _rr : null);
                 if (_area) sessionStorage.setItem('user_area', _area);
                 else sessionStorage.removeItem('user_area');
                 // Actualizar allowed_sections

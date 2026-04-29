@@ -5,14 +5,45 @@
 
 /* ── Constantes de colores por área ─────────────────────────────── */
 const AG_AREA = {
-    DPE:  { bg:'#eef2ff', color:'#312e81', border:'#4f46e5', name:'Planeación' },      // Indigo
-    DA:   { bg:'#fffbeb', color:'#78350f', border:'#d97706', name:'Administración' },   // Amber
-    DO:   { bg:'#ecfdf5', color:'#064e3b', border:'#059669', name:'Operación' },        // Esmeralda
-    DCS:  { bg:'#eff6ff', color:'#1e3a8a', border:'#2563eb', name:'Comercial' },        // Azul
-    GSO:  { bg:'#f5f3ff', color:'#4c1d95', border:'#7c3aed', name:'Seg. Operacional' }, // Violeta
-    UT:   { bg:'#ecfeff', color:'#164e63', border:'#0891b2', name:'Transparencia' },    // Cian
-    GC:   { bg:'#fdf2f8', color:'#831843', border:'#db2777', name:'Calidad' },          // Rosa
-    AFAC: { bg:'#f8fafc', color:'#1e293b', border:'#475569', name:'AFAC' },             // Pizarra
+    // ── Nivel 1 / Dirección General ──────────────────────────────
+    DG:      { bg:'#e0f2fe', color:'#0c4a6e', border:'#0ea5e9', name:'Dirección General' },
+    // ── Nivel 2 / Direcciones ─────────────────────────────────────
+    DO:      { bg:'#ecfdf5', color:'#064e3b', border:'#059669', name:'Dirección de Operación' },
+    DPE:     { bg:'#eef2ff', color:'#312e81', border:'#4f46e5', name:'Planeación Estratégica' },
+    DCS:     { bg:'#eff6ff', color:'#1e3a8a', border:'#2563eb', name:'Comercial y Servicios' },
+    DA:      { bg:'#fffbeb', color:'#78350f', border:'#d97706', name:'Administración' },
+    DJ:      { bg:'#fef2f2', color:'#7f1d1d', border:'#ef4444', name:'Dirección Jurídica' },
+    // ── Nivel 2 / Entidades especiales ───────────────────────────
+    GPE:     { bg:'#f0f9ff', color:'#0369a1', border:'#0284c7', name:'Gerencia de Procesos y Estadística' },
+    SMS:     { bg:'#ecfeff', color:'#155e75', border:'#06b6d4', name:'SMS' },
+    // ── Nivel 3 / Subdirecciones de DO ───────────────────────────
+    'SD-SO': { bg:'#e0f2fe', color:'#075985', border:'#0ea5e9', name:'Subdirección Seg. Operacional' },
+    'SD-SA': { bg:'#eef2ff', color:'#3730a3', border:'#6366f1', name:'Subdirección Seg. Aviación' },
+    'SD-ING':{ bg:'#f5f3ff', color:'#4c1d95', border:'#8b5cf6', name:'Subdirección de Ingeniería' },
+    'SD-SC': { bg:'#f0fdfa', color:'#134e4a', border:'#14b8a6', name:'Subdirección Servicios Conexos' },
+    // ── Nivel 3 / Subdirecciones de DPE ──────────────────────────
+    'SD-CE':   { bg:'#e0f2fe', color:'#075985', border:'#0ea5e9', name:'Subdirección Coordinación Estratégica' },
+    'SD-PROY': { bg:'#ecfeff', color:'#155e75', border:'#06b6d4', name:'Subdirección de Proyectos' },
+    'SD-SCPE': { bg:'#cffafe', color:'#164e63', border:'#22d3ee', name:'Subdirección Seguimiento y Control' },
+    // ── Nivel 3 / Subdirecciones de DCS ──────────────────────────
+    'SD-CYS':  { bg:'#eff6ff', color:'#1e3a8a', border:'#3b82f6', name:'Subdirección Comercial y Servicios' },
+    'SD-SAYC': { bg:'#dbeafe', color:'#1d4ed8', border:'#60a5fa', name:'Subdirección Servicios Aeroportuarios' },
+    'SD-MYC':  { bg:'#bfdbfe', color:'#1e40af', border:'#93c5fd', name:'Subdirección Movilidad y Calidad' },
+    // ── Nivel 3 / Subdirecciones de DA ───────────────────────────
+    'SD-RH':   { bg:'#fffbeb', color:'#92400e', border:'#f59e0b', name:'Subdirección Recursos Humanos' },
+    'SD-RM':   { bg:'#fef3c7', color:'#78350f', border:'#d97706', name:'Subdirección Recursos Materiales' },
+    'SD-RF':   { bg:'#fde68a', color:'#713f12', border:'#b45309', name:'Subdirección Recursos Financieros' },
+    'SD-SIS':  { bg:'#faf5ff', color:'#581c87', border:'#a855f7', name:'Subdirección de Sistemas' },
+    // ── Nivel 3 / Subdirecciones de DJ ───────────────────────────
+    'SD-CONS': { bg:'#fef2f2', color:'#991b1b', border:'#ef4444', name:'Subdirección Consultiva' },
+    'SD-CONT': { bg:'#fee2e2', color:'#7f1d1d', border:'#dc2626', name:'Subdirección Contenciosa' },
+    'SD-ACORP':{ bg:'#fecaca', color:'#6b2222', border:'#f87171', name:'Subdirección Asuntos Corporativos' },
+    // ── Nivel 4 / Gerencias (pueden aparecer en comités) ─────────
+    GSO:     { bg:'#f5f3ff', color:'#4c1d95', border:'#7c3aed', name:'Gerencia Seg. Operacional' },
+    GC:      { bg:'#fdf2f8', color:'#831843', border:'#db2777', name:'Gerencia de Calidad' },
+    UT:      { bg:'#ecfeff', color:'#164e63', border:'#0891b2', name:'Unidad de Transparencia' },
+    // ── Fallback ──────────────────────────────────────────────────
+    AFAC:    { bg:'#f8fafc', color:'#1e293b', border:'#475569', name:'AFAC / General' },
 };
 
 const AG_MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -1044,19 +1075,42 @@ async function agLoadAcuerdos() {
 
 /* ── Helpers de permisos ─────────────────────────────────────────── */
 function _agUserRole()   { return sessionStorage.getItem('user_role') || 'viewer'; }
+
+// Roles globales (sin área asignada)
+const _AG_GLOBAL_ROLES = ['admin','editor','superadmin','viewer','colab_viewer','colab_editor'];
+
+// Mapa de compatibilidad con roles legacy de nombre descriptivo
 const _AG_ROLE_AREA = {
-    operacion:    'DO',
-    administracion:'DA',
-    planeacion:   'DPE',
-    comercial:    'DCS',
-    seguridad_op: 'GSO',
-    transparencia:'UT',
-    calidad:      'GC',
+    operacion:'DO', administracion:'DA', planeacion:'DPE',
+    comercial:'DCS', seguridad_op:'GSO', transparencia:'UT', calidad:'GC',
 };
+
 function _agIsAdmin()    { return ['admin','editor','superadmin'].includes(_agUserRole()); }
-function _agCanEditAny() { return _agIsAdmin() || (_agUserRole() in _AG_ROLE_AREA) || !!sessionStorage.getItem('user_area'); }
-function _agCanEdit(area){ return _agIsAdmin() || _AG_ROLE_AREA[_agUserRole()] === area || sessionStorage.getItem('user_area') === area; }
-function _agUserArea()   { return sessionStorage.getItem('user_area') || _AG_ROLE_AREA[_agUserRole()] || null; }
+
+// Puede editar algún comité (tiene área asignada o es admin)
+function _agCanEditAny() {
+    if (_agIsAdmin()) return true;
+    return !!_agUserArea();
+}
+
+// Puede editar comités de un área específica
+function _agCanEdit(area) {
+    if (_agIsAdmin()) return true;
+    return _agUserArea() === area;
+}
+
+// Devuelve la clave de área del usuario actual:
+//   1. sessionStorage.user_area (calculado al login)
+//   2. mapeo legacy: role 'seguridad_op' → 'GSO', etc.
+//   3. role IS la clave directa (nuevo esquema: role='GSO', 'SD-SO', etc.)
+function _agUserArea() {
+    const stored = sessionStorage.getItem('user_area');
+    if (stored) return stored;
+    const role = _agUserRole();
+    if (_AG_ROLE_AREA[role]) return _AG_ROLE_AREA[role];
+    if (!_AG_GLOBAL_ROLES.includes(role)) return role; // role = clave directa
+    return null;
+}
 
 /* ── Muestra botones admin según rol (llamado después de cargar datos) ── */
 function _agShowAdminButtons() {
