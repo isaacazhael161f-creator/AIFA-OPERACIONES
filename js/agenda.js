@@ -1369,12 +1369,28 @@ async function _agSaveComite() {
     const sb = _agSB();
     if (!sb) return;
 
-    let error;
+    let error, savedData;
     if (id) {
         ({ error } = await sb.from('agenda_comites').update(data).eq('id', id));
+        if (!error) {
+            const prevComite = _ag.comites.find(c => c.id === id) || {};
+            window.logHistory?.('EDITAR', 'agenda_comites', id, {
+                old: prevComite,
+                new: { ...prevComite, ...data },
+                summary: `Comité: ${data.nombre || prevComite.nombre}`
+            });
+        }
     } else {
         if (!data.area) data.area = _agUserArea();
-        ({ error } = await sb.from('agenda_comites').insert(data));
+        const { error: insErr, data: insData } = await sb.from('agenda_comites').insert(data).select('id').single();
+        error = insErr;
+        if (!error) {
+            window.logHistory?.('CREAR', 'agenda_comites', insData?.id || null, {
+                nombre: data.nombre,
+                area: data.area,
+                frecuencia: data.frecuencia
+            });
+        }
     }
 
     if (error) { alert('Error al guardar: ' + error.message); return; }
@@ -1499,8 +1515,26 @@ async function _agSaveSesion() {
     let error;
     if (id) {
         ({ error } = await sb.from('agenda_reuniones').update(data).eq('id', id));
+        if (!error) {
+            const prevSesion = _ag.reuniones.find(r => r.id === id) || {};
+            window.logHistory?.('EDITAR', 'agenda_reuniones', id, {
+                old: prevSesion,
+                new: { ...prevSesion, ...data },
+                summary: `Sesión ${data.numero_sesion || prevSesion.numero_sesion || ''} — ${comite?.acronimo || comite?.nombre || ''}`
+            });
+        }
     } else {
-        ({ error } = await sb.from('agenda_reuniones').insert(data));
+        const { error: insErr, data: insData } = await sb.from('agenda_reuniones').insert(data).select('id').single();
+        error = insErr;
+        if (!error) {
+            window.logHistory?.('CREAR', 'agenda_reuniones', insData?.id || null, {
+                comite: comite?.nombre,
+                area: data.area,
+                fecha: data.fecha_sesion,
+                numero_sesion: data.numero_sesion,
+                estatus: data.estatus
+            });
+        }
     }
 
     if (error) { alert('Error al guardar: ' + error.message); return; }
@@ -1526,6 +1560,12 @@ async function _agDeleteSesion(sesionId) {
     const sb = _agSB();
     const { error } = await sb.from('agenda_reuniones').delete().eq('id', sesionId);
     if (error) { alert('Error al eliminar: ' + error.message); return; }
+    window.logHistory?.('ELIMINAR', 'agenda_reuniones', sesionId, {
+        comite: comite?.nombre,
+        area: sesion.area,
+        fecha: sesion.fecha_sesion,
+        numero_sesion: sesion.numero_sesion
+    });
 
     _agRemoveModal('_ag-edit-sesion-modal');
     _ag.ready = false;

@@ -13309,7 +13309,10 @@ async function loadHistory() {
                 'rescued_wildlife': 'Fauna Rescatada',
                 'flights': 'Vuelos',
                 'flight_itinerary': 'Itinerario',
-                'vuelos_itinerario': 'Conciliación — Itinerario'
+                'vuelos_itinerario': 'Conciliación — Itinerario',
+                'agenda_comites':   'Agenda — Comité',
+                'agenda_reuniones': 'Agenda — Sesión',
+                'agenda_acuerdos':  'Agenda — Acuerdo',
             };
             const friendlyEntity = entityMap[log.entity_type] || log.entity_type;
 
@@ -18494,10 +18497,17 @@ async function _conciSaveBulkEdits() {
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando…';
 
         try {
+            // Leer estado anterior para diff en historial
+            const { data: prev } = await sb().from('agenda_comites').select('*').eq('id', comiteId).maybeSingle();
             const { error } = await sb().from('agenda_comites').update({
                 nombre, area, descripcion: desc, frecuencia, presidente, participantes, activo
             }).eq('id', comiteId);
             if (error) throw error;
+            window.logHistory?.('EDITAR', 'agenda_comites', comiteId, {
+                old: prev || {},
+                new: { nombre, area, descripcion: desc, frecuencia, presidente, activo },
+                summary: `Comité: ${nombre}`
+            });
             bootstrap.Modal.getInstance(document.getElementById('ag-modal-edit-comite'))?.hide();
             agLoadComites();
         } catch (err) {
@@ -18563,8 +18573,14 @@ async function _conciSaveBulkEdits() {
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando…';
 
         try {
+            const { data: prev } = await sb().from('agenda_reuniones').select('*').eq('id', reunionId).maybeSingle();
             const { error } = await sb().from('agenda_reuniones').update({ estatus, observaciones: obs }).eq('id', reunionId);
             if (error) throw error;
+            window.logHistory?.('EDITAR', 'agenda_reuniones', reunionId, {
+                old: prev || {},
+                new: { estatus, observaciones: obs },
+                summary: `Reunión ${prev?.numero_sesion || reunionId} — estatus: ${prev?.estatus} → ${estatus}`
+            });
             bootstrap.Modal.getInstance(document.getElementById('ag-modal-edit-reunion'))?.hide();
             agLoadReuniones();
         } catch (err) {
@@ -18630,9 +18646,15 @@ async function _conciSaveBulkEdits() {
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando…';
 
         try {
+            const { data: prev } = await sb().from('agenda_acuerdos').select('*').eq('id', acuerdoId).maybeSingle();
             const { error } = await sb().from('agenda_acuerdos')
                 .update({ estatus, evidencia_url: evidencia }).eq('id', acuerdoId);
             if (error) throw error;
+            window.logHistory?.('EDITAR', 'agenda_acuerdos', acuerdoId, {
+                old: prev || {},
+                new: { estatus, evidencia_url: evidencia },
+                summary: `Acuerdo: ${(prev?.descripcion || '').slice(0, 80)} — ${prev?.estatus} → ${estatus}`
+            });
             bootstrap.Modal.getInstance(document.getElementById('ag-modal-edit-acuerdo'))?.hide();
             agLoadAcuerdos();
         } catch (err) {
@@ -18725,8 +18747,13 @@ async function _conciSaveBulkEdits() {
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando…';
 
         try {
-            const { error } = await sb().from('agenda_comites').insert([payload]);
+            const { data: inserted, error } = await sb().from('agenda_comites').insert([payload]).select('id').single();
             if (error) throw error;
+            window.logHistory?.('CREAR', 'agenda_comites', inserted?.id || null, {
+                nombre: payload.nombre,
+                area: payload.area,
+                frecuencia: payload.frecuencia
+            });
             bootstrap.Modal.getInstance(document.getElementById('ag-modal-nuevo-comite'))?.hide();
             agLoadComites();
         } catch (err) {
