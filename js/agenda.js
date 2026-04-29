@@ -86,6 +86,27 @@ async function _agEnsureData(force) {
     _ag.reuniones = rR.data  || [];
     _ag.ready = true;
     console.log(`[Agenda] Loaded: ${_ag.comites.length} comités, ${_ag.reuniones.length} reuniones`);
+
+    /* ── Asegurar user_area antes de renderizar (por si el flujo de login lo
+       cargó antes de que las funciones async del re-fetch lo guardaran) ── */
+    if (!sessionStorage.getItem('user_area')) {
+        try {
+            const { data: _authData } = await sb.auth.getUser();
+            if (_authData?.user) {
+                const { data: _rd } = await sb
+                    .from('user_roles').select('role, permissions')
+                    .eq('user_id', _authData.user.id).maybeSingle();
+                if (_rd) {
+                    const _r2 = _rd.role;
+                    const _rl = { operacion:'DO', administracion:'DA', planeacion:'DPE', comercial:'DCS', seguridad_op:'GSO', transparencia:'UT', calidad:'GC' };
+                    const _gl = ['admin','superadmin','editor','viewer','colab_viewer','colab_editor'];
+                    const _ua = _rd.permissions?.area || _rl[_r2] || (!_gl.includes(_r2) && _r2 ? _r2 : null);
+                    if (_ua) sessionStorage.setItem('user_area', _ua);
+                }
+            }
+        } catch (_) { /* silencioso — no bloquear la carga */ }
+    }
+
     _agShowAdminButtons();
     _agPopulateAreaSelect();
 }
@@ -1131,7 +1152,10 @@ function _agCanEditAny() {
 // Puede editar comités de un área específica
 function _agCanEdit(area) {
     if (_agIsAdmin()) return true;
-    return _agUserArea() === area;
+    const userArea = _agUserArea();
+    // Guardia null: sin área asignada no puede editar; comité sin área solo admin puede editar
+    if (!userArea || !area) return false;
+    return userArea === area;
 }
 
 // Devuelve la clave de área del usuario actual:
