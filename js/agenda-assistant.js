@@ -275,18 +275,33 @@
 
     /* ══════════════════════════════════════════════════════════════
        TTS — Texto a voz (respuesta hablada)
+       Las voces se cargan async en el primer evento voiceschanged
     ══════════════════════════════════════════════════════════════ */
+    let _agaVoices = [];
+    function _agaLoadVoices() {
+        if (!_aga.synth) return;
+        const v = _aga.synth.getVoices();
+        if (v.length) { _agaVoices = v; return; }
+        _aga.synth.addEventListener('voiceschanged', () => {
+            _agaVoices = _aga.synth.getVoices();
+        }, { once: true });
+    }
+    _agaLoadVoices();
+
     function _agaSpeak(text) {
         if (!_aga.synth) return;
         _aga.synth.cancel();
         const plain = text
             .replace(/\*\*/g,'').replace(/_/g,'')
-            .replace(/[📅📋📆📊🗂️💡👋⏰✅🎉📭🔍]/gu, '');
+            .replace(/[📅📋📆📊🗂️💡👋⏰✅🎉📭🔍•]/gu, '')
+            .replace(/<[^>]+>/g, '');
         const utt = new SpeechSynthesisUtterance(plain);
-        utt.lang = 'es-MX'; utt.rate = 1.05;
-        const voices = _aga.synth.getVoices();
-        const esVoice = voices.find(v => v.lang.startsWith('es') && v.localService)
-                     || voices.find(v => v.lang.startsWith('es'));
+        utt.lang = 'es-MX'; utt.rate = 1.0;
+        /* Buscar voz en español; si no hay, usar la del sistema */
+        const voices = _agaVoices.length ? _agaVoices : _aga.synth.getVoices();
+        const esVoice = voices.find(v => /es-MX/i.test(v.lang))
+                     || voices.find(v => /es/i.test(v.lang) && v.localService)
+                     || voices.find(v => /es/i.test(v.lang));
         if (esVoice) utt.voice = esVoice;
         _aga.synth.speak(utt);
     }
@@ -306,38 +321,97 @@
     }
 
     /* ══════════════════════════════════════════════════════════════
-       VOZ — reconocimiento (input)
+       VOZ — reconocimiento de voz (input)
     ══════════════════════════════════════════════════════════════ */
+    const _agaHasSR = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    /* iOS Safari NO soporta SpeechRecognition (solo lectura de texto) */
+    const _agaIsIOS = /ipad|iphone|ipod/i.test(navigator.userAgent) && !/chrome/i.test(navigator.userAgent);
+
     function _agaStartVoice() {
+        if (_agaIsIOS) {
+            _agaAddMsg('bot', '⚠️ El reconocimiento de voz no está disponible en Safari iOS. Puedes escribir tu pregunta, o activar la respuesta por voz para que el asistente te hable.', false);
+            return;
+        }
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SR) {
-            _agaAddMsg('bot', 'El reconocimiento de voz no está disponible en este navegador. Prueba con Chrome o Edge.', false);
+            _agaAddMsg('bot', '⚠️ Tu navegador no soporta reconocimiento de voz. Usa Chrome en Android o en escritorio.', false);
             return;
         }
+        /* Si ya está escuchando, cancelar */
         if (_aga.listening) {
-            _aga.recognition?.stop();
+            _aga.recognition?.abort();
+            _aga.listening = false;
+            _agaMicState(false);
             return;
         }
-        const r = new SR();
-        r.lang = 'es-MX'; r.interimResults = false; r.maxAlternatives = 1;
-        _aga.recognition = r;
-        _aga.listening = true;
-        _agaMicState(true);
 
-        r.onresult = e => {
-            const txt = e.results[0][0].transcript;
-            const inp = document.getElementById('_aga-input');
-            if (inp) inp.value = txt;
-            _agaSend();
-        };
-        r.onerror = e => {
-            _aga.listening = false; _agaMicState(false);
-            if (e.error !== 'no-speech') {
-                _agaAddMsg('bot', 'No pude escucharte. Inténtalo de nuevo.', false);
+        /* Verificar permiso de micrófono si la API está disponible */
+        const startRecognition = () => {
+            const r = new SR();
+            r.lang            = 'es-MX';
+            r.interimResults  = false;
+            r.maxAlternatives = 1;
+            r.continuous      = false;
+            _aga.recognition  = r;
+            _aga.listening    = true;
+            _agaMicState(true);
+
+            let _gotResult = false;
+
+            r.onresult = e => {
+                _gotResult = true;
+                const txt = e.results[0][0].transcript.trim();
+                if (!txt) return;
+                const inp = document.getElementById('_aga-input');
+                if (inp) inp.value = txt;
+                _agaSend();
+            };
+
+            r.onerror = e => {
+                _aga.listening = false;
+                _agaMicState(false);
+                const MSGS = {
+                    'not-allowed' : '🚫 Permiso de micrófono denegado. Actívalo en la configuración del navegador.',
+                    'no-speech'   : null, /* silencio — no mostrar error */
+                    'network'     : '📶 Error de red al procesar la voz. Verifica tu conexión.',
+                    'aborted'     : null,
+                };
+                const msg = MSGS[e.error] !== undefined ? MSGS[e.error] : `⚠️ Error de voz: ${e.error}. Inténtalo de nuevo.`;
+                if (msg) _agaAddMsg('bot', msg, false);
+            };
+
+            r.onend = () => {
+                _aga.listening = false;
+                _agaMicState(false);
+                /* Si terminó sin resultado y sin error, avisar */
+                if (!_gotResult) {
+                    /* pequeño delay para no pisar un onerror que venga justo después */
+                    setTimeout(() => {
+                        /* Solo mostrar si el chat sigue abierto */
+                        if (document.getElementById('_aga-panel')?._gotNoSpeechWarning) return;
+                    }, 100);
+                }
+            };
+
+            try { r.start(); }
+            catch(e) {
+                _aga.listening = false; _agaMicState(false);
+                _agaAddMsg('bot', '⚠️ No se pudo iniciar el micrófono. Recarga la página e intenta de nuevo.', false);
             }
         };
-        r.onend = () => { _aga.listening = false; _agaMicState(false); };
-        r.start();
+
+        /* Pedir permiso explícito primero si disponible (mejora UX en Chrome) */
+        if (navigator.permissions) {
+            navigator.permissions.query({ name: 'microphone' }).then(status => {
+                if (status.state === 'denied') {
+                    _agaAddMsg('bot', '🚫 El micrófono está bloqueado. Ve a Configuración del navegador y permite el acceso al micrófono para este sitio.', false);
+                } else {
+                    startRecognition();
+                }
+            }).catch(() => startRecognition());
+        } else {
+            startRecognition();
+        }
     }
     window._agaStartVoice = _agaStartVoice;
 
@@ -345,8 +419,8 @@
         const btn = document.getElementById('_aga-mic-btn');
         if (!btn) return;
         btn.classList.toggle('_aga-mic-on', on);
-        btn.title = on ? 'Escuchando… (toca para cancelar)' : 'Hablar por voz';
-        btn.querySelector('i').className = on ? 'fas fa-circle text-danger' : 'fas fa-microphone';
+        btn.title = on ? 'Escuchando… (toca para cancelar)' : (_agaIsIOS ? 'Voz no disponible en Safari iOS' : 'Hablar por voz');
+        btn.querySelector('i').className = on ? 'fas fa-stop-circle' : (_agaHasSR && !_agaIsIOS ? 'fas fa-microphone' : 'fas fa-microphone-slash');
     }
 
     /* ══════════════════════════════════════════════════════════════
@@ -433,9 +507,11 @@
           </div>
 
           <div class="_aga-foot">
-            <button id="_aga-mic-btn" class="_aga-ibtn _aga-mic" title="Hablar por voz"
-              onclick="window._agaStartVoice()" aria-label="Activar micrófono">
-              <i class="fas fa-microphone"></i>
+            <button id="_aga-mic-btn" class="_aga-ibtn _aga-mic"
+              title="${_agaIsIOS ? 'Voz no disponible en Safari iOS' : (_agaHasSR ? 'Hablar por voz' : 'Voz no disponible en este navegador')}"
+              onclick="window._agaStartVoice()" aria-label="Activar micrófono"
+              ${(!_agaHasSR || _agaIsIOS) ? 'style="opacity:.45;cursor:not-allowed"' : ''}>
+              <i class="${_agaHasSR && !_agaIsIOS ? 'fas fa-microphone' : 'fas fa-microphone-slash'}"></i>
             </button>
             <input id="_aga-input" class="_aga-inp" type="text" autocomplete="off"
               placeholder="Escribe tu pregunta…"
