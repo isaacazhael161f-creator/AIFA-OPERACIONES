@@ -99,7 +99,8 @@
         }, { onConflict: 'user_id' });
 
         if (error) {
-            console.warn('[AIFA Notif] Error guardando suscripción:', error.message);
+            console.error('[AIFA Notif] Error guardando suscripción:', error);
+            _agToastNotif('Error al guardar: ' + (error.message || error.code || JSON.stringify(error)), '#ef4444');
             return false;
         }
         return true;
@@ -195,14 +196,13 @@
             }
 
             const saved = await saveSubscription(sub);
-            if (saved) {
-                refreshBellUI(true);
-                _agToastNotif('¡Notificaciones activadas! Recibirás recordatorios de tus sesiones.', '#059669');
-                /* Notificación de bienvenida */
-                showWelcomeNotification();
-            } else {
-                _agToastNotif('Error al guardar la suscripción. Intenta de nuevo.', '#ef4444');
+            if (!saved) {
+                /* El error específico ya fue mostrado por saveSubscription */
+                return;
             }
+            refreshBellUI(true);
+            _agToastNotif('¡Notificaciones activadas! Recibirás recordatorios de tus sesiones.', '#059669');
+            showWelcomeNotification();
         } finally {
             if (btn) btn.disabled = false;
         }
