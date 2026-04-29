@@ -422,11 +422,23 @@
 
                 /* network tras agotar reintentos */
                 if (e.error === 'network') {
-                    _agaAddMsg('bot',
-                        '📶 No se pudo conectar con el servicio de voz (error de red).\n' +
-                        'El reconocimiento de voz de Chrome necesita conexión a internet para funcionar. ' +
-                        'Verifica tu conexión y vuelve a intentarlo, o escribe tu pregunta directamente.',
-                        false);
+                    const isEdge = /edg\//i.test(navigator.userAgent);
+                    if (isEdge) {
+                        _agaAddMsg('bot',
+                            '📶 Edge no puede conectar con el servicio de voz.\n\n' +
+                            '**Activa el reconocimiento de voz en línea de Windows:**\n' +
+                            '1. Abre **Configuración de Windows** (Win + I)\n' +
+                            '2. Ve a **Privacidad y seguridad → Voz**\n' +
+                            '3. Activa **"Reconocimiento de voz en línea"**\n' +
+                            '4. Vuelve a intentarlo aquí.\n\n' +
+                            '_Mientras tanto puedes escribir tu pregunta en el campo de texto._',
+                            false);
+                    } else {
+                        _agaAddMsg('bot',
+                            '📶 No se pudo conectar con el servicio de voz.\n' +
+                            'Verifica tu conexión a internet e inténtalo de nuevo, o escribe tu pregunta directamente.',
+                            false);
+                    }
                     return;
                 }
 
