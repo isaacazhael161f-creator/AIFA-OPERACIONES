@@ -16885,6 +16885,7 @@ async function _conciSaveBulkEdits() {
         }
 
         const ROLE_COLORS = { admin:'danger', editor:'warning', viewer:'secondary', colab_viewer:'info', colab_editor:'primary', control_fauna:'success', servicio_medico:'success' };
+        const _auAreaClaves = new Set(_auAreas.map(a => a.clave));
         const AVATAR_COLORS = ['#4361ee','#3a0ca3','#7209b7','#f72585','#4cc9f0','#06d6a0','#ef233c','#e76f51'];
 
         container.innerHTML = rows.map(u => {
@@ -16894,7 +16895,7 @@ async function _conciSaveBulkEdits() {
             const initials   = displayName.split(' ').slice(0,2).map(w => w[0]?.toUpperCase() || '').join('');
             const avatarColor = AVATAR_COLORS[(displayName.charCodeAt(0) || 0) % AVATAR_COLORS.length];
             const roleLabel  = AU_ROLE_LABELS[u.role] || u.role || '—';
-            const roleColor  = ROLE_COLORS[u.role] || 'secondary';
+            const roleColor  = ROLE_COLORS[u.role] || (_auAreaClaves.has(u.role) ? 'success' : 'secondary');
             const perms      = u.permissions || {};
             const dirId      = perms.direccion_id || '';
             const subId      = perms.subdireccion_id || '';
@@ -16907,9 +16908,20 @@ async function _conciSaveBulkEdits() {
                 ? new Date(u.last_sign_in_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
                 : 'Sin acceso';
             const safeEmail  = (u.email || '').replace(/'/g, '&#39;');
-            const roleOpts   = AU_ALL_ROLES.map(r =>
-                `<option value="${r}" ${u.role === r ? 'selected' : ''}>${AU_ROLE_LABELS[r] || r}</option>`
-            ).join('');
+            const _globalOptSelected = AU_ALL_ROLES.includes(u.role) ? u.role : '';
+            const _areaOptSelected  = _auAreaClaves.has(u.role) ? u.role : '';
+            const roleOpts = [
+                '<optgroup label="─ Roles globales ─">',
+                ...AU_ALL_ROLES.map(r =>
+                    `<option value="${r}" ${u.role === r ? 'selected' : ''}>${AU_ROLE_LABELS[r] || r}</option>`
+                ),
+                '</optgroup>',
+                '<optgroup label="─ Área del organigrama ─">',
+                ..._auAreas.map(a =>
+                    `<option value="${a.clave}" ${u.role === a.clave ? 'selected' : ''}>${a.clave} — ${a.nombre}</option>`
+                ),
+                '</optgroup>',
+            ].join('');
 
             return `<div id="au-row-${shortId}" class="card border-0 shadow-sm${isInactivo ? ' opacity-60' : ''}" style="border-left:4px solid ${isInactivo ? '#dc3545' : avatarColor}!important;transition:box-shadow .2s">
                 <div class="card-body py-3 px-3">
