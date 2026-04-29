@@ -346,7 +346,8 @@
         }
 
         /* Verificar permiso de micrófono si la API está disponible */
-        const startRecognition = () => {
+        const startRecognition = (attempt = 1) => {
+            const MAX_ATTEMPTS = 3;
             const r = new SR();
             r.lang            = 'es-MX';
             r.interimResults  = false;
@@ -357,6 +358,7 @@
             _agaMicState(true);
 
             let _gotResult = false;
+            let _hadError  = false;
 
             r.onresult = e => {
                 _gotResult = true;
@@ -368,35 +370,52 @@
             };
 
             r.onerror = e => {
+                _hadError = true;
                 _aga.listening = false;
                 _agaMicState(false);
+
+                /* network → reintento automático silencioso */
+                if (e.error === 'network' && attempt < MAX_ATTEMPTS) {
+                    setTimeout(() => startRecognition(attempt + 1), 600);
+                    return;
+                }
+
+                /* network tras agotar reintentos */
+                if (e.error === 'network') {
+                    _agaAddMsg('bot',
+                        '📶 No se pudo conectar con el servicio de voz (error de red).\n' +
+                        'El reconocimiento de voz de Chrome necesita conexión a internet para funcionar. ' +
+                        'Verifica tu conexión y vuelve a intentarlo, o escribe tu pregunta directamente.',
+                        false);
+                    return;
+                }
+
                 const MSGS = {
-                    'not-allowed' : '🚫 Permiso de micrófono denegado. Actívalo en la configuración del navegador.',
-                    'no-speech'   : null, /* silencio — no mostrar error */
-                    'network'     : '📶 Error de red al procesar la voz. Verifica tu conexión.',
+                    'not-allowed' : '🚫 Permiso de micrófono denegado. Actívalo en Configuración del navegador → Privacidad → Micrófono.',
+                    'no-speech'   : null,
                     'aborted'     : null,
+                    'audio-capture': '🎤 No se detectó micrófono. Verifica que esté conectado y no esté en uso por otra app.',
+                    'service-not-allowed': '🚫 El servicio de voz está bloqueado. Asegúrate de estar en una conexión segura (HTTPS).',
                 };
-                const msg = MSGS[e.error] !== undefined ? MSGS[e.error] : `⚠️ Error de voz: ${e.error}. Inténtalo de nuevo.`;
+                const msg = MSGS[e.error] !== undefined
+                    ? MSGS[e.error]
+                    : `⚠️ Error de voz (${e.error}). Inténtalo de nuevo.`;
                 if (msg) _agaAddMsg('bot', msg, false);
             };
 
             r.onend = () => {
                 _aga.listening = false;
                 _agaMicState(false);
-                /* Si terminó sin resultado y sin error, avisar */
-                if (!_gotResult) {
-                    /* pequeño delay para no pisar un onerror que venga justo después */
-                    setTimeout(() => {
-                        /* Solo mostrar si el chat sigue abierto */
-                        if (document.getElementById('_aga-panel')?._gotNoSpeechWarning) return;
-                    }, 100);
-                }
             };
 
             try { r.start(); }
-            catch(e) {
+            catch(err) {
                 _aga.listening = false; _agaMicState(false);
-                _agaAddMsg('bot', '⚠️ No se pudo iniciar el micrófono. Recarga la página e intenta de nuevo.', false);
+                if (err.name === 'InvalidStateError' && attempt < MAX_ATTEMPTS) {
+                    setTimeout(() => startRecognition(attempt + 1), 400);
+                } else {
+                    _agaAddMsg('bot', '⚠️ No se pudo iniciar el micrófono. Recarga la página e intenta de nuevo.', false);
+                }
             }
         };
 
