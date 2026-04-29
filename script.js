@@ -17730,18 +17730,23 @@ async function _conciSaveBulkEdits() {
     };
 
     // Determina qué áreas puede editar según el rol del usuario
+    // Prioridad: admin/superadmin → todo | user_area en sessionStorage → solo esa área
+    //            roles legacy → mapa fijo | role=clave directa → esa clave
+    //            editor/viewer/colab sin área → solo lectura
+    const _AG_GLOBAL_ROLES_SJS = ['admin','superadmin','editor','viewer','colab_viewer','colab_editor'];
+    const _AG_LEGACY_MAP_SJS   = { operacion:'DO', administracion:'DA', planeacion:'DPE', comercial:'DCS', seguridad_op:'GSO', transparencia:'UT', calidad:'GC' };
     function resolveEditableAreas(role) {
-        if (['admin', 'editor', 'superadmin'].includes(role)) {
+        if (['admin', 'superadmin'].includes(role)) {
             return Object.keys(AREA_LABELS);
         }
-        if (role === 'operacion')      return ['DO'];
-        if (role === 'administracion') return ['DA'];
-        if (role === 'planeacion')     return ['DPE'];
-        if (role === 'comercial')      return ['DCS'];
-        if (role === 'seguridad_op')   return ['GSO'];
-        if (role === 'transparencia')  return ['UT'];
-        if (role === 'calidad')        return ['GC'];
-        return [];  // afac / viewer → solo lectura
+        // Área asignada explícitamente (permissions.area → sessionStorage.user_area)
+        const userArea = sessionStorage.getItem('user_area');
+        if (userArea) return [userArea];
+        // Mapa legacy de roles descriptivos
+        if (_AG_LEGACY_MAP_SJS[role]) return [_AG_LEGACY_MAP_SJS[role]];
+        // Role IS la clave directamente (esquema v2: role='DO', 'GSO', etc.)
+        if (!_AG_GLOBAL_ROLES_SJS.includes(role) && role) return [role];
+        return [];  // editor/viewer/colab sin área asignada → solo lectura
     }
 
     // ── Inicialización ──
@@ -17816,6 +17821,11 @@ async function _conciSaveBulkEdits() {
 
     // ── COMITÉS ──
     window.agLoadComites = async function () {
+        // Re-evaluar áreas editables con sessionStorage fresco (por si user_area
+        // fue seteado después de la inicialización por el re-fetch async)
+        _userRole      = sessionStorage.getItem('user_role') || 'viewer';
+        _editableAreas = resolveEditableAreas(_userRole);
+
         const loading = document.getElementById('ag-comites-loading');
         const grid    = document.getElementById('ag-comites-grid');
         const empty   = document.getElementById('ag-comites-empty');
@@ -17872,6 +17882,10 @@ async function _conciSaveBulkEdits() {
 
     // ── REUNIONES ──
     window.agLoadReuniones = async function () {
+        // Re-evaluar con sessionStorage fresco
+        _userRole      = sessionStorage.getItem('user_role') || 'viewer';
+        _editableAreas = resolveEditableAreas(_userRole);
+
         const loading = document.getElementById('ag-reuniones-loading');
         const list    = document.getElementById('ag-reuniones-list');
         const empty   = document.getElementById('ag-reuniones-empty');
@@ -17936,6 +17950,10 @@ async function _conciSaveBulkEdits() {
 
     // ── ACUERDOS ──
     window.agLoadAcuerdos = async function () {
+        // Re-evaluar con sessionStorage fresco
+        _userRole      = sessionStorage.getItem('user_role') || 'viewer';
+        _editableAreas = resolveEditableAreas(_userRole);
+
         const loading = document.getElementById('ag-acuerdos-loading');
         const list    = document.getElementById('ag-acuerdos-list');
         const empty   = document.getElementById('ag-acuerdos-empty');
