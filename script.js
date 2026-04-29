@@ -3224,6 +3224,13 @@ async function ensureRoleInSessionStorage(userId) {
         try {
             const secs = roleData?.permissions?.allowed_sections;
             if (Array.isArray(secs)) sessionStorage.setItem('user_allowed_sections', JSON.stringify(secs));
+            // Guardar área si está definida en permissions.area o inferida del rol
+            const _ROLE_AREA_MAP = {
+                operacion:'DO', administracion:'DA', planeacion:'DPE',
+                comercial:'DCS', seguridad_op:'GSO', transparencia:'UT', calidad:'GC',
+            };
+            const roleArea = roleData?.permissions?.area || _ROLE_AREA_MAP[roleData?.role] || null;
+            if (roleArea) sessionStorage.setItem('user_area', roleArea);
         } catch (_) {}
     } catch (_) {
         try { sessionStorage.setItem('user_role', sessionStorage.getItem('user_role') || 'viewer'); } catch (_) { }
@@ -10660,6 +10667,11 @@ function showMainApp() {
                 if (!roleData) return;
                 // Actualizar rol si cambió
                 if (roleData.role) sessionStorage.setItem('user_role', roleData.role);
+                // Actualizar área inferida del rol o permissions.area
+                const _RM = { operacion:'DO', administracion:'DA', planeacion:'DPE', comercial:'DCS', seguridad_op:'GSO', transparencia:'UT', calidad:'GC' };
+                const _area = roleData?.permissions?.area || _RM[roleData?.role] || null;
+                if (_area) sessionStorage.setItem('user_area', _area);
+                else sessionStorage.removeItem('user_area');
                 // Actualizar allowed_sections
                 const secs = roleData?.permissions?.allowed_sections;
                 const prev = sessionStorage.getItem('user_allowed_sections');

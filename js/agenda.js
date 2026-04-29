@@ -1054,9 +1054,9 @@ const _AG_ROLE_AREA = {
     calidad:      'GC',
 };
 function _agIsAdmin()    { return ['admin','editor','superadmin'].includes(_agUserRole()); }
-function _agCanEditAny() { return _agIsAdmin() || (_agUserRole() in _AG_ROLE_AREA); }
-function _agCanEdit(area){ return _agIsAdmin() || _AG_ROLE_AREA[_agUserRole()] === area; }
-function _agUserArea()   { return _AG_ROLE_AREA[_agUserRole()] || null; }
+function _agCanEditAny() { return _agIsAdmin() || (_agUserRole() in _AG_ROLE_AREA) || !!sessionStorage.getItem('user_area'); }
+function _agCanEdit(area){ return _agIsAdmin() || _AG_ROLE_AREA[_agUserRole()] === area || sessionStorage.getItem('user_area') === area; }
+function _agUserArea()   { return sessionStorage.getItem('user_area') || _AG_ROLE_AREA[_agUserRole()] || null; }
 
 /* ── Muestra botones admin según rol (llamado después de cargar datos) ── */
 function _agShowAdminButtons() {
