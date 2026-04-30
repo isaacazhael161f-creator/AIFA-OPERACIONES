@@ -1456,10 +1456,16 @@ Fecha de hoy: ${todayStr}.\n`;
         });
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', _injectFAB);
-    } else {
-        _injectFAB();
+    // Solo mostrar el asistente en entorno local (beta)
+    const _isLocal = ['localhost', '127.0.0.1'].includes(location.hostname)
+                  || location.hostname.endsWith('.local')
+                  || location.port !== '';
+    if (_isLocal) {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', _injectFAB);
+        } else {
+            _injectFAB();
+        }
     }
 
 })();
