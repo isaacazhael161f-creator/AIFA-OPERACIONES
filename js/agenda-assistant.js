@@ -110,21 +110,22 @@ Fecha de hoy: ${todayStr}.\n`;
                 }
             } catch (_) { /* silencioso */ }
 
-            // ── Vuelos próximos (hoy + 3 días) ──────────────────────────
+            // ── Vuelos: ayer + hoy + 3 días ────────────────────────────
             try {
-                const dTo = new Date(today); dTo.setDate(today.getDate() + 3);
-                const todayISO = today.toISOString().slice(0, 10);
-                const toISO    = dTo.toISOString().slice(0, 10);
+                const dFrom = new Date(today); dFrom.setDate(today.getDate() - 1); // ayer
+                const dTo   = new Date(today); dTo.setDate(today.getDate() + 3);
+                const fromISO = dFrom.toISOString().slice(0, 10);
+                const toISO   = dTo.toISOString().slice(0, 10);
+                // Traer vuelos cuya fecha_salida O fecha_llegada caiga en el rango
                 const { data: flights } = await sb
                     .from('flights')
                     .select('numero_vuelo, aerolinea, origen, destino, fecha_llegada, fecha_salida, hora_llegada, hora_salida, posicion, tipo_vuelo, estatus')
-                    .or(`fecha_llegada.gte.${todayISO},fecha_salida.gte.${todayISO}`)
-                    .or(`fecha_llegada.lte.${toISO},fecha_salida.lte.${toISO}`)
-                    .order('fecha_salida', { ascending: true })
-                    .limit(20);
+                    .or(`and(fecha_salida.gte.${fromISO},fecha_salida.lte.${toISO}),and(fecha_llegada.gte.${fromISO},fecha_llegada.lte.${toISO})`)
+                    .order('fecha_salida', { ascending: true, nullsFirst: false })
+                    .limit(60);
 
                 if (flights?.length) {
-                    ctx += `\n=== VUELOS PRÓXIMOS (hoy + 3 días, muestra) ===\n`;
+                    ctx += `\n=== VUELOS (ayer, hoy y próximos 3 días — ${flights.length} registros) ===\n`;
                     flights.forEach(f => {
                         ctx += `• ${f.numero_vuelo || '—'} | ${f.aerolinea || '—'}`;
                         if (f.origen || f.destino) ctx += ` | ${f.origen || '?'} → ${f.destino || '?'}`;
@@ -193,8 +194,11 @@ Fecha de hoy: ${todayStr}.\n`;
             }
         }
 
-        ctx += `\nSi el usuario pregunta sobre datos que no están en este contexto (por ejemplo operaciones de meses anteriores), explícale que puede consultarlos directamente en el módulo correspondiente de la app. No inventes datos.\n`;
-        ctx += `Si el usuario pregunta cómo hacer algo en la app, guíalo paso a paso según la descripción de módulos de arriba.`;
+        ctx += `\nINSTRUCCIONES IMPORTANTES:\n`;
+        ctx += `- Si los datos solicitados están en este contexto (vuelos, operaciones, aerolíneas, comités), ÚSALOS directamente para responder. No digas "no tengo acceso" si los datos están en este prompt.\n`;
+        ctx += `- Solo redirige al módulo cuando el usuario pida datos que genuinamente NO estén aquí (ej: operaciones de hace 3 meses, vuelos de la próxima semana).\n`;
+        ctx += `- Nunca inventes datos; si algo no está en el contexto, dilo honestamente y sugiere el módulo.\n`;
+        ctx += `- Si el usuario pregunta cómo hacer algo en la app, guíalo paso a paso.`;
         return ctx;
     }
 
