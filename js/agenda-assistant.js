@@ -906,17 +906,22 @@ Fecha de hoy: ${todayStr}.\n`;
     window._agaSend = _agaSend;
 
     /* ══════════════════════════════════════════════════════════════
-       VOZ — SpeechRecognition (entrada) + SpeechSynthesis (salida)
+       VOZ — MediaRecorder + Groq Whisper STT + SpeechSynthesis TTS
+       (No depende de Google SpeechRecognition ni de red externa extra;
+        usa la misma Groq API key ya configurada)
     ══════════════════════════════════════════════════════════════ */
-    let _voiceActive  = false;   // modo voz en curso
-    let _voiceRecog   = null;    // instancia SpeechRecognition activa
-    let _voiceSynth   = window.speechSynthesis || null;
+    let _voiceActive       = false;
+    let _voiceStream       = null;   // MediaStream del micrófono
+    let _voiceRecorder     = null;   // MediaRecorder activo
+    let _voiceChunks       = [];     // Fragmentos de audio grabados
+    let _voiceAudioCtx     = null;   // AudioContext para VAD
+    let _voiceSilenceTimer = null;   // Timer de silencio
+    let _voiceSynth        = window.speechSynthesis || null;
 
-    function _voiceSupported() {
-        return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
-    }
+    const _VOICE_SILENCE_MS  = 1800; // ms sin hablar para enviar automáticamente
+    const _VOICE_SILENCE_AMP = 12;   // umbral de amplitud (0-255)
 
-    // Muestra / oculta el overlay de escucha
+    // ── Overlay ────────────────────────────────────────────────
     function _voiceOverlayShow(state) {
         let ov = document.getElementById('_aga-voice-overlay');
         if (!ov) {
@@ -930,87 +935,138 @@ Fecha de hoy: ${todayStr}.\n`;
                 <div class="_vw _vw3"></div><div class="_vw _vw4"></div>
                 <div class="_vw _vw5"></div>
               </div>
-              <button id="_aga-voice-mic" aria-label="Detener escucha"
+              <button id="_aga-voice-mic" aria-label="Parar grabación"
                 onclick="window._agaVoiceToggle()">
                 <i class="fas fa-microphone"></i>
               </button>
               <div id="_aga-voice-status">Escuchando…</div>
-              <div id="_aga-voice-hint">Toca el micrófono para pausar</div>`;
+              <div id="_aga-voice-hint">Se envía automáticamente al detectar silencio</div>`;
             document.body.appendChild(ov);
         }
         const statusEl = document.getElementById('_aga-voice-status');
         const micBtn   = document.getElementById('_aga-voice-mic');
         const waves    = document.getElementById('_aga-voice-waves');
-        if (state === 'listening') {
-            if (statusEl) statusEl.textContent = 'Escuchando…';
-            if (micBtn)   micBtn.classList.remove('_vmic-pause');
-            if (waves)    waves.classList.remove('_vwaves-pause');
-        } else if (state === 'thinking') {
-            if (statusEl) statusEl.textContent = 'Pensando…';
-            if (micBtn)   micBtn.classList.add('_vmic-pause');
-            if (waves)    waves.classList.add('_vwaves-pause');
-        } else if (state === 'speaking') {
-            if (statusEl) statusEl.textContent = 'Respondiendo…';
-            if (micBtn)   micBtn.classList.add('_vmic-pause');
-            if (waves)    waves.classList.remove('_vwaves-pause');
-        }
+        const states = {
+            listening: { text: 'Escuchando…',    pauseMic: false, pauseWave: false },
+            thinking:  { text: 'Pensando…',       pauseMic: true,  pauseWave: true  },
+            speaking:  { text: 'Respondiendo…',   pauseMic: true,  pauseWave: false },
+        };
+        const s = states[state] || states.listening;
+        if (statusEl) statusEl.textContent = s.text;
+        if (micBtn)   micBtn.classList.toggle('_vmic-pause',  s.pauseMic);
+        if (waves)    waves.classList.toggle('_vwaves-pause', s.pauseWave);
         ov.classList.add('_aga-voice-open');
     }
 
     function _voiceOverlayHide() {
-        const ov = document.getElementById('_aga-voice-overlay');
-        if (ov) ov.classList.remove('_aga-voice-open');
+        document.getElementById('_aga-voice-overlay')?.classList.remove('_aga-voice-open');
     }
 
-    // Leer texto en voz alta (TTS)
+    // ── TTS ────────────────────────────────────────────────────
     function _voiceSpeak(text) {
         if (!_voiceSynth) return Promise.resolve();
         return new Promise(resolve => {
             _voiceSynth.cancel();
-            // Limpiar markdown para TTS
             const clean = text
-                .replace(/\*\*(.+?)\*\*/g, '$1')
-                .replace(/_(.+?)_/g, '$1')
+                .replace(/\*\*(.+?)\*\*/g, '$1').replace(/_(.+?)_/g, '$1')
                 .replace(/[•→🛫✅⚠️🔑📅📆📊🗂️💬]/gu, '')
-                .replace(/<br>/g, '. ')
-                .slice(0, 600); // limitar longitud
+                .replace(/<br>/g, '. ').slice(0, 600);
             const utt = new SpeechSynthesisUtterance(clean);
-            utt.lang  = 'es-MX';
-            utt.rate  = 1.0;
-            utt.pitch = 1.0;
-            // Preferir voz en español si hay
+            utt.lang = 'es-MX'; utt.rate = 1.0; utt.pitch = 1.0;
             const voices = _voiceSynth.getVoices();
             const es = voices.find(v => v.lang.startsWith('es') && v.localService)
                     || voices.find(v => v.lang.startsWith('es'));
             if (es) utt.voice = es;
-            utt.onend   = resolve;
-            utt.onerror = resolve;
+            utt.onend = resolve; utt.onerror = resolve;
             _voiceSynth.speak(utt);
         });
     }
 
-    // Iniciar reconocimiento de voz
-    function _voiceStartRecognition() {
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SR) return;
+    // ── Transcribir audio con Groq Whisper ─────────────────────
+    async function _whisperTranscribe(blob) {
+        const key = _groqKey();
+        if (!key) throw new Error('Configura tu API Key de Groq primero (botón 🔑)');
+        const ext = blob.type.includes('ogg') ? 'ogg' : 'webm';
+        const form = new FormData();
+        form.append('file', blob, `audio.${ext}`);
+        form.append('model', 'whisper-large-v3-turbo');
+        form.append('language', 'es');
+        form.append('response_format', 'json');
+        const resp = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${key}` },
+            body: form
+        });
+        if (!resp.ok) {
+            const body = await resp.text().catch(() => '');
+            throw new Error(`Whisper ${resp.status}: ${body.slice(0, 120)}`);
+        }
+        const { text } = await resp.json();
+        return (text || '').trim();
+    }
 
-        _voiceRecog = new SR();
-        _voiceRecog.lang = 'es-MX';
-        _voiceRecog.interimResults = false;
-        _voiceRecog.maxAlternatives = 1;
+    // ── Iniciar grabación con VAD ──────────────────────────────
+    async function _voiceStartRecording() {
+        if (!_voiceStream || !_voiceActive) return;
+        _voiceChunks = [];
 
-        _voiceOverlayShow('listening');
+        // Elegir mimeType soportado
+        const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg', '']
+            .find(m => !m || MediaRecorder.isTypeSupported(m)) || '';
+        _voiceRecorder = new MediaRecorder(_voiceStream, mime ? { mimeType: mime } : {});
 
-        _voiceRecog.onresult = async (evt) => {
-            const transcript = evt.results[0][0].transcript.trim();
-            if (!transcript) { _voiceStartRecognition(); return; }
+        // VAD: detectar silencio mediante AnalyserNode
+        _voiceAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const src  = _voiceAudioCtx.createMediaStreamSource(_voiceStream);
+        const ana  = _voiceAudioCtx.createAnalyser();
+        ana.fftSize = 256;
+        src.connect(ana);
+        const buf  = new Uint8Array(ana.frequencyBinCount);
+        let detecting = true;
 
-            // Mostrar lo que dijo el usuario en el chat
-            _agaAddMsg('user', transcript);
+        const vadLoop = () => {
+            if (!detecting || !_voiceActive) return;
+            ana.getByteFrequencyData(buf);
+            const avg = buf.reduce((a, b) => a + b, 0) / buf.length;
+            if (avg < _VOICE_SILENCE_AMP) {
+                if (!_voiceSilenceTimer) {
+                    _voiceSilenceTimer = setTimeout(() => {
+                        if (_voiceActive && _voiceRecorder?.state === 'recording') {
+                            _voiceRecorder.stop();
+                        }
+                    }, _VOICE_SILENCE_MS);
+                }
+            } else {
+                clearTimeout(_voiceSilenceTimer);
+                _voiceSilenceTimer = null;
+            }
+            requestAnimationFrame(vadLoop);
+        };
+
+        _voiceRecorder.ondataavailable = e => { if (e.data?.size > 0) _voiceChunks.push(e.data); };
+
+        _voiceRecorder.onstop = async () => {
+            detecting = false;
+            clearTimeout(_voiceSilenceTimer); _voiceSilenceTimer = null;
+            try { _voiceAudioCtx.close(); } catch(_) {}
+
+            if (!_voiceActive) return;
+
+            const blob = new Blob(_voiceChunks, { type: _voiceRecorder.mimeType || 'audio/webm' });
+            _voiceChunks = [];
+
+            // Ignorar clips muy cortos (ruido, sin speech)
+            if (blob.size < 2000) {
+                if (_voiceActive) _voiceStartRecording();
+                return;
+            }
+
             _voiceOverlayShow('thinking');
-
-            // Obtener respuesta de la IA
             try {
+                const transcript = await _whisperTranscribe(blob);
+                if (!transcript) { if (_voiceActive) { _voiceOverlayShow('listening'); _voiceStartRecording(); } return; }
+
+                _agaAddMsg('user', transcript);
                 if (typeof _agEnsureData === 'function') await _agEnsureData();
                 const answer = await _agaAnswer(transcript);
                 _agaAddMsg('bot', answer);
@@ -1020,34 +1076,17 @@ Fecha de hoy: ${todayStr}.\n`;
                 _agaAddMsg('bot', `⚠️ ${err.message || err}`);
             }
 
-            // Volver a escuchar si el modo voz sigue activo
-            if (_voiceActive) _voiceStartRecognition();
+            if (_voiceActive) { _voiceOverlayShow('listening'); _voiceStartRecording(); }
         };
 
-        _voiceRecog.onerror = (evt) => {
-            if (evt.error === 'no-speech') {
-                if (_voiceActive) _voiceStartRecognition();
-                return;
-            }
-            _agaAddMsg('bot', `🎙️ Error de micrófono: ${evt.error}`);
-            window._agaVoiceStop();
-        };
-
-        _voiceRecog.onend = () => {
-            // Si terminó sin resultado y sigue activo, reiniciar
-            if (_voiceActive && _voiceRecog && !_voiceRecog._handled) {
-                // no-op, onresult ya lo maneja
-            }
-        };
-
-        _voiceRecog._handled = false;
-        _voiceRecog.start();
+        _voiceRecorder.start();
+        requestAnimationFrame(vadLoop);
     }
 
-    // Activar modo voz
-    window._agaVoiceStart = function () {
-        if (!_voiceSupported()) {
-            alert('Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.');
+    // ── API pública ────────────────────────────────────────────
+    window._agaVoiceStart = async function () {
+        if (!navigator.mediaDevices?.getUserMedia) {
+            _agaAddMsg('bot', '⚠️ Tu navegador no soporta acceso al micrófono. Usa Chrome o Edge con HTTPS.');
             return;
         }
         // Asegurarse de que el panel esté abierto
@@ -1057,28 +1096,35 @@ Fecha de hoy: ${todayStr}.\n`;
             setTimeout(window._agaVoiceStart, 400);
             return;
         }
-        _voiceActive = true;
-        _voiceStartRecognition();
+        try {
+            _voiceStream  = await navigator.mediaDevices.getUserMedia({ audio: true });
+            _voiceActive  = true;
+            const micBtn  = document.getElementById('_aga-mic-btn');
+            if (micBtn) micBtn.classList.add('_aga-mic-active');
+            _voiceOverlayShow('listening');
+            _voiceStartRecording();
+        } catch(err) {
+            _agaAddMsg('bot', `🎙️ No se pudo acceder al micrófono: ${err.message}`);
+        }
     };
 
-    // Detener modo voz completamente
     window._agaVoiceStop = function () {
         _voiceActive = false;
-        if (_voiceRecog) { try { _voiceRecog.stop(); } catch(_) {} _voiceRecog = null; }
-        if (_voiceSynth)  _voiceSynth.cancel();
+        clearTimeout(_voiceSilenceTimer); _voiceSilenceTimer = null;
+        if (_voiceRecorder && _voiceRecorder.state !== 'inactive') {
+            try { _voiceRecorder.stop(); } catch(_) {}
+        }
+        _voiceRecorder = null;
+        if (_voiceStream) { _voiceStream.getTracks().forEach(t => t.stop()); _voiceStream = null; }
+        try { _voiceAudioCtx?.close(); } catch(_) {} _voiceAudioCtx = null;
+        if (_voiceSynth) _voiceSynth.cancel();
         _voiceOverlayHide();
-        // Actualizar botón mic del chat
         const micBtn = document.getElementById('_aga-mic-btn');
         if (micBtn) micBtn.classList.remove('_aga-mic-active');
     };
 
-    // Toggle: si está activo lo para, si no lo inicia
     window._agaVoiceToggle = function () {
-        if (_voiceActive) {
-            window._agaVoiceStop();
-        } else {
-            window._agaVoiceStart();
-        }
+        if (_voiceActive) window._agaVoiceStop(); else window._agaVoiceStart();
     };
 
     window._agaQuick = function(txt) {
