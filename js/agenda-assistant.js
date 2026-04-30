@@ -23,6 +23,109 @@
         annualOps : null,  // tabla annual_operations
     };
 
+    /* ── Historial multi-turno ───────────────────────────────────── */
+    const _convHistory = []; // { role: 'user'|'assistant', content: '...' }
+
+    /* ══════════════════════════════════════════════════════════════
+       GROQ — llamada a la API REST (OpenAI-compatible)
+    ══════════════════════════════════════════════════════════════ */
+    const GROQ_MODEL   = 'llama-3.3-70b-versatile';
+    const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+
+    function _groqKey() {
+        return localStorage.getItem('_aga_groq_key') || '';
+    }
+
+    async function _buildSystemPrompt() {
+        const { comites, reuniones, ready } = _agData();
+        const today    = new Date();
+        const todayStr = today.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+        const userEmail = sessionStorage.getItem('user')
+            ? (() => { try { return JSON.parse(sessionStorage.getItem('user')).email || ''; } catch { return ''; } })()
+            : '';
+        const userArea = typeof _agUserArea === 'function' ? _agUserArea() : '';
+
+        let ctx = `Eres el asistente virtual de AIFA (Aeropuerto Internacional Felipe Ángeles). Respondes en español, de forma clara y concisa. Usa emojis con moderación.\n`;
+        ctx += `Fecha de hoy: ${todayStr}.\n`;
+        if (userEmail) ctx += `Usuario activo: ${userEmail}${userArea ? ` · Área: ${userArea}` : ''}.\n`;
+
+        if (ready && comites.length) {
+            ctx += `\n=== COMITÉS REGISTRADOS (${comites.length}) ===\n`;
+            comites.forEach(c => {
+                ctx += `• [${c.area}] ${c.acronimo ? c.acronimo + ' — ' : ''}${c.nombre}`;
+                if (c.frecuencia) ctx += ` · ${c.frecuencia}`;
+                if (c.presidente) ctx += ` · Presidente: ${c.presidente}`;
+                ctx += '\n';
+            });
+        }
+
+        if (ready && reuniones.length) {
+            const limit = new Date(today.getTime() + 60 * 86400000);
+            const upcoming = reuniones
+                .filter(r => {
+                    const d = new Date(r.fecha_sesion + 'T00:00:00');
+                    return d >= today && d <= limit && r.estatus !== 'Cancelada';
+                })
+                .sort((a, b) => a.fecha_sesion.localeCompare(b.fecha_sesion))
+                .slice(0, 30);
+
+            if (upcoming.length) {
+                ctx += `\n=== SESIONES PRÓXIMAS (60 días) ===\n`;
+                upcoming.forEach(r => {
+                    const c = comites.find(x => x.id === r.comite_id);
+                    ctx += `• ${r.fecha_sesion}${r.hora_inicio ? ' ' + r.hora_inicio.slice(0,5) : ''} — `;
+                    ctx += `${c ? (c.acronimo || c.nombre) : '?'} [${r.area}] · Sesión ${r.numero_sesion || '—'} · ${r.estatus}`;
+                    if (r.observaciones) ctx += ` · Obs: ${r.observaciones}`;
+                    ctx += '\n';
+                });
+            }
+        }
+
+        ctx += `\nSi te preguntan sobre datos que no aparecen en este contexto, responde lo que sepas de AIFA en general o indica que no tienes esa información disponible.`;
+        return ctx;
+    }
+
+    async function _callGroq(userMessage) {
+        const key = _groqKey();
+        if (!key) return null; // sin key → fallback rule-based
+
+        const systemPrompt = await _buildSystemPrompt();
+
+        // Mantener máximo 20 turnos en el historial
+        const historySlice = _convHistory.slice(-20);
+
+        const messages = [
+            { role: 'system', content: systemPrompt },
+            ...historySlice,
+            { role: 'user', content: userMessage },
+        ];
+
+        const resp = await fetch(GROQ_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type' : 'application/json',
+                'Authorization': `Bearer ${key}`,
+            },
+            body: JSON.stringify({
+                model      : GROQ_MODEL,
+                messages,
+                temperature: 0.7,
+                max_tokens : 1024,
+            }),
+        });
+
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            if (resp.status === 401) throw new Error('API Key inválida. Configúrala con el ícono 🔑 del chat.');
+            throw new Error(err?.error?.message || `Error ${resp.status} de Groq`);
+        }
+
+        const json   = await resp.json();
+        const answer = json?.choices?.[0]?.message?.content?.trim();
+        if (!answer) throw new Error('Groq no devolvió respuesta');
+        return answer;
+    }
+
     /* ── Cliente Supabase ────────────────────────────────────────── */
     function _sb() {
         return window.supabaseClient
@@ -184,24 +287,42 @@
     }
 
     /* ══════════════════════════════════════════════════════════════
-       MOTOR DE RESPUESTA — solo agenda de comités
+       MOTOR DE RESPUESTA — Groq primero, rule-based como fallback
     ══════════════════════════════════════════════════════════════ */
     async function _agaAnswer(rawQuery) {
         const q = _n(rawQuery);
 
-        /* SALUDO */
+        // Respuesta de bienvenida (sin consumir API)
         if (/^(hola|hi|hey|buenas?|buenos?)/.test(q)) {
-            const h  = new Date().getHours();
-            const gr = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
-            return `👋 ${gr}! Soy el asistente de la **Agenda de Comités**.\n\nPuedo ayudarte a saber:\n• ¿Cuándo es la próxima sesión?\n• ¿A qué hora es el comité de calidad?\n• ¿Qué sesiones hay esta semana?\n• Resumen de sesiones pendientes\n• ¿Qué es el comité GSO?`;
+            const key = _groqKey();
+            const h   = new Date().getHours();
+            const gr  = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
+            if (!key) {
+                return `👋 ${gr}! Soy el asistente de AIFA.\n\nPara activar respuestas con **IA real** (Groq), toca el ícono 🔑 en la parte superior del chat e ingresa tu API Key.\n\nMientras tanto, puedo responder preguntas básicas de la **Agenda de Comités**.`;
+            }
+            return `👋 ${gr}! Soy el asistente de AIFA con **Groq ${GROQ_MODEL}**.\n\nPuedo ayudarte con:\n• Agenda de comités y sesiones\n• Operaciones del aeropuerto\n• Aerolíneas y destinos\n• Cualquier pregunta sobre AIFA`;
         }
 
-        /* AYUDA */
+        // Intentar Groq
+        try {
+            const groqAnswer = await _callGroq(rawQuery);
+            if (groqAnswer) {
+                // Guardar en historial
+                _convHistory.push({ role: 'user',      content: rawQuery   });
+                _convHistory.push({ role: 'assistant',  content: groqAnswer });
+                // Limitar a 40 mensajes (20 turnos)
+                if (_convHistory.length > 40) _convHistory.splice(0, _convHistory.length - 40);
+                return groqAnswer;
+            }
+        } catch (err) {
+            // Error de autenticación o red → mostrar al usuario
+            return `⚠️ ${err.message}`;
+        }
+
+        // Sin key → rule-based
         if (/ayuda|help|que puedes|para que sirves|como funciona|que sabes/.test(q)) {
-            return `💡 **¿Qué puedo hacer?**\n\n**📅 Próximas sesiones:**\n• "¿Cuándo es la próxima sesión?"\n• "¿Cuándo es el COCOA?"\n\n**⏰ Horarios:**\n• "¿A qué hora es el comité de calidad?"\n• "¿A qué hora es la próxima sesión de DO?"\n\n**📆 Esta semana / mes:**\n• "¿Qué sesiones hay esta semana?"\n• "Sesiones de este mes"\n\n**📊 Resumen:**\n• "¿Cuántas sesiones pendientes hay?"\n• "Resumen de sesiones de DA"\n\n**🗂️ Información de comités:**\n• "¿Qué comités hay en DPE?"\n• "¿Qué es el GSO?"\n• "Lista de comités"`;
+            return `💡 **¿Qué puedo hacer?**\n\n**📅 Próximas sesiones:**\n• "¿Cuándo es la próxima sesión?"\n• "¿Cuándo es el COCOA?"\n\n**⏰ Horarios:**\n• "¿A qué hora es el comité de calidad?"\n\n**📆 Esta semana / mes:**\n• "¿Qué sesiones hay esta semana?"\n\n**🗂️ Comités:**\n• "Lista de comités"\n• "Comités de DO"\n\n_Activa la IA con el ícono 🔑 para respuestas mucho más completas._`;
         }
-
-        /* Todo lo demás → agenda */
         return _respAgenda(q);
     }
 
@@ -675,6 +796,33 @@
         _agaSend();
     };
 
+    /* Configurar API Key de Groq */
+    window._agaConfigKey = function() {
+        const current = _groqKey();
+        const newKey  = prompt(
+            '🔑 Ingresa tu API Key de Groq\n(obtén una gratis en console.groq.com)\n\nDeja vacío para borrarla.',
+            current ? '••••••••' + current.slice(-4) : ''
+        );
+        if (newKey === null) return; // canceló
+        const trimmed = newKey.trim();
+        if (!trimmed || trimmed.startsWith('••')) {
+            // No cambiar si dejó el placeholder
+            if (!trimmed) {
+                localStorage.removeItem('_aga_groq_key');
+                _agaAddMsg('bot', '🔑 API Key eliminada. El asistente usará respuestas básicas.');
+            }
+            return;
+        }
+        localStorage.setItem('_aga_groq_key', trimmed);
+        _convHistory.length = 0; // resetear historial al cambiar key
+        _agaAddMsg('bot', `✅ API Key guardada. Ahora uso **Groq ${GROQ_MODEL}**.\n\n¿En qué te puedo ayudar?`);
+    };
+
+    /* Limpiar historial de conversación */
+    window._agaConvClear = function() {
+        _convHistory.length = 0;
+    };
+
     /* ══════════════════════════════════════════════════════════════
        PANEL — montar / abrir / cerrar
     ══════════════════════════════════════════════════════════════ */
@@ -704,8 +852,12 @@
               </div>
             </div>
             <div class="_aga-head-r">
+              <button class="_aga-ibtn" title="Configurar API Key de Groq"
+                onclick="window._agaConfigKey()" aria-label="Configurar API Key">
+                🔑
+              </button>
               <button class="_aga-ibtn" title="Limpiar conversación"
-                onclick="document.getElementById('_aga-messages').innerHTML=''" aria-label="Limpiar">
+                onclick="document.getElementById('_aga-messages').innerHTML='';window._agaConvClear()" aria-label="Limpiar">
                 <i class="fas fa-broom"></i>
               </button>
               <button class="_aga-ibtn" title="Cerrar"
