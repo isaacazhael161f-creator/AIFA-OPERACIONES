@@ -1098,25 +1098,6 @@ Fecha de hoy: ${todayStr}.\n`;
         if (_voiceActive) window._agaVoiceStop(); else window._agaVoiceStart();
     };
 
-    // ── Overlay ────────────────────────────────────────────────
-    function _voiceOverlayShow(state) {
-        let ov = document.getElementById('_aga-voice-overlay');
-        if (!ov) {
-            ov = document.createElement('div');
-            ov.id = '_aga-voice-overlay';
-            ov.innerHTML = `
-              <button id="_aga-voice-close" aria-label="Cerrar modo voz"
-                onclick="window._agaVoiceStop()">✕</button>
-              <div id="_aga-voice-waves">
-                <div class="_vw _vw1"></div><div class="_vw _vw2"></div>
-                <div class="_vw _vw3"></div><div class="_vw _vw4"></div>
-                <div class="_vw _vw5"></div>
-              </div>
-              <button id="_aga-voice-mic" aria-label="Parar grabación"
-                onclick="window._agaVoiceToggle()">
-                <i class="fas fa-microphone"></i>
-              </button>
-              <div id="_aga-voice-status">Escuchando…</div>
     window._agaQuick = function(txt) {
         const inp = document.getElementById('_aga-input');
         if (inp) inp.value = txt;
