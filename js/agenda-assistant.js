@@ -989,9 +989,16 @@ Fecha de hoy: ${todayStr}.\n`;
     async function _whisperTranscribe(blob) {
         const key = _groqKey();
         if (!key) throw new Error('Configura tu API Key de Groq primero (botón 🔑)');
-        const ext = blob.type.includes('ogg') ? 'ogg' : 'webm';
+        // Determinar extensión y mime limpio a partir del mimeType real del blob
+        const rawType = blob.type || 'audio/webm';
+        let ext  = 'webm';
+        let mime = 'audio/webm';
+        if (rawType.includes('ogg'))  { ext = 'ogg';  mime = 'audio/ogg';  }
+        else if (rawType.includes('mp4')) { ext = 'mp4';  mime = 'audio/mp4';  }
+        // Groq requiere un File con nombre+tipo explícitos
+        const file = new File([blob], `audio.${ext}`, { type: mime });
         const form = new FormData();
-        form.append('file', blob, `audio.${ext}`);
+        form.append('file', file);
         form.append('model', 'whisper-large-v3-turbo');
         form.append('language', 'es');
         form.append('response_format', 'json');
@@ -1002,7 +1009,7 @@ Fecha de hoy: ${todayStr}.\n`;
         });
         if (!resp.ok) {
             const body = await resp.text().catch(() => '');
-            throw new Error(`Whisper ${resp.status}: ${body.slice(0, 120)}`);
+            throw new Error(`Whisper ${resp.status}: ${body.slice(0, 200)}`);
         }
         const { text } = await resp.json();
         return (text || '').trim();
@@ -1012,11 +1019,12 @@ Fecha de hoy: ${todayStr}.\n`;
     function _voiceStartRecording() {
         if (!_voiceStream || !_voiceActive) return;
         _voiceChunks = [];
-        const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg', '']
+        // Priorizar webm/opus; fallback a ogg o sin restricción
+        const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/ogg', '']
             .find(m => !m || MediaRecorder.isTypeSupported(m)) || '';
         _voiceRecorder = new MediaRecorder(_voiceStream, mime ? { mimeType: mime } : {});
         _voiceRecorder.ondataavailable = e => { if (e.data?.size > 0) _voiceChunks.push(e.data); };
-        _voiceRecorder.start();
+        _voiceRecorder.start(250); // chunks cada 250ms para no perder datos al parar
         _voiceOverlayShow('recording');
     }
 
@@ -1024,18 +1032,17 @@ Fecha de hoy: ${todayStr}.\n`;
     window._agaVoiceSend = async function () {
         if (!_voiceRecorder || _voiceRecorder.state !== 'recording') return;
 
-        // Recoger el último chunk y parar
-        _voiceRecorder.requestData();
-        _voiceRecorder.stop();
-        _voiceOverlayShow('thinking');
+        const recorder = _voiceRecorder; // capturar referencia antes de que cambie
 
-        _voiceRecorder.onstop = async () => {
+        // IMPORTANTE: registrar onstop ANTES de llamar stop()
+        recorder.onstop = async () => {
             if (!_voiceActive) return;
-            const blob = new Blob(_voiceChunks, { type: _voiceRecorder?.mimeType || 'audio/webm' });
+            const mimeType = recorder.mimeType || 'audio/webm';
+            const blob = new Blob(_voiceChunks, { type: mimeType });
             _voiceChunks = [];
 
             if (blob.size < 1500) {
-                // Clip demasiado corto, ignorar y volver a grabar
+                // Clip demasiado corto — volver a grabar sin molestar al usuario
                 if (_voiceActive) _voiceStartRecording();
                 return;
             }
@@ -1054,9 +1061,13 @@ Fecha de hoy: ${todayStr}.\n`;
                 _agaAddMsg('bot', `⚠️ ${err.message || err}`);
             }
 
-            // Volver a grabar automáticamente para el siguiente turno
             if (_voiceActive) _voiceStartRecording();
         };
+
+        // Pedir último chunk, luego parar
+        recorder.requestData();
+        recorder.stop();
+        _voiceOverlayShow('thinking');
     };
 
     // ── Activar modo voz ───────────────────────────────────────
