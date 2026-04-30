@@ -905,6 +905,182 @@ Fecha de hoy: ${todayStr}.\n`;
     }
     window._agaSend = _agaSend;
 
+    /* ══════════════════════════════════════════════════════════════
+       VOZ — SpeechRecognition (entrada) + SpeechSynthesis (salida)
+    ══════════════════════════════════════════════════════════════ */
+    let _voiceActive  = false;   // modo voz en curso
+    let _voiceRecog   = null;    // instancia SpeechRecognition activa
+    let _voiceSynth   = window.speechSynthesis || null;
+
+    function _voiceSupported() {
+        return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    }
+
+    // Muestra / oculta el overlay de escucha
+    function _voiceOverlayShow(state) {
+        let ov = document.getElementById('_aga-voice-overlay');
+        if (!ov) {
+            ov = document.createElement('div');
+            ov.id = '_aga-voice-overlay';
+            ov.innerHTML = `
+              <button id="_aga-voice-close" aria-label="Cerrar modo voz"
+                onclick="window._agaVoiceStop()">✕</button>
+              <div id="_aga-voice-waves">
+                <div class="_vw _vw1"></div><div class="_vw _vw2"></div>
+                <div class="_vw _vw3"></div><div class="_vw _vw4"></div>
+                <div class="_vw _vw5"></div>
+              </div>
+              <button id="_aga-voice-mic" aria-label="Detener escucha"
+                onclick="window._agaVoiceToggle()">
+                <i class="fas fa-microphone"></i>
+              </button>
+              <div id="_aga-voice-status">Escuchando…</div>
+              <div id="_aga-voice-hint">Toca el micrófono para pausar</div>`;
+            document.body.appendChild(ov);
+        }
+        const statusEl = document.getElementById('_aga-voice-status');
+        const micBtn   = document.getElementById('_aga-voice-mic');
+        const waves    = document.getElementById('_aga-voice-waves');
+        if (state === 'listening') {
+            if (statusEl) statusEl.textContent = 'Escuchando…';
+            if (micBtn)   micBtn.classList.remove('_vmic-pause');
+            if (waves)    waves.classList.remove('_vwaves-pause');
+        } else if (state === 'thinking') {
+            if (statusEl) statusEl.textContent = 'Pensando…';
+            if (micBtn)   micBtn.classList.add('_vmic-pause');
+            if (waves)    waves.classList.add('_vwaves-pause');
+        } else if (state === 'speaking') {
+            if (statusEl) statusEl.textContent = 'Respondiendo…';
+            if (micBtn)   micBtn.classList.add('_vmic-pause');
+            if (waves)    waves.classList.remove('_vwaves-pause');
+        }
+        ov.classList.add('_aga-voice-open');
+    }
+
+    function _voiceOverlayHide() {
+        const ov = document.getElementById('_aga-voice-overlay');
+        if (ov) ov.classList.remove('_aga-voice-open');
+    }
+
+    // Leer texto en voz alta (TTS)
+    function _voiceSpeak(text) {
+        if (!_voiceSynth) return Promise.resolve();
+        return new Promise(resolve => {
+            _voiceSynth.cancel();
+            // Limpiar markdown para TTS
+            const clean = text
+                .replace(/\*\*(.+?)\*\*/g, '$1')
+                .replace(/_(.+?)_/g, '$1')
+                .replace(/[•→🛫✅⚠️🔑📅📆📊🗂️💬]/gu, '')
+                .replace(/<br>/g, '. ')
+                .slice(0, 600); // limitar longitud
+            const utt = new SpeechSynthesisUtterance(clean);
+            utt.lang  = 'es-MX';
+            utt.rate  = 1.0;
+            utt.pitch = 1.0;
+            // Preferir voz en español si hay
+            const voices = _voiceSynth.getVoices();
+            const es = voices.find(v => v.lang.startsWith('es') && v.localService)
+                    || voices.find(v => v.lang.startsWith('es'));
+            if (es) utt.voice = es;
+            utt.onend   = resolve;
+            utt.onerror = resolve;
+            _voiceSynth.speak(utt);
+        });
+    }
+
+    // Iniciar reconocimiento de voz
+    function _voiceStartRecognition() {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) return;
+
+        _voiceRecog = new SR();
+        _voiceRecog.lang = 'es-MX';
+        _voiceRecog.interimResults = false;
+        _voiceRecog.maxAlternatives = 1;
+
+        _voiceOverlayShow('listening');
+
+        _voiceRecog.onresult = async (evt) => {
+            const transcript = evt.results[0][0].transcript.trim();
+            if (!transcript) { _voiceStartRecognition(); return; }
+
+            // Mostrar lo que dijo el usuario en el chat
+            _agaAddMsg('user', transcript);
+            _voiceOverlayShow('thinking');
+
+            // Obtener respuesta de la IA
+            try {
+                if (typeof _agEnsureData === 'function') await _agEnsureData();
+                const answer = await _agaAnswer(transcript);
+                _agaAddMsg('bot', answer);
+                _voiceOverlayShow('speaking');
+                await _voiceSpeak(answer);
+            } catch(err) {
+                _agaAddMsg('bot', `⚠️ ${err.message || err}`);
+            }
+
+            // Volver a escuchar si el modo voz sigue activo
+            if (_voiceActive) _voiceStartRecognition();
+        };
+
+        _voiceRecog.onerror = (evt) => {
+            if (evt.error === 'no-speech') {
+                if (_voiceActive) _voiceStartRecognition();
+                return;
+            }
+            _agaAddMsg('bot', `🎙️ Error de micrófono: ${evt.error}`);
+            window._agaVoiceStop();
+        };
+
+        _voiceRecog.onend = () => {
+            // Si terminó sin resultado y sigue activo, reiniciar
+            if (_voiceActive && _voiceRecog && !_voiceRecog._handled) {
+                // no-op, onresult ya lo maneja
+            }
+        };
+
+        _voiceRecog._handled = false;
+        _voiceRecog.start();
+    }
+
+    // Activar modo voz
+    window._agaVoiceStart = function () {
+        if (!_voiceSupported()) {
+            alert('Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.');
+            return;
+        }
+        // Asegurarse de que el panel esté abierto
+        const panel = document.getElementById('_aga-panel');
+        if (!panel?.classList.contains('_aga-open')) {
+            window.agaOpen();
+            setTimeout(window._agaVoiceStart, 400);
+            return;
+        }
+        _voiceActive = true;
+        _voiceStartRecognition();
+    };
+
+    // Detener modo voz completamente
+    window._agaVoiceStop = function () {
+        _voiceActive = false;
+        if (_voiceRecog) { try { _voiceRecog.stop(); } catch(_) {} _voiceRecog = null; }
+        if (_voiceSynth)  _voiceSynth.cancel();
+        _voiceOverlayHide();
+        // Actualizar botón mic del chat
+        const micBtn = document.getElementById('_aga-mic-btn');
+        if (micBtn) micBtn.classList.remove('_aga-mic-active');
+    };
+
+    // Toggle: si está activo lo para, si no lo inicia
+    window._agaVoiceToggle = function () {
+        if (_voiceActive) {
+            window._agaVoiceStop();
+        } else {
+            window._agaVoiceStart();
+        }
+    };
+
     window._agaQuick = function(txt) {
         const inp = document.getElementById('_aga-input');
         if (inp) inp.value = txt;
@@ -996,6 +1172,9 @@ Fecha de hoy: ${todayStr}.\n`;
               placeholder="Escribe tu pregunta…"
               onkeydown="if(event.key==='Enter')window._agaSend()"
               aria-label="Pregunta al asistente">
+            <button id="_aga-mic-btn" class="_aga-mic" onclick="window._agaVoiceToggle()" title="Hablar con el asistente" aria-label="Modo voz">
+              <i class="fas fa-microphone"></i>
+            </button>
             <button class="_aga-send" onclick="window._agaSend()" title="Enviar" aria-label="Enviar">
               <i class="fas fa-paper-plane"></i>
             </button>
@@ -1132,6 +1311,77 @@ Fecha de hoy: ${todayStr}.\n`;
 @keyframes _aga-bounce {
     0%,60%,100% { transform:translateY(0); }
     30%          { transform:translateY(-6px); }
+}
+
+/* ── Botón mic en el footer ──────────────────────────────────── */
+._aga-mic {
+    width:34px; height:34px; border-radius:50%; border:none;
+    background:#f1f5f9; color:#64748b; cursor:pointer; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:.82rem; transition:background .15s, color .15s;
+}
+._aga-mic:hover { background:#e2e8f0; color:#1a73e8; }
+._aga-mic:focus-visible { outline:3px solid #93c5fd; }
+._aga-mic._aga-mic-active { background:#ef4444; color:#fff; animation:_aga-pulse 1.2s infinite; }
+@keyframes _aga-pulse {
+    0%,100% { box-shadow:0 0 0 0 rgba(239,68,68,.5); }
+    50%     { box-shadow:0 0 0 8px rgba(239,68,68,0); }
+}
+
+/* ── Overlay modo voz ────────────────────────────────────────── */
+#_aga-voice-overlay {
+    position:fixed; inset:0; z-index:2000;
+    background:linear-gradient(145deg,#3730a3 0%,#4f46e5 50%,#7c3aed 100%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:18px; opacity:0; pointer-events:none;
+    transition:opacity .25s ease;
+}
+#_aga-voice-overlay._aga-voice-open { opacity:1; pointer-events:all; }
+
+#_aga-voice-close {
+    position:absolute; top:20px; right:20px;
+    background:rgba(255,255,255,.15); border:none; color:#fff;
+    width:38px; height:38px; border-radius:50%; font-size:1rem;
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:background .15s;
+}
+#_aga-voice-close:hover { background:rgba(255,255,255,.3); }
+
+#_aga-voice-waves {
+    display:flex; align-items:center; gap:6px; height:70px;
+}
+._vw {
+    width:8px; border-radius:4px;
+    background:rgba(255,255,255,.7);
+    animation:_aga-wave 1s ease-in-out infinite;
+}
+._vw1 { height:28px; animation-delay:0s; }
+._vw2 { height:46px; animation-delay:.1s; }
+._vw3 { height:62px; animation-delay:.2s; }
+._vw4 { height:46px; animation-delay:.3s; }
+._vw5 { height:28px; animation-delay:.4s; }
+._vwaves-pause ._vw { animation-play-state:paused; opacity:.4; }
+@keyframes _aga-wave {
+    0%,100% { transform:scaleY(.5); }
+    50%      { transform:scaleY(1); }
+}
+
+#_aga-voice-mic {
+    width:72px; height:72px; border-radius:50%; border:none;
+    background:rgba(255,255,255,.18); color:#fff;
+    font-size:1.7rem; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 0 14px rgba(255,255,255,.08), 0 0 0 28px rgba(255,255,255,.04);
+    transition:background .2s, transform .15s;
+}
+#_aga-voice-mic:hover { background:rgba(255,255,255,.28); transform:scale(1.07); }
+#_aga-voice-mic._vmic-pause { background:rgba(239,68,68,.6); }
+
+#_aga-voice-status {
+    color:#fff; font-size:1.1rem; font-weight:600; letter-spacing:.02em;
+}
+#_aga-voice-hint {
+    color:rgba(255,255,255,.6); font-size:.78rem;
 }`;
 
     const style = document.createElement('style');
