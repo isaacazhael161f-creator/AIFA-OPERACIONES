@@ -112,53 +112,51 @@ Fecha de hoy: ${todayStr}.\n`;
 
             // ── Vuelos: ayer + hoy + 3 días ────────────────────────────
             try {
-                const dFrom = new Date(today); dFrom.setDate(today.getDate() - 1); // ayer
-                const dTo   = new Date(today); dTo.setDate(today.getDate() + 3);
-                const fromISO = dFrom.toISOString().slice(0, 10);
-                const toISO   = dTo.toISOString().slice(0, 10);
-                // Traer vuelos cuya fecha_salida O fecha_llegada caiga en el rango
-                const { data: flights } = await sb
+                // Construir filtro OR por fechas exactas (patrón probado del app)
+                const dates = [];
+                for (let i = -1; i <= 3; i++) {
+                    const d = new Date(today); d.setDate(today.getDate() + i);
+                    dates.push(d.toISOString().slice(0, 10));
+                }
+                const orFilter = dates.flatMap(d => [`fecha_llegada.eq.${d}`, `fecha_salida.eq.${d}`]).join(',');
+                const { data: flights, error: flightsErr } = await sb
                     .from('flights')
-                    .select('numero_vuelo, aerolinea, origen, destino, fecha_llegada, fecha_salida, hora_llegada, hora_salida, posicion, tipo_vuelo, estatus')
-                    .or(`and(fecha_salida.gte.${fromISO},fecha_salida.lte.${toISO}),and(fecha_llegada.gte.${fromISO},fecha_llegada.lte.${toISO})`)
-                    .order('fecha_salida', { ascending: true, nullsFirst: false })
-                    .limit(60);
+                    .select('vuelo_llegada, vuelo_salida, aerolinea, origen, destino, fecha_llegada, fecha_salida, hora_llegada, hora_salida, posicion')
+                    .or(orFilter)
+                    .order('fecha_salida', { ascending: true })
+                    .limit(100);
 
+                if (flightsErr) console.warn('[AGA] flights query error:', flightsErr);
                 if (flights?.length) {
                     ctx += `\n=== VUELOS (ayer, hoy y próximos 3 días — ${flights.length} registros) ===\n`;
                     flights.forEach(f => {
-                        ctx += `• ${f.numero_vuelo || '—'} | ${f.aerolinea || '—'}`;
+                        const num = f.vuelo_salida || f.vuelo_llegada || '—';
+                        ctx += `• [${f.aerolinea || '—'}] ${num}`;
                         if (f.origen || f.destino) ctx += ` | ${f.origen || '?'} → ${f.destino || '?'}`;
                         if (f.fecha_salida) ctx += ` | Sal: ${f.fecha_salida}${f.hora_salida ? ' ' + f.hora_salida.slice(0,5) : ''}`;
                         if (f.fecha_llegada) ctx += ` | Lle: ${f.fecha_llegada}${f.hora_llegada ? ' ' + f.hora_llegada.slice(0,5) : ''}`;
                         if (f.posicion) ctx += ` | Pos: ${f.posicion}`;
-                        if (f.estatus) ctx += ` [${f.estatus}]`;
                         ctx += '\n';
                     });
+                } else if (!flightsErr) {
+                    ctx += `\n=== VUELOS (ayer, hoy y próximos 3 días) ===\nSin vuelos programados en este rango.\n`;
                 }
-            } catch (_) { /* silencioso */ }
+            } catch (e) { console.warn('[AGA] flights exception:', e); }
 
             // ── Aerolíneas activas ───────────────────────────────────────
             try {
-                const { data: airlineRows } = await sb
+                const { data: airlineRows, error: airlinesErr } = await sb
                     .from('airlines')
-                    .select('name, type')
+                    .select('name')
                     .order('name')
-                    .limit(60);
+                    .limit(100);
 
+                if (airlinesErr) console.warn('[AGA] airlines query error:', airlinesErr);
                 if (airlineRows?.length) {
                     ctx += `\n=== AEROLÍNEAS QUE OPERAN EN AIFA (${airlineRows.length}) ===\n`;
-                    const types = {};
-                    airlineRows.forEach(a => {
-                        const t = a.type || 'Otra'; 
-                        if (!types[t]) types[t] = [];
-                        types[t].push(a.name);
-                    });
-                    Object.entries(types).forEach(([t, names]) => {
-                        ctx += `${t}: ${names.join(', ')}\n`;
-                    });
+                    ctx += airlineRows.map(a => a.name).join(', ') + '\n';
                 }
-            } catch (_) { /* silencioso */ }
+            } catch (e) { console.warn('[AGA] airlines exception:', e); }
         }
 
         // ── Agenda: comités y sesiones ───────────────────────────────
