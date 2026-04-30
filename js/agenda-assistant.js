@@ -37,24 +37,137 @@
     }
 
     async function _buildSystemPrompt() {
+        const sb = _sb();
         const { comites, reuniones, ready } = _agData();
         const today    = new Date();
         const todayStr = today.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
         const userEmail = sessionStorage.getItem('user')
             ? (() => { try { return JSON.parse(sessionStorage.getItem('user')).email || ''; } catch { return ''; } })()
             : '';
-        const userArea = typeof _agUserArea === 'function' ? _agUserArea() : '';
+        const userRole = sessionStorage.getItem('user_role') || '';
+        const userArea = typeof _agUserArea === 'function' ? _agUserArea() : (sessionStorage.getItem('user_area') || '');
 
-        let ctx = `Eres el asistente virtual de AIFA (Aeropuerto Internacional Felipe Ángeles). Respondes en español, de forma clara y concisa. Usa emojis con moderación.\n`;
-        ctx += `Fecha de hoy: ${todayStr}.\n`;
-        if (userEmail) ctx += `Usuario activo: ${userEmail}${userArea ? ` · Área: ${userArea}` : ''}.\n`;
+        // ── Descripción de la app ──────────────────────────────────
+        let ctx = `Eres el asistente virtual integrado en AIFA OPERACIONES, la plataforma interna del Aeropuerto Internacional Felipe Ángeles (AIFA), ubicado en Zumpango, Estado de México. Respondes siempre en español, de forma clara, profesional y concisa. Usa emojis con moderación para mejorar la lectura.
 
+DESCRIPCIÓN DE LA PLATAFORMA:
+La app AIFA OPERACIONES es un sistema web de gestión interna con los siguientes módulos:
+
+1. OPERACIONES DIARIAS (Parte de Operaciones): Registro diario de operaciones aéreas — Aviación Comercial, Carga y General. Campos: comercial_llegada, comercial_salida, carga_llegada, carga_salida, general_llegada, general_salida, total_general. Se puede navegar por fecha y descargar reportes en PDF.
+
+2. ITINERARIO DE VUELOS (tabla: flights): Calendario de vuelos programados con aerolínea, origen, destino, número de vuelo, fecha de llegada/salida, posición (puerta), tipo (regular/charter), y más. Tiene filtros por aerolínea, fecha, origen, destino y tipo.
+
+3. AEROLÍNEAS: Catálogo de aerolíneas que operan en AIFA con historial de operaciones mensuales por año (2023-2026). Tipos: pasajeros nacionales, internacionales, carga.
+
+4. AGENDA DE COMITÉS: Gestión de comités institucionales (DO, DA, DPE, DCS, GSO, etc.), sus sesiones (reuniones) y acuerdos. Incluye fecha, hora, estatus (Programada/Celebrada/Cancelada/Pospuesta), y acuerdos con responsable y seguimiento.
+
+5. FAUNA / GSO (Control de Fauna): Módulo del Grupo de Seguridad Operacional para reportar y gestionar incidentes con fauna silvestre en las pistas del aeropuerto.
+
+6. SERVICIO MÉDICO: Registro de atenciones médicas al personal y pasajeros del aeropuerto.
+
+7. HISTORIAL DE CAMBIOS: Bitácora automática de todos los cambios realizados en la plataforma (crear, editar, eliminar) con usuario, fecha y detalle del cambio.
+
+8. COLABORADORES: Gestión del directorio de personal del aeropuerto, historial de plazas, CV y documentación.
+
+9. ADMINISTRACIÓN DE USUARIOS: Control de acceso por roles y áreas. Roles: admin, editor, viewer, control_fauna, servicio_medico, colab_editor, colab_viewer.
+
+ÁREAS DEL AEROPUERTO:
+DO (Dirección de Operaciones), DA (Dirección Administrativa), DPE (Dirección de Planeación Estratégica), DCS (Dirección Comercial), GSO (Grupo de Seguridad Operacional), SMS (Safety Management System), GPE.
+
+Fecha de hoy: ${todayStr}.\n`;
+
+        if (userEmail) {
+            ctx += `Usuario activo: ${userEmail}`;
+            if (userRole) ctx += ` · Rol: ${userRole}`;
+            if (userArea) ctx += ` · Área: ${userArea}`;
+            ctx += '\n';
+        }
+
+        // ── Operaciones recientes (últimos 7 días de parte_operations) ──
+        if (sb) {
+            try {
+                const dFrom = new Date(today); dFrom.setDate(today.getDate() - 7);
+                const dateFrom = dFrom.toISOString().slice(0, 10);
+                const { data: parteRows } = await sb
+                    .from('parte_operations')
+                    .select('fecha, comercial_llegada, comercial_salida, carga_llegada, carga_salida, general_llegada, general_salida, total_general')
+                    .gte('fecha', dateFrom)
+                    .order('fecha', { ascending: false })
+                    .limit(10);
+
+                if (parteRows?.length) {
+                    ctx += `\n=== OPERACIONES DIARIAS RECIENTES (últimos 7 días) ===\n`;
+                    parteRows.forEach(r => {
+                        const com = (r.comercial_llegada || 0) + (r.comercial_salida || 0);
+                        const car = (r.carga_llegada || 0) + (r.carga_salida || 0);
+                        const gen = (r.general_llegada || 0) + (r.general_salida || 0);
+                        ctx += `• ${r.fecha}: Total ${r.total_general || (com + car + gen)} ops`;
+                        if (com) ctx += ` | Comercial: ${com} (↓${r.comercial_llegada} ↑${r.comercial_salida})`;
+                        if (car) ctx += ` | Carga: ${car}`;
+                        if (gen) ctx += ` | General: ${gen}`;
+                        ctx += '\n';
+                    });
+                }
+            } catch (_) { /* silencioso */ }
+
+            // ── Vuelos próximos (hoy + 3 días) ──────────────────────────
+            try {
+                const dTo = new Date(today); dTo.setDate(today.getDate() + 3);
+                const todayISO = today.toISOString().slice(0, 10);
+                const toISO    = dTo.toISOString().slice(0, 10);
+                const { data: flights } = await sb
+                    .from('flights')
+                    .select('numero_vuelo, aerolinea, origen, destino, fecha_llegada, fecha_salida, hora_llegada, hora_salida, posicion, tipo_vuelo, estatus')
+                    .or(`fecha_llegada.gte.${todayISO},fecha_salida.gte.${todayISO}`)
+                    .or(`fecha_llegada.lte.${toISO},fecha_salida.lte.${toISO}`)
+                    .order('fecha_salida', { ascending: true })
+                    .limit(20);
+
+                if (flights?.length) {
+                    ctx += `\n=== VUELOS PRÓXIMOS (hoy + 3 días, muestra) ===\n`;
+                    flights.forEach(f => {
+                        ctx += `• ${f.numero_vuelo || '—'} | ${f.aerolinea || '—'}`;
+                        if (f.origen || f.destino) ctx += ` | ${f.origen || '?'} → ${f.destino || '?'}`;
+                        if (f.fecha_salida) ctx += ` | Sal: ${f.fecha_salida}${f.hora_salida ? ' ' + f.hora_salida.slice(0,5) : ''}`;
+                        if (f.fecha_llegada) ctx += ` | Lle: ${f.fecha_llegada}${f.hora_llegada ? ' ' + f.hora_llegada.slice(0,5) : ''}`;
+                        if (f.posicion) ctx += ` | Pos: ${f.posicion}`;
+                        if (f.estatus) ctx += ` [${f.estatus}]`;
+                        ctx += '\n';
+                    });
+                }
+            } catch (_) { /* silencioso */ }
+
+            // ── Aerolíneas activas ───────────────────────────────────────
+            try {
+                const { data: airlineRows } = await sb
+                    .from('airlines')
+                    .select('name, type')
+                    .order('name')
+                    .limit(60);
+
+                if (airlineRows?.length) {
+                    ctx += `\n=== AEROLÍNEAS QUE OPERAN EN AIFA (${airlineRows.length}) ===\n`;
+                    const types = {};
+                    airlineRows.forEach(a => {
+                        const t = a.type || 'Otra'; 
+                        if (!types[t]) types[t] = [];
+                        types[t].push(a.name);
+                    });
+                    Object.entries(types).forEach(([t, names]) => {
+                        ctx += `${t}: ${names.join(', ')}\n`;
+                    });
+                }
+            } catch (_) { /* silencioso */ }
+        }
+
+        // ── Agenda: comités y sesiones ───────────────────────────────
         if (ready && comites.length) {
-            ctx += `\n=== COMITÉS REGISTRADOS (${comites.length}) ===\n`;
+            ctx += `\n=== COMITÉS INSTITUCIONALES (${comites.length}) ===\n`;
             comites.forEach(c => {
                 ctx += `• [${c.area}] ${c.acronimo ? c.acronimo + ' — ' : ''}${c.nombre}`;
-                if (c.frecuencia) ctx += ` · ${c.frecuencia}`;
-                if (c.presidente) ctx += ` · Presidente: ${c.presidente}`;
+                if (c.frecuencia)  ctx += ` · ${c.frecuencia}`;
+                if (c.presidente)  ctx += ` · Presidente: ${c.presidente}`;
+                if (c.descripcion) ctx += `\n  ${c.descripcion.slice(0, 120)}`;
                 ctx += '\n';
             });
         }
@@ -62,10 +175,9 @@
         if (ready && reuniones.length) {
             const limit = new Date(today.getTime() + 60 * 86400000);
             const upcoming = reuniones
-                .filter(r => {
-                    const d = new Date(r.fecha_sesion + 'T00:00:00');
-                    return d >= today && d <= limit && r.estatus !== 'Cancelada';
-                })
+                .filter(r => new Date(r.fecha_sesion + 'T00:00:00') >= today
+                          && new Date(r.fecha_sesion + 'T00:00:00') <= limit
+                          && r.estatus !== 'Cancelada')
                 .sort((a, b) => a.fecha_sesion.localeCompare(b.fecha_sesion))
                 .slice(0, 30);
 
@@ -81,7 +193,8 @@
             }
         }
 
-        ctx += `\nSi te preguntan sobre datos que no aparecen en este contexto, responde lo que sepas de AIFA en general o indica que no tienes esa información disponible.`;
+        ctx += `\nSi el usuario pregunta sobre datos que no están en este contexto (por ejemplo operaciones de meses anteriores), explícale que puede consultarlos directamente en el módulo correspondiente de la app. No inventes datos.\n`;
+        ctx += `Si el usuario pregunta cómo hacer algo en la app, guíalo paso a paso según la descripción de módulos de arriba.`;
         return ctx;
     }
 
