@@ -4884,8 +4884,16 @@ FF
                             }
                             .colab-ficha { box-shadow: none !important; border: none !important; }
                             .colab-ficha::before { opacity: 0.06 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                            /* Ocultar botones e interactivos */
                             .colab-btn-print, .colab-btn-edit, .colab-btn-delete,
-                            .colab-cv-panel, #colab-cv-inline-preview { display: none !important; visibility: hidden !important; }
+                            .colab-cv-panel, #colab-cv-inline-preview,
+                            .ca-btn-attach, .ca-actions,
+                            /* Ocultar secciones posteriores a Comentarios */
+                            .colab-emergency-panel, .colab-datos-civiles,
+                            hr.colab-divider,
+                            #colab-cursos-alert-banner, #colab-cursos-toolbar,
+                            #colab-cursos-list, #colab-cursos-dropzone,
+                            .colab-historial-panel, .colab-historial-plaza-panel { display: none !important; visibility: hidden !important; }
                         }
                         @page { size: A4 portrait; margin: 8mm; }
 
@@ -5831,7 +5839,7 @@ FF
                                     </div>
 
                                     <!-- ── BLOQUE 7: DATOS CIVILES ── -->
-                                    <table class="colab-tabla mt-2">
+                                    <table class="colab-tabla mt-2 colab-datos-civiles">
                                         <thead>
                                             <tr><th colspan="8" class="colab-tabla-section-hd"><i class="fas fa-users me-1"></i> Datos Civiles</th></tr>
                                         </thead>
@@ -8864,7 +8872,12 @@ FF
                                 sectionCSS + '\n' +
                                 '.colab-btn-print,.colab-btn-edit,.colab-btn-delete,' +
                                 '.colab-cv-panel,#colab-cv-inline-preview,' +
-                                '.colab-cursos-actions,.cc-btn,#colab-cursos-alert-banner,' +
+                                '.ca-btn-attach,.ca-actions,' +
+                                '.colab-emergency-panel,.colab-datos-civiles,' +
+                                'hr.colab-divider,' +
+                                '#colab-cursos-alert-banner,#colab-cursos-toolbar,' +
+                                '#colab-cursos-list,#colab-cursos-dropzone,' +
+                                '.colab-cursos-actions,.cc-btn,' +
                                 '.colab-historial-panel,.colab-historial-plaza-panel{display:none!important;}\n' +
                                 '.colab-ficha{box-shadow:none!important;border:none!important;max-width:100%!important;}\n' +
                                 '.colab-tabla td,.colab-tabla th{font-size:10.5px!important;}\n' +
