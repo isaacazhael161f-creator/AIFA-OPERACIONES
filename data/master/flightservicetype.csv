@@ -1,0 +1,26 @@
+﻿Código,Categoria,Tipo de Operación,Descripción
+A,Vuelos adicionales,"Carga, Correo",Carga/Correo
+B,Vuelos adicionales,Pasajeros,Modo Compartido
+C,Fletamento,Pasajeros,Solo Pasajeros
+D,Otros,Sin especificar,Aviación General
+E,Otros,Sin especificar,Especial (Gubernamentales)
+F,Regular,"Carga,Correo",Servicio Normal
+G,Vuelos adicionales,Pasajeros,Servicio Normal
+H,Fletamento,"Carga,Correo",Carga y /o Correo
+I,Otros,Sin especificar,Estatal/Diplomático/Ambulancia Aérea
+J,Regular,Pasajeros,Servicio Normal
+K,Otros,Sin especificar,Entrenamiento (Escuela/Vuelo de Verificación)
+L,Fletamento,"Pasajeros, Carga, Correo",Pasajeros y Carga y/o Correo
+M,Regular,"Carga,Correo",Solo Correo
+N,Otros,Sin especificar,Aviación Ejecutiva/Taxi Aéreo
+O,Fletamento,Manejo Especial,Manejo Especial (Migrantes/Inmigrantes)
+P,Otros,Sin especificar,Sin ganancia Posicionamiento/Ferry/Entrega/Demo)
+Q,Regular,"Pasajeros,Carga",Pasajeros y Carga en Cabina (aviones de configuración mixta)
+R,Vuelos adicionales,"Pasajeros,Carga",Pasajeros/Carga en Cabina (aviones de configuración mixta)       
+S,Regular,Pasajeros,Modo Compartido
+T,Otros,Sin especificar,Vuelos de Prueba
+U,Regular,Pasajeros,Servicio operado por un vehículo por un vehículo en plataforma
+V,Regular,"Carga,Correo",Servicio operado por un vehículo por un vehículo en plataforma
+W,Otros,Sin especificar,Militar
+X,Otros,Sin especificar,Escala Técnica
+

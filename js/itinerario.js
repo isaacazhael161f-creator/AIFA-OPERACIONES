@@ -1,0 +1,2264 @@
+// Itinerario (gráficas del día) extraído de script.js — sin cambios en comportamiento
+;(function(){
+  const sec = document.getElementById('itinerario-section');
+  if (!sec) return;
+  const H_LABELS = Array.from({length:24}, (_,i)=> String(i).padStart(2,'0'));
+  let itData = null;
+  let selectedDate = null; // 'yyyy-mm-dd'
+  let lastAgg = null;
+  const SCOPE_PAX = 'pax';
+  const SCOPE_CARGO = 'cargo';
+  const SCOPE_ALL = 'all';
+  const scopeLabels = { [SCOPE_PAX]: 'Pasajeros', [SCOPE_CARGO]: 'Carga', [SCOPE_ALL]: 'Todos los vuelos' };
+  const insightsCache = { [SCOPE_PAX]: null, [SCOPE_CARGO]: null, [SCOPE_ALL]: null };
+  const DEFAULT_AIRLINE_LABEL = 'Sin aerolínea';
+  const DEFAULT_LOGO_REGEX = /default-airline-logo/i;
+  const MOVEMENT_META = {
+    'Llegada': { icon: 'fa-plane-arrival', cls: 'movement-arrival', label: 'Llegada' },
+    'Salida': { icon: 'fa-plane-departure', cls: 'movement-departure', label: 'Salida' }
+  };
+  const MOVEMENT_META_DEFAULT = { icon: 'fa-plane', cls: 'movement-generic', label: 'Operación' };
+  const chartHitRegions = {};
+  const PEAK_RESULTS_PLACEHOLDER = '<div class="intel-flight-placeholder text-center text-muted small">Selecciona una aerolínea u horario para ver los vuelos relacionados.</div>';
+  function isChartsPaneActive(){
+    const paneIds = ['graficas-itinerario-pane', 'radar-operativo-pane'];
+    return paneIds.some(id => {
+      const pane = document.getElementById(id);
+      return pane && pane.classList.contains('show') && pane.classList.contains('active');
+    });
+  }
+  // Por defecto, operar de forma independiente (sin sincronizar con filtros externos)
+  if (typeof window.syncItineraryFiltersToCharts === 'undefined') {
+    window.syncItineraryFiltersToCharts = false;
+  }
+  
+  // Exponer función para "destruir": limpiar canvases
+  window.destroyItinerarioCharts = function() {
+    console.log('🗑️ Limpiando canvases de itinerario...');
+    const canvasIds = ['paxArrivalsChart', 'paxDeparturesChart', 'cargoArrivalsChart', 'cargoDeparturesChart', 'generalArrivalsChart', 'generalDeparturesChart', 'heatmapPaxDay', 'heatmapCargoDay', 'combinedChart', 'paxCombinedChart', 'cargoCombinedChart', 'fuelHeatmapChart'];
+    canvasIds.forEach(id => {
+      const c = document.getElementById(id);
+      if (!c) return;
+      const g = c.getContext && c.getContext('2d');
+      if (!g) return;
+      g.clearRect(0,0,c.width||c.clientWidth||0,c.height||c.clientHeight||0);
+    });
+    console.log('✅ Canvases limpios');
+  };
+  
+  // Exponer función para re-renderizar desde el exterior
+  window.renderItineraryCharts = renderItineraryCharts;
+  const passengerAirlines = new Set(['aeromexico','volaris','viva aerobus','mexicana','aerus','arajet','americanairlines','latam','avianca','copa','airfrance','klm','iberia']);
+  const cargoAirlines = new Set(['atlas air','aero union','aerounion','masair','mas','estafeta','dhl','cargolux','cathay pacific','ups','turkish','amerijet','air canada cargo','kalitta','ethiopian']);
+  function toYMD(d){ return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-'); }
+  function ymdToDMY(ymd){ const [y,m,d]=ymd.split('-'); return `${d}/${m}/${y}`; }
+  function parseDMY(s){ const m = /^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/.exec(s||''); if(!m) return null; return new Date(parseInt(m[3],10), parseInt(m[2],10)-1, parseInt(m[1],10)); }
+  function hourFromHHMM(s){ 
+      if (!s) return null;
+      // Handle HH:MM:SS or HH:MM
+      const m = /^(\d{1,2}):(\d{2})(?::\d{2})?/.exec(s.toString().trim()); 
+      return m ? Math.min(23, Math.max(0, parseInt(m[1],10))) : null; 
+  }
+  function norm(str){ return (str||'').toString().trim().toLowerCase(); }
+  function toIsoDate(str) {
+    if (!str) return '';
+    let s = str.toString().trim();
+    // Handle ISO T explicitly
+    if (s.includes('T')) s = s.split('T')[0];
+    s = s.split(' ')[0]; // Remove time part if separated by space
+
+    // Already YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    
+    // DD/MM/YYYY
+    const m = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/.exec(s);
+    if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    return s; 
+  }
+  function isPassenger(f){ if (norm(f.categoria) === 'pasajeros' || norm(f.categoria)==='comercial') return true; if (norm(f.categoria) === 'carga') return false; const a = norm(f.aerolinea||f.aerolínea||f.airline); if (!a) return true; if (cargoAirlines.has(a)) return false; if (passengerAirlines.has(a)) return true; if (a.includes('cargo')) return false; return true; }
+  
+  // Helper to remove duplicates based on user criteria
+  function removeItineraryDuplicates(items) {
+      if (!Array.isArray(items)) return [];
+      const seen = new Set();
+      return items.filter(item => {
+          // Identify key fields
+          const fNum = String(item.vuelo_llegada || item.vuelo_salida || item.vuelo || item.flight_number || item.identificador || '').trim();
+          const fTime = String(item.hora_llegada || item.hora_salida || item.time || item.hora || '').trim();
+          // Normalize date to YYYY-MM-DD if possible for better matching, though raw string might suffice if consistent
+          let fDate = String(item.fecha_llegada || item.fecha_salida || item.date || item.fecha || '').trim();
+          if (fDate.includes('T')) fDate = fDate.split('T')[0];
+          
+          const fLoc = String(item.origen || item.procedencia || item.origin || item.destino || item.destination || '').trim();
+          const fAir = String(item.aerolinea || item.airline || '').trim();
+          
+          // If essentially empty, keep it (or drop? usually keep to be safe, but duplicates of empty are bad. Let's assume valid rows have data)
+          if (!fNum && !fTime && !fLoc) return true; 
+
+          const sig = `${fNum}|${fTime}|${fDate}|${fLoc}|${fAir}`;
+          
+          if (seen.has(sig)) return false;
+          seen.add(sig);
+          return true;
+      });
+  }
+
+  async function loadItinerary(date) {
+    // Modo Base de Datos (Supabase)
+    if (window.supabaseClient) {
+      const targetDate = date || toYMD(new Date());
+      try {
+        let flights = [];
+        
+        // 1. PRIORIDAD: Cargar desde tabla 'flights' (donde sube el usuario)
+        const { data: flightData, error: flightError } = await window.supabaseClient
+          .from('flights')
+          .select('*')
+          .or(`fecha_llegada.eq.${targetDate},fecha_salida.eq.${targetDate}`);
+        
+        if (!flightError && flightData && flightData.length > 0) {
+            console.log('Itinerario: cargado desde tabla flights', flightData.length);
+            return removeItineraryDuplicates(flightData);
+        }
+
+        // 2. FALLBACK: Intentar cargar desde 'vuelos_parte_operaciones' (tabla JSON consolidada)
+        const { data: opsData, error: opsError } = await window.supabaseClient
+            .from('vuelos_parte_operaciones')
+            .select('data')
+            .eq('date', targetDate)
+            .maybeSingle();
+
+        if (!opsError && opsData && Array.isArray(opsData.data) && opsData.data.length > 0) {
+            console.log('Itinerario: cargado desde vuelos_parte_operaciones', opsData.data.length);
+            // Normalizar datos para compatibilidad
+            flights = opsData.data.map(f => {
+                const copy = { ...f };
+                
+                // Helper to extract HH:MM from various date/time/datetime strings
+                const extractTime = (val) => {
+                    if (!val) return null;
+                    const s = val.toString().trim();
+                    // Just time?
+                     if (/^\d{1,2}:\d{2}/.test(s) && !s.includes('/')) return s;
+                    // Datetime? 2026-01-14 14:30 or 14/01/2026 14:30
+                    if (s.includes(' ')) {
+                        const parts = s.split(/\s+/);
+                        // Usually last part, but check if it looks like time
+                        const last = parts[parts.length-1];
+                        if (/^\d{1,2}:\d{2}/.test(last)) return last;
+                        // Or second part
+                        if (parts.length > 1 && /^\d{1,2}:\d{2}/.test(parts[1])) return parts[1];
+                    }
+                    return null;
+                };
+
+                // Asegurar fecha_llegada / hora_llegada
+                if (!copy.hora_llegada) {
+                     copy.hora_llegada = extractTime(copy.fecha_hora_prog_llegada) || extractTime(copy.fecha_hora_real_llegada);
+                }
+                if (!copy.fecha_llegada) {
+                    copy.fecha_llegada = toIsoDate(copy.fecha_hora_prog_llegada) || toIsoDate(copy.fecha_hora_real_llegada) || copy.fecha || copy.date;
+                }
+
+                // Asegurar fecha_salida / hora_salida
+                if (!copy.hora_salida) {
+                     copy.hora_salida = extractTime(copy.fecha_hora_prog_salida) || extractTime(copy.fecha_hora_real_salida);
+                }
+                if (!copy.fecha_salida) {
+                    copy.fecha_salida = toIsoDate(copy.fecha_hora_prog_salida) || toIsoDate(copy.fecha_hora_real_salida) || copy.fecha || copy.date;
+                }
+
+                return copy;
+            });
+            return removeItineraryDuplicates(flights);
+        }
+
+        return [];
+      } catch (e) {
+        console.error('Error cargando itinerario desde BD:', e);
+        return [];
+      }
+    }
+
+    // Modo Fallback (JSON local)
+    if (itData) return itData;
+    try {
+      const res = await fetch('data/itinerario.json', { cache:'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      itData = await res.json();
+      if (!Array.isArray(itData)) itData = [];
+      if (!itData.length && Array.isArray(window.allFlightsData) && window.allFlightsData.length) {
+        console.warn('Itinerario: fetch vacío; usando allFlightsData como respaldo');
+        itData = window.allFlightsData;
+      }
+      return itData;
+    } catch(e){
+      console.warn('loadItinerary error, usando respaldo global si existe', e);
+      if (Array.isArray(window.allFlightsData) && window.allFlightsData.length) {
+        itData = window.allFlightsData;
+        return itData;
+      }
+      return [];
+    }
+  }
+  function pickBestDate(data){ const todayYMD = toYMD(new Date()); const hasToday = data.some(f => toIsoDate(f.fecha_llegada)===todayYMD || toIsoDate(f.fecha_salida)===todayYMD); if (hasToday) return todayYMD; const freq = new Map(); for (const f of data){ const d1 = toIsoDate(f.fecha_llegada); const d2 = toIsoDate(f.fecha_salida); if (d1) freq.set(d1, (freq.get(d1)||0)+1); if (d2) freq.set(d2, (freq.get(d2)||0)+1); } let topYMD = null, topN = -1; for (const [d, n] of freq) { if (n>topN){ topN=n; topYMD=d; } } return topYMD || todayYMD; }
+  function aggregateDay(data, ymd){ const paxArr = Array(24).fill(0), paxDep = Array(24).fill(0); const carArr = Array(24).fill(0), carDep = Array(24).fill(0); for (const f of data){ if (toIsoDate(f.fecha_llegada) === ymd){ const h = hourFromHHMM(f.hora_llegada); if (h!=null){ if (isPassenger(f)) paxArr[h]++; else carArr[h]++; } } if (toIsoDate(f.fecha_salida) === ymd){ const h2 = hourFromHHMM(f.hora_salida); if (h2!=null){ if (isPassenger(f)) paxDep[h2]++; else carDep[h2]++; } } } return { paxArr, paxDep, carArr, carDep }; }
+  function computeItineraryInsights(data, ymd, scope){
+    const isPassengerScope = scope === SCOPE_PAX;
+    const totals = { operations:0, arrivals:0, departures:0, airlines:0 };
+    const hourHistogram = Array(24).fill(0);
+    const airlines = new Map();
+    const origins = new Map();
+    const destinations = new Map();
+    const operations = [];
+    const ensureAirline = (label)=>{
+      const raw = (label || 'Sin aerolínea').toString().trim() || 'Sin aerolínea';
+      const key = norm(raw) || 'sin-aerolinea';
+      if (!airlines.has(key)) {
+        airlines.set(key, { key, name: raw, total:0, arrivals:0, departures:0, hourly:Array(24).fill(0) });
+      }
+      return airlines.get(key);
+    };
+    const bumpMap = (map, label)=>{
+      const clean = (label || '').toString().trim();
+      if (!clean) return;
+      const mapKey = clean.toLowerCase();
+      if (!map.has(mapKey)) map.set(mapKey, { label: clean, value: 0 });
+      map.get(mapKey).value++;
+    };
+    for (const flight of data){
+      const isPassengerFlight = isPassenger(flight);
+      if (scope !== SCOPE_ALL && isPassengerFlight !== isPassengerScope) continue;
+      const airlineStats = ensureAirline(flight.aerolinea || flight['aerolínea'] || flight.airline);
+      const arrivalMatch = toIsoDate(flight.fecha_llegada) === ymd;
+      const departureMatch = toIsoDate(flight.fecha_salida) === ymd;
+      if (arrivalMatch){
+        totals.operations++; totals.arrivals++; airlineStats.total++; airlineStats.arrivals++;
+        const h = hourFromHHMM(flight.hora_llegada);
+        if (h!=null){ hourHistogram[h]++; airlineStats.hourly[h] = (airlineStats.hourly[h]||0)+1; }
+        bumpMap(origins, flight.origen || flight.origin);
+        operations.push(buildOperationRecord({
+          airlineName: airlineStats.name,
+          airlineKey: airlineStats.key,
+          movement: 'Llegada',
+          hour: h,
+          time: flight.hora_llegada,
+          flightNumber: flight.vuelo_llegada,
+          origin: flight.origen,
+          destination: 'AIFA',
+          position: flight.posicion,
+          belt: flight.banda_reclamo,
+          aircraft: flight.equipo
+        }));
+      }
+      if (departureMatch){
+        totals.operations++; totals.departures++; airlineStats.total++; airlineStats.departures++;
+        const h2 = hourFromHHMM(flight.hora_salida);
+        if (h2!=null){ hourHistogram[h2]++; airlineStats.hourly[h2] = (airlineStats.hourly[h2]||0)+1; }
+        bumpMap(destinations, flight.destino || flight.destination);
+        operations.push(buildOperationRecord({
+          airlineName: airlineStats.name,
+          airlineKey: airlineStats.key,
+          movement: 'Salida',
+          hour: h2,
+          time: flight.hora_salida,
+          flightNumber: flight.vuelo_salida,
+          origin: 'AIFA',
+          destination: flight.destino,
+          position: flight.posicion,
+          belt: flight.banda_reclamo,
+          aircraft: flight.equipo
+        }));
+      }
+    }
+    const busiest = hourHistogram.reduce((acc,count,h)=>{
+      if (count>acc.count) return { hour:h, count };
+      if (count===acc.count && count>0 && h<acc.hour) return { hour:h, count };
+      return acc;
+    }, { hour:null, count:0 });
+    const activeAirlines = Array.from(airlines.values()).filter(a=>a.total>0);
+    totals.airlines = activeAirlines.length;
+    const airlinePeaks = activeAirlines
+      .map(stat => {
+        const peak = stat.hourly.reduce((acc,count,h)=>{
+          if (count>acc.count) return { hour:h, count };
+          if (count===acc.count && count>0 && h<acc.hour) return { hour:h, count };
+          return acc;
+        }, { hour:null, count:0 });
+        return { name: stat.name, key: stat.key, total: stat.total, arrivals: stat.arrivals, departures: stat.departures, peakHour: peak.hour, peakCount: peak.count };
+      })
+      .sort((a,b)=> b.total - a.total || a.name.localeCompare(b.name))
+      .slice(0,6);
+    const toRankedList = (map)=> Array.from(map.values()).sort((a,b)=> b.value - a.value || a.label.localeCompare(b.label)).slice(0,5);
+    const topOrigins = toRankedList(origins);
+    const topDestinations = toRankedList(destinations);
+    return { totals, airlinePeaks, topOrigins, topDestinations, busiestHour: busiest, operations };
+  }
+  function buildOperationRecord({ airlineName, airlineKey, movement, hour, time, flightNumber, origin, destination, position, belt, aircraft }){
+    const safeHour = (typeof hour === 'number' && Number.isFinite(hour)) ? hour : null;
+    const timeLabel = (time || '').toString().trim() || (safeHour!=null ? `${String(safeHour).padStart(2,'0')}:00` : '—');
+    return {
+      airline: airlineName || 'Sin aerolínea',
+      airlineKey: airlineKey || norm(airlineName || ''),
+      movement,
+      hour: safeHour,
+      timeLabel,
+      flightNumber: (flightNumber || '').toString().trim() || '—',
+      origin: (origin || '—'),
+      destination: (destination || '—'),
+      position: position || '',
+      belt: belt || '',
+      aircraft: (aircraft || '').toString().trim()
+    };
+  }
+  function renderTopHoursLists(agg){
+    const topSelPax   = document.getElementById('pax-topN');
+    const topSelCargo = document.getElementById('cargo-topN');
+    const topNPax   = topSelPax   ? parseInt(topSelPax.value,10)   : 5;
+    const topNCargo = topSelCargo ? parseInt(topSelCargo.value,10) : 5;
+    const mkTop = (arr, n) => arr
+      .map((v,i)=>({h:i,v}))
+      .filter(x=>x.v>0)
+      .sort((a,b)=> b.v - a.v || a.h - b.h)
+      .slice(0,n);
+
+    // Update widget heading & subtitle to reflect the selected mode
+    const updateHeading = (selEl, suffix) => {
+      if (!selEl) return;
+      const widget = selEl.closest('.top-hours-widget');
+      if (!widget) return;
+      const headingEl  = widget.querySelector('.top-hours-heading');
+      const subtitleEl = widget.querySelector('.top-hours-subtitle');
+      const isAll = parseInt(selEl.value,10) >= 24;
+      if (headingEl)  headingEl.textContent  = isAll ? `Todas las horas ${suffix}` : `Top horas ${suffix}`;
+      if (subtitleEl) subtitleEl.textContent = isAll
+        ? 'Se muestran las 24 franjas horarias. Las horas sin operaciones aparecen con menor opacidad.'
+        : 'Haz clic en una franja para abrir los vuelos identificados en esa hora.';
+    };
+    updateHeading(topSelPax,   '(Pasajeros)');
+    updateHeading(topSelCargo, '(Carga)');
+
+    const renderList = (containerId, values, topN, scope, movement)=>{
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      const allMode = topN >= 24;
+      const items = allMode
+        ? values.map((v,i) => ({h:i,v}))   // all 24 hours, chronological order
+        : mkTop(values, topN);               // top N sorted by count desc
+      if (!allMode && !items.length){
+        el.innerHTML = '<li class="text-muted">Sin datos</li>';
+        return;
+      }
+      const isArr = movement === 'Llegada';
+      const maxV  = Math.max(...items.map(x => x.v), 1);
+      el.innerHTML = items.map(({h, v}) => {
+        const hourLabel  = String(h).padStart(2,'0');
+        const rangeLabel = `${hourLabel}:00\u2013${hourLabel}:59`;
+        const dimStyle   = v === 0 ? ' style="opacity:0.35"' : '';
+        const pct        = Math.round((v / maxV) * 100);
+        const barBg      = v > 0
+          ? `background:linear-gradient(to right,${isArr ? 'rgba(16,185,129,0.14)' : 'rgba(249,115,22,0.14)'} ${pct}%,transparent ${pct}%)`
+          : '';
+        const countHtml  = v > 0
+          ? `<span class="th-count-badge ${isArr ? 'th-badge-arr' : 'th-badge-dep'}">${v}<small> vuelo${v!==1?'s':''}</small></span>`
+          : `<span class="th-count-zero">\u2014</span>`;
+        const btnAttrs   = v > 0
+          ? `data-top-hour data-scope="${scope}" data-movement="${movement}" data-hour="${h}"`
+          : 'disabled aria-disabled="true" style="cursor:default;pointer-events:none"';
+        return `<li${dimStyle}><button type="button" class="btn btn-link p-0 text-start w-100 top-hour-trigger" ${btnAttrs} style="${barBg}"><strong class="th-range">${rangeLabel}</strong>${countHtml}</button></li>`;
+      }).join('');
+    };
+    renderList('pax-top-arr',   agg.paxArr, topNPax,   SCOPE_PAX,   'Llegada');
+    renderList('pax-top-dep',   agg.paxDep, topNPax,   SCOPE_PAX,   'Salida');
+    renderList('cargo-top-arr', agg.carArr, topNCargo, SCOPE_CARGO, 'Llegada');
+    renderList('cargo-top-dep', agg.carDep, topNCargo, SCOPE_CARGO, 'Salida');
+  }
+
+  function renderGeneralTopHours(agg){
+    const sel = document.getElementById('general-topN');
+    const topN = sel ? parseInt(sel.value, 10) : 10;
+    const isAll = topN >= 24;
+    const headingEl  = document.getElementById('general-top-hours-heading');
+    const subtitleEl = document.getElementById('general-top-hours-subtitle');
+    if (headingEl)  headingEl.textContent  = isAll ? 'Todas las horas (Vista General)' : 'Horas pico (Vista General)';
+    if (subtitleEl) subtitleEl.textContent = isAll
+      ? 'Se muestran las 24 franjas horarias. Las horas sin operaciones aparecen con menor opacidad.'
+      : 'Vista unificada de pasajeros y carga. Haz clic en una franja para ver los vuelos.';
+    const mkTop = (arr, n) => arr
+      .map((v,i)=>({h:i,v}))
+      .filter(x=>x.v>0)
+      .sort((a,b)=> b.v - a.v || a.h - b.h)
+      .slice(0,n);
+    const genArr = agg.paxArr.map((v,i)=> v + (agg.carArr[i]||0));
+    const genDep = agg.paxDep.map((v,i)=> v + (agg.carDep[i]||0));
+    const renderList = (containerId, values, movement)=>{
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      const items = isAll
+        ? values.map((v,i) => ({h:i,v}))
+        : mkTop(values, topN);
+      if (!isAll && !items.length){
+        el.innerHTML = '<li class="text-muted">Sin datos</li>';
+        return;
+      }
+      const isArr = movement === 'Llegada';
+      const maxV  = Math.max(...items.map(x => x.v), 1);
+      el.innerHTML = items.map(({h, v}) => {
+        const hourLabel  = String(h).padStart(2,'0');
+        const rangeLabel = `${hourLabel}:00\u2013${hourLabel}:59`;
+        const dimStyle   = v === 0 ? ' style="opacity:0.35"' : '';
+        const pct        = Math.round((v / maxV) * 100);
+        const barBg      = v > 0
+          ? `background:linear-gradient(to right,${isArr ? 'rgba(16,185,129,0.14)' : 'rgba(249,115,22,0.14)'} ${pct}%,transparent ${pct}%)`
+          : '';
+        const countHtml  = v > 0
+          ? `<span class="th-count-badge ${isArr ? 'th-badge-arr' : 'th-badge-dep'}">${v}<small> vuelo${v!==1?'s':''}</small></span>`
+          : `<span class="th-count-zero">\u2014</span>`;
+        const btnAttrs   = v > 0
+          ? `data-top-hour data-scope="${SCOPE_ALL}" data-movement="${movement}" data-hour="${h}"`
+          : 'disabled aria-disabled="true" style="cursor:default;pointer-events:none"';
+        return `<li${dimStyle}><button type="button" class="btn btn-link p-0 text-start w-100 top-hour-trigger" ${btnAttrs} style="${barBg}"><strong class="th-range">${rangeLabel}</strong>${countHtml}</button></li>`;
+      }).join('');
+    };
+    renderList('general-all-arr', genArr, 'Llegada');
+    renderList('general-all-dep', genDep, 'Salida');
+  }
+
+  function _makeSingleTopHoursList(containerId, scope, totals, topN, detailFn, accentCss) {
+    const isAll = topN >= 24;
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const items = isAll
+      ? totals.map((v,i) => ({h:i,v}))
+      : totals.map((v,i)=>({h:i,v})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v||a.h-b.h).slice(0,topN);
+    if (!isAll && !items.length){ el.innerHTML = '<li class="text-muted">Sin datos</li>'; return; }
+    const maxV = Math.max(...items.map(x=>x.v), 1);
+    el.innerHTML = items.map(({h,v}) => {
+      const lbl  = String(h).padStart(2,'0');
+      const rng  = `${lbl}:00\u2013${lbl}:59`;
+      const dim  = v === 0 ? ' style="opacity:0.35"' : '';
+      const pct  = Math.round((v/maxV)*100);
+      const bg   = v > 0 ? `background:linear-gradient(to right,${accentCss} ${pct}%,transparent ${pct}%)` : '';
+      const det  = detailFn(h, v);
+      const btn  = v > 0
+        ? `data-top-hour data-scope="${scope}" data-hour="${h}"`
+        : 'disabled aria-disabled="true" style="cursor:default;pointer-events:none"';
+      return `<li${dim}><button type="button" class="btn btn-link p-0 text-start w-100 top-hour-trigger" ${btn} style="${bg}"><strong class="th-range">${rng}</strong>${det}</button></li>`;
+    }).join('');
+    el.querySelectorAll('[data-top-hour]').forEach(btn => {
+      btn.addEventListener('click', () => showTopHourFlights(scope, null, parseInt(btn.dataset.hour, 10)));
+    });
+  }
+
+  // ─── Heatmap de Despacho Combustible ─────────────────────────────────────
+  let _fuelHeatmapChartInst = null;
+  let _fuelScope = 'all';
+
+  function _heatColor(ratio) {
+    const stops = [
+      [0,    [220, 252, 231]],
+      [0.25, [134, 239, 172]],
+      [0.5,  [254, 240, 138]],
+      [0.75, [251, 146,  60]],
+      [1,    [220,  38,  38]]
+    ];
+    let i = 0;
+    while (i < stops.length - 1 && ratio > stops[i+1][0]) i++;
+    const [t0, c0] = stops[i];
+    const [t1, c1] = stops[Math.min(i+1, stops.length-1)];
+    const f = t1 === t0 ? 1 : (ratio - t0) / (t1 - t0);
+    const lerp = (a,b) => Math.round(a + (b-a)*f);
+    const [r,g,bv] = [lerp(c0[0],c1[0]), lerp(c0[1],c1[1]), lerp(c0[2],c1[2])];
+    const luminance = 0.299*r + 0.587*g + 0.114*bv;
+    const tc = luminance < 150 ? '#fff' : '#111';
+    return { bg: `rgb(${r},${g},${bv})`, tc };
+  }
+
+  function renderFuelHeatmap(agg, scope) {
+    if (!agg) return;
+    if (scope) _fuelScope = scope;
+    const s = _fuelScope;
+    const demand = Array.from({length:24}, (_,h) => {
+      if (s === 'pax')   return (agg.paxArr[h]||0) + (agg.paxDep[h]||0);
+      if (s === 'cargo') return (agg.carArr[h]||0) + (agg.carDep[h]||0);
+      return (agg.paxArr[h]||0)+(agg.paxDep[h]||0)+(agg.carArr[h]||0)+(agg.carDep[h]||0);
+    });
+    const maxD = Math.max(1, ...demand);
+
+    const scopeLabel = s==='pax' ? 'Pasajeros' : s==='cargo' ? 'Carga' : 'General (Pax + Carga)';
+    const titleEl = document.getElementById('fuel-chart-title');
+    if (titleEl) titleEl.textContent = `Total de Operaciones por Hora — ${scopeLabel}`;
+    const colEl = document.getElementById('fuel-table-col-header');
+    if (colEl) colEl.textContent = s==='pax' ? 'Vuelos Pax' : s==='cargo' ? 'Vuelos Carga' : 'Vuelos Totales';
+
+    // ── Scope toggle button states ──────────────────────────────────────────
+    document.querySelectorAll('[data-fuel-scope]').forEach(btn => {
+      const active = btn.dataset.fuelScope === s;
+      btn.className = active ? 'btn btn-primary active' : 'btn btn-outline-primary';
+    });
+
+    // ── Table with heatmap colors ───────────────────────────────────────────
+    const tbody = document.getElementById('fuel-heatmap-tbody');
+    if (tbody) {
+      tbody.innerHTML = demand.map((d, h) => {
+        const endLabel = h===23 ? '00:00' : `${String(h+1).padStart(2,'0')}:00`;
+        const range = `${String(h).padStart(2,'0')}:00 – ${endLabel}`;
+        const { bg, tc } = _heatColor(d / maxD);
+        return `<tr><td class="fw-semibold">${range}</td><td style="background:${bg};color:${tc};font-weight:800;font-size:1.05em">${d}</td></tr>`;
+      }).join('');
+    }
+
+    // ── Line chart (normal, points colored by heat) ─────────────────────────
+    const canvas = document.getElementById('fuelHeatmapChart');
+    if (!canvas || !window.Chart) return;
+    if (_fuelHeatmapChartInst) { _fuelHeatmapChartInst.destroy(); _fuelHeatmapChartInst = null; }
+
+    const lineColor = s==='pax' ? 'rgb(13,110,253)' : s==='cargo' ? 'rgb(249,115,22)' : 'rgb(99,102,241)';
+    const ptColors  = demand.map(d => _heatColor(d / maxD).bg);
+
+    const plugins = window.ChartDataLabels ? [window.ChartDataLabels] : [];
+    _fuelHeatmapChartInst = new window.Chart(canvas, {
+      type: 'line',
+      plugins,
+      data: {
+        labels: Array.from({length:24}, (_,h) =>
+          `${String(h).padStart(2,'0')}:00-${h===23?'00':String(h+1).padStart(2,'0')}:00`),
+        datasets: [{
+          label: scopeLabel,
+          data: demand,
+          borderColor: lineColor,
+          backgroundColor: 'transparent',
+          pointBackgroundColor: ptColors,
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 7,
+          pointHoverRadius: 9,
+          borderWidth: 2.5,
+          tension: 0,
+          clip: false,
+          datalabels: {
+            display: true,
+            anchor: 'end',
+            align: 'top',
+            offset: 4,
+            font: { weight: 'bold', size: 11 },
+            color: '#111',
+            backgroundColor: (ctx) => ptColors[ctx.dataIndex],
+            borderRadius: 4,
+            padding: { top: 2, bottom: 2, left: 4, right: 4 },
+            formatter: v => v
+          }
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        clip: false,
+        layout: { padding: { top: 36, right: 16, bottom: 4, left: 8 } },
+        plugins: {
+          legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, padding: 16, usePointStyle: true, pointStyleWidth: 18 } },
+          datalabels: { display: true }
+        },
+        scales: {
+          x: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { maxRotation: 45, minRotation: 45, font: { size: 8 } } },
+          y: { beginAtZero: true, suggestedMax: maxD + Math.ceil(maxD * 0.25), grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { precision: 0, font: { size: 10 } } }
+        }
+      }
+    });
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
+  function renderPaxCombinedTopHours(agg){
+    const sel  = document.getElementById('pax-combined-topN');
+    const topN = sel ? parseInt(sel.value, 10) : 5;
+    const totals = agg.paxArr.map((v,i) => v + (agg.paxDep[i]||0));
+    _makeSingleTopHoursList('pax-combined-top-all', SCOPE_PAX, totals, topN, (h, v) => {
+      const arr = agg.paxArr[h]||0, dep = agg.paxDep[h]||0;
+      return v > 0
+        ? `<span class="th-count-badge" style="background:rgba(13,110,253,0.15);color:rgb(13,100,220)">${v}<small> vuelo${v!==1?'s':''}</small></span>`
+          + (arr ? `<small class="text-muted ms-1">Arr:${arr}</small>` : '')
+          + (dep ? `<small class="text-muted ms-1">Sal:${dep}</small>` : '')
+        : '<span class="th-count-zero">\u2014</span>';
+    }, 'rgba(13,110,253,0.13)');
+  }
+
+  function renderCargoCombinedTopHours(agg){
+    const sel  = document.getElementById('cargo-combined-topN');
+    const topN = sel ? parseInt(sel.value, 10) : 5;
+    const totals = agg.carArr.map((v,i) => v + (agg.carDep[i]||0));
+    _makeSingleTopHoursList('cargo-combined-top-all', SCOPE_CARGO, totals, topN, (h, v) => {
+      const arr = agg.carArr[h]||0, dep = agg.carDep[h]||0;
+      return v > 0
+        ? `<span class="th-count-badge" style="background:rgba(249,115,22,0.15);color:rgb(194,65,12)">${v}<small> vuelo${v!==1?'s':''}</small></span>`
+          + (arr ? `<small class="text-muted ms-1">Arr:${arr}</small>` : '')
+          + (dep ? `<small class="text-muted ms-1">Sal:${dep}</small>` : '')
+        : '<span class="th-count-zero">\u2014</span>';
+    }, 'rgba(249,115,22,0.13)');
+  }
+
+  // ─── Capacidad vs Demanda ─────────────────────────────────────────────────
+  let _paxCapDemChartInst   = null;
+  let _cargoCapDemChartInst = null;
+
+  function renderCapDem(kind, agg) {
+    if (!agg) return;
+    const isPax = kind === 'pax';
+    const dayCapEl   = document.getElementById(`${kind}-cap-day`);
+    const nightCapEl = document.getElementById(`${kind}-cap-night`);
+    const dayCap   = Math.max(1, parseInt(dayCapEl?.value,   10) || (isPax ? 9 : 5));
+    const nightCap = Math.max(1, parseInt(nightCapEl?.value, 10) || (isPax ? 5 : 3));
+
+    const demand   = Array.from({length:24}, (_,h) =>
+      isPax ? (agg.paxArr[h]||0)+(agg.paxDep[h]||0) : (agg.carArr[h]||0)+(agg.carDep[h]||0));
+    const capacity = Array.from({length:24}, (_,h) => (h>=7 && h<19) ? dayCap : nightCap);
+
+    // ── Table ───────────────────────────────────────────────────────────────
+    const tbody = document.getElementById(`${kind}-capdem-tbody`);
+    if (tbody) {
+      tbody.innerHTML = Array.from({length:24}, (_,h) => {
+        const endLabel = h===23 ? '00:00' : `${String(h+1).padStart(2,'0')}:00`;
+        const range = `${String(h).padStart(2,'0')}:00-${endLabel}`;
+        const d = demand[h], c = capacity[h];
+        const [bg, tc] = d > c ? ['#dc3545','#fff'] : d === c ? ['#ffc107','#000'] : ['#198754','#fff'];
+        return `<tr><td>${range}</td><td style="background:${bg};color:${tc};font-weight:700">${d}</td><td>${c}</td></tr>`;
+      }).join('');
+    }
+
+    // ── Line chart ──────────────────────────────────────────────────────────
+    const canvas = document.getElementById(`${kind}CapDemChart`);
+    if (!canvas || !window.Chart) return;
+
+    if (isPax  && _paxCapDemChartInst)   { _paxCapDemChartInst.destroy();   _paxCapDemChartInst   = null; }
+    if (!isPax && _cargoCapDemChartInst) { _cargoCapDemChartInst.destroy(); _cargoCapDemChartInst = null; }
+
+    const demColor  = isPax ? 'rgb(13,110,253)' : 'rgb(249,115,22)';
+    const hlabels   = Array.from({length:24}, (_,h) =>
+      `${String(h).padStart(2,'0')}:00-${h===23?'00:00':String(h+1).padStart(2,'0')+':00'}`);
+
+    const ptColors = demand.map((d,i) =>
+      d > capacity[i] ? '#dc3545' : d === capacity[i] ? '#e6a800' : '#198754');
+
+    const maxVal = Math.max(...demand, ...capacity);
+    const plugins = window.ChartDataLabels ? [window.ChartDataLabels] : [];
+    const inst = new window.Chart(canvas, {
+      type: 'line',
+      plugins,
+      data: {
+        labels: hlabels,
+        datasets: [
+          {
+            label: isPax ? 'Vuelos pasajeros' : 'Vuelos carga',
+            data: demand,
+            borderColor: demColor,
+            backgroundColor: 'transparent',
+            pointBackgroundColor: ptColors,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 7,
+            pointHoverRadius: 9,
+            borderWidth: 2.5,
+            tension: 0,
+            clip: false,
+            datalabels: {
+              display: true,
+              anchor: 'end',
+              align: 'top',
+              offset: 4,
+              font: { weight: 'bold', size: 11 },
+              color: '#fff',
+              backgroundColor: (ctx) => ptColors[ctx.dataIndex],
+              borderRadius: 4,
+              padding: { top: 2, bottom: 2, left: 5, right: 5 },
+              formatter: v => v
+            }
+          },
+          {
+            label: 'Capacidad',
+            data: capacity,
+            borderColor: 'rgb(136,19,19)',
+            borderDash: [7,4],
+            backgroundColor: 'transparent',
+            pointBackgroundColor: 'rgb(136,19,19)',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 5,
+            borderWidth: 2.5,
+            tension: 0,
+            clip: false,
+            datalabels: {
+              display: true,
+              anchor: 'start',
+              align: 'bottom',
+              offset: 4,
+              font: { weight: '600', size: 10 },
+              color: '#fff',
+              backgroundColor: 'rgb(136,19,19)',
+              borderRadius: 4,
+              padding: { top: 2, bottom: 2, left: 4, right: 4 },
+              formatter: v => v
+            }
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        clip: false,
+        layout: { padding: { top: 36, right: 16, bottom: 4, left: 8 } },
+        plugins: {
+          legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, padding: 16, usePointStyle: true, pointStyleWidth: 18 } },
+          datalabels: { display: true }
+        },
+        scales: {
+          x: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { maxRotation: 45, minRotation: 45, font: { size: 8 } } },
+          y: { beginAtZero: true, suggestedMax: maxVal + Math.ceil(maxVal * 0.25), grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { precision: 0, font: { size: 10 } } }
+        }
+      }
+    });
+
+    if (isPax) _paxCapDemChartInst = inst;
+    else _cargoCapDemChartInst = inst;
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
+  function renderCombinedTopHours(agg){
+    const sel  = document.getElementById('combined-topN');
+    const topN = sel ? parseInt(sel.value, 10) : 5;
+    const isAll = topN >= 24;
+    const totals = agg.paxArr.map((v,i) => v + (agg.paxDep[i]||0) + (agg.carArr[i]||0) + (agg.carDep[i]||0));
+    const el = document.getElementById('combined-top-all');
+    if (!el) return;
+    const items = isAll
+      ? totals.map((v,i) => ({h:i,v}))
+      : totals
+          .map((v,i)=>({h:i,v}))
+          .filter(x=>x.v>0)
+          .sort((a,b)=> b.v - a.v || a.h - b.h)
+          .slice(0, topN);
+    if (!isAll && !items.length){ el.innerHTML = '<li class="text-muted">Sin datos</li>'; return; }
+    const maxV = Math.max(...items.map(x=>x.v), 1);
+    el.innerHTML = items.map(({h,v}) => {
+      const hourLabel  = String(h).padStart(2,'0');
+      const rangeLabel = `${hourLabel}:00\u2013${hourLabel}:59`;
+      const dimStyle   = v === 0 ? ' style="opacity:0.35"' : '';
+      const pct        = Math.round((v/maxV)*100);
+      const barBg      = v > 0
+        ? `background:linear-gradient(to right,rgba(99,102,241,0.14) ${pct}%,transparent ${pct}%)`
+        : '';
+      const paxTotal = (agg.paxArr[h]||0) + (agg.paxDep[h]||0);
+      const carTotal = (agg.carArr[h]||0) + (agg.carDep[h]||0);
+      const detailHtml = v > 0
+        ? `<span class="th-count-badge" style="background:rgba(99,102,241,0.15);color:rgb(79,70,229)">${v}<small> vuelo${v!==1?'s':''}</small></span>`
+          + (paxTotal ? `<small class="text-muted ms-1">Pax:${paxTotal}</small>` : '')
+          + (carTotal ? `<small class="text-muted ms-1">Carga:${carTotal}</small>` : '')
+        : '<span class="th-count-zero">\u2014</span>';
+      const btnAttrs = v > 0
+        ? `data-top-hour data-scope="${SCOPE_ALL}" data-hour="${h}"`
+        : 'disabled aria-disabled="true" style="cursor:default;pointer-events:none"';
+      return `<li${dimStyle}><button type="button" class="btn btn-link p-0 text-start w-100 top-hour-trigger" ${btnAttrs} style="${barBg}"><strong class="th-range">${rangeLabel}</strong>${detailHtml}</button></li>`;
+    }).join('');
+    // Bind click events to newly rendered items
+    el.querySelectorAll('[data-top-hour]').forEach(btn => {
+      btn.addEventListener('click', ()=> {
+        const hour = parseInt(btn.dataset.hour, 10);
+        showTopHourFlights(SCOPE_ALL, null, hour);
+      });
+    });
+  }
+
+  // Redraw all charts using cached data — called when a hidden sub-tab becomes visible
+  // so clientWidth is correct and hit regions match actual pixel positions.
+  function _redrawVisibleCharts(){
+    if (!lastAgg) return;
+    const agg = lastAgg;
+    drawBars('paxArrivalsChart', H_LABELS, agg.paxArr, 'rgba(13,110,253,0.9)', 'Llegadas (Pasajeros)', {
+      scope: SCOPE_PAX, movement: 'Llegada',
+      gradientStops: ['rgba(148,205,255,0.95)', 'rgba(13,110,253,0.65)'],
+      shadowColor: 'rgba(13,110,253,0.25)', subtitle: 'Tráfico entrante durante el día'
+    });
+    drawBars('paxDeparturesChart', H_LABELS, agg.paxDep, 'rgba(16,185,129,0.9)', 'Salidas (Pasajeros)', {
+      scope: SCOPE_PAX, movement: 'Salida',
+      gradientStops: ['rgba(167,243,208,0.95)', 'rgba(16,185,129,0.65)'],
+      shadowColor: 'rgba(16,185,129,0.25)', subtitle: 'Ventanas de salida previstas'
+    });
+    drawBars('cargoArrivalsChart', H_LABELS, agg.carArr, 'rgba(249,115,22,0.9)', 'Llegadas (Carga)', {
+      scope: SCOPE_CARGO, movement: 'Llegada',
+      gradientStops: ['rgba(255,196,161,0.95)', 'rgba(249,115,22,0.65)'],
+      shadowColor: 'rgba(194,65,12,0.25)', subtitle: 'Recepciones logísticas por hora'
+    });
+    drawBars('cargoDeparturesChart', H_LABELS, agg.carDep, 'rgba(234,88,12,0.9)', 'Salidas (Carga)', {
+      scope: SCOPE_CARGO, movement: 'Salida',
+      gradientStops: ['rgba(253,186,140,0.95)', 'rgba(234,88,12,0.7)'],
+      shadowColor: 'rgba(234,88,12,0.25)', subtitle: 'Despachos prioritarios'
+    });
+    const genArr = agg.paxArr.map((v,i) => v + (agg.carArr[i]||0));
+    const genDep = agg.paxDep.map((v,i) => v + (agg.carDep[i]||0));
+    drawBars('generalArrivalsChart', H_LABELS, genArr, 'rgba(99,102,241,0.9)', 'Llegadas Totales (Pax + Carga)', {
+      scope: SCOPE_ALL, movement: 'Llegada',
+      gradientStops: ['rgba(199,210,254,0.95)', 'rgba(99,102,241,0.65)'],
+      shadowColor: 'rgba(99,102,241,0.25)', subtitle: 'Llegadas combinadas de pasajeros y carga'
+    });
+    drawBars('generalDeparturesChart', H_LABELS, genDep, 'rgba(236,72,153,0.9)', 'Salidas Totales (Pax + Carga)', {
+      scope: SCOPE_ALL, movement: 'Salida',
+      gradientStops: ['rgba(251,207,232,0.95)', 'rgba(236,72,153,0.65)'],
+      shadowColor: 'rgba(236,72,153,0.25)', subtitle: 'Salidas combinadas de pasajeros y carga'
+    });
+    drawGroupedBars('combinedChart', H_LABELS, [
+      { values: agg.paxArr, color: 'rgba(13,110,253,1)',   scope: SCOPE_PAX,   movement: 'Llegada' },
+      { values: agg.paxDep, color: 'rgba(16,185,129,1)',   scope: SCOPE_PAX,   movement: 'Salida'  },
+      { values: agg.carArr, color: 'rgba(249,115,22,1)',   scope: SCOPE_CARGO, movement: 'Llegada' },
+      { values: agg.carDep, color: 'rgba(234,88,12,1)',    scope: SCOPE_CARGO, movement: 'Salida'  }
+    ]);
+    renderCombinedTopHours(agg);
+    drawGroupedBars('paxCombinedChart', H_LABELS, [
+      { values: agg.paxArr, color: 'rgba(13,110,253,1)',  scope: SCOPE_PAX, movement: 'Llegada' },
+      { values: agg.paxDep, color: 'rgba(16,185,129,1)', scope: SCOPE_PAX, movement: 'Salida'  }
+    ]);
+    renderPaxCombinedTopHours(agg);
+    drawGroupedBars('cargoCombinedChart', H_LABELS, [
+      { values: agg.carArr, color: 'rgba(249,115,22,1)', scope: SCOPE_CARGO, movement: 'Llegada' },
+      { values: agg.carDep, color: 'rgba(180,60,6,1)',   scope: SCOPE_CARGO, movement: 'Salida'  }
+    ]);
+    renderCargoCombinedTopHours(agg);
+    bindChartClicks();
+  }
+
+  function bindChartClicks(){
+    const charts = [
+      { id: 'paxArrivalsChart' },
+      { id: 'paxDeparturesChart' },
+      { id: 'cargoArrivalsChart' },
+      { id: 'cargoDeparturesChart' },
+      { id: 'generalArrivalsChart' },
+      { id: 'generalDeparturesChart' },
+      { id: 'combinedChart' },
+      { id: 'paxCombinedChart' },
+      { id: 'cargoCombinedChart' }
+    ];
+    charts.forEach(({ id }) => {
+      const canvas = document.getElementById(id);
+      if (!canvas || canvas.dataset.chartInteractive === 'true') return;
+      canvas.dataset.chartInteractive = 'true';
+      canvas.style.cursor = 'pointer';
+      canvas.addEventListener('click', (event)=> handleChartClick(id, event));
+    });
+  }
+
+  function handleChartClick(canvasId, event){
+    const hit = chartHitRegions[canvasId];
+    if (!hit || !Array.isArray(hit.slots) || !hit.slots.length) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    const bounds = hit.bounds;
+    if (!bounds || x < bounds.left || x > bounds.right || y < bounds.top || y > bounds.bottom) return;
+    const slot = hit.slots.find(s => x >= s.start && x <= s.end);
+    if (!slot || !Number.isFinite(slot.hour)) return;
+    const rawScope = (slot.scope) || (hit.meta && hit.meta.scope);
+    const rawMovement = (slot.movement) || (hit.meta && hit.meta.movement);
+    const scope = rawScope === SCOPE_CARGO ? SCOPE_CARGO : rawScope === SCOPE_ALL ? SCOPE_ALL : SCOPE_PAX;
+    const movement = rawMovement === 'Salida' ? 'Salida' : rawMovement === 'Llegada' ? 'Llegada' : null;
+    showTopHourFlights(scope, movement, slot.hour);
+  }
+  // ── Gráfica combinada: barras APILADAS (paxArr / paxDep / carArr / carDep) ──
+  function drawGroupedBars(canvasId, labels, datasets) {
+    const c = document.getElementById(canvasId);
+    if (!c) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w   = c.clientWidth  || 640;
+    const h   = c.clientHeight || 400;
+    c.width  = Math.max(1, Math.floor(w * dpr));
+    c.height = Math.max(1, Math.floor(h * dpr));
+    const g  = c.getContext('2d');
+    if (!g) return;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+
+    const darkMode = document.body && document.body.classList.contains('dark-mode');
+    const bg = g.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, darkMode ? 'rgba(2,6,23,0.95)'  : 'rgba(255,255,255,0.98)');
+    bg.addColorStop(1, darkMode ? 'rgba(15,23,42,0.9)' : 'rgba(243,246,255,0.95)');
+    g.fillStyle = bg;
+    g.fillRect(0, 0, w, h);
+
+    const isMobile = (w < 576);
+    const margin   = { top: 28, right: 16, bottom: isMobile ? 56 : 36, left: 46 };
+    const innerW   = Math.max(1, w - margin.left - margin.right);
+    const innerH   = Math.max(1, h - margin.top  - margin.bottom);
+    const x0 = margin.left;
+    const y0 = h - margin.bottom;
+
+    // Plot bg
+    const plotGrad = g.createLinearGradient(0, margin.top, 0, y0);
+    plotGrad.addColorStop(0, darkMode ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.92)');
+    plotGrad.addColorStop(1, darkMode ? 'rgba(15,23,42,0.55)' : 'rgba(240,249,255,0.88)');
+    g.save(); g.fillStyle = plotGrad;
+    roundRect(g, x0 - 14, margin.top - 10, innerW + 28, innerH + 20, 18);
+    g.fill(); g.restore();
+
+    const gridColor = darkMode ? 'rgba(226,232,240,0.15)' : 'rgba(15,23,42,0.08)';
+    const axisColor = darkMode ? '#cbd5f5' : '#475569';
+    const labelColor = darkMode ? '#f8fafc' : '#1f2937';
+
+    // Per-hour totals (for height + top label)
+    const totals = labels.map((_, i) => datasets.reduce((s, ds) => s + (ds.values[i] || 0), 0));
+    const maxV   = Math.max(1, ...totals);
+    const topVal = niceMax(maxV);
+
+    // Grid lines + Y labels
+    const tickCount = 5;
+    for (let t = 0; t <= tickCount; t++) {
+      const val = Math.round((t / tickCount) * topVal);
+      const yt  = y0 - (val / topVal) * innerH;
+      g.strokeStyle = gridColor; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(x0, yt); g.lineTo(x0 + innerW, yt); g.stroke();
+      g.fillStyle = axisColor;
+      g.font = `${isMobile ? 9 : 11}px system-ui,sans-serif`;
+      g.textAlign = 'right';
+      g.fillText(val, x0 - 6, yt + 4);
+    }
+
+    const slotW = innerW / labels.length;
+    const barW  = slotW * 0.70;
+    const slots = [];
+
+    labels.forEach((lbl, i) => {
+      const total = totals[i];
+      if (!total) {
+        slots.push({ start: x0 + i * slotW, end: x0 + i * slotW + barW, hour: i, scope: SCOPE_ALL, movement: null });
+        return;
+      }
+      const barX = x0 + i * slotW + (slotW - barW) / 2;
+      let stackY = y0;
+
+      datasets.forEach((ds, di) => {
+        const val = ds.values[i] || 0;
+        if (val <= 0) return;
+        const segH = (val / topVal) * innerH;
+        const segY = stackY - segH;
+        const isTop = di === datasets.length - 1 || datasets.slice(di + 1).every(d => (d.values[i] || 0) === 0);
+        g.save();
+        g.fillStyle = ds.color;
+        g.beginPath();
+        if (isTop) {
+          const r = Math.min(4, barW / 2, segH / 2);
+          g.moveTo(barX + r, segY);
+          g.lineTo(barX + barW - r, segY);
+          g.quadraticCurveTo(barX + barW, segY, barX + barW, segY + r);
+          g.lineTo(barX + barW, stackY);
+          g.lineTo(barX, stackY);
+          g.lineTo(barX, segY + r);
+          g.quadraticCurveTo(barX, segY, barX + r, segY);
+        } else {
+          g.rect(barX, segY, barW, segH);
+        }
+        g.closePath(); g.fill(); g.restore();
+        stackY = segY;
+      });
+
+      // Total label above bar
+      const barTopY = y0 - (total / topVal) * innerH;
+      g.fillStyle = labelColor;
+      g.font = `bold ${isMobile ? 9 : 11}px system-ui,sans-serif`;
+      g.textAlign = 'center';
+      g.fillText(total, barX + barW / 2, barTopY - 5);
+
+      slots.push({ start: barX, end: barX + barW, hour: i, scope: SCOPE_ALL, movement: null });
+    });
+
+    chartHitRegions[canvasId] = {
+      bounds: { left: x0, right: x0 + innerW, top: margin.top, bottom: y0 },
+      slots
+    };
+
+    // X-axis hour labels
+    g.font = `${isMobile ? 9 : 10}px system-ui,sans-serif`;
+    g.textAlign = 'center';
+    g.fillStyle = axisColor;
+    labels.forEach((lbl, i) => {
+      if (isMobile && i % 2 !== 0) return;
+      g.fillText(lbl, x0 + i * slotW + slotW / 2, y0 + 16);
+    });
+
+    // Baseline
+    g.strokeStyle = axisColor; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(x0, y0); g.lineTo(x0 + innerW, y0); g.stroke();
+  }
+
+  // Dibujador de barras (sin Chart.js) con estética pulida e interacción
+  function drawBars(canvasId, labels, values, color, title, meta = {}){
+    const c = document.getElementById(canvasId);
+    if (!c) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = c.clientWidth || 640;
+    const h = c.clientHeight || 360;
+    c.width = Math.max(1, Math.floor(w * dpr));
+    c.height = Math.max(1, Math.floor(h * dpr));
+    const g = c.getContext('2d');
+    if (!g) return;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0,0,w,h);
+
+    const darkMode = document.body && document.body.classList.contains('dark-mode');
+    const bg = g.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, darkMode ? 'rgba(2,6,23,0.95)' : 'rgba(255,255,255,0.98)');
+    bg.addColorStop(1, darkMode ? 'rgba(15,23,42,0.9)' : 'rgba(243,246,255,0.95)');
+    g.fillStyle = bg;
+    g.fillRect(0, 0, w, h);
+
+    const isMobile = (w < 576);
+    const margin = { top: 42, right: 20, bottom: isMobile ? 58 : 38, left: 50 };
+    const innerW = Math.max(1, w - margin.left - margin.right);
+    const innerH = Math.max(1, h - margin.top - margin.bottom);
+    const x0 = margin.left;
+    const y0 = h - margin.bottom;
+
+    const plotGradient = g.createLinearGradient(0, margin.top, 0, h - margin.bottom);
+    plotGradient.addColorStop(0, darkMode ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.92)');
+    plotGradient.addColorStop(1, darkMode ? 'rgba(15,23,42,0.55)' : 'rgba(240,249,255,0.88)');
+    g.save();
+    g.fillStyle = plotGradient;
+    roundRect(g, margin.left - 14, margin.top - 10, innerW + 28, innerH + 20, 18);
+    g.fill();
+    g.restore();
+
+    const gridColor = darkMode ? 'rgba(226,232,240,0.15)' : 'rgba(15,23,42,0.08)';
+    const axisColor = darkMode ? '#cbd5f5' : '#475569';
+    const labelColor = darkMode ? '#f8fafc' : '#1f2937';
+
+    chartHitRegions[canvasId] = {
+      meta: meta || {},
+      bounds: { left: margin.left, right: w - margin.right, top: margin.top, bottom: h - margin.bottom },
+      slots: []
+    };
+
+    // Títulos externos ya contienen el contexto; evitamos duplicar texto dentro del canvas
+
+    g.strokeStyle = gridColor;
+    g.lineWidth = 1;
+    g.beginPath();
+    g.moveTo(x0, y0);
+    g.lineTo(x0 + innerW, y0);
+    g.moveTo(x0, y0);
+    g.lineTo(x0, y0 - innerH);
+    g.stroke();
+
+    const maxV = Math.max(1, Math.max(...values));
+    const nice = niceMax(maxV);
+    const ticks = 4;
+    const tickStep = nice / ticks;
+    g.strokeStyle = gridColor;
+    g.fillStyle = axisColor;
+    g.font = '11px "Inter", "Roboto", Arial';
+    g.textAlign = 'right';
+    g.textBaseline = 'middle';
+    for (let i=0; i<=ticks; i++){
+      const v = i * tickStep;
+      const y = y0 - (v / nice) * innerH;
+      g.beginPath();
+      g.moveTo(x0, y);
+      g.lineTo(x0 + innerW, y);
+      g.stroke();
+      g.fillText(String(Math.round(v)), x0 - 8, y);
+    }
+
+    const n = labels.length;
+    const gap = 4;
+    const barW = Math.max(2, (innerW / n) - gap);
+    const gradientStops = Array.isArray(meta.gradientStops) && meta.gradientStops.length >= 2
+      ? meta.gradientStops
+      : [color, color];
+    const shadowColor = meta.shadowColor || 'rgba(15,23,42,0.18)';
+    const outlineColor = darkMode ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.08)';
+    for (let i=0; i<n; i++){
+      const v = values[i] || 0;
+      const bh = (v / nice) * innerH;
+      const x = x0 + i * (innerW / n) + gap/2;
+      const y = y0 - bh;
+      const slotStart = x0 + i * (innerW / n);
+      const slotEnd = slotStart + (innerW / n);
+      chartHitRegions[canvasId].slots.push({ hour: i, start: slotStart, end: slotEnd });
+      if (bh <= 0.5) continue;
+      const barGradient = g.createLinearGradient(0, y, 0, y + bh);
+      barGradient.addColorStop(0, gradientStops[0]);
+      barGradient.addColorStop(1, gradientStops[gradientStops.length - 1]);
+      g.save();
+      g.shadowColor = shadowColor;
+      g.shadowBlur = 18;
+      g.shadowOffsetY = 10;
+      roundRect(g, x, y, Math.max(2, barW), Math.max(1, bh), 8);
+      g.fillStyle = barGradient;
+      g.fill();
+      g.restore();
+
+      g.strokeStyle = outlineColor;
+      g.lineWidth = 1;
+      roundRect(g, x, y, Math.max(2, barW), Math.max(1, bh), 8);
+      g.stroke();
+    }
+
+    g.fillStyle = axisColor;
+    g.font = '11px "Inter", "Roboto", Arial';
+    g.textAlign = 'center';
+    g.textBaseline = 'top';
+    const step = isMobile ? 1 : 2;
+    for (let i=0; i<n; i+=step){
+      const labelX = x0 + i * (innerW / n) + (innerW / n)/2;
+      if (isMobile){
+        g.save();
+        g.translate(labelX, y0 + 6);
+        g.rotate(-Math.PI/6);
+        g.fillText(labels[i], 0, 0);
+        g.restore();
+      } else {
+        g.fillText(labels[i], labelX, y0 + 10);
+      }
+    }
+
+    g.fillStyle = darkMode ? 'rgba(148,163,184,0.8)' : 'rgba(71,85,105,0.8)';
+    g.font = '600 11px "Inter", "Roboto", Arial';
+    g.textAlign = 'right';
+    g.fillText('Haz clic en una barra para detallar vuelos', x0 + innerW, margin.top - 14);
+  }
+
+  function roundRect(g, x, y, w, h, r){
+    const rr = Math.min(r, w/2, h/2);
+    g.beginPath();
+    g.moveTo(x+rr, y);
+    g.lineTo(x+w-rr, y);
+    g.quadraticCurveTo(x+w, y, x+w, y+rr);
+    g.lineTo(x+w, y+h-rr);
+    g.quadraticCurveTo(x+w, y+h, x+w-rr, y+h);
+    g.lineTo(x+rr, y+h);
+    g.quadraticCurveTo(x, y+h, x, y+h-rr);
+    g.lineTo(x, y+rr);
+    g.quadraticCurveTo(x, y, x+rr, y);
+    g.closePath();
+  }
+
+  function niceMax(maxV){
+    if (maxV <= 5) return 5;
+    if (maxV <= 10) return 10;
+    if (maxV <= 20) return 20;
+    if (maxV <= 50) return 50;
+    if (maxV <= 100) return 100;
+    const pow10 = Math.pow(10, String(Math.floor(Math.log10(maxV))));
+    return Math.ceil(maxV / pow10) * pow10;
+  }
+  function escapeAttr(text){
+    return (text || '').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function escapeHtml(text){
+    return (text || '').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function getAirlineInitials(name){
+    const safe = (name || '').trim();
+    if (!safe) return 'AIFA';
+    const tokens = safe.split(/\s+/).filter(Boolean);
+    const joined = tokens.map(word => word[0]).join('');
+    const fallback = (joined || safe).toUpperCase();
+    return fallback.slice(0,3);
+  }
+  function getAirlineLogoMarkup(airlineName, sizeClass='sm'){
+    if (!airlineName || typeof window.getAirlineLogoCandidates !== 'function') return '';
+    const candidates = window.getAirlineLogoCandidates(airlineName) || [];
+    if (!candidates.length) return '';
+    const preferred = candidates.find(path => !DEFAULT_LOGO_REGEX.test(path)) || candidates[0];
+    if (!preferred) return '';
+    const dataCands = candidates.join('|');
+    return `<img class="airline-logo ${sizeClass}" src="${escapeAttr(preferred)}" alt="Logo ${escapeAttr(airlineName)}" data-cands="${escapeAttr(dataCands)}" data-cand-idx="0" onerror="handleLogoError(this)" onload="logoLoaded(this)">`;
+  }
+  function renderAirlineTableCell(name){
+    const safeName = (name || DEFAULT_AIRLINE_LABEL).trim() || DEFAULT_AIRLINE_LABEL;
+    const logo = getAirlineLogoMarkup(safeName, 'lg');
+    if (logo){
+      return `<div class="intel-airline-cell" title="${escapeAttr(safeName)}">${logo}<span class="visually-hidden">${escapeHtml(safeName)}</span></div>`;
+    }
+    return `<div class="intel-airline-cell" title="${escapeAttr(safeName)}"><span class="intel-airline-badge">${escapeHtml(getAirlineInitials(safeName))}</span><span class="visually-hidden">${escapeHtml(safeName)}</span></div>`;
+  }
+  function renderFlightCarrierRow(name){
+    const safeName = (name || DEFAULT_AIRLINE_LABEL).trim() || DEFAULT_AIRLINE_LABEL;
+    const logo = getAirlineLogoMarkup(safeName, 'xl');
+    const visual = logo || `<span class="intel-airline-badge xl">${escapeHtml(getAirlineInitials(safeName))}</span>`;
+    return `<div class="intel-flight-carrier" title="${escapeAttr(safeName)}">${visual}<span class="visually-hidden">${escapeHtml(safeName)}</span></div>`;
+  }
+  function renderHeatmap1D(canvasId, counts){
+    const c = document.getElementById(canvasId);
+    if (!c) return;
+    const dpr = window.devicePixelRatio || 1;
+    const width = c.clientWidth || 640;
+    const height = c.clientHeight || 220;
+    c.width = Math.max(1, width * dpr);
+    c.height = Math.max(1, height * dpr);
+    const g = c.getContext('2d');
+    if (!g) return;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0,0,width,height);
+
+    const darkMode = document.body && document.body.classList.contains('dark-mode');
+    const bg = g.createLinearGradient(0, 0, width, height);
+    bg.addColorStop(0, darkMode ? 'rgba(2,6,23,0.95)' : 'rgba(248,250,252,0.98)');
+    bg.addColorStop(1, darkMode ? 'rgba(15,23,42,0.85)' : 'rgba(237,244,255,0.95)');
+    g.fillStyle = bg;
+    g.fillRect(0, 0, width, height);
+
+    const pad = 14;
+    const cellW = (width - pad*2) / 24;
+    const cellH = Math.max(18, height - pad*2 - 24);
+    const max = Math.max(1, ...counts);
+    const palette = darkMode
+      ? ['#0f172a','#1e3a8a','#2563eb','#22d3ee','#facc15']
+      : ['#dbeafe','#93c5fd','#3b82f6','#0ea5e9','#f97316'];
+    const parseHex = (hex)=>{
+      const value = hex.replace('#','');
+      const bigint = parseInt(value, 16);
+      return {
+        r: (bigint >> 16) & 255,
+        g: (bigint >> 8) & 255,
+        b: bigint & 255
+      };
+    };
+    const lerp = (a,b,t)=> a + (b - a)*t;
+    const pickColor = (t)=>{
+      const scaled = t * (palette.length - 1);
+      const idx = Math.floor(scaled);
+      const nextIdx = Math.min(idx + 1, palette.length - 1);
+      const mix = scaled - idx;
+      const c1 = parseHex(palette[idx]);
+      const c2 = parseHex(palette[nextIdx]);
+      const r = Math.round(lerp(c1.r, c2.r, mix));
+      const gVal = Math.round(lerp(c1.g, c2.g, mix));
+      const b = Math.round(lerp(c1.b, c2.b, mix));
+      const alpha = darkMode ? 0.45 + (0.4 * t) : 0.35 + (0.45 * t);
+      return `rgba(${r},${gVal},${b},${alpha})`;
+    };
+
+    const topHour = counts.reduce((acc, val, idx) => {
+      if (val > acc.value) return { hour: idx, value: val };
+      return acc;
+    }, { hour: 0, value: 0 });
+
+    for (let h=0; h<24; h++){
+      const v = counts[h];
+      const t = v / max;
+      const color = pickColor(t);
+      const x = pad + h * cellW;
+      const y = pad;
+      g.fillStyle = color;
+      roundRect(g, x + 1, y, Math.max(2, cellW - 3), cellH, 6);
+      g.fill();
+    }
+
+    if (topHour.value > 0){
+      const hx = pad + topHour.hour * cellW + cellW/2;
+      const hy = pad + cellH/2;
+      g.strokeStyle = darkMode ? 'rgba(255,255,255,0.85)' : 'rgba(15,23,42,0.75)';
+      g.lineWidth = 2;
+      g.beginPath();
+      g.arc(hx, hy, Math.min(cellW, cellH) / 2.3, 0, Math.PI * 2);
+      g.stroke();
+      g.fillStyle = g.strokeStyle;
+      g.font = '600 11px "Inter", "Roboto", Arial';
+      g.textAlign = 'center';
+      g.fillText(`${String(topHour.hour).padStart(2,'0')}h`, hx, hy + 4);
+    }
+
+    g.fillStyle = darkMode ? '#cbd5f5' : '#475569';
+    g.font = '11px "Inter", "Roboto", Arial';
+    g.textAlign = 'center';
+    g.textBaseline = 'top';
+    for (let h=0; h<24; h+=2){
+      const labelX = pad + h * cellW + cellW/2;
+      g.fillText(String(h).padStart(2,'0'), labelX, pad + cellH + 6);
+    }
+  }
+  async function renderItineraryCharts() {
+    try {
+    // Sincronizar con filtros activos del Inicio si está habilitado (por defecto sí)
+    const sync = (window.syncItineraryFiltersToCharts !== false);
+    const fState = window.currentItineraryFilterState || {};
+    const preHour = window.currentItineraryPreHour || {};
+
+    // Determinar fecha objetivo
+    let targetDate = selectedDate || fState.selectedDate;
+    if (!targetDate) {
+      // Si no hay fecha seleccionada, usar hoy
+      targetDate = toYMD(new Date());
+    }
+
+    // Cargar datos para esa fecha (o todo si es JSON legacy)
+    const base = await loadItinerary(targetDate);
+    
+    let data = base;
+    // Determinar fecha final (si era legacy JSON, pickBestDate podría cambiarla)
+    if (!selectedDate) {
+        // Si estamos en modo DB, targetDate es la fecha.
+        // Si estamos en modo JSON, pickBestDate(base) podría ser mejor.
+        if (window.supabaseClient) {
+            selectedDate = targetDate;
+        } else {
+            selectedDate = (fState.selectedDate || pickBestDate(base));
+        }
+    }
+    
+    // UI date control
+    const input = document.getElementById('it-day-input');
+    if (input && input.value !== selectedDate) input.value = selectedDate;
+    // Construir subconjunto del día, opcionalmente desde el preHour filtrado
+    const dayDMY = ymdToDMY(selectedDate);
+    if (sync && preHour.combined && Array.isArray(preHour.combined) && preHour.combined.length) {
+      // Reducir al día seleccionado sin colapsar por hora
+      data = preHour.combined.filter(f => (toIsoDate(f.fecha_llegada)===selectedDate) || (toIsoDate(f.fecha_salida)===selectedDate));
+    } else {
+      // Asegurar día desde la fuente base
+      // Nota: loadItinerary ya filtra por DB, pero este paso asegura consistencia si formats difieren
+      data = base.filter(f => (toIsoDate(f.fecha_llegada)===selectedDate) || (toIsoDate(f.fecha_salida)===selectedDate));
+       
+      // Si el filtro estricto vacía el array (ej. error de formato), pero base tiene datos y venía ya filtrado de DB
+      // podríamos usar base directamente como fallback.
+      if (base.length > 0 && data.length === 0 && window.supabaseClient) {
+          console.warn('Itinerario: El filtro estricto de fecha ocultó los datos cargados. Usando datos crudos de DB (fallback).');
+          data = base;
+      }
+    }
+    hidePeakResults();
+    // Agregar por hora y dibujar
+    const totalFlights = Array.isArray(data) ? data.length : 0;
+    try {
+      const badge = document.getElementById('it-stats-badge');
+      if (badge) badge.textContent = totalFlights ? `(${totalFlights} vuelos)` : '(0 vuelos)';
+    } catch(_) {}
+    insightsCache[SCOPE_PAX] = computeItineraryInsights(data, selectedDate, SCOPE_PAX);
+    insightsCache[SCOPE_CARGO] = computeItineraryInsights(data, selectedDate, SCOPE_CARGO);
+    insightsCache[SCOPE_ALL] = computeItineraryInsights(data, selectedDate, SCOPE_ALL);
+    applyIntelligenceForScope(getActiveChartsScope());
+  const agg = aggregateDay(data, selectedDate);
+  lastAgg = agg;
+  drawBars('paxArrivalsChart', H_LABELS, agg.paxArr, 'rgba(13,110,253,0.9)', 'Llegadas (Pasajeros)', {
+    scope: SCOPE_PAX,
+    movement: 'Llegada',
+    gradientStops: ['rgba(148,205,255,0.95)', 'rgba(13,110,253,0.65)'],
+    shadowColor: 'rgba(13,110,253,0.25)',
+    subtitle: 'Tráfico entrante durante el día'
+  });
+  drawBars('paxDeparturesChart', H_LABELS, agg.paxDep, 'rgba(16,185,129,0.9)', 'Salidas (Pasajeros)', {
+    scope: SCOPE_PAX,
+    movement: 'Salida',
+    gradientStops: ['rgba(167,243,208,0.95)', 'rgba(16,185,129,0.65)'],
+    shadowColor: 'rgba(16,185,129,0.25)',
+    subtitle: 'Ventanas de salida previstas'
+  });
+  drawBars('cargoArrivalsChart', H_LABELS, agg.carArr, 'rgba(249,115,22,0.9)', 'Llegadas (Carga)', {
+    scope: SCOPE_CARGO,
+    movement: 'Llegada',
+    gradientStops: ['rgba(255,196,161,0.95)', 'rgba(249,115,22,0.65)'],
+    shadowColor: 'rgba(194,65,12,0.25)',
+    subtitle: 'Recepciones logísticas por hora'
+  });
+  drawBars('cargoDeparturesChart', H_LABELS, agg.carDep, 'rgba(234,88,12,0.9)', 'Salidas (Carga)', {
+    scope: SCOPE_CARGO,
+    movement: 'Salida',
+    gradientStops: ['rgba(253,186,140,0.95)', 'rgba(234,88,12,0.7)'],
+    shadowColor: 'rgba(234,88,12,0.25)',
+    subtitle: 'Despachos prioritarios'
+  });
+    const paxSum = agg.paxArr.map((v,i)=> v + (agg.paxDep[i]||0));
+    const carSum = agg.carArr.map((v,i)=> v + (agg.carDep[i]||0));
+    renderHeatmap1D('heatmapPaxDay', paxSum);
+    renderHeatmap1D('heatmapCargoDay', carSum);
+    // Vista General: combined arrivals and departures
+    const genArr = agg.paxArr.map((v,i)=> v + (agg.carArr[i]||0));
+    const genDep = agg.paxDep.map((v,i)=> v + (agg.carDep[i]||0));
+    drawBars('generalArrivalsChart', H_LABELS, genArr, 'rgba(99,102,241,0.9)', 'Llegadas Totales (Pax + Carga)', {
+      scope: SCOPE_ALL,
+      movement: 'Llegada',
+      gradientStops: ['rgba(199,210,254,0.95)', 'rgba(99,102,241,0.65)'],
+      shadowColor: 'rgba(99,102,241,0.25)',
+      subtitle: 'Llegadas combinadas de pasajeros y carga'
+    });
+    drawBars('generalDeparturesChart', H_LABELS, genDep, 'rgba(236,72,153,0.9)', 'Salidas Totales (Pax + Carga)', {
+      scope: SCOPE_ALL,
+      movement: 'Salida',
+      gradientStops: ['rgba(251,207,232,0.95)', 'rgba(236,72,153,0.65)'],
+      shadowColor: 'rgba(236,72,153,0.25)',
+      subtitle: 'Salidas combinadas de pasajeros y carga'
+    });
+    drawGroupedBars('combinedChart', H_LABELS, [
+      { values: agg.paxArr, color: 'rgba(13,110,253,1)',   scope: SCOPE_PAX,   movement: 'Llegada' },
+      { values: agg.paxDep, color: 'rgba(16,185,129,1)',   scope: SCOPE_PAX,   movement: 'Salida'  },
+      { values: agg.carArr, color: 'rgba(249,115,22,1)',   scope: SCOPE_CARGO, movement: 'Llegada' },
+      { values: agg.carDep, color: 'rgba(234,88,12,1)',    scope: SCOPE_CARGO, movement: 'Salida'  }
+    ]);
+    renderCombinedTopHours(agg);
+    drawGroupedBars('paxCombinedChart', H_LABELS, [
+      { values: agg.paxArr, color: 'rgba(13,110,253,1)',  scope: SCOPE_PAX, movement: 'Llegada' },
+      { values: agg.paxDep, color: 'rgba(16,185,129,1)', scope: SCOPE_PAX, movement: 'Salida'  }
+    ]);
+    renderPaxCombinedTopHours(agg);
+    drawGroupedBars('cargoCombinedChart', H_LABELS, [
+      { values: agg.carArr, color: 'rgba(249,115,22,1)', scope: SCOPE_CARGO, movement: 'Llegada' },
+      { values: agg.carDep, color: 'rgba(180,60,6,1)',   scope: SCOPE_CARGO, movement: 'Salida'  }
+    ]);
+    renderCargoCombinedTopHours(agg);
+    renderTopHoursLists(agg);
+    renderGeneralTopHours(agg);
+    bindChartClicks();
+    // Marcar banderas de renderizado exitoso para diagnóstico externo
+    window._itineraryChartsOk = true;
+    } catch (e) {
+      console.error('Error renderItineraryCharts:', e);
+    }
+  }
+  function renderInsightCards(scope, insights){
+    if (!insights || !insights.totals) {
+      console.warn('Radar: Sin insights para scope', scope);
+      return;
+    }
+    const fmt = (n)=> typeof n === 'number' ? n.toLocaleString('es-MX') : '-';
+    const setText = (id, text)=>{ const el = document.getElementById(id); if (el) el.textContent = text; };
+    const share = (part, total)=>{
+      if (!total) return '0% del total';
+      return `${Math.round((part/total)*100)}% del total`;
+    };
+    const scopeLabel = scopeLabels[scope] || '—';
+    const dayLabel = selectedDate ? ymdToDMY(selectedDate) : '';
+    setText('it-intelligence-scope-badge', scopeLabel);
+    setText('it-metric-total', fmt(insights.totals.operations));
+    setText('it-metric-total-detail', dayLabel ? `${scopeLabel} · ${dayLabel}` : scopeLabel);
+    setText('it-metric-arrivals', fmt(insights.totals.arrivals));
+    setText('it-metric-arrivals-detail', share(insights.totals.arrivals, insights.totals.operations));
+    setText('it-metric-departures', fmt(insights.totals.departures));
+    setText('it-metric-departures-detail', share(insights.totals.departures, insights.totals.operations));
+    const airlinesLabel = insights.totals.airlines ? `${fmt(insights.totals.airlines)} aerolíneas activas` : 'Sin aerolíneas activas';
+    setText('it-metric-airlines', fmt(insights.totals.airlines));
+    const busy = insights.busiestHour;
+    if (busy && busy.count){
+      setText('it-metric-busiest-hour', `Hora pico ${String(busy.hour).padStart(2,'0')}:00 (${busy.count} ops)`);
+    } else {
+      setText('it-metric-busiest-hour', 'Sin hora pico registrada');
+    }
+    const airlinesLabelEl = document.getElementById('it-metric-airlines');
+    if (airlinesLabelEl) airlinesLabelEl.title = airlinesLabel;
+  }
+  function renderAirlinePeakTable(scope, rows){
+    const tbody = document.getElementById('it-peak-airlines-table');
+    if (!tbody) return;
+    if (!rows || !rows.length){
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted small">Sin operaciones registradas para esta fecha.</td></tr>';
+      return;
+    }
+    const fmt = (n)=> typeof n === 'number' ? n.toLocaleString('es-MX') : '-';
+    tbody.innerHTML = rows.map(row => {
+      const hourLabel = row.peakHour==null || !row.peakCount
+        ? '<span class="text-muted">Sin registros</span>'
+        : `<button type="button" class="btn btn-link p-0" data-peak-flight data-scope="${scope}" data-airline="${escapeAttr(row.name)}" data-airline-key="${escapeAttr(row.key || norm(row.name))}" data-hour="${row.peakHour}"><strong>${String(row.peakHour).padStart(2,'0')}:00</strong> · ${fmt(row.peakCount)} ops</button>`;
+      return `<tr>
+        <td class="text-center">
+          <button type="button" class="btn btn-link p-0 border-0 text-decoration-none" 
+            onclick="if(window.setGlobalItineraryFilter && typeof window.setGlobalItineraryFilter === 'function'){ window.setGlobalItineraryFilter('${escapeAttr(row.name)}', '${scope}'); } else { console.warn('Filter function missing'); }"
+            data-scope="${scope}" 
+            data-airline="${escapeAttr(row.name)}" 
+            title="Ver todos los vuelos de ${escapeAttr(row.name)}">
+            ${renderAirlineTableCell(row.name)}
+          </button>
+        </td>
+        <td class="text-center fw-semibold">${fmt(row.total)}</td>
+        <td class="text-center text-success">${fmt(row.arrivals)}</td>
+        <td class="text-center text-info">${fmt(row.departures)}</td>
+        <td>${hourLabel}</td>
+      </tr>`;
+    }).join('');
+  }
+  function renderTopConnections(scope, origins, destinations){
+    const scopeLabel = scopeLabels[scope] || '—';
+    const fillList = (id, items)=>{
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (!items || !items.length){
+        el.innerHTML = '<li class="text-muted">Sin datos</li>';
+        return;
+      }
+      el.innerHTML = items.map(item => `<li><strong>${item.label}</strong> · ${item.value} vuelos</li>`).join('');
+    };
+    const originsTitle = document.getElementById('it-top-origins-title');
+    if (originsTitle) originsTitle.textContent = `Principales orígenes (${scopeLabel})`;
+    const destinationsTitle = document.getElementById('it-top-destinations-title');
+    if (destinationsTitle) destinationsTitle.textContent = `Principales destinos (${scopeLabel})`;
+    fillList('it-top-origins', origins);
+    fillList('it-top-destinations', destinations);
+  }
+  function getActiveChartsScope(){
+    const cargoPane = document.getElementById('carga-grafica-pane');
+    if (cargoPane && cargoPane.classList.contains('show') && cargoPane.classList.contains('active')) return SCOPE_CARGO;
+    return SCOPE_PAX;
+  }
+  function applyIntelligenceForScope(scope){
+    const targetScope = scope === SCOPE_CARGO ? SCOPE_CARGO : SCOPE_PAX;
+    const insights = insightsCache[targetScope];
+    if (!insights) return;
+    renderInsightCards(targetScope, insights);
+    renderAirlinePeakTable(targetScope, insights.airlinePeaks);
+    renderTopConnections(targetScope, insights.topOrigins, insights.topDestinations);
+    hidePeakResults();
+  }
+  function hidePeakResults(){
+    const card = document.getElementById('it-peak-results-card');
+    const body = document.getElementById('it-peak-results-body');
+    const title = document.getElementById('it-peak-results-title');
+    const subtitle = document.getElementById('it-peak-results-subtitle');
+    if (body) body.innerHTML = PEAK_RESULTS_PLACEHOLDER;
+    if (title) title.textContent = '';
+    if (subtitle) subtitle.textContent = 'Selecciona una fila u hora para detallar los vuelos.';
+    if (card) card.classList.add('d-none');
+  }
+  function showPeakFlights(scope, airlineName, airlineKey, hour){
+    const targetScope = scope === SCOPE_CARGO ? SCOPE_CARGO : SCOPE_PAX;
+    const insights = insightsCache[targetScope];
+    if (!insights) return;
+    const key = airlineKey || norm(airlineName || '');
+    const filtered = (insights.operations || []).filter(op => op.airlineKey === key && (hour==null ? true : op.hour === hour));
+    renderPeakResults(targetScope, airlineName, hour, filtered);
+  }
+  function showTopHourFlights(scope, movement, hour){
+    if (hour==null || !Number.isFinite(hour)) return;
+    const movementLabel = movement === 'Salida' ? 'Salida' : movement === 'Llegada' ? 'Llegada' : null;
+    const hourText = String(hour).padStart(2,'0');
+    const rangeLabel = `${hourText}:00\u2013${hourText}:59`;
+    let flights, scopeLabel, targetScope;
+    if (scope === SCOPE_ALL) {
+      const paxOps   = (insightsCache[SCOPE_PAX]   && insightsCache[SCOPE_PAX].operations)   || [];
+      const carOps   = (insightsCache[SCOPE_CARGO]  && insightsCache[SCOPE_CARGO].operations)  || [];
+      const allOps   = [...paxOps, ...carOps];
+      flights        = movementLabel
+        ? allOps.filter(op => op.movement === movementLabel && op.hour === hour)
+        : allOps.filter(op => op.hour === hour);   // null = todas
+      scopeLabel     = scopeLabels[SCOPE_ALL] || 'Todos los vuelos';
+      targetScope    = SCOPE_ALL;
+    } else {
+      targetScope    = scope === SCOPE_CARGO ? SCOPE_CARGO : SCOPE_PAX;
+      const insights = insightsCache[targetScope];
+      if (!insights) return;
+      flights        = movementLabel
+        ? (insights.operations || []).filter(op => op.movement === movementLabel && op.hour === hour)
+        : (insights.operations || []).filter(op => op.hour === hour);
+      scopeLabel     = scopeLabels[targetScope] || 'Operaciones';
+    }
+    renderPeakResults(targetScope, `${movementLabel ?? 'Todos'} ${rangeLabel}`, hour, flights, {
+      titleText: `${movementLabel ? movementLabel + 's' : 'Todos los vuelos'} \u00b7 ${rangeLabel} \u00b7 ${scopeLabel}`,
+      subtitleText: `Operaciones ${ movementLabel ? 'de ' + movementLabel.toLowerCase() : ''} registradas entre ${rangeLabel}.`
+    });
+  }
+  function renderPeakResults(scope, label, hour, flights, options = {}){
+    const card = document.getElementById('it-peak-results-card');
+    const body = document.getElementById('it-peak-results-body');
+    const title = document.getElementById('it-peak-results-title');
+    const subtitle = document.getElementById('it-peak-results-subtitle');
+    if (!card || !body) return;
+    const scopeLabel = scopeLabels[scope] || '—';
+    const titleText = options.titleText || `${label || 'Operaciones'} · ${scopeLabel}`;
+    if (title) title.textContent = titleText;
+    const hourLabel = hour==null ? 'todas las horas del día' : `${String(hour).padStart(2,'0')}:00 hrs`;
+    const subtitleText = options.subtitleText || `Operaciones registradas en ${hourLabel}.`;
+    if (subtitle) subtitle.textContent = subtitleText;
+    if (!flights.length){
+      body.innerHTML = '<div class="intel-flight-placeholder text-center text-muted small">No encontramos vuelos para esa combinación.</div>';
+    } else {
+      body.innerHTML = flights.map(renderFlightCard).join('');
+    }
+    card.classList.remove('d-none');
+    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function renderFlightCard(op){
+    const movementLabel = (op.movement || 'Operación').trim() || 'Operación';
+    const movementMeta = MOVEMENT_META[movementLabel] || MOVEMENT_META_DEFAULT;
+    const origin = escapeHtml(op.origin || '—');
+    const destination = escapeHtml(op.destination || '—');
+    const carrierRow = renderFlightCarrierRow(op.airline);
+    const tags = [];
+    if (op.position) tags.push(`<span class="intel-flight-tag"><i class="fas fa-map-marker-alt me-1"></i>${escapeHtml(op.position)}</span>`);
+    if (op.belt) tags.push(`<span class="intel-flight-tag"><i class="fas fa-suitcase-rolling me-1"></i>Banda ${escapeHtml(op.belt)}</span>`);
+    if (!tags.length) {
+      tags.push('<span class="intel-flight-tag intel-flight-tag-muted"><i class="fas fa-info-circle me-1"></i>Sin posición asignada</span>');
+    }
+    return `<article class="intel-flight-card">
+      <div class="intel-flight-header">
+        <span class="intel-movement-chip ${movementMeta.cls}"><i class="fas ${movementMeta.icon} me-1"></i>${escapeHtml(movementMeta.label)}</span>
+        <div class="intel-flight-number">Vuelo <strong>${escapeHtml(op.flightNumber || '—')}</strong></div>
+        <div class="intel-flight-time"><i class="fas fa-clock me-1"></i>${escapeHtml(op.timeLabel || 'Sin hora')}</div>
+      </div>
+      ${carrierRow}
+      <div class="intel-flight-body">
+        <div class="intel-flight-route">
+          <span class="route-airport">${origin}</span>
+          <span class="route-arrow" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+          <span class="route-airport">${destination}</span>
+        </div>
+        <div class="intel-flight-meta">${tags.join('')}</div>
+      </div>
+    </article>`;
+  }
+  // ─── Resumen por rango horario ────────────────────────────────────────────
+  function _initRangeHourSelects(){
+    const fromSel = document.getElementById('range-from-hour');
+    const toSel   = document.getElementById('range-to-hour');
+    if (!fromSel || !toSel || fromSel.options.length) return; // already built
+    for (let h = 0; h < 24; h++){
+      const label = `${String(h).padStart(2,'0')}:00`;
+      fromSel.add(new Option(label, h));
+      toSel.add(new Option(label, h));
+    }
+    fromSel.value = 6;
+    toSel.value   = 22;
+  }
+
+  function _buildRangeReport(){
+    const fromSel = document.getElementById('range-from-hour');
+    const toSel   = document.getElementById('range-to-hour');
+    const result  = document.getElementById('general-range-report-result');
+    if (!fromSel || !toSel || !result) return;
+    let fromH = parseInt(fromSel.value, 10);
+    let toH   = parseInt(toSel.value,   10);
+    if (fromH > toH) { const tmp = fromH; fromH = toH; toH = tmp; }
+
+    const paxOps  = (insightsCache[SCOPE_PAX]   && insightsCache[SCOPE_PAX].operations)   || [];
+    const carOps  = (insightsCache[SCOPE_CARGO]  && insightsCache[SCOPE_CARGO].operations)  || [];
+    const allOps  = [...paxOps, ...carOps].filter(op =>
+      typeof op.hour === 'number' && op.hour >= fromH && op.hour <= toH
+    );
+
+    const arrivals   = allOps.filter(op => op.movement === 'Llegada')
+                             .sort((a,b) => (a.timeLabel||'').localeCompare(b.timeLabel||''));
+    const departures = allOps.filter(op => op.movement === 'Salida')
+                             .sort((a,b) => (a.timeLabel||'').localeCompare(b.timeLabel||''));
+
+    const dateLabel = selectedDate ? ymdToDMY(selectedDate) : '—';
+    const fromLabel = `${String(fromH).padStart(2,'0')}:00`;
+    const toLabel   = `${String(toH).padStart(2,'0')}:59`;
+
+    // ── Plain-text version for clipboard ──────────────────────────
+    const SEP = '━━━━━━━━━━━━━━━━━━━━━━';
+    const fmtRow = (op) => {
+      const t  = (op.timeLabel||'—').slice(0,5);
+      const fn = op.flightNumber || '—';
+      const orig = (op.origin||'—').toString().trim().toUpperCase().slice(0,3);
+      const dest = (op.destination||'—').toString().trim().toUpperCase().slice(0,3);
+      const pos  = op.position ? ` | Pos. ${op.position}` : '';
+      const al   = (op.airline||'').trim();
+      const ac   = op.aircraft ? ` | ✈ ${op.aircraft}` : '';
+      return `  • ${t} | ${fn} | ${al} | ${orig} → ${dest}${pos}${ac}`;
+    };
+    const plainParts = [
+      `✈️  RESUMEN OPERATIVO — AIFA`,
+      `📅  ${dateLabel}   🕑 ${fromLabel} – ${toLabel}`,
+      SEP,
+      arrivals.length
+        ? `🛬  LLEGADAS (${arrivals.length} vuelo${arrivals.length!==1?'s':''})\n${arrivals.map(fmtRow).join('\n')}`
+        : `🛬  LLEGADAS: Sin operaciones en este rango`,
+      SEP,
+      departures.length
+        ? `🛫  SALIDAS (${departures.length} vuelo${departures.length!==1?'s':''})\n${departures.map(fmtRow).join('\n')}`
+        : `🛫  SALIDAS: Sin operaciones en este rango`,
+      SEP,
+      `📊  Total: ${allOps.length} operación${allOps.length!==1?'es':''}`,
+    ].join('\n');
+
+    // ── Visual card rendering ────────────────────────────────────
+    const renderGroup = (ops, mvLabel, icon) => {
+      if (!ops.length){
+        return `<div class="range-report-empty"><i class="fas ${icon} me-2 opacity-50"></i>Sin operaciones en este rango</div>`;
+      }
+      return ops.map(op => {
+        const logo   = getAirlineLogoMarkup(op.airline, 'lg');
+        const visual = logo || `<span class="intel-airline-badge sm">${escapeHtml(getAirlineInitials(op.airline))}</span>`;
+        const orig = escapeHtml((op.origin||'—').toString().trim());
+        const dest = escapeHtml((op.destination||'—').toString().trim());
+        const pos  = op.position ? `<span class="rr-tag"><i class="fas fa-map-marker-alt me-1"></i>${escapeHtml(op.position)}</span>` : '';
+        const belt = op.belt     ? `<span class="rr-tag"><i class="fas fa-suitcase-rolling me-1"></i>Banda ${escapeHtml(op.belt)}</span>` : '';
+        const ac   = op.aircraft ? `<span class="rr-tag rr-tag-ac"><i class="fas fa-plane-slash me-1"></i>${escapeHtml(op.aircraft)}</span>` : '';
+        return `<div class="rr-flight-row">
+          <div class="rr-time">${escapeHtml((op.timeLabel||'—').slice(0,5))}</div>
+          <div class="rr-logo">${visual}</div>
+          <div class="rr-info">
+            <div class="rr-flight-num">Vuelo <strong>${escapeHtml(op.flightNumber||'—')}</strong></div>
+            <div class="rr-airline-name">${escapeHtml(op.airline||'—')}</div>
+          </div>
+          <div class="rr-route">
+            <span class="rr-airport">${orig}</span>
+            <i class="fas fa-arrow-right rr-arrow"></i>
+            <span class="rr-airport">${dest}</span>
+          </div>
+          <div class="rr-tags">${pos}${belt}${ac}</div>
+        </div>`;
+      }).join('');
+    };
+
+    result.innerHTML = `
+      <div class="range-report-card" id="rr-card">
+        <div class="rr-header">
+          <div class="rr-header-left">
+            <div class="rr-eyebrow"><i class="fas fa-plane me-2"></i>AIFA · Resumen operativo</div>
+            <div class="rr-title">${escapeHtml(dateLabel)}</div>
+            <div class="rr-subtitle"><i class="fas fa-clock me-1"></i>${escapeHtml(fromLabel)} – ${escapeHtml(toLabel)}</div>
+          </div>
+          <div class="rr-header-stats">
+            <div class="rr-stat">
+              <span class="rr-stat-num arr">${arrivals.length}</span>
+              <span class="rr-stat-label">Llegadas</span>
+            </div>
+            <div class="rr-stat-sep">+</div>
+            <div class="rr-stat">
+              <span class="rr-stat-num dep">${departures.length}</span>
+              <span class="rr-stat-label">Salidas</span>
+            </div>
+            <div class="rr-stat-sep">=</div>
+            <div class="rr-stat">
+              <span class="rr-stat-num">${allOps.length}</span>
+              <span class="rr-stat-label">Total</span>
+            </div>
+          </div>
+        </div>
+        <!-- 50/50 split body -->
+        <div class="rr-split-body">
+          <!-- Llegadas -->
+          <div class="rr-split-col rr-split-arr">
+            <div class="rr-section-header arr-header">
+              <i class="fas fa-plane-arrival me-2"></i>Llegadas — ${arrivals.length} vuelo${arrivals.length!==1?'s':''}
+            </div>
+            <div class="rr-flights-list">
+              ${renderGroup(arrivals, 'Llegada', 'fa-plane-arrival')}
+            </div>
+          </div>
+          <!-- Salidas -->
+          <div class="rr-split-col rr-split-dep">
+            <div class="rr-section-header dep-header">
+              <i class="fas fa-plane-departure me-2"></i>Salidas — ${departures.length} vuelo${departures.length!==1?'s':''}
+            </div>
+            <div class="rr-flights-list">
+              ${renderGroup(departures, 'Salida', 'fa-plane-departure')}
+            </div>
+          </div>
+        </div>
+        <div class="rr-footer">
+          <button class="btn btn-outline-secondary btn-sm" id="rr-copy-btn">
+            <i class="fas fa-copy me-2"></i>Copiar como texto
+          </button>
+          <button class="btn btn-primary btn-sm ms-2" id="rr-img-btn">
+            <i class="fas fa-camera me-2"></i>Copiar como imagen
+          </button>
+          <button class="btn btn-outline-primary btn-sm ms-2" id="rr-dl-btn">
+            <i class="fas fa-download me-2"></i>Descargar imagen
+          </button>
+          <span id="rr-copy-feedback" class="ms-3 small text-success d-none">
+            <i class="fas fa-check-circle me-1"></i>¡Listo!
+          </span>
+        </div>
+      </div>`;
+
+    result.classList.remove('d-none');
+    result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    // Helper: flash feedback
+    const showFeedback = () => {
+      const fb = document.getElementById('rr-copy-feedback');
+      if (fb){ fb.classList.remove('d-none'); setTimeout(() => fb.classList.add('d-none'), 3000); }
+    };
+
+    // Helper: render card to canvas via html2canvas
+    const renderCardCanvas = () => {
+      const card = document.getElementById('rr-card');
+      if (!card || typeof html2canvas === 'undefined') return Promise.reject('html2canvas not available');
+      return html2canvas(card, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false
+      });
+    };
+
+    // Copy text button
+    const copyBtn = document.getElementById('rr-copy-btn');
+    if (copyBtn){
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(plainParts).then(showFeedback).catch(() => {
+          const ta = document.createElement('textarea');
+          ta.value = plainParts;
+          ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta); ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          showFeedback();
+        });
+      };
+    }
+
+    // Copy as image button
+    const imgBtn = document.getElementById('rr-img-btn');
+    if (imgBtn){
+      imgBtn.onclick = async () => {
+        imgBtn.disabled = true;
+        try {
+          const canvas = await renderCardCanvas();
+          canvas.toBlob(async (blob) => {
+            try {
+              await navigator.clipboard.write([
+                new ClipboardItem({ 'image/png': blob })
+              ]);
+              showFeedback();
+            } catch(e) {
+              // Fallback: download if clipboard write not available
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url; a.download = `AIFA-Resumen-${dateLabel.replace(/\//g,'-')}.png`;
+              a.click(); URL.revokeObjectURL(url);
+              showFeedback();
+            }
+          }, 'image/png');
+        } catch(e) { console.error('html2canvas error', e); }
+        finally { imgBtn.disabled = false; }
+      };
+    }
+
+    // Download image button
+    const dlBtn = document.getElementById('rr-dl-btn');
+    if (dlBtn){
+      dlBtn.onclick = async () => {
+        dlBtn.disabled = true;
+        try {
+          const canvas = await renderCardCanvas();
+          const a = document.createElement('a');
+          a.href = canvas.toDataURL('image/png');
+          a.download = `AIFA-Resumen-${dateLabel.replace(/\//g,'-')}.png`;
+          a.click();
+          showFeedback();
+        } catch(e) { console.error('html2canvas error', e); }
+        finally { dlBtn.disabled = false; }
+      };
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
+  function bindDayControls(){ const input = document.getElementById('it-day-input'); const prev  = document.getElementById('it-day-prev'); const next  = document.getElementById('it-day-next'); const today = document.getElementById('it-day-today'); if (input){ input.addEventListener('change', () => { if (!input.value) return; selectedDate = input.value; renderItineraryCharts(); }); } function shift(days){ const d = input && input.value ? new Date(input.value) : new Date(selectedDate || Date.now()); d.setDate(d.getDate() + days); selectedDate = toYMD(d); if (input) input.value = selectedDate; renderItineraryCharts(); } if (prev) prev.addEventListener('click', ()=> shift(-1)); if (next) next.addEventListener('click', ()=> shift(+1)); if (today) today.addEventListener('click', ()=> { selectedDate = toYMD(new Date()); if (input) input.value = selectedDate; renderItineraryCharts(); }); }
+  document.addEventListener('DOMContentLoaded', async () => {
+    bindDayControls();
+    bindChartClicks();
+    const paxTop = document.getElementById('pax-topN');
+    if (paxTop) paxTop.addEventListener('change', ()=> { if (lastAgg) renderTopHoursLists(lastAgg); });
+    const carTop = document.getElementById('cargo-topN');
+    if (carTop) carTop.addEventListener('change', ()=> { if (lastAgg) renderTopHoursLists(lastAgg); });
+    const genTop = document.getElementById('general-topN');
+    if (genTop) genTop.addEventListener('change', ()=> { if (lastAgg) renderGeneralTopHours(lastAgg); });
+    const combTop = document.getElementById('combined-topN');
+    if (combTop) combTop.addEventListener('change', ()=> { if (lastAgg) renderCombinedTopHours(lastAgg); });
+    const paxCombTop = document.getElementById('pax-combined-topN');
+    if (paxCombTop) paxCombTop.addEventListener('change', ()=> { if (lastAgg) renderPaxCombinedTopHours(lastAgg); });
+    const cargoCombTop = document.getElementById('cargo-combined-topN');
+    if (cargoCombTop) cargoCombTop.addEventListener('change', ()=> { if (lastAgg) renderCargoCombinedTopHours(lastAgg); });
+
+    // ── Capacidad vs Demanda toggles ────────────────────────────────────────
+    function _bindCapDemToggle(kind) {
+      const barBtn    = document.getElementById(`${kind}-view-bar-btn`);
+      const capdemBtn = document.getElementById(`${kind}-view-capdem-btn`);
+      const barView   = document.getElementById(`${kind}-combined-bar-view`);
+      const capdemView= document.getElementById(`${kind}-combined-capdem-view`);
+      const applyBtn  = document.getElementById(`${kind}-cap-apply`);
+      if (!barBtn || !capdemBtn) return;
+      function showBar()    {
+        barView && (barView.style.display='');
+        capdemView && (capdemView.style.display='none');
+        barBtn.className    = 'btn btn-sm btn-primary';
+        capdemBtn.className = 'btn btn-sm btn-outline-secondary';
+      }
+      function showCapDem() {
+        barView && (barView.style.display='none');
+        capdemView && (capdemView.style.display='');
+        barBtn.className    = 'btn btn-sm btn-outline-secondary';
+        capdemBtn.className = 'btn btn-sm btn-primary';
+        if (lastAgg) renderCapDem(kind, lastAgg);
+      }
+      barBtn.addEventListener('click',    showBar);
+      capdemBtn.addEventListener('click', showCapDem);
+      if (applyBtn) applyBtn.addEventListener('click', () => { if (lastAgg) renderCapDem(kind, lastAgg); });
+    }
+    _bindCapDemToggle('pax');
+    _bindCapDemToggle('cargo');
+    // ───────────────────────────────────────────────────────────────────────
+    // Fuel heatmap scope buttons
+    document.querySelectorAll('[data-fuel-scope]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (lastAgg) renderFuelHeatmap(lastAgg, btn.dataset.fuelScope);
+      });
+    });
+
+    // Fuel PDF download
+    const fuelPdfBtn = document.getElementById('fuel-pdf-btn');
+    if (fuelPdfBtn) {
+      fuelPdfBtn.addEventListener('click', () => _downloadFuelPDF(fuelPdfBtn));
+    }
+    // Range report
+    _initRangeHourSelects();
+    const rangeBtn = document.getElementById('range-report-btn');
+    if (rangeBtn) rangeBtn.addEventListener('click', _buildRangeReport);
+    document.querySelectorAll('#itineraryTab button[data-bs-toggle="tab"]').forEach(btn => {
+      btn.addEventListener('shown.bs.tab', (event)=> {
+        const target = event.target.getAttribute('data-bs-target') || '';
+        const scope = target.includes('carga') ? SCOPE_CARGO : SCOPE_PAX;
+        applyIntelligenceForScope(scope);
+        // Render fuel heatmap when its tab is activated
+        if (target === '#fuel-heatmap-pane' && lastAgg) {
+          setTimeout(() => renderFuelHeatmap(lastAgg), 50);
+          return;
+        }
+        // Re-draw charts now that the pane is visible and clientWidth is correct
+        setTimeout(() => {
+          if (lastAgg) {
+            _redrawVisibleCharts();
+          }
+        }, 50);
+      });
+    });
+    ['graficas-itinerario-tab','radar-operativo-tab'].forEach(tabId => {
+      const trigger = document.getElementById(tabId);
+      if (trigger) trigger.addEventListener('shown.bs.tab', (e) => {
+        renderItineraryCharts();
+        // Force hide sibling panes to prevent layout layout ghosts
+        if (tabId === 'radar-operativo-tab') {
+           const graficas = document.getElementById('graficas-itinerario-pane');
+           if(graficas) graficas.style.display = 'none';
+           const radar = document.getElementById('radar-operativo-pane');
+           if(radar) radar.style.display = 'block';
+        } else {
+           const graficas = document.getElementById('graficas-itinerario-pane');
+           if(graficas) graficas.style.display = ''; // Reset
+           const radar = document.getElementById('radar-operativo-pane');
+           if(radar) radar.style.display = ''; // Reset
+        }
+      });
+    });
+    const closeBtn = document.getElementById('it-peak-results-close');
+    if (closeBtn) closeBtn.addEventListener('click', hidePeakResults);
+    if (isChartsPaneActive()) renderItineraryCharts();
+  });
+  document.addEventListener('click', (e)=>{ const el = e.target.closest('[data-section="itinerario"]'); if (el) { setTimeout(()=>renderItineraryCharts(), 50); } });
+  document.addEventListener('click', (event)=>{
+    const trigger = event.target.closest('[data-top-hour]');
+    if (!trigger) return;
+    event.preventDefault();
+    const scopeAttr = trigger.getAttribute('data-scope');
+    const scope = scopeAttr === SCOPE_CARGO ? SCOPE_CARGO : scopeAttr === SCOPE_ALL ? SCOPE_ALL : SCOPE_PAX;
+    const movement = trigger.getAttribute('data-movement') === 'Salida' ? 'Salida' : 'Llegada';
+    const hourAttr = trigger.getAttribute('data-hour');
+    const hour = hourAttr==null ? null : Number(hourAttr);
+    if (!Number.isFinite(hour)) return;
+    showTopHourFlights(scope, movement, hour);
+  });
+  document.addEventListener('click', (event)=>{
+    const trigger = event.target.closest('[data-peak-flight]');
+    if (!trigger) return;
+    event.preventDefault();
+    const scopeAttr = trigger.getAttribute('data-scope');
+    const scope = scopeAttr === SCOPE_CARGO ? SCOPE_CARGO : SCOPE_PAX;
+    const airline = trigger.getAttribute('data-airline') || trigger.textContent.trim();
+    const airlineKey = trigger.getAttribute('data-airline-key') || norm(airline || '');
+    const hourAttr = trigger.getAttribute('data-hour');
+    const hour = hourAttr==null || hourAttr==='' ? null : Number(hourAttr);
+    showPeakFlights(scope, airline, airlineKey, Number.isFinite(hour) ? hour : null);
+  });
+  const themeBtn = document.getElementById('theme-toggler'); if (themeBtn) themeBtn.addEventListener('click', ()=> setTimeout(()=>renderItineraryCharts(), 250));
+
+  // ── PDF Despacho Combustible ─────────────────────────────────────────────
+  async function _downloadFuelPDF(btn) {
+    if (typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+      alert('Librerías de PDF no disponibles. Recarga la página.'); return;
+    }
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Generando…';
+
+    try {
+      const captureEl = document.getElementById('fuel-capture-area');
+      if (!captureEl) return;
+
+      // Temporarily remove scroll limit so full table is captured
+      const scrollBox = document.getElementById('fuel-table-scroll');
+      let savedMax = '', savedOY = '';
+      if (scrollBox) {
+        savedMax = scrollBox.style.maxHeight;
+        savedOY  = scrollBox.style.overflowY;
+        scrollBox.style.maxHeight = 'none';
+        scrollBox.style.overflowY = 'visible';
+      }
+
+      const canvas = await html2canvas(captureEl, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false
+      });
+
+      // Restore scroll
+      if (scrollBox) {
+        scrollBox.style.maxHeight = savedMax;
+        scrollBox.style.overflowY = savedOY;
+      }
+
+      const imgData  = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+
+      // A4 landscape: 297 × 210 mm
+      const pdf  = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const PW   = 297, PH = 210;
+      const margin = 12;
+
+      // ── Header band ────────────────────────────────────────────────────
+      pdf.setFillColor(20, 30, 60);
+      pdf.rect(0, 0, PW, 18, 'F');
+
+      // Logo (try to load; skip if unavailable)
+      try {
+        const logoImg = new Image();
+        logoImg.crossOrigin = 'anonymous';
+        await new Promise((res, rej) => {
+          logoImg.onload = res; logoImg.onerror = rej;
+          logoImg.src = 'images/logo-aifa-obscuro.jpg';
+        });
+        const logoCanvas = document.createElement('canvas');
+        const lRatio = logoImg.naturalWidth / logoImg.naturalHeight;
+        logoCanvas.height = 120; logoCanvas.width = Math.round(120 * lRatio);
+        logoCanvas.getContext('2d').drawImage(logoImg, 0, 0, logoCanvas.width, 120);
+        pdf.addImage(logoCanvas.toDataURL('image/png'), 'PNG', margin, 1.5, 14 * lRatio, 14);
+      } catch(_) { /* logo not available */ }
+
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(12);
+      pdf.text('Capacidad vs Demanda de Despacho de Combustible', PW / 2, 8, { align: 'center' });
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8);
+      const scopeLabel = _fuelScope === 'pax' ? 'Pasajeros' : _fuelScope === 'cargo' ? 'Carga' : 'General (Pax + Carga)';
+      const dateVal = document.getElementById('it-day-input')?.value || '';
+      const dateStr = dateVal ? (() => { const [y,m,d] = dateVal.split('-'); return `${d}/${m}/${y}`; })() : new Date().toLocaleDateString('es-MX');
+      pdf.text(`Alcance: ${scopeLabel}   |   Fecha: ${dateStr}   |   Aeropuerto Internacional Felipe Ángeles (AIFA)`, PW / 2, 14, { align: 'center' });
+
+      // ── Main image ─────────────────────────────────────────────────────
+      const contentY = 22;
+      const contentH = PH - contentY - margin - 10; // leave room for footer
+      const imgW = canvas.width, imgH = canvas.height;
+      const scale = Math.min((PW - margin * 2) / imgW, contentH / imgH);
+      const scaledW = imgW * scale;
+      const scaledH = imgH * scale;
+      const imgX = (PW - scaledW) / 2;
+      pdf.addImage(imgData, 'PNG', imgX, contentY, scaledW, scaledH);
+
+      // ── Colour legend bar ──────────────────────────────────────────────
+      const legendY = contentY + scaledH + 4;
+      if (legendY < PH - 14) {
+        const legendItems = [
+          { label: 'Baja demanda',   r: 220, g: 252, b: 231 },
+          { label: 'Demanda media',  r: 254, g: 240, b: 138 },
+          { label: 'Alta demanda',   r: 251, g: 146, b:  60 },
+          { label: 'Pico máximo',    r: 220, g:  38, b:  38 }
+        ];
+        let lx = margin;
+        legendItems.forEach(({ label, r, g, b }) => {
+          pdf.setFillColor(r, g, b);
+          pdf.roundedRect(lx, legendY, 5, 3.5, 0.8, 0.8, 'F');
+          pdf.setTextColor(60, 60, 60);
+          pdf.setFontSize(7);
+          pdf.text(label, lx + 6.5, legendY + 2.6);
+          lx += 38;
+        });
+      }
+
+      // ── Footer ─────────────────────────────────────────────────────────
+      pdf.setFillColor(20, 30, 60);
+      pdf.rect(0, PH - 8, PW, 8, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(6.5);
+      pdf.text('Secretaría de la Defensa Nacional  ·  AIFA  ·  Operaciones mensuales promedio por día  ·  No se consideran operaciones de aviación general.',
+        PW / 2, PH - 3, { align: 'center' });
+
+      const filename = `AIFA_Combustible_${_fuelScope}_${dateVal || 'hoy'}.pdf`;
+      pdf.save(filename);
+    } catch(e) {
+      console.error('[PDF Combustible]', e);
+      alert('Error al generar el PDF. Intenta de nuevo.');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = originalHTML;
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // ── Compartir gráfica por WhatsApp ───────────────────────────────────────
+  // Captures the active itinerary tab pane (charts + top-hours widget) as a
+  // PNG image, then shares via Web Share API on mobile or downloads on desktop.
+  const shareItBtn = document.getElementById('btn-compartir-itinerario');
+  if (shareItBtn) {
+    shareItBtn.addEventListener('click', async () => {
+      // Find the active inner tab pane (pasajeros / carga / general)
+      const activeTabLink = document.querySelector('#itineraryTab .nav-link.active');
+      const paneSelector = activeTabLink && activeTabLink.dataset.bsTarget;
+      const captureEl = (paneSelector && document.querySelector(paneSelector))
+        || document.getElementById('pasajeros-grafica-pane');
+      if (!captureEl) return;
+
+      const originalHTML = shareItBtn.innerHTML;
+      shareItBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i><span class="btn-text">Capturando…</span>';
+      shareItBtn.disabled = true;
+
+      // Build date strings
+      const dateVal = document.getElementById('it-day-input')?.value
+        || new Date().toISOString().slice(0, 10);
+      const parts = (dateVal || '').split('-');
+      const dateDisplay = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateVal || '—';
+      const tabLabel = activeTabLink ? activeTabLink.textContent.trim() : '';
+
+      // 1. Inject branded date header inside the capture area
+      const headerDiv = document.createElement('div');
+      headerDiv.className = 'it-share-header';
+      headerDiv.innerHTML =
+        `<img src="images/logo-aifa-obscuro.jpg" class="it-share-logo" alt="AIFA" />` +
+        `<div><div class="it-share-title">Itinerario del día <strong>${dateDisplay}</strong></div>` +
+        `<div class="it-share-subtitle">${tabLabel}</div></div>`;
+      captureEl.insertBefore(headerDiv, captureEl.firstChild);
+
+      // 2. Temporarily expand all scrollable regions so html2canvas captures every row
+      const savedOverflows = [];
+      captureEl.querySelectorAll('*').forEach(el => {
+        const cs = window.getComputedStyle(el);
+        if ((cs.overflowY === 'auto' || cs.overflowY === 'scroll') && el.scrollHeight > el.clientHeight + 2) {
+          savedOverflows.push({ el, maxHeight: el.style.maxHeight, overflowY: el.style.overflowY, height: el.style.height });
+          el.style.maxHeight = 'none';
+          el.style.overflowY = 'visible';
+          el.style.height = 'auto';
+        }
+      });
+
+      let showDownloadMsg = false;
+      try {
+        const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark'
+          || document.body.classList.contains('dark-mode');
+        const bgColor = isDark ? '#1a1a2e' : '#ffffff';
+
+        const canvas = await html2canvas(captureEl, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: bgColor,
+          logging: false,
+          ignoreElements: el => el.classList.contains('top-hours-footnote')
+        });
+
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        const filename = `itinerario_AIFA_${dateVal}.png`;
+        const file = new File([blob], filename, { type: 'image/png' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          // Mobile: native share sheet — includes WhatsApp, Telegram, etc.
+          await navigator.share({ files: [file], title: `Itinerario AIFA — ${dateDisplay}` });
+        } else {
+          // Desktop fallback: trigger a download; user can then attach it to WhatsApp Web
+          const url = URL.createObjectURL(blob);
+          const anchor = document.createElement('a');
+          anchor.href = url;
+          anchor.download = filename;
+          document.body.appendChild(anchor);
+          anchor.click();
+          document.body.removeChild(anchor);
+          setTimeout(() => URL.revokeObjectURL(url), 8000);
+          showDownloadMsg = true;
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('[Compartir itinerario]', err);
+          alert('No se pudo compartir la imagen. Intenta de nuevo.');
+        }
+      } finally {
+        // 3. Remove injected header
+        if (headerDiv.parentNode) headerDiv.parentNode.removeChild(headerDiv);
+        // 4. Restore scroll constraints
+        savedOverflows.forEach(({ el, maxHeight, overflowY, height }) => {
+          el.style.maxHeight = maxHeight;
+          el.style.overflowY = overflowY;
+          el.style.height = height;
+        });
+        if (showDownloadMsg) {
+          shareItBtn.innerHTML = '<i class="fas fa-check me-2"></i><span class="btn-text">Imagen descargada</span>';
+          shareItBtn.disabled = false;
+          setTimeout(() => { shareItBtn.innerHTML = originalHTML; }, 2500);
+        } else {
+          shareItBtn.innerHTML = originalHTML;
+          shareItBtn.disabled = false;
+        }
+      }
+    });
+  }
+
+  // ── Copiar resumen de Top Horas al portapapeles ──────────────────────────
+  // Builds a WhatsApp-friendly plain-text summary from the active tab's
+  // top-hours lists and copies it to the clipboard.
+  const copyResumenBtn = document.getElementById('btn-copiar-resumen-itinerario');
+  if (copyResumenBtn) {
+    copyResumenBtn.addEventListener('click', () => {
+      const activeTabLink = document.querySelector('#itineraryTab .nav-link.active');
+      const paneSelector = activeTabLink && activeTabLink.dataset.bsTarget;
+      const activePane = (paneSelector && document.querySelector(paneSelector))
+        || document.getElementById('pasajeros-grafica-pane');
+
+      const dateVal = document.getElementById('it-day-input')?.value || '';
+      const [year, month, day] = dateVal.split('-');
+      const dateDisplay = dateVal ? `${day}/${month}/${year}` : '—';
+
+      const tabLabel = activeTabLink ? activeTabLink.textContent.trim() : 'Itinerario';
+      const lines = [`✈️ *ITINERARIO AIFA — ${dateDisplay}*`, `📊 ${tabLabel}`, ''];
+
+      // Helper: extract list items from a <ol> inside the active pane
+      function extractList(listId, header) {
+        const ol = activePane && activePane.querySelector(`#${listId}`);
+        if (!ol) return;
+        const items = ol.querySelectorAll('li');
+        if (!items.length) return;
+        lines.push(header);
+        items.forEach((li, idx) => {
+          // Get the visible text, stripping internal badges/spans cleanly
+          const text = li.textContent.replace(/\s+/g, ' ').trim();
+          lines.push(`  ${idx + 1}. ${text}`);
+        });
+        lines.push('');
+      }
+
+      if (activePane && activePane.id === 'pasajeros-grafica-pane') {
+        extractList('pax-top-arr', '🛬 Llegadas (Pasajeros)');
+        extractList('pax-top-dep', '🛫 Salidas (Pasajeros)');
+      } else if (activePane && activePane.id === 'carga-grafica-pane') {
+        extractList('cargo-top-arr', '📦 Llegadas (Carga)');
+        extractList('cargo-top-dep', '🚚 Salidas (Carga)');
+      } else if (activePane && activePane.id === 'general-grafica-pane') {
+        extractList('general-all-arr', '🛬 Llegadas (Total)');
+        extractList('general-all-dep', '🛫 Salidas (Total)');
+      }
+
+      const text = lines.join('\n');
+      if (!navigator.clipboard) {
+        // Old-browser fallback
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      } else {
+        navigator.clipboard.writeText(text).catch(err => console.error('[Copiar resumen]', err));
+      }
+
+      // Visual feedback
+      const originalHTML = copyResumenBtn.innerHTML;
+      copyResumenBtn.innerHTML = '<i class="fas fa-check me-1"></i><span class="btn-text">¡Copiado!</span>';
+      setTimeout(() => { copyResumenBtn.innerHTML = originalHTML; }, 2000);
+    });
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+})();

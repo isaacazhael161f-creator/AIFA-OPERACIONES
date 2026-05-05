@@ -1,0 +1,47 @@
+Esta carpeta está destinada a las imágenes representativas de cada destino nacional.
+El sistema buscará automáticamente una imagen en esta carpeta basándose en el código IATA o el nombre de la ciudad configurado.
+
+Para asegurar que la imagen se muestre correctamente:
+1. Use formato .jpg
+2. Nombre el archivo exactamente como se indica abajo para cada destino.
+
+LISTA DE NOMBRES DE ARCHIVO ESPERADOS:
+
+ACA -> Acapulco.jpg
+BJX -> León.jpg
+CEN -> Ciudad Obregón.jpg
+CJS -> Ciudad Juárez.jpg
+CLQ -> Colima.jpg
+CPE -> Campeche.jpg
+CTM -> Chetumal.jpg
+CUL -> Culiacán.jpg
+CUN -> Cancún.jpg
+CUU -> Chihuahua.jpg
+CVM -> Ciudad Victoria.jpg
+DGO -> Durango.jpg
+GDL -> Guadalajara.jpg
+HMO -> Hermosillo.jpg
+HUX -> Huatulco.jpg
+IZT -> Ixtepec.jpg
+LAP -> La Paz.jpg
+MAM -> Matamoros.jpg
+MID -> Mérida.jpg
+MTY -> Monterrey.jpg
+MZT -> Mazatlán.jpg
+NLD -> Nuevo Laredo.jpg
+OAX -> Oaxaca.jpg
+PQM -> Palenque.jpg
+PVR -> Puerto Vallarta.jpg
+PXM -> Puerto Escondido.jpg
+REX -> Reynosa.jpg
+SJD -> Los Cabos.jpg
+SLP -> San Luis Potosí.jpg
+SLW -> Saltillo.jpg
+TAM -> Tampico.jpg
+TGZ -> Tuxtla Gutiérrez.jpg
+TIJ -> Tijuana.jpg
+TPQ -> Tepic.jpg
+TQO -> Tulum.jpg
+VER -> Veracruz.jpg
+VSA -> Villahermosa.jpg
+ZIH -> Zihuatanejo.jpg

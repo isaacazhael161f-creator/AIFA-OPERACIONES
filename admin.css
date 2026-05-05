@@ -1,0 +1,104 @@
+/* Admin Mode Styles */
+body.admin-enabled .admin-only {
+    display: block !important;
+}
+
+.admin-edit-btn {
+    display: none; /* Hidden by default, shown by JS if admin */
+    z-index: 9999;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: all 0.2s ease;
+}
+
+.admin-edit-btn:hover {
+    transform: scale(1.05);
+}
+
+/* Floating Admin Toggle for Testing (Remove in Prod) */
+#admin-toggle-test {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 10000;
+    opacity: 0.7;
+}
+#admin-toggle-test:hover {
+    opacity: 1;
+}
+
+/* Sticky Headers for Weekly Frequencies Table */
+#pane-weekly-frequencies .table-responsive {
+    max-height: 75vh;
+    overflow-y: auto;
+    border-bottom: 1px solid var(--border-color);
+}
+
+#table-weekly-frequencies thead th {
+    position: sticky;
+    top: 0;
+    background-color: #ffffff; /* Match light theme card bg */
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Dark mode support for sticky headers */
+body.dark-mode #table-weekly-frequencies thead th {
+    background-color: var(--card-bg, #1e2739);
+    color: var(--text-color, #e8eaed);
+}
+
+/* Autocomplete Styles */
+.autocomplete-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.autocomplete-items {
+    position: absolute;
+    border: 1px solid #d4d4d4;
+    border-bottom: none;
+    border-top: none;
+    z-index: 1050; /* Higher than modal */
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: #fff;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border-radius: 0 0 4px 4px;
+}
+
+.autocomplete-item {
+    padding: 10px;
+    cursor: pointer;
+    background-color: #fff;
+    border-bottom: 1px solid #d4d4d4;
+    color: #212529;
+}
+
+.autocomplete-item:hover {
+    background-color: #e9e9e9;
+}
+
+.autocomplete-active {
+    background-color: #0d6efd !important;
+    color: #ffffff !important;
+}
+
+/* Dark mode overrides (assuming based on body class or media query used in project) */
+/* Adjust based on typical Bootstrap dark mode classes if present, or media query */
+@media (prefers-color-scheme: dark) {
+    .autocomplete-items {
+        background-color: #2b3035;
+        border-color: #495057;
+    }
+    .autocomplete-item {
+        background-color: #2b3035;
+        border-color: #495057;
+        color: #fff;
+    }
+    .autocomplete-item:hover {
+        background-color: #343a40;
+    }
+}

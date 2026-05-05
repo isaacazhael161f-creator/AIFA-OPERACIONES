@@ -1,0 +1,360 @@
+/* Advanced styling for Pivottable.js to mimic Excel Sidebar */
+#ops-pivot-wrapper {
+    position: relative;
+    border: 1px solid #ced4da;
+    height: 800px;
+    background: #fff;
+    display: flex;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* 1. Main Pivot UI Table - Transform into Grid Layout */
+#ops-pivot-wrapper .pvtUi {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    /* 
+       Grid Areas Layout: 
+       [ Renderer (Main) ] [ Sidebar (Fixed Width) ]
+    */
+    grid-template-columns: 1fr 300px;
+    grid-template-rows: 100%;
+    grid-template-areas: "renderer sidebar";
+    border-collapse: separate; /* Allow grid to work on table */
+}
+
+#ops-pivot-wrapper .pvtUi > tbody {
+    display: contents; /* Remove tbody from layout */
+}
+
+#ops-pivot-wrapper .pvtUi > tbody > tr {
+    display: contents; /* Remove tr from layout */
+}
+
+/* 2. RENDERER AREA (The Chart/Table) */
+#ops-pivot-wrapper .pvtRendererArea {
+    grid-area: renderer;
+    overflow: auto;
+    padding: 20px;
+    background-color: #f3f2f1;
+    border-right: 1px solid #dee2e6;
+    height: 100% !important;
+    width: 100% !important;
+}
+
+/* 3. SIDEBAR CONTAINER (Simulated) */
+/* We will map the standard 3 control cells (Unused, Cols, Rows) into a sidebar grid */
+
+/* 
+   We need to target the specific TDs. 
+   In standard PivotTable.js:
+   - pvtAxisContainer pvtUnused (Field List)
+   - pvtAxisContainer pvtHorizList (Columns)
+   - pvtAxisContainer pvtVertList (Rows)
+   - pvtVals (Values/Aggregator - NOTE: Sometimes this is not a separate TD depending on config, but usually is)
+*/
+
+/* SHARED SIDEBAR STYLES */
+#ops-pivot-wrapper .pvtAxisContainer, 
+#ops-pivot-wrapper .pvtVals {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    padding: 8px !important;
+    font-size: 0.85rem;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+/* 
+   GRID FOR SIDEBAR 
+   We cannot create a real container DIV around these TDs. 
+   So we have to position them effectively using the main Grid.
+   
+   We will split the "sidebar" column of the main grid into rows/sub-columns 
+   by placing these elements into the "sidebar" area but using margins/positioning 
+   OR by defining more tracks in the main grid.
+*/
+
+/* REDEFINE MAIN GRID to handle the Sidebar internal layout directly */
+#ops-pivot-wrapper .pvtUi {
+    grid-template-columns: 1fr 300px;
+    /* 
+       Rows:
+       1. Field List Header / Area (50%)
+       2. Drop Zones (50%) -> Split into 2x2 internally? No, just 2 rows for now.
+    */
+    grid-template-rows: 1fr 1fr; 
+    grid-template-areas: 
+        "renderer fieldlist"
+        "renderer dropzones"; 
+        /* This simplistic area mapping won"t work for 3 distinct elements in "dropzones". 
+           We need explicit row/col placement.
+        */
+    grid-template-rows: 50% 25% 25%;
+}
+
+/* FIELD LIST ("Campos de tabla din�mica") */
+#ops-pivot-wrapper .pvtAxisContainer.pvtUnused {
+    grid-column: 2 / 3;
+    grid-row: 1 / 2;
+    border-bottom: 2px solid #ccc;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Title for Field List */
+#ops-pivot-wrapper .pvtAxisContainer.pvtUnused::before {
+    content: "Campos disponibles";
+    font-weight: bold;
+    display: block;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #eee;
+    color: #444;
+}
+
+/* Make list items look like checkboxes */
+#ops-pivot-wrapper .pvtAxisContainer.pvtUnused .pvtAttr {
+    background: transparent;
+    border: none;
+    padding: 4px 0;
+    width: 100%;
+    text-align: left;
+    display: flex;
+    align-items: center;
+}
+#ops-pivot-wrapper .pvtAxisContainer.pvtUnused .pvtAttr .pvtTriangle {
+    display: none;
+}
+#ops-pivot-wrapper .pvtAxisContainer.pvtUnused .pvtAttr::before {
+    content: "\f096"; /* fa-square-o */
+    font-family: "Font Awesome 6 Free";
+    font-weight: 400;
+    margin-right: 8px;
+    color: #888;
+    width: 16px;
+    text-align: center;
+}
+#ops-pivot-wrapper .pvtAxisContainer.pvtUnused .pvtAttr:hover {
+    background-color: #e9ecef;
+}
+
+
+/* DROP ZONES */
+/* We have 3 zones to map to the bottom half: Cols, Rows, Values.
+   (Filters is usually part of Unused in standard UI or hidden).
+   
+   We will use absolute positioning within the "Sidebar Column" 
+   because Grid placement for multiple overlapping items is tricky without wrapper.
+   
+   Actually, we can use Grid Row placement if we define enough rows.
+   Let"s use:
+   Row 1: Field List (50%)
+   Row 2: Drop Zone Quad 1 (Cols) & Quad 2 (Filters - Fake)
+   Row 3: Drop Zone Quad 3 (Rows) & Quad 4 (Values)
+   
+   BUT standard PivotTable.js HTML structure creates standard TDs. 
+   We rely on the order.
+*/
+
+/* 
+   HACK: We will position the 3 drop zones absolutely relative to the container 
+   to achieve the 2x2 grid in the bottom half of the right column.
+   
+   Right Column Area:
+   Top: 0 to 50% (Field List)
+   Bottom: 50% to 100% (Drop Zones)
+      - Top Left: Filters (Fake)
+      - Top Right: Columns
+      - Bottom Left: Rows
+      - Bottom Right: Values
+*/
+
+/* COLUMNS (Columnas) -> Top Right of Bottom Section */
+#ops-pivot-wrapper .pvtAxisContainer.pvtHorizList {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    width: 150px; /* Half of 300px */
+    height: 25%; /* Half of 50% */
+    border: 1px solid #dee2e6; /* Lighter border */
+    background: #fff;
+    display: flex !important;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    align-content: flex-start;
+}
+#ops-pivot-wrapper .pvtAxisContainer.pvtHorizList::before {
+    content: "\f0db   Columnas";
+    font-family: "Font Awesome 6 Free", "Segoe UI", sans-serif;
+    width: 100%;
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: #444;
+    margin-bottom: 5px;
+    padding: 4px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+}
+
+/* ROWS (Filas) -> Bottom Left of Bottom Section */
+#ops-pivot-wrapper .pvtAxisContainer.pvtVertList {
+    position: absolute;
+    top: 75%;
+    right: 150px;
+    width: 150px;
+    height: 25%;
+    border: 1px solid #dee2e6;
+    background: #fff;
+    display: flex !important;
+    flex-direction: column;
+}
+#ops-pivot-wrapper .pvtAxisContainer.pvtVertList::before {
+    content: "\f03a   Filas";
+    font-family: "Font Awesome 6 Free", "Segoe UI", sans-serif;
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: #444;
+    margin-bottom: 5px;
+    padding: 4px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    width: 100%;
+}
+
+/* VALUES (Valores) -> Bottom Right of Bottom Section */
+#ops-pivot-wrapper .pvtVals {
+    position: absolute;
+    top: 75%;
+    right: 0;
+    width: 150px;
+    height: 25%;
+    border: 1px solid #dee2e6;
+    background: #fff;
+    display: flex !important;
+    flex-direction: column;
+}
+#ops-pivot-wrapper .pvtVals::before {
+    content: "\f039   Valores"; /* Using generic list icon or Sigma char */
+    font-family: "Font Awesome 6 Free", "Segoe UI", sans-serif;
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: #444;
+    margin-bottom: 5px;
+    padding: 4px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+}
+/* Append Sigma symbol via text if font awesome fails for sigma */
+#ops-pivot-wrapper .pvtVals::after {
+    content: ""; /* Clean up previous after rule if any */
+}
+
+/* FILTERS (Filtros) -> Top Left of Bottom Section */
+#ops-pivot-wrapper::after {
+    content: "\f0b0   Filtros";
+    font-family: "Font Awesome 6 Free", "Segoe UI", sans-serif;
+    position: absolute;
+    top: 50%;
+    right: 150px;
+    width: 150px;
+    height: 25%;
+    border: 1px solid #dee2e6;
+    background: #fff;
+    color: #444;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 6px;
+    box-sizing: border-box;
+    z-index: 1; 
+    background: linear-gradient(to bottom, #f8f9fa 28px, #fff 28px);
+    line-height: normal;
+    display: flex;
+    align-items: flex-start;
+}
+/* Ensure dropped items don't overlap the "header" of the FILTROS box (which doesn't really have items usually) */
+
+/* FIX PADDING/MARGIN OVERFLOW for Pseudo-Headers */
+#ops-pivot-wrapper .pvtAxisContainer.pvtHorizList::before,
+#ops-pivot-wrapper .pvtAxisContainer.pvtVertList::before,
+#ops-pivot-wrapper .pvtVals::before {
+    /* We used margin -8px in previous step - check if padding was 8px */
+    margin: -8px -8px 5px -8px; 
+    width: calc(100% + 16px);
+}
+
+/* Ensure Drop Zones have correct Z-Index to stay clickable */
+#ops-pivot-wrapper .pvtAxisContainer.pvtHorizList,
+#ops-pivot-wrapper .pvtAxisContainer.pvtVertList,
+#ops-pivot-wrapper .pvtVals {
+    z-index: 10;
+}
+
+/* Restore the styling for items inside Drop Zones (overwritten by previous generic rule) */
+#ops-pivot-wrapper .pvtAxisContainer.pvtHorizList .pvtAttr, 
+#ops-pivot-wrapper .pvtAxisContainer.pvtVertList .pvtAttr {
+    background: #fff;
+    border: 1px solid #aaa;
+    border-radius: 3px;
+    padding: 2px 5px;
+    margin: 2px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: auto;
+    max-width: 100%;
+}
+
+/* Ensure the triangle (filter icon) is visible and positioned in drop zones */
+#ops-pivot-wrapper .pvtAxisContainer.pvtHorizList .pvtTriangle,
+#ops-pivot-wrapper .pvtAxisContainer.pvtVertList .pvtTriangle {
+    display: inline-block;
+    margin-left: 5px;
+    cursor: pointer;
+    color: #666;
+}
+
+#ops-pivot-wrapper table.pvtTable {
+    font-size: 0.85rem;
+    width: 100%; 
+    min-width: 0; /* Flexbox fix */
+}
+#ops-pivot-wrapper table.pvtTable thead th {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+#ops-pivot-wrapper table.pvtTable tbody td {
+    border: 1px solid #dee2e6;
+}
+
+/* Responsive: Collapse sidebar on small screens? */
+@media (max-width: 992px) {
+    #ops-pivot-wrapper .pvtUi {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto;
+        grid-template-areas: 
+            "sidebar"
+            "renderer";
+    }
+    #ops-pivot-wrapper {
+        height: auto;
+        flex-direction: column;
+    }
+    #ops-pivot-wrapper .pvtAxisContainer.pvtUnused {
+        height: 300px;
+    }
+    /* Reset absolute positioning for mobile flow */
+    #ops-pivot-wrapper .pvtAxisContainer.pvtHorizList,
+    #ops-pivot-wrapper .pvtAxisContainer.pvtVertList,
+    #ops-pivot-wrapper .pvtVals,
+    #ops-pivot-wrapper::after {
+        position: static;
+        width: 100%;
+        height: auto;
+        border: 1px solid #ccc;
+        min-height: 80px;
+    }
+}
+

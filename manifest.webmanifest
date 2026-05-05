@@ -1,0 +1,31 @@
+{
+  "name": "Operaciones AIFA",
+  "short_name": "AIFA Ops",
+  "description": "Dashboard operativo del Aeropuerto Internacional Felipe Ángeles.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a1f44",
+  "theme_color": "#0a1f44",
+  "icons": [
+    {
+      "src": "images/icons/aifa-app-icon-192.png?v=20251126",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/icons/aifa-app-icon-512.png?v=20251126",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/icons/aifa-app-icon-512.png?v=20251126",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

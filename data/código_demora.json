@@ -1,0 +1,1325 @@
+[
+  {
+    "numericCode": "37",
+    "alphaCode": "GB",
+    "summary": "CATERING",
+    "description": "Late delivery or loading",
+    "category": "Aircraft and Ramp Handling"
+  },
+  {
+    "numericCode": "38",
+    "alphaCode": "GU",
+    "summary": "ULD",
+    "description": "Lack of or serviceability",
+    "category": "Aircraft and Ramp Handling"
+  },
+  {
+    "numericCode": "89",
+    "alphaCode": "",
+    "summary": "test",
+    "description": "",
+    "category": "test"
+  },
+  {
+    "numericCode": "35",
+    "alphaCode": "GC",
+    "summary": "AIRCRAFT CLEANING",
+    "description": "",
+    "category": "Aircraft and Ramp Handling"
+  },
+  {
+    "numericCode": "36",
+    "alphaCode": "GF",
+    "summary": "FUELLING / DEFUELLING",
+    "description": "Fuel supplier",
+    "category": "Aircraft and Ramp Handling"
+  },
+  {
+    "numericCode": "0",
+    "alphaCode": "",
+    "summary": "AIRLINE INTERNAL CODE",
+    "description": "IATA has recommended that these codes are used by individual airlines to develop code definitions that meet their specific requirements.",
+    "category": "Others1"
+  },
+  {
+    "numericCode": "39",
+    "alphaCode": "GT",
+    "summary": "TECHNICAL EQUIPMENT",
+    "description": "Lack of or breakdown, lack of staff, e.g. pushback",
+    "category": "Aircraft and Ramp Handling"
+  },
+  {
+    "numericCode": "1",
+    "alphaCode": "",
+    "summary": "AIRLINE INTERNAL CODE",
+    "description": "IATA has recommended that these codes are used by individual airlines to develop code definitions that meet their specific requirements.",
+    "category": "Others"
+  },
+  {
+    "numericCode": "84",
+    "alphaCode": "AW",
+    "summary": "ATFM DUE TO WEATHER AT DESTINATION",
+    "description": "",
+    "category": "AIR TRAFFIC FLOW MANAGEMENT RESTRICTIONS"
+  },
+  {
+    "numericCode": "85",
+    "alphaCode": "AS",
+    "summary": "MANDATORY SECURITY",
+    "description": "",
+    "category": "AIRPORT AND GOVERNMENTAL AUTHORITIES"
+  },
+  {
+    "numericCode": "82",
+    "alphaCode": "AX",
+    "summary": "ATFM DUE TO ATC STAFF / EQUIPMENT ENROUTE",
+    "description": "Reduced capacity caused by industrial action or staff shortage, equipment failure, military exercise or extraordinary demand due to capacity reduction in neighbouring area",
+    "category": "AIR TRAFFIC FLOW MANAGEMENT RESTRICTIONS"
+  },
+  {
+    "numericCode": "83",
+    "alphaCode": "AE",
+    "summary": "ATFM DUE TO RESTRICTION AT DESTINATION AIRPORT",
+    "description": "Airport and / or runway closed due to obstruction, industrial action, staff shortage, political unrest, noise abatement, night curfew, special flights",
+    "category": "AIR TRAFFIC FLOW MANAGEMENT RESTRICTIONS"
+  },
+  {
+    "numericCode": "88",
+    "alphaCode": "AD",
+    "summary": "RESTRICTIONS AT DESTINATION AIRPORT",
+    "description": "Airport and / or runway closed due to obstruction industrial action, staff shortage, political unrest, noise abatement, night curfew, special flights",
+    "category": "AIRPORT AND GOVERNMENTAL AUTHORITIES"
+  },
+  {
+    "numericCode": "89",
+    "alphaCode": "AM",
+    "summary": "RESTRICTIONS AT AIRPORT OF DEPARTURE",
+    "description": "Including air traffic services, start-up and pushback, airport and / or runway closed due to obstruction or weather (restriction due to weather in case of ATFM only) industrial action, staff shortage, political unrest, noise abatement, night curfew, special flights",
+    "category": "AIRPORT AND GOVERNMENTAL AUTHORITIES"
+  },
+  {
+    "numericCode": "86",
+    "alphaCode": "AG",
+    "summary": "IMMIGRATION, CUSTOMS, HEALTH",
+    "description": "",
+    "category": "AIRPORT AND GOVERNMENTAL AUTHORITIES"
+  },
+  {
+    "numericCode": "87",
+    "alphaCode": "AF",
+    "summary": "AIRPORT FACILITIES",
+    "description": "Parking stands, ramp congestion, lighting, buildings, gate limitations etc.",
+    "category": "AIRPORT AND GOVERNMENTAL AUTHORITIES"
+  },
+  {
+    "numericCode": "41",
+    "alphaCode": "TD",
+    "summary": "AIRCRAFT DEFECTS",
+    "description": "",
+    "category": "Technical and Aircraft Equipment"
+  },
+  {
+    "numericCode": "45",
+    "alphaCode": "TA",
+    "summary": "AOG SPARES",
+    "description": "To be carried to another station",
+    "category": "Technical and Aircraft Equipment"
+  },
+  {
+    "numericCode": "81",
+    "alphaCode": "AT",
+    "summary": "ATFM DUE TO ATC EN-ROUTE DEMAND / CAPACITY",
+    "description": "Standard demand / capacity problems",
+    "category": "AIR TRAFFIC FLOW MANAGEMENT RESTRICTIONS"
+  },
+  {
+    "numericCode": "44",
+    "alphaCode": "TS",
+    "summary": "SPARES AND MAINTENANCE EQUIPMENT",
+    "description": "Lack of or breakdown",
+    "category": "Technical and Aircraft Equipment"
+  },
+  {
+    "numericCode": "43",
+    "alphaCode": "TN",
+    "summary": "NON-SCHEDULED MAINTENANCE",
+    "description": "Special checks and / or additional works beyond normal maintenance schedule",
+    "category": "Technical and Aircraft Equipment"
+  },
+  {
+    "numericCode": "42",
+    "alphaCode": "TM",
+    "summary": "SCHEDULED MAINTENANCE",
+    "description": "Late release",
+    "category": "Technical and Aircraft Equipment"
+  },
+  {
+    "numericCode": "24",
+    "alphaCode": "CI",
+    "summary": "INADEQUATE PACKING",
+    "description": "",
+    "category": "Cargo and Mail"
+  },
+  {
+    "numericCode": "25",
+    "alphaCode": "CO",
+    "summary": "OVERSALES",
+    "description": "Booking errors",
+    "category": "Cargo and Mail"
+  },
+  {
+    "numericCode": "26",
+    "alphaCode": "CU",
+    "summary": "LATE PREPARATION IN WAREHOUSE",
+    "description": "",
+    "category": "Cargo and Mail"
+  },
+  {
+    "numericCode": "27",
+    "alphaCode": "CE",
+    "summary": "DOCUMENTATION, PACKING",
+    "description": "",
+    "category": "Mail Only"
+  },
+  {
+    "numericCode": "28",
+    "alphaCode": "CL",
+    "summary": "LATE POSITIONING",
+    "description": "",
+    "category": "Mail Only"
+  },
+  {
+    "numericCode": "29",
+    "alphaCode": "CA",
+    "summary": "LATE ACCEPTANCE",
+    "description": "",
+    "category": "Mail Only"
+  },
+  {
+    "numericCode": "69",
+    "alphaCode": "FB",
+    "summary": "CAPTAIN REQUEST FOR SECURITY CHECK",
+    "description": "Extraordinary requests outside mandatory requirements",
+    "category": "Flight Operations and Crewing"
+  },
+  {
+    "numericCode": "68",
+    "alphaCode": "FA",
+    "summary": "CABIN CREW ERROR OR SPECIAL REQUEST",
+    "description": "Not within operational requirements",
+    "category": "Flight Operations and Crewing"
+  },
+  {
+    "numericCode": "71",
+    "alphaCode": "WO",
+    "summary": "DEPARTURE STATION",
+    "description": "",
+    "category": "Weather"
+  },
+  {
+    "numericCode": "72",
+    "alphaCode": "WT",
+    "summary": "DESTINATION STATION",
+    "description": "",
+    "category": "Weather"
+  },
+  {
+    "numericCode": "73",
+    "alphaCode": "WR",
+    "summary": "EN-ROUTE OR ALTERNATE",
+    "description": "",
+    "category": "Weather"
+  },
+  {
+    "numericCode": "75",
+    "alphaCode": "WI",
+    "summary": "DE-ICING OF AIRCRAFT",
+    "description": "Removal of ice and/or snow, frost prevention excluding unserviceability of equipment",
+    "category": "Weather"
+  },
+  {
+    "numericCode": "76",
+    "alphaCode": "WS",
+    "summary": "REMOVAL OF SNOW, ICE, WATER, AND SAND FROM AIRPORT",
+    "description": "",
+    "category": "Weather"
+  },
+  {
+    "numericCode": "77",
+    "alphaCode": "WG",
+    "summary": "GROUND HANDLING IMPAIRED BY ADVERSE WEATHER CONDITIONS",
+    "description": "",
+    "category": "Weather"
+  },
+  {
+    "numericCode": "32",
+    "alphaCode": "GL",
+    "summary": "LOADING / UNLOADING",
+    "description": "Bulky, special load, lack of loading staff",
+    "category": "Aircraft and Ramp Handling"
+  },
+  {
+    "numericCode": "31",
+    "alphaCode": "GD",
+    "summary": "LATE / INACCURATE AIRCRAFT DOCUMENTATION",
+    "description": "Weight and balance, general declaration, pax manifest, etc.",
+    "category": "Aircraft and Ramp Handling"
+  },
+  {
+    "numericCode": "34",
+    "alphaCode": "GS",
+    "summary": "SERVICING EQUIPMENT",
+    "description": "Lack of or breakdown, lack of staff, e.g. steps",
+    "category": "Aircraft and Ramp Handling"
+  },
+  {
+    "numericCode": "33",
+    "alphaCode": "GE",
+    "summary": "LOADING EQUIPMENT",
+    "description": "Lack of or breakdown, e.g. container pallet loader, lack of staff",
+    "category": "Aircraft and Ramp Handling"
+  },
+  {
+    "numericCode": "19",
+    "alphaCode": "PW",
+    "summary": "REDUCED MOBILITY",
+    "description": "Boarding / deboarding of passengers with reduced mobility.",
+    "category": "Passenger and Baggage"
+  },
+  {
+    "numericCode": "17",
+    "alphaCode": "PC",
+    "summary": "CATERING ORDER",
+    "description": "late or incorrect order given to supplier",
+    "category": "Passenger and Baggage"
+  },
+  {
+    "numericCode": "18",
+    "alphaCode": "PB",
+    "summary": "BAGGAGE PROCESSING",
+    "description": "Late or incorrectly sorted baggage",
+    "category": "Passenger and Baggage"
+  },
+  {
+    "numericCode": "92",
+    "alphaCode": "RT",
+    "summary": "THROUGH CHECK-IN ERROR",
+    "description": "Passenger or baggage",
+    "category": "Reactionary"
+  },
+  {
+    "numericCode": "15",
+    "alphaCode": "PH",
+    "summary": "BOARDING",
+    "description": "Discrepancies and paging, missing checked-in passenger",
+    "category": "Passenger and Baggage"
+  },
+  {
+    "numericCode": "91",
+    "alphaCode": "RL",
+    "summary": "LOAD CONNECTION",
+    "description": "Awaiting load from another flight",
+    "category": "Reactionary"
+  },
+  {
+    "numericCode": "16",
+    "alphaCode": "PS",
+    "summary": "COMMERCIAL PUBLICITY/ PASSENGER CONVENIENCE",
+    "description": "VIP, press, ground meals and missing personal items",
+    "category": "Passenger and Baggage"
+  },
+  {
+    "numericCode": "13",
+    "alphaCode": "PE",
+    "summary": "CHECK-IN ERROR TEST",
+    "description": "Passenger and baggage",
+    "category": "Passenger and Baggage"
+  },
+  {
+    "numericCode": "14",
+    "alphaCode": "PO",
+    "summary": "OVERSALES",
+    "description": "Booking errors",
+    "category": "Passenger and Baggage"
+  },
+  {
+    "numericCode": "96",
+    "alphaCode": "RO",
+    "summary": "OPERATIONS CONTROL",
+    "description": "Re-routing, diVERSION,AIRLINDID,HANDLINGCAT, consolidation, aircraft change for reasons other than technical",
+    "category": "Reactionary"
+  },
+  {
+    "numericCode": "95",
+    "alphaCode": "RC",
+    "summary": "CREW ROTATION",
+    "description": "Awaiting flight deck, or entire crew, from another flight",
+    "category": "Reactionary"
+  },
+  {
+    "numericCode": "94",
+    "alphaCode": "RS",
+    "summary": "CABIN CREW ROTATION",
+    "description": "Awaiting cabin crew from another flight",
+    "category": "Reactionary"
+  },
+  {
+    "numericCode": "93",
+    "alphaCode": "RA",
+    "summary": "AIRCRAFT ROTATION",
+    "description": "Late arrival of aircraft from another flight or previous sector",
+    "category": "Reactionary"
+  },
+  {
+    "numericCode": "99",
+    "alphaCode": "MX",
+    "summary": "MISCELLANEOUS",
+    "description": "No suitable code; explain reason(s) in plain text",
+    "category": "Miscellaneous"
+  },
+  {
+    "numericCode": "98",
+    "alphaCode": "MO",
+    "summary": "INDUSTRIAL ACTION OUTSIDE OWN AIRLINE",
+    "description": "Excluding Air Traffic Control Services",
+    "category": "Miscellaneous"
+  },
+  {
+    "numericCode": "97",
+    "alphaCode": "MI",
+    "summary": "INDUSTRIAL ACTION WITHIN OWN AIRLINE",
+    "description": "",
+    "category": "Miscellaneous"
+  },
+  {
+    "numericCode": "66",
+    "alphaCode": "FL",
+    "summary": "LATE CABIN CREW BOARDING OR DEPARTURE PROCEDURES",
+    "description": "Other than connection and standby",
+    "category": "Flight Operations and Crewing"
+  },
+  {
+    "numericCode": "67",
+    "alphaCode": "FC",
+    "summary": "CABIN CREW SHORTAGE",
+    "description": "Sickness, awaiting standby, flight time limitations, valid visa, health documents, etc.",
+    "category": "Flight Operations and Crewing"
+  },
+  {
+    "numericCode": "64",
+    "alphaCode": "FS",
+    "summary": "FLIGHT DECK CREW SHORTAGE",
+    "description": "Sickness, awaiting standby, flight time limitations, valid visa, health documents, etc.",
+    "category": "Flight Operations and Crewing"
+  },
+  {
+    "numericCode": "65",
+    "alphaCode": "FR",
+    "summary": "FLIGHT DECK CREW SPECIAL REQUEST",
+    "description": "Requests not within operational requirements",
+    "category": "Flight Operations and Crewing"
+  },
+  {
+    "numericCode": "62",
+    "alphaCode": "FF",
+    "summary": "OPERATIONAL REQUIREMENTS",
+    "description": "Fuel, load alteration",
+    "category": "Flight Operations and Crewing"
+  },
+  {
+    "numericCode": "63",
+    "alphaCode": "FT",
+    "summary": "LATE CREW BOARDING OR DEPARTURE PROCEDURES",
+    "description": "Other than connection and standby (flight deck or entire crew)",
+    "category": "Flight Operations and Crewing"
+  },
+  {
+    "numericCode": "61",
+    "alphaCode": "FP",
+    "summary": "FLIGHT PLAN",
+    "description": "Late completion or change of, flight documentation",
+    "category": "Flight Operations and Crewing"
+  },
+  {
+    "numericCode": "23",
+    "alphaCode": "CC",
+    "summary": "LATE ACCEPTANCE",
+    "description": "",
+    "category": "Cargo and Mail"
+  },
+  {
+    "numericCode": "22",
+    "alphaCode": "CP",
+    "summary": "LATE POSITIONING",
+    "description": "",
+    "category": "Cargo and Mail"
+  },
+  {
+    "numericCode": "21",
+    "alphaCode": "CD",
+    "summary": "DOCUMENTATION",
+    "description": "Errors etc.",
+    "category": "Cargo and Mail"
+  },
+  {
+    "numericCode": "6",
+    "alphaCode": "OA",
+    "summary": "NO GATE/STAND AVAILABILITY DUE TO OWN AIRLINE ACTIVITY",
+    "description": "",
+    "category": "Others"
+  },
+  {
+    "numericCode": "2",
+    "alphaCode": "",
+    "summary": "AIRLINE INTERNAL CODE",
+    "description": "IATA has recommended that these codes are used by individual airlines to develop code definitions that meet their specific requirements.",
+    "category": "Others"
+  },
+  {
+    "numericCode": "3",
+    "alphaCode": "",
+    "summary": "AIRLINE INTERNAL CODE",
+    "description": "IATA has recommended that these codes are used by individual airlines to develop code definitions that meet their specific requirements.",
+    "category": "Others"
+  },
+  {
+    "numericCode": "4",
+    "alphaCode": "",
+    "summary": "AIRLINE INTERNAL CODE",
+    "description": "IATA has recommended that these codes are used by individual airlines to develop code definitions that meet their specific requirements.",
+    "category": "Others"
+  },
+  {
+    "numericCode": "5",
+    "alphaCode": "",
+    "summary": "AIRLINE INTERNAL CODE",
+    "description": "IATA has recommended that these codes are used by individual airlines to develop code definitions that meet their specific requirements.",
+    "category": "Others"
+  },
+  {
+    "numericCode": "47",
+    "alphaCode": "TL",
+    "summary": "STANDBY AIRCRAFT",
+    "description": "Lack of planned stand-by aircraft for technical reasons",
+    "category": "Technical and Aircraft Equipment"
+  },
+  {
+    "numericCode": "46",
+    "alphaCode": "TC",
+    "summary": "AIRCRAFT CHANGE",
+    "description": "For technical reasons",
+    "category": "Technical and Aircraft Equipment"
+  },
+  {
+    "numericCode": "48",
+    "alphaCode": "TV",
+    "summary": "SCHEDULED CABIN CONFIGURATION/VERSION,AIRLINDID,HANDLINGCAT ADJUSTMENTS",
+    "description": "",
+    "category": "Technical and Aircraft Equipment"
+  },
+  {
+    "numericCode": "53",
+    "alphaCode": "ED",
+    "summary": "DEPARTURE CONTROL",
+    "description": "",
+    "category": "EDP/Automated Equipment Failure"
+  },
+  {
+    "numericCode": "54",
+    "alphaCode": "EC",
+    "summary": "CARGO PREPARATION/DOCUMENTATION",
+    "description": "",
+    "category": "EDP/Automated Equipment Failure"
+  },
+  {
+    "numericCode": "55",
+    "alphaCode": "EF",
+    "summary": "FLIGHT PLANS",
+    "description": "",
+    "category": "EDP/Automated Equipment Failure"
+  },
+  {
+    "numericCode": "56",
+    "alphaCode": "EO",
+    "summary": "OTHER AUTOMATED SYSTEM",
+    "description": "",
+    "category": "EDP/Automated Equipment Failure"
+  },
+  {
+    "numericCode": "51",
+    "alphaCode": "DF",
+    "summary": "DAMAGE DURING FLIGHT OPERATIONS",
+    "description": "Bird or lightning strike, turbulence, heavy or overweight landing, collisions during taxiing",
+    "category": "Damage to Aircraft"
+  },
+  {
+    "numericCode": "52",
+    "alphaCode": "DG",
+    "summary": "DAMAGE DURING GROUND OPERATIONS",
+    "description": "Collisions (other than taxiing), loading / offloading damage, towing, contamination, extreme weather conditions",
+    "category": "Damage to Aircraft"
+  },
+  {
+    "numericCode": "12",
+    "alphaCode": "PL",
+    "summary": "LATE CHECK-IN",
+    "description": "Congestion in check-in area",
+    "category": "Passenger and Baggage"
+  },
+  {
+    "numericCode": "11",
+    "alphaCode": "PD",
+    "summary": "LATE CHECK-INAAA",
+    "description": "Acceptance after deadline",
+    "category": "Passenger and Baggage"
+  },
+  {
+    "numericCode": "58",
+    "alphaCode": "",
+    "summary": "EQUIPAMIENTO TECNICO",
+    "description": "OTROS SISTEMAS INFORMATICOS",
+    "category": "DAÑO EN LOS AVIONES Y FALLAS EN LOS EQUIPOS"
+  },
+  {
+    "numericCode": "101",
+    "alphaCode": "AAM",
+    "summary": "AUTORIDAD MIGRATORIA",
+    "description": "",
+    "category": "AUTORIDES"
+  },
+  {
+    "numericCode": "106",
+    "alphaCode": "AAG",
+    "summary": "GUARDIA NACIONAL",
+    "description": "",
+    "category": "AUTORIDADES"
+  },
+  {
+    "numericCode": "108",
+    "alphaCode": "AAX",
+    "summary": "OTRAS",
+    "description": "",
+    "category": "AUTORIDADES"
+  },
+  {
+    "numericCode": "112",
+    "alphaCode": "CST",
+    "summary": "SERVICIO DE RAMPA",
+    "description": "RETRASO EN EL SERVICIO DEL TRACTOR DE ARRASTRE POR FALTA O FALLA DEL EQUIPO/ MAL PROCEDIMIENTO",
+    "category": "COMPAÑÍA (AEROLÍNEA)"
+  },
+  {
+    "numericCode": "149",
+    "alphaCode": "CRF",
+    "summary": "SISTEMAS ",
+    "description": "FALLA DEL SISTEMA DE DOCUMENTACIÓN ",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "154",
+    "alphaCode": "CVV",
+    "summary": "SOLICITUD TARDÍA DE SERVICIOS ",
+    "description": "",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "157",
+    "alphaCode": "EWE",
+    "summary": "METEOROLOGÍA ",
+    "description": "VIENTOS EN CONTRA ",
+    "category": "EVENTO CIRCUNSTANCIAL "
+  },
+  {
+    "numericCode": "160",
+    "alphaCode": "EWO",
+    "summary": "METEOROLOGÍA ",
+    "description": "EN EL AEROPUERTO DE ORIGEN ",
+    "category": "EVENTO CIRCUNSTANCIAL "
+  },
+  {
+    "numericCode": "161",
+    "alphaCode": "EWX",
+    "summary": "METEOROLOGÍA ",
+    "description": "OTRO",
+    "category": "EVENTO CIRCUNSTANCIAL "
+  },
+  {
+    "numericCode": "162",
+    "alphaCode": "ESB",
+    "summary": "PROCEDIMIENTO DE SEGURIDAD ",
+    "description": "AMENAZA DE BOMBA ",
+    "category": "EVENTO CIRCUNSTANCIAL "
+  },
+  {
+    "numericCode": "165",
+    "alphaCode": "EPD",
+    "summary": "OCASIONADO POR PAX ",
+    "description": "PROCESO DE PASAJERO A BORDO ",
+    "category": "EVENTO CIRCUNSTANCIAL "
+  },
+  {
+    "numericCode": "169",
+    "alphaCode": "IGO",
+    "summary": "GEOMETRÍA DEL AEROPUERTO ",
+    "description": "CONGESTIONAMIENTO DEL ÁREA DE MOVIMIENTO ",
+    "category": "INFRAESTRUCTURA AEROPORTUARIA "
+  },
+  {
+    "numericCode": "179",
+    "alphaCode": "IML",
+    "summary": "INFRAESTRUCTURA ",
+    "description": "DEMORAS OCASIONADAS POR FALTA O INADECUADA LIMPIEZA DE LAS ÁREAS OPERACIONALES ",
+    "category": "INFRAESTRUCTURA AEROPORTUARIA "
+  },
+  {
+    "numericCode": "183",
+    "alphaCode": "ROA",
+    "summary": "ORIGINADA EN EL AIFA ",
+    "description": "",
+    "category": "REPERCUSIÓN "
+  },
+  {
+    "numericCode": "191",
+    "alphaCode": "SPD",
+    "summary": "SERVICIO DE PASILLO ",
+    "description": "DEMORA EN LA PRESTACIÓN DEL SERVICIO ",
+    "category": "SERVICIOS AEROPORTUARIOS "
+  },
+  {
+    "numericCode": "192",
+    "alphaCode": "SPX",
+    "summary": "SERVICIO DE PASILLO ",
+    "description": "OTRO",
+    "category": "SERVICIOS AEROPORTUARIOS "
+  },
+  {
+    "numericCode": "193",
+    "alphaCode": "SAE",
+    "summary": "SERVICIO DE AEROCARES ",
+    "description": "FALLA DE EQUIPO ",
+    "category": "SERVICIOS AEROPORTUARIOS "
+  },
+  {
+    "numericCode": "194",
+    "alphaCode": "SAO",
+    "summary": "SERVICIO DE AEROCARES ",
+    "description": "FALTA DEL OPERADOR ",
+    "category": "SERVICIOS AEROPORTUARIOS "
+  },
+  {
+    "numericCode": "195",
+    "alphaCode": "SAD",
+    "summary": "SERVICIO DE AEROCARES ",
+    "description": "DEMORA EN LA PRESTACIÓN DEL SERVICIO ",
+    "category": "SERVICIOS AEROPORTUARIOS "
+  },
+  {
+    "numericCode": "202",
+    "alphaCode": "SGX",
+    "summary": "ASIGNACIÓN DE POSICIONES ",
+    "description": "OTRO ",
+    "category": "SERVICIOS AEROPORTUARIOS "
+  },
+  {
+    "numericCode": "204",
+    "alphaCode": "SVP",
+    "summary": "SEGURIDAD Y VIGILANCIA ",
+    "description": "FALTA O INSUFICIENCIA DE PERSONAL ",
+    "category": "SERVICIOS AEROPORTUARIOS "
+  },
+  {
+    "numericCode": "105",
+    "alphaCode": "AAN",
+    "summary": "SEGURIDAD NACIONAL",
+    "description": "",
+    "category": "AUTORIDAD"
+  },
+  {
+    "numericCode": "122",
+    "alphaCode": "COT",
+    "summary": "OPERACIONES",
+    "description": "TRANSPORTACIÓN DE TRIPULACIÓN",
+    "category": "COMPAÑÍA (AEROLÍNEA)"
+  },
+  {
+    "numericCode": "107",
+    "alphaCode": "AAF",
+    "summary": "AUTORIDAD INVESTIGADORA",
+    "description": "",
+    "category": "AUTORIDADES"
+  },
+  {
+    "numericCode": "126",
+    "alphaCode": "CCT",
+    "summary": "CONTROL OPERACIONAL",
+    "description": "OCASIONA ERRÓNEA DE TRIPULACIÓN",
+    "category": "COMPAÑÍA (AEROLÍNEA)"
+  },
+  {
+    "numericCode": "118",
+    "alphaCode": "CEM",
+    "summary": "EXPRESS Y CARGA",
+    "description": "EMBALAJE ERRÓNEO O INADECUADO.",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "119",
+    "alphaCode": "CEG",
+    "summary": "EXPRESS Y CARGA",
+    "description": "FALTA DE GUÍAS DE CARGA QUE SE TRANSPORTA ",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "121",
+    "alphaCode": "CEX",
+    "summary": "EXPRESS Y CARGA",
+    "description": "OTRO",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "128",
+    "alphaCode": "CCD",
+    "summary": "CONTROL OPERACIONAL",
+    "description": "DOCUMENTACIÓN DE VUELO, FALTA O CORRECCIÓN DE ESTA (PLAN DE VUELO).",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "129",
+    "alphaCode": "CCC",
+    "summary": "CONTROL OPERACIONAL ",
+    "description": "CAMBIO DE EQUIPO POR \u00a0RAZONES TECNICAS",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "135",
+    "alphaCode": "CMC",
+    "summary": "MANTENIMIENTO",
+    "description": "CAMBIO DE EQUIPO POR RAZONES DE MANTENIMIENTO ",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "140",
+    "alphaCode": "CPE",
+    "summary": "TRIPULACIÓN ",
+    "description": "PETICIÓN ESPECIAL DE LA TRIPULACIÓN \u00a0(RECARGA DE COMBUSTIBLE, COMISARIATOS ETC.)",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "151",
+    "alphaCode": "CFT",
+    "summary": "COMISARIATO ",
+    "description": "PRESENTANDOSE TARDE",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "152",
+    "alphaCode": "CFF",
+    "summary": "COMISARIATO",
+    "description": "FALTA DE ALIMENTOS ",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "156",
+    "alphaCode": "EWF",
+    "summary": "METEOROLOGÍA ",
+    "description": "VIENTOS A FAVOR ",
+    "category": "EVENTO CIRCUNSTANCIAL "
+  },
+  {
+    "numericCode": "158",
+    "alphaCode": "EWD",
+    "summary": "METEOROLOGÍA ",
+    "description": "EN EL AEROPUERTO DE DESTINO ",
+    "category": "EVENTO CIRCUNSTANCIAL "
+  },
+  {
+    "numericCode": "159",
+    "alphaCode": "EWP",
+    "summary": "METEOROLOGÍA ",
+    "description": "CAMBIO DE PISTA ",
+    "category": "EVENTO CIRCUNSTANCIAL "
+  },
+  {
+    "numericCode": "164",
+    "alphaCode": "EPC",
+    "summary": "OCASIONADO POR PAX ",
+    "description": "PASAJERO CONFLICTIVO ",
+    "category": "EVENTO CIRCUNSTANCIAL "
+  },
+  {
+    "numericCode": "171",
+    "alphaCode": "IGX",
+    "summary": "GEOMETRÍA DEL AEROPUERTO ",
+    "description": "OTRO ",
+    "category": "INFRAESTRUCTURA AEROPORTUARIA \u00a0"
+  },
+  {
+    "numericCode": "172",
+    "alphaCode": "ILP",
+    "summary": "LIMITACIONES DEL EDIFICIO TERMINAL ",
+    "description": "FALTA DE POSICIONES SUFICIENTES PARA ABORDADOR MECÁNICO ",
+    "category": "INFRAESTRUCTURA AEROPORTUARIA "
+  },
+  {
+    "numericCode": "173",
+    "alphaCode": "ILF",
+    "summary": "LIMITACIONES DEL EDIFICIO TERMINAL ",
+    "description": "SATURACIÓN DE FILTROS DE SEGURIDAD POR MOTIVOS DE INFRAESTRUCTURA ",
+    "category": "INFRAESTRUCTURA AEROPORTUARIA "
+  },
+  {
+    "numericCode": "174",
+    "alphaCode": "ILT",
+    "summary": "LIMITACIONES DEL EDIFICIO TERMINAL ",
+    "description": "POR INFORMACIÓN ERRÓNEA POR EL SISTEMA DE VOCEO Y PANTALLAS DE INFORMACIÓN DE VUELO.",
+    "category": "INFRAESTRUCTURA AEROPORTUARIA \u00a0"
+  },
+  {
+    "numericCode": "175",
+    "alphaCode": "ILV",
+    "summary": "LIMITACIONES DE EDIFICIO TERMINAL ",
+    "description": "INADECUADA SEÑALIZACIÓN VISUAL DE PASAJEROS ",
+    "category": "INFRAESTRUCTURA AEROPORTUARIA \u00a0"
+  },
+  {
+    "numericCode": "176",
+    "alphaCode": "ILX",
+    "summary": "LIMITACIONES DEL EDIFICIO TERMINAL ",
+    "description": "OTRO ",
+    "category": "INFRAESTRUCTURA AEROPORTUARIA "
+  },
+  {
+    "numericCode": "177",
+    "alphaCode": "IMO",
+    "summary": "INFRAESTRUCTURA ",
+    "description": "MANTENIMIENTO DE LAS ÁREAS OPERACIONALES ",
+    "category": "INFRAESTRUCTURA AEROPORTUARIA "
+  },
+  {
+    "numericCode": "178",
+    "alphaCode": "IME",
+    "summary": "INFRAESTRUCTURA ",
+    "description": "MANTENIMIENTO DEL EDIFICIO TERMINAL ",
+    "category": "INFRAESTRUCTURA AEROPORTUARIA "
+  },
+  {
+    "numericCode": "182",
+    "alphaCode": "PAI",
+    "summary": "INCIDENTE ",
+    "description": "",
+    "category": "PERCANCES "
+  },
+  {
+    "numericCode": "184",
+    "alphaCode": "ROF",
+    "summary": "ORIGINADA FUERA DEL AIFA ",
+    "description": "Demora fue debido a salida tardía de aeropuerto de origen. \u00a0 \u00a0 \u00a0 \n",
+    "category": "REPERCUSIÓN "
+  },
+  {
+    "numericCode": "186",
+    "alphaCode": "STA",
+    "summary": "SERVICIO DE TRANSITO AÉREO ",
+    "description": "FALLA ORIGINADA EN EL AIFA",
+    "category": "SERVICIOS AEROPORTUARIOS "
+  },
+  {
+    "numericCode": "187",
+    "alphaCode": "STF",
+    "summary": "SERVICIO DE TRANSITO AÉREO ",
+    "description": "FALLA ORIGINADA FUERA DEL AIFA ",
+    "category": "SERVICIOS AEROPORTUARIOS "
+  },
+  {
+    "numericCode": "189",
+    "alphaCode": "SPE",
+    "summary": "SERVICIO DE PASILLO ",
+    "description": "FALLA DE EQUIPO ",
+    "category": "SERVICIOS AEROPORTUARIOS "
+  },
+  {
+    "numericCode": "196",
+    "alphaCode": "SAX",
+    "summary": "SERVICIO DE AEROCARES ",
+    "description": "OTRO ",
+    "category": "SERVICIOS AEROPORTUARIOS "
+  },
+  {
+    "numericCode": "203",
+    "alphaCode": "SVE",
+    "summary": "SEGURIDAD Y VIGILANCIA ",
+    "description": "FALTA O FALLA DE LOS EQUIPOS DE REVISIÓN ",
+    "category": "SERVICIOS AEROPORTUARIOS "
+  },
+  {
+    "numericCode": "205",
+    "alphaCode": "SVX",
+    "summary": "SEGURIDAD Y VIGILANCIA ",
+    "description": "OTRO ",
+    "category": "SERVICIOS AEROPORTUARIOS "
+  },
+  {
+    "numericCode": "103",
+    "alphaCode": "AAJ",
+    "summary": "AUTORIDAD JUDICIAL",
+    "description": "",
+    "category": "AUTORIDADES"
+  },
+  {
+    "numericCode": "100",
+    "alphaCode": "AAA",
+    "summary": "AUTORIDAD AERONAUTICA",
+    "description": "",
+    "category": "AUTORIDADES"
+  },
+  {
+    "numericCode": "102",
+    "alphaCode": "AAD",
+    "summary": "AUTORIDAD ADUANAL",
+    "description": "",
+    "category": "AUTORIDADES"
+  },
+  {
+    "numericCode": "104",
+    "alphaCode": "AAS",
+    "summary": "AUTORIDAD SANITARIA",
+    "description": "",
+    "category": "AUTORIDAD"
+  },
+  {
+    "numericCode": "109",
+    "alphaCode": "CSC",
+    "summary": "SERVICIO DE RAMPA",
+    "description": "LENTITUD EN LA CARGA/ DESCARGA DEL AVIÓN POR FALTA O INSUFICIENCIA DEL PERSONAL/ COMPLICACIÓN POR LA CARGA",
+    "category": "COMPAÑIA"
+  },
+  {
+    "numericCode": "110",
+    "alphaCode": "CSF",
+    "summary": "SERVICIO DE RAMPA",
+    "description": "FALTA O FALLA DEL EQUIPO DE APOYO DE TIERRA",
+    "category": "COMPAÑÍA (AEROLÍNEA)"
+  },
+  {
+    "numericCode": "111",
+    "alphaCode": "CSL",
+    "summary": "SERVICIO DE RAMPA",
+    "description": "RETRASO DE LA LIMPIEZA DEL AVIÓN",
+    "category": "COMPAÑÍA (AEROLÍNEA)"
+  },
+  {
+    "numericCode": "113",
+    "alphaCode": "CSA",
+    "summary": "SERVICIO DE RAMPA",
+    "description": "RETRASO DE SERVICIO DE AGUAS NEGRAS Y POTABLE POR FALTA O FALLA DEL EQUIPO/ FALTA DE AGUA POTABLE / ETC",
+    "category": "COMPAÑÍA (AEROLÍNEA)"
+  },
+  {
+    "numericCode": "114",
+    "alphaCode": "CSE",
+    "summary": "SERVICIO DE RAMPA",
+    "description": "RETRASO EN EL SERVICIO DE ESCALERILLA",
+    "category": "COMPAÑÍA (AEROLÍNEA)"
+  },
+  {
+    "numericCode": "115",
+    "alphaCode": "CSX",
+    "summary": "SERVICIO DE RAMPA",
+    "description": "OTRO",
+    "category": "COMPAÑÍA (AEROLÍNEA)"
+  },
+  {
+    "numericCode": "123",
+    "alphaCode": "COM",
+    "summary": "OPERACIONES",
+    "description": "MANIFIESTO DE CARGA Y BALANCE (RETRASO O ERROR EN EL MISMO)",
+    "category": "COMPAÑÍA (AEROLÍNEA)"
+  },
+  {
+    "numericCode": "124",
+    "alphaCode": "COX",
+    "summary": "OPERACIONES",
+    "description": "OTRO",
+    "category": "COMPAÑÍA (AEROLÍNEA)"
+  },
+  {
+    "numericCode": "125",
+    "alphaCode": "CCA",
+    "summary": "OPERACIONES",
+    "description": "CONVENIENCIA DE LA COMPAÑÍA AÉREA",
+    "category": "COMPAÑÍA (AEROLÍNEA)"
+  },
+  {
+    "numericCode": "127",
+    "alphaCode": "CCE",
+    "summary": "CONTROL OPERACIONAL",
+    "description": "ASIGNACIÓN ERRÓNEA DE EQUIPO",
+    "category": "COMPAÑÍA (AEROLÍNEA)"
+  },
+  {
+    "numericCode": "116",
+    "alphaCode": "CEC",
+    "summary": "EXPRESS Y CARGA",
+    "description": "CIERRE TARDE DEL VUELO POR ESPERA DE CARGA MENSAJERÍA O CORREO ",
+    "category": "COMPAÑIA (AEROLINEA)"
+  },
+  {
+    "numericCode": "117",
+    "alphaCode": "CEE",
+    "summary": "EXPRESS Y CARGA",
+    "description": "ERRORES DOCUMENTACIÓN, \u00a0MATERIAL DOCUMENTADO NO PERMITIDO ETC.",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "120",
+    "alphaCode": "CES",
+    "summary": "EXPRESS Y CARGA ",
+    "description": "SOBREVENTA DE LOS ESPACIOS DE CARGA ",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "130",
+    "alphaCode": "CCX",
+    "summary": "CONTROL OPERACIONAL",
+    "description": "OTRO",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "131",
+    "alphaCode": "CMP",
+    "summary": "MANTENIMIENTO",
+    "description": "MANTENIMIENTO PROGRAMADO (LIBERACIÓN TARDÍA DEL HANGAR)",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "132",
+    "alphaCode": "CMN",
+    "summary": "MANTENIMIENTO",
+    "description": "MANTENIMIENTO NO PROGRAMADO. (CUALQUIER TIPO DE FALLA QUE SE PRESENTE DURANTE LA OPERACIÓN DEL VUELO)",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "133",
+    "alphaCode": "CMR",
+    "summary": "MANTENIMIENTO",
+    "description": "REFACCIONES Y EQUIPO DE MANTENIMIENTO (FALTA O FALLA)",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "134",
+    "alphaCode": "CMA",
+    "summary": "MANTENIMIENTO ",
+    "description": "FALLA TÉCNICO-ADMINISTRATIVA (FALTA DE BITÁCORA, CERTIFICADO ETC.)",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "136",
+    "alphaCode": "CMX",
+    "summary": "MANTENIMIENTO ",
+    "description": "OTRO ",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "137",
+    "alphaCode": "CPR",
+    "summary": "TRIPULACIÓN ",
+    "description": "ESPERANDO TRIPULACIÓN DE RESERVA ",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "138",
+    "alphaCode": "CPT",
+    "summary": "TRIPULACIÓN ",
+    "description": "TRIPULACIÓN PRESENTÁNDOSE TARDE ",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "139",
+    "alphaCode": "CPP",
+    "summary": "TRIPULACIÓN ",
+    "description": "CAMBIO DE TRIPULACIÓN (TÉCNICA Y/O SERVICIO)",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "141",
+    "alphaCode": "CPX",
+    "summary": "TRIPULACIÓN ",
+    "description": "OTRO",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "142",
+    "alphaCode": "CTB",
+    "summary": "TRAFICO ",
+    "description": "ABORDAJE (PASAJERO MAL ABORDADO, ABORDAJE LENTO, DISCREPANCIA EN NUMERO DE PASAJEROS ETC.)",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "143",
+    "alphaCode": "CTL",
+    "summary": "TRAFICO ",
+    "description": "LOCALIZACIÓN O ESPERA DE PASAJEROS EN TRANSITO",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "144",
+    "alphaCode": "CTD",
+    "summary": "TRAFICO ",
+    "description": "DOCUMENTACIÓN (ERRORES AL DOCUMENTAR, CIERRE TARDE DEL VUELO, ETC.)",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "145",
+    "alphaCode": "CTE",
+    "summary": "TRAFICO ",
+    "description": "MANEJO DE EQUIPAJE (BAJANDO EQUIPAJES VOLUMINOSOS, BAJANDO EQUIPAJE DE PASAJERO QUE NO ABORDÓ, ETC) ",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "146",
+    "alphaCode": "CTP",
+    "summary": "TRAFICO ",
+    "description": "MANEJO DE PASAJERO DISCAPACITADO ",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "147",
+    "alphaCode": "CTS",
+    "summary": "TRAFICO ",
+    "description": "SOBREVENTA ",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "148",
+    "alphaCode": "CTX",
+    "summary": "TRAFICO ",
+    "description": "OTRO",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "150",
+    "alphaCode": "CRX",
+    "summary": "SISTEMAS ",
+    "description": "OTRO",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "153",
+    "alphaCode": "CFX",
+    "summary": "COMISARIATO",
+    "description": "OTRO",
+    "category": "COMPAÑÍA (AEROLÍNEA) "
+  },
+  {
+    "numericCode": "155",
+    "alphaCode": "EWA",
+    "summary": "METEOROLOGÍA ",
+    "description": "EN EL AIFA",
+    "category": "EVENTO CIRCUNSTANCIAL "
+  },
+  {
+    "numericCode": "163",
+    "alphaCode": "ESX",
+    "summary": "PROCEDIMIENTO DE SEGURIDAD ",
+    "description": "OTRO ",
+    "category": "EVENTO CIRCUNSTANCIAL "
+  },
+  {
+    "numericCode": "166",
+    "alphaCode": "EPE",
+    "summary": "OCASIONADO POR PAX ",
+    "description": "PASAJERO DELICADO POR ENFERMEDAD O DISCAPACIDAD ",
+    "category": "EVENTO CIRCUNSTANCIAL "
+  },
+  {
+    "numericCode": "167",
+    "alphaCode": "EPX",
+    "summary": "OCASIONADO POR PAX ",
+    "description": "OTRO ",
+    "category": "EVENTO CIRCUNSTANCIAL "
+  },
+  {
+    "numericCode": "168",
+    "alphaCode": "EXX",
+    "summary": "OTRO NO CODIFICADO ",
+    "description": "",
+    "category": "EVENTO CIRCUNSTANCIAL "
+  },
+  {
+    "numericCode": "170",
+    "alphaCode": "IGR",
+    "summary": "GEOMETRÍA DEL AEROPUERTO ",
+    "description": "AERONAVE REMOLCADA ",
+    "category": "INFRAESTRUCTURA AEROPORTUARIA "
+  },
+  {
+    "numericCode": "180",
+    "alphaCode": "IMX",
+    "summary": "INFRAESTRUCTURA ",
+    "description": "OTRO ",
+    "category": "INFRAESTRUCTURA AEROPORTUARIA "
+  },
+  {
+    "numericCode": "181",
+    "alphaCode": "PAC",
+    "summary": "ACCIDENTE ",
+    "description": "",
+    "category": "PERCANCES "
+  },
+  {
+    "numericCode": "185",
+    "alphaCode": "R",
+    "summary": "REPERCUSIÓN ",
+    "description": "",
+    "category": "REPERCUSIÓN "
+  },
+  {
+    "numericCode": "188",
+    "alphaCode": "STX",
+    "summary": "SERVICIO DE TRANSITO AÉREO ",
+    "description": "OTRO ",
+    "category": "SERVICIOS AEROPORTUARIOS "
+  },
+  {
+    "numericCode": "190",
+    "alphaCode": "SPO",
+    "summary": "SERVICIO DE PASILLO ",
+    "description": "FALTA O ERROR DEL OPERADOR ",
+    "category": "SERVICIOS AEROPORTUARIOS "
+  },
+  {
+    "numericCode": "197",
+    "alphaCode": "SCE",
+    "summary": "SERVICIO DE COMBUSTIBLE ",
+    "description": "FALLA DEL EQUIPO ",
+    "category": "SERVICIOS AEROPORTUARIOS "
+  },
+  {
+    "numericCode": "198",
+    "alphaCode": "SCO",
+    "summary": "SERVICIO DE COMBUSTIBLE ",
+    "description": "FALTA DEL OPERADOR ",
+    "category": "SERVICIOS AEROPORTUARIOS "
+  },
+  {
+    "numericCode": "199",
+    "alphaCode": "SCD",
+    "summary": "SERVICIO DE COMBUSTIBLE ",
+    "description": "DEMORA EN LA PRESTACIÓN DEL SERVICIO ",
+    "category": "SERVICIOS AEROPORTUARIOS "
+  },
+  {
+    "numericCode": "200",
+    "alphaCode": "SCX",
+    "summary": "SERVICIO DE COMBUSTIBLE ",
+    "description": "OTRO ",
+    "category": "SERVICIOS AEROPORTUARIOS \u00a0"
+  },
+  {
+    "numericCode": "201",
+    "alphaCode": "SGE",
+    "summary": "ASIGNACIÓN DE POSICIONES ",
+    "description": "ERROR EN LA ASIGNACIÓN DE POSICIONES ",
+    "category": "SERVICIOS AEROPORTUARIOS "
+  }
+]
