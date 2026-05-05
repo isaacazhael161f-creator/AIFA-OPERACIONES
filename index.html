@@ -8771,28 +8771,28 @@ FF
                             const numKey    = ctblCols.find(k => k === 'num_empleado' || k === 'num') || 'num_empleado';
                             const nombreKey = ctblCols.find(k => k === 'nombre') || 'nombre';
 
-                            const html = ctblData.map(r => {
-                                const numVal    = esc(String(r[numKey]    ?? '—'));
+                            const html = ctblData.map((r, i) => {
                                 const nombreVal = esc(String(r[nombreKey] ?? '—'));
                                 const tds = ctblCols.map(col => {
                                     const v = String(r[col] ?? '').trim() || '—';
                                     const style = CTBL_WRAP_COLS.has(col) ? ' style="max-width:200px;white-space:normal"' : '';
                                     return `<td${style}>${esc(v)}</td>`;
                                 }).join('');
-                                return `<tr onclick="colabTablaVerFicha('${numVal}')" title="Ver ficha de ${nombreVal}">${tds}</tr>`;
+                                return `<tr onclick="colabTablaVerFicha(${i})" title="Ver ficha de ${nombreVal}">${tds}</tr>`;
                             }).join('');
                             if (tbody) tbody.innerHTML = html;
                         }
 
                         /** Click en fila: cerrar modal y mostrar ficha */
-                        window.colabTablaVerFicha = function(numEmpl) {
+                        window.colabTablaVerFicha = function(idx) {
+                            const rec = ctblData[idx];
+                            if (!rec) return;
                             bootstrap.Modal.getInstance(document.getElementById('colabTablaModal'))?.hide();
-                            const rec = (colabCache || []).find(r => String(gc(r,'num') || '').trim() === numEmpl);
-                            if (rec) {
-                                const numInput = document.getElementById('colab-num-input');
-                                if (numInput) numInput.value = numEmpl;
-                                renderFicha(rec);
-                            }
+                            // Obtener número de empleado para el input de búsqueda
+                            const numEmpl = String(gc(rec,'num') || rec['num_empleado'] || '').trim();
+                            const numInput = document.getElementById('colab-num-input');
+                            if (numInput && numEmpl) numInput.value = numEmpl;
+                            renderFicha(rec);
                         };
 
                         /** Descargar CSV con todos los campos visibles */
