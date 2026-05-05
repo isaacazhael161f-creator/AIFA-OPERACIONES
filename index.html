@@ -4960,7 +4960,8 @@ FF
                         .ctbl-btn-export:hover { background: #eef3ff; border-color: #1565c0; color: #1565c0; }
                         .ctbl-btn-export.green { color: #1b5e20; border-color: #81c784; }
                         .ctbl-btn-export.green:hover { background: #e8f5e9; border-color: #388e3c; }
-                        .ctbl-table-wrap { overflow: auto; max-height: 62vh; }
+                        .ctbl-table-wrap { flex: 1; overflow: auto; min-height: 0; }
+                        #colabTablaModal .modal-content { display: flex; flex-direction: column; overflow: hidden; height: 100%; }
                         .ctbl-table {
                             width: 100%; border-collapse: collapse; font-size: .82rem;
                             white-space: nowrap;
@@ -4968,14 +4969,63 @@ FF
                         .ctbl-table thead th {
                             position: sticky; top: 0; z-index: 2;
                             background: #0d2152; color: #fff;
-                            padding: .45rem .8rem;
+                            padding: .4rem .55rem;
                             font-size: .72rem; font-weight: 700;
                             text-transform: uppercase; letter-spacing: .04em;
                             border: 1px solid #1e3a7e;
-                            user-select: none; cursor: pointer;
+                            user-select: none;
                         }
-                        .ctbl-table thead th:hover { background: #1565c0; }
-                        .ctbl-table thead th .sort-arrow { margin-left: .3rem; opacity: .55; font-size: .65rem; }
+                        .ctbl-th-inner { display: inline-flex; align-items: center; gap: .2rem; cursor: pointer; }
+                        .ctbl-th-inner:hover { text-decoration: underline dotted rgba(255,255,255,.5); }
+                        .ctbl-table thead th .sort-arrow { opacity: .7; font-size: .6rem; }
+                        /* Boton filtro columna */
+                        .ctbl-cfb {
+                            display: inline-flex; align-items: center; justify-content: center;
+                            width: 17px; height: 17px; margin-left: .25rem;
+                            background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25);
+                            border-radius: 3px; color: rgba(255,255,255,.75);
+                            font-size: .55rem; cursor: pointer; padding: 0;
+                            transition: all .12s; vertical-align: middle; flex-shrink: 0;
+                        }
+                        .ctbl-cfb:hover { background: rgba(255,255,255,.3); color: #fff; }
+                        .ctbl-cfb.has-filter { background: #f59e0b; border-color: #f59e0b; color: #1a2540; }
+                        /* Popup filtro columna */
+                        .ctbl-cfp {
+                            position: fixed; z-index: 10000;
+                            background: #fff; border: 1.5px solid #c5cfe0;
+                            border-radius: 10px; box-shadow: 0 8px 36px rgba(0,0,0,.25);
+                            min-width: 240px; max-width: 320px;
+                            display: flex; flex-direction: column;
+                            max-height: 440px; overflow: hidden;
+                        }
+                        .ctbl-cfp-head {
+                            display: flex; align-items: center; justify-content: space-between;
+                            padding: .45rem .75rem; background: #0d2152; color: #fff;
+                            border-radius: 8px 8px 0 0; font-weight: 700; font-size: .79rem;
+                        }
+                        .ctbl-cfp-head button { background: none; border: none; color: rgba(255,255,255,.8); cursor: pointer; font-size:.9rem; padding: 0 .15rem; line-height:1; }
+                        .ctbl-cfp-head button:hover { color: #fff; }
+                        .ctbl-cfp-searchrow { padding: .4rem .5rem .2rem; }
+                        .ctbl-cfp-searchrow input { width: 100%; border: 1.5px solid #dde3ef; border-radius: 6px; padding: .3rem .6rem; font-size: .8rem; outline: none; }
+                        .ctbl-cfp-searchrow input:focus { border-color: #1565c0; }
+                        .ctbl-cfp-acts { display: flex; gap: .35rem; padding: .2rem .5rem .3rem; }
+                        .ctbl-cfp-acts button { flex:1; font-size:.71rem; border: 1px solid #c5cfe0; background:#f5f8ff; border-radius:5px; padding:.2rem .35rem; cursor:pointer; color:#1a2540; }
+                        .ctbl-cfp-acts button:hover { background:#dbeafe; border-color:#3b82f6; color:#1565c0; }
+                        .ctbl-cfp-list { flex:1; overflow-y:auto; border-top:1px solid #edf0f8; border-bottom:1px solid #edf0f8; padding:.2rem .2rem; max-height:260px; }
+                        .ctbl-cfp-item { display:flex; align-items:center; gap:.4rem; padding:.22rem .5rem; border-radius:4px; cursor:pointer; font-size:.8rem; color:#1a2540; }
+                        .ctbl-cfp-item:hover { background:#eef3ff; }
+                        .ctbl-cfp-item input[type=checkbox] { cursor:pointer; accent-color:#1565c0; flex-shrink:0; }
+                        .ctbl-cfp-item label { cursor:pointer; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+                        .ctbl-cfp-foot { display:flex; gap:.4rem; padding:.4rem .5rem; justify-content:flex-end; background:#f8faff; border-radius:0 0 8px 8px; }
+                        .ctbl-cfp-ok { background:#1565c0; color:#fff; border:none; border-radius:6px; padding:.3rem .9rem; font-size:.79rem; font-weight:700; cursor:pointer; }
+                        .ctbl-cfp-ok:hover { background:#1251a0; }
+                        .ctbl-cfp-cancel { background:#e8eef8; color:#334155; border:none; border-radius:6px; padding:.3rem .8rem; font-size:.79rem; cursor:pointer; }
+                        .ctbl-cfp-cancel:hover { background:#dde3ef; }
+                        /* Indicador de filtros activos */
+                        .ctbl-active-filters { display:flex; flex-wrap:wrap; gap:.3rem; padding:.3rem 1rem; background:#fffbeb; border-bottom:1px solid #fde68a; font-size:.75rem; align-items:center; }
+                        .ctbl-af-tag { display:inline-flex; align-items:center; gap:.3rem; background:#fef9c3; border:1px solid #fde68a; border-radius:20px; padding:.15rem .55rem; color:#92400e; font-weight:600; }
+                        .ctbl-af-tag button { background:none; border:none; cursor:pointer; color:#92400e; font-size:.75rem; padding:0; line-height:1; opacity:.8; }
+                        .ctbl-af-tag button:hover { opacity:1; }
                         .ctbl-table tbody tr { border-bottom: 1px solid #edf0f8; transition: background .12s; cursor: pointer; }
                         .ctbl-table tbody tr:hover { background: #edf4ff; }
                         .ctbl-table tbody td { padding: .38rem .8rem; color: #1a2540; max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
@@ -6329,7 +6379,7 @@ FF
                          MODAL: TABLA COMPLETA DE COLABORADORES
                     ══════════════════════════════════════════════ -->
                     <div class="modal fade" id="colabTablaModal" tabindex="-1" aria-labelledby="colabTablaModalLabel" aria-hidden="true">
-                        <div class="modal-dialog modal-fullscreen-lg-down modal-xl modal-dialog-scrollable">
+                        <div class="modal-dialog modal-fullscreen">
                             <div class="modal-content">
                                 <div class="modal-header py-2">
                                     <div class="d-flex align-items-center gap-2">
@@ -6350,6 +6400,9 @@ FF
                                     <select class="ctbl-select" id="ctbl-turno" onchange="colabTablaFiltrar()" aria-label="Filtrar por turno">
                                         <option value="">Todos los Turnos</option>
                                     </select>
+                                    <button class="ctbl-btn-export" id="ctbl-clear-col-filters" onclick="ctblLimpiarFiltrosCols()" title="Quitar todos los filtros de columna" style="display:none">
+                                        <i class="fas fa-filter-slash me-1"></i> Quitar filtros
+                                    </button>
                                     <button class="ctbl-btn-export" onclick="colabDescargarCSV()" title="Descargar CSV con los registros visibles">
                                         <i class="fas fa-file-csv"></i> CSV
                                     </button>
@@ -6357,6 +6410,8 @@ FF
                                         <i class="fas fa-file-excel"></i> Excel
                                     </button>
                                 </div>
+                                <!-- Barra de filtros activos por columna -->
+                                <div id="ctbl-active-filters" class="ctbl-active-filters" style="display:none"></div>
                                 <!-- Tabla -->
                                 <div class="ctbl-table-wrap" id="ctbl-table-wrap">
                                     <div class="d-flex align-items-center justify-content-center p-4 gap-2 text-muted" id="ctbl-loading">
@@ -6381,6 +6436,26 @@ FF
                             </div>
                         </div>
                     </div><!-- /colabTablaModal -->
+
+                    <!-- Popup de filtro por columna (fuera del modal para z-index correcto) -->
+                    <div id="ctbl-cfp" class="ctbl-cfp" style="display:none" onclick="event.stopPropagation()">
+                        <div class="ctbl-cfp-head">
+                            <span id="ctbl-cfp-title">Filtrar por columna</span>
+                            <button onclick="ctblFiltroColCerrar()" title="Cerrar">&times;</button>
+                        </div>
+                        <div class="ctbl-cfp-searchrow">
+                            <input type="search" id="ctbl-cfp-q" placeholder="🔍 Buscar valor…" oninput="ctblFiltroColSearch(this.value)" autocomplete="off">
+                        </div>
+                        <div class="ctbl-cfp-acts">
+                            <button onclick="ctblFiltroColSelAll(true)">✔ Seleccionar todo</button>
+                            <button onclick="ctblFiltroColSelAll(false)">✕ Limpiar todo</button>
+                        </div>
+                        <div class="ctbl-cfp-list" id="ctbl-cfp-list"></div>
+                        <div class="ctbl-cfp-foot">
+                            <button class="ctbl-cfp-cancel" onclick="ctblFiltroColCerrar()">Cancelar</button>
+                            <button class="ctbl-cfp-ok" onclick="ctblFiltroColAplicar()">Aceptar</button>
+                        </div>
+                    </div>
 
                     <!-- ── JAVASCRIPT DE LA SECCIÓN ── -->
                     <script>
@@ -8403,6 +8478,17 @@ FF
                         // Columnas de texto largo que necesitan wrap
                         const CTBL_WRAP_COLS = new Set(['nombre','puesto','domicilio','comentarios','amonestaciones','profesion','grado_academico','coordinacion']);
 
+                        // Filtros activos por columna: { col: Set<string> } — null/falta = todo
+                        let _ctblColFilters = {};
+                        // Estado del popup abierto
+                        let _ctblCFP = { col: null, allVals: [], tempSel: new Set() };
+
+                        // Cerrar popup al clicar fuera
+                        document.addEventListener('click', e => {
+                            const popup = document.getElementById('ctbl-cfp');
+                            if (popup && popup.style.display !== 'none' && !popup.contains(e.target)) ctblFiltroColCerrar();
+                        });
+
                         /** Generar thead dinámico con todas las columnas */
                         function ctblGenerarThead() {
                             const thead = document.getElementById('ctbl-thead');
@@ -8410,7 +8496,16 @@ FF
                             const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
                             thead.innerHTML = `<tr>${ctblCols.map(col => {
                                 const label = CTBL_COL_LABELS[col] || col;
-                                return `<th onclick="colabTablaOrdenar('${esc(col)}')" title="Ordenar por ${esc(label)}" style="white-space:nowrap">${esc(label)} <span class="sort-arrow" id="ctbl-sort-${esc(col)}"></span></th>`;
+                                const hasF  = _ctblColFilters[col]?.size > 0;
+                                return `<th>
+                                    <div class="ctbl-th-inner" onclick="colabTablaOrdenar('${esc(col)}')" title="Ordenar por ${esc(label)}">
+                                        ${esc(label)}
+                                        <span class="sort-arrow" id="ctbl-sort-${esc(col)}"></span>
+                                    </div>
+                                    <button class="ctbl-cfb${hasF?' has-filter':''}" id="ctbl-cfb-${esc(col)}"
+                                            onclick="event.stopPropagation();ctblAbrirFiltroCol('${esc(col)}',event)"
+                                            title="Filtrar por ${esc(label)}">${hasF?'\u25bc&#xFE0E;':'\u25bc'}</button>
+                                </th>`;
                             }).join('')}</tr>`;
                         }
 
@@ -8418,6 +8513,8 @@ FF
                         window.colabAbrirTabla = async function() {
                             const modal = new bootstrap.Modal(document.getElementById('colabTablaModal'));
                             modal.show();
+                            // Resetear filtros de columna
+                            _ctblColFilters = {};
                             const loadingEl = document.getElementById('ctbl-loading');
                             const tableEl   = document.getElementById('ctbl-table');
                             const emptyEl   = document.getElementById('ctbl-empty');
@@ -8472,7 +8569,7 @@ FF
                             colabTablaFiltrar();
                         };
 
-                        /** Filtrar tabla por texto y selects */
+                        /** Filtrar tabla por texto, selects y filtros de columna */
                         window.colabTablaFiltrar = function() {
                             const q     = norm((document.getElementById('ctbl-search')?.value || ''));
                             const dir   = (document.getElementById('ctbl-dir')?.value   || '');
@@ -8487,6 +8584,12 @@ FF
                                     const hay = Object.values(r).some(v => norm(String(v ?? '')).includes(q));
                                     if (!hay) return false;
                                 }
+                                // Filtros por columna individual
+                                for (const [col, vals] of Object.entries(_ctblColFilters)) {
+                                    if (!vals || !vals.size) continue;
+                                    const cell = String(r[col] ?? '').trim() || '—';
+                                    if (!vals.has(cell)) return false;
+                                }
                                 return true;
                             });
 
@@ -8497,8 +8600,33 @@ FF
                                 return ctblSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
                             });
 
+                            ctblActualizarBannerFiltros();
                             colabTablaRender();
                         };
+
+                        /** Actualiza barra de filtros activos */
+                        function ctblActualizarBannerFiltros() {
+                            const bar   = document.getElementById('ctbl-active-filters');
+                            const btnCl = document.getElementById('ctbl-clear-col-filters');
+                            const active = Object.entries(_ctblColFilters).filter(([,v]) => v?.size > 0);
+                            if (!bar) return;
+                            if (!active.length) {
+                                bar.style.display = 'none';
+                                if (btnCl) btnCl.style.display = 'none';
+                                return;
+                            }
+                            if (btnCl) btnCl.style.display = '';
+                            bar.style.display = 'flex';
+                            const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                            bar.innerHTML = '<span style="color:#92400e;font-weight:700;flex-shrink:0"><i class="fas fa-filter me-1"></i>Filtros activos:</span>' +
+                                active.map(([col, vals]) => {
+                                    const label = CTBL_COL_LABELS[col] || col;
+                                    const preview = [...vals].slice(0, 3).map(esc).join(', ') + (vals.size > 3 ? `… (+${vals.size-3})` : '');
+                                    return `<span class="ctbl-af-tag">${esc(label)}: ${preview}
+                                        <button onclick="ctblQuitarFiltroCol('${esc(col)}')" title="Quitar filtro">&times;</button>
+                                    </span>`;
+                                }).join('');
+                        }
 
                         /** Ordenar tabla por columna */
                         window.colabTablaOrdenar = function(col) {
@@ -8513,6 +8641,113 @@ FF
                             if (arrow) arrow.textContent = ctblSortAsc ? '▲' : '▼';
                             colabTablaFiltrar();
                         };
+
+                        /* ──────────────── FILTROS POR COLUMNA (estilo Excel) ──────────────── */
+
+                        window.ctblAbrirFiltroCol = function(col, e) {
+                            const popup = document.getElementById('ctbl-cfp');
+                            const title = document.getElementById('ctbl-cfp-title');
+                            const qInp  = document.getElementById('ctbl-cfp-q');
+                            if (!popup) return;
+
+                            // Valores únicos de toda la data (sin filtros de columna excepto los demás)
+                            const allVals = [...new Set(ctblAllData.map(r => String(r[col] ?? '').trim() || '—'))]
+                                .sort((a,b) => {
+                                    // orden numérico si posible
+                                    const na = parseFloat(a), nb = parseFloat(b);
+                                    if (!isNaN(na) && !isNaN(nb)) return na - nb;
+                                    return a.localeCompare(b, 'es', {sensitivity:'base'});
+                                });
+
+                            const label = CTBL_COL_LABELS[col] || col;
+                            _ctblCFP = {
+                                col,
+                                allVals,
+                                tempSel: new Set(_ctblColFilters[col] ?? allVals)
+                            };
+                            if (title) title.textContent = `Filtrar: ${label}`;
+                            if (qInp)  { qInp.value = ''; }
+
+                            ctblFiltroColRenderList('');
+
+                            // Posicionar popup cerca del botón
+                            popup.style.visibility = 'hidden';
+                            popup.style.display = 'flex';
+                            const btnRect = e.target.getBoundingClientRect();
+                            const pRect   = popup.getBoundingClientRect();
+                            const vw = window.innerWidth, vh = window.innerHeight;
+                            let x = btnRect.left, y = btnRect.bottom + 4;
+                            if (x + pRect.width  > vw) x = btnRect.right  - pRect.width;
+                            if (y + pRect.height > vh) y = btnRect.top    - pRect.height - 4;
+                            popup.style.left = Math.max(4, x) + 'px';
+                            popup.style.top  = Math.max(4, y) + 'px';
+                            popup.style.visibility = '';
+                        };
+
+                        function ctblFiltroColRenderList(filter) {
+                            const listEl = document.getElementById('ctbl-cfp-list');
+                            if (!listEl) return;
+                            const q = filter.toLowerCase().trim();
+                            const shown = q ? _ctblCFP.allVals.filter(v => v.toLowerCase().includes(q)) : _ctblCFP.allVals;
+                            const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                            listEl.innerHTML = shown.map((v, i) => {
+                                const chk = _ctblCFP.tempSel.has(v) ? 'checked' : '';
+                                const safe = esc(v);
+                                return `<label class="ctbl-cfp-item">
+                                    <input type="checkbox" value="${safe}" ${chk}
+                                           onchange="ctblFiltroColToggle(this.value,this.checked)">
+                                    <span>${safe}</span>
+                                </label>`;
+                            }).join('');
+                            if (!shown.length) listEl.innerHTML = '<div style="color:#94a3b8;font-size:.78rem;padding:.5rem .7rem">Sin coincidencias</div>';
+                        }
+
+                        window.ctblFiltroColSearch = function(q) { ctblFiltroColRenderList(q); };
+
+                        window.ctblFiltroColToggle = function(val, checked) {
+                            if (checked) _ctblCFP.tempSel.add(val);
+                            else         _ctblCFP.tempSel.delete(val);
+                        };
+
+                        window.ctblFiltroColSelAll = function(all) {
+                            _ctblCFP.tempSel = all ? new Set(_ctblCFP.allVals) : new Set();
+                            ctblFiltroColRenderList(document.getElementById('ctbl-cfp-q')?.value || '');
+                        };
+
+                        window.ctblFiltroColAplicar = function() {
+                            const col = _ctblCFP.col;
+                            if (!col) return;
+                            // Si tienen todos los valores seleccionados = sin filtro
+                            const allSelected = _ctblCFP.tempSel.size === _ctblCFP.allVals.length;
+                            _ctblColFilters[col] = allSelected ? null : new Set(_ctblCFP.tempSel);
+                            // Actualizar botón en thead
+                            const btn = document.getElementById('ctbl-cfb-' + col);
+                            if (btn) {
+                                const hasF = !allSelected && _ctblCFP.tempSel.size > 0;
+                                btn.classList.toggle('has-filter', hasF);
+                            }
+                            ctblFiltroColCerrar();
+                            colabTablaFiltrar();
+                        };
+
+                        window.ctblFiltroColCerrar = function() {
+                            const popup = document.getElementById('ctbl-cfp');
+                            if (popup) popup.style.display = 'none';
+                        };
+
+                        window.ctblQuitarFiltroCol = function(col) {
+                            _ctblColFilters[col] = null;
+                            const btn = document.getElementById('ctbl-cfb-' + col);
+                            if (btn) btn.classList.remove('has-filter');
+                            colabTablaFiltrar();
+                        };
+
+                        window.ctblLimpiarFiltrosCols = function() {
+                            Object.keys(_ctblColFilters).forEach(k => _ctblColFilters[k] = null);
+                            document.querySelectorAll('.ctbl-cfb.has-filter').forEach(b => b.classList.remove('has-filter'));
+                            colabTablaFiltrar();
+                        };
+                        /* ────────────────────────────────────────────────────── */
 
                         /** Renderizar filas de la tabla */
                         function colabTablaRender() {
