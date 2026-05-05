@@ -4991,6 +4991,246 @@ FF
                         #colabNuevoModal .modal-body { background: #f8faff; }
                         #colabNuevoModal .nav-tabs .nav-link { font-size: .82rem; }
                         #colabNuevoModal .tab-content { min-height: 240px; }
+
+                        /* ─── CURSOS Y CAPACITACIONES ─── */
+                        .colab-cursos-panel {
+                            background: #f8faff;
+                            border: 1.5px solid #dde3ee;
+                            border-radius: 14px;
+                            padding: 1.25rem 1.5rem;
+                            margin-top: .5rem;
+                        }
+                        .colab-cursos-banner {
+                            display: flex;
+                            align-items: center;
+                            gap: .65rem;
+                            border-radius: 10px;
+                            padding: .65rem 1rem;
+                            margin-bottom: .9rem;
+                            font-size: .82rem;
+                            font-weight: 600;
+                        }
+                        .colab-cursos-banner.warn {
+                            background: linear-gradient(135deg,#fff9db,#fef3c7);
+                            border: 1.5px solid #f59e0b;
+                            color: #7c4a00;
+                        }
+                        .colab-cursos-banner.danger {
+                            background: linear-gradient(135deg,#fff0f0,#fde8e8);
+                            border: 1.5px solid #f87171;
+                            color: #7f1d1d;
+                        }
+                        .colab-cursos-banner i { font-size: 1.1rem; flex-shrink: 0; }
+                        .colab-curso-item {
+                            display: flex;
+                            align-items: flex-start;
+                            gap: .8rem;
+                            background: #fff;
+                            border: 1.5px solid #e0e8f5;
+                            border-radius: 12px;
+                            padding: .85rem 1rem;
+                            margin-bottom: .6rem;
+                            transition: box-shadow .18s;
+                        }
+                        .colab-curso-item:last-child { margin-bottom: 0; }
+                        .colab-curso-item:hover { box-shadow: 0 3px 14px rgba(21,101,192,.1); }
+                        .colab-curso-item.expired { border-color: #fca5a5; background: #fff9f9; }
+                        .colab-curso-item.warning { border-color: #fcd34d; background: #fffef5; }
+                        .colab-curso-icon {
+                            width: 2.4rem; height: 2.4rem;
+                            border-radius: 10px;
+                            display: flex; align-items: center; justify-content: center;
+                            font-size: 1rem;
+                            flex-shrink: 0;
+                        }
+                        .colab-curso-icon.ok      { background: #dcfce7; color: #2e7d32; }
+                        .colab-curso-icon.expired { background: #fee2e2; color: #c62828; }
+                        .colab-curso-icon.warning { background: #fef3c7; color: #92640b; }
+                        .colab-curso-icon.none    { background: #e8eef8; color: #1565c0; }
+                        .colab-curso-body { flex: 1; min-width: 0; }
+                        .colab-curso-name {
+                            font-weight: 700;
+                            font-size: .9rem;
+                            color: #1a2540;
+                            margin-bottom: .15rem;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                            white-space: nowrap;
+                        }
+                        .colab-curso-desc {
+                            font-size: .78rem;
+                            color: #64748b;
+                            margin-bottom: .3rem;
+                            white-space: nowrap;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                        }
+                        .colab-curso-meta {
+                            display: flex;
+                            flex-wrap: wrap;
+                            gap: .3rem .65rem;
+                            align-items: center;
+                            font-size: .74rem;
+                            color: #64748b;
+                        }
+                        .colab-curso-badge {
+                            display: inline-flex;
+                            align-items: center;
+                            gap: .25rem;
+                            font-size: .7rem;
+                            font-weight: 700;
+                            padding: .15rem .55rem;
+                            border-radius: 999px;
+                            white-space: nowrap;
+                        }
+                        .colab-curso-badge.ok       { background: #dcfce7; color: #166534; }
+                        .colab-curso-badge.warning  { background: #fef3c7; color: #92640b; }
+                        .colab-curso-badge.expired  { background: #fee2e2; color: #991b1b; }
+                        .colab-curso-badge.one-time { background: #e8eef8; color: #334155; }
+                        .colab-curso-badge.recur    { background: #ede9fe; color: #5b21b6; }
+                        .colab-curso-actions {
+                            display: flex;
+                            gap: .4rem;
+                            align-items: center;
+                            flex-shrink: 0;
+                            flex-wrap: wrap;
+                        }
+                        .cc-btn {
+                            cursor: pointer;
+                            border-radius: 7px;
+                            padding: .25rem .6rem;
+                            font-size: .72rem;
+                            font-weight: 600;
+                            white-space: nowrap;
+                            transition: background .15s, color .15s;
+                            border: 1.5px solid currentColor;
+                            background: transparent;
+                            line-height: 1.4;
+                            display: inline-flex;
+                            align-items: center;
+                            gap: .25rem;
+                        }
+                        .cc-btn.view-pdf { color: #c62828; }
+                        .cc-btn.view-pdf:hover { background: #c62828; color: #fff; }
+                        .cc-btn.up-pdf { color: #1558d6; }
+                        .cc-btn.up-pdf:hover { background: #1558d6; color: #fff; }
+                        .cc-btn.del { color: #9e9e9e; border-color: #e0e0e0; }
+                        .cc-btn.del:hover { background: #fee2e2; color: #c62828; border-color: #c62828; }
+                        .colab-cursos-empty {
+                            text-align: center;
+                            padding: 1.75rem 1rem;
+                            color: #94a3b8;
+                            font-size: .83rem;
+                        }
+                        .colab-cursos-empty i {
+                            font-size: 2.2rem;
+                            display: block;
+                            margin-bottom: .5rem;
+                            opacity: .35;
+                        }
+                        /* Formulario de agregar curso (dentro del modal) */
+                        .cedit-cursos-add-box {
+                            background: #f0f7ff;
+                            border: 1.5px dashed #93c5fd;
+                            border-radius: 12px;
+                            padding: 1rem 1.15rem;
+                            margin-top: .75rem;
+                            display: none;
+                        }
+                        .cedit-cursos-add-box.visible { display: block; }
+                        /* Item de curso en el modal de edición */
+                        .cedit-curso-row {
+                            display: flex;
+                            align-items: center;
+                            gap: .5rem;
+                            padding: .5rem .75rem;
+                            border: 1px solid #dde3ef;
+                            border-radius: 8px;
+                            margin-bottom: .45rem;
+                            background: #fff;
+                            font-size: .82rem;
+                        }
+                        .cedit-curso-row:last-child { margin-bottom: 0; }
+                        .cedit-curso-row-name { flex: 1; font-weight: 600; color: #1a2540; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                        .cedit-curso-row-badge { font-size: .68rem; }
+                        /* ─── DRAG & DROP de cursos ─── */
+                        .colab-cursos-dropzone {
+                            border: 2.5px dashed #93c5fd;
+                            border-radius: 14px;
+                            background: #f0f7ff;
+                            padding: 1.4rem 1rem;
+                            text-align: center;
+                            color: #64748b;
+                            font-size: .84rem;
+                            cursor: pointer;
+                            transition: background .2s, border-color .2s, transform .15s;
+                            margin-top: .75rem;
+                            user-select: none;
+                            position: relative;
+                        }
+                        .colab-cursos-dropzone:hover {
+                            background: #e0effe;
+                            border-color: #3b82f6;
+                        }
+                        .colab-cursos-dropzone.drag-over {
+                            background: #dbeafe;
+                            border-color: #1d4ed8;
+                            transform: scale(1.015);
+                            box-shadow: 0 4px 24px rgba(29,78,216,.18);
+                        }
+                        .colab-cursos-dropzone i {
+                            font-size: 2rem;
+                            color: #3b82f6;
+                            display: block;
+                            margin-bottom: .4rem;
+                            transition: transform .2s;
+                        }
+                        .colab-cursos-dropzone.drag-over i { transform: scale(1.25); }
+                        .colab-cursos-dropzone strong { color: #1d4ed8; }
+                        .colab-cursos-dropzone small { display: block; color: #94a3b8; font-size: .74rem; margin-top: .2rem; }
+                        /* Modal quick-fill de nuevo curso por drag&drop */
+                        #colabDropCursoModal .modal-header { background: linear-gradient(135deg,#1565c0,#1e88e5); }
+                        #colabDropCursoModal .modal-body  { background: #f8faff; }
+                        .cdm-pdf-badge {
+                            display: inline-flex;
+                            align-items: center;
+                            gap: .45rem;
+                            background: #fee2e2;
+                            color: #c62828;
+                            border-radius: 8px;
+                            padding: .35rem .75rem;
+                            font-size: .8rem;
+                            font-weight: 600;
+                            max-width: 100%;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                            white-space: nowrap;
+                        }
+
+                        /* Alerta hero cursos */
+                        #colab-cursos-hero-alert {
+                            margin-top: .7rem;
+                            display: none;
+                        }
+                        #colab-cursos-hero-alert.visible { display: block; }
+                        .colab-cursos-hero-pill {
+                            display: inline-flex;
+                            align-items: center;
+                            gap: .45rem;
+                            background: rgba(255,255,255,.13);
+                            border: 1.5px solid rgba(255,220,50,.5);
+                            border-radius: 20px;
+                            padding: .35rem .9rem;
+                            font-size: .78rem;
+                            font-weight: 700;
+                            color: #fff;
+                            cursor: pointer;
+                            margin-right: .4rem;
+                            transition: background .15s;
+                        }
+                        .colab-cursos-hero-pill:hover { background: rgba(255,255,255,.22); }
+                        .colab-cursos-hero-pill.danger { border-color: rgba(255,100,100,.6); }
+                        .colab-cursos-hero-pill i { font-size: .85rem; }
                     </style>
 
                     <!-- ── HERO DE BÚSQUEDA ── -->
@@ -4999,6 +5239,8 @@ FF
                         <div style="position:relative;z-index:1">
                             <h2><i class="fas fa-id-badge me-2" aria-hidden="true"></i>Directorio de Colaboradores</h2>
                             <p>Busca por número de empleado o nombre completo para consultar la ficha del colaborador</p>
+                            <!-- Alertas de cursos del colaborador activo -->
+                            <div id="colab-cursos-hero-alert" aria-live="polite"></div>
                             <div class="colab-search-bar">
                                 <!-- Búsqueda por número -->
                                 <div class="colab-search-input-wrap" style="max-width:160px">
@@ -5233,11 +5475,9 @@ FF
                                     <div class="colab-ficha-topstrip">
                                         <img src="images/aifa-logo.png" class="colab-logo-img" alt="Logo AIFA">
                                         <div class="colab-year-badge">
-                                            <img src="images/AIFA/maza_parada_2006.jpg"
+                                            <img src="images/margarita_maza.jpeg"
                                                  class="colab-maza-img"
-                                                 alt="2026, año de Margarita Maza"
-                                                 data-fallback-applied="1"
-                                                 onerror="this.onerror=null;this.src='images/AIFA/maza_parada_2006.jpg';">
+                                                 alt="2026, año de Margarita Maza">
                                         </div>
                                         <div class="colab-header-corner" id="colab-h-corner">
                                             <!-- líneas de organigrama dinámicas -->
@@ -5487,6 +5727,33 @@ FF
                                         <iframe id="colab-cv-iframe-ficha" src="" title="CV" style="width:100%;height:520px;border:none;display:block;" loading="lazy"></iframe>
                                     </div>
 
+                                    <!-- ── SECCIÓN: CURSOS Y CAPACITACIONES ── -->
+                                    <hr class="colab-divider">
+                                    <div class="colab-section-title">
+                                        <i class="fas fa-graduation-cap me-1" style="color:#1565c0" aria-hidden="true"></i>
+                                        Cursos y Capacitaciones
+                                    </div>
+                                    <!-- Banner de alertas (vencidos / por vencer) -->
+                                    <div id="colab-cursos-alert-banner"></div>
+                                    <!-- Lista de cursos del colaborador -->
+                                    <div id="colab-cursos-list">
+                                        <div class="colab-cursos-empty">
+                                            <i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i>
+                                            Cargando cursos…
+                                        </div>
+                                    </div>
+                                    <!-- Zona de arrastre (visible solo para editores) -->
+                                    <div id="colab-cursos-dropzone" class="colab-cursos-dropzone d-none"
+                                         role="button" tabindex="0"
+                                         aria-label="Arrastra aquí el PDF del curso"
+                                         onclick="document.getElementById('colab-cursos-file-input').click()">
+                                        <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
+                                        <div><strong>Arrastra el PDF aquí</strong> o haz clic para seleccionarlo</div>
+                                        <small>Solo PDF · Máx. 15 MB · Se creará un nuevo curso automáticamente</small>
+                                        <input type="file" id="colab-cursos-file-input" accept="application/pdf"
+                                               style="display:none" onchange="colabCursosDropHandleFiles(this.files)">
+                                    </div>
+
                                 </div><!-- /colab-ficha-body -->
                             </div><!-- /colab-ficha -->
                             <!-- Panel historial de cambios -->
@@ -5542,6 +5809,7 @@ FF
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-coment" data-bs-toggle="tab" data-bs-target="#cedit-coment" type="button"><i class="fas fa-comment-alt me-1 text-info"></i>Coment.</button></li>
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-foto" data-bs-toggle="tab" data-bs-target="#cedit-foto" type="button"><i class="fas fa-camera me-1"></i>Foto</button></li>
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-cv" data-bs-toggle="tab" data-bs-target="#cedit-cv" type="button"><i class="fas fa-file-pdf me-1 text-danger"></i>CV</button></li>
+                                        <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-cursos" data-bs-toggle="tab" data-bs-target="#cedit-cursos" type="button" onclick="colabCursosCargarEdit()"><i class="fas fa-graduation-cap me-1" style="color:#1565c0"></i>Cursos</button></li>
                                     </ul>
                                     <div class="tab-content p-3" id="colabEditContent">
 
@@ -5692,6 +5960,67 @@ FF
                                                     </label>
                                                     <div id="cedit-cv-filename" class="mt-2 small text-muted"></div>
                                                     <div id="cedit-cv-status" class="mt-1"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- TAB: Cursos y Capacitaciones -->
+                                        <div class="tab-pane fade" id="cedit-cursos" role="tabpanel">
+                                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                                <span class="fw-semibold small text-primary"><i class="fas fa-graduation-cap me-1"></i>Cursos registrados</span>
+                                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="colabCursosShowAddForm()">
+                                                    <i class="fas fa-plus me-1"></i>Añadir curso
+                                                </button>
+                                            </div>
+                                            <!-- Lista de cursos actuales -->
+                                            <div id="cedit-cursos-list">
+                                                <div class="text-center text-muted py-3 small">
+                                                    <span class="spinner-border spinner-border-sm me-1"></span>Cargando…
+                                                </div>
+                                            </div>
+                                            <!-- Formulario inline para nuevo curso -->
+                                            <div id="cedit-cursos-add-box" class="cedit-cursos-add-box">
+                                                <div class="fw-semibold small mb-2 text-primary"><i class="fas fa-plus-circle me-1"></i>Nuevo curso</div>
+                                                <div class="row g-2">
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label fw-semibold small">Nombre del curso <span class="text-danger">*</span></label>
+                                                        <input type="text" class="form-control form-control-sm" id="cn-curso-nombre" placeholder="Ej: Seguridad Aeroportuaria">
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label fw-semibold small">Descripción (opcional)</label>
+                                                        <input type="text" class="form-control form-control-sm" id="cn-curso-desc" placeholder="Ej: Impartido por AFAC, módulo 1">
+                                                    </div>
+                                                    <div class="col-6 col-md-4">
+                                                        <label class="form-label fw-semibold small">Fecha de realización</label>
+                                                        <input type="date" class="form-control form-control-sm" id="cn-curso-fecha">
+                                                    </div>
+                                                    <div class="col-6 col-md-4 d-flex align-items-end pb-1">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" id="cn-curso-recurrente" onchange="colabCursoToggleFreq(this)">
+                                                            <label class="form-check-label small fw-semibold" for="cn-curso-recurrente">¿Curso recurrente?</label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12 col-md-4" id="cn-curso-freq-wrap" style="display:none">
+                                                        <label class="form-label fw-semibold small">Frecuencia</label>
+                                                        <select class="form-select form-select-sm" id="cn-curso-freq" onchange="colabCursoToggleCustomFreq(this)">
+                                                            <option value="365">Anual (cada año)</option>
+                                                            <option value="180">Semestral (6 meses)</option>
+                                                            <option value="730">Bianual (2 años)</option>
+                                                            <option value="90">Trimestral (3 meses)</option>
+                                                            <option value="custom">Personalizado…</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-12 col-md-4" id="cn-curso-freq-custom-wrap" style="display:none">
+                                                        <label class="form-label fw-semibold small">Días entre repetición</label>
+                                                        <input type="number" class="form-control form-control-sm" id="cn-curso-freq-custom" min="1" max="3650" placeholder="Ej: 120">
+                                                    </div>
+                                                    <div class="col-12 d-flex gap-2 align-items-center mt-1">
+                                                        <button type="button" class="btn btn-sm btn-primary" onclick="colabCursosGuardarNuevo()">
+                                                            <i class="fas fa-save me-1"></i>Guardar
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-light" onclick="colabCursosHideAddForm()">Cancelar</button>
+                                                        <span id="cn-cursos-save-status" class="small text-muted"></span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -6418,6 +6747,17 @@ FF
                             colabCargarHistorial(val(gc(c, 'num')));
                             colabCargarHistorialPlaza(val(gc(c, 'num')));
 
+                            // Cargar cursos (async)
+                            colabCargarCursos(val(gc(c, 'num')));
+
+                            // Limpiar la alerta hero si no hay cursos todavía (se actualiza en colabRenderCursos)
+                            const heroAlertEl = document.getElementById('colab-cursos-hero-alert');
+                            if (heroAlertEl) { heroAlertEl.classList.remove('visible'); heroAlertEl.innerHTML = ''; }
+
+                            // Mostrar drop zone si el usuario tiene permisos
+                            colabCursosToggleDropzone();
+                            colabCursosInitDropzone();
+
                             colabSetState('ficha');
                         }
 
@@ -7019,6 +7359,9 @@ FF
                             if (numInput) numInput.value = '';
                             if (nameInput) nameInput.value = '';
                             if (sugBox) { sugBox.classList.remove('visible'); sugBox.innerHTML = ''; }
+                            // Limpiar alerta hero de cursos
+                            const heroAlertEl = document.getElementById('colab-cursos-hero-alert');
+                            if (heroAlertEl) { heroAlertEl.classList.remove('visible'); heroAlertEl.innerHTML = ''; }
                             colabSetState('inicial');
                             if (colabLoaded) colabRenderDashboard();
                         };
@@ -8153,6 +8496,7 @@ FF
                                 sectionCSS + '\n' +
                                 '.colab-btn-print,.colab-btn-edit,.colab-btn-delete,' +
                                 '.colab-cv-panel,#colab-cv-inline-preview,' +
+                                '.colab-cursos-actions,.cc-btn,#colab-cursos-alert-banner,' +
                                 '.colab-historial-panel,.colab-historial-plaza-panel{display:none!important;}\n' +
                                 '.colab-ficha{box-shadow:none!important;border:none!important;max-width:100%!important;}\n' +
                                 '.colab-tabla td,.colab-tabla th{font-size:10.5px!important;}\n' +
@@ -8183,6 +8527,575 @@ FF
                             if (btnNuevo) btnNuevo.classList.toggle('d-none', !colabCanEdit());
                         }
 
+                        /* ══════════════════════════════════════════════════════════════
+                           CURSOS Y CAPACITACIONES
+                           ══════════════════════════════════════════════════════════════ */
+
+                        const COLAB_CURSOS_BUCKET = 'colab-cursos-pdfs';
+                        const COLAB_CURSOS_BUCKET_URL = 'https://fgstncvuuhpgyzmjceyr.supabase.co/storage/v1/object/public/colab-cursos-pdfs/';
+                        const COLAB_CURSOS_WARN_DAYS  = 30;   // días antes del vencimiento para mostrar alerta
+
+                        /* ── helpers de fecha ── */
+                        function ccParseDate(s) {
+                            if (!s) return null;
+                            const d = new Date(s);
+                            return isNaN(d.getTime()) ? null : d;
+                        }
+                        function ccFormatDate(s) {
+                            const d = ccParseDate(s);
+                            if (!d) return '—';
+                            return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+                        }
+                        function ccNextDue(curso) {
+                            if (!curso.es_recurrente || !curso.frecuencia_dias || !curso.fecha_realizacion) return null;
+                            const base = ccParseDate(curso.fecha_realizacion);
+                            if (!base) return null;
+                            // Calcular próxima ocurrencia a partir de hoy
+                            const today = new Date();
+                            today.setHours(0,0,0,0);
+                            const freq = curso.frecuencia_dias * 86400000;
+                            let next = new Date(base.getTime() + freq);
+                            while (next < today) next = new Date(next.getTime() + freq);
+                            return next;
+                        }
+                        /* 'ok' | 'warning' | 'expired' | 'none' */
+                        function ccStatus(curso) {
+                            if (!curso.es_recurrente) return 'none';
+                            const next = ccNextDue(curso);
+                            if (!next) return 'none';
+                            const today = new Date();
+                            today.setHours(0,0,0,0);
+                            const diff = Math.floor((next - today) / 86400000);
+                            if (diff < 0)                    return 'expired';
+                            if (diff <= COLAB_CURSOS_WARN_DAYS) return 'warning';
+                            return 'ok';
+                        }
+                        function ccFreqLabel(dias) {
+                            if (!dias) return '';
+                            const map = { 90: 'Trimestral', 180: 'Semestral', 365: 'Anual', 730: 'Bianual' };
+                            return map[dias] || `Cada ${dias} días`;
+                        }
+
+                        /* ── Cargar cursos desde Supabase ── */
+                        async function colabCargarCursos(numEmpleado) {
+                            const listEl  = document.getElementById('colab-cursos-list');
+                            const alertEl = document.getElementById('colab-cursos-alert-banner');
+                            if (listEl) listEl.innerHTML = '<div class="colab-cursos-empty"><i class="fas fa-circle-notch fa-spin"></i>Cargando cursos…</div>';
+                            if (alertEl) alertEl.innerHTML = '';
+                            if (!numEmpleado) {
+                                if (listEl) listEl.innerHTML = '<div class="colab-cursos-empty"><i class="fas fa-book-open"></i>Sin número de empleado.</div>';
+                                return;
+                            }
+                            try {
+                                const sb = window.supabaseClient;
+                                if (!sb) throw new Error('Supabase no disponible');
+                                const { data, error } = await sb
+                                    .from('colab_cursos')
+                                    .select('*')
+                                    .eq('num_empleado', String(numEmpleado))
+                                    .order('fecha_realizacion', { ascending: false });
+                                if (error) throw error;
+                                colabRenderCursos(data || [], numEmpleado);
+                            } catch (err) {
+                                console.warn('[Cursos] Error:', err);
+                                if (listEl) listEl.innerHTML = `<div class="colab-cursos-empty text-danger"><i class="fas fa-exclamation-circle"></i>${err.message || 'Error al cargar cursos.'}</div>`;
+                            }
+                        }
+
+                        /* ── Render de la lista de cursos en la ficha ── */
+                        function colabRenderCursos(cursos, numEmpleado) {
+                            const listEl  = document.getElementById('colab-cursos-list');
+                            const alertEl = document.getElementById('colab-cursos-alert-banner');
+                            const heroEl  = document.getElementById('colab-cursos-hero-alert');
+                            if (!listEl) return;
+
+                            const canEdit = colabCanEdit();
+                            const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+                            // Contar alertas
+                            let nExpired = 0, nWarn = 0;
+                            cursos.forEach(c => {
+                                const st = ccStatus(c);
+                                if (st === 'expired') nExpired++;
+                                else if (st === 'warning') nWarn++;
+                            });
+
+                            // Banner de alerta en la ficha
+                            if (alertEl) {
+                                if (nExpired > 0 || nWarn > 0) {
+                                    const cls = nExpired > 0 ? 'danger' : 'warn';
+                                    const ico = nExpired > 0 ? 'fa-exclamation-circle' : 'fa-exclamation-triangle';
+                                    const msg = nExpired > 0
+                                        ? `${nExpired} curso${nExpired > 1 ? 's' : ''} vencido${nExpired > 1 ? 's' : ''}${nWarn > 0 ? ` · ${nWarn} por vencer` : ''}`
+                                        : `${nWarn} curso${nWarn > 1 ? 's' : ''} por vencer en los próximos ${COLAB_CURSOS_WARN_DAYS} días`;
+                                    alertEl.innerHTML = `<div class="colab-cursos-banner ${cls} mb-2"><i class="fas ${ico}"></i>${msg} — revisa las fechas de actualización</div>`;
+                                } else {
+                                    alertEl.innerHTML = '';
+                                }
+                            }
+
+                            // Píldora en el hero (visible desde el buscador)
+                            if (heroEl) {
+                                if (nExpired > 0 || nWarn > 0) {
+                                    heroEl.classList.add('visible');
+                                    const pills = [];
+                                    if (nExpired > 0) pills.push(`<span class="colab-cursos-hero-pill danger"><i class="fas fa-exclamation-circle"></i>${nExpired} curso${nExpired>1?'s':''} vencido${nExpired>1?'s':''}</span>`);
+                                    if (nWarn > 0)    pills.push(`<span class="colab-cursos-hero-pill"><i class="fas fa-exclamation-triangle"></i>${nWarn} curso${nWarn>1?'s':''} por vencer</span>`);
+                                    heroEl.innerHTML = pills.join('');
+                                } else {
+                                    heroEl.classList.remove('visible');
+                                    heroEl.innerHTML = '';
+                                }
+                            }
+
+                            // Lista vacía
+                            if (!cursos.length) {
+                                let emptyHtml = `<div class="colab-cursos-empty"><i class="fas fa-book-open"></i>Sin cursos registrados aún.`;
+                                if (canEdit) emptyHtml += `<br><small>Arrastra un PDF a la zona de abajo o usa <strong>Editar → Cursos</strong>.</small>`;
+                                emptyHtml += `</div>`;
+                                listEl.innerHTML = emptyHtml;
+                                return;
+                            }
+
+                            // Ordenar: vencidos primero, luego por vencer, luego ok
+                            const order = { expired: 0, warning: 1, ok: 2, none: 3 };
+                            const sorted = [...cursos].sort((a,b) => (order[ccStatus(a)]||3) - (order[ccStatus(b)]||3));
+
+                            listEl.innerHTML = sorted.map(curso => {
+                                const st    = ccStatus(curso);
+                                const next  = ccNextDue(curso);
+                                const iconCls = st === 'expired' ? 'expired' : st === 'warning' ? 'warning' : st === 'ok' ? 'ok' : 'none';
+                                const iconFa  = st === 'expired' ? 'fa-times-circle' : st === 'warning' ? 'fa-exclamation-triangle' : st === 'ok' ? 'fa-check-circle' : 'fa-graduation-cap';
+                                const itemCls = st === 'expired' ? ' expired' : st === 'warning' ? ' warning' : '';
+
+                                // Badge de estado
+                                let statusBadge = '';
+                                if (st === 'expired') statusBadge = `<span class="colab-curso-badge expired"><i class="fas fa-times-circle"></i>Vencido</span>`;
+                                else if (st === 'warning') {
+                                    const diff = next ? Math.ceil((next - new Date()) / 86400000) : 0;
+                                    statusBadge = `<span class="colab-curso-badge warning"><i class="fas fa-exclamation-triangle"></i>Vence en ${diff} día${diff!==1?'s':''}</span>`;
+                                } else if (st === 'ok') statusBadge = `<span class="colab-curso-badge ok"><i class="fas fa-check-circle"></i>Vigente</span>`;
+
+                                // Badge de recurrencia
+                                const recurBadge = curso.es_recurrente
+                                    ? `<span class="colab-curso-badge recur"><i class="fas fa-redo"></i>${ccFreqLabel(curso.frecuencia_dias)}</span>`
+                                    : `<span class="colab-curso-badge one-time"><i class="fas fa-file-alt"></i>Único</span>`;
+
+                                // Botones PDF
+                                const pdfBtns = curso.pdf_url
+                                    ? `<a href="${esc(curso.pdf_url)}" target="_blank" rel="noopener noreferrer" class="cc-btn view-pdf" title="Ver PDF"><i class="fas fa-file-pdf"></i> Ver PDF</a>`
+                                    : (canEdit ? `<label class="cc-btn up-pdf" title="Subir PDF"><i class="fas fa-upload"></i> Subir PDF<input type="file" accept="application/pdf" style="display:none" onchange="colabCursosSubirPdf('${esc(curso.id)}', this)"></label>` : '');
+
+                                const delBtn = canEdit ? `<button type="button" class="cc-btn del" title="Eliminar curso" onclick="colabCursosEliminar('${esc(curso.id)}')"><i class="fas fa-trash-alt"></i></button>` : '';
+
+                                // Info de próxima fecha
+                                let nextInfo = '';
+                                if (curso.es_recurrente && next) {
+                                    nextInfo = `<span><i class="fas fa-calendar-alt me-1"></i>Próxima: <strong>${ccFormatDate(next.toISOString())}</strong></span>`;
+                                }
+
+                                return `<div class="colab-curso-item${itemCls}" id="cc-item-${esc(curso.id)}">
+                                    <div class="colab-curso-icon ${iconCls}"><i class="fas ${iconFa}"></i></div>
+                                    <div class="colab-curso-body">
+                                        <div class="colab-curso-name" title="${esc(curso.nombre)}">${esc(curso.nombre)}</div>
+                                        ${curso.descripcion ? `<div class="colab-curso-desc">${esc(curso.descripcion)}</div>` : ''}
+                                        <div class="colab-curso-meta">
+                                            ${curso.fecha_realizacion ? `<span><i class="fas fa-calendar-check me-1"></i>${ccFormatDate(curso.fecha_realizacion)}</span>` : ''}
+                                            ${recurBadge}
+                                            ${statusBadge}
+                                            ${nextInfo}
+                                        </div>
+                                    </div>
+                                    <div class="colab-curso-actions">
+                                        ${pdfBtns}
+                                        ${delBtn}
+                                    </div>
+                                </div>`;
+                            }).join('');
+                        }
+
+                        /* ── Subir PDF de un curso ── */
+                        window.colabCursosSubirPdf = async function(cursoId, inputEl) {
+                            const file = inputEl.files[0];
+                            if (!file) return;
+                            if (file.size > 15 * 1024 * 1024) { alert('El PDF no puede superar 15 MB.'); inputEl.value = ''; return; }
+                            const labelEl = inputEl.closest('.cc-btn');
+                            const origHtml = labelEl ? labelEl.innerHTML : '';
+                            if (labelEl) labelEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+                            try {
+                                const sb = window.supabaseClient;
+                                if (!sb) throw new Error('Supabase no disponible');
+                                const numEmpl = val(gc(colabCurrentRow, 'num')) || 'desconocido';
+                                const path = `${numEmpl}/${cursoId}.pdf`;
+                                const { error: upErr } = await sb.storage.from(COLAB_CURSOS_BUCKET).upload(path, file, { upsert: true, contentType: 'application/pdf' });
+                                if (upErr) throw upErr;
+                                const pdfUrl = COLAB_CURSOS_BUCKET_URL + path;
+                                const { error: dbErr } = await sb.from('colab_cursos').update({ pdf_url: pdfUrl }).eq('id', cursoId);
+                                if (dbErr) throw dbErr;
+                                // Recargar lista
+                                await colabCargarCursos(numEmpl);
+                            } catch (err) {
+                                console.error('[Cursos] Error subiendo PDF:', err);
+                                alert('Error al subir el PDF: ' + (err.message || err));
+                                if (labelEl) labelEl.innerHTML = origHtml;
+                            } finally {
+                                inputEl.value = '';
+                            }
+                        };
+
+                        /* ── Eliminar curso ── */
+                        window.colabCursosEliminar = async function(cursoId) {
+                            if (!confirm('¿Eliminar este curso? Esta acción no se puede deshacer.')) return;
+                            try {
+                                const sb = window.supabaseClient;
+                                if (!sb) throw new Error('Supabase no disponible');
+                                const { error } = await sb.from('colab_cursos').delete().eq('id', cursoId);
+                                if (error) throw error;
+                                const numEmpl = val(gc(colabCurrentRow, 'num'));
+                                await colabCargarCursos(numEmpl);
+                                // Refrescar también el panel del modal si está abierto
+                                if (document.getElementById('cedit-cursos')?.classList.contains('active')) {
+                                    colabCursosCargarEdit();
+                                }
+                            } catch (err) {
+                                alert('Error al eliminar: ' + (err.message || err));
+                            }
+                        };
+
+                        /* ── Cargar cursos en el modal de edición ── */
+                        window.colabCursosCargarEdit = async function() {
+                            const listEl = document.getElementById('cedit-cursos-list');
+                            if (!listEl) return;
+                            listEl.innerHTML = '<div class="text-center text-muted py-2 small"><span class="spinner-border spinner-border-sm me-1"></span>Cargando…</div>';
+                            const numEmpl = val(gc(colabCurrentRow, 'num'));
+                            if (!numEmpl) { listEl.innerHTML = '<div class="text-muted small">Sin número de empleado.</div>'; return; }
+                            try {
+                                const sb = window.supabaseClient;
+                                const { data, error } = await sb.from('colab_cursos').select('*').eq('num_empleado', String(numEmpl)).order('fecha_realizacion', { ascending: false });
+                                if (error) throw error;
+                                const cursos = data || [];
+                                if (!cursos.length) {
+                                    listEl.innerHTML = '<div class="text-muted small py-1">Sin cursos registrados. Usa el botón "Añadir curso" para agregar el primero.</div>';
+                                    return;
+                                }
+                                const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                                listEl.innerHTML = cursos.map(c => {
+                                    const st = ccStatus(c);
+                                    const stBadge = st === 'expired'
+                                        ? `<span class="badge bg-danger-subtle text-danger cedit-curso-row-badge ms-1">Vencido</span>`
+                                        : st === 'warning'
+                                            ? `<span class="badge bg-warning-subtle text-warning-emphasis cedit-curso-row-badge ms-1">Por vencer</span>`
+                                            : st === 'ok'
+                                                ? `<span class="badge bg-success-subtle text-success cedit-curso-row-badge ms-1">Vigente</span>`
+                                                : '';
+                                    const recurTag = c.es_recurrente ? `<span class="badge bg-purple-subtle text-purple cedit-curso-row-badge ms-1" style="background:#ede9fe;color:#5b21b6">${ccFreqLabel(c.frecuencia_dias)}</span>` : '';
+                                    const pdfBtn = c.pdf_url
+                                        ? `<a href="${esc(c.pdf_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger btn-sm py-0 px-1" style="font-size:.68rem" title="Ver PDF"><i class="fas fa-file-pdf"></i></a>`
+                                        : `<label class="btn btn-outline-primary btn-sm py-0 px-1" style="font-size:.68rem" title="Subir PDF"><i class="fas fa-upload"></i><input type="file" accept="application/pdf" style="display:none" onchange="colabCursosSubirPdf('${esc(c.id)}', this)"></label>`;
+                                    return `<div class="cedit-curso-row">
+                                        <div class="cedit-curso-row-name" title="${esc(c.nombre)}">${esc(c.nombre)}</div>
+                                        ${recurTag}${stBadge}
+                                        <div class="ms-auto d-flex gap-1 align-items-center">
+                                            ${pdfBtn}
+                                            <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1" style="font-size:.68rem" onclick="colabCursosEliminar('${esc(c.id)}')" title="Eliminar"><i class="fas fa-trash-alt"></i></button>
+                                        </div>
+                                    </div>`;
+                                }).join('');
+                            } catch (err) {
+                                listEl.innerHTML = `<div class="text-danger small">${err.message || 'Error'}</div>`;
+                            }
+                        };
+
+                        /* ── Mostrar / ocultar formulario de agregar curso ── */
+                        window.colabCursosShowAddForm = function() {
+                            const box = document.getElementById('cedit-cursos-add-box');
+                            if (!box) return;
+                            box.classList.add('visible');
+                            // Resetear campos
+                            ['cn-curso-nombre','cn-curso-desc'].forEach(id => { const e = document.getElementById(id); if(e) e.value = ''; });
+                            const fechaEl = document.getElementById('cn-curso-fecha');
+                            if (fechaEl) fechaEl.value = new Date().toISOString().slice(0,10);
+                            const recEl = document.getElementById('cn-curso-recurrente');
+                            if (recEl) { recEl.checked = false; colabCursoToggleFreq(recEl); }
+                            const statusEl = document.getElementById('cn-cursos-save-status');
+                            if (statusEl) statusEl.textContent = '';
+                            document.getElementById('cn-curso-nombre')?.focus();
+                        };
+                        window.colabCursosHideAddForm = function() {
+                            const box = document.getElementById('cedit-cursos-add-box');
+                            if (box) box.classList.remove('visible');
+                        };
+
+                        /* ── Toggle frecuencia ── */
+                        window.colabCursoToggleFreq = function(chk) {
+                            const wrap = document.getElementById('cn-curso-freq-wrap');
+                            if (!wrap) return;
+                            const checked = chk ? chk.checked : document.getElementById('cn-curso-recurrente')?.checked;
+                            wrap.style.display = checked ? '' : 'none';
+                            if (!checked) {
+                                const cw = document.getElementById('cn-curso-freq-custom-wrap');
+                                if (cw) cw.style.display = 'none';
+                            }
+                        };
+                        window.colabCursoToggleCustomFreq = function(sel) {
+                            const cw = document.getElementById('cn-curso-freq-custom-wrap');
+                            if (cw) cw.style.display = sel && sel.value === 'custom' ? '' : 'none';
+                        };
+
+                        /* ── Guardar nuevo curso ── */
+                        window.colabCursosGuardarNuevo = async function() {
+                            const statusEl = document.getElementById('cn-cursos-save-status');
+                            const nombre   = (document.getElementById('cn-curso-nombre')?.value || '').trim();
+                            if (!nombre) {
+                                if (statusEl) statusEl.innerHTML = '<span class="text-danger">El nombre del curso es obligatorio.</span>';
+                                document.getElementById('cn-curso-nombre')?.focus();
+                                return;
+                            }
+                            const numEmpl = val(gc(colabCurrentRow, 'num'));
+                            if (!numEmpl) {
+                                if (statusEl) statusEl.innerHTML = '<span class="text-danger">No se detectó el colaborador activo.</span>';
+                                return;
+                            }
+                            const desc         = (document.getElementById('cn-curso-desc')?.value || '').trim() || null;
+                            const fecha        = document.getElementById('cn-curso-fecha')?.value || null;
+                            const esRecurrente = !!document.getElementById('cn-curso-recurrente')?.checked;
+                            let frecDias = null;
+                            if (esRecurrente) {
+                                const sel = document.getElementById('cn-curso-freq');
+                                if (sel?.value === 'custom') {
+                                    const cv = parseInt(document.getElementById('cn-curso-freq-custom')?.value || '0', 10);
+                                    if (!cv || cv < 1) {
+                                        if (statusEl) statusEl.innerHTML = '<span class="text-danger">Ingresa un número válido de días.</span>';
+                                        return;
+                                    }
+                                    frecDias = cv;
+                                } else {
+                                    frecDias = parseInt(sel?.value || '365', 10);
+                                }
+                            }
+                            const userObj  = JSON.parse(sessionStorage.getItem('user') || '{}');
+                            const userName = userObj.user_metadata?.full_name || userObj.email || 'Sistema';
+                            const btnSave  = document.querySelector('#cedit-cursos-add-box .btn-primary');
+                            if (btnSave) { btnSave.disabled = true; btnSave.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando…'; }
+                            if (statusEl) statusEl.innerHTML = '';
+                            try {
+                                const sb = window.supabaseClient;
+                                if (!sb) throw new Error('Supabase no disponible');
+                                const { error } = await sb.from('colab_cursos').insert({
+                                    num_empleado:     String(numEmpl),
+                                    nombre:           nombre,
+                                    descripcion:      desc,
+                                    fecha_realizacion:fecha || null,
+                                    es_recurrente:    esRecurrente,
+                                    frecuencia_dias:  frecDias,
+                                    creado_por:       userName,
+                                });
+                                if (error) throw error;
+                                if (statusEl) statusEl.innerHTML = '<span class="text-success"><i class="fas fa-check me-1"></i>Guardado</span>';
+                                // Refrescar ambas listas
+                                colabCursosHideAddForm();
+                                await colabCursosCargarEdit();
+                                await colabCargarCursos(numEmpl);
+                            } catch (err) {
+                                if (statusEl) statusEl.innerHTML = `<span class="text-danger">${err.message || 'Error al guardar.'}</span>`;
+                            } finally {
+                                if (btnSave) { btnSave.disabled = false; btnSave.innerHTML = '<i class="fas fa-save me-1"></i>Guardar'; }
+                            }
+                        };
+
+                        /* ══════════════════════════════════════════════════════════════
+                           FIN CURSOS — Drag & Drop
+                           ══════════════════════════════════════════════════════════════ */
+
+                        /* Archivo pendiente para el modal quick-fill */
+                        let _ccDropFile = null;
+
+                        /* ── Mostrar/ocultar drop zone según permisos ── */
+                        function colabCursosToggleDropzone() {
+                            const dz = document.getElementById('colab-cursos-dropzone');
+                            if (!dz) return;
+                            dz.classList.toggle('d-none', !colabCanEdit());
+                        }
+
+                        /* ── Inicializar eventos drag & drop en la zona ── */
+                        function colabCursosInitDropzone() {
+                            const dz = document.getElementById('colab-cursos-dropzone');
+                            if (!dz || dz.dataset.dzInit) return;
+                            dz.dataset.dzInit = '1';
+
+                            // Teclado: Enter/Space activa el click
+                            dz.addEventListener('keydown', e => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    document.getElementById('colab-cursos-file-input')?.click();
+                                }
+                            });
+
+                            // Drag events
+                            dz.addEventListener('dragenter', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+                            dz.addEventListener('dragover',  e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; dz.classList.add('drag-over'); });
+                            dz.addEventListener('dragleave', e => { if (!dz.contains(e.relatedTarget)) dz.classList.remove('drag-over'); });
+                            dz.addEventListener('drop', e => {
+                                e.preventDefault();
+                                dz.classList.remove('drag-over');
+                                if (!colabCanEdit()) return;
+                                colabCursosDropHandleFiles(e.dataTransfer.files);
+                            });
+                        }
+
+                        /* ── Procesar archivos recibidos (drag o click) ── */
+                        window.colabCursosDropHandleFiles = function(files) {
+                            if (!files || !files.length) return;
+                            const file = files[0];
+                            if (file.type !== 'application/pdf') {
+                                alert('Solo se aceptan archivos PDF.');
+                                return;
+                            }
+                            if (file.size > 15 * 1024 * 1024) {
+                                alert('El archivo no puede superar 15 MB.');
+                                return;
+                            }
+                            _ccDropFile = file;
+                            // Pre-llenar nombre desde el nombre del archivo (sin extensión, limpiar guiones/guiones bajos)
+                            const rawName = file.name.replace(/\.pdf$/i, '').replace(/[_\-]+/g, ' ').trim();
+                            const nameInput = document.getElementById('cdm-nombre');
+                            const pdfName   = document.getElementById('cdm-pdf-name');
+                            const fechaInp  = document.getElementById('cdm-fecha');
+                            const recChk    = document.getElementById('cdm-recurrente');
+                            const statusEl  = document.getElementById('cdm-status');
+                            const descInp   = document.getElementById('cdm-desc');
+                            const freqWrap  = document.getElementById('cdm-freq-wrap');
+                            const freqSel   = document.getElementById('cdm-freq');
+                            const custWrap  = document.getElementById('cdm-freq-custom-wrap');
+                            if (pdfName)   pdfName.textContent = file.name;
+                            if (nameInput) nameInput.value     = rawName;
+                            if (descInp)   descInp.value       = '';
+                            if (fechaInp)  fechaInp.value      = new Date().toISOString().slice(0, 10);
+                            if (recChk)    recChk.checked      = false;
+                            if (freqWrap)  freqWrap.style.display = 'none';
+                            if (freqSel)   freqSel.value       = '365';
+                            if (custWrap)  custWrap.style.display = 'none';
+                            if (statusEl)  statusEl.innerHTML  = '';
+                            const btn = document.getElementById('cdm-btn-save');
+                            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save me-1"></i>Guardar curso'; }
+                            // Abrir modal
+                            const modal = new bootstrap.Modal(document.getElementById('colabDropCursoModal'));
+                            modal.show();
+                            // Enfocar el nombre para editarlo fácilmente
+                            setTimeout(() => nameInput?.select(), 350);
+                        };
+
+                        /* ── Toggles frecuencia en el modal quick-fill ── */
+                        window.colabDropCursoToggleFreq = function(chk) {
+                            const w = document.getElementById('cdm-freq-wrap');
+                            if (w) w.style.display = chk?.checked ? '' : 'none';
+                            if (!chk?.checked) {
+                                const cw = document.getElementById('cdm-freq-custom-wrap');
+                                if (cw) cw.style.display = 'none';
+                            }
+                        };
+                        window.colabDropCursoToggleCustom = function(sel) {
+                            const cw = document.getElementById('cdm-freq-custom-wrap');
+                            if (cw) cw.style.display = sel?.value === 'custom' ? '' : 'none';
+                        };
+
+                        /* ── Cancelar: limpiar archivo pendiente ── */
+                        window.colabDropCursoCancel = function() {
+                            _ccDropFile = null;
+                            const fi = document.getElementById('colab-cursos-file-input');
+                            if (fi) fi.value = '';
+                        };
+
+                        /* ── Guardar: subir PDF + insertar registro ── */
+                        window.colabDropCursoGuardar = async function() {
+                            if (!_ccDropFile) { alert('No hay archivo seleccionado.'); return; }
+                            if (!colabCanEdit()) return;
+
+                            const nombre = (document.getElementById('cdm-nombre')?.value || '').trim();
+                            if (!nombre) {
+                                document.getElementById('cdm-status').innerHTML = '<span class="text-danger">El nombre del curso es obligatorio.</span>';
+                                document.getElementById('cdm-nombre')?.focus();
+                                return;
+                            }
+                            const numEmpl = val(gc(colabCurrentRow, 'num'));
+                            if (!numEmpl) {
+                                document.getElementById('cdm-status').innerHTML = '<span class="text-danger">No se detectó el colaborador activo.</span>';
+                                return;
+                            }
+
+                            const desc        = (document.getElementById('cdm-desc')?.value || '').trim() || null;
+                            const fecha       = document.getElementById('cdm-fecha')?.value || null;
+                            const esRec       = !!document.getElementById('cdm-recurrente')?.checked;
+                            let frecDias = null;
+                            if (esRec) {
+                                const sel = document.getElementById('cdm-freq');
+                                if (sel?.value === 'custom') {
+                                    const cv = parseInt(document.getElementById('cdm-freq-custom')?.value || '0', 10);
+                                    if (!cv || cv < 1) {
+                                        document.getElementById('cdm-status').innerHTML = '<span class="text-danger">Ingresa un número válido de días.</span>';
+                                        return;
+                                    }
+                                    frecDias = cv;
+                                } else {
+                                    frecDias = parseInt(sel?.value || '365', 10);
+                                }
+                            }
+
+                            const btn      = document.getElementById('cdm-btn-save');
+                            const statusEl = document.getElementById('cdm-status');
+                            if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando…'; }
+                            if (statusEl) statusEl.innerHTML = '';
+
+                            try {
+                                const sb = window.supabaseClient;
+                                if (!sb) throw new Error('Supabase no disponible');
+
+                                const userObj  = JSON.parse(sessionStorage.getItem('user') || '{}');
+                                const userName = userObj.user_metadata?.full_name || userObj.email || 'Sistema';
+
+                                // 1. Insertar el registro (obtenemos el id generado)
+                                const { data: inserted, error: insErr } = await sb.from('colab_cursos').insert({
+                                    num_empleado:     String(numEmpl),
+                                    nombre:           nombre,
+                                    descripcion:      desc,
+                                    fecha_realizacion:fecha || null,
+                                    es_recurrente:    esRec,
+                                    frecuencia_dias:  frecDias,
+                                    creado_por:       userName,
+                                }).select('id').single();
+                                if (insErr) throw insErr;
+
+                                // 2. Subir el PDF al bucket con path: numEmpl/id.pdf
+                                const path   = `${numEmpl}/${inserted.id}.pdf`;
+                                if (statusEl) statusEl.innerHTML = '<span class="text-primary"><span class="spinner-border spinner-border-sm me-1"></span>Subiendo PDF…</span>';
+                                const { error: upErr } = await sb.storage
+                                    .from(COLAB_CURSOS_BUCKET)
+                                    .upload(path, _ccDropFile, { upsert: true, contentType: 'application/pdf' });
+                                if (upErr) throw upErr;
+
+                                // 3. Actualizar el registro con la URL pública del PDF
+                                const pdfUrl = COLAB_CURSOS_BUCKET_URL + path;
+                                const { error: updErr } = await sb.from('colab_cursos').update({ pdf_url: pdfUrl }).eq('id', inserted.id);
+                                if (updErr) throw updErr;
+
+                                if (statusEl) statusEl.innerHTML = '<span class="text-success"><i class="fas fa-check me-1"></i>¡Guardado correctamente!</span>';
+
+                                // Cerrar modal y refrescar lista
+                                setTimeout(async () => {
+                                    bootstrap.Modal.getInstance(document.getElementById('colabDropCursoModal'))?.hide();
+                                    _ccDropFile = null;
+                                    const fi = document.getElementById('colab-cursos-file-input');
+                                    if (fi) fi.value = '';
+                                    await colabCargarCursos(numEmpl);
+                                }, 800);
+
+                            } catch (err) {
+                                console.error('[Cursos drop] Error:', err);
+                                if (statusEl) statusEl.innerHTML = `<span class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>${err.message || 'Error al guardar.'}</span>`;
+                                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save me-1"></i>Guardar curso'; }
+                            }
+                        };
+
                         function _colabBootstrap() {
                             initColabEvents();
                             colabActualizarBotonesAdmin();
@@ -8204,6 +9117,103 @@ FF
 
                     })();
                     </script>
+
+                    <!-- ══════════════════════════════════════════════
+                         MODAL: QUICK-FILL DE NUEVO CURSO (drag & drop)
+                    ══════════════════════════════════════════════ -->
+                    <div class="modal fade" id="colabDropCursoModal" tabindex="-1"
+                         aria-labelledby="colabDropCursoModalLabel" aria-hidden="true"
+                         data-bs-backdrop="static">
+                        <div class="modal-dialog modal-dialog-centered" style="max-width:520px">
+                            <div class="modal-content">
+                                <div class="modal-header py-2">
+                                    <h5 class="modal-title text-white mb-0" id="colabDropCursoModalLabel">
+                                        <i class="fas fa-graduation-cap me-2"></i>Agregar curso
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white"
+                                            data-bs-dismiss="modal" aria-label="Cerrar"
+                                            onclick="colabDropCursoCancel()"></button>
+                                </div>
+                                <div class="modal-body p-3">
+                                    <!-- Archivo detectado -->
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold small text-muted text-uppercase" style="letter-spacing:.05em">PDF seleccionado</label>
+                                        <div id="cdm-pdf-badge" class="cdm-pdf-badge">
+                                            <i class="fas fa-file-pdf"></i>
+                                            <span id="cdm-pdf-name">—</span>
+                                        </div>
+                                    </div>
+                                    <!-- Nombre del curso -->
+                                    <div class="mb-2">
+                                        <label class="form-label fw-semibold small" for="cdm-nombre">
+                                            Nombre del curso <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" class="form-control form-control-sm" id="cdm-nombre"
+                                               placeholder="Ej: Seguridad Aeroportuaria">
+                                    </div>
+                                    <!-- Descripción -->
+                                    <div class="mb-2">
+                                        <label class="form-label fw-semibold small" for="cdm-desc">
+                                            Descripción <span class="text-muted fw-normal">(opcional)</span>
+                                        </label>
+                                        <input type="text" class="form-control form-control-sm" id="cdm-desc"
+                                               placeholder="Ej: Impartido por AFAC, módulo 1">
+                                    </div>
+                                    <!-- Fecha -->
+                                    <div class="mb-2">
+                                        <label class="form-label fw-semibold small" for="cdm-fecha">
+                                            Fecha de realización
+                                        </label>
+                                        <input type="date" class="form-control form-control-sm" id="cdm-fecha">
+                                    </div>
+                                    <!-- Recurrente -->
+                                    <div class="mb-2 d-flex align-items-center gap-2">
+                                        <div class="form-check mb-0">
+                                            <input class="form-check-input" type="checkbox" id="cdm-recurrente"
+                                                   onchange="colabDropCursoToggleFreq(this)">
+                                            <label class="form-check-label small fw-semibold" for="cdm-recurrente">
+                                                ¿Curso recurrente / con vigencia?
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <!-- Frecuencia (oculta hasta marcar recurrente) -->
+                                    <div id="cdm-freq-wrap" class="mb-2" style="display:none">
+                                        <label class="form-label fw-semibold small" for="cdm-freq">Frecuencia</label>
+                                        <div class="d-flex gap-2 flex-wrap">
+                                            <select class="form-select form-select-sm" id="cdm-freq"
+                                                    style="max-width:200px"
+                                                    onchange="colabDropCursoToggleCustom(this)">
+                                                <option value="365">Anual (cada año)</option>
+                                                <option value="180">Semestral (6 meses)</option>
+                                                <option value="730">Bianual (2 años)</option>
+                                                <option value="90">Trimestral (3 meses)</option>
+                                                <option value="custom">Personalizado…</option>
+                                            </select>
+                                            <div id="cdm-freq-custom-wrap" style="display:none">
+                                                <input type="number" class="form-control form-control-sm"
+                                                       id="cdm-freq-custom" min="1" max="3650"
+                                                       placeholder="Días" style="width:90px">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Status msg -->
+                                    <div id="cdm-status" class="small mt-2"></div>
+                                </div>
+                                <div class="modal-footer justify-content-between py-2">
+                                    <button type="button" class="btn btn-secondary btn-sm"
+                                            data-bs-dismiss="modal" onclick="colabDropCursoCancel()">
+                                        Cancelar
+                                    </button>
+                                    <button type="button" class="btn btn-primary btn-sm" id="cdm-btn-save"
+                                            onclick="colabDropCursoGuardar()">
+                                        <i class="fas fa-save me-1"></i>Guardar curso
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- /colabDropCursoModal -->
+
                 </div>
                 <!-- /colaboradores-section -->
 
