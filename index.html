@@ -5183,6 +5183,29 @@ FF
                         /* Sin carpeta */
                         .colab-cursos-folder.no-folder .colab-cursos-folder-header { background: #f8fafc; color: #94a3b8; font-weight: 500; font-style: italic; }
                         .colab-cursos-folder.no-folder .folder-icon { color: #cbd5e1; }
+                        /* ── Arrastrar cursos entre carpetas ── */
+                        .colab-curso-item[draggable="true"] { cursor: grab; }
+                        .colab-curso-item[draggable="true"]:active { cursor: grabbing; }
+                        .colab-curso-item.cc-dragging { opacity: .35; }
+                        .colab-cursos-folder-header.cc-drag-over {
+                            background: #dbeafe !important;
+                            outline: 2.5px dashed #3b82f6;
+                            outline-offset: -2px;
+                        }
+                        /* ── Renombrar nombre de curso con clic ── */
+                        .colab-curso-name.cc-renameable { cursor: text; }
+                        .colab-curso-name.cc-renameable:hover { text-decoration: underline dotted #94a3b8; }
+                        .colab-curso-name-input {
+                            border: none;
+                            border-bottom: 2px solid #3b82f6;
+                            background: transparent;
+                            font-weight: 600;
+                            width: 100%;
+                            outline: none;
+                            font-size: inherit;
+                            color: inherit;
+                            padding: 0;
+                        }
                         /* ─── DRAG & DROP de cursos ─── */
                         .colab-cursos-dropzone {
                             border: 2.5px dashed #93c5fd;
@@ -8763,10 +8786,12 @@ FF
                                 const delBtn = canEdit ? `<button type="button" class="cc-btn del" title="Eliminar curso" onclick="colabCursosEliminar('${esc(curso.id)}')"><i class="fas fa-trash-alt"></i></button>` : '';
                                 let nextInfo = '';
                                 if (curso.es_recurrente && next) nextInfo = `<span><i class="fas fa-calendar-alt me-1"></i>Próxima: <strong>${ccFormatDate(next.toISOString())}</strong></span>`;
-                                return `<div class="colab-curso-item${itemCls}" id="cc-item-${esc(curso.id)}">
+                                return `<div class="colab-curso-item${itemCls}" id="cc-item-${esc(curso.id)}"
+                                    ${canEdit ? `draggable="true" ondragstart="colabCursoDragStart(event,'${esc(curso.id)}')"` : ''}>
                                     <div class="colab-curso-icon ${iconCls}"><i class="fas ${iconFa}"></i></div>
                                     <div class="colab-curso-body">
-                                        <div class="colab-curso-name" title="${esc(curso.nombre)}">${esc(curso.nombre)}</div>
+                                        <div class="colab-curso-name${canEdit?' cc-renameable':''}" title="${esc(curso.nombre)}${canEdit?' — clic para renombrar':''}"
+                                            ${canEdit ? `onclick="colabCursoClickRename('${esc(curso.id)}',this)"` : ''}>${esc(curso.nombre)}</div>
                                         ${curso.descripcion ? `<div class="colab-curso-desc">${esc(curso.descripcion)}</div>` : ''}
                                         <div class="colab-curso-meta">
                                             ${curso.fecha_realizacion ? `<span><i class="fas fa-calendar-check me-1"></i>${ccFormatDate(curso.fecha_realizacion)}</span>` : ''}
@@ -8796,7 +8821,10 @@ FF
                                        </button>`
                                     : '';
                                 return `<div class="colab-cursos-folder${isNone?' no-folder':''}">
-                                    <div class="colab-cursos-folder-header${isOpen?'':' collapsed'}" onclick="colabCursosFolderToggle('${catKey}')">
+                                    <div class="colab-cursos-folder-header${isOpen?'':' collapsed'}"
+                                         data-cat="${esc(cat)}" data-numempl="${esc(numEmpleado)}"
+                                         onclick="colabCursosFolderToggle('${catKey}')"
+                                         ${canEdit ? 'ondragover="colabCursoFolderDragOver(event)" ondragleave="colabCursoFolderDragLeave(event)" ondrop="colabCursoFolderDrop(event,this)"' : ''}>
                                         <i class="fas ${isOpen?'fa-folder-open':'fa-folder'} folder-icon"></i>
                                         <span class="folder-name">${catLabel}</span>
                                         <span class="folder-count">${items.length} curso${items.length!==1?'s':''}</span>
@@ -9167,6 +9195,91 @@ FF
                             } catch (err) {
                                 alert('Error al renombrar: ' + (err.message || err));
                             }
+                        };
+
+                        /* ═══════════════════════════════════════════════════════════
+                           ARRASTRAR CURSOS ENTRE CARPETAS + RENOMBRAR CON CLIC
+                           ═══════════════════════════════════════════════════════════ */
+
+                        let _ccDraggingId = null;
+
+                        /* Inicia el arrastre de un curso */
+                        window.colabCursoDragStart = function(e, id) {
+                            _ccDraggingId = id;
+                            e.dataTransfer.effectAllowed = 'move';
+                            const item = document.getElementById('cc-item-' + id);
+                            if (item) {
+                                item.classList.add('cc-dragging');
+                                item.addEventListener('dragend', function onEnd() {
+                                    item.classList.remove('cc-dragging');
+                                    document.querySelectorAll('.cc-drag-over').forEach(el => el.classList.remove('cc-drag-over'));
+                                    _ccDraggingId = null;
+                                    item.removeEventListener('dragend', onEnd);
+                                });
+                            }
+                        };
+
+                        /* Resalta carpeta cuando el cursor entra arrastrando */
+                        window.colabCursoFolderDragOver = function(e) {
+                            if (!_ccDraggingId) return;
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = 'move';
+                            e.currentTarget.classList.add('cc-drag-over');
+                        };
+
+                        /* Quita el resaltado cuando el cursor sale de la carpeta */
+                        window.colabCursoFolderDragLeave = function(e) {
+                            if (!e.currentTarget.contains(e.relatedTarget)) {
+                                e.currentTarget.classList.remove('cc-drag-over');
+                            }
+                        };
+
+                        /* Suelta el curso en la carpeta destino → actualiza categoría */
+                        window.colabCursoFolderDrop = async function(e, headerEl) {
+                            e.preventDefault();
+                            headerEl.classList.remove('cc-drag-over');
+                            const id = _ccDraggingId;
+                            _ccDraggingId = null;
+                            if (!id) return;
+                            const catRaw   = headerEl.dataset.cat;   // valor real (browser decodifica &quot; etc.)
+                            const numEmpl  = headerEl.dataset.numempl;
+                            const newCat   = (catRaw === '__none__' || !catRaw) ? null : catRaw;
+                            const sb = window.supabaseClient;
+                            if (!sb) return;
+                            // No hacer nada si el curso ya está en esa carpeta
+                            const item = document.getElementById('cc-item-' + id);
+                            const curFolder = item?.closest('.colab-cursos-folder-body')
+                                                   ?.previousElementSibling?.dataset?.cat;
+                            if (curFolder === catRaw) return;
+                            const { error } = await sb.from('colab_cursos').update({ categoria: newCat }).eq('id', id);
+                            if (error) { alert('Error al mover: ' + error.message); return; }
+                            await colabCargarCursos(numEmpl);
+                        };
+
+                        /* Clic en el nombre del curso → edición inline tipo Explorador Windows */
+                        window.colabCursoClickRename = function(id, nameDiv) {
+                            if (nameDiv.querySelector('input')) return; // ya editando
+                            const current = nameDiv.textContent.trim();
+                            nameDiv.innerHTML = `<input class="colab-curso-name-input"
+                                value="${current.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}" maxlength="200">`;
+                            const inp = nameDiv.querySelector('input');
+                            inp.focus(); inp.select();
+                            let saved = false;
+                            const save = async () => {
+                                if (saved) return; saved = true;
+                                const newName = inp.value.trim();
+                                if (!newName || newName === current) { nameDiv.textContent = current; return; }
+                                const sb = window.supabaseClient;
+                                const { error } = await sb.from('colab_cursos').update({ nombre: newName }).eq('id', id);
+                                if (error) { alert('Error al renombrar: ' + error.message); nameDiv.textContent = current; return; }
+                                nameDiv.textContent = newName;
+                                nameDiv.title = newName + ' — clic para renombrar';
+                            };
+                            inp.addEventListener('blur', save);
+                            inp.addEventListener('keydown', e => {
+                                if (e.key === 'Enter')  { e.preventDefault(); inp.blur(); }
+                                if (e.key === 'Escape') { saved = true; inp.removeEventListener('blur', save); nameDiv.textContent = current; }
+                            });
                         };
 
                         /* ═══════════════════════════════════════════════════════════
