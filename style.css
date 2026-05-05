@@ -11971,6 +11971,33 @@ body.dark-mode #yoy-insights-list li {
     gap: 6px;
     flex-wrap: nowrap;
 }
+.ag-tb-day-clickable {
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 2px 6px;
+    transition: background .15s;
+}
+.ag-tb-day-clickable:hover {
+    background: rgba(79,70,229,.08);
+}
+.ag-tb-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: .62rem;
+    font-weight: 600;
+    color: #6366f1;
+    opacity: .7;
+    margin-left: 4px;
+    letter-spacing: .03em;
+    animation: ag-hint-pulse 2.4s ease-in-out infinite;
+    pointer-events: none;
+    white-space: nowrap;
+}
+@keyframes ag-hint-pulse {
+    0%, 100% { opacity: .5; }
+    50% { opacity: 1; }
+}
 /* HOY / MAÑANA as solid pill badges */
 .ag-tb-day-label {
     display: inline-flex;

@@ -1023,7 +1023,7 @@ FF
                 <button class="ag-tb-icon" title="Ir al Calendario General de sesiones" aria-label="Ir al Calendario General de sesiones" onclick="_goToAgenda()"><i class="fas fa-calendar-check"></i></button>
 
                 <!-- HOY -->
-                <div class="ag-tb-day-block">
+                <div class="ag-tb-day-block ag-tb-day-clickable" onclick="_goToAgenda()" title="Abrir calendario de sesiones" role="button" tabindex="0">
                     <span class="ag-tb-day-label ag-tb-today-lbl">HOY</span>
                     <span class="ag-tb-date" id="ag-tb-date-today"></span>
                     <span class="ag-tb-events" id="ag-tb-events-today">
@@ -1034,13 +1034,15 @@ FF
                 <span class="ag-tb-sep" aria-hidden="true"></span>
 
                 <!-- MAÑANA -->
-                <div class="ag-tb-day-block">
+                <div class="ag-tb-day-block ag-tb-day-clickable" onclick="_goToAgenda()" title="Abrir calendario de sesiones" role="button" tabindex="0">
                     <span class="ag-tb-day-label ag-tb-tom-lbl">MAÑANA</span>
                     <span class="ag-tb-date" id="ag-tb-date-tom"></span>
                     <span class="ag-tb-events" id="ag-tb-events-tom">
                         <span class="ag-tb-loading"><i class="fas fa-circle-notch fa-spin"></i></span>
                     </span>
                 </div>
+
+                <span class="ag-tb-hint" aria-hidden="true"><i class="fas fa-calendar-alt"></i> Ver agenda</span>
             </div>
         </div>
         <!-- ─────────────────────────────────────────────────────── -->
