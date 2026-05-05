@@ -5206,6 +5206,31 @@ FF
                             color: inherit;
                             padding: 0;
                         }
+                        /* ─── Toolbar de cursos ─── */
+                        .cc-toolbar { display:flex; align-items:center; gap:.45rem; padding:.3rem 0 .55rem; flex-wrap:wrap; }
+                        .cc-toolbar-btn { display:inline-flex; align-items:center; gap:.35rem; font-size:.79rem; font-weight:600; border:1.5px solid #bfdbfe; background:#eff6ff; color:#1d4ed8; border-radius:8px; padding:.28rem .7rem; cursor:pointer; transition:background .15s; white-space:nowrap; }
+                        .cc-toolbar-btn:hover { background:#dbeafe; border-color:#3b82f6; }
+                        .cc-toolbar-btn.danger { border-color:#fca5a5; background:#fff1f2; color:#b91c1c; }
+                        .cc-toolbar-btn.danger:hover { background:#fee2e2; }
+                        .cc-toolbar-sep { width:1px; height:20px; background:#e2e8f0; flex-shrink:0; }
+                        .cc-toolbar-search { max-width:200px; font-size:.78rem !important; }
+                        /* ─── Menú contextual ─── */
+                        .cc-ctx-menu { position:fixed; z-index:9999; background:#fff; border:1px solid #e2e8f0; border-radius:10px; box-shadow:0 10px 36px rgba(0,0,0,.2); min-width:218px; padding:.3rem 0; font-size:.82rem; }
+                        .cc-ctx-item { display:flex; align-items:center; gap:.55rem; padding:.42rem .85rem; cursor:pointer; color:#334155; transition:background .1s; }
+                        .cc-ctx-item:hover { background:#f1f5f9; color:#1d4ed8; }
+                        .cc-ctx-item.danger { color:#b91c1c; }
+                        .cc-ctx-item.danger:hover { background:#fff1f2; color:#b91c1c; }
+                        .cc-ctx-item i { width:15px; text-align:center; font-size:.8rem; flex-shrink:0; }
+                        .cc-ctx-sep { height:1px; background:#e2e8f0; margin:.25rem 0; }
+                        .cc-ctx-sub-title { font-size:.7rem; font-weight:700; text-transform:uppercase; color:#94a3b8; padding:.3rem .85rem .1rem; letter-spacing:.04em; }
+                        .cc-ctx-sub-item { padding:.35rem .85rem .35rem 2.1rem; font-size:.8rem; }
+                        /* ─── Drop zone en body de carpeta ─── */
+                        .cc-folder-dropzone { border:2px dashed #bfdbfe; border-radius:8px; margin:.35rem .5rem; padding:.35rem; text-align:center; font-size:.72rem; color:#93c5fd; transition:all .15s; pointer-events:none; }
+                        .cc-folder-dropzone.drag-active { border-color:#3b82f6; background:#eff6ff; color:#1d4ed8; pointer-events:all; }
+                        /* ─── Carpeta vacía ─── */
+                        .cc-empty-folder-msg { font-size:.74rem; color:#b0bec5; text-align:center; padding:.5rem .5rem; font-style:italic; }
+                        /* ─── Highlight search ─── */
+                        .cc-search-hl { background:#fef08a; border-radius:2px; }
                         /* ─── DRAG & DROP de cursos ─── */
                         .colab-cursos-dropzone {
                             border: 2.5px dashed #93c5fd;
@@ -5802,6 +5827,24 @@ FF
                                     </div>
                                     <!-- Banner de alertas (vencidos / por vencer) -->
                                     <div id="colab-cursos-alert-banner"></div>
+                                    <!-- Toolbar: nueva carpeta, buscar, ordenar -->
+                                    <div id="colab-cursos-toolbar" class="cc-toolbar d-none">
+                                        <button class="cc-toolbar-btn" onclick="colabCursosNuevaCarpeta()" title="Crear carpeta nueva">
+                                            <i class="fas fa-folder-plus"></i> Nueva carpeta
+                                        </button>
+                                        <div class="cc-toolbar-sep"></div>
+                                        <input type="search" id="cc-cursos-search" class="cc-toolbar-search form-control form-control-sm"
+                                               placeholder="Buscar curso…" oninput="colabCursosFiltrar(this.value)">
+                                        <div class="ms-auto d-flex align-items-center gap-1">
+                                            <select id="cc-cursos-sort" class="form-select form-select-sm" style="max-width:165px;font-size:.78rem"
+                                                    onchange="colabCursosOrdenar(this.value)">
+                                                <option value="status">Por estado</option>
+                                                <option value="name">Por nombre A–Z</option>
+                                                <option value="date-desc">Por fecha (reciente)</option>
+                                                <option value="date-asc">Por fecha (antigua)</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                     <!-- Lista de cursos del colaborador -->
                                     <div id="colab-cursos-list">
                                         <div class="colab-cursos-empty">
@@ -5848,6 +5891,11 @@ FF
                             </div>
 
                         </div><!-- /colab-card-wrapper -->
+
+                        <!-- Menú contextual de cursos (posicionado vía JS) -->
+                        <div id="cc-ctx-menu" class="cc-ctx-menu" style="display:none" onclick="event.stopPropagation()">
+                            <div id="cc-ctx-items"></div>
+                        </div>
                     </div><!-- /colab-results-area -->
 
                     <!-- ── Modal drill-down genérico: colaboradores por grupo ── -->
@@ -8663,6 +8711,11 @@ FF
 
                         /* ── Cargar cursos desde Supabase ── */
                         async function colabCargarCursos(numEmpleado) {
+                            // Cargar carpetas virtuales guardadas en localStorage
+                            try {
+                                const stored = localStorage.getItem(`cc_vf_${numEmpleado}`);
+                                _ccVirtualFolders = new Set(stored ? JSON.parse(stored) : []);
+                            } catch { _ccVirtualFolders = new Set(); }
                             const listEl  = document.getElementById('colab-cursos-list');
                             const alertEl = document.getElementById('colab-cursos-alert-banner');
                             if (listEl) listEl.innerHTML = '<div class="colab-cursos-empty"><i class="fas fa-circle-notch fa-spin"></i>Cargando cursos…</div>';
@@ -8692,15 +8745,23 @@ FF
                             const listEl  = document.getElementById('colab-cursos-list');
                             const alertEl = document.getElementById('colab-cursos-alert-banner');
                             const heroEl  = document.getElementById('colab-cursos-hero-alert');
+                            const toolbar = document.getElementById('colab-cursos-toolbar');
                             if (!listEl) return;
 
                             const canEdit = colabCanEdit();
                             const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
+                            // Mostrar/ocultar toolbar
+                            if (toolbar) toolbar.classList.toggle('d-none', !canEdit);
+
+                            // Sincronizar selector de orden
+                            const sortSel = document.getElementById('cc-cursos-sort');
+                            if (sortSel) sortSel.value = _ccSortOrder;
+
                             // Actualizar datalist de categorías
                             colabCursosRefreshCatList(cursos);
 
-                            // Contar alertas
+                            // Contar alertas (sobre el set completo, no filtrado)
                             let nExpired = 0, nWarn = 0;
                             cursos.forEach(c => {
                                 const st = ccStatus(c);
@@ -8722,7 +8783,7 @@ FF
                                 }
                             }
 
-                            // Píldora en el hero (visible desde el buscador)
+                            // Píldora en el hero
                             if (heroEl) {
                                 if (nExpired > 0 || nWarn > 0) {
                                     heroEl.classList.add('visible');
@@ -8736,18 +8797,45 @@ FF
                                 }
                             }
 
+                            // Filtrar por búsqueda
+                            const q = _ccSearchText.toLowerCase().trim();
+                            const filtered = q ? cursos.filter(c =>
+                                (c.nombre||'').toLowerCase().includes(q) ||
+                                (c.descripcion||'').toLowerCase().includes(q) ||
+                                (c.categoria||'').toLowerCase().includes(q)
+                            ) : cursos;
+
                             // Lista vacía
                             if (!cursos.length) {
                                 let emptyHtml = `<div class="colab-cursos-empty"><i class="fas fa-book-open"></i>Sin cursos registrados aún.`;
-                                if (canEdit) emptyHtml += `<br><small>Arrastra un PDF a la zona de abajo o usa <strong>Editar → Cursos</strong>.</small>`;
+                                if (canEdit) emptyHtml += `<br><small>Arrastra un PDF o crea una carpeta con el botón de arriba.</small>`;
                                 emptyHtml += `</div>`;
                                 listEl.innerHTML = emptyHtml;
                                 return;
                             }
 
-                            // Ordenar dentro de cada grupo: vencidos primero
-                            const order = { expired: 0, warning: 1, ok: 2, none: 3 };
-                            const sorted = [...cursos].sort((a,b) => (order[ccStatus(a)]||3) - (order[ccStatus(b)]||3));
+                            // Sin resultados de búsqueda
+                            if (!filtered.length) {
+                                listEl.innerHTML = `<div class="colab-cursos-empty"><i class="fas fa-search"></i>No se encontraron cursos para "<strong>${esc(q)}</strong>".</div>`;
+                                return;
+                            }
+
+                            // Función para resaltar texto buscado
+                            const hl = text => {
+                                if (!q) return esc(text);
+                                const idx = text.toLowerCase().indexOf(q);
+                                if (idx < 0) return esc(text);
+                                return esc(text.slice(0, idx)) + `<mark class="cc-search-hl">${esc(text.slice(idx, idx+q.length))}</mark>` + esc(text.slice(idx+q.length));
+                            };
+
+                            // Ordenar
+                            const orderSt = { expired: 0, warning: 1, ok: 2, none: 3 };
+                            const sorted = [...filtered].sort((a,b) => {
+                                if (_ccSortOrder === 'name') return (a.nombre||'').localeCompare(b.nombre||'', 'es');
+                                if (_ccSortOrder === 'date-desc') return (b.fecha_realizacion||'') > (a.fecha_realizacion||'') ? 1 : -1;
+                                if (_ccSortOrder === 'date-asc')  return (a.fecha_realizacion||'') > (b.fecha_realizacion||'') ? 1 : -1;
+                                return (orderSt[ccStatus(a)]||3) - (orderSt[ccStatus(b)]||3);
+                            });
 
                             // Agrupar por categoría
                             const groups = new Map();
@@ -8757,6 +8845,11 @@ FF
                                 groups.get(cat).push(c);
                             });
 
+                            // Añadir carpetas virtuales vacías (sin cursos aún)
+                            _ccVirtualFolders.forEach(vf => {
+                                if (!groups.has(vf)) groups.set(vf, []);
+                            });
+
                             // Mover 'Sin carpeta' al final
                             const sortedGroups = [...groups.entries()].sort(([a],[b]) => {
                                 if (a === '__none__') return 1;
@@ -8764,7 +8857,7 @@ FF
                                 return a.localeCompare(b, 'es');
                             });
 
-                            // Renderizar
+                            // ── Render de un curso individual ──
                             const renderCurso = curso => {
                                 const st    = ccStatus(curso);
                                 const next  = ccNextDue(curso);
@@ -8783,15 +8876,17 @@ FF
                                 const pdfBtns = curso.pdf_url
                                     ? `<a href="${esc(curso.pdf_url)}" target="_blank" rel="noopener noreferrer" class="cc-btn view-pdf" title="Ver PDF"><i class="fas fa-file-pdf"></i> Ver PDF</a>`
                                     : (canEdit ? `<label class="cc-btn up-pdf" title="Subir PDF"><i class="fas fa-upload"></i> Subir PDF<input type="file" accept="application/pdf" style="display:none" onchange="colabCursosSubirPdf('${esc(curso.id)}', this)"></label>` : '');
-                                const delBtn = canEdit ? `<button type="button" class="cc-btn del" title="Eliminar curso" onclick="colabCursosEliminar('${esc(curso.id)}')"><i class="fas fa-trash-alt"></i></button>` : '';
+                                const delBtn = canEdit ? `<button type="button" class="cc-btn del" title="Eliminar" onclick="event.stopPropagation();colabCursosEliminar('${esc(curso.id)}')"><i class="fas fa-trash-alt"></i></button>` : '';
                                 let nextInfo = '';
                                 if (curso.es_recurrente && next) nextInfo = `<span><i class="fas fa-calendar-alt me-1"></i>Próxima: <strong>${ccFormatDate(next.toISOString())}</strong></span>`;
                                 return `<div class="colab-curso-item${itemCls}" id="cc-item-${esc(curso.id)}"
-                                    ${canEdit ? `draggable="true" ondragstart="colabCursoDragStart(event,'${esc(curso.id)}')"` : ''}>
+                                    data-id="${esc(curso.id)}" data-cat="${esc(curso.categoria||'')}" data-numempl="${esc(numEmpleado)}"
+                                    ${canEdit ? `draggable="true" ondragstart="colabCursoDragStart(event,'${esc(curso.id)}')"
+                                    oncontextmenu="event.preventDefault();event.stopPropagation();colabCursosShowCtxMenu(event,'course',{id:'${esc(curso.id)}',nombre:${JSON.stringify(curso.nombre)},pdfUrl:${JSON.stringify(curso.pdf_url||'')},cat:'${esc(curso.categoria||'')}',numEmpl:'${esc(numEmpleado)}'});"` : ''}>
                                     <div class="colab-curso-icon ${iconCls}"><i class="fas ${iconFa}"></i></div>
                                     <div class="colab-curso-body">
                                         <div class="colab-curso-name${canEdit?' cc-renameable':''}" title="${esc(curso.nombre)}${canEdit?' — clic para renombrar':''}"
-                                            ${canEdit ? `onclick="colabCursoClickRename('${esc(curso.id)}',this)"` : ''}>${esc(curso.nombre)}</div>
+                                            ${canEdit ? `onclick="colabCursoClickRename('${esc(curso.id)}',this)"` : ''}>${hl(curso.nombre)}</div>
                                         ${curso.descripcion ? `<div class="colab-curso-desc">${esc(curso.descripcion)}</div>` : ''}
                                         <div class="colab-curso-meta">
                                             ${curso.fecha_realizacion ? `<span><i class="fas fa-calendar-check me-1"></i>${ccFormatDate(curso.fecha_realizacion)}</span>` : ''}
@@ -8802,28 +8897,45 @@ FF
                                 </div>`;
                             };
 
+                            // ── Render de grupos (carpetas) ──
                             listEl.innerHTML = sortedGroups.map(([cat, items]) => {
                                 const isNone   = cat === '__none__';
                                 const catLabel = isNone ? 'Sin carpeta' : cat;
                                 const catKey   = esc(cat);
                                 const isOpen   = !_ccClosedFolders.has(cat);
-                                // Contar alertas del grupo
                                 const grpExp   = items.filter(c => ccStatus(c) === 'expired').length;
                                 const grpWarn  = items.filter(c => ccStatus(c) === 'warning').length;
                                 const alertBadges = [
                                     grpExp  ? `<span class="badge bg-danger ms-1" style="font-size:.65rem">${grpExp} vencido${grpExp>1?'s':''}</span>` : '',
                                     grpWarn ? `<span class="badge bg-warning text-dark ms-1" style="font-size:.65rem">${grpWarn} por vencer</span>` : ''
                                 ].join('');
+                                const ctxHandler = canEdit && !isNone
+                                    ? `oncontextmenu="event.preventDefault();event.stopPropagation();colabCursosShowCtxMenu(event,'folder',{cat:'${catKey}',numEmpl:'${esc(numEmpleado)}'});"`
+                                    : '';
                                 const renameBtn = canEdit && !isNone
                                     ? `<button type="button" class="colab-cursos-folder-rename-btn" title="Renombrar carpeta"
                                              onclick="event.stopPropagation();colabCursosFolderRename('${catKey}','${esc(numEmpleado)}')">
                                          <i class="fas fa-pencil-alt"></i>
                                        </button>`
                                     : '';
+                                // Drop zone en el cuerpo de la carpeta (visible al arrastrar)
+                                const dropZone = canEdit
+                                    ? `<div class="cc-folder-dropzone" id="cc-fdz-${catKey}"
+                                              data-cat="${esc(cat)}" data-numempl="${esc(numEmpleado)}"
+                                              ondragover="event.preventDefault();this.classList.add('drag-active')"
+                                              ondragleave="this.classList.remove('drag-active')"
+                                              ondrop="this.classList.remove('drag-active');colabCursoFolderDrop(event,document.querySelector('.colab-cursos-folder-header[data-cat=\\'${catKey}\\']'))">
+                                         <i class="fas fa-arrow-down me-1"></i>Suelta aquí para mover a <strong>${catLabel}</strong>
+                                       </div>`
+                                    : '';
+                                const emptyMsg = items.length === 0
+                                    ? `<div class="cc-empty-folder-msg"><i class="fas fa-folder-open me-1"></i>Carpeta vacía — arrastra cursos aquí o usa clic-derecho</div>`
+                                    : '';
                                 return `<div class="colab-cursos-folder${isNone?' no-folder':''}">
                                     <div class="colab-cursos-folder-header${isOpen?'':' collapsed'}"
                                          data-cat="${esc(cat)}" data-numempl="${esc(numEmpleado)}"
                                          onclick="colabCursosFolderToggle('${catKey}')"
+                                         ${ctxHandler}
                                          ${canEdit ? 'ondragover="colabCursoFolderDragOver(event)" ondragleave="colabCursoFolderDragLeave(event)" ondrop="colabCursoFolderDrop(event,this)"' : ''}>
                                         <i class="fas ${isOpen?'fa-folder-open':'fa-folder'} folder-icon"></i>
                                         <span class="folder-name">${catLabel}</span>
@@ -8833,10 +8945,15 @@ FF
                                         <i class="fas fa-chevron-down folder-chevron"></i>
                                     </div>
                                     <div class="colab-cursos-folder-body${isOpen?'':' collapsed'}" id="ccf-body-${catKey}">
+                                        ${emptyMsg}
                                         ${items.map(renderCurso).join('')}
+                                        ${dropZone}
                                     </div>
                                 </div>`;
                             }).join('');
+
+                            // Activar drop zones si hay arrastre en curso
+                            if (_ccDraggingId) document.querySelectorAll('.cc-folder-dropzone').forEach(el => el.style.pointerEvents = 'all');
                         }
 
                         /* ── Subir PDF de un curso ── */
@@ -9150,7 +9267,15 @@ FF
                         let _ccDropFile = null;
 
                         /* Carpetas colapsadas (Set de nombres de categoría cerradas) */
-                        let _ccClosedFolders = new Set();
+                        let _ccClosedFolders  = new Set();
+                        /* Carpetas vacías creadas por el usuario (persisten en localStorage) */
+                        let _ccVirtualFolders = new Set();
+                        /* Texto de búsqueda activo */
+                        let _ccSearchText     = '';
+                        /* Orden activo: 'status' | 'name' | 'date-desc' | 'date-asc' */
+                        let _ccSortOrder      = 'status';
+                        /* Contexto del menú click-derecho */
+                        let _ccCtx            = null;
 
                         /* Refresca el datalist con las categorías existentes */
                         function colabCursosRefreshCatList(cursos) {
@@ -9194,6 +9319,171 @@ FF
                                 await colabCargarCursos(numEmpl);
                             } catch (err) {
                                 alert('Error al renombrar: ' + (err.message || err));
+                            }
+                        };
+
+                        /* ═══════════════════════════════════════════════════════════
+                           GOOGLE DRIVE-STYLE: NUEVA CARPETA, ELIMINAR, BÚSQUEDA,
+                           ORDEN, MENÚ CONTEXTUAL
+                           ═══════════════════════════════════════════════════════════ */
+
+                        /* ── Nueva carpeta ── */
+                        window.colabCursosNuevaCarpeta = function() {
+                            const numEmpl = val(gc(colabCurrentRow, 'num'));
+                            if (!numEmpl) return;
+                            const name = prompt('Nombre de la nueva carpeta:');
+                            if (!name?.trim()) return;
+                            const trimmed = name.trim().toUpperCase();
+                            _ccVirtualFolders.add(trimmed);
+                            try { localStorage.setItem(`cc_vf_${numEmpl}`, JSON.stringify([..._ccVirtualFolders])); } catch {}
+                            colabCargarCursos(numEmpl);
+                        };
+
+                        /* ── Eliminar carpeta (con opción de mantener o borrar cursos) ── */
+                        window.colabCursosDeleteFolder = async function(cat, numEmpl) {
+                            if (!colabCanEdit()) return;
+                            const sb = window.supabaseClient;
+                            if (!sb) return;
+                            // Buscar cuántos cursos tiene la carpeta
+                            const { data: items } = await sb.from('colab_cursos').select('id').eq('num_empleado', String(numEmpl)).eq('categoria', cat);
+                            const count = items?.length || 0;
+                            let msg = `¿Eliminar la carpeta "${cat}"?`;
+                            if (count > 0) msg += `\n\nTiene ${count} curso${count!==1?'s':''}. ¿Qué deseas hacer con ellos?\n\n• Aceptar → mover a "Sin carpeta"\n• Cancelar → cancelar operación`;
+                            else msg += '\n\n• Aceptar → eliminar carpeta vacía\n• Cancelar → cancelar';
+                            if (!confirm(msg)) return;
+                            try {
+                                if (count > 0) {
+                                    const { error } = await sb.from('colab_cursos').update({ categoria: null }).eq('num_empleado', String(numEmpl)).eq('categoria', cat);
+                                    if (error) throw error;
+                                }
+                                // Eliminar también de carpetas virtuales
+                                _ccVirtualFolders.delete(cat);
+                                try { localStorage.setItem(`cc_vf_${numEmpl}`, JSON.stringify([..._ccVirtualFolders])); } catch {}
+                                await colabCargarCursos(numEmpl);
+                            } catch (err) {
+                                alert('Error: ' + (err.message || err));
+                            }
+                        };
+
+                        /* ── Filtrar cursos por texto ── */
+                        window.colabCursosFiltrar = function(text) {
+                            _ccSearchText = text || '';
+                            const numEmpl = val(gc(colabCurrentRow, 'num'));
+                            if (numEmpl) colabCargarCursos(numEmpl);
+                        };
+
+                        /* ── Cambiar orden ── */
+                        window.colabCursosOrdenar = function(val_) {
+                            _ccSortOrder = val_ || 'status';
+                            const numEmpl = val(gc(colabCurrentRow, 'num'));
+                            if (numEmpl) colabCargarCursos(numEmpl);
+                        };
+
+                        /* ── Menú contextual ── */
+                        // Cierra el menú al clicar fuera
+                        document.addEventListener('click', () => colabCursosHideCtxMenu());
+                        document.addEventListener('keydown', e => { if (e.key === 'Escape') colabCursosHideCtxMenu(); });
+
+                        window.colabCursosHideCtxMenu = function() {
+                            const m = document.getElementById('cc-ctx-menu');
+                            if (m) m.style.display = 'none';
+                            _ccCtx = null;
+                        };
+
+                        window.colabCursosShowCtxMenu = function(e, type, data) {
+                            const m = document.getElementById('cc-ctx-menu');
+                            const itemsEl = document.getElementById('cc-ctx-items');
+                            if (!m || !itemsEl) return;
+                            _ccCtx = { type, data };
+
+                            // Construir ítems según contexto
+                            let html = '';
+                            if (type === 'course') {
+                                const allCats = [...document.querySelectorAll('.colab-cursos-folder-header[data-cat]')]
+                                    .map(el => el.dataset.cat)
+                                    .filter(c => c && c !== '__none__' && c !== (data.cat || ''));
+                                html += `<div class="cc-ctx-item" onclick="colabCursosCtxAction('rename-course',_ccCtx.data)">
+                                    <i class="fas fa-pencil-alt"></i>Renombrar</div>`;
+                                if (allCats.length) {
+                                    html += `<div class="cc-ctx-sep"></div>
+                                    <div class="cc-ctx-sub-title"><i class="fas fa-folder me-1"></i>Mover a carpeta</div>`;
+                                    html += allCats.map(c => `<div class="cc-ctx-item cc-ctx-sub-item" onclick="colabCursosCtxAction('move',{id:'${data.id}',newCat:'${c.replace(/'/g,"\\'")}',numEmpl:'${data.numEmpl}'})">
+                                        <i class="fas fa-folder text-warning"></i>${c}</div>`).join('');
+                                    if (data.cat) {
+                                        html += `<div class="cc-ctx-item cc-ctx-sub-item" onclick="colabCursosCtxAction('move',{id:'${data.id}',newCat:'',numEmpl:'${data.numEmpl}'})">
+                                            <i class="fas fa-folder text-secondary"></i>Sin carpeta</div>`;
+                                    }
+                                }
+                                if (data.pdfUrl) {
+                                    html += `<div class="cc-ctx-sep"></div>
+                                    <div class="cc-ctx-item" onclick="window.open('${data.pdfUrl}','_blank')">
+                                        <i class="fas fa-file-pdf text-danger"></i>Ver PDF</div>
+                                    <div class="cc-ctx-item" onclick="navigator.clipboard?.writeText('${data.pdfUrl}');colabCursosHideCtxMenu()">
+                                        <i class="fas fa-link"></i>Copiar enlace PDF</div>`;
+                                }
+                                html += `<div class="cc-ctx-sep"></div>
+                                <div class="cc-ctx-item danger" onclick="colabCursosCtxAction('delete-course',_ccCtx.data)">
+                                    <i class="fas fa-trash-alt"></i>Eliminar curso</div>`;
+                            } else if (type === 'folder') {
+                                html += `<div class="cc-ctx-item" onclick="colabCursosCtxAction('rename-folder',_ccCtx.data)">
+                                    <i class="fas fa-pencil-alt"></i>Renombrar carpeta</div>
+                                <div class="cc-ctx-item" onclick="colabCursosCtxAction('new-course-here',_ccCtx.data)">
+                                    <i class="fas fa-plus-circle text-success"></i>Añadir curso aquí</div>
+                                <div class="cc-ctx-sep"></div>
+                                <div class="cc-ctx-item danger" onclick="colabCursosCtxAction('delete-folder',_ccCtx.data)">
+                                    <i class="fas fa-folder-minus"></i>Eliminar carpeta</div>`;
+                            }
+                            itemsEl.innerHTML = html;
+
+                            // Posicionar
+                            m.style.display = 'block';
+                            const vw = window.innerWidth, vh = window.innerHeight;
+                            let x = e.clientX + 4, y = e.clientY + 4;
+                            if (x + 230 > vw) x = e.clientX - 230;
+                            if (y + m.offsetHeight > vh) y = e.clientY - m.offsetHeight;
+                            m.style.left = x + 'px';
+                            m.style.top  = y + 'px';
+                        };
+
+                        /* ── Despacho de acciones del menú ── */
+                        window.colabCursosCtxAction = async function(action, data) {
+                            colabCursosHideCtxMenu();
+                            const numEmpl = data.numEmpl || val(gc(colabCurrentRow, 'num'));
+                            const sb = window.supabaseClient;
+                            if (action === 'rename-course') {
+                                // Simular clic en el nombre del ítem
+                                const nameDiv = document.querySelector(`#cc-item-${data.id} .colab-curso-name`);
+                                if (nameDiv) colabCursoClickRename(data.id, nameDiv);
+                            } else if (action === 'move') {
+                                const newCat = data.newCat?.trim() || null;
+                                const { error } = await sb.from('colab_cursos').update({ categoria: newCat }).eq('id', data.id);
+                                if (error) { alert('Error: ' + error.message); return; }
+                                await colabCargarCursos(numEmpl);
+                            } else if (action === 'delete-course') {
+                                colabCursosEliminar(data.id);
+                            } else if (action === 'rename-folder') {
+                                colabCursosFolderRename(data.cat, numEmpl);
+                            } else if (action === 'new-course-here') {
+                                // Pre-rellenar el campo categoría en el modal de edición y abrirlo
+                                const editBtn = document.querySelector('[data-bs-target="#colabEditModal"]') ||
+                                               document.getElementById('colab-ficha-edit-btn');
+                                if (editBtn) editBtn.click();
+                                setTimeout(() => {
+                                    const tabEl = document.getElementById('cedit-tab-cursos') ||
+                                                 document.querySelector('[href="#cedit-cursos"]');
+                                    if (tabEl) tabEl.click();
+                                    setTimeout(() => {
+                                        const addBtn = document.getElementById('cedit-cursos-add-btn') ||
+                                                      document.querySelector('[onclick*="colabCursosShowAddForm"]');
+                                        if (addBtn) addBtn.click();
+                                        setTimeout(() => {
+                                            const catEl = document.getElementById('cn-curso-categoria');
+                                            if (catEl) { catEl.value = data.cat; catEl.focus(); }
+                                        }, 150);
+                                    }, 150);
+                                }, 300);
+                            } else if (action === 'delete-folder') {
+                                colabCursosDeleteFolder(data.cat, numEmpl);
                             }
                         };
 
