@@ -5159,6 +5159,30 @@ FF
                         .cedit-curso-edit-panel .form-label { font-size:.75rem; font-weight:600; margin-bottom:.2rem; }
                         /* Fila batch recurrencia */
                         .cbm-rec-row { font-size:.78rem; margin-top:.35rem; display:flex; flex-wrap:wrap; align-items:center; gap:.4rem; }
+                        /* ─── CARPETAS de cursos (agrupación por categoría) ─── */
+                        .colab-cursos-folder { margin-bottom: .6rem; border-radius: 12px; overflow: hidden; border: 1.5px solid #e2e8f0; }
+                        .colab-cursos-folder-header {
+                            display: flex; align-items: center; gap: .5rem;
+                            padding: .55rem .85rem; background: #f1f5f9;
+                            cursor: pointer; user-select: none;
+                            font-weight: 700; font-size: .83rem; color: #334155;
+                            transition: background .15s;
+                        }
+                        .colab-cursos-folder-header:hover { background: #e8edf5; }
+                        .colab-cursos-folder-header .folder-icon { font-size: 1rem; color: #f59e0b; flex-shrink: 0; }
+                        .colab-cursos-folder-header .folder-name { flex: 1; }
+                        .colab-cursos-folder-header .folder-count { font-size: .72rem; color: #94a3b8; font-weight: 500; }
+                        .colab-cursos-folder-header .folder-chevron { font-size: .7rem; color: #94a3b8; transition: transform .2s; }
+                        .colab-cursos-folder-header.collapsed .folder-chevron { transform: rotate(-90deg); }
+                        .colab-cursos-folder-header.collapsed .folder-icon::before { content: '\f07b'; } /* fa-folder */
+                        .colab-cursos-folder-body { display: block; }
+                        .colab-cursos-folder-body.collapsed { display: none; }
+                        .colab-cursos-folder-rename-btn { font-size: .68rem; color: #94a3b8; background: none; border: none; padding: .1rem .3rem; border-radius: 4px; cursor: pointer; }
+                        .colab-cursos-folder-rename-btn:hover { color: #3b82f6; background: #eff6ff; }
+                        .colab-folder-rename-input { font-size: .8rem; border: 1.5px solid #3b82f6; border-radius: 6px; padding: .15rem .45rem; outline: none; }
+                        /* Sin carpeta */
+                        .colab-cursos-folder.no-folder .colab-cursos-folder-header { background: #f8fafc; color: #94a3b8; font-weight: 500; font-style: italic; }
+                        .colab-cursos-folder.no-folder .folder-icon { color: #cbd5e1; }
                         /* ─── DRAG & DROP de cursos ─── */
                         .colab-cursos-dropzone {
                             border: 2.5px dashed #93c5fd;
@@ -6021,6 +6045,12 @@ FF
                                                     <div class="col-12 col-md-6">
                                                         <label class="form-label fw-semibold small">Descripción (opcional)</label>
                                                         <input type="text" class="form-control form-control-sm" id="cn-curso-desc" placeholder="Ej: Impartido por AFAC, módulo 1">
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label fw-semibold small"><i class="fas fa-folder me-1 text-warning"></i>Carpeta (opcional)</label>
+                                                        <input type="text" class="form-control form-control-sm" id="cn-curso-categoria"
+                                                               list="colab-cursos-cat-list" placeholder="Ej: CURSOS TÉCNICOS">
+                                                        <datalist id="colab-cursos-cat-list"></datalist>
                                                     </div>
                                                     <div class="col-6 col-md-4">
                                                         <label class="form-label fw-semibold small">Fecha de realización</label>
@@ -8644,6 +8674,9 @@ FF
                             const canEdit = colabCanEdit();
                             const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
+                            // Actualizar datalist de categorías
+                            colabCursosRefreshCatList(cursos);
+
                             // Contar alertas
                             let nExpired = 0, nWarn = 0;
                             cursos.forEach(c => {
@@ -8689,43 +8722,47 @@ FF
                                 return;
                             }
 
-                            // Ordenar: vencidos primero, luego por vencer, luego ok
+                            // Ordenar dentro de cada grupo: vencidos primero
                             const order = { expired: 0, warning: 1, ok: 2, none: 3 };
                             const sorted = [...cursos].sort((a,b) => (order[ccStatus(a)]||3) - (order[ccStatus(b)]||3));
 
-                            listEl.innerHTML = sorted.map(curso => {
+                            // Agrupar por categoría
+                            const groups = new Map();
+                            sorted.forEach(c => {
+                                const cat = (c.categoria || '').trim() || '__none__';
+                                if (!groups.has(cat)) groups.set(cat, []);
+                                groups.get(cat).push(c);
+                            });
+
+                            // Mover 'Sin carpeta' al final
+                            const sortedGroups = [...groups.entries()].sort(([a],[b]) => {
+                                if (a === '__none__') return 1;
+                                if (b === '__none__') return -1;
+                                return a.localeCompare(b, 'es');
+                            });
+
+                            // Renderizar
+                            const renderCurso = curso => {
                                 const st    = ccStatus(curso);
                                 const next  = ccNextDue(curso);
                                 const iconCls = st === 'expired' ? 'expired' : st === 'warning' ? 'warning' : st === 'ok' ? 'ok' : 'none';
                                 const iconFa  = st === 'expired' ? 'fa-times-circle' : st === 'warning' ? 'fa-exclamation-triangle' : st === 'ok' ? 'fa-check-circle' : 'fa-graduation-cap';
                                 const itemCls = st === 'expired' ? ' expired' : st === 'warning' ? ' warning' : '';
-
-                                // Badge de estado
                                 let statusBadge = '';
                                 if (st === 'expired') statusBadge = `<span class="colab-curso-badge expired"><i class="fas fa-times-circle"></i>Vencido</span>`;
                                 else if (st === 'warning') {
                                     const diff = next ? Math.ceil((next - new Date()) / 86400000) : 0;
                                     statusBadge = `<span class="colab-curso-badge warning"><i class="fas fa-exclamation-triangle"></i>Vence en ${diff} día${diff!==1?'s':''}</span>`;
                                 } else if (st === 'ok') statusBadge = `<span class="colab-curso-badge ok"><i class="fas fa-check-circle"></i>Vigente</span>`;
-
-                                // Badge de recurrencia
                                 const recurBadge = curso.es_recurrente
                                     ? `<span class="colab-curso-badge recur"><i class="fas fa-redo"></i>${ccFreqLabel(curso.frecuencia_dias)}</span>`
                                     : `<span class="colab-curso-badge one-time"><i class="fas fa-file-alt"></i>Único</span>`;
-
-                                // Botones PDF
                                 const pdfBtns = curso.pdf_url
                                     ? `<a href="${esc(curso.pdf_url)}" target="_blank" rel="noopener noreferrer" class="cc-btn view-pdf" title="Ver PDF"><i class="fas fa-file-pdf"></i> Ver PDF</a>`
                                     : (canEdit ? `<label class="cc-btn up-pdf" title="Subir PDF"><i class="fas fa-upload"></i> Subir PDF<input type="file" accept="application/pdf" style="display:none" onchange="colabCursosSubirPdf('${esc(curso.id)}', this)"></label>` : '');
-
                                 const delBtn = canEdit ? `<button type="button" class="cc-btn del" title="Eliminar curso" onclick="colabCursosEliminar('${esc(curso.id)}')"><i class="fas fa-trash-alt"></i></button>` : '';
-
-                                // Info de próxima fecha
                                 let nextInfo = '';
-                                if (curso.es_recurrente && next) {
-                                    nextInfo = `<span><i class="fas fa-calendar-alt me-1"></i>Próxima: <strong>${ccFormatDate(next.toISOString())}</strong></span>`;
-                                }
-
+                                if (curso.es_recurrente && next) nextInfo = `<span><i class="fas fa-calendar-alt me-1"></i>Próxima: <strong>${ccFormatDate(next.toISOString())}</strong></span>`;
                                 return `<div class="colab-curso-item${itemCls}" id="cc-item-${esc(curso.id)}">
                                     <div class="colab-curso-icon ${iconCls}"><i class="fas ${iconFa}"></i></div>
                                     <div class="colab-curso-body">
@@ -8733,14 +8770,42 @@ FF
                                         ${curso.descripcion ? `<div class="colab-curso-desc">${esc(curso.descripcion)}</div>` : ''}
                                         <div class="colab-curso-meta">
                                             ${curso.fecha_realizacion ? `<span><i class="fas fa-calendar-check me-1"></i>${ccFormatDate(curso.fecha_realizacion)}</span>` : ''}
-                                            ${recurBadge}
-                                            ${statusBadge}
-                                            ${nextInfo}
+                                            ${recurBadge}${statusBadge}${nextInfo}
                                         </div>
                                     </div>
-                                    <div class="colab-curso-actions">
-                                        ${pdfBtns}
-                                        ${delBtn}
+                                    <div class="colab-curso-actions">${pdfBtns}${delBtn}</div>
+                                </div>`;
+                            };
+
+                            listEl.innerHTML = sortedGroups.map(([cat, items]) => {
+                                const isNone   = cat === '__none__';
+                                const catLabel = isNone ? 'Sin carpeta' : cat;
+                                const catKey   = esc(cat);
+                                const isOpen   = !_ccClosedFolders.has(cat);
+                                // Contar alertas del grupo
+                                const grpExp   = items.filter(c => ccStatus(c) === 'expired').length;
+                                const grpWarn  = items.filter(c => ccStatus(c) === 'warning').length;
+                                const alertBadges = [
+                                    grpExp  ? `<span class="badge bg-danger ms-1" style="font-size:.65rem">${grpExp} vencido${grpExp>1?'s':''}</span>` : '',
+                                    grpWarn ? `<span class="badge bg-warning text-dark ms-1" style="font-size:.65rem">${grpWarn} por vencer</span>` : ''
+                                ].join('');
+                                const renameBtn = canEdit && !isNone
+                                    ? `<button type="button" class="colab-cursos-folder-rename-btn" title="Renombrar carpeta"
+                                             onclick="event.stopPropagation();colabCursosFolderRename('${catKey}','${esc(numEmpleado)}')">
+                                         <i class="fas fa-pencil-alt"></i>
+                                       </button>`
+                                    : '';
+                                return `<div class="colab-cursos-folder${isNone?' no-folder':''}">
+                                    <div class="colab-cursos-folder-header${isOpen?'':' collapsed'}" onclick="colabCursosFolderToggle('${catKey}')">
+                                        <i class="fas ${isOpen?'fa-folder-open':'fa-folder'} folder-icon"></i>
+                                        <span class="folder-name">${catLabel}</span>
+                                        <span class="folder-count">${items.length} curso${items.length!==1?'s':''}</span>
+                                        ${alertBadges}
+                                        ${renameBtn}
+                                        <i class="fas fa-chevron-down folder-chevron"></i>
+                                    </div>
+                                    <div class="colab-cursos-folder-body${isOpen?'':' collapsed'}" id="ccf-body-${catKey}">
+                                        ${items.map(renderCurso).join('')}
                                     </div>
                                 </div>`;
                             }).join('');
@@ -8863,6 +8928,12 @@ FF
                                                 <input type="number" min="1" class="form-control form-control-sm" id="cep-freq-custom-${esc(c.id)}"
                                                        value="${c.es_recurrente && curFreqVal==='custom' ? (c.frecuencia_dias||'') : ''}" placeholder="Ej: 60">
                                             </div>
+                                            <div class="col-12">
+                                                <label class="form-label"><i class="fas fa-folder me-1 text-warning"></i>Carpeta (opcional)</label>
+                                                <input type="text" class="form-control form-control-sm" id="cep-cat-${esc(c.id)}"
+                                                       list="colab-cursos-cat-list" value="${esc(c.categoria||'')}"
+                                                       placeholder="Ej: CURSOS TÉCNICOS">
+                                            </div>
                                         </div>
                                         <div class="d-flex gap-2 mt-2 align-items-center">
                                             <button type="button" class="btn btn-primary btn-sm" onclick="colabCursoEditGuardar('${esc(c.id)}')"><i class="fas fa-save me-1"></i>Guardar cambios</button>
@@ -8950,7 +9021,8 @@ FF
                             try {
                                 const { error } = await sb.from('colab_cursos').update({
                                     nombre, descripcion: desc, fecha_realizacion: fecha || null,
-                                    es_recurrente: esRec, frecuencia_dias: frecDias
+                                    es_recurrente: esRec, frecuencia_dias: frecDias,
+                                    categoria: (document.getElementById('cep-cat-' + id)?.value || '').trim() || null
                                 }).eq('id', id);
                                 if (error) throw error;
                                 if (stEl) stEl.innerHTML = '<span class="text-success"><i class="fas fa-check me-1"></i>Guardado</span>';
@@ -9026,6 +9098,7 @@ FF
                                     fecha_realizacion:fecha || null,
                                     es_recurrente:    esRecurrente,
                                     frecuencia_dias:  frecDias,
+                                    categoria:        (document.getElementById('cn-curso-categoria')?.value || '').trim() || null,
                                     creado_por:       userName,
                                 });
                                 if (error) throw error;
@@ -9047,6 +9120,54 @@ FF
 
                         /* Archivo pendiente para el modal quick-fill */
                         let _ccDropFile = null;
+
+                        /* Carpetas colapsadas (Set de nombres de categoría cerradas) */
+                        let _ccClosedFolders = new Set();
+
+                        /* Refresca el datalist con las categorías existentes */
+                        function colabCursosRefreshCatList(cursos) {
+                            const dl = document.getElementById('colab-cursos-cat-list');
+                            if (!dl) return;
+                            const cats = [...new Set((cursos || []).map(c => (c.categoria||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+                            dl.innerHTML = cats.map(c => `<option value="${c.replace(/"/g,'&quot;')}">`).join('');
+                        }
+
+                        /* Toggle abrir/cerrar carpeta */
+                        window.colabCursosFolderToggle = function(catKey) {
+                            const header = document.querySelector(`.colab-cursos-folder-header[onclick*="'${catKey}'"]`);
+                            const body   = document.getElementById('ccf-body-' + catKey);
+                            if (!body) return;
+                            const isOpen = !body.classList.contains('collapsed');
+                            if (isOpen) {
+                                body.classList.add('collapsed');
+                                header?.classList.add('collapsed');
+                                _ccClosedFolders.add(catKey);
+                            } else {
+                                body.classList.remove('collapsed');
+                                header?.classList.remove('collapsed');
+                                _ccClosedFolders.delete(catKey);
+                            }
+                        };
+
+                        /* Renombrar carpeta: cambia la categoría de todos los cursos del grupo */
+                        window.colabCursosFolderRename = async function(catKey, numEmpl) {
+                            const sb = window.supabaseClient;
+                            if (!sb || !colabCanEdit()) return;
+                            const oldCat = catKey === '__none__' ? null : catKey;
+                            const newName = prompt('Nuevo nombre para la carpeta:', oldCat || '');
+                            if (newName === null) return; // canceló
+                            const trimmed = newName.trim() || null;
+                            try {
+                                let q = sb.from('colab_cursos').update({ categoria: trimmed }).eq('num_empleado', String(numEmpl));
+                                if (oldCat) q = q.eq('categoria', oldCat);
+                                else        q = q.is('categoria', null);
+                                const { error } = await q;
+                                if (error) throw error;
+                                await colabCargarCursos(numEmpl);
+                            } catch (err) {
+                                alert('Error al renombrar: ' + (err.message || err));
+                            }
+                        };
 
                         /* ═══════════════════════════════════════════════════════════
                            CARGA MASIVA DE CARPETA (batch)
@@ -9125,6 +9246,9 @@ FF
                                             <input type="text" class="form-control form-control-sm" id="cbm-name-${i}"
                                                    value="${rawName.replace(/"/g, '&quot;')}" placeholder="Nombre del curso"
                                                    ${tooBig ? 'disabled' : ''}>
+                                            <input type="text" class="form-control form-control-sm mt-1" id="cbm-cat-${i}"
+                                                   list="colab-cursos-cat-list" placeholder="Carpeta (opcional)"
+                                                   style="font-size:.76rem" ${tooBig ? 'disabled' : ''}>
                                             <div class="cbm-rec-row">
                                                 <div class="form-check form-check-inline mb-0">
                                                     <input class="form-check-input" type="checkbox" id="cbm-rec-${i}"
@@ -9169,6 +9293,15 @@ FF
                         window.colabBatchToggleCustomFreq = function(i, sel) {
                             const cw = document.getElementById('cbm-freq-custom-' + i);
                             if (cw) cw.style.display = sel?.value === 'custom' ? '' : 'none';
+                        };
+
+                        /* Aplica la carpeta global a todas las filas */
+                        window.colabBatchApplyCat = function() {
+                            const v = (document.getElementById('cbm-cat-global')?.value || '').trim();
+                            _ccBatchFiles.forEach((_, i) => {
+                                const inp = document.getElementById(`cbm-cat-${i}`);
+                                if (inp && !inp.disabled) inp.value = v;
+                            });
                         };
 
                         /* Aplica la fecha global a todas las filas */
@@ -9220,7 +9353,9 @@ FF
                                         frecDias = parseInt(freqSel, 10);
                                     }
                                 }
-                                return { file: f, nombre, fecha, esRec, frecDias, idx: i, skip: f.size > 15*1024*1024 || !nombre };
+                                return { file: f, nombre, fecha, esRec, frecDias,
+                                    categoria: (document.getElementById(`cbm-cat-${i}`)?.value || document.getElementById('cbm-cat-global')?.value || '').trim() || null,
+                                    idx: i, skip: f.size > 15*1024*1024 || !nombre };
                             });
 
                             let ok = 0, fail = 0;
@@ -9241,6 +9376,7 @@ FF
                                         fecha_realizacion: item.fecha || null,
                                         es_recurrente:     item.esRec,
                                         frecuencia_dias:   item.frecDias,
+                                        categoria:         item.categoria,
                                         creado_por:        userName,
                                     }).select('id').single();
                                     if (insErr) throw insErr;
@@ -9383,6 +9519,8 @@ FF
                             if (pdfName)   pdfName.textContent = file.name;
                             if (nameInput) nameInput.value     = rawName;
                             if (descInp)   descInp.value       = '';
+                            const catInp = document.getElementById('cdm-categoria');
+                            if (catInp)    catInp.value        = '';
                             if (fechaInp)  fechaInp.value      = new Date().toISOString().slice(0, 10);
                             if (recChk)    recChk.checked      = false;
                             if (freqWrap)  freqWrap.style.display = 'none';
@@ -9552,7 +9690,7 @@ FF
                                     <p class="text-muted mb-2" style="font-size:.84rem">
                                         Revisa los nombres de los cursos antes de subir. Puedes editar cada uno.
                                     </p>
-                                    <!-- Fecha común -->
+                                    <!-- Fecha común + Carpeta global -->
                                     <div class="row g-2 mb-3 align-items-end">
                                         <div class="col-auto">
                                             <label class="form-label mb-1" style="font-size:.8rem;font-weight:600">Fecha de realización (aplica a todos)</label>
@@ -9564,13 +9702,23 @@ FF
                                                 <i class="fas fa-calendar-check me-1"></i>Aplicar a todos
                                             </button>
                                         </div>
+                                        <div class="col-auto">
+                                            <label class="form-label mb-1" style="font-size:.8rem;font-weight:600"><i class="fas fa-folder me-1 text-warning"></i>Carpeta (aplica a todos)</label>
+                                            <input type="text" id="cbm-cat-global" class="form-control form-control-sm" list="colab-cursos-cat-list" placeholder="Ej: CURSOS TÉCNICOS" style="max-width:220px">
+                                        </div>
+                                        <div class="col-auto">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                    onclick="colabBatchApplyCat()">
+                                                <i class="fas fa-folder-open me-1"></i>Aplicar a todos
+                                            </button>
+                                        </div>
                                         <div class="col text-end text-muted" style="font-size:.78rem">
                                             <span id="cbm-count"></span>
                                         </div>
                                     </div>
                                     <!-- Cabecera de la lista -->
                                     <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:.4rem;padding:0 .6rem .25rem;font-size:.74rem;font-weight:700;color:#64748b;text-transform:uppercase;">
-                                        <span>Archivo PDF</span><span>Nombre del curso</span><span></span>
+                                        <span>Archivo PDF</span><span>Nombre · Carpeta · Recurrencia</span><span></span>
                                     </div>
                                     <!-- Lista de archivos -->
                                     <div id="cbm-list" style="max-height:340px;overflow-y:auto;padding-right:2px"></div>
@@ -9622,6 +9770,14 @@ FF
                                         </label>
                                         <input type="text" class="form-control form-control-sm" id="cdm-nombre"
                                                placeholder="Ej: Seguridad Aeroportuaria">
+                                    </div>
+                                    <!-- Carpeta -->
+                                    <div class="mb-2">
+                                        <label class="form-label fw-semibold small" for="cdm-categoria">
+                                            <i class="fas fa-folder me-1 text-warning"></i>Carpeta <span class="text-muted fw-normal">(opcional)</span>
+                                        </label>
+                                        <input type="text" class="form-control form-control-sm" id="cdm-categoria"
+                                               list="colab-cursos-cat-list" placeholder="Ej: CURSOS TÉCNICOS">
                                     </div>
                                     <!-- Descripción -->
                                     <div class="mb-2">
