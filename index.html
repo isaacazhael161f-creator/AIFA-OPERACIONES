@@ -5188,6 +5188,20 @@ FF
                         .colab-cursos-dropzone.drag-over i { transform: scale(1.25); }
                         .colab-cursos-dropzone strong { color: #1d4ed8; }
                         .colab-cursos-dropzone small { display: block; color: #94a3b8; font-size: .74rem; margin-top: .2rem; }
+                        /* Botones dentro del dropzone */
+                        .colab-dz-btns { display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; margin-top:.6rem; }
+                        .colab-dz-btn { font-size:.78rem; padding:.28rem .75rem; border-radius:20px; border:1.5px solid #3b82f6; background:#fff; color:#1d4ed8; cursor:pointer; transition:background .15s; display:inline-flex; align-items:center; gap:.35rem; }
+                        .colab-dz-btn:hover { background:#eff6ff; }
+                        /* Modal batch de cursos */
+                        #colabBatchCursosModal .modal-header { background: linear-gradient(135deg,#0f4c81,#1565c0); }
+                        #colabBatchCursosModal .modal-body  { background:#f8faff; }
+                        .cbm-file-row { display:grid; grid-template-columns:1fr 1fr auto; gap:.4rem; align-items:center; padding:.45rem .6rem; background:#fff; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:.35rem; font-size:.82rem; }
+                        .cbm-file-row.cbm-ok   { border-color:#86efac; background:#f0fdf4; }
+                        .cbm-file-row.cbm-err  { border-color:#fca5a5; background:#fff1f2; }
+                        .cbm-fname { color:#475569; font-size:.74rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+                        .cbm-status-icon { font-size:1rem; width:1.2rem; text-align:center; }
+                        .cbm-progress { height:6px; border-radius:3px; background:#e2e8f0; overflow:hidden; margin-top:.5rem; }
+                        .cbm-progress-bar { height:100%; background:#3b82f6; transition:width .3s; width:0%; }
                         /* Modal quick-fill de nuevo curso por drag&drop */
                         #colabDropCursoModal .modal-header { background: linear-gradient(135deg,#1565c0,#1e88e5); }
                         #colabDropCursoModal .modal-body  { background: #f8faff; }
@@ -5745,13 +5759,25 @@ FF
                                     <!-- Zona de arrastre (visible solo para editores) -->
                                     <div id="colab-cursos-dropzone" class="colab-cursos-dropzone d-none"
                                          role="button" tabindex="0"
-                                         aria-label="Arrastra aquí el PDF del curso"
-                                         onclick="document.getElementById('colab-cursos-file-input').click()">
+                                         aria-label="Arrastra aquí PDFs o una carpeta de cursos">
                                         <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
-                                        <div><strong>Arrastra el PDF aquí</strong> o haz clic para seleccionarlo</div>
-                                        <small>Solo PDF · Máx. 15 MB · Se creará un nuevo curso automáticamente</small>
+                                        <div><strong>Arrastra PDFs o una carpeta aquí</strong></div>
+                                        <small>Individual o carpeta completa · Solo PDF · Máx. 15 MB por archivo</small>
+                                        <div class="colab-dz-btns">
+                                            <button type="button" class="colab-dz-btn"
+                                                onclick="event.stopPropagation();document.getElementById('colab-cursos-file-input').click()">
+                                                <i class="fas fa-file-pdf"></i> Seleccionar PDF
+                                            </button>
+                                            <button type="button" class="colab-dz-btn"
+                                                onclick="event.stopPropagation();document.getElementById('colab-cursos-folder-input').click()">
+                                                <i class="fas fa-folder-open"></i> Seleccionar carpeta
+                                            </button>
+                                        </div>
                                         <input type="file" id="colab-cursos-file-input" accept="application/pdf"
                                                style="display:none" onchange="colabCursosDropHandleFiles(this.files)">
+                                        <input type="file" id="colab-cursos-folder-input" accept="application/pdf"
+                                               webkitdirectory multiple style="display:none"
+                                               onchange="colabCursosBatchFromInput(this.files)">
                                     </div>
 
                                 </div><!-- /colab-ficha-body -->
@@ -8910,6 +8936,208 @@ FF
                         /* Archivo pendiente para el modal quick-fill */
                         let _ccDropFile = null;
 
+                        /* ═══════════════════════════════════════════════════════════
+                           CARGA MASIVA DE CARPETA (batch)
+                           ═══════════════════════════════════════════════════════════ */
+
+                        /* Lista de File objects pendientes en el modal batch */
+                        let _ccBatchFiles = [];
+
+                        /* Lee recursivamente todos los PDFs de un DirectoryEntry */
+                        async function colabCursosReadFolder(dirEntry) {
+                            return new Promise(resolve => {
+                                const collected = [];
+                                const reader = dirEntry.createReader();
+                                function readChunk() {
+                                    reader.readEntries(async entries => {
+                                        if (!entries.length) { resolve(collected); return; }
+                                        for (const en of entries) {
+                                            if (en.isFile) {
+                                                await new Promise(r => en.file(f => {
+                                                    if (f.type === 'application/pdf') collected.push(f);
+                                                    r();
+                                                }));
+                                            } else if (en.isDirectory) {
+                                                const sub = await colabCursosReadFolder(en);
+                                                collected.push(...sub);
+                                            }
+                                        }
+                                        readChunk(); // readEntries devuelve max 100 entradas a la vez
+                                    });
+                                }
+                                readChunk();
+                            });
+                        }
+
+                        /* Convierte FileList/array del <input webkitdirectory> en batch */
+                        window.colabCursosBatchFromInput = function(fileList) {
+                            const files = Array.from(fileList).filter(f => f.type === 'application/pdf');
+                            if (!files.length) { alert('No se encontraron PDFs en la carpeta seleccionada.'); return; }
+                            colabCursosBatchShow(files);
+                            // Limpiar el input para permitir volver a seleccionar la misma carpeta
+                            const inp = document.getElementById('colab-cursos-folder-input');
+                            if (inp) inp.value = '';
+                        };
+
+                        /* Muestra el modal batch con la lista de archivos */
+                        function colabCursosBatchShow(files) {
+                            _ccBatchFiles = files;
+                            const today = new Date().toISOString().slice(0, 10);
+
+                            // Fecha global
+                            const fechaGlobal = document.getElementById('cbm-fecha-global');
+                            if (fechaGlobal) fechaGlobal.value = today;
+
+                            // Contador
+                            const countEl = document.getElementById('cbm-count');
+                            if (countEl) countEl.textContent = `${files.length} PDF${files.length !== 1 ? 's' : ''} encontrado${files.length !== 1 ? 's' : ''}`;
+
+                            // Construir filas
+                            const listEl = document.getElementById('cbm-list');
+                            if (listEl) {
+                                listEl.innerHTML = files.map((f, i) => {
+                                    const rawName = f.name.replace(/\.pdf$/i, '').replace(/[_\-]+/g, ' ').trim();
+                                    const sizeKb  = (f.size / 1024).toFixed(0);
+                                    const tooBig  = f.size > 15 * 1024 * 1024;
+                                    return `<div class="cbm-file-row${tooBig ? ' cbm-err' : ''}" id="cbm-row-${i}">
+                                        <div>
+                                            <div class="cbm-fname" title="${f.name}"><i class="fas fa-file-pdf text-danger me-1"></i>${f.name}</div>
+                                            <div style="font-size:.7rem;color:#94a3b8">${sizeKb} KB${tooBig ? ' — <span class="text-danger">supera 15 MB</span>' : ''}</div>
+                                            <input type="date" class="form-control form-control-sm mt-1" id="cbm-date-${i}" value="${today}" style="max-width:150px;font-size:.78rem">
+                                        </div>
+                                        <div>
+                                            <input type="text" class="form-control form-control-sm" id="cbm-name-${i}"
+                                                   value="${rawName.replace(/"/g, '&quot;')}" placeholder="Nombre del curso"
+                                                   ${tooBig ? 'disabled' : ''}>
+                                        </div>
+                                        <div class="cbm-status-icon" id="cbm-icon-${i}">
+                                            ${tooBig ? '<i class="fas fa-times-circle text-danger" title="Archivo muy grande"></i>' : ''}
+                                        </div>
+                                    </div>`;
+                                }).join('');
+                            }
+
+                            // Reset barra y estado
+                            const pw = document.getElementById('cbm-progress-wrap');
+                            const pb = document.getElementById('cbm-progress-bar');
+                            const st = document.getElementById('cbm-status');
+                            const btn = document.getElementById('cbm-btn-save');
+                            if (pw)  pw.classList.add('d-none');
+                            if (pb)  pb.style.width = '0%';
+                            if (st)  st.innerHTML = '';
+                            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-upload me-1"></i>Subir todos'; }
+
+                            new bootstrap.Modal(document.getElementById('colabBatchCursosModal')).show();
+                        }
+
+                        /* Aplica la fecha global a todas las filas */
+                        window.colabBatchApplyDate = function() {
+                            const val = document.getElementById('cbm-fecha-global')?.value;
+                            if (!val) return;
+                            _ccBatchFiles.forEach((_, i) => {
+                                const d = document.getElementById(`cbm-date-${i}`);
+                                if (d && !d.disabled) d.value = val;
+                            });
+                        };
+
+                        /* Limpia al cancelar */
+                        window.colabBatchCancel = function() { _ccBatchFiles = []; };
+
+                        /* Sube todos los archivos secuencialmente */
+                        window.colabBatchSubir = async function() {
+                            if (!_ccBatchFiles.length) return;
+                            if (!colabCanEdit()) return;
+
+                            const numEmpl = val(gc(colabCurrentRow, 'num'));
+                            if (!numEmpl) { alert('No se detectó el colaborador activo.'); return; }
+
+                            const sb = window.supabaseClient;
+                            if (!sb) { alert('Supabase no disponible.'); return; }
+
+                            const userObj  = JSON.parse(sessionStorage.getItem('user') || '{}');
+                            const userName = userObj.user_metadata?.full_name || userObj.email || 'Sistema';
+
+                            const btn  = document.getElementById('cbm-btn-save');
+                            const pw   = document.getElementById('cbm-progress-wrap');
+                            const pb   = document.getElementById('cbm-progress-bar');
+                            const st   = document.getElementById('cbm-status');
+                            if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Subiendo…'; }
+                            if (pw)  pw.classList.remove('d-none');
+
+                            // Filtrar archivos válidos (no demasiado grandes, con nombre)
+                            const valid = _ccBatchFiles.map((f, i) => {
+                                const nombre = (document.getElementById(`cbm-name-${i}`)?.value || '').trim();
+                                const fecha  = document.getElementById(`cbm-date-${i}`)?.value || null;
+                                return { file: f, nombre, fecha, idx: i, skip: f.size > 15*1024*1024 || !nombre };
+                            });
+
+                            let ok = 0, fail = 0;
+                            const total = valid.filter(v => !v.skip).length;
+
+                            for (const item of valid) {
+                                const iconEl = document.getElementById(`cbm-icon-${item.idx}`);
+                                const rowEl  = document.getElementById(`cbm-row-${item.idx}`);
+                                if (item.skip) { continue; }
+
+                                if (iconEl) iconEl.innerHTML = '<span class="spinner-border spinner-border-sm text-primary"></span>';
+
+                                try {
+                                    // 1. INSERT
+                                    const { data: ins, error: insErr } = await sb.from('colab_cursos').insert({
+                                        num_empleado:      String(numEmpl),
+                                        nombre:            item.nombre,
+                                        fecha_realizacion: item.fecha || null,
+                                        es_recurrente:     false,
+                                        creado_por:        userName,
+                                    }).select('id').single();
+                                    if (insErr) throw insErr;
+
+                                    // 2. UPLOAD
+                                    const path = `${numEmpl}/${ins.id}.pdf`;
+                                    const { error: upErr } = await sb.storage
+                                        .from(COLAB_CURSOS_BUCKET)
+                                        .upload(path, item.file, { upsert: true, contentType: 'application/pdf' });
+                                    if (upErr) throw upErr;
+
+                                    // 3. UPDATE url
+                                    const pdfUrl = COLAB_CURSOS_BUCKET_URL + path;
+                                    await sb.from('colab_cursos').update({ pdf_url: pdfUrl }).eq('id', ins.id);
+
+                                    ok++;
+                                    if (iconEl) iconEl.innerHTML = '<i class="fas fa-check-circle text-success"></i>';
+                                    if (rowEl)  rowEl.classList.add('cbm-ok');
+                                } catch (err) {
+                                    fail++;
+                                    if (iconEl) iconEl.innerHTML = `<i class="fas fa-times-circle text-danger" title="${err.message}"></i>`;
+                                    if (rowEl)  rowEl.classList.add('cbm-err');
+                                    console.error('[Batch cursos] Error en', item.file.name, err);
+                                }
+
+                                // Actualizar barra
+                                const done = ok + fail;
+                                if (pb) pb.style.width = `${Math.round((done / total) * 100)}%`;
+                            }
+
+                            // Resultado final
+                            if (st) {
+                                st.innerHTML = fail === 0
+                                    ? `<span class="text-success"><i class="fas fa-check-circle me-1"></i>${ok} curso${ok !== 1 ? 's' : ''} subido${ok !== 1 ? 's' : ''} correctamente.</span>`
+                                    : `<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>${ok} correcto${ok !== 1 ? 's' : ''}, ${fail} con error.</span>`;
+                            }
+                            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check me-1"></i>Listo'; }
+
+                            // Refrescar lista de cursos
+                            await colabCargarCursos(numEmpl);
+
+                            // Cerrar el modal tras 1.5 s si todo fue bien
+                            if (fail === 0) {
+                                setTimeout(() => {
+                                    bootstrap.Modal.getInstance(document.getElementById('colabBatchCursosModal'))?.hide();
+                                    _ccBatchFiles = [];
+                                }, 1500);
+                            }
+                        };
+
                         /* ── Mostrar/ocultar drop zone según permisos ── */
                         function colabCursosToggleDropzone() {
                             const dz = document.getElementById('colab-cursos-dropzone');
@@ -8935,11 +9163,43 @@ FF
                             dz.addEventListener('dragenter', e => { e.preventDefault(); dz.classList.add('drag-over'); });
                             dz.addEventListener('dragover',  e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; dz.classList.add('drag-over'); });
                             dz.addEventListener('dragleave', e => { if (!dz.contains(e.relatedTarget)) dz.classList.remove('drag-over'); });
-                            dz.addEventListener('drop', e => {
+                            dz.addEventListener('drop', async e => {
                                 e.preventDefault();
                                 dz.classList.remove('drag-over');
                                 if (!colabCanEdit()) return;
-                                colabCursosDropHandleFiles(e.dataTransfer.files);
+
+                                // Detectar si hay carpeta entre los items
+                                const items = e.dataTransfer.items;
+                                if (items && items.length) {
+                                    const entries = Array.from(items).map(i => i.webkitGetAsEntry?.()).filter(Boolean);
+                                    const hasDir  = entries.some(en => en.isDirectory);
+                                    if (hasDir) {
+                                        // Modo carpeta: recolectar todos los PDFs recursivamente
+                                        let allFiles = [];
+                                        for (const entry of entries) {
+                                            if (entry.isDirectory) {
+                                                const sub = await colabCursosReadFolder(entry);
+                                                allFiles.push(...sub);
+                                            } else if (entry.isFile) {
+                                                await new Promise(res => entry.file(f => {
+                                                    if (f.type === 'application/pdf') allFiles.push(f);
+                                                    res();
+                                                }));
+                                            }
+                                        }
+                                        if (!allFiles.length) { alert('No se encontraron PDFs en la carpeta.'); return; }
+                                        colabCursosBatchShow(allFiles);
+                                        return;
+                                    }
+                                }
+                                // Modo archivo(s) suelto(s): si hay más de uno, usar batch; si es uno, modal individual
+                                const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf');
+                                if (!files.length) { alert('Solo se aceptan archivos PDF.'); return; }
+                                if (files.length === 1) {
+                                    colabCursosDropHandleFiles(e.dataTransfer.files);
+                                } else {
+                                    colabCursosBatchShow(files);
+                                }
                             });
                         }
 
@@ -9121,6 +9381,65 @@ FF
                     <!-- ══════════════════════════════════════════════
                          MODAL: QUICK-FILL DE NUEVO CURSO (drag & drop)
                     ══════════════════════════════════════════════ -->
+
+                    <!-- ══ MODAL: CARGA MASIVA DE CARPETA ══════════════════════════ -->
+                    <div class="modal fade" id="colabBatchCursosModal" tabindex="-1"
+                         aria-labelledby="colabBatchCursosModalLabel" aria-hidden="true"
+                         data-bs-backdrop="static">
+                        <div class="modal-dialog modal-dialog-centered modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header py-2">
+                                    <h5 class="modal-title text-white mb-0" id="colabBatchCursosModalLabel">
+                                        <i class="fas fa-folder-open me-2"></i>Carga masiva de cursos
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white"
+                                            data-bs-dismiss="modal" onclick="colabBatchCancel()"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p class="text-muted mb-2" style="font-size:.84rem">
+                                        Revisa los nombres de los cursos antes de subir. Puedes editar cada uno.
+                                    </p>
+                                    <!-- Fecha común -->
+                                    <div class="row g-2 mb-3 align-items-end">
+                                        <div class="col-auto">
+                                            <label class="form-label mb-1" style="font-size:.8rem;font-weight:600">Fecha de realización (aplica a todos)</label>
+                                            <input type="date" id="cbm-fecha-global" class="form-control form-control-sm" style="max-width:180px">
+                                        </div>
+                                        <div class="col-auto">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                    onclick="colabBatchApplyDate()">
+                                                <i class="fas fa-calendar-check me-1"></i>Aplicar a todos
+                                            </button>
+                                        </div>
+                                        <div class="col text-end text-muted" style="font-size:.78rem">
+                                            <span id="cbm-count"></span>
+                                        </div>
+                                    </div>
+                                    <!-- Cabecera de la lista -->
+                                    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:.4rem;padding:0 .6rem .25rem;font-size:.74rem;font-weight:700;color:#64748b;text-transform:uppercase;">
+                                        <span>Archivo PDF</span><span>Nombre del curso</span><span></span>
+                                    </div>
+                                    <!-- Lista de archivos -->
+                                    <div id="cbm-list" style="max-height:340px;overflow-y:auto;padding-right:2px"></div>
+                                    <!-- Barra de progreso -->
+                                    <div class="cbm-progress d-none" id="cbm-progress-wrap">
+                                        <div class="cbm-progress-bar" id="cbm-progress-bar"></div>
+                                    </div>
+                                    <div id="cbm-status" class="mt-2" style="font-size:.82rem;min-height:1.2rem"></div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary btn-sm"
+                                            data-bs-dismiss="modal" onclick="colabBatchCancel()">Cancelar</button>
+                                    <button type="button" class="btn btn-primary btn-sm" id="cbm-btn-save"
+                                            onclick="colabBatchSubir()">
+                                        <i class="fas fa-upload me-1"></i>Subir todos
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- /colabBatchCursosModal -->
+
                     <div class="modal fade" id="colabDropCursoModal" tabindex="-1"
                          aria-labelledby="colabDropCursoModalLabel" aria-hidden="true"
                          data-bs-backdrop="static">
