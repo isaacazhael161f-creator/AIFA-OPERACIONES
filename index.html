@@ -20136,19 +20136,27 @@ window.AeropuertosModule = (function () {
 })();
 
 (function _frecAnalisisAccess() {
-    const IS_LOCAL = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) || location.protocol === 'file:';
-    if (!IS_LOCAL) return; /* Solo visible en entorno local */
+    const ALLOWED_EMAIL = 'isaac.lopez@aifa.operaciones';
     function _show() {
         const liA = document.getElementById('frec-li-analisis');
         const liE = document.getElementById('frec-li-estadisticas');
         if (liA) liA.style.display = '';
         if (liE) liE.style.display = '';
     }
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', _show);
-    } else {
-        _show();
+    function _check() {
+        try {
+            const raw = sessionStorage.getItem('user');
+            const email = raw ? JSON.parse(raw)?.email : null;
+            if (email === ALLOWED_EMAIL) _show();
+        } catch (_) {}
     }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', _check);
+    } else {
+        _check();
+    }
+    window.addEventListener('storage', function(e) { if (e.key === 'user') _check(); });
+    window.addEventListener('aifa:login', _check);
 })();
 </script>
 
