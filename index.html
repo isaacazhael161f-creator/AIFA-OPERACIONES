@@ -9274,8 +9274,8 @@ FF
                         let _ccSearchText     = '';
                         /* Orden activo: 'status' | 'name' | 'date-desc' | 'date-asc' */
                         let _ccSortOrder      = 'status';
-                        /* Contexto del menú click-derecho */
-                        let _ccCtx            = null;
+                        /* Contexto del menú click-derecho (en window para acceso desde onclick inline) */
+                        window._ccCtx = null;
 
                         /* Refresca el datalist con las categorías existentes */
                         function colabCursosRefreshCatList(cursos) {
@@ -9394,7 +9394,7 @@ FF
                             const m = document.getElementById('cc-ctx-menu');
                             const itemsEl = document.getElementById('cc-ctx-items');
                             if (!m || !itemsEl) return;
-                            _ccCtx = { type, data };
+                            window._ccCtx = { type, data };
 
                             // Construir ítems según contexto
                             let html = '';
@@ -9402,60 +9402,69 @@ FF
                                 const allCats = [...document.querySelectorAll('.colab-cursos-folder-header[data-cat]')]
                                     .map(el => el.dataset.cat)
                                     .filter(c => c && c !== '__none__' && c !== (data.cat || ''));
-                                html += `<div class="cc-ctx-item" onclick="colabCursosCtxAction('rename-course',_ccCtx.data)">
+                                html += `<div class="cc-ctx-item" onclick="colabCursosCtxAction('rename-course')">
                                     <i class="fas fa-pencil-alt"></i>Renombrar</div>`;
                                 if (allCats.length) {
                                     html += `<div class="cc-ctx-sep"></div>
                                     <div class="cc-ctx-sub-title"><i class="fas fa-folder me-1"></i>Mover a carpeta</div>`;
-                                    html += allCats.map(c => `<div class="cc-ctx-item cc-ctx-sub-item" onclick="colabCursosCtxAction('move',{id:'${data.id}',newCat:'${c.replace(/'/g,"\\'")}',numEmpl:'${data.numEmpl}'})">
-                                        <i class="fas fa-folder text-warning"></i>${c}</div>`).join('');
+                                    html += allCats.map(c => {
+                                        const safe = c.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                                        return `<div class="cc-ctx-item cc-ctx-sub-item" data-moveto="${safe}" onclick="colabCursosCtxAction('move',this.dataset.moveto)">
+                                            <i class="fas fa-folder text-warning"></i>${safe}</div>`;
+                                    }).join('');
                                     if (data.cat) {
-                                        html += `<div class="cc-ctx-item cc-ctx-sub-item" onclick="colabCursosCtxAction('move',{id:'${data.id}',newCat:'',numEmpl:'${data.numEmpl}'})">
+                                        html += `<div class="cc-ctx-item cc-ctx-sub-item" onclick="colabCursosCtxAction('move','')">
                                             <i class="fas fa-folder text-secondary"></i>Sin carpeta</div>`;
                                     }
                                 }
                                 if (data.pdfUrl) {
+                                    const safePdf = data.pdfUrl.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
                                     html += `<div class="cc-ctx-sep"></div>
-                                    <div class="cc-ctx-item" onclick="window.open('${data.pdfUrl}','_blank')">
+                                    <div class="cc-ctx-item" onclick="window.open('${safePdf}','_blank');colabCursosHideCtxMenu()">
                                         <i class="fas fa-file-pdf text-danger"></i>Ver PDF</div>
-                                    <div class="cc-ctx-item" onclick="navigator.clipboard?.writeText('${data.pdfUrl}');colabCursosHideCtxMenu()">
+                                    <div class="cc-ctx-item" onclick="navigator.clipboard?.writeText('${safePdf}');colabCursosHideCtxMenu()">
                                         <i class="fas fa-link"></i>Copiar enlace PDF</div>`;
                                 }
                                 html += `<div class="cc-ctx-sep"></div>
-                                <div class="cc-ctx-item danger" onclick="colabCursosCtxAction('delete-course',_ccCtx.data)">
+                                <div class="cc-ctx-item danger" onclick="colabCursosCtxAction('delete-course')">
                                     <i class="fas fa-trash-alt"></i>Eliminar curso</div>`;
                             } else if (type === 'folder') {
-                                html += `<div class="cc-ctx-item" onclick="colabCursosCtxAction('rename-folder',_ccCtx.data)">
+                                html += `<div class="cc-ctx-item" onclick="colabCursosCtxAction('rename-folder')">
                                     <i class="fas fa-pencil-alt"></i>Renombrar carpeta</div>
-                                <div class="cc-ctx-item" onclick="colabCursosCtxAction('new-course-here',_ccCtx.data)">
+                                <div class="cc-ctx-item" onclick="colabCursosCtxAction('new-course-here')">
                                     <i class="fas fa-plus-circle text-success"></i>Añadir curso aquí</div>
                                 <div class="cc-ctx-sep"></div>
-                                <div class="cc-ctx-item danger" onclick="colabCursosCtxAction('delete-folder',_ccCtx.data)">
+                                <div class="cc-ctx-item danger" onclick="colabCursosCtxAction('delete-folder')">
                                     <i class="fas fa-folder-minus"></i>Eliminar carpeta</div>`;
                             }
                             itemsEl.innerHTML = html;
 
-                            // Posicionar
+                            // Posicionar (mostrar primero para obtener tamaño real)
+                            m.style.visibility = 'hidden';
                             m.style.display = 'block';
+                            const rect = m.getBoundingClientRect();
                             const vw = window.innerWidth, vh = window.innerHeight;
                             let x = e.clientX + 4, y = e.clientY + 4;
-                            if (x + 230 > vw) x = e.clientX - 230;
-                            if (y + m.offsetHeight > vh) y = e.clientY - m.offsetHeight;
-                            m.style.left = x + 'px';
-                            m.style.top  = y + 'px';
+                            if (x + rect.width  > vw) x = e.clientX - rect.width;
+                            if (y + rect.height > vh) y = e.clientY - rect.height;
+                            m.style.left = Math.max(0, x) + 'px';
+                            m.style.top  = Math.max(0, y) + 'px';
+                            m.style.visibility = '';
                         };
 
                         /* ── Despacho de acciones del menú ── */
-                        window.colabCursosCtxAction = async function(action, data) {
+                        window.colabCursosCtxAction = async function(action, moveTarget) {
+                            const ctx = window._ccCtx;
                             colabCursosHideCtxMenu();
+                            if (!ctx) return;
+                            const data = ctx.data;
                             const numEmpl = data.numEmpl || val(gc(colabCurrentRow, 'num'));
                             const sb = window.supabaseClient;
                             if (action === 'rename-course') {
-                                // Simular clic en el nombre del ítem
                                 const nameDiv = document.querySelector(`#cc-item-${data.id} .colab-curso-name`);
                                 if (nameDiv) colabCursoClickRename(data.id, nameDiv);
                             } else if (action === 'move') {
-                                const newCat = data.newCat?.trim() || null;
+                                const newCat = (moveTarget !== undefined ? moveTarget : '').trim() || null;
                                 const { error } = await sb.from('colab_cursos').update({ categoria: newCat }).eq('id', data.id);
                                 if (error) { alert('Error: ' + error.message); return; }
                                 await colabCargarCursos(numEmpl);
@@ -9464,7 +9473,6 @@ FF
                             } else if (action === 'rename-folder') {
                                 colabCursosFolderRename(data.cat, numEmpl);
                             } else if (action === 'new-course-here') {
-                                // Pre-rellenar el campo categoría en el modal de edición y abrirlo
                                 const editBtn = document.querySelector('[data-bs-target="#colabEditModal"]') ||
                                                document.getElementById('colab-ficha-edit-btn');
                                 if (editBtn) editBtn.click();
