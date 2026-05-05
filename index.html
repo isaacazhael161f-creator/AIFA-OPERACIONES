@@ -5153,6 +5153,12 @@ FF
                         .cedit-curso-row:last-child { margin-bottom: 0; }
                         .cedit-curso-row-name { flex: 1; font-weight: 600; color: #1a2540; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
                         .cedit-curso-row-badge { font-size: .68rem; }
+                        /* Panel de edición inline por curso en el modal */
+                        .cedit-curso-edit-panel { display:none; background:#f0f7ff; border:1px solid #bfdbfe; border-radius:8px; padding:.65rem .75rem; margin:.25rem 0 .4rem; }
+                        .cedit-curso-edit-panel.open { display:block; }
+                        .cedit-curso-edit-panel .form-label { font-size:.75rem; font-weight:600; margin-bottom:.2rem; }
+                        /* Fila batch recurrencia */
+                        .cbm-rec-row { font-size:.78rem; margin-top:.35rem; display:flex; flex-wrap:wrap; align-items:center; gap:.4rem; }
                         /* ─── DRAG & DROP de cursos ─── */
                         .colab-cursos-dropzone {
                             border: 2.5px dashed #93c5fd;
@@ -8805,6 +8811,10 @@ FF
                                     return;
                                 }
                                 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                                const freqOpts = (sel) => ['365','180','730','90','custom'].map(v => {
+                                    const lbl = v==='365'?'Anual':v==='180'?'Semestral':v==='730'?'Bianual':v==='90'?'Trimestral':'Personalizado…';
+                                    return `<option value="${v}"${sel===v?' selected':''}>${lbl}</option>`;
+                                }).join('');
                                 listEl.innerHTML = cursos.map(c => {
                                     const st = ccStatus(c);
                                     const stBadge = st === 'expired'
@@ -8814,18 +8824,62 @@ FF
                                             : st === 'ok'
                                                 ? `<span class="badge bg-success-subtle text-success cedit-curso-row-badge ms-1">Vigente</span>`
                                                 : '';
-                                    const recurTag = c.es_recurrente ? `<span class="badge bg-purple-subtle text-purple cedit-curso-row-badge ms-1" style="background:#ede9fe;color:#5b21b6">${ccFreqLabel(c.frecuencia_dias)}</span>` : '';
+                                    const recurTag = c.es_recurrente ? `<span class="badge cedit-curso-row-badge ms-1" style="background:#ede9fe;color:#5b21b6">${ccFreqLabel(c.frecuencia_dias)}</span>` : '';
                                     const pdfBtn = c.pdf_url
                                         ? `<a href="${esc(c.pdf_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger btn-sm py-0 px-1" style="font-size:.68rem" title="Ver PDF"><i class="fas fa-file-pdf"></i></a>`
                                         : `<label class="btn btn-outline-primary btn-sm py-0 px-1" style="font-size:.68rem" title="Subir PDF"><i class="fas fa-upload"></i><input type="file" accept="application/pdf" style="display:none" onchange="colabCursosSubirPdf('${esc(c.id)}', this)"></label>`;
+                                    const curFreqVal = c.frecuencia_dias && ![365,180,730,90].includes(c.frecuencia_dias) ? 'custom' : String(c.frecuencia_dias||'365');
+                                    const editPanel = `<div class="cedit-curso-edit-panel" id="cep-${esc(c.id)}">
+                                        <div class="row g-2">
+                                            <div class="col-12 col-sm-6">
+                                                <label class="form-label">Nombre del curso</label>
+                                                <input type="text" class="form-control form-control-sm" id="cep-nombre-${esc(c.id)}" value="${esc(c.nombre)}">
+                                            </div>
+                                            <div class="col-12 col-sm-6">
+                                                <label class="form-label">Descripción (opcional)</label>
+                                                <input type="text" class="form-control form-control-sm" id="cep-desc-${esc(c.id)}" value="${esc(c.descripcion||'')}">
+                                            </div>
+                                            <div class="col-6 col-sm-4">
+                                                <label class="form-label">Fecha de realización</label>
+                                                <input type="date" class="form-control form-control-sm" id="cep-fecha-${esc(c.id)}" value="${esc(c.fecha_realizacion||'')}">
+                                            </div>
+                                            <div class="col-6 col-sm-4 d-flex align-items-end pb-1">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="cep-rec-${esc(c.id)}"
+                                                        ${c.es_recurrente?'checked':''}
+                                                        onchange="colabCursoEditToggleFreq('${esc(c.id)}',this)">
+                                                    <label class="form-check-label" for="cep-rec-${esc(c.id)}" style="font-size:.78rem">¿Recurrente?</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-sm-4" id="cep-freq-wrap-${esc(c.id)}" style="${c.es_recurrente?'':'display:none'}">
+                                                <label class="form-label">Frecuencia</label>
+                                                <select class="form-select form-select-sm" id="cep-freq-${esc(c.id)}"
+                                                        onchange="colabCursoEditToggleCustom('${esc(c.id)}',this)">
+                                                    ${freqOpts(curFreqVal)}
+                                                </select>
+                                            </div>
+                                            <div class="col-12 col-sm-4" id="cep-freq-custom-wrap-${esc(c.id)}" style="${c.es_recurrente && curFreqVal==='custom'?'':'display:none'}">
+                                                <label class="form-label">Días entre repetición</label>
+                                                <input type="number" min="1" class="form-control form-control-sm" id="cep-freq-custom-${esc(c.id)}"
+                                                       value="${c.es_recurrente && curFreqVal==='custom' ? (c.frecuencia_dias||'') : ''}" placeholder="Ej: 60">
+                                            </div>
+                                        </div>
+                                        <div class="d-flex gap-2 mt-2 align-items-center">
+                                            <button type="button" class="btn btn-primary btn-sm" onclick="colabCursoEditGuardar('${esc(c.id)}')"><i class="fas fa-save me-1"></i>Guardar cambios</button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="colabCursoEditToggle('${esc(c.id)}')">Cancelar</button>
+                                            <span id="cep-status-${esc(c.id)}" style="font-size:.78rem"></span>
+                                        </div>
+                                    </div>`;
                                     return `<div class="cedit-curso-row">
                                         <div class="cedit-curso-row-name" title="${esc(c.nombre)}">${esc(c.nombre)}</div>
                                         ${recurTag}${stBadge}
                                         <div class="ms-auto d-flex gap-1 align-items-center">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1" style="font-size:.68rem" onclick="colabCursoEditToggle('${esc(c.id)}')" title="Editar"><i class="fas fa-pencil-alt"></i></button>
                                             ${pdfBtn}
-                                            <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1" style="font-size:.68rem" onclick="colabCursosEliminar('${esc(c.id)}')" title="Eliminar"><i class="fas fa-trash-alt"></i></button>
+                                            <button type="button" class="btn btn-outline-danger btn-sm py-0 px-1" style="font-size:.68rem" onclick="colabCursosEliminar('${esc(c.id)}')" title="Eliminar"><i class="fas fa-trash-alt"></i></button>
                                         </div>
-                                    </div>`;
+                                    </div>
+                                    ${editPanel}`;
                                 }).join('');
                             } catch (err) {
                                 listEl.innerHTML = `<div class="text-danger small">${err.message || 'Error'}</div>`;
@@ -8850,6 +8904,64 @@ FF
                         window.colabCursosHideAddForm = function() {
                             const box = document.getElementById('cedit-cursos-add-box');
                             if (box) box.classList.remove('visible');
+                        };
+
+                        /* ── Edición inline en modal (toggle panel, frecuencia, guardar) ── */
+                        window.colabCursoEditToggle = function(id) {
+                            const panel = document.getElementById('cep-' + id);
+                            if (!panel) return;
+                            panel.classList.toggle('open');
+                            const st = document.getElementById('cep-status-' + id);
+                            if (st) st.innerHTML = '';
+                        };
+                        window.colabCursoEditToggleFreq = function(id, chk) {
+                            const wrap = document.getElementById('cep-freq-wrap-' + id);
+                            if (wrap) wrap.style.display = chk?.checked ? '' : 'none';
+                            if (!chk?.checked) {
+                                const cw = document.getElementById('cep-freq-custom-wrap-' + id);
+                                if (cw) cw.style.display = 'none';
+                            }
+                        };
+                        window.colabCursoEditToggleCustom = function(id, sel) {
+                            const cw = document.getElementById('cep-freq-custom-wrap-' + id);
+                            if (cw) cw.style.display = sel?.value === 'custom' ? '' : 'none';
+                        };
+                        window.colabCursoEditGuardar = async function(id) {
+                            const sb = window.supabaseClient;
+                            if (!sb || !id) return;
+                            const nombre = (document.getElementById('cep-nombre-' + id)?.value || '').trim();
+                            if (!nombre) { document.getElementById('cep-status-' + id).innerHTML = '<span class="text-danger">El nombre es obligatorio.</span>'; return; }
+                            const desc  = (document.getElementById('cep-desc-' + id)?.value || '').trim() || null;
+                            const fecha = document.getElementById('cep-fecha-' + id)?.value || null;
+                            const esRec = !!document.getElementById('cep-rec-' + id)?.checked;
+                            let frecDias = null;
+                            if (esRec) {
+                                const sel = document.getElementById('cep-freq-' + id);
+                                if (sel?.value === 'custom') {
+                                    const cv = parseInt(document.getElementById('cep-freq-custom-' + id)?.value || '0', 10);
+                                    if (!cv || cv < 1) { document.getElementById('cep-status-' + id).innerHTML = '<span class="text-danger">Ingresa un número válido de días.</span>'; return; }
+                                    frecDias = cv;
+                                } else {
+                                    frecDias = parseInt(sel?.value || '365', 10);
+                                }
+                            }
+                            const stEl = document.getElementById('cep-status-' + id);
+                            if (stEl) stEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+                            try {
+                                const { error } = await sb.from('colab_cursos').update({
+                                    nombre, descripcion: desc, fecha_realizacion: fecha || null,
+                                    es_recurrente: esRec, frecuencia_dias: frecDias
+                                }).eq('id', id);
+                                if (error) throw error;
+                                if (stEl) stEl.innerHTML = '<span class="text-success"><i class="fas fa-check me-1"></i>Guardado</span>';
+                                setTimeout(async () => {
+                                    await colabCursosCargarEdit();
+                                    const numEmpl = val(gc(colabCurrentRow, 'num'));
+                                    if (numEmpl) colabCargarCursos(numEmpl);
+                                }, 700);
+                            } catch (err) {
+                                if (stEl) stEl.innerHTML = `<span class="text-danger">${err.message || 'Error'}</span>`;
+                            }
                         };
 
                         /* ── Toggle frecuencia ── */
@@ -8993,6 +9105,10 @@ FF
                             if (countEl) countEl.textContent = `${files.length} PDF${files.length !== 1 ? 's' : ''} encontrado${files.length !== 1 ? 's' : ''}`;
 
                             // Construir filas
+                            const freqOptsB = (sel='365') => ['365','180','730','90','custom'].map(v => {
+                                const lbl = v==='365'?'Anual (1 año)':v==='180'?'Semestral (6 m)':v==='730'?'Bianual (2 años)':v==='90'?'Trimestral (3 m)':'Personalizado…';
+                                return `<option value="${v}"${sel===v?' selected':''}>${lbl}</option>`;
+                            }).join('');
                             const listEl = document.getElementById('cbm-list');
                             if (listEl) {
                                 listEl.innerHTML = files.map((f, i) => {
@@ -9009,6 +9125,19 @@ FF
                                             <input type="text" class="form-control form-control-sm" id="cbm-name-${i}"
                                                    value="${rawName.replace(/"/g, '&quot;')}" placeholder="Nombre del curso"
                                                    ${tooBig ? 'disabled' : ''}>
+                                            <div class="cbm-rec-row">
+                                                <div class="form-check form-check-inline mb-0">
+                                                    <input class="form-check-input" type="checkbox" id="cbm-rec-${i}"
+                                                           onchange="colabBatchToggleFreq(${i},this)" ${tooBig ? 'disabled' : ''}>
+                                                    <label class="form-check-label" for="cbm-rec-${i}">¿Recurrente?</label>
+                                                </div>
+                                                <select class="form-select form-select-sm" id="cbm-freq-${i}"
+                                                        style="display:none;max-width:160px;font-size:.76rem"
+                                                        onchange="colabBatchToggleCustomFreq(${i},this)">${freqOptsB()}</select>
+                                                <input type="number" min="1" id="cbm-freq-custom-${i}"
+                                                       class="form-control form-control-sm" placeholder="días"
+                                                       style="display:none;max-width:80px;font-size:.76rem">
+                                            </div>
                                         </div>
                                         <div class="cbm-status-icon" id="cbm-icon-${i}">
                                             ${tooBig ? '<i class="fas fa-times-circle text-danger" title="Archivo muy grande"></i>' : ''}
@@ -9029,6 +9158,18 @@ FF
 
                             new bootstrap.Modal(document.getElementById('colabBatchCursosModal')).show();
                         }
+
+                        /* Toggle frecuencia en filas del batch */
+                        window.colabBatchToggleFreq = function(i, chk) {
+                            const sel = document.getElementById('cbm-freq-' + i);
+                            const cw  = document.getElementById('cbm-freq-custom-' + i);
+                            if (sel) sel.style.display = chk?.checked ? '' : 'none';
+                            if (cw && !chk?.checked) cw.style.display = 'none';
+                        };
+                        window.colabBatchToggleCustomFreq = function(i, sel) {
+                            const cw = document.getElementById('cbm-freq-custom-' + i);
+                            if (cw) cw.style.display = sel?.value === 'custom' ? '' : 'none';
+                        };
 
                         /* Aplica la fecha global a todas las filas */
                         window.colabBatchApplyDate = function() {
@@ -9066,9 +9207,20 @@ FF
 
                             // Filtrar archivos válidos (no demasiado grandes, con nombre)
                             const valid = _ccBatchFiles.map((f, i) => {
-                                const nombre = (document.getElementById(`cbm-name-${i}`)?.value || '').trim();
-                                const fecha  = document.getElementById(`cbm-date-${i}`)?.value || null;
-                                return { file: f, nombre, fecha, idx: i, skip: f.size > 15*1024*1024 || !nombre };
+                                const nombre  = (document.getElementById(`cbm-name-${i}`)?.value || '').trim();
+                                const fecha   = document.getElementById(`cbm-date-${i}`)?.value || null;
+                                const esRec   = !!document.getElementById(`cbm-rec-${i}`)?.checked;
+                                const freqSel = document.getElementById(`cbm-freq-${i}`)?.value || '365';
+                                let frecDias  = null;
+                                if (esRec) {
+                                    if (freqSel === 'custom') {
+                                        const cv = parseInt(document.getElementById(`cbm-freq-custom-${i}`)?.value || '0', 10);
+                                        frecDias = cv > 0 ? cv : 365;
+                                    } else {
+                                        frecDias = parseInt(freqSel, 10);
+                                    }
+                                }
+                                return { file: f, nombre, fecha, esRec, frecDias, idx: i, skip: f.size > 15*1024*1024 || !nombre };
                             });
 
                             let ok = 0, fail = 0;
@@ -9087,7 +9239,8 @@ FF
                                         num_empleado:      String(numEmpl),
                                         nombre:            item.nombre,
                                         fecha_realizacion: item.fecha || null,
-                                        es_recurrente:     false,
+                                        es_recurrente:     item.esRec,
+                                        frecuencia_dias:   item.frecDias,
                                         creado_por:        userName,
                                     }).select('id').single();
                                     if (insErr) throw insErr;
