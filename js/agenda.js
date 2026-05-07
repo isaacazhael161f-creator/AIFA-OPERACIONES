@@ -412,11 +412,11 @@ function _agCalDraw() {
             const hora = r.hora_inicio ? r.hora_inicio.slice(0, 5) : '';
 
             row += `<span class="ag-chip${extraCls}"
-                title="${comite.nombre || ''}\n${r.numero_sesion || ''} | ${r.estatus}${hora ? ' · ' + hora + 'h' : ''}${r.observaciones ? '\n' + r.observaciones : ''}\n\n🔍 Haz clic para ver información normativa"
+                title="${comite.nombre || ''}\n${r.numero_sesion || ''} | ${r.estatus}${hora ? ' · ' + hora + 'h' : ''}${r.observaciones ? '\n' + r.observaciones : ''}${comite.horario_fijo ? '\n⏰ Horario preestablecido' : ''}\n\n🔍 Haz clic para ver información normativa"
                 style="background:${ac.bg};color:${ac.color};border-left-color:${ac.border}"
                 onclick="_agShowComiteDetail('${r.comite_id}')">
                 ${statusIcon}<span style="background:${ac.bg};color:${ac.color};border:1px solid ${ac.border}60;font-size:.56rem;font-weight:700;
-                    padding:0 3px;border-radius:3px;margin-right:4px;letter-spacing:.01em">${_chipArea}</span>${hora ? `<span style="opacity:.5;font-size:.6rem;margin-right:2px">${hora}</span>` : ''}${label}
+                    padding:0 3px;border-radius:3px;margin-right:4px;letter-spacing:.01em">${_chipArea}</span>${hora ? `<span style="opacity:.5;font-size:.6rem;margin-right:2px">${hora}</span>` : ''}${label}${comite.horario_fijo ? `<i class="fas fa-clock" style="font-size:.55rem;color:#d97706;opacity:.85;margin-left:4px;flex-shrink:0" title="Horario preestablecido"></i>` : ''}
             </span>`;
         });
         if (overflow > 0) {
@@ -600,7 +600,7 @@ function _agShowComiteDetail(comiteId) {
                 </span>
                 <span class="text-muted" style="font-size:.75rem">#${comite.numero}</span>
               </div>
-              <h5 class="modal-title fw-bold mb-0" style="color:${ac.color};font-size:1rem;line-height:1.35">${comite.nombre}</h5>
+              <h5 class="modal-title fw-bold mb-0" style="color:${ac.color};font-size:1rem;line-height:1.35">${comite.nombre}${comite.horario_fijo ? ` <i class="fas fa-clock ms-1" style="font-size:.75rem;color:#d97706" title="Horario preestablecido"></i>` : ''}</h5>
               ${comite.frecuencia ? `<div class="mt-1 text-muted" style="font-size:.74rem"><i class="fas fa-redo me-1" style="color:${ac.color};opacity:.7"></i>${comite.frecuencia}</div>` : ''}
             </div>
             ${_agCanEdit(comite.area) ? `
@@ -904,6 +904,7 @@ function _agAnualDraw() {
                       ${hora ? `<span style="font-size:.62rem;color:#94a3b8;font-weight:600;flex-shrink:0;min-width:32px">${hora}</span>` : ''}
                       <span style="font-size:.73rem;color:${isCel?'#374151':'#1e293b'};font-weight:${isCel?'400':'600'};
                         line-height:1.3;flex:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${nombre}</span>
+                      ${comite.horario_fijo ? `<i class="fas fa-clock" style="font-size:.6rem;color:#d97706;flex-shrink:0" title="Horario preestablecido"></i>` : ''}
                       ${isCel ? `<i class="fas fa-check-circle flex-shrink-0" style="font-size:.65rem;color:#059669"></i>` : ''}
                       ${isCan ? `<i class="fas fa-times-circle flex-shrink-0" style="font-size:.65rem;color:#dc2626"></i>` : ''}
                     </div>`;
@@ -1012,7 +1013,12 @@ async function agLoadComites() {
               <span class="badge" style="background:${ac.bg};color:${ac.color};border:1px solid ${ac.border};font-size:.72rem">
                 ${c.area}${c.acronimo ? ' — ' + c.acronimo : ''}
               </span>
-              <span class="badge bg-secondary" style="font-size:.62rem">#${c.numero}</span>
+              <div class="d-flex align-items-center gap-1">
+                ${c.horario_fijo ? `<span title="Horario preestablecido — siempre sesiona en las mismas fechas"
+                  style="font-size:.72rem;color:#d97706;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:1px 5px">
+                  <i class="fas fa-clock"></i></span>` : ''}
+                <span class="badge bg-secondary" style="font-size:.62rem">#${c.numero}</span>
+              </div>
             </div>
             <div class="fw-semibold mb-1" style="font-size:.85rem;line-height:1.35">${c.nombre}</div>
             ${c.frecuencia ? `<div class="text-muted" style="font-size:.72rem"><i class="fas fa-redo me-1"></i>${c.frecuencia}</div>` : ''}
@@ -1350,6 +1356,22 @@ function agOpenEditComite(comiteId) {
                   value="${comite?.hora_sesion?.slice(0, 5) || ''}">
               </div>
               <div class="col-12">
+                <div class="form-check d-flex align-items-center gap-2 p-3 rounded-3"
+                     style="background:#fffbeb;border:1.5px solid #fde68a;cursor:pointer"
+                     onclick="document.getElementById('_ag-ec-horario-fijo').click()">
+                  <input class="form-check-input flex-shrink-0 mt-0" type="checkbox" id="_ag-ec-horario-fijo"
+                    onclick="event.stopPropagation()" ${comite?.horario_fijo ? 'checked' : ''}>
+                  <label class="form-check-label mb-0" for="_ag-ec-horario-fijo" style="cursor:pointer;user-select:none">
+                    <i class="fas fa-clock text-warning me-1"></i>
+                    <span class="fw-semibold" style="font-size:.85rem">Horario preestablecido</span>
+                    <span class="text-muted d-block" style="font-size:.73rem;line-height:1.3">
+                      El comité siempre sesiona en las mismas fechas cada año. Se mostrará un ícono
+                      <i class="fas fa-clock text-warning"></i> en el calendario y en la ficha del comité.
+                    </span>
+                  </label>
+                </div>
+              </div>
+              <div class="col-12">
                 <label class="form-label small fw-semibold mb-1">Presidente / Coordinador</label>
                 <input class="form-control form-control-sm" id="_ag-ec-presidente"
                   value="${(comite?.presidente || '').replace(/"/g, '&quot;')}"
@@ -1407,8 +1429,9 @@ async function _agSaveComite() {
         fundamento:  document.getElementById('_ag-ec-fundamento').value.trim()  || null,
         integrantes,
         frecuencia:  document.getElementById('_ag-ec-frecuencia').value         || null,
-        hora_sesion: document.getElementById('_ag-ec-hora').value               || null,
-        presidente:  document.getElementById('_ag-ec-presidente').value.trim()  || null,
+        hora_sesion:   document.getElementById('_ag-ec-hora').value               || null,
+        presidente:    document.getElementById('_ag-ec-presidente').value.trim()  || null,
+        horario_fijo:  document.getElementById('_ag-ec-horario-fijo').checked,
     };
     if (isAdmin) {
         data.area   = document.getElementById('_ag-ec-area').value;
