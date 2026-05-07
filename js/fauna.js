@@ -371,6 +371,7 @@
   }
 
   function applyFilters(){
+    const year  = (document.getElementById('fauna-year')?.value  || 'all');
     const month = (document.getElementById('fauna-month')?.value || 'all');
     const fromStr = (document.getElementById('fauna-date-from')?.value || '');
     const toStr = (document.getElementById('fauna-date-to')?.value || '');
@@ -384,6 +385,7 @@
     state.filtered = state.raw.filter(r => {
       const d = parseDMY(r['Fecha']);
       if (!d) return false; // omit invalid date rows to keep consistency
+      if (year !== 'all' && String(d.getUTCFullYear()) !== year) return false;
       if (month !== 'all') {
         const mm = String((d.getUTCMonth()+1)).padStart(2,'0');
         if (mm !== month) return false;
@@ -507,7 +509,13 @@
     destroyChart(state.charts.heatmap);
 
     // ECharts builders
-  const monthLabelsPretty = byMonth.labels.map(monthKeyToAbbr);
+  const monthLabelsPretty = byMonth.labels.map(ym => {
+    // If data spans >1 year, show "Ene 25", "Ene 26" etc.
+    const allYears = new Set(byMonth.labels.map(k => k.split('-')[0]));
+    const [y, m] = ym.split('-');
+    const abbr = monthNamesEs[Math.max(0, Math.min(11, (parseInt(m,10)||1)-1))];
+    return allYears.size > 1 ? `${abbr} ${String(y).slice(2)}` : abbr;
+  });
   state.charts.byMonth = makeEBar('fauna-by-month', monthLabelsPretty, byMonth.data, { orientation: 'v', color: '#1565c0', xTitle: 'Mes' });
   state.charts.bySpecies = makeEBar('fauna-by-species', bySpecies.labels, bySpecies.data, { orientation: 'h', color: '#2e7d32' });
     state.charts.byHour = makeEBar('fauna-by-hour', byHour.labels, byHour.data, { orientation: 'v', color: '#fb8c00' });
@@ -727,6 +735,15 @@
   function populateFilters(){
     const selMonth = document.getElementById('fauna-month');
     if (selMonth){ /* keep predefined months */ }
+    // Populate year filter dynamically
+    const yearSel = document.getElementById('fauna-year');
+    if (yearSel) {
+      const years = Array.from(new Set(state.raw.map(r => {
+        const d = parseDMY(r['Fecha']); return d ? String(d.getUTCFullYear()) : null;
+      }).filter(Boolean))).sort();
+      yearSel.innerHTML = '<option value="all" selected>Todos</option>' +
+        years.map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join('');
+    }
     const speciesSel = document.getElementById('fauna-species');
     const sizeSel = document.getElementById('fauna-size');
     const phaseSel = document.getElementById('fauna-phase');
@@ -750,6 +767,7 @@
         renderTable();
     });
 
+    document.getElementById('fauna-year')?.addEventListener('change', applyFilters);
     document.getElementById('fauna-month')?.addEventListener('change', applyFilters);
     document.getElementById('fauna-date-from')?.addEventListener('change', applyFilters);
     document.getElementById('fauna-date-to')?.addEventListener('change', applyFilters);
@@ -759,6 +777,7 @@
     document.getElementById('fauna-airline')?.addEventListener('change', applyFilters);
     document.getElementById('fauna-clear')?.addEventListener('click', () => {
       const mf = document.getElementById('fauna-month'); if (mf) mf.value='all';
+      const yf = document.getElementById('fauna-year');  if (yf) yf.value='all';
       const df = document.getElementById('fauna-date-from'); if (df) df.value='';
       const dt = document.getElementById('fauna-date-to'); if (dt) dt.value='';
       const sp = document.getElementById('fauna-species'); if (sp) sp.value='all';
