@@ -14,6 +14,37 @@
     // Columnas que contienen seriales de fecha Excel
     const DATE_COL_NORMS = new Set(['aterrizaje_despegue', 'hora_programada', 'hora_actual']);
 
+    // Abreviaturas de mes en español → número (1-12)
+    const MES_ABREV_MAP = {
+        'ene':1,'feb':2,'mar':3,'abr':4,'may':5,'jun':6,
+        'jul':7,'ago':8,'sep':9,'oct':10,'nov':11,'dic':12
+    };
+
+    /**
+     * Intenta extraer mes y año del nombre de la hoja.
+     * Soporta: "ABR 2026", "ABRIL 2026", "04/2026", "4-2026", "2026-04".
+     * Retorna { mes: Number, anio: Number } o null.
+     */
+    function mesAnioFromSheetName(name) {
+        const n = String(name || '').trim();
+        // Patrón: letras (nombre de mes) seguido de 4 dígitos (año), ej. "ABR 2026"
+        const m1 = n.match(/([A-Za-záéíóúüñ]+)\s+(\d{4})/i);
+        if (m1) {
+            const abbr = m1[1].substring(0, 3).toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const anio = parseInt(m1[2], 10);
+            if (MES_ABREV_MAP[abbr] && anio >= 2000) return { mes: MES_ABREV_MAP[abbr], anio };
+        }
+        // Patrón: MM/YYYY o M-YYYY o YYYY-MM
+        const m2 = n.match(/(\d{1,2})[\/-](\d{4})/) || n.match(/(\d{4})[\/-](\d{1,2})/);
+        if (m2) {
+            let mes = parseInt(m2[1], 10), anio = parseInt(m2[2], 10);
+            if (anio < 2000) { [mes, anio] = [anio, mes]; } // swap YYYY-MM case
+            if (mes >= 1 && mes <= 12 && anio >= 2000) return { mes, anio };
+        }
+        return null;
+    }
+
     // ── Utilidades ────────────────────────────────────────────────────────────
 
     /** Normaliza un nombre de columna para comparación fuzzy */
@@ -167,14 +198,42 @@
             const headers  = rows[0];
             const dataRows = rows.slice(1).filter(r => Array.isArray(r) && r.some(v => v !== null && v !== undefined));
 
-            // 2. Detectar MES y ANIO desde datos
-            const mesIdx  = headers.findIndex(h => normCol(h) === 'mes');
-            const anioIdx = headers.findIndex(h => normCol(h) === 'anio');
-            const sampleRow = dataRows[0] || [];
-            const mesDato   = mesIdx  >= 0 ? Number(sampleRow[mesIdx])  : null;
-            const anioDato  = anioIdx >= 0 ? Number(sampleRow[anioIdx]) : null;
-            const mesStr    = (mesDato  && mesDato >= 1 && mesDato <= 12) ? MES_NOMBRES[mesDato] : '?';
-            const anioStr   = anioDato || '?';
+            // 2. Detectar MES y ANIO — prioridad: nombre de hoja → columnas MES/ANIO → fecha del dato
+            let mesDato = null, anioDato = null;
+
+            // 2a. Nombre de la hoja (más confiable — ej. "ABR 2026")
+            const fromSheet = mesAnioFromSheetName(sheetName);
+            if (fromSheet) {
+                mesDato = fromSheet.mes;
+                anioDato = fromSheet.anio;
+            }
+
+            // 2b. Columnas MES / ANIO en los datos (fallback)
+            if (!mesDato || !anioDato) {
+                const mesIdx  = headers.findIndex(h => normCol(h) === 'mes');
+                const anioIdx = headers.findIndex(h => normCol(h) === 'anio');
+                const sampleRow = dataRows[0] || [];
+                const mesCol  = mesIdx  >= 0 ? Number(sampleRow[mesIdx])  : null;
+                const anioCol = anioIdx >= 0 ? Number(sampleRow[anioIdx]) : null;
+                if (!mesDato  && mesCol  >= 1 && mesCol  <= 12) mesDato  = mesCol;
+                if (!anioDato && anioCol >= 2000)               anioDato = anioCol;
+            }
+
+            // 2c. Derivar del primer valor de fecha en la columna aterrizaje/despegue (fallback)
+            if (!mesDato || !anioDato) {
+                const atzIdx = headers.findIndex(h => normCol(h) === 'aterrizaje_despegue');
+                if (atzIdx >= 0) {
+                    const serial = (dataRows[0] || [])[atzIdx];
+                    if (typeof serial === 'number' && serial > 0) {
+                        const d = new Date((serial - 25569) * 86400000);
+                        if (!mesDato)  mesDato  = d.getUTCMonth() + 1;
+                        if (!anioDato) anioDato = d.getUTCFullYear();
+                    }
+                }
+            }
+
+            const mesStr  = (mesDato  && mesDato >= 1 && mesDato <= 12) ? MES_NOMBRES[mesDato] : '?';
+            const anioStr = anioDato || '?';
 
             // 3. Construir mapping de columnas
             const dbColNames = await getDbColNames();
@@ -247,11 +306,17 @@
                         // Filtrar filas completamente vacías (sin ningún valor relevante)
                         const noEntry  = mapping.find(m => normCol(m.excelHeader) === 'no');
                         const noDbCol  = noEntry ? noEntry.dbCol : 'No';
+                        // Buscar el nombre real de las columnas MES/ANIO en el mapping para sobreescribirlas
+                        const mesEntry  = mapping.find(m => normCol(m.excelHeader) === 'mes');
+                        const anioEntry = mapping.find(m => normCol(m.excelHeader) === 'anio');
+                        const mesDbCol  = mesEntry  ? mesEntry.dbCol  : 'MES';
+                        const anioDbCol = anioEntry ? anioEntry.dbCol : 'ANIO';
                         const dbRows   = dataRows
                             .map(r => transformRow(r, mapping))
                             .filter(r => Object.values(r).some(v => v !== null && v !== undefined && v !== ''))
-                            // Asignar número de fila secuencial para evitar duplicados en la PK
-                            .map((r, i) => ({ ...r, [noDbCol]: i + 1 }));
+                            // Sobreescribir MES/ANIO con el valor detectado del nombre de hoja
+                            // (evita que datos copiados de otro mes queden con el mes incorrecto)
+                            .map((r, i) => ({ ...r, [mesDbCol]: mesDato, [anioDbCol]: anioDato, [noDbCol]: i + 1 }));
                         await uploadInBatches(dbRows, (done, total) => {
                             setProgress(done, total);
                             setStatus(`<i class="fas fa-spinner fa-spin me-1"></i>Subiendo… <strong>${done.toLocaleString()}</strong> / ${total.toLocaleString()} registros`);
@@ -290,11 +355,14 @@
 
     // ── Inicialización ─────────────────────────────────────────────────────────
 
-    /** Muestra/oculta el botón de importar según el rol */
+    /** Muestra/oculta los botones de admin segun el rol */
     function syncImportBtn() {
-        const role = sessionStorage.getItem('user_role') || 'viewer';
-        const btn  = document.getElementById('demoras-import-btn');
-        if (btn) btn.style.display = UPLOAD_ROLES.includes(role) ? '' : 'none';
+        const role      = sessionStorage.getItem('user_role') || 'viewer';
+        const container = document.getElementById('demoras-admin-btns');
+        // El wrapper usa display:none!important por defecto; lo reemplazamos con flex
+        if (container) container.style.cssText = UPLOAD_ROLES.includes(role)
+            ? 'display:flex!important'
+            : 'display:none!important';
     }
 
     window.demorasInitUploadBtn = syncImportBtn;
@@ -343,5 +411,134 @@
         if (label) label.textContent = file.name;
         window.demorasProcessFile(file);
     }
+
+    // ── Lógica: Borrar mes de Demoras ────────────────────────────────────────
+
+    const MES_NOMBRES_DEL = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                              'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+    /** Abre el modal de borrado pre-cargando el mes/año activo */
+    window.demorasAbrirBorrar = function () {
+        const selMes  = document.getElementById('dd-sel-mes');
+        const inpAnio = document.getElementById('dd-inp-anio');
+        const btnConf = document.getElementById('dd-btn-confirm');
+        const status  = document.getElementById('dd-status');
+        const info    = document.getElementById('dd-count-info');
+
+        if (!selMes || !inpAnio) return;
+
+        // Pre-cargar con el mes activo de la vista
+        const mesActivo  = (typeof currentMonthOps !== 'undefined' && currentMonthOps)
+            ? currentMonthOps : null;
+        const anioActivo = (typeof currentYearOps  !== 'undefined' && currentYearOps)
+            ? currentYearOps  : new Date().getFullYear();
+
+        if (mesActivo) {
+            const mesNum = MES_NOMBRES_DEL.indexOf(mesActivo);
+            if (mesNum > 0) selMes.value = String(mesNum);
+        }
+        inpAnio.value = anioActivo;
+
+        if (btnConf) btnConf.disabled = true;
+        if (status)  status.innerHTML = '';
+        if (info)    info.textContent  = '';
+
+        // Consultar cuántos registros hay
+        _ddFetchCount();
+
+        const modalEl = document.getElementById('demoras-delete-modal');
+        let bsModal = bootstrap.Modal.getInstance(modalEl);
+        if (!bsModal) bsModal = new bootstrap.Modal(modalEl);
+        bsModal.show();
+    };
+
+    async function _ddFetchCount() {
+        const mes  = parseInt(document.getElementById('dd-sel-mes')?.value,  10);
+        const anio = parseInt(document.getElementById('dd-inp-anio')?.value, 10);
+        const info = document.getElementById('dd-count-info');
+        const btnC = document.getElementById('dd-btn-confirm');
+        if (!mes || !anio || anio < 2020 || anio > 2099) {
+            if (info) info.textContent = '';
+            if (btnC) btnC.disabled = true;
+            return;
+        }
+        if (info) info.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Consultando registros…';
+        if (btnC) btnC.disabled = true;
+        try {
+            const { count, error } = await window.supabaseClient
+                .from('Demoras')
+                .select('*', { count: 'exact', head: true })
+                .eq('MES', mes)
+                .eq('ANIO', anio);
+            if (error) throw error;
+            const mesNombre = MES_NOMBRES_DEL[mes] || mes;
+            if (count > 0) {
+                if (info) info.innerHTML = `Se eliminarán <strong class="text-danger">${count.toLocaleString()} registros</strong> de <strong>${mesNombre} ${anio}</strong>.`;
+                if (btnC) btnC.disabled = false;
+            } else {
+                if (info) info.innerHTML = `<span class="text-success"><i class="fas fa-check-circle me-1"></i>No hay registros para ${mesNombre} ${anio}.</span>`;
+                if (btnC) btnC.disabled = true;
+            }
+        } catch (e) {
+            if (info) info.textContent = 'Error al consultar: ' + e.message;
+        }
+    }
+
+    // Actualizar conteo al cambiar selector
+    // Usamos un helper que funciona aunque DOMContentLoaded ya haya disparado
+    function _onReady(fn) {
+        if (document.readyState !== 'loading') fn();
+        else document.addEventListener('DOMContentLoaded', fn);
+    }
+
+    _onReady(() => {
+        document.getElementById('dd-sel-mes')  ?.addEventListener('change', _ddFetchCount);
+        document.getElementById('dd-inp-anio') ?.addEventListener('input',  _ddFetchCount);
+
+        document.getElementById('dd-btn-confirm')?.addEventListener('click', async () => {
+            const mes  = parseInt(document.getElementById('dd-sel-mes')?.value,  10);
+            const anio = parseInt(document.getElementById('dd-inp-anio')?.value, 10);
+            const status = document.getElementById('dd-status');
+            const btnC   = document.getElementById('dd-btn-confirm');
+            if (!mes || !anio) return;
+
+            btnC.disabled = true;
+            if (status) status.innerHTML = '<div class="alert alert-warning py-2 small"><i class="fas fa-spinner fa-spin me-1"></i>Eliminando registros…</div>';
+
+            try {
+                const { error } = await window.supabaseClient
+                    .from('Demoras')
+                    .delete()
+                    .eq('MES', mes)
+                    .eq('ANIO', anio);
+                if (error) throw error;
+
+                const mesNombre = MES_NOMBRES_DEL[mes] || mes;
+                if (status) status.innerHTML = `<div class="alert alert-success py-2 small"><i class="fas fa-check-circle me-1"></i>Registros de <strong>${mesNombre} ${anio}</strong> eliminados correctamente.</div>`;
+
+                // Invalidar caché del mes borrado
+                const cacheKey = `aifa_ops_cache_${anio}_${mes}`;
+                sessionStorage.removeItem(cacheKey);
+
+                // Refrescar tabla si el mes borrado es el activo en la vista
+                if (typeof currentMonthOps !== 'undefined' && typeof currentYearOps !== 'undefined') {
+                    const monthMap = { 'Enero':1,'Febrero':2,'Marzo':3,'Abril':4,'Mayo':5,'Junio':6,
+                                       'Julio':7,'Agosto':8,'Septiembre':9,'Octubre':10,'Noviembre':11,'Diciembre':12 };
+                    if (monthMap[currentMonthOps] === mes && currentYearOps === anio) {
+                        setTimeout(() => {
+                            if (typeof loadOpsMonthData === 'function') loadOpsMonthData(currentMonthOps);
+                        }, 800);
+                    }
+                }
+
+                // Actualizar conteo (mostrar 0)
+                setTimeout(_ddFetchCount, 600);
+
+            } catch (e) {
+                if (status) status.innerHTML = `<div class="alert alert-danger py-2 small"><i class="fas fa-times-circle me-1"></i>Error: ${e.message}</div>`;
+                btnC.disabled = false;
+            }
+        });
+    });
 
 })();

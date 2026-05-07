@@ -17008,13 +17008,12 @@ async function _conciSaveBulkEdits() {
             (u.username || '').toLowerCase().includes(q)
         );
 
-        // Ordenar por rol (jerarquía), luego por nombre
-        const ROLE_ORDER = { superadmin:0, admin:1, editor:2, control_fauna:3, servicio_medico:4, colab_editor:5, colab_viewer:6, viewer:7 };
+        // Ordenar: online primero, luego por último inicio de sesión (más reciente → más antiguo)
         rows = [...rows].sort((a, b) => {
-            const ra = ROLE_ORDER[a.role] ?? 99;
-            const rb = ROLE_ORDER[b.role] ?? 99;
-            if (ra !== rb) return ra - rb;
-            return (a.full_name || a.email || '').localeCompare(b.full_name || b.email || '', 'es');
+            if (a.is_online !== b.is_online) return a.is_online ? -1 : 1;
+            const ta = a.last_sign_in_at ? new Date(a.last_sign_in_at).getTime() : 0;
+            const tb = b.last_sign_in_at ? new Date(b.last_sign_in_at).getTime() : 0;
+            return tb - ta;
         });
 
         if (!rows.length) {

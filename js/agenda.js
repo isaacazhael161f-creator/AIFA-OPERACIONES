@@ -548,20 +548,33 @@ function _agShowComiteDetail(comiteId) {
     }
 
     /* ── Sesiones ── */
-    let sesionesHtml = '<tr><td colspan="5" class="text-center text-muted py-3 small">Sin sesiones registradas para 2026</td></tr>';
+    const _isCOYH = (comite.acronimo || '').toUpperCase() === 'COYH';
+    const _colCount = 5 + (_agCanEdit(comite.area) ? 1 : 0) + (_isCOYH ? 1 : 0);
+    let sesionesHtml = `<tr><td colspan="${_colCount}" class="text-center text-muted py-3 small">Sin sesiones registradas para 2026</td></tr>`;
     if (sesiones.length) {
         sesionesHtml = sesiones.map(r => {
-            const d      = new Date(r.fecha_sesion + 'T00:00:00');
-            const isCan  = r.estatus === 'Cancelada';
-            const isCel  = r.estatus === 'Celebrada';
-            const isPast = d < today;
-            const badge  = isCan ? '#dc2626' : isCel ? '#16a34a' : isPast ? '#6b7280' : '#2563eb';
+            const d        = new Date(r.fecha_sesion + 'T00:00:00');
+            const isCan    = r.estatus === 'Cancelada';
+            const isCel    = r.estatus === 'Celebrada';
+            const isPast   = d < today;
+            const badge    = isCan ? '#dc2626' : isCel ? '#16a34a' : isPast ? '#6b7280' : '#2563eb';
+            const fechaStr = `${d.getDate()} ${AG_MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`;
             return `<tr style="${isCan ? 'opacity:.55;text-decoration:line-through' : isCel ? 'background:#f0fdf4' : ''}">
                 <td class="text-center fw-semibold" style="font-size:.78rem">${r.numero_sesion || '—'}</td>
-                <td style="font-size:.78rem">${d.getDate()} ${AG_MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}</td>
+                <td style="font-size:.78rem">${fechaStr}</td>
                 <td class="text-center" style="font-size:.78rem">${r.hora_inicio ? r.hora_inicio.slice(0,5) + 'h' : '—'}</td>
                 <td><span class="badge" style="background:${badge};font-size:.63rem">${r.estatus}</span></td>
                 <td class="text-muted" style="font-size:.73rem">${r.observaciones || ''}</td>
+                ${_isCOYH ? `
+                <td class="text-center">
+                  <button class="btn btn-sm fw-semibold"
+                    style="font-size:.65rem;padding:3px 8px;border-radius:7px;white-space:nowrap;
+                           background:#1e3a5f;color:#fff;border:none"
+                    title="Directorio y lista de asistencia del COyH"
+                    onclick="event.stopPropagation();coyhAbrirAsistencia('${r.id}','${r.numero_sesion || 'Sesión'}','${fechaStr}')">
+                    <i class='fas fa-address-book me-1'></i>Directorio
+                  </button>
+                </td>` : ''}
                 ${_agCanEdit(comite.area) ? `
                 <td class="text-center">
                   <button class="btn btn-link btn-sm p-0" style="color:#6b7280" title="Editar sesión"
@@ -648,6 +661,7 @@ function _agShowComiteDetail(comiteId) {
                       <th class="text-center" style="width:75px">Hora</th>
                       <th style="width:95px">Estatus</th>
                       <th>Observaciones</th>
+                      ${_isCOYH ? '<th style="width:110px;text-align:center">Directorio</th>' : ''}
                       ${_agCanEdit(comite.area) ? '<th style="width:46px"></th>' : ''}
                     </tr>
                   </thead>
