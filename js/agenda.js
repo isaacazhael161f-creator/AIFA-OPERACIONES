@@ -1041,6 +1041,15 @@ async function agLoadComites() {
               <button class="btn btn-outline-primary btn-sm py-0 px-2 flex-fill" style="font-size:.7rem"
                 onclick="event.stopPropagation();agOpenEditSesion(null,'${c.id}')">
                 <i class="fas fa-calendar-plus me-1"></i>+ Sesión</button>
+              <button data-clock-id="${c.id}"
+                class="btn btn-sm py-0 px-2" style="font-size:.7rem;flex-shrink:0;
+                  ${c.horario_fijo
+                    ? 'background:#fffbeb;border:1.5px solid #fbbf24;color:#d97706;font-weight:700'
+                    : 'background:#f9fafb;border:1.5px solid #d1d5db;color:#9ca3af'}"
+                title="${c.horario_fijo ? 'Quitar horario preestablecido' : 'Marcar como horario preestablecido (mismas fechas cada año)'}"
+                onclick="event.stopPropagation();_agToggleHorarioFijo('${c.id}')">
+                <i class="fas fa-clock"></i>
+              </button>
             </div>` : ''}
             ${nextHtml}
           </div>
@@ -1275,6 +1284,27 @@ function _agRefreshActiveTab() {
     else if (id === 'ag-tab-anual')     agLoadAnual();
     else if (id === 'ag-tab-comites')   agLoadComites();
     else if (id === 'ag-tab-reuniones') agLoadReuniones();
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   TOGGLE HORARIO FIJO (desde tarjeta, sin abrir modal)
+══════════════════════════════════════════════════════════════════ */
+async function _agToggleHorarioFijo(comiteId) {
+    const comite = _ag.comites.find(c => c.id === comiteId);
+    if (!comite || !_agCanEdit(comite.area)) return;
+    const newVal = !comite.horario_fijo;
+    const sb = _agSB();
+    if (!sb) return;
+    const btn = document.querySelector(`[data-clock-id="${comiteId}"]`);
+    if (btn) { btn.disabled = true; btn.style.opacity = '.5'; }
+    const { error } = await sb.from('agenda_comites').update({ horario_fijo: newVal }).eq('id', comiteId);
+    if (error) {
+        if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+        alert('Error al actualizar: ' + error.message);
+        return;
+    }
+    comite.horario_fijo = newVal;
+    agLoadComites();
 }
 
 /* ══════════════════════════════════════════════════════════════════
