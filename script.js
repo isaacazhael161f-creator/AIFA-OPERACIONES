@@ -17976,12 +17976,29 @@ async function _conciSaveBulkEdits() {
     function agComiteCard(c) {
         const canEdit = _editableAreas.includes(c.area);
         const participantes = Array.isArray(c.participantes) ? c.participantes.join(', ') : (c.participantes || '—');
+        const clockBtn = canEdit ? `<button
+            data-clock-id="${agEsc(c.id)}"
+            onclick="event.stopPropagation();agToggleHorarioFijo('${agEsc(c.id)}')"
+            title="${c.horario_fijo ? 'Quitar horario preestablecido' : 'Marcar como horario preestablecido (mismas fechas cada año)'}"
+            style="border:1.5px solid ${c.horario_fijo ? '#fbbf24' : '#d1d5db'};
+                   background:${c.horario_fijo ? '#fffbeb' : '#f9fafb'};
+                   color:${c.horario_fijo ? '#d97706' : '#9ca3af'};
+                   border-radius:6px;padding:2px 8px;font-size:.78rem;cursor:pointer"
+            class="btn btn-sm py-0 px-2">
+            <i class="fas fa-clock"></i>
+          </button>` : '';
         return `
         <div class="col-md-6 col-xl-4">
             <div class="ag-card-comite p-3 h-100 d-flex flex-column" onclick="agOpenDetalleComite('${agEsc(c.id)}')">
                 <div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-1">
-                    ${agAreaBadge(c.area)}
-                    ${canEdit ? `<button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="event.stopPropagation();agOpenEditComite('${agEsc(c.id)}')" title="Editar"><i class="fas fa-pen"></i></button>` : ''}
+                    <div class="d-flex align-items-center gap-1">
+                      ${agAreaBadge(c.area)}
+                      ${c.horario_fijo ? `<span title="Horario preestablecido" style="font-size:.72rem;color:#d97706;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:1px 5px"><i class="fas fa-clock"></i></span>` : ''}
+                    </div>
+                    <div class="d-flex gap-1">
+                      ${clockBtn}
+                      ${canEdit ? `<button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="event.stopPropagation();agOpenEditComite('${agEsc(c.id)}')" title="Editar"><i class="fas fa-pen"></i></button>` : ''}
+                    </div>
                 </div>
                 <h6 class="fw-bold mb-1 flex-grow-1">${agEsc(c.nombre)}</h6>
                 <p class="small text-muted mb-2">${agEsc(c.descripcion || '')}</p>
@@ -17993,6 +18010,21 @@ async function _conciSaveBulkEdits() {
             </div>
         </div>`;
     }
+
+    window.agToggleHorarioFijo = async function (comiteId) {
+        const btn = document.querySelector(`[data-clock-id="${comiteId}"]`);
+        if (btn) { btn.disabled = true; btn.style.opacity = '.5'; }
+        try {
+            const { data: cur } = await sb().from('agenda_comites').select('horario_fijo').eq('id', comiteId).single();
+            const newVal = !(cur?.horario_fijo ?? false);
+            const { error } = await sb().from('agenda_comites').update({ horario_fijo: newVal }).eq('id', comiteId);
+            if (error) throw error;
+            agLoadComites();
+        } catch (err) {
+            if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+            alert('Error: ' + (err.message || err));
+        }
+    };
 
     // ── REUNIONES ──
     window.agLoadReuniones = async function () {
@@ -18531,6 +18563,22 @@ async function _conciSaveBulkEdits() {
                                     <label class="form-check-label" for="ag-ec-activo">Comité activo</label>
                                 </div>
                             </div>
+                            <div class="col-12">
+                                <div class="d-flex align-items-center gap-2 p-2 rounded-3"
+                                     style="background:#fffbeb;border:1.5px solid #fde68a;cursor:pointer"
+                                     onclick="document.getElementById('ag-ec-horario-fijo').click()">
+                                    <input class="form-check-input flex-shrink-0 mt-0" type="checkbox" id="ag-ec-horario-fijo"
+                                           onclick="event.stopPropagation()" ${c.horario_fijo ? 'checked' : ''}>
+                                    <label class="mb-0" for="ag-ec-horario-fijo" style="cursor:pointer;user-select:none">
+                                        <i class="fas fa-clock text-warning me-1"></i>
+                                        <strong style="font-size:.85rem">Horario preestablecido</strong>
+                                        <span class="text-muted d-block" style="font-size:.72rem">
+                                            El comité siempre sesiona en las mismas fechas cada año.
+                                            Se mostrará un ícono <i class="fas fa-clock text-warning"></i> en el calendario.
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -18570,8 +18618,9 @@ async function _conciSaveBulkEdits() {
         try {
             // Leer estado anterior para diff en historial
             const { data: prev } = await sb().from('agenda_comites').select('*').eq('id', comiteId).maybeSingle();
+            const horario_fijo = document.getElementById('ag-ec-horario-fijo')?.checked ?? false;
             const { error } = await sb().from('agenda_comites').update({
-                nombre, area, descripcion: desc, frecuencia, presidente, participantes, activo
+                nombre, area, descripcion: desc, frecuencia, presidente, participantes, activo, horario_fijo
             }).eq('id', comiteId);
             if (error) throw error;
             window.logHistory?.('EDITAR', 'agenda_comites', comiteId, {
