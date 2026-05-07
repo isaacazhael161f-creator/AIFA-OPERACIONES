@@ -690,33 +690,63 @@ function _ensureOpsAdvancedStatsUi() {
     kpiContainer.innerHTML = `
         <div class="row g-3">
             <div class="col-md-2">
-                <div class="card h-100 border-0 shadow-sm text-center p-3">
-                    <div class="text-muted small text-uppercase">Demora Promedio (min)</div>
-                    <div class="fs-2 fw-bold text-danger" id="kpi-avg-delay">-</div>
+                <div class="card h-100 border-0 shadow-sm p-3">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <div style="width:32px;height:32px;border-radius:8px;background:#fef2f2;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                            <i class="fas fa-hourglass-half text-danger" style="font-size:.8rem"></i>
+                        </div>
+                        <div style="font-size:.63rem;text-transform:uppercase;letter-spacing:.07em;color:#6b7280;font-weight:600">Demora promedio</div>
+                    </div>
+                    <div class="fw-bold text-danger" style="font-size:1.7rem" id="kpi-avg-delay">-</div>
+                    <div class="text-muted" style="font-size:.71rem">minutos por vuelo demorado</div>
                 </div>
             </div>
             <div class="col-md-2">
-                <div class="card h-100 border-0 shadow-sm text-center p-3">
-                    <div class="text-muted small text-uppercase">Operación a Tiempo</div>
-                    <div class="fs-2 fw-bold text-success" id="kpi-on-time-rate">-</div>
+                <div class="card h-100 border-0 shadow-sm p-3">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <div style="width:32px;height:32px;border-radius:8px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                            <i class="fas fa-check-circle text-success" style="font-size:.8rem"></i>
+                        </div>
+                        <div style="font-size:.63rem;text-transform:uppercase;letter-spacing:.07em;color:#6b7280;font-weight:600">% A tiempo (≤15 min)</div>
+                    </div>
+                    <div class="fw-bold text-success" style="font-size:1.7rem" id="kpi-on-time-rate">-</div>
+                    <div class="text-muted" style="font-size:.71rem" id="kpi-on-time-detail">de vuelos con registro de demora</div>
                 </div>
             </div>
             <div class="col-md-2">
-                <div class="card h-100 border-0 shadow-sm text-center p-3">
-                    <div class="text-muted small text-uppercase">Causa de Demora Principal</div>
-                    <div class="fs-6 fw-bold text-warning" id="kpi-top-delay-cause">-</div>
+                <div class="card h-100 border-0 shadow-sm p-3">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <div style="width:32px;height:32px;border-radius:8px;background:#fffbeb;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                            <i class="fas fa-exclamation-triangle text-warning" style="font-size:.8rem"></i>
+                        </div>
+                        <div style="font-size:.63rem;text-transform:uppercase;letter-spacing:.07em;color:#6b7280;font-weight:600">Causa de demora #1</div>
+                    </div>
+                    <div class="fw-bold text-warning" style="font-size:.85rem;line-height:1.3" id="kpi-top-delay-cause">-</div>
+                    <div class="text-muted" style="font-size:.71rem" id="kpi-top-delay-count">— ocurrencias</div>
                 </div>
             </div>
-            <div class="col-md-2">
-                <div class="card h-100 border-0 shadow-sm text-center p-3">
-                    <div class="text-muted small text-uppercase">Pasajeros Totales Mes</div>
-                    <div class="fs-2 fw-bold text-info" id="kpi-total-passengers">-</div>
+            <div class="col-md-3">
+                <div class="card h-100 border-0 shadow-sm p-3">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <div style="width:32px;height:32px;border-radius:8px;background:#eff6ff;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                            <i class="fas fa-calendar-week text-primary" style="font-size:.8rem"></i>
+                        </div>
+                        <div style="font-size:.63rem;text-transform:uppercase;letter-spacing:.07em;color:#6b7280;font-weight:600">Semana pico (pax)</div>
+                    </div>
+                    <div class="fw-bold text-primary" style="font-size:.9rem;line-height:1.3" id="kpi-peak-week-passengers">-</div>
+                    <div class="text-muted" style="font-size:.71rem">semana con más pasajeros del período</div>
                 </div>
             </div>
-            <div class="col-md-2">
-                <div class="card h-100 border-0 shadow-sm text-center p-3">
-                    <div class="text-muted small text-uppercase">Semana Pico (Pax)</div>
-                    <div class="fs-6 fw-bold text-dark" id="kpi-peak-week-passengers">-</div>
+            <div class="col-md-3">
+                <div class="card h-100 border-0 shadow-sm p-3">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <div style="width:32px;height:32px;border-radius:8px;background:#faf5ff;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                            <i class="fas fa-route text-purple" style="font-size:.8rem;color:#7c3aed"></i>
+                        </div>
+                        <div style="font-size:.63rem;text-transform:uppercase;letter-spacing:.07em;color:#6b7280;font-weight:600">Ruta más operada</div>
+                    </div>
+                    <div class="fw-bold" style="font-size:.9rem;line-height:1.3;color:#7c3aed" id="kpi-top-route">-</div>
+                    <div class="text-muted" style="font-size:.71rem" id="kpi-top-route-count">— vuelos en el período</div>
                 </div>
             </div>
         </div>
@@ -1341,21 +1371,51 @@ async function renderOpsCharts() {
         // ... KPI Logic ...
         const uniqueDays = Object.keys(daysMap).length || 1;
         const avg = Math.round(totalOps / uniqueDays);
-        
-        // Peak Hour
+        const avgPax = uniqueDays > 0 && totalPassengers > 0 ? Math.round(totalPassengers / uniqueDays) : 0;
+
+        // Peak Hour — with count and range label
         let peakH = '-', maxH = 0;
         Object.entries(hoursMap).forEach(([h,c]) => { if(c > maxH) { maxH = c; peakH = String(h).padStart(2,'0')+':00'; } });
+        const peakHLabel = peakH !== '-' ? `${peakH}–${String(Number(peakH.split(':')[0])+1).padStart(2,'0')}:00` : '-';
 
-        // Busiest Day
+        // Busiest Day — with count
         let busyD = '-', maxD = 0;
         Object.entries(daysMap).forEach(([d,c]) => { if(c > maxD) { maxD = c; busyD = d; } });
 
+        // Arrivals / Departures from aircraftByDirection totals
+        const arrCount = Object.values(aircraftByDirection['Aterrizaje'] || {}).reduce((s,n) => s+n, 0);
+        const depCount = Object.values(aircraftByDirection['Despegue']   || {}).reduce((s,n) => s+n, 0);
+        const arrPct   = totalOps ? ((arrCount / totalOps)*100).toFixed(1) : 0;
+        const depPct   = totalOps ? ((depCount / totalOps)*100).toFixed(1) : 0;
+
+        // Top route
+        const topRoute = Object.entries(routeMap).sort((a,b) => b[1]-a[1])[0];
+
+        // Avg pax per flight
+        const avgPaxPerFlight = totalPassengers > 0 && totalOps > 0 ? (totalPassengers / totalOps).toFixed(1) : null;
+
         // Update DOM
-        const setT = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
+        const setT  = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
+        const setH  = (id, v) => { const el = document.getElementById(id); if(el) el.innerHTML  = v; };
+
         setT('kpi-total-ops', totalOps.toLocaleString());
+        setT('kpi-total-ops-sub', `${uniqueDays} días con operaciones`);
         setT('kpi-avg-daily', avg.toLocaleString());
+        setT('kpi-avg-daily-pax', avgPax > 0 ? `${avgPax.toLocaleString()} pax/día` : 'sin datos de pax');
+        setT('kpi-arrivals', arrCount > 0 ? arrCount.toLocaleString() : (kMovimiento ? '0' : 'N/D'));
+        setT('kpi-arrivals-pct', arrCount > 0 ? `${arrPct}% del total` : '');
+        setT('kpi-departures', depCount > 0 ? depCount.toLocaleString() : (kMovimiento ? '0' : 'N/D'));
+        setT('kpi-departures-pct', depCount > 0 ? `${depPct}% del total` : '');
         setT('kpi-busiest-day', busyD);
+        setT('kpi-busiest-day-count', maxD > 0 ? `${maxD.toLocaleString()} operaciones ese día` : '');
         setT('kpi-peak-hour', peakH);
+        setT('kpi-peak-hour-detail', maxH > 0 ? `${maxH.toLocaleString()} ops acumuladas en esa hora` : '');
+        setT('kpi-total-passengers', totalPassengers > 0 ? totalPassengers.toLocaleString() : 'Sin datos');
+        setT('kpi-pax-avg-flight', avgPaxPerFlight ? `${avgPaxPerFlight} pax por vuelo` : '');
+        setT('kpi-international-share', `${internationalOps.toLocaleString()} intl`);
+        setT('kpi-intl-detail', `${domesticOps.toLocaleString()} domésticos · ${totalOps > 0 ? ((internationalOps/totalOps)*100).toFixed(1)+'% intl' : ''}`);
+        setT('kpi-top-route', topRoute ? topRoute[0] : 'Sin datos de ruta');
+        setT('kpi-top-route-count', topRoute ? `${topRoute[1].toLocaleString()} vuelos en el período` : '');
 
         // Average daily ops per position type
         const posTypeOrder = ['Contacto','Contacto Internacional','Semicontacto','Remota','Hangar','Sin clasificar'];
@@ -1404,15 +1464,15 @@ async function renderOpsCharts() {
         const onTimeRate = delayMinutesCount ? ((onTimeCount / delayMinutesCount) * 100) : 0;
         const topDelayCause = Object.entries(delayCodeCount).sort((a,b) => b[1] - a[1])[0];
 
-        setT('kpi-international-share', `${intlShare.toFixed(1)}%`);
         setT('kpi-avg-delay', avgDelay.toFixed(1));
         setT('kpi-on-time-rate', `${onTimeRate.toFixed(1)}%`);
+        setT('kpi-on-time-detail', delayMinutesCount > 0 ? `de ${delayMinutesCount.toLocaleString()} vuelos con registro` : 'sin datos de demora');
         setT('kpi-top-delay-cause', topDelayCause ? topDelayCause[0] : 'Sin datos');
-        setT('kpi-total-passengers', totalPassengers.toLocaleString());
+        setT('kpi-top-delay-count', topDelayCause ? `${topDelayCause[1].toLocaleString()} ocurrencias` : '');
 
         const peakWeekEntry = Object.entries(weeklyPassengers)
             .sort((a,b) => b[1] - a[1])[0];
-        setT('kpi-peak-week-passengers', peakWeekEntry ? `Sem. ${_calWeekLabel(peakWeekEntry[0])} (${peakWeekEntry[1].toLocaleString()})` : 'Sin datos');
+        setT('kpi-peak-week-passengers', peakWeekEntry ? `Sem. ${_calWeekLabel(peakWeekEntry[0])} (${peakWeekEntry[1].toLocaleString()} pax)` : 'Sin datos');
 
         // --- Charts ---
         console.log('[renderOpsCharts] daysMap sample:', Object.entries(daysMap).slice(0, 3));
