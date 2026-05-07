@@ -31,7 +31,8 @@ AS $$
 DECLARE
     _global_roles TEXT[] := ARRAY[
         'admin', 'superadmin', 'editor', 'viewer',
-        'colab_viewer', 'colab_editor'
+        'colab_viewer', 'colab_editor',
+        'control_fauna', 'servicio_medico'
     ];
 BEGIN
     -- Roles globales: siempre válidos
