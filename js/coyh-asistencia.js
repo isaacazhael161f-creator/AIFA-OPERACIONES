@@ -823,38 +823,66 @@ function _coyhSaveDepOrder() {
     var tbl = document.querySelector('#_coyh-body table');
     if (!tbl) return;
 
-    // Recoger el orden actual del DOM agrupado por categoria
-    var groups = tbl.querySelectorAll('tbody.coyh-dep-group');
-    var order = [];
-    groups.forEach(function(b) { order.push(b.dataset.dep); });
+    // Recorrer TODOS los tbody en orden DOM para conocer la categoría visual
+    // de cada dep-group (la última coyh-cat-hdr vista define la categoría actual)
+    var allTbodies  = tbl.querySelectorAll('tbody');
+    var currentCat  = null;
+    var order = [];   // [{ dep, cat }]
+
+    allTbodies.forEach(function(tb) {
+        if (tb.classList.contains('coyh-cat-hdr')) {
+            currentCat = tb.dataset.cat || currentCat;
+        } else if (tb.classList.contains('coyh-dep-group')) {
+            order.push({ dep: tb.dataset.dep, cat: currentCat || tb.dataset.cat });
+        }
+    });
 
     // Guardar en localStorage (fallback instantáneo)
-    try { localStorage.setItem('coyh_dep_order', JSON.stringify(order)); } catch(e) {}
+    try { localStorage.setItem('coyh_dep_order', JSON.stringify(order.map(function(o){ return o.dep; }))); } catch(e) {}
 
-    // Actualizar numeracion visual inmediatamente
-    _coyhActualizarNumeracion(order);
+    // Actualizar numeración visual inmediatamente
+    _coyhActualizarNumeracion(order.map(function(o){ return o.dep; }));
 
-    // Actualizar en memoria para que re-renders posteriores usen el orden correcto
+    // Actualizar datos en memoria para re-renders posteriores
     var ordenPorDep = {};
-    order.forEach(function(dep, idx) { ordenPorDep[dep] = (idx + 1) * 10; });
+    var catPorDep   = {};
+    order.forEach(function(o, idx) {
+        ordenPorDep[o.dep] = (idx + 1) * 10;
+        catPorDep[o.dep]   = o.cat;
+    });
     if (_coyhData && _coyhData.participantes) {
         _coyhData.participantes.forEach(function(p) {
             if (ordenPorDep[p.dependencia] !== undefined) {
                 p.orden          = ordenPorDep[p.dependencia];
-                p.num_directorio = order.indexOf(p.dependencia) + 1;
+                p.num_directorio = order.findIndex(function(o){ return o.dep === p.dependencia; }) + 1;
+                // Actualizar categoría si se movió de sección
+                var newCat = catPorDep[p.dependencia];
+                if (newCat && newCat !== '__invitados') {
+                    p.categoria = newCat;
+                    p.tipo_lista = 'integrante';
+                } else if (newCat === '__invitados') {
+                    p.tipo_lista = 'invitado';
+                }
             }
         });
     }
 
-    // Persistir en Supabase de forma async
+    // Persistir en Supabase de forma async — una promesa por dependencia
     var sb = _coyhSB();
     if (!sb) { _coyhToast('Sin conexión — orden guardado solo localmente', 'warning'); return; }
 
-    // Construir promesas de actualización — una por dependencia
-    var promises = order.map(function(dep, idx) {
+    var promises = order.map(function(o, idx) {
+        var updateFields = { orden: (idx + 1) * 10, num_directorio: idx + 1 };
+        // Si la categoría visual difiere de la stored, actualizarla también
+        if (o.cat && o.cat !== '__invitados') {
+            updateFields.categoria  = o.cat;
+            updateFields.tipo_lista = 'integrante';
+        } else if (o.cat === '__invitados') {
+            updateFields.tipo_lista = 'invitado';
+        }
         return sb.from('coyh_participantes')
-            .update({ orden: (idx + 1) * 10, num_directorio: idx + 1 })
-            .eq('dependencia', dep);
+            .update(updateFields)
+            .eq('dependencia', o.dep);
     });
 
     Promise.all(promises).then(function(results) {
