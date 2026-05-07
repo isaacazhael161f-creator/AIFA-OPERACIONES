@@ -932,6 +932,7 @@ async function renderOpsCharts() {
         let totalOps = activeData.length;
         let daysMap = {};
         let hoursMap = {};
+        let hourPaxMap = {}; // { hourKey: totalPax } for peak-hour pax average
         let posMap = {};
         let posTypeMap = {}; // { categoryLabel: totalCount }
         let simultMap  = {}; // { "HH:MM": count } — 10-min slot → total ops, all days
@@ -1127,7 +1128,10 @@ async function renderOpsCharts() {
                 let h = hStr.includes(':') ? hStr.split(':')[0] : hStr.substring(0, 2);
                 h = h.trim();
                 if (h.length === 1) h = '0' + h;
-                if (!isNaN(parseInt(h))) hoursMap[h] = (hoursMap[h] || 0) + 1;
+                if (!isNaN(parseInt(h))) {
+                    hoursMap[h] = (hoursMap[h] || 0) + 1;
+                    hourPaxMap[h] = (hourPaxMap[h] || 0) + pax;
+                }
                 // 10-min slot for simultaneous ops analysis (±5 min window)
                 const mMatch = horaSource.match(/(\d{1,2}):(\d{2})/);
                 if (mMatch) {
@@ -1394,28 +1398,37 @@ async function renderOpsCharts() {
         // Avg pax per flight
         const avgPaxPerFlight = totalPassengers > 0 && totalOps > 0 ? (totalPassengers / totalOps).toFixed(1) : null;
 
+        // Peak hour pax & ops averages (per day at that hour)
+        const peakHKey = peakH !== '-' ? String(Number(peakH.split(':')[0])).padStart(2,'0') : null;
+        const peakHourTotalPax = peakHKey ? (hourPaxMap[peakHKey] || 0) : 0;
+        const avgOpsAtPeakHour = peakHKey ? Math.round(maxH / uniqueDays) : 0;
+        const avgPaxAtPeakHour = peakHKey && peakHourTotalPax > 0 ? Math.round(peakHourTotalPax / uniqueDays) : 0;
+
         // Update DOM
         const setT  = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
         const setH  = (id, v) => { const el = document.getElementById(id); if(el) el.innerHTML  = v; };
+        const fmt   = n => Number(n).toLocaleString('en-US');
 
-        setT('kpi-total-ops', totalOps.toLocaleString());
+        setT('kpi-total-ops', fmt(totalOps));
         setT('kpi-total-ops-sub', `${uniqueDays} días con operaciones`);
-        setT('kpi-avg-daily', avg.toLocaleString());
-        setT('kpi-avg-daily-pax', avgPax > 0 ? `${avgPax.toLocaleString()} pax/día` : 'sin datos de pax');
-        setT('kpi-arrivals', arrCount > 0 ? arrCount.toLocaleString() : (kMovimiento ? '0' : 'N/D'));
+        setT('kpi-avg-daily', fmt(avg));
+        setT('kpi-avg-daily-pax', avgPax > 0 ? `${fmt(avgPax)} pax/día` : 'sin datos de pax');
+        setT('kpi-arrivals', arrCount > 0 ? fmt(arrCount) : (kMovimiento ? '0' : 'N/D'));
         setT('kpi-arrivals-pct', arrCount > 0 ? `${arrPct}% del total` : '');
-        setT('kpi-departures', depCount > 0 ? depCount.toLocaleString() : (kMovimiento ? '0' : 'N/D'));
+        setT('kpi-departures', depCount > 0 ? fmt(depCount) : (kMovimiento ? '0' : 'N/D'));
         setT('kpi-departures-pct', depCount > 0 ? `${depPct}% del total` : '');
         setT('kpi-busiest-day', busyD);
-        setT('kpi-busiest-day-count', maxD > 0 ? `${maxD.toLocaleString()} operaciones ese día` : '');
+        setT('kpi-busiest-day-count', maxD > 0 ? `${fmt(maxD)} operaciones ese día` : '');
         setT('kpi-peak-hour', peakH);
-        setT('kpi-peak-hour-detail', maxH > 0 ? `${maxH.toLocaleString()} ops acumuladas en esa hora` : '');
-        setT('kpi-total-passengers', totalPassengers > 0 ? totalPassengers.toLocaleString() : 'Sin datos');
+        setT('kpi-peak-hour-detail', maxH > 0
+            ? `~${fmt(avgOpsAtPeakHour)} ops/día · ${avgPaxAtPeakHour > 0 ? '~'+fmt(avgPaxAtPeakHour)+' pax/día' : 'sin datos de pax'} en esa hora`
+            : '— ops en esa franja');
+        setT('kpi-total-passengers', totalPassengers > 0 ? fmt(totalPassengers) : 'Sin datos');
         setT('kpi-pax-avg-flight', avgPaxPerFlight ? `${avgPaxPerFlight} pax por vuelo` : '');
-        setT('kpi-international-share', `${internationalOps.toLocaleString()} intl`);
-        setT('kpi-intl-detail', `${domesticOps.toLocaleString()} domésticos · ${totalOps > 0 ? ((internationalOps/totalOps)*100).toFixed(1)+'% intl' : ''}`);
+        setT('kpi-international-share', `${fmt(internationalOps)} intl`);
+        setT('kpi-intl-detail', `${fmt(domesticOps)} domésticos · ${totalOps > 0 ? ((internationalOps/totalOps)*100).toFixed(1)+'% intl' : ''}`);
         setT('kpi-top-route', topRoute ? topRoute[0] : 'Sin datos de ruta');
-        setT('kpi-top-route-count', topRoute ? `${topRoute[1].toLocaleString()} vuelos en el período` : '');
+        setT('kpi-top-route-count', topRoute ? `${fmt(topRoute[1])} vuelos en el período` : '');
 
         // Average daily ops per position type
         const posTypeOrder = ['Contacto','Contacto Internacional','Semicontacto','Remota','Hangar','Sin clasificar'];
@@ -1452,7 +1465,7 @@ async function renderOpsCharts() {
                             <div class="text-end" style="min-width:110px">
                                 <span class="fw-bold fs-5" style="color:${meta.color}">${dailyAvg}</span>
                                 <span class="text-muted" style="font-size:0.78rem"> ops/día</span>
-                                <div class="text-muted" style="font-size:0.75rem">${total.toLocaleString()} total &bull; ${pct}%</div>
+                                <div class="text-muted" style="font-size:0.75rem">${Number(total).toLocaleString('en-US')} total &bull; ${pct}%</div>
                             </div>
                         </div>`;
                     }).join('');
@@ -1466,13 +1479,13 @@ async function renderOpsCharts() {
 
         setT('kpi-avg-delay', avgDelay.toFixed(1));
         setT('kpi-on-time-rate', `${onTimeRate.toFixed(1)}%`);
-        setT('kpi-on-time-detail', delayMinutesCount > 0 ? `de ${delayMinutesCount.toLocaleString()} vuelos con registro` : 'sin datos de demora');
+        setT('kpi-on-time-detail', delayMinutesCount > 0 ? `de ${fmt(delayMinutesCount)} vuelos con registro` : 'sin datos de demora');
         setT('kpi-top-delay-cause', topDelayCause ? topDelayCause[0] : 'Sin datos');
-        setT('kpi-top-delay-count', topDelayCause ? `${topDelayCause[1].toLocaleString()} ocurrencias` : '');
+        setT('kpi-top-delay-count', topDelayCause ? `${fmt(topDelayCause[1])} ocurrencias` : '');
 
         const peakWeekEntry = Object.entries(weeklyPassengers)
             .sort((a,b) => b[1] - a[1])[0];
-        setT('kpi-peak-week-passengers', peakWeekEntry ? `Sem. ${_calWeekLabel(peakWeekEntry[0])} (${peakWeekEntry[1].toLocaleString()} pax)` : 'Sin datos');
+        setT('kpi-peak-week-passengers', peakWeekEntry ? `Sem. ${_calWeekLabel(peakWeekEntry[0])} (${fmt(peakWeekEntry[1])} pax)` : 'Sin datos');
 
         // --- Charts ---
         console.log('[renderOpsCharts] daysMap sample:', Object.entries(daysMap).slice(0, 3));
