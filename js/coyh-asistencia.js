@@ -644,8 +644,8 @@ function _coyhRenderLista() {
             var members = grupos[cat][dep];
             var rowspan = members.length;
             // Color de fondo del grupo: verde si todos firmaron, alterno si no
-            var allFirmados = members.every(function(p){ return asist[p.id] && asist[p.id].firmado; });
-            var groupBg = allFirmados ? '#f0fdf4' : (depIdx % 2 === 0 ? '#f8fafc' : '#ffffff');
+            var algunFirmado = members.some(function(p){ return asist[p.id] && asist[p.id].firmado; });
+            var groupBg = algunFirmado ? '#f0fdf4' : (depIdx % 2 === 0 ? '#f8fafc' : '#ffffff');
 
             members.forEach(function(p, i) {
                 var aRec    = asist[p.id];
