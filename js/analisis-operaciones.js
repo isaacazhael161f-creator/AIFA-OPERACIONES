@@ -454,6 +454,8 @@ let _heatmapDetails = null; // stores per-hour+day flight records for cell drill
 let _heatmapOpsHourDetails = null; // stores per-hour+day ops records for ops-hour heatmap drill-down
 let _acMovFlights  = null; // { direction: { acType: [records] } } for aircraft-type bar drilldown
 let _posFlights    = null; // { posName: [records] } for positions bar drilldown
+let _peakHourFlightsStore = []; // flight records for the peak hour (used by modal drilldown)
+let _peakHourLabel = '-';       // e.g. "12:00"
 
 // Week-filter support for heatmaps
 let _paxHeatWeeks     = {}; // { '0': all, 'YYYY-MM-DD': week starting that Monday, ... }
@@ -497,6 +499,82 @@ function _weekDayNumbers(mondayKey) {
     const [y, m, d] = mondayKey.split('-').map(Number);
     return Array.from({ length: 7 }, (_, i) => new Date(y, m - 1, d + i).getDate());
 }
+
+// ── Peak-hour drilldown modal ─────────────────────────────────────────────────
+function _showPeakHourModal() {
+    const flights = _peakHourFlightsStore;
+    const hourLabel = _peakHourLabel;
+    const nextH = hourLabel !== '-' ? String(Number(hourLabel.split(':')[0]) + 1).padStart(2,'0') + ':00' : '';
+    const fmt = n => Number(n).toLocaleString('en-US');
+
+    const isCargoFlight = f => /cargo|freight|carga|freighter/i.test(f.svcCat || f.servicio || '');
+    const paxFlights   = flights.filter(f => !isCargoFlight(f));
+    const cargoFlights = flights.filter(isCargoFlight);
+
+    const MOV_BADGE = { 'Aterrizaje': 'bg-primary', 'Despegue': 'bg-success', 'Desconocido': 'bg-secondary' };
+
+    const buildRows = list => list.map(f => {
+        const movBadge = MOV_BADGE[f.movimiento] || 'bg-secondary';
+        const movIcon  = f.movimiento === 'Aterrizaje' ? '&#9660;' : f.movimiento === 'Despegue' ? '&#9650;' : '&mdash;';
+        return `<tr>
+            <td class="fw-semibold">${f.vuelo || '&mdash;'}</td>
+            <td>${f.aerolinea || '&mdash;'}</td>
+            <td>${f.origen || '&mdash;'} &rarr; ${f.destino || '&mdash;'}</td>
+            <td><span class="badge ${movBadge}" style="font-size:.7rem">${movIcon} ${f.movimiento || '?'}</span></td>
+            <td>${f.aeronave || '&mdash;'}</td>
+            <td class="text-end">${f.pax > 0 ? fmt(f.pax) : '&mdash;'}</td>
+            <td><small class="text-muted">${f.hora || '&mdash;'}</small></td>
+        </tr>`;
+    }).join('');
+
+    const tableHTML = (title, color, icon, list) => list.length === 0 ? '' : `
+        <div class="mb-3">
+            <div class="fw-semibold mb-1" style="color:${color};font-size:.85rem"><i class="fas ${icon} me-1"></i>${title} <span class="badge" style="background:${color};font-size:.7rem">${fmt(list.length)}</span></div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0" style="font-size:.78rem">
+                    <thead class="table-light"><tr>
+                        <th>Vuelo</th><th>Aerolínea</th><th>Ruta</th><th>Mov.</th><th>Aeronave</th><th class="text-end">Pax</th><th>Hora</th>
+                    </tr></thead>
+                    <tbody>${buildRows(list)}</tbody>
+                </table>
+            </div>
+        </div>`;
+
+    const modalId = '_peak-hour-modal';
+    let modal = document.getElementById(modalId);
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = modalId;
+        modal.className = 'modal fade';
+        modal.tabIndex = -1;
+        modal.innerHTML = `
+            <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header" style="background:linear-gradient(135deg,#fffbeb,#fef3c7)">
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0"><i class="fas fa-clock text-warning me-2"></i>Vuelos en Hora Pico: <span id="_phm-title"></span></h5>
+                            <div class="text-muted" style="font-size:.75rem" id="_phm-sub"></div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="_phm-body"></div>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+
+    document.getElementById('_phm-title').textContent = `${hourLabel}–${nextH}`;
+    document.getElementById('_phm-sub').textContent =
+        `${fmt(flights.length)} operaciones totales · ${fmt(paxFlights.length)} pasajeros · ${fmt(cargoFlights.length)} carga`;
+    document.getElementById('_phm-body').innerHTML =
+        (paxFlights.length === 0 && cargoFlights.length === 0 ? tableHTML('Todas las operaciones', '#374151', 'fa-plane', flights) : '') +
+        tableHTML('Vuelos de Pasajeros', '#2563eb', 'fa-users', paxFlights) +
+        tableHTML('Vuelos de Carga', '#d97706', 'fa-boxes', cargoFlights);
+
+    const bsModal = bootstrap.Modal.getInstance(modal) || new bootstrap.Modal(modal);
+    bsModal.show();
+}
+
 
 function _parseCsvLine(line) {
     const values = [];
@@ -933,6 +1011,7 @@ async function renderOpsCharts() {
         let daysMap = {};
         let hoursMap = {};
         let hourPaxMap = {}; // { hourKey: totalPax } for peak-hour pax average
+        let hourFlights = {}; // { hourKey: [records] } for peak-hour drilldown modal
         let posMap = {};
         let posTypeMap = {}; // { categoryLabel: totalCount }
         let simultMap  = {}; // { "HH:MM": count } — 10-min slot → total ops, all days
@@ -1121,6 +1200,7 @@ async function renderOpsCharts() {
             const horaActualRaw = kHoraActual && r[kHoraActual] ? String(r[kHoraActual]).trim() : '';
             const horaFallbackRaw = kHora && r[kHora] ? String(r[kHora]).trim() : '';
             const horaSource = horaActualRaw || horaFallbackRaw;
+            let _hourKey = null; // will be set below for use at end of loop
             if (horaSource) {
                 let hStr = horaSource;
                 // Si es ISO timestamp (2026-03-16T18:00:00Z) extraer solo la parte de tiempo
@@ -1131,6 +1211,7 @@ async function renderOpsCharts() {
                 if (!isNaN(parseInt(h))) {
                     hoursMap[h] = (hoursMap[h] || 0) + 1;
                     hourPaxMap[h] = (hourPaxMap[h] || 0) + pax;
+                    _hourKey = h;
                 }
                 // 10-min slot for simultaneous ops analysis (±5 min window)
                 const mMatch = horaSource.match(/(\d{1,2}):(\d{2})/);
@@ -1326,6 +1407,23 @@ async function renderOpsCharts() {
                     if (delayMin <= 15) onTimeCount += 1;
                 }
             }
+
+            // Accumulate per-hour flight records for the peak-hour drilldown modal
+            if (_hourKey !== null) {
+                if (!hourFlights[_hourKey]) hourFlights[_hourKey] = [];
+                hourFlights[_hourKey].push({
+                    vuelo:      kVuelo       ? String(r[kVuelo]       || '').trim() : '',
+                    aerolinea:  kAerolinea   ? String(r[kAerolinea]   || '').trim() : '',
+                    origen:     kOrigen      ? String(r[kOrigen]      || '').trim() : '',
+                    destino:    kDestino     ? String(r[kDestino]     || '').trim() : '',
+                    movimiento: direction,
+                    servicio:   svcCode,
+                    svcCat:     svcCategory,
+                    aeronave:   acTypeLabel || (kMatricula ? String(r[kMatricula] || '').trim() : ''),
+                    hora:       horaSource,
+                    pax
+                });
+            }
         });
 
         // === Accumulate operations heatmap (excludes cancelled AND non-operational) ===
@@ -1404,6 +1502,14 @@ async function renderOpsCharts() {
         const avgOpsAtPeakHour = peakHKey ? Math.round(maxH / uniqueDays) : 0;
         const avgPaxAtPeakHour = peakHKey && peakHourTotalPax > 0 ? Math.round(peakHourTotalPax / uniqueDays) : 0;
 
+        // Peak hour pax vs cargo classification
+        const _isCargoFlight = f => /cargo|freight|carga|freighter/i.test(f.svcCat || f.servicio || '');
+        const peakHFlights   = peakHKey ? (hourFlights[peakHKey] || []) : [];
+        const peakHCargoOps  = peakHFlights.filter(_isCargoFlight).length;
+        const peakHPaxOps    = peakHFlights.filter(f => (f.servicio || f.svcCat) && !_isCargoFlight(f)).length;
+        _peakHourFlightsStore = peakHFlights;
+        _peakHourLabel = peakH;
+
         // Update DOM
         const setT  = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
         const setH  = (id, v) => { const el = document.getElementById(id); if(el) el.innerHTML  = v; };
@@ -1420,9 +1526,34 @@ async function renderOpsCharts() {
         setT('kpi-busiest-day', busyD);
         setT('kpi-busiest-day-count', maxD > 0 ? `${fmt(maxD)} operaciones ese día` : '');
         setT('kpi-peak-hour', peakH);
-        setT('kpi-peak-hour-detail', maxH > 0
-            ? `~${fmt(avgOpsAtPeakHour)} ops/día · ${avgPaxAtPeakHour > 0 ? '~'+fmt(avgPaxAtPeakHour)+' pax/día' : 'sin datos de pax'} en esa hora`
-            : '— ops en esa franja');
+        (() => {
+            const paxPart  = avgPaxAtPeakHour > 0 ? `~${fmt(avgPaxAtPeakHour)} pax/día` : 'sin pax';
+            const splitPart = (peakHPaxOps + peakHCargoOps) > 0
+                ? ` · ${fmt(peakHPaxOps)} pasajeros / ${fmt(peakHCargoOps)} carga`
+                : '';
+            setT('kpi-peak-hour-detail', maxH > 0
+                ? `~${fmt(avgOpsAtPeakHour)} ops/día · ${paxPart}${splitPart}`
+                : '— ops en esa franja');
+        })();
+        // Make the card clickable to show peak-hour flight list
+        (() => {
+            const card = document.getElementById('kpi-peak-hour')?.closest('.card');
+            if (card && peakHFlights.length > 0) {
+                card.style.cursor = 'pointer';
+                card.style.transition = 'box-shadow .15s';
+                card.onmouseenter = () => { card.style.boxShadow = '0 0 0 2px #f59e0b'; };
+                card.onmouseleave = () => { card.style.boxShadow = ''; };
+                card.onclick = () => _showPeakHourModal();
+                // Add a small hint badge if not already there
+                if (!document.getElementById('_peak-click-hint')) {
+                    const hint = document.createElement('div');
+                    hint.id = '_peak-click-hint';
+                    hint.style.cssText = 'font-size:.63rem;color:#f59e0b;margin-top:4px;font-weight:600';
+                    hint.innerHTML = '<i class="fas fa-table me-1"></i>Ver vuelos';
+                    card.querySelector('[id="kpi-peak-hour"]')?.closest('.card').appendChild(hint);
+                }
+            }
+        })();
         setT('kpi-total-passengers', totalPassengers > 0 ? fmt(totalPassengers) : 'Sin datos');
         setT('kpi-pax-avg-flight', avgPaxPerFlight ? `${avgPaxPerFlight} pax por vuelo` : '');
         setT('kpi-international-share', `${fmt(internationalOps)} intl`);
