@@ -189,10 +189,10 @@ async function coyhAbrirAsistencia(reunionId, sesionLabel, fecha) {
         +' style="background:#1d4ed8;color:#fff;border:none;border-radius:8px 0 0 8px">'
         +'<i class="fas fa-file-word me-1"></i>Word</button>'
         +'<ul class="dropdown-menu dropdown-menu-end">'
-        +'<li><a class="dropdown-item" href="#" onclick="_coyhExportarWord(false);return false">'
-        +'<i class="fas fa-users me-2 text-muted" style="width:14px"></i>Todos los confirmados</a></li>'
-        +'<li><a class="dropdown-item" href="#" onclick="_coyhExportarWord(true);return false">'
-        +'<i class="fas fa-pen-nib me-2 text-muted" style="width:14px"></i>Solo los que firmaron</a></li>'
+        +'<li><a class="dropdown-item" href="#" onclick="_coyhExportarWord(\'blank\');return false">'
+        +'<i class="fas fa-pen me-2 text-muted" style="width:14px"></i>Con firmas en blanco</a></li>'
+        +'<li><a class="dropdown-item" href="#" onclick="_coyhExportarWord(\'firmas\');return false">'
+        +'<i class="fas fa-signature me-2 text-muted" style="width:14px"></i>Con firmas capturadas</a></li>'
         +'</ul></div>'
         +'</div>'
         +'</div></div></div>');
@@ -1264,11 +1264,13 @@ function _coyhImprimirLista(soloFirmados) {
 /* -------------------------------------------------------------------
    EXPORTAR A WORD (DOCX) — formato Acta COyH
 -------------------------------------------------------------------*/
-function _coyhExportarWord(soloFirmados) {
+function _coyhExportarWord(mode) {
+    // mode: 'blank'  = todos confirmados, columna firma en blanco (para firmar en papel)
+    //       'firmas' = todos confirmados, con imágenes de firma capturadas
     if (typeof docx === 'undefined') {
         var s = document.createElement('script');
         s.src = 'https://unpkg.com/docx@7.8.2/build/index.js';
-        s.onload  = function() { _coyhExportarWord(soloFirmados); };
+        s.onload  = function() { _coyhExportarWord(mode); };
         s.onerror = function() { _coyhToast('No se pudo cargar la librer\u00eda Word','danger'); };
         document.head.appendChild(s);
         _coyhToast('Cargando librer\u00eda Word\u2026','info');
@@ -1278,20 +1280,35 @@ function _coyhExportarWord(soloFirmados) {
     var asist = _coyhData.asistencia;
     var lista = _coyhData.participantes.filter(function(p){ return conf[p.id] && conf[p.id].confirmado; });
     if (!lista.length) { _coyhToast('No hay asistentes confirmados','warning'); return; }
-    if (soloFirmados) {
-        lista = lista.filter(function(p){ return asist[p.id] && asist[p.id].firmado; });
-        if (!lista.length) { _coyhToast('Nadie ha firmado a\u00fan','warning'); return; }
+
+    /* Construir mapa de firmas (base64 → ArrayBuffer) de forma síncrona */
+    var sigMap = {};
+    if (mode === 'firmas') {
+        lista.forEach(function(p) {
+            var aRec = asist[p.id];
+            if (aRec && aRec.firmado && aRec.firma_imagen) {
+                try {
+                    var parts = aRec.firma_imagen.split(',');
+                    var binary = atob(parts[1] || parts[0]);
+                    var buf = new ArrayBuffer(binary.length);
+                    var view = new Uint8Array(buf);
+                    for (var i = 0; i < binary.length; i++) { view[i] = binary.charCodeAt(i); }
+                    sigMap[p.id] = buf;
+                } catch(e) { /* ignora si falla la conversión */ }
+            }
+        });
     }
+
     fetch('images/aifa-logo.png')
         .then(function(r){ return r.ok ? r.arrayBuffer() : null; })
         .catch(function(){ return null; })
-        .then(function(logoData){ _coyhBuildWord(lista, asist, soloFirmados, logoData); });
+        .then(function(logoData){ _coyhBuildWord(lista, asist, mode, logoData, sigMap); });
 }
 
-function _coyhBuildWord(lista, asist, soloFirmados, logoData) {
+function _coyhBuildWord(lista, asist, mode, logoData, sigMap) {
     var D = docx;
 
-    /* Info de sesi\u00f3n */
+    /* Info de sesión */
     var mNum  = (_coyhData.sesionLabel||'').match(/\d+/);
     var sNum  = mNum ? mNum[0] : '';
     var anio  = new Date().getFullYear();
@@ -1305,13 +1322,13 @@ function _coyhBuildWord(lista, asist, soloFirmados, logoData) {
     var noBorder   = { style: D.BorderStyle.NIL, size: 0, color: 'FFFFFF' };
     var noBorders  = { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder };
 
-    /* Anchuras de columna en DXA (carta - m\u00e1rgenes 1.9cm c/lado ~ 9300 DXA) */
+    /* Anchuras de columna en DXA (carta - márgenes 1.9cm c/lado ~ 9300 DXA) */
     var W = { dep:2325, rep:2790, car:2790, fir:1395 };
 
     /* Helpers */
     function R(text, o) {
         o = o || {};
-        var cfg = { text: String(text||''), font: 'Arial', size: o.size||18, bold: o.bold||false, color: o.color||'000000' };
+        var cfg = { text: String(text||''), font: 'Noto Sans', size: o.size||18, bold: o.bold||false, color: o.color||'000000' };
         if (o.br) cfg.break = 1;
         return new D.TextRun(cfg);
     }
@@ -1320,6 +1337,25 @@ function _coyhBuildWord(lista, asist, soloFirmados, logoData) {
     }
     function TC(paras, w, borders, vAlign) {
         return new D.TableCell({ width:{ size:w, type:D.WidthType.DXA }, borders:borders||fullBorder, verticalAlign:vAlign||D.VerticalAlign.CENTER, children:paras });
+    }
+
+    /* Celda de firma según modo */
+    function firmaCell(p) {
+        if (mode === 'blank') {
+            /* Línea en blanco para firmar en papel */
+            return TC([new D.Paragraph({
+                children: [],
+                border: { bottom: { style: D.BorderStyle.SINGLE, size: 6, color: '000000', space: 8 } },
+                spacing: { before: 320, after: 60 }
+            })], W.fir);
+        }
+        /* mode === 'firmas' */
+        var buf = sigMap[p.id];
+        if (buf) {
+            var img = new D.ImageRun({ data: buf, transformation: { width: 95, height: 38 } });
+            return TC([new D.Paragraph({ children: [img], alignment: D.AlignmentType.CENTER, spacing: { before: 60, after: 60 } })], W.fir);
+        }
+        return TC([P([], D.AlignmentType.CENTER, 80, 80)], W.fir);
     }
 
     /* Fila cabecera de tabla */
@@ -1332,20 +1368,18 @@ function _coyhBuildWord(lista, asist, soloFirmados, logoData) {
 
     /* Filas de datos */
     var dataRows = lista.map(function(p) {
-        var tipo   = (p.tipo === 'titular') ? 'TITULAR' : 'SUPLENTE';
-        var aRec   = asist[p.id];
-        var firmTx = (aRec && aRec.firmado) ? '\u2713 Firm\u00f3' : '';
+        var tipo = (p.tipo === 'titular') ? 'TITULAR' : 'SUPLENTE';
         return new D.TableRow({ children:[
             TC([P([R((p.dependencia||'').toUpperCase(), {bold:true,size:18})], D.AlignmentType.CENTER, 80, 80)], W.dep),
             TC([P([R(tipo,{size:14}), R((p.nombre||'').toUpperCase(),{size:18,br:true})], D.AlignmentType.CENTER, 60, 60)], W.rep),
             TC([P([R((p.cargo||'').toUpperCase(), {size:18})], D.AlignmentType.CENTER, 80, 80)], W.car),
-            TC([P([R(firmTx, {size:18})], D.AlignmentType.CENTER, 80, 80)], W.fir)
+            firmaCell(p)
         ]});
     });
 
     var mainTable = new D.Table({ width:{ size:9300, type:D.WidthType.DXA }, rows:[headerRow].concat(dataRows) });
 
-    /* Encabezado: tabla invisible [logo | t\u00edtulos | espacio] */
+    /* Encabezado: tabla invisible [logo | títulos | espacio] */
     var titleParas = [
         P([R(actaTit, {bold:true,size:22})], D.AlignmentType.CENTER, 40,  30),
         P([R(sesUp,   {bold:true,size:22})], D.AlignmentType.CENTER,  0,  30),
@@ -1373,7 +1407,7 @@ function _coyhBuildWord(lista, asist, soloFirmados, logoData) {
         rows: [new D.TableRow({ children: hdrRowCells })]
     });
 
-    /* Pie de p\u00e1gina */
+    /* Pie de página */
     var footerPg = new D.Footer({ children:[
         new D.Paragraph({
             children: [R(sesUp + '    ' + fechUp + '    C.O. y H.', {size:16, color:'8B1515'})],
@@ -1396,7 +1430,7 @@ function _coyhBuildWord(lista, asist, soloFirmados, logoData) {
         var url = URL.createObjectURL(blob);
         var a   = document.createElement('a');
         a.href  = url;
-        var suf = soloFirmados ? '_firmaron' : '_confirmados';
+        var suf = mode === 'firmas' ? '_con_firmas' : '_en_blanco';
         a.download = 'COyH_Acta' + suf + '_' + new Date().toISOString().slice(0,10) + '.docx';
         document.body.appendChild(a); a.click();
         setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 2000);
@@ -1411,8 +1445,14 @@ function _coyhBuildWord(lista, asist, soloFirmados, logoData) {
    EXPORTAR A EXCEL (XLSX)
 -------------------------------------------------------------------*/
 function _coyhExportarExcel(soloFirmados) {
-    if (typeof XLSX === 'undefined') {
-        _coyhToast('La librer\u00eda de Excel no est\u00e1 disponible','danger'); return;
+    if (typeof ExcelJS === 'undefined') {
+        var s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+        s.onload  = function() { _coyhExportarExcel(soloFirmados); };
+        s.onerror = function() { _coyhToast('No se pudo cargar la librer\u00eda Excel','danger'); };
+        document.head.appendChild(s);
+        _coyhToast('Cargando librer\u00eda Excel\u2026','info');
+        return;
     }
     var conf  = _coyhData.confirmaciones;
     var asist = _coyhData.asistencia;
@@ -1431,28 +1471,64 @@ function _coyhExportarExcel(soloFirmados) {
         grupos[key].push(p);
     });
 
-    /* Encabezado */
-    var sesion = _coyhData.sesionLabel + ' \u2014 ' + _coyhData.fecha;
-    var filtro = soloFirmados ? 'Solo firmaron' : 'Todos los confirmados';
-    var wsData = [
-        ['Comit\u00e9 de Operaci\u00f3n y Horarios (COyH) \u2014 Lista de Asistencia'],
-        [sesion],
-        [filtro],
-        [],
-        ['#','Empresa / Dependencia','Representante','Cargo','Tipo','Tel\u00e9fono','Correo','Categor\u00eda','Confirm\u00f3','Firm\u00f3','Hora de firma']
-    ];
+    var wb = new ExcelJS.Workbook();
+    wb.creator = 'COyH AIFA';
+    var ws = wb.addWorksheet('Asistencia COyH');
 
+    var fBase  = { name: 'Noto Sans', size: 10 };
+    var fBold  = { name: 'Noto Sans', size: 10, bold: true };
+    var fTitle = { name: 'Noto Sans', size: 14, bold: true };
+    var fSub   = { name: 'Noto Sans', size: 11 };
+    var borderThin = {
+        top:    { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        left:   { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        right:  { style: 'thin', color: { argb: 'FFE5E7EB' } }
+    };
+
+    var sesion  = _coyhData.sesionLabel + ' \u2014 ' + _coyhData.fecha;
+    var filtroTxt = soloFirmados ? 'Solo firmaron' : 'Todos los confirmados';
+
+    /* --- Título --- */
+    var r1 = ws.addRow(['Comit\u00e9 de Operaci\u00f3n y Horarios (COyH) \u2014 Lista de Asistencia']);
+    r1.getCell(1).font = fTitle; r1.height = 22;
+    var r2 = ws.addRow([sesion]);
+    r2.getCell(1).font = fSub;
+    var r3 = ws.addRow([filtroTxt]);
+    r3.getCell(1).font = fSub;
+    ws.addRow([]);
+
+    /* --- Cabecera de columnas --- */
+    var hdrs = ['#','Empresa / Dependencia','Representante','Cargo','Tipo','Tel\u00e9fono','Correo','Categor\u00eda','Confirm\u00f3','Firm\u00f3','Hora de firma'];
+    var hRow = ws.addRow(hdrs);
+    hRow.height = 22;
+    hRow.eachCell(function(cell) {
+        cell.font   = { name: 'Noto Sans', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill   = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        cell.border = {
+            top:    { style: 'thin' }, bottom: { style: 'thin' },
+            left:   { style: 'thin' }, right:  { style: 'thin' }
+        };
+    });
+
+    /* --- Datos por categoría --- */
     var rowNum = 1;
     catOrder.forEach(function(cat) {
         if (!grupos[cat] || !grupos[cat].length) return;
         var catLabel = cat==='__invitados'?'INVITADOS':(_COYH_CAT_LABEL[cat]||cat).toUpperCase();
-        wsData.push(['--- ' + catLabel + ' ---','','','','','','','','','','']);
+        var catRow = ws.addRow(['--- ' + catLabel + ' ---']);
+        catRow.height = 18;
+        catRow.getCell(1).font = { name: 'Noto Sans', size: 10, bold: true, color: { argb: 'FF8B1515' } };
+        catRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+        ws.mergeCells(catRow.number, 1, catRow.number, 11);
+
         grupos[cat].forEach(function(p) {
             var aRec = asist[p.id];
             var firm = aRec && aRec.firmado ? 'S\u00ed' : 'No';
-            var hora = (aRec && aRec.firmado && aRec.fecha_asistencia)
-                ? new Date(aRec.fecha_asistencia).toLocaleString('es-MX') : '';
-            wsData.push([
+            var hora = (aRec && aRec.firmado && aRec.firmado_at)
+                ? new Date(aRec.firmado_at).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}) : '';
+            var dRow = ws.addRow([
                 rowNum++,
                 p.dependencia || '',
                 p.nombre || '',
@@ -1465,22 +1541,38 @@ function _coyhExportarExcel(soloFirmados) {
                 firm,
                 hora
             ]);
+            dRow.height = 16;
+            dRow.eachCell(function(cell) {
+                cell.font      = fBase;
+                cell.alignment = { vertical: 'middle', wrapText: true };
+                cell.border    = borderThin;
+            });
         });
     });
 
-    var ws = XLSX.utils.aoa_to_sheet(wsData);
-
-    /* Anchos de columna */
-    ws['!cols'] = [
-        {wch:4},{wch:32},{wch:28},{wch:30},{wch:9},{wch:14},{wch:28},{wch:22},{wch:10},{wch:8},{wch:20}
+    /* --- Anchos de columna --- */
+    ws.columns = [
+        {width:4},{width:32},{width:28},{width:30},
+        {width:9},{width:14},{width:28},{width:22},
+        {width:10},{width:8},{width:20}
     ];
 
-    var wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Asistencia COyH');
-
-    var fechaHoy = new Date().toISOString().slice(0,10);
-    var sufijo   = soloFirmados ? '_firmaron' : '_confirmados';
-    XLSX.writeFile(wb, 'COyH_Asistencia' + sufijo + '_' + fechaHoy + '.xlsx');
+    /* --- Generar y descargar --- */
+    wb.xlsx.writeBuffer().then(function(buffer) {
+        var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        var url  = URL.createObjectURL(blob);
+        var a    = document.createElement('a');
+        a.href   = url;
+        var fechaHoy = new Date().toISOString().slice(0,10);
+        var sufijo   = soloFirmados ? '_firmaron' : '_confirmados';
+        a.download = 'COyH_Asistencia' + sufijo + '_' + fechaHoy + '.xlsx';
+        document.body.appendChild(a); a.click();
+        setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 2000);
+        _coyhToast('Archivo Excel generado \u2713','success');
+    }).catch(function(e) {
+        console.error('Excel error:', e);
+        _coyhToast('Error al generar Excel: ' + (e.message||e), 'danger');
+    });
 }
 
 /* -- Exports ------------------------------------------------------ */
