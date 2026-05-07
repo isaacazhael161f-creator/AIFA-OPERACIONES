@@ -536,8 +536,9 @@ function _coyhRenderLista() {
     var grupos = {};
     rows.forEach(function(p) {
         var key = p.tipo_lista === 'invitado' ? '__invitados' : (p.categoria || 'otros');
-        if (!grupos[key]) grupos[key] = [];
-        grupos[key].push(p);
+        if (!grupos[key]) grupos[key] = {};
+        if (!grupos[key][p.dependencia]) grupos[key][p.dependencia] = [];
+        grupos[key][p.dependencia].push(p);
     });
 
     var catOrder = ['autoridades','operadores_aereos','prestadores','permisionarios','otros','__invitados'];
@@ -550,58 +551,93 @@ function _coyhRenderLista() {
         +'<th style="width:130px;text-align:center">Firma</th>'
         +'</tr></thead><tbody>';
 
-    var idx = 1;
+    var depIdx = 1;
     catOrder.forEach(function(cat) {
-        if (!grupos[cat] || !grupos[cat].length) return;
+        if (!grupos[cat] || !Object.keys(grupos[cat]).length) return;
         var catLabel = cat === '__invitados'
             ? '<i class="fas fa-user-clock me-2" style="opacity:.6"></i>INVITADOS'
             : '<i class="fas fa-layer-group me-2" style="opacity:.6"></i>'+(_COYH_CAT_LABEL[cat]||cat).toUpperCase();
         html += '<tr class="coyh-cat-row"><td colspan="6">'+catLabel+'</td></tr>';
 
-        grupos[cat].forEach(function(p) {
-            var aRec    = asist[p.id];
-            var firmado = aRec && aRec.firmado === true;
-            var rowBg   = firmado ? '#f0fdf4' : (idx%2===0?'#f8fafc':'#fff');
-            var bg      = 'background:'+rowBg;
-            var hora    = (firmado && aRec.firmado_at)
-                ? new Date(aRec.firmado_at).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})
-                : null;
+        // Ordenar dependencias igual que el directorio (campo orden del primer miembro)
+        var depList = Object.keys(grupos[cat]);
+        depList.sort(function(a, b) {
+            var oa = grupos[cat][a][0] && grupos[cat][a][0].orden != null ? grupos[cat][a][0].orden : 9999;
+            var ob = grupos[cat][b][0] && grupos[cat][b][0].orden != null ? grupos[cat][b][0].orden : 9999;
+            return oa - ob;
+        });
 
-            var firmaCell;
-            if (firmado) {
-                if (aRec.firma_imagen) {
-                    firmaCell = '<img src="'+aRec.firma_imagen+'" alt="firma"'
-                        +' style="max-width:110px;max-height:42px;border:1px solid #bbf7d0;'
-                        +'border-radius:6px;background:#fff;padding:2px;cursor:pointer"'
-                        +' onclick="_coyhVerFirma(\''+p.id+'\')">';
+        depList.forEach(function(dep) {
+            var members = grupos[cat][dep];
+            var rowspan = members.length;
+            // Color de fondo del grupo: verde si todos firmaron, alterno si no
+            var allFirmados = members.every(function(p){ return asist[p.id] && asist[p.id].firmado; });
+            var groupBg = allFirmados ? '#f0fdf4' : (depIdx % 2 === 0 ? '#f8fafc' : '#ffffff');
+
+            members.forEach(function(p, i) {
+                var aRec    = asist[p.id];
+                var firmado = aRec && aRec.firmado === true;
+                var bg      = 'background:' + groupBg;
+                var hora    = (firmado && aRec.firmado_at)
+                    ? new Date(aRec.firmado_at).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})
+                    : null;
+
+                var firmaCell;
+                if (firmado) {
+                    if (aRec.firma_imagen) {
+                        firmaCell = '<img src="'+aRec.firma_imagen+'" alt="firma"'
+                            +' style="max-width:110px;max-height:42px;border:1px solid #bbf7d0;'
+                            +'border-radius:6px;background:#fff;padding:2px;cursor:pointer"'
+                            +' onclick="_coyhVerFirma(\''+p.id+'\')">';
+                    } else {
+                        firmaCell = '<span class="badge" style="background:#dcfce7;color:#15803d;font-size:.67rem">'
+                            +'<i class="fas fa-check me-1"></i>Presente</span>';
+                    }
                 } else {
-                    firmaCell = '<span class="badge" style="background:#dcfce7;color:#15803d;font-size:.67rem">'
-                        +'<i class="fas fa-check me-1"></i>Presente</span>';
+                    firmaCell = '<button class="btn btn-sm fw-semibold"'
+                        +' style="font-size:.65rem;padding:3px 10px;border-radius:7px;'
+                        +'background:#0f172a;color:#fff;border:none;white-space:nowrap"'
+                        +' onclick="_coyhAbrirPad(\''+p.id+'\')">'
+                        +'<i class="fas fa-signature me-1"></i>Firmar</button>';
                 }
-            } else {
-                firmaCell = '<button class="btn btn-sm fw-semibold"'
-                    +' style="font-size:.65rem;padding:3px 10px;border-radius:7px;'
-                    +'background:#0f172a;color:#fff;border:none;white-space:nowrap"'
-                    +' onclick="_coyhAbrirPad(\''+p.id+'\')">'
-                    +'<i class="fas fa-signature me-1"></i>Firmar</button>';
-            }
 
-            html += '<tr id="_coyh-row-'+p.id+'">'
-                +'<td style="'+bg+';text-align:center;color:#94a3b8;font-size:.69rem">'+idx+'</td>'
-                +'<td style="'+bg+';font-weight:600;font-size:.77rem">'+_escHtml(p.dependencia)+'</td>'
-                +'<td style="'+bg+';font-size:.77rem'+(firmado?';font-weight:600':'')+'">'
-                +_escHtml(p.nombre)
-                +(firmado&&hora?'<br><span class="text-muted" style="font-size:.62rem">'
-                +'<i class="fas fa-check-circle text-success me-1"></i>Firm\u00f3 a las '+hora+'</span>':'')
-                +'</td>'
-                +'<td style="'+bg+';font-size:.73rem;color:#374151">'+_escHtml(p.cargo||'\u2014')+'</td>'
-                +'<td style="'+bg+';text-align:center"><span class="badge" style="font-size:.6rem;'
-                +'background:'+(p.tipo==='titular'?'#dbeafe':'#f3f4f6')
-                +';color:'+(p.tipo==='titular'?'#1e40af':'#4b5563')+'">'
-                +(p.tipo==='titular'?'Titular':'Suplente')+'</span></td>'
-                +'<td style="'+bg+';text-align:center;min-width:130px">'+firmaCell+'</td>'
-                +'</tr>';
-            idx++;
+                html += '<tr id="_coyh-row-'+p.id+'">';
+
+                // Columna # — solo en la primera fila del grupo, con rowspan
+                if (i === 0) {
+                    html += '<td rowspan="'+rowspan+'" style="'+bg+';text-align:center;color:#94a3b8;'
+                        +'font-size:.69rem;font-weight:600;vertical-align:middle">'+depIdx+'</td>';
+                }
+
+                // Columna Empresa — solo en la primera fila del grupo, con rowspan
+                if (i === 0) {
+                    html += '<td rowspan="'+rowspan+'" style="'+bg+';font-weight:600;font-size:.77rem;'
+                        +'vertical-align:middle;padding:8px 10px">'+_escHtml(dep)+'</td>';
+                }
+
+                // Representante
+                html += '<td style="'+bg+';font-size:.77rem'+(firmado?';font-weight:600':'')+'">'
+                    +_escHtml(p.nombre)
+                    +(firmado&&hora?'<br><span class="text-muted" style="font-size:.62rem">'
+                    +'<i class="fas fa-check-circle text-success me-1"></i>Firm\u00f3 a las '+hora+'</span>':'')
+                    +'</td>';
+
+                // Cargo
+                html += '<td style="'+bg+';font-size:.73rem;color:#374151">'+_escHtml(p.cargo||'\u2014')+'</td>';
+
+                // Tipo
+                html += '<td style="'+bg+';text-align:center"><span class="badge" style="font-size:.6rem;'
+                    +'background:'+(p.tipo==='titular'?'#dbeafe':'#f3f4f6')
+                    +';color:'+(p.tipo==='titular'?'#1e40af':'#4b5563')+'">'
+                    +(p.tipo==='titular'?'Titular':'Suplente')+'</span></td>';
+
+                // Firma
+                html += '<td style="'+bg+';text-align:center;min-width:130px">'+firmaCell+'</td>';
+
+                html += '</tr>';
+            });
+
+            depIdx++;
         });
     });
 
