@@ -1432,12 +1432,8 @@ function _coyhBuildWord(lista, asist, mode, logoData, sigMap) {
     /* Celda de firma según modo */
     function firmaCell(p) {
         if (mode === 'blank') {
-            /* Línea en blanco para firmar en papel */
-            return TC([new D.Paragraph({
-                children: [],
-                border: { bottom: { style: D.BorderStyle.SINGLE, size: 6, color: '000000', space: 8 } },
-                spacing: { before: 320, after: 60 }
-            })], W.fir);
+            /* Celda vacía para firmar en papel */
+            return TC([new D.Paragraph({ children: [], spacing: { before: 320, after: 320 } })], W.fir);
         }
         /* mode === 'firmas' */
         var buf = sigMap[p.id];
