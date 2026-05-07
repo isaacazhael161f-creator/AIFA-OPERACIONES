@@ -370,13 +370,24 @@ function _coyhRenderDirectorio() {
         return true;
     });
 
-    var totalConf = Object.values(conf).filter(function(c){ return c.confirmado; }).length;
-    var totalPart = _coyhData.participantes.length;
-    var badgeEl   = document.getElementById('_coyh-badge-conf');
-    if (badgeEl) badgeEl.textContent = totalConf > 0 ? totalConf+' confirmados' : '';
-    _coyhUpdateStats('<span style="font-size:.73rem;color:#374151"><span style="font-weight:700;color:#2563eb">'+totalConf+'</span><span class="text-muted"> / '+totalPart+' confirmaron asistencia</span></span>');
+    /* Contar por dependencia (no por persona) */
+    var depMap = {};
+    _coyhData.participantes.forEach(function(p) {
+        if (!depMap[p.dependencia]) depMap[p.dependencia] = false;
+        if (conf[p.id] && conf[p.id].confirmado) depMap[p.dependencia] = true;
+    });
+    var totalDeps     = Object.keys(depMap).length;
+    var totalConfDeps = Object.values(depMap).filter(Boolean).length;
+    /* Deps visibles en la vista filtrada */
+    var visibleDeps = {};
+    rows.forEach(function(p){ visibleDeps[p.dependencia] = true; });
+    var visibleDepsCount = Object.keys(visibleDeps).length;
+
+    var badgeEl = document.getElementById('_coyh-badge-conf');
+    if (badgeEl) badgeEl.textContent = totalConfDeps > 0 ? totalConfDeps+' confirmados' : '';
+    _coyhUpdateStats('<span style="font-size:.73rem;color:#374151"><span style="font-weight:700;color:#2563eb">'+totalConfDeps+'</span><span class="text-muted"> / '+totalDeps+' dependencias confirmaron</span></span>');
     var footerEl = document.getElementById('_coyh-footer-info');
-    if (footerEl) footerEl.textContent = 'Mostrando '+rows.length+' de '+totalPart+' personas';
+    if (footerEl) footerEl.textContent = 'Mostrando '+visibleDepsCount+' de '+totalDeps+' dependencias';
 
     if (!rows.length) {
         body.innerHTML = '<div class="text-center py-5 text-muted"><i class="fas fa-search fa-2x mb-3 d-block opacity-25"></i>Sin resultados.</div>';
@@ -580,8 +591,14 @@ function _coyhRenderLista() {
         return true;
     });
 
-    var firmados = rows.filter(function(p){ return asist[p.id] && asist[p.id].firmado; }).length;
-    var total    = rows.length;
+    /* Contar por dependencia (no por persona) */
+    var depStats = {};
+    rows.forEach(function(p) {
+        if (!depStats[p.dependencia]) depStats[p.dependencia] = false;
+        if (asist[p.id] && asist[p.id].firmado) depStats[p.dependencia] = true;
+    });
+    var total    = Object.keys(depStats).length;
+    var firmados = Object.values(depStats).filter(Boolean).length;
     var pct      = total > 0 ? Math.round(firmados/total*100) : 0;
 
     _coyhUpdateStats(
@@ -595,7 +612,7 @@ function _coyhRenderLista() {
         +(pct===100?'<span class="badge" style="background:#dcfce7;color:#15803d;font-size:.63rem">Lista completa</span>':'')
     );
     var footerEl = document.getElementById('_coyh-footer-info');
-    if (footerEl) footerEl.textContent = total+' confirmados \u2014 '+firmados+' firmaron';
+    if (footerEl) footerEl.textContent = total+' dependencias \u2014 '+firmados+' firmaron';
 
     if (!rows.length) {
         body.innerHTML = '<div class="text-center py-5 text-muted">'
