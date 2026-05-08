@@ -458,6 +458,11 @@ function _agCalDraw() {
         <span style="background:#eef2ff;border:2px solid #4f46e5;padding:1px 7px;border-radius:5px;color:#3730a3;font-weight:600">Hoy</span>
         <span style="background:#fff5f5;border:2px solid #dc2626;padding:1px 7px;border-radius:5px;color:#dc2626">⚠ Horas solapadas</span>
         <span style="background:#fffbeb;border:2px solid #d97706;padding:1px 7px;border-radius:5px;color:#92400e">⚠ Mismo día</span>
+        <span style="background:#fffbeb;border:1px solid #fde68a;padding:1px 8px;border-radius:5px;color:#92400e;display:inline-flex;align-items:center;gap:5px"><i class="fas fa-clock" style="font-size:.65rem"></i>Sesión periódica anual</span>
+    </div>
+    <div class="mt-2 px-3 py-2 rounded-3 d-flex align-items-start gap-2" style="background:#fffdf0;border:1px solid #fde68a;font-size:.72rem;color:#78350f">
+        <i class="fas fa-clock" style="color:#d97706;margin-top:2px;flex-shrink:0"></i>
+        <span><strong>Sesiones periódicas anuales:</strong> Los comités marcados con este ícono tienen un calendario de reuniones recurrente, establecido de manera permanente año con año en las mismas fechas. Su programación forma parte del ciclo operativo institucional.</span>
     </div>`;
 
     /* ── Detalle de conflictos del mes ──────────────────────────── */
@@ -932,6 +937,10 @@ function _agAnualDraw() {
             padding:3px 8px;border-radius:0 5px 5px 0;font-weight:600">${key} <span style="font-weight:400;opacity:.8">— ${ac.name}</span></span>`;
     });
     html += `</div>`;
+    html += `<div class="mt-3 px-3 py-2 rounded-3 d-flex align-items-start gap-2" style="background:#fffdf0;border:1px solid #fde68a;font-size:.72rem;color:#78350f">
+        <i class="fas fa-clock" style="color:#d97706;margin-top:2px;flex-shrink:0"></i>
+        <span><strong>Sesiones periódicas anuales:</strong> Los comités marcados con este ícono tienen un calendario de reuniones recurrente, establecido de manera permanente año con año en las mismas fechas. Su programación forma parte del ciclo operativo institucional.</span>
+    </div>`;
 
     pane.innerHTML = html;
 }
