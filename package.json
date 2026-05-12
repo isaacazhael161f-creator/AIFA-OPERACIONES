@@ -30,7 +30,7 @@
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.18.3"
+    "mongoose": "^8.23.1"
   },
   "devDependencies": {
     "jest": "^29.7.0",
