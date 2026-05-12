@@ -5135,6 +5135,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
     let amAllRows = [];
     let amSelectedYr = '25';
     let amSearchTerm = '';
+    let amServiceFilter = ''; // '' = all, 'pasajero' = passengers only, 'carga' = cargo only
     let amNewRowIdx = 0; // for new-row temp keys
 
     function sb() { return window.supabaseClient; }
@@ -5167,10 +5168,13 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
 
         const term = amSearchTerm.toLowerCase();
         const visible = amAllRows.filter(function(r) {
-            if (!term) return true;
             const n = (r['AEROLINEA'] || r['AEROLINEA '] || '').toLowerCase();
             const s = (r['TIPO DE SERVICIO'] || '').toLowerCase();
-            return n.includes(term) || s.includes(term);
+            // Service type filter
+            if (amServiceFilter && !s.includes(amServiceFilter)) return false;
+            // Text search
+            if (term && !n.includes(term) && !s.includes(term)) return false;
+            return true;
         });
 
         tbody.innerHTML = '';
@@ -5231,6 +5235,13 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
     window.amFilterTable = function () {
         const inp = document.getElementById('am-search');
         amSearchTerm = inp ? inp.value : '';
+        amRender();
+    };
+
+    window.amSetServiceFilter = function (btn) {
+        document.querySelectorAll('.am-svc-btn').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        amServiceFilter = btn.dataset.svc || '';
         amRender();
     };
 
@@ -5402,6 +5413,10 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
                 amSelectedYr = btn.dataset.yr;
                 amRender();
             });
+        });
+
+        document.querySelectorAll('.am-svc-btn').forEach(function(btn) {
+            btn.addEventListener('click', function () { window.amSetServiceFilter(btn); });
         });
 
         const tabBtn = document.getElementById('tab-aerolineas-mensual');

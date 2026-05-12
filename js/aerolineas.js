@@ -36,7 +36,11 @@ function openAeroDetail(item) {
     const datasets = years.map(yr => {
         const col = AERO_YEAR_COLORS[yr] || '#78909c';
         const last = yr === years[years.length - 1];
-        const dataPoints = AERO_MONTH_ORDER.map(m => byYear[yr][m] ?? null);
+        // Use null for missing or zero-value months so the line ends at the last real data point
+        const dataPoints = AERO_MONTH_ORDER.map(m => {
+            const v = byYear[yr][m];
+            return (v !== undefined && v !== null && v > 0) ? v : null;
+        });
         return {
             label: '20' + yr,
             data: dataPoints,
@@ -137,13 +141,20 @@ function openAeroDetail(item) {
         let html = '<td style="font-weight:600;color:#4b5563;padding:11px 18px;font-size:0.92rem;'+CELL_BORDER+'">'+AERO_MONTH_LABELS[mIdx]+'</td>';
         years.forEach(function(yr, idx) {
             const val = getVal(yr, mon);
-            if (val === null) {
+            // Treat null OR zero as "sin datos" — avoids showing ▼100% for months without records
+            if (val === null || val === 0) {
                 html += '<td style="text-align:center;color:#94a3b8;padding:11px 18px;font-size:0.93rem;'+CELL_BORDER+'">–</td>';
                 return;
             }
             let badge = '';
             if (idx > 0) {
-                badge = varBadge(val, getVal(years[idx - 1], mon));
+                const prevVal = getVal(years[idx - 1], mon);
+                // Only show variation badge when both current and previous have real data (> 0)
+                if (prevVal !== null && prevVal > 0) {
+                    badge = varBadge(val, prevVal);
+                } else if (prevVal === 0 || prevVal === null) {
+                    badge = ' <span style="font-size:0.73em;color:#16a34a;font-weight:700;">▲ nuevo</span>';
+                }
             }
             html += '<td style="text-align:center;padding:11px 18px;font-size:0.93rem;color:#1e293b;'+CELL_BORDER+'">'+new Intl.NumberFormat('es-MX').format(val)+badge+'</td>';
         });
@@ -170,9 +181,11 @@ function openAeroDetail(item) {
             AERO_MONTH_ORDER.forEach(function(mon) {
                 const curV = getVal(yr, mon);
                 const prevV = getVal(prevYr, mon);
-                if (curV !== null) {
+                // Only count months where current year actually has data (> 0)
+                // This makes the total variation proportional to the available months
+                if (curV !== null && curV > 0) {
                     curSum += curV;
-                    if (prevV !== null) { prevSum += prevV; hasPrev = true; }
+                    if (prevV !== null && prevV > 0) { prevSum += prevV; hasPrev = true; }
                 }
             });
             if (hasPrev && prevSum > 0) {
