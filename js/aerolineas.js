@@ -418,70 +418,95 @@ function renderAirlinesTable(data) {
 
     tblBody.innerHTML = '';
 
-    const monthOrder = { 'ene': 1, 'feb': 2, 'mar': 3, 'abr': 4, 'may': 5, 'jun': 6, 'jul': 7, 'ago': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dic': 12 };
+    // Split into passengers and cargo groups
+    const paxGroup   = data.filter(d => d.servicio.toUpperCase().includes('PASAJERO'));
+    const cargoGroup = data.filter(d => !d.servicio.toUpperCase().includes('PASAJERO'));
 
-    data.forEach((item, index) => {
-        let badgeClass = 'bg-secondary';
-        const serv = item.servicio.toUpperCase();
-        
-        if(serv.includes('REGULAR')) badgeClass = 'bg-success';
-        else if(serv.includes('MENSUAL')) badgeClass = 'bg-dark';
-        else if(serv.includes('FLETAMENTO')) badgeClass = 'bg-warning text-dark';
+    function buildRankDisplay(index) {
+        if (index === 0) return `<span class="badge rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width:28px;height:28px;background:linear-gradient(45deg,#ffd700,#ffb300);color:#fff;box-shadow:0 2px 4px rgba(255,215,0,0.3);"><i class="fas fa-trophy fs-6"></i></span>`;
+        if (index === 1) return `<span class="badge rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width:28px;height:28px;background:linear-gradient(45deg,#e0e0e0,#9e9e9e);color:#fff;box-shadow:0 2px 4px rgba(158,158,158,0.3);"><i class="fas fa-medal fs-6"></i></span>`;
+        if (index === 2) return `<span class="badge rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width:28px;height:28px;background:linear-gradient(45deg,#cd7f32,#b87333);color:#fff;box-shadow:0 2px 4px rgba(205,127,50,0.3);"><i class="fas fa-medal fs-6"></i></span>`;
+        return `<span class="text-secondary fw-bold">${index + 1}</span>`;
+    }
 
-        const styleOverride = serv.includes('MENSUAL') ? 'style="background-color: #6f42c1 !important;"' : '';
+    function buildSectionHeader(label, iconClass, colorClass, totalOps, opsTitle) {
+        const sep = document.createElement('tr');
+        sep.style.cssText = 'pointer-events:none;';
+        sep.innerHTML = `<td colspan="5" style="padding:10px 24px 6px;border-top:2px solid #e9ecef;background:#f8fafc;">
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="fw-bold text-uppercase small d-flex align-items-center gap-2" style="letter-spacing:.8px;color:#374151;">
+                    <span class="d-inline-flex align-items-center justify-content-center rounded-circle text-white ${colorClass}" style="width:26px;height:26px;font-size:.75rem;">
+                        <i class="${iconClass}"></i>
+                    </span>
+                    ${label}
+                </span>
+                <span class="small text-muted fw-semibold">${totalOps.toLocaleString('en-US')} ops ${opsTitle}</span>
+            </div>
+        </td>`;
+        return sep;
+    }
 
-        // Add medal or rank styling for top 3
-        let indexDisplay = `<span class="text-secondary fw-bold">${index + 1}</span>`;
-        if (index === 0) {
-            indexDisplay = `<span class="badge rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 28px; height: 28px; background: linear-gradient(45deg, #ffd700, #ffb300); color: #fff; box-shadow: 0 2px 4px rgba(255,215,0,0.3);"><i class="fas fa-trophy fs-6"></i></span>`;
-        } else if (index === 1) {
-            indexDisplay = `<span class="badge rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 28px; height: 28px; background: linear-gradient(45deg, #e0e0e0, #9e9e9e); color: #fff; box-shadow: 0 2px 4px rgba(158,158,158,0.3);"><i class="fas fa-medal fs-6"></i></span>`;
-        } else if (index === 2) {
-            indexDisplay = `<span class="badge rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 28px; height: 28px; background: linear-gradient(45deg, #cd7f32, #b87333); color: #fff; box-shadow: 0 2px 4px rgba(205,127,50,0.3);"><i class="fas fa-medal fs-6"></i></span>`;
-        }
+    function appendGroup(group, tbl) {
+        group.forEach((item, index) => {
+            const serv = item.servicio.toUpperCase();
+            let badgeClass = 'bg-secondary';
+            if(serv.includes('REGULAR')) badgeClass = 'bg-success';
+            else if(serv.includes('MENSUAL')) badgeClass = 'bg-dark';
+            else if(serv.includes('FLETAMENTO')) badgeClass = 'bg-warning text-dark';
+            const styleOverride = serv.includes('MENSUAL') ? 'style="background-color:#6f42c1!important;"' : '';
 
-        let monthsHtml = '';
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td class="text-center align-middle ps-4" style="width: 80px;">${indexDisplay}</td>
-            <td class="fw-bold text-dark fs-6 align-middle py-3">
-                <div class="d-flex align-items-center">
-                    <div class="bg-light rounded p-2 me-3 text-center border mt-1" style="min-width: 42px;">
-                        <i class="fas fa-plane text-primary opacity-75"></i>
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="text-center align-middle ps-4" style="width:80px;">${buildRankDisplay(index)}</td>
+                <td class="fw-bold text-dark fs-6 align-middle py-3">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-light rounded p-2 me-3 text-center border mt-1" style="min-width:42px;">
+                            <i class="fas fa-plane text-primary opacity-75"></i>
+                        </div>
+                        <div><div class="mb-0 text-uppercase" style="letter-spacing:0.5px;">${item.nombre}</div></div>
                     </div>
-                    <div>
-                        <div class="mb-0 text-uppercase" style="letter-spacing: 0.5px;">${item.nombre}</div>
+                </td>
+                <td class="align-middle"><span class="badge ${badgeClass} px-3 py-2 rounded-pill fw-normal" ${styleOverride}>${item.servicio}</span></td>
+                <td class="text-end align-middle pe-4">
+                    <div class="d-inline-flex flex-column text-end">
+                        <span class="fs-4 fw-black text-dark tracking-tight">${item.currentOps.toLocaleString('en-US')}</span>
+                        <span class="small text-muted text-uppercase fw-semibold" style="font-size:0.65rem;letter-spacing:0.5px;">Operaciones</span>
                     </div>
-                </div>
-            </td>
-            <td class="align-middle"><span class="badge ${badgeClass} px-3 py-2 rounded-pill fw-normal" ${styleOverride}>${item.servicio}</span></td>
-            <td class="text-end align-middle pe-4">
-                <div class="d-inline-flex flex-column text-end">
-                    <span class="fs-4 fw-black text-dark tracking-tight">${item.currentOps.toLocaleString()}</span>
-                    <span class="small text-muted text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;">Operaciones</span>
-                </div>
-            </td>
-            <td class="text-center align-middle pe-2" style="width:42px;">
-                <span class="text-primary opacity-50" style="font-size:0.8rem;"><i class="fas fa-chart-line"></i></span>
-            </td>
-        `;
-        tr.style.cursor = 'pointer';
-        tr.title = 'Clic para ver gráfica de ' + item.nombre;
-        tr.addEventListener('click', function() {
-            if (aeroSelectedRow) aeroSelectedRow.classList.remove('table-active');
-            const panel = document.getElementById('aero-detail-panel');
-            const isSame = aeroSelectedRow === tr;
-            if (isSame && panel && !panel.classList.contains('d-none')) {
-                closeAeroDetail();
-                return;
-            }
-            aeroSelectedRow = tr;
-            tr.classList.add('table-active');
-            openAeroDetail(item);
+                </td>
+                <td class="text-center align-middle pe-2" style="width:42px;">
+                    <span class="text-primary opacity-50" style="font-size:0.8rem;"><i class="fas fa-chart-line"></i></span>
+                </td>`;
+            tr.style.cursor = 'pointer';
+            tr.title = 'Clic para ver gráfica de ' + item.nombre;
+            tr.addEventListener('click', function() {
+                if (aeroSelectedRow) aeroSelectedRow.classList.remove('table-active');
+                const panel = document.getElementById('aero-detail-panel');
+                const isSame = aeroSelectedRow === tr;
+                if (isSame && panel && !panel.classList.contains('d-none')) { closeAeroDetail(); return; }
+                aeroSelectedRow = tr;
+                tr.classList.add('table-active');
+                openAeroDetail(item);
+            });
+            tbl.appendChild(tr);
         });
-        tblBody.appendChild(tr);
-    });
+    }
+
+    // Get the ops title text (e.g. "(Histórico)" or "(Año 2026)")
+    const opsTitle = document.getElementById('aero-ops-title')?.textContent || '';
+
+    // ── Pasajeros section ──────────────────────────────────────────────────
+    if (paxGroup.length) {
+        const paxTotal = paxGroup.reduce((s, d) => s + d.currentOps, 0);
+        tblBody.appendChild(buildSectionHeader('Aerolíneas de Pasajeros', 'fas fa-user', 'bg-primary', paxTotal, opsTitle));
+        appendGroup(paxGroup, tblBody);
+    }
+
+    // ── Carga section ──────────────────────────────────────────────────────
+    if (cargoGroup.length) {
+        const cargoTotal = cargoGroup.reduce((s, d) => s + d.currentOps, 0);
+        tblBody.appendChild(buildSectionHeader('Aerolíneas de Carga', 'fas fa-box', 'bg-warning', cargoTotal, opsTitle));
+        appendGroup(cargoGroup, tblBody);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
