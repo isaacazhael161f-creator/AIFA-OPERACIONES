@@ -24,10 +24,11 @@
             .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
     }
 
-    /** Extrae mes y año del nombre de la hoja — soporta "ABR 2026", "ABRIL 2026", "04/2026" */
+    /** Extrae mes y año del nombre de la hoja — soporta "ABR 2026", "ABRIL 2026", "ABR2026", "04/2026" */
     function getMesAnioFromSheet(name) {
         const n = String(name || '').trim();
-        const m1 = n.match(/([A-Za-z\u00e0-\u00ff]+)\s+(\d{4})/i);
+        // Permite separador opcional entre mes y año (espacio, guión, barra, nada)
+        const m1 = n.match(/([A-Za-z\u00e0-\u00ff]{2,})[^a-z0-9]*(\d{4})/i);
         if (m1) {
             const abbr = m1[1].substring(0, 3).toLowerCase()
                 .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -174,13 +175,26 @@
                         mesDato = MES_ABREV[abbr] || parseInt(v, 10) || null;
                     }
                 }
-                // Desde columna FECHA
-                if (!anioDato) {
+                // Desde columna FECHA — maneja tanto fechas ISO como seriales Excel
+                if (!mesDato || !anioDato) {
                     const fIdx = headers.findIndex(h => normCol(String(h || '')) === 'fecha');
                     if (fIdx >= 0 && dataRows[0]) {
-                        const v = String(dataRows[0][fIdx] || '');
-                        const m = v.match(/(\d{4})/);
-                        if (m) anioDato = parseInt(m[1], 10);
+                        const raw = dataRows[0][fIdx];
+                        const serial = typeof raw === 'number' ? raw : parseFloat(raw);
+                        if (!isNaN(serial) && serial > 40000 && serial < 60000) {
+                            // Serial de Excel → convertir a fecha real
+                            const d = new Date((serial - 25569) * 86400000);
+                            if (!mesDato)  mesDato  = d.getUTCMonth() + 1;
+                            if (!anioDato) anioDato = d.getUTCFullYear();
+                        } else {
+                            // Cadena de fecha tipo "2026-04-01" o "01/04/2026"
+                            const vs = String(raw || '');
+                            const mY = vs.match(/(\d{4})/);
+                            if (mY) {
+                                const y = parseInt(mY[1], 10);
+                                if (y >= 2000 && y <= 2100) anioDato = y;
+                            }
+                        }
                     }
                 }
             }
