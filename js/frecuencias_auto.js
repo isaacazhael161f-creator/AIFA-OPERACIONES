@@ -277,6 +277,7 @@
       populateFilters();
       updateMeta(data);
       renderKPIs();
+      renderEstadosCoberturaMap();
       applyFilters();
       await ensureLeaflet();
       initMap();
@@ -705,6 +706,115 @@
     if (hottestDay) {
       dom.insights.appendChild(buildInsight('fa-calendar-day', `${DAY_LABELS[hottestDay.code]} es el día con más frecuencias (${intlNumber.format(hottestDay.value)}).`));
     }
+  }
+
+  // ─── Cobertura por Estado ────────────────────────────────────────────────
+  const _STATE_BY_IATA_MAP = {
+    'AGU':'Aguascalientes',
+    'TIJ':'Baja California','MXL':'Baja California','SNQ':'Baja California',
+    'SJD':'Baja California Sur','LAP':'Baja California Sur','LTO':'Baja California Sur',
+    'CPE':'Campeche','CME':'Campeche',
+    'TGZ':'Chiapas','TUX':'Chiapas','PAL':'Chiapas',
+    'CUU':'Chihuahua','CJT':'Chihuahua','JUZ':'Chihuahua',
+    'MEX':'Ciudad de México',
+    'SLW':'Coahuila','TRC':'Coahuila',
+    'CLQ':'Colima',
+    'DGO':'Durango',
+    'BJX':'Guanajuato',
+    'ACA':'Guerrero','ACN':'Guerrero','ZIH':'Guerrero',
+    'GDL':'Jalisco','PVR':'Jalisco',
+    'TLC':'Estado de México',
+    'MLM':'Michoacán',
+    'TPQ':'Nayarit',
+    'MTY':'Nuevo León','NLD':'Nuevo León',
+    'OAX':'Oaxaca','HUX':'Oaxaca','PXM':'Oaxaca','IXE':'Oaxaca',
+    'PBC':'Puebla',
+    'QRO':'Querétaro',
+    'CUN':'Quintana Roo','CTM':'Quintana Roo','TKM':'Quintana Roo',
+    'SLP':'San Luis Potosí',
+    'MZT':'Sinaloa','CUL':'Sinaloa','LMM':'Sinaloa',
+    'HMO':'Sonora','CEN':'Sonora','GYM':'Sonora',
+    'VSA':'Tabasco',
+    'TAM':'Tamaulipas','REX':'Tamaulipas','MAM':'Tamaulipas','VIC':'Tamaulipas',
+    'VER':'Veracruz','MIE':'Veracruz','XAL':'Veracruz',
+    'MID':'Yucatán',
+    'ZCL':'Zacatecas',
+  };
+  const _ALL_32 = [
+    'Aguascalientes','Baja California','Baja California Sur','Campeche',
+    'Chiapas','Chihuahua','Ciudad de México','Coahuila','Colima','Durango',
+    'Estado de México','Guanajuato','Guerrero','Hidalgo','Jalisco','Michoacán',
+    'Morelos','Nayarit','Nuevo León','Oaxaca','Puebla','Querétaro',
+    'Quintana Roo','San Luis Potosí','Sinaloa','Sonora','Tabasco',
+    'Tamaulipas','Tlaxcala','Veracruz','Yucatán','Zacatecas'
+  ];
+
+  function renderEstadosCoberturaMap() {
+    const el = document.getElementById('frec-estados-cobertura');
+    if (!el) return;
+    const dests = state.destinations; // already loaded national routes
+    if (!dests || !dests.length) { el.innerHTML = '<p class="text-muted text-center py-3">Sin datos disponibles.</p>'; return; }
+
+    const stateMap = {};
+    dests.forEach(d => {
+      const iata  = (d.iata || '').toUpperCase();
+      const state_ = _STATE_BY_IATA_MAP[iata];
+      if (!state_) return;
+      if (!stateMap[state_]) stateMap[state_] = { routes: new Set(), freqs: 0 };
+      stateMap[state_].routes.add(iata + ' – ' + (d.city || iata));
+      stateMap[state_].freqs += (d.weeklyTotal || 0);
+    });
+
+    const covered   = Object.keys(stateMap).sort();
+    const uncovered = _ALL_32.filter(s => !stateMap[s]);
+    const pct       = Math.round((covered.length / 32) * 100);
+
+    const cardsHtml = covered.map(st => {
+      const d = stateMap[st];
+      const routePills = [...d.routes].sort().map(r =>
+        `<span class="badge me-1 mb-1" style="background:#dbeafe;color:#1d4ed8;font-size:.7rem;">${r}</span>`
+      ).join('');
+      return `<div class="col-md-6 col-lg-4 col-xl-3">
+<div class="card border-0 h-100" style="border-left:4px solid #2563eb!important;box-shadow:0 1px 6px rgba(0,0,0,.07);">
+  <div class="card-body py-2 px-3">
+    <div class="d-flex justify-content-between align-items-center mb-1">
+      <span class="fw-bold" style="font-size:.85rem;">${st}</span>
+      <span class="badge rounded-pill bg-primary">${d.routes.size} ruta${d.routes.size!==1?'s':''}</span>
+    </div>
+    <div class="text-muted mb-1" style="font-size:.72rem;">${d.freqs.toLocaleString('en-US')} frecuencias</div>
+    <div class="d-flex flex-wrap">${routePills}</div>
+  </div>
+</div></div>`;
+    }).join('');
+
+    const uncovPills = uncovered.map(s =>
+      `<span class="badge me-1 mb-1" style="background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;font-size:.75rem;">${s}</span>`
+    ).join('');
+
+    el.innerHTML = `
+<div class="mb-3 p-3 rounded-3" style="background:linear-gradient(135deg,#1e3a5f,#1d4ed8);color:#fff;">
+  <div class="d-flex align-items-center gap-3 flex-wrap">
+    <div>
+      <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;opacity:.8;">ESTADOS CON VUELOS</div>
+      <div style="font-size:2.2rem;font-weight:900;line-height:1;">${covered.length}<span style="font-size:1rem;font-weight:400;opacity:.7;margin-left:4px">/ 32</span></div>
+    </div>
+    <div class="flex-grow-1" style="min-width:160px;">
+      <div class="d-flex justify-content-between mb-1" style="font-size:.73rem;opacity:.85;">
+        <span>${pct}% cobertura nacional</span><span>${uncovered.length} sin vuelos</span>
+      </div>
+      <div style="background:rgba(255,255,255,.25);border-radius:6px;height:9px;">
+        <div style="background:#fff;width:${pct}%;height:100%;border-radius:6px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="row g-2 mb-3">${cardsHtml}</div>
+${uncovered.length ? `<div class="p-3 rounded-3" style="background:#f8fafc;border:1px solid #e2e8f0;">
+  <div class="fw-semibold text-muted mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">
+    <i class="fas fa-map-marker-alt me-1 text-danger opacity-50"></i>Estados sin vuelos esta semana (${uncovered.length})
+  </div>
+  <div class="d-flex flex-wrap">${uncovPills}</div>
+</div>` : `<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>¡Cobertura total — vuelos a los 32 estados!</div>`}`;
   }
 
   function buildInsight(icon, htmlContent){
