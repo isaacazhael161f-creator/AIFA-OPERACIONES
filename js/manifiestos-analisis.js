@@ -2558,4 +2558,38 @@
   }
   function hideBanner() { const b = document.getElementById('mdb-banner'); if (b) b.innerHTML = ''; }
 
+  /* ═══════════════════════════════════════════════════════
+     API PÚBLICA — usada por manifiestos-upload.js
+  ═══════════════════════════════════════════════════════ */
+  /**
+   * Registra un nuevo período en TABLES y añade su botón en la UI.
+   * Llamado por manifiestos-upload.js tras importar un mes exitosamente.
+   * @param {string} key        - Clave interna, p.ej. "abr2026"
+   * @param {string} tableName  - Nombre real de la tabla en Supabase
+   * @param {string} label      - Etiqueta visible, p.ej. "Abril 2026 — Datos mensuales"
+   */
+  window.manifiestoRegisterTable = function (key, tableName, label) {
+    // No registrar si ya existe
+    if (TABLES[key]) { switchMdbPeriod(key); return; }
+    TABLES[key] = { name: tableName, label: label };
+
+    // Añadir botón en el grupo de períodos
+    const group = document.querySelector('.btn-group[aria-label="Seleccionar período"]');
+    if (group) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-outline-primary mdb-period-btn';
+      btn.dataset.table = tableName;
+      btn.id = 'mdb-period-' + key;
+      // Inferir mes del label (primera palabra)
+      const parts = label.split(' ');
+      btn.innerHTML = '<i class="fas fa-calendar-day me-1"></i>' + parts[0] + (parts[1] ? ' ' + parts[1] : '');
+      btn.addEventListener('click', function () { switchMdbPeriod(key); });
+      group.appendChild(btn);
+    }
+
+    // Cambiar al nuevo período
+    switchMdbPeriod(key);
+  };
+
 })();
