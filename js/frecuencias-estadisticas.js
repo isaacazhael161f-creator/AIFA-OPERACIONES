@@ -449,6 +449,9 @@ const FreqStats = (() => {
         // ── Destination × Airline Evolution ──
         renderDestinationAnalysis();
 
+        // ── Cobertura por estado ──
+        renderEstadosCobertura(nacRows);
+
         // ── Monthly Analysis ──
         renderMonthlyAnalysis();
     }
@@ -748,6 +751,169 @@ const FreqStats = (() => {
     }
 
     // ─── Destination × Airline Evolution ────────────────────────────────────
+    // ─── Cobertura por estado de la República Mexicana ───────────────────────
+
+    /**
+     * IATA → estado de la República Mexicana (32 estados)
+     * Se usa solo para datos nacionales (_raw.nac)
+     */
+    const STATE_BY_IATA = {
+        // Aguascalientes
+        'AGU': 'Aguascalientes',
+        // Baja California
+        'TIJ': 'Baja California', 'MXL': 'Baja California', 'SNQ': 'Baja California',
+        // Baja California Sur
+        'SJD': 'Baja California Sur', 'LAP': 'Baja California Sur', 'LTO': 'Baja California Sur',
+        // Campeche
+        'CPE': 'Campeche', 'CME': 'Campeche',
+        // Chiapas
+        'TGZ': 'Chiapas', 'TUX': 'Chiapas', 'PAL': 'Chiapas',
+        // Chihuahua
+        'CUU': 'Chihuahua', 'CJT': 'Chihuahua', 'JUZ': 'Chihuahua',
+        // Ciudad de México
+        'MEX': 'Ciudad de México',
+        // Coahuila
+        'SLW': 'Coahuila', 'TRC': 'Coahuila',
+        // Colima
+        'CLQ': 'Colima',
+        // Durango
+        'DGO': 'Durango',
+        // Guanajuato
+        'BJX': 'Guanajuato',
+        // Guerrero
+        'ACA': 'Guerrero', 'ACN': 'Guerrero', 'ZIH': 'Guerrero',
+        // Hidalgo — sin aeropuerto comercial activo
+        // Jalisco
+        'GDL': 'Jalisco', 'PVR': 'Jalisco',
+        // Estado de México
+        'TLC': 'Estado de México',
+        // Michoacán
+        'MLM': 'Michoacán',
+        // Morelos — sin aeropuerto comercial activo
+        // Nayarit
+        'TPQ': 'Nayarit',
+        // Nuevo León
+        'MTY': 'Nuevo León', 'NLD': 'Nuevo León',
+        // Oaxaca
+        'OAX': 'Oaxaca', 'HUX': 'Oaxaca', 'PXM': 'Oaxaca', 'IXE': 'Oaxaca',
+        // Puebla
+        'PBC': 'Puebla',
+        // Querétaro
+        'QRO': 'Querétaro',
+        // Quintana Roo
+        'CUN': 'Quintana Roo', 'CTM': 'Quintana Roo', 'TKM': 'Quintana Roo',
+        // San Luis Potosí
+        'SLP': 'San Luis Potosí',
+        // Sinaloa
+        'MZT': 'Sinaloa', 'CUL': 'Sinaloa', 'LMM': 'Sinaloa',
+        // Sonora
+        'HMO': 'Sonora', 'CEN': 'Sonora', 'GYM': 'Sonora',
+        // Tabasco
+        'VSA': 'Tabasco',
+        // Tamaulipas
+        'TAM': 'Tamaulipas', 'REX': 'Tamaulipas', 'MAM': 'Tamaulipas', 'VIC': 'Tamaulipas',
+        // Tlaxcala — sin aeropuerto comercial activo
+        // Veracruz
+        'VER': 'Veracruz', 'MIE': 'Veracruz', 'XAL': 'Veracruz',
+        // Yucatán
+        'MID': 'Yucatán',
+        // Zacatecas
+        'ZCL': 'Zacatecas',
+    };
+
+    /** All 32 Mexican states (sorted alphabetically) */
+    const ALL_32_STATES = [
+        'Aguascalientes','Baja California','Baja California Sur','Campeche',
+        'Chiapas','Chihuahua','Ciudad de México','Coahuila','Colima','Durango',
+        'Estado de México','Guanajuato','Guerrero','Hidalgo','Jalisco','Michoacán',
+        'Morelos','Nayarit','Nuevo León','Oaxaca','Puebla','Querétaro',
+        'Quintana Roo','San Luis Potosí','Sinaloa','Sonora','Tabasco',
+        'Tamaulipas','Tlaxcala','Veracruz','Yucatán','Zacatecas'
+    ];
+
+    function renderEstadosCobertura(nacRows) {
+        const container = document.getElementById('freq-estados-cobertura');
+        if (!container) return;
+
+        // Build state → routes map using current week's national rows
+        const stateMap = {}; // state → { routes: Set<"IATA – City">, freqs: number }
+        nacRows.forEach(r => {
+            const iata  = (r.iata || '').toUpperCase();
+            const state = STATE_BY_IATA[iata];
+            if (!state) return;
+            if (!stateMap[state]) stateMap[state] = { routes: new Set(), freqs: 0 };
+            const city = canonicalCity(iata, r.city).name;
+            stateMap[state].routes.add(iata + ' – ' + city);
+            stateMap[state].freqs += rowTotal(r);
+        });
+
+        const coveredStates = Object.keys(stateMap).sort();
+        const uncoveredStates = ALL_32_STATES.filter(s => !stateMap[s]);
+        const coveredCount = coveredStates.length;
+
+        // KPI bar
+        const pctCovered = Math.round((coveredCount / 32) * 100);
+
+        // Covered states cards
+        const coveredHtml = coveredStates.map(state => {
+            const d = stateMap[state];
+            const routesList = [...d.routes].sort().map(r =>
+                `<span class="badge me-1 mb-1" style="background:#dbeafe;color:#1d4ed8;font-weight:600;font-size:.7rem;">${r}</span>`
+            ).join('');
+            return `<div class="col-md-6 col-lg-4">
+<div class="card border-0 shadow-sm h-100" style="border-left:4px solid #2563eb!important;">
+    <div class="card-body py-2 px-3">
+        <div class="d-flex justify-content-between align-items-start mb-1">
+            <span class="fw-bold text-dark" style="font-size:.88rem;">${state}</span>
+            <span class="badge rounded-pill bg-primary ms-2">${d.routes.size} ruta${d.routes.size !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="mb-1 text-muted" style="font-size:.72rem;">${d.freqs.toLocaleString('en-US')} frecuencias</div>
+        <div class="d-flex flex-wrap">${routesList}</div>
+    </div>
+</div></div>`;
+        }).join('');
+
+        // Uncovered states pills
+        const uncoveredHtml = uncoveredStates.map(s =>
+            `<span class="badge me-1 mb-1" style="background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;font-size:.76rem;">${s}</span>`
+        ).join('');
+
+        container.innerHTML = `
+<div class="mb-3 p-3 rounded-3" style="background:linear-gradient(135deg,#1e3a5f 0%,#1d4ed8 100%);color:#fff;">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+        <div>
+            <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;opacity:.8;">ESTADOS CON VUELOS</div>
+            <div style="font-size:2.4rem;font-weight:900;line-height:1;">${coveredCount}<span style="font-size:1.1rem;font-weight:400;opacity:.75;margin-left:4px">/ 32</span></div>
+        </div>
+        <div class="flex-grow-1" style="min-width:180px;">
+            <div class="d-flex justify-content-between mb-1" style="font-size:.75rem;opacity:.85;">
+                <span>${pctCovered}% de cobertura nacional</span>
+                <span>${uncoveredStates.length} sin vuelos</span>
+            </div>
+            <div style="background:rgba(255,255,255,.25);border-radius:6px;height:10px;">
+                <div style="background:#fff;width:${pctCovered}%;height:100%;border-radius:6px;transition:width .6s;"></div>
+            </div>
+        </div>
+        <div style="text-align:right;">
+            <div style="font-size:.7rem;opacity:.75;">DESTINOS NACIONALES</div>
+            <div style="font-size:1.4rem;font-weight:800;">${nacRows.length > 0 ? [...new Set(nacRows.map(r => r.iata).filter(i => STATE_BY_IATA[(i||'').toUpperCase()]))].length : 0}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-2 mb-3">${coveredHtml}</div>
+
+${uncoveredStates.length > 0 ? `
+<div class="p-3 rounded-3" style="background:#f8fafc;border:1px solid #e2e8f0;">
+    <div class="fw-semibold text-muted mb-2" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.5px;">
+        <i class="fas fa-map-marker-alt me-1 text-danger opacity-50"></i>
+        Estados sin vuelos desde AIFA esta semana (${uncoveredStates.length})
+    </div>
+    <div class="d-flex flex-wrap">${uncoveredHtml}</div>
+</div>` : `<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>¡Cobertura total! Vuelos a los 32 estados de la República.</div>`}`;
+    }
+
+    // ─── Destination Analysis ────────────────────────────────────────────────
     function renderDestinationAnalysis() {
         const thead    = document.getElementById('thead-dest-analysis');
         const tbody    = document.getElementById('tbody-dest-analysis');
