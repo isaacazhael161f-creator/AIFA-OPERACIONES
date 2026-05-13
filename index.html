@@ -11795,11 +11795,31 @@ FF
                                                         <button type="button" class="btn btn-outline-primary aero-grp-btn" data-grp="pax"><i class="fas fa-user me-1"></i>Pasajeros</button>
                                                         <button type="button" class="btn btn-outline-warning aero-grp-btn" data-grp="cargo"><i class="fas fa-box me-1"></i>Carga</button>
                                                     </div>
+                                                    <!-- Compare toggle -->
+                                                    <button type="button" class="btn btn-sm btn-outline-purple" id="aero-compare-toggle"
+                                                        style="border-color:#7c3aed;color:#7c3aed;"
+                                                        onclick="toggleAeroCompareMode()">
+                                                        <i class="fas fa-balance-scale me-1"></i>Comparar
+                                                    </button>
                                                 </div>
                                                 <div class="input-group shadow-sm rounded-pill overflow-hidden" style="max-width: 320px; border: 1px solid #dee2e6;">
                                                     <span class="input-group-text bg-white border-0 ps-3 pe-2"><i class="fas fa-search text-muted"></i></span>
                                                     <input type="text" class="form-control border-0 ps-1 rounded-end-pill shadow-none" id="aero-search" placeholder="Buscar aerolínea o categoría..." onkeyup="filterAirlinesTable()">
                                                 </div>
+                                            </div>
+                                            <!-- Compare mode instruction bar -->
+                                            <div id="aero-compare-bar" class="d-none px-4 py-2 d-flex align-items-center justify-content-between flex-wrap gap-2"
+                                                style="background:linear-gradient(90deg,#ede9fe,#f5f3ff);border-bottom:1px solid #ddd6fe;">
+                                                <div class="d-flex align-items-center gap-3">
+                                                    <i class="fas fa-info-circle text-purple" style="color:#7c3aed;"></i>
+                                                    <span class="fw-semibold small" style="color:#5b21b6;">
+                                                        Selecciona <strong>2 aerolíneas</strong> para comparar —
+                                                        <span id="aero-compare-count">0 seleccionadas</span>
+                                                    </span>
+                                                </div>
+                                                <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="toggleAeroCompareMode()">
+                                                    <i class="fas fa-times me-1"></i>Cancelar
+                                                </button>
                                             </div>
                                             <div class="table-responsive bg-white rounded-bottom-4">
                                                 <table class="table table-hover align-middle mb-0" id="aero-main-table">
@@ -11833,6 +11853,67 @@ FF
                                                         <table class="table table-sm align-middle mb-0" id="aero-detail-table" style="border-collapse:collapse;min-width:500px;">
                                                             <thead style="background:#f8fafc;border-bottom:2px solid #e2e8f0;"></thead>
                                                             <tbody></tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Comparación de aerolíneas -->
+                                            <div id="aero-compare-panel" class="d-none bg-white border-top p-4">
+                                                <!-- header -->
+                                                <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+                                                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <span class="fw-black fs-5 text-dark" id="aero-cmp-name-a" style="color:#2196f3!important;"></span>
+                                                            <span class="badge rounded-pill px-2" id="aero-cmp-badge-a" style="font-size:.7rem;"></span>
+                                                        </div>
+                                                        <span class="fw-bold text-muted fs-5">vs</span>
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <span class="fw-black fs-5" id="aero-cmp-name-b" style="color:#e91e63!important;"></span>
+                                                            <span class="badge rounded-pill px-2" id="aero-cmp-badge-b" style="font-size:.7rem;"></span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <!-- year selector -->
+                                                        <div class="btn-group btn-group-sm" id="aero-cmp-yr-group">
+                                                            <button class="btn btn-outline-secondary aero-cmp-yr-btn active" data-yr="all">Histórico</button>
+                                                            <button class="btn btn-outline-secondary aero-cmp-yr-btn" data-yr="23">2023</button>
+                                                            <button class="btn btn-outline-secondary aero-cmp-yr-btn" data-yr="24">2024</button>
+                                                            <button class="btn btn-outline-secondary aero-cmp-yr-btn" data-yr="25">2025</button>
+                                                            <button class="btn btn-outline-secondary aero-cmp-yr-btn" data-yr="26">2026</button>
+                                                        </div>
+                                                        <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="closeAeroCompare()">
+                                                            <i class="fas fa-times me-1"></i>Cerrar
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <!-- stats cards -->
+                                                <div class="row g-3 mb-4" id="aero-cmp-stats"></div>
+
+                                                <!-- chart -->
+                                                <div class="row g-4 mb-4">
+                                                    <div class="col-12">
+                                                        <div class="border rounded-3 p-3">
+                                                            <h6 class="text-muted fw-semibold small text-uppercase mb-3" style="letter-spacing:.5px;">
+                                                                <i class="fas fa-chart-line me-2"></i>Evolución mensual de operaciones
+                                                            </h6>
+                                                            <div style="position:relative;height:320px;">
+                                                                <canvas id="aero-cmp-chart"></canvas>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- month table -->
+                                                <div>
+                                                    <h6 class="text-muted fw-semibold small text-uppercase mb-2" style="letter-spacing:.5px;">
+                                                        <i class="fas fa-table me-2"></i>Comparativa mensual
+                                                    </h6>
+                                                    <div class="table-responsive rounded-3 border">
+                                                        <table class="table table-sm align-middle mb-0" id="aero-cmp-table">
+                                                            <thead id="aero-cmp-thead" style="background:#f8fafc;"></thead>
+                                                            <tbody id="aero-cmp-tbody"></tbody>
                                                         </table>
                                                     </div>
                                                 </div>

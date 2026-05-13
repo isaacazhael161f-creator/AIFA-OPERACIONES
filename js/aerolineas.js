@@ -464,9 +464,21 @@ function renderAirlinesTable(data) {
             else if(serv.includes('FLETAMENTO')) badgeClass = 'bg-warning text-dark';
             const styleOverride = serv.includes('MENSUAL') ? 'style="background-color:#6f42c1!important;"' : '';
 
+            const isSelected = aeroCompareItems.includes(item);
+            const selStyle = isSelected ? 'background:#ede9fe!important;outline:2px solid #7c3aed;' : '';
+
             const tr = document.createElement('tr');
+            tr.style.cssText = selStyle;
             tr.innerHTML = `
-                <td class="text-center align-middle ps-4" style="width:80px;">${buildRankDisplay(index)}</td>
+                <td class="text-center align-middle ps-4" style="width:80px;">
+                    ${aeroCompareMode
+                        ? `<span class="d-inline-flex align-items-center justify-content-center rounded-circle border-2"
+                             style="width:28px;height:28px;border:2px solid ${isSelected?'#7c3aed':'#d1d5db'};
+                             background:${isSelected?'#7c3aed':'#fff'};cursor:pointer;transition:all .15s;">
+                             ${isSelected ? '<i class="fas fa-check" style="color:#fff;font-size:.7rem;"></i>' : ''}
+                           </span>`
+                        : buildRankDisplay(index)}
+                </td>
                 <td class="fw-bold text-dark fs-6 align-middle py-3">
                     <div class="d-flex align-items-center">
                         <div class="bg-light rounded p-2 me-3 text-center border mt-1" style="min-width:42px;">
@@ -483,18 +495,52 @@ function renderAirlinesTable(data) {
                     </div>
                 </td>
                 <td class="text-center align-middle pe-2" style="width:42px;">
-                    <span class="text-primary opacity-50" style="font-size:0.8rem;"><i class="fas fa-chart-line"></i></span>
+                    ${aeroCompareMode
+                        ? ''
+                        : '<span class="text-primary opacity-50" style="font-size:0.8rem;"><i class="fas fa-chart-line"></i></span>'}
                 </td>`;
             tr.style.cursor = 'pointer';
-            tr.title = 'Clic para ver gráfica de ' + item.nombre;
+            tr.title = aeroCompareMode ? 'Seleccionar para comparar: ' + item.nombre : 'Clic para ver gráfica de ' + item.nombre;
+
             tr.addEventListener('click', function() {
-                if (aeroSelectedRow) aeroSelectedRow.classList.remove('table-active');
-                const panel = document.getElementById('aero-detail-panel');
-                const isSame = aeroSelectedRow === tr;
-                if (isSame && panel && !panel.classList.contains('d-none')) { closeAeroDetail(); return; }
-                aeroSelectedRow = tr;
-                tr.classList.add('table-active');
-                openAeroDetail(item);
+                if (aeroCompareMode) {
+                    // Toggle selection
+                    const idx = aeroCompareItems.indexOf(item);
+                    if (idx > -1) {
+                        aeroCompareItems.splice(idx, 1);
+                    } else {
+                        if (aeroCompareItems.length >= 2) {
+                            aeroCompareItems.shift(); // drop oldest
+                        }
+                        aeroCompareItems.push(item);
+                    }
+                    // Update counter
+                    const counter = document.getElementById('aero-compare-count');
+                    if (counter) counter.textContent = aeroCompareItems.length + ' seleccionada' + (aeroCompareItems.length !== 1 ? 's' : '');
+                    // Update names in panel header
+                    if (aeroCompareItems[0]) {
+                        document.getElementById('aero-cmp-name-a').textContent = aeroCompareItems[0].nombre;
+                        document.getElementById('aero-cmp-badge-a').textContent = aeroCompareItems[0].servicio;
+                        document.getElementById('aero-cmp-badge-a').style.cssText = 'background:#dbeafe;color:#1d4ed8;font-size:.7rem;';
+                    }
+                    if (aeroCompareItems[1]) {
+                        document.getElementById('aero-cmp-name-b').textContent = aeroCompareItems[1].nombre;
+                        document.getElementById('aero-cmp-badge-b').textContent = aeroCompareItems[1].servicio;
+                        document.getElementById('aero-cmp-badge-b').style.cssText = 'background:#fce7f3;color:#be185d;font-size:.7rem;';
+                    }
+                    // Re-render table rows to update checkboxes
+                    applyAeroFilters();
+                    // If 2 selected, show comparison
+                    if (aeroCompareItems.length === 2) renderAeroCompare();
+                } else {
+                    if (aeroSelectedRow) aeroSelectedRow.classList.remove('table-active');
+                    const panel = document.getElementById('aero-detail-panel');
+                    const isSame = aeroSelectedRow === tr;
+                    if (isSame && panel && !panel.classList.contains('d-none')) { closeAeroDetail(); return; }
+                    aeroSelectedRow = tr;
+                    tr.classList.add('table-active');
+                    openAeroDetail(item);
+                }
             });
             tbl.appendChild(tr);
         });
@@ -537,6 +583,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Compare year selector buttons
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.aero-cmp-yr-btn');
+        if (!btn) return;
+        document.querySelectorAll('.aero-cmp-yr-btn').forEach(b => b.classList.remove('active','btn-secondary'));
+        btn.classList.add('active');
+        renderAeroCompare();
+    });
+
     // Load on click
     document.querySelectorAll('.menu-item[data-section="aerolineas"]').forEach(el => {
         el.addEventListener('click', () => {
@@ -564,3 +619,268 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+/* ══════════════════════════════════════════════════════════════════════
+   COMPARACIÓN DE AEROLÍNEAS
+══════════════════════════════════════════════════════════════════════ */
+let aeroCompareMode = false;
+let aeroCompareItems = []; // max 2
+let aeroCmpChart = null;
+
+const AERO_CMP_COLORS = ['#2196f3', '#e91e63'];
+const AERO_CMP_LABELS_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+function toggleAeroCompareMode() {
+    aeroCompareMode = !aeroCompareMode;
+    aeroCompareItems = [];
+    const toggleBtn = document.getElementById('aero-compare-toggle');
+    const bar = document.getElementById('aero-compare-bar');
+    const panel = document.getElementById('aero-compare-panel');
+
+    if (aeroCompareMode) {
+        toggleBtn.style.background = '#7c3aed';
+        toggleBtn.style.color = '#fff';
+        toggleBtn.style.borderColor = '#7c3aed';
+        bar.classList.remove('d-none');
+        bar.style.display = 'flex';
+        closeAeroDetail();
+        panel.classList.add('d-none');
+        // Re-render so rows get compare-mode behaviour
+        applyAeroFilters();
+    } else {
+        toggleBtn.style.background = '';
+        toggleBtn.style.color = '#7c3aed';
+        toggleBtn.style.borderColor = '#7c3aed';
+        bar.classList.add('d-none');
+        applyAeroFilters();
+    }
+}
+
+function closeAeroCompare() {
+    const panel = document.getElementById('aero-compare-panel');
+    if (panel) panel.classList.add('d-none');
+    if (aeroCmpChart) { aeroCmpChart.destroy(); aeroCmpChart = null; }
+    aeroCompareItems = [];
+    aeroCompareMode = false;
+    const toggleBtn = document.getElementById('aero-compare-toggle');
+    if (toggleBtn) { toggleBtn.style.background = ''; toggleBtn.style.color = '#7c3aed'; toggleBtn.style.borderColor = '#7c3aed'; }
+    const bar = document.getElementById('aero-compare-bar');
+    if (bar) bar.classList.add('d-none');
+    applyAeroFilters();
+}
+
+function _aeroGetByYear(item) {
+    const byYear = {};
+    Object.entries(item.monthlyOps).forEach(([key, val]) => {
+        const match = /^([a-z]+)-(\d{2})$/.exec(key);
+        if (!match) return;
+        const [, mon, yr] = match;
+        if (!byYear[yr]) byYear[yr] = {};
+        byYear[yr][mon] = val;
+    });
+    return byYear;
+}
+
+function _aeroYearTotal(byYear, yr) {
+    if (!byYear[yr]) return 0;
+    return AERO_MONTH_ORDER.reduce((s, m) => {
+        const v = byYear[yr][m];
+        return s + ((v && v > 0) ? v : 0);
+    }, 0);
+}
+
+function _aeroBestMonth(byYear, yr) {
+    if (!byYear[yr]) return { label: '–', val: 0 };
+    let best = { label: '–', val: 0 };
+    AERO_MONTH_ORDER.forEach((m, i) => {
+        const v = byYear[yr][m] || 0;
+        if (v > best.val) best = { label: AERO_CMP_LABELS_ES[i], val: v };
+    });
+    return best;
+}
+
+function renderAeroCompare() {
+    if (aeroCompareItems.length < 2) return;
+    const [a, b] = aeroCompareItems;
+    const byYearA = _aeroGetByYear(a);
+    const byYearB = _aeroGetByYear(b);
+
+    // Which year is selected?
+    const yrBtn = document.querySelector('.aero-cmp-yr-btn.active');
+    const selYr = yrBtn ? yrBtn.dataset.yr : 'all';
+
+    // All years union
+    const allYrs = [...new Set([...Object.keys(byYearA), ...Object.keys(byYearB)])].sort();
+    const displayYrs = selYr === 'all' ? allYrs : [selYr];
+
+    // ── Stats cards ──────────────────────────────────────────────────────────
+    const statsEl = document.getElementById('aero-cmp-stats');
+    function statVal(item, byr, label, color) {
+        if (selYr === 'all') {
+            const total = allYrs.reduce((s, y) => s + _aeroYearTotal(byr, y), 0);
+            return { label: 'Total histórico', val: total.toLocaleString('en-US'), color };
+        }
+        const tot = _aeroYearTotal(byr, selYr);
+        const best = _aeroBestMonth(byr, selYr);
+        // YoY vs prev year
+        const prevYr = String(parseInt(selYr, 10) - 1).slice(-2);
+        const prev = _aeroYearTotal(byr, prevYr);
+        let yoy = '';
+        if (prev > 0) {
+            const g = ((tot - prev) / prev * 100);
+            yoy = `<span class="ms-2 fw-bold" style="color:${g>=0?'#16a34a':'#dc2626'};font-size:.78rem;">${g>=0?'▲':'▼'} ${Math.abs(g).toFixed(1)}% vs 20${prevYr}</span>`;
+        }
+        return { total: tot.toLocaleString('en-US'), best, yoy, color };
+    }
+
+    const sA = statVal(a, byYearA, a.nombre, AERO_CMP_COLORS[0]);
+    const sB = statVal(b, byYearB, b.nombre, AERO_CMP_COLORS[1]);
+
+    function cardHtml(item, s) {
+        if (selYr === 'all') {
+            return `<div class="col-md-6"><div class="card border-0 shadow-sm rounded-3 p-3" style="border-left:4px solid ${s.color}!important;">
+                <div class="small text-muted fw-semibold text-uppercase mb-1" style="font-size:.7rem;letter-spacing:.6px;">${item.nombre}</div>
+                <div class="fw-black fs-3" style="color:${s.color};">${s.val}</div>
+                <div class="small text-muted">operaciones totales</div>
+            </div></div>`;
+        }
+        return `<div class="col-md-6"><div class="card border-0 shadow-sm rounded-3 p-3" style="border-left:4px solid ${s.color}!important;">
+            <div class="small text-muted fw-semibold text-uppercase mb-1" style="font-size:.7rem;letter-spacing:.6px;">${item.nombre} — 20${selYr}</div>
+            <div class="d-flex align-items-baseline gap-2 flex-wrap">
+                <span class="fw-black fs-3" style="color:${s.color};">${s.total}</span>
+                ${s.yoy}
+            </div>
+            <div class="small text-muted mt-1">ops totales · mejor mes: <strong>${s.best.label} (${s.best.val.toLocaleString('en-US')})</strong></div>
+        </div></div>`;
+    }
+    statsEl.innerHTML = cardHtml(a, sA) + cardHtml(b, sB);
+
+    // ── Chart ────────────────────────────────────────────────────────────────
+    if (aeroCmpChart) { aeroCmpChart.destroy(); aeroCmpChart = null; }
+    const canvas = document.getElementById('aero-cmp-chart');
+
+    const yearLineStyles = ['solid','dash','dot','longdash'];
+    const datasets = [];
+    displayYrs.forEach((yr, yi) => {
+        const dash = yi === 0 ? [] : yi === 1 ? [6,3] : yi === 2 ? [2,3] : [10,4];
+        [a, b].forEach((item, ci) => {
+            const byr = ci === 0 ? byYearA : byYearB;
+            const col = AERO_CMP_COLORS[ci];
+            const data = AERO_MONTH_ORDER.map(m => {
+                const v = byr[yr] ? byr[yr][m] : undefined;
+                return (v !== undefined && v !== null && v > 0) ? v : null;
+            });
+            // Only add dataset if it has any data
+            if (data.some(v => v !== null)) {
+                datasets.push({
+                    label: item.nombre + (displayYrs.length > 1 ? ' · 20' + yr : ''),
+                    data,
+                    borderColor: col,
+                    backgroundColor: col + '14',
+                    borderWidth: 2.5,
+                    borderDash: dash,
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: col,
+                    pointBorderWidth: 2,
+                    tension: 0.4,
+                    spanGaps: true,
+                    fill: false
+                });
+            }
+        });
+    });
+
+    aeroCmpChart = new Chart(canvas, {
+        type: 'line',
+        data: { labels: AERO_CMP_LABELS_ES, datasets },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            animation: { duration: 500, easing: 'easeInOutQuart' },
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'top', align: 'end', labels: { usePointStyle: true, boxWidth: 10, padding: 12, font: { size: 12, weight: '600' }, color: '#334155' } },
+                tooltip: {
+                    backgroundColor: 'rgba(30,41,59,0.95)', titleColor: '#f1f5f9', bodyColor: '#e2e8f0',
+                    borderColor: '#475569', borderWidth: 1, padding: 12, boxPadding: 5,
+                    usePointStyle: true, cornerRadius: 8,
+                    callbacks: {
+                        title: c => '📅 ' + c[0].label,
+                        label: c => (c.dataset.label || '') + ': ' + (c.parsed.y !== null ? '✈️ ' + c.parsed.y.toLocaleString('en-US') + ' ops' : '–')
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 12 } } },
+                y: { beginAtZero: true, border: { display: false }, grid: { color: '#f1f5f9', borderDash: [4,4] },
+                    ticks: { color: '#94a3b8', padding: 8, font: { size: 11 }, callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v } }
+            }
+        }
+    });
+
+    // ── Month comparison table ───────────────────────────────────────────────
+    const thead = document.getElementById('aero-cmp-thead');
+    const tbody = document.getElementById('aero-cmp-tbody');
+
+    const hdrs = displayYrs.map(yr => {
+        const yrLbl = '20' + yr;
+        return `<th colspan="3" style="text-align:center;padding:10px 8px;font-size:.82rem;border-bottom:2px solid #e2e8f0;">${yrLbl}</th>`;
+    });
+    const subHdrs = displayYrs.map(() =>
+        `<th style="text-align:center;padding:6px 8px;font-size:.72rem;color:${AERO_CMP_COLORS[0]};white-space:nowrap;">${a.nombre.split(' ')[0]}</th>` +
+        `<th style="text-align:center;padding:6px 8px;font-size:.72rem;color:${AERO_CMP_COLORS[1]};white-space:nowrap;">${b.nombre.split(' ')[0]}</th>` +
+        `<th style="text-align:center;padding:6px 8px;font-size:.72rem;color:#6b7280;">Dif.</th>`
+    ).join('');
+
+    thead.innerHTML = `<tr style="background:#f1f5f9;"><th style="padding:10px 12px;font-size:.82rem;font-weight:700;color:#374151;">Mes</th>${hdrs.join('')}</tr>
+        <tr style="background:#f8fafc;"><th style="padding:6px 12px;font-size:.72rem;color:#6b7280;">Período</th>${subHdrs}</tr>`;
+
+    let html = '';
+    let totA = {}, totB = {};
+    displayYrs.forEach(yr => { totA[yr] = 0; totB[yr] = 0; });
+
+    AERO_MONTH_ORDER.forEach((mon, mIdx) => {
+        const rowBg = mIdx % 2 === 0 ? '#f8fafc' : '#fff';
+        html += `<tr style="background:${rowBg};">`;
+        html += `<td style="padding:9px 12px;font-weight:600;color:#4b5563;font-size:.88rem;">${AERO_CMP_LABELS_ES[mIdx]}</td>`;
+        displayYrs.forEach(yr => {
+            const vA = (byYearA[yr] && byYearA[yr][mon] > 0) ? byYearA[yr][mon] : null;
+            const vB = (byYearB[yr] && byYearB[yr][mon] > 0) ? byYearB[yr][mon] : null;
+            if (vA) totA[yr] += vA;
+            if (vB) totB[yr] += vB;
+            const cellA = vA !== null ? `<span style="color:${AERO_CMP_COLORS[0]};font-weight:700;">${vA.toLocaleString('en-US')}</span>` : '<span style="color:#cbd5e1;">–</span>';
+            const cellB = vB !== null ? `<span style="color:${AERO_CMP_COLORS[1]};font-weight:700;">${vB.toLocaleString('en-US')}</span>` : '<span style="color:#cbd5e1;">–</span>';
+            let diff = '–', diffColor = '#6b7280';
+            if (vA !== null && vB !== null) {
+                const d = vA - vB;
+                diff = (d >= 0 ? '+' : '') + d.toLocaleString('en-US');
+                diffColor = d > 0 ? '#2196f3' : d < 0 ? '#e91e63' : '#6b7280';
+            }
+            html += `<td style="text-align:center;padding:9px 8px;font-size:.85rem;border-left:1px solid #f1f5f9;">${cellA}</td>`;
+            html += `<td style="text-align:center;padding:9px 8px;font-size:.85rem;">${cellB}</td>`;
+            html += `<td style="text-align:center;padding:9px 8px;font-size:.82rem;font-weight:600;color:${diffColor};">${diff}</td>`;
+        });
+        html += '</tr>';
+    });
+
+    // Total row
+    html += `<tr style="background:#dde3ea;border-top:2px solid #c5cdd6;"><td style="padding:11px 12px;font-weight:800;font-size:.88rem;text-transform:uppercase;letter-spacing:.4px;">TOTAL</td>`;
+    displayYrs.forEach(yr => {
+        const ta = totA[yr], tb = totB[yr];
+        const d = ta - tb;
+        const diff = (d >= 0 ? '+' : '') + d.toLocaleString('en-US');
+        const diffColor = d > 0 ? '#2196f3' : d < 0 ? '#e91e63' : '#6b7280';
+        html += `<td style="text-align:center;padding:11px 8px;font-weight:800;font-size:.9rem;color:${AERO_CMP_COLORS[0]};border-left:1px solid #c5cdd6;">${ta.toLocaleString('en-US')}</td>`;
+        html += `<td style="text-align:center;padding:11px 8px;font-weight:800;font-size:.9rem;color:${AERO_CMP_COLORS[1]};">${tb.toLocaleString('en-US')}</td>`;
+        html += `<td style="text-align:center;padding:11px 8px;font-weight:800;font-size:.9rem;color:${diffColor};">${diff}</td>`;
+    });
+    html += '</tr>';
+
+    tbody.innerHTML = html;
+
+    // Show panel
+    const panel = document.getElementById('aero-compare-panel');
+    panel.classList.remove('d-none');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
