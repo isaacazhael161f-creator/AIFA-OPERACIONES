@@ -1,6 +1,7 @@
 ﻿let aeroDataCache = null;
 let aeroDetailChart = null;
 let aeroSelectedRow = null;
+let aeroGroupFilter = 'all'; // 'all' | 'pax' | 'cargo'
 
 const AERO_MONTH_ORDER = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const AERO_MONTH_LABELS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -400,7 +401,15 @@ function applyAeroFilters() {
     // Ordenar por quien tuvo mas operaciones de mas a menos
     processedData.sort((a, b) => b.currentOps - a.currentOps);
 
-    renderAirlinesTable(processedData);
+    // Apply group filter
+    let filtered = processedData;
+    if (aeroGroupFilter === 'pax') {
+        filtered = processedData.filter(d => d.servicio.toUpperCase().includes('PASAJERO'));
+    } else if (aeroGroupFilter === 'cargo') {
+        filtered = processedData.filter(d => !d.servicio.toUpperCase().includes('PASAJERO'));
+    }
+
+    renderAirlinesTable(filtered);
 }
 
 function filterAirlinesTable() {
@@ -493,23 +502,41 @@ function renderAirlinesTable(data) {
 
     // Get the ops title text (e.g. "(Histórico)" or "(Año 2026)")
     const opsTitle = document.getElementById('aero-ops-title')?.textContent || '';
+    const showBoth = paxGroup.length > 0 && cargoGroup.length > 0;
 
     // ── Pasajeros section ──────────────────────────────────────────────────
     if (paxGroup.length) {
         const paxTotal = paxGroup.reduce((s, d) => s + d.currentOps, 0);
-        tblBody.appendChild(buildSectionHeader('Aerolíneas de Pasajeros', 'fas fa-user', 'bg-primary', paxTotal, opsTitle));
+        if (showBoth) tblBody.appendChild(buildSectionHeader('Aerolíneas de Pasajeros', 'fas fa-user', 'bg-primary', paxTotal, opsTitle));
         appendGroup(paxGroup, tblBody);
     }
 
     // ── Carga section ──────────────────────────────────────────────────────
     if (cargoGroup.length) {
         const cargoTotal = cargoGroup.reduce((s, d) => s + d.currentOps, 0);
-        tblBody.appendChild(buildSectionHeader('Aerolíneas de Carga', 'fas fa-box', 'bg-warning', cargoTotal, opsTitle));
+        if (showBoth) tblBody.appendChild(buildSectionHeader('Aerolíneas de Carga', 'fas fa-box', 'bg-warning', cargoTotal, opsTitle));
         appendGroup(cargoGroup, tblBody);
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Group filter buttons
+    document.querySelectorAll('.aero-grp-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Reset all buttons to their outline variant
+            document.querySelectorAll('.aero-grp-btn').forEach(b => {
+                b.classList.remove('active','btn-primary','btn-warning');
+                b.classList.add(b.dataset.grp === 'cargo' ? 'btn-outline-warning' : 'btn-outline-primary');
+            });
+            // Activate the clicked button
+            btn.classList.remove('btn-outline-primary','btn-outline-warning');
+            btn.classList.add('active', btn.dataset.grp === 'cargo' ? 'btn-warning' : 'btn-primary');
+            aeroGroupFilter = btn.dataset.grp;
+            closeAeroDetail();
+            applyAeroFilters();
+        });
+    });
+
     // Load on click
     document.querySelectorAll('.menu-item[data-section="aerolineas"]').forEach(el => {
         el.addEventListener('click', () => {
