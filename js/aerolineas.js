@@ -722,13 +722,20 @@ function renderAeroCompare() {
         }
         const tot = _aeroYearTotal(byr, selYr);
         const best = _aeroBestMonth(byr, selYr);
-        // YoY vs prev year
+        // YoY vs prev year — only compare the months that have real data in the current year
         const prevYr = String(parseInt(selYr, 10) - 1).slice(-2);
-        const prev = _aeroYearTotal(byr, prevYr);
+        const activeMonths = AERO_MONTH_ORDER.filter(m => byr[selYr] && byr[selYr][m] > 0);
+        const prevProportional = activeMonths.reduce((s, m) => {
+            const v = byr[prevYr] ? byr[prevYr][m] : 0;
+            return s + ((v && v > 0) ? v : 0);
+        }, 0);
         let yoy = '';
-        if (prev > 0) {
-            const g = ((tot - prev) / prev * 100);
-            yoy = `<span class="ms-2 fw-bold" style="color:${g>=0?'#16a34a':'#dc2626'};font-size:.78rem;">${g>=0?'▲':'▼'} ${Math.abs(g).toFixed(1)}% vs 20${prevYr}</span>`;
+        if (prevProportional > 0 && activeMonths.length > 0) {
+            const g = ((tot - prevProportional) / prevProportional * 100);
+            const label = activeMonths.length < 12
+                ? `${activeMonths.length} meses vs 20${prevYr}`
+                : `vs 20${prevYr}`;
+            yoy = `<span class="ms-2 fw-bold" style="color:${g>=0?'#16a34a':'#dc2626'};font-size:.78rem;">${g>=0?'▲':'▼'} ${Math.abs(g).toFixed(1)}% <span style="font-weight:400;opacity:.75;">${label}</span></span>`;
         }
         return { total: tot.toLocaleString('en-US'), best, yoy, color };
     }
