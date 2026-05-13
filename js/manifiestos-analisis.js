@@ -1038,22 +1038,40 @@
       if (isDom(r)) map[route].dom += p; else if (isInt(r)) map[route].int += p;
     });
     const sorted = Object.entries(map).sort((a, b) => b[1].pax - a[1].pax);
-    const totalPax = sorted.reduce((s, [,v]) => s + v.pax, 0);
-    tbody.innerHTML = sorted.length
-      ? sorted.map(([name, v], i) => {
-          const barW = totalPax ? Math.max(2, Math.round((v.pax / totalPax) * 100)) : 0;
-          return '<tr>' +
-          '<td>' + (i+1) + '</td>' +
-          '<td class="fw-semibold">' + escHtml(name) + '</td>' +
-          '<td class="text-end">' + fmt(v.flights) + '</td>' +
-          '<td class="text-end fw-bold">' + fmt(v.pax) + '</td>' +
-          '<td class="text-end text-muted">' + (v.flights ? fmt(Math.round(v.pax/v.flights)) : '-') + '</td>' +
-          '<td class="text-end">' + fmt(v.dom) + ' <small class="text-muted">(' + pct(v.dom, v.pax) + ')</small></td>' +
-          '<td class="text-end">' + fmt(v.int) + ' <small class="text-muted">(' + pct(v.int, v.pax) + ')</small></td>' +
-          '<td><div class="d-flex align-items-center gap-2"><div class="progress flex-grow-1" style="height:8px;min-width:50px;"><div class="progress-bar bg-danger" style="width:' + barW + '%"></div></div><span class="small fw-semibold text-danger">' + pct(v.pax, totalPax) + '</span></div></td>' +
-          '</tr>';
-        }).join('')
-      : '<tr><td colspan="8" class="text-center text-muted py-3">Sin datos</td></tr>';
+    const totalPax     = sorted.reduce((s, [,v]) => s + v.pax, 0);
+    const totalFlights = sorted.reduce((s, [,v]) => s + v.flights, 0);
+    const totalDom     = sorted.reduce((s, [,v]) => s + v.dom, 0);
+    const totalInt     = sorted.reduce((s, [,v]) => s + v.int, 0);
+
+    if (!sorted.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Sin datos</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = sorted.map(([name, v], i) => {
+        const barW = totalPax ? Math.max(2, Math.round((v.pax / totalPax) * 100)) : 0;
+        return '<tr>' +
+        '<td>' + (i+1) + '</td>' +
+        '<td class="fw-semibold">' + escHtml(name) + '</td>' +
+        '<td class="text-end">' + fmt(v.flights) + '</td>' +
+        '<td class="text-end fw-bold">' + fmt(v.pax) + '</td>' +
+        '<td class="text-end text-muted">' + (v.flights ? fmt(Math.round(v.pax/v.flights)) : '-') + '</td>' +
+        '<td class="text-end">' + fmt(v.dom) + ' <small class="text-muted">(' + pct(v.dom, v.pax) + ')</small></td>' +
+        '<td class="text-end">' + fmt(v.int) + ' <small class="text-muted">(' + pct(v.int, v.pax) + ')</small></td>' +
+        '<td><div class="d-flex align-items-center gap-2"><div class="progress flex-grow-1" style="height:8px;min-width:50px;"><div class="progress-bar bg-danger" style="width:' + barW + '%"></div></div><span class="small fw-semibold text-danger">' + pct(v.pax, totalPax) + '</span></div></td>' +
+        '</tr>';
+      }).join('') +
+      // ── TOTAL row ──────────────────────────────────────────────────────────
+      '<tr style="background:#f1f5f9;border-top:2px solid #cbd5e1;">' +
+      '<td></td>' +
+      '<td class="fw-black text-uppercase" style="font-size:.82rem;letter-spacing:.5px;color:#374151;">TOTAL</td>' +
+      '<td class="text-end fw-black" style="color:#374151;">' + fmt(totalFlights) + '</td>' +
+      '<td class="text-end fw-black" style="color:#374151;">' + fmt(totalPax) + '</td>' +
+      '<td class="text-end fw-bold text-muted">' + (totalFlights ? fmt(Math.round(totalPax/totalFlights)) : '-') + '</td>' +
+      '<td class="text-end fw-bold">' + fmt(totalDom) + ' <small class="text-muted">(' + pct(totalDom, totalPax) + ')</small></td>' +
+      '<td class="text-end fw-bold">' + fmt(totalInt) + ' <small class="text-muted">(' + pct(totalInt, totalPax) + ')</small></td>' +
+      '<td><div class="d-flex align-items-center gap-2"><div class="progress flex-grow-1" style="height:8px;min-width:50px;"><div class="progress-bar bg-danger" style="width:100%"></div></div><span class="small fw-black text-danger">100%</span></div></td>' +
+      '</tr>';
   }
 
   /* ═══════════════════════════════════════════════════════
