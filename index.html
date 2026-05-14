@@ -22933,9 +22933,9 @@ window.AeropuertosModule = (function () {
             </div>
             <div class="modal-body p-4">
                 <p class="text-muted small mb-3">
-                    Sube el archivo Excel mensual de Manifiestos. El sistema detectará automáticamente la hoja y el período,
-                    mapeará las columnas y cargará los datos a Supabase. Si la tabla ya tiene datos, serán reemplazados.
-                    <strong>La tabla de Supabase debe existir previamente.</strong>
+                    Sube el archivo Excel mensual de Manifiestos. El sistema detectará automáticamente
+                    el mes y año desde la columna <strong>FECHA</strong>, eliminará los registros previos
+                    de ese mes e insertará los nuevos. Los datos de otros meses no se tocan.
                 </p>
                 <!-- Drop Zone -->
                 <div id="mu-drop-zone"
@@ -22948,17 +22948,6 @@ window.AeropuertosModule = (function () {
                     <input type="file" id="mu-file-input" accept=".xlsx,.xls" class="d-none">
                 </div>
                 <style>#mu-drop-zone.drag-over{background:#dbeafe!important;border-color:#2563eb!important;}</style>
-
-                <!-- Nombre de tabla destino -->
-                <div class="mt-3">
-                    <label for="mu-table-name" class="form-label small fw-semibold text-secondary">
-                        <i class="fas fa-database me-1 text-primary"></i>Tabla destino en Supabase
-                    </label>
-                    <input type="text" id="mu-table-name" class="form-control form-control-sm"
-                        placeholder="Ej: Base de Datos Manifiestos Abril 2026"
-                        style="border-color:#93c5fd;">
-                    <div class="form-text">Se completa automáticamente si el nombre de la hoja Excel incluye el mes y año (ej. "ABR 2026").</div>
-                </div>
 
                 <!-- Status -->
                 <div id="mu-status" class="mt-3"></div>

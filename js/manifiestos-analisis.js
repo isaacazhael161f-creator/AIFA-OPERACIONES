@@ -2568,6 +2568,15 @@
    * @param {string} tableName  - Nombre real de la tabla en Supabase
    * @param {string} label      - Etiqueta visible, p.ej. "Abril 2026 — Datos mensuales"
    */
+  /** Recarga forzada de los datos del período activo — llamado tras importar. */
+  window.manifiestoReload = function () {
+    _loaded = false; _allData = [];
+    delete _dataCache[_activeTableKey];
+    const sel = document.getElementById('mdb-filter-airline');
+    if (sel) while (sel.options.length > 1) sel.remove(1);
+    load();
+  };
+
   window.manifiestoRegisterTable = function (key, tableName, label) {
     // No registrar si ya existe
     if (TABLES[key]) { switchMdbPeriod(key); return; }
