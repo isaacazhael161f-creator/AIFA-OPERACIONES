@@ -507,9 +507,18 @@
         link.click();
         document.body.removeChild(link);
     }
+
+    /** Fuerza recarga de datos desde Supabase — llamado por realtime.js */
+    window.comHistReload = function() {
+        dataLoaded = false;
+        opsDataCache = [];
+        const client = window.supabaseClient;
+        if (client) loadYoYData(client);
+    };
 })();
 
 // ── Month filter globals for Comercial YoY ──────────────────────────────────
+
 window.comYoyToggleMonth = function(mon, btn) {
     const s = window._comYoyActiveMonths;
     if (!s) return;

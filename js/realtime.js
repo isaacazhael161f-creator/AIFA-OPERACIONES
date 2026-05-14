@@ -114,21 +114,32 @@
         var rm = window.rtManager;
 
         // ── Itinerario / gráficas de inicio ─────────────────────
-        rm.watch([
-            'flights'
-        ], _reloadItinerario);
+        rm.watch(['flights'], _reloadItinerario);
 
-        // ── Operaciones parte diaria ─────────────────────────────
+        // ── YoY Aviación General, Carga e Histórica ──────────────
+        rm.watch(['monthly_operations'], function() {
+            _lazy('genYoyReload')();
+            _lazy('cargoYoyReload')();
+            _lazy('comHistReload')();
+        });
+
+        // ── Operaciones parte diaria / mensual / anual ───────────
         rm.watch([
             'daily_operations',
             'vuelos_parte_operaciones',
             'parte_operations',
             'monthly_operations_2025',
             'annual_operations'
-        ], _lazy('amRefresh'));
+        ], function() {
+            _lazy('amRefresh')();
+            _lazy('parteOpsReload')();
+            // Forzar recarga en analisis-mensual y analisis-anual
+            window._monthlyDataLoaded = false;
+            window._annualDataLoaded  = false;
+        });
 
         // ── Demoras ──────────────────────────────────────────────
-        rm.watch(['demoras'], _lazy('amRefresh'));
+        rm.watch(['demoras', 'Demoras'], _lazy('amRefresh'));
 
         // ── Manifiestos pasajeros ────────────────────────────────
         rm.watch([
@@ -137,9 +148,7 @@
         ], _lazy('manifiestoReload'));
 
         // ── Manifiestos carga ────────────────────────────────────
-        rm.watch([
-            'Base de Manifiestos Carga Febrero 2026'
-        ], _lazy('cargaReload'));
+        rm.watch(['Base de Manifiestos Carga Febrero 2026'], _lazy('cargaReload'));
 
         // ── Agenda (barra lateral de próximos eventos) ───────────
         rm.watch([
@@ -149,7 +158,7 @@
         ], _lazy('agBarRefresh'));
 
         // ── Puntualidad ──────────────────────────────────────────
-        rm.watch(['puntualidad', 'punctuality_stats'], _lazy('puntualidadRefresh'));
+        rm.watch(['puntualidad', 'punctuality', 'punctuality_stats'], _lazy('puntualidadRefresh'));
     }
 
     /* ─── Auto-refresh por intervalo (red de seguridad) ────────────
@@ -160,15 +169,23 @@
 
     function _startAutoRefresh() {
         setInterval(function () {
-            // Solo refrescar si la pestaña está visible (no gastar recursos en background)
+            // Solo refrescar si la pestaña del navegador está visible
             if (document.visibilityState === 'hidden') return;
 
             // Itinerario / inicio
             try { _reloadItinerario(); } catch (_) {}
 
             // Barra de agenda
-            var agFn = window.agBarRefresh;
-            try { if (typeof agFn === 'function') agFn(); } catch (_) {}
+            try { if (typeof window.agBarRefresh === 'function') window.agBarRefresh(); } catch (_) {}
+
+            // YoY y Comparativa (resetear cache para que recarguen al entrar a la vista)
+            try { window._monthlyDataLoaded = false; window._annualDataLoaded = false; } catch (_) {}
+            try { if (typeof window.genYoyReload  === 'function') window.genYoyReload();  } catch (_) {}
+            try { if (typeof window.cargoYoyReload === 'function') window.cargoYoyReload(); } catch (_) {}
+            try { if (typeof window.comHistReload  === 'function') window.comHistReload();  } catch (_) {}
+
+            // Puntualidad
+            try { if (typeof window.puntualidadRefresh === 'function') window.puntualidadRefresh(); } catch (_) {}
         }, AUTO_REFRESH_MS);
     }
 

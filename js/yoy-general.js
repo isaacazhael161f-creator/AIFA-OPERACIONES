@@ -275,4 +275,12 @@
         });
         renderChart(); renderTable();
     };
+
+    /** Fuerza recarga de datos desde Supabase — llamado por realtime.js */
+    window.genYoyReload = function() {
+        dataLoaded = false;
+        cache = [];
+        var btn = document.querySelector('button[data-bs-target="#yoy-sub-general"][aria-selected="true"], button[data-bs-target="#yoy-sub-general"].active');
+        if (btn) btn.dispatchEvent(new Event('shown.bs.tab'));
+    };
 })();

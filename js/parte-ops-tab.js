@@ -450,6 +450,9 @@ document.addEventListener('DOMContentLoaded', () => {
         btnRefresh.addEventListener('click', loadParteOpsData);
     }
 
+    // Exponer para recarga en tiempo real
+    window.parteOpsReload = loadParteOpsData;
+
     if (btnNew) {
         btnNew.addEventListener('click', () => openEditModal(null));
     }

@@ -25,8 +25,12 @@ DECLARE
     tbls text[] := ARRAY[
         'flights',
         'daily_operations',
+        'monthly_operations',
         'demoras',
+        'Demoras',
         'puntualidad',
+        'punctuality',
+        'punctuality_stats',
         'agenda_comites',
         'agenda_reuniones',
         'agenda_acuerdos',

@@ -342,4 +342,10 @@
   window.initPunctuality = function () {
     loadData();
   };
+
+  /** Alias para realtime.js */
+  window.puntualidadRefresh = function () {
+    _data = null;
+    loadData();
+  };
 })();

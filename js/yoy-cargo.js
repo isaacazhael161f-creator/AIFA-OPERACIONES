@@ -278,4 +278,13 @@
             else b.classList.remove('active');
         });
         renderChart(); renderTable();
-    };})();
+    };
+
+    /** Fuerza recarga de datos desde Supabase — llamado por realtime.js */
+    window.cargoYoyReload = function() {
+        dataLoaded = false;
+        cache = [];
+        var btn = document.querySelector('button[data-bs-target="#yoy-sub-cargo"][aria-selected="true"], button[data-bs-target="#yoy-sub-cargo"].active');
+        if (btn) btn.dispatchEvent(new Event('shown.bs.tab'));
+    };
+})();
