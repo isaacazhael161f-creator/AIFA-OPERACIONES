@@ -104,8 +104,31 @@
         };
     }
 
+    // Recarga el itinerario/gráficas de inicio manteniendo filtros actuales
+    function _reloadItinerario() {
+        var fn = window.loadItineraryData;
+        if (typeof fn === 'function') fn({ preserveFilters: true });
+    }
+
     function _registerModules() {
         var rm = window.rtManager;
+
+        // ── Itinerario / gráficas de inicio ─────────────────────
+        rm.watch([
+            'flights'
+        ], _reloadItinerario);
+
+        // ── Operaciones parte diaria ─────────────────────────────
+        rm.watch([
+            'daily_operations',
+            'vuelos_parte_operaciones',
+            'parte_operations',
+            'monthly_operations_2025',
+            'annual_operations'
+        ], _lazy('amRefresh'));
+
+        // ── Demoras ──────────────────────────────────────────────
+        rm.watch(['demoras'], _lazy('amRefresh'));
 
         // ── Manifiestos pasajeros ────────────────────────────────
         rm.watch([
@@ -118,15 +141,6 @@
             'Base de Manifiestos Carga Febrero 2026'
         ], _lazy('cargaReload'));
 
-        // ── Operaciones / vuelos ─────────────────────────────────
-        rm.watch([
-            'flights',
-            'daily_operations',
-            'monthly_operations_2025',
-            'annual_operations',
-            'demoras'
-        ], _lazy('amRefresh'));
-
         // ── Agenda (barra lateral de próximos eventos) ───────────
         rm.watch([
             'agenda_comites',
@@ -135,7 +149,27 @@
         ], _lazy('agBarRefresh'));
 
         // ── Puntualidad ──────────────────────────────────────────
-        rm.watch(['puntualidad'], _lazy('puntualidadRefresh'));
+        rm.watch(['puntualidad', 'punctuality_stats'], _lazy('puntualidadRefresh'));
+    }
+
+    /* ─── Auto-refresh por intervalo (red de seguridad) ────────────
+       Refresca silenciosamente los datos aunque Realtime no esté
+       configurado en Supabase. Intervalo conservador para no saturar.
+    ─────────────────────────────────────────────────────────────── */
+    var AUTO_REFRESH_MS = 3 * 60 * 1000; // cada 3 minutos
+
+    function _startAutoRefresh() {
+        setInterval(function () {
+            // Solo refrescar si la pestaña está visible (no gastar recursos en background)
+            if (document.visibilityState === 'hidden') return;
+
+            // Itinerario / inicio
+            try { _reloadItinerario(); } catch (_) {}
+
+            // Barra de agenda
+            var agFn = window.agBarRefresh;
+            try { if (typeof agFn === 'function') agFn(); } catch (_) {}
+        }, AUTO_REFRESH_MS);
     }
 
     /* ─── Inicialización (espera a que Supabase esté listo) ─────── */
@@ -147,6 +181,7 @@
         }
         _registerModules();
         _setup(client);
+        _startAutoRefresh();
     }
 
     if (document.readyState === 'loading') {
