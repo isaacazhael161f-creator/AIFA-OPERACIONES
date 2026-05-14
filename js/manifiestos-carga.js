@@ -231,8 +231,33 @@
       btn.addEventListener('shown.bs.tab', () => { if (_loaded && _filtered.length > 0) renderActiveSubTab(); });
     });
 
+    // Botones de período dinámicos
+    document.querySelectorAll('.mcg-period-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = Object.keys(CARGO_TABLES).find(k => CARGO_TABLES[k].name === btn.dataset.table);
+        if (key) switchCargoPeriod(key);
+      });
+    });
+
     setTimeout(tryPreload, 1200);
   });
+
+  function switchCargoPeriod(key) {
+    if (_activeKey === key) return;
+    _activeKey = key;
+    _loaded = false; _allData = [];
+    destroyCharts();
+    // Actualizar botones
+    document.querySelectorAll('.mcg-period-btn').forEach(b => {
+      const active = b.dataset.table === CARGO_TABLES[key].name;
+      b.style.background = active ? '#6f42c1' : '';
+      b.style.color      = active ? '#fff'    : '';
+      b.style.borderColor = active ? '#6f42c1' : '';
+    });
+    const lbl = document.getElementById('mcg-period-label');
+    if (lbl) lbl.textContent = CARGO_TABLES[key].label;
+    load();
+  }
 
   function tryPreload() {
     if (window.supabaseClient) { load(); return; }
@@ -733,11 +758,36 @@
       const ws    = XLSX.utils.aoa_to_sheet(rows);
       const wb    = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Carga');
-      XLSX.writeFile(wb, 'Manifiestos_Carga_Feb2026.xlsx');
+      XLSX.writeFile(wb, 'Manifiestos_Carga_' + _activeKey + '.xlsx');
     } catch (e) {
       alert('Error al exportar. Verifica que la librería XLSX esté cargada.');
       console.error(e);
     }
   }
+
+  /* ═══════════════════════════════════════════════════════
+     API PÚBLICA — usada por manifiestos-upload.js
+  ═══════════════════════════════════════════════════════ */
+  window.cargaRegisterTable = function (key, tableName, label) {
+    if (CARGO_TABLES[key]) { switchCargoPeriod(key); return; }
+    CARGO_TABLES[key] = { name: tableName, label: label };
+
+    // Añadir botón en el grupo de períodos
+    const group = document.querySelector('#aops-pane-carga .btn-group[role="group"]');
+    if (group) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-carga mcg-period-btn';
+      btn.dataset.table = tableName;
+      btn.id = 'mcg-period-' + key;
+      btn.style.cssText = 'background:#6f42c1;color:#fff;border-color:#6f42c1;';
+      const parts = label.replace('Manifiestos Carga — ', '');
+      btn.innerHTML = '<i class="fas fa-calendar-day me-1"></i>' + parts;
+      btn.addEventListener('click', function () { switchCargoPeriod(key); });
+      group.appendChild(btn);
+    }
+
+    switchCargoPeriod(key);
+  };
 
 })();
