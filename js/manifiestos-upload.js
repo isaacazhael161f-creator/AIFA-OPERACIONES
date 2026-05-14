@@ -114,10 +114,12 @@
         const btnImport  = document.getElementById('mu-btn-import');
         const previewDiv = document.getElementById('mu-preview');
         const progWrap   = document.getElementById('mu-progress-wrap');
+        const tableInfo  = document.getElementById('mu-table-info');
 
         if (previewDiv)  previewDiv.innerHTML = '';
         if (progWrap)    progWrap.classList.add('d-none');
         if (btnImport)   btnImport.disabled = true;
+        if (tableInfo)   tableInfo.innerHTML = '';
         setStatus('<i class="fas fa-spinner fa-spin me-1"></i>Leyendo archivo Excel…');
 
         try {
@@ -126,179 +128,136 @@
             const buf = await file.arrayBuffer();
             const wb  = XLSX.read(buf, { type: 'array', cellDates: false });
 
-            // 1. Primera hoja con datos
+            // 1. Buscar la hoja correcta (object mode — detecta TODOS los registros)
             let sheetName = wb.SheetNames[0];
-            let rows = null;
+            let jsonRows  = null;
 
-            // Buscar hoja que tenga columnas de manifiestos
             for (const sn of wb.SheetNames) {
                 const sh = wb.Sheets[sn];
                 if (!sh) continue;
-                const r = XLSX.utils.sheet_to_json(sh, { header: 1, defval: null });
-                if (!r || r.length < 2) continue;
-                const header = (r[0] || []).map(h => normCol(String(h || '')));
-                // Busca columnas clave de manifiestos
-                if (header.some(h => h.includes('aerolinea') || h.includes('total_pax') || h.includes('tipo_de_manifiesto'))) {
-                    sheetName = sn;
-                    rows = r;
-                    break;
+                const r = XLSX.utils.sheet_to_json(sh, { defval: null, raw: true });
+                if (!r || r.length < 1) continue;
+                const keys = Object.keys(r[0] || {}).map(k => normCol(k));
+                if (keys.some(k => k.includes('aerolinea') || k.includes('total_pax') || k.includes('tipo_de_manifiesto'))) {
+                    sheetName = sn; jsonRows = r; break;
                 }
             }
-            if (!rows) {
-                // Fallback a primera hoja
+            if (!jsonRows) {
                 const sh = wb.Sheets[wb.SheetNames[0]];
-                rows = sh ? XLSX.utils.sheet_to_json(sh, { header: 1, defval: null }) : [];
+                jsonRows  = sh ? XLSX.utils.sheet_to_json(sh, { defval: null, raw: true }) : [];
                 sheetName = wb.SheetNames[0];
             }
 
-            const headers  = rows[0] || [];
-            const dataRows = rows.slice(1).filter(r => Array.isArray(r) && r.some(v => v !== null && v !== undefined && v !== ''));
-
-            if (dataRows.length === 0) {
-                setStatus('No se encontraron filas de datos en el archivo.', 'danger');
-                return;
+            if (jsonRows.length === 0) {
+                setStatus('No se encontraron filas de datos en el archivo.', 'danger'); return;
             }
 
-            // 2. Detectar mes y año
+            const headers = Object.keys(jsonRows[0]);
+
+            // 2. Detectar mes y año — nombre de hoja → columna MES → columna FECHA
             let mesDato = null, anioDato = null;
             const fromSheet = getMesAnioFromSheet(sheetName);
             if (fromSheet) { mesDato = fromSheet.mes; anioDato = fromSheet.anio; }
 
             if (!mesDato || !anioDato) {
-                // Desde columna MES
-                const mesIdx = headers.findIndex(h => normCol(String(h || '')) === 'mes');
-                if (mesIdx >= 0 && dataRows[0]) {
-                    const v = dataRows[0][mesIdx];
+                const mesKey  = headers.find(k => normCol(k) === 'mes');
+                if (mesKey && jsonRows[0]) {
+                    const v = jsonRows[0][mesKey];
                     if (typeof v === 'number' && v >= 1 && v <= 12) mesDato = v;
                     else if (typeof v === 'string') {
                         const abbr = v.substring(0, 3).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
                         mesDato = MES_ABREV[abbr] || parseInt(v, 10) || null;
                     }
                 }
-                // Desde columna FECHA — maneja tanto fechas ISO como seriales Excel
-                if (!mesDato || !anioDato) {
-                    const fIdx = headers.findIndex(h => normCol(String(h || '')) === 'fecha');
-                    if (fIdx >= 0 && dataRows[0]) {
-                        const raw = dataRows[0][fIdx];
-                        const serial = typeof raw === 'number' ? raw : parseFloat(raw);
-                        if (!isNaN(serial) && serial > 40000 && serial < 60000) {
-                            // Serial de Excel → convertir a fecha real
-                            const d = new Date((serial - 25569) * 86400000);
-                            if (!mesDato)  mesDato  = d.getUTCMonth() + 1;
-                            if (!anioDato) anioDato = d.getUTCFullYear();
-                        } else {
-                            // Cadena de fecha tipo "2026-04-01" o "01/04/2026"
-                            const vs = String(raw || '');
-                            const mY = vs.match(/(\d{4})/);
-                            if (mY) {
-                                const y = parseInt(mY[1], 10);
-                                if (y >= 2000 && y <= 2100) anioDato = y;
-                            }
-                        }
+            }
+            if (!mesDato || !anioDato) {
+                const fechaKey = headers.find(k => normCol(k) === 'fecha');
+                if (fechaKey) {
+                    // Buscar el primer valor no-nulo en FECHA
+                    const raw = (jsonRows.find(r => r[fechaKey] != null) || {})[fechaKey];
+                    const serial = typeof raw === 'number' ? raw : parseFloat(String(raw || ''));
+                    if (!isNaN(serial) && serial > 40000 && serial < 60000) {
+                        const d = new Date((serial - 25569) * 86400000);
+                        if (!mesDato)  mesDato  = d.getUTCMonth() + 1;
+                        if (!anioDato) anioDato = d.getUTCFullYear();
+                    } else {
+                        const mY = String(raw || '').match(/(\d{4})/);
+                        if (mY) { const y = parseInt(mY[1], 10); if (y >= 2000 && y <= 2100) anioDato = y; }
                     }
                 }
             }
 
-            const mesStr  = (mesDato && mesDato >= 1 && mesDato <= 12) ? MES_NOMBRES[mesDato] : '?';
-            const anioStr = anioDato || '?';
-            const suggestedName = (mesDato && anioDato) ? buildTableName(mesDato, anioDato) : '';
-
-            // 3. Sugerir nombre de tabla (solo si el campo está vacío)
-            const tableInput = document.getElementById('mu-table-name');
-            if (tableInput && suggestedName && !tableInput.value.trim()) {
-                tableInput.value = suggestedName;
+            if (!mesDato || !anioDato) {
+                setStatus('No se pudo detectar el mes/año del archivo. Verifica que la columna FECHA tenga datos.', 'danger');
+                return;
             }
 
-            // 4. Preview de columnas
-            const visibleHeaders = headers.filter(h => {
-                const k = normCol(String(h || ''));
-                return k && !AUTOGEN_COLS.has(k);
-            });
+            const mesStr     = MES_NOMBRES[mesDato];
+            const targetTable = buildTableName(mesDato, anioDato);
+
+            if (tableInfo) tableInfo.innerHTML =
+                '<div class="alert alert-light border py-2 mt-3 mb-0 small">' +
+                '<i class="fas fa-database me-1 text-primary"></i>Tabla destino: ' +
+                '<strong>' + escHtml(targetTable) + '</strong></div>';
+
+            // 3. Preview
+            const visibleHeaders = headers.filter(h => !AUTOGEN_COLS.has(normCol(h)));
             const colHtml = visibleHeaders.slice(0, 10)
-                .map(h => '<span class="badge bg-light text-dark border me-1 mb-1" style="font-size:.7rem">' + escHtml(h) + '</span>')
-                .join('') +
-                (visibleHeaders.length > 10 ? '<span class="text-muted small">+' + (visibleHeaders.length - 10) + ' más…</span>' : '');
+                .map(h => '<span class="badge bg-light text-dark border me-1 mb-1" style="font-size:.7rem">' + escHtml(h) + '</span>').join('')
+                + (visibleHeaders.length > 10 ? '<span class="text-muted small">+' + (visibleHeaders.length - 10) + ' más…</span>' : '');
 
             if (previewDiv) {
-                previewDiv.innerHTML = '\
-                    <div class="p-3 bg-light rounded border mt-3">\
-                        <div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">\
-                            <div>\
-                                <span class="fw-semibold">Hoja detectada:</span>\
-                                <span class="badge bg-primary ms-1">' + escHtml(sheetName) + '</span>\
-                            </div>\
-                            <div>\
-                                <span class="fw-semibold">' + dataRows.length.toLocaleString() + '</span>\
-                                <span class="text-muted small"> registros · </span>\
-                                <span class="fw-semibold">' + mesStr + ' ' + anioStr + '</span>\
-                            </div>\
-                        </div>\
-                        <div class="mb-1 small text-muted">Columnas detectadas:</div>\
-                        <div class="mb-0">' + colHtml + '</div>\
-                    </div>';
+                previewDiv.innerHTML =
+                    '<div class="p-3 bg-light rounded border mt-3">' +
+                    '<div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">' +
+                    '<div><span class="fw-semibold">Hoja:</span><span class="badge bg-primary ms-1">' + escHtml(sheetName) + '</span></div>' +
+                    '<div><span class="fw-semibold">' + jsonRows.length.toLocaleString() + '</span>' +
+                    '<span class="text-muted small"> registros · </span><span class="fw-semibold">' + mesStr + ' ' + anioDato + '</span></div>' +
+                    '</div><div class="mb-1 small text-muted">Columnas:</div><div>' + colHtml + '</div></div>';
             }
 
             setStatus('<i class="fas fa-file-excel text-success me-1"></i>Archivo listo: <strong>' +
-                dataRows.length.toLocaleString() + ' filas</strong> · <strong>' + mesStr + ' ' + anioStr +
-                '</strong>. Verifica el nombre de tabla y confirma para importar.');
+                jsonRows.length.toLocaleString() + ' filas</strong> · <strong>' + mesStr + ' ' + anioDato +
+                '</strong>. Haz clic en Importar para subir.');
             if (btnImport) btnImport.disabled = false;
 
-            // 5. Preparar callback del botón Importar
+            // 4. Importar
             if (btnImport) {
                 btnImport.onclick = async () => {
-                    const targetTable = (tableInput ? tableInput.value.trim() : '') || suggestedName;
-                    if (!targetTable) {
-                        setStatus('Por favor especifica el nombre de la tabla de Supabase.', 'warning');
-                        return;
-                    }
                     btnImport.disabled = true;
                     if (progWrap) progWrap.classList.remove('d-none');
-                    setProgress(0, dataRows.length);
-
+                    setProgress(0, jsonRows.length);
                     try {
                         const client = window.supabaseClient;
                         if (!client) throw new Error('Supabase no disponible. Inicia sesión primero.');
 
-                        // Verificar que la tabla exista
                         setStatus('<i class="fas fa-spinner fa-spin me-1"></i>Verificando tabla en Supabase…');
                         const { count: existingCount, error: probeErr } = await client
                             .from(targetTable).select('*', { count: 'exact', head: true });
                         if (probeErr) throw new Error(
-                            'No se puede acceder a la tabla "' + targetTable + '". ' +
-                            'Asegúrate de que exista en Supabase y tenga los permisos correctos.\n' +
-                            probeErr.message
-                        );
+                            'No se puede acceder a "' + targetTable + '". Verifica que exista en Supabase.\n' + probeErr.message);
 
-                        // Eliminar registros previos si los hay
                         if (existingCount > 0) {
                             setStatus('<i class="fas fa-spinner fa-spin me-1"></i>Eliminando ' +
                                 existingCount.toLocaleString() + ' registros anteriores…');
                             await deleteAllRows(targetTable);
                         }
 
-                        // Construir filas a insertar (excluir columnas autogeneradas)
-                        const headerMap = headers
-                            .map((h, i) => ({ h: String(h || '').trim(), i }))
-                            .filter(({ h }) => h && !AUTOGEN_COLS.has(normCol(h)));
-
-                        const dbRows = dataRows
-                            .map(raw => {
-                                const obj = {};
-                                headerMap.forEach(({ h, i }) => {
-                                    const v = raw[i];
-                                    obj[h] = (v === null || v === undefined) ? null : v;
-                                });
-                                return obj;
-                            })
-                            .filter(r => Object.values(r).some(v => v !== null && v !== undefined && v !== ''));
+                        const dbRows = jsonRows.map(row => {
+                            const clean = {};
+                            for (const [k, v] of Object.entries(row)) {
+                                if (k && !AUTOGEN_COLS.has(normCol(k)))
+                                    clean[k] = (v === null || v === undefined) ? null : v;
+                            }
+                            return clean;
+                        }).filter(r => Object.values(r).some(v => v !== null && v !== undefined && v !== ''));
 
                         if (dbRows.length === 0) {
-                            setStatus('No hay filas con datos válidos para insertar.', 'warning');
-                            btnImport.disabled = false;
-                            return;
+                            setStatus('No hay filas con datos válidos.', 'warning');
+                            btnImport.disabled = false; return;
                         }
 
-                        setStatus('<i class="fas fa-spinner fa-spin me-1"></i>Subiendo datos a Supabase…');
+                        setStatus('<i class="fas fa-spinner fa-spin me-1"></i>Subiendo datos…');
                         await uploadInBatches(targetTable, dbRows, (done, total) => {
                             setProgress(done, total);
                             setStatus('<i class="fas fa-spinner fa-spin me-1"></i>Subiendo… <strong>' +
@@ -306,32 +265,21 @@
                         });
 
                         setProgress(dbRows.length, dbRows.length);
-                        setStatus(
-                            '<i class="fas fa-check-circle text-success me-1"></i><strong>' +
-                            dbRows.length.toLocaleString() + ' registros</strong> importados correctamente a <strong>' +
-                            escHtml(targetTable) + '</strong>.',
-                            'success'
-                        );
+                        setStatus('<i class="fas fa-check-circle text-success me-1"></i><strong>' +
+                            dbRows.length.toLocaleString() + ' registros</strong> importados a <strong>' +
+                            escHtml(targetTable) + '</strong>.', 'success');
 
-                        // Registrar el nuevo período en el módulo de manifiestos
-                        if (typeof window.manifiestoRegisterTable === 'function' && mesDato && anioDato) {
-                            const key   = buildTableKey(mesDato, anioDato);
-                            const label = buildTableLabel(mesDato, anioDato);
-                            window.manifiestoRegisterTable(key, targetTable, label);
+                        if (typeof window.manifiestoRegisterTable === 'function') {
+                            window.manifiestoRegisterTable(buildTableKey(mesDato, anioDato), targetTable, buildTableLabel(mesDato, anioDato));
                         }
-
-                        // Cerrar modal automáticamente después de 2.5 s
                         setTimeout(function () {
                             const modalEl = document.getElementById('manifiestos-upload-modal');
-                            if (modalEl && window.bootstrap) {
-                                const m = bootstrap.Modal.getInstance(modalEl);
-                                if (m) m.hide();
-                            }
+                            if (modalEl && window.bootstrap) { const m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
                         }, 2500);
 
                     } catch (err) {
                         console.error('[ManifiestosUpload]', err);
-                        setStatus('<i class="fas fa-times-circle me-1"></i>Error al importar: ' + escHtml(err.message), 'danger');
+                        setStatus('<i class="fas fa-times-circle me-1"></i>Error: ' + escHtml(err.message), 'danger');
                         btnImport.disabled = false;
                     }
                 };
@@ -364,9 +312,6 @@
         }
         const label = document.getElementById('mu-file-label');
         if (label) label.textContent = file.name;
-        // Limpiar tabla sugerida al cambiar archivo
-        const tableInput = document.getElementById('mu-table-name');
-        if (tableInput) tableInput.value = '';
         const btnImport = document.getElementById('mu-btn-import');
         if (btnImport) btnImport.disabled = true;
         window.manifiestoProcessFile(file);
@@ -415,8 +360,8 @@
                 if (inp) inp.value = '';
                 const btnImport = document.getElementById('mu-btn-import');
                 if (btnImport) { btnImport.disabled = true; btnImport.onclick = null; }
-                const tableInput = document.getElementById('mu-table-name');
-                if (tableInput) tableInput.value = '';
+                const tableInfo = document.getElementById('mu-table-info');
+                if (tableInfo) tableInfo.innerHTML = '';
             });
         }
 
@@ -467,11 +412,181 @@
         const btnImport  = document.getElementById('mc-btn-import');
         const previewDiv = document.getElementById('mc-preview');
         const progWrap   = document.getElementById('mc-progress-wrap');
+        const tableInfo  = document.getElementById('mc-table-info');
 
         if (previewDiv)  previewDiv.innerHTML = '';
         if (progWrap)    progWrap.classList.add('d-none');
         if (btnImport)   btnImport.disabled = true;
+        if (tableInfo)   tableInfo.innerHTML = '';
         setCargoStatus('<i class="fas fa-spinner fa-spin me-1"></i>Leyendo archivo Excel…');
+
+        try {
+            if (!window.XLSX) throw new Error('Librería XLSX no disponible. Recarga la página.');
+
+            const buf = await file.arrayBuffer();
+            const wb  = XLSX.read(buf, { type: 'array', cellDates: false });
+
+            // 1. Buscar hoja con datos de carga (object mode)
+            let sheetName = wb.SheetNames[0];
+            let jsonRows  = null;
+
+            for (const sn of wb.SheetNames) {
+                const sh = wb.Sheets[sn];
+                if (!sh) continue;
+                const r = XLSX.utils.sheet_to_json(sh, { defval: null, raw: true });
+                if (!r || r.length < 1) continue;
+                const keys = Object.keys(r[0] || {}).map(k => normCol(k));
+                if (keys.some(k => k.includes('aerolinea') || k.includes('kgs') || k.includes('tipo_de_manifiesto') || k.includes('carga'))) {
+                    sheetName = sn; jsonRows = r; break;
+                }
+            }
+            if (!jsonRows) {
+                const sh = wb.Sheets[wb.SheetNames[0]];
+                jsonRows  = sh ? XLSX.utils.sheet_to_json(sh, { defval: null, raw: true }) : [];
+                sheetName = wb.SheetNames[0];
+            }
+
+            if (jsonRows.length === 0) {
+                setCargoStatus('No se encontraron filas de datos en el archivo.', 'danger'); return;
+            }
+
+            const headers = Object.keys(jsonRows[0]);
+
+            // 2. Detectar mes/año
+            let mesDato = null, anioDato = null;
+            const fromSheet = getMesAnioFromSheet(sheetName);
+            if (fromSheet) { mesDato = fromSheet.mes; anioDato = fromSheet.anio; }
+
+            if (!mesDato || !anioDato) {
+                const mesKey = headers.find(k => normCol(k) === 'mes');
+                if (mesKey && jsonRows[0]) {
+                    const v = jsonRows[0][mesKey];
+                    if (typeof v === 'number' && v >= 1 && v <= 12) mesDato = v;
+                    else if (typeof v === 'string') {
+                        const abbr = v.substring(0, 3).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                        mesDato = MES_ABREV[abbr] || parseInt(v, 10) || null;
+                    }
+                }
+            }
+            if (!mesDato || !anioDato) {
+                const fechaKey = headers.find(k => normCol(k) === 'fecha');
+                if (fechaKey) {
+                    const raw    = (jsonRows.find(r => r[fechaKey] != null) || {})[fechaKey];
+                    const serial = typeof raw === 'number' ? raw : parseFloat(String(raw || ''));
+                    if (!isNaN(serial) && serial > 40000 && serial < 60000) {
+                        const d = new Date((serial - 25569) * 86400000);
+                        if (!mesDato)  mesDato  = d.getUTCMonth() + 1;
+                        if (!anioDato) anioDato = d.getUTCFullYear();
+                    } else {
+                        const mY = String(raw || '').match(/(\d{4})/);
+                        if (mY) { const y = parseInt(mY[1], 10); if (y >= 2000 && y <= 2100) anioDato = y; }
+                    }
+                }
+            }
+
+            if (!mesDato || !anioDato) {
+                setCargoStatus('No se pudo detectar el mes/año. Verifica que la columna FECHA tenga datos.', 'danger');
+                return;
+            }
+
+            const mesStr      = MES_NOMBRES[mesDato];
+            const targetTable = buildCargoTableName(mesDato, anioDato);
+
+            if (tableInfo) tableInfo.innerHTML =
+                '<div class="alert alert-light border py-2 mt-3 mb-0 small">' +
+                '<i class="fas fa-database me-1" style="color:#6f42c1"></i>Tabla destino: ' +
+                '<strong>' + escHtml(targetTable) + '</strong></div>';
+
+            // 3. Preview
+            const visibleHeaders = headers.filter(h => !AUTOGEN_COLS.has(normCol(h)));
+            const colHtml = visibleHeaders.slice(0, 10)
+                .map(h => '<span class="badge bg-light text-dark border me-1 mb-1" style="font-size:.7rem">' + escHtml(String(h)) + '</span>').join('')
+                + (visibleHeaders.length > 10 ? '<span class="text-muted small">+' + (visibleHeaders.length - 10) + ' más…</span>' : '');
+
+            if (previewDiv) {
+                previewDiv.innerHTML =
+                    '<div class="p-3 bg-light rounded border mt-3">' +
+                    '<div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">' +
+                    '<div><span class="fw-semibold">Hoja:</span><span class="badge ms-1" style="background:#6f42c1">' + escHtml(sheetName) + '</span></div>' +
+                    '<div><span class="fw-semibold">' + jsonRows.length.toLocaleString() + '</span>' +
+                    '<span class="text-muted small"> registros · </span><span class="fw-semibold">' + mesStr + ' ' + anioDato + '</span></div>' +
+                    '</div><div class="mb-1 small text-muted">Columnas:</div><div>' + colHtml + '</div></div>';
+            }
+
+            setCargoStatus('<i class="fas fa-file-excel me-1" style="color:#6f42c1"></i>Archivo listo: <strong>' +
+                jsonRows.length.toLocaleString() + ' filas</strong> · <strong>' + mesStr + ' ' + anioDato +
+                '</strong>. Haz clic en Importar para subir.');
+            if (btnImport) btnImport.disabled = false;
+
+            // 4. Importar
+            if (btnImport) {
+                btnImport.onclick = async () => {
+                    btnImport.disabled = true;
+                    if (progWrap) progWrap.classList.remove('d-none');
+                    setCargoProgress(0, jsonRows.length);
+                    try {
+                        const client = window.supabaseClient;
+                        if (!client) throw new Error('Supabase no disponible. Inicia sesión primero.');
+
+                        setCargoStatus('<i class="fas fa-spinner fa-spin me-1"></i>Verificando tabla en Supabase…');
+                        const { count: existingCount, error: probeErr } = await client
+                            .from(targetTable).select('*', { count: 'exact', head: true });
+                        if (probeErr) throw new Error(
+                            'No se puede acceder a "' + targetTable + '". Verifica que exista en Supabase.\n' + probeErr.message);
+
+                        if (existingCount > 0) {
+                            setCargoStatus('<i class="fas fa-spinner fa-spin me-1"></i>Eliminando ' +
+                                existingCount.toLocaleString() + ' registros anteriores…');
+                            await deleteAllRows(targetTable);
+                        }
+
+                        const dbRows = jsonRows.map(row => {
+                            const clean = {};
+                            for (const [k, v] of Object.entries(row)) {
+                                if (k && !AUTOGEN_COLS.has(normCol(k)))
+                                    clean[k] = (v === null || v === undefined) ? null : v;
+                            }
+                            return clean;
+                        }).filter(r => Object.values(r).some(v => v !== null && v !== undefined && v !== ''));
+
+                        if (dbRows.length === 0) {
+                            setCargoStatus('No hay filas con datos válidos.', 'warning');
+                            btnImport.disabled = false; return;
+                        }
+
+                        setCargoStatus('<i class="fas fa-spinner fa-spin me-1"></i>Subiendo datos…');
+                        await uploadInBatches(targetTable, dbRows, (done, total) => {
+                            setCargoProgress(done, total);
+                            setCargoStatus('<i class="fas fa-spinner fa-spin me-1"></i>Subiendo… <strong>' +
+                                done.toLocaleString() + '</strong> / ' + total.toLocaleString() + ' registros');
+                        });
+
+                        setCargoProgress(dbRows.length, dbRows.length);
+                        setCargoStatus('<i class="fas fa-check-circle text-success me-1"></i><strong>' +
+                            dbRows.length.toLocaleString() + ' registros</strong> importados a <strong>' +
+                            escHtml(targetTable) + '</strong>.', 'success');
+
+                        if (typeof window.cargaRegisterTable === 'function') {
+                            window.cargaRegisterTable(buildCargoTableKey(mesDato, anioDato), targetTable, buildCargoTableLabel(mesDato, anioDato));
+                        }
+                        setTimeout(function () {
+                            const modalEl = document.getElementById('carga-upload-modal');
+                            if (modalEl && window.bootstrap) { const m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
+                        }, 2500);
+
+                    } catch (err) {
+                        console.error('[CargaUpload]', err);
+                        setCargoStatus('<i class="fas fa-times-circle me-1"></i>Error: ' + escHtml(err.message), 'danger');
+                        btnImport.disabled = false;
+                    }
+                };
+            }
+
+        } catch (err) {
+            console.error('[CargaUpload]', err);
+            setCargoStatus('<i class="fas fa-times-circle me-1"></i>Error al leer el archivo: ' + escHtml(err.message), 'danger');
+        }
+    };
 
         try {
             if (!window.XLSX) throw new Error('Librería XLSX no disponible. Recarga la página.');
@@ -543,135 +658,6 @@
                 }
             }
 
-            const mesStr  = (mesDato && mesDato >= 1 && mesDato <= 12) ? MES_NOMBRES[mesDato] : '?';
-            const anioStr = anioDato || '?';
-            const suggestedName = (mesDato && anioDato) ? buildCargoTableName(mesDato, anioDato) : '';
-
-            const tableInput = document.getElementById('mc-table-name');
-            if (tableInput && suggestedName && !tableInput.value.trim()) {
-                tableInput.value = suggestedName;
-            }
-
-            // 3. Preview de columnas
-            const visibleHeaders = headers.filter(h => {
-                const k = normCol(String(h || ''));
-                return k && !AUTOGEN_COLS.has(k);
-            });
-            const colHtml = visibleHeaders.slice(0, 10)
-                .map(h => '<span class="badge bg-light text-dark border me-1 mb-1" style="font-size:.7rem">' + escHtml(String(h)) + '</span>')
-                .join('') +
-                (visibleHeaders.length > 10 ? '<span class="text-muted small">+' + (visibleHeaders.length - 10) + ' más…</span>' : '');
-
-            if (previewDiv) {
-                previewDiv.innerHTML =
-                    '<div class="p-3 bg-light rounded border mt-3">' +
-                    '<div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">' +
-                    '<div><span class="fw-semibold">Hoja detectada:</span><span class="badge ms-1" style="background:#6f42c1">' + escHtml(sheetName) + '</span></div>' +
-                    '<div><span class="fw-semibold">' + dataRows.length.toLocaleString() + '</span><span class="text-muted small"> registros · </span><span class="fw-semibold">' + mesStr + ' ' + anioStr + '</span></div>' +
-                    '</div><div class="mb-1 small text-muted">Columnas detectadas:</div><div class="mb-0">' + colHtml + '</div></div>';
-            }
-
-            setCargoStatus('<i class="fas fa-file-excel me-1" style="color:#6f42c1"></i>Archivo listo: <strong>' +
-                dataRows.length.toLocaleString() + ' filas</strong> · <strong>' + mesStr + ' ' + anioStr +
-                '</strong>. Verifica el nombre de tabla y confirma para importar.');
-            if (btnImport) btnImport.disabled = false;
-
-            // 4. Callback del botón Importar
-            if (btnImport) {
-                btnImport.onclick = async () => {
-                    const targetTable = (tableInput ? tableInput.value.trim() : '') || suggestedName;
-                    if (!targetTable) {
-                        setCargoStatus('Por favor especifica el nombre de la tabla de Supabase.', 'warning');
-                        return;
-                    }
-                    btnImport.disabled = true;
-                    if (progWrap) progWrap.classList.remove('d-none');
-                    setCargoProgress(0, dataRows.length);
-
-                    try {
-                        const client = window.supabaseClient;
-                        if (!client) throw new Error('Supabase no disponible. Inicia sesión primero.');
-
-                        setCargoStatus('<i class="fas fa-spinner fa-spin me-1"></i>Verificando tabla en Supabase…');
-                        const { count: existingCount, error: probeErr } = await client
-                            .from(targetTable).select('*', { count: 'exact', head: true });
-                        if (probeErr) throw new Error(
-                            'No se puede acceder a la tabla "' + targetTable + '". ' +
-                            'Asegúrate de que exista en Supabase con los permisos correctos.\n' + probeErr.message
-                        );
-
-                        if (existingCount > 0) {
-                            setCargoStatus('<i class="fas fa-spinner fa-spin me-1"></i>Eliminando ' +
-                                existingCount.toLocaleString() + ' registros anteriores…');
-                            await deleteAllRows(targetTable);
-                        }
-
-                        const headerMap = headers
-                            .map((h, i) => ({ h: String(h || '').trim(), i }))
-                            .filter(({ h }) => h && !AUTOGEN_COLS.has(normCol(h)));
-
-                        const dbRows = dataRows
-                            .map(raw => {
-                                const obj = {};
-                                headerMap.forEach(({ h, i }) => {
-                                    const v = raw[i];
-                                    obj[h] = (v === null || v === undefined) ? null : v;
-                                });
-                                return obj;
-                            })
-                            .filter(r => Object.values(r).some(v => v !== null && v !== undefined && v !== ''));
-
-                        if (dbRows.length === 0) {
-                            setCargoStatus('No hay filas con datos válidos para insertar.', 'warning');
-                            btnImport.disabled = false;
-                            return;
-                        }
-
-                        setCargoStatus('<i class="fas fa-spinner fa-spin me-1"></i>Subiendo datos a Supabase…');
-                        await uploadInBatches(targetTable, dbRows, (done, total) => {
-                            setCargoProgress(done, total);
-                            setCargoStatus('<i class="fas fa-spinner fa-spin me-1"></i>Subiendo… <strong>' +
-                                done.toLocaleString() + '</strong> / ' + total.toLocaleString() + ' registros');
-                        });
-
-                        setCargoProgress(dbRows.length, dbRows.length);
-                        setCargoStatus(
-                            '<i class="fas fa-check-circle text-success me-1"></i><strong>' +
-                            dbRows.length.toLocaleString() + ' registros</strong> importados a <strong>' +
-                            escHtml(targetTable) + '</strong>.',
-                            'success'
-                        );
-
-                        // Registrar nuevo período en el módulo de carga
-                        if (typeof window.cargaRegisterTable === 'function' && mesDato && anioDato) {
-                            const key   = buildCargoTableKey(mesDato, anioDato);
-                            const label = buildCargoTableLabel(mesDato, anioDato);
-                            window.cargaRegisterTable(key, targetTable, label);
-                        }
-
-                        // Cerrar modal tras 2.5 s
-                        setTimeout(function () {
-                            const modalEl = document.getElementById('carga-upload-modal');
-                            if (modalEl && window.bootstrap) {
-                                const m = bootstrap.Modal.getInstance(modalEl);
-                                if (m) m.hide();
-                            }
-                        }, 2500);
-
-                    } catch (err) {
-                        console.error('[CargaUpload]', err);
-                        setCargoStatus('<i class="fas fa-times-circle me-1"></i>Error al importar: ' + escHtml(err.message), 'danger');
-                        btnImport.disabled = false;
-                    }
-                };
-            }
-
-        } catch (err) {
-            console.error('[CargaUpload]', err);
-            setCargoStatus('<i class="fas fa-times-circle me-1"></i>Error al leer el archivo: ' + escHtml(err.message), 'danger');
-        }
-    };
-
     function syncCargoImportBtn() {
         const role      = sessionStorage.getItem('user_role') || 'viewer';
         const container = document.getElementById('mcg-admin-btns');
@@ -687,8 +673,6 @@
         }
         const label = document.getElementById('mc-file-label');
         if (label) label.textContent = file.name;
-        const tableInput = document.getElementById('mc-table-name');
-        if (tableInput) tableInput.value = '';
         const btnImport = document.getElementById('mc-btn-import');
         if (btnImport) btnImport.disabled = true;
         window.cargaProcessFile(file);
@@ -732,8 +716,8 @@
                 if (inp) inp.value = '';
                 const btnImport = document.getElementById('mc-btn-import');
                 if (btnImport) { btnImport.disabled = true; btnImport.onclick = null; }
-                const tableInput = document.getElementById('mc-table-name');
-                if (tableInput) tableInput.value = '';
+                const tableInfo = document.getElementById('mc-table-info');
+                if (tableInfo) tableInfo.innerHTML = '';
             });
         }
     }
