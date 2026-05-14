@@ -1,0 +1,157 @@
+// ═══════════════════════════════════════════════════════════════════
+//  REALTIME MANAGER — js/realtime.js
+//  Suscripción centralizada a cambios en Supabase (postgres_changes).
+//  Cuando cualquier tabla cambia:
+//    1. Llama a las funciones de recarga registradas para esa tabla.
+//    2. Dispara el evento DOM  window → CustomEvent('rt:change', { detail:{table,event} })
+//  API pública:
+//    window.rtManager.watch(tabla_o_array, fn)  — registrar recarga
+//    window.rtManager.unwatch(fn)               — desregistrar
+// ═══════════════════════════════════════════════════════════════════
+(function () {
+    'use strict';
+
+    // Mapa tabla → [callbacks]
+    const _reg = {};
+    // Timers de debounce por tabla (evita recargas múltiples si llegan ráfagas)
+    const _timers = {};
+    const DEBOUNCE_MS = 600;
+
+    let _channel = null;
+    let _ready    = false;
+
+    /* ─── API pública ──────────────────────────────────────────── */
+    window.rtManager = {
+        /**
+         * Registrar una función de recarga para una o varias tablas.
+         * @param {string|string[]} tables  Nombre(s) de tabla de Supabase
+         * @param {Function}        fn      Función sin argumentos a llamar al detectar cambio
+         */
+        watch: function (tables, fn) {
+            var list = Array.isArray(tables) ? tables : [tables];
+            list.forEach(function (t) {
+                if (!_reg[t]) _reg[t] = [];
+                if (_reg[t].indexOf(fn) === -1) _reg[t].push(fn);
+            });
+        },
+        /** Desregistrar una función de todas las tablas */
+        unwatch: function (fn) {
+            Object.keys(_reg).forEach(function (t) {
+                _reg[t] = _reg[t].filter(function (f) { return f !== fn; });
+            });
+        }
+    };
+
+    /* ─── Dispatch con debounce ────────────────────────────────── */
+    function _fire(table, eventType) {
+        // Evento DOM (cualquier módulo puede escuchar)
+        window.dispatchEvent(new CustomEvent('rt:change', {
+            detail: { table: table, event: eventType }
+        }));
+
+        // Llamar callbacks registrados (con debounce por tabla)
+        var fns = (_reg[table] || []).concat(_reg['*'] || []);
+        if (fns.length === 0) return;
+
+        clearTimeout(_timers[table]);
+        _timers[table] = setTimeout(function () {
+            fns.forEach(function (fn) {
+                try { fn(table, eventType); } catch (e) {
+                    console.error('[RT] Error en callback de', table, ':', e);
+                }
+            });
+        }, DEBOUNCE_MS);
+    }
+
+    /* ─── Crear canal Supabase Realtime ─────────────────────────── */
+    function _setup(client) {
+        if (_channel) {
+            try { client.removeChannel(_channel); } catch (_) {}
+            _channel = null;
+        }
+
+        _channel = client
+            .channel('rt-public-all', { config: { broadcast: { ack: false } } })
+            .on('postgres_changes',
+                { event: '*', schema: 'public' },
+                function (payload) {
+                    var table = (payload && payload.table) ? payload.table : '';
+                    var ev    = (payload && payload.eventType) ? payload.eventType : 'CHANGE';
+                    if (table) _fire(table, ev);
+                }
+            )
+            .subscribe(function (status, err) {
+                if (status === 'SUBSCRIBED') {
+                    console.log('[RT] Realtime activo — escuchando cambios en public.*');
+                    _ready = true;
+                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                    console.warn('[RT] Problema con canal realtime (' + status + '). Reintentando en 8 s…');
+                    _ready = false;
+                    setTimeout(function () { _setup(client); }, 8000);
+                } else if (status === 'CLOSED') {
+                    _ready = false;
+                }
+            });
+    }
+
+    /* ─── Registro automático de módulos conocidos ──────────────── */
+    // Se usan envoltorios "lazy" para que si el módulo aún no cargó
+    // la función se resuelva en el momento del evento, no al registrar.
+    function _lazy(fnName) {
+        return function () {
+            var fn = window[fnName];
+            if (typeof fn === 'function') fn();
+        };
+    }
+
+    function _registerModules() {
+        var rm = window.rtManager;
+
+        // ── Manifiestos pasajeros ────────────────────────────────
+        rm.watch([
+            'Base de datos Manifiestos 2025',
+            'Base de Datos Manifiestos Febrero 2026'
+        ], _lazy('manifiestoReload'));
+
+        // ── Manifiestos carga ────────────────────────────────────
+        rm.watch([
+            'Base de Manifiestos Carga Febrero 2026'
+        ], _lazy('cargaReload'));
+
+        // ── Operaciones / vuelos ─────────────────────────────────
+        rm.watch([
+            'flights',
+            'daily_operations',
+            'monthly_operations_2025',
+            'annual_operations',
+            'demoras'
+        ], _lazy('amRefresh'));
+
+        // ── Agenda (barra lateral de próximos eventos) ───────────
+        rm.watch([
+            'agenda_comites',
+            'agenda_reuniones',
+            'agenda_acuerdos'
+        ], _lazy('agBarRefresh'));
+
+        // ── Puntualidad ──────────────────────────────────────────
+        rm.watch(['puntualidad'], _lazy('puntualidadRefresh'));
+    }
+
+    /* ─── Inicialización (espera a que Supabase esté listo) ─────── */
+    function _init() {
+        var client = window.supabaseClient;
+        if (!client) {
+            setTimeout(_init, 600);
+            return;
+        }
+        _registerModules();
+        _setup(client);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', _init);
+    } else {
+        setTimeout(_init, 0);
+    }
+})();
