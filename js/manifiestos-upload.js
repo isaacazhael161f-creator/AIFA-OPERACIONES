@@ -282,6 +282,26 @@
                             return;
                         }
 
+                        // Añadir columnas nuevas que no existan aún en la tabla
+                        setStatus('<i class="fas fa-spinner fa-spin me-1"></i>Verificando columnas en la tabla…');
+                        const colNames = headerMap.map(({ h }) => h);
+                        const { data: addedCols, error: colErr } = await client.rpc(
+                            'add_missing_columns',
+                            { p_table: TARGET_TABLE, p_cols: colNames }
+                        );
+                        if (colErr) {
+                            // No abortar — si la función no existe o falla,
+                            // continuar e intentar insertar igualmente.
+                            console.warn('[ManifiestosUpload] No se pudieron añadir columnas:', colErr.message);
+                        } else if (addedCols && addedCols.length > 0) {
+                            setStatus(
+                                '<i class="fas fa-plus-circle text-success me-1"></i>' +
+                                'Columnas nuevas añadidas a la tabla: <strong>' +
+                                addedCols.map(escHtml).join(', ') + '</strong>. Subiendo datos…'
+                            );
+                            await new Promise(r => setTimeout(r, 800)); // breve pausa para que se lea
+                        }
+
                         setStatus('<i class="fas fa-spinner fa-spin me-1"></i>Subiendo datos a Supabase…');
                         await uploadInBatches(TARGET_TABLE, dbRows, (done, total) => {
                             setProgress(done, total);
