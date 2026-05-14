@@ -9,7 +9,8 @@
 
   const TABLES = {
     '2025':      { name: 'Base de datos Manifiestos 2025',          label: 'Manifiestos 2025 — Datos anuales' },
-    'feb2026':   { name: 'Base de Datos Manifiestos Febrero 2026',   label: 'Febrero 2026 — Datos mensuales' }
+    'feb2026':   { name: 'Base de Datos Manifiestos Febrero 2026',   label: 'Febrero 2026 — Datos mensuales' },
+    'abr2026':   { name: 'Manifiestos',                              label: 'Abril 2026 — Datos mensuales' }
   };
   let _activeTableKey = '2025';
   const getTableName  = () => TABLES[_activeTableKey].name;
