@@ -263,16 +263,16 @@
   }
 
   const ni = v => parseInt(v, 10) || 0;
-  const getPaxTotal = r => ni(col(r, 'TOTAL PAX'));
-  const getPaxTUA   = r => ni(col(r, 'PAX. QUE PAGAN TUA'));
-  const getPaxInf   = r => ni(col(r, 'INFANTES'));
-  const getPaxTrans = r => ni(col(r, 'TRANSITOS'));
-  const getPaxConex = r => ni(col(r, 'CONEXIONES'));
-  const getPaxDip   = r => ni(col(r, 'DIPLOMATICOS'));
-  const getPaxEnCom = r => ni(col(r, 'EN COMISION'));
-  const getPaxOtros = r => ni(col(r, 'OTROS EXENTOS'));
-  const getPaxExent = r => ni(col(r, 'TOTAL EXENTOS'));
-  const getKgs      = r => ni(col(r, 'KGS. DE EQUIPAJE'));
+  const getPaxTotal = r => ni(col(r, 'TOTAL PAX', 'TOTALPAX', 'total_pax'));
+  const getPaxTUA   = r => ni(col(r, 'PAX. QUE PAGAN TUA', 'PAXQUEPAGANTUA', 'pax_que_pagan_tua'));
+  const getPaxInf   = r => ni(col(r, 'INFANTES', 'infantes'));
+  const getPaxTrans = r => ni(col(r, 'TRANSITOS', 'transitos'));
+  const getPaxConex = r => ni(col(r, 'CONEXIONES', 'conexiones'));
+  const getPaxDip   = r => ni(col(r, 'DIPLOMATICOS', 'diplomaticos'));
+  const getPaxEnCom = r => ni(col(r, 'EN COMISION', 'ENCOMISION', 'en_comision'));
+  const getPaxOtros = r => ni(col(r, 'OTROS EXENTOS', 'OTROSEXENTOS', 'otros_exentos'));
+  const getPaxExent = r => ni(col(r, 'TOTAL EXENTOS', 'TOTALEXENTOS', 'total_exentos'));
+  const getKgs      = r => ni(col(r, 'KGS. DE EQUIPAJE', 'KGS.DEEQUIPAJE', 'kgs_de_equipaje'));
 
   const isArr = r => getDir(r).toLowerCase().includes('llegada');
   const isDep = r => getDir(r).toLowerCase().includes('salida');
@@ -456,6 +456,10 @@
       const all = results.flatMap(r => r.data || []);
       _allData = all; _loaded = true;
       _dataCache[_activeTableKey] = all;
+      if (all.length > 0) {
+        console.log('[ManifiestosBD] Columnas de la tabla "' + tableName + '":', Object.keys(all[0]));
+        console.log('[ManifiestosBD] Primera fila de muestra:', all[0]);
+      }
       if (all.length === 0) { showBanner('info', 'La tabla est\u00e1 vac\u00eda o RLS bloquea la lectura.'); hideOverlay(); return; }
       preloadAirlineLogos(all);
       const airlines = [...new Set(all.map(r => getAirline(r)))].sort();
