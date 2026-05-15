@@ -4756,6 +4756,32 @@ FF
                             margin-bottom: .75rem;
                         }
                         /* ── Amonestaciones con PDF adjunto ── */
+                        /* ── Semáforo disciplinario ── */
+                        .colab-semaforo {
+                            display: inline-flex;
+                            align-items: center;
+                            gap: .35rem;
+                            font-size: .78rem;
+                            font-weight: 600;
+                            padding: .2rem .55rem;
+                            border-radius: 999px;
+                            white-space: nowrap;
+                            user-select: none;
+                        }
+                        .colab-semaforo .sem-dot {
+                            width: 9px; height: 9px;
+                            border-radius: 50%;
+                            flex-shrink: 0;
+                            box-shadow: 0 0 0 2px rgba(0,0,0,.12);
+                        }
+                        .colab-semaforo.sem-verde  { background: #d1fadf; color: #0a6640; }
+                        .colab-semaforo.sem-verde  .sem-dot { background: #12b76a; box-shadow: 0 0 6px #12b76a88; }
+                        .colab-semaforo.sem-amarillo { background: #fef9c3; color: #854d0e; }
+                        .colab-semaforo.sem-amarillo .sem-dot { background: #eab308; box-shadow: 0 0 6px #eab30888; }
+                        .colab-semaforo.sem-rojo   { background: #fee2e2; color: #991b1b; }
+                        .colab-semaforo.sem-rojo   .sem-dot { background: #ef4444; box-shadow: 0 0 6px #ef444488; }
+                        .colab-semaforo.sem-sm { font-size: .72rem; padding: .15rem .4rem; }
+                        .colab-semaforo.sem-sm .sem-dot { width: 7px; height: 7px; }
                         .ca-list { list-style: none; padding: 0; margin: 0 0 .75rem 0; }
                         .ca-item {
                             display: flex; align-items: flex-start; gap: .6rem;
@@ -5656,6 +5682,7 @@ FF
                                             </div>
                                             <div class="colab-nombre" id="colab-h-nombre">—</div>
                                             <div class="colab-puesto" id="colab-h-puesto">—</div>
+                                            <div class="mt-1" id="colab-h-semaforo"></div>
                                             <div class="colab-header-chips" id="colab-h-chips">
                                                 <!-- chips dinámicos -->
                                             </div>
@@ -6812,6 +6839,8 @@ FF
                             if (nomEl) nomEl.textContent = val(gc(c, 'nombre')) || '—';
                             const puesEl = document.getElementById('colab-h-puesto');
                             if (puesEl) puesEl.textContent = val(gc(c, 'puesto')) || '—';
+                            const semEl = document.getElementById('colab-h-semaforo');
+                            if (semEl) semEl.innerHTML = colabSemaforoHtml(c, false);
                             buildChips(c);
                             buildCorner(c);
 
@@ -7452,6 +7481,27 @@ FF
                         }   /* ── fin colabRenderDashboard ── */
 
                         /* ── Autocomplete ── */
+                        /**
+                         * Cuenta amonestaciones (líneas no vacías) y devuelve el HTML
+                         * del semáforo disciplinario.
+                         * Escala:
+                         *   0       → Verde   (Sin amonestaciones)
+                         *   1 – 2   → Amarillo (En observación)
+                         *   3+      → Rojo     (Situación crítica)
+                         * @param {object} c  fila del colaborador
+                         * @param {boolean} sm  true = tamaño pequeño (para listas)
+                         */
+                        function colabSemaforoHtml(c, sm) {
+                            const raw  = val(gc(c, 'amonestaciones')) || '';
+                            const n    = raw.split(/\n/).map(l => l.trim()).filter(Boolean).length;
+                            let cls, label;
+                            if (n === 0)        { cls = 'sem-verde';    label = 'Sin amonestaciones'; }
+                            else if (n <= 2)    { cls = 'sem-amarillo'; label = n + ' amonest.'; }
+                            else                { cls = 'sem-rojo';     label = n + ' amonest.'; }
+                            const szCls = sm ? ' sem-sm' : '';
+                            return `<span class="colab-semaforo ${cls}${szCls}" title="${label}"><span class="sem-dot"></span>${label}</span>`;
+                        }
+
                         async function colabAutocompletar(query) {
                             const sugBox = document.getElementById('colab-suggestions-list');
                             const nameInput = document.getElementById('colab-name-input');
@@ -7493,6 +7543,7 @@ FF
                                     <span class="colab-sug-num"># ${cNum || '—'}</span>
                                     <span class="colab-sug-name">${cNombre || '—'}</span>
                                     <span class="colab-sug-puesto">${cPuesto || ''}</span>
+                                    ${colabSemaforoHtml(c, true)}
                                 </div>`;
                             }).join('');
 
@@ -8523,7 +8574,7 @@ FF
                                             onclick="event.stopPropagation();ctblAbrirFiltroCol('${esc(col)}',event)"
                                             title="Filtrar por ${esc(label)}">${hasF?'\u25bc&#xFE0E;':'\u25bc'}</button>
                                 </th>`;
-                            }).join('')}</tr>`;
+                            }).join('')}<th style="white-space:nowrap">Conducta</th></tr>`;
                         }
 
                         /** Abrir modal y cargar tabla */
@@ -8795,7 +8846,8 @@ FF
                                     const style = CTBL_WRAP_COLS.has(col) ? ' style="max-width:200px;white-space:normal"' : '';
                                     return `<td${style}>${esc(v)}</td>`;
                                 }).join('');
-                                return `<tr onclick="colabTablaVerFicha(${i})" title="Ver ficha de ${nombreVal}">${tds}</tr>`;
+                                const semTd = `<td style="white-space:nowrap">${colabSemaforoHtml(r, true)}</td>`;
+                                return `<tr onclick="colabTablaVerFicha(${i})" title="Ver ficha de ${nombreVal}">${tds}${semTd}</tr>`;
                             }).join('');
                             if (tbody) tbody.innerHTML = html;
                         }
