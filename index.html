@@ -7023,6 +7023,7 @@ FF
                                 foto_ine_rev:    find('ine.*rev', 'rev.*ine', 'ine.*reverso'),
                                 foto_cred:       find('foto.*cred', 'cred.*foto'),
                                 cv_url:          find('^cv$', 'cv_url', 'curriculum', 'curr[ií]culum', 'cv.*url', 'url.*cv'),
+                                sexo:            find('^sexo$', 'g[eé]nero', '^sex$'),
                             };
                             console.log('[Colaboradores] Mapeo detectado:', cols);
                             return cols;
@@ -7585,12 +7586,17 @@ FF
                             const setKpi = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
                             setKpi('cd-kpi-total',   total);
 
-                            // Conteo de genero (campo 'sexo': M/H/Masculino/Hombre o F/M/Femenino/Mujer)
-                            const _sexNorm = v => { const s = (v||'').toString().trim().toUpperCase(); if (/^(M|H|MASC|HOMBRE|MASCULINO)/.test(s)) return 'H'; if (/^(F|MUJ|FEM|MUJER|FEMENINO)/.test(s)) return 'M'; return '?'; };
-                            const masc = data.filter(r => _sexNorm(gc(r,'sexo')) === 'H').length;
-                            const fem  = data.filter(r => _sexNorm(gc(r,'sexo')) === 'M').length;
-                            setKpi('cd-kpi-masc', masc || '—');
-                            setKpi('cd-kpi-fem',  fem  || '—');
+                            // Conteo de genero (campo 'sexo': Masculino / Femenino)
+                            const _sexNorm = function(v) {
+                                var s = (v||'').toString().trim().toUpperCase();
+                                if (s === 'MASCULINO' || s === 'HOMBRE' || s === 'M' || s === 'H') return 'H';
+                                if (s === 'FEMENINO'  || s === 'MUJER'  || s === 'F') return 'M';
+                                return '?';
+                            };
+                            var masc = data.filter(function(r) { return _sexNorm(gc(r,'sexo')) === 'H'; }).length;
+                            var fem  = data.filter(function(r) { return _sexNorm(gc(r,'sexo')) === 'M'; }).length;
+                            setKpi('cd-kpi-masc', masc > 0 ? masc : '—');
+                            setKpi('cd-kpi-fem',  fem  > 0 ? fem  : '—');
 
                             setKpi('cd-kpi-dirs',    byDir.filter(([k]) => k !== '(Sin dato)').length);
                             setKpi('cd-kpi-subdirs', bySubDir.filter(([k]) => k !== '(Sin dato)').length);
