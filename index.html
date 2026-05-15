@@ -54,6 +54,8 @@
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
     <!-- html2pdf: genera PDF desde HTML (incluye html2canvas + jsPDF) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- html2canvas independiente para captura de imagen de tarjeta de cumpleaños -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <script src="js/supabase-client.js"></script>
     <script src="js/realtime.js"></script>
@@ -4878,15 +4880,15 @@ FF
                             display: flex; align-items: center; gap: .4rem;
                         }
                         .bday-btn-print:hover { filter: brightness(1.1); }
-                        .bday-btn-pdf {
-                            background: linear-gradient(135deg,#c0392b,#e74c3c);
+                        .bday-btn-wa {
+                            background: linear-gradient(135deg,#128c7e,#25d366);
                             color: #fff; border: none; border-radius: 8px;
                             padding: .45rem 1.1rem; font-size: .8rem; font-weight: 700;
                             cursor: pointer; transition: filter .12s;
                             display: flex; align-items: center; gap: .4rem;
                         }
-                        .bday-btn-pdf:hover { filter: brightness(1.12); }
-                        .bday-btn-pdf:disabled { opacity: .6; cursor: wait; }
+                        .bday-btn-wa:hover { filter: brightness(1.1); }
+                        .bday-btn-wa:disabled { opacity: .6; cursor: wait; }
                         /* Fila clickeable en tabla de profesión */
                         .cd-tbl-row.clickable { cursor: pointer; }
                         .cd-tbl-row.clickable:hover { background: #ede7f6; }
@@ -6877,8 +6879,8 @@ FF
                                     Aeropuerto Internacional Felipe Ángeles (AIFA)
                                 </div>
                                 <div class="bday-card-actions">
-                                    <button class="bday-btn-pdf" id="bday-btn-pdf" onclick="bdayCardPDF()">
-                                        <i class="fas fa-file-pdf"></i> Descargar PDF
+                                    <button class="bday-btn-wa" id="bday-btn-wa" onclick="bdayCompartirWA()">
+                                        <i class="fab fa-whatsapp"></i> Compartir imagen
                                     </button>
                                     <button class="bday-btn-close" onclick="bdayCardCerrar()">Cerrar</button>
                                 </div>
@@ -9493,43 +9495,72 @@ FF
                             if (bg) bg.classList.remove('open');
                         };
 
-                        window.bdayCardPDF = function() {
-                            if (typeof html2pdf === 'undefined') {
-                                alert('La librería de PDF no está disponible. Intenta de nuevo en unos segundos.');
+                        window.bdayCompartirWA = async function() {
+                            if (typeof html2canvas === 'undefined') {
+                                alert('La librería de imagen no está disponible. Intenta de nuevo en unos segundos.');
                                 return;
                             }
-                            const btn = document.getElementById('bday-btn-pdf');
+                            const btn = document.getElementById('bday-btn-wa');
                             if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando…'; }
 
                             const nombre = (document.getElementById('bday-modal-nombre')?.textContent || 'colaborador').trim();
+                            const fileName = 'Feliz_Cumpleanios_' + nombre.replace(/\s+/g, '_') + '.png';
 
-                            // Clonar el modal para el PDF (sin el footer de botones)
+                            // Clonar modal sin footer de botones
                             const modal = document.getElementById('bday-card-modal');
                             const clone = modal.cloneNode(true);
-                            // Ocultar footer en el clon
-                            const footer = clone.querySelector('.bday-card-footer');
-                            if (footer) footer.style.display = 'none';
+                            const footerClone = clone.querySelector('.bday-card-footer');
+                            if (footerClone) footerClone.style.display = 'none';
 
-                            // Contenedor temporal fuera de vista
                             const wrap = document.createElement('div');
-                            wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:680px;background:#fff;';
+                            wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:680px;background:#fff;z-index:-1;';
                             wrap.appendChild(clone);
                             document.body.appendChild(wrap);
 
-                            html2pdf().set({
-                                margin:        0,
-                                filename:      'Feliz_Cumpleanios_' + nombre.replace(/\s+/g, '_') + '.pdf',
-                                image:         { type: 'jpeg', quality: 0.98 },
-                                html2canvas:   { scale: 2, useCORS: true, logging: false, allowTaint: true },
-                                jsPDF:         { unit: 'px', format: [680, 520], orientation: 'portrait' },
-                                pagebreak:     { mode: 'avoid-all' }
-                            }).from(wrap).save().then(function() {
+                            try {
+                                const canvas = await html2canvas(wrap, {
+                                    scale: 2, useCORS: true, allowTaint: true, logging: false, backgroundColor: '#ffffff'
+                                });
                                 document.body.removeChild(wrap);
-                                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-file-pdf"></i> Descargar PDF'; }
-                            }).catch(function() {
+
+                                canvas.toBlob(async function(blob) {
+                                    const file = new File([blob], fileName, { type: 'image/png' });
+
+                                    // Web Share API con archivo (funciona en móvil → abre WhatsApp, etc.)
+                                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                                        try {
+                                            await navigator.share({
+                                                files: [file],
+                                                title: '\u00a1Feliz Cumplea\u00f1os! \u2014 AIFA',
+                                                text: '\u00a1Feliz Cumplea\u00f1os, ' + nombre + '! \uD83C\uDF82'
+                                            });
+                                        } catch(shareErr) {
+                                            if (shareErr.name !== 'AbortError') {
+                                                // Fallback: descargar imagen
+                                                const a = document.createElement('a');
+                                                a.href = URL.createObjectURL(blob);
+                                                a.download = fileName;
+                                                a.click();
+                                            }
+                                        }
+                                    } else {
+                                        // Desktop: descargar imagen para enviar manualmente por WhatsApp
+                                        const a = document.createElement('a');
+                                        a.href = URL.createObjectURL(blob);
+                                        a.download = fileName;
+                                        a.click();
+                                        setTimeout(function() {
+                                            alert('Imagen descargada. Para compartirla en WhatsApp Web, arrastra el archivo a una conversación.');
+                                        }, 800);
+                                    }
+
+                                    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fab fa-whatsapp"></i> Compartir imagen'; }
+                                }, 'image/png');
+                            } catch(err) {
                                 document.body.removeChild(wrap);
-                                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-file-pdf"></i> Descargar PDF'; }
-                            });
+                                alert('No se pudo generar la imagen. Intenta de nuevo.');
+                                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fab fa-whatsapp"></i> Compartir imagen'; }
+                            }
                         };
 
                         /** Descargar Excel con todos los campos visibles */
