@@ -6026,6 +6026,7 @@ FF
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-org" data-bs-toggle="tab" data-bs-target="#cedit-org" type="button">Organización</button></li>
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-docs" data-bs-toggle="tab" data-bs-target="#cedit-docs" type="button">Documentos</button></li>
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-emerg" data-bs-toggle="tab" data-bs-target="#cedit-emerg" type="button">Emergencias</button></li>
+                                        <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-semaforo" data-bs-toggle="tab" data-bs-target="#cedit-semaforo" type="button" onclick="colabSemaforoEditorRefresh()"><i class="fas fa-traffic-light me-1"></i>Semáforo</button></li>
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-amonest" data-bs-toggle="tab" data-bs-target="#cedit-amonest" type="button"><i class="fas fa-exclamation-triangle me-1 text-warning"></i>Amonest.</button></li>
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-coment" data-bs-toggle="tab" data-bs-target="#cedit-coment" type="button"><i class="fas fa-comment-alt me-1 text-info"></i>Coment.</button></li>
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-foto" data-bs-toggle="tab" data-bs-target="#cedit-foto" type="button"><i class="fas fa-camera me-1"></i>Foto</button></li>
@@ -6112,8 +6113,47 @@ FF
                                             </div>
                                         </div>
 
+                                        <!-- TAB: Semáforo Disciplinario -->
+                                        <div class="tab-pane fade" id="cedit-semaforo" role="tabpanel">
+                                            <!-- Badge en vivo -->
+                                            <div class="d-flex align-items-center gap-3 mb-3 p-3 rounded-3" style="background:#f8faff;border:1.5px solid #dce6f7">
+                                                <div>
+                                                    <div class="text-muted small fw-semibold mb-1">Estado actual</div>
+                                                    <div id="cedit-sem-badge-live"></div>
+                                                </div>
+                                                <div class="ms-3">
+                                                    <div class="text-muted small fw-semibold mb-1">Amonestaciones registradas</div>
+                                                    <span id="cedit-sem-count" class="fs-4 fw-bold text-dark">0</span>
+                                                </div>
+                                            </div>
+                                            <!-- Escala visual -->
+                                            <div class="mb-3">
+                                                <div class="fw-semibold small text-muted mb-2"><i class="fas fa-info-circle me-1"></i>Escala del semáforo</div>
+                                                <div class="d-flex flex-column gap-2">
+                                                    <div class="d-flex align-items-start gap-2 p-2 rounded-2" style="background:#d1fadf">
+                                                        <span class="colab-semaforo sem-verde mt-1"><span class="sem-dot"></span>Sin amonestaciones</span>
+                                                        <div class="small text-success ms-1"><strong>0 amonestaciones</strong> — Conducta ejemplar, sin antecedentes disciplinarios.</div>
+                                                    </div>
+                                                    <div class="d-flex align-items-start gap-2 p-2 rounded-2" style="background:#fef9c3">
+                                                        <span class="colab-semaforo sem-amarillo mt-1"><span class="sem-dot"></span>En observación</span>
+                                                        <div class="small text-warning-emphasis ms-1"><strong>1 – 2 amonestaciones</strong> — Requiere seguimiento y atención preventiva.</div>
+                                                    </div>
+                                                    <div class="d-flex align-items-start gap-2 p-2 rounded-2" style="background:#fee2e2">
+                                                        <span class="colab-semaforo sem-rojo mt-1"><span class="sem-dot"></span>Situación crítica</span>
+                                                        <div class="small text-danger ms-1"><strong>3 o más amonestaciones</strong> — Situación disciplinaria crítica.</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <p class="text-muted small"><i class="fas fa-info-circle me-1"></i>El semáforo se calcula automáticamente según las amonestaciones registradas en la pestaña <strong>Amonest.</strong> No requiere guardado manual para verse en la ficha — se actualiza al guardar.</p>
+                                        </div>
+
                                         <!-- TAB: Amonestaciones -->
                                         <div class="tab-pane fade" id="cedit-amonest" role="tabpanel">
+                                            <!-- Semáforo mini en tiempo real -->
+                                            <div class="d-flex align-items-center gap-2 mb-2 p-2 rounded-2" style="background:#f8faff;border:1px solid #dce6f7">
+                                                <span class="small text-muted fw-semibold">Semáforo:</span>
+                                                <div id="cedit-amonest-sem-live"></div>
+                                            </div>
                                             <div class="mb-3">
                                                 <label class="form-label fw-semibold small"><i class="fas fa-list-ol me-1"></i>Líneas de amonestaciones <span class="text-muted fw-normal">(una por línea)</span></label>
                                                 <textarea class="form-control form-control-sm font-monospace" id="ce-amonestaciones" data-field="amonestaciones" rows="5"
@@ -8069,7 +8109,24 @@ FF
                         };
 
                         /* ── Preview PDFs en el tab Amonestaciones del editor ── */
+                        window.colabSemaforoEditorRefresh = function() {
+                            const ta = document.getElementById('ce-amonestaciones');
+                            const n  = ta ? String(ta.value || '').split(/\n/).map(l => l.trim()).filter(Boolean).length : 0;
+                            let cls, label;
+                            if (n === 0)     { cls = 'sem-verde';    label = 'Sin amonestaciones'; }
+                            else if (n <= 2) { cls = 'sem-amarillo'; label = n + ' amonest.'; }
+                            else             { cls = 'sem-rojo';     label = n + ' amonest.'; }
+                            const html = `<span class="colab-semaforo ${cls}"><span class="sem-dot"></span>${label}</span>`;
+                            const badge = document.getElementById('cedit-sem-badge-live');
+                            if (badge) badge.innerHTML = html;
+                            const cnt = document.getElementById('cedit-sem-count');
+                            if (cnt) cnt.textContent = n;
+                            const mini = document.getElementById('cedit-amonest-sem-live');
+                            if (mini) mini.innerHTML = `<span class="colab-semaforo ${cls} sem-sm"><span class="sem-dot"></span>${label}</span>`;
+                        };
+
                         window.colabEditorAmonestPreview = async function() {
+                            colabSemaforoEditorRefresh();
                             const ta   = document.getElementById('ce-amonestaciones');
                             const list = document.getElementById('cedit-amonest-pdf-list');
                             if (!ta || !list) return;
