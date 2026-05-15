@@ -7569,9 +7569,9 @@ FF
                         }
                         function semClassify(n) {
                             const t = semGetThresholds();
-                            if (n === 0)       return { cls: 'sem-verde',    label: 'Sin amonestaciones' };
-                            if (n < t.rojo)    return { cls: 'sem-amarillo', label: n + ' amonest.' };
-                            return                     { cls: 'sem-rojo',    label: n + ' amonest.' };
+                            if (n < t.amarillo) return { cls: 'sem-verde',    label: n === 0 ? 'Sin amonestaciones' : n + ' amonest.' };
+                            if (n < t.rojo)     return { cls: 'sem-amarillo', label: n + ' amonest.' };
+                            return                      { cls: 'sem-rojo',    label: n + ' amonest.' };
                         }
 
                         function colabSemaforoHtml(c, sm) {
@@ -8178,7 +8178,7 @@ FF
                             const s0 = document.getElementById('sem-scale-verde');
                             const s1 = document.getElementById('sem-scale-amarillo');
                             const s2 = document.getElementById('sem-scale-rojo');
-                            if (s0) s0.textContent = '0 amonestaciones';
+                            if (s0) s0.textContent = am === 1 ? '0 amonestaciones' : '0 – ' + (am - 1) + ' amonest.';
                             if (s1) s1.textContent = am + (ro - 1 > am ? ' – ' + (ro - 1) : '') + ' amonest.';
                             if (s2) s2.textContent = ro + ' o más amonest.';
                         };
