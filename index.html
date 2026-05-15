@@ -4756,31 +4756,71 @@ FF
                             margin-bottom: .75rem;
                         }
                         /* ── Amonestaciones con PDF adjunto ── */
-                        /* ── Semáforo disciplinario ── */
+                        /* ══ Semáforo disciplinario ══ */
+                        @keyframes semPulse {
+                            0%, 100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+                            50%       { box-shadow: 0 0 0 4px transparent; opacity: .7; }
+                        }
                         .colab-semaforo {
                             display: inline-flex;
                             align-items: center;
-                            gap: .35rem;
-                            font-size: .78rem;
-                            font-weight: 600;
-                            padding: .2rem .55rem;
-                            border-radius: 999px;
+                            gap: .4rem;
+                            font-size: .75rem;
+                            font-weight: 700;
+                            letter-spacing: .03em;
+                            text-transform: uppercase;
+                            padding: .28rem .7rem .28rem .5rem;
+                            border-radius: 6px;
                             white-space: nowrap;
                             user-select: none;
+                            border-width: 1.5px;
+                            border-style: solid;
+                            transition: filter .15s;
                         }
+                        .colab-semaforo:hover { filter: brightness(.95); }
                         .colab-semaforo .sem-dot {
-                            width: 9px; height: 9px;
+                            width: 10px; height: 10px;
                             border-radius: 50%;
                             flex-shrink: 0;
-                            box-shadow: 0 0 0 2px rgba(0,0,0,.12);
                         }
-                        .colab-semaforo.sem-verde  { background: #d1fadf; color: #0a6640; }
-                        .colab-semaforo.sem-verde  .sem-dot { background: #12b76a; box-shadow: 0 0 6px #12b76a88; }
-                        .colab-semaforo.sem-amarillo { background: #fef9c3; color: #854d0e; }
-                        .colab-semaforo.sem-amarillo .sem-dot { background: #eab308; box-shadow: 0 0 6px #eab30888; }
-                        .colab-semaforo.sem-rojo   { background: #fee2e2; color: #991b1b; }
-                        .colab-semaforo.sem-rojo   .sem-dot { background: #ef4444; box-shadow: 0 0 6px #ef444488; }
-                        .colab-semaforo.sem-sm { font-size: .72rem; padding: .15rem .4rem; }
+                        /* Verde */
+                        .colab-semaforo.sem-verde {
+                            background: linear-gradient(135deg,#e6faf0 0%,#d1fadf 100%);
+                            color: #0a6640;
+                            border-color: #6ee7b7;
+                        }
+                        .colab-semaforo.sem-verde .sem-dot {
+                            background: #12b76a;
+                            box-shadow: 0 0 0 2.5px #a7f3d0;
+                        }
+                        /* Amarillo */
+                        .colab-semaforo.sem-amarillo {
+                            background: linear-gradient(135deg,#fffbeb 0%,#fef3c7 100%);
+                            color: #92400e;
+                            border-color: #fcd34d;
+                        }
+                        .colab-semaforo.sem-amarillo .sem-dot {
+                            background: #f59e0b;
+                            box-shadow: 0 0 0 2.5px #fde68a;
+                        }
+                        /* Rojo */
+                        .colab-semaforo.sem-rojo {
+                            background: linear-gradient(135deg,#fff1f2 0%,#fee2e2 100%);
+                            color: #991b1b;
+                            border-color: #fca5a5;
+                        }
+                        .colab-semaforo.sem-rojo .sem-dot {
+                            background: #ef4444;
+                            box-shadow: 0 0 0 2.5px #fecaca;
+                            animation: semPulse 1.6s ease-in-out infinite;
+                        }
+                        /* Tamaño pequeño (autocomplete / tabla) */
+                        .colab-semaforo.sem-sm {
+                            font-size: .68rem;
+                            padding: .18rem .5rem .18rem .35rem;
+                            border-radius: 4px;
+                            letter-spacing: .02em;
+                        }
                         .colab-semaforo.sem-sm .sem-dot { width: 7px; height: 7px; }
                         .ca-list { list-style: none; padding: 0; margin: 0 0 .75rem 0; }
                         .ca-item {
@@ -7579,7 +7619,8 @@ FF
                             const n    = raw.split(/\n/).map(l => l.trim()).filter(Boolean).length;
                             const { cls, label } = semClassify(n);
                             const szCls = sm ? ' sem-sm' : '';
-                            return `<span class="colab-semaforo ${cls}${szCls}" title="${label}"><span class="sem-dot"></span>${label}</span>`;
+                            const icon  = sm ? '' : '<i class="fas fa-shield-alt me-1" style="font-size:.7em;opacity:.75"></i>';
+                            return `<span class="colab-semaforo ${cls}${szCls}" title="${label}"><span class="sem-dot"></span>${icon}${label}</span>`;
                         }
 
                         async function colabAutocompletar(query) {
@@ -8153,7 +8194,7 @@ FF
                             const ta = document.getElementById('ce-amonestaciones');
                             const n  = ta ? String(ta.value || '').split(/\n/).map(l => l.trim()).filter(Boolean).length : 0;
                             const { cls, label } = semClassify(n);
-                            const html = `<span class="colab-semaforo ${cls}"><span class="sem-dot"></span>${label}</span>`;
+                            const html = `<span class="colab-semaforo ${cls}"><span class="sem-dot"></span><i class="fas fa-shield-alt me-1" style="font-size:.7em;opacity:.75"></i>${label}</span>`;
                             const badge = document.getElementById('cedit-sem-badge-live');
                             if (badge) badge.innerHTML = html;
                             const cnt = document.getElementById('cedit-sem-count');
