@@ -9511,7 +9511,7 @@ FF
                                 .firma { font-size: .72rem; color: #94a3b8; }
                                 .firma strong { display: block; color: #0d1a3a; font-size: .78rem; }
                                 @media print { body { background: #fff; } .card { box-shadow: none; } }
-                            </style></head><body>
+                            </style></head><body onload="window.print(); window.onafterprint=window.close">
                             <div class="card">
                                 <div class="hero">
                                     <img src="${window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '')}/images/Aviones pax.jpeg" alt="AIFA">
@@ -9531,7 +9531,6 @@ FF
                                     <div class="firma"><strong>Dirección de Recursos Humanos</strong>Aeropuerto Internacional Felipe Ángeles (AIFA)</div>
                                 </div>
                             </div>
-                            <script>window.onload=()=>{ window.print(); window.onafterprint=()=>window.close(); }<\/script>
                             </body></html>`;
                             const w = window.open('', '_blank', 'width=720,height=600');
                             if (w) { w.document.write(html); w.document.close(); }
