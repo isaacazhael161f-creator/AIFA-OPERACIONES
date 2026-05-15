@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -9509,9 +9509,9 @@ FF
                             const bg = document.getElementById('bday-card-modal-bg');
                             if (bg) bg.classList.add('open');
 
-                            // Pre-renderizar imagen en background para que los botones sean instantáneos
+                            // Pre-renderizar imagen cuando el navegador esté libre (no bloquea la UI)
                             if (typeof html2canvas !== 'undefined') {
-                                setTimeout(async function() {
+                                const _prerender = async function() {
                                     try {
                                         const modal2 = document.getElementById('bday-card-modal');
                                         if (!modal2) return;
@@ -9522,11 +9522,18 @@ FF
                                         wrap2.style.cssText = 'position:fixed;left:-9999px;top:0;width:680px;background:#fff;z-index:-1;';
                                         wrap2.appendChild(clone2);
                                         document.body.appendChild(wrap2);
-                                        const cv = await html2canvas(wrap2, { scale:2, useCORS:true, allowTaint:true, logging:false, backgroundColor:'#ffffff' });
+                                        // scale:1.5 es suficiente calidad y ~2x más rápido que scale:2
+                                        const cv = await html2canvas(wrap2, { scale:1.5, useCORS:true, allowTaint:true, logging:false, backgroundColor:'#ffffff' });
                                         document.body.removeChild(wrap2);
                                         cv.toBlob(function(b) { window._bdayBlob = b; }, 'image/png');
                                     } catch(e) { /* silencioso */ }
-                                }, 80); // pequeño delay para que el modal termine de renderizar
+                                };
+                                // requestIdleCallback: corre solo cuando el browser no tiene nada más que hacer
+                                if (typeof requestIdleCallback !== 'undefined') {
+                                    requestIdleCallback(_prerender, { timeout: 3000 });
+                                } else {
+                                    setTimeout(_prerender, 600); // fallback Safari: esperar a que la UI se asiente
+                                }
                             }
                         };
 
