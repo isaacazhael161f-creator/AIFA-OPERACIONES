@@ -5111,8 +5111,13 @@ FF
                         .ctbl-af-tag button:hover { opacity:1; }
                         .ctbl-table tbody tr { border-bottom: 1px solid #edf0f8; transition: background .12s; cursor: pointer; }
                         .ctbl-table tbody tr:hover { background: #edf4ff; }
+                        .ctbl-table tbody tr.ctbl-rojo   { background: #fff5f5; }
+                        .ctbl-table tbody tr.ctbl-rojo:hover   { background: #fee2e2; }
+                        .ctbl-table tbody tr.ctbl-amarillo { background: #fffef5; }
+                        .ctbl-table tbody tr.ctbl-amarillo:hover { background: #fef9c3; }
                         .ctbl-table tbody td { padding: .38rem .8rem; color: #1a2540; max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
                         .ctbl-table tbody td:first-child { font-weight: 700; color: #1565c0; }
+                        .ctbl-table td.ctbl-td-conducta { white-space: nowrap; padding: .28rem .6rem; }
                         .ctbl-count-badge {
                             background: #e8eef8; color: #1558d6;
                             border-radius: 999px; padding: .12rem .65rem;
@@ -8737,7 +8742,7 @@ FF
                             const thead = document.getElementById('ctbl-thead');
                             if (!thead || !ctblCols.length) return;
                             const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-                            thead.innerHTML = `<tr>${ctblCols.map(col => {
+                            const thCols = ctblCols.map(col => {
                                 const label = CTBL_COL_LABELS[col] || col;
                                 const hasF  = _ctblColFilters[col]?.size > 0;
                                 return `<th>
@@ -8749,7 +8754,11 @@ FF
                                             onclick="event.stopPropagation();ctblAbrirFiltroCol('${esc(col)}',event)"
                                             title="Filtrar por ${esc(label)}">${hasF?'\u25bc&#xFE0E;':'\u25bc'}</button>
                                 </th>`;
-                            }).join('')}<th style="white-space:nowrap">Conducta</th></tr>`;
+                            });
+                            const conductaTh = `<th style="white-space:nowrap"><div class="ctbl-th-inner"><i class="fas fa-shield-alt me-1" style="opacity:.6"></i>Conducta</div></th>`;
+                            const nombreIdx = ctblCols.indexOf('nombre');
+                            thCols.splice(nombreIdx >= 0 ? nombreIdx + 1 : 1, 0, conductaTh);
+                            thead.innerHTML = `<tr>${thCols.join('')}</tr>`;
                         }
 
                         /** Abrir modal y cargar tabla */
@@ -9016,13 +9025,19 @@ FF
 
                             const html = ctblData.map((r, i) => {
                                 const nombreVal = esc(String(r[nombreKey] ?? '—'));
-                                const tds = ctblCols.map(col => {
+                                const raw = String(gc(r,'amonestaciones') ?? r['amonestaciones'] ?? '').trim();
+                                const n   = raw ? raw.split(/\n/).map(l => l.trim()).filter(Boolean).length : 0;
+                                const { cls } = semClassify(n);
+                                const rowCls  = cls === 'sem-rojo' ? ' class="ctbl-rojo"' : cls === 'sem-amarillo' ? ' class="ctbl-amarillo"' : '';
+                                const allTds  = ctblCols.map(col => {
                                     const v = String(r[col] ?? '').trim() || '—';
                                     const style = CTBL_WRAP_COLS.has(col) ? ' style="max-width:200px;white-space:normal"' : '';
                                     return `<td${style}>${esc(v)}</td>`;
-                                }).join('');
-                                const semTd = `<td style="white-space:nowrap">${colabSemaforoHtml(r, true)}</td>`;
-                                return `<tr onclick="colabTablaVerFicha(${i})" title="Ver ficha de ${nombreVal}">${tds}${semTd}</tr>`;
+                                });
+                                const semTd = `<td class="ctbl-td-conducta">${colabSemaforoHtml(r, true)}</td>`;
+                                const nombreIdx = ctblCols.indexOf('nombre');
+                                allTds.splice(nombreIdx >= 0 ? nombreIdx + 1 : 1, 0, semTd);
+                                return `<tr${rowCls} onclick="colabTablaVerFicha(${i})" title="Ver ficha de ${nombreVal}">${allTds.join('')}</tr>`;
                             }).join('');
                             if (tbody) tbody.innerHTML = html;
                         }
