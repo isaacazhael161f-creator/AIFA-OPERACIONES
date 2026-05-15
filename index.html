@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -4553,6 +4553,8 @@ FF
                             flex-shrink: 0;
                         }
                         .cd-kpi-total .cd-kpi-icon { background: #e8f0fe; color: #1558d6; }
+                        .cd-kpi-masc  .cd-kpi-icon { background: #e3f2fd; color: #1565c0; }
+                        .cd-kpi-fem   .cd-kpi-icon { background: #fce4ec; color: #c2185b; }
                         .cd-kpi-dir   .cd-kpi-icon { background: #e8f5e9; color: #2e7d32; }
                         .cd-kpi-sub   .cd-kpi-icon { background: #fff3e0; color: #e65100; }
                         .cd-kpi-prof  .cd-kpi-icon { background: #f3e5f5; color: #7b1fa2; }
@@ -5787,6 +5789,20 @@ FF
                                             <div>
                                                 <div class="cd-kpi-val" id="cd-kpi-total">—</div>
                                                 <div class="cd-kpi-label">Total Colaboradores</div>
+                                            </div>
+                                        </div>
+                                        <div class="cd-kpi cd-kpi-masc">
+                                            <div class="cd-kpi-icon"><i class="fas fa-mars"></i></div>
+                                            <div>
+                                                <div class="cd-kpi-val" id="cd-kpi-masc">—</div>
+                                                <div class="cd-kpi-label">Hombres</div>
+                                            </div>
+                                        </div>
+                                        <div class="cd-kpi cd-kpi-fem">
+                                            <div class="cd-kpi-icon"><i class="fas fa-venus"></i></div>
+                                            <div>
+                                                <div class="cd-kpi-val" id="cd-kpi-fem">—</div>
+                                                <div class="cd-kpi-label">Mujeres</div>
                                             </div>
                                         </div>
                                         <div class="cd-kpi cd-kpi-dir">
@@ -7568,6 +7584,14 @@ FF
                             // KPIs
                             const setKpi = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
                             setKpi('cd-kpi-total',   total);
+
+                            // Conteo de genero (campo 'sexo': M/H/Masculino/Hombre o F/M/Femenino/Mujer)
+                            const _sexNorm = v => { const s = (v||'').toString().trim().toUpperCase(); if (/^(M|H|MASC|HOMBRE|MASCULINO)/.test(s)) return 'H'; if (/^(F|MUJ|FEM|MUJER|FEMENINO)/.test(s)) return 'M'; return '?'; };
+                            const masc = data.filter(r => _sexNorm(gc(r,'sexo')) === 'H').length;
+                            const fem  = data.filter(r => _sexNorm(gc(r,'sexo')) === 'M').length;
+                            setKpi('cd-kpi-masc', masc || '—');
+                            setKpi('cd-kpi-fem',  fem  || '—');
+
                             setKpi('cd-kpi-dirs',    byDir.filter(([k]) => k !== '(Sin dato)').length);
                             setKpi('cd-kpi-subdirs', bySubDir.filter(([k]) => k !== '(Sin dato)').length);
                             setKpi('cd-kpi-profs',   byProf.filter(([k]) => k !== '(Sin dato)').length);
