@@ -9496,62 +9496,80 @@ FF
 
                             // Guardar índice para imprimir
                             window._bdayActiveIdx = idx;
+                            window._bdayBlob = null; // resetear caché anterior
 
                             const bg = document.getElementById('bday-card-modal-bg');
                             if (bg) bg.classList.add('open');
+
+                            // Pre-renderizar imagen en background para que los botones sean instantáneos
+                            if (typeof html2canvas !== 'undefined') {
+                                setTimeout(async function() {
+                                    try {
+                                        const modal2 = document.getElementById('bday-card-modal');
+                                        if (!modal2) return;
+                                        const clone2 = modal2.cloneNode(true);
+                                        const fc2 = clone2.querySelector('.bday-card-footer');
+                                        if (fc2) fc2.style.display = 'none';
+                                        const wrap2 = document.createElement('div');
+                                        wrap2.style.cssText = 'position:fixed;left:-9999px;top:0;width:680px;background:#fff;z-index:-1;';
+                                        wrap2.appendChild(clone2);
+                                        document.body.appendChild(wrap2);
+                                        const cv = await html2canvas(wrap2, { scale:2, useCORS:true, allowTaint:true, logging:false, backgroundColor:'#ffffff' });
+                                        document.body.removeChild(wrap2);
+                                        cv.toBlob(function(b) { window._bdayBlob = b; }, 'image/png');
+                                    } catch(e) { /* silencioso */ }
+                                }, 80); // pequeño delay para que el modal termine de renderizar
+                            }
                         };
 
                         window.bdayCardCerrar = function(evt) {
                             if (evt && evt.target !== document.getElementById('bday-card-modal-bg')) return;
                             const bg = document.getElementById('bday-card-modal-bg');
                             if (bg) bg.classList.remove('open');
+                            window._bdayBlob = null;
                         };
 
                         window.bdayCopiarImagen = async function() {
-                            if (typeof html2canvas === 'undefined') {
-                                alert('La librer\u00eda de imagen no est\u00e1 disponible.');
+                            const btn = document.getElementById('bday-btn-copy');
+                            const nombre = (document.getElementById('bday-modal-nombre')?.textContent || 'colaborador').trim();
+
+                            async function _doClipboard(blob) {
+                                try {
+                                    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                                    if (btn) { btn.innerHTML = '<i class="fas fa-check"></i> \u00a1Copiada!'; }
+                                    setTimeout(function() {
+                                        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-copy"></i> Copiar imagen'; }
+                                    }, 2200);
+                                } catch(clipErr) {
+                                    const a = document.createElement('a');
+                                    a.href = URL.createObjectURL(blob);
+                                    a.download = 'Feliz_Cumpleanios_' + nombre.replace(/\s+/g,'_') + '.png';
+                                    a.click();
+                                    alert('Tu navegador no permite copiar al portapapeles. La imagen fue descargada; \u00fabrela y c\u00f3piala desde tu galer\u00eda.');
+                                    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-copy"></i> Copiar imagen'; }
+                                }
+                            }
+
+                            // Usar blob precargado si está listo
+                            if (window._bdayBlob) {
+                                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Copiando\u2026'; }
+                                await _doClipboard(window._bdayBlob);
                                 return;
                             }
-                            const btn = document.getElementById('bday-btn-copy');
-                            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Copiando\u2026'; }
 
+                            // Fallback: renderizar ahora
+                            if (typeof html2canvas === 'undefined') { alert('La librer\u00eda de imagen no est\u00e1 disponible.'); return; }
+                            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Copiando\u2026'; }
                             const modal = document.getElementById('bday-card-modal');
                             const clone = modal.cloneNode(true);
-                            const footerClone = clone.querySelector('.bday-card-footer');
-                            if (footerClone) footerClone.style.display = 'none';
-
+                            const fc = clone.querySelector('.bday-card-footer'); if (fc) fc.style.display='none';
                             const wrap = document.createElement('div');
                             wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:680px;background:#fff;z-index:-1;';
-                            wrap.appendChild(clone);
-                            document.body.appendChild(wrap);
-
+                            wrap.appendChild(clone); document.body.appendChild(wrap);
                             try {
-                                const canvas = await html2canvas(wrap, {
-                                    scale: 2, useCORS: true, allowTaint: true, logging: false, backgroundColor: '#ffffff'
-                                });
+                                const cv = await html2canvas(wrap, { scale:2, useCORS:true, allowTaint:true, logging:false, backgroundColor:'#ffffff' });
                                 document.body.removeChild(wrap);
-
-                                canvas.toBlob(async function(blob) {
-                                    try {
-                                        // Clipboard API (Chrome 76+, Edge, Safari 13.1+)
-                                        await navigator.clipboard.write([
-                                            new ClipboardItem({ 'image/png': blob })
-                                        ]);
-                                        if (btn) { btn.innerHTML = '<i class="fas fa-check"></i> \u00a1Copiada!'; }
-                                        setTimeout(function() {
-                                            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-copy"></i> Copiar imagen'; }
-                                        }, 2200);
-                                    } catch(clipErr) {
-                                        // Fallback: descargar si el navegador no soporta ClipboardItem
-                                        const nombre = (document.getElementById('bday-modal-nombre')?.textContent || 'colaborador').trim();
-                                        const a = document.createElement('a');
-                                        a.href = URL.createObjectURL(blob);
-                                        a.download = 'Feliz_Cumpleanios_' + nombre.replace(/\s+/g,'_') + '.png';
-                                        a.click();
-                                        alert('Tu navegador no permite copiar al portapapeles. La imagen fue descargada; \u00fabrela y c\u00f3piala desde tu galer\u00eda.');
-                                        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-copy"></i> Copiar imagen'; }
-                                    }
-                                }, 'image/png');
+                                cv.toBlob(async function(blob) { window._bdayBlob = blob; await _doClipboard(blob); }, 'image/png');
                             } catch(err) {
                                 if (document.body.contains(wrap)) document.body.removeChild(wrap);
                                 alert('No se pudo generar la imagen.');
@@ -9560,70 +9578,51 @@ FF
                         };
 
                         window.bdayCompartirWA = async function() {
-                            if (typeof html2canvas === 'undefined') {
-                                alert('La librería de imagen no está disponible. Intenta de nuevo en unos segundos.');
-                                return;
-                            }
                             const btn = document.getElementById('bday-btn-wa');
-                            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando…'; }
-
                             const nombre = (document.getElementById('bday-modal-nombre')?.textContent || 'colaborador').trim();
                             const fileName = 'Feliz_Cumpleanios_' + nombre.replace(/\s+/g, '_') + '.png';
 
-                            // Clonar modal sin footer de botones
+                            async function _doShare(blob) {
+                                const file = new File([blob], fileName, { type: 'image/png' });
+                                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                                    try {
+                                        await navigator.share({ files: [file], title: '\u00a1Feliz Cumplea\u00f1os! \u2014 AIFA', text: '\u00a1Feliz Cumplea\u00f1os, ' + nombre + '! \uD83C\uDF82' });
+                                    } catch(shareErr) {
+                                        if (shareErr.name !== 'AbortError') {
+                                            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fileName; a.click();
+                                        }
+                                    }
+                                } else {
+                                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fileName; a.click();
+                                    setTimeout(function() { alert('Imagen descargada. Para compartirla en WhatsApp Web, arrastra el archivo a una conversaci\u00f3n.'); }, 800);
+                                }
+                                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fab fa-whatsapp"></i> Compartir'; }
+                            }
+
+                            // Usar blob precargado si está listo
+                            if (window._bdayBlob) {
+                                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Abriendo\u2026'; }
+                                await _doShare(window._bdayBlob);
+                                return;
+                            }
+
+                            // Fallback: renderizar ahora
+                            if (typeof html2canvas === 'undefined') { alert('La librer\u00eda de imagen no est\u00e1 disponible.'); return; }
+                            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando\u2026'; }
                             const modal = document.getElementById('bday-card-modal');
                             const clone = modal.cloneNode(true);
-                            const footerClone = clone.querySelector('.bday-card-footer');
-                            if (footerClone) footerClone.style.display = 'none';
-
+                            const fc = clone.querySelector('.bday-card-footer'); if (fc) fc.style.display='none';
                             const wrap = document.createElement('div');
                             wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:680px;background:#fff;z-index:-1;';
-                            wrap.appendChild(clone);
-                            document.body.appendChild(wrap);
-
+                            wrap.appendChild(clone); document.body.appendChild(wrap);
                             try {
-                                const canvas = await html2canvas(wrap, {
-                                    scale: 2, useCORS: true, allowTaint: true, logging: false, backgroundColor: '#ffffff'
-                                });
+                                const cv = await html2canvas(wrap, { scale:2, useCORS:true, allowTaint:true, logging:false, backgroundColor:'#ffffff' });
                                 document.body.removeChild(wrap);
-
-                                canvas.toBlob(async function(blob) {
-                                    const file = new File([blob], fileName, { type: 'image/png' });
-
-                                    // Web Share API con archivo (funciona en móvil → abre WhatsApp, etc.)
-                                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                                        try {
-                                            await navigator.share({
-                                                files: [file],
-                                                title: '\u00a1Feliz Cumplea\u00f1os! \u2014 AIFA',
-                                                text: '\u00a1Feliz Cumplea\u00f1os, ' + nombre + '! \uD83C\uDF82'
-                                            });
-                                        } catch(shareErr) {
-                                            if (shareErr.name !== 'AbortError') {
-                                                // Fallback: descargar imagen
-                                                const a = document.createElement('a');
-                                                a.href = URL.createObjectURL(blob);
-                                                a.download = fileName;
-                                                a.click();
-                                            }
-                                        }
-                                    } else {
-                                        // Desktop: descargar imagen para enviar manualmente por WhatsApp
-                                        const a = document.createElement('a');
-                                        a.href = URL.createObjectURL(blob);
-                                        a.download = fileName;
-                                        a.click();
-                                        setTimeout(function() {
-                                            alert('Imagen descargada. Para compartirla en WhatsApp Web, arrastra el archivo a una conversación.');
-                                        }, 800);
-                                    }
-
-                                    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fab fa-whatsapp"></i> Compartir imagen'; }
-                                }, 'image/png');
+                                cv.toBlob(async function(blob) { window._bdayBlob = blob; await _doShare(blob); }, 'image/png');
                             } catch(err) {
-                                document.body.removeChild(wrap);
+                                if (document.body.contains(wrap)) document.body.removeChild(wrap);
                                 alert('No se pudo generar la imagen. Intenta de nuevo.');
-                                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fab fa-whatsapp"></i> Compartir imagen'; }
+                                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fab fa-whatsapp"></i> Compartir'; }
                             }
                         };
 
