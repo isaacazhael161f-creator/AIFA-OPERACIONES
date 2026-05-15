@@ -4653,6 +4653,231 @@ FF
                             font-weight: 700; color: var(--col-navy);
                             font-size: .78rem;
                         }
+
+                        /* ══════════ PRÓXIMOS CUMPLEAÑOS ══════════ */
+                        .cd-bday-panel {
+                            background: linear-gradient(135deg,#0d1a3a 0%,#0d2152 60%,#1a3a70 100%);
+                            border-radius: 18px;
+                            padding: 1.5rem 1.75rem 1.2rem;
+                            margin: 1.5rem 0 0;
+                            position: relative;
+                            overflow: hidden;
+                        }
+                        .cd-bday-panel::before {
+                            content: '';
+                            position: absolute;
+                            inset: 0;
+                            background: url('images/Aviones pax.jpeg') center 65% / cover no-repeat;
+                            opacity: .08;
+                            pointer-events: none;
+                        }
+                        .cd-bday-header {
+                            display: flex;
+                            align-items: center;
+                            gap: .75rem;
+                            margin-bottom: 1.1rem;
+                        }
+                        .cd-bday-header-title {
+                            font-size: 1rem;
+                            font-weight: 800;
+                            color: #fff;
+                            letter-spacing: .04em;
+                            text-transform: uppercase;
+                        }
+                        .cd-bday-header-sub {
+                            font-size: .74rem;
+                            color: rgba(255,255,255,.55);
+                            margin-left: auto;
+                        }
+                        .cd-bday-icon-wrap {
+                            width: 40px; height: 40px;
+                            background: linear-gradient(135deg,#f59e0b,#fbbf24);
+                            border-radius: 12px;
+                            display: flex; align-items: center; justify-content: center;
+                            font-size: 1.2rem; flex-shrink: 0;
+                            box-shadow: 0 4px 12px rgba(245,158,11,.4);
+                        }
+                        .cd-bday-list {
+                            display: flex;
+                            flex-wrap: wrap;
+                            gap: .75rem;
+                        }
+                        .cd-bday-card {
+                            background: rgba(255,255,255,.07);
+                            border: 1px solid rgba(255,255,255,.13);
+                            border-radius: 12px;
+                            padding: .7rem 1rem;
+                            display: flex;
+                            align-items: center;
+                            gap: .9rem;
+                            min-width: 220px;
+                            flex: 1 1 220px;
+                            cursor: pointer;
+                            transition: background .15s, transform .15s, box-shadow .15s;
+                            position: relative;
+                        }
+                        .cd-bday-card:hover {
+                            background: rgba(255,255,255,.14);
+                            transform: translateY(-2px);
+                            box-shadow: 0 6px 20px rgba(0,0,0,.3);
+                        }
+                        .cd-bday-card.bday-hoy { border-color: #fbbf24; background: rgba(251,191,36,.12); }
+                        .cd-bday-avatar {
+                            width: 44px; height: 44px; border-radius: 50%;
+                            background: linear-gradient(135deg,#1558d6,#4f8ef7);
+                            display: flex; align-items: center; justify-content: center;
+                            font-size: 1rem; font-weight: 800; color: #fff;
+                            flex-shrink: 0;
+                            overflow: hidden;
+                            border: 2px solid rgba(255,255,255,.2);
+                        }
+                        .cd-bday-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+                        .cd-bday-info { flex: 1; min-width: 0; }
+                        .cd-bday-name {
+                            font-size: .82rem; font-weight: 700; color: #fff;
+                            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+                        }
+                        .cd-bday-puesto {
+                            font-size: .7rem; color: rgba(255,255,255,.55);
+                            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+                        }
+                        .cd-bday-date {
+                            font-size: .7rem; font-weight: 700;
+                            color: #fbbf24;
+                            white-space: nowrap;
+                        }
+                        .cd-bday-dias {
+                            position: absolute; top: .45rem; right: .6rem;
+                            font-size: .63rem; font-weight: 700;
+                            padding: .1rem .4rem; border-radius: 20px;
+                            background: rgba(255,255,255,.12); color: rgba(255,255,255,.7);
+                        }
+                        .cd-bday-dias.hoy { background: #fbbf24; color: #1a1a1a; }
+                        .cd-bday-empty { color: rgba(255,255,255,.5); font-size: .82rem; text-align: center; padding: 1rem 0; }
+                        /* ── Boton felicitar ── */
+                        .cd-bday-felicitar {
+                            margin-top: auto;
+                            display: flex;
+                            align-items: center;
+                            gap: .3rem;
+                            font-size: .67rem;
+                            font-weight: 700;
+                            color: #fbbf24;
+                            border: 1px solid rgba(251,191,36,.4);
+                            border-radius: 6px;
+                            padding: .18rem .5rem;
+                            cursor: pointer;
+                            background: transparent;
+                            transition: background .12s;
+                        }
+                        .cd-bday-felicitar:hover { background: rgba(251,191,36,.15); }
+
+                        /* ══════════ MODAL TARJETA DE FELICITACIÓN ══════════ */
+                        #bday-card-modal-bg {
+                            display: none; position: fixed; inset: 0;
+                            background: rgba(0,0,0,.65); z-index: 9999999;
+                            align-items: center; justify-content: center;
+                            backdrop-filter: blur(4px);
+                        }
+                        #bday-card-modal-bg.open { display: flex; }
+                        #bday-card-modal {
+                            width: min(680px, 96vw);
+                            background: #fff;
+                            border-radius: 20px;
+                            overflow: hidden;
+                            box-shadow: 0 30px 80px rgba(0,0,0,.5);
+                            animation: bdaySlideIn .35s cubic-bezier(.175,.885,.32,1.275);
+                        }
+                        @keyframes bdaySlideIn {
+                            from { opacity: 0; transform: scale(.85) translateY(30px); }
+                            to   { opacity: 1; transform: scale(1) translateY(0); }
+                        }
+                        .bday-card-hero {
+                            position: relative;
+                            height: 220px;
+                            overflow: hidden;
+                        }
+                        .bday-card-hero-img {
+                            width: 100%; height: 100%;
+                            object-fit: cover;
+                            object-position: center 60%;
+                        }
+                        .bday-card-hero-overlay {
+                            position: absolute; inset: 0;
+                            background: linear-gradient(to bottom,
+                                rgba(7,22,60,.55) 0%,
+                                rgba(7,22,60,.3) 40%,
+                                rgba(7,22,60,.75) 100%);
+                        }
+                        .bday-card-hero-content {
+                            position: absolute; inset: 0;
+                            display: flex; flex-direction: column;
+                            align-items: center; justify-content: space-between;
+                            padding: 1.25rem 1.5rem 1rem;
+                        }
+                        .bday-card-logo {
+                            height: 38px;
+                            filter: brightness(0) invert(1) drop-shadow(0 2px 6px rgba(0,0,0,.4));
+                        }
+                        .bday-card-title-block { text-align: center; }
+                        .bday-card-emoji { font-size: 2.4rem; line-height: 1; margin-bottom: .2rem; }
+                        .bday-card-title {
+                            font-size: 1.4rem; font-weight: 900; color: #fff;
+                            letter-spacing: .05em; text-transform: uppercase;
+                            text-shadow: 0 2px 12px rgba(0,0,0,.5);
+                        }
+                        .bday-card-subtitle {
+                            font-size: .75rem; color: rgba(255,255,255,.75);
+                            letter-spacing: .08em; text-transform: uppercase;
+                        }
+                        .bday-card-body {
+                            padding: 1.5rem 2rem 1.25rem;
+                            text-align: center;
+                        }
+                        .bday-card-name {
+                            font-size: 1.55rem; font-weight: 900;
+                            color: #0d1a3a; line-height: 1.15;
+                            margin-bottom: .25rem;
+                        }
+                        .bday-card-puesto {
+                            font-size: .82rem; color: #64748b; font-weight: 500;
+                            margin-bottom: 1rem;
+                        }
+                        .bday-card-msg {
+                            font-size: .92rem; color: #334155; line-height: 1.6;
+                            background: #f8faff;
+                            border-radius: 10px;
+                            padding: .85rem 1.1rem;
+                            border-left: 4px solid #fbbf24;
+                            text-align: left;
+                            margin-bottom: 1rem;
+                        }
+                        .bday-card-footer {
+                            display: flex; align-items: center; justify-content: space-between;
+                            gap: .75rem;
+                            padding: .8rem 2rem 1.2rem;
+                            border-top: 1px solid #eef0f7;
+                        }
+                        .bday-card-firma {
+                            font-size: .72rem; color: #94a3b8; line-height: 1.4;
+                        }
+                        .bday-card-firma strong { display: block; color: #0d1a3a; font-size: .78rem; }
+                        .bday-card-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+                        .bday-btn-close {
+                            background: #f1f5f9; color: #475569;
+                            border: none; border-radius: 8px;
+                            padding: .45rem 1rem; font-size: .8rem; font-weight: 600;
+                            cursor: pointer; transition: background .12s;
+                        }
+                        .bday-btn-close:hover { background: #e2e8f0; }
+                        .bday-btn-print {
+                            background: linear-gradient(135deg,#0d2152,#1558d6);
+                            color: #fff; border: none; border-radius: 8px;
+                            padding: .45rem 1.1rem; font-size: .8rem; font-weight: 700;
+                            cursor: pointer; transition: filter .12s;
+                            display: flex; align-items: center; gap: .4rem;
+                        }
+                        .bday-btn-print:hover { filter: brightness(1.1); }
                         /* Fila clickeable en tabla de profesión */
                         .cd-tbl-row.clickable { cursor: pointer; }
                         .cd-tbl-row.clickable:hover { background: #ede7f6; }
@@ -5657,6 +5882,20 @@ FF
                                         </div>
 
                                     </div><!-- /cd-tables-row -->
+
+                                    <!-- ═══════════════ PRÓXIMOS CUMPLEAÑOS ═══════════════ -->
+                                    <div class="cd-bday-panel" id="cd-bday-panel">
+                                        <div class="cd-bday-header">
+                                            <div class="cd-bday-icon-wrap">🎂</div>
+                                            <div>
+                                                <div class="cd-bday-header-title"><i class="fas fa-birthday-cake me-2"></i>Próximos Cumpleaños</div>
+                                            </div>
+                                            <span class="cd-bday-header-sub" id="cd-bday-header-sub">Cargando…</span>
+                                        </div>
+                                        <div class="cd-bday-list" id="cd-bday-list">
+                                            <div class="cd-bday-empty">Cargando…</div>
+                                        </div>
+                                    </div>
                                 </div><!-- /cd-content -->
                             </div><!-- /cd-dash -->
                         </div>
@@ -6597,6 +6836,47 @@ FF
                         </div>
                     </div><!-- /colabTablaModal -->
 
+                    <!-- ══════════════ MODAL TARJETA DE CUMPLEAÑOS ══════════════ -->
+                    <div id="bday-card-modal-bg" onclick="bdayCardCerrar(event)">
+                        <div id="bday-card-modal" onclick="event.stopPropagation()">
+                            <!-- Hero con foto de avión -->
+                            <div class="bday-card-hero">
+                                <img src="images/Aviones pax.jpeg" alt="AIFA" class="bday-card-hero-img">
+                                <div class="bday-card-hero-overlay"></div>
+                                <div class="bday-card-hero-content">
+                                    <img src="images/aifa-logo.png" alt="AIFA" class="bday-card-logo">
+                                    <div class="bday-card-title-block">
+                                        <div class="bday-card-emoji">🎂</div>
+                                        <div class="bday-card-title">¡Feliz Cumpleaños!</div>
+                                        <div class="bday-card-subtitle">Aeropuerto Internacional Felipe Ángeles</div>
+                                    </div>
+                                    <div></div>
+                                </div>
+                            </div>
+                            <!-- Cuerpo -->
+                            <div class="bday-card-body">
+                                <div class="bday-card-name" id="bday-modal-nombre">—</div>
+                                <div class="bday-card-puesto" id="bday-modal-puesto">—</div>
+                                <div class="bday-card-msg" id="bday-modal-msg">
+                                    En este día especial, el equipo del AIFA te desea un maravilloso cumpleaños lleno de éxitos y satisfacciones. Tu dedicación y compromiso son parte fundamental de nuestra operación. ¡Que este nuevo año de vida esté lleno de vuelos exitosos!
+                                </div>
+                            </div>
+                            <!-- Footer -->
+                            <div class="bday-card-footer">
+                                <div class="bday-card-firma">
+                                    <strong>Dirección de Recursos Humanos</strong>
+                                    Aeropuerto Internacional Felipe Ángeles (AIFA)
+                                </div>
+                                <div class="bday-card-actions">
+                                    <button class="bday-btn-print" onclick="bdayCardImprimir()">
+                                        <i class="fas fa-print"></i> Imprimir tarjeta
+                                    </button>
+                                    <button class="bday-btn-close" onclick="bdayCardCerrar()">Cerrar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Popup de filtro por columna (fuera del modal para z-index correcto) -->
                     <div id="ctbl-cfp" class="ctbl-cfp" style="display:none" onclick="event.stopPropagation()">
                         <div class="ctbl-cfp-head">
@@ -7343,6 +7623,93 @@ FF
                             renderClickableTable('cd-tbl-gerencia',     byGer,    'gerencia');
                             renderClickableTable('cd-tbl-coordinacion', byCoord,  'coordinacion');
                             renderClickableTable('cd-tbl-nivel',        byNivel,  'nivel');
+
+                            /* ══════════ PRÓXIMOS CUMPLEAÑOS ══════════ */
+                            (function renderCumpleanios() {
+                                const listEl = document.getElementById('cd-bday-list');
+                                const subEl  = document.getElementById('cd-bday-header-sub');
+                                if (!listEl) return;
+
+                                const MESES_CORTO = ['Ene','Feb','Mar','Abr','May','Jun',
+                                                     'Jul','Ago','Sep','Oct','Nov','Dic'];
+
+                                // Parsear fecha de onomastico → { dia, mes } (0-indexed mes)
+                                function parseFechaOnom(raw) {
+                                    if (!raw) return null;
+                                    const s = String(raw).trim();
+                                    // YYYY-MM-DD o YYYY/MM/DD
+                                    const iso = s.match(/^(\d{4})[\-\/](\d{1,2})[\-\/](\d{1,2})/);
+                                    if (iso) return { dia: +iso[3], mes: +iso[2] - 1 };
+                                    // DD/MM/YYYY o DD-MM-YYYY
+                                    const dmy = s.match(/^(\d{1,2})[\-\/](\d{1,2})[\-\/](\d{4})/);
+                                    if (dmy) return { dia: +dmy[1], mes: +dmy[2] - 1 };
+                                    return null;
+                                }
+
+                                const hoy = new Date();
+                                const DIAS_RANGO = 30;
+
+                                // Calcular días hasta próximo cumpleaños desde hoy
+                                function diasHasta(dia, mes) {
+                                    const yr = hoy.getFullYear();
+                                    let prox = new Date(yr, mes, dia);
+                                    if (prox < new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()))
+                                        prox = new Date(yr + 1, mes, dia);
+                                    const diff = Math.round((prox - new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())) / 86400000);
+                                    return diff;
+                                }
+
+                                const proximos = [];
+                                data.forEach(r => {
+                                    const onom = gc(r, 'onomastico');
+                                    const f = parseFechaOnom(onom);
+                                    if (!f) return;
+                                    const d = diasHasta(f.dia, f.mes);
+                                    if (d <= DIAS_RANGO) proximos.push({ r, f, d });
+                                });
+
+                                // Ordenar por días restantes
+                                proximos.sort((a, b) => a.d - b.d);
+
+                                if (subEl) subEl.textContent = proximos.length
+                                    ? `${proximos.length} cumpleaños en los próximos ${DIAS_RANGO} días`
+                                    : `Sin cumpleaños en los próximos ${DIAS_RANGO} días`;
+
+                                if (!proximos.length) {
+                                    listEl.innerHTML = '<div class="cd-bday-empty"><i class="fas fa-birthday-cake me-2 opacity-50"></i>No hay cumpleaños próximos en los siguientes 30 días</div>';
+                                    return;
+                                }
+
+                                const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+                                listEl.innerHTML = proximos.map(({ r, f, d }) => {
+                                    const nombre   = val(gc(r,'nombre'))  || '—';
+                                    const puesto   = val(gc(r,'puesto'))  || '';
+                                    const fotoUrl  = val(gc(r,'foto_url')) || '';
+                                    const iniciales = nombre.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+                                    const avatarHtml = fotoUrl
+                                        ? `<img src="${esc(fotoUrl)}" alt="${esc(iniciales)}" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`
+                                          + `<span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:1rem">${esc(iniciales)}</span>`
+                                        : esc(iniciales);
+                                    const fechaStr = `${f.dia} ${MESES_CORTO[f.mes]}`;
+                                    const esHoy    = d === 0;
+                                    const diasLabel = esHoy ? 'HOY 🎉' : d === 1 ? 'Mañana' : `En ${d} días`;
+                                    const cardCls  = esHoy ? ' bday-hoy' : '';
+                                    const numEmpl  = val(gc(r,'num')) || val(gc(r,'num_empleado')) || '';
+                                    return `<div class="cd-bday-card${cardCls}" onclick="bdayAbrirTarjeta(${proximos.indexOf(proximos.find(x=>x.r===r))})">
+                                        <span class="cd-bday-dias${esHoy?' hoy':''}">${diasLabel}</span>
+                                        <div class="cd-bday-avatar">${avatarHtml}</div>
+                                        <div class="cd-bday-info">
+                                            <div class="cd-bday-name">${esc(nombre)}</div>
+                                            <div class="cd-bday-puesto">${esc(puesto)}</div>
+                                            <div class="cd-bday-date"><i class="fas fa-calendar-alt me-1"></i>${fechaStr}</div>
+                                        </div>
+                                    </div>`;
+                                }).join('');
+
+                                // Guardar datos para el modal
+                                window._bdayProximos = proximos;
+                            })();
 
                             /* ── Gráficas Chart.js ── */
                             (function renderColabCharts() {
@@ -9076,6 +9443,98 @@ FF
                             const a    = document.createElement('a');
                             a.href = url; a.download = `colaboradores_${new Date().toISOString().slice(0,10)}.csv`;
                             a.click(); URL.revokeObjectURL(url);
+                        };
+
+                        /* ══════════ MODAL TARJETA DE CUMPLEAÑOS ══════════ */
+                        window.bdayAbrirTarjeta = function(idx) {
+                            const item = (window._bdayProximos || [])[idx];
+                            if (!item) return;
+                            const { r, f, d } = item;
+                            const MESES = ['enero','febrero','marzo','abril','mayo','junio',
+                                           'julio','agosto','septiembre','octubre','noviembre','diciembre'];
+                            const nombre   = (val(gc(r,'nombre'))  || '').trim();
+                            const puesto   = (val(gc(r,'puesto'))  || '').trim();
+                            const direccion= (val(gc(r,'direccion'))|| '').trim();
+                            const fechaStr = `${f.dia} de ${MESES[f.mes]}`;
+                            const esHoy    = d === 0;
+
+                            const nombreEl  = document.getElementById('bday-modal-nombre');
+                            const puestoEl  = document.getElementById('bday-modal-puesto');
+                            const msgEl     = document.getElementById('bday-modal-msg');
+                            if (nombreEl) nombreEl.textContent = nombre;
+                            if (puestoEl) puestoEl.textContent = (puesto ? puesto + (direccion ? ' · ' + direccion : '') : direccion);
+                            if (msgEl) {
+                                const intros = esHoy
+                                    ? ['¡Hoy es tu gran día!', '¡Feliz cumpleaños!', 'En este día tan especial para ti,']
+                                    : ['Con motivo de tu próximo cumpleaños,', `El ${fechaStr} es un día muy especial,`, 'Anticipándonos a tu gran día,'];
+                                const intro = intros[Math.floor(Math.random() * intros.length)];
+                                msgEl.innerHTML = `${intro} todo el equipo del <strong>Aeropuerto Internacional Felipe Ángeles</strong> te desea un maravilloso cumpleaños lleno de logros, bienestar y grandes vuelos por venir. Tu compromiso y dedicación son el motor de nuestra operación. ✈️<br><br><em>¡Que este nuevo año de vida esté lleno de cielos despejados y destinos maravillosos!</em>`;
+                            }
+
+                            // Guardar índice para imprimir
+                            window._bdayActiveIdx = idx;
+
+                            const bg = document.getElementById('bday-card-modal-bg');
+                            if (bg) bg.classList.add('open');
+                        };
+
+                        window.bdayCardCerrar = function(evt) {
+                            if (evt && evt.target !== document.getElementById('bday-card-modal-bg')) return;
+                            const bg = document.getElementById('bday-card-modal-bg');
+                            if (bg) bg.classList.remove('open');
+                        };
+
+                        window.bdayCardImprimir = function() {
+                            const modal = document.getElementById('bday-card-modal');
+                            if (!modal) return;
+                            const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+                            <title>Tarjeta de Cumpleaños — AIFA</title>
+                            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+                            <style>
+                                * { margin: 0; padding: 0; box-sizing: border-box; }
+                                body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f4f8; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+                                .card { width: 680px; background: #fff; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+                                .hero { position: relative; height: 220px; overflow: hidden; }
+                                .hero img { width: 100%; height: 100%; object-fit: cover; object-position: center 60%; }
+                                .overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(7,22,60,.55) 0%, rgba(7,22,60,.3) 40%, rgba(7,22,60,.75) 100%); }
+                                .hcnt { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem 1rem; }
+                                .logo { height: 38px; filter: brightness(0) invert(1); }
+                                .ttl { text-align: center; }
+                                .emoji { font-size: 2.4rem; }
+                                .titulo { font-size: 1.4rem; font-weight: 900; color: #fff; letter-spacing: .05em; text-transform: uppercase; }
+                                .subtitulo { font-size: .75rem; color: rgba(255,255,255,.75); letter-spacing: .08em; text-transform: uppercase; }
+                                .body { padding: 1.5rem 2rem 1.25rem; text-align: center; }
+                                .nombre { font-size: 1.55rem; font-weight: 900; color: #0d1a3a; margin-bottom: .2rem; }
+                                .puesto { font-size: .82rem; color: #64748b; margin-bottom: 1rem; }
+                                .msg { font-size: .9rem; color: #334155; line-height: 1.6; background: #f8faff; border-radius: 10px; padding: .85rem 1.1rem; border-left: 4px solid #fbbf24; text-align: left; }
+                                .footer { display: flex; align-items: center; justify-content: space-between; padding: .8rem 2rem 1.2rem; border-top: 1px solid #eef0f7; }
+                                .firma { font-size: .72rem; color: #94a3b8; }
+                                .firma strong { display: block; color: #0d1a3a; font-size: .78rem; }
+                                @media print { body { background: #fff; } .card { box-shadow: none; } }
+                            </style></head><body>
+                            <div class="card">
+                                <div class="hero">
+                                    <img src="${window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '')}/images/Aviones pax.jpeg" alt="AIFA">
+                                    <div class="overlay"></div>
+                                    <div class="hcnt">
+                                        <img src="${window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '')}/images/aifa-logo.png" alt="AIFA" class="logo">
+                                        <div class="ttl"><div class="emoji">🎂</div><div class="titulo">¡Feliz Cumpleaños!</div><div class="subtitulo">Aeropuerto Internacional Felipe Ángeles</div></div>
+                                        <div></div>
+                                    </div>
+                                </div>
+                                <div class="body">
+                                    <div class="nombre">${document.getElementById('bday-modal-nombre')?.textContent || ''}</div>
+                                    <div class="puesto">${document.getElementById('bday-modal-puesto')?.textContent || ''}</div>
+                                    <div class="msg">${document.getElementById('bday-modal-msg')?.innerHTML || ''}</div>
+                                </div>
+                                <div class="footer">
+                                    <div class="firma"><strong>Dirección de Recursos Humanos</strong>Aeropuerto Internacional Felipe Ángeles (AIFA)</div>
+                                </div>
+                            </div>
+                            <script>window.onload=()=>{ window.print(); window.onafterprint=()=>window.close(); }<\/script>
+                            </body></html>`;
+                            const w = window.open('', '_blank', 'width=720,height=600');
+                            if (w) { w.document.write(html); w.document.close(); }
                         };
 
                         /** Descargar Excel con todos los campos visibles */
