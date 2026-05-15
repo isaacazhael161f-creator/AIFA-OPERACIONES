@@ -6126,25 +6126,54 @@ FF
                                                     <span id="cedit-sem-count" class="fs-4 fw-bold text-dark">0</span>
                                                 </div>
                                             </div>
-                                            <!-- Escala visual -->
-                                            <div class="mb-3">
-                                                <div class="fw-semibold small text-muted mb-2"><i class="fas fa-info-circle me-1"></i>Escala del semáforo</div>
+
+                                            <!-- Configuración global -->
+                                            <div class="mb-3 p-3 rounded-3" style="background:#fff8e1;border:1.5px solid #f9c74f">
+                                                <div class="fw-semibold small mb-2"><i class="fas fa-sliders-h me-1 text-warning"></i>Reglas globales del semáforo <span class="badge bg-warning text-dark ms-1" style="font-size:.7rem">Para todos los colaboradores</span></div>
+                                                <div class="row g-2 align-items-end mb-2">
+                                                    <div class="col-auto">
+                                                        <label class="form-label fw-semibold small mb-1"><span class="colab-semaforo sem-amarillo sem-sm"><span class="sem-dot"></span></span> Amarillo desde</label>
+                                                        <div class="input-group input-group-sm" style="width:140px">
+                                                            <input type="number" min="1" max="99" class="form-control form-control-sm" id="sem-cfg-amarillo" value="1"
+                                                                oninput="this.dataset.dirty=1;semUpdateScalePreview()">
+                                                            <span class="input-group-text">amonest.</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-auto">
+                                                        <label class="form-label fw-semibold small mb-1"><span class="colab-semaforo sem-rojo sem-sm"><span class="sem-dot"></span></span> Rojo desde</label>
+                                                        <div class="input-group input-group-sm" style="width:140px">
+                                                            <input type="number" min="2" max="99" class="form-control form-control-sm" id="sem-cfg-rojo" value="3"
+                                                                oninput="this.dataset.dirty=1;semUpdateScalePreview()">
+                                                            <span class="input-group-text">amonest.</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-auto">
+                                                        <button class="btn btn-sm btn-primary" id="sem-save-btn" onclick="semGuardarReglas()">
+                                                            <i class="fas fa-save me-1"></i>Guardar reglas globales
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div class="small text-muted"><i class="fas fa-info-circle me-1"></i>Los cambios se guardan en este navegador y se aplican a todos los colaboradores al instante.</div>
+                                            </div>
+
+                                            <!-- Escala visual (dinámica) -->
+                                            <div class="mb-2">
+                                                <div class="fw-semibold small text-muted mb-2"><i class="fas fa-eye me-1"></i>Vista previa de la escala</div>
                                                 <div class="d-flex flex-column gap-2">
-                                                    <div class="d-flex align-items-start gap-2 p-2 rounded-2" style="background:#d1fadf">
-                                                        <span class="colab-semaforo sem-verde mt-1"><span class="sem-dot"></span>Sin amonestaciones</span>
-                                                        <div class="small text-success ms-1"><strong>0 amonestaciones</strong> — Conducta ejemplar, sin antecedentes disciplinarios.</div>
+                                                    <div class="d-flex align-items-center gap-2 p-2 rounded-2" style="background:#d1fadf">
+                                                        <span class="colab-semaforo sem-verde"><span class="sem-dot"></span>Sin amonestaciones</span>
+                                                        <span class="small text-success" id="sem-scale-verde">0 amonestaciones</span>
                                                     </div>
-                                                    <div class="d-flex align-items-start gap-2 p-2 rounded-2" style="background:#fef9c3">
-                                                        <span class="colab-semaforo sem-amarillo mt-1"><span class="sem-dot"></span>En observación</span>
-                                                        <div class="small text-warning-emphasis ms-1"><strong>1 – 2 amonestaciones</strong> — Requiere seguimiento y atención preventiva.</div>
+                                                    <div class="d-flex align-items-center gap-2 p-2 rounded-2" style="background:#fef9c3">
+                                                        <span class="colab-semaforo sem-amarillo"><span class="sem-dot"></span>En observación</span>
+                                                        <span class="small text-warning-emphasis" id="sem-scale-amarillo">1 – 2 amonest.</span>
                                                     </div>
-                                                    <div class="d-flex align-items-start gap-2 p-2 rounded-2" style="background:#fee2e2">
-                                                        <span class="colab-semaforo sem-rojo mt-1"><span class="sem-dot"></span>Situación crítica</span>
-                                                        <div class="small text-danger ms-1"><strong>3 o más amonestaciones</strong> — Situación disciplinaria crítica.</div>
+                                                    <div class="d-flex align-items-center gap-2 p-2 rounded-2" style="background:#fee2e2">
+                                                        <span class="colab-semaforo sem-rojo"><span class="sem-dot"></span>Situación crítica</span>
+                                                        <span class="small text-danger" id="sem-scale-rojo">3 o más amonest.</span>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <p class="text-muted small"><i class="fas fa-info-circle me-1"></i>El semáforo se calcula automáticamente según las amonestaciones registradas en la pestaña <strong>Amonest.</strong> No requiere guardado manual para verse en la ficha — se actualiza al guardar.</p>
                                         </div>
 
                                         <!-- TAB: Amonestaciones -->
@@ -7531,13 +7560,24 @@ FF
                          * @param {object} c  fila del colaborador
                          * @param {boolean} sm  true = tamaño pequeño (para listas)
                          */
+                        /* ── Semáforo: umbrales globales (localStorage) ── */
+                        function semGetThresholds() {
+                            return {
+                                amarillo: parseInt(localStorage.getItem('colab_sem_amarillo') || '1', 10),
+                                rojo:     parseInt(localStorage.getItem('colab_sem_rojo')     || '3', 10)
+                            };
+                        }
+                        function semClassify(n) {
+                            const t = semGetThresholds();
+                            if (n === 0)       return { cls: 'sem-verde',    label: 'Sin amonestaciones' };
+                            if (n < t.rojo)    return { cls: 'sem-amarillo', label: n + ' amonest.' };
+                            return                     { cls: 'sem-rojo',    label: n + ' amonest.' };
+                        }
+
                         function colabSemaforoHtml(c, sm) {
                             const raw  = val(gc(c, 'amonestaciones')) || '';
                             const n    = raw.split(/\n/).map(l => l.trim()).filter(Boolean).length;
-                            let cls, label;
-                            if (n === 0)        { cls = 'sem-verde';    label = 'Sin amonestaciones'; }
-                            else if (n <= 2)    { cls = 'sem-amarillo'; label = n + ' amonest.'; }
-                            else                { cls = 'sem-rojo';     label = n + ' amonest.'; }
+                            const { cls, label } = semClassify(n);
                             const szCls = sm ? ' sem-sm' : '';
                             return `<span class="colab-semaforo ${cls}${szCls}" title="${label}"><span class="sem-dot"></span>${label}</span>`;
                         }
@@ -8112,10 +8152,7 @@ FF
                         window.colabSemaforoEditorRefresh = function() {
                             const ta = document.getElementById('ce-amonestaciones');
                             const n  = ta ? String(ta.value || '').split(/\n/).map(l => l.trim()).filter(Boolean).length : 0;
-                            let cls, label;
-                            if (n === 0)     { cls = 'sem-verde';    label = 'Sin amonestaciones'; }
-                            else if (n <= 2) { cls = 'sem-amarillo'; label = n + ' amonest.'; }
-                            else             { cls = 'sem-rojo';     label = n + ' amonest.'; }
+                            const { cls, label } = semClassify(n);
                             const html = `<span class="colab-semaforo ${cls}"><span class="sem-dot"></span>${label}</span>`;
                             const badge = document.getElementById('cedit-sem-badge-live');
                             if (badge) badge.innerHTML = html;
@@ -8123,6 +8160,46 @@ FF
                             if (cnt) cnt.textContent = n;
                             const mini = document.getElementById('cedit-amonest-sem-live');
                             if (mini) mini.innerHTML = `<span class="colab-semaforo ${cls} sem-sm"><span class="sem-dot"></span>${label}</span>`;
+                            // Actualizar inputs de configuración con los valores actuales
+                            const t = semGetThresholds();
+                            const inAm = document.getElementById('sem-cfg-amarillo');
+                            const inRo = document.getElementById('sem-cfg-rojo');
+                            if (inAm && !inAm.dataset.dirty) inAm.value = t.amarillo;
+                            if (inRo && !inRo.dataset.dirty) inRo.value = t.rojo;
+                            semUpdateScalePreview();
+                        };
+
+                        window.semUpdateScalePreview = function() {
+                            const inAm = document.getElementById('sem-cfg-amarillo');
+                            const inRo = document.getElementById('sem-cfg-rojo');
+                            if (!inAm || !inRo) return;
+                            const am = Math.max(1, parseInt(inAm.value, 10) || 1);
+                            const ro = Math.max(am + 1, parseInt(inRo.value, 10) || (am + 1));
+                            const s0 = document.getElementById('sem-scale-verde');
+                            const s1 = document.getElementById('sem-scale-amarillo');
+                            const s2 = document.getElementById('sem-scale-rojo');
+                            if (s0) s0.textContent = '0 amonestaciones';
+                            if (s1) s1.textContent = am + (ro - 1 > am ? ' – ' + (ro - 1) : '') + ' amonest.';
+                            if (s2) s2.textContent = ro + ' o más amonest.';
+                        };
+
+                        window.semGuardarReglas = function() {
+                            const inAm = document.getElementById('sem-cfg-amarillo');
+                            const inRo = document.getElementById('sem-cfg-rojo');
+                            if (!inAm || !inRo) return;
+                            const am = Math.max(1, parseInt(inAm.value, 10) || 1);
+                            const ro = Math.max(am + 1, parseInt(inRo.value, 10) || (am + 1));
+                            inAm.value = am; inRo.value = ro;
+                            localStorage.setItem('colab_sem_amarillo', am);
+                            localStorage.setItem('colab_sem_rojo', ro);
+                            delete inAm.dataset.dirty; delete inRo.dataset.dirty;
+                            colabSemaforoEditorRefresh();
+                            const btn = document.getElementById('sem-save-btn');
+                            if (btn) {
+                                btn.innerHTML = '<i class="fas fa-check me-1"></i>Guardado';
+                                btn.classList.replace('btn-primary','btn-success');
+                                setTimeout(() => { btn.innerHTML = '<i class="fas fa-save me-1"></i>Guardar reglas globales'; btn.classList.replace('btn-success','btn-primary'); }, 2000);
+                            }
                         };
 
                         window.colabEditorAmonestPreview = async function() {
