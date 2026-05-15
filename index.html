@@ -9531,62 +9531,6 @@ FF
                                 if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-file-pdf"></i> Descargar PDF'; }
                             });
                         };
-                            const modal = document.getElementById('bday-card-modal');
-                            if (!modal) return;
-                            const base = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/');
-                            const nombre = document.getElementById('bday-modal-nombre')?.textContent || '';
-                            const puesto = document.getElementById('bday-modal-puesto')?.textContent || '';
-                            const msg    = document.getElementById('bday-modal-msg')?.innerHTML || '';
-                            const html =
-                                '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
-                                '<title>Tarjeta de Cumple\u00f1os \u2014 AIFA<\/title>' +
-                                '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">' +
-                                '<' + 'style>' +
-                                '* { margin:0; padding:0; box-sizing:border-box; }' +
-                                'body { font-family:"Segoe UI",system-ui,sans-serif; background:#f0f4f8; display:flex; align-items:center; justify-content:center; min-height:100vh; }' +
-                                '.card { width:680px; background:#fff; border-radius:20px; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,.25); }' +
-                                '.hero { position:relative; height:220px; overflow:hidden; }' +
-                                '.hero img { width:100%; height:100%; object-fit:cover; object-position:center 60%; }' +
-                                '.overlay { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(7,22,60,.55) 0%,rgba(7,22,60,.3) 40%,rgba(7,22,60,.75) 100%); }' +
-                                '.hcnt { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:1.25rem 1.5rem 1rem; }' +
-                                '.logo { height:38px; filter:brightness(0) invert(1); }' +
-                                '.ttl { text-align:center; }' +
-                                '.emoji { font-size:2.4rem; }' +
-                                '.titulo { font-size:1.4rem; font-weight:900; color:#fff; letter-spacing:.05em; text-transform:uppercase; }' +
-                                '.subtitulo { font-size:.75rem; color:rgba(255,255,255,.75); letter-spacing:.08em; text-transform:uppercase; }' +
-                                '.bd { padding:1.5rem 2rem 1.25rem; text-align:center; }' +
-                                '.nombre { font-size:1.55rem; font-weight:900; color:#0d1a3a; margin-bottom:.2rem; }' +
-                                '.puesto { font-size:.82rem; color:#64748b; margin-bottom:1rem; }' +
-                                '.msg { font-size:.9rem; color:#334155; line-height:1.6; background:#f8faff; border-radius:10px; padding:.85rem 1.1rem; border-left:4px solid #fbbf24; text-align:left; }' +
-                                '.footer { display:flex; align-items:center; justify-content:space-between; padding:.8rem 2rem 1.2rem; border-top:1px solid #eef0f7; }' +
-                                '.firma { font-size:.72rem; color:#94a3b8; }' +
-                                '.firma strong { display:block; color:#0d1a3a; font-size:.78rem; }' +
-                                '@media print { body { background:#fff; } .card { box-shadow:none; } }' +
-                                '<\/style><\/head>' +
-                                '<body onload="window.print();window.onafterprint=window.close">' +
-                                '<div class="card">' +
-                                  '<div class="hero">' +
-                                    '<img src="' + base + 'images/Aviones pax.jpeg" alt="AIFA">' +
-                                    '<div class="overlay"><\/div>' +
-                                    '<div class="hcnt">' +
-                                      '<img src="' + base + 'images/aifa-logo.png" alt="AIFA" class="logo">' +
-                                      '<div class="ttl"><div class="emoji">\uD83C\uDF82<\/div><div class="titulo">\u00a1Feliz Cumplea\u00f1os!<\/div><div class="subtitulo">Aeropuerto Internacional Felipe \u00c1ngeles<\/div><\/div>' +
-                                      '<div><\/div>' +
-                                    '<\/div>' +
-                                  '<\/div>' +
-                                  '<div class="bd">' +
-                                    '<div class="nombre">' + nombre + '<\/div>' +
-                                    '<div class="puesto">' + puesto + '<\/div>' +
-                                    '<div class="msg">' + msg + '<\/div>' +
-                                  '<\/div>' +
-                                  '<div class="footer">' +
-                                    '<div class="firma"><strong>Direcci\u00f3n de Operaci\u00f3n<\/strong>Aeropuerto Internacional Felipe \u00c1ngeles (AIFA)<\/div>' +
-                                  '<\/div>' +
-                                '<\/div>' +
-                                '<\/body><\/html>';
-                            const w = window.open('', '_blank', 'width=720,height=600');
-                            if (w) { w.document.write(html); w.document.close(); }
-                        };
 
                         /** Descargar Excel con todos los campos visibles */
                         window.colabDescargarExcel = function() {
