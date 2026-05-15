@@ -5058,6 +5058,8 @@ FF
                             border: 1px solid #1e3a7e;
                             user-select: none;
                         }
+                        .ctbl-table thead th:first-child,
+                        .ctbl-table tbody td:first-child { text-align: center; }
                         .ctbl-th-inner { display: inline-flex; align-items: center; gap: .2rem; cursor: pointer; }
                         .ctbl-th-inner:hover { text-decoration: underline dotted rgba(255,255,255,.5); }
                         .ctbl-table thead th .sort-arrow { opacity: .7; font-size: .6rem; }
@@ -8848,8 +8850,13 @@ FF
                             // Aplicar orden actual
                             const col = ctblSortCol;
                             ctblData.sort((a, b) => {
-                                const va = norm(String(a[col] ?? '')), vb = norm(String(b[col] ?? ''));
-                                return ctblSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+                                const ra = String(a[col] ?? '').trim();
+                                const rb = String(b[col] ?? '').trim();
+                                const na = parseFloat(ra), nb = parseFloat(rb);
+                                const numericCol = !isNaN(na) && !isNaN(nb);
+                                if (numericCol) return ctblSortAsc ? na - nb : nb - na;
+                                const va = norm(ra), vb = norm(rb);
+                                return ctblSortAsc ? va.localeCompare(vb, 'es') : vb.localeCompare(va, 'es');
                             });
 
                             ctblActualizarBannerFiltros();
