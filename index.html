@@ -4889,6 +4889,15 @@ FF
                         }
                         .bday-btn-wa:hover { filter: brightness(1.1); }
                         .bday-btn-wa:disabled { opacity: .6; cursor: wait; }
+                        .bday-btn-copy {
+                            background: linear-gradient(135deg,#2563eb,#3b82f6);
+                            color: #fff; border: none; border-radius: 8px;
+                            padding: .45rem 1.1rem; font-size: .8rem; font-weight: 700;
+                            cursor: pointer; transition: filter .12s;
+                            display: flex; align-items: center; gap: .4rem;
+                        }
+                        .bday-btn-copy:hover { filter: brightness(1.1); }
+                        .bday-btn-copy:disabled { opacity: .6; cursor: wait; }
                         /* Fila clickeable en tabla de profesión */
                         .cd-tbl-row.clickable { cursor: pointer; }
                         .cd-tbl-row.clickable:hover { background: #ede7f6; }
@@ -6880,7 +6889,10 @@ FF
                                 </div>
                                 <div class="bday-card-actions">
                                     <button class="bday-btn-wa" id="bday-btn-wa" onclick="bdayCompartirWA()">
-                                        <i class="fab fa-whatsapp"></i> Compartir imagen
+                                        <i class="fab fa-whatsapp"></i> Compartir
+                                    </button>
+                                    <button class="bday-btn-copy" id="bday-btn-copy" onclick="bdayCopiarImagen()">
+                                        <i class="fas fa-copy"></i> Copiar imagen
                                     </button>
                                     <button class="bday-btn-close" onclick="bdayCardCerrar()">Cerrar</button>
                                 </div>
@@ -9493,6 +9505,58 @@ FF
                             if (evt && evt.target !== document.getElementById('bday-card-modal-bg')) return;
                             const bg = document.getElementById('bday-card-modal-bg');
                             if (bg) bg.classList.remove('open');
+                        };
+
+                        window.bdayCopiarImagen = async function() {
+                            if (typeof html2canvas === 'undefined') {
+                                alert('La librer\u00eda de imagen no est\u00e1 disponible.');
+                                return;
+                            }
+                            const btn = document.getElementById('bday-btn-copy');
+                            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Copiando\u2026'; }
+
+                            const modal = document.getElementById('bday-card-modal');
+                            const clone = modal.cloneNode(true);
+                            const footerClone = clone.querySelector('.bday-card-footer');
+                            if (footerClone) footerClone.style.display = 'none';
+
+                            const wrap = document.createElement('div');
+                            wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:680px;background:#fff;z-index:-1;';
+                            wrap.appendChild(clone);
+                            document.body.appendChild(wrap);
+
+                            try {
+                                const canvas = await html2canvas(wrap, {
+                                    scale: 2, useCORS: true, allowTaint: true, logging: false, backgroundColor: '#ffffff'
+                                });
+                                document.body.removeChild(wrap);
+
+                                canvas.toBlob(async function(blob) {
+                                    try {
+                                        // Clipboard API (Chrome 76+, Edge, Safari 13.1+)
+                                        await navigator.clipboard.write([
+                                            new ClipboardItem({ 'image/png': blob })
+                                        ]);
+                                        if (btn) { btn.innerHTML = '<i class="fas fa-check"></i> \u00a1Copiada!'; }
+                                        setTimeout(function() {
+                                            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-copy"></i> Copiar imagen'; }
+                                        }, 2200);
+                                    } catch(clipErr) {
+                                        // Fallback: descargar si el navegador no soporta ClipboardItem
+                                        const nombre = (document.getElementById('bday-modal-nombre')?.textContent || 'colaborador').trim();
+                                        const a = document.createElement('a');
+                                        a.href = URL.createObjectURL(blob);
+                                        a.download = 'Feliz_Cumpleanios_' + nombre.replace(/\s+/g,'_') + '.png';
+                                        a.click();
+                                        alert('Tu navegador no permite copiar al portapapeles. La imagen fue descargada; \u00fabrela y c\u00f3piala desde tu galer\u00eda.');
+                                        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-copy"></i> Copiar imagen'; }
+                                    }
+                                }, 'image/png');
+                            } catch(err) {
+                                if (document.body.contains(wrap)) document.body.removeChild(wrap);
+                                alert('No se pudo generar la imagen.');
+                                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-copy"></i> Copiar imagen'; }
+                            }
                         };
 
                         window.bdayCompartirWA = async function() {
