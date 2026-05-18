@@ -9580,18 +9580,15 @@ FF
                             if (window._bdayBlob) { _doClipboard(window._bdayBlob); return; }
                             if (typeof html2canvas === 'undefined') { alert('Libreria no disponible.'); if (btn) { btn.disabled = false; } return; }
                             var modal = document.getElementById('bday-card-modal');
-                            var clone = modal.cloneNode(true);
-                            var fc = clone.querySelector('.bday-card-footer'); if (fc) fc.style.display='none';
-                            var wrap = document.createElement('div');
-                            wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:680px;background:#fff;z-index:-1;';
-                            wrap.appendChild(clone); document.body.appendChild(wrap);
-                            html2canvas(wrap, { scale:1, useCORS:true, allowTaint:true, logging:false, backgroundColor:'#ffffff' })
+                            var fc = modal.querySelector('.bday-card-footer');
+                            if (fc) fc.style.visibility = 'hidden';
+                            html2canvas(modal, { scale:2, useCORS:true, allowTaint:false, logging:false, backgroundColor:'#ffffff' })
                                 .then(function(cv) {
-                                    document.body.removeChild(wrap);
+                                    if (fc) fc.style.visibility = '';
                                     cv.toBlob(function(blob) { window._bdayBlob = blob; _doClipboard(blob); }, 'image/png');
                                 })
                                 .catch(function() {
-                                    if (document.body.contains(wrap)) document.body.removeChild(wrap);
+                                    if (fc) fc.style.visibility = '';
                                     alert('No se pudo generar la imagen.');
                                     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-copy"></i> Copiar imagen'; }
                                 });
@@ -9622,18 +9619,15 @@ FF
                             if (window._bdayBlob) { _doShare(window._bdayBlob); return; }
                             if (typeof html2canvas === 'undefined') { alert('Libreria no disponible.'); if (btn) { btn.disabled = false; } return; }
                             var modal = document.getElementById('bday-card-modal');
-                            var clone = modal.cloneNode(true);
-                            var fc = clone.querySelector('.bday-card-footer'); if (fc) fc.style.display='none';
-                            var wrap = document.createElement('div');
-                            wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:680px;background:#fff;z-index:-1;';
-                            wrap.appendChild(clone); document.body.appendChild(wrap);
-                            html2canvas(wrap, { scale:1, useCORS:true, allowTaint:true, logging:false, backgroundColor:'#ffffff' })
+                            var fc = modal.querySelector('.bday-card-footer');
+                            if (fc) fc.style.visibility = 'hidden';
+                            html2canvas(modal, { scale:2, useCORS:true, allowTaint:false, logging:false, backgroundColor:'#ffffff' })
                                 .then(function(cv) {
-                                    document.body.removeChild(wrap);
+                                    if (fc) fc.style.visibility = '';
                                     cv.toBlob(function(blob) { window._bdayBlob = blob; _doShare(blob); }, 'image/png');
                                 })
                                 .catch(function() {
-                                    if (document.body.contains(wrap)) document.body.removeChild(wrap);
+                                    if (fc) fc.style.visibility = '';
                                     alert('No se pudo generar la imagen.');
                                     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fab fa-whatsapp"></i> Compartir'; }
                                 });
