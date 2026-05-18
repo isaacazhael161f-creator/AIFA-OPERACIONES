@@ -20,8 +20,8 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')         || '';
-const SUPABASE_SVC_KEY  = Deno.env.get('SUPABASE_SERVICE_KEY') || '';
+const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')              || '';
+const SUPABASE_SVC_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const RESEND_API_KEY    = Deno.env.get('RESEND_API_KEY')       || '';
 const EMAIL_FROM        = Deno.env.get('EMAIL_FROM')           || 'operaciones@aifa.com.mx';
 const EMAIL_FROM_NAME   = Deno.env.get('EMAIL_FROM_NAME')      || 'Aeropuerto Internacional Felipe Ángeles';
@@ -244,9 +244,9 @@ Deno.serve(async (req: Request) => {
     });
   } catch (err) {
     console.error('Error en send-birthday-emails:', err);
-    return new Response(JSON.stringify({ error: String(err) }), {
+    return new Response(JSON.stringify({ sent: 0, errors: 1, detail: [{ nombre: '?', correo: '?', ok: false, error: String(err) }] }), {
       headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
-      status: 500,
+      status: 200,
     });
   }
 });
