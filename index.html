@@ -5310,6 +5310,7 @@ FF
                             text-transform: uppercase; letter-spacing: .04em;
                             border: 1px solid #1e3a7e;
                             user-select: none;
+                            text-align: center;
                         }
                         .ctbl-table thead th:first-child,
                         .ctbl-table tbody td:first-child { text-align: center; }
@@ -5370,7 +5371,7 @@ FF
                         .ctbl-table tbody tr.ctbl-rojo:hover   { background: #fee2e2; }
                         .ctbl-table tbody tr.ctbl-amarillo { background: #fffef5; }
                         .ctbl-table tbody tr.ctbl-amarillo:hover { background: #fef9c3; }
-                        .ctbl-table tbody td { padding: .38rem .8rem; color: #1a2540; max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
+                        .ctbl-table tbody td { padding: .38rem .8rem; color: #1a2540; max-width: 240px; overflow: hidden; text-overflow: ellipsis; text-align: center; }
                         .ctbl-table tbody td:first-child { font-weight: 700; color: #1565c0; }
                         .ctbl-table td.ctbl-td-conducta { white-space: nowrap; padding: .28rem .6rem; }
                         .ctbl-count-badge {
@@ -18453,6 +18454,27 @@ FF
                             <div class="tab-content pt-3" id="puntualidadTabContent">
                                 <div class="tab-pane fade show active" id="punc-interactivo-pane" role="tabpanel"
                                     aria-labelledby="punc-interactivo-tab" tabindex="0">
+                                    <!-- View toggle + period selectors -->
+                                    <div class="d-flex flex-wrap align-items-center gap-3 mb-3 pb-2 border-bottom">
+                                        <div class="btn-group" role="group" aria-label="Vista puntualidad">
+                                            <button type="button" class="btn btn-primary btn-sm active" id="punc-view-monthly" onclick="puncSetView('monthly')">
+                                                <i class="fas fa-calendar-day me-1"></i>Mensual
+                                            </button>
+                                            <button type="button" class="btn btn-outline-primary btn-sm" id="punc-view-annual" onclick="puncSetView('annual')">
+                                                <i class="fas fa-calendar me-1"></i>Anual
+                                            </button>
+                                        </div>
+                                        <div id="punc-month-selector" class="d-flex align-items-center gap-2">
+                                            <label for="punc-month-select" class="small text-muted m-0">Mes:</label>
+                                            <select id="punc-month-select" class="form-select form-select-sm w-auto" aria-label="Seleccionar mes">
+                                            </select>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <label for="punc-year-select" class="small text-muted m-0">Año:</label>
+                                            <select id="punc-year-select" class="form-select form-select-sm w-auto" aria-label="Seleccionar año">
+                                            </select>
+                                        </div>
+                                    </div>
                                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                                         <div class="d-flex align-items-center gap-2">
                                             <span class="small text-muted">Umbral puntualidad:</span>
