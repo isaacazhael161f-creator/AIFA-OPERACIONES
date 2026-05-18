@@ -125,7 +125,13 @@ async function sendEmail(to: string, nombre: string, html: string): Promise<{ ok
   }
 
   // Si hay TEST_EMAIL, redirigir a esa dirección (plan gratuito de Resend)
-  const recipient = TEST_EMAIL || to;
+  const recipient = (TEST_EMAIL || to).trim().toLowerCase();
+
+  // Validar formato de email básico
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
+    return { ok: false, error: `Email inválido: "${recipient}"` };
+  }
+
   const subject   = TEST_EMAIL
     ? `[PRUEBA] 🎂 ¡Feliz Cumpleaños, ${nombre.split(' ')[0]}! - AIFA`
     : `🎂 ¡Feliz Cumpleaños, ${nombre.split(' ')[0]}! - AIFA`;
@@ -199,9 +205,10 @@ async function processBirthdays(targetColaborador?: { id?: number; email?: strin
       results.push({ nombre: c.nombre, correo: '—', ok: false, error: 'Sin correo registrado' });
       continue;
     }
+    const correoLimpio = c.correo.trim().toLowerCase();
     const html   = buildEmailHtml(c);
-    const result = await sendEmail(c.correo, c.nombre, html);
-    results.push({ nombre: c.nombre, correo: c.correo, ...result });
+    const result = await sendEmail(correoLimpio, c.nombre, html);
+    results.push({ nombre: c.nombre, correo: correoLimpio, ...result });
     console.log(`${result.ok ? '✓' : '✗'} ${c.nombre} <${c.correo}>${result.error ? ' — ' + result.error : ''}`);
   }
 
