@@ -9708,11 +9708,12 @@ FF
                         window.bdayEnviarCorreo = function() {
                             var btn = document.getElementById('bday-btn-email');
                             var idx = window._bdayActiveIdx;
-                            if (idx === undefined || idx === null || !colabCache) {
+                            if (idx === undefined || idx === null) {
                                 alert('No hay colaborador activo.'); return;
                             }
-                            var row = colabCache[idx];
-                            if (!row) { alert('No se encontraron datos del colaborador.'); return; }
+                            var item = (window._bdayProximos || [])[idx];
+                            if (!item || !item.r) { alert('No se encontraron datos del colaborador.'); return; }
+                            var row = item.r;
                             var correo = gc(row, 'correo');
                             var nombre = gc(row, 'nombre') || 'Colaborador';
                             var id     = row.id || null;
