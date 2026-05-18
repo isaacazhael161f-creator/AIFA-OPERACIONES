@@ -7051,7 +7051,8 @@ FF
                                 edad_raw:        find('^edad$', 'edad'),  // fallback solo numérico
                                 celular:         find('cel[uú]lar', 'm[oó]vil', 'celular', 'cel', 'tel[eé]f[oó]nico', 'no\\.?\\s*tel', 'tel[eé]fono'),
                                 extension:       find('^ext\\.?$', 'extensi'),
-                                correo:          find('correo.*inst', 'correo', 'email', 'mail'),
+                                correo:          find('correo.*inst', 'institucional.*correo', 'correo.*inst'),
+                                correo_personal: find('correo.*pers', 'personal.*correo', 'email.*pers', 'pers.*email', 'correo', 'email', 'mail'),
                                 profesion:       find('licenciatura', 'maestr[ií]a', 'nombre.*lic', 'nombre.*maest', 'profesi[oó]n$', '^profes[^i]'),
                                 militar:         find('militar', '^civil$'),
                                 nivel:           find('^nivel$'),
@@ -9714,12 +9715,11 @@ FF
                             var item = (window._bdayProximos || [])[idx];
                             if (!item || !item.r) { alert('No se encontraron datos del colaborador.'); return; }
                             var row = item.r;
-                            var correo = gc(row, 'correo');
+                            var correo = gc(row, 'correo_personal') || gc(row, 'correo');
                             var nombre = gc(row, 'nombre') || 'Colaborador';
-                            var id     = row.id || null;
 
                             if (!correo) {
-                                alert('Este colaborador no tiene correo institucional registrado.\n\nPuedes agregarlo en la ficha del colaborador.');
+                                alert('Este colaborador no tiene correo personal registrado.\n\nPuedes agregarlo en la ficha del colaborador.');
                                 return;
                             }
 
@@ -9742,7 +9742,7 @@ FF
                                     'Content-Type': 'application/json',
                                     'Authorization': 'Bearer ' + anonKey
                                 },
-                                body: JSON.stringify(id ? { id: id } : { email: correo, nombre: nombre })
+                                body: JSON.stringify({ email: correo, nombre: nombre })
                             })
                             .then(function(res) { return res.json(); })
                             .then(function(data) {
