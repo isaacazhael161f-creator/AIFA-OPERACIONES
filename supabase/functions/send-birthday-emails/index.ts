@@ -23,6 +23,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')              || '';
 const SUPABASE_SVC_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const RESEND_API_KEY    = Deno.env.get('RESEND_API_KEY')       || '';
+const BREVO_API_KEY     = Deno.env.get('BREVO_API_KEY')        || '';
 const EMAIL_FROM        = Deno.env.get('EMAIL_FROM')           || 'operaciones@aifa.com.mx';
 const EMAIL_FROM_NAME   = Deno.env.get('EMAIL_FROM_NAME')      || 'Aeropuerto Internacional Felipe Ángeles';
 // TEST_EMAIL: si está definido, todos los correos se redirigen a esta dirección (útil en Resend plan gratuito)
@@ -118,24 +119,45 @@ function buildEmailHtml(colaborador: Colaborador): string {
 </html>`;
 }
 
-// ── Enviar email vía Resend ──────────────────────────────────────────────────
+// ── Enviar email vía Brevo (o Resend como fallback) ─────────────────────────
 async function sendEmail(to: string, nombre: string, html: string): Promise<{ ok: boolean; error?: string }> {
-  if (!RESEND_API_KEY) {
-    return { ok: false, error: 'RESEND_API_KEY no configurada en los secrets de Supabase' };
-  }
-
-  // Si hay TEST_EMAIL, redirigir a esa dirección (plan gratuito de Resend)
+  // Si hay TEST_EMAIL, redirigir a esa dirección
   const recipient = (TEST_EMAIL || to).trim().toLowerCase();
+  const recipientName = TEST_EMAIL ? 'Prueba' : nombre;
 
   // Validar formato de email básico
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
     return { ok: false, error: `Email inválido: "${recipient}"` };
   }
 
-  const subject   = TEST_EMAIL
+  const subject = TEST_EMAIL
     ? `[PRUEBA] 🎂 ¡Feliz Cumpleaños, ${nombre.split(' ')[0]}! - AIFA`
     : `🎂 ¡Feliz Cumpleaños, ${nombre.split(' ')[0]}! - AIFA`;
 
+  // ── Intentar con Brevo primero ───────────────────────────────────────────
+  if (BREVO_API_KEY) {
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': BREVO_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        sender:      { name: EMAIL_FROM_NAME, email: EMAIL_FROM },
+        to:          [{ email: recipient, name: recipientName }],
+        subject,
+        htmlContent: html,
+      }),
+    });
+    if (res.ok) return { ok: true };
+    const body = await res.text();
+    return { ok: false, error: `Brevo error ${res.status}: ${body}` };
+  }
+
+  // ── Fallback: Resend ─────────────────────────────────────────────────────
+  if (!RESEND_API_KEY) {
+    return { ok: false, error: 'No hay API key configurada (BREVO_API_KEY o RESEND_API_KEY)' };
+  }
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -149,7 +171,6 @@ async function sendEmail(to: string, nombre: string, html: string): Promise<{ ok
       html,
     }),
   });
-
   if (!res.ok) {
     const body = await res.text();
     return { ok: false, error: `Resend error ${res.status}: ${body}` };
