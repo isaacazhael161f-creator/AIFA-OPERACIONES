@@ -202,12 +202,24 @@ async function processBirthdays(targetColaborador?: { id?: number; email?: strin
   return { sent, errors, detail: results };
 }
 
+// ── CORS headers ─────────────────────────────────────────────────────────────
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin':  '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+};
+
 // ── Handler HTTP ─────────────────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
+  // Responder al preflight CORS
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
+  }
+
   // Validar autorización
   const authHeader = req.headers.get('authorization') || '';
   if (!authHeader.includes('Bearer ') && req.method !== 'GET') {
-    return new Response('Unauthorized', { status: 401 });
+    return new Response('Unauthorized', { status: 401, headers: CORS_HEADERS });
   }
 
   try {
@@ -227,13 +239,13 @@ Deno.serve(async (req: Request) => {
     const result = await processBirthdays(target);
 
     return new Response(JSON.stringify(result), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
       status: 200,
     });
   } catch (err) {
     console.error('Error en send-birthday-emails:', err);
     return new Response(JSON.stringify({ error: String(err) }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
       status: 500,
     });
   }
