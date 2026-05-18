@@ -495,4 +495,88 @@
     loadData();
   };
 
+  // ─── CRITERIO INFO MODAL ──────────────────────────────────────────────────────
+
+  const _criterioMonthly = `
+    <div class="punc-crit-section">
+      <div class="punc-crit-section-title text-primary"><i class="fas fa-calculator"></i> Fórmula de puntualidad</div>
+      <div class="punc-crit-formula">Puntualidad = (Vuelos a tiempo / Total vuelos) × 100</div>
+      <div class="punc-crit-note"><i class="fas fa-info-circle text-info"></i>
+        Para meses con datos de imputables (desde Marzo 2026) la fórmula es:<br>
+        <strong>(Total − Imputables aerolínea) / Total × 100</strong><br>
+        lo que descuenta solo las demoras que son responsabilidad de la aerolínea.
+      </div>
+    </div>
+    <div class="punc-crit-section">
+      <div class="punc-crit-section-title text-success"><i class="fas fa-trophy"></i> Ranking mensual</div>
+      <div class="punc-crit-note"><i class="fas fa-sort-down text-success"></i>
+        Las aerolíneas se ordenan de <strong>mayor a menor</strong> puntualidad dentro de su categoría (Pasajeros / Carga).<br><br>
+        <i class="fas fa-filter text-warning"></i>
+        El filtro <strong>Mín. vuelos</strong> excluye del TOP a aerolíneas con muy pocos vuelos (puede distorsionar el ranking una aerolínea con 2 vuelos al 100% vs otra con 500 al 99%).
+        Solo afecta el TOP — en la tabla detalle se muestran todas.
+      </div>
+    </div>
+    <div class="punc-crit-section">
+      <div class="punc-crit-section-title"><i class="fas fa-circle-half-stroke text-warning"></i> Umbral de calidad</div>
+      <div class="punc-crit-badge-row">
+        <span class="badge bg-success px-3 py-2"><i class="fas fa-check me-1"></i> ≥ 85% — Puntual</span>
+        <span class="badge bg-danger px-3 py-2"><i class="fas fa-xmark me-1"></i> &lt; 85% — Impuntual</span>
+      </div>
+    </div>`;
+
+  const _criterioAnnual = `
+    <div class="punc-crit-section">
+      <div class="punc-crit-section-title text-primary"><i class="fas fa-calculator"></i> Puntualidad acumulada ponderada</div>
+      <div class="punc-crit-formula">∑ (vuelos a tiempo en todos los meses) / ∑ (vuelos totales) × 100</div>
+      <div class="punc-crit-note"><i class="fas fa-balance-scale text-primary"></i>
+        El cálculo <strong>pondera por volumen</strong>: una aerolínea con 1,000 vuelos tiene más peso que una con 10, evitando que un mes con muy pocos vuelos distorsione el resultado anual.
+      </div>
+    </div>
+    <div class="punc-crit-section">
+      <div class="punc-crit-section-title text-warning"><i class="fas fa-trophy"></i> Meses como #1</div>
+      <div class="punc-crit-note"><i class="fas fa-calendar-check text-warning"></i>
+        La columna <strong>🏆 Meses #1</strong> cuenta cuántos meses cada aerolínea fue la más puntual en su categoría, respetando el filtro <em>Mín. vuelos</em>.<br><br>
+        Ejemplo: <strong>3/4</strong> = fue la #1 en 3 de los 4 meses disponibles.<br>
+        Este indicador mide <em>consistencia</em> a lo largo del año, independientemente del volumen.
+      </div>
+    </div>
+    <div class="punc-crit-section">
+      <div class="punc-crit-section-title"><i class="fas fa-circle-half-stroke text-warning"></i> Umbral de calidad</div>
+      <div class="punc-crit-badge-row">
+        <span class="badge bg-success px-3 py-2"><i class="fas fa-check me-1"></i> ≥ 85% — Puntual</span>
+        <span class="badge bg-danger px-3 py-2"><i class="fas fa-xmark me-1"></i> &lt; 85% — Impuntual</span>
+      </div>
+    </div>`;
+
+  window.puncAbrirCriterio = function () {
+    const overlay = document.getElementById('punc-criteria-overlay');
+    const body    = document.getElementById('punc-crit-body');
+    const title   = document.getElementById('punc-crit-title');
+    if (!overlay) return;
+    if (_viewMode === 'annual') {
+      if (title) title.textContent = 'Criterio — Vista Anual';
+      if (body)  body.innerHTML = _criterioAnnual;
+    } else {
+      if (title) title.textContent = 'Criterio — Vista Mensual';
+      if (body)  body.innerHTML = _criterioMonthly;
+    }
+    overlay.classList.add('open');
+    document.addEventListener('keydown', _criterioEsc);
+  };
+
+  window.puncCerrarCriterio = function (evt) {
+    if (evt && evt.target !== document.getElementById('punc-criteria-overlay')) return;
+    const overlay = document.getElementById('punc-criteria-overlay');
+    if (overlay) overlay.classList.remove('open');
+    document.removeEventListener('keydown', _criterioEsc);
+  };
+
+  function _criterioEsc(e) {
+    if (e.key === 'Escape') {
+      const overlay = document.getElementById('punc-criteria-overlay');
+      if (overlay) overlay.classList.remove('open');
+      document.removeEventListener('keydown', _criterioEsc);
+    }
+  }
+
 })();
