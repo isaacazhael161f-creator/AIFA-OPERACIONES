@@ -1,0 +1,240 @@
+// ================================================================
+// AIFA OPERACIONES — Edge Function: send-birthday-emails
+// Deno (Supabase Edge Functions)
+//
+// Envía tarjetas de felicitación por correo a colaboradores
+// cuyo cumpleaños sea hoy.
+//
+// Modos de invocación:
+//   GET  /send-birthday-emails              → env. automático (hoy)
+//   POST /send-birthday-emails  { "id": X } → env. manual por id
+//   POST /send-birthday-emails  { "email": "a@b.com", "nombre": "..." } → manual por email directo
+//
+// Variables de entorno requeridas (Supabase Secrets):
+//   SUPABASE_URL          — URL del proyecto Supabase
+//   SUPABASE_SERVICE_KEY  — service_role key (no la anon)
+//   RESEND_API_KEY        — API key de Resend (resend.com)
+//   EMAIL_FROM            — dirección de origen, ej: cumpleanios@aifa.com.mx
+//   EMAIL_FROM_NAME       — nombre visible, ej: "AIFA Operaciones"
+// ================================================================
+
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')         || '';
+const SUPABASE_SVC_KEY  = Deno.env.get('SUPABASE_SERVICE_KEY') || '';
+const RESEND_API_KEY    = Deno.env.get('RESEND_API_KEY')       || '';
+const EMAIL_FROM        = Deno.env.get('EMAIL_FROM')           || 'operaciones@aifa.com.mx';
+const EMAIL_FROM_NAME   = Deno.env.get('EMAIL_FROM_NAME')      || 'Aeropuerto Internacional Felipe Ángeles';
+
+const MONTH_NAMES = [
+  'enero','febrero','marzo','abril','mayo','junio',
+  'julio','agosto','septiembre','octubre','noviembre','diciembre'
+];
+
+interface Colaborador {
+  id:         number;
+  nombre:     string;
+  puesto?:    string;
+  direccion?: string;
+  correo?:    string;
+  fecha_nacimiento?: string;
+}
+
+// ── HTML de la tarjeta de cumpleaños ────────────────────────────────────────
+function buildEmailHtml(colaborador: Colaborador): string {
+  const nombre    = colaborador.nombre    || 'Colaborador';
+  const puesto    = colaborador.puesto    || '';
+  const direccion = colaborador.direccion || 'Dirección de Operación';
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>¡Feliz Cumpleaños! - AIFA</title>
+</head>
+<body style="margin:0;padding:0;background:#f0f4ff;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4ff;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 8px 40px rgba(10,20,80,.15);">
+
+          <!-- Cabecera con imagen de fondo -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#0d2152 0%,#1565c0 60%,#1976d2 100%);padding:0;text-align:center;position:relative;">
+              <div style="background:linear-gradient(135deg,#0d2152 0%,#1565c0 60%,#1976d2 100%);padding:40px 30px 30px;">
+                <div style="font-size:52px;margin-bottom:8px;">🎂</div>
+                <h1 style="color:#fff;font-size:28px;font-weight:800;margin:0 0 6px;letter-spacing:.5px;text-shadow:0 2px 8px rgba(0,0,0,.3);">¡FELIZ CUMPLEAÑOS!</h1>
+                <p style="color:rgba(255,255,255,.85);font-size:13px;font-weight:600;margin:0;letter-spacing:2px;text-transform:uppercase;">Aeropuerto Internacional Felipe Ángeles</p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Nombre y puesto -->
+          <tr>
+            <td style="padding:36px 40px 24px;text-align:center;border-bottom:1px solid #eef0f7;">
+              <h2 style="color:#0d2152;font-size:26px;font-weight:800;margin:0 0 8px;">${nombre}</h2>
+              <p style="color:#6b7a99;font-size:14px;margin:0;">${puesto}${puesto && direccion ? ' · ' : ''}${direccion}</p>
+            </td>
+          </tr>
+
+          <!-- Mensaje -->
+          <tr>
+            <td style="padding:28px 40px 24px;">
+              <div style="background:#f8faff;border-left:4px solid #1565c0;border-radius:0 12px 12px 0;padding:20px 22px;">
+                <p style="color:#1a2540;font-size:15px;line-height:1.7;margin:0 0 14px;">
+                  ¡Hoy es tu gran día! Todo el equipo del <strong>Aeropuerto Internacional Felipe Ángeles</strong> te desea un maravilloso cumpleaños lleno de logros, bienestar y grandes vuelos por venir. Tu compromiso y dedicación son el motor de nuestra operación. ✈️
+                </p>
+                <p style="color:#6b7a99;font-size:14px;font-style:italic;line-height:1.6;margin:0;">
+                  ¡Que este nuevo año de vida esté lleno de cielos despejados y destinos maravillosos!
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Decoración con emojis -->
+          <tr>
+            <td style="padding:8px 40px 24px;text-align:center;">
+              <span style="font-size:28px;letter-spacing:8px;">🎉 🎈 🥳 🎊</span>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f8faff;border-top:1px solid #eef0f7;padding:20px 40px;text-align:center;">
+              <p style="color:#94a3b8;font-size:12px;margin:0 0 4px;">Este mensaje fue enviado por</p>
+              <p style="color:#0d2152;font-size:13px;font-weight:700;margin:0;">${EMAIL_FROM_NAME}</p>
+              <p style="color:#94a3b8;font-size:11px;margin:8px 0 0;">Aeropuerto Internacional Felipe Ángeles (AIFA) · Dirección de Operación</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+// ── Enviar email vía Resend ──────────────────────────────────────────────────
+async function sendEmail(to: string, nombre: string, html: string): Promise<{ ok: boolean; error?: string }> {
+  if (!RESEND_API_KEY) {
+    return { ok: false, error: 'RESEND_API_KEY no configurada en los secrets de Supabase' };
+  }
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from:    `${EMAIL_FROM_NAME} <${EMAIL_FROM}>`,
+      to:      [to],
+      subject: `🎂 ¡Feliz Cumpleaños, ${nombre.split(' ')[0]}! - AIFA`,
+      html,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    return { ok: false, error: `Resend error ${res.status}: ${body}` };
+  }
+  return { ok: true };
+}
+
+// ── Lógica principal ─────────────────────────────────────────────────────────
+async function processBirthdays(targetColaborador?: { id?: number; email?: string; nombre?: string }) {
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SVC_KEY);
+  const results: Array<{ nombre: string; correo: string; ok: boolean; error?: string }> = [];
+
+  let colaboradores: Colaborador[] = [];
+
+  if (targetColaborador?.id) {
+    // Manual: por id
+    const { data, error } = await supabase
+      .from('colaboradores')
+      .select('id, nombre, puesto, direccion, correo, fecha_nacimiento')
+      .eq('id', targetColaborador.id)
+      .single();
+    if (error || !data) return { sent: 0, errors: 1, detail: [{ nombre: '?', correo: '?', ok: false, error: error?.message || 'No encontrado' }] };
+    colaboradores = [data];
+  } else if (targetColaborador?.email && targetColaborador?.nombre) {
+    // Manual: email directo (sin consultar BD)
+    colaboradores = [{ id: 0, nombre: targetColaborador.nombre, correo: targetColaborador.email }];
+  } else {
+    // Automático: colaboradores con cumpleaños hoy
+    const today = new Date();
+    const mm    = String(today.getMonth() + 1).padStart(2, '0');
+    const dd    = String(today.getDate()).padStart(2, '0');
+
+    const { data, error } = await supabase
+      .from('colaboradores')
+      .select('id, nombre, puesto, direccion, correo, fecha_nacimiento')
+      .not('correo', 'is', null)
+      .not('fecha_nacimiento', 'is', null);
+
+    if (error) throw new Error(`Error consultando colaboradores: ${error.message}`);
+
+    // Filtrar por mes y día (ignorar año)
+    colaboradores = (data || []).filter((c: Colaborador) => {
+      if (!c.fecha_nacimiento || !c.correo) return false;
+      const fParts = c.fecha_nacimiento.split('-');
+      if (fParts.length < 3) return false;
+      return fParts[1] === mm && fParts[2].substring(0, 2) === dd;
+    });
+  }
+
+  // Enviar a cada uno
+  for (const c of colaboradores) {
+    if (!c.correo) {
+      results.push({ nombre: c.nombre, correo: '—', ok: false, error: 'Sin correo registrado' });
+      continue;
+    }
+    const html   = buildEmailHtml(c);
+    const result = await sendEmail(c.correo, c.nombre, html);
+    results.push({ nombre: c.nombre, correo: c.correo, ...result });
+    console.log(`${result.ok ? '✓' : '✗'} ${c.nombre} <${c.correo}>${result.error ? ' — ' + result.error : ''}`);
+  }
+
+  const sent   = results.filter(r => r.ok).length;
+  const errors = results.filter(r => !r.ok).length;
+  return { sent, errors, detail: results };
+}
+
+// ── Handler HTTP ─────────────────────────────────────────────────────────────
+Deno.serve(async (req: Request) => {
+  // Validar autorización
+  const authHeader = req.headers.get('authorization') || '';
+  if (!authHeader.includes('Bearer ') && req.method !== 'GET') {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  try {
+    let target: { id?: number; email?: string; nombre?: string } | undefined;
+
+    if (req.method === 'POST') {
+      try {
+        const body = await req.json();
+        target = {
+          id:     body.id     ? Number(body.id)   : undefined,
+          email:  body.email  || undefined,
+          nombre: body.nombre || undefined,
+        };
+      } catch (_) { /* body vacío → modo automático */ }
+    }
+
+    const result = await processBirthdays(target);
+
+    return new Response(JSON.stringify(result), {
+      headers: { 'Content-Type': 'application/json' },
+      status: 200,
+    });
+  } catch (err) {
+    console.error('Error en send-birthday-emails:', err);
+    return new Response(JSON.stringify({ error: String(err) }), {
+      headers: { 'Content-Type': 'application/json' },
+      status: 500,
+    });
+  }
+});

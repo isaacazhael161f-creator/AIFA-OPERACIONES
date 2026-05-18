@@ -4906,6 +4906,15 @@ FF
                         }
                         .bday-btn-copy:hover { filter: brightness(1.1); }
                         .bday-btn-copy:disabled { opacity: .6; cursor: wait; }
+                        .bday-btn-email {
+                            background: linear-gradient(135deg,#6d28d9,#7c3aed);
+                            color: #fff; border: none; border-radius: 8px;
+                            padding: .45rem 1.1rem; font-size: .8rem; font-weight: 700;
+                            cursor: pointer; transition: filter .12s;
+                            display: flex; align-items: center; gap: .4rem;
+                        }
+                        .bday-btn-email:hover { filter: brightness(1.1); }
+                        .bday-btn-email:disabled { opacity: .6; cursor: wait; }
                         /* Fila clickeable en tabla de profesión */
                         .cd-tbl-row.clickable { cursor: pointer; }
                         .cd-tbl-row.clickable:hover { background: #ede7f6; }
@@ -6976,6 +6985,9 @@ FF
                                     </button>
                                     <button class="bday-btn-copy" id="bday-btn-copy" onclick="bdayCopiarImagen()">
                                         <i class="fas fa-copy"></i> Copiar imagen
+                                    </button>
+                                    <button class="bday-btn-email" id="bday-btn-email" onclick="bdayEnviarCorreo()">
+                                        <i class="fas fa-envelope"></i> Enviar correo
                                     </button>
                                     <button class="bday-btn-close" onclick="bdayCardCerrar()">Cerrar</button>
                                 </div>
@@ -9691,6 +9703,61 @@ FF
                                     alert('No se pudo generar la imagen.');
                                     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fab fa-whatsapp"></i> Compartir'; }
                                 });
+                        };
+
+                        window.bdayEnviarCorreo = function() {
+                            var btn = document.getElementById('bday-btn-email');
+                            var idx = window._bdayActiveIdx;
+                            if (idx === undefined || idx === null || !colabCache) {
+                                alert('No hay colaborador activo.'); return;
+                            }
+                            var row = colabCache[idx];
+                            if (!row) { alert('No se encontraron datos del colaborador.'); return; }
+                            var correo = gc(row, 'correo');
+                            var nombre = gc(row, 'nombre') || 'Colaborador';
+                            var id     = row.id || null;
+
+                            if (!correo) {
+                                alert('Este colaborador no tiene correo institucional registrado.\n\nPuedes agregarlo en la ficha del colaborador.');
+                                return;
+                            }
+
+                            if (!confirm('Se enviará la tarjeta de cumpleaños a:\n\n' + nombre + '\n' + correo + '\n\n¿Continuar?')) return;
+
+                            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...'; }
+
+                            var supabaseUrl = (window.supabaseClient && window.supabaseClient.supabaseUrl)
+                                || (typeof SUPABASE_URL !== 'undefined' && SUPABASE_URL)
+                                || '';
+                            var fnUrl = supabaseUrl.replace(/\/$/, '') + '/functions/v1/send-birthday-emails';
+
+                            var anonKey = (window.supabaseClient && window.supabaseClient.supabaseKey)
+                                || (typeof SUPABASE_ANON_KEY !== 'undefined' && SUPABASE_ANON_KEY)
+                                || '';
+
+                            fetch(fnUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': 'Bearer ' + anonKey
+                                },
+                                body: JSON.stringify(id ? { id: id } : { email: correo, nombre: nombre })
+                            })
+                            .then(function(res) { return res.json(); })
+                            .then(function(data) {
+                                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-envelope"></i> Enviar correo'; }
+                                if (data && data.sent > 0) {
+                                    btn.innerHTML = '<i class="fas fa-check"></i> \u00a1Enviado!';
+                                    setTimeout(function() { if (btn) btn.innerHTML = '<i class="fas fa-envelope"></i> Enviar correo'; }, 3000);
+                                } else {
+                                    var err = (data && data.detail && data.detail[0] && data.detail[0].error) || 'Error desconocido';
+                                    alert('No se pudo enviar el correo: ' + err);
+                                }
+                            })
+                            .catch(function(err) {
+                                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-envelope"></i> Enviar correo'; }
+                                alert('Error de red al enviar: ' + err);
+                            });
                         };
 
                         /** Descargar Excel con todos los campos visibles */
