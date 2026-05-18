@@ -25,6 +25,8 @@ const SUPABASE_SVC_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const RESEND_API_KEY    = Deno.env.get('RESEND_API_KEY')       || '';
 const EMAIL_FROM        = Deno.env.get('EMAIL_FROM')           || 'operaciones@aifa.com.mx';
 const EMAIL_FROM_NAME   = Deno.env.get('EMAIL_FROM_NAME')      || 'Aeropuerto Internacional Felipe Ángeles';
+// TEST_EMAIL: si está definido, todos los correos se redirigen a esta dirección (útil en Resend plan gratuito)
+const TEST_EMAIL        = Deno.env.get('TEST_EMAIL')           || '';
 
 const MONTH_NAMES = [
   'enero','febrero','marzo','abril','mayo','junio',
@@ -122,6 +124,12 @@ async function sendEmail(to: string, nombre: string, html: string): Promise<{ ok
     return { ok: false, error: 'RESEND_API_KEY no configurada en los secrets de Supabase' };
   }
 
+  // Si hay TEST_EMAIL, redirigir a esa dirección (plan gratuito de Resend)
+  const recipient = TEST_EMAIL || to;
+  const subject   = TEST_EMAIL
+    ? `[PRUEBA] 🎂 ¡Feliz Cumpleaños, ${nombre.split(' ')[0]}! - AIFA`
+    : `🎂 ¡Feliz Cumpleaños, ${nombre.split(' ')[0]}! - AIFA`;
+
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -130,8 +138,8 @@ async function sendEmail(to: string, nombre: string, html: string): Promise<{ ok
     },
     body: JSON.stringify({
       from:    `${EMAIL_FROM_NAME} <${EMAIL_FROM}>`,
-      to:      [to],
-      subject: `🎂 ¡Feliz Cumpleaños, ${nombre.split(' ')[0]}! - AIFA`,
+      to:      [recipient],
+      subject,
       html,
     }),
   });
