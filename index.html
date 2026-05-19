@@ -9835,23 +9835,26 @@ FF
                             var correo = gc(row, 'correo_personal') || gc(row, 'correo');
                             var nombre = gc(row, 'nombre') || 'Colaborador';
 
+                            console.log('[BdayCorreo] Columnas detectadas:', window._colabCols || colabCols);
+                            console.log('[BdayCorreo] row completo:', row);
+                            console.log('[BdayCorreo] correo detectado:', correo, '| nombre:', nombre);
+
                             if (!correo) {
-                                alert('Este colaborador no tiene correo personal registrado.\n\nPuedes agregarlo en la ficha del colaborador.');
+                                alert('Este colaborador no tiene correo personal registrado.\n\nPuedes agregarlo en la ficha del colaborador (campo "Correo Personal").');
                                 return;
                             }
 
-                            if (!confirm('Se enviará la tarjeta de cumpleaños a:\n\n' + nombre + '\n' + correo + '\n\n¿Continuar?')) return;
+                            if (!confirm('Se enviará la tarjeta de cumpleaños a:\n\n👤 ' + nombre + '\n📧 ' + correo + '\n\n¿Continuar?')) return;
 
                             if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...'; }
 
-                            var supabaseUrl = (window.supabaseClient && window.supabaseClient.supabaseUrl)
-                                || (typeof SUPABASE_URL !== 'undefined' && SUPABASE_URL)
-                                || '';
-                            var fnUrl = supabaseUrl.replace(/\/$/, '') + '/functions/v1/send-birthday-emails';
-
+                            var fnUrl = 'https://fgstncvuuhpgyzmjceyr.supabase.co/functions/v1/send-birthday-emails';
                             var anonKey = (window.supabaseClient && window.supabaseClient.supabaseKey)
                                 || (typeof SUPABASE_ANON_KEY !== 'undefined' && SUPABASE_ANON_KEY)
-                                || '';
+                                || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnc3RuY3Z1dWhwZ3l6bWpjZXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyMjQ1MTEsImV4cCI6MjA2MTgwMDUxMX0.8-JDwjFNzHkxPVJUlRbHTSl3W2b48y_97FjR2GJ9IjI';
+
+                            console.log('[BdayCorreo] Enviando a función:', fnUrl);
+                            console.log('[BdayCorreo] anonKey presente:', !!anonKey);
 
                             fetch(fnUrl, {
                                 method: 'POST',
@@ -9861,20 +9864,26 @@ FF
                                 },
                                 body: JSON.stringify({ email: correo, nombre: nombre })
                             })
-                            .then(function(res) { return res.json(); })
+                            .then(function(res) {
+                                console.log('[BdayCorreo] HTTP status:', res.status);
+                                return res.json();
+                            })
                             .then(function(data) {
+                                console.log('[BdayCorreo] Respuesta función:', data);
                                 if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-envelope"></i> Enviar correo'; }
                                 if (data && data.sent > 0) {
                                     btn.innerHTML = '<i class="fas fa-check"></i> \u00a1Enviado!';
-                                    setTimeout(function() { if (btn) btn.innerHTML = '<i class="fas fa-envelope"></i> Enviar correo'; }, 3000);
+                                    alert('\u2705 Correo enviado exitosamente a:\n' + correo + '\n\nRevisa que no haya caído en SPAM.');
+                                    setTimeout(function() { if (btn) btn.innerHTML = '<i class="fas fa-envelope"></i> Enviar correo'; }, 4000);
                                 } else {
-                                    var err = (data && data.detail && data.detail[0] && data.detail[0].error) || 'Error desconocido';
-                                    alert('No se pudo enviar el correo: ' + err);
+                                    var errDetail = (data && data.detail && data.detail[0] && data.detail[0].error) || JSON.stringify(data) || 'Error desconocido';
+                                    alert('\u274C No se pudo enviar el correo.\n\nDetalle: ' + errDetail);
                                 }
                             })
                             .catch(function(err) {
+                                console.error('[BdayCorreo] Error de red:', err);
                                 if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-envelope"></i> Enviar correo'; }
-                                alert('Error de red al enviar: ' + err);
+                                alert('\u274C Error de red al enviar: ' + err);
                             });
                         };
 
