@@ -23,8 +23,25 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')              || '';
 const SUPABASE_SVC_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const RESEND_API_KEY    = Deno.env.get('RESEND_API_KEY')       || '';
-const EMAIL_FROM        = Deno.env.get('EMAIL_FROM')           || 'cumpleanios@aifanlu.com.mx';
+const EMAIL_FROM_RAW    = Deno.env.get('EMAIL_FROM')           || 'cumpleanios@aifanlu.com.mx';
 const EMAIL_FROM_NAME   = Deno.env.get('EMAIL_FROM_NAME')      || 'AIFA Operaciones';
+
+// Sanitiza el email: reemplaza caracteres no-ASCII comunes (ñ → n, á → a, etc.)
+// Resend rechaza cualquier carácter no-ASCII en la dirección de correo
+function sanitizeEmail(email: string): string {
+  return email
+    .replace(/[àáâãäå]/gi, 'a')
+    .replace(/[èéêë]/gi, 'e')
+    .replace(/[ìíîï]/gi, 'i')
+    .replace(/[òóôõö]/gi, 'o')
+    .replace(/[ùúûü]/gi, 'u')
+    .replace(/[ñ]/gi, 'n')
+    .replace(/[ý]/gi, 'y')
+    .replace(/[ç]/gi, 'c')
+    .replace(/[^a-zA-Z0-9@._+\-]/g, '');
+}
+
+const EMAIL_FROM = sanitizeEmail(EMAIL_FROM_RAW);
 
 // RFC 2047: codifica el nombre visible si contiene caracteres no-ASCII
 // Resend rechaza el campo `from` con caracteres fuera del rango ASCII
