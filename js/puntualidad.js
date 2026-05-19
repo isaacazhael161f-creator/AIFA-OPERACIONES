@@ -550,20 +550,23 @@
     <div class="punc-crit-section">
       <div class="punc-crit-section-title text-primary"><i class="fas fa-calculator"></i> Fórmula de puntualidad</div>
       <div class="punc-crit-formula">Puntualidad = (Vuelos a tiempo / Total vuelos) × 100</div>
-      <div class="punc-crit-note"><i class="fas fa-info-circle text-info"></i>
-        Para meses con datos de imputables (desde Marzo 2026) la fórmula es:<br>
-        <strong>(Total − Imputables aerolínea) / Total × 100</strong><br>
+      <p class="punc-crit-note mb-0">
+        <i class="fas fa-info-circle text-info"></i>
+        Para meses con datos de imputables (desde Marzo 2026) la fórmula es:
+        <strong>(Total − Imputables aerolínea) / Total × 100</strong>,
         lo que descuenta solo las demoras que son responsabilidad de la aerolínea.
-      </div>
+      </p>
     </div>
     <div class="punc-crit-section">
       <div class="punc-crit-section-title text-success"><i class="fas fa-trophy"></i> Ranking mensual</div>
-      <div class="punc-crit-note"><i class="fas fa-sort-down text-success"></i>
-        Las aerolíneas se ordenan de <strong>mayor a menor</strong> puntualidad dentro de su categoría (Pasajeros / Carga).<br><br>
-        <i class="fas fa-filter text-warning"></i>
-        El filtro <strong>Mín. vuelos</strong> excluye del TOP a aerolíneas con muy pocos vuelos (puede distorsionar el ranking una aerolínea con 2 vuelos al 100% vs otra con 500 al 99%).
-        Solo afecta el TOP — en la tabla detalle se muestran todas.
-      </div>
+      <p class="punc-crit-note mb-2">
+        <i class="fas fa-sort-down text-success me-1"></i>
+        Las aerolíneas se ordenan de <strong>mayor a menor</strong> puntualidad dentro de su categoría (Pasajeros / Carga).
+      </p>
+      <p class="punc-crit-note mb-0">
+        <i class="fas fa-filter text-warning me-1"></i>
+        El filtro <strong>Mín. vuelos</strong> excluye del TOP a aerolíneas con muy pocos vuelos (ej. una con 2 vuelos al 100% vs otra con 500 al 99%). Solo afecta el TOP — en la tabla detalle se muestran todas.
+      </p>
     </div>
     <div class="punc-crit-section">
       <div class="punc-crit-section-title"><i class="fas fa-circle-half-stroke text-warning"></i> Umbral de calidad</div>
@@ -577,9 +580,10 @@
     <div class="punc-crit-section">
       <div class="punc-crit-section-title text-primary"><i class="fas fa-calculator"></i> Puntualidad acumulada ponderada</div>
       <div class="punc-crit-formula">∑ (vuelos a tiempo en todos los meses) / ∑ (vuelos totales) × 100</div>
-      <div class="punc-crit-note"><i class="fas fa-balance-scale text-primary"></i>
+      <p class="punc-crit-note mb-0">
+        <i class="fas fa-balance-scale text-primary"></i>
         El cálculo <strong>pondera por volumen</strong>: una aerolínea con 1,000 vuelos tiene más peso que una con 10 vuelos, evitando que periodos con muy poca operación distorsionen el resultado anual.
-      </div>
+      </p>
     </div>
     <div class="punc-crit-section">
       <div class="punc-crit-section-title text-warning"><i class="fas fa-trophy"></i> Meses como #1</div>
@@ -591,10 +595,11 @@
     </div>
     <div class="punc-crit-section">
       <div class="punc-crit-section-title"><i class="fas fa-filter text-secondary"></i> Mínimo de vuelos</div>
-      <div class="punc-crit-note"><i class="fas fa-info-circle text-info"></i>
-        El filtro <strong>Mín. vuelos</strong> excluye del TOP a aerolíneas con operación mínima. Ajústalo en la barra de herramientas según el análisis deseado.<br>
+      <p class="punc-crit-note mb-0">
+        <i class="fas fa-info-circle text-info"></i>
+        El filtro <strong>Mín. vuelos</strong> excluye del TOP a aerolíneas con operación mínima. Ajústalo en la barra de herramientas según el análisis deseado.
         <span style="color:#888;">(Valor por defecto: 30 vuelos en el periodo seleccionado)</span>
-      </div>
+      </p>
     </div>
     <div class="punc-crit-section">
       <div class="punc-crit-section-title"><i class="fas fa-circle-half-stroke text-warning"></i> Umbral de calidad</div>
