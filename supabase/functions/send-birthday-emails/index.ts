@@ -23,7 +23,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')              || '';
 const SUPABASE_SVC_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const RESEND_API_KEY    = Deno.env.get('RESEND_API_KEY')       || '';
-const EMAIL_FROM        = Deno.env.get('EMAIL_FROM')           || 'operaciones@aifa.com.mx';
+const EMAIL_FROM        = Deno.env.get('EMAIL_FROM')           || 'cumpleaños@aifamlu.com.mx';
 const EMAIL_FROM_NAME   = Deno.env.get('EMAIL_FROM_NAME')      || 'Aeropuerto Internacional Felipe Ángeles';
 // TEST_EMAIL: si está definido, todos los correos se redirigen a esta dirección (útil en Resend plan gratuito)
 const TEST_EMAIL        = Deno.env.get('TEST_EMAIL')           || '';
@@ -42,8 +42,8 @@ interface Colaborador {
   fecha_nacimiento?: string;
 }
 
-// URL base de las imágenes (Vercel)
-const IMG_BASE = 'https://aifa-operaciones.vercel.app';
+// URL base de las imágenes (GitHub Pages)
+const IMG_BASE = 'https://isaacazhael161f-creator.github.io/AIFA-OPERACIONES/AIFA-OPERACIONES-main';
 
 // ── HTML de la tarjeta de cumpleaños ────────────────────────────────────────
 function buildEmailHtml(colaborador: Colaborador): string {
