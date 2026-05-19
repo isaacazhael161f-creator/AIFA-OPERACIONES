@@ -124,11 +124,16 @@
   function _aggregateAnnual(rawData) {
     const groups = {};
     rawData.forEach(row => {
-      const key = `${(row.airline || '').trim()}|||${(row.category || '').trim()}`;
+      // Usar nombre normalizado (sin acentos, minúsculas) como clave de agrupación
+      // para evitar duplicados por variantes tipográficas ("Aeromexico" vs "Aeroméxico")
+      const airlineNorm = normalizeAirlineName(row.airline || '');
+      const catNorm     = (row.category || '').trim().toLowerCase();
+      const key = `${airlineNorm}|||${catNorm}`;
       if (!groups[key]) {
         groups[key] = {
-          airline:             row.airline,
+          airline:             row.airline,      // nombre original (se actualiza al más frecuente)
           category:            row.category,
+          _maxFlights:         0,                // para elegir el nombre canónico
           total_flights:       0,
           on_time:             0,
           delayed:             0,
@@ -139,10 +144,16 @@
         };
       }
       const g = groups[key];
-      g.total_flights += Number(row.total_flights || 0);
-      g.on_time       += Number(row.on_time       || 0);
-      g.delayed       += Number(row.delayed       || 0);
-      g.cancelled     += Number(row.cancelled     || 0);
+      const rowFlights = Number(row.total_flights || 0);
+      // Usar el nombre de la variante con más vuelos como nombre canónico
+      if (rowFlights > g._maxFlights) {
+        g.airline     = row.airline;
+        g._maxFlights = rowFlights;
+      }
+      g.total_flights += rowFlights;
+      g.on_time       += Number(row.on_time   || 0);
+      g.delayed       += Number(row.delayed   || 0);
+      g.cancelled     += Number(row.cancelled || 0);
       if (row.total_imputable     !== null && row.total_imputable     !== undefined) g.total_imputable     = (g.total_imputable     || 0) + Number(row.total_imputable);
       if (row.imputable_airline   !== null && row.imputable_airline   !== undefined) g.imputable_airline   = (g.imputable_airline   || 0) + Number(row.imputable_airline);
       if (row.cancelled_imputable !== null && row.cancelled_imputable !== undefined) g.cancelled_imputable = (g.cancelled_imputable || 0) + Number(row.cancelled_imputable);
@@ -207,7 +218,10 @@
   // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
   function normalizeAirlineName(name) {
-    return (name || '').toString().trim().toLowerCase();
+    return (name || '').toString().trim()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quitar acentos
+      .toLowerCase()
+      .replace(/\s+/g, ' ');                             // espacios múltiples
   }
 
   function parsePercent(p) {
