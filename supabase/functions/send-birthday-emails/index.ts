@@ -7,7 +7,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL     = Deno.env.get('SUPABASE_URL')              || '';
 const SUPABASE_SVC_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const RESEND_API_KEY   = Deno.env.get('RESEND_API_KEY')            || '';
-const EMAIL_FROM_RAW   = Deno.env.get('EMAIL_FROM')                || 'cumpleanios@aifanlu.com.mx';
+const EMAIL_FROM_RAW   = Deno.env.get('EMAIL_FROM')                || 'operaciones@aifanlu.com.mx';
 const EMAIL_FROM_NAME  = Deno.env.get('EMAIL_FROM_NAME')           || 'AIFA Operaciones';
 const TEST_EMAIL       = Deno.env.get('TEST_EMAIL')                || '';
 
