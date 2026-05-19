@@ -23,8 +23,17 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')              || '';
 const SUPABASE_SVC_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const RESEND_API_KEY    = Deno.env.get('RESEND_API_KEY')       || '';
-const EMAIL_FROM        = Deno.env.get('EMAIL_FROM')           || 'cumpleaños@aifamlu.com.mx';
-const EMAIL_FROM_NAME   = Deno.env.get('EMAIL_FROM_NAME')      || 'Aeropuerto Internacional Felipe Ángeles';
+const EMAIL_FROM        = Deno.env.get('EMAIL_FROM')           || 'cumpleanios@aifanlu.com.mx';
+const EMAIL_FROM_NAME   = Deno.env.get('EMAIL_FROM_NAME')      || 'AIFA Operaciones';
+
+// RFC 2047: codifica el nombre visible si contiene caracteres no-ASCII
+// Resend rechaza el campo `from` con caracteres fuera del rango ASCII
+function encodeFromName(name: string): string {
+  if (/^[\x00-\x7F]*$/.test(name)) return name;
+  const bytes = new TextEncoder().encode(name);
+  const bin   = Array.from(bytes).map(b => String.fromCharCode(b)).join('');
+  return `=?UTF-8?B?${btoa(bin)}?=`;
+}
 // TEST_EMAIL: si está definido, todos los correos se redirigen a esta dirección (útil en Resend plan gratuito)
 const TEST_EMAIL        = Deno.env.get('TEST_EMAIL')           || '';
 
@@ -161,7 +170,7 @@ async function sendEmail(to: string, nombre: string, html: string): Promise<{ ok
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from:    `${EMAIL_FROM_NAME} <${EMAIL_FROM}>`,
+      from:    `${encodeFromName(EMAIL_FROM_NAME)} <${EMAIL_FROM}>`,
       to:      [recipient],
       subject,
       html,
