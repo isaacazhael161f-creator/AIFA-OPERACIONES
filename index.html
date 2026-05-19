@@ -16909,23 +16909,49 @@ FF
                                     <div class="ag-wrapper">
 
                                         <!-- Sub-navegación YoY -->
-                                        <ul class="nav nav-pills mb-4 gap-1" id="yoy-sub-tabs" role="tablist">
+                                        <ul class="nav nav-pills mb-2 gap-1" id="yoy-sub-tabs" role="tablist">
                                             <li class="nav-item" role="presentation">
-                                                <button class="nav-link active" id="yoy-sub-comercial-btn" data-bs-toggle="pill" data-bs-target="#yoy-sub-comercial" type="button" role="tab" aria-controls="yoy-sub-comercial" aria-selected="true">
+                                                <button class="nav-link active" id="yoy-sub-comercial-btn" data-bs-toggle="pill" data-bs-target="#yoy-sub-comercial" type="button" role="tab" aria-controls="yoy-sub-comercial" aria-selected="true" onclick="yoyDismissHint()">
                                                     <i class="fas fa-plane me-1"></i>Comercial
                                                 </button>
                                             </li>
                                             <li class="nav-item" role="presentation">
-                                                <button class="nav-link" id="yoy-sub-general-btn" data-bs-toggle="pill" data-bs-target="#yoy-sub-general" type="button" role="tab" aria-controls="yoy-sub-general" aria-selected="false">
+                                                <button class="nav-link" id="yoy-sub-general-btn" data-bs-toggle="pill" data-bs-target="#yoy-sub-general" type="button" role="tab" aria-controls="yoy-sub-general" aria-selected="false" onclick="yoyDismissHint()">
                                                     <i class="fas fa-paper-plane me-1"></i>General
                                                 </button>
                                             </li>
                                             <li class="nav-item" role="presentation">
-                                                <button class="nav-link" id="yoy-sub-carga-btn" data-bs-toggle="pill" data-bs-target="#yoy-sub-carga" type="button" role="tab" aria-controls="yoy-sub-carga" aria-selected="false">
+                                                <button class="nav-link" id="yoy-sub-carga-btn" data-bs-toggle="pill" data-bs-target="#yoy-sub-carga" type="button" role="tab" aria-controls="yoy-sub-carga" aria-selected="false" onclick="yoyDismissHint()">
                                                     <i class="fas fa-box-open me-1"></i>Carga
                                                 </button>
                                             </li>
                                         </ul>
+
+                                        <!-- Banner de orientación -->
+                                        <div id="yoy-nav-hint" style="
+                                            display:flex; align-items:flex-start; gap:.75rem;
+                                            background:linear-gradient(90deg,#eff6ff,#f0fdf4);
+                                            border:1px solid #bfdbfe; border-radius:10px;
+                                            padding:.65rem 1rem; margin-bottom:1.25rem;
+                                            font-size:.8rem; color:#1e40af; line-height:1.5;
+                                            position:relative;">
+                                            <span style="font-size:1.15rem;flex-shrink:0;margin-top:.05rem;">💡</span>
+                                            <div>
+                                                <strong>¿Sabías que puedes navegar entre tipos de aviación?</strong><br>
+                                                Usa las pestañas de arriba (<strong>Comercial</strong>, <strong>General</strong>, <strong>Carga</strong>) para ver la comparativa de cada segmento.<br>
+                                                <span style="color:#166534;">Dentro de cada vista también puedes cambiar el <strong>Indicador</strong> (Operaciones, Pasajeros, etc.) desde el panel de filtros.</span>
+                                            </div>
+                                            <button onclick="yoyDismissHint()" title="Cerrar" style="
+                                                position:absolute;top:.4rem;right:.55rem;
+                                                background:none;border:none;font-size:.95rem;
+                                                color:#93c5fd;cursor:pointer;line-height:1;padding:0;">✕</button>
+                                        </div>
+                                        <script>
+                                        function yoyDismissHint(){
+                                            var h=document.getElementById('yoy-nav-hint');
+                                            if(h) h.style.display='none';
+                                        }
+                                        </script>
 
                                         <div class="tab-content" id="yoy-sub-content">
 
@@ -16937,8 +16963,25 @@ FF
                                                             <div class="card-body">
                                                                 <h6 class="text-uppercase text-muted fw-bold mb-3" style="letter-spacing: 0.5px;"><i class="fas fa-filter me-2 text-primary"></i>Filtros de Comparación</h6>
                                                                 <div class="mb-4">
-                                                                    <label for="yoy-metric-select" class="form-label small fw-semibold mb-2" style="color: #334155;">📊 Indicador</label>
-                                                                    <select id="yoy-metric-select" class="form-select form-select-sm" style="border-color: #cbd5e1; border-radius: 6px;">
+                                                                    <label for="yoy-metric-select" class="form-label small fw-semibold mb-2 d-flex align-items-center gap-2" style="color: #334155;">
+                                                                        📊 Indicador
+                                                                        <span id="yoy-metric-pulse" style="
+                                                                            display:inline-flex;align-items:center;gap:.3rem;
+                                                                            background:#dbeafe;color:#1d4ed8;
+                                                                            border-radius:20px;padding:.1rem .55rem;
+                                                                            font-size:.65rem;font-weight:700;letter-spacing:.02em;
+                                                                            animation:yoyPulse 1.8s ease-in-out 3;
+                                                                            cursor:default;">
+                                                                            ← cámbialo
+                                                                        </span>
+                                                                    </label>
+                                                                    <style>
+                                                                    @keyframes yoyPulse {
+                                                                        0%,100%{opacity:1;transform:scale(1);}
+                                                                        50%{opacity:.4;transform:scale(.95);}
+                                                                    }
+                                                                    </style>
+                                                                    <select id="yoy-metric-select" class="form-select form-select-sm" style="border-color: #cbd5e1; border-radius: 6px;" onchange="document.getElementById('yoy-metric-pulse').style.display='none';">
                                                                         <option value="operaciones" selected>Operaciones Comerciales</option>
                                                                         <option value="pasajeros">Pasajeros Comerciales</option>
                                                                     </select>
