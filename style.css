@@ -8870,6 +8870,55 @@ input[type="time"] {
    font-variant-numeric: tabular-nums;
 }
 
+/* ===================== Puntualidad: toolbar de filtros ===================== */
+.punc-toolbar {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: flex-end;
+   gap: .65rem 1rem;
+   background: linear-gradient(135deg, #f8faff 0%, #f0f4fb 100%);
+   border: 1.5px solid #dde5f5;
+   border-radius: 14px;
+   padding: .85rem 1.1rem;
+   margin-bottom: 1.25rem;
+   box-shadow: 0 2px 8px rgba(30,60,120,.06);
+}
+.punc-tg {
+   display: flex;
+   flex-direction: column;
+   gap: .25rem;
+}
+.punc-tg-label {
+   font-size: .67rem;
+   font-weight: 700;
+   text-transform: uppercase;
+   letter-spacing: .07em;
+   color: #7c8db0;
+   line-height: 1;
+   padding-left: .1rem;
+}
+.punc-tb-sep {
+   width: 1.5px;
+   background: #dde5f5;
+   height: 38px;
+   border-radius: 2px;
+   flex-shrink: 0;
+   align-self: flex-end;
+   margin-bottom: .15rem;
+}
+.punc-tg-actions { margin-left: auto; }
+@media (max-width: 767.98px) {
+   .punc-toolbar { padding: .75rem .9rem; gap: .75rem; }
+   .punc-tb-sep  { display: none; }
+   .punc-tg-actions { margin-left: 0; }
+}
+body.dark-mode .punc-toolbar {
+   background: linear-gradient(135deg, #1a2040 0%, #1e2654 100%);
+   border-color: #2e3a60;
+}
+body.dark-mode .punc-tg-label { color: #8da0cc; }
+body.dark-mode .punc-tb-sep   { background: #2e3a60; }
+
 /* ===================== Puntualidad: separadores y acentos visuales ===================== */
 .punc-card .card-header {
    background: rgba(0, 0, 0, 0.02);
