@@ -4,6 +4,43 @@
   const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                        'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
+  // Mapa de aliases: nombre normalizado (sin acentos, minúsculas) → nombre canónico a mostrar
+  // Agregar aquí cualquier variante tipográfica de la DB que deba tratarse como una sola aerolínea
+  const AIRLINE_ALIASES = {
+    'cargojet':                 'Cargojet Airways',
+    'cargojet airways':         'Cargojet Airways',
+    'aeromexico':               'Aeroméxico',
+    'aeromexico connect':       'Aeroméxico Connect',
+    'aeromexico connect s.a. de c.v.': 'Aeroméxico Connect',
+    'volaris':                  'Volaris',
+    'volaris costa rica':       'Volaris Costa Rica',
+    'mexicana de aviacion':     'Mexicana de Aviación',
+    'mexicana':                 'Mexicana de Aviación',
+    'united airlines':          'United Airlines',
+    'american airlines':        'American Airlines',
+    'cathay pacific':           'Cathay Pacific',
+    'cathay pacific airways':   'Cathay Pacific',
+    'ups':                      'UPS Airlines',
+    'ups airlines':             'UPS Airlines',
+    'cargolux':                 'Cargolux',
+    'cargolux airlines international': 'Cargolux',
+    'lufthansa':                'Lufthansa',
+    'lufthansa cargo':          'Lufthansa Cargo',
+    'fedex':                    'FedEx',
+    'federal express':          'FedEx',
+    'suparna airlines':         'Suparna Airlines',
+    'china cargo airlines':     'Suparna Airlines',
+  };
+
+  function canonicalizeAirline(name) {
+    if (!name) return name;
+    const norm = (name).trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ');
+    return ALIAS_LOOKUP[norm] || name;
+  }
+  // Construir lookup invertido (alias normalizado → nombre canónico)
+  const ALIAS_LOOKUP = {};
+  Object.entries(AIRLINE_ALIASES).forEach(([alias, canon]) => { ALIAS_LOOKUP[alias] = canon; });
+
   let _data        = null;
   let _allYearData = [];
   let _minFlights  = 30;
@@ -124,16 +161,15 @@
   function _aggregateAnnual(rawData) {
     const groups = {};
     rawData.forEach(row => {
-      // Usar nombre normalizado (sin acentos, minúsculas) como clave de agrupación
-      // para evitar duplicados por variantes tipográficas ("Aeromexico" vs "Aeroméxico")
-      const airlineNorm = normalizeAirlineName(row.airline || '');
+      const canon     = canonicalizeAirline(row.airline || '');
+      const airlineNorm = normalizeAirlineName(canon);
       const catNorm     = (row.category || '').trim().toLowerCase();
       const key = `${airlineNorm}|||${catNorm}`;
       if (!groups[key]) {
         groups[key] = {
-          airline:             row.airline,      // nombre original (se actualiza al más frecuente)
+          airline:             canon,
           category:            row.category,
-          _maxFlights:         0,                // para elegir el nombre canónico
+          _maxFlights:         0,
           total_flights:       0,
           on_time:             0,
           delayed:             0,
@@ -145,11 +181,7 @@
       }
       const g = groups[key];
       const rowFlights = Number(row.total_flights || 0);
-      // Usar el nombre de la variante con más vuelos como nombre canónico
-      if (rowFlights > g._maxFlights) {
-        g.airline     = row.airline;
-        g._maxFlights = rowFlights;
-      }
+      if (rowFlights > g._maxFlights) { g.airline = canon; g._maxFlights = rowFlights; }
       g.total_flights += rowFlights;
       g.on_time       += Number(row.on_time   || 0);
       g.delayed       += Number(row.delayed   || 0);
@@ -176,11 +208,11 @@
           const onTime = Number(r.on_time || 0);
           const hasImp = r.total_imputable !== null && r.total_imputable !== undefined;
           const pct    = total > 0 ? (hasImp ? ((total - Number(r.total_imputable)) / total * 100) : (onTime / total * 100)) : 0;
-          return { airline: r.airline, pct, total };
+          return { airline: canonicalizeAirline(r.airline), pct, total };
         }).filter(r => r.total >= _minFlights);
         if (!withPct.length) return;
         withPct.sort((a, b) => b.pct - a.pct);
-        const key = `${withPct[0].airline}|||${cat}`;
+        const key = `${normalizeAirlineName(canonicalizeAirline(withPct[0].airline))}|||${cat}`;
         wins[key] = (wins[key] || 0) + 1;
       });
     });
@@ -289,7 +321,8 @@
 
         let winsBadge = '';
         if (_viewMode === 'annual') {
-          const wins = _monthlyWins[`${r.aerolinea}|||${cat}`] || 0;
+          const canonKey = normalizeAirlineName(canonicalizeAirline(r.aerolinea));
+          const wins = _monthlyWins[`${canonKey}|||${cat}`] || 0;
           if (wins > 0) winsBadge = `<span class="badge bg-warning text-dark ms-1" title="Meses como #1"><i class="fas fa-trophy me-1"></i>${wins}/${_totalMonths}</span>`;
         }
 
