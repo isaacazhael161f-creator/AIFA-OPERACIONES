@@ -6,7 +6,7 @@
 
   let _data        = null;
   let _allYearData = [];
-  let _minFlights  = 10;
+  let _minFlights  = 30;
   let _viewMode    = 'monthly';
   let _selectedMonth = null;
   let _selectedYear  = null;
@@ -529,15 +529,22 @@
       <div class="punc-crit-section-title text-primary"><i class="fas fa-calculator"></i> Puntualidad acumulada ponderada</div>
       <div class="punc-crit-formula">∑ (vuelos a tiempo en todos los meses) / ∑ (vuelos totales) × 100</div>
       <div class="punc-crit-note"><i class="fas fa-balance-scale text-primary"></i>
-        El cálculo <strong>pondera por volumen</strong>: una aerolínea con 1,000 vuelos tiene más peso que una con 10, evitando que un mes con muy pocos vuelos distorsione el resultado anual.
+        El cálculo <strong>pondera por volumen</strong>: una aerolínea con 1,000 vuelos tiene más peso que una con 10 vuelos, evitando que periodos con muy poca operación distorsionen el resultado anual.
       </div>
     </div>
     <div class="punc-crit-section">
       <div class="punc-crit-section-title text-warning"><i class="fas fa-trophy"></i> Meses como #1</div>
-      <div class="punc-crit-note"><i class="fas fa-calendar-check text-warning"></i>
-        La columna <strong>🏆 Meses #1</strong> cuenta cuántos meses cada aerolínea fue la más puntual en su categoría, respetando el filtro <em>Mín. vuelos</em>.<br><br>
-        Ejemplo: <strong>3/4</strong> = fue la #1 en 3 de los 4 meses disponibles.<br>
-        Este indicador mide <em>consistencia</em> a lo largo del año, independientemente del volumen.
+      <p style="font-size:.82rem;color:#445;margin:0 0 .6rem;">La columna <strong>🏆 Meses #1</strong> cuenta cuántos meses del año cada aerolínea fue la más puntual en su categoría (respetando el filtro <em>Mín. vuelos</em>).</p>
+      <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:8px;padding:.55rem .85rem;font-size:.82rem;color:#78350f;">
+        <strong>Ejemplo:</strong> &nbsp;<span class="badge bg-warning text-dark">🏆 3/4</span>&nbsp; significa que fue la aerolínea #1 en <strong>3 de los 4 meses</strong> disponibles.<br>
+        Este indicador mide <em>consistencia</em> a lo largo del año, independientemente del volumen de vuelos.
+      </div>
+    </div>
+    <div class="punc-crit-section">
+      <div class="punc-crit-section-title"><i class="fas fa-filter text-secondary"></i> Mínimo de vuelos</div>
+      <div class="punc-crit-note"><i class="fas fa-info-circle text-info"></i>
+        El filtro <strong>Mín. vuelos</strong> excluye del TOP a aerolíneas con operación mínima. Ajústalo en la barra de herramientas según el análisis deseado.<br>
+        <span style="color:#888;">(Valor por defecto: 30 vuelos en el periodo seleccionado)</span>
       </div>
     </div>
     <div class="punc-crit-section">
