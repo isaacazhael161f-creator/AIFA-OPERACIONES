@@ -447,7 +447,7 @@
     if (minFlightsSel) {
       minFlightsSel.addEventListener('change', function () {
         const v = parseInt(minFlightsSel.value, 10);
-        _minFlights  = isNaN(v) ? 10 : v;
+        _minFlights  = isNaN(v) ? 30 : v;
         _monthlyWins = _computeMonthlyWins(_allYearData);
         renderTopLists();
       });
@@ -488,7 +488,9 @@
     loadData();
   });
 
-  window.initPunctuality = function () { loadData(); };
+  window.initPunctuality = function () {
+    if (_allYearData.length === 0) loadData();
+  };
 
   window.puntualidadRefresh = function () {
     _data = null;

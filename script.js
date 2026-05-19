@@ -6446,6 +6446,13 @@ function showSection(sectionKey, linkEl) {
             }, 80);
         }
 
+        // Hook: Puntualidad — carga datos si aún no están listos
+        if (targetKey === 'puntualidad-agosto') {
+            setTimeout(() => {
+                if (typeof window.initPunctuality === 'function') window.initPunctuality();
+            }, 80);
+        }
+
         // Hook: Administración de Usuarios (solo admin)
         if (targetKey === 'admin-usuarios') {
             setTimeout(() => {
