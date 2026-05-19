@@ -11,10 +11,10 @@ const EMAIL_FROM_RAW   = Deno.env.get('EMAIL_FROM')                || 'cumpleani
 const EMAIL_FROM_NAME  = Deno.env.get('EMAIL_FROM_NAME')           || 'AIFA Operaciones';
 const TEST_EMAIL       = Deno.env.get('TEST_EMAIL')                || '';
 
-// jsDelivr sirve archivos de GitHub como CDN publico — funciona en todos los clientes de correo
-const CDN       = 'https://cdn.jsdelivr.net/gh/isaacazhael161f-creator/AIFA-OPERACIONES@main/AIFA-OPERACIONES-main';
-const IMG_AVION = CDN + '/images/Aviones%20pax.jpeg';
-const IMG_LOGO  = CDN + '/images/aifa-logo.png';
+// Supabase Storage publico — bucket email-assets, siempre accesible desde cualquier cliente de correo
+const STORAGE   = 'https://fgstncvuuhpgyzmjceyr.supabase.co/storage/v1/object/public/email-assets';
+const IMG_AVION = STORAGE + '/aviones-pax.jpg';
+const IMG_LOGO  = STORAGE + '/aifa-logo.png';
 
 function sanitizeEmail(email: string): string {
   return email
