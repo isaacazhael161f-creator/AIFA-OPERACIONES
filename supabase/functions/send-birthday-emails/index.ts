@@ -45,86 +45,180 @@ function buildEmailHtml(c: Colaborador): string {
   const nombre    = c.nombre    || 'Colaborador';
   const puesto    = c.puesto    || '';
   const direccion = c.direccion || 'Direcci&#243;n de Operaci&#243;n';
-  const puestoLine = [puesto, direccion].filter(Boolean).join(' &middot; ');
+  const roleLine  = [puesto, direccion].filter(Boolean).join(' &nbsp;&middot;&nbsp; ');
+  const roleBlock = roleLine
+    ? `<p style="color:#6b7a99;font-size:12px;margin:14px 0 0;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-family:Arial,sans-serif;">${roleLine}</p>`
+    : '';
 
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Feliz Cumpleanios - AIFA</title>
+  <title>Feliz Cumplea&#241;os</title>
 </head>
-<body style="margin:0;padding:0;background:#e8edf8;font-family:Arial,Helvetica,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#e8edf8;padding:28px 0;">
-  <tr><td align="center">
-    <table width="600" cellpadding="0" cellspacing="0" border="0"
-           style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(10,20,80,.15);">
+<body style="margin:0;padding:0;background:#071540;font-family:Arial,Helvetica,sans-serif;">
 
-      <tr>
-        <td style="padding:0;line-height:0;">
-          <img src="${IMG_AVION}" alt="AIFA" width="600"
-               style="width:100%;max-width:600px;height:200px;object-fit:cover;display:block;">
-        </td>
-      </tr>
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#071540;padding:32px 0;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">
 
-      <tr>
-        <td align="center" bgcolor="#0d2152" style="background-color:#0d2152;padding:20px 30px 24px;">
-          <img src="${IMG_LOGO}" alt="AIFA Logo" height="42"
-               style="display:block;margin:0 auto 10px;height:42px;">
-          <p style="color:rgba(255,255,255,.75);font-size:10px;letter-spacing:3px;text-transform:uppercase;margin:0 0 8px;font-weight:600;font-family:Arial,sans-serif;">
-            Aeropuerto Internacional Felipe &#193;ngeles
-          </p>
-          <p style="color:#ffffff;font-size:24px;font-weight:800;margin:0;letter-spacing:1px;font-family:Arial,sans-serif;">
-            &#127874;&nbsp; FELIZ CUMPLEA&#209;OS &nbsp;&#127874;
-          </p>
-        </td>
-      </tr>
+  <!-- ============ HERO IMAGE ============ -->
+  <tr>
+    <td style="padding:0;line-height:0;">
+      <img src="${IMG_AVION}" alt="AIFA" width="600"
+           style="width:100%;max-width:600px;display:block;height:280px;object-fit:cover;border-radius:20px 20px 0 0;">
+    </td>
+  </tr>
 
-      <tr>
-        <td align="center" style="padding:28px 40px 16px;border-bottom:2px solid #eef0f7;">
-          <p style="color:#0d2152;font-size:28px;font-weight:800;margin:0 0 8px;font-family:Arial,sans-serif;">${nombre}</p>
-          <p style="color:#6b7a99;font-size:13px;margin:0;font-family:Arial,sans-serif;">${puestoLine}</p>
-        </td>
-      </tr>
+  <!-- ============ RAINBOW CONFETTI STRIP ============ -->
+  <tr>
+    <td style="padding:0;line-height:0;font-size:0;">
+      <table width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;">
+        <tr>
+          <td width="75" height="9" bgcolor="#FFD700" style="background:#FFD700;width:75px;height:9px;line-height:0;font-size:0;">&nbsp;</td>
+          <td width="75" height="9" bgcolor="#FF6B6B" style="background:#FF6B6B;width:75px;height:9px;line-height:0;font-size:0;">&nbsp;</td>
+          <td width="75" height="9" bgcolor="#4ECDC4" style="background:#4ECDC4;width:75px;height:9px;line-height:0;font-size:0;">&nbsp;</td>
+          <td width="75" height="9" bgcolor="#7B68EE" style="background:#7B68EE;width:75px;height:9px;line-height:0;font-size:0;">&nbsp;</td>
+          <td width="75" height="9" bgcolor="#FFD700" style="background:#FFD700;width:75px;height:9px;line-height:0;font-size:0;">&nbsp;</td>
+          <td width="75" height="9" bgcolor="#FF6B6B" style="background:#FF6B6B;width:75px;height:9px;line-height:0;font-size:0;">&nbsp;</td>
+          <td width="75" height="9" bgcolor="#4ECDC4" style="background:#4ECDC4;width:75px;height:9px;line-height:0;font-size:0;">&nbsp;</td>
+          <td width="75" height="9" bgcolor="#7B68EE" style="background:#7B68EE;width:75px;height:9px;line-height:0;font-size:0;">&nbsp;</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
 
-      <tr>
-        <td style="padding:22px 36px 18px;">
-          <table width="100%" cellpadding="0" cellspacing="0" border="0">
-            <tr>
-              <td width="4" bgcolor="#f59e0b" style="background-color:#f59e0b;border-radius:4px;">&nbsp;</td>
-              <td style="padding:14px 16px;background:#f8faff;border-radius:0 12px 12px 0;">
-                <p style="color:#1a2540;font-size:14px;line-height:1.8;margin:0 0 10px;font-family:Arial,sans-serif;">
-                  En este d&#237;a tan especial para ti, todo el equipo del
-                  <strong>Aeropuerto Internacional Felipe &#193;ngeles</strong>
-                  te desea un maravilloso cumplea&#241;os lleno de logros, bienestar y grandes vuelos por venir.
-                  Tu compromiso y dedicaci&#243;n son el motor de nuestra operaci&#243;n. &#9992;&#65039;
-                </p>
-                <p style="color:#6b7a99;font-size:13px;font-style:italic;line-height:1.6;margin:0;font-family:Arial,sans-serif;">
-                  &#161;Que este nuevo a&#241;o de vida est&#233; lleno de cielos despejados y destinos maravillosos!
-                </p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
+  <!-- ============ DARK NAVY HEADER ============ -->
+  <tr>
+    <td align="center" bgcolor="#0d2152" style="background:#0d2152;padding:28px 30px 34px;">
+      <img src="${IMG_LOGO}" alt="AIFA Logo" height="52"
+           style="display:block;margin:0 auto 16px;height:52px;">
+      <p style="color:rgba(255,255,255,0.45);font-size:9px;letter-spacing:4px;text-transform:uppercase;margin:0 0 20px;font-weight:700;font-family:Arial,sans-serif;">
+        &#10022;&nbsp; Aeropuerto Internacional Felipe &#193;ngeles &nbsp;&#10022;
+      </p>
+      <!-- GOLD PILL BADGE -->
+      <table cellpadding="0" cellspacing="0" border="0" align="center">
+        <tr>
+          <td align="center" bgcolor="#FFD700" style="background:#FFD700;padding:18px 44px;border-radius:60px;">
+            <p style="color:#0d2152;font-size:26px;font-weight:900;margin:0;font-family:Arial,sans-serif;letter-spacing:2px;line-height:1;">
+              &#127874;&nbsp;&nbsp;FELIZ CUMPLEA&#209;OS&nbsp;&nbsp;&#127874;
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
 
-      <tr>
-        <td align="center" style="padding:6px 40px 22px;font-size:28px;letter-spacing:8px;">
-          &#127881; &#127880; &#129395; &#127882;
-        </td>
-      </tr>
+  <!-- ============ WHITE BODY ============ -->
+  <tr>
+    <td bgcolor="#ffffff" style="background:#ffffff;">
 
-      <tr>
-        <td align="center" bgcolor="#f0f4ff" style="background-color:#f0f4ff;border-top:1px solid #dce4f5;padding:16px 36px;">
-          <p style="color:#94a3b8;font-size:11px;margin:0 0 3px;font-family:Arial,sans-serif;">Este mensaje fue enviado por</p>
-          <p style="color:#0d2152;font-size:13px;font-weight:700;margin:0;font-family:Arial,sans-serif;">${EMAIL_FROM_NAME}</p>
-          <p style="color:#94a3b8;font-size:11px;margin:6px 0 0;font-family:Arial,sans-serif;">Aeropuerto Internacional Felipe &#193;ngeles (AIFA)</p>
-        </td>
-      </tr>
+      <!-- "HOY ES TU DIA" WARM BANNER -->
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td align="center" bgcolor="#fffbef" style="background:#fffbef;padding:16px 40px 14px;border-bottom:2px solid #fff3c0;">
+            <p style="margin:0;font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#b8860b;font-family:Arial,sans-serif;">
+              &#11088;&nbsp;&nbsp;Hoy es tu d&#237;a especial&nbsp;&nbsp;&#11088;
+            </p>
+          </td>
+        </tr>
+      </table>
 
-    </table>
-  </td></tr>
+      <!-- NAME SECTION -->
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td align="center" style="padding:34px 40px 8px;">
+            <p style="color:#0d2152;font-size:52px;font-weight:900;margin:0;font-family:Arial,sans-serif;line-height:1.05;letter-spacing:-1px;">${nombre}</p>
+            <table align="center" cellpadding="0" cellspacing="0" border="0" style="margin:13px auto 0;">
+              <tr>
+                <td width="90" height="4" bgcolor="#FFD700" style="background:#FFD700;width:90px;height:4px;border-radius:2px;line-height:0;font-size:0;">&nbsp;</td>
+              </tr>
+            </table>
+            ${roleBlock}
+          </td>
+        </tr>
+      </table>
+
+      <!-- THIN DIVIDER -->
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td style="padding:20px 36px 0;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td height="1" bgcolor="#eef0f7" style="background:#eef0f7;font-size:0;line-height:0;">&nbsp;</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      <!-- MESSAGE BOX -->
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td style="padding:22px 36px 18px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8faff;border-radius:16px;overflow:hidden;">
+              <tr>
+                <td width="6" bgcolor="#FFD700" style="background:#FFD700;width:6px;line-height:0;font-size:0;">&nbsp;</td>
+                <td style="padding:22px 24px;background:#f8faff;">
+                  <p style="color:#1a2540;font-size:15px;line-height:2;margin:0 0 14px;font-family:Arial,sans-serif;">
+                    En este d&#237;a tan especial para ti, todo el equipo del
+                    <strong>Aeropuerto Internacional Felipe &#193;ngeles</strong>
+                    te desea un maravilloso cumplea&#241;os lleno de logros,
+                    bienestar y grandes vuelos por venir. Tu compromiso y
+                    dedicaci&#243;n son el motor de nuestra operaci&#243;n.&nbsp;&#9992;&#65039;
+                  </p>
+                  <p style="color:#b8860b;font-size:14px;font-style:italic;line-height:1.8;margin:0;font-family:Arial,sans-serif;font-weight:700;">
+                    &#161;Que este nuevo a&#241;o de vida est&#233; lleno de cielos despejados y destinos maravillosos!
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      <!-- EMOJI CELEBRATION ROW -->
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td align="center" style="padding:16px 40px 32px;font-size:38px;letter-spacing:16px;">
+            &#127881; &#127880; &#129395; &#127882;
+          </td>
+        </tr>
+      </table>
+
+    </td>
+  </tr>
+
+  <!-- ============ ALTERNATING GOLD / NAVY STRIP ============ -->
+  <tr>
+    <td style="padding:0;line-height:0;font-size:0;">
+      <table width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;">
+        <tr>
+          <td width="100" height="7" bgcolor="#FFD700" style="background:#FFD700;width:100px;height:7px;line-height:0;font-size:0;">&nbsp;</td>
+          <td width="100" height="7" bgcolor="#0d2152" style="background:#0d2152;width:100px;height:7px;line-height:0;font-size:0;">&nbsp;</td>
+          <td width="100" height="7" bgcolor="#FFD700" style="background:#FFD700;width:100px;height:7px;line-height:0;font-size:0;">&nbsp;</td>
+          <td width="100" height="7" bgcolor="#0d2152" style="background:#0d2152;width:100px;height:7px;line-height:0;font-size:0;">&nbsp;</td>
+          <td width="100" height="7" bgcolor="#FFD700" style="background:#FFD700;width:100px;height:7px;line-height:0;font-size:0;">&nbsp;</td>
+          <td width="100" height="7" bgcolor="#0d2152" style="background:#0d2152;width:100px;height:7px;line-height:0;font-size:0;">&nbsp;</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <!-- ============ DARK FOOTER ============ -->
+  <tr>
+    <td align="center" bgcolor="#0d2152" style="background:#0d2152;padding:20px 36px 30px;border-radius:0 0 20px 20px;">
+      <p style="color:rgba(255,255,255,0.3);font-size:11px;margin:0 0 3px;font-family:Arial,sans-serif;">Este mensaje fue enviado por</p>
+      <p style="color:#FFD700;font-size:13px;font-weight:700;margin:0;font-family:Arial,sans-serif;">${EMAIL_FROM_NAME}</p>
+      <p style="color:rgba(255,255,255,0.3);font-size:11px;margin:6px 0 0;font-family:Arial,sans-serif;">Aeropuerto Internacional Felipe &#193;ngeles (AIFA)</p>
+    </td>
+  </tr>
+
 </table>
+</td></tr>
+</table>
+
 </body></html>`;
 }
 
