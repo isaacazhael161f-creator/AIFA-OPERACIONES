@@ -23,7 +23,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')              || '';
 const SUPABASE_SVC_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const RESEND_API_KEY    = Deno.env.get('RESEND_API_KEY')       || '';
-const BREVO_API_KEY     = Deno.env.get('BREVO_API_KEY')        || '';
 const EMAIL_FROM        = Deno.env.get('EMAIL_FROM')           || 'operaciones@aifa.com.mx';
 const EMAIL_FROM_NAME   = Deno.env.get('EMAIL_FROM_NAME')      || 'Aeropuerto Internacional Felipe Ángeles';
 // TEST_EMAIL: si está definido, todos los correos se redirigen a esta dirección (útil en Resend plan gratuito)
@@ -43,11 +42,15 @@ interface Colaborador {
   fecha_nacimiento?: string;
 }
 
+// URL base de las imágenes (Vercel)
+const IMG_BASE = 'https://aifa-operaciones.vercel.app';
+
 // ── HTML de la tarjeta de cumpleaños ────────────────────────────────────────
 function buildEmailHtml(colaborador: Colaborador): string {
   const nombre    = colaborador.nombre    || 'Colaborador';
   const puesto    = colaborador.puesto    || '';
   const direccion = colaborador.direccion || 'Dirección de Operación';
+  const puestoLine = puesto + (puesto && direccion ? ' · ' : '') + direccion;
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -62,52 +65,66 @@ function buildEmailHtml(colaborador: Colaborador): string {
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 8px 40px rgba(10,20,80,.15);">
 
-          <!-- Cabecera con imagen de fondo -->
+          <!-- Hero con imagen del avión -->
           <tr>
-            <td style="background:linear-gradient(135deg,#0d2152 0%,#1565c0 60%,#1976d2 100%);padding:0;text-align:center;position:relative;">
-              <div style="background:linear-gradient(135deg,#0d2152 0%,#1565c0 60%,#1976d2 100%);padding:40px 30px 30px;">
-                <div style="font-size:52px;margin-bottom:8px;">🎂</div>
-                <h1 style="color:#fff;font-size:28px;font-weight:800;margin:0 0 6px;letter-spacing:.5px;text-shadow:0 2px 8px rgba(0,0,0,.3);">¡FELIZ CUMPLEAÑOS!</h1>
-                <p style="color:rgba(255,255,255,.85);font-size:13px;font-weight:600;margin:0;letter-spacing:2px;text-transform:uppercase;">Aeropuerto Internacional Felipe Ángeles</p>
+            <td style="padding:0;margin:0;line-height:0;">
+              <div style="position:relative;width:600px;max-width:100%;">
+                <img src="${IMG_BASE}/images/Aviones%20pax.jpeg"
+                     alt="AIFA" width="600"
+                     style="width:100%;max-width:600px;height:220px;object-fit:cover;display:block;filter:brightness(0.55);">
+                <!-- Overlay de texto sobre la imagen -->
+                <table width="600" cellpadding="0" cellspacing="0"
+                       style="position:absolute;top:0;left:0;width:100%;height:220px;">
+                  <tr>
+                    <td align="center" valign="middle" style="padding:20px;">
+                      <img src="${IMG_BASE}/images/aifa-logo.png"
+                           alt="AIFA Logo" height="45"
+                           style="display:block;margin:0 auto 12px;opacity:0.95;">
+                      <div style="font-size:40px;line-height:1;margin-bottom:6px;">🎂</div>
+                      <h1 style="color:#fff;font-size:26px;font-weight:800;margin:0 0 4px;letter-spacing:1px;text-shadow:0 2px 8px rgba(0,0,0,.5);">¡FELIZ CUMPLEAÑOS!</h1>
+                      <p style="color:rgba(255,255,255,.9);font-size:11px;font-weight:600;margin:0;letter-spacing:2.5px;text-transform:uppercase;text-shadow:0 1px 4px rgba(0,0,0,.4);">Aeropuerto Internacional Felipe Ángeles</p>
+                    </td>
+                  </tr>
+                </table>
               </div>
             </td>
           </tr>
 
           <!-- Nombre y puesto -->
           <tr>
-            <td style="padding:36px 40px 24px;text-align:center;border-bottom:1px solid #eef0f7;">
-              <h2 style="color:#0d2152;font-size:26px;font-weight:800;margin:0 0 8px;">${nombre}</h2>
-              <p style="color:#6b7a99;font-size:14px;margin:0;">${puesto}${puesto && direccion ? ' · ' : ''}${direccion}</p>
+            <td style="padding:32px 40px 20px;text-align:center;border-bottom:1px solid #eef0f7;">
+              <h2 style="color:#0d2152;font-size:24px;font-weight:800;margin:0 0 8px;">${nombre}</h2>
+              <p style="color:#6b7a99;font-size:13px;margin:0;">${puestoLine}</p>
             </td>
           </tr>
 
           <!-- Mensaje -->
           <tr>
-            <td style="padding:28px 40px 24px;">
-              <div style="background:#f8faff;border-left:4px solid #1565c0;border-radius:0 12px 12px 0;padding:20px 22px;">
-                <p style="color:#1a2540;font-size:15px;line-height:1.7;margin:0 0 14px;">
-                  ¡Hoy es tu gran día! Todo el equipo del <strong>Aeropuerto Internacional Felipe Ángeles</strong> te desea un maravilloso cumpleaños lleno de logros, bienestar y grandes vuelos por venir. Tu compromiso y dedicación son el motor de nuestra operación. ✈️
+            <td style="padding:24px 40px 20px;">
+              <div style="background:#f8faff;border-left:4px solid #f59e0b;border-radius:0 12px 12px 0;padding:18px 20px;">
+                <p style="color:#1a2540;font-size:14px;line-height:1.75;margin:0 0 12px;">
+                  En este día tan especial para ti, todo el equipo del <strong>Aeropuerto Internacional Felipe Ángeles</strong> te desea un maravilloso cumpleaños lleno de logros, bienestar y grandes vuelos por venir. Tu compromiso y dedicación son el motor de nuestra operación. ✈️
                 </p>
-                <p style="color:#6b7a99;font-size:14px;font-style:italic;line-height:1.6;margin:0;">
+                <p style="color:#6b7a99;font-size:13px;font-style:italic;line-height:1.6;margin:0;">
                   ¡Que este nuevo año de vida esté lleno de cielos despejados y destinos maravillosos!
                 </p>
               </div>
             </td>
           </tr>
 
-          <!-- Decoración con emojis -->
+          <!-- Emojis -->
           <tr>
-            <td style="padding:8px 40px 24px;text-align:center;">
-              <span style="font-size:28px;letter-spacing:8px;">🎉 🎈 🥳 🎊</span>
+            <td style="padding:4px 40px 20px;text-align:center;">
+              <span style="font-size:26px;letter-spacing:6px;">🎉 🎈 🥳 🎊</span>
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td style="background:#f8faff;border-top:1px solid #eef0f7;padding:20px 40px;text-align:center;">
-              <p style="color:#94a3b8;font-size:12px;margin:0 0 4px;">Este mensaje fue enviado por</p>
+            <td style="background:#f8faff;border-top:1px solid #eef0f7;padding:18px 40px;text-align:center;">
+              <p style="color:#94a3b8;font-size:11px;margin:0 0 3px;">Este mensaje fue enviado por</p>
               <p style="color:#0d2152;font-size:13px;font-weight:700;margin:0;">${EMAIL_FROM_NAME}</p>
-              <p style="color:#94a3b8;font-size:11px;margin:8px 0 0;">Aeropuerto Internacional Felipe Ángeles (AIFA) · Dirección de Operación</p>
+              <p style="color:#94a3b8;font-size:11px;margin:6px 0 0;">Aeropuerto Internacional Felipe Ángeles (AIFA) · Dirección de Operación</p>
             </td>
           </tr>
 
@@ -119,45 +136,24 @@ function buildEmailHtml(colaborador: Colaborador): string {
 </html>`;
 }
 
-// ── Enviar email vía Brevo (o Resend como fallback) ─────────────────────────
+// ── Enviar email vía Resend ──────────────────────────────────────────────────
 async function sendEmail(to: string, nombre: string, html: string): Promise<{ ok: boolean; error?: string }> {
-  // Si hay TEST_EMAIL, redirigir a esa dirección
+  if (!RESEND_API_KEY) {
+    return { ok: false, error: 'RESEND_API_KEY no configurada en los secrets de Supabase' };
+  }
+
+  // Si hay TEST_EMAIL, redirigir a esa dirección (plan gratuito de Resend)
   const recipient = (TEST_EMAIL || to).trim().toLowerCase();
-  const recipientName = TEST_EMAIL ? 'Prueba' : nombre;
 
   // Validar formato de email básico
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
     return { ok: false, error: `Email inválido: "${recipient}"` };
   }
 
-  const subject = TEST_EMAIL
+  const subject   = TEST_EMAIL
     ? `[PRUEBA] 🎂 ¡Feliz Cumpleaños, ${nombre.split(' ')[0]}! - AIFA`
     : `🎂 ¡Feliz Cumpleaños, ${nombre.split(' ')[0]}! - AIFA`;
 
-  // ── Intentar con Brevo primero ───────────────────────────────────────────
-  if (BREVO_API_KEY) {
-    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'api-key': BREVO_API_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        sender:      { name: EMAIL_FROM_NAME, email: EMAIL_FROM },
-        to:          [{ email: recipient, name: recipientName }],
-        subject,
-        htmlContent: html,
-      }),
-    });
-    if (res.ok) return { ok: true };
-    const body = await res.text();
-    return { ok: false, error: `Brevo error ${res.status}: ${body}` };
-  }
-
-  // ── Fallback: Resend ─────────────────────────────────────────────────────
-  if (!RESEND_API_KEY) {
-    return { ok: false, error: 'No hay API key configurada (BREVO_API_KEY o RESEND_API_KEY)' };
-  }
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -171,6 +167,7 @@ async function sendEmail(to: string, nombre: string, html: string): Promise<{ ok
       html,
     }),
   });
+
   if (!res.ok) {
     const body = await res.text();
     return { ok: false, error: `Resend error ${res.status}: ${body}` };
