@@ -24714,13 +24714,41 @@ window.AeropuertosModule = (function () {
         }
         fbSetLoading(true);
         fbSetStatus('');
+
+        // Subir imágenes al Storage de Supabase y obtener URLs públicas
+        const imageUrls = [];
+        if (_imagenes.length) {
+            const sb = window.supabaseClient;
+            if (sb) {
+                fbSetStatus('<i class="fas fa-spinner fa-spin me-1"></i>Subiendo imágenes…');
+                await Promise.all(_imagenes.map(async (img, i) => {
+                    try {
+                        const res = await fetch(img.dataUrl);
+                        const blob = await res.blob();
+                        const ext  = (img.filename.split('.').pop() || 'png').toLowerCase();
+                        const path = `${Date.now()}_${i}_${img.filename.replace(/[^\w.\-]/g, '_')}`;
+                        const { error } = await sb.storage
+                            .from('feedback-images')
+                            .upload(path, blob, { contentType: blob.type || 'image/png', upsert: true });
+                        if (!error) {
+                            const { data: pubData } = sb.storage.from('feedback-images').getPublicUrl(path);
+                            if (pubData?.publicUrl) imageUrls[i] = pubData.publicUrl;
+                        } else {
+                            console.warn('[feedback] upload error:', error.message);
+                        }
+                    } catch (e) { console.warn('[feedback] upload exception:', e); }
+                }));
+                fbSetStatus('');
+            }
+        }
+
         const payload = {
             tipo:       _tipo,
             nombre:     (document.getElementById('fb-nombre').value || '').trim(),
             area:       (document.getElementById('fb-area').value   || '').trim(),
             mensaje,
             fechaLocal: new Date().toLocaleString('es-MX'),
-            imagenes:   _imagenes.map(img => ({ dataUrl: img.dataUrl, filename: img.filename }))
+            imageUrls:  imageUrls.filter(Boolean)
         };
         try {
             const res  = await fetch(FB_URL, {
