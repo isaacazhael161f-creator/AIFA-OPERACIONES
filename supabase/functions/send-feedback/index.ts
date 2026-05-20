@@ -36,9 +36,11 @@ function buildEmailHtml(params: {
   area: string;
   mensaje: string;
   fechaLocal: string;
+  imagenes?: { dataUrl?: string; filename?: string }[];
 }): string {
   const meta = TIPO_LABELS[params.tipo] || TIPO_LABELS['otro'];
   const now  = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });
+  const imgs = (params.imagenes || []).filter(i => i?.dataUrl);
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -131,6 +133,9 @@ function buildEmailHtml(params: {
             <table width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
                 <td>
+                  ${imgs.length ? `<p style="margin:0 0 8px;color:#475569;font-size:12px;font-family:Arial,sans-serif;">
+                    📎 ${imgs.length} imagen${imgs.length > 1 ? 'es adjuntas' : ' adjunta'} — ver archivos adjuntos del correo
+                  </p>` : ''}
                   <p style="margin:0;color:#94a3b8;font-size:11px;font-family:Arial,sans-serif;">
                     📅&nbsp; Recibido el ${now} (hora CDMX)
                     ${params.fechaLocal ? `&nbsp;·&nbsp; Enviado: ${escapeHtml(params.fechaLocal)}` : ''}
@@ -206,7 +211,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const { tipo = 'otro', nombre = '', area = '', mensaje = '', fechaLocal = '' } = body;
+  const { tipo = 'otro', nombre = '', area = '', mensaje = '', fechaLocal = '', imagenes = [] } = body;
 
   if (!mensaje.trim()) {
     return new Response(JSON.stringify({ error: 'El mensaje no puede estar vacío' }), {
@@ -222,16 +227,31 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const meta      = TIPO_LABELS[tipo] || TIPO_LABELS['otro'];
-  const subject   = `${meta.emoji} [AIFA Feedback] ${meta.label}${nombre ? ' — ' + nombre : ''}`;
-  const htmlBody  = buildEmailHtml({ tipo, nombre, area, mensaje, fechaLocal });
+  const meta     = TIPO_LABELS[tipo] || TIPO_LABELS['otro'];
+  const subject  = `${meta.emoji} [AIFA Feedback] ${meta.label}${nombre ? ' — ' + nombre : ''}`;
+  const htmlBody = buildEmailHtml({ tipo, nombre, area, mensaje, fechaLocal, imagenes: Array.isArray(imagenes) ? imagenes : [] });
 
-  const resendPayload = {
-    from: `${FROM_NAME} <${FROM_EMAIL}>`,
-    to:   [DEST_EMAIL],
+  // Convertir imágenes base64 data URLs en adjuntos para Resend
+  const attachments: { filename: string; content: string }[] = [];
+  if (Array.isArray(imagenes)) {
+    imagenes.slice(0, 3).forEach((img: { dataUrl?: string; filename?: string }, i: number) => {
+      if (!img?.dataUrl) return;
+      const match = img.dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (!match) return;
+      const ext      = match[1].split('/')[1] || 'png';
+      const b64data  = match[2];
+      const fname    = (img.filename || `imagen_${i + 1}.${ext}`).replace(/[^\w.\-]/g, '_');
+      attachments.push({ filename: fname, content: b64data });
+    });
+  }
+
+  const resendPayload: Record<string, unknown> = {
+    from:  `${FROM_NAME} <${FROM_EMAIL}>`,
+    to:    [DEST_EMAIL],
     subject,
     html:  htmlBody,
   };
+  if (attachments.length) resendPayload.attachments = attachments;
 
   try {
     const res = await fetch('https://api.resend.com/emails', {
