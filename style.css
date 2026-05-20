@@ -12835,45 +12835,42 @@ body.dark-mode #yoy-insights-list li {
     width: 100%;
 }
 
-/* Top bar (tabs + filtros) */
+/* ── Top bar (tabs + filtros) ── */
 .fids-top-bar {
-    border-bottom: 1px solid #2a2a2a;
+    border-bottom: 1px solid #222;
     padding-bottom: .5rem;
 }
-
 .fids-tab-btn {
-    background: #1e1e2e;
-    color: #ccc;
-    border: 1px solid #444;
+    background: #1a1a28;
+    color: #aaa;
+    border: 1px solid #333;
     font-size: .82rem;
-    padding: .3rem .75rem;
+    padding: .3rem .8rem;
     border-radius: 6px;
     transition: background .15s, color .15s;
 }
 .fids-tab-btn.active,
 .fids-tab-btn:hover {
-    background: #3b82f6;
+    background: #2563eb;
     color: #fff;
-    border-color: #3b82f6;
+    border-color: #2563eb;
 }
-
 .fids-date-picker {
-    background: #1e1e2e;
+    background: #1a1a28;
     color: #e0e0e0;
-    border-color: #444;
+    border-color: #333;
     max-width: 155px;
 }
 .fids-date-picker:focus {
-    background: #1e1e2e;
+    background: #1a1a28;
     color: #fff;
-    border-color: #3b82f6;
+    border-color: #2563eb;
     box-shadow: none;
 }
-
 .fids-tipo-btn {
-    background: #1e1e2e;
-    color: #ccc;
-    border-color: #444;
+    background: #1a1a28;
+    color: #aaa;
+    border-color: #333;
     font-size: .82rem;
 }
 .fids-tipo-btn.active {
@@ -12882,33 +12879,29 @@ body.dark-mode #yoy-insights-list li {
     border-color: #0ea5e9;
 }
 
-/* ── PANTALLA FIDS (simulación tablero aeropuerto) ── */
+/* ════════════════════════════════════════════════════
+   PANTALLA FIDS — Tablero estilo aeropuerto
+   ════════════════════════════════════════════════════ */
 .fids-screen {
-    background: #0a0a0f;
-    border-radius: 10px;
+    background: #080810;
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0,0,0,.7);
-    border: 2px solid #1a1a2e;
-    font-family: 'Segoe UI', 'Arial Narrow', Arial, sans-serif;
+    box-shadow: 0 12px 48px rgba(0,0,0,.85), inset 0 0 0 1px rgba(255,255,255,.05);
+    font-family: 'Segoe UI', 'Arial', sans-serif;
 }
 
+/* ── Header del tablero ── */
 .fids-screen-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: #0f0f1a;
-    padding: .6rem 1rem;
-    border-bottom: 2px solid #1e3a8a;
+    background: #0d0d1a;
+    padding: .65rem 1.25rem;
+    border-bottom: 2px solid #1d4ed8;
     gap: 1rem;
-    flex-wrap: wrap;
 }
-
-.fids-screen-logo img {
-    filter: brightness(1.1);
-}
-.fids-screen-logo {
-    min-width: 60px;
-}
+.fids-screen-logo { min-width: 52px; }
+.fids-screen-logo img { filter: brightness(1.1); }
 
 .fids-screen-title {
     display: flex;
@@ -12916,141 +12909,177 @@ body.dark-mode #yoy-insights-list li {
     align-items: center;
     flex: 1;
 }
-
 .fids-screen-tipo {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: #00d4ff;
-    letter-spacing: .15em;
-    text-shadow: 0 0 10px rgba(0,212,255,.4);
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #22d3ee;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    text-shadow: 0 0 14px rgba(34,211,238,.35);
+    line-height: 1.1;
 }
-
 .fids-screen-fecha {
-    font-size: .75rem;
-    color: #8899aa;
+    font-size: .72rem;
+    color: #7a90a8;
     text-transform: capitalize;
-    letter-spacing: .05em;
+    letter-spacing: .06em;
+    margin-top: 2px;
 }
-
 .fids-screen-clock {
-    font-size: 1.6rem;
+    font-size: 1.7rem;
     font-weight: 700;
-    color: #ffd700;
+    color: #fbbf24;
     font-variant-numeric: tabular-nums;
-    letter-spacing: .05em;
-    text-shadow: 0 0 8px rgba(255,215,0,.3);
-    min-width: 100px;
+    letter-spacing: .06em;
+    text-shadow: 0 0 10px rgba(251,191,36,.3);
+    min-width: 110px;
     text-align: right;
+    flex-shrink: 0;
 }
 
-/* Cabecera de columnas */
+/* ── Cabecera de columnas ── */
+/* Grid: [logo] [vuelo] [ciudad——————] [hora] [puerta] [estado] */
 .fids-screen-cols {
     display: grid;
-    grid-template-columns: 180px 90px 1fr 90px 80px 140px;
-    gap: 0;
-    background: #111122;
-    color: #6699cc;
-    font-size: .7rem;
+    grid-template-columns: 130px 105px 1fr 95px 80px 148px;
+    background: #0e0e1e;
+    color: #4d7eb5;
+    font-size: .68rem;
     font-weight: 700;
-    letter-spacing: .08em;
+    letter-spacing: .1em;
     text-transform: uppercase;
-    border-bottom: 1px solid #1e3a8a;
-    padding: .4rem .75rem;
+    border-bottom: 1px solid #1d2d50;
+    padding: .45rem 1rem;
+    align-items: center;
 }
+.fids-screen-cols .fids-col-hora   { text-align: center; }
+.fids-screen-cols .fids-col-puerta { text-align: center; }
+.fids-screen-cols .fids-col-estado { text-align: center; }
 
-/* Filas de datos */
-.fids-rows-container {
-    min-height: 200px;
-}
+/* ── Filas de datos ── */
+.fids-rows-container { min-height: 200px; }
 
 .fids-row {
     display: grid;
-    grid-template-columns: 180px 90px 1fr 90px 80px 140px;
-    gap: 0;
-    padding: .55rem .75rem;
-    border-bottom: 1px solid #111122;
+    grid-template-columns: 130px 105px 1fr 95px 80px 148px;
+    padding: .35rem 1rem;
+    border-bottom: 1px solid #0e0e1e;
     align-items: center;
-    transition: background .1s;
+    min-height: 54px;
+    transition: background .12s;
 }
-.fids-row:hover { background: #0d1526; }
-.fids-row-even { background: #0a0a14; }
-.fids-row-odd  { background: #0c0c18; }
+.fids-row:hover    { background: #0d1929 !important; }
+.fids-row-even     { background: #08080f; }
+.fids-row-odd      { background: #0b0b17; }
 
-/* Celda aerolínea */
+/* ── Celda aerolínea: badge de tamaño fijo ── */
+.fids-col-aerolinea {
+    display: flex;
+    align-items: center;
+}
 .fids-airline-badge {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
-    padding: .15rem .4rem;
-    border-radius: 5px;
-    font-size: .72rem;
-    font-weight: 700;
-    letter-spacing: .04em;
-    max-width: 170px;
-    min-height: 28px;
+    width: 110px;          /* ANCHO FIJO para todos */
+    height: 36px;          /* ALTO FIJO para todos */
+    border-radius: 6px;
     overflow: hidden;
-    text-transform: uppercase;
+    flex-shrink: 0;
+    padding: 2px 5px;
+    box-sizing: border-box;
 }
 .fids-airline-logo {
-    max-height: 24px;
-    max-width: 120px;
+    height: 28px;          /* MISMA ALTURA para todos los logos */
+    width: auto;
+    max-width: 100px;
     object-fit: contain;
-    filter: brightness(1.15);
+    display: block;
 }
 .fids-airline-text {
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 140px;
+    max-width: 100px;
+    text-align: center;
 }
 
-/* Celdas comunes */
-.fids-col-vuelo,
-.fids-col-ciudad,
-.fids-col-hora,
-.fids-col-puerta,
-.fids-col-estado {
-    color: #d0d8e8;
-    font-size: .88rem;
+/* ── Celdas de datos ── */
+.fids-col-vuelo {
+    font-size: .95rem;
+    font-weight: 700;
+    color: #e2eaff;
+    letter-spacing: .03em;
+    padding-left: .25rem;
 }
-.fids-col-vuelo { font-weight: 700; color: #e8f0ff; }
-.fids-col-hora  { font-weight: 600; color: #ffe27a; }
-.fids-col-puerta{ color: #a0c4ff; font-weight: 700; text-align: center; }
+.fids-col-ciudad {
+    font-size: .95rem;
+    color: #c8d8ee;
+    padding-left: .5rem;
+}
+.fids-col-hora {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fbbf24;
+    text-align: center;
+    letter-spacing: .04em;
+    text-shadow: 0 0 6px rgba(251,191,36,.2);
+}
+.fids-col-puerta {
+    font-size: .9rem;
+    font-weight: 700;
+    color: #93c5fd;
+    text-align: center;
+}
+.fids-col-estado {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
 /* Hora demorada */
-.fids-hora-delayed { color: #ff6b35; font-weight: 700; }
-.fids-hora-orig    { display: block; font-size: .72rem; color: #888; text-decoration: line-through; }
+.fids-hora-delayed { color: #f97316; font-weight: 700; }
+.fids-hora-orig    { display: block; font-size: .7rem; color: #666; text-decoration: line-through; text-align: center; }
 
-/* Badges de estado */
+/* ── Badges de estado ── */
 .fids-estado-badge {
-    display: inline-block;
-    padding: .2rem .6rem;
-    border-radius: 4px;
-    font-size: .75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: .25rem .7rem;
+    border-radius: 20px;          /* pill */
+    font-size: .73rem;
     font-weight: 700;
-    letter-spacing: .03em;
+    letter-spacing: .05em;
     text-transform: uppercase;
+    min-width: 105px;
+    text-align: center;
+    white-space: nowrap;
 }
-.fids-estado-ok       { background: #065f46; color: #6ee7b7; }
-.fids-estado-puerta   { background: #1e3a8a; color: #93c5fd; }
-.fids-estado-demorado { background: #78350f; color: #fcd34d; }
-.fids-estado-cancelado{ background: #7f1d1d; color: #fca5a5; }
-.fids-estado-vuelo    { background: #164e63; color: #67e8f9; }
+.fids-estado-ok       { background: #064e3b; color: #34d399; border: 1px solid #065f46; }
+.fids-estado-puerta   { background: #1e3a8a; color: #93c5fd; border: 1px solid #1d4ed8; }
+.fids-estado-demorado { background: #78350f; color: #fcd34d; border: 1px solid #92400e; }
+.fids-estado-cancelado{ background: #7f1d1d; color: #fca5a5; border: 1px solid #991b1b; }
+.fids-estado-vuelo    { background: #164e63; color: #67e8f9; border: 1px solid #0e7490; }
 
-/* Footer del tablero */
+/* ── Footer del tablero ── */
 .fids-screen-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #0f0f1a;
-    border-top: 2px solid #1e3a8a;
-    padding: .4rem 1rem;
-    font-size: .7rem;
-    color: #6699cc;
-    letter-spacing: .05em;
+    background: #0d0d1a;
+    border-top: 2px solid #1d4ed8;
+    padding: .4rem 1.25rem;
+    font-size: .68rem;
+    color: #4d7eb5;
+    letter-spacing: .06em;
 }
 
-/* Estados vacío / carga / error */
+/* ── Estados vacío / carga / error ── */
 .fids-loading,
 .fids-empty,
 .fids-error {
@@ -13058,8 +13087,8 @@ body.dark-mode #yoy-insights-list li {
     text-align: center;
     font-size: .9rem;
 }
-.fids-loading { color: #6699cc; }
-.fids-empty   { color: #557799; }
+.fids-loading { color: #4d7eb5; }
+.fids-empty   { color: #3d5a7a; }
 .fids-error   { color: #ef4444; }
 
 /* ── Panel Admin ── */
@@ -13069,7 +13098,6 @@ body.dark-mode #yoy-insights-list li {
 }
 .fids-admin-table thead th { font-size: .78rem; }
 .fids-admin-table td       { font-size: .82rem; vertical-align: middle; }
-
 .btn-xs {
     padding: .15rem .38rem;
     font-size: .73rem;
@@ -13078,28 +13106,41 @@ body.dark-mode #yoy-insights-list li {
 }
 
 /* ── Responsive ── */
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
     .fids-screen-cols,
     .fids-row {
-        grid-template-columns: 140px 80px 1fr 80px 60px 120px;
+        grid-template-columns: 115px 95px 1fr 85px 70px 130px;
     }
+    .fids-airline-badge { width: 95px; height: 32px; }
+    .fids-airline-logo  { height: 24px; max-width: 85px; }
 }
-
-@media (max-width: 640px) {
+@media (max-width: 720px) {
+    .fids-screen-cols,
+    .fids-row {
+        grid-template-columns: 100px 80px 1fr 72px 60px 110px;
+    }
+    .fids-airline-badge { width: 85px; height: 30px; }
+    .fids-airline-logo  { height: 22px; max-width: 75px; }
+    .fids-screen-tipo   { font-size: 1.1rem; }
+    .fids-screen-clock  { font-size: 1.25rem; }
+    .fids-col-hora      { font-size: .9rem; }
+    .fids-estado-badge  { min-width: 80px; font-size: .67rem; padding: .2rem .5rem; }
+}
+@media (max-width: 520px) {
     .fids-screen-cols { display: none; }
     .fids-row {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 90px 1fr auto;
         grid-template-rows: auto auto;
-        gap: 4px;
-        padding: .6rem .5rem;
+        gap: 3px 8px;
+        min-height: unset;
+        padding: .55rem .75rem;
     }
-    .fids-col-aerolinea { grid-column: 1; grid-row: 1; }
-    .fids-col-vuelo     { grid-column: 2; grid-row: 1; text-align: right; }
-    .fids-col-ciudad    { grid-column: 1; grid-row: 2; font-size: .78rem; }
-    .fids-col-hora      { display: none; }
+    .fids-col-aerolinea { grid-column: 1; grid-row: 1 / 3; align-self: center; }
+    .fids-col-vuelo     { grid-column: 2; grid-row: 1; font-size: .85rem; }
+    .fids-col-ciudad    { grid-column: 2; grid-row: 2; font-size: .8rem; color: #8899aa; }
+    .fids-col-hora      { grid-column: 3; grid-row: 1; font-size: .92rem; text-align: right; }
+    .fids-col-estado    { grid-column: 3; grid-row: 2; justify-content: flex-end; }
     .fids-col-puerta    { display: none; }
-    .fids-col-estado    { grid-column: 2; grid-row: 2; text-align: right; }
-    .fids-screen-clock  { font-size: 1.1rem; }
-    .fids-screen-tipo   { font-size: 1rem; }
+    .fids-estado-badge  { min-width: unset; font-size: .65rem; padding: .15rem .45rem; }
 }
 
