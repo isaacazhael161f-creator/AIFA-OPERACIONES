@@ -100,7 +100,7 @@
     </div>
 
     <div class="fids-screen-footer">
-      <span>AEROPUERTO INTERNACIONAL FELIPE ÁNGELES — NAICM</span>
+      <span>AEROPUERTO INTERNACIONAL FELIPE ÁNGELES — AIFA</span>
       <span id="fids-footer-count"></span>
     </div>
 
@@ -155,23 +155,33 @@
       return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
     }
 
-    function findAirline(iata) {
-      const ni = norm(iata);
-      return _airlines.find(a => norm(a.iata) === ni) || null;
+    function findAirline(iata, nombre) {
+      const ni = norm(iata), nn = norm(nombre);
+      let m = null;
+      if (ni) m = _airlines.find(a => norm(a.iata) === ni);
+      if (!m && nn) m = _airlines.find(a =>
+        norm(a.name) === nn ||
+        (Array.isArray(a.aliases) && a.aliases.some(al => norm(al) === nn))
+      );
+      if (!m && nn) m = _airlines.find(a =>
+        norm(a.name).includes(nn) || nn.includes(norm(a.name)) ||
+        (Array.isArray(a.aliases) && a.aliases.some(al => nn.includes(norm(al)) || norm(al).includes(nn)))
+      );
+      return m || null;
     }
 
-    function airlineStyle(iata) {
-      const a = findAirline(iata);
+    function airlineStyle(iata, nombre) {
+      const a = findAirline(iata, nombre);
       if (a) return {
         bg:   a.color     || '#1e3a8a',
         text: a.textColor || '#ffffff',
-        name: a.name      || iata || '?',
+        name: a.name      || nombre || iata || '?',
         logo: a.logo      ? `images/airlines/${a.logo}` : null,
       };
       let h = 0;
-      const s = (iata||'?').toUpperCase();
+      const s = (nombre || iata || '?').toUpperCase();
       for (let i = 0; i < s.length; i++) h = s.charCodeAt(i) + ((h << 5) - h);
-      return { bg: `hsl(${Math.abs(h)%360},55%,28%)`, text:'#fff', name: iata||'?', logo: null };
+      return { bg: `hsl(${Math.abs(h)%360},55%,28%)`, text:'#fff', name: nombre||iata||'?', logo: null };
     }
 
     // ── Utilidades de fecha / hora ───────────────────────────────────
@@ -221,6 +231,7 @@
     function mapRows(data, tipo) {
       return data.map(f => ({
         iata:   (f.aerolinea || '').toUpperCase().trim(),
+        nombre: (f.aerolinea || ''),          // nombre completo si el campo trae texto
         num:    tipo === 'llegada' ? (f.vuelo_llegada || '') : (f.vuelo_salida || ''),
         hora:   tipo === 'llegada' ? (f.hora_llegada  || '') : (f.hora_salida  || ''),
         city:   tipo === 'llegada' ? (f.origen        || '') : (f.destino      || ''),
@@ -280,7 +291,7 @@
       }
 
       rows.innerHTML = vuelos.map((v, i) => {
-        const al   = airlineStyle(v.iata);
+        const al   = airlineStyle(v.iata, v.nombre);
         const est  = v.estado || 'A tiempo';
         const cls  = ESTADO_CLASES[est] || 'fids-estado-ok';
         const rowC = i % 2 === 0 ? 'fids-row fids-row-even' : 'fids-row fids-row-odd';

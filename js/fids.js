@@ -149,7 +149,7 @@
             <div class="fids-loading"><i class="fas fa-spinner fa-spin me-2"></i>Cargando vuelos…</div>
           </div>
           <div class="fids-screen-footer">
-            <span>AEROPUERTO INTERNACIONAL FELIPE ÁNGELES — NAICM</span>
+            <span>AEROPUERTO INTERNACIONAL FELIPE ÁNGELES — AIFA</span>
             <span id="fids-footer-count"></span>
           </div>
         </div>
