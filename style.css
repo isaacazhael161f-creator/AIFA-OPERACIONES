@@ -12954,6 +12954,7 @@ body.dark-mode #yoy-insights-list li {
     padding: .45rem 1rem;
     align-items: center;
 }
+.fids-screen-cols .fids-col-ciudad { text-align: center; }
 .fids-screen-cols .fids-col-hora   { text-align: center; }
 .fids-screen-cols .fids-col-puerta { text-align: center; }
 .fids-screen-cols .fids-col-estado { text-align: center; }
@@ -13022,7 +13023,8 @@ body.dark-mode #yoy-insights-list li {
 .fids-col-ciudad {
     font-size: .95rem;
     color: #c8d8ee;
-    padding-left: .5rem;
+    text-align: center;
+    padding-left: 0;
 }
 .fids-col-hora {
     font-size: 1.05rem;
