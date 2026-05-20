@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIFA — Tablero de Vuelos</title>
+  <link rel="icon" type="image/png" sizes="192x192" href="images/icons/aifa-app-icon-192.png">
+  <link rel="stylesheet" href="style.css?v=20260320">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      background: #04040a;
+      width: 100%; height: 100%;
+      overflow: hidden;
+    }
+
+    /* ── Kiosko: tablero ocupa toda la pantalla ── */
+    .fids-screen {
+      max-width: 100%    !important;
+      border-radius: 0   !important;
+      box-shadow: none   !important;
+      margin: 0          !important;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .fids-rows-container {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Barra de progreso (muestra tiempo hasta el cambio) ── */
+    #kiosk-progress {
+      position: fixed;
+      bottom: 0; left: 0;
+      width: 100%; height: 3px;
+      background: #0c0c1e;
+      z-index: 300;
+    }
+    #kiosk-progress-fill {
+      height: 100%;
+      background: #f0b830;
+      width: 0%;
+    }
+
+    /* ── Overlay de transición ── */
+    #kiosk-fade {
+      position: fixed;
+      inset: 0;
+      background: #04040a;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 200;
+      transition: opacity .4s ease;
+    }
+    #kiosk-fade.active { opacity: 1; }
+
+    /* ── Indicator de próxima vista (header) ── */
+    #kiosk-next {
+      font-size: .58rem;
+      color: #2e4a6a;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Tablero FIDS -->
+  <div class="fids-screen">
+
+    <div class="fids-screen-header">
+      <div class="fids-screen-logo">
+        <img src="images/aifa-logo.png" alt="AIFA" height="36"
+             onerror="this.src='images/aifa-logo.jpg'">
+      </div>
+      <div class="fids-screen-title">
+        <span class="fids-screen-tipo" id="fids-tipo">LLEGADAS</span>
+        <span class="fids-screen-fecha" id="fids-fecha"></span>
+        <span id="kiosk-next"></span>
+      </div>
+      <div class="fids-screen-clock" id="fids-clock">--:--:--</div>
+    </div>
+
+    <div class="fids-screen-cols">
+      <div class="fids-col-aerolinea">AEROLÍNEA</div>
+      <div class="fids-col-vuelo">VUELO</div>
+      <div class="fids-col-ciudad" id="fids-hdr-ciudad">ORIGEN</div>
+      <div class="fids-col-hora">HORA</div>
+      <div class="fids-col-puerta">PUERTA</div>
+      <div class="fids-col-estado">ESTADO</div>
+    </div>
+
+    <div class="fids-rows-container" id="fids-rows">
+      <div style="padding:2.5rem;text-align:center;color:#4d7eb5;font-size:.9rem;">
+        Cargando vuelos…
+      </div>
+    </div>
+
+    <div class="fids-screen-footer">
+      <span>AEROPUERTO INTERNACIONAL FELIPE ÁNGELES — NAICM</span>
+      <span id="fids-footer-count"></span>
+    </div>
+
+  </div>
+
+  <!-- Barra de progreso / transición -->
+  <div id="kiosk-progress"><div id="kiosk-progress-fill"></div></div>
+  <div id="kiosk-fade"></div>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/supabase-client.js"></script>
+
+  <script>
+  (function () {
+    'use strict';
+
+    // ── Configuración ────────────────────────────────────────────────
+    const SWITCH_MS    = 10000;   // ms por vista antes de cambiar
+    const REFRESH_MS   = 5 * 60 * 1000; // recarga de datos cada 5 min
+
+    // ── Estado ───────────────────────────────────────────────────────
+    let _airlines   = [];
+    let _llegadas   = [];
+    let _salidas    = [];
+    let _tipo       = 'llegada'; // 'llegada' | 'salida'
+    let _progInt    = null;
+    let _switchTmr  = null;
+    let _progStart  = 0;
+
+    const ESTADO_CLASES = {
+      'A tiempo':   'fids-estado-ok',
+      'Aterrizo':   'fids-estado-ok',
+      'Aterrizó':   'fids-estado-ok',
+      'Despegó':    'fids-estado-ok',
+      'En puerta':  'fids-estado-puerta',
+      'Abordando':  'fids-estado-puerta',
+      'Embarcando': 'fids-estado-puerta',
+      'Cancelado':  'fids-estado-cancelado',
+      'Demorado':   'fids-estado-demorado',
+      'En vuelo':   'fids-estado-vuelo',
+    };
+
+    // ── Aerolíneas ───────────────────────────────────────────────────
+    async function loadAirlines() {
+      try {
+        _airlines = await (await fetch('data/airlines.json')).json();
+      } catch (_) { _airlines = []; }
+    }
+
+    function norm(s) {
+      return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+    }
+
+    function findAirline(iata) {
+      const ni = norm(iata);
+      return _airlines.find(a => norm(a.iata) === ni) || null;
+    }
+
+    function airlineStyle(iata) {
+      const a = findAirline(iata);
+      if (a) return {
+        bg:   a.color     || '#1e3a8a',
+        text: a.textColor || '#ffffff',
+        name: a.name      || iata || '?',
+        logo: a.logo      ? `images/airlines/${a.logo}` : null,
+      };
+      let h = 0;
+      const s = (iata||'?').toUpperCase();
+      for (let i = 0; i < s.length; i++) h = s.charCodeAt(i) + ((h << 5) - h);
+      return { bg: `hsl(${Math.abs(h)%360},55%,28%)`, text:'#fff', name: iata||'?', logo: null };
+    }
+
+    // ── Utilidades de fecha / hora ───────────────────────────────────
+    function todayStr() {
+      return new Date().toISOString().split('T')[0];
+    }
+
+    function fmtTime(t) {
+      return t ? String(t).slice(0, 5) : '—';
+    }
+
+    function fmtFecha(d) {
+      const [y, m, dd] = d.split('-');
+      const meses = ['enero','febrero','marzo','abril','mayo','junio',
+                     'julio','agosto','septiembre','octubre','noviembre','diciembre'];
+      const dias  = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+      const dt    = new Date(+y, +m - 1, +dd);
+      return `${dias[dt.getDay()]}, ${dd} de ${meses[+m - 1]} de ${y}`;
+    }
+
+    // ── Carga de datos ───────────────────────────────────────────────
+    async function loadData() {
+      const fecha = todayStr();
+      try {
+        const sb = await window.ensureSupabaseClient();
+        const [rL, rS] = await Promise.all([
+          sb.from('flights')
+            .select('aerolinea,vuelo_llegada,hora_llegada,origen,posicion,banda_reclamo')
+            .eq('fecha_llegada', fecha)
+            .order('hora_llegada', { ascending: true }),
+          sb.from('flights')
+            .select('aerolinea,vuelo_salida,hora_salida,destino,posicion')
+            .eq('fecha_salida', fecha)
+            .order('hora_salida', { ascending: true }),
+        ]);
+        _llegadas = mapRows(rL.data || [], 'llegada');
+        _salidas  = mapRows(rS.data || [], 'salida');
+      } catch (e) {
+        console.warn('[FIDS-Kiosk] Error cargando datos:', e.message);
+      }
+      // Fallback a demo si no hay datos reales
+      if (!_llegadas.length) _llegadas = demoFlights('llegada');
+      if (!_salidas.length)  _salidas  = demoFlights('salida');
+      renderBoard();
+    }
+
+    function mapRows(data, tipo) {
+      return data.map(f => ({
+        iata:   (f.aerolinea || '').toUpperCase().trim(),
+        num:    tipo === 'llegada' ? (f.vuelo_llegada || '') : (f.vuelo_salida || ''),
+        hora:   tipo === 'llegada' ? (f.hora_llegada  || '') : (f.hora_salida  || ''),
+        city:   tipo === 'llegada' ? (f.origen        || '') : (f.destino      || ''),
+        puerta: f.posicion || '',
+        estado: 'A tiempo',
+      }));
+    }
+
+    function demoFlights(tipo) {
+      const L = [
+        { iata:'VB', num:'VB 7417', city:'Guadalajara',      hora:'06:00', puerta:'A03', estado:'Aterrizó'  },
+        { iata:'Y4', num:'Y4 3296', city:'Tijuana',           hora:'06:35', puerta:'A05', estado:'Aterrizó'  },
+        { iata:'AM', num:'AM 0234', city:'Cancún',            hora:'07:15', puerta:'C02', estado:'A tiempo'  },
+        { iata:'VB', num:'VB 9497', city:'Los Cabos',         hora:'07:50', puerta:'B01', estado:'En puerta' },
+        { iata:'AM', num:'AM 0456', city:'Monterrey',         hora:'08:20', puerta:'C04', estado:'En puerta' },
+        { iata:'XN', num:'XN 1765', city:'Mérida',            hora:'08:55', puerta:'A07', estado:'A tiempo'  },
+        { iata:'Y4', num:'Y4 7171', city:'La Paz',            hora:'09:30', puerta:'B03', estado:'Demorado'  },
+        { iata:'AM', num:'AM 0678', city:'Puerto Vallarta',   hora:'10:00', puerta:'C06', estado:'A tiempo'  },
+        { iata:'VB', num:'VB 9313', city:'Zihuatanejo',       hora:'10:35', puerta:'A09', estado:'A tiempo'  },
+        { iata:'6R', num:'6R 7085', city:'Los Ángeles',       hora:'11:10', puerta:'607', estado:'En vuelo'  },
+        { iata:'EK', num:'EK 9915', city:'Dubái',             hora:'11:45', puerta:'605', estado:'En vuelo'  },
+        { iata:'CX', num:'CX 0086', city:'Anchorage',         hora:'12:20', puerta:'609', estado:'A tiempo'  },
+      ];
+      const S = [
+        { iata:'VB', num:'VB 7418', city:'Guadalajara',       hora:'06:30', puerta:'A03', estado:'Despegó'   },
+        { iata:'Y4', num:'Y4 3297', city:'Tijuana',            hora:'07:05', puerta:'A05', estado:'Despegó'   },
+        { iata:'AM', num:'AM 0235', city:'Cancún',             hora:'07:50', puerta:'C02', estado:'A tiempo'  },
+        { iata:'VB', num:'VB 9520', city:'Los Cabos',          hora:'08:25', puerta:'B01', estado:'Abordando' },
+        { iata:'AM', num:'AM 0457', city:'Monterrey',          hora:'09:00', puerta:'C04', estado:'En puerta' },
+        { iata:'XN', num:'XN 1204', city:'Tijuana',            hora:'09:35', puerta:'A07', estado:'A tiempo'  },
+        { iata:'Y4', num:'Y4 3960', city:'Bogotá',             hora:'10:10', puerta:'B03', estado:'Demorado'  },
+        { iata:'AM', num:'AM 0679', city:'Puerto Vallarta',    hora:'10:45', puerta:'C06', estado:'A tiempo'  },
+        { iata:'VB', num:'VB 9462', city:'Chetumal',           hora:'11:20', puerta:'A09', estado:'A tiempo'  },
+        { iata:'6R', num:'6R 7084', city:'Los Ángeles',        hora:'12:00', puerta:'608', estado:'A tiempo'  },
+        { iata:'EK', num:'EK 9916', city:'Dubái',              hora:'12:30', puerta:'605', estado:'A tiempo'  },
+        { iata:'M7', num:'M7 6810', city:'Los Ángeles',        hora:'13:00', puerta:'115', estado:'En vuelo'  },
+      ];
+      return tipo === 'llegada' ? L : S;
+    }
+
+    // ── Renderizado ──────────────────────────────────────────────────
+    function renderBoard() {
+      const vuelos = _tipo === 'llegada' ? _llegadas : _salidas;
+      const isLleg = _tipo === 'llegada';
+
+      document.getElementById('fids-tipo').textContent       = isLleg ? 'LLEGADAS' : 'SALIDAS';
+      document.getElementById('fids-hdr-ciudad').textContent  = isLleg ? 'ORIGEN'   : 'DESTINO';
+      document.getElementById('fids-footer-count').textContent =
+        `${vuelos.length} vuelo${vuelos.length !== 1 ? 's' : ''}`;
+      document.getElementById('kiosk-next').textContent =
+        `» ${isLleg ? 'SALIDAS' : 'LLEGADAS'} a continuación`;
+
+      const rows = document.getElementById('fids-rows');
+      if (!vuelos.length) {
+        rows.innerHTML = '<div style="padding:2.5rem;text-align:center;color:#3d5a7a;">Sin vuelos registrados para hoy.</div>';
+        return;
+      }
+
+      rows.innerHTML = vuelos.map((v, i) => {
+        const al   = airlineStyle(v.iata);
+        const est  = v.estado || 'A tiempo';
+        const cls  = ESTADO_CLASES[est] || 'fids-estado-ok';
+        const rowC = i % 2 === 0 ? 'fids-row fids-row-even' : 'fids-row fids-row-odd';
+
+        const logoInner = al.logo
+          ? `<img src="${al.logo}" alt="${al.name}" class="fids-airline-logo"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block'">
+             <span style="display:none">${(al.name||v.iata||'').toUpperCase().slice(0,12)}</span>`
+          : `<span>${(al.name||v.iata||'').toUpperCase().slice(0,12)}</span>`;
+
+        return `<div class="${rowC}">
+          <div class="fids-col-aerolinea">
+            <span class="fids-airline-badge" style="background:${al.bg};color:${al.text};">${logoInner}</span>
+          </div>
+          <div class="fids-col-vuelo">${v.num || '—'}</div>
+          <div class="fids-col-ciudad">${v.city || '—'}</div>
+          <div class="fids-col-hora">${fmtTime(v.hora)}</div>
+          <div class="fids-col-puerta">${v.puerta || '—'}</div>
+          <div class="fids-col-estado"><span class="fids-estado-badge ${cls}">${est}</span></div>
+        </div>`;
+      }).join('');
+    }
+
+    // ── Reloj ────────────────────────────────────────────────────────
+    function startClock() {
+      const elClock = document.getElementById('fids-clock');
+      const elFecha = document.getElementById('fids-fecha');
+      function tick() {
+        const now = new Date();
+        elClock.textContent = now.toLocaleTimeString('es-MX',
+          { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+        elFecha.textContent = fmtFecha(now.toISOString().split('T')[0]);
+      }
+      tick();
+      setInterval(tick, 1000);
+    }
+
+    // ── Barra de progreso ────────────────────────────────────────────
+    function startProgress() {
+      _progStart = performance.now();
+      const fill = document.getElementById('kiosk-progress-fill');
+      fill.style.transition = 'none';
+      fill.style.width = '0%';
+      // fuerza reflow para que la transición se reinicie
+      fill.getBoundingClientRect();
+      fill.style.transition = `width ${SWITCH_MS}ms linear`;
+      fill.style.width = '100%';
+    }
+
+    // ── Rotación automática ──────────────────────────────────────────
+    function scheduleSwitch() {
+      clearTimeout(_switchTmr);
+      _switchTmr = setTimeout(doSwitch, SWITCH_MS);
+      startProgress();
+    }
+
+    async function doSwitch() {
+      const overlay = document.getElementById('kiosk-fade');
+      // Fade a negro
+      overlay.classList.add('active');
+      await new Promise(r => setTimeout(r, 400));
+
+      _tipo = _tipo === 'llegada' ? 'salida' : 'llegada';
+      renderBoard();
+
+      // Fade de vuelta
+      overlay.classList.remove('active');
+      scheduleSwitch();
+    }
+
+    // ── Realtime ─────────────────────────────────────────────────────
+    async function startRealtime() {
+      try {
+        const sb = await window.ensureSupabaseClient();
+        sb.channel('fids-kiosk')
+          .on('postgres_changes',
+              { event: '*', schema: 'public', table: 'flights' },
+              () => loadData())
+          .subscribe();
+      } catch (_) {}
+    }
+
+    // ── Inicio ───────────────────────────────────────────────────────
+    async function init() {
+      await loadAirlines();
+      startClock();
+      await loadData();
+      scheduleSwitch();
+      startRealtime();
+      // Recarga periódica como respaldo al realtime
+      setInterval(loadData, REFRESH_MS);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+
+  })();
+  </script>
+
+</body>
+</html>
