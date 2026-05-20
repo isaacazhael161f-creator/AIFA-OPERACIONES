@@ -158,19 +158,11 @@
       <!-- PANEL ADMIN -->
       <div id="fids-admin-pane" class="fids-pane d-none">
         <div class="fids-admin-toolbar d-flex gap-2 align-items-center flex-wrap mb-3">
-          <button class="btn btn-sm btn-primary" onclick="window.fidsAddRow()">
-            <i class="fas fa-plus me-1"></i> Agregar vuelo
-          </button>
-          <label class="btn btn-sm btn-success mb-0" for="fids-xlsx-input">
-            <i class="fas fa-file-excel me-1"></i> Importar Excel
-          </label>
-          <input type="file" id="fids-xlsx-input" accept=".xlsx,.xls" class="d-none"
-                 onchange="window.fidsImportExcel(event)">
-          <button class="btn btn-sm btn-outline-danger ms-1" onclick="window.fidsClearDay()"
-                  title="Eliminar todos los vuelos del día actual">
-            <i class="fas fa-trash-alt me-1"></i> Limpiar día
-          </button>
-          <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="window.fidsRefresh()">
+          <div class="alert alert-info mb-0 py-1 px-2 small flex-fill">
+            <i class="fas fa-info-circle me-1"></i>
+            Datos del <strong>itinerario diario</strong>. Para agregar o modificar vuelos, usa la sección <strong>Itinerario</strong>.
+          </div>
+          <button class="btn btn-sm btn-outline-secondary" onclick="window.fidsRefresh()">
             <i class="fas fa-sync-alt me-1"></i> Actualizar
           </button>
           <span id="fids-admin-count" class="badge bg-secondary"></span>
@@ -184,12 +176,10 @@
                 <th>Aerolínea</th>
                 <th>IATA</th>
                 <th id="fids-admin-hdr-ciudad">${_tipo==='llegada'?'Origen':'Destino'}</th>
-                <th>Hora prog.</th>
-                <th>Hora est.</th>
-                <th>Puerta</th>
-                <th>Estado</th>
-                <th>Notas</th>
-                <th>Acciones</th>
+                <th>Hora</th>
+                <th>Posición</th>
+                <th>Banda/Belt</th>
+                <th>Aeronave</th>
               </tr>
             </thead>
             <tbody id="fids-admin-tbody">
@@ -312,22 +302,51 @@
 
   window.fidsRefresh = function () { loadVuelos(); };
 
-  // ── Carga de datos ───────────────────────────────────────────────
+  // ── Carga de datos desde tabla flights (itinerario diario) ──────
   async function loadVuelos() {
     setDisplayLoading(true);
     try {
       const sb = window.supabaseClient;
       if (!sb) throw new Error('Sin cliente Supabase');
-      const { data, error } = await sb
-        .from('fids_vuelos')
-        .select('*')
-        .eq('fecha', _fecha)
-        .eq('tipo',  _tipo)
-        .eq('activo', true)
-        .order('orden', { ascending: true, nullsFirst: false })
-        .order('hora_programada', { ascending: true });
+
+      let data, error;
+      if (_tipo === 'llegada') {
+        ({ data, error } = await sb
+          .from('flights')
+          .select('aerolinea,aeronave,vuelo_llegada,hora_llegada,origen,posicion,banda_reclamo,categoria')
+          .eq('fecha_llegada', _fecha)
+          .order('hora_llegada', { ascending: true }));
+      } else {
+        ({ data, error } = await sb
+          .from('flights')
+          .select('aerolinea,aeronave,vuelo_salida,hora_salida,destino,posicion,categoria')
+          .eq('fecha_salida', _fecha)
+          .order('hora_salida', { ascending: true }));
+      }
       if (error) throw error;
-      _vuelos = data || [];
+
+      // Mapear campos de flights → formato interno FIDS
+      _vuelos = (data || []).map(f => {
+        const flightNum = _tipo === 'llegada' ? (f.vuelo_llegada || '') : (f.vuelo_salida || '');
+        const hora      = _tipo === 'llegada' ? (f.hora_llegada  || '') : (f.hora_salida  || '');
+        const ciudad    = _tipo === 'llegada' ? (f.origen        || '') : (f.destino      || '');
+        const iata      = (f.aerolinea || '').toUpperCase().trim();
+        const alData    = findAirline(iata, '');
+        return {
+          id:              flightNum + '_' + hora,
+          numero_vuelo:    flightNum,
+          aerolinea:       alData ? alData.name : iata,
+          codigo_iata:     iata,
+          origen_destino:  ciudad,
+          hora_programada: hora,
+          hora_estimada:   null,
+          puerta:          f.posicion     || '',
+          banda:           f.banda_reclamo|| '',
+          estado:          'A tiempo',
+          notas:           f.aeronave     || '',
+        };
+      });
+
       renderDisplayRows();
       renderAdminTable();
     } catch (e) {
@@ -401,7 +420,7 @@
     if (count) count.textContent = `${_vuelos.length} vuelos`;
 
     if (!_vuelos.length) {
-      tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted py-4">Sin vuelos. Agrega uno o importa un Excel.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">No hay vuelos registrados para esta fecha en el itinerario.</td></tr>`;
       return;
     }
 
@@ -413,18 +432,9 @@
         <td>${v.codigo_iata || '—'}</td>
         <td>${v.origen_destino || '—'}</td>
         <td>${formatTime(v.hora_programada)}</td>
-        <td>${formatTime(v.hora_estimada)}</td>
         <td>${v.puerta || '—'}</td>
-        <td><span class="badge ${badgeClass(v.estado)}">${v.estado || 'A tiempo'}</span></td>
+        <td>${v.banda || '—'}</td>
         <td class="text-truncate" style="max-width:120px" title="${v.notas||''}">${v.notas || ''}</td>
-        <td>
-          <button class="btn btn-xs btn-outline-primary me-1" title="Editar" onclick="window.fidsEditRow('${v.id}')">
-            <i class="fas fa-pen"></i>
-          </button>
-          <button class="btn btn-xs btn-outline-danger" title="Eliminar" onclick="window.fidsDeleteRow('${v.id}')">
-            <i class="fas fa-trash"></i>
-          </button>
-        </td>
       </tr>`;
     }).join('');
   }
@@ -829,8 +839,8 @@
     const sb = window.supabaseClient;
     if (!sb) return;
     if (_realtimeCh) { try { sb.removeChannel(_realtimeCh); } catch (_) {} }
-    _realtimeCh = sb.channel('fids-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'fids_vuelos' }, () => { loadVuelos(); })
+    _realtimeCh = sb.channel('fids-flights-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'flights' }, () => { loadVuelos(); })
       .subscribe();
   }
 
