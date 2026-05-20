@@ -24525,6 +24525,22 @@ window.AeropuertosModule = (function () {
                           placeholder="Escribe tu sugerencia, comentario o solicitud de ayuda aquí…"></textarea>
                 <div id="fb-char-count" class="fb-char-count">0 / 1000</div>
             </div>
+            <!-- Zona de imágenes -->
+            <div class="fb-field">
+                <label class="fb-label">Imagen adjunta <span class="fb-optional">(captura de pantalla, opcional)</span></label>
+                <div id="fb-dropzone" class="fb-dropzone" tabindex="0"
+                     ondragover="fbDragOver(event)" ondragleave="fbDragLeave(event)" ondrop="fbDrop(event)"
+                     onclick="document.getElementById('fb-file-input').click()"
+                     onkeydown="if(event.key==='Enter'||event.key===' ')document.getElementById('fb-file-input').click()">
+                    <input type="file" id="fb-file-input" accept="image/*" multiple style="display:none"
+                           onchange="fbFileInputChange(event)">
+                    <div class="fb-dropzone-inner">
+                        <i class="fas fa-image fb-dropzone-icon" aria-hidden="true"></i>
+                        <span class="fb-dropzone-text">Arrastra una imagen, pégala con <kbd>Ctrl+V</kbd> o haz clic aquí</span>
+                    </div>
+                    <div id="fb-img-preview" class="fb-img-preview"></div>
+                </div>
+            </div>
             <!-- Estado / error -->
             <div id="fb-status" class="fb-status d-none"></div>
             <!-- Botón enviar -->
@@ -24544,7 +24560,10 @@ window.AeropuertosModule = (function () {
 (function () {
     const FB_URL   = 'https://fgstncvuuhpgyzmjceyr.supabase.co/functions/v1/send-feedback';
     const FB_ANON  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnc3RuY3Z1dWhwZ3l6bWpjZXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyMjQ1MTEsImV4cCI6MjA2MTgwMDUxMX0.8-JDwjFNzHkxPVJUlRbHTSl3W2b48y_97FjR2GJ9IjI';
+    const FB_MAX_IMAGES = 3;
+    const FB_MAX_SIZE   = 5 * 1024 * 1024; // 5 MB
     let _tipo = 'idea';
+    let _imagenes = []; // [{ dataUrl, filename }]
 
     // Selector de tipo
     document.querySelectorAll('.fb-tipo-btn').forEach(btn => {
@@ -24590,9 +24609,83 @@ window.AeropuertosModule = (function () {
         document.getElementById('fb-area').value    = '';
         document.getElementById('fb-mensaje').value = '';
         if (cc) cc.textContent = '0 / 1000';
+        _imagenes = [];
+        fbRenderImages();
         fbSetStatus('');
         fbSetLoading(false);
     }
+
+    // ── Gestión de imágenes ──────────────────────────────────
+    function fbRenderImages() {
+        const preview = document.getElementById('fb-img-preview');
+        const dz      = document.getElementById('fb-dropzone');
+        if (!preview) return;
+        if (!_imagenes.length) {
+            preview.innerHTML = '';
+            if (dz) dz.classList.remove('fb-dz-has-imgs');
+            return;
+        }
+        if (dz) dz.classList.add('fb-dz-has-imgs');
+        preview.innerHTML = _imagenes.map((img, i) => `
+            <div class="fb-img-thumb" title="${img.filename}">
+                <img src="${img.dataUrl}" alt="Imagen adjunta ${i+1}">
+                <button type="button" class="fb-img-remove" onclick="fbRemoveImage(${i})" aria-label="Quitar imagen">
+                    <i class="fas fa-xmark"></i>
+                </button>
+                <span class="fb-img-name">${img.filename}</span>
+            </div>`).join('');
+    }
+
+    function fbAddImage(file) {
+        if (_imagenes.length >= FB_MAX_IMAGES) {
+            fbSetStatus(`<i class="fas fa-circle-exclamation me-1"></i>Máximo ${FB_MAX_IMAGES} imágenes por mensaje.`, true);
+            return;
+        }
+        if (file.size > FB_MAX_SIZE) {
+            fbSetStatus('<i class="fas fa-circle-exclamation me-1"></i>La imagen es demasiado grande (máx. 5 MB).', true);
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            _imagenes.push({ dataUrl: e.target.result, filename: file.name || 'imagen.png' });
+            fbRenderImages();
+            fbSetStatus('');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    window.fbRemoveImage = function (idx) {
+        _imagenes.splice(idx, 1);
+        fbRenderImages();
+    };
+
+    // Drag & Drop
+    window.fbDragOver = function (e) {
+        e.preventDefault(); e.stopPropagation();
+        document.getElementById('fb-dropzone')?.classList.add('fb-dz-drag');
+    };
+    window.fbDragLeave = function (e) {
+        document.getElementById('fb-dropzone')?.classList.remove('fb-dz-drag');
+    };
+    window.fbDrop = function (e) {
+        e.preventDefault(); e.stopPropagation();
+        document.getElementById('fb-dropzone')?.classList.remove('fb-dz-drag');
+        const files = [...(e.dataTransfer?.files || [])].filter(f => f.type.startsWith('image/'));
+        files.forEach(fbAddImage);
+    };
+
+    // File input
+    window.fbFileInputChange = function (e) {
+        const files = [...(e.target.files || [])].filter(f => f.type.startsWith('image/'));
+        files.forEach(fbAddImage);
+        e.target.value = '';
+    };
+
+    // Pegar con Ctrl+V
+    document.getElementById('fb-overlay').addEventListener('paste', (e) => {
+        const items = [...(e.clipboardData?.items || [])].filter(it => it.type.startsWith('image/'));
+        items.forEach(it => { const f = it.getAsFile(); if (f) fbAddImage(f); });
+    });
 
     function fbSetStatus(msg, isError) {
         const el = document.getElementById('fb-status');
@@ -24626,7 +24719,8 @@ window.AeropuertosModule = (function () {
             nombre:     (document.getElementById('fb-nombre').value || '').trim(),
             area:       (document.getElementById('fb-area').value   || '').trim(),
             mensaje,
-            fechaLocal: new Date().toLocaleString('es-MX')
+            fechaLocal: new Date().toLocaleString('es-MX'),
+            imagenes:   _imagenes.map(img => ({ dataUrl: img.dataUrl, filename: img.filename }))
         };
         try {
             const res  = await fetch(FB_URL, {
