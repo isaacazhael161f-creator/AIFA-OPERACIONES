@@ -6460,6 +6460,13 @@ function showSection(sectionKey, linkEl) {
             }, 80);
         }
 
+        // Hook: FIDS (tablero de vuelos)
+        if (targetKey === 'fids') {
+            setTimeout(() => {
+                if (typeof window.initFids === 'function') window.initFids();
+            }, 80);
+        }
+
         // Cerrar sidebar en móvil
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebar-overlay');
