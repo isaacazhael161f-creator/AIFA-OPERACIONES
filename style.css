@@ -12825,3 +12825,268 @@ body.dark-mode #yoy-insights-list li {
     .ag-tb-inner { flex-wrap: wrap; gap: 6px; }
     .ag-tb-day-block { flex-basis: 100%; padding: 2px 0; }
 }
+
+/* ================================================================
+   FIDS – Flight Information Display System
+   ================================================================ */
+
+/* Wrapper general */
+.fids-wrapper {
+    width: 100%;
+}
+
+/* Top bar (tabs + filtros) */
+.fids-top-bar {
+    border-bottom: 1px solid #2a2a2a;
+    padding-bottom: .5rem;
+}
+
+.fids-tab-btn {
+    background: #1e1e2e;
+    color: #ccc;
+    border: 1px solid #444;
+    font-size: .82rem;
+    padding: .3rem .75rem;
+    border-radius: 6px;
+    transition: background .15s, color .15s;
+}
+.fids-tab-btn.active,
+.fids-tab-btn:hover {
+    background: #3b82f6;
+    color: #fff;
+    border-color: #3b82f6;
+}
+
+.fids-date-picker {
+    background: #1e1e2e;
+    color: #e0e0e0;
+    border-color: #444;
+    max-width: 155px;
+}
+.fids-date-picker:focus {
+    background: #1e1e2e;
+    color: #fff;
+    border-color: #3b82f6;
+    box-shadow: none;
+}
+
+.fids-tipo-btn {
+    background: #1e1e2e;
+    color: #ccc;
+    border-color: #444;
+    font-size: .82rem;
+}
+.fids-tipo-btn.active {
+    background: #0ea5e9;
+    color: #fff;
+    border-color: #0ea5e9;
+}
+
+/* ── PANTALLA FIDS (simulación tablero aeropuerto) ── */
+.fids-screen {
+    background: #0a0a0f;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,.7);
+    border: 2px solid #1a1a2e;
+    font-family: 'Segoe UI', 'Arial Narrow', Arial, sans-serif;
+}
+
+.fids-screen-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #0f0f1a;
+    padding: .6rem 1rem;
+    border-bottom: 2px solid #1e3a8a;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.fids-screen-logo img {
+    filter: brightness(1.1);
+}
+.fids-screen-logo {
+    min-width: 60px;
+}
+
+.fids-screen-title {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+}
+
+.fids-screen-tipo {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #00d4ff;
+    letter-spacing: .15em;
+    text-shadow: 0 0 10px rgba(0,212,255,.4);
+}
+
+.fids-screen-fecha {
+    font-size: .75rem;
+    color: #8899aa;
+    text-transform: capitalize;
+    letter-spacing: .05em;
+}
+
+.fids-screen-clock {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #ffd700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .05em;
+    text-shadow: 0 0 8px rgba(255,215,0,.3);
+    min-width: 100px;
+    text-align: right;
+}
+
+/* Cabecera de columnas */
+.fids-screen-cols {
+    display: grid;
+    grid-template-columns: 180px 90px 1fr 90px 80px 140px;
+    gap: 0;
+    background: #111122;
+    color: #6699cc;
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    border-bottom: 1px solid #1e3a8a;
+    padding: .4rem .75rem;
+}
+
+/* Filas de datos */
+.fids-rows-container {
+    min-height: 200px;
+}
+
+.fids-row {
+    display: grid;
+    grid-template-columns: 180px 90px 1fr 90px 80px 140px;
+    gap: 0;
+    padding: .55rem .75rem;
+    border-bottom: 1px solid #111122;
+    align-items: center;
+    transition: background .1s;
+}
+.fids-row:hover { background: #0d1526; }
+.fids-row-even { background: #0a0a14; }
+.fids-row-odd  { background: #0c0c18; }
+
+/* Celda aerolínea */
+.fids-airline-badge {
+    display: inline-block;
+    padding: .22rem .55rem;
+    border-radius: 5px;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-transform: uppercase;
+}
+
+/* Celdas comunes */
+.fids-col-vuelo,
+.fids-col-ciudad,
+.fids-col-hora,
+.fids-col-puerta,
+.fids-col-estado {
+    color: #d0d8e8;
+    font-size: .88rem;
+}
+.fids-col-vuelo { font-weight: 700; color: #e8f0ff; }
+.fids-col-hora  { font-weight: 600; color: #ffe27a; }
+.fids-col-puerta{ color: #a0c4ff; font-weight: 700; text-align: center; }
+
+/* Hora demorada */
+.fids-hora-delayed { color: #ff6b35; font-weight: 700; }
+.fids-hora-orig    { display: block; font-size: .72rem; color: #888; text-decoration: line-through; }
+
+/* Badges de estado */
+.fids-estado-badge {
+    display: inline-block;
+    padding: .2rem .6rem;
+    border-radius: 4px;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+}
+.fids-estado-ok       { background: #065f46; color: #6ee7b7; }
+.fids-estado-puerta   { background: #1e3a8a; color: #93c5fd; }
+.fids-estado-demorado { background: #78350f; color: #fcd34d; }
+.fids-estado-cancelado{ background: #7f1d1d; color: #fca5a5; }
+.fids-estado-vuelo    { background: #164e63; color: #67e8f9; }
+
+/* Footer del tablero */
+.fids-screen-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #0f0f1a;
+    border-top: 2px solid #1e3a8a;
+    padding: .4rem 1rem;
+    font-size: .7rem;
+    color: #6699cc;
+    letter-spacing: .05em;
+}
+
+/* Estados vacío / carga / error */
+.fids-loading,
+.fids-empty,
+.fids-error {
+    padding: 2.5rem 1rem;
+    text-align: center;
+    font-size: .9rem;
+}
+.fids-loading { color: #6699cc; }
+.fids-empty   { color: #557799; }
+.fids-error   { color: #ef4444; }
+
+/* ── Panel Admin ── */
+.fids-admin-table-wrap {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+.fids-admin-table thead th { font-size: .78rem; }
+.fids-admin-table td       { font-size: .82rem; vertical-align: middle; }
+
+.btn-xs {
+    padding: .15rem .38rem;
+    font-size: .73rem;
+    line-height: 1.4;
+    border-radius: 4px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+    .fids-screen-cols,
+    .fids-row {
+        grid-template-columns: 140px 80px 1fr 80px 60px 120px;
+    }
+}
+
+@media (max-width: 640px) {
+    .fids-screen-cols { display: none; }
+    .fids-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+        gap: 4px;
+        padding: .6rem .5rem;
+    }
+    .fids-col-aerolinea { grid-column: 1; grid-row: 1; }
+    .fids-col-vuelo     { grid-column: 2; grid-row: 1; text-align: right; }
+    .fids-col-ciudad    { grid-column: 1; grid-row: 2; font-size: .78rem; }
+    .fids-col-hora      { display: none; }
+    .fids-col-puerta    { display: none; }
+    .fids-col-estado    { grid-column: 2; grid-row: 2; text-align: right; }
+    .fids-screen-clock  { font-size: 1.1rem; }
+    .fids-screen-tipo   { font-size: 1rem; }
+}
+
