@@ -24459,6 +24459,205 @@ window.AeropuertosModule = (function () {
     window._goToAgenda  = _goToAgenda;
 })();
 </script>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- BOTÓN FLOTANTE DE RETROALIMENTACIÓN                               -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<button id="fb-fab" class="fb-fab" title="Sugerencias y retroalimentación"
+        aria-label="Abrir formulario de sugerencias" onclick="fbOpenModal()">
+    <span class="fb-fab-icon"><i class="fas fa-comment-dots"></i></span>
+    <span class="fb-fab-label">Sugerencias</span>
+</button>
+
+<!-- MODAL DE RETROALIMENTACIÓN -->
+<div id="fb-overlay" class="fb-overlay" role="dialog" aria-modal="true"
+     aria-labelledby="fb-modal-title" onclick="if(event.target===this)fbCloseModal()">
+    <div class="fb-modal">
+        <!-- Cabecera -->
+        <div class="fb-modal-header">
+            <div class="fb-modal-header-left">
+                <div class="fb-modal-icon-wrap" aria-hidden="true">
+                    <i class="fas fa-paper-plane"></i>
+                </div>
+                <div>
+                    <p class="fb-modal-sup">AIFA Operaciones</p>
+                    <h2 class="fb-modal-title" id="fb-modal-title">¿Tienes alguna idea o comentario?</h2>
+                </div>
+            </div>
+            <button class="fb-modal-close" onclick="fbCloseModal()" aria-label="Cerrar">
+                <i class="fas fa-xmark"></i>
+            </button>
+        </div>
+        <!-- Selector de tipo -->
+        <div class="fb-tipo-grid" role="group" aria-label="Tipo de mensaje">
+            <button type="button" class="fb-tipo-btn active" data-tipo="idea">
+                <span class="fb-tipo-emoji">💡</span>
+                <span>Idea de mejora</span>
+            </button>
+            <button type="button" class="fb-tipo-btn" data-tipo="opinion">
+                <span class="fb-tipo-emoji">💬</span>
+                <span>Opinión</span>
+            </button>
+            <button type="button" class="fb-tipo-btn" data-tipo="ayuda">
+                <span class="fb-tipo-emoji">🙋</span>
+                <span>Necesito ayuda</span>
+            </button>
+            <button type="button" class="fb-tipo-btn" data-tipo="reporte">
+                <span class="fb-tipo-emoji">⚠️</span>
+                <span>Reportar problema</span>
+            </button>
+        </div>
+        <!-- Formulario -->
+        <form id="fb-form" class="fb-form" onsubmit="return false;" novalidate>
+            <div class="fb-form-row">
+                <div class="fb-field">
+                    <label class="fb-label" for="fb-nombre">Tu nombre <span class="fb-optional">(opcional)</span></label>
+                    <input id="fb-nombre" class="fb-input" type="text" placeholder="Ej. Ana García" autocomplete="name">
+                </div>
+                <div class="fb-field">
+                    <label class="fb-label" for="fb-area">Área / Dirección <span class="fb-optional">(opcional)</span></label>
+                    <input id="fb-area" class="fb-input" type="text" placeholder="Ej. Operaciones Aeroportuarias">
+                </div>
+            </div>
+            <div class="fb-field">
+                <label class="fb-label" for="fb-mensaje">Tu mensaje <span class="fb-required">*</span></label>
+                <textarea id="fb-mensaje" class="fb-textarea" rows="5"
+                          placeholder="Escribe tu sugerencia, comentario o solicitud de ayuda aquí…"></textarea>
+                <div id="fb-char-count" class="fb-char-count">0 / 1000</div>
+            </div>
+            <!-- Estado / error -->
+            <div id="fb-status" class="fb-status d-none"></div>
+            <!-- Botón enviar -->
+            <button type="button" id="fb-submit-btn" class="fb-submit-btn" onclick="fbEnviar()">
+                <span id="fb-submit-text"><i class="fas fa-paper-plane me-2" aria-hidden="true"></i>Enviar mensaje</span>
+                <span id="fb-submit-spin" class="d-none"><span class="fb-spinner"></span>Enviando…</span>
+            </button>
+            <p class="fb-disclaimer">
+                <i class="fas fa-lock me-1" aria-hidden="true"></i>
+                Tu mensaje se envía directamente al equipo de administración. No se comparte con terceros.
+            </p>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    const FB_URL   = 'https://fgstncvuuhpgyzmjceyr.supabase.co/functions/v1/send-feedback';
+    const FB_ANON  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnc3RuY3Z1dWhwZ3l6bWpjZXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyMjQ1MTEsImV4cCI6MjA2MTgwMDUxMX0.8-JDwjFNzHkxPVJUlRbHTSl3W2b48y_97FjR2GJ9IjI';
+    let _tipo = 'idea';
+
+    // Selector de tipo
+    document.querySelectorAll('.fb-tipo-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.fb-tipo-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            _tipo = btn.dataset.tipo;
+        });
+    });
+
+    // Contador de caracteres
+    const ta = document.getElementById('fb-mensaje');
+    const cc = document.getElementById('fb-char-count');
+    if (ta && cc) {
+        ta.addEventListener('input', () => {
+            const n = ta.value.length;
+            cc.textContent = `${n} / 1000`;
+            cc.classList.toggle('fb-char-warn', n > 900);
+            if (n > 1000) ta.value = ta.value.slice(0, 1000);
+        });
+    }
+
+    window.fbOpenModal = function () {
+        const overlay = document.getElementById('fb-overlay');
+        if (!overlay) return;
+        overlay.classList.add('open');
+        document.body.classList.add('fb-modal-open');
+        setTimeout(() => { const m = overlay.querySelector('.fb-modal'); if (m) m.focus(); }, 80);
+    };
+
+    window.fbCloseModal = function () {
+        const overlay = document.getElementById('fb-overlay');
+        if (!overlay) return;
+        overlay.classList.remove('open');
+        document.body.classList.remove('fb-modal-open');
+        fbResetForm();
+    };
+
+    function fbResetForm() {
+        const form = document.getElementById('fb-form');
+        if (!form) return;
+        document.getElementById('fb-nombre').value  = '';
+        document.getElementById('fb-area').value    = '';
+        document.getElementById('fb-mensaje').value = '';
+        if (cc) cc.textContent = '0 / 1000';
+        fbSetStatus('');
+        fbSetLoading(false);
+    }
+
+    function fbSetStatus(msg, isError) {
+        const el = document.getElementById('fb-status');
+        if (!el) return;
+        if (!msg) { el.className = 'fb-status d-none'; el.innerHTML = ''; return; }
+        el.className = 'fb-status ' + (isError ? 'fb-status-error' : 'fb-status-ok');
+        el.innerHTML = msg;
+    }
+
+    function fbSetLoading(on) {
+        const btn  = document.getElementById('fb-submit-btn');
+        const txt  = document.getElementById('fb-submit-text');
+        const spin = document.getElementById('fb-submit-spin');
+        if (!btn || !txt || !spin) return;
+        btn.disabled = on;
+        txt.classList.toggle('d-none', on);
+        spin.classList.toggle('d-none', !on);
+    }
+
+    window.fbEnviar = async function () {
+        const mensaje = (document.getElementById('fb-mensaje').value || '').trim();
+        if (!mensaje) {
+            fbSetStatus('<i class="fas fa-circle-exclamation me-1"></i>Por favor escribe tu mensaje antes de enviar.', true);
+            document.getElementById('fb-mensaje').focus();
+            return;
+        }
+        fbSetLoading(true);
+        fbSetStatus('');
+        const payload = {
+            tipo:       _tipo,
+            nombre:     (document.getElementById('fb-nombre').value || '').trim(),
+            area:       (document.getElementById('fb-area').value   || '').trim(),
+            mensaje,
+            fechaLocal: new Date().toLocaleString('es-MX')
+        };
+        try {
+            const res  = await fetch(FB_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${FB_ANON}` },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (!res.ok || data.error) throw new Error(data.error || 'Error al enviar');
+            fbSetStatus('<i class="fas fa-circle-check me-1"></i>¡Mensaje enviado! Gracias por tu retroalimentación. Lo revisaremos a la brevedad.', false);
+            document.getElementById('fb-nombre').value  = '';
+            document.getElementById('fb-area').value    = '';
+            document.getElementById('fb-mensaje').value = '';
+            if (cc) cc.textContent = '0 / 1000';
+            setTimeout(fbCloseModal, 3500);
+        } catch (err) {
+            fbSetStatus('<i class="fas fa-circle-exclamation me-1"></i>No se pudo enviar el mensaje. Por favor intenta de nuevo más tarde.', true);
+            console.error('[feedback]', err);
+        } finally {
+            fbSetLoading(false);
+        }
+    };
+
+    // Cerrar con Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.getElementById('fb-overlay')?.classList.contains('open')) {
+            fbCloseModal();
+        }
+    });
+})();
+</script>
 </body>
 </html>
 
