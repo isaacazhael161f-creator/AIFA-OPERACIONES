@@ -451,7 +451,7 @@
       const hora    = v.hora_estimada && v.hora_estimada !== v.hora_programada
                       ? v.hora_estimada : v.hora_programada;
       const delayed = v.hora_estimada && v.hora_estimada !== v.hora_programada;
-      const rowCls  = i % 2 === 0 ? 'fids-row fids-row-even' : 'fids-row fids-row-odd';
+      const rowCls  = i % 2 === 0 ? 'fids-row fids-row-even fade-in-row' : 'fids-row fids-row-odd fade-in-row';
 
       const badgeBg = al.rawLogo ? '#ffffff' : al.bg;
       const _imgSt = [al.rawLogo ? 'filter:none' : '', al.logoZoom ? `transform:scale(${al.logoZoom})` : ''].filter(Boolean).join(';');
@@ -463,7 +463,7 @@
         : `<span>${(v.aerolinea||'').toUpperCase().slice(0,12)}</span>`;
 
       return `
-      <div class="${rowCls}">
+      <div class="${rowCls}" style="--delay:${(i*0.06).toFixed(2)}s">
         <div class="fids-col-aerolinea">
           <span class="fids-airline-badge" style="background:${badgeBg};color:${al.text};">${logoInner}</span>
         </div>
