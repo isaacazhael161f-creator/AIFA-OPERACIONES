@@ -482,6 +482,7 @@
     "type": ["nacional", "carga"],
     "logo": "logo_estafeta.jpg",
     "logoZoom": 1.7,
+    "rawLogo": true,
     "color": "#c41230",
     "textColor": "#ffffff",
     "aliases": ["estafeta"]
@@ -526,7 +527,6 @@
     "icao": "AEU",
     "type": ["nacional", "carga"],
     "logo": "logo_aerounión.png",
-    "logoZoom": 1.3,
     "color": "#00529b",
     "textColor": "#ffffff",
     "aliases": ["aerounión", "aerounion", "aero union", "aero-union", "r6"]
