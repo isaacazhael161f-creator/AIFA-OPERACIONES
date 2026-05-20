@@ -296,7 +296,7 @@
         const al   = airlineStyle(v.iata, v.nombre);
         const est  = v.estado || 'A tiempo';
         const cls  = ESTADO_CLASES[est] || 'fids-estado-ok';
-        const rowC = i % 2 === 0 ? 'fids-row fids-row-even' : 'fids-row fids-row-odd';
+        const rowC = i % 2 === 0 ? 'fids-row fids-row-even fade-in-row' : 'fids-row fids-row-odd fade-in-row';
 
         const badgeBg = al.rawLogo ? '#ffffff' : al.bg;
         const _imgSt = [al.rawLogo ? 'filter:none' : '', al.logoZoom ? `transform:scale(${al.logoZoom})` : ''].filter(Boolean).join(';');
@@ -307,7 +307,7 @@
              <span style="display:none">${(al.name||v.iata||'').toUpperCase().slice(0,12)}</span>`
           : `<span>${(al.name||v.iata||'').toUpperCase().slice(0,12)}</span>`;
 
-        return `<div class="${rowC}">
+        return `<div class="${rowC}" style="--delay:${(i*0.06).toFixed(2)}s">
           <div class="fids-col-aerolinea">
             <span class="fids-airline-badge" style="background:${badgeBg};color:${al.text};">${logoInner}</span>
           </div>
