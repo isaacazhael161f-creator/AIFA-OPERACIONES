@@ -510,29 +510,79 @@
       container.classList.add('d-none');
       return;
     }
+
+    // Separar periodos anuales y mensuales, agrupar por año
+    const annualByYear = {};
+    const monthsByYear  = {};
     demorasState.periods.forEach((period) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'demoras-period-btn';
-      if (period.scope === 'annual') btn.classList.add('demoras-period-btn-annual');
-      if (period.scope === 'current') btn.classList.add('demoras-period-btn-current');
-      if (period.key === demorasState.activeKey) btn.classList.add('active');
-      btn.dataset.periodKey = period.key;
-      btn.textContent = period.shortLabel || period.label || 'Periodo';
-      const disabled = shouldDisablePeriod(period);
-      if (disabled) {
-        btn.classList.add('is-disabled');
-        btn.disabled = true;
-        btn.setAttribute('aria-disabled', 'true');
+      const yr = String(period.year || 'Sin año');
+      if (period.scope === 'annual') {
+        annualByYear[yr] = period;
+      } else {
+        if (!monthsByYear[yr]) monthsByYear[yr] = [];
+        monthsByYear[yr].push(period);
       }
-      btn.setAttribute('aria-pressed', period.key === demorasState.activeKey ? 'true' : 'false');
-      let title = period.periodo || period.label || 'Periodo de demoras';
-      if (disabled) {
-        title += ' · Disponible al cierre del mes.';
-      }
-      btn.title = title;
-      container.appendChild(btn);
     });
+
+    // Años distintos ordenados de mayor a menor
+    const allYears = [...new Set([
+      ...Object.keys(annualByYear),
+      ...Object.keys(monthsByYear)
+    ])].sort((a, b) => Number(b) - Number(a));
+
+    // Construir grupos
+    allYears.forEach((yr) => {
+      const months  = monthsByYear[yr]  || [];
+      const annual  = annualByYear[yr]  || null;
+      if (!months.length && !annual) return;
+
+      const group = document.createElement('div');
+      group.className = 'dem-yr-group';
+
+      const labelEl = document.createElement('span');
+      labelEl.className = 'dem-yr-label';
+      labelEl.textContent = yr;
+      group.appendChild(labelEl);
+
+      const btnsRow = document.createElement('div');
+      btnsRow.className = 'dem-yr-btns';
+
+      const makeBtn = (period) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'demoras-period-btn';
+        if (period.scope === 'annual')  btn.classList.add('dem-btn-annual');
+        if (period.scope === 'current') btn.classList.add('demoras-period-btn-current');
+        if (period.key === demorasState.activeKey) btn.classList.add('active');
+        btn.dataset.periodKey = period.key;
+        const disabled = shouldDisablePeriod(period);
+        if (disabled) {
+          btn.classList.add('is-disabled');
+          btn.disabled = true;
+          btn.setAttribute('aria-disabled', 'true');
+        }
+        btn.setAttribute('aria-pressed', period.key === demorasState.activeKey ? 'true' : 'false');
+        let title = period.periodo || period.label || 'Periodo de demoras';
+        if (disabled) title += ' · Disponible al cierre del mes.';
+        btn.title = title;
+
+        if (period.scope === 'annual') {
+          btn.innerHTML = `<i class="fas fa-calendar-alt me-1" aria-hidden="true"></i>${yr}`;
+        } else {
+          btn.textContent = period.shortLabel || period.label || 'Periodo';
+        }
+        return btn;
+      };
+
+      // Botón de año completo primero
+      if (annual) btnsRow.appendChild(makeBtn(annual));
+      // Meses del año (orden: más reciente primero)
+      months.forEach((p) => btnsRow.appendChild(makeBtn(p)));
+
+      group.appendChild(btnsRow);
+      container.appendChild(group);
+    });
+
     if (!container._wired) {
       container.addEventListener('click', (event) => {
         const btn = event.target.closest('.demoras-period-btn');
