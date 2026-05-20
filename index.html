@@ -24558,8 +24558,10 @@ window.AeropuertosModule = (function () {
 
 <script>
 (function () {
-    const FB_URL   = 'https://fgstncvuuhpgyzmjceyr.supabase.co/functions/v1/send-feedback';
-    const FB_ANON  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnc3RuY3Z1dWhwZ3l6bWpjZXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyMjQ1MTEsImV4cCI6MjA2MTgwMDUxMX0.8-JDwjFNzHkxPVJUlRbHTSl3W2b48y_97FjR2GJ9IjI';
+    const FB_URL        = 'https://fgstncvuuhpgyzmjceyr.supabase.co/functions/v1/send-feedback';
+    const FB_ANON       = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnc3RuY3Z1dWhwZ3l6bWpjZXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NzQ0NDQsImV4cCI6MjA4MTQ1MDQ0NH0.YEDIKuWt5iKUEI0BAvidINUz0aZBvQM0h6XRJ-uslB8';
+    const FB_STORAGE    = 'https://fgstncvuuhpgyzmjceyr.supabase.co/storage/v1/object/feedback-images';
+    const FB_STORAGE_PUB= 'https://fgstncvuuhpgyzmjceyr.supabase.co/storage/v1/object/public/feedback-images';
     const FB_MAX_IMAGES = 3;
     const FB_MAX_SIZE   = 5 * 1024 * 1024; // 5 MB
     let _tipo = 'idea';
@@ -24718,28 +24720,31 @@ window.AeropuertosModule = (function () {
         // Subir imágenes al Storage de Supabase y obtener URLs públicas
         const imageUrls = [];
         if (_imagenes.length) {
-            const sb = window.supabaseClient;
-            if (sb) {
-                fbSetStatus('<i class="fas fa-spinner fa-spin me-1"></i>Subiendo imágenes…');
-                await Promise.all(_imagenes.map(async (img, i) => {
-                    try {
-                        const res = await fetch(img.dataUrl);
-                        const blob = await res.blob();
-                        const ext  = (img.filename.split('.').pop() || 'png').toLowerCase();
-                        const path = `${Date.now()}_${i}_${img.filename.replace(/[^\w.\-]/g, '_')}`;
-                        const { error } = await sb.storage
-                            .from('feedback-images')
-                            .upload(path, blob, { contentType: blob.type || 'image/png', upsert: true });
-                        if (!error) {
-                            const { data: pubData } = sb.storage.from('feedback-images').getPublicUrl(path);
-                            if (pubData?.publicUrl) imageUrls[i] = pubData.publicUrl;
-                        } else {
-                            console.warn('[feedback] upload error:', error.message);
-                        }
-                    } catch (e) { console.warn('[feedback] upload exception:', e); }
-                }));
-                fbSetStatus('');
-            }
+            fbSetStatus('<i class="fas fa-spinner fa-spin me-1"></i>Subiendo imágenes…');
+            await Promise.all(_imagenes.map(async (img, i) => {
+                try {
+                    // Convertir dataUrl a Uint8Array sin fetch (más confiable)
+                    const parts = img.dataUrl.split(',');
+                    const mimeMatch = parts[0].match(/:(.*?);/);
+                    const mime  = mimeMatch ? mimeMatch[1] : 'image/png';
+                    const bstr  = atob(parts[1]);
+                    const u8    = new Uint8Array(bstr.length);
+                    for (let j = 0; j < bstr.length; j++) u8[j] = bstr.charCodeAt(j);
+                    const path  = `${Date.now()}_${i}_${img.filename.replace(/[^\w.\-]/g, '_')}`;
+                    const res   = await fetch(`${FB_STORAGE}/${path}`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${FB_ANON}`, 'Content-Type': mime, 'x-upsert': 'true' },
+                        body: u8
+                    });
+                    if (res.ok) {
+                        imageUrls[i] = `${FB_STORAGE_PUB}/${path}`;
+                    } else {
+                        const err = await res.text();
+                        console.warn('[feedback] upload error:', res.status, err);
+                    }
+                } catch (e) { console.warn('[feedback] upload exception:', e); }
+            }));
+            fbSetStatus('');
         }
 
         const payload = {
