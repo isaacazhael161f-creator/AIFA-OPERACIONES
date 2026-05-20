@@ -5,66 +5,75 @@
 (function () {
   'use strict';
 
-  // ── Colores por aerolínea ────────────────────────────────────────
-  const AIRLINE_COLORS = {
-    'VB': { bg: '#00a651', text: '#fff', name: 'VivaAerobus' },
-    'AM': { bg: '#0a2240', text: '#fff', name: 'Aeroméxico' },
-    'Y4': { bg: '#6d2077', text: '#fff', name: 'Volaris' },
-    'MX': { bg: '#1e3a8a', text: '#fff', name: 'Mexicana' },
-    '4O': { bg: '#c0392b', text: '#fff', name: 'InterJet' },
-    'LA': { bg: '#e63946', text: '#fff', name: 'LATAM' },
-    '6R': { bg: '#f39c12', text: '#000', name: 'Aeromar' },
-    'TS': { bg: '#0288d1', text: '#fff', name: 'Air Transat' },
-    'WS': { bg: '#009B3A', text: '#fff', name: 'WestJet' },
-    'AA': { bg: '#0078d2', text: '#fff', name: 'American' },
-    'UA': { bg: '#003580', text: '#fff', name: 'United' },
-    'DL': { bg: '#c8102e', text: '#fff', name: 'Delta' },
-    'IB': { bg: '#cc0001', text: '#fff', name: 'Iberia' },
-    'AV': { bg: '#e31837', text: '#fff', name: 'Avianca' },
-    'CM': { bg: '#005b9a', text: '#fff', name: 'Copa' },
-  };
+  // ── Datos de aerolíneas (cargados desde airlines.json) ───────────
+  let _airlinesDb = [];
+
+  async function loadAirlinesDb() {
+    if (_airlinesDb.length) return;
+    try {
+      const r = await fetch('data/airlines.json');
+      _airlinesDb = await r.json();
+    } catch (_) { _airlinesDb = []; }
+  }
+
+  function findAirline(iata, nombre) {
+    const normStr = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+    const ni = normStr(iata);
+    const nn = normStr(nombre);
+    let m = null;
+    if (ni) m = _airlinesDb.find(a => normStr(a.iata) === ni);
+    if (!m && nn) m = _airlinesDb.find(a =>
+      normStr(a.name) === nn ||
+      (Array.isArray(a.aliases) && a.aliases.some(al => normStr(al) === nn))
+    );
+    if (!m && nn) m = _airlinesDb.find(a =>
+      normStr(a.name).includes(nn) || nn.includes(normStr(a.name)) ||
+      (Array.isArray(a.aliases) && a.aliases.some(al => nn.includes(normStr(al)) || normStr(al).includes(nn)))
+    );
+    return m || null;
+  }
+
+  function getAirlineStyle(iata, nombre) {
+    const a = findAirline(iata, nombre);
+    if (a) return {
+      bg:   a.color     || '#1e3a8a',
+      text: a.textColor || '#fff',
+      name: a.name      || nombre || iata || '?',
+      logo: a.logo      ? `images/airlines/${a.logo}` : null,
+    };
+    let hash = 0;
+    const s = (nombre || iata || '?').toUpperCase();
+    for (let i = 0; i < s.length; i++) hash = s.charCodeAt(i) + ((hash << 5) - hash);
+    return { bg: `hsl(${Math.abs(hash)%360},60%,30%)`, text: '#fff', name: nombre||iata||'?', logo: null };
+  }
 
   const ESTADO_CLASES = {
-    'A tiempo':     'fids-estado-ok',
-    'Aterrizo':     'fids-estado-ok',
-    'Aterrizó':     'fids-estado-ok',
-    'Despegó':      'fids-estado-ok',
-    'En puerta':    'fids-estado-puerta',
-    'Abordando':    'fids-estado-puerta',
-    'Embarcando':   'fids-estado-puerta',
-    'Cancelado':    'fids-estado-cancelado',
-    'Demorado':     'fids-estado-demorado',
-    'En vuelo':     'fids-estado-vuelo',
+    'A tiempo':   'fids-estado-ok',
+    'Aterrizo':   'fids-estado-ok',
+    'Aterrizó':   'fids-estado-ok',
+    'Despegó':    'fids-estado-ok',
+    'En puerta':  'fids-estado-puerta',
+    'Abordando':  'fids-estado-puerta',
+    'Embarcando': 'fids-estado-puerta',
+    'Cancelado':  'fids-estado-cancelado',
+    'Demorado':   'fids-estado-demorado',
+    'En vuelo':   'fids-estado-vuelo',
   };
 
-  // ── Estado del módulo ────────────────────────────────────────────
+  // ── Estado del módulo ─────────────────────────────────────────────
   let _vuelos      = [];
   let _fecha       = new Date().toISOString().split('T')[0];
   let _tipo        = 'llegada';
   let _clockTimer  = null;
-  let _scrollTimer = null;
   let _realtimeCh  = null;
   let _editingId   = null;
-  let _activeTab   = 'display'; // 'display' | 'admin'
+  let _activeTab   = 'display';
   let _importing   = false;
 
-  // ── Helpers ──────────────────────────────────────────────────────
-  function getAirlineStyle(iata, nombre) {
-    const key = (iata || '').toUpperCase();
-    const cfg  = AIRLINE_COLORS[key];
-    if (cfg) return cfg;
-    // Generar color determinístico a partir del nombre
-    let hash = 0;
-    const s = (nombre || key || '?').toUpperCase();
-    for (let i = 0; i < s.length; i++) hash = s.charCodeAt(i) + ((hash << 5) - hash);
-    const h = Math.abs(hash) % 360;
-    return { bg: `hsl(${h},60%,30%)`, text: '#fff', name: nombre || key };
-  }
-
+  // ── Helpers ───────────────────────────────────────────────────────
   function formatTime(t) {
     if (!t) return '—';
-    // t puede ser "HH:MM:SS" o "HH:MM"
-    return t.slice(0, 5);
+    return String(t).slice(0, 5);
   }
 
   function formatFecha(d) {
@@ -73,17 +82,17 @@
     const meses = ['enero','febrero','marzo','abril','mayo','junio',
                    'julio','agosto','septiembre','octubre','noviembre','diciembre'];
     const dias  = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-    const dt    = new Date(y, parseInt(m) - 1, parseInt(dd));
-    return `${dias[dt.getDay()]}, ${meses[parseInt(m)-1]} ${dd}, ${y}`;
+    const dt    = new Date(parseInt(y), parseInt(m)-1, parseInt(dd));
+    return `${dias[dt.getDay()]}, ${dd} de ${meses[parseInt(m)-1]} de ${y}`;
   }
 
   function nowTimeStr() {
-    const n = new Date();
-    return n.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    return new Date().toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false });
   }
 
-  // ── Inicialización ───────────────────────────────────────────────
+  // ── Inicialización ────────────────────────────────────────────────
   async function init() {
+    await loadAirlinesDb();
     renderShell();
     await loadVuelos();
     startClock();
@@ -121,7 +130,7 @@
       <div id="fids-display-pane" class="fids-pane">
         <div class="fids-screen">
           <div class="fids-screen-header">
-            <div class="fids-screen-logo"><img src="images/aifa-logo.png" alt="AIFA" height="36"></div>
+            <div class="fids-screen-logo"><img src="images/aifa-logo.png" alt="AIFA" height="36" onerror="this.src='images/aifa-logo.jpg'"></div>
             <div class="fids-screen-title">
               <span class="fids-screen-tipo" id="fids-screen-tipo">LLEGADAS</span>
               <span class="fids-screen-fecha" id="fids-screen-fecha"></span>
@@ -131,16 +140,16 @@
           <div class="fids-screen-cols">
             <div class="fids-col-aerolinea">AEROLÍNEA</div>
             <div class="fids-col-vuelo">VUELO</div>
-            <div class="fids-col-ciudad">${_tipo==='llegada'?'ORIGEN':'DESTINO'}</div>
+            <div class="fids-col-ciudad" id="fids-hdr-ciudad">${_tipo==='llegada'?'ORIGEN':'DESTINO'}</div>
             <div class="fids-col-hora">HORA</div>
             <div class="fids-col-puerta">PUERTA</div>
             <div class="fids-col-estado">ESTADO</div>
           </div>
           <div class="fids-rows-container" id="fids-rows">
-            <div class="fids-loading"><i class="fas fa-spinner fa-spin"></i> Cargando vuelos…</div>
+            <div class="fids-loading"><i class="fas fa-spinner fa-spin me-2"></i>Cargando vuelos…</div>
           </div>
           <div class="fids-screen-footer">
-            <span>AEROPUERTO INTERNACIONAL FELIPE ÁNGELES</span>
+            <span>AEROPUERTO INTERNACIONAL FELIPE ÁNGELES — NAICM</span>
             <span id="fids-footer-count"></span>
           </div>
         </div>
@@ -157,11 +166,16 @@
           </label>
           <input type="file" id="fids-xlsx-input" accept=".xlsx,.xls" class="d-none"
                  onchange="window.fidsImportExcel(event)">
+          <button class="btn btn-sm btn-outline-danger ms-1" onclick="window.fidsClearDay()"
+                  title="Eliminar todos los vuelos del día actual">
+            <i class="fas fa-trash-alt me-1"></i> Limpiar día
+          </button>
           <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="window.fidsRefresh()">
             <i class="fas fa-sync-alt me-1"></i> Actualizar
           </button>
           <span id="fids-admin-count" class="badge bg-secondary"></span>
         </div>
+        <div id="fids-import-log" class="d-none alert alert-success py-1 small mb-2"></div>
         <div class="table-responsive fids-admin-table-wrap">
           <table class="table table-sm table-hover fids-admin-table" id="fids-admin-table">
             <thead class="table-dark">
@@ -169,7 +183,7 @@
                 <th>Vuelo</th>
                 <th>Aerolínea</th>
                 <th>IATA</th>
-                <th>${_tipo==='llegada'?'Origen':'Destino'}</th>
+                <th id="fids-admin-hdr-ciudad">${_tipo==='llegada'?'Origen':'Destino'}</th>
                 <th>Hora prog.</th>
                 <th>Hora est.</th>
                 <th>Puerta</th>
@@ -258,9 +272,17 @@
       </div>
     </div>`;
 
-    // Inicializar fecha en display
     document.getElementById('fids-screen-fecha').textContent = formatFecha(_fecha);
     document.getElementById('fids-screen-tipo').textContent  = _tipo === 'llegada' ? 'LLEGADAS' : 'SALIDAS';
+  }
+
+  function _updateCiudadLabels() {
+    const lbl  = _tipo === 'llegada' ? 'ORIGEN' : 'DESTINO';
+    const lbl2 = _tipo === 'llegada' ? 'Origen' : 'Destino';
+    const hc = document.getElementById('fids-hdr-ciudad');
+    const ha = document.getElementById('fids-admin-hdr-ciudad');
+    if (hc) hc.textContent = lbl;
+    if (ha) ha.textContent = lbl2;
   }
 
   // ── Tabs ─────────────────────────────────────────────────────────
@@ -282,7 +304,9 @@
   window.fidsSetTipo = function (t) {
     _tipo = t;
     document.querySelectorAll('.fids-tipo-btn').forEach(b => b.classList.toggle('active', b.dataset.tipo === t));
-    document.getElementById('fids-screen-tipo').textContent = t === 'llegada' ? 'LLEGADAS' : 'SALIDAS';
+    const tipoEl = document.getElementById('fids-screen-tipo');
+    if (tipoEl) tipoEl.textContent = t === 'llegada' ? 'LLEGADAS' : 'SALIDAS';
+    _updateCiudadLabels();
     loadVuelos();
   };
 
@@ -337,23 +361,29 @@
     }
 
     rows.innerHTML = _vuelos.map((v, i) => {
-      const al   = getAirlineStyle(v.codigo_iata, v.aerolinea);
-      const est  = v.estado || 'A tiempo';
-      const cls  = ESTADO_CLASES[est] || 'fids-estado-ok';
-      const hora = v.hora_estimada ? formatTime(v.hora_estimada) : formatTime(v.hora_programada);
+      const al      = getAirlineStyle(v.codigo_iata, v.aerolinea);
+      const est     = v.estado || 'A tiempo';
+      const cls     = ESTADO_CLASES[est] || 'fids-estado-ok';
+      const hora    = v.hora_estimada && v.hora_estimada !== v.hora_programada
+                      ? v.hora_estimada : v.hora_programada;
       const delayed = v.hora_estimada && v.hora_estimada !== v.hora_programada;
-      const rowCls = i % 2 === 0 ? 'fids-row fids-row-even' : 'fids-row fids-row-odd';
+      const rowCls  = i % 2 === 0 ? 'fids-row fids-row-even' : 'fids-row fids-row-odd';
+
+      const logoInner = al.logo
+        ? `<img src="${al.logo}" alt="${al.name}" class="fids-airline-logo"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block'">
+           <span style="display:none">${(v.aerolinea||'').toUpperCase().slice(0,12)}</span>`
+        : `<span>${(v.aerolinea||'').toUpperCase().slice(0,12)}</span>`;
+
       return `
       <div class="${rowCls}">
         <div class="fids-col-aerolinea">
-          <span class="fids-airline-badge" style="background:${al.bg};color:${al.text};">
-            ${(v.aerolinea||'').toUpperCase().slice(0,12)}
-          </span>
+          <span class="fids-airline-badge" style="background:${al.bg};color:${al.text};">${logoInner}</span>
         </div>
         <div class="fids-col-vuelo">${v.numero_vuelo || '—'}</div>
         <div class="fids-col-ciudad">${v.origen_destino || '—'}</div>
         <div class="fids-col-hora">
-          <span class="${delayed ? 'fids-hora-delayed' : ''}">${hora}</span>
+          <span class="${delayed ? 'fids-hora-delayed' : ''}">${formatTime(hora)}</span>
           ${delayed ? `<span class="fids-hora-orig">${formatTime(v.hora_programada)}</span>` : ''}
         </div>
         <div class="fids-col-puerta">${v.puerta || '—'}</div>
@@ -489,6 +519,20 @@
     } catch (e) { alert('Error al eliminar: ' + e.message); }
   };
 
+  window.fidsClearDay = async function () {
+    const total = _vuelos.length;
+    if (!total) { alert('No hay vuelos para limpiar.'); return; }
+    if (!confirm(`¿Eliminar los ${total} vuelos del ${_fecha} (${_tipo}s) del tablero?\nEsta acción no se puede deshacer.`)) return;
+    try {
+      const sb = window.supabaseClient;
+      if (!sb) throw new Error();
+      const ids = _vuelos.map(v => v.id);
+      const { error } = await sb.from('fids_vuelos').update({ activo: false }).in('id', ids);
+      if (error) throw error;
+      await loadVuelos();
+    } catch (e) { alert('Error: ' + e.message); }
+  };
+
   function clearModal() {
     ['fids-edit-vuelo','fids-edit-aerolinea','fids-edit-iata','fids-edit-ciudad',
      'fids-edit-hora-prog','fids-edit-hora-est','fids-edit-puerta','fids-edit-orden','fids-edit-notas']
@@ -513,120 +557,284 @@
     e.target.value = '';
     _importing = true;
 
-    // Necesitamos SheetJS — cargarlo dinámicamente si no está disponible
+    // Cargar SheetJS dinámicamente si no está disponible
     if (typeof XLSX === 'undefined') {
-      await new Promise((res, rej) => {
-        const s = document.createElement('script');
-        s.src = 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
-        s.onload = res; s.onerror = rej;
-        document.head.appendChild(s);
-      });
+      try {
+        await new Promise((res, rej) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
+          s.onload = res; s.onerror = rej;
+          document.head.appendChild(s);
+        });
+      } catch (_) {
+        alert('No se pudo cargar la librería de Excel. Verifica tu conexión.');
+        _importing = false; return;
+      }
     }
 
     try {
-      const ab   = await file.arrayBuffer();
-      const wb   = XLSX.read(ab, { type: 'array' });
-      const ws   = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      const ab = await file.arrayBuffer();
+      const wb = XLSX.read(ab, { type: 'array', cellDates: false });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+
+      // Intentar con la primera fila como header
+      let rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+      // Si hay pocas columnas con nombre real (demasiados __EMPTY), intentar con la fila 2
+      const keys0 = rows.length ? Object.keys(rows[0]) : [];
+      const realHdrs = keys0.filter(k => !k.startsWith('__EMPTY'));
+      if (realHdrs.length < 2 || rows.length === 0) {
+        const rawArr = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        if (rawArr.length > 1) {
+          const hdrs = rawArr[1].map((h, i) => h ? String(h).trim() : `__EMPTY_${i}`);
+          rows = rawArr.slice(2).map(row => {
+            const obj = {};
+            hdrs.forEach((h, i) => { obj[h] = row[i] !== undefined ? row[i] : ''; });
+            return obj;
+          });
+        }
+      }
 
       if (!rows.length) { alert('El archivo está vacío.'); _importing = false; return; }
 
-      // Mapear columnas flexiblemente
-      const mappings = detectColumns(rows[0]);
-      if (!mappings.vuelo || !mappings.hora) {
-        alert('No se encontraron las columnas de Vuelo y Hora en el Excel.\nColumnas detectadas: ' + Object.keys(rows[0]).join(', '));
+      const allKeys  = Object.keys(rows[0]);
+      const mappings = detectColumns(allKeys, rows);
+
+      console.log('[FIDS] Columnas Excel:', allKeys);
+      console.log('[FIDS] Mapeo detectado:', mappings);
+
+      if (!mappings.vuelo) {
+        alert(
+          'No se encontró columna de número de vuelo.\n' +
+          'Columnas detectadas: ' + allKeys.join(', ') + '\n\n' +
+          'Asegúrate de que el Excel tenga una columna: Designador, Vuelo, CODE o Flight.'
+        );
         _importing = false; return;
       }
 
-      const records = rows.filter(r => r[mappings.vuelo]).map((r, i) => ({
-        fecha:           _fecha,
-        tipo:            _tipo,
-        numero_vuelo:    String(r[mappings.vuelo] || '').trim(),
-        aerolinea:       String(r[mappings.aerolinea] || '').trim() || 'Sin aerolínea',
-        codigo_iata:     String(r[mappings.iata] || '').trim().toUpperCase() || null,
-        origen_destino:  String(r[mappings.ciudad] || '').trim() || 'Sin destino',
-        hora_programada: parseExcelTime(r[mappings.hora]),
-        hora_estimada:   mappings.horaEst ? parseExcelTime(r[mappings.horaEst]) : null,
-        estado:          String(r[mappings.estado] || 'A tiempo').trim(),
-        puerta:          mappings.puerta ? String(r[mappings.puerta] || '').trim() || null : null,
-        activo:          true,
-        orden:           i + 1,
-      })).filter(r => r.hora_programada);
+      const records = rows
+        .filter(r => String(r[mappings.vuelo] || '').trim())
+        .map((r, i) => {
+          const vueloRaw = String(r[mappings.vuelo]     || '').trim();
+          const aerRaw   = String(r[mappings.aerolinea] || '').trim();
+          const iataRaw  = String(r[mappings.iata]      || '').trim().toUpperCase();
+
+          // Ciudad: para salidas usar el destino (segundo aeropuerto), para llegadas el origen
+          let ciudadRaw = '';
+          if (_tipo === 'salida' && mappings.ciudadDest) {
+            ciudadRaw = String(r[mappings.ciudadDest] || '').trim();
+          }
+          if (!ciudadRaw && mappings.ciudad) {
+            ciudadRaw = String(r[mappings.ciudad] || '').trim();
+          }
+
+          const horaProg = mappings.hora    ? parseExcelTime(r[mappings.hora])    : null;
+          const horaEst  = mappings.horaEst ? parseExcelTime(r[mappings.horaEst]) : null;
+          const estadoRaw= mappings.estado  ? String(r[mappings.estado] || '').trim() : '';
+
+          // Extraer IATA del número de vuelo si no hay columna IATA
+          let iataFinal = iataRaw;
+          if (!iataFinal && vueloRaw) {
+            const mx = vueloRaw.match(/^([A-Z]{2}|[A-Z]\d|\d[A-Z])\d+/i);
+            if (mx) iataFinal = mx[1].toUpperCase();
+          }
+
+          // Completar nombre de aerolínea desde IATA si está vacío
+          let aerFinal = aerRaw;
+          if (!aerFinal && iataFinal) {
+            const al = findAirline(iataFinal, '');
+            if (al) aerFinal = al.name;
+          }
+
+          return {
+            fecha:           _fecha,
+            tipo:            _tipo,
+            numero_vuelo:    vueloRaw,
+            aerolinea:       aerFinal || iataFinal || 'Sin aerolínea',
+            codigo_iata:     iataFinal || null,
+            origen_destino:  ciudadRaw || '—',
+            hora_programada: horaProg,
+            hora_estimada:   horaEst,
+            estado:          mapEstado(estadoRaw),
+            puerta:          mappings.puerta ? String(r[mappings.puerta] || '').trim() || null : null,
+            activo:          true,
+            orden:           i + 1,
+          };
+        })
+        .filter(r => r.numero_vuelo);
 
       if (!records.length) { alert('No se encontraron filas válidas.'); _importing = false; return; }
 
-      const confirmado = confirm(`Se importarán ${records.length} vuelo(s) para ${_tipo}s del ${_fecha}.\n¿Continuar? (esto no elimina registros existentes)`);
-      if (!confirmado) { _importing = false; return; }
+      const sinHora = records.filter(r => !r.hora_programada).length;
+      let msg = `Se importarán ${records.length} vuelo(s) para ${_tipo}s del ${_fecha}.`;
+      if (sinHora > 0) msg += `\n⚠ ${sinHora} vuelos sin hora (puedes editarlos después).`;
+      msg += '\n¿Continuar? (no elimina registros existentes)';
+
+      if (!confirm(msg)) { _importing = false; return; }
 
       const sb = window.supabaseClient;
       if (!sb) throw new Error('Sin cliente Supabase');
       const { error } = await sb.from('fids_vuelos').insert(records);
       if (error) throw error;
-      alert(`✓ ${records.length} vuelos importados correctamente.`);
+
+      const logEl = document.getElementById('fids-import-log');
+      if (logEl) {
+        logEl.className = 'alert alert-success py-1 small mb-2';
+        logEl.textContent = `✓ ${records.length} vuelos importados correctamente${sinHora ? ` (${sinHora} sin hora)` : ''}.`;
+        logEl.classList.remove('d-none');
+        setTimeout(() => logEl.classList.add('d-none'), 8000);
+      }
       await loadVuelos();
+      if (_activeTab !== 'admin') window.fidsShowTab('admin');
     } catch (err) {
       alert('Error al importar: ' + err.message);
+      console.error('[FIDS Import]', err);
     }
     _importing = false;
   };
 
-  function detectColumns(firstRow) {
-    const keys   = Object.keys(firstRow);
-    const norm   = k => (k||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-    const find   = (...words) => keys.find(k => words.some(w => norm(k).includes(w)));
-    return {
-      vuelo:      find('vuelo','flight','numero','num'),
-      aerolinea:  find('aerolinea','airline','aero','carrier','compania'),
-      iata:       find('iata','codigo','code','siglas'),
-      ciudad:     find('destino','origen','ciudad','city','ruta','route'),
-      hora:       find('hora prog','programada','scheduled','hora sal','hora arr','hora','time'),
-      horaEst:    find('hora est','estimada','estimated','eta','real'),
-      estado:     find('estado','status','estatus','remark'),
-      puerta:     find('puerta','gate'),
-    };
+  /**
+   * Detecta columnas del Excel de forma flexible.
+   * Formato real conocido: CODE, NAME, __EMPTY, IATA, Aeropuerto origen,
+   *   __EMPTY_1, IATA_1, Aeropuerto origen_1, __EMPTY_2, TYPE OF FLIGHT, Designador, __EMPTY_3
+   */
+  function detectColumns(keys, rows) {
+    const norm = s => (s||'').toString().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+
+    // Busca clave que coincida exactamente con alguna palabra
+    const findExact = (...words) =>
+      keys.find(k => words.some(w => norm(k) === norm(w)));
+
+    // Busca clave que contenga alguna palabra
+    const findIncludes = (...words) =>
+      keys.find(k => words.some(w => norm(k).includes(norm(w))));
+
+    // ── Número de vuelo ─────────────────────────────────────────────
+    // "Designador" = designador OACI (ej. VB7417) — máxima prioridad
+    const vuelo =
+      findExact('designador') ||
+      findIncludes('numero vuelo', 'num vuelo', 'n vuelo', 'flight number') ||
+      findExact('vuelo', 'flight', 'code') ||
+      findIncludes('vuelo', 'flight');
+
+    // ── Aerolínea ────────────────────────────────────────────────────
+    const aerolinea =
+      findExact('name', 'nombre', 'aerolinea', 'airline') ||
+      findIncludes('aerolinea', 'airline', 'carrier', 'compania', 'nombre');
+
+    // ── Código IATA ──────────────────────────────────────────────────
+    // Hay IATA e IATA_1: queremos el primero (de la aerolínea/origen)
+    const iata =
+      findExact('iata') ||
+      findExact('codigo iata', 'iata code') ||
+      findIncludes('codigo iata', 'iata code', 'siglas');
+
+    // ── Ciudad de origen (llegadas) / primer aeropuerto ──────────────
+    const ciudad =
+      findExact('aeropuerto origen') ||
+      findIncludes('aeropuerto origen', 'ciudad origen', 'origin airport', 'origen') ||
+      findIncludes('aeropuerto', 'ciudad', 'city', 'ruta', 'route');
+
+    // ── Ciudad de destino (salidas) / segundo aeropuerto ─────────────
+    const ciudadDest =
+      findExact('aeropuerto origen_1', 'aeropuerto destino', 'destino') ||
+      findIncludes('aeropuerto destino', 'ciudad destino', 'destination airport') ||
+      (keys.filter(k => norm(k).includes('aeropuerto origen'))[1] || null);
+
+    // ── Hora programada ──────────────────────────────────────────────
+    let hora =
+      findExact('hora programada', 'hora salida', 'hora llegada', 'hora prog', 'hora') ||
+      findIncludes('hora programada', 'programada', 'hora salida', 'hora llegada', 'scheduled', 'hora') ||
+      findIncludes('time');
+
+    // ── Hora estimada ────────────────────────────────────────────────
+    let horaEst =
+      findIncludes('hora estimada', 'estimada', 'estimated', 'eta', 'hora real');
+
+    // ── Si no hay hora, escanear columnas __EMPTY buscando tiempos ───
+    if (!hora) {
+      const emptyKeys = keys.filter(k => /^__EMPTY/i.test(k));
+      const samples   = rows.slice(0, Math.min(8, rows.length));
+      for (const ek of emptyKeys) {
+        const vals   = samples.map(r => r[ek]).filter(v => v !== '' && v != null);
+        const isTime = vals.some(v => looksLikeTime(v));
+        if (isTime) {
+          if (!hora)    { hora    = ek; }
+          else if (!horaEst) { horaEst = ek; break; }
+        }
+      }
+    }
+
+    // ── Estado y Puerta ──────────────────────────────────────────────
+    const estado = findIncludes('estado', 'status', 'estatus', 'remark', 'observacion');
+    const puerta = findIncludes('puerta', 'gate');
+
+    return { vuelo, aerolinea, iata, ciudad, ciudadDest, hora, horaEst, estado, puerta };
+  }
+
+  function looksLikeTime(val) {
+    if (typeof val === 'number') return val > 0 && val < 1;  // decimal de Excel
+    if (typeof val === 'string') return /^\d{1,2}:\d{2}(:\d{2})?(\s*(am|pm))?$/i.test(val.trim());
+    return false;
   }
 
   function parseExcelTime(val) {
-    if (!val && val !== 0) return null;
-    // Número decimal de Excel: 0.5 = 12:00
+    if (val === '' || val === null || val === undefined) return null;
     if (typeof val === 'number') {
+      if (val <= 0 || val >= 1) return null;
       const totalMin = Math.round(val * 24 * 60);
-      const h  = Math.floor(totalMin / 60) % 24;
-      const m  = totalMin % 60;
+      const h = Math.floor(totalMin / 60) % 24;
+      const m = totalMin % 60;
       return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
     }
-    // String "HH:MM" o "H:MM AM/PM"
     const s = String(val).trim();
-    const m1 = s.match(/^(\d{1,2}):(\d{2})/);
-    if (m1) return `${m1[1].padStart(2,'0')}:${m1[2]}`;
+    const m12 = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(am|pm)$/i);
+    if (m12) {
+      let h = parseInt(m12[1]);
+      const mm = m12[2], ap = m12[3].toLowerCase();
+      if (ap === 'pm' && h < 12) h += 12;
+      if (ap === 'am' && h === 12) h = 0;
+      return `${String(h).padStart(2,'0')}:${mm}`;
+    }
+    const m24 = s.match(/^(\d{1,2}):(\d{2})/);
+    if (m24) return `${m24[1].padStart(2,'0')}:${m24[2]}`;
     return null;
+  }
+
+  function mapEstado(raw) {
+    const s = (raw||'').toLowerCase().trim();
+    if (!s || s === 'a tiempo' || s === 'on time') return 'A tiempo';
+    if (s.includes('puerta') || s.includes('gate')) return 'En puerta';
+    if (s.includes('abord'))                        return 'Abordando';
+    if (s.includes('embarc'))                       return 'Embarcando';
+    if (s.includes('aterriz'))                      return 'Aterrizó';
+    if (s.includes('despeg'))                       return 'Despegó';
+    if (s.includes('demor') || s.includes('delay')) return 'Demorado';
+    if (s.includes('cancel'))                       return 'Cancelado';
+    if (s.includes('vuelo') || s.includes('flight'))return 'En vuelo';
+    return 'A tiempo';
   }
 
   // ── Reloj en tiempo real ──────────────────────────────────────────
   function startClock() {
     clearInterval(_clockTimer);
-    const el = document.getElementById('fids-clock');
-    if (!el) return;
-    _clockTimer = setInterval(() => {
-      const el2 = document.getElementById('fids-clock');
-      if (el2) el2.textContent = nowTimeStr();
-    }, 1000);
-    el.textContent = nowTimeStr();
+    const update = () => { const el = document.getElementById('fids-clock'); if (el) el.textContent = nowTimeStr(); };
+    update();
+    _clockTimer = setInterval(update, 1000);
   }
 
   // ── Supabase Realtime ─────────────────────────────────────────────
   function startRealtime() {
     const sb = window.supabaseClient;
     if (!sb) return;
-    if (_realtimeCh) { sb.removeChannel(_realtimeCh); }
-    _realtimeCh = sb.channel('fids-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'fids_vuelos' }, () => {
-        loadVuelos();
-      })
+    if (_realtimeCh) { try { sb.removeChannel(_realtimeCh); } catch (_) {} }
+    _realtimeCh = sb.channel('fids-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'fids_vuelos' }, () => { loadVuelos(); })
       .subscribe();
   }
 
-  // ── Exportar init ─────────────────────────────────────────────────
+  // ── Exportar init (singleton) ─────────────────────────────────────
   let _initialized = false;
 
   window.initFids = function () {
