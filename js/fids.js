@@ -41,11 +41,12 @@
       name:     a.name      || nombre || iata || '?',
       logo:     a.logo      ? `images/airlines/${a.logo}` : null,
       logoZoom: a.logoZoom  || null,
+      rawLogo:  a.rawLogo   || false,
     };
     let hash = 0;
     const s = (nombre || iata || '?').toUpperCase();
     for (let i = 0; i < s.length; i++) hash = s.charCodeAt(i) + ((hash << 5) - hash);
-    return { bg: `hsl(${Math.abs(hash)%360},60%,30%)`, text: '#fff', name: nombre||iata||'?', logo: null, logoZoom: null };
+    return { bg: `hsl(${Math.abs(hash)%360},60%,30%)`, text: '#fff', name: nombre||iata||'?', logo: null, logoZoom: null, rawLogo: false };
   }
 
   const ESTADO_CLASES = {
@@ -452,9 +453,11 @@
       const delayed = v.hora_estimada && v.hora_estimada !== v.hora_programada;
       const rowCls  = i % 2 === 0 ? 'fids-row fids-row-even' : 'fids-row fids-row-odd';
 
-      const zoomStyle  = al.logoZoom ? ` style="transform:scale(${al.logoZoom})"` : '';
+      const badgeBg = al.rawLogo ? '#ffffff' : al.bg;
+      const _imgSt = [al.rawLogo ? 'filter:none' : '', al.logoZoom ? `transform:scale(${al.logoZoom})` : ''].filter(Boolean).join(';');
+      const imgStyleAttr = _imgSt ? ` style="${_imgSt}"` : '';
       const logoInner = al.logo
-        ? `<img src="${al.logo}" alt="${al.name}" class="fids-airline-logo"${zoomStyle}
+        ? `<img src="${al.logo}" alt="${al.name}" class="fids-airline-logo"${imgStyleAttr}
                onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block'">
            <span style="display:none">${(v.aerolinea||'').toUpperCase().slice(0,12)}</span>`
         : `<span>${(v.aerolinea||'').toUpperCase().slice(0,12)}</span>`;
@@ -462,7 +465,7 @@
       return `
       <div class="${rowCls}">
         <div class="fids-col-aerolinea">
-          <span class="fids-airline-badge" style="background:${al.bg};color:${al.text};">${logoInner}</span>
+          <span class="fids-airline-badge" style="background:${badgeBg};color:${al.text};">${logoInner}</span>
         </div>
         <div class="fids-col-vuelo">${v.numero_vuelo || '—'}</div>
         <div class="fids-col-ciudad">${v.origen_destino || '—'}</div>
