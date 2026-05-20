@@ -12888,6 +12888,8 @@ body.dark-mode #yoy-insights-list li {
     overflow: hidden;
     box-shadow: 0 12px 48px rgba(0,0,0,.85), inset 0 0 0 1px rgba(255,255,255,.05);
     font-family: 'Segoe UI', 'Arial', sans-serif;
+    max-width: 1140px;
+    margin: 0 auto;
 }
 
 /* ── Header del tablero ── */
@@ -12990,11 +12992,12 @@ body.dark-mode #yoy-insights-list li {
     box-sizing: border-box;
 }
 .fids-airline-logo {
-    height: 28px;          /* MISMA ALTURA para todos los logos */
+    height: 30px;          /* MISMA ALTURA para todos los logos */
     width: auto;
-    max-width: 100px;
+    max-width: 102px;
     object-fit: contain;
     display: block;
+    filter: brightness(0) invert(1); /* Logo blanco — visible en cualquier fondo */
 }
 .fids-airline-text {
     font-size: .72rem;
