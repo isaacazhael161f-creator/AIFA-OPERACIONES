@@ -313,39 +313,44 @@
       if (_tipo === 'llegada') {
         ({ data, error } = await sb
           .from('flights')
-          .select('aerolinea,aeronave,vuelo_llegada,hora_llegada,origen,posicion,banda_reclamo,categoria')
+          .select('aerolinea,vuelo_llegada,hora_llegada,origen,posicion,banda_reclamo,categoria')
           .eq('fecha_llegada', _fecha)
           .order('hora_llegada', { ascending: true }));
       } else {
         ({ data, error } = await sb
           .from('flights')
-          .select('aerolinea,aeronave,vuelo_salida,hora_salida,destino,posicion,categoria')
+          .select('aerolinea,vuelo_salida,hora_salida,destino,posicion,categoria')
           .eq('fecha_salida', _fecha)
           .order('hora_salida', { ascending: true }));
       }
       if (error) throw error;
 
-      // Mapear campos de flights → formato interno FIDS
-      _vuelos = (data || []).map(f => {
-        const flightNum = _tipo === 'llegada' ? (f.vuelo_llegada || '') : (f.vuelo_salida || '');
-        const hora      = _tipo === 'llegada' ? (f.hora_llegada  || '') : (f.hora_salida  || '');
-        const ciudad    = _tipo === 'llegada' ? (f.origen        || '') : (f.destino      || '');
-        const iata      = (f.aerolinea || '').toUpperCase().trim();
-        const alData    = findAirline(iata, '');
-        return {
-          id:              flightNum + '_' + hora,
-          numero_vuelo:    flightNum,
-          aerolinea:       alData ? alData.name : iata,
-          codigo_iata:     iata,
-          origen_destino:  ciudad,
-          hora_programada: hora,
-          hora_estimada:   null,
-          puerta:          f.posicion     || '',
-          banda:           f.banda_reclamo|| '',
-          estado:          'A tiempo',
-          notas:           f.aeronave     || '',
-        };
-      });
+      if (data && data.length > 0) {
+        // Mapear campos de flights → formato interno FIDS
+        _vuelos = data.map(f => {
+          const flightNum = _tipo === 'llegada' ? (f.vuelo_llegada || '') : (f.vuelo_salida || '');
+          const hora      = _tipo === 'llegada' ? (f.hora_llegada  || '') : (f.hora_salida  || '');
+          const ciudad    = _tipo === 'llegada' ? (f.origen        || '') : (f.destino      || '');
+          const iata      = (f.aerolinea || '').toUpperCase().trim();
+          const alData    = findAirline(iata, '');
+          return {
+            id:              flightNum + '_' + hora,
+            numero_vuelo:    flightNum,
+            aerolinea:       alData ? alData.name : iata,
+            codigo_iata:     iata,
+            origen_destino:  ciudad,
+            hora_programada: hora,
+            hora_estimada:   null,
+            puerta:          f.posicion      || '',
+            banda:           f.banda_reclamo || '',
+            estado:          'A tiempo',
+            notas:           '',
+          };
+        });
+      } else {
+        // Sin datos reales → cargar vuelos de demostración
+        _vuelos = _buildDemoFlights();
+      }
 
       renderDisplayRows();
       renderAdminTable();
@@ -353,6 +358,55 @@
       console.error('[FIDS]', e);
       setDisplayLoading(false, `<div class="fids-error"><i class="fas fa-exclamation-circle me-2"></i>Error al cargar vuelos: ${e.message}</div>`);
     }
+  }
+
+  // ── Datos de demostración (sin vuelos reales en la fecha) ────────
+  function _buildDemoFlights() {
+    const llegadas = [
+      { iata:'VB', vuelo:'VB 7417', ciudad:'Guadalajara',      hora:'06:00', puerta:'A03', banda:'1', estado:'Aterrizó'  },
+      { iata:'Y4', vuelo:'Y4 3296', ciudad:'Tijuana',          hora:'06:35', puerta:'A05', banda:'2', estado:'Aterrizó'  },
+      { iata:'AM', vuelo:'AM 0234', ciudad:'Cancún',           hora:'07:15', puerta:'C02', banda:'3', estado:'A tiempo'  },
+      { iata:'VB', vuelo:'VB 9497', ciudad:'Los Cabos',        hora:'07:50', puerta:'B01', banda:'1', estado:'En puerta' },
+      { iata:'AM', vuelo:'AM 0456', ciudad:'Monterrey',        hora:'08:20', puerta:'C04', banda:'4', estado:'En puerta' },
+      { iata:'XN', vuelo:'XN 1765', ciudad:'Mérida',           hora:'08:55', puerta:'A07', banda:'2', estado:'A tiempo'  },
+      { iata:'Y4', vuelo:'Y4 7171', ciudad:'La Paz',           hora:'09:30', puerta:'B03', banda:'2', estado:'Demorado'  },
+      { iata:'AM', vuelo:'AM 0678', ciudad:'Puerto Vallarta',  hora:'10:00', puerta:'C06', banda:'5', estado:'A tiempo'  },
+      { iata:'VB', vuelo:'VB 9313', ciudad:'Zihuatanejo',      hora:'10:35', puerta:'A09', banda:'1', estado:'A tiempo'  },
+      { iata:'6R', vuelo:'6R 7085', ciudad:'Los Ángeles',      hora:'11:10', puerta:'607', banda:'—', estado:'En vuelo'  },
+      { iata:'EK', vuelo:'EK 9915', ciudad:'Dubái',            hora:'11:45', puerta:'605', banda:'—', estado:'En vuelo'  },
+      { iata:'CX', vuelo:'CX 0086', ciudad:'Anchorage',        hora:'12:20', puerta:'609', banda:'—', estado:'A tiempo'  },
+    ];
+    const salidas = [
+      { iata:'VB', vuelo:'VB 7418', ciudad:'Guadalajara',      hora:'06:30', puerta:'A03', banda:'—', estado:'Despegó'   },
+      { iata:'Y4', vuelo:'Y4 3297', ciudad:'Tijuana',          hora:'07:05', puerta:'A05', banda:'—', estado:'Despegó'   },
+      { iata:'AM', vuelo:'AM 0235', ciudad:'Cancún',           hora:'07:50', puerta:'C02', banda:'—', estado:'A tiempo'  },
+      { iata:'VB', vuelo:'VB 9520', ciudad:'Los Cabos',        hora:'08:25', puerta:'B01', banda:'—', estado:'Abordando' },
+      { iata:'AM', vuelo:'AM 0457', ciudad:'Monterrey',        hora:'09:00', puerta:'C04', banda:'—', estado:'En puerta' },
+      { iata:'XN', vuelo:'XN 1204', ciudad:'Tijuana',          hora:'09:35', puerta:'A07', banda:'—', estado:'A tiempo'  },
+      { iata:'Y4', vuelo:'Y4 3960', ciudad:'Bogotá',           hora:'10:10', puerta:'B03', banda:'—', estado:'Demorado'  },
+      { iata:'AM', vuelo:'AM 0679', ciudad:'Puerto Vallarta',  hora:'10:45', puerta:'C06', banda:'—', estado:'A tiempo'  },
+      { iata:'VB', vuelo:'VB 9462', ciudad:'Chetumal',         hora:'11:20', puerta:'A09', banda:'—', estado:'A tiempo'  },
+      { iata:'6R', vuelo:'6R 7084', ciudad:'Los Ángeles',      hora:'12:00', puerta:'608', banda:'—', estado:'A tiempo'  },
+      { iata:'EK', vuelo:'EK 9916', ciudad:'Dubái',            hora:'12:30', puerta:'605', banda:'—', estado:'A tiempo'  },
+      { iata:'M7', vuelo:'M7 6810', ciudad:'Los Ángeles',      hora:'13:00', puerta:'115', banda:'—', estado:'En vuelo'  },
+    ];
+    const list = _tipo === 'llegada' ? llegadas : salidas;
+    return list.map((d, i) => {
+      const al = findAirline(d.iata, '');
+      return {
+        id:              'demo_' + i,
+        numero_vuelo:    d.vuelo,
+        aerolinea:       al ? al.name : d.iata,
+        codigo_iata:     d.iata,
+        origen_destino:  d.ciudad,
+        hora_programada: d.hora,
+        hora_estimada:   d.estado === 'Demorado' ? (d.hora.slice(0,3) + String(parseInt(d.hora.slice(3,5)) + 20).padStart(2,'0')) : null,
+        puerta:          d.puerta,
+        banda:           d.banda,
+        estado:          d.estado,
+        notas:           'DEMO',
+      };
+    });
   }
 
   function setDisplayLoading(on, html) {
@@ -379,7 +433,16 @@
       return;
     }
 
-    rows.innerHTML = _vuelos.map((v, i) => {
+    const isDemo = _vuelos.length && _vuelos[0].id.startsWith('demo_');
+    if (isDemo) {
+      rows.insertAdjacentHTML = rows.insertAdjacentHTML; // no-op placeholder
+    }
+
+    rows.innerHTML = (isDemo
+      ? `<div style="background:#1e3a5f;color:#7ec8e3;font-size:.7rem;padding:.3rem 1rem;letter-spacing:.08em;border-bottom:1px solid #2d5a8e;">
+           <i class="fas fa-eye me-1"></i> MODO VISTA PREVIA — datos de ejemplo (sin vuelos en el itinerario para esta fecha)
+         </div>`
+      : '') + _vuelos.map((v, i) => {
       const al      = getAirlineStyle(v.codigo_iata, v.aerolinea);
       const est     = v.estado || 'A tiempo';
       const cls     = ESTADO_CLASES[est] || 'fids-estado-ok';
