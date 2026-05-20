@@ -2,15 +2,45 @@
 // AIFA OPERACIONES - Edge Function: send-feedback
 // Recibe sugerencias / comentarios / solicitudes de ayuda y las
 // reenvía al correo del administrador vía Resend API.
+// Imágenes se suben a Supabase Storage → URL pública en el email
 // ================================================================
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
+const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')   || 'https://fgstncvuuhpgyzmjceyr.supabase.co';
+const SVC_KEY        = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const DEST_EMAIL     = 'operaciones@aifanlu.com.mx';
 const FROM_EMAIL     = 'noreply@aifanlu.com.mx';
 const FROM_NAME      = 'AIFA Operaciones · Feedback';
+const FB_BUCKET      = 'feedback-images';
 
 const STORAGE = 'https://fgstncvuuhpgyzmjceyr.supabase.co/storage/v1/object/public/email-assets';
 const IMG_LOGO = STORAGE + '/aifa-logo.png';
+
+// Sube un data URL base64 a Supabase Storage y devuelve la URL pública
+async function uploadImage(dataUrl: string, filename: string): Promise<string | null> {
+  try {
+    const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) return null;
+    const mimeType = match[1];
+    const b64      = match[2];
+    const bytes    = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const ts       = Date.now();
+    const safeName = filename.replace(/[^\w.\-]/g, '_');
+    const path     = `${ts}_${safeName}`;
+    const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${FB_BUCKET}/${path}`;
+    const res = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization':  `Bearer ${SVC_KEY}`,
+        'Content-Type':   mimeType,
+        'x-upsert':       'true',
+      },
+      body: bytes,
+    });
+    if (!res.ok) { const t = await res.text(); console.error('upload error', res.status, t); return null; }
+    return `${SUPABASE_URL}/storage/v1/object/public/${FB_BUCKET}/${path}`;
+  } catch (e) { console.error('uploadImage', e); return null; }
+}
 
 const TIPO_LABELS: Record<string, { emoji: string; label: string; color: string }> = {
   idea:     { emoji: '💡', label: 'Idea de mejora',       color: '#f59e0b' },
@@ -36,11 +66,11 @@ function buildEmailHtml(params: {
   area: string;
   mensaje: string;
   fechaLocal: string;
-  imagenes?: { dataUrl?: string; filename?: string }[];
+  imageUrls?: string[];  // URLs públicas ya subidas a Storage
 }): string {
   const meta = TIPO_LABELS[params.tipo] || TIPO_LABELS['otro'];
   const now  = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });
-  const imgs = (params.imagenes || []).filter(i => i?.dataUrl);
+  const imgs = params.imageUrls || [];
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -129,13 +159,29 @@ function buildEmailHtml(params: {
               </tr>
             </table>
 
+            <!-- IMÁGENES ADJUNTAS (inline, URLs públicas) -->
+            ${imgs.length ? `
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+              <tr>
+                <td>
+                  <p style="margin:0 0 10px;color:#475569;font-size:11px;letter-spacing:1.5px;
+                            text-transform:uppercase;font-weight:700;font-family:Arial,sans-serif;">
+                    📎 Imagen${imgs.length > 1 ? 'es adjuntas' : ' adjunta'} (${imgs.length})
+                  </p>
+                  ${imgs.map((url, i) => `
+                  <div style="margin-bottom:10px;">
+                    <img src="${url}" alt="Imagen adjunta ${i + 1}"
+                         style="max-width:100%;border-radius:10px;border:1.5px solid #e2e8f0;
+                                display:block;" width="520">
+                  </div>`).join('')}
+                </td>
+              </tr>
+            </table>` : ''}
+
             <!-- METADATOS (fecha) -->
             <table width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
                 <td>
-                  ${imgs.length ? `<p style="margin:0 0 8px;color:#475569;font-size:12px;font-family:Arial,sans-serif;">
-                    📎 ${imgs.length} imagen${imgs.length > 1 ? 'es adjuntas' : ' adjunta'} — ver archivos adjuntos del correo
-                  </p>` : ''}
                   <p style="margin:0;color:#94a3b8;font-size:11px;font-family:Arial,sans-serif;">
                     📅&nbsp; Recibido el ${now} (hora CDMX)
                     ${params.fechaLocal ? `&nbsp;·&nbsp; Enviado: ${escapeHtml(params.fechaLocal)}` : ''}
@@ -229,21 +275,20 @@ Deno.serve(async (req: Request) => {
 
   const meta     = TIPO_LABELS[tipo] || TIPO_LABELS['otro'];
   const subject  = `${meta.emoji} [AIFA Feedback] ${meta.label}${nombre ? ' — ' + nombre : ''}`;
-  const htmlBody = buildEmailHtml({ tipo, nombre, area, mensaje, fechaLocal, imagenes: Array.isArray(imagenes) ? imagenes : [] });
 
-  // Convertir imágenes base64 data URLs en adjuntos para Resend
-  const attachments: { filename: string; content: string }[] = [];
+  // Subir imágenes a Storage y obtener URLs públicas
+  const imageUrls: string[] = [];
   if (Array.isArray(imagenes)) {
-    imagenes.slice(0, 3).forEach((img: { dataUrl?: string; filename?: string }, i: number) => {
+    await Promise.all(imagenes.slice(0, 3).map(async (img: { dataUrl?: string; filename?: string }, i: number) => {
       if (!img?.dataUrl) return;
-      const match = img.dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-      if (!match) return;
-      const ext      = match[1].split('/')[1] || 'png';
-      const b64data  = match[2];
-      const fname    = (img.filename || `imagen_${i + 1}.${ext}`).replace(/[^\w.\-]/g, '_');
-      attachments.push({ filename: fname, content: b64data });
-    });
+      const ext      = (img.dataUrl.match(/^data:image\/([^;]+)/)?.[1] || 'png');
+      const filename = img.filename || `imagen_${i + 1}.${ext}`;
+      const url      = await uploadImage(img.dataUrl, filename);
+      if (url) imageUrls[i] = url;
+    }));
   }
+
+  const htmlBody = buildEmailHtml({ tipo, nombre, area, mensaje, fechaLocal, imageUrls: imageUrls.filter(Boolean) });
 
   const resendPayload: Record<string, unknown> = {
     from:  `${FROM_NAME} <${FROM_EMAIL}>`,
@@ -251,7 +296,6 @@ Deno.serve(async (req: Request) => {
     subject,
     html:  htmlBody,
   };
-  if (attachments.length) resendPayload.attachments = attachments;
 
   try {
     const res = await fetch('https://api.resend.com/emails', {
