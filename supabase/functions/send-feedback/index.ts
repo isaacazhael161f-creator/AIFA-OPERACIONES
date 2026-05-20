@@ -2,13 +2,35 @@
 // AIFA OPERACIONES - Edge Function: send-feedback
 // Recibe sugerencias / comentarios / solicitudes de ayuda y las
 // reenvía al correo del administrador vía Resend API.
-// Las imágenes se suben desde el frontend; aquí solo se reciben URLs públicas.
+// Las imágenes se reciben como base64 y se suben al Storage con el JWT de servicio.
 // ================================================================
 
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
-const DEST_EMAIL     = 'operaciones@aifanlu.com.mx';
-const FROM_EMAIL     = 'noreply@aifanlu.com.mx';
-const FROM_NAME      = 'AIFA Operaciones · Feedback';
+const RESEND_API_KEY  = Deno.env.get('RESEND_API_KEY') || '';
+const STORAGE_SVC_JWT = Deno.env.get('STORAGE_SVC_JWT') || '';
+const SUPABASE_BASE   = 'https://fgstncvuuhpgyzmjceyr.supabase.co';
+const FB_BUCKET       = 'feedback-images';
+const DEST_EMAIL      = 'operaciones@aifanlu.com.mx';
+const FROM_EMAIL      = 'noreply@aifanlu.com.mx';
+const FROM_NAME       = 'AIFA Operaciones · Feedback';
+
+// Sube una imagen al Storage y devuelve su URL pública
+async function uploadImage(dataUrl: string, filename: string, idx: number): Promise<string | null> {
+  try {
+    const m = dataUrl.match(/^data:([^;]+);base64,([\s\S]+)$/);
+    if (!m) return null;
+    const mime  = m[1];
+    const bytes = Uint8Array.from(atob(m[2].trim()), c => c.charCodeAt(0));
+    const safe  = filename.replace(/[^\w.\-]/g, '_');
+    const path  = `${Date.now()}_${idx}_${safe}`;
+    const res   = await fetch(`${SUPABASE_BASE}/storage/v1/object/${FB_BUCKET}/${path}`, {
+      method:  'POST',
+      headers: { 'Authorization': `Bearer ${STORAGE_SVC_JWT}`, 'Content-Type': mime, 'x-upsert': 'true' },
+      body:    bytes,
+    });
+    if (!res.ok) { console.error('[img-upload]', res.status, await res.text()); return null; }
+    return `${SUPABASE_BASE}/storage/v1/object/public/${FB_BUCKET}/${path}`;
+  } catch (e) { console.error('[img-upload]', e); return null; }
+}
 
 const STORAGE = 'https://fgstncvuuhpgyzmjceyr.supabase.co/storage/v1/object/public/email-assets';
 const IMG_LOGO = STORAGE + '/aifa-logo.png';
@@ -228,9 +250,10 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const { tipo = 'otro', nombre = '', area = '', mensaje = '', fechaLocal = '', imageUrls = [] } = body;
+  const { tipo = 'otro', nombre = '', area = '', mensaje = '', fechaLocal = '',
+          imagenes = [], imageUrls: incomingUrls = [] } = body as Record<string, unknown>;
 
-  if (!mensaje.trim()) {
+  if (!String(mensaje).trim()) {
     return new Response(JSON.stringify({ error: 'El mensaje no puede estar vacío' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
@@ -244,9 +267,25 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const meta     = TIPO_LABELS[tipo] || TIPO_LABELS['otro'];
-  const subject  = `${meta.emoji} [AIFA Feedback] ${meta.label}${nombre ? ' — ' + nombre : ''}`;
-  const htmlBody = buildEmailHtml({ tipo, nombre, area, mensaje, fechaLocal, imageUrls: Array.isArray(imageUrls) ? imageUrls : [] });
+  const meta    = TIPO_LABELS[String(tipo)] || TIPO_LABELS['otro'];
+  const subject = `${meta.emoji} [AIFA Feedback] ${meta.label}${nombre ? ' — ' + nombre : ''}`;
+
+  // Procesar imágenes: subir base64 a Storage y obtener URLs públicas
+  const imageUrls: string[] = Array.isArray(incomingUrls) ? [...incomingUrls as string[]] : [];
+  const imgs: Array<{dataUrl?: string; filename?: string}> = Array.isArray(imagenes) ? imagenes as Array<{dataUrl?: string; filename?: string}> : [];
+  if (imgs.length && STORAGE_SVC_JWT) {
+    const uploads = await Promise.all(
+      imgs.slice(0, 3).map((img, i) =>
+        img?.dataUrl ? uploadImage(img.dataUrl, img.filename || `imagen_${i+1}.png`, i) : Promise.resolve(null)
+      )
+    );
+    uploads.forEach(u => { if (u) imageUrls.push(u); });
+  }
+
+  const htmlBody = buildEmailHtml({
+    tipo: String(tipo), nombre: String(nombre), area: String(area),
+    mensaje: String(mensaje), fechaLocal: String(fechaLocal), imageUrls
+  });
 
   const resendPayload: Record<string, unknown> = {
     from:  `${FROM_NAME} <${FROM_EMAIL}>`,
