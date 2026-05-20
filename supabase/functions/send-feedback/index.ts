@@ -2,45 +2,16 @@
 // AIFA OPERACIONES - Edge Function: send-feedback
 // Recibe sugerencias / comentarios / solicitudes de ayuda y las
 // reenvía al correo del administrador vía Resend API.
-// Imágenes se suben a Supabase Storage → URL pública en el email
+// Las imágenes se suben desde el frontend; aquí solo se reciben URLs públicas.
 // ================================================================
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
-const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')   || 'https://fgstncvuuhpgyzmjceyr.supabase.co';
-const SVC_KEY        = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const DEST_EMAIL     = 'operaciones@aifanlu.com.mx';
 const FROM_EMAIL     = 'noreply@aifanlu.com.mx';
 const FROM_NAME      = 'AIFA Operaciones · Feedback';
-const FB_BUCKET      = 'feedback-images';
 
 const STORAGE = 'https://fgstncvuuhpgyzmjceyr.supabase.co/storage/v1/object/public/email-assets';
 const IMG_LOGO = STORAGE + '/aifa-logo.png';
-
-// Sube un data URL base64 a Supabase Storage y devuelve la URL pública
-async function uploadImage(dataUrl: string, filename: string): Promise<string | null> {
-  try {
-    const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-    if (!match) return null;
-    const mimeType = match[1];
-    const b64      = match[2];
-    const bytes    = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-    const ts       = Date.now();
-    const safeName = filename.replace(/[^\w.\-]/g, '_');
-    const path     = `${ts}_${safeName}`;
-    const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${FB_BUCKET}/${path}`;
-    const res = await fetch(uploadUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization':  `Bearer ${SVC_KEY}`,
-        'Content-Type':   mimeType,
-        'x-upsert':       'true',
-      },
-      body: bytes,
-    });
-    if (!res.ok) { const t = await res.text(); console.error('upload error', res.status, t); return null; }
-    return `${SUPABASE_URL}/storage/v1/object/public/${FB_BUCKET}/${path}`;
-  } catch (e) { console.error('uploadImage', e); return null; }
-}
 
 const TIPO_LABELS: Record<string, { emoji: string; label: string; color: string }> = {
   idea:     { emoji: '💡', label: 'Idea de mejora',       color: '#f59e0b' },
@@ -257,7 +228,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const { tipo = 'otro', nombre = '', area = '', mensaje = '', fechaLocal = '', imagenes = [] } = body;
+  const { tipo = 'otro', nombre = '', area = '', mensaje = '', fechaLocal = '', imageUrls = [] } = body;
 
   if (!mensaje.trim()) {
     return new Response(JSON.stringify({ error: 'El mensaje no puede estar vacío' }), {
@@ -275,20 +246,7 @@ Deno.serve(async (req: Request) => {
 
   const meta     = TIPO_LABELS[tipo] || TIPO_LABELS['otro'];
   const subject  = `${meta.emoji} [AIFA Feedback] ${meta.label}${nombre ? ' — ' + nombre : ''}`;
-
-  // Subir imágenes a Storage y obtener URLs públicas
-  const imageUrls: string[] = [];
-  if (Array.isArray(imagenes)) {
-    await Promise.all(imagenes.slice(0, 3).map(async (img: { dataUrl?: string; filename?: string }, i: number) => {
-      if (!img?.dataUrl) return;
-      const ext      = (img.dataUrl.match(/^data:image\/([^;]+)/)?.[1] || 'png');
-      const filename = img.filename || `imagen_${i + 1}.${ext}`;
-      const url      = await uploadImage(img.dataUrl, filename);
-      if (url) imageUrls[i] = url;
-    }));
-  }
-
-  const htmlBody = buildEmailHtml({ tipo, nombre, area, mensaje, fechaLocal, imageUrls: imageUrls.filter(Boolean) });
+  const htmlBody = buildEmailHtml({ tipo, nombre, area, mensaje, fechaLocal, imageUrls: Array.isArray(imageUrls) ? imageUrls : [] });
 
   const resendPayload: Record<string, unknown> = {
     from:  `${FROM_NAME} <${FROM_EMAIL}>`,
