@@ -173,15 +173,16 @@
     function airlineStyle(iata, nombre) {
       const a = findAirline(iata, nombre);
       if (a) return {
-        bg:   a.color     || '#1e3a8a',
-        text: a.textColor || '#ffffff',
-        name: a.name      || nombre || iata || '?',
-        logo: a.logo      ? `images/airlines/${a.logo}` : null,
+        bg:       a.color     || '#1e3a8a',
+        text:     a.textColor || '#ffffff',
+        name:     a.name      || nombre || iata || '?',
+        logo:     a.logo      ? `images/airlines/${a.logo}` : null,
+        logoZoom: a.logoZoom  || null,
       };
       let h = 0;
       const s = (nombre || iata || '?').toUpperCase();
       for (let i = 0; i < s.length; i++) h = s.charCodeAt(i) + ((h << 5) - h);
-      return { bg: `hsl(${Math.abs(h)%360},55%,28%)`, text:'#fff', name: nombre||iata||'?', logo: null };
+      return { bg: `hsl(${Math.abs(h)%360},55%,28%)`, text:'#fff', name: nombre||iata||'?', logo: null, logoZoom: null };
     }
 
     // ── Utilidades de fecha / hora ───────────────────────────────────
@@ -296,8 +297,9 @@
         const cls  = ESTADO_CLASES[est] || 'fids-estado-ok';
         const rowC = i % 2 === 0 ? 'fids-row fids-row-even' : 'fids-row fids-row-odd';
 
+        const zoomStyle  = al.logoZoom ? ` style="transform:scale(${al.logoZoom})"` : '';
         const logoInner = al.logo
-          ? `<img src="${al.logo}" alt="${al.name}" class="fids-airline-logo"
+          ? `<img src="${al.logo}" alt="${al.name}" class="fids-airline-logo"${zoomStyle}
                  onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block'">
              <span style="display:none">${(al.name||v.iata||'').toUpperCase().slice(0,12)}</span>`
           : `<span>${(al.name||v.iata||'').toUpperCase().slice(0,12)}</span>`;

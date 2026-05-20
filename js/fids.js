@@ -36,15 +36,16 @@
   function getAirlineStyle(iata, nombre) {
     const a = findAirline(iata, nombre);
     if (a) return {
-      bg:   a.color     || '#1e3a8a',
-      text: a.textColor || '#fff',
-      name: a.name      || nombre || iata || '?',
-      logo: a.logo      ? `images/airlines/${a.logo}` : null,
+      bg:       a.color     || '#1e3a8a',
+      text:     a.textColor || '#fff',
+      name:     a.name      || nombre || iata || '?',
+      logo:     a.logo      ? `images/airlines/${a.logo}` : null,
+      logoZoom: a.logoZoom  || null,
     };
     let hash = 0;
     const s = (nombre || iata || '?').toUpperCase();
     for (let i = 0; i < s.length; i++) hash = s.charCodeAt(i) + ((hash << 5) - hash);
-    return { bg: `hsl(${Math.abs(hash)%360},60%,30%)`, text: '#fff', name: nombre||iata||'?', logo: null };
+    return { bg: `hsl(${Math.abs(hash)%360},60%,30%)`, text: '#fff', name: nombre||iata||'?', logo: null, logoZoom: null };
   }
 
   const ESTADO_CLASES = {
@@ -451,8 +452,9 @@
       const delayed = v.hora_estimada && v.hora_estimada !== v.hora_programada;
       const rowCls  = i % 2 === 0 ? 'fids-row fids-row-even' : 'fids-row fids-row-odd';
 
+      const zoomStyle  = al.logoZoom ? ` style="transform:scale(${al.logoZoom})"` : '';
       const logoInner = al.logo
-        ? `<img src="${al.logo}" alt="${al.name}" class="fids-airline-logo"
+        ? `<img src="${al.logo}" alt="${al.name}" class="fids-airline-logo"${zoomStyle}
                onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block'">
            <span style="display:none">${(v.aerolinea||'').toUpperCase().slice(0,12)}</span>`
         : `<span>${(v.aerolinea||'').toUpperCase().slice(0,12)}</span>`;

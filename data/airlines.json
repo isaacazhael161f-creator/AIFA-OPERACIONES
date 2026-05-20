@@ -39,6 +39,7 @@
     "icao": "MXA",
     "type": ["nacional", "pasajeros"],
     "logo": "logo_mexicana.png",
+    "logoZoom": 1.5,
     "color": "#008375",
     "textColor": "#ffffff",
     "aliases": ["mexicana", "mexicana de aviación", "mexicana de aviacion"]
@@ -358,6 +359,7 @@
     "icao": "CPA",
     "type": ["internacional", "pasajeros", "carga"],
     "logo": "logo_cathay_pacific.png",
+    "logoZoom": 2.5,
     "color": "#006564",
     "textColor": "#ffffff",
     "aliases": ["cathay pacific", "cathay pacific cargo", "cathay"]
@@ -479,6 +481,7 @@
     "icao": "ESF",
     "type": ["nacional", "carga"],
     "logo": "logo_estafeta.jpg",
+    "logoZoom": 1.7,
     "color": "#c41230",
     "textColor": "#ffffff",
     "aliases": ["estafeta"]
@@ -519,13 +522,14 @@
   {
     "id": "aerounion",
     "name": "Aerounión",
-    "iata": "R6",
+    "iata": "6R",
     "icao": "AEU",
     "type": ["nacional", "carga"],
     "logo": "logo_aerounión.png",
+    "logoZoom": 1.3,
     "color": "#00529b",
     "textColor": "#ffffff",
-    "aliases": ["aerounión", "aerounion", "aero union", "aero-union"]
+    "aliases": ["aerounión", "aerounion", "aero union", "aero-union", "r6"]
   },
   {
     "id": "atlas-air",
