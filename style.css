@@ -12978,17 +12978,30 @@ body.dark-mode #yoy-insights-list li {
 
 /* Celda aerolínea */
 .fids-airline-badge {
-    display: inline-block;
-    padding: .22rem .55rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: .15rem .4rem;
     border-radius: 5px;
     font-size: .72rem;
     font-weight: 700;
     letter-spacing: .04em;
-    max-width: 160px;
+    max-width: 170px;
+    min-height: 28px;
+    overflow: hidden;
+    text-transform: uppercase;
+}
+.fids-airline-logo {
+    max-height: 24px;
+    max-width: 120px;
+    object-fit: contain;
+    filter: brightness(1.15);
+}
+.fids-airline-text {
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
-    text-transform: uppercase;
+    max-width: 140px;
 }
 
 /* Celdas comunes */
