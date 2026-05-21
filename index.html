@@ -4673,7 +4673,7 @@ FF
                             align-items: center;
                             gap: .65rem;
                             padding: .6rem 1rem;
-                            background: linear-gradient(90deg,#7f1d1d 0%,#991b1b 100%);
+                            background: linear-gradient(90deg,#1e1b4b 0%,#3730a3 100%);
                             border-radius: 10px;
                             margin-bottom: .75rem;
                             color: #fff;
@@ -4700,8 +4700,8 @@ FF
                         }
                         .colab-grupo-item-amonest {
                             margin-left: auto;
-                            background: #fee2e2;
-                            color: #991b1b;
+                            background: #e0e7ff;
+                            color: #3730a3;
                             font-size: .65rem;
                             font-weight: 700;
                             padding: .1rem .45rem;
@@ -4709,6 +4709,44 @@ FF
                             flex-shrink: 0;
                             white-space: nowrap;
                         }
+                        /* ── Ranking list (reemplaza canvas de amonest) ── */
+                        .am-rank-list { display:flex; flex-direction:column; gap:.22rem; padding:.4rem .25rem .5rem; }
+                        .am-rank-item {
+                            display:grid;
+                            grid-template-columns: 1.6rem 1fr 90px 2.2rem 3rem;
+                            align-items:center;
+                            gap:.3rem .45rem;
+                            padding:.38rem .55rem;
+                            border-radius:7px;
+                            cursor:pointer;
+                            transition:background .14s;
+                        }
+                        .am-rank-item:hover { background:rgba(99,102,241,.09); }
+                        .am-rank-num {
+                            font-size:.68rem; font-weight:800; color:#94a3b8;
+                            text-align:center; line-height:1;
+                        }
+                        .am-rank-label {
+                            font-size:.76rem; font-weight:500; color:#1e293b;
+                            line-height:1.25; word-break:break-word;
+                        }
+                        .am-rank-bar-wrap {
+                            height:8px; background:#e2e8f0;
+                            border-radius:5px; overflow:hidden;
+                        }
+                        .am-rank-bar-fill {
+                            height:100%; border-radius:5px;
+                            transition:width .5s cubic-bezier(.4,0,.2,1);
+                        }
+                        .am-rank-val {
+                            font-size:.76rem; font-weight:800; color:#1e293b;
+                            text-align:right; white-space:nowrap;
+                        }
+                        .am-rank-pct {
+                            font-size:.67rem; color:#64748b;
+                            white-space:nowrap; text-align:right;
+                        }
+                        .am-chart-host { width:100%; padding:.15rem 0; }
 
                         .cd-bday-panel {
                             background: linear-gradient(135deg,#0d1a3a 0%,#0d2152 60%,#1a3a70 100%);
@@ -6074,23 +6112,23 @@ FF
                                     <!-- Fila de gráficas: Comportamiento Disciplinario -->
                                     <div class="cd-amonest-section" id="cd-amonest-section" style="display:none">
                                         <div class="cd-amonest-hdr">
-                                            <i class="fas fa-exclamation-triangle"></i>
+                                            <i class="fas fa-shield-alt"></i>
                                             Comportamiento Disciplinario
                                             <span class="cd-amonest-badge" id="cd-amonest-total-badge"></span>
-                                            <span class="cd-amonest-sub">Amonestaciones acumuladas por área · clic en barra para ver colaboradores</span>
+                                            <span class="cd-amonest-sub">Amonestaciones acumuladas por área · clic para ver colaboradores</span>
                                         </div>
                                         <div class="cd-charts-row">
                                             <div class="cd-chart-card">
                                                 <div class="cd-chart-title"><i class="fas fa-sitemap me-1"></i> Amonest. por Subdirección</div>
-                                                <div class="cd-chart-body"><canvas id="cd-chart-amonest-subdir" height="340"></canvas></div>
+                                                <div class="cd-chart-body" style="min-height:0;align-items:flex-start"><div id="cd-chart-amonest-subdir" class="am-chart-host"></div></div>
                                             </div>
                                             <div class="cd-chart-card">
                                                 <div class="cd-chart-title"><i class="fas fa-user-tie me-1"></i> Amonest. por Gerencia</div>
-                                                <div class="cd-chart-body"><canvas id="cd-chart-amonest-ger" height="340"></canvas></div>
+                                                <div class="cd-chart-body" style="min-height:0;align-items:flex-start"><div id="cd-chart-amonest-ger" class="am-chart-host"></div></div>
                                             </div>
                                             <div class="cd-chart-card">
                                                 <div class="cd-chart-title"><i class="fas fa-network-wired me-1"></i> Amonest. por Coordinación</div>
-                                                <div class="cd-chart-body"><canvas id="cd-chart-amonest-coord" height="340"></canvas></div>
+                                                <div class="cd-chart-body" style="min-height:0;align-items:flex-start"><div id="cd-chart-amonest-coord" class="am-chart-host"></div></div>
                                             </div>
                                         </div>
                                     </div>
@@ -8244,41 +8282,50 @@ FF
                                 if (badge) badge.textContent = total + ' amonest. totales';
                                 if (!total) return;
 
-                                var RED_PALETTE = ['#b91c1c','#c62828','#d32f2f','#e53935','#ef5350','#f44336','#e57373','#ef9a9a','#b71c1c','#7f1d1d'];
+                                var AM_PALETTE = [
+                                    '#3730a3','#4338ca','#4f46e5','#6366f1','#7c3aed',
+                                    '#8b5cf6','#2563eb','#3b82f6','#0891b2','#0f766e',
+                                    '#059669','#16a34a'
+                                ];
 
-                                function makeAmChart(canvasId, colKey, data) {
+                                function escHtml(s) {
+                                    return String(s)
+                                        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                                        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                                }
+
+                                function makeAmChart(hostId, colKey, data) {
                                     if (!data.length) return;
-                                    var top = data.slice(0, 10);
-                                    destroyChart(canvasId);
-                                    var opts = barOpts(top, '#334155');
-                                    opts.scales.y.ticks.callback = function(val) {
-                                        return wrapLabel(String(this.getLabelForValue(val) || ''), 32);
-                                    };
-                                    opts.scales.y.ticks.font = { size: 9.5 };
-                                    opts.scales.y.ticks.color = '#334155';
-                                    opts.scales.y.afterFit = function(scale) { scale.width = Math.max(scale.width, 230); };
-                                    opts.plugins.tooltip = { callbacks: {
-                                        title: function(ctx) { return top[ctx[0].dataIndex]?.[0] || ctx[0].label; },
-                                        label: function(ctx) { var v=ctx.parsed.x; return ' '+v+' amonestaci'+(v===1?'ón':'ones'); }
-                                    }};
-                                    opts.onClick = function(e, els) {
-                                        if (!els.length) return;
-                                        colabAbrirGrupoModal(colKey, top[els[0].index][0], {
-                                            filter: function(r){ return countAmonest(r) > 0; },
-                                            subtitulo: 'con amonestaciones',
-                                            showAmonest: true
+                                    var top   = data.slice(0, 12);
+                                    var total = top.reduce(function(s,d){ return s+d[1]; }, 0);
+                                    var maxV  = top[0][1];
+                                    var host  = document.getElementById(hostId);
+                                    if (!host) return;
+
+                                    var rows = '';
+                                    top.forEach(function(d, i) {
+                                        var barW = maxV ? Math.round(d[1] / maxV * 100) : 0;
+                                        var pct  = total ? Math.round(d[1] / total * 100) : 0;
+                                        var col  = AM_PALETTE[i % AM_PALETTE.length];
+                                        rows += '<div class="am-rank-item" data-grp="' + escHtml(d[0]) + '">' +
+                                            '<span class="am-rank-num">' + (i+1) + '</span>' +
+                                            '<div class="am-rank-label">' + escHtml(d[0]) + '</div>' +
+                                            '<div class="am-rank-bar-wrap"><div class="am-rank-bar-fill" style="width:' + barW + '%;background:' + col + '"></div></div>' +
+                                            '<span class="am-rank-val">' + d[1] + '</span>' +
+                                            '<span class="am-rank-pct">(' + pct + '%)</span>' +
+                                            '</div>';
+                                    });
+                                    host.innerHTML = '<div class="am-rank-list">' + rows + '</div>';
+
+                                    host.querySelectorAll('.am-rank-item').forEach(function(item) {
+                                        item.addEventListener('click', function() {
+                                            var grp = item.getAttribute('data-grp');
+                                            if (grp) colabAbrirGrupoModal(colKey, grp, {
+                                                filter: function(r){ return countAmonest(r) > 0; },
+                                                subtitulo: 'con amonestaciones',
+                                                showAmonest: true
+                                            });
                                         });
-                                    };
-                                    opts.onHover = function(e, els) { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; };
-                                    new Chart(document.getElementById(canvasId), {
-                                        type: 'bar',
-                                        data: {
-                                            labels: top.map(function(d){ return d[0]; }),
-                                            datasets: [{ label: 'Amonestaciones', data: top.map(function(d){ return d[1]; }),
-                                                backgroundColor: RED_PALETTE.slice(0, top.length),
-                                                borderRadius: 6, barThickness: 18, borderSkipped: false }]
-                                        },
-                                        options: opts
                                     });
                                 }
 
