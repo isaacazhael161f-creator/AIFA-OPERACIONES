@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -360,60 +360,46 @@
     //   donde 1080/1402 ≈ 0.770 m/px  y  WSPEED = 75 m/min
     const GATE_GROUPS = [
       {
-        mins:    '1 – 2 min',
-        gates:   '120 · 121 · 122',
-        type:    'bus',
-        sublbl:  'Autobús · Sala Nacional',
-        qrGate:  '121',
-      },
-      {
-        mins:    '2 – 3 min',
-        gates:   '123 – 128',
-        type:    'bus',
-        sublbl:  'Autobús · Sala Nacional',
-        qrGate:  '126',
-      },
-      {
-        mins:    '3 – 4 min',
-        gates:   '129 – 134',
-        type:    'bus',
-        sublbl:  'Autobús · Sala Nacional',
-        qrGate:  '131',
-      },
-      {
-        mins:    '4 – 6 min',
-        gates:   '106 – 108',
+        mins:    '4 \u2013 5 min',
+        gates:   '106 \u2013 108',
         type:    'jetbridge',
-        sublbl:  'Manga · Embarque directo',
+        sublbl:  'Manga \u00B7 Embarque directo',
         qrGate:  '107A',
       },
       {
-        mins:    '6 – 8 min',
-        gates:   '109 – 112',
+        mins:    '5 \u2013 7 min',
+        gates:   '109 \u2013 112',
         type:    'jetbridge',
-        sublbl:  'Manga · Embarque directo',
+        sublbl:  'Manga \u00B7 Embarque directo',
         qrGate:  '110A',
       },
       {
-        mins:    '8 – 10 min',
-        gates:   '113 – 116',
+        mins:    '7 \u2013 9 min',
+        gates:   '113 \u2013 116',
         type:    'jetbridge',
-        sublbl:  'Manga · Embarque directo',
+        sublbl:  'Manga \u00B7 Embarque directo',
         qrGate:  '114A',
       },
       {
-        mins:    '10 – 12 min',
-        gates:   '117 – 119',
-        type:    'jetbridge',
-        sublbl:  'Manga · Internacional',
-        qrGate:  '118A',
+        mins:    '10 \u2013 12 min',
+        gates:   '501 \u2013 503',
+        type:    'apron',
+        sublbl:  'Plataforma remota \u00B7 Autobus',
+        qrGate:  '502',
       },
       {
-        mins:    '12 – 14 min',
-        gates:   '101 – 105',
+        mins:    '12 \u2013 14 min',
+        gates:   '504 \u2013 506',
         type:    'apron',
-        sublbl:  'Plataforma · Carga / Charter',
-        qrGate:  '103',
+        sublbl:  'Plataforma remota \u00B7 Autobus',
+        qrGate:  '505',
+      },
+      {
+        mins:    '8 \u2013 10 min',
+        gates:   '3 \u2013 8',
+        type:    'apron',
+        sublbl:  'Plataforma Este \u00B7 Acceso especial',
+        qrGate:  '5',
       },
     ];
 

@@ -247,15 +247,20 @@
 const CY=210,CH=46,CX0=88,CX1=1490;
 const PX2M=1080/(CX1-CX0),WSPEED=75;
 const ENTRIES={'security':{x:100,label:'Salida de Seguridad'},'security-b':{x:290,label:'Seguridad Internacional'},'corridor-mid':{x:700,label:'Centro del pasillo'}};
-const GDIM={bus:{boxw:13,boxh:20,stub:58,sw:1.5,fs:7},jetbridge:{boxw:22,boxh:19,stub:65,sw:3,fs:7.5},apron:{boxw:36,boxh:21,stub:60,sw:3,fs:9}};
-const GCOL={bus:{fill:'#050f08',stroke:'#186828',text:'#32b860',hl:'#50ff90'},jetbridge:{fill:'#04081a',stroke:'#1a4090',text:'#4878e8',hl:'#78aaff'},apron:{fill:'#120d04',stroke:'#583a10',text:'#d09030',hl:'#ffc84a'}};
+const GDIM={jetbridge:{boxw:22,boxh:19,stub:65,sw:3,fs:7.5},apron:{boxw:36,boxh:21,stub:60,sw:3,fs:9},remote:{boxw:32,boxh:19,stub:55,sw:2.5,fs:8}};
+const GCOL={jetbridge:{fill:'#04081a',stroke:'#1a4090',text:'#4878e8',hl:'#78aaff'},apron:{fill:'#120d04',stroke:'#583a10',text:'#d09030',hl:'#ffc84a'},remote:{fill:'#04100a',stroke:'#186828',text:'#32b860',hl:'#50ff90'}};
 
 function buildGates(){
   const d={};
-  for(let n=120;n<=134;n++) d[String(n)]={x:140+(n-120)*21,type:'bus',gy:CY+CH/2};
-  for(let n=106;n<=119;n++){const bx=510+(n-106)*52;d[n+'A']={x:bx,type:'jetbridge',gy:CY+CH/2};d[n+'B']={x:bx+20,type:'jetbridge',gy:CY+CH/2};}
-  for(let n=101;n<=105;n++) d[String(n)]={x:1270+(n-101)*45,type:'apron',gy:CY+CH/2};
-  d['1128']={...d['112B'],alias:true};
+  // Jetbridge (Manga) gates 106-116, sub-positions A and B
+  for(let n=106;n<=116;n++){const bx=185+(n-106)*80;d[n+'A']={x:bx,type:'jetbridge',gy:CY+CH/2};d[n+'B']={x:bx+28,type:'jetbridge',gy:CY+CH/2};}
+  // Remote apron stands 501-505
+  for(let n=501;n<=505;n++) d[String(n)]={x:1048+(n-501)*60,type:'apron',gy:CY+CH/2};
+  // Remote 506 A/B
+  d['506A']={x:1348,type:'apron',gy:CY+CH/2};
+  d['506B']={x:1390,type:'apron',gy:CY+CH/2};
+  // East apron positions 3-8 (north side of corridor)
+  [3,4,5,6,7,8].forEach((n,i)=>{ d[String(n)]={x:1070+(i*55),type:'remote',gy:CY-CH/2,side:'north'}; });
   return d;
 }
 const GATES=buildGates();
@@ -291,9 +296,10 @@ function buildMap(){
   svg.appendChild(svgEl('text',{x:46,y:220,fill:'#1a2858','font-size':9,'font-family':'Segoe UI,Arial','text-anchor':'middle',transform:'rotate(-90,46,220)','letter-spacing':2},'TERMINAL  CHECK-IN'));
   svg.appendChild(svgEl('rect',{x:76,y:CY-CH/2-52,width:30,height:52,fill:'#08102a',stroke:'#182038','stroke-width':1.5}));
   svg.appendChild(svgEl('text',{x:91,y:CY-CH/2-58,fill:'#28a068','font-size':8,'font-family':'Segoe UI,Arial','text-anchor':'middle'},'SEGURIDAD'));
-  [455,492,1248,1265].forEach(x=>svg.appendChild(svgEl('line',{x1:x,y1:CY-CH/2-2,x2:x,y2:CY+CH/2+2,stroke:'#182038','stroke-width':1})));
+  [1025,1045].forEach(x=>svg.appendChild(svgEl('line',{x1:x,y1:CY-CH/2-2,x2:x,y2:CY+CH/2+2,stroke:'#182038','stroke-width':1})));
   const zy=CY-CH/2-12;
-  [[298,'120-134  AUTOBUSES'],[870,'106-119  PASARELAS (A/B)'],[1360,'101-105  ACCESO DIRECTO']].forEach(([x,t])=>svg.appendChild(svgEl('text',{x,y:zy,fill:'#1c3460','font-size':8.5,'font-family':'Segoe UI,Arial','text-anchor':'middle','letter-spacing':1.2},t)));
+  [[600,'106 \u2013 116  MANGAS (A/B)'],[1210,'501 \u2013 506  PLATAFORMA REMOTA']].forEach(([x,t])=>svg.appendChild(svgEl('text',{x,y:zy,fill:'#1c3460','font-size':8.5,'font-family':'Segoe UI,Arial','text-anchor':'middle','letter-spacing':1.2},t)));
+  svg.appendChild(svgEl('text',{x:1210,y:CY-CH/2-72,fill:'#186828','font-size':8.5,'font-family':'Segoe UI,Arial','text-anchor':'middle','letter-spacing':1.2},'3 \u2013 8  PLATAFORMA ESTE'));
   svg.appendChild(svgEl('rect',{x:CX0,y:CY-CH/2,width:CX1-CX0,height:CH,fill:'#0b1a30',stroke:'#203460','stroke-width':2,rx:4}));
   for(let ax=200;ax<CX1-80;ax+=120)svg.appendChild(svgEl('text',{x:ax,y:CY+6,fill:'#18284a','font-size':14,'text-anchor':'middle'},'→'));
   for(const[k,g]of Object.entries(GATES)){if(g.alias)continue;drawGate(k,g);}
@@ -304,12 +310,12 @@ function drawGate(key,g){
   const gx=g.x,gy0=g.gy;
   const d=GDIM[g.type]||GDIM.jetbridge;
   const c=GCOL[g.type]||GCOL.jetbridge;
-  const gy1=gy0+d.stub;
+  const north=g.side==='north';
+  const gy1=north?gy0-d.stub:gy0+d.stub;
   svg.appendChild(svgEl('line',{x1:gx,y1:gy0,x2:gx,y2:gy1,stroke:c.stroke,'stroke-width':d.sw}));
-  svg.appendChild(svgEl('rect',{id:'gb-'+key,x:gx-d.boxw/2,y:gy1,width:d.boxw,height:d.boxh,fill:c.fill,stroke:c.stroke,'stroke-width':1,rx:g.type==='bus'?2:3,cursor:'pointer'}));
-  const lbl=svgEl('text',{id:'gl-'+key,fill:c.text,'font-size':d.fs,'font-weight':700,'font-family':'Segoe UI,Arial','text-anchor':'middle',cursor:'pointer'},key);
-  if(g.type==='bus'){lbl.setAttribute('x',gx);lbl.setAttribute('y',gy1+d.boxh/2+d.fs*0.35);lbl.setAttribute('transform','rotate(-90,'+gx+','+(gy1+d.boxh/2)+')');}
-  else{lbl.setAttribute('x',gx);lbl.setAttribute('y',gy1+d.boxh/2+d.fs*0.38);}
+  const boxY=north?gy1-d.boxh:gy1;
+  svg.appendChild(svgEl('rect',{id:'gb-'+key,x:gx-d.boxw/2,y:boxY,width:d.boxw,height:d.boxh,fill:c.fill,stroke:c.stroke,'stroke-width':1,rx:3,cursor:'pointer'}));
+  const lbl=svgEl('text',{id:'gl-'+key,x:gx,y:boxY+d.boxh/2+d.fs*0.38,fill:c.text,'font-size':d.fs,'font-weight':700,'font-family':'Segoe UI,Arial','text-anchor':'middle',cursor:'pointer'},key);
   svg.appendChild(lbl);
   [document.getElementById('gb-'+key),lbl].forEach(el=>{if(el)el.addEventListener('click',()=>navigateTo(key));});
 }
@@ -335,7 +341,8 @@ function applyRoute(){
   const{key:gKey,g:gData}=res;
   const gx=gData.x,ex=entry.x;
   const d=GDIM[gData.type]||GDIM.jetbridge;
-  const destY=gData.gy+d.stub+d.boxh/2;
+  const north=gData.side==='north';
+  const destY=north?(gData.gy-d.stub-d.boxh/2):(gData.gy+d.stub+d.boxh/2);
   const tBox=document.getElementById('gb-'+gKey);const tLbl=document.getElementById('gl-'+gKey);
   if(tBox){tBox.setAttribute('fill','#a07008');tBox.setAttribute('stroke','#f0b830');}
   if(tLbl){tLbl.setAttribute('fill','#000');tLbl.setAttribute('font-size',9);tLbl.setAttribute('font-weight',900);}
@@ -381,8 +388,8 @@ function applyRoute(){
 function buildDirections(entry,gKey,g,distM,mins){
   const dir=g.x>entry.x?'derecha':'izquierda';
   const arw=g.x>entry.x?'→':'←';
-  const zone={bus:'Zona Autobuses',jetbridge:'Zona Pasarelas',apron:'Acceso Directo'};
-  const board={bus:'Autobus a la aeronave en plataforma',jetbridge:'Abordas por pasarela telescopica',apron:'Camina directamente hasta la aeronave'};
+  const zone={jetbridge:'Zona Mangas (Pasarelas)',apron:'Zona Plataforma Remota',remote:'Zona Plataforma Este'};
+  const board={jetbridge:'Abordas por pasarela telesc\u00f3pica',apron:'Autobus a la aeronave en plataforma',remote:'Acceso especial \u2013 Plataforma Este'};
   const steps=[
     {icon:'🔓',txt:'Sal por <strong>'+entry.label+'</strong>',sub:null,state:'current'},
     {icon:arw,txt:'Gira a la <strong>'+dir+'</strong> y avanza',sub:zone[g.type]||'',state:null},
