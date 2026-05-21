@@ -64,6 +64,221 @@
       text-transform: uppercase;
       margin-top: 3px;
     }
+
+    /* ═══════════════════════════════════════════════════════════════
+       VISTA PUERTAS — Gate Walk-Time Display
+       Inspired by LAX-style boarding gate wayfinding displays
+    ═══════════════════════════════════════════════════════════════ */
+    #fids-gates-view {
+      position: fixed;
+      inset: 0;
+      background: #02030d;
+      display: none;
+      flex-direction: column;
+      z-index: 150;
+      font-family: 'Arial', sans-serif;
+    }
+
+    /* Header */
+    .fgv-header {
+      display: flex;
+      align-items: center;
+      background: #081530;
+      padding: 12px 32px;
+      border-bottom: 3px solid #e2c870;
+      gap: 1.2rem;
+      flex-shrink: 0;
+    }
+    .fgv-header-logo { display: flex; align-items: center; gap: 10px; }
+    .fgv-header-logo img { height: 42px; }
+    .fgv-header-brand {
+      font-size: .7rem;
+      font-weight: 700;
+      color: #e2c870;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      line-height: 1.3;
+    }
+    .fgv-header-brand small {
+      display: block;
+      font-size: .58rem;
+      color: rgba(255,255,255,.45);
+      letter-spacing: .12em;
+      font-weight: 400;
+    }
+    .fgv-header-title {
+      flex: 1;
+      text-align: center;
+      font-size: 1.55rem;
+      font-weight: 900;
+      color: #f0f8ff;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+    .fgv-header-right {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+    .fgv-clock {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #e2c870;
+      letter-spacing: .06em;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .fgv-date {
+      font-size: .62rem;
+      color: rgba(255,255,255,.42);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    /* Column headers */
+    .fgv-cols-hdr {
+      display: grid;
+      grid-template-columns: 230px 1fr auto;
+      background: #071228;
+      border-bottom: 1px solid #1a3060;
+      padding: 9px 32px;
+      gap: 0;
+      flex-shrink: 0;
+    }
+    .fgv-col-hdr {
+      font-size: .68rem;
+      font-weight: 700;
+      color: #5a80a8;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    .fgv-col-hdr.right { text-align: center; padding-right: 4px; }
+
+    /* Rows */
+    .fgv-rows {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 6px 16px;
+      gap: 4px;
+    }
+    .fgv-row {
+      display: grid;
+      grid-template-columns: 230px 1fr auto;
+      align-items: center;
+      padding: 0 16px;
+      flex: 1;
+      border-radius: 8px;
+      border-left: 4px solid transparent;
+      transition: background .3s;
+      min-height: 0;
+    }
+    .fgv-row:nth-child(odd)  { background: rgba(8,20,48,.65); }
+    .fgv-row:nth-child(even) { background: rgba(5,14,36,.55); }
+    .fgv-row.type-bus       { border-left-color: #e2c040; }
+    .fgv-row.type-jetbridge { border-left-color: #3a8eff; }
+    .fgv-row.type-apron     { border-left-color: #ff8030; }
+
+    /* Walk time cell */
+    .fgv-walk {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .fgv-walk-icon {
+      font-size: clamp(1.4rem, 2.2vh, 2.4rem);
+      color: rgba(255,255,255,.6);
+      line-height: 1;
+    }
+    .fgv-walk-info { display: flex; flex-direction: column; }
+    .fgv-walk-time {
+      font-size: clamp(1.2rem, 2.5vh, 2rem);
+      font-weight: 800;
+      color: #f0f8ff;
+      letter-spacing: .02em;
+      line-height: 1;
+    }
+    .fgv-walk-label {
+      font-size: clamp(.55rem, .9vh, .72rem);
+      font-weight: 600;
+      color: #4a6a90;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    /* Gate label cell */
+    .fgv-gate-cell { display: flex; flex-direction: column; justify-content: center; }
+    .fgv-gate-label {
+      font-size: clamp(1.5rem, 3vh, 2.6rem);
+      font-weight: 900;
+      letter-spacing: .03em;
+      line-height: 1;
+    }
+    .fgv-row.type-bus       .fgv-gate-label { color: #f5c83a; }
+    .fgv-row.type-jetbridge .fgv-gate-label { color: #5aaeff; }
+    .fgv-row.type-apron     .fgv-gate-label { color: #ff9050; }
+
+    .fgv-gate-sublabel {
+      font-size: clamp(.58rem, .95vh, .78rem);
+      font-weight: 600;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-top: 2px;
+      opacity: .6;
+    }
+    .fgv-row.type-bus       .fgv-gate-sublabel { color: #c8a820; }
+    .fgv-row.type-jetbridge .fgv-gate-sublabel { color: #3a80c8; }
+    .fgv-row.type-apron     .fgv-gate-sublabel { color: #c06020; }
+
+    /* QR cell */
+    .fgv-qr-cell {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 4px;
+    }
+    .fgv-qr-wrap {
+      background: #fff;
+      border-radius: 6px;
+      padding: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .fgv-qr-wrap canvas,
+    .fgv-qr-wrap img { display: block !important; }
+
+    /* Footer */
+    .fgv-footer {
+      background: #081530;
+      padding: 9px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 3px solid #e2c870;
+      flex-shrink: 0;
+    }
+    .fgv-footer span {
+      font-size: .62rem;
+      color: #3a5878;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .fgv-footer .fgv-next-lbl { color: #1e4a78; }
+
+    /* Separator dots for QR hint */
+    .fgv-qr-hint {
+      font-size: .55rem;
+      color: #2a4868;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      text-align: center;
+      margin-top: 2px;
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body>
@@ -120,17 +335,87 @@
     'use strict';
 
     // ── Configuración ────────────────────────────────────────────────
-    const SWITCH_MS    = 10000;   // ms por vista antes de cambiar
-    const REFRESH_MS   = 5 * 60 * 1000; // recarga de datos cada 5 min
+    const SWITCH_MS       = 12000;   // ms por vista de vuelos
+    const GATES_SWITCH_MS = 20000;   // ms en la vista de puertas (más tiempo para QR)
+    const REFRESH_MS      = 5 * 60 * 1000; // recarga de datos cada 5 min
 
     // ── Estado ───────────────────────────────────────────────────────
     let _airlines   = [];
     let _llegadas   = [];
     let _salidas    = [];
-    let _tipo       = 'llegada'; // 'llegada' | 'salida'
+    let _tipo       = 'llegada'; // 'llegada' | 'salida' | 'puertas'
     let _progInt    = null;
     let _switchTmr  = null;
     let _progStart  = 0;
+    let _gatesReady = false;      // QR codes already generated
+
+    // ── Puertas AIFA (datos exactos del terminal) ────────────────────
+    // Fuente: airport-map.html buildGates()
+    // Puertas de autobús: 120-134  (x=140+n*21, junto a seguridad)
+    // Puertas de manga:   106-119  (x=510+n*52, doble posición A/B)
+    // Plataforma (apron): 101-105  (x=1270+n*45, extremo del pier)
+    //
+    // Tiempos calculados desde Salida de Seguridad (x=100):
+    //   t(min) = (x_gate - 100) * (1080/1402) / 75
+    //   donde 1080/1402 ≈ 0.770 m/px  y  WSPEED = 75 m/min
+    const GATE_GROUPS = [
+      {
+        mins:    '1 – 2 min',
+        gates:   '120 · 121 · 122',
+        type:    'bus',
+        sublbl:  'Autobús · Sala Nacional',
+        qrGate:  '121',
+      },
+      {
+        mins:    '2 – 3 min',
+        gates:   '123 – 128',
+        type:    'bus',
+        sublbl:  'Autobús · Sala Nacional',
+        qrGate:  '126',
+      },
+      {
+        mins:    '3 – 4 min',
+        gates:   '129 – 134',
+        type:    'bus',
+        sublbl:  'Autobús · Sala Nacional',
+        qrGate:  '131',
+      },
+      {
+        mins:    '4 – 6 min',
+        gates:   '106 – 108',
+        type:    'jetbridge',
+        sublbl:  'Manga · Embarque directo',
+        qrGate:  '107A',
+      },
+      {
+        mins:    '6 – 8 min',
+        gates:   '109 – 112',
+        type:    'jetbridge',
+        sublbl:  'Manga · Embarque directo',
+        qrGate:  '110A',
+      },
+      {
+        mins:    '8 – 10 min',
+        gates:   '113 – 116',
+        type:    'jetbridge',
+        sublbl:  'Manga · Embarque directo',
+        qrGate:  '114A',
+      },
+      {
+        mins:    '10 – 12 min',
+        gates:   '117 – 119',
+        type:    'jetbridge',
+        sublbl:  'Manga · Internacional',
+        qrGate:  '118A',
+      },
+      {
+        mins:    '12 – 14 min',
+        gates:   '101 – 105',
+        type:    'apron',
+        sublbl:  'Plataforma · Carga / Charter',
+        qrGate:  '103',
+      },
+    ];
 
     const ESTADO_CLASES = {
       'A tiempo':   'fids-estado-ok',
@@ -305,7 +590,7 @@
       document.getElementById('fids-footer-count').textContent =
         `${vuelos.length} vuelo${vuelos.length !== 1 ? 's' : ''}`;
       document.getElementById('kiosk-next').textContent =
-        `» ${isLleg ? 'SALIDAS' : 'LLEGADAS'} a continuación`;
+        `» ${isLleg ? 'SALIDAS' : 'PUERTAS'} a continuación`;
 
       const rows = document.getElementById('fids-rows');
       if (!vuelos.length) {
@@ -355,47 +640,149 @@
     function startClock() {
       const elClock = document.getElementById('fids-clock');
       const elFecha = document.getElementById('fids-fecha');
+      const fgvClock = document.getElementById('fgv-clock');
+      const fgvDate  = document.getElementById('fgv-date');
       function tick() {
         const now = new Date();
-        elClock.textContent = now.toLocaleTimeString('es-MX',
+        const t = now.toLocaleTimeString('es-MX',
           { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-        elFecha.textContent = fmtFecha(now.toISOString().split('T')[0]);
+        const d = fmtFecha(now.toISOString().split('T')[0]);
+        elClock.textContent = t;
+        elFecha.textContent = d;
+        if (fgvClock) fgvClock.textContent = t;
+        if (fgvDate)  fgvDate.textContent  = d;
       }
       tick();
       setInterval(tick, 1000);
     }
 
     // ── Barra de progreso ────────────────────────────────────────────
-    function startProgress() {
+    function startProgress(ms) {
       _progStart = performance.now();
       const fill = document.getElementById('kiosk-progress-fill');
       fill.style.transition = 'none';
       fill.style.width = '0%';
-      // fuerza reflow para que la transición se reinicie
       fill.getBoundingClientRect();
-      fill.style.transition = `width ${SWITCH_MS}ms linear`;
+      fill.style.transition = `width ${ms}ms linear`;
       fill.style.width = '100%';
     }
 
     // ── Rotación automática ──────────────────────────────────────────
-    function scheduleSwitch() {
+    function scheduleSwitch(ms) {
       clearTimeout(_switchTmr);
-      _switchTmr = setTimeout(doSwitch, SWITCH_MS);
-      startProgress();
+      _switchTmr = setTimeout(doSwitch, ms);
+      startProgress(ms);
     }
 
     async function doSwitch() {
       const overlay = document.getElementById('kiosk-fade');
-      // Fade a negro
       overlay.classList.add('active');
       await new Promise(r => setTimeout(r, 400));
 
-      _tipo = _tipo === 'llegada' ? 'salida' : 'llegada';
-      renderBoard();
+      // Ciclo: llegada → salida → puertas → llegada → …
+      if      (_tipo === 'llegada') _tipo = 'salida';
+      else if (_tipo === 'salida')  _tipo = 'puertas';
+      else                          _tipo = 'llegada';
 
-      // Fade de vuelta
-      overlay.classList.remove('active');
-      scheduleSwitch();
+      if (_tipo === 'puertas') {
+        document.querySelector('.fids-screen').style.display = 'none';
+        const gv = document.getElementById('fids-gates-view');
+        gv.style.display = 'flex';
+        renderGatesView();
+        document.getElementById('kiosk-next').textContent = '';
+        overlay.classList.remove('active');
+        scheduleSwitch(GATES_SWITCH_MS);
+      } else {
+        document.querySelector('.fids-screen').style.display = 'flex';
+        document.getElementById('fids-gates-view').style.display = 'none';
+        renderBoard();
+        overlay.classList.remove('active');
+        scheduleSwitch(SWITCH_MS);
+      }
+    }
+
+    // ── Vista de puertas ─────────────────────────────────────────────
+    const _MAP_GH = 'https://isaacazhael161f-creator.github.io/AIFA-OPERACIONES/airport-map.html';
+    function gateMapUrl(gate) {
+      const base = (location.hostname === 'isaacazhael161f-creator.github.io')
+        ? location.href.replace(/\/[^/?#]*(\?.*)?$/, '/') + 'airport-map.html'
+        : _MAP_GH;
+      return `${base}?gate=${encodeURIComponent(gate)}&from=security`;
+    }
+
+    function renderGatesView() {
+      // Update "next" label
+      const nextLbl = document.getElementById('fgv-next-lbl');
+      if (nextLbl) nextLbl.textContent = '» LLEGADAS a continuación';
+
+      if (_gatesReady) return; // QR codes already built
+      _gatesReady = true;
+
+      const container = document.getElementById('fgv-rows');
+      container.innerHTML = '';
+
+      // Calculate QR size based on available height
+      // 8 rows in the flex container; each row gets ~(vh-header-footer)/8 px
+      // Use a fixed QR size that fits on standard HD kiosk screens
+      const qrSize = Math.max(70, Math.min(100, Math.floor((window.innerHeight - 140) / 8) - 10));
+
+      GATE_GROUPS.forEach(grp => {
+        const row = document.createElement('div');
+        row.className = `fgv-row type-${grp.type}`;
+
+        // Walk time cell
+        const walkDiv = document.createElement('div');
+        walkDiv.className = 'fgv-walk';
+        walkDiv.innerHTML = `
+          <span class="fgv-walk-icon"><i class="fas fa-person-walking" aria-hidden="true"></i></span>
+          <span class="fgv-walk-info">
+            <span class="fgv-walk-time">${grp.mins}</span>
+            <span class="fgv-walk-label">desde seguridad</span>
+          </span>`;
+
+        // Gate label cell
+        const gateDiv = document.createElement('div');
+        gateDiv.className = 'fgv-gate-cell';
+        gateDiv.innerHTML = `
+          <span class="fgv-gate-label">${grp.gates}</span>
+          <span class="fgv-gate-sublabel">${grp.sublbl}</span>`;
+
+        // QR cell
+        const qrCell = document.createElement('div');
+        qrCell.className = 'fgv-qr-cell';
+
+        const qrWrap = document.createElement('div');
+        qrWrap.className = 'fgv-qr-wrap';
+        const qrDiv = document.createElement('div');
+        qrWrap.appendChild(qrDiv);
+
+        const hint = document.createElement('div');
+        hint.className = 'fgv-qr-hint';
+        hint.textContent = 'Mapa en tu celular';
+
+        const qrOuter = document.createElement('div');
+        qrOuter.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:3px;';
+        qrOuter.appendChild(qrWrap);
+        qrOuter.appendChild(hint);
+        qrCell.appendChild(qrOuter);
+
+        // Generate QR
+        if (window.QRCode) {
+          new QRCode(qrDiv, {
+            text:       gateMapUrl(grp.qrGate),
+            width:      qrSize,
+            height:     qrSize,
+            colorDark:  '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M,
+          });
+        }
+
+        row.appendChild(walkDiv);
+        row.appendChild(gateDiv);
+        row.appendChild(qrCell);
+        container.appendChild(row);
+      });
     }
 
     // ── Realtime ─────────────────────────────────────────────────────
@@ -415,7 +802,7 @@
       await loadAirlines();
       startClock();
       await loadData();
-      scheduleSwitch();
+      scheduleSwitch(SWITCH_MS);
       startRealtime();
       // Recarga periódica como respaldo al realtime
       setInterval(loadData, REFRESH_MS);
@@ -445,6 +832,46 @@
       <div id="fids-qr-code"></div>
     </div>
     <div style="color:#4a6888;font-size:.72rem;margin-top:.4rem">Toca en cualquier lugar para cerrar</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       VISTA PUERTAS — Tiempos de caminata y códigos QR por puerta
+       Rotates in as the 3rd scene after Llegadas → Salidas → Puertas
+  ═══════════════════════════════════════════════════════════════════ -->
+  <div id="fids-gates-view">
+
+    <!-- Header -->
+    <div class="fgv-header">
+      <div class="fgv-header-logo">
+        <img src="images/aifa-logo.png" alt="AIFA" onerror="this.src='images/aifa-logo.jpg'">
+        <div class="fgv-header-brand">
+          AIFA
+          <small>Aeropuerto Internacional Felipe Ángeles</small>
+        </div>
+      </div>
+      <div class="fgv-header-title">PUERTAS DE EMBARQUE</div>
+      <div class="fgv-header-right">
+        <div class="fgv-clock" id="fgv-clock">--:--:--</div>
+        <div class="fgv-date" id="fgv-date"></div>
+      </div>
+    </div>
+
+    <!-- Column headers (LAX-style) -->
+    <div class="fgv-cols-hdr">
+      <div class="fgv-col-hdr">&#x2190; Tiempo de caminata</div>
+      <div class="fgv-col-hdr">Puertas</div>
+      <div class="fgv-col-hdr right">Escanea QR</div>
+    </div>
+
+    <!-- Gate rows (generated by JS) -->
+    <div class="fgv-rows" id="fgv-rows"></div>
+
+    <!-- Footer -->
+    <div class="fgv-footer">
+      <span>Aeropuerto Internacional Felipe Ángeles &mdash; AIFA &nbsp;&#9632;&nbsp; Santa Lucía, Edo. Méx.</span>
+      <span class="fgv-next-lbl" id="fgv-next-lbl">» LLEGADAS a continuación</span>
+    </div>
+
   </div>
 
 </body>
