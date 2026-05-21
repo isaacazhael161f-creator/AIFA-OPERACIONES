@@ -28,6 +28,15 @@
     .fids-rows-container {
       flex: 1;
       overflow: hidden;
+      position: relative;
+    }
+    .fids-rows-container::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 52px;
+      background: linear-gradient(to bottom, transparent, #0c0c1e);
+      pointer-events: none;
     }
 
     /* ── Barra de progreso (muestra tiempo hasta el cambio) ── */
