@@ -1,4 +1,4 @@
-﻿class DataManagement {
+class DataManagement {
     constructor() {
         this.client = window.supabaseClient; // Initialize Supabase Client
         this.airlineConfig = {
@@ -55,7 +55,7 @@
 
         this.schemas = {
             operations_summary: [
-                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'year', label: 'A�o', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: 'Enero', label: 'Enero' }, { value: 'Febrero', label: 'Febrero' }, { value: 'Marzo', label: 'Marzo' },
@@ -65,13 +65,13 @@
                     ]
                 },
                 {
-                    name: 'category', label: 'Categoría', type: 'select', options: [
+                    name: 'category', label: 'Categor�a', type: 'select', options: [
                         { value: 'Pasajeros', label: 'Pasajeros' },
                         { value: 'Operaciones', label: 'Operaciones' },
                         { value: 'Carga', label: 'Carga' }
                     ]
                 },
-                { name: 'metric', label: 'Métrica', type: 'text' },
+                { name: 'metric', label: 'M�trica', type: 'text' },
                 { name: 'value', label: 'Valor', type: 'number' }
             ],
             daily_operations: [
@@ -88,7 +88,7 @@
 
             // Monthly operations (per month per year)
             monthly_operations: [
-                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'year', label: 'A�o', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: '01', label: 'Enero' }, { value: '02', label: 'Febrero' }, { value: '03', label: 'Marzo' },
@@ -106,7 +106,7 @@
             ],
             // Annual aggregated operations (calculated from monthly)
             annual_operations: [
-                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'year', label: 'A�o', type: 'number' },
                 { name: 'comercial_ops_total', label: 'Comercial - Operaciones (Total)', type: 'number' },
                 { name: 'comercial_pax_total', label: 'Comercial - Pasajeros (Total)', type: 'number' },
                 { name: 'general_ops_total', label: 'General - Operaciones (Total)', type: 'number' },
@@ -115,7 +115,7 @@
                 { name: 'carga_tons_total', label: 'Carga - Toneladas (Total)', type: 'number', step: '0.01' }
             ],
             punctuality_stats: [
-                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'year', label: 'A�o', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: '1', label: 'Enero' }, { value: '2', label: 'Febrero' }, { value: '3', label: 'Marzo' },
@@ -124,9 +124,9 @@
                         { value: '10', label: 'Octubre' }, { value: '11', label: 'Noviembre' }, { value: '12', label: 'Diciembre' }
                     ]
                 },
-                { name: 'airline', label: 'Aerolínea', type: 'text' },
+                { name: 'airline', label: 'Aerol�nea', type: 'text' },
                 {
-                    name: 'category', label: 'Categoría', type: 'select', options: [
+                    name: 'category', label: 'Categor�a', type: 'select', options: [
                         { value: 'Pasajeros', label: 'Pasajeros' },
                         { value: 'Carga', label: 'Carga' }
                     ]
@@ -138,14 +138,14 @@
             ],
             flight_itinerary: [
                 { name: 'flight_number', label: 'No. Vuelo', type: 'text' },
-                { name: 'airline', label: 'Aerolínea', type: 'text' },
+                { name: 'airline', label: 'Aerol�nea', type: 'text' },
                 { name: 'origin_destination', label: 'Origen/Destino', type: 'text' },
                 { name: 'arrival_date', label: 'Fecha', type: 'date' },
                 { name: 'arrival_time', label: 'Hora', type: 'time' },
                 {
                     name: 'status', label: 'Estado', type: 'select', options: [
                         { value: 'Programado', label: 'Programado' },
-                        { value: 'Aterrizó', label: 'Aterrizó' },
+                        { value: 'Aterriz�', label: 'Aterriz�' },
                         { value: 'Demorado', label: 'Demorado' },
                         { value: 'Cancelado', label: 'Cancelado' }
                     ]
@@ -156,26 +156,26 @@
             wildlife_strikes: [
                 { name: 'date', label: 'Fecha del Evento', type: 'date' },
                 { name: 'time', label: 'Hora del Evento', type: 'time' },
-                { name: 'location', label: 'Ubicación General', type: 'text', placeholder: 'Ej. Aproximación Pista 04C' },
+                { name: 'location', label: 'Ubicaci�n General', type: 'text', placeholder: 'Ej. Aproximaci�n Pista 04C' },
                 { name: 'impact_zone', label: 'Zona de Impacto (Aeronave)', type: 'text', placeholder: 'Ej. Radomo, Motor 1, Ala derecha' },
-                { name: 'operation_phase', label: 'Fase de la Operación', type: 'text', placeholder: 'Ej. Aterrizaje, Despegue, Rodaje' },
-                { name: 'airline', label: 'Aerolínea', type: 'text' },
+                { name: 'operation_phase', label: 'Fase de la Operaci�n', type: 'text', placeholder: 'Ej. Aterrizaje, Despegue, Rodaje' },
+                { name: 'airline', label: 'Aerol�nea', type: 'text' },
                 { name: 'aircraft', label: 'Tipo de Aeronave', type: 'text', placeholder: 'Ej. B737-800' },
-                { name: 'registration', label: 'Matrícula', type: 'text' },
+                { name: 'registration', label: 'Matr�cula', type: 'text' },
                 { name: 'impact_zone_remains', label: 'Zona de Hallazgo de Restos', type: 'text', placeholder: 'Ej. Pista 04C cerca de calle Bravo' },
                 { name: 'remains_count', label: 'Cantidad de Restos', type: 'number' },
                 {
-                    name: 'size', label: 'Tamaño de la Fauna', type: 'select', options: [
-                        { value: 'Pequeño', label: 'Pequeño' },
+                    name: 'size', label: 'Tama�o de la Fauna', type: 'select', options: [
+                        { value: 'Peque�o', label: 'Peque�o' },
                         { value: 'Mediano', label: 'Mediano' },
                         { value: 'Grande', label: 'Grande' }
                     ]
                 },
-                { name: 'species', label: 'Especie (Científico)', type: 'text', placeholder: 'Ej. Quiscalus mexicanus' },
-                { name: 'common_name', label: 'Nombre Común', type: 'text', placeholder: 'Ej. Zanate' },
+                { name: 'species', label: 'Especie (Cient�fico)', type: 'text', placeholder: 'Ej. Quiscalus mexicanus' },
+                { name: 'common_name', label: 'Nombre Com�n', type: 'text', placeholder: 'Ej. Zanate' },
                 { name: 'reporter', label: 'Personal que reporta', type: 'text' },
-                { name: 'proactive_measures', label: 'Medidas Proactivas Previas', type: 'textarea', placeholder: 'Descripción de medidas tomadas antes del evento' },
-                { name: 'weather_conditions', label: 'Condiciones Meteorológicas', type: 'text', placeholder: 'Ej. Nublado, Lluvia ligera' },
+                { name: 'proactive_measures', label: 'Medidas Proactivas Previas', type: 'textarea', placeholder: 'Descripci�n de medidas tomadas antes del evento' },
+                { name: 'weather_conditions', label: 'Condiciones Meteorol�gicas', type: 'text', placeholder: 'Ej. Nublado, Lluvia ligera' },
                 { name: 'measure_results', label: 'Resultados de las Medidas', type: 'textarea' }
             ],
             rescued_wildlife: [
@@ -190,25 +190,25 @@
                 },
                 { name: 'time', label: 'Hora', type: 'time' },
                 { name: 'capture_number', label: 'No. Captura', type: 'text', placeholder: 'Ej. GSO-2025-001' },
-                { name: 'common_name', label: 'Nombre Común', type: 'text', placeholder: 'Ej. Tlacuache' },
-                { name: 'scientific_name', label: 'Nombre Científico', type: 'text', placeholder: 'Ej. Didelphis marsupialis' },
+                { name: 'common_name', label: 'Nombre Com�n', type: 'text', placeholder: 'Ej. Tlacuache' },
+                { name: 'scientific_name', label: 'Nombre Cient�fico', type: 'text', placeholder: 'Ej. Didelphis marsupialis' },
                 { 
                     name: 'class', label: 'Clase', type: 'select', 
                     options: [
                         { value: 'Aves', label: 'Aves' },
-                        { value: 'Mamíferos', label: 'Mamíferos' },
+                        { value: 'Mam�feros', label: 'Mam�feros' },
                         { value: 'Reptiles', label: 'Reptiles' },
                         { value: 'Anfibios', label: 'Anfibios' },
                         { value: 'Insectos', label: 'Insectos' }
                     ]
                 },
                 { name: 'quantity', label: 'No. Individuos', type: 'number' },
-                { name: 'capture_method', label: 'Método de Captura', type: 'text', placeholder: 'Ej. Trampa Tomahawk, Manual, Red' },
+                { name: 'capture_method', label: 'M�todo de Captura', type: 'text', placeholder: 'Ej. Trampa Tomahawk, Manual, Red' },
                 { name: 'quadrant', label: 'Cuadrante', type: 'text', placeholder: 'Ej. 14A' },
                 { 
-                    name: 'final_disposition', label: 'Disposición Final', type: 'select',
+                    name: 'final_disposition', label: 'Disposici�n Final', type: 'select',
                     options: [
-                        { value: 'Liberación', label: 'Liberación' },
+                        { value: 'Liberaci�n', label: 'Liberaci�n' },
                         { value: 'Traslado', label: 'Traslado' },
                         { value: 'Eutanasia', label: 'Eutanasia' },
                         { value: 'Muerto', label: 'Encontrado Muerto' }
@@ -216,7 +216,7 @@
                 }
             ],
             medical_attentions: [
-                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'year', label: 'A�o', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: 'Enero', label: 'Enero' }, { value: 'Febrero', label: 'Febrero' }, { value: 'Marzo', label: 'Marzo' },
@@ -225,14 +225,14 @@
                         { value: 'Octubre', label: 'Octubre' }, { value: 'Noviembre', label: 'Noviembre' }, { value: 'Diciembre', label: 'Diciembre' }
                     ]
                 },
-                { name: 'aifa_personnel', label: 'Personal AIFA', type: 'number', placeholder: 'Ej. 15', help: 'Número de atenciones a personal militar o civil del AIFA' },
-                { name: 'other_companies', label: 'Otras Empresas', type: 'number', placeholder: 'Ej. 8', help: 'Atenciones a personal de aerolíneas, comercios, etc.' },
+                { name: 'aifa_personnel', label: 'Personal AIFA', type: 'number', placeholder: 'Ej. 15', help: 'N�mero de atenciones a personal militar o civil del AIFA' },
+                { name: 'other_companies', label: 'Otras Empresas', type: 'number', placeholder: 'Ej. 8', help: 'Atenciones a personal de aerol�neas, comercios, etc.' },
                 { name: 'passengers', label: 'Pasajeros', type: 'number', placeholder: 'Ej. 45', help: 'Atenciones a usuarios/viajeros del aeropuerto' },
-                { name: 'visitors', label: 'Visitantes', type: 'number', placeholder: 'Ej. 3', help: 'Atenciones a público general o visitantes externos' },
-                { name: 'total', label: 'Total', type: 'number', readonly: true, help: 'Calculado automáticamente: Personal + Otros + Pasajeros + Visitantes' } 
+                { name: 'visitors', label: 'Visitantes', type: 'number', placeholder: 'Ej. 3', help: 'Atenciones a p�blico general o visitantes externos' },
+                { name: 'total', label: 'Total', type: 'number', readonly: true, help: 'Calculado autom�ticamente: Personal + Otros + Pasajeros + Visitantes' } 
             ],
             medical_types: [
-                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'year', label: 'A�o', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: 'Enero', label: 'Enero' }, { value: 'Febrero', label: 'Febrero' }, { value: 'Marzo', label: 'Marzo' },
@@ -241,9 +241,9 @@
                         { value: 'Octubre', label: 'Octubre' }, { value: 'Noviembre', label: 'Noviembre' }, { value: 'Diciembre', label: 'Diciembre' }
                     ]
                 },
-                { name: 'traslado', label: 'Traslado', type: 'number', placeholder: 'Ej. 5', help: 'Número de traslados a hospitales' },
+                { name: 'traslado', label: 'Traslado', type: 'number', placeholder: 'Ej. 5', help: 'N�mero de traslados a hospitales' },
                 { name: 'ambulatorio', label: 'Ambulatorio', type: 'number', placeholder: 'Ej. 12', help: 'Atenciones en consultorio o sitio' },
-                { name: 'total', label: 'Total', type: 'number', readonly: true, help: 'Calculado automáticamente: Traslado + Ambulatorio' }
+                { name: 'total', label: 'Total', type: 'number', readonly: true, help: 'Calculado autom�ticamente: Traslado + Ambulatorio' }
             ],
             medical_directory: [
                 { name: 'asunto', label: 'Asunto', type: 'text' },
@@ -252,7 +252,7 @@
                 { name: 'documentos', label: 'Documentos', type: 'file', multiple: true }
             ],
             delays: [
-                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'year', label: 'A�o', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: 'Enero', label: 'Enero' }, { value: 'Febrero', label: 'Febrero' }, { value: 'Marzo', label: 'Marzo' },
@@ -263,65 +263,65 @@
                 },
                 { name: 'cause', label: 'Causa', type: 'text' },
                 { name: 'count', label: 'Cantidad', type: 'number' },
-                { name: 'description', label: 'Descripción', type: 'textarea' },
+                { name: 'description', label: 'Descripci�n', type: 'textarea' },
                 { name: 'observations', label: 'Observaciones', type: 'textarea' }
             ],
             weekly_frequencies: [
                 { name: 'week_label', label: 'Etiqueta Semana (ej. 08-14 Dic 2025)', type: 'text' },
-                { name: 'valid_from', label: 'Válido Desde', type: 'date' },
-                { name: 'valid_to', label: 'Válido Hasta', type: 'date' },
+                { name: 'valid_from', label: 'V�lido Desde', type: 'date' },
+                { name: 'valid_to', label: 'V�lido Hasta', type: 'date' },
                 { name: 'route_id', label: 'ID Ruta', type: 'number' },
                 { name: 'city', label: 'Ciudad', type: 'text' },
                 { name: 'state', label: 'Estado', type: 'text' },
-                { name: 'iata', label: 'Código IATA', type: 'text' },
-                { name: 'airline', label: 'Aerolínea', type: 'text' },
+                { name: 'iata', label: 'C�digo IATA', type: 'text' },
+                { name: 'airline', label: 'Aerol�nea', type: 'text' },
                 { name: 'monday', label: 'Lunes', type: 'number' },
                 { name: 'tuesday', label: 'Martes', type: 'number' },
-                { name: 'wednesday', label: 'Miércoles', type: 'number' },
+                { name: 'wednesday', label: 'Mi�rcoles', type: 'number' },
                 { name: 'thursday', label: 'Jueves', type: 'number' },
                 { name: 'friday', label: 'Viernes', type: 'number' },
-                { name: 'saturday', label: 'Sábado', type: 'number' },
+                { name: 'saturday', label: 'S�bado', type: 'number' },
                 { name: 'sunday', label: 'Domingo', type: 'number' },
                 { name: 'weekly_total', label: 'Total Semanal', type: 'number', readonly: true }
             ],
             weekly_frequencies_int: [
                 { name: 'week_label', label: 'Etiqueta Semana (ej. 08-14 Dic 2025)', type: 'text' },
-                { name: 'valid_from', label: 'Válido Desde', type: 'date' },
-                { name: 'valid_to', label: 'Válido Hasta', type: 'date' },
+                { name: 'valid_from', label: 'V�lido Desde', type: 'date' },
+                { name: 'valid_to', label: 'V�lido Hasta', type: 'date' },
                 { name: 'route_id', label: 'ID Ruta', type: 'number' },
-                { name: 'city', label: 'Ciudad / País', type: 'text' },
-                { name: 'state', label: 'Región', type: 'text' },
-                { name: 'iata', label: 'Código IATA', type: 'text' },
-                { name: 'airline', label: 'Aerolínea', type: 'text' },
+                { name: 'city', label: 'Ciudad / Pa�s', type: 'text' },
+                { name: 'state', label: 'Regi�n', type: 'text' },
+                { name: 'iata', label: 'C�digo IATA', type: 'text' },
+                { name: 'airline', label: 'Aerol�nea', type: 'text' },
                 { name: 'monday', label: 'Lunes', type: 'number' },
                 { name: 'tuesday', label: 'Martes', type: 'number' },
-                { name: 'wednesday', label: 'Miércoles', type: 'number' },
+                { name: 'wednesday', label: 'Mi�rcoles', type: 'number' },
                 { name: 'thursday', label: 'Jueves', type: 'number' },
                 { name: 'friday', label: 'Viernes', type: 'number' },
-                { name: 'saturday', label: 'Sábado', type: 'number' },
+                { name: 'saturday', label: 'S�bado', type: 'number' },
                 { name: 'sunday', label: 'Domingo', type: 'number' },
                 { name: 'weekly_total', label: 'Total Semanal', type: 'number', readonly: true }
             ],
             weekly_frequencies_cargo: [
                 { name: 'week_label', label: 'Etiqueta Semana (ej. 08-14 Dic 2025)', type: 'text' },
-                { name: 'valid_from', label: 'Válido Desde', type: 'date' },
-                { name: 'valid_to', label: 'Válido Hasta', type: 'date' },
+                { name: 'valid_from', label: 'V�lido Desde', type: 'date' },
+                { name: 'valid_to', label: 'V�lido Hasta', type: 'date' },
                 { name: 'route_id', label: 'ID Ruta', type: 'number' },
-                { name: 'city', label: 'Ciudad / País', type: 'text' },
-                { name: 'state', label: 'Región', type: 'text' },
-                { name: 'iata', label: 'Código IATA', type: 'text' },
-                { name: 'airline', label: 'Aerolínea', type: 'text' },
+                { name: 'city', label: 'Ciudad / Pa�s', type: 'text' },
+                { name: 'state', label: 'Regi�n', type: 'text' },
+                { name: 'iata', label: 'C�digo IATA', type: 'text' },
+                { name: 'airline', label: 'Aerol�nea', type: 'text' },
                 { name: 'monday', label: 'Lunes', type: 'number' },
                 { name: 'tuesday', label: 'Martes', type: 'number' },
-                { name: 'wednesday', label: 'Miércoles', type: 'number' },
+                { name: 'wednesday', label: 'Mi�rcoles', type: 'number' },
                 { name: 'thursday', label: 'Jueves', type: 'number' },
                 { name: 'friday', label: 'Viernes', type: 'number' },
-                { name: 'saturday', label: 'Sábado', type: 'number' },
+                { name: 'saturday', label: 'S�bado', type: 'number' },
                 { name: 'sunday', label: 'Domingo', type: 'number' },
                 { name: 'weekly_total', label: 'Total Semanal', type: 'number', readonly: true }
             ],
             punctuality_stats: [
-                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'year', label: 'A�o', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: '1', label: 'Enero' }, { value: '2', label: 'Febrero' }, { value: '3', label: 'Marzo' },
@@ -330,9 +330,9 @@
                         { value: '10', label: 'Octubre' }, { value: '11', label: 'Noviembre' }, { value: '12', label: 'Diciembre' }
                     ]
                 },
-                { name: 'airline', label: 'Aerolínea', type: 'select', options: [] }, // Populated dynamically
+                { name: 'airline', label: 'Aerol�nea', type: 'select', options: [] }, // Populated dynamically
                 {
-                    name: 'category', label: 'Categoría', type: 'select', options: [
+                    name: 'category', label: 'Categor�a', type: 'select', options: [
                         { value: 'Pasajeros', label: 'Pasajeros' },
                         { value: 'Carga', label: 'Carga' }
                     ]
@@ -344,14 +344,14 @@
             ],
             flight_itinerary: [
                 { name: 'flight_number', label: 'No. Vuelo', type: 'text' },
-                { name: 'airline', label: 'Aerolínea', type: 'text' },
+                { name: 'airline', label: 'Aerol�nea', type: 'text' },
                 { name: 'origin_destination', label: 'Origen/Destino', type: 'text' },
                 { name: 'arrival_date', label: 'Fecha', type: 'date' },
                 { name: 'arrival_time', label: 'Hora', type: 'time' },
                 {
                     name: 'status', label: 'Estado', type: 'select', options: [
                         { value: 'Programado', label: 'Programado' },
-                        { value: 'Aterrizó', label: 'Aterrizó' },
+                        { value: 'Aterriz�', label: 'Aterriz�' },
                         { value: 'Demorado', label: 'Demorado' },
                         { value: 'Cancelado', label: 'Cancelado' }
                     ]
@@ -364,17 +364,17 @@
                 { name: 'time', label: 'Hora', type: 'time' },
                 { name: 'capture_number', label: 'No. Captura', type: 'number' },
                 { name: 'class', label: 'Clase', type: 'text' },
-                { name: 'common_name', label: 'Nombre común', type: 'text' },
-                { name: 'scientific_name', label: 'Nombre científico', type: 'text' },
+                { name: 'common_name', label: 'Nombre com�n', type: 'text' },
+                { name: 'scientific_name', label: 'Nombre cient�fico', type: 'text' },
                 { name: 'quantity', label: 'No. Individuos', type: 'number' },
-                { name: 'capture_method', label: 'Método de captura', type: 'text' },
+                { name: 'capture_method', label: 'M�todo de captura', type: 'text' },
                 { name: 'quadrant', label: 'Cuadrante', type: 'text' },
-                { name: 'final_disposition', label: 'Disposición final', type: 'text' }
+                { name: 'final_disposition', label: 'Disposici�n final', type: 'text' }
             ],
             daily_flights_ops: [
                 { name: 'fecha', label: 'Fecha', type: 'date' },
                 { name: 'seq_no', label: 'No.', type: 'number' },
-                { name: 'aerolinea', label: 'Aerolínea', type: 'text' },
+                { name: 'aerolinea', label: 'Aerol�nea', type: 'text' },
                 { name: 'vuelo_llegada', label: 'Vuelo Arr', type: 'text' },
                 { name: 'origen', label: 'Origen', type: 'text' },
                 { name: 'fecha_hora_prog_llegada', label: 'H. Prog Arr', type: 'text' },
@@ -385,17 +385,17 @@
                 { name: 'fecha_hora_prog_salida', label: 'H. Prog Dep', type: 'text' },
                 { name: 'fecha_hora_real_salida', label: 'H. Real Dep', type: 'text' },
                 { name: 'pasajeros_salida', label: 'Pax Dep', type: 'number' },
-                { name: 'matricula', label: 'Matrícula', type: 'text' }
+                { name: 'matricula', label: 'Matr�cula', type: 'text' }
             ],
             library_categories: [
-                { name: 'title', label: 'Título del Cuadro', type: 'text' },
-                { name: 'description', label: 'Descripción', type: 'textarea' },
+                { name: 'title', label: 'T�tulo del Cuadro', type: 'text' },
+                { name: 'description', label: 'Descripci�n', type: 'textarea' },
                 { name: 'icon', label: 'Icono (Visual)', type: 'icon', placeholder: 'fas fa-book' },
                 { name: 'order_index', label: 'Orden', type: 'number' }
             ],
             library_items: [
-                { name: 'category_id', label: 'Cuadro / Categoría', type: 'select', options: [] },
-                { name: 'title', label: 'Título del Ítem', type: 'text' },
+                { name: 'category_id', label: 'Cuadro / Categor�a', type: 'select', options: [] },
+                { name: 'title', label: 'T�tulo del �tem', type: 'text' },
                 {
                     name: 'type', label: 'Tipo', type: 'select', options: [
                         { value: 'pdf', label: 'Archivo PDF' },
@@ -411,16 +411,16 @@
                 { name: 'order_index', label: 'Orden', type: 'number' }
             ],
             system_alerts: [
-                { name: 'title', label: 'Título del Aviso', type: 'text', placeholder: 'Ej. Cierre de Pista' },
+                { name: 'title', label: 'T�tulo del Aviso', type: 'text', placeholder: 'Ej. Cierre de Pista' },
                 { name: 'message', label: 'Mensaje Detallado', type: 'textarea', placeholder: 'Detalles del aviso o alerta...' },
                 {
-                    name: 'level', label: 'Nivel (Semáforo)', type: 'select', options: [
+                    name: 'level', label: 'Nivel (Sem�foro)', type: 'select', options: [
                         { value: 'info', label: 'Informativo (Verde)' },
-                        { value: 'warning', label: 'Precaución (Amarillo)' },
-                        { value: 'critical', label: 'Crítico (Rojo)' }
+                        { value: 'warning', label: 'Precauci�n (Amarillo)' },
+                        { value: 'critical', label: 'Cr�tico (Rojo)' }
                     ]
                 },
-                { name: 'active', label: 'Activo', type: 'select', options: [{ value: true, label: 'Sí' }, { value: false, label: 'No' }] },
+                { name: 'active', label: 'Activo', type: 'select', options: [{ value: true, label: 'S�' }, { value: false, label: 'No' }] },
                 { name: 'expires_at', label: 'Expira (Opcional)', type: 'date' }
             ],
         };
@@ -479,13 +479,13 @@
             .replace(/-+$/, '');            // Trim - from end
     }
 
-    // Formatea nÃºmeros con separadores de miles (ej. 21323 -> 21,323)
+    // Formatea números con separadores de miles (ej. 21323 -> 21,323)
     formatNumber(value, colName) {
         if (value == null || value === '') value = 0;
         const n = Number(value);
         if (!Number.isFinite(n)) return String(value);
 
-        // Decide decimales segÃºn la columna
+        // Decide decimales según la columna
         let options = {};
         if (colName === 'carga_tons') {
             options = { minimumFractionDigits: 0, maximumFractionDigits: 2 };
@@ -516,7 +516,7 @@
         document.getElementById('filter-daily-ops-date').addEventListener('change', () => this.loadDailyOperations());
         const monthEl = document.getElementById('filter-daily-ops-month');
         if (monthEl) monthEl.addEventListener('change', () => this.loadDailyOperations());
-        // Category filter removed â€” no listener required
+        // Category filter removed — no listener required
         document.getElementById('filter-itinerary-date').addEventListener('change', () => this.loadItinerary());
 
         // Medical Filters
@@ -729,7 +729,7 @@
                     return m === monthFilter;
                 });
             }
-            // Category filtering removed â€” show all rows matching date/month filters
+            // Category filtering removed — show all rows matching date/month filters
 
             // Custom render for complex columns
             const tbody = document.querySelector('#table-daily-ops tbody');
@@ -1191,7 +1191,7 @@
                             if (op['Vuelo de salida']) normalized.vuelo_salida = op['Vuelo de salida'];
                             if (op['Pasajeros llegada']) normalized.pasajeros_llegada = op['Pasajeros llegada'];
                             if (op['Pasajeros salida']) normalized.pasajeros_salida = op['Pasajeros salida'];
-                            if (op['MatrÃ­cula']) normalized.matricula = op['MatrÃ­cula'];
+                            if (op['Matrícula']) normalized.matricula = op['Matrícula'];
                             if (op['Origen']) normalized.origen = op['Origen'];
                             if (op['Destino']) normalized.destino = op['Destino'];
                             if (op['aerolinea']) normalized.aerolinea = op['aerolinea'];
@@ -1208,7 +1208,7 @@
             }
 
             // Mantener el orden original del JSON (suele ser Pasajeros -> Carga -> General)
-            // No ordenar por SEQ_NO porque reinicia en cada secciÃ³n.
+            // No ordenar por SEQ_NO porque reinicia en cada sección.
             // arrivals.sort(sorter);
             // departures.sort(sorter);
 
@@ -1248,7 +1248,7 @@
     }
 
     async saveEditedData() {
-        if (!confirm("Â¿Guardar cambios en GestiÃ³n de Datos?")) return;
+        if (!confirm("¿Guardar cambios en Gestión de Datos?")) return;
 
         const inputs = document.querySelectorAll('.dm-input-edit');
         if (inputs.length === 0) {
@@ -1332,7 +1332,7 @@
                         // DEPARTURE ALIASES
                         if (field === 'vuelo_salida') { flights[fIndex]['Vuelo de salida'] = newVal; flights[fIndex]['vuelo_salida'] = newVal; }
                         if (field === 'pasajeros_salida') { flights[fIndex]['Pasajeros salida'] = newVal; flights[fIndex]['pasajeros_salida'] = newVal; }
-                        if (field === 'matricula') { flights[fIndex]['MatrÃ­cula'] = newVal; flights[fIndex]['matricula'] = newVal; }
+                        if (field === 'matricula') { flights[fIndex]['Matrícula'] = newVal; flights[fIndex]['matricula'] = newVal; }
                         if (field === 'fecha_hora_prog_salida') { flights[fIndex]['Hora programada_salida'] = newVal; flights[fIndex]['fecha_hora_prog_salida'] = newVal; }
                         if (field === 'fecha_hora_real_salida') { flights[fIndex]['Hora de salida_salida'] = newVal; flights[fIndex]['fecha_hora_real_salida'] = newVal; }
                         if (field === 'destino') { flights[fIndex]['Destino'] = newVal; flights[fIndex]['destino'] = newVal; }
@@ -1347,7 +1347,7 @@
                             window.logHistory('EDITAR', 'Vuelo Diario', `${dateStr} #${seq}`, {
                                 old: oldFlightState,
                                 new: flights[fIndex],
-                                summary: `EdiciÃ³n de campo '${field}' en vuelo ${oldFlightState.vuelo_llegada || oldFlightState.vuelo_salida}`
+                                summary: `Edición de campo '${field}' en vuelo ${oldFlightState.vuelo_llegada || oldFlightState.vuelo_salida}`
                             });
                         }
                     } else {
@@ -1391,7 +1391,7 @@
         const tbody = table.querySelector('tbody');
         const thead = table.querySelector('thead');
 
-        // Inject Filter Row ─────────────────────────────────────────────
+        // Inject Filter Row ---------------------------------------------
         let filterRow = thead.querySelector('.filter-row');
         if (!filterRow) {
             filterRow = document.createElement('tr');
@@ -1462,7 +1462,7 @@
                     const input = document.createElement('input');
                     input.type = 'text';
                     input.className = 'flights-col-filter w-100';
-                    input.placeholder = headerText ? 'Filtrar…' : '';
+                    input.placeholder = headerText ? 'Filtrar�' : '';
                     input.title = headerText ? `Filtrar por ${headerText}` : '';
 
                     input.addEventListener('input', function () {
@@ -1472,7 +1472,7 @@
 
                     td.appendChild(input);
                 } else {
-                    td.innerHTML = '<span class="text-muted small">—</span>';
+                    td.innerHTML = '<span class="text-muted small">�</span>';
                 }
 
                 filterRow.appendChild(td);
@@ -1483,7 +1483,7 @@
             table._applyAllFilters = applyAllFilters;
         }
 
-        // Render Data ────────────────────────────────────────────────────
+        // Render Data ----------------------------------------------------
         tbody.innerHTML = '';
 
         // Update count badge
@@ -1671,7 +1671,7 @@
         this.filterFlightsGlobal('');
     }
 
-    // ── Daily-ops date filter helpers ───────────────────────────────────
+    // -- Daily-ops date filter helpers -----------------------------------
 
     /** Toggle the date-filter panel open/closed for 'arrival' or 'departure'. */
     toggleDailyDatePanel(type) {
@@ -1849,7 +1849,7 @@
     }
 
     async deleteSingleFlight(dateStr, seqNo, type) {
-        if (!confirm('Â¿Eliminar este vuelo?')) return;
+        if (!confirm('¿Eliminar este vuelo?')) return;
 const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-single-overlay'; loadingMsg.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);color:white;display:flex;align-items:center;justify-content:center;font-size:24px;z-index:9999;flex-direction:column;'; loadingMsg.innerHTML = 'Espera, eliminando...'; document.body.appendChild(loadingMsg); 
         try {
             const { data, error } = await this.client
@@ -1858,7 +1858,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
                 .eq('date', dateStr)
                 .single();
 
-            if (error || !data) throw new Error('No se encontrÃ³ el registro del dÃ­a.');
+            if (error || !data) throw new Error('No se encontró el registro del día.');
 
             let flights = data.data || [];
 
@@ -1877,7 +1877,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
             });
 
             if (flights.length === initialLen) {
-                alert('No se pudo localizar el vuelo especÃ­fico para eliminar (ID no coincide).');
+                alert('No se pudo localizar el vuelo específico para eliminar (ID no coincide).');
                 return;
             }
 
@@ -1894,7 +1894,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
                 window.logHistory('ELIMINAR', 'Vuelo Diario', `${dateStr} #${seqNo}`, {
                     old: flightToDelete,
                     new: null, // Deletion
-                    summary: `Se eliminÃ³ el vuelo ${flightLabel} de ${flightToDelete.aerolinea || 'N/A'}`
+                    summary: `Se eliminó el vuelo ${flightLabel} de ${flightToDelete.aerolinea || 'N/A'}`
                 });
             }
 
@@ -1911,11 +1911,11 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
         const filterDate = filterDateEl ? filterDateEl.value : null;
 
         if (!filterDate) {
-            alert('Por favor selecciona una fecha especÃ­fica para eliminar.');
+            alert('Por favor selecciona una fecha específica para eliminar.');
             return;
         }
 
-        if (!confirm(`Â¿EstÃ¡s SEGURO de que deseas ELIMINAR TODOS los vuelos del dÃ­a ${filterDate}?\n\nEsta acciÃ³n borrarÃ¡ el itinerario completo de esa fecha y no se puede deshacer.`)) {
+        if (!confirm(`¿Estás SEGURO de que deseas ELIMINAR TODOS los vuelos del día ${filterDate}?\n\nEsta acción borrará el itinerario completo de esa fecha y no se puede deshacer.`)) {
             return;
         }
 
@@ -2299,7 +2299,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
     }
 
     async deleteMedicalDoc(id, docIndex) {
-        if (!confirm("Â¿Eliminar este documento?")) return;
+        if (!confirm("¿Eliminar este documento?")) return;
         try {
             const { data: currentData, error: fetchError } = await this.client
                 .from('medical_directory')
@@ -2462,7 +2462,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
         }
     }
 
-    // ─── Importar CSV de Puntualidad ──────────────────────────────────────────
+    // --- Importar CSV de Puntualidad ------------------------------------------
     importPunctualityCsv() {
         const MONTH_MAP = {
             'enero': 1, 'febrero': 2, 'marzo': 3, 'abril': 4, 'mayo': 5, 'junio': 6,
@@ -2470,11 +2470,11 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
         };
 
         // Ask for the year (default current)
-        const yearVal = prompt('¿A qué año corresponde el CSV? (ejemplo: 2026)', new Date().getFullYear());
+        const yearVal = prompt('�A qu� a�o corresponde el CSV? (ejemplo: 2026)', new Date().getFullYear());
         if (!yearVal) return;
         const year = parseInt(yearVal, 10);
         if (isNaN(year) || year < 2020 || year > 2100) {
-            alert('Año inválido.');
+            alert('A�o inv�lido.');
             return;
         }
 
@@ -2487,9 +2487,9 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
 
             const text = await file.text();
             const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
-            if (lines.length < 2) { alert('El CSV está vacío o no tiene datos.'); return; }
+            if (lines.length < 2) { alert('El CSV est� vac�o o no tiene datos.'); return; }
 
-            // Parse CSV (simple split — assumes no quoted commas in data)
+            // Parse CSV (simple split � assumes no quoted commas in data)
             const parseRow = (line) => line.split(',').map(c => c.trim());
             const headers = parseRow(lines[0]).map(h => h.toLowerCase());
 
@@ -2503,18 +2503,18 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
             };
 
             const colMes       = idx(['mes']);
-            const colAerolinea = idx(['aerolinea', 'aerolínea', 'airline']);
-            const colCategoria = idx(['categoria', 'categoría', 'category']);
+            const colAerolinea = idx(['aerolinea', 'aerol�nea', 'airline']);
+            const colCategoria = idx(['categoria', 'categor�a', 'category']);
             const colATiempo   = idx(['a tiempo', 'on_time', 'tiempo']);
             const colDemora    = idx(['demora', 'delayed']);
             const colCancelado = idx(['cancelado', 'cancelled']);
             const colTotal     = idx(['total_flights', 'total vuelos', 'total']);
-            const colImp       = idx(['imputables a la', 'imputable_airline', 'imp. aerolínea']);
+            const colImp       = idx(['imputables a la', 'imputable_airline', 'imp. aerol�nea']);
             const colCancImp   = idx(['cancelados imputables', 'cancelled_imputable']);
             const colTotImp    = idx(['total imputables', 'total_imputable']);
 
             if (colAerolinea < 0 || colTotal < 0) {
-                alert('No se reconoció el formato del CSV. Asegúrese de que tenga columnas: Aerolinea, A tiempo, Demora, Cancelado, Total.');
+                alert('No se reconoci� el formato del CSV. Aseg�rese de que tenga columnas: Aerolinea, A tiempo, Demora, Cancelado, Total.');
                 return;
             }
 
@@ -2527,7 +2527,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
 
                 const mesRaw = colMes >= 0 ? (cells[colMes] || '').toLowerCase() : '';
                 const month = MONTH_MAP[mesRaw] || null;
-                if (!month) { console.warn(`Mes no reconocido: "${mesRaw}" en línea ${i + 1}`); continue; }
+                if (!month) { console.warn(`Mes no reconocido: "${mesRaw}" en l�nea ${i + 1}`); continue; }
 
                 const row = {
                     year,
@@ -2551,7 +2551,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
             }
 
             if (rows.length === 0) {
-                alert('No se encontraron filas válidas en el CSV.');
+                alert('No se encontraron filas v�lidas en el CSV.');
                 return;
             }
 
@@ -2559,7 +2559,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
             const months = [...new Set(rows.map(r => r.month))];
             const monthNames = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
             const monthsStr = months.map(m => monthNames[m] || m).join(', ');
-            const confirm1 = confirm(`Se encontraron ${rows.length} filas para ${monthsStr} ${year}.\n${hasImputables ? '✓ Incluye columnas de imputables.' : '⚠ Sin columnas de imputables.'}\n\n¿Desea importar los datos? Los registros existentes para estos meses serán reemplazados.`);
+            const confirm1 = confirm(`Se encontraron ${rows.length} filas para ${monthsStr} ${year}.\n${hasImputables ? '? Incluye columnas de imputables.' : '? Sin columnas de imputables.'}\n\n�Desea importar los datos? Los registros existentes para estos meses ser�n reemplazados.`);
             if (!confirm1) return;
 
             try {
@@ -2580,7 +2580,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
                     .select();
                 if (insErr) throw new Error('Error al insertar: ' + insErr.message);
 
-                alert(`✓ ${inserted.length} registros importados correctamente para ${monthsStr} ${year}.`);
+                alert(`? ${inserted.length} registros importados correctamente para ${monthsStr} ${year}.`);
                 this.loadPunctualityStats();
             } catch (err) {
                 console.error(err);
@@ -2782,7 +2782,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
         const headers = table.querySelectorAll('thead th');
         const days = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
 
-        // Indices 4 to 10 correspond to L-D (0: Semana, 1: Id, 2: Ruta, 3: AerolÃ­nea, 4: L, ..., 10: D)
+        // Indices 4 to 10 correspond to L-D (0: Semana, 1: Id, 2: Ruta, 3: Aerolínea, 4: L, ..., 10: D)
         for (let i = 0; i < 7; i++) {
             const current = new Date(startDate);
             current.setDate(startDate.getDate() + i);
@@ -2826,7 +2826,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
             return;
         }
 
-        if (!confirm(`Â¿EstÃ¡s seguro de que deseas ELIMINAR TODAS las frecuencias de la semana "${currentLabel}"?\n\nEsta acciÃ³n no se puede deshacer.`)) {
+        if (!confirm(`¿Estás seguro de que deseas ELIMINAR TODAS las frecuencias de la semana "${currentLabel}"?\n\nEsta acción no se puede deshacer.`)) {
             return;
         }
 
@@ -3315,8 +3315,8 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
                         btnAdd.className = 'btn btn-sm btn-outline-success d-block mx-auto mt-2';
                         btnAdd.style.fontSize = '0.7rem';
                         btnAdd.style.padding = '2px 6px';
-                        btnAdd.innerHTML = '<i class="fas fa-plus"></i> AerolÃ­nea';
-                        btnAdd.title = 'Agregar aerolÃ­nea a este destino';
+                        btnAdd.innerHTML = '<i class="fas fa-plus"></i> Aerolínea';
+                        btnAdd.title = 'Agregar aerolínea a este destino';
                         btnAdd.onclick = () => this.addAirlineToDestination(groupItem);
                         tdRoute.appendChild(btnAdd);
 
@@ -3609,33 +3609,33 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
             // Manual mapping for clean international names
             const IATA_LOCATIONS = {
                 'HAV': { city: 'La Habana', country: 'Cuba' },
-                'PUJ': { city: 'Punta Cana', country: 'República Dominicana' },
-                'SDQ': { city: 'Santo Domingo', country: 'República Dominicana' },
-                'BOG': { city: 'Bogotá', country: 'Colombia' },
+                'PUJ': { city: 'Punta Cana', country: 'Rep�blica Dominicana' },
+                'SDQ': { city: 'Santo Domingo', country: 'Rep�blica Dominicana' },
+                'BOG': { city: 'Bogot�', country: 'Colombia' },
                 'CCS': { city: 'Caracas', country: 'Venezuela' },
-                'PTY': { city: 'Ciudad de Panamá', country: 'Panamá' },
+                'PTY': { city: 'Ciudad de Panam�', country: 'Panam�' },
                 'IAH': { city: 'Houston', country: 'Estados Unidos' },
                 'MIA': { city: 'Miami', country: 'Estados Unidos' },
                 'JFK': { city: 'Nueva York', country: 'Estados Unidos' },
                 'ORD': { city: 'Chicago', country: 'Estados Unidos' },
                 'DFW': { city: 'Dallas', country: 'Estados Unidos' },
-                'MAD': { city: 'Madrid', country: 'España' },
-                'CDG': { city: 'París', country: 'Francia' },
-                'AMS': { city: 'Ámsterdam', country: 'Países Bajos' },
+                'MAD': { city: 'Madrid', country: 'Espa�a' },
+                'CDG': { city: 'Par�s', country: 'Francia' },
+                'AMS': { city: '�msterdam', country: 'Pa�ses Bajos' },
                 'LHR': { city: 'Londres', country: 'Reino Unido' },
-                'FRA': { city: 'Fráncfort', country: 'Alemania' },
+                'FRA': { city: 'Fr�ncfort', country: 'Alemania' },
                 'DOH': { city: 'Doha', country: 'Catar' },
-                'ICN': { city: 'Seúl', country: 'Corea del Sur' },
-                'NRT': { city: 'Tokio', country: 'Japón' },
+                'ICN': { city: 'Se�l', country: 'Corea del Sur' },
+                'NRT': { city: 'Tokio', country: 'Jap�n' },
                 'HKG': { city: 'Hong Kong', country: 'China' },
-                'YYZ': { city: 'Toronto', country: 'Canadá' },
-                'YVR': { city: 'Vancouver', country: 'Canadá' },
-                'YUL': { city: 'Montreal', country: 'Canadá' },
-                'LIM': { city: 'Lima', country: 'Perú' },
+                'YYZ': { city: 'Toronto', country: 'Canad�' },
+                'YVR': { city: 'Vancouver', country: 'Canad�' },
+                'YUL': { city: 'Montreal', country: 'Canad�' },
+                'LIM': { city: 'Lima', country: 'Per�' },
                 'SCL': { city: 'Santiago', country: 'Chile' },
                 'EZE': { city: 'Buenos Aires', country: 'Argentina' },
-                'GRU': { city: 'São Paulo', country: 'Brasil' },
-                'GIG': { city: 'Río de Janeiro', country: 'Brasil' },
+                'GRU': { city: 'S�o Paulo', country: 'Brasil' },
+                'GIG': { city: 'R�o de Janeiro', country: 'Brasil' },
                 'MCALLEN': { city: 'McAllen', country: 'Estados Unidos' },
                 'MFE': { city: 'McAllen', country: 'Estados Unidos' }
             };
@@ -3722,8 +3722,8 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
                         btnAdd.className = 'btn btn-sm btn-outline-success d-block mx-auto mt-2';
                         btnAdd.style.fontSize = '0.7rem';
                         btnAdd.style.padding = '2px 6px';
-                        btnAdd.innerHTML = '<i class="fas fa-plus"></i> AerolÃ­nea';
-                        btnAdd.title = 'Agregar aerolÃ­nea a este destino';
+                        btnAdd.innerHTML = '<i class="fas fa-plus"></i> Aerolínea';
+                        btnAdd.title = 'Agregar aerolínea a este destino';
                         btnAdd.onclick = () => this.addInternationalAirlineToDestination(groupItem);
                         tdRoute.appendChild(btnAdd);
 
@@ -3915,7 +3915,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
             return;
         }
 
-        if (!confirm(`Â¿EstÃ¡s seguro de que deseas ELIMINAR TODAS las frecuencias internacionales de la semana "${currentLabel}"?\n\nEsta acciÃ³n no se puede deshacer.`)) {
+        if (!confirm(`¿Estás seguro de que deseas ELIMINAR TODAS las frecuencias internacionales de la semana "${currentLabel}"?\n\nEsta acción no se puede deshacer.`)) {
             return;
         }
 
@@ -4053,7 +4053,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
             const items = await window.dataManager.getLibraryItems();
 
             if (!categories || categories.length === 0) {
-                container.innerHTML = '<div class="col-12 text-center py-5 text-muted">No hay categorÃ­as configuradas en la biblioteca.</div>';
+                container.innerHTML = '<div class="col-12 text-center py-5 text-muted">No hay categorías configuradas en la biblioteca.</div>';
                 return;
             }
 
@@ -4216,8 +4216,8 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
                 const tdLevel = document.createElement('td');
                 let badgeClass = 'bg-info text-dark';
                 let levelLabel = 'Informativo';
-                if (item.level === 'warning') { badgeClass = 'bg-warning text-dark'; levelLabel = 'Precaución'; }
-                if (item.level === 'critical') { badgeClass = 'bg-danger text-white'; levelLabel = 'Crítico'; }
+                if (item.level === 'warning') { badgeClass = 'bg-warning text-dark'; levelLabel = 'Precauci�n'; }
+                if (item.level === 'critical') { badgeClass = 'bg-danger text-white'; levelLabel = 'Cr�tico'; }
                 tdLevel.innerHTML = `<span class="badge ${badgeClass}">${levelLabel}</span>`;
                 tr.appendChild(tdLevel);
 
@@ -4472,8 +4472,8 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
                         btnAdd.className = 'btn btn-sm btn-outline-warning d-block mx-auto mt-2';
                         btnAdd.style.fontSize = '0.7rem';
                         btnAdd.style.padding = '2px 6px';
-                        btnAdd.innerHTML = '<i class="fas fa-plus"></i> Aerolínea';
-                        btnAdd.title = 'Agregar aerolínea a este destino de Carga';
+                        btnAdd.innerHTML = '<i class="fas fa-plus"></i> Aerol�nea';
+                        btnAdd.title = 'Agregar aerol�nea a este destino de Carga';
                         btnAdd.onclick = () => this.addCargoAirlineToDestination(groupItem);
                         tdRoute.appendChild(btnAdd);
 
@@ -4668,7 +4668,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
         const selectedLabel = labelSelect ? labelSelect.value : '';
         if (!selectedLabel) return;
 
-        if (!confirm(`¿Estás seguro de eliminar TODOS los registros de Carga de la semana: ${selectedLabel}?`)) return;
+        if (!confirm(`�Est�s seguro de eliminar TODOS los registros de Carga de la semana: ${selectedLabel}?`)) return;
 
         try {
             const { error } = await this.client.from('weekly_frequencies_cargo').delete().eq('week_label', selectedLabel);
@@ -4800,10 +4800,10 @@ window.toggleDmSidebar = toggleDmSidebar;
 
 document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.dataManagement.renderPublicAlerts(), 2000); });
 
-/* ══════════════════════════════════════════════════════════════════════════
-   MÓDULO AEROLÍNEAS — gestión inline en Gestión de Datos
+/* --------------------------------------------------------------------------
+   M�DULO AEROL�NEAS � gesti�n inline en Gesti�n de Datos
    Tabla: airlines   Bucket: airline-logos
-   ══════════════════════════════════════════════════════════════════════════ */
+   -------------------------------------------------------------------------- */
 (function () {
     const AL_TABLE  = 'airlines';
     const AL_BUCKET = 'airline-logos';
@@ -4815,18 +4815,18 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
     let alEditId   = null;
     let alPending  = null;
 
-    // ── helpers ──────────────────────────────────────────────────────────────
+    // -- helpers --------------------------------------------------------------
     function esc(s)  { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
     function escA(s) { return String(s ?? '').replace(/'/g,'&#39;').replace(/"/g,'&quot;'); }
     function sb()    { return window.supabaseClient; }
 
     function alLogoType(a) { return a.logo_url ? 'storage' : (a.iata ? 'iata' : 'none'); }
 
-    // ── load & render ────────────────────────────────────────────────────────
+    // -- load & render --------------------------------------------------------
     window.alLoad = async function () {
         const tbody = document.getElementById('al-tbody');
         if (!tbody) return;
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Cargando…</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Cargando�</td></tr>';
         const client = sb();
         if (!client) {
             tbody.innerHTML = '<tr><td colspan="7" class="alert alert-danger m-2">supabaseClient no disponible.</td></tr>';
@@ -4874,7 +4874,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         });
         alRender();
         const cnt = document.getElementById('al-count');
-        if (cnt) cnt.textContent = `${alFiltered.length} aerolíneas mostradas`;
+        if (cnt) cnt.textContent = `${alFiltered.length} aerol�neas mostradas`;
     };
 
     function alLogoThumb(a) {
@@ -4924,8 +4924,8 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
             return `<tr id="al-row-${escA(a.id)}">
                 <td style="vertical-align:middle;padding:.4rem .6rem">${alLogoThumb(a)}</td>
                 <td style="font-weight:600;font-size:.88rem">${esc(a.name)}</td>
-                <td>${codes || '<span class="text-muted small">—</span>'}</td>
-                <td>${alTypeBadges(a) || '<span class="text-muted small">—</span>'}</td>
+                <td>${codes || '<span class="text-muted small">�</span>'}</td>
+                <td>${alTypeBadges(a) || '<span class="text-muted small">�</span>'}</td>
                 <td><span style="display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.15);background:${escA(color)};vertical-align:middle;margin-right:4px"></span><code style="font-size:.72rem">${esc(color)}</code></td>
                 <td>${alStatusPill(a)}</td>
                 <td style="text-align:center;white-space:nowrap">
@@ -4937,7 +4937,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         }).join('');
     }
 
-    // ── inline logo upload ────────────────────────────────────────────────────
+    // -- inline logo upload ----------------------------------------------------
     window.alInlineUpload = function (airlineId) {
         const inp = document.createElement('input');
         inp.type = 'file';
@@ -4980,10 +4980,10 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         alToast(`Logo actualizado: ${(alAll.find(x => x.id === airlineId) || {}).name || airlineId}`, 'success');
     }
 
-    // ── modal: add / edit ─────────────────────────────────────────────────────
+    // -- modal: add / edit -----------------------------------------------------
     window.alOpenAdd = function () {
         alEditId = null; alPending = null;
-        document.getElementById('al-modal-title').innerHTML = '<i class="fas fa-plus me-2"></i>Nueva Aerolínea';
+        document.getElementById('al-modal-title').innerHTML = '<i class="fas fa-plus me-2"></i>Nueva Aerol�nea';
         document.getElementById('al-btn-delete').classList.add('d-none');
         alClearForm();
         new bootstrap.Modal(document.getElementById('dm-airline-modal')).show();
@@ -5003,7 +5003,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         ['al-f-name','al-f-iata','al-f-icao','al-f-aliases'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
         ['al-f-nac','al-f-int','al-f-car','al-f-pax'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
         const col = document.getElementById('al-f-color'); if (col) col.value = '#0d6efd';
-        const dt  = document.getElementById('al-drop-text'); if (dt) dt.textContent = 'Arrastra o haz clic · PNG, JPG, SVG — máx 2 MB';
+        const dt  = document.getElementById('al-drop-text'); if (dt) dt.textContent = 'Arrastra o haz click � PNG, JPG, SVG � m�x 2 MB';
         const prev = document.getElementById('al-logo-preview'); if (prev) prev.innerHTML = '<span class="text-muted small">Sube un logo para ver la vista previa</span>';
     }
 
@@ -5021,16 +5021,16 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         const prev = document.getElementById('al-logo-preview');
         if (!prev) return;
         if (a.logo_url) {
-            prev.innerHTML = `<img src="${escA(a.logo_url)}" style="max-height:60px;object-fit:contain"><div class="small ms-2 text-muted">Logo actual · <span class="text-success"><i class="fas fa-cloud me-1"></i>Storage</span></div>`;
+            prev.innerHTML = `<img src="${escA(a.logo_url)}" style="max-height:60px;object-fit:contain"><div class="small ms-2 text-muted">Logo actual � <span class="text-success"><i class="fas fa-cloud me-1"></i>Storage</span></div>`;
         } else if (a.iata) {
-            prev.innerHTML = `<img src="${GURL(a.iata)}" style="max-height:50px;object-fit:contain"><div class="small ms-2 text-muted">Logo IATA · <span class="text-warning">No está en Storage</span></div>`;
+            prev.innerHTML = `<img src="${GURL(a.iata)}" style="max-height:50px;object-fit:contain"><div class="small ms-2 text-muted">Logo IATA � <span class="text-warning">No est� en Storage</span></div>`;
         } else {
-            prev.innerHTML = '<span class="text-muted small">Sin logo — sube uno</span>';
+            prev.innerHTML = '<span class="text-muted small">Sin logo � sube uno</span>';
         }
         const dt = document.getElementById('al-drop-text');
         if (dt) dt.innerHTML = a.logo_filename
-            ? `<span class="text-success"><i class="fas fa-check me-1"></i>${esc(a.logo_filename)}</span> <small class="text-muted">· clic para cambiar</small>`
-            : 'Arrastra o haz clic · PNG, JPG, SVG — máx 2 MB';
+            ? `<span class="text-success"><i class="fas fa-check me-1"></i>${esc(a.logo_filename)}</span> <small class="text-muted">� click para cambiar</small>`
+            : 'Arrastra o haz click � PNG, JPG, SVG � m�x 2 MB';
     }
 
     window.alHandleDrop = function (e) { e.preventDefault(); if (e.dataTransfer.files[0]) alHandleFile(e.dataTransfer.files[0]); };
@@ -5041,7 +5041,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         const dt   = document.getElementById('al-drop-text');
         const prev = document.getElementById('al-logo-preview');
         if (dt)   dt.innerHTML = `<span class="text-success"><i class="fas fa-check me-1"></i>${esc(file.name)}</span>`;
-        if (prev) prev.innerHTML = `<img src="${url}" style="max-height:60px;object-fit:contain"><div class="small ms-2 text-muted">Vista previa · ${esc(file.name)}</div>`;
+        if (prev) prev.innerHTML = `<img src="${url}" style="max-height:60px;object-fit:contain"><div class="small ms-2 text-muted">Vista previa � ${esc(file.name)}</div>`;
     };
 
     window.alSave = async function () {
@@ -5099,21 +5099,21 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         return { url: publicUrl, filename };
     }
 
-    // ── delete ────────────────────────────────────────────────────────────────
+    // -- delete ----------------------------------------------------------------
     window.alConfirmDelete = async function (id) {
         const a = alAll.find(x => x.id === id);
-        if (!confirm(`¿Eliminar "${a ? a.name : id}"? Esta acción no se puede deshacer.`)) return;
+        if (!confirm(`�Eliminar "${a ? a.name : id}"? Esta acci�n no se puede deshacer.`)) return;
         const client = sb();
         if (a?.logo_filename) await client.storage.from(AL_BUCKET).remove([a.logo_filename]);
         const { error } = await client.from(AL_TABLE).delete().eq('id', id);
         if (error) { alToast(`Error: ${error.message}`, 'danger'); return; }
-        alToast('Aerolínea eliminada.', 'warning');
+        alToast('Aerol�nea eliminada.', 'warning');
         await alLoad();
     };
 
     window.alDelete = async function () { if (alEditId) await alConfirmDelete(alEditId); };
 
-    // ── toast ─────────────────────────────────────────────────────────────────
+    // -- toast -----------------------------------------------------------------
     function alToast(msg, type) {
         const t = document.createElement('div');
         t.className = `alert alert-${type || 'success'} position-fixed bottom-0 end-0 m-3 shadow`;
@@ -5124,11 +5124,11 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
     }
 })();
 
-/* ══════════════════════════════════════════════════════════════════════════
-   MÓDULO AEROLÍNEAS MENSUALES — tabla completa inline-editable
-   ══════════════════════════════════════════════════════════════════════════ */
+/* --------------------------------------------------------------------------
+   M�DULO AEROL�NEAS MENSUALES � tabla completa inline-editable
+   -------------------------------------------------------------------------- */
 (function () {
-    const AM_TABLE = 'Aerolíneas';
+    const AM_TABLE = 'Aerol�neas';
     const AM_MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
     const AM_MON_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
@@ -5151,7 +5151,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         setTimeout(function() { t.remove(); }, 4000);
     }
 
-    // ── Render ────────────────────────────────────────────────────────────────
+    // -- Render ----------------------------------------------------------------
     function amRender() {
         const thead = document.getElementById('am-thead');
         const tbody = document.getElementById('am-tbody');
@@ -5160,7 +5160,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
 
         // Header
         thead.innerHTML = '<tr>'
-            + '<th style="min-width:220px;padding:10px 12px;">Aerolínea</th>'
+            + '<th style="min-width:220px;padding:10px 12px;">Aerol�nea</th>'
             + '<th style="min-width:140px;padding:10px 12px;">Tipo de Servicio</th>'
             + AM_MON_SHORT.map(function(m){ return '<th style="min-width:68px;text-align:center;padding:10px 6px;">' + m + '</th>'; }).join('')
             + '<th style="min-width:80px;text-align:center;padding:10px 6px;">Acciones</th>'
@@ -5182,7 +5182,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
             tbody.appendChild(amBuildRow(row));
         });
 
-        if (countEl) countEl.textContent = visible.length + ' aerolínea(s) mostradas de ' + amAllRows.length + ' en total.';
+        if (countEl) countEl.textContent = visible.length + ' aerol�nea(s) mostradas de ' + amAllRows.length + ' en total.';
     }
 
     function amBuildRow(row) {
@@ -5194,14 +5194,14 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         tr.dataset.rowkey = rowKey;
         if (isNew) tr.classList.add('table-warning');
 
-        let cells = '<td style="padding:4px 8px;"><input type="text" class="form-control form-control-sm am-cell-nombre" value="' + esc(nombre) + '" placeholder="Nombre aerolínea" style="min-width:180px;"></td>'
+        let cells = '<td style="padding:4px 8px;"><input type="text" class="form-control form-control-sm am-cell-nombre" value="' + esc(nombre) + '" placeholder="Nombre aerol�nea" style="min-width:180px;"></td>'
             + '<td style="padding:4px 8px;"><input type="text" class="form-control form-control-sm am-cell-servicio" value="' + esc(servicio) + '" placeholder="Ej. Regular de Carga" style="min-width:120px;"></td>';
 
         AM_MONTHS.forEach(function(mon) {
             const colKey = mon + '-' + amSelectedYr;
             const v = row[colKey];
             const val = (v !== null && v !== undefined && v !== '') ? v : '';
-            cells += '<td style="padding:4px 4px;"><input type="number" class="form-control form-control-sm text-center am-cell-month" data-col="' + colKey + '" value="' + esc(val) + '" placeholder="—" min="0" step="1" style="min-width:60px;padding:4px 2px;"></td>';
+            cells += '<td style="padding:4px 4px;"><input type="number" class="form-control form-control-sm text-center am-cell-month" data-col="' + colKey + '" value="' + esc(val) + '" placeholder="�" min="0" step="1" style="min-width:60px;padding:4px 2px;"></td>';
         });
 
         cells += '<td style="text-align:center;padding:4px 6px;">'
@@ -5219,10 +5219,10 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         return tr;
     }
 
-    // ── Load all data ─────────────────────────────────────────────────────────
+    // -- Load all data ---------------------------------------------------------
     window.amRefresh = async function () {
         const tbody = document.getElementById('am-tbody');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="16" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Cargando…</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="16" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Cargando�</td></tr>';
         const client = sb();
         if (!client) { amToast('Cliente Supabase no disponible.', 'danger'); return; }
         const { data, error } = await client.from(AM_TABLE).select('*').order('AEROLINEA');
@@ -5231,7 +5231,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         amRender();
     };
 
-    // ── Filter ────────────────────────────────────────────────────────────────
+    // -- Filter ----------------------------------------------------------------
     window.amFilterTable = function () {
         const inp = document.getElementById('am-search');
         amSearchTerm = inp ? inp.value : '';
@@ -5245,7 +5245,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         amRender();
     };
 
-    // ── Add new row ───────────────────────────────────────────────────────────
+    // -- Add new row -----------------------------------------------------------
     window.amAddRow = function () {
         const newRow = { _new: true, _tmpKey: '__new_' + (++amNewRowIdx), 'AEROLINEA': '', 'TIPO DE SERVICIO': '' };
         AM_MONTHS.forEach(function(mon) { newRow[mon + '-' + amSelectedYr] = null; });
@@ -5258,7 +5258,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         }
     };
 
-    // ── Save single row ───────────────────────────────────────────────────────
+    // -- Save single row -------------------------------------------------------
     window.amSaveRow = async function (btn) {
         const tr = btn.closest('tr');
         if (!tr) return;
@@ -5267,7 +5267,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
 
         const nombre = tr.querySelector('.am-cell-nombre')?.value.trim() || '';
         const servicio = tr.querySelector('.am-cell-servicio')?.value.trim() || '';
-        if (!nombre) { amToast('El nombre de la aerolínea no puede estar vacío.', 'warning'); return; }
+        if (!nombre) { amToast('El nombre de la aerol�nea no puede estar vac�o.', 'warning'); return; }
 
         const updates = { 'AEROLINEA': nombre, 'TIPO DE SERVICIO': servicio };
         tr.querySelectorAll('.am-cell-month').forEach(function(inp) {
@@ -5305,13 +5305,13 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
             return;
         }
 
-        amToast((isNew ? 'Aerolínea agregada' : 'Cambios guardados') + ': ' + nombre, 'success');
+        amToast((isNew ? 'Aerol�nea agregada' : 'Cambios guardados') + ': ' + nombre, 'success');
         // Reload fresh data
         await amRefresh();
         try { window.aeroDataCache = null; } catch(_) {}
     };
 
-    // ── Delete row ────────────────────────────────────────────────────────────
+    // -- Delete row ------------------------------------------------------------
     window.amDeleteRow = async function (btn) {
         const tr = btn.closest('tr');
         if (!tr) return;
@@ -5326,7 +5326,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
             return;
         }
 
-        if (!confirm('¿Eliminar la aerolínea "' + nombre + '"? Esta acción no se puede deshacer.')) return;
+        if (!confirm('�Eliminar la aerol�nea "' + nombre + '"? Esta acci�n no se puede deshacer.')) return;
 
         const client = sb();
         if (!client) { amToast('Cliente Supabase no disponible.', 'danger'); return; }
@@ -5341,12 +5341,12 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         }
 
         if (queryError) { amToast('Error: ' + queryError.message, 'danger'); return; }
-        amToast('Aerolínea eliminada: ' + nombre, 'warning');
+        amToast('Aerol�nea eliminada: ' + nombre, 'warning');
         await amRefresh();
         try { window.aeroDataCache = null; } catch(_) {}
     };
 
-    // ── Save all rows ─────────────────────────────────────────────────────────
+    // -- Save all rows ---------------------------------------------------------
     window.amSaveAll = async function (btn) {
         const tbody = document.getElementById('am-tbody');
         if (!tbody) return;
@@ -5356,7 +5356,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         const client = sb();
         if (!client) { amToast('Cliente Supabase no disponible.', 'danger'); return; }
 
-        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando…'; }
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando�'; }
 
         let ok = 0, fail = 0;
         for (const tr of rows) {
@@ -5404,7 +5404,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         try { window.aeroDataCache = null; } catch(_) {}
     };
 
-    // ── Wire events ───────────────────────────────────────────────────────────
+    // -- Wire events -----------------------------------------------------------
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.am-yr-btn').forEach(function(btn) {
             btn.addEventListener('click', function () {

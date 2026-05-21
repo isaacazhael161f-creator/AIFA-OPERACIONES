@@ -1813,7 +1813,7 @@ ${inactiveSection}`;
                 </div>
                 <div class="card-body px-4 py-3">
                     <div class="d-flex flex-wrap" style="gap:0">${chips || '<span class="text-muted small">Sin datos para esta semana.</span>'}</div>
-                    <div class="mt-2" style="font-size:.65rem;color:#cbd5e1"><i class="fas fa-hand-pointer me-1"></i>Haz clic en un destino para ver su fecha de inauguración</div>
+                    <div class="mt-2" style="font-size:.65rem;color:#cbd5e1"><i class="fas fa-hand-pointer me-1"></i>Haz click en un destino para ver su fecha de inauguración</div>
                 </div>
             </div>`;
         }

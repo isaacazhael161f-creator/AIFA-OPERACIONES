@@ -333,7 +333,7 @@
       if (headingEl)  headingEl.textContent  = isAll ? `Todas las horas ${suffix}` : `Top horas ${suffix}`;
       if (subtitleEl) subtitleEl.textContent = isAll
         ? 'Se muestran las 24 franjas horarias. Las horas sin operaciones aparecen con menor opacidad.'
-        : 'Haz clic en una franja para abrir los vuelos identificados en esa hora.';
+        : 'Haz click en una franja para abrir los vuelos identificados en esa hora.';
     };
     updateHeading(topSelPax,   '(Pasajeros)');
     updateHeading(topSelCargo, '(Carga)');
@@ -383,7 +383,7 @@
     if (headingEl)  headingEl.textContent  = isAll ? 'Todas las horas (Vista General)' : 'Horas pico (Vista General)';
     if (subtitleEl) subtitleEl.textContent = isAll
       ? 'Se muestran las 24 franjas horarias. Las horas sin operaciones aparecen con menor opacidad.'
-      : 'Vista unificada de pasajeros y carga. Haz clic en una franja para ver los vuelos.';
+      : 'Vista unificada de pasajeros y carga. Haz click en una franja para ver los vuelos.';
     const mkTop = (arr, n) => arr
       .map((v,i)=>({h:i,v}))
       .filter(x=>x.v>0)
@@ -1118,7 +1118,7 @@
     g.fillStyle = darkMode ? 'rgba(148,163,184,0.8)' : 'rgba(71,85,105,0.8)';
     g.font = '600 11px "Inter", "Roboto", Arial';
     g.textAlign = 'right';
-    g.fillText('Haz clic en una barra para detallar vuelos', x0 + innerW, margin.top - 14);
+    g.fillText('Haz click en una barra para detallar vuelos', x0 + innerW, margin.top - 14);
   }
 
   function roundRect(g, x, y, w, h, r){

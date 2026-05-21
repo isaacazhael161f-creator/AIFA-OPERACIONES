@@ -1,38 +1,38 @@
-﻿// ============================================================
-//  Email Analysis Module — Análisis de Correos AIFA
+// ============================================================
+//  Email Analysis Module � An�lisis de Correos AIFA
 //  Soporta: Correos de entrada.xlsx + Correos elementos enviados.xlsx
-//  - Correos recibidos y enviados por día
-//  - Solicitudes de slot: Alta / Modificación / Cancelación / Demora
-//  - Tiempo de respuesta (precisión horaria y diaria)
+//  - Correos recibidos y enviados por d�a
+//  - Solicitudes de slot: Alta / Modificaci�n / Cancelaci�n / Demora
+//  - Tiempo de respuesta (precisi�n horaria y diaria)
 // ============================================================
 (function () {
   'use strict';
 
-  // ── Constantes ───────────────────────────────────────────
-  const CAT_ORDER  = ['Alta', 'Modificación', 'Cancelación', 'Demora'];
+  // -- Constantes -------------------------------------------
+  const CAT_ORDER  = ['Alta', 'Modificaci�n', 'Cancelaci�n', 'Demora'];
   const CAT_COLORS = {
     Alta:          '#0077b6',
-    'Modificación':'#f4a261',
-    'Cancelación': '#e63946',
+    'Modificaci�n':'#f4a261',
+    'Cancelaci�n': '#e63946',
     Demora:        '#9b5de5',
   };
   const CAT_PATTERNS = {
-    // Alineados con patrones Python (más amplios)
+    // Alineados con patrones Python (m�s amplios)
     Alta:
-      /\b(alta\s+de\s+slot|alta\s+slot|asignaci[oó]n|asigna[s]?\s+slot|solicitud\s+de\s+slot|solicitud\s+slot|slot\s+request|asignar\s+slot|nuevo\s+slot|alta\s+vuelo)\b/i,
-    'Modificación':
-      /\b(modificaci[oó]n|modif[.\s]|ajuste[s]?|ajuste\s+de\s+slot|ajuste\s+slot|cambio[s]?\s+(de\s+)?slot|cambio\s+de\s+slot|scr\b|reprogramaci[oó]n)\b/i,
-    'Cancelación':
-      /\b(cancelaci[oó]n|cancelacion|baja\s+(de\s+)?slot|baja\s+slot|cancelar|supresi[oó]n)\b/i,
+      /\b(alta\s+de\s+slot|alta\s+slot|asignaci[o�]n|asigna[s]?\s+slot|solicitud\s+de\s+slot|solicitud\s+slot|slot\s+request|asignar\s+slot|nuevo\s+slot|alta\s+vuelo)\b/i,
+    'Modificaci�n':
+      /\b(modificaci[o�]n|modif[.\s]|ajuste[s]?|ajuste\s+de\s+slot|ajuste\s+slot|cambio[s]?\s+(de\s+)?slot|cambio\s+de\s+slot|scr\b|reprogramaci[o�]n)\b/i,
+    'Cancelaci�n':
+      /\b(cancelaci[o�]n|cancelacion|baja\s+(de\s+)?slot|baja\s+slot|cancelar|supresi[o�]n)\b/i,
     Demora:
       /\b(demora|delay|retraso|atraso)\b/i,
   };
   const DAY_OFFSET = {
-    lunes: 0, martes: -1, 'miércoles': -2, miercoles: -2,
-    jueves: -3, viernes: -4, 'sábado': -5, sabado: -5, domingo: -6,
+    lunes: 0, martes: -1, 'mi�rcoles': -2, miercoles: -2,
+    jueves: -3, viernes: -4, 's�bado': -5, sabado: -5, domingo: -6,
   };
 
-  // ── Estado ────────────────────────────────────────────────
+  // -- Estado ------------------------------------------------
   const st = {
     received: [],
     sent:     [],
@@ -41,7 +41,7 @@
     loaded:   { recv: false, sent: false },
   };
 
-  // ── Helper: columna robusta (acento-insensible) ───────────
+  // -- Helper: columna robusta (acento-insensible) -----------
   function col(row, ...names) {
     for (const n of names) {
       if (row[n] !== undefined && row[n] !== null) return row[n];
@@ -56,7 +56,7 @@
     return null;
   }
 
-  // ── Utilidades de fecha ───────────────────────────────────
+  // -- Utilidades de fecha -----------------------------------
   function getToday() {
     const t = new Date();
     return new Date(t.getFullYear(), t.getMonth(), t.getDate());
@@ -69,7 +69,7 @@
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
   function fmtDateKey(k) {
-    if (!k) return '—';
+    if (!k) return '�';
     const [y, m, d] = k.split('-');
     const M = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
     return `${Number(d)} ${M[Number(m)-1]} ${y}`;
@@ -109,7 +109,7 @@
     return null;
   }
 
-  // ── Clasificación de asunto ───────────────────────────────
+  // -- Clasificaci�n de asunto -------------------------------
   function classifySubject(subj) {
     if (!subj) return null;
     for (const [cat, pat] of Object.entries(CAT_PATTERNS)) {
@@ -122,7 +122,7 @@
                            .trim().toLowerCase();
   }
 
-  // ── Lectura XLSX (ExcelJS) ────────────────────────────────
+  // -- Lectura XLSX (ExcelJS) --------------------------------
   function readBuffer(file) {
     return new Promise((res, rej) => {
       const r = new FileReader();
@@ -154,11 +154,11 @@
     return rows;
   }
 
-  // ── Procesado de filas ────────────────────────────────────
+  // -- Procesado de filas ------------------------------------
   function processReceived(rawRows) {
     if (rawRows.length) console.log('[em-recv] cols:', Object.keys(rawRows[0]));
-    // No se filtra por Tamaño: la columna puede tener distintos nombres/formatos
-    // según la versión de Outlook. Solo se excluyen filas sin fecha válida (al final).
+    // No se filtra por Tama�o: la columna puede tener distintos nombres/formatos
+    // seg�n la versi�n de Outlook. Solo se excluyen filas sin fecha v�lida (al final).
     return rawRows
       .map(r => {
         const dt  = parseXLSXDate(col(r, 'Recibido', 'recibido'));
@@ -197,7 +197,7 @@
       .filter(r => r.dateKey);
   }
 
-  // ── Tiempo de respuesta ───────────────────────────────────
+  // -- Tiempo de respuesta -----------------------------------
   function calcRT() {
     if (!st.sent.length) return null;
     const sentIdx = {};
@@ -256,7 +256,7 @@
              pctSame: ((sd / n) * 100).toFixed(0) };
   }
 
-  // ── Agrupaciones ─────────────────────────────────────────
+  // -- Agrupaciones -----------------------------------------
   function calcKPIs() {
     const recv = st.filtered, sent = st.sent;
     const nSlots     = recv.filter(r => r.isSlot).length;
@@ -269,7 +269,7 @@
     CAT_ORDER.forEach(c => (cats[c] = recv.filter(r => r.categoria === c).length));
     return { total: recv.length, totalSent: sent.length, nSlots, nSentSlots,
              days: days.size, peak, cats,
-             avgDay: days.size > 0 ? (recv.length / days.size).toFixed(1) : '—' };
+             avgDay: days.size > 0 ? (recv.length / days.size).toFixed(1) : '�' };
   }
 
   function groupByDay() {
@@ -290,11 +290,11 @@
   }
 
   function last14() {
-    // Usar los últimos 14 días con datos reales (no calendario desde hoy)
+    // Usar los �ltimos 14 d�as con datos reales (no calendario desde hoy)
     const allKeys = [...new Set(
       st.filtered.filter(r => r.dateKey && r.categoria).map(r => r.dateKey)
     )].sort();
-    // Tomar los últimos 14 días del dataset que tengan solicitudes
+    // Tomar los �ltimos 14 d�as del dataset que tengan solicitudes
     // y rellenar los huecos dentro de ese rango
     if (!allKeys.length) return { keys: [], sd: {} };
     const lastKey  = allKeys[allKeys.length - 1];
@@ -327,7 +327,7 @@
     return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, n);
   }
 
-  // ── Drill-down por día ──────────────────────────────────
+  // -- Drill-down por d�a ----------------------------------
   function filterByDay(key) {
     const from = document.getElementById('em-date-from');
     const to   = document.getElementById('em-date-to');
@@ -348,7 +348,7 @@
     applyFilters();
   }
 
-  // ── Filtros ───────────────────────────────────────────────
+  // -- Filtros -----------------------------------------------
   function applyFilters() {
     const q     = (document.getElementById('em-search')?.value    || '').toLowerCase();
     const fType =  document.getElementById('em-filter-type')?.value || 'all';
@@ -362,8 +362,8 @@
       if (dtTo   && r.date && r.date > dtTo)   return false;
       if (fType === 'slots'  && !r.isSlot)                   return false;
       if (fType === 'alta'   && r.categoria !== 'Alta')          return false;
-      if (fType === 'mod'    && r.categoria !== 'Modificación')  return false;
-      if (fType === 'cancel' && r.categoria !== 'Cancelación')   return false;
+      if (fType === 'mod'    && r.categoria !== 'Modificaci�n')  return false;
+      if (fType === 'cancel' && r.categoria !== 'Cancelaci�n')   return false;
       if (fType === 'demora' && r.categoria !== 'Demora')        return false;
       if (fFrom && !r.de.toLowerCase().includes(fFrom.toLowerCase())) return false;
       if (q && !`${r.asunto} ${r.de}`.toLowerCase().includes(q)) return false;
@@ -372,7 +372,7 @@
     renderAll();
   }
 
-  // ── Helpers UI ────────────────────────────────────────────
+  // -- Helpers UI --------------------------------------------
   const fmt = n => Number(n).toLocaleString('es-MX');
   const esc = s => String(s || '').replace(/[&<>"']/g, c =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -391,27 +391,27 @@
       senders.slice(0, 100).map(s => `<option value="${esc(s)}">${esc(s.slice(0, 60))}</option>`).join('');
   }
 
-  // ── Render ────────────────────────────────────────────────
+  // -- Render ------------------------------------------------
   function renderAll() { renderKPIs(); renderDaySummary(); renderCharts(); renderRTSection(); renderTable(); }
 
   function renderKPIs() {
     const k = calcKPIs();
-    setKPI('em-kpi-total',      fmt(k.total),       `${k.days} días · ~${k.avgDay}/día`);
+    setKPI('em-kpi-total',      fmt(k.total),       `${k.days} d�as � ~${k.avgDay}/d�a`);
     setKPI('em-kpi-slots',      fmt(k.nSlots),       'Total solicitudes de slot');
     setKPI('em-kpi-replied',    fmt(k.nSentSlots),   'Slot respondidas/enviadas');
     setKPI('em-kpi-pending',    fmt(k.totalSent),    'Total enviados');
     const pk = document.getElementById('em-kpi-peak');
     if (pk) {
-      pk.querySelector('.em-kpi-val').textContent = k.peak ? fmtDateKey(k.peak[0]) : '—';
+      pk.querySelector('.em-kpi-val').textContent = k.peak ? fmtDateKey(k.peak[0]) : '�';
       pk.querySelector('.em-kpi-sub').textContent = k.peak ? `${k.peak[1]} correos` : '';
     }
     setKPI('em-kpi-cat-alta',   fmt(k.cats['Alta']         || 0), 'Alta');
-    setKPI('em-kpi-cat-mod',    fmt(k.cats['Modificación'] || 0), 'Modificación');
-    setKPI('em-kpi-cat-cancel', fmt(k.cats['Cancelación']  || 0), 'Cancelación');
+    setKPI('em-kpi-cat-mod',    fmt(k.cats['Modificaci�n'] || 0), 'Modificaci�n');
+    setKPI('em-kpi-cat-cancel', fmt(k.cats['Cancelaci�n']  || 0), 'Cancelaci�n');
     setKPI('em-kpi-cat-demora', fmt(k.cats['Demora']       || 0), 'Demora');
   }
 
-  // ── Tabla resumen por día ───────────────────────────────
+  // -- Tabla resumen por d�a -------------------------------
   // groupByDay para el resumen: SIEMPRE usa st.received completo (no st.filtered)
   // para mostrar el panorama total sin que lo afecten los filtros activos.
   function groupByDayAll() {
@@ -451,10 +451,10 @@
               <th style="min-width:110px">Fecha</th>
               <th class="text-center" title="Correos recibidos">Recibidos</th>
               <th class="text-center" title="Correos enviados">Enviados</th>
-              <th class="text-center" style="color:${CAT_COLORS['Alta']}" title="Alta de slot">↑ Alta</th>
-              <th class="text-center" style="color:${CAT_COLORS['Modificación']}" title="Modificación">~ Modif.</th>
-              <th class="text-center" style="color:${CAT_COLORS['Cancelación']}" title="Cancelación">✕ Cancel.</th>
-              <th class="text-center" style="color:${CAT_COLORS['Demora']}" title="Demora">⌛ Demora</th>
+              <th class="text-center" style="color:${CAT_COLORS['Alta']}" title="Alta de slot">? Alta</th>
+              <th class="text-center" style="color:${CAT_COLORS['Modificaci�n']}" title="Modificaci�n">~ Modif.</th>
+              <th class="text-center" style="color:${CAT_COLORS['Cancelaci�n']}" title="Cancelaci�n">? Cancel.</th>
+              <th class="text-center" style="color:${CAT_COLORS['Demora']}" title="Demora">? Demora</th>
               <th class="text-center text-muted">Otros</th>
               <th style="min-width:90px">% Solicitudes</th>
               <th></th>
@@ -473,11 +473,11 @@
         <td class="fw-semibold" style="white-space:nowrap">${fmtDateKey(d.key)}</td>
         <td class="text-center fw-semibold text-primary">${d.total}</td>
         <td class="text-center text-secondary">${d.sent || 0}</td>
-        <td class="text-center">${d['Alta'] || 0 ? `<span class="badge" style="background:${CAT_COLORS['Alta']}22;color:${CAT_COLORS['Alta']};border:1px solid ${CAT_COLORS['Alta']}44">${d['Alta']}</span>` : '<span class="text-muted">—</span>'}</td>
-        <td class="text-center">${d['Modificación'] || 0 ? `<span class="badge" style="background:${CAT_COLORS['Modificación']}22;color:${CAT_COLORS['Modificación']};border:1px solid ${CAT_COLORS['Modificación']}44">${d['Modificación']}</span>` : '<span class="text-muted">—</span>'}</td>
-        <td class="text-center">${d['Cancelación'] || 0 ? `<span class="badge" style="background:${CAT_COLORS['Cancelación']}22;color:${CAT_COLORS['Cancelación']};border:1px solid ${CAT_COLORS['Cancelación']}44">${d['Cancelación']}</span>` : '<span class="text-muted">—</span>'}</td>
-        <td class="text-center">${d['Demora'] || 0 ? `<span class="badge" style="background:${CAT_COLORS['Demora']}22;color:${CAT_COLORS['Demora']};border:1px solid ${CAT_COLORS['Demora']}44">${d['Demora']}</span>` : '<span class="text-muted">—</span>'}</td>
-        <td class="text-center text-muted">${nOther || '<span class="text-muted">—</span>'}</td>
+        <td class="text-center">${d['Alta'] || 0 ? `<span class="badge" style="background:${CAT_COLORS['Alta']}22;color:${CAT_COLORS['Alta']};border:1px solid ${CAT_COLORS['Alta']}44">${d['Alta']}</span>` : '<span class="text-muted">�</span>'}</td>
+        <td class="text-center">${d['Modificaci�n'] || 0 ? `<span class="badge" style="background:${CAT_COLORS['Modificaci�n']}22;color:${CAT_COLORS['Modificaci�n']};border:1px solid ${CAT_COLORS['Modificaci�n']}44">${d['Modificaci�n']}</span>` : '<span class="text-muted">�</span>'}</td>
+        <td class="text-center">${d['Cancelaci�n'] || 0 ? `<span class="badge" style="background:${CAT_COLORS['Cancelaci�n']}22;color:${CAT_COLORS['Cancelaci�n']};border:1px solid ${CAT_COLORS['Cancelaci�n']}44">${d['Cancelaci�n']}</span>` : '<span class="text-muted">�</span>'}</td>
+        <td class="text-center">${d['Demora'] || 0 ? `<span class="badge" style="background:${CAT_COLORS['Demora']}22;color:${CAT_COLORS['Demora']};border:1px solid ${CAT_COLORS['Demora']}44">${d['Demora']}</span>` : '<span class="text-muted">�</span>'}</td>
+        <td class="text-center text-muted">${nOther || '<span class="text-muted">�</span>'}</td>
         <td>
           <div class="d-flex align-items-center gap-1">
             <div style="flex:1;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden">
@@ -488,7 +488,7 @@
         </td>
         <td>
           <button class="btn btn-link btn-sm p-0 em-day-row-btn" data-key="${d.key}"
-                  title="Ver todos los correos de este día" style="font-size:.78rem;color:#3b82f6">
+                  title="Ver todos los correos de este d�a" style="font-size:.78rem;color:#3b82f6">
             <i class="fas fa-search-plus"></i>
           </button>
         </td>
@@ -522,7 +522,7 @@
     const byDay  = groupByDay();
     const labels = byDay.map(r => fmtDateKey(r.key));
 
-    // Chart 1 – Correos por día (clic → drill-down)
+    // Chart 1 � Correos por d�a (click ? drill-down)
     const el1 = document.getElementById('em-chart-day');
     if (el1) {
       if (st.charts.day) { try { st.charts.day.dispose(); } catch (_) {} }
@@ -546,14 +546,14 @@
           const item = byDay[params.dataIndex];
           if (item) filterByDay(item.key);
         });
-        el1.title = 'Haz clic en una barra para ver todos los correos de ese día';
+        el1.title = 'Haz click en una barra para ver todos los correos de ese d�a';
         st.charts.day = c;
       } else {
-        el1.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:.85rem">Sin datos con fecha válida</div>';
+        el1.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:.85rem">Sin datos con fecha v�lida</div>';
       }
     }
 
-    // Chart 2 – Distribución por categoría (dona)
+    // Chart 2 � Distribuci�n por categor�a (dona)
     const el2 = document.getElementById('em-chart-resp');
     if (el2) {
       if (st.charts.resp) { try { st.charts.resp.dispose(); } catch (_) {} }
@@ -576,7 +576,7 @@
       }
     }
 
-    // Chart 3 – Top remitentes slot
+    // Chart 3 � Top remitentes slot
     const el3 = document.getElementById('em-chart-senders');
     if (el3) {
       if (st.charts.senders) { try { st.charts.senders.dispose(); } catch (_) {} }
@@ -599,7 +599,7 @@
       }
     }
 
-    // Chart 4 – Solicitudes slot últimos 14 días con datos (barras apiladas, clic → drill-down)
+    // Chart 4 � Solicitudes slot �ltimos 14 d�as con datos (barras apiladas, click ? drill-down)
     const el4 = document.getElementById('em-chart-slot-daily');
     if (el4) {
       if (st.charts.slotDaily) { try { st.charts.slotDaily.dispose(); } catch (_) {} }
@@ -624,20 +624,20 @@
         c.on('click', params => {
           if (keys[params.dataIndex]) filterByDay(keys[params.dataIndex]);
         });
-        el4.title = 'Haz clic en una barra para ver todos los correos de ese día';
+        el4.title = 'Haz click en una barra para ver todos los correos de ese d�a';
         st.charts.slotDaily = c;
       } else {
-        el4.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:.85rem">Sin solicitudes de slot en el período. Revisa que los asuntos de los correos contengan palabras como: <em>asignación, modificación, cancelación, demora, slot</em></div>';
+        el4.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:.85rem">Sin solicitudes de slot en el per�odo. Revisa que los asuntos de los correos contengan palabras como: <em>asignaci�n, modificaci�n, cancelaci�n, demora, slot</em></div>';
       }
     }
 
-    // Resize todos los gráficos después de que el navegador termine de pintar
+    // Resize todos los gr�ficos despu�s de que el navegador termine de pintar
     setTimeout(() => {
       Object.values(st.charts).forEach(c => { try { if (c?.resize) c.resize(); } catch (_) {} });
     }, 120);
   }
 
-  // ── Sección tiempo de respuesta ───────────────────────────
+  // -- Secci�n tiempo de respuesta ---------------------------
   function renderRTSection() {
     const sec = document.getElementById('em-rt-section'); if (!sec) return;
     const rt  = calcRT();
@@ -649,9 +649,9 @@
     const allH = rt.hourPairs.map(p => p.dh);
     if (allH.length) {
       const ov = statsH(allH);
-      html += `<p class="small fw-semibold text-primary mb-1">Tabla A — Precisión horaria (${ov.n} pares con hora exacta)</p>
+      html += `<p class="small fw-semibold text-primary mb-1">Tabla A � Precisi�n horaria (${ov.n} pares con hora exacta)</p>
 <div class="table-responsive mb-4"><table class="table table-sm table-bordered mb-0" style="font-size:.8rem">
-<thead class="table-dark"><tr><th>Categoría</th><th>N</th><th>Promedio</th><th>Mediana</th><th>Mínimo</th><th>Máximo</th><th>% ≤ 24 h</th></tr></thead><tbody>`;
+<thead class="table-dark"><tr><th>Categor�a</th><th>N</th><th>Promedio</th><th>Mediana</th><th>M�nimo</th><th>M�ximo</th><th>% = 24 h</th></tr></thead><tbody>`;
       CAT_ORDER.forEach(cat => {
         const s = statsH(rt.byCat[cat]?.hours || []); if (!s) return;
         const cls = Number(s.pct24) >= 80 ? 'text-success fw-semibold' : Number(s.pct24) >= 50 ? 'text-warning fw-semibold' : 'text-danger fw-semibold';
@@ -663,9 +663,9 @@
     const allD = rt.dayPairs.map(p => p.dd);
     if (allD.length) {
       const ov = statsD(allD);
-      html += `<p class="small fw-semibold text-primary mb-1">Tabla B — Precisión de día (${ov.n} pares solo con fecha)</p>
+      html += `<p class="small fw-semibold text-primary mb-1">Tabla B � Precisi�n de d�a (${ov.n} pares solo con fecha)</p>
 <div class="table-responsive"><table class="table table-sm table-bordered mb-0" style="font-size:.8rem">
-<thead class="table-dark"><tr><th>Categoría</th><th>N</th><th>Prom. días</th><th>Mismo día</th><th>Día sig.</th><th>2+ días</th><th>% mismo día</th></tr></thead><tbody>`;
+<thead class="table-dark"><tr><th>Categor�a</th><th>N</th><th>Prom. d�as</th><th>Mismo d�a</th><th>D�a sig.</th><th>2+ d�as</th><th>% mismo d�a</th></tr></thead><tbody>`;
       CAT_ORDER.forEach(cat => {
         const s = statsD(rt.byCat[cat]?.days || []); if (!s) return;
         const cls = Number(s.pctSame) >= 70 ? 'text-success fw-semibold' : Number(s.pctSame) >= 40 ? 'text-warning fw-semibold' : 'text-danger fw-semibold';
@@ -680,7 +680,7 @@
     sec.innerHTML = html;
   }
 
-  // ── Tabla de detalle ──────────────────────────────────────
+  // -- Tabla de detalle --------------------------------------
   function fmtTime(d) {
     if (!d || !(d.getHours() + d.getMinutes())) return '';
     return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
@@ -696,7 +696,7 @@
     const dTo   = document.getElementById('em-date-to')?.value   || '';
     const isSingleDay = dFrom && dTo && dFrom === dTo;
 
-    // ── Banner de día seleccionado ──────────────────────────
+    // -- Banner de d�a seleccionado --------------------------
     if (dayBar) {
       if (isSingleDay) {
         dayBar.innerHTML = `
@@ -707,7 +707,7 @@
               ${fmt(st.filtered.length)} recibidos
             </span>
             <button class="btn btn-sm btn-outline-secondary ms-auto" id="em-clear-day-btn" style="font-size:.74rem">
-              <i class="fas fa-times me-1"></i>Ver todos los días
+              <i class="fas fa-times me-1"></i>Ver todos los d�as
             </button>
           </div>`;
         dayBar.classList.remove('d-none');
@@ -718,13 +718,13 @@
       }
     }
 
-    // ── Altura de la tabla ──────────────────────────────────
+    // -- Altura de la tabla ----------------------------------
     if (scroll) scroll.style.maxHeight = isSingleDay ? 'none' : '380px';
 
-    // ── Filas a mostrar ─────────────────────────────────────
+    // -- Filas a mostrar -------------------------------------
     const rows = isSingleDay ? st.filtered : st.filtered.slice(0, 200);
     const extra = !isSingleDay && st.filtered.length > 200
-      ? ` · <em class="text-primary" style="font-size:.7rem">clic en barra del gráfico para ver un día completo</em>` : '';
+      ? ` � <em class="text-primary" style="font-size:.7rem">click en barra del gr�fico para ver un d�a completo</em>` : '';
     if (count) count.innerHTML = `${fmt(rows.length)} correos recibidos${extra}`;
 
     if (!rows.length) {
@@ -739,7 +739,7 @@
           ? `<span class="text-muted">${fmtDateKey(r.dateKey)}</span>${t ? `<span class="ms-1 text-muted" style="font-size:.7rem">${t}</span>` : ''}`
           : '<span class="text-warning">sin fecha</span>';
         const drillBtn = !isSingleDay
-          ? `<button class="btn btn-link btn-sm p-0 text-muted em-drill-btn" data-key="${r.dateKey}" title="Ver todos los correos de este día" style="font-size:.7rem"><i class="fas fa-search-plus"></i></button>`
+          ? `<button class="btn btn-link btn-sm p-0 text-muted em-drill-btn" data-key="${r.dateKey}" title="Ver todos los correos de este d�a" style="font-size:.7rem"><i class="fas fa-search-plus"></i></button>`
           : '';
         return `<tr>
           <td class="small" style="white-space:nowrap">${dateCell}</td>
@@ -750,12 +750,12 @@
         </tr>`;
       }).join('');
 
-      // Delegación para botones de lupa
+      // Delegaci�n para botones de lupa
       tbody.querySelectorAll('.em-drill-btn').forEach(btn =>
         btn.addEventListener('click', () => filterByDay(btn.dataset.key)));
     }
 
-    // ── Correos enviados ese día ────────────────────────────
+    // -- Correos enviados ese d�a ----------------------------
     const tableCard = tbody.closest('.rounded-4');
     const oldSent   = document.getElementById('em-day-sent-section');
     if (oldSent) oldSent.remove();
@@ -769,20 +769,20 @@
         sec.innerHTML = `
           <div class="px-3 pt-3 pb-2 d-flex align-items-center gap-2 border-bottom">
             <i class="fas fa-paper-plane text-success"></i>
-            <h6 class="fw-semibold mb-0 small text-muted text-uppercase">Correos enviados ese día</h6>
+            <h6 class="fw-semibold mb-0 small text-muted text-uppercase">Correos enviados ese d�a</h6>
             <span class="badge bg-success ms-1" style="font-size:.72rem">${sentDay.length}</span>
           </div>
           <div class="table-responsive">
             <table class="table table-sm table-hover mb-0" style="font-size:.8rem">
               <thead class="table-light">
-                <tr><th>Hora</th><th>Para</th><th>Asunto</th><th>Categoría</th></tr>
+                <tr><th>Hora</th><th>Para</th><th>Asunto</th><th>Categor�a</th></tr>
               </thead>
               <tbody>
                 ${sentDay.sort((a, b) => (a.date || 0) - (b.date || 0)).map(s => {
                   const badge = s.categoria
                     ? `<span class="badge" style="background:${CAT_COLORS[s.categoria]}22;color:${CAT_COLORS[s.categoria]};border:1px solid ${CAT_COLORS[s.categoria]}55;font-size:.68rem">${esc(s.categoria)}</span>`
                     : '<span class="badge bg-light text-secondary border" style="font-size:.68rem">Otro</span>';
-                  const t2 = fmtTime(s.date) || '—';
+                  const t2 = fmtTime(s.date) || '�';
                   return `<tr>
                     <td class="small text-muted" style="white-space:nowrap">${t2}</td>
                     <td class="small">${esc((s.para || '').slice(0, 60))}</td>
@@ -798,7 +798,7 @@
     }
   }
 
-  // ── Carga de archivos ─────────────────────────────────────
+  // -- Carga de archivos -------------------------------------
   function setStatus(type, msg, ok) {
     const id = type === 'recv' ? 'em-status-recv' : 'em-status-sent';
     const el = document.getElementById(id); if (!el) return;
@@ -806,7 +806,7 @@
   }
 
   async function loadFile(file, type) {
-    setStatus(type, 'Cargando…', true);
+    setStatus(type, 'Cargando�', true);
     try {
       const raw = await parseXLSX(file);
       if (type === 'recv') {
@@ -822,13 +822,13 @@
       }
 
       if (st.loaded.recv && st.loaded.sent) {
-        // Ambos archivos listos → mostrar panel y renderizar
+        // Ambos archivos listos ? mostrar panel y renderizar
         showPanel();
         // setTimeout da tiempo al navegador para pintar el panel antes de que
         // ECharts intente medir el ancho de los contenedores
         setTimeout(applyFilters, 80);
       } else {
-        // Un solo archivo cargado → pedir el otro
+        // Un solo archivo cargado ? pedir el otro
         const other = type === 'recv' ? 'em-status-sent' : 'em-status-recv';
         const otherEl = document.getElementById(other);
         if (otherEl && !otherEl.innerHTML.includes('cargados')) {
@@ -850,7 +850,7 @@
     document.getElementById('em-panel')?.classList.remove('d-none');
   }
 
-  // ── Init ──────────────────────────────────────────────────
+  // -- Init --------------------------------------------------
   function init() {
     if (!document.getElementById('email-analisis-section')) return;
 
@@ -892,7 +892,7 @@
         });
       }));
 
-    // Toggle ocultar/mostrar tabla resumen por día
+    // Toggle ocultar/mostrar tabla resumen por d�a
     document.getElementById('em-day-summary-toggle')?.addEventListener('click', () => {
       const wrap = document.getElementById('em-day-summary-wrap');
       const icon = document.getElementById('em-day-summary-icon');

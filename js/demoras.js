@@ -696,8 +696,8 @@
       canvas.classList.add('demoras-hover');
       canvas.tabIndex = 0;
       canvas.setAttribute('role', 'img');
-      canvas.setAttribute('aria-label', `${title || 'Distribución de demoras'}: selecciona una causa con clic o teclado.`);
-      canvas.setAttribute('title', 'Haz clic o usa las flechas y Enter para explorar las causas');
+      canvas.setAttribute('aria-label', `${title || 'Distribución de demoras'}: selecciona una causa con click o teclado.`);
+      canvas.setAttribute('title', 'Haz click o usa las flechas y Enter para explorar las causas');
       canvas.onclick = (ev) => {
         const rect = canvas.getBoundingClientRect();
         const x = (ev.clientX - rect.left) * (canvas.width / rect.width);
@@ -822,7 +822,7 @@
       descEl.textContent = descriptionText;
       descEl.classList.remove('text-muted');
     } else {
-      descEl.textContent = hasCausa ? 'Motivo no documentado. Puedes actualizarlo más tarde.' : 'Haz clic en cualquier causa para ver el detalle.';
+      descEl.textContent = hasCausa ? 'Motivo no documentado. Puedes actualizarlo más tarde.' : 'Haz click en cualquier causa para ver el detalle.';
       descEl.classList.add('text-muted');
     }
 

@@ -1,16 +1,16 @@
-﻿/**
+/**
  * manifiestos-analisis.js
  * Analisis exhaustivo de manifiestos - Tabla: "Base de datos Manifiestos 2025"
- * Sub-pestañas: Resumen | Pasajeros | Aerolíneas | Rutas | Equipaje | Datos
- * v2.1 — Logos de aerolíneas + porcentajes en gráficas
+ * Sub-pesta�as: Resumen | Pasajeros | Aerol�neas | Rutas | Equipaje | Datos
+ * v2.1 � Logos de aerol�neas + porcentajes en gr�ficas
  */
 (function () {
   'use strict';
 
   const TABLES = {
-    '2025':      { name: 'Base de datos Manifiestos 2025',          label: 'Manifiestos 2025 — Datos anuales' },
-    'feb2026':   { name: 'Base de Datos Manifiestos Febrero 2026',   label: 'Febrero 2026 — Datos mensuales' },
-    'abr2026':   { name: 'Manifiestos',                              label: 'Abril 2026 — Datos mensuales' }
+    '2025':      { name: 'Base de datos Manifiestos 2025',          label: 'Manifiestos 2025 � Datos anuales' },
+    'feb2026':   { name: 'Base de Datos Manifiestos Febrero 2026',   label: 'Febrero 2026 � Datos mensuales' },
+    'abr2026':   { name: 'Manifiestos',                              label: 'Abril 2026 � Datos mensuales' }
   };
   let _activeTableKey = '2025';
   const getTableName  = () => TABLES[_activeTableKey].name;
@@ -22,14 +22,14 @@
   const PAL_12    = ['#0d6efd','#198754','#ffc107','#dc3545','#0dcaf0','#6610f2','#fd7e14','#20c997','#6c757d','#d63384','#0d3b86','#155724'];
   const PAL_7     = ['#0d6efd','#fd7e14','#20c997','#0dcaf0','#d63384','#ffc107','#6c757d'];
 
-  /* ═══════════════════════════════════════════════════════
-     LOGOS DE AEROLÍNEAS
-     Mapeo nombre → código IATA para obtener logos de Google
-  ═══════════════════════════════════════════════════════ */
+  /* -------------------------------------------------------
+     LOGOS DE AEROL�NEAS
+     Mapeo nombre ? c�digo IATA para obtener logos de Google
+  ------------------------------------------------------- */
   const AIRLINE_IATA = {
-    'aerom\u00e9xico': 'AM', 'aeromexico': 'AM', 'aeroméxico connect': 'AM',
-    'aerolitoral': 'AM', 'aerovias': 'AM', 'aerov\u00edas': 'AM', 'aerovias de mexico': 'AM', 'aerovías de méxico': 'AM',
-    'mexicana': 'XN', 'mexicana de aviacion': 'XN', 'mexicana de aviación': 'XN',
+    'aerom\u00e9xico': 'AM', 'aeromexico': 'AM', 'aerom�xico connect': 'AM',
+    'aerolitoral': 'AM', 'aerovias': 'AM', 'aerov\u00edas': 'AM', 'aerovias de mexico': 'AM', 'aerov�as de m�xico': 'AM',
+    'mexicana': 'XN', 'mexicana de aviacion': 'XN', 'mexicana de aviaci�n': 'XN',
     'volaris': 'Y4', 'vuela': 'Y4',
     'vivaaerobus': 'VB', 'viva aerobus': 'VB', 'viva aerob\u00fas': 'VB',
     'arajet': 'DM',
@@ -92,7 +92,7 @@
     'aerus': 'images/airlines/logo_aerus.png'
   };
 
-  const _logoCache = {};  // IATA → HTMLImageElement
+  const _logoCache = {};  // IATA ? HTMLImageElement
 
   function normalizeAirlineKey(airlineName) {
     return (airlineName || '')
@@ -150,7 +150,7 @@
       + ' onerror="this.style.display=\'none\'">';
   }
 
-  /* Custom Chart.js plugin: dibuja logos en eje Y de gráficas horizontales */
+  /* Custom Chart.js plugin: dibuja logos en eje Y de gr�ficas horizontales */
   const airlineLogoPlugin = {
     id: 'airlineLogos',
     afterDraw(chart, args, opts) {
@@ -180,9 +180,9 @@
   if (window.Chart) Chart.register(airlineLogoPlugin);
   else document.addEventListener('DOMContentLoaded', () => { if (window.Chart) Chart.register(airlineLogoPlugin); });
 
-  /* ═══════════════════════════════════════════════════════
+  /* -------------------------------------------------------
      COLUMNAS REALES
-  ═══════════════════════════════════════════════════════ */
+  ------------------------------------------------------- */
   const col = (r, ...keys) => { for (const k of keys) { const v = r[k]; if (v !== undefined && v !== null && v !== '') return v; } return null; };
 
   const getDir      = r => col(r, 'TIPO DE MANIFIESTO') || '';
@@ -193,9 +193,9 @@
   const getFecha    = r => col(r, 'FECHA', 'fecha') || '';
   const getMes      = r => col(r, 'MES', 'mes') || '';
 
-  /* Extrae la hora (0-23) preferentemente de la columna HR. DE OPERACIÓN */
+  /* Extrae la hora (0-23) preferentemente de la columna HR. DE OPERACI�N */
   function getHour(r) {
-    // Columna principal: HR. DE OPERACIÓN (y variantes de escritura)
+    // Columna principal: HR. DE OPERACI�N (y variantes de escritura)
     const raw = col(r, 'HR. DE OPERACI\u00d3N', 'HR. DE OPERACION', 'HR DE OPERACION', 'HR DE OPERACI\u00d3N',
                        'HORA DE OPERACI\u00d3N', 'HORA DE OPERACION', 'HORA OPERACION',
                        'HR. OPERACI\u00d3N', 'HR. OPERACION',
@@ -206,7 +206,7 @@
       // HH:MM o HH:MM:SS
       const m1 = s.match(/^(\d{1,2}):(\d{2})/);
       if (m1) return parseInt(m1[1], 10);
-      // HHMM numérico (e.g. "0830")
+      // HHMM num�rico (e.g. "0830")
       const m2 = s.match(/^(\d{3,4})$/);
       if (m2) return parseInt(s.length === 3 ? s[0] : s.substring(0, 2), 10);
       // Datetime con T o espacio: "2025-12-20T14:30" / "2025-12-20 14:30"
@@ -222,13 +222,13 @@
     return -1; // sin dato
   }
 
-  /* Extrae minuto del día (0..1439) para análisis de simultaneidad */
+  /* Extrae minuto del d�a (0..1439) para an�lisis de simultaneidad */
   function getMinuteOfDay(r) {
-    const raw = col(r, 'HR. DE OPERACIÓN', 'HR. DE OPERACION', 'HR DE OPERACION', 'HR DE OPERACIÓN',
-                       'HORA DE OPERACIÓN', 'HORA DE OPERACION', 'HORA OPERACION',
-                       'HR. OPERACIÓN', 'HR. OPERACION',
+    const raw = col(r, 'HR. DE OPERACI�N', 'HR. DE OPERACION', 'HR DE OPERACION', 'HR DE OPERACI�N',
+                       'HORA DE OPERACI�N', 'HORA DE OPERACION', 'HORA OPERACION',
+                       'HR. OPERACI�N', 'HR. OPERACION',
                        'SLOT ASIGNADO', 'SLOT COORDINADO',
-                       'HORA DE INICIO O TERMINO DE PERNOCTA', 'HORA DE RECEPCIÓN', 'HORA DE RECEPCION');
+                       'HORA DE INICIO O TERMINO DE PERNOCTA', 'HORA DE RECEPCI�N', 'HORA DE RECEPCION');
     const parseToMinute = (val) => {
       if (!val) return -1;
       const s = String(val).trim();
@@ -238,7 +238,7 @@
         const hh = parseInt(m1[1], 10), mm = parseInt(m1[2], 10);
         if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) return (hh * 60) + mm;
       }
-      // HHMM numérico (e.g. 0830)
+      // HHMM num�rico (e.g. 0830)
       const m2 = s.match(/^(\d{3,4})$/);
       if (m2) {
         const hh = parseInt(s.length === 3 ? s[0] : s.substring(0, 2), 10);
@@ -303,7 +303,7 @@
   const escHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const tickK   = v => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'k' : v;
 
-  /* Opciones de datalabels para pies — etiquetas externas con nombre y % */
+  /* Opciones de datalabels para pies � etiquetas externas con nombre y % */
   function datalabelsPiePct(total) {
     return {
       display: true,
@@ -342,9 +342,9 @@
     };
   }
 
-  /* ═══════════════════════════════════════════════════════
+  /* -------------------------------------------------------
      ESTADO
-  ═══════════════════════════════════════════════════════ */
+  ------------------------------------------------------- */
   let _allData = [], _filtered = [], _tableData = [];
   let _currentPage = 1, _charts = {}, _loaded = false;
 
@@ -375,11 +375,11 @@
     load();
   }
 
-  /* ═══════════════════════════════════════════════════════
+  /* -------------------------------------------------------
      INIT
-  ═══════════════════════════════════════════════════════ */
+  ------------------------------------------------------- */
   document.addEventListener('DOMContentLoaded', () => {
-    // Desactivar datalabels globalmente por defecto (sólo activar donde queremos)
+    // Desactivar datalabels globalmente por defecto (s�lo activar donde queremos)
     if (window.Chart && window.ChartDataLabels) {
       Chart.unregister(ChartDataLabels);
     }
@@ -425,26 +425,26 @@
     }, 500);
   }
 
-  /* ═══════════════════════════════════════════════════════
+  /* -------------------------------------------------------
      CARGA
-  ═══════════════════════════════════════════════════════ */
+  ------------------------------------------------------- */
   async function load() {
     if (_loaded) { applyFilters(); return; }
     hideBanner();
     showOverlay('Cargando manifiestos...');
     try {
       const client = window.supabaseClient;
-      if (!client) throw new Error('Supabase no disponible — inicia sesi\u00f3n primero');
+      if (!client) throw new Error('Supabase no disponible � inicia sesi\u00f3n primero');
       const BS = 1000;
       const tableName = getTableName();
 
-      // 1. Obtener el total de registros con una sola petición HEAD
+      // 1. Obtener el total de registros con una sola petici�n HEAD
       setOverlayText('Consultando registros...');
       const { count, error: countErr } = await client.from(tableName).select('*', { count: 'exact', head: true });
       if (countErr) throw countErr;
       const total = Math.min(count || 0, 200000);
 
-      // 2. Descargar todas las páginas en paralelo
+      // 2. Descargar todas las p�ginas en paralelo
       const pages = Math.ceil(total / BS);
       setOverlayText('Descargando ' + total.toLocaleString() + ' registros en ' + pages + ' lotes...');
       const requests = Array.from({ length: pages }, (_, i) =>
@@ -475,9 +475,9 @@
     } finally { hideOverlay(); }
   }
 
-  /* ═══════════════════════════════════════════════════════
+  /* -------------------------------------------------------
      FILTRADO
-  ═══════════════════════════════════════════════════════ */
+  ------------------------------------------------------- */
   function applyFilters() {
     const year    = document.getElementById('mdb-filter-year')?.value    || '';
     const monthN  = document.getElementById('mdb-filter-month')?.value   || '';
@@ -520,9 +520,9 @@
     _currentPage = 1; renderTable(res);
   }
 
-  /* ═══════════════════════════════════════════════════════
+  /* -------------------------------------------------------
      RENDER ALL
-  ═══════════════════════════════════════════════════════ */
+  ------------------------------------------------------- */
   function renderAll() {
     renderKPIs();
     renderActiveSubTab();
@@ -544,9 +544,9 @@
     }
   }
 
-  /* ═══════════════════════════════════════════════════════
+  /* -------------------------------------------------------
      KPIs
-  ═══════════════════════════════════════════════════════ */
+  ------------------------------------------------------- */
   function renderKPIs() {
     const d = _filtered, total = d.length;
     const totalPax = d.reduce((s, r) => s + getPaxTotal(r), 0);
@@ -577,16 +577,16 @@
     set('mdb-kpi-int-pax',        fmt(intPax));
     set('mdb-kpi-int-pct',        pct(intPax, totalPax) + ' del total');
     set('mdb-record-count',       fmt(total) + ' reg.');
-    // Logo aerolínea líder
+    // Logo aerol�nea l�der
     if (top) {
       const el = document.getElementById('mdb-kpi-top-airline');
       if (el) el.innerHTML = airlineLogoHTML(top[0], 20) + escHtml(top[0]);
     }
   }
 
-  /* ═══════════════════════════════════════════════════════
-     SUB-PESTAÑA: RESUMEN
-  ═══════════════════════════════════════════════════════ */
+  /* -------------------------------------------------------
+     SUB-PESTA�A: RESUMEN
+  ------------------------------------------------------- */
   function renderTabResumen() {
     renderChartMonthly();
     renderChartDirDonut();
@@ -697,9 +697,9 @@
     });
   }
 
-  /* ═══════════════════════════════════════════════════════
-     SUB-PESTAÑA: PASAJEROS
-  ═══════════════════════════════════════════════════════ */
+  /* -------------------------------------------------------
+     SUB-PESTA�A: PASAJEROS
+  ------------------------------------------------------- */
   function renderTabPasajeros() {
     const d = _filtered;
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
@@ -807,7 +807,7 @@
             label: c => ' ' + c.dataset.label + ': ' + fmt(c.raw),
             footer: items => {
               const total = combM[items[0].dataIndex];
-              return items.map(i => pct(i.raw, total) + ' del mes — ' + i.dataset.label).join('\n');
+              return items.map(i => pct(i.raw, total) + ' del mes � ' + i.dataset.label).join('\n');
             }
           }}
         },
@@ -849,9 +849,9 @@
     });
   }
 
-  /* ═══════════════════════════════════════════════════════
-     SUB-PESTAÑA: AEROLÍNEAS
-  ═══════════════════════════════════════════════════════ */
+  /* -------------------------------------------------------
+     SUB-PESTA�A: AEROL�NEAS
+  ------------------------------------------------------- */
   function renderTabAerolineas() {
     renderAirlineRanking();
     renderChartAirlineDomInt();
@@ -979,9 +979,9 @@
     });
   }
 
-  /* ═══════════════════════════════════════════════════════
-     SUB-PESTAÑA: RUTAS
-  ═══════════════════════════════════════════════════════ */
+  /* -------------------------------------------------------
+     SUB-PESTA�A: RUTAS
+  ------------------------------------------------------- */
   function renderTabRutas() {
     renderChartRoutes();
     renderChartRouteOptype();
@@ -1066,7 +1066,7 @@
         '<td><div class="d-flex align-items-center gap-2"><div class="progress flex-grow-1" style="height:8px;min-width:50px;"><div class="progress-bar bg-danger" style="width:' + barW + '%"></div></div><span class="small fw-semibold text-danger">' + pct(v.pax, totalPax) + '</span></div></td>' +
         '</tr>';
       }).join('') +
-      // ── TOTAL row ──────────────────────────────────────────────────────────
+      // -- TOTAL row ----------------------------------------------------------
       '<tr style="background:#f1f5f9;border-top:2px solid #cbd5e1;">' +
       '<td></td>' +
       '<td class="fw-black text-uppercase" style="font-size:.82rem;letter-spacing:.5px;color:#374151;">TOTAL</td>' +
@@ -1079,9 +1079,9 @@
       '</tr>';
   }
 
-  /* ═══════════════════════════════════════════════════════
-     SUB-PESTAÑA: EQUIPAJE
-  ═══════════════════════════════════════════════════════ */
+  /* -------------------------------------------------------
+     SUB-PESTA�A: EQUIPAJE
+  ------------------------------------------------------- */
   function renderTabEquipaje() {
     const d = _filtered;
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
@@ -1176,12 +1176,12 @@
     });
   }
 
-  /* ═══════════════════════════════════════════════════════
-     SUB-PESTAÑA: DATOS
-  ═══════════════════════════════════════════════════════ */
-  /* ═══════════════════════════════════════════════════════
-     SUB-PESTAÑA: OPERACIONES
-  ═══════════════════════════════════════════════════════ */
+  /* -------------------------------------------------------
+     SUB-PESTA�A: DATOS
+  ------------------------------------------------------- */
+  /* -------------------------------------------------------
+     SUB-PESTA�A: OPERACIONES
+  ------------------------------------------------------- */
   function renderTabOperaciones() {
     const d = _filtered;
     const total = d.length;
@@ -1240,7 +1240,7 @@
         tbody.appendChild(tr);
       });
       if (!hasAnyData) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">Sin datos para el período seleccionado</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">Sin datos para el per�odo seleccionado</td></tr>';
       }
     }
 
@@ -1306,7 +1306,7 @@
       });
     }
 
-    // Heatmaps: pasajeros y operaciones por hora x día de semana (datos de manifiestos)
+    // Heatmaps: pasajeros y operaciones por hora x d�a de semana (datos de manifiestos)
     renderOperacionesHeatmaps(d);
   }
 
@@ -1392,11 +1392,11 @@
 
   function getOperacionesHeatmapHourLabel(row, fallbackHour) {
     const raw = col(row,
-      'HR. DE OPERACIÓN', 'HR. DE OPERACION', 'HR DE OPERACION', 'HR DE OPERACIÓN',
-      'HORA DE OPERACIÓN', 'HORA DE OPERACION', 'HORA OPERACION',
-      'HR. OPERACIÓN', 'HR. OPERACION',
+      'HR. DE OPERACI�N', 'HR. DE OPERACION', 'HR DE OPERACION', 'HR DE OPERACI�N',
+      'HORA DE OPERACI�N', 'HORA DE OPERACION', 'HORA OPERACION',
+      'HR. OPERACI�N', 'HR. OPERACION',
       'SLOT ASIGNADO', 'SLOT COORDINADO',
-      'HORA DE INICIO O TERMINO DE PERNOCTA', 'HORA DE RECEPCIÓN', 'HORA DE RECEPCION'
+      'HORA DE INICIO O TERMINO DE PERNOCTA', 'HORA DE RECEPCI�N', 'HORA DE RECEPCION'
     );
     if (raw) {
       const s = String(raw).trim();
@@ -1414,15 +1414,15 @@
     const shortMonths = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
     const left = String(m.getDate()).padStart(2, '0') + ' ' + shortMonths[m.getMonth()];
     const right = String(s.getDate()).padStart(2, '0') + ' ' + shortMonths[s.getMonth()];
-    return 'S' + index + ' ' + left + '–' + right;
+    return 'S' + index + ' ' + left + '�' + right;
   }
 
   function drawOperacionesHeatmap(container, state, config) {
     const metric = config.metric;
     const tone = config.tone;
     const unit = config.unit;
-    const dayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-    const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    const dayLabels = ['Lun', 'Mar', 'Mi�', 'Jue', 'Vie', 'S�b', 'Dom'];
+    const dayNames = ['Lunes', 'Martes', 'Mi�rcoles', 'Jueves', 'Viernes', 'S�bado', 'Domingo'];
     let selectedWeek = '0';
 
     const getMatrix = () => {
@@ -1495,7 +1495,7 @@
       let html = '';
       html += `<div class="small text-muted mb-2">Filtrar semana:</div>`;
       html += `<div class="d-flex flex-wrap gap-2 mb-3">${weekButtons}</div>`;
-      html += `<p class="text-muted small mb-2">Muestra el total de <strong>${unit}</strong> por franja horaria y día de la semana (${escHtml(weekLabel)}). Los colores más oscuros indican mayor actividad.</p>`;
+      html += `<p class="text-muted small mb-2">Muestra el total de <strong>${unit}</strong> por franja horaria y d�a de la semana (${escHtml(weekLabel)}). Los colores m�s oscuros indican mayor actividad.</p>`;
       html += '<div class="table-responsive"><table class="table table-sm table-bordered text-center align-middle mb-0">';
       html += '<thead class="table-light"><tr><th class="text-center">Hora</th>';
       dayLabels.forEach(d => { html += `<th class="text-center">${d}</th>`; });
@@ -1560,7 +1560,7 @@
     const records = Array.isArray(ctx.records) ? ctx.records : [];
     const titleMetric = ctx.metric === 'ops' ? 'Operaciones' : 'Pasajeros';
     const badgeClass = ctx.metric === 'ops' ? 'bg-warning text-dark' : 'bg-primary';
-    titleEl.innerHTML = `${titleMetric} — ${escHtml(ctx.dayName || '')} ${String(ctx.hour).padStart(2, '0')}:00 <span class="badge ${badgeClass} fw-normal ms-2">${fmt(records.length)} registro${records.length === 1 ? '' : 's'}</span>`;
+    titleEl.innerHTML = `${titleMetric} � ${escHtml(ctx.dayName || '')} ${String(ctx.hour).padStart(2, '0')}:00 <span class="badge ${badgeClass} fw-normal ms-2">${fmt(records.length)} registro${records.length === 1 ? '' : 's'}</span>`;
 
     if (!records.length) {
       bodyEl.innerHTML = '<p class="text-muted mb-0">Sin registros para esta celda.</p>';
@@ -1579,17 +1579,17 @@
     const totalPax = sorted.reduce((acc, r) => acc + (Number(r.pax) || 0), 0);
     let html = `<p class="text-muted small mb-3">Semana: <strong>${escHtml(ctx.weekLabel || 'Todas las semanas')}</strong>. Total de registros: <strong>${fmt(sorted.length)}</strong>. Total de pasajeros: <strong>${fmt(totalPax)}</strong>.</p>`;
     html += '<div class="table-responsive"><table class="table table-sm table-hover table-bordered align-middle mb-0" style="font-size:0.82rem">';
-    html += '<thead class="table-light"><tr><th>Fecha</th><th>Hora</th><th>Manifiesto</th><th>Aerolínea</th><th>Vuelo</th><th>Ruta</th><th>Tipo de operación</th><th class="text-end">Pax</th></tr></thead><tbody>';
+    html += '<thead class="table-light"><tr><th>Fecha</th><th>Hora</th><th>Manifiesto</th><th>Aerol�nea</th><th>Vuelo</th><th>Ruta</th><th>Tipo de operaci�n</th><th class="text-end">Pax</th></tr></thead><tbody>';
 
     sorted.forEach(r => {
       html += '<tr>';
-      html += `<td class="text-nowrap">${escHtml(r.fecha || '—')}</td>`;
-      html += `<td class="text-nowrap fw-semibold">${escHtml(r.hora || '—')}</td>`;
-      html += `<td>${escHtml(r.manifiesto || '—')}</td>`;
-      html += `<td>${escHtml(r.aerolinea || '—')}</td>`;
-      html += `<td class="fw-semibold">${escHtml(r.vuelo || '—')}</td>`;
-      html += `<td>${escHtml(r.ruta || '—')}</td>`;
-      html += `<td>${escHtml(r.tipoOperacion || '—')}</td>`;
+      html += `<td class="text-nowrap">${escHtml(r.fecha || '�')}</td>`;
+      html += `<td class="text-nowrap fw-semibold">${escHtml(r.hora || '�')}</td>`;
+      html += `<td>${escHtml(r.manifiesto || '�')}</td>`;
+      html += `<td>${escHtml(r.aerolinea || '�')}</td>`;
+      html += `<td class="fw-semibold">${escHtml(r.vuelo || '�')}</td>`;
+      html += `<td>${escHtml(r.ruta || '�')}</td>`;
+      html += `<td>${escHtml(r.tipoOperacion || '�')}</td>`;
       html += `<td class="text-end">${fmt(r.pax || 0)}</td>`;
       html += '</tr>';
     });
@@ -1599,23 +1599,23 @@
     bootstrap.Modal.getOrCreateInstance(modalEl).show();
   }
 
-  /* ═══════════════════════════════════════════════════════
-     HELPER: DÍA
-  ═══════════════════════════════════════════════════════ */
+  /* -------------------------------------------------------
+     HELPER: D�A
+  ------------------------------------------------------- */
   function getDayKey(r) {
     const raw = getFecha(r); if (!raw) return '';
     const clean = String(raw).split('T')[0];
     const p = clean.split(/[-\/]/);
     if (p.length < 3) return '';
     if (p[0].length === 4) return p[0] + '-' + p[1].padStart(2,'0') + '-' + p[2].padStart(2,'0'); // YYYY-MM-DD
-    return p[2] + '-' + p[1].padStart(2,'0') + '-' + p[0].padStart(2,'0'); // DD/MM/YYYY → YYYY-MM-DD
+    return p[2] + '-' + p[1].padStart(2,'0') + '-' + p[0].padStart(2,'0'); // DD/MM/YYYY ? YYYY-MM-DD
   }
 
-  /* ═══════════════════════════════════════════════════════
-     SUB-PESTAÑA: POR DÍA
-  ═══════════════════════════════════════════════════════ */
+  /* -------------------------------------------------------
+     SUB-PESTA�A: POR D�A
+  ------------------------------------------------------- */
   function renderTabDia() {
-    const DIAS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const DIAS_ES = ['Dom','Lun','Mar','Mi�','Jue','Vie','S�b'];
 
     // Aggregate per calendar day
     const map = {};
@@ -1633,7 +1633,7 @@
 
     const sorted = Object.keys(map).sort();
     const badge = document.getElementById('mdb-dia-count-badge');
-    if (badge) badge.textContent = sorted.length + ' días';
+    if (badge) badge.textContent = sorted.length + ' d�as';
 
     // Bar chart
     const ctx = document.getElementById('mdb-chart-day-pax');
@@ -1667,7 +1667,7 @@
                 try { const d = new Date(sorted[items[0].dataIndex] + 'T12:00:00'); return DIAS_ES[d.getDay()] + ', ' + sorted[items[0].dataIndex]; } catch(_) { return sorted[items[0].dataIndex]; }
               },
               label: c => ' ' + c.dataset.label + ': ' + fmt(c.raw) + ' (' + pct(c.raw, totData[c.dataIndex]) + ')',
-              footer: items => 'Total: ' + fmt(totData[items[0].dataIndex]) + ' (' + pct(totData[items[0].dataIndex], grandTotal) + ' del período)'
+              footer: items => 'Total: ' + fmt(totData[items[0].dataIndex]) + ' (' + pct(totData[items[0].dataIndex], grandTotal) + ' del per�odo)'
             }}
           },
           scales: {
@@ -1682,7 +1682,7 @@
     const tbody = document.getElementById('mdb-tbody-dia');
     if (!tbody) return;
     if (!sorted.length) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">Sin datos para el período seleccionado</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">Sin datos para el per�odo seleccionado</td></tr>';
       return;
     }
     const totalPax      = sorted.reduce((s, k) => s + map[k].pax, 0);
@@ -1705,7 +1705,7 @@
       const isPeak = k === peakDay;
       const rowClass = isPeak ? 'class="table-info"' : (esFin ? 'class="table-warning"' : '');
       const badgeCls = esFin ? 'bg-warning text-dark' : 'bg-light text-secondary border';
-      return '<tr ' + rowClass + ' data-day="' + k + '" style="cursor:pointer;" title="Clic para ver desglose por hora">' +
+      return '<tr ' + rowClass + ' data-day="' + k + '" style="cursor:pointer;" title="click para ver desglose por hora">' +
         '<td class="fw-semibold text-nowrap">' + day + '/' + m + '/' + y + (isPeak ? ' <span class="badge bg-info text-dark ms-1" style="font-size:0.65rem;">Mayor pax</span>' : '') + '</td>' +
         '<td class="text-center"><span class="badge ' + badgeCls + '">' + dia + '</span></td>' +
         '<td class="text-end">' + fmt(v.flights) + '</td>' +
@@ -1714,7 +1714,7 @@
         '<td class="text-end" style="color:#6610f2">' + fmt(v.depPax) + '</td>' +
         '<td class="text-end" style="color:#fd7e14">' + fmt(v.domPax) + '</td>' +
         '<td class="text-end" style="color:#20c997">' + fmt(v.intPax) + '</td>' +
-        '<td class="text-end text-muted">' + (v.flights ? fmt(Math.round(v.pax / v.flights)) : '—') + '</td>' +
+        '<td class="text-end text-muted">' + (v.flights ? fmt(Math.round(v.pax / v.flights)) : '�') + '</td>' +
         '</tr>';
     }).join('') +
     '<tr class="table-dark fw-bold">' +
@@ -1728,7 +1728,7 @@
     '<td></td>' +
     '</tr>';
 
-    // Row click → drill-down
+    // Row click ? drill-down
     tbody.querySelectorAll('tr[data-day]').forEach(tr => {
       tr.addEventListener('click', () => {
         tbody.querySelectorAll('tr[data-day]').forEach(r => r.style.outline = '');
@@ -1744,7 +1744,7 @@
     // Hourly breakdown
     renderDiaHourChart();
 
-    // Simultaneous operations by 10-minute slots (±5 min window)
+    // Simultaneous operations by 10-minute slots (�5 min window)
     renderDiaSimultaneousOps();
 
     // Airline breakdown
@@ -1796,7 +1796,7 @@
     }
     if (noDataBadge) noDataBadge.style.display = 'none';
 
-    const labels = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0') + ':00 – ' + ((i + 1) % 24).toString().padStart(2, '0') + ':00');
+    const labels = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0') + ':00 � ' + ((i + 1) % 24).toString().padStart(2, '0') + ':00');
     const totH   = arrH.map((v, i) => v + depH[i]);
     const grandTotal = totH.reduce((s, v) => s + v, 0);
 
@@ -1847,7 +1847,7 @@
       const dayKey = getDayKey(r);
       if (dayKey) dayKeys.add(dayKey);
 
-      // ±5 min window modeled as nearest 10-minute center
+      // �5 min window modeled as nearest 10-minute center
       const centered = Math.round(minuteOfDay / 10) * 10;
       const slot = ((centered % 1440) + 1440) % 1440;
       slots.set(slot, (slots.get(slot) || 0) + 1);
@@ -1855,9 +1855,9 @@
 
     if (withHour === 0) {
       if (noDataBadge) noDataBadge.style.display = '';
-      if (peakBadge) peakBadge.textContent = 'Pico: —';
+      if (peakBadge) peakBadge.textContent = 'Pico: �';
       if (summaryEl) {
-        summaryEl.textContent = 'No se detectó columna de hora en esta tabla para calcular operaciones simultáneas.';
+        summaryEl.textContent = 'No se detect� columna de hora en esta tabla para calcular operaciones simult�neas.';
       }
       if (topEl) topEl.innerHTML = '';
       if (chartWrap) chartWrap.style.display = 'none';
@@ -1882,16 +1882,16 @@
     const peakLabel = labels[maxIdx];
     const peakAvg = avgs[maxIdx];
 
-    if (peakBadge) peakBadge.textContent = 'Pico: ' + peakLabel + ' (' + peakAvg.toFixed(1) + ' ops/día)';
+    if (peakBadge) peakBadge.textContent = 'Pico: ' + peakLabel + ' (' + peakAvg.toFixed(1) + ' ops/d�a)';
     if (summaryEl) {
       const hh = parseInt(peakLabel.substring(0, 2), 10);
       const mm = parseInt(peakLabel.substring(3, 5), 10);
       const ini = String(hh).padStart(2, '0') + ':' + String(Math.max(0, mm - 5)).padStart(2, '0');
       const fin = String(hh).padStart(2, '0') + ':' + String(Math.min(59, mm + 5)).padStart(2, '0');
       summaryEl.innerHTML =
-        '<strong>Interpretación:</strong> En promedio, la mayor simultaneidad ocurre alrededor de <strong>' + peakLabel +
+        '<strong>Interpretaci�n:</strong> En promedio, la mayor simultaneidad ocurre alrededor de <strong>' + peakLabel +
         '</strong> (' + ini + ' a ' + fin + '), con <strong>' + peakAvg.toFixed(1) +
-        '</strong> operaciones al mismo tiempo por día activo.';
+        '</strong> operaciones al mismo tiempo por d�a activo.';
     }
 
     if (topEl) {
@@ -1901,7 +1901,7 @@
         .slice(0, 5);
       topEl.innerHTML = top.map((t, i) =>
         '<span class="badge rounded-pill ' + (i === 0 ? 'bg-danger' : 'bg-secondary') + '">'
-        + '#' + (i + 1) + ' ' + t.label + ' · ' + t.avg.toFixed(1) + ' ops/día'
+        + '#' + (i + 1) + ' ' + t.label + ' � ' + t.avg.toFixed(1) + ' ops/d�a'
         + '</span>'
       ).join('');
     }
@@ -1911,7 +1911,7 @@
       data: {
         labels,
         datasets: [{
-          label: 'Ops simultáneas promedio por día',
+          label: 'Ops simult�neas promedio por d�a',
           data: avgs,
           borderColor: '#dc3545',
           backgroundColor: 'rgba(220,53,69,0.14)',
@@ -1939,9 +1939,9 @@
               label: (ctx2) => {
                 const idx = ctx2.dataIndex;
                 return [
-                  ' ' + Number(ctx2.raw).toFixed(2) + ' ops simultáneas prom/día',
-                  ' Total período: ' + fmt(totals[idx]) + ' operaciones',
-                  ' Días activos: ' + fmt(activeDays)
+                  ' ' + Number(ctx2.raw).toFixed(2) + ' ops simult�neas prom/d�a',
+                  ' Total per�odo: ' + fmt(totals[idx]) + ' operaciones',
+                  ' D�as activos: ' + fmt(activeDays)
                 ];
               }
             }
@@ -1958,11 +1958,11 @@
               },
               font: { size: 10 }
             },
-            title: { display: true, text: 'Hora central (agrupación cada 10 min con ±5 min)' }
+            title: { display: true, text: 'Hora central (agrupaci�n cada 10 min con �5 min)' }
           },
           y: {
             beginAtZero: true,
-            title: { display: true, text: 'Operaciones simultáneas promedio por día' }
+            title: { display: true, text: 'Operaciones simult�neas promedio por d�a' }
           }
         }
       }
@@ -2041,11 +2041,11 @@
 
   function renderTabDatos() { renderTable(_filtered); }
 
-  /* ═══════════════════════════════════════════════════════
-     DETALLE POR HORA DE UN DÍA ESPECÍFICO
-  ═══════════════════════════════════════════════════════ */
+  /* -------------------------------------------------------
+     DETALLE POR HORA DE UN D�A ESPEC�FICO
+  ------------------------------------------------------- */
   function renderDiaDetail(dateKey) {
-    const DIAS_ES2 = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const DIAS_ES2 = ['Dom','Lun','Mar','Mi�','Jue','Vie','S�b'];
     const container = document.getElementById('mdb-dia-detail-content');
     if (!container || !dateKey) return;
 
@@ -2058,7 +2058,7 @@
 
     if (!dayRows.length) {
       container.innerHTML = '<div class="alert alert-warning mb-0 py-2">No hay datos para <strong>' + escHtml(dateKey) + '</strong>. ' +
-        'Verifica que los filtros de año/mes/aerolínea no excluyan este día, o que el dato exista en la base de datos.</div>';
+        'Verifica que los filtros de a�o/mes/aerol�nea no excluyan este d�a, o que el dato exista en la base de datos.</div>';
       return;
     }
 
@@ -2083,7 +2083,7 @@
     const arrH    = new Array(24).fill(0);
     const depH    = new Array(24).fill(0);
     const fltsH   = new Array(24).fill(0);
-    const hourAirMap = {}; // h → { airlineName → { arr, dep, flights } }
+    const hourAirMap = {}; // h ? { airlineName ? { arr, dep, flights } }
     dayRows.forEach(r => {
       const h = getHour(r); if (h < 0 || h > 23) return;
       const a = getAirline(r);
@@ -2117,7 +2117,7 @@
     const AIR_COLORS = ['#0d6efd','#198754','#ffc107','#dc3545','#0dcaf0','#6610f2','#fd7e14','#20c997','#d63384','#6c757d','#0d3b86','#adb5bd'];
     const TOP_CHART = Math.min(8, airSorted.length);
     const topAirlines = airSorted.slice(0, TOP_CHART).map(([n]) => n);
-    const hlbl = h => h.toString().padStart(2, '0') + ':00–' + ((h + 1) % 24).toString().padStart(2, '0') + ':00';
+    const hlbl = h => h.toString().padStart(2, '0') + ':00�' + ((h + 1) % 24).toString().padStart(2, '0') + ':00';
 
     // Build hourly table rows (expandable per-airline sub-rows)
     const hourRows = activeHours.map(h => {
@@ -2130,15 +2130,15 @@
       const summaryRow = '<tr class="hour-summary-row' + (isPk ? ' table-warning fw-bold' : '') + '" data-h="' + h + '" style="cursor:pointer;">' +
         '<td class="text-nowrap fw-semibold small">' +
           '<i class="fas fa-chevron-right hour-chevron me-1" style="font-size:0.6rem;transition:transform 0.2s;"></i>' +
-          h.toString().padStart(2, '0') + ':00 – ' + ((h + 1) % 24).toString().padStart(2, '0') + ':00' +
+          h.toString().padStart(2, '0') + ':00 � ' + ((h + 1) % 24).toString().padStart(2, '0') + ':00' +
           (isPk ? ' <span class="badge bg-warning text-dark ms-1" style="font-size:0.6rem;">PICO</span>' : '') +
         '</td>' +
         '<td class="text-end small">' + fltsH[h] + '</td>' +
         '<td class="text-end fw-bold small">' + fmt(totH[h]) + '</td>' +
-        '<td class="text-end small" style="color:#d63384">' + (arrH[h] ? fmt(arrH[h]) : '—') + '</td>' +
-        '<td class="text-end small" style="color:#6610f2">' + (depH[h] ? fmt(depH[h]) : '—') + '</td>' +
-        '<td class="text-end small text-muted">' + (totH[h] && grandH ? ((totH[h] / grandH * 100).toFixed(1) + '%') : '—') + '</td>' +
-        '<td class="small">' + (airStr || '<span class="text-muted">—</span>') + '</td>' +
+        '<td class="text-end small" style="color:#d63384">' + (arrH[h] ? fmt(arrH[h]) : '�') + '</td>' +
+        '<td class="text-end small" style="color:#6610f2">' + (depH[h] ? fmt(depH[h]) : '�') + '</td>' +
+        '<td class="text-end small text-muted">' + (totH[h] && grandH ? ((totH[h] / grandH * 100).toFixed(1) + '%') : '�') + '</td>' +
+        '<td class="small">' + (airStr || '<span class="text-muted">�</span>') + '</td>' +
         '</tr>';
       const subRows = airEntries.map(([a, av]) => {
         const tot = av.arr + av.dep;
@@ -2149,9 +2149,9 @@
           '</td>' +
           '<td class="text-end small text-muted">' + av.flights + '</td>' +
           '<td class="text-end fw-bold small">' + fmt(tot) + '</td>' +
-          '<td class="text-end small" style="color:#d63384">' + (av.arr ? fmt(av.arr) : '—') + '</td>' +
-          '<td class="text-end small" style="color:#6610f2">' + (av.dep ? fmt(av.dep) : '—') + '</td>' +
-          '<td class="text-end small text-muted">' + (grandH ? ((tot / grandH * 100).toFixed(1) + '%') : '—') + '</td>' +
+          '<td class="text-end small" style="color:#d63384">' + (av.arr ? fmt(av.arr) : '�') + '</td>' +
+          '<td class="text-end small" style="color:#6610f2">' + (av.dep ? fmt(av.dep) : '�') + '</td>' +
+          '<td class="text-end small text-muted">' + (grandH ? ((tot / grandH * 100).toFixed(1) + '%') : '�') + '</td>' +
           '<td></td>' +
           '</tr>';
       }).join('');
@@ -2168,8 +2168,8 @@
         '<td><div class="d-flex align-items-center gap-1">' + logo + '<span class="fw-semibold small">' + escHtml(name) + '</span></div></td>' +
         '<td class="text-end small">' + v.flights + '</td>' +
         '<td class="text-end fw-bold small">' + fmt(v.pax) + '</td>' +
-        '<td class="text-end small" style="color:#d63384">' + (v.arr ? fmt(v.arr) : '—') + '</td>' +
-        '<td class="text-end small" style="color:#6610f2">' + (v.dep ? fmt(v.dep) : '—') + '</td>' +
+        '<td class="text-end small" style="color:#d63384">' + (v.arr ? fmt(v.arr) : '�') + '</td>' +
+        '<td class="text-end small" style="color:#6610f2">' + (v.dep ? fmt(v.dep) : '�') + '</td>' +
         '<td class="text-end small">' +
           '<div class="d-flex align-items-center gap-1 justify-content-end">' +
             '<div class="progress flex-grow-1" style="height:6px;min-width:30px;">' +
@@ -2177,11 +2177,11 @@
             '<span class="fw-semibold text-primary">' + pct(v.pax, totalPax) + '</span>' +
           '</div>' +
         '</td>' +
-        '<td class="small text-muted">' + escHtml(hList || '—') + '</td>' +
+        '<td class="small text-muted">' + escHtml(hList || '�') + '</td>' +
         '</tr>';
     }).join('') + (airSorted.length ? '<tr class="table-light fw-bold"><td colspan="3" class="text-end small">TOTAL</td><td class="text-end small">' + fmt(totalPax) + '</td><td colspan="4"></td></tr>' : '');
 
-    // Matrix: Hora × Aerolínea (top 10)
+    // Matrix: Hora � Aerol�nea (top 10)
     const matrixCols = airSorted.slice(0, Math.min(10, airSorted.length)).map(([n]) => n);
     const matrixHeader = '<th class="text-nowrap small fw-semibold" style="min-width:80px;">Hora</th><th class="text-end small fw-semibold">Total</th>' +
       matrixCols.map((a, i) => '<th class="text-center" style="font-size:0.65rem;min-width:72px;max-width:90px;background:' + AIR_COLORS[i % AIR_COLORS.length] + '22;">' +
@@ -2255,17 +2255,17 @@
       (hasHour ?
         '<div class="card border-0 shadow-sm mb-3">' +
           '<div class="card-header bg-white border-0 pb-0">' +
-            '<span class="fw-bold small"><i class="fas fa-clock me-2 text-warning"></i>Pasajeros por Hora — ' + escHtml(dayLabel) + '</span>' +
+            '<span class="fw-bold small"><i class="fas fa-clock me-2 text-warning"></i>Pasajeros por Hora � ' + escHtml(dayLabel) + '</span>' +
           '</div>' +
           '<div class="card-body pt-2"><div style="position:relative;height:240px;"><canvas id="mdb-chart-hour-detail"></canvas></div></div>' +
         '</div>'
-      : '<div class="alert alert-secondary small mb-3"><i class="fas fa-info-circle me-2"></i>No se detectó columna de hora (HORA DE OPERACIÓN / SLOT) — gráfica horaria no disponible.</div>') +
+      : '<div class="alert alert-secondary small mb-3"><i class="fas fa-info-circle me-2"></i>No se detect� columna de hora (HORA DE OPERACI�N / SLOT) � gr�fica horaria no disponible.</div>') +
 
       // Chart 2: per-airline stacked (total)
       (hasHour && topAirlines.length ?
         '<div class="card border-0 shadow-sm mb-3">' +
           '<div class="card-header bg-white border-0 pb-0">' +
-            '<span class="fw-bold small"><i class="fas fa-layer-group me-2 text-success"></i>Pasajeros por Hora y Aerolínea (Total) — ' + escHtml(dayLabel) + '</span>' +
+            '<span class="fw-bold small"><i class="fas fa-layer-group me-2 text-success"></i>Pasajeros por Hora y Aerol�nea (Total) � ' + escHtml(dayLabel) + '</span>' +
           '</div>' +
           '<div class="card-body pt-2"><div style="position:relative;height:280px;"><canvas id="mdb-chart-hour-airline-total"></canvas></div></div>' +
         '</div>'
@@ -2276,13 +2276,13 @@
         '<div class="row g-3 mb-3">' +
           '<div class="col-md-6"><div class="card border-0 shadow-sm h-100">' +
             '<div class="card-header bg-white border-0 pb-0">' +
-              '<span class="fw-bold small" style="color:#d63384;"><i class="fas fa-plane-arrival me-2"></i>Llegadas por Hora y Aerolínea</span>' +
+              '<span class="fw-bold small" style="color:#d63384;"><i class="fas fa-plane-arrival me-2"></i>Llegadas por Hora y Aerol�nea</span>' +
             '</div>' +
             '<div class="card-body pt-2"><div style="position:relative;height:260px;"><canvas id="mdb-chart-hour-airline-arr"></canvas></div></div>' +
           '</div></div>' +
           '<div class="col-md-6"><div class="card border-0 shadow-sm h-100">' +
             '<div class="card-header bg-white border-0 pb-0">' +
-              '<span class="fw-bold small" style="color:#6610f2;"><i class="fas fa-plane-departure me-2"></i>Salidas por Hora y Aerolínea</span>' +
+              '<span class="fw-bold small" style="color:#6610f2;"><i class="fas fa-plane-departure me-2"></i>Salidas por Hora y Aerol�nea</span>' +
             '</div>' +
             '<div class="card-body pt-2"><div style="position:relative;height:260px;"><canvas id="mdb-chart-hour-airline-dep"></canvas></div></div>' +
           '</div></div>' +
@@ -2303,8 +2303,8 @@
                 '<th class="text-end small fw-bold">Pax Total</th>' +
                 '<th class="text-end small" style="color:#f472b6;"><i class="fas fa-plane-arrival"></i> Llegadas</th>' +
                 '<th class="text-end small" style="color:#a78bfa;"><i class="fas fa-plane-departure"></i> Salidas</th>' +
-                '<th class="text-end small">% Día</th>' +
-                '<th class="small">Aerolíneas (clic para expandir)</th>' +
+                '<th class="text-end small">% D�a</th>' +
+                '<th class="small">Aerol�neas (click para expandir)</th>' +
               '</tr></thead>' +
               '<tbody>' + (hourRows || '<tr><td colspan="7" class="text-center text-muted py-3">Sin datos horarios disponibles</td></tr>') + '</tbody>' +
             '</table>' +
@@ -2312,12 +2312,12 @@
         '</div>'
       : '') +
 
-      // Matrix: Hora × Aerolínea
+      // Matrix: Hora � Aerol�nea
       (hasHour && matrixRows ?
         '<div class="card border-0 shadow-sm mb-3">' +
           '<div class="card-header bg-white border-0 d-flex align-items-center justify-content-between">' +
-            '<span class="fw-bold small"><i class="fas fa-th me-2 text-warning"></i>Matriz Hora × Aerolínea — ' + escHtml(dayLabel) + '</span>' +
-            '<span class="badge bg-secondary">' + matrixCols.length + ' aerolíneas · ' + activeHours.length + ' horas activas</span>' +
+            '<span class="fw-bold small"><i class="fas fa-th me-2 text-warning"></i>Matriz Hora � Aerol�nea � ' + escHtml(dayLabel) + '</span>' +
+            '<span class="badge bg-secondary">' + matrixCols.length + ' aerol�neas � ' + activeHours.length + ' horas activas</span>' +
           '</div>' +
           '<div class="card-body p-0"><div class="table-responsive">' +
             '<table class="table table-sm table-bordered mb-0" style="min-width:600px;">' +
@@ -2331,19 +2331,19 @@
       // Airline breakdown table
       '<div class="card border-0 shadow-sm">' +
         '<div class="card-header bg-white border-0 d-flex align-items-center justify-content-between">' +
-          '<span class="fw-bold small"><i class="fas fa-chess-queen me-2 text-primary"></i>Ranking por Aerolínea — ' + escHtml(dayLabel) + '</span>' +
-          '<span class="badge bg-primary">' + airSorted.length + ' aerolíneas</span>' +
+          '<span class="fw-bold small"><i class="fas fa-chess-queen me-2 text-primary"></i>Ranking por Aerol�nea � ' + escHtml(dayLabel) + '</span>' +
+          '<span class="badge bg-primary">' + airSorted.length + ' aerol�neas</span>' +
         '</div>' +
         '<div class="card-body p-0"><div class="table-responsive" style="max-height:400px;overflow-y:auto;">' +
           '<table class="table table-sm table-hover table-bordered mb-0">' +
             '<thead class="table-light" style="position:sticky;top:0;z-index:1;"><tr>' +
               '<th class="text-center small">#</th>' +
-              '<th class="small">Aerolínea</th>' +
+              '<th class="small">Aerol�nea</th>' +
               '<th class="text-end small">Vuelos</th>' +
               '<th class="text-end small fw-bold">Pax Total</th>' +
               '<th class="text-end small" style="color:#d63384;">Llegadas</th>' +
               '<th class="text-end small" style="color:#6610f2;">Salidas</th>' +
-              '<th class="text-end small">% Día</th>' +
+              '<th class="text-end small">% D�a</th>' +
               '<th class="small">Horas operadas</th>' +
             '</tr></thead>' +
             '<tbody>' + (airRows || '<tr><td colspan="8" class="text-center text-muted py-3">Sin datos</td></tr>') + '</tbody>' +
@@ -2358,7 +2358,7 @@
         const ctx3 = document.getElementById('mdb-chart-hour-detail');
         if (ctx3) {
           if (_charts.hourDetail) { try { _charts.hourDetail.destroy(); } catch (_) {} }
-          const labels3 = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0') + ':00 – ' + ((i + 1) % 24).toString().padStart(2, '0') + ':00');
+          const labels3 = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0') + ':00 � ' + ((i + 1) % 24).toString().padStart(2, '0') + ':00');
           _charts.hourDetail = new Chart(ctx3, {
             type: 'bar',
             plugins: window.ChartDataLabels ? [ChartDataLabels] : [],
@@ -2379,7 +2379,7 @@
                 tooltip: { callbacks: {
                   title: items => labels3[items[0].dataIndex],
                   label: c => ' ' + c.dataset.label + ': ' + fmt(c.raw) + (totH[c.dataIndex] ? ' (' + pct(c.raw, totH[c.dataIndex]) + ' hora)' : ''),
-                  footer: items => 'Total hora: ' + fmt(totH[items[0].dataIndex]) + ' (' + (grandH ? pct(totH[items[0].dataIndex], grandH) : '—') + ' del día)'
+                  footer: items => 'Total hora: ' + fmt(totH[items[0].dataIndex]) + ' (' + (grandH ? pct(totH[items[0].dataIndex], grandH) : '�') + ' del d�a)'
                 }}
               },
               scales: {
@@ -2563,17 +2563,17 @@
   }
   function hideBanner() { const b = document.getElementById('mdb-banner'); if (b) b.innerHTML = ''; }
 
-  /* ═══════════════════════════════════════════════════════
-     API PÚBLICA — usada por manifiestos-upload.js
-  ═══════════════════════════════════════════════════════ */
+  /* -------------------------------------------------------
+     API P�BLICA � usada por manifiestos-upload.js
+  ------------------------------------------------------- */
   /**
-   * Registra un nuevo período en TABLES y añade su botón en la UI.
+   * Registra un nuevo per�odo en TABLES y a�ade su bot�n en la UI.
    * Llamado por manifiestos-upload.js tras importar un mes exitosamente.
    * @param {string} key        - Clave interna, p.ej. "abr2026"
    * @param {string} tableName  - Nombre real de la tabla en Supabase
-   * @param {string} label      - Etiqueta visible, p.ej. "Abril 2026 — Datos mensuales"
+   * @param {string} label      - Etiqueta visible, p.ej. "Abril 2026 � Datos mensuales"
    */
-  /** Recarga forzada de los datos del período activo — llamado tras importar. */
+  /** Recarga forzada de los datos del per�odo activo � llamado tras importar. */
   window.manifiestoReload = function () {
     _loaded = false; _allData = [];
     delete _dataCache[_activeTableKey];
@@ -2587,8 +2587,8 @@
     if (TABLES[key]) { switchMdbPeriod(key); return; }
     TABLES[key] = { name: tableName, label: label };
 
-    // Añadir botón en el grupo de períodos
-    const group = document.querySelector('.btn-group[aria-label="Seleccionar período"]');
+    // A�adir bot�n en el grupo de per�odos
+    const group = document.querySelector('.btn-group[aria-label="Seleccionar per�odo"]');
     if (group) {
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -2602,7 +2602,7 @@
       group.appendChild(btn);
     }
 
-    // Cambiar al nuevo período
+    // Cambiar al nuevo per�odo
     switchMdbPeriod(key);
   };
 

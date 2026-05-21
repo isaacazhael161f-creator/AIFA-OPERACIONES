@@ -1,7 +1,7 @@
-Ôªø/**
+/**
  * js/insights.js
- * M√É¬≥dulo de Insights y Mejoras Cont√É¬≠nuas basado en la anal√É¬≠tica de operaciones.
- * Obtiene los √É¬∫ltimos datos cargados y genera recomendaciones operativas.
+ * M√≥dulo de Insights y Mejoras Cont√≠nuas basado en la anal√≠tica de operaciones.
+ * Obtiene los √∫ltimos datos cargados y genera recomendaciones operativas.
  */
 
 class InsightsManager {
@@ -29,7 +29,7 @@ class InsightsManager {
         } catch (error) {
             console.error("Error al inicializar Insights:", error);
             document.getElementById('insights-recomendaciones-container').innerHTML = 
-                '<div class="col-12 text-center text-danger"><p>Error al cargar los datos para generar el an√É¬°lisis.</p></div>';
+                '<div class="col-12 text-center text-danger"><p>Error al cargar los datos para generar el an√°lisis.</p></div>';
         }
     }
 
@@ -38,7 +38,7 @@ class InsightsManager {
             throw new Error("dataManager no disponible");
         }
 
-        // Obtener los √É¬∫ltimos 90 registros (aprox 3 meses)
+        // Obtener los √∫ltimos 90 registros (aprox 3 meses)
         const dailyOps = await window.dataManager.getDailyOperations(90);
         this.dataCache.dailyOps = dailyOps || [];
 
@@ -46,7 +46,7 @@ class InsightsManager {
             const delays = await window.dataManager.getDelays(new Date().getFullYear());
             this.dataCache.delays = delays || [];
         } catch (e) {
-            console.warn("No se pudieron cargar demoras. Usando arreglo vac√É¬≠o.");
+            console.warn("No se pudieron cargar demoras. Usando arreglo vac√≠o.");
             this.dataCache.delays = [];
         }
     }
@@ -75,11 +75,11 @@ class InsightsManager {
                 <div class="card bg-primary text-white h-100 shadow-sm border-0">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="mb-0 text-white-50">Promedio Pax/D√≠a</h6>
+                            <h6 class="mb-0 text-white-50">Promedio Pax/DÌa</h6>
                             <i class="fas fa-users fa-2x opacity-50"></i>
                         </div>
                         <h3 class="mb-0 fw-bold">${parseInt(avgPaxDay).toLocaleString('es-MX')}</h3>
-                        <small class="opacity-75">√öltimos ${numDias} d√≠as evaluados</small>
+                        <small class="opacity-75">⁄ltimos ${numDias} dÌas evaluados</small>
                     </div>
                 </div>
             </div>
@@ -87,11 +87,11 @@ class InsightsManager {
                 <div class="card bg-success text-white h-100 shadow-sm border-0">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="mb-0 text-white-50">Promedio Ops/D√≠a</h6>
+                            <h6 class="mb-0 text-white-50">Promedio Ops/DÌa</h6>
                             <i class="fas fa-plane-departure fa-2x opacity-50"></i>
                         </div>
                         <h3 class="mb-0 fw-bold">${parseInt(avgOpsDay).toLocaleString('es-MX')}</h3>
-                        <small class="opacity-75">√öltimos ${numDias} d√≠as evaluados</small>
+                        <small class="opacity-75">⁄ltimos ${numDias} dÌas evaluados</small>
                     </div>
                 </div>
             </div>
@@ -99,7 +99,7 @@ class InsightsManager {
                 <div class="card bg-warning text-dark h-100 shadow-sm border-0">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="mb-0 opacity-75">Factor Ocupaci√≥n Aprox.</h6>
+                            <h6 class="mb-0 opacity-75">Factor OcupaciÛn Aprox.</h6>
                             <i class="fas fa-bolt fa-2x opacity-50"></i>
                         </div>
                         <h3 class="mb-0 fw-bold">${avgOpsDay > 0 ? Math.round(avgPaxDay/avgOpsDay) : 0} pax/op</h3>
@@ -111,7 +111,7 @@ class InsightsManager {
                 <div class="card bg-info text-white h-100 shadow-sm border-0">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="mb-0 text-white-50">D√≠a de Pico M√°x.</h6>
+                            <h6 class="mb-0 text-white-50">DÌa de Pico M·x.</h6>
                             <i class="fas fa-calendar-day fa-2x opacity-50"></i>
                         </div>
                         <h3 class="mb-0 fw-bold">${ops.reduce((max, op) => op.comercial_ops > max.comercial_ops ? op : max, ops[0]).comercial_ops} Ops</h3>
@@ -164,8 +164,8 @@ class InsightsManager {
         }
 
         if (causas.length === 0 || datos.reduce((a,b)=>a+b,0) === 0) {
-            // Fallback en caso de que no haya demoras cargadas, mostramos algo realista gen√©rico pero aclarando que es hist√≥rico referencial
-            causas = ['Meteorolog√≠a', 'Mantenimiento', 'Control Tr√°nsito A√©reo', 'Abordaje / Ops terrestres'];
+            // Fallback en caso de que no haya demoras cargadas, mostramos algo realista genÈrico pero aclarando que es histÛrico referencial
+            causas = ['MeteorologÌa', 'Mantenimiento', 'Control Tr·nsito AÈreo', 'Abordaje / Ops terrestres'];
             datos = [15, 30, 10, 45];
             maxCausa = 'Abordaje / Ops terrestres';
             maxPct = 45;
@@ -200,7 +200,7 @@ class InsightsManager {
         });
 
         document.getElementById('insights-demoras-texto').innerHTML = `
-            <strong>Hallazgo Principal:</strong> La mayor concentraci√≥n de demoras actual es por <strong>${maxCausa}</strong> (contribuyendo aprox. al ${Math.round(maxPct)}% del total). Se recomienda enfocar los recursos preventivos y notificaciones a aerol√≠neas en este rubro estrat√©gico.
+            <strong>Hallazgo Principal:</strong> La mayor concentraciÛn de demoras actual es por <strong>${maxCausa}</strong> (contribuyendo aprox. al ${Math.round(maxPct)}% del total). Se recomienda enfocar los recursos preventivos y notificaciones a aerolÌneas en este rubro estratÈgico.
         `;
     }
 
@@ -212,15 +212,15 @@ class InsightsManager {
             this.charts.crecimiento.destroy();
         }
 
-        // Agrupar operaciones por d√≠a de la semana
-        const daysOpCount = { 'Lun': [], 'Mar': [], 'Mi√©': [], 'Jue': [], 'Vie': [], 'S√°b': [], 'Dom': [] };
-        const dayNames = ['Dom', 'Lun', 'Mar', 'Mi√©', 'Jue', 'Vie', 'S√°b'];
+        // Agrupar operaciones por dÌa de la semana
+        const daysOpCount = { 'Lun': [], 'Mar': [], 'MiÈ': [], 'Jue': [], 'Vie': [], 'S·b': [], 'Dom': [] };
+        const dayNames = ['Dom', 'Lun', 'Mar', 'MiÈ', 'Jue', 'Vie', 'S·b'];
 
         if (this.dataCache.dailyOps && this.dataCache.dailyOps.length > 0) {
              this.dataCache.dailyOps.forEach(op => {
                  if (op.date) {
                       const d = new Date(op.date);
-                      // Ajustar UTC a zona horaria local segura sumando un d√≠a si es necesario o usando getUTCDay
+                      // Ajustar UTC a zona horaria local segura sumando un dÌa si es necesario o usando getUTCDay
                       d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
                       const dayStr = dayNames[d.getDay()];
                       daysOpCount[dayStr].push(op.comercial_ops || 0);
@@ -228,7 +228,7 @@ class InsightsManager {
              });
         }
 
-        const labels = ['Lun', 'Mar', 'Mi√©', 'Jue', 'Vie', 'S√°b', 'Dom'];     
+        const labels = ['Lun', 'Mar', 'MiÈ', 'Jue', 'Vie', 'S·b', 'Dom'];     
         const opsDayAvg = labels.map(day => {
             const counts = daysOpCount[day];
             if (counts.length === 0) return 0;
@@ -273,7 +273,7 @@ class InsightsManager {
         });
 
         document.getElementById('insights-crecimiento-texto').innerHTML = `
-            <strong>Oportunidad Estrat√©gica:</strong> Historicamente, los d√≠as <strong>${minDay}</strong> presentan la menor densidad operativa, mientras que los <strong>${maxDay}</strong> son los picos de saturaci√≥n. Se sugiere equilibrar y redistribuir slots / incentivos hacia los d√≠as y horarios valle para optimizar la infraestructura de terminal y plataforma.
+            <strong>Oportunidad EstratÈgica:</strong> Historicamente, los dÌas <strong>${minDay}</strong> presentan la menor densidad operativa, mientras que los <strong>${maxDay}</strong> son los picos de saturaciÛn. Se sugiere equilibrar y redistribuir slots / incentivos hacia los dÌas y horarios valle para optimizar la infraestructura de terminal y plataforma.
         `;
     }
 
@@ -324,44 +324,44 @@ class InsightsManager {
             {
                 icon: 'fa-user-check',
                 color: 'text-primary',
-                title: 'Planificaci√≥n de Filtros de Seguridad',
+                title: 'PlanificaciÛn de Filtros de Seguridad',
                 desc: avgPaxDay > 15000 
-                      ? `Dado el alto volumen promedio (${Math.round(avgPaxDay).toLocaleString()} pax/d√≠a), se recomienda anticipar aperturas de l√≠neas de seguridad y staffing al m√°ximo en los bancos de salida matutinos para evitar cuellos de botella.` 
-                      : `Con el promedio actual de ${Math.round(avgPaxDay).toLocaleString()} pax/d√≠a, la infraestructura de seguridad opera dentro de m√°rgenes √≥ptimos. Programar staffing regular basado en curvas hist√≥ricas de demanda.`
+                      ? `Dado el alto volumen promedio (${Math.round(avgPaxDay).toLocaleString()} pax/dÌa), se recomienda anticipar aperturas de lÌneas de seguridad y staffing al m·ximo en los bancos de salida matutinos para evitar cuellos de botella.` 
+                      : `Con el promedio actual de ${Math.round(avgPaxDay).toLocaleString()} pax/dÌa, la infraestructura de seguridad opera dentro de m·rgenes Ûptimos. Programar staffing regular basado en curvas histÛricas de demanda.`
             },
             {
                 icon: factor > 130 ? 'fa-plane-arrival' : 'fa-chart-line',
                 color: factor > 130 ? 'text-success' : 'text-info',
-                title: factor > 130 ? 'Saturaci√≥n en Aeronave (FOC Alto)' : 'Oportunidad Comercial (FOC Recuperable)',
+                title: factor > 130 ? 'SaturaciÛn en Aeronave (FOC Alto)' : 'Oportunidad Comercial (FOC Recuperable)',
                 desc: factor > 130 
-                      ? 'Tus promedios muestran un factor de ocupaci√≥n elevado por operaci√≥n comercial. Es momento ideal para gestionar con aerol√≠neas un aumento de capacidad (upgauge) o la inyecci√≥n de nuevas frecuencias.'
-                      : 'El margen de factor de ocupaci√≥n promedio requiere incentivos comerciales conjuntos. Promover estrategias tarifarias u ofertas estacionales con aerol√≠neas en franjas valle.'
+                      ? 'Tus promedios muestran un factor de ocupaciÛn elevado por operaciÛn comercial. Es momento ideal para gestionar con aerolÌneas un aumento de capacidad (upgauge) o la inyecciÛn de nuevas frecuencias.'
+                      : 'El margen de factor de ocupaciÛn promedio requiere incentivos comerciales conjuntos. Promover estrategias tarifarias u ofertas estacionales con aerolÌneas en franjas valle.'
             },
             {
                 icon: 'fa-stopwatch',
                 color: 'text-warning',
-                title: 'Disminuci√≥n de Demoras Operativas',
-                desc: `Como ${mainDemora} representa una alta proporci√≥n de tiempos de retraso, focalizar mesas de trabajo (A-CDM) espec√≠ficas sobre este flujo para recuperar minutos valiosos en rotaciones.`
+                title: 'DisminuciÛn de Demoras Operativas',
+                desc: `Como ${mainDemora} representa una alta proporciÛn de tiempos de retraso, focalizar mesas de trabajo (A-CDM) especÌficas sobre este flujo para recuperar minutos valiosos en rotaciones.`
             },
             {
                 icon: 'fa-box-open',
                 color: 'text-secondary',
-                title: 'Desarrollo de Carga A√©rea',
+                title: 'Desarrollo de Carga AÈrea',
                 desc: avgCargaDay > 300 
-                      ? `Se mantiene un volumen fuerte de carga (${avgCargaDay.toFixed(1)} ton/d√≠a). Sugerimos asegurar habilitaci√≥n expedita de aduanas y posiciones de plataforma de carga integradas.` 
-                      : `El volumen de carga promedio (${avgCargaDay.toFixed(1)} ton/d√≠a) presenta ventana de oportunidad. Generar prospecci√≥n con forwarders para aprovechamiento de capacidad de bodegas libres.`
+                      ? `Se mantiene un volumen fuerte de carga (${avgCargaDay.toFixed(1)} ton/dÌa). Sugerimos asegurar habilitaciÛn expedita de aduanas y posiciones de plataforma de carga integradas.` 
+                      : `El volumen de carga promedio (${avgCargaDay.toFixed(1)} ton/dÌa) presenta ventana de oportunidad. Generar prospecciÛn con forwarders para aprovechamiento de capacidad de bodegas libres.`
             },
             {
                 icon: 'fa-calendar-star',
                 color: 'text-danger',
-                title: 'Gesti√≥n de Picos Hist√≥ricos',
-                desc: `Tus topes operativos recientes fueron ${maxOps} Ops y ${maxPax.toLocaleString()} Pax. Tomar estas cotas como referencia m√≠nima para los test de estr√©s (stress-tests) de los sistemas operacionales y de equipaje.`
+                title: 'GestiÛn de Picos HistÛricos',
+                desc: `Tus topes operativos recientes fueron ${maxOps} Ops y ${maxPax.toLocaleString()} Pax. Tomar estas cotas como referencia mÌnima para los test de estrÈs (stress-tests) de los sistemas operacionales y de equipaje.`
             },
             {
                 icon: 'fa-briefcase-medical',
                 color: 'text-danger',
-                title: 'Prevenci√≥n SMS e Incidentes',
-                desc: 'Basado en los vol√∫menes en crecimiento reportados, incrementar rondas disuasivas en el pol√≠gono perimetral aeron√°utico y mantener personal preventivo alerta de acuerdo al SMS.'
+                title: 'PrevenciÛn SMS e Incidentes',
+                desc: 'Basado en los vol˙menes en crecimiento reportados, incrementar rondas disuasivas en el polÌgono perimetral aeron·utico y mantener personal preventivo alerta de acuerdo al SMS.'
             }
         ];
 
@@ -399,7 +399,7 @@ class InsightsManager {
 
         if (btn) {
             setTimeout(() => {
-                btn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Actualizar An√É¬°lisis';
+                btn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Actualizar An√°lisis';
                 btn.disabled = false;
             }, 600);
         }
@@ -409,9 +409,9 @@ class InsightsManager {
 // Inicializar la instancia en window para uso global
 window.insightsManager = new InsightsManager();
 
-// Hookear a la visibilidad del tab (cuando el usuario hace clic en el men√É¬∫ y muestra esta secci√É¬≥n)
+// Hookear a la visibilidad del tab (cuando el usuario hace click en el men√∫ y muestra esta secci√≥n)
 document.addEventListener('DOMContentLoaded', () => {
-    // Polling / listening para la activaci√É¬≥n de la secci√É¬≥n.
+    // Polling / listening para la activaci√≥n de la secci√≥n.
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             if (mutation.target.id === 'insights-section' && mutation.target.classList.contains('active')) {
