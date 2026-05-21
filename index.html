@@ -5873,6 +5873,43 @@ FF
                         .cc-toolbar-btn.danger:hover { background:#fee2e2; }
                         .cc-toolbar-sep { width:1px; height:20px; background:#e2e8f0; flex-shrink:0; }
                         .cc-toolbar-search { max-width:200px; font-size:.78rem !important; }
+                        /* --- Calendario global de vencimientos de cursos --- */
+                        #cursosCalModal .modal-content { background:#0f172a; color:#e2e8f0; border:none; border-radius:14px; overflow:hidden; }
+                        #cursosCalModal .modal-header  { background:#1e293b; border-bottom:1px solid #334155; }
+                        #cursosCalModal .modal-title   { color:#f1f5f9; font-weight:700; }
+                        #cursosCalModal .modal-body    { background:#0f172a; }
+                        .ccal-nav { display:flex; align-items:center; gap:.7rem; justify-content:center; margin-bottom:1.1rem; }
+                        .ccal-nav-btn { background:#1e293b; border:1px solid #334155; color:#94a3b8; border-radius:8px; padding:.28rem .75rem; cursor:pointer; font-size:1rem; transition:background .15s; }
+                        .ccal-nav-btn:hover { background:#334155; color:#f1f5f9; }
+                        .ccal-month-label { font-size:1.1rem; font-weight:700; color:#f1f5f9; min-width:200px; text-align:center; }
+                        .ccal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; margin-bottom:.8rem; }
+                        .ccal-dow { text-align:center; font-size:.72rem; font-weight:700; color:#475569; padding-bottom:.35rem; text-transform:uppercase; letter-spacing:.05em; }
+                        .ccal-day { min-height:56px; background:#1e293b; border-radius:6px; padding:4px 5px; transition:background .12s; }
+                        .ccal-day.today { background:#1e3a5f; outline:2px solid #3b82f6; outline-offset:-1px; }
+                        .ccal-day.other-month { background:transparent !important; pointer-events:none; }
+                        .ccal-day-num { font-size:.71rem; font-weight:600; color:#64748b; }
+                        .ccal-day.today .ccal-day-num { color:#60a5fa; }
+                        .ccal-dots { display:flex; flex-wrap:wrap; gap:2px; margin-top:3px; }
+                        .ccal-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+                        .ccal-dot.expired { background:#ef4444; }
+                        .ccal-dot.warning { background:#f59e0b; }
+                        .ccal-dot.ok      { background:#22c55e; }
+                        .ccal-section-title { font-size:.76rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.08em; margin:1rem 0 .45rem; }
+                        .ccal-list { max-height:230px; overflow-y:auto; border-radius:8px; background:#1e293b; }
+                        .ccal-list-item { display:flex; align-items:center; gap:.6rem; padding:.45rem .7rem; border-bottom:1px solid #0f172a; font-size:.8rem; }
+                        .ccal-list-item:last-child { border-bottom:none; }
+                        .ccal-list-badge { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; flex-shrink:0; font-size:.65rem; }
+                        .ccal-list-badge.expired { background:#450a0a; color:#f87171; }
+                        .ccal-list-badge.warning { background:#451a03; color:#fbbf24; }
+                        .ccal-list-badge.ok      { background:#052e16; color:#4ade80; }
+                        .ccal-list-info { flex:1; min-width:0; }
+                        .ccal-list-name  { font-weight:600; color:#f1f5f9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+                        .ccal-list-curso { color:#94a3b8; font-size:.76rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+                        .ccal-list-date  { font-size:.74rem; color:#64748b; white-space:nowrap; margin-left:auto; flex-shrink:0; padding-left:.5rem; }
+                        .ccal-empty   { text-align:center; color:#475569; padding:1.5rem 0; font-size:.85rem; }
+                        .ccal-loading { text-align:center; color:#64748b; padding:2rem 0; }
+                        .ccal-wha-btn { display:inline-flex; align-items:center; gap:.5rem; background:#25d366; color:#fff; border:none; border-radius:10px; padding:.5rem 1.1rem; font-weight:700; font-size:.85rem; cursor:pointer; text-decoration:none; transition:background .15s; }
+                        .ccal-wha-btn:hover { background:#128c7e; color:#fff; }
                         /* --- Menú contextual --- */
                         .cc-ctx-menu { position:fixed; z-index:9999; background:#fff; border:1px solid #e2e8f0; border-radius:10px; box-shadow:0 10px 36px rgba(0,0,0,.2); min-width:218px; padding:.3rem 0; font-size:.82rem; }
                         .cc-ctx-item { display:flex; align-items:center; gap:.55rem; padding:.42rem .85rem; cursor:pointer; color:#334155; transition:background .1s; }
@@ -6045,6 +6082,9 @@ FF
                                         <span class="cd-dash-sub text-muted">Selecciona o busca un colaborador para ver su ficha completa</span>
                                         <button class="btn btn-sm btn-outline-primary ms-auto" onclick="colabAbrirTabla()" title="Ver lista completa de colaboradores">
                                             <i class="fas fa-table me-1"></i> Tabla completa
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning ms-1" onclick="cursosCalAbrir()" title="Ver calendario de vencimientos de cursos recurrentes">
+                                            <i class="fas fa-calendar-exclamation me-1"></i> Vencimientos
                                         </button>
                                     </div>
 
@@ -7171,6 +7211,52 @@ FF
                             </div>
                         </div>
                     </div><!-- /colabTablaModal -->
+
+                    <!-- ─────────── MODAL: CALENDARIO DE VENCIMIENTOS DE CURSOS ─────────── -->
+                    <div class="modal fade" id="cursosCalModal" tabindex="-1" aria-labelledby="cursosCalModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                            <div class="modal-content">
+                                <div class="modal-header py-2">
+                                    <h5 class="modal-title mb-0" id="cursosCalModalLabel">
+                                        <i class="fas fa-calendar-exclamation me-2 text-warning"></i>Calendario de Vencimientos de Cursos
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                </div>
+                                <div class="modal-body p-3" id="ccal-body">
+                                    <!-- Navegador de mes -->
+                                    <div class="ccal-nav">
+                                        <button class="ccal-nav-btn" onclick="cursosCalPrev()" title="Mes anterior"><i class="fas fa-chevron-left"></i></button>
+                                        <span class="ccal-month-label" id="ccal-month-label">—</span>
+                                        <button class="ccal-nav-btn" onclick="cursosCalNext()" title="Mes siguiente"><i class="fas fa-chevron-right"></i></button>
+                                    </div>
+                                    <!-- Grid del mes -->
+                                    <div class="ccal-grid" id="ccal-grid">
+                                        <div class="ccal-loading"><i class="fas fa-circle-notch fa-spin me-2"></i>Cargando cursos…</div>
+                                    </div>
+                                    <!-- Leyenda -->
+                                    <div class="d-flex gap-3 mb-1" style="font-size:.74rem;color:#64748b">
+                                        <span><span class="ccal-dot expired d-inline-block me-1" style="vertical-align:middle"></span>Vencido</span>
+                                        <span><span class="ccal-dot warning d-inline-block me-1" style="vertical-align:middle"></span>Por vencer (≤30 días)</span>
+                                        <span><span class="ccal-dot ok d-inline-block me-1" style="vertical-align:middle"></span>Al corriente</span>
+                                    </div>
+                                    <!-- Lista del mes visible -->
+                                    <div class="ccal-section-title"><i class="fas fa-list me-1"></i>Detalle del mes</div>
+                                    <div class="ccal-list" id="ccal-list"></div>
+                                    <!-- Próximos 30 días + botón WhatsApp -->
+                                    <div class="ccal-section-title" id="ccal-alert-section" style="display:none">
+                                        <i class="fas fa-exclamation-triangle text-warning me-1"></i>Por vencer en los próximos 30 días
+                                    </div>
+                                    <div id="ccal-alert-list" class="ccal-list mb-2"></div>
+                                    <div id="ccal-wha-wrap" style="display:none;margin-top:.9rem">
+                                        <a id="ccal-wha-btn" class="ccal-wha-btn" href="#" target="_blank" rel="noopener noreferrer">
+                                            <i class="fab fa-whatsapp"></i> Enviar alerta por WhatsApp
+                                        </a>
+                                        <span style="font-size:.74rem;color:#64748b;margin-left:.75rem">Abre WhatsApp con la lista lista para reenviar al grupo de editores</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- /cursosCalModal -->
 
                     <!-- -------------- MODAL TARJETA DE CUMPLEAÑOS -------------- -->
                     <div id="bday-card-modal-bg" onclick="bdayCardCerrar(event)">
@@ -10925,6 +11011,194 @@ FF
                             _ccSortOrder = val_ || 'status';
                             const numEmpl = val(gc(colabCurrentRow, 'num'));
                             if (numEmpl) colabCargarCursos(numEmpl);
+                        };
+
+                        /* ═══════════════════════════════════════════════════════════
+                           CALENDARIO GLOBAL DE VENCIMIENTOS DE CURSOS
+                           ═══════════════════════════════════════════════════════════ */
+
+                        let _ccalData  = null;   // [ {curso, nombre, nextDue, status} ]
+                        let _ccalYear  = new Date().getFullYear();
+                        let _ccalMonth = new Date().getMonth();
+
+                        window.cursosCalAbrir = async function() {
+                            const modal = new bootstrap.Modal(document.getElementById('cursosCalModal'));
+                            modal.show();
+                            _ccalYear  = new Date().getFullYear();
+                            _ccalMonth = new Date().getMonth();
+                            _ccalData  = null;
+                            await cursosCal_load();
+                            cursosCal_render();
+                            cursosCal_alertaProxima();
+                        };
+
+                        async function cursosCal_load() {
+                            const gridEl = document.getElementById('ccal-grid');
+                            const listEl = document.getElementById('ccal-list');
+                            if (gridEl) gridEl.innerHTML = '<div class="ccal-loading"><i class="fas fa-circle-notch fa-spin me-2"></i>Cargando\u2026</div>';
+                            if (listEl) listEl.innerHTML = '';
+                            try {
+                                let sb = window.supabaseClient;
+                                if (!sb && typeof window.ensureSupabaseClient === 'function') sb = await window.ensureSupabaseClient();
+                                if (!sb) throw new Error('Supabase no disponible');
+
+                                // 1. Todos los cursos recurrentes con fecha
+                                const { data: cursos, error: cErr } = await sb
+                                    .from('colab_cursos')
+                                    .select('*')
+                                    .eq('es_recurrente', true)
+                                    .not('fecha_realizacion', 'is', null);
+                                if (cErr) throw cErr;
+
+                                // 2. Nombres de empleados (una sola consulta)
+                                const nums = [...new Set((cursos || []).map(c => String(c.num_empleado)))];
+                                let nombreMap = {};
+                                if (nums.length) {
+                                    const { data: dirRows } = await sb
+                                        .from('agenda_2026')
+                                        .select('num_empleado, nombre')
+                                        .in('num_empleado', nums);
+                                    (dirRows || []).forEach(r => { nombreMap[String(r.num_empleado)] = r.nombre || r.num_empleado; });
+                                }
+
+                                // 3. Calcular pr\u00f3xima fecha y estado
+                                _ccalData = (cursos || []).map(c => ({
+                                    curso:   c,
+                                    nombre:  nombreMap[String(c.num_empleado)] || c.num_empleado,
+                                    nextDue: ccNextDue(c),
+                                    status:  ccStatus(c)
+                                })).filter(d => d.nextDue);
+                            } catch (err) {
+                                console.warn('[CursoCal] Error:', err);
+                                _ccalData = [];
+                                const gridEl2 = document.getElementById('ccal-grid');
+                                if (gridEl2) gridEl2.innerHTML = `<div class="ccal-empty" style="color:#ef4444"><i class="fas fa-exclamation-circle me-1"></i>${err.message}</div>`;
+                            }
+                        }
+
+                        function cursosCal_render() {
+                            const gridEl  = document.getElementById('ccal-grid');
+                            const listEl  = document.getElementById('ccal-list');
+                            const labelEl = document.getElementById('ccal-month-label');
+                            if (!gridEl) return;
+                            if (!_ccalData) {
+                                gridEl.innerHTML = '<div class="ccal-loading"><i class="fas fa-circle-notch fa-spin me-2"></i>Cargando\u2026</div>';
+                                return;
+                            }
+
+                            const MES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+                            if (labelEl) labelEl.textContent = `${MES[_ccalMonth]} ${_ccalYear}`;
+
+                            // Mapa d\u00eda -> eventos del mes visualizado
+                            const dayMap = {};
+                            _ccalData.forEach(d => {
+                                const nd = d.nextDue;
+                                if (nd.getFullYear() === _ccalYear && nd.getMonth() === _ccalMonth) {
+                                    const k = nd.getDate();
+                                    if (!dayMap[k]) dayMap[k] = [];
+                                    dayMap[k].push(d);
+                                }
+                            });
+
+                            const today    = new Date(); today.setHours(0,0,0,0);
+                            const firstDay = new Date(_ccalYear, _ccalMonth, 1);
+                            const lastDay  = new Date(_ccalYear, _ccalMonth + 1, 0);
+                            const startDow = (firstDay.getDay() + 6) % 7; // lun=0
+                            const totalC   = Math.ceil((startDow + lastDay.getDate()) / 7) * 7;
+                            const DOW      = ['Lun','Mar','Mi\u00e9','Jue','Vie','S\u00e1b','Dom'];
+
+                            let html = DOW.map(d => `<div class="ccal-dow">${d}</div>`).join('');
+                            for (let i = 0; i < totalC; i++) {
+                                const dayNum = i - startDow + 1;
+                                if (dayNum < 1 || dayNum > lastDay.getDate()) {
+                                    html += `<div class="ccal-day other-month"></div>`; continue;
+                                }
+                                const isToday = new Date(_ccalYear, _ccalMonth, dayNum).getTime() === today.getTime();
+                                const evs     = dayMap[dayNum] || [];
+                                let dots = '';
+                                if (evs.length) {
+                                    const shown = evs.slice(0, 6);
+                                    const rest  = evs.length - shown.length;
+                                    dots = `<div class="ccal-dots">${shown.map(e => `<span class="ccal-dot ${e.status}" title="${(e.nombre+'').replace(/"/g,'')}: ${(e.curso.nombre+'').replace(/"/g,'')}"></span>`).join('')}${rest > 0 ? `<span style="font-size:.6rem;color:#64748b">+${rest}</span>` : ''}</div>`;
+                                }
+                                html += `<div class="ccal-day${isToday ? ' today' : ''}" title="${dayNum} ${MES[_ccalMonth]}"><div class="ccal-day-num">${dayNum}</div>${dots}</div>`;
+                            }
+                            gridEl.innerHTML = html;
+
+                            // Lista detallada del mes
+                            const monthItems = _ccalData
+                                .filter(d => d.nextDue.getFullYear() === _ccalYear && d.nextDue.getMonth() === _ccalMonth)
+                                .sort((a, b) => a.nextDue - b.nextDue);
+
+                            if (listEl) {
+                                if (!monthItems.length) {
+                                    listEl.innerHTML = '<div class="ccal-empty"><i class="fas fa-check-circle me-1" style="color:#22c55e"></i>Sin vencimientos este mes</div>';
+                                } else {
+                                    const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                                    listEl.innerHTML = monthItems.map(d => {
+                                        const ico  = d.status === 'expired' ? 'fa-exclamation-circle' : d.status === 'warning' ? 'fa-exclamation-triangle' : 'fa-check-circle';
+                                        const dt   = d.nextDue.toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'});
+                                        return `<div class="ccal-list-item"><span class="ccal-list-badge ${d.status}"><i class="fas ${ico}"></i></span><div class="ccal-list-info"><div class="ccal-list-name">${esc(d.nombre)}</div><div class="ccal-list-curso">${esc(d.curso.nombre)}</div></div><span class="ccal-list-date">${dt}</span></div>`;
+                                    }).join('');
+                                }
+                            }
+                        }
+
+                        function cursosCal_alertaProxima() {
+                            if (!_ccalData) return;
+                            const today = new Date(); today.setHours(0,0,0,0);
+                            const lim30 = new Date(today.getTime() + 30 * 86400000);
+
+                            const proximos = _ccalData
+                                .filter(d => d.status === 'expired' || (d.nextDue >= today && d.nextDue <= lim30))
+                                .sort((a, b) => a.nextDue - b.nextDue);
+
+                            const sectionEl = document.getElementById('ccal-alert-section');
+                            const alertEl   = document.getElementById('ccal-alert-list');
+                            const whaWrap   = document.getElementById('ccal-wha-wrap');
+                            const whaBtn    = document.getElementById('ccal-wha-btn');
+
+                            if (!proximos.length) {
+                                if (sectionEl) sectionEl.style.display = 'none';
+                                if (alertEl)   alertEl.innerHTML = '';
+                                if (whaWrap)   whaWrap.style.display = 'none';
+                                return;
+                            }
+
+                            if (sectionEl) sectionEl.style.display = '';
+                            if (whaWrap)   whaWrap.style.display   = '';
+
+                            const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                            if (alertEl) alertEl.innerHTML = proximos.map(d => {
+                                const ico     = d.status === 'expired' ? 'fa-exclamation-circle' : 'fa-exclamation-triangle';
+                                const dt      = d.nextDue.toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'});
+                                const diff    = Math.floor((d.nextDue - today) / 86400000);
+                                const diffLbl = d.status === 'expired' ? 'VENCIDO' : diff === 0 ? 'HOY' : `${diff} d\u00edas`;
+                                return `<div class="ccal-list-item"><span class="ccal-list-badge ${d.status}"><i class="fas ${ico}"></i></span><div class="ccal-list-info"><div class="ccal-list-name">${esc(d.nombre)}</div><div class="ccal-list-curso">${esc(d.curso.nombre)}</div></div><span class="ccal-list-date">${dt} &nbsp;<strong>${diffLbl}</strong></span></div>`;
+                            }).join('');
+
+                            // Mensaje WhatsApp
+                            if (whaBtn) {
+                                const lineas = proximos.map(d => {
+                                    const dt   = d.nextDue.toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'});
+                                    const diff = Math.floor((d.nextDue - today) / 86400000);
+                                    const lbl  = d.status === 'expired' ? 'VENCIDO' : diff === 0 ? 'HOY' : `en ${diff} d\u00edas`;
+                                    return `\u2022 ${d.nombre} \u2014 ${d.curso.nombre} \u2014 ${dt} (${lbl})`;
+                                });
+                                const msg = `\u26a0\ufe0f *Alerta de cursos por vencer \u2014 AIFA*\n\n${lineas.join('\n')}\n\nFavor de coordinar la actualizaci\u00f3n con los colaboradores indicados.\n\n_AIFA Operaciones \u2014 Sistema de Capacitaci\u00f3n_`;
+                                whaBtn.href = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+                            }
+                        }
+
+                        window.cursosCalPrev = function() {
+                            _ccalMonth--;
+                            if (_ccalMonth < 0) { _ccalMonth = 11; _ccalYear--; }
+                            cursosCal_render();
+                        };
+                        window.cursosCalNext = function() {
+                            _ccalMonth++;
+                            if (_ccalMonth > 11) { _ccalMonth = 0; _ccalYear++; }
+                            cursosCal_render();
                         };
 
                         /* -- Menú contextual -- */
