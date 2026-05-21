@@ -10443,12 +10443,7 @@ function initLoginSkyScene() {
             overlayLogo.setAttribute('aria-hidden', 'true');
             overlay.appendChild(overlayLogo);
         }
-        if (!sky.querySelector('.sun')) {
-            const sun = document.createElement('div');
-            sun.className = 'sun';
-            sun.setAttribute('aria-hidden', 'true');
-            sky.appendChild(sun);
-        }
+        // sun animation disabled
         if (!sky.querySelector('.moon')) {
             const moon = document.createElement('div');
             moon.className = 'moon';
@@ -10512,7 +10507,8 @@ function initLoginSkyScene() {
             sky.dataset.lights = '1';
         }
 
-        if (!sky.dataset.planes) {
+        sky.dataset.planes = '1'; // plane animations disabled
+        if (false && !sky.dataset.planes) {
             const planeConfigs = [
                 { depth: 'far', top: '28vh', flight: 38, delay: -16, scale: 0.8, tilt: 6, y: -6, bob: 9 },
                 { depth: 'mid', top: '42vh', flight: 26, delay: -8, scale: 1, tilt: 8, y: -1, bob: 7 },
