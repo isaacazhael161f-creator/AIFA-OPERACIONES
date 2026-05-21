@@ -276,7 +276,12 @@
     }
 
     // ── Mapa de puertas / QR overlay ────────────────────────────────
-    const MAP_BASE = location.href.replace(/\/[^/?#]*(\?.*)?$/, '/') + 'airport-map.html';
+    // Siempre apuntar a la URL pública (GitHub Pages) para que el QR funcione desde el teléfono,
+    // incluso cuando el tablero se ejecuta en local (file:// o localhost).
+    const _GH_PAGES = 'https://isaacazhael161f-creator.github.io/AIFA-OPERACIONES/airport-map.html';
+    const MAP_BASE  = (location.hostname === 'isaacazhael161f-creator.github.io')
+      ? location.href.replace(/\/[^/?#]*(\?.*)?$/, '/') + 'airport-map.html'
+      : _GH_PAGES;
 
     function showGateQR(gate, vuelo) {
       const url = `${MAP_BASE}?gate=${encodeURIComponent(gate)}&from=security${vuelo ? '&vuelo=' + encodeURIComponent(vuelo) : ''}`;
