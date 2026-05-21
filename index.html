@@ -4664,6 +4664,52 @@ FF
                         }
 
                         /* ══════════ PRÓXIMOS CUMPLEAÑOS ══════════ */
+                        /* ── Sección Amonestaciones ── */
+                        .cd-amonest-section {
+                            margin-bottom: 1.15rem;
+                        }
+                        .cd-amonest-hdr {
+                            display: flex;
+                            align-items: center;
+                            gap: .65rem;
+                            padding: .6rem 1rem;
+                            background: linear-gradient(90deg,#7f1d1d 0%,#991b1b 100%);
+                            border-radius: 10px;
+                            margin-bottom: .75rem;
+                            color: #fff;
+                            font-size: .8rem;
+                            font-weight: 800;
+                            text-transform: uppercase;
+                            letter-spacing: .06em;
+                        }
+                        .cd-amonest-hdr .cd-amonest-sub {
+                            font-weight: 400;
+                            text-transform: none;
+                            color: rgba(255,255,255,.6);
+                            font-size: .72rem;
+                            letter-spacing: 0;
+                            margin-left: auto;
+                        }
+                        .cd-amonest-hdr .cd-amonest-badge {
+                            background: rgba(255,255,255,.18);
+                            border-radius: 20px;
+                            padding: .15rem .55rem;
+                            font-size: .7rem;
+                            font-weight: 900;
+                            letter-spacing: .04em;
+                        }
+                        .colab-grupo-item-amonest {
+                            margin-left: auto;
+                            background: #fee2e2;
+                            color: #991b1b;
+                            font-size: .65rem;
+                            font-weight: 700;
+                            padding: .1rem .45rem;
+                            border-radius: 10px;
+                            flex-shrink: 0;
+                            white-space: nowrap;
+                        }
+
                         .cd-bday-panel {
                             background: linear-gradient(135deg,#0d1a3a 0%,#0d2152 60%,#1a3a70 100%);
                             border-radius: 18px;
@@ -6022,6 +6068,30 @@ FF
                                         <div class="cd-chart-card">
                                             <div class="cd-chart-title"><i class="fas fa-layer-group me-1"></i> Por Nivel</div>
                                             <div class="cd-chart-body"><canvas id="cd-chart-nivel" height="180"></canvas></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Fila de gráficas: Comportamiento Disciplinario -->
+                                    <div class="cd-amonest-section" id="cd-amonest-section" style="display:none">
+                                        <div class="cd-amonest-hdr">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            Comportamiento Disciplinario
+                                            <span class="cd-amonest-badge" id="cd-amonest-total-badge"></span>
+                                            <span class="cd-amonest-sub">Amonestaciones acumuladas por área · clic en barra para ver colaboradores</span>
+                                        </div>
+                                        <div class="cd-charts-row">
+                                            <div class="cd-chart-card">
+                                                <div class="cd-chart-title"><i class="fas fa-sitemap me-1"></i> Amonest. por Subdirección</div>
+                                                <div class="cd-chart-body"><canvas id="cd-chart-amonest-subdir" height="260"></canvas></div>
+                                            </div>
+                                            <div class="cd-chart-card">
+                                                <div class="cd-chart-title"><i class="fas fa-user-tie me-1"></i> Amonest. por Gerencia</div>
+                                                <div class="cd-chart-body"><canvas id="cd-chart-amonest-ger" height="260"></canvas></div>
+                                            </div>
+                                            <div class="cd-chart-card">
+                                                <div class="cd-chart-title"><i class="fas fa-network-wired me-1"></i> Amonest. por Coordinación</div>
+                                                <div class="cd-chart-body"><canvas id="cd-chart-amonest-coord" height="260"></canvas></div>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -8145,8 +8215,76 @@ FF
                                 })();
                             })();
 
+                            /* ── Gráficas de Comportamiento Disciplinario ── */
+                            (function() {
+                                function countAmonest(r) {
+                                    const raw = gc(r, 'amonestaciones');
+                                    if (!val(raw)) return 0;
+                                    return String(raw).split('\n').filter(function(l){ return l.trim(); }).length;
+                                }
+
+                                function amonestBy(colKey) {
+                                    var map = {};
+                                    (colabCache || []).forEach(function(r) {
+                                        var n = countAmonest(r);
+                                        if (!n) return;
+                                        var k = ((gc(r, colKey) || '').toString().trim()) || '(Sin dato)';
+                                        map[k] = (map[k] || 0) + n;
+                                    });
+                                    return Object.entries(map).sort(function(a,b){ return b[1]-a[1]; }).filter(function(e){ return e[0] !== '(Sin dato)'; });
+                                }
+
+                                var amBySubdir = amonestBy('subdireccion');
+                                var amByGer    = amonestBy('gerencia');
+                                var amByCoord  = amonestBy('coordinacion');
+
+                                var total = (colabCache||[]).reduce(function(s,r){ return s+countAmonest(r); }, 0);
+                                var section = document.getElementById('cd-amonest-section');
+                                if (section) section.style.display = total > 0 ? '' : 'none';
+                                var badge = document.getElementById('cd-amonest-total-badge');
+                                if (badge) badge.textContent = total + ' amonest. totales';
+                                if (!total) return;
+
+                                var RED_PALETTE = ['#b91c1c','#c62828','#d32f2f','#e53935','#ef5350','#f44336','#e57373','#ef9a9a','#b71c1c','#7f1d1d'];
+
+                                function makeAmChart(canvasId, colKey, data) {
+                                    if (!data.length) return;
+                                    var top = data.slice(0, 10);
+                                    destroyChart(canvasId);
+                                    var opts = barOpts(top, '#b91c1c');
+                                    opts.plugins.tooltip = { callbacks: {
+                                        title: function(ctx) { return top[ctx[0].dataIndex]?.[0] || ctx[0].label; },
+                                        label: function(ctx) { var v=ctx.parsed.x; return ' '+v+' amonestaci'+(v===1?'ón':'ones'); }
+                                    }};
+                                    opts.onClick = function(e, els) {
+                                        if (!els.length) return;
+                                        colabAbrirGrupoModal(colKey, top[els[0].index][0], {
+                                            filter: function(r){ return countAmonest(r) > 0; },
+                                            subtitulo: 'con amonestaciones',
+                                            showAmonest: true
+                                        });
+                                    };
+                                    opts.onHover = function(e, els) { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; };
+                                    new Chart(document.getElementById(canvasId), {
+                                        type: 'bar',
+                                        data: {
+                                            labels: top.map(function(d){ return d[0]; }),
+                                            datasets: [{ label: 'Amonestaciones', data: top.map(function(d){ return d[1]; }),
+                                                backgroundColor: RED_PALETTE.slice(0, top.length),
+                                                borderRadius: 6, barThickness: 18, borderSkipped: false }]
+                                        },
+                                        options: opts
+                                    });
+                                }
+
+                                makeAmChart('cd-chart-amonest-subdir', 'subdireccion', amBySubdir);
+                                makeAmChart('cd-chart-amonest-ger',    'gerencia',     amByGer);
+                                makeAmChart('cd-chart-amonest-coord',  'coordinacion', amByCoord);
+                            })();
+
                             /* ── Modal drill-down genérico: colaboradores por cualquier grupo ── */
                             let _grupoModalRecords = [];
+                            let _grupoModalOpts    = null;
                             const _grupoIconMap = {
                                 profesion:    'fas fa-graduation-cap',
                                 direccion:    'fas fa-building',
@@ -8156,18 +8294,21 @@ FF
                                 nivel:        'fas fa-layer-group',
                             };
 
-                            window.colabAbrirGrupoModal = function(colKey, groupValue) {
+                            window.colabAbrirGrupoModal = function(colKey, groupValue, opts) {
                                 const todos = colabCache || [];
+                                const extraFilter = opts && opts.filter;
                                 _grupoModalRecords = todos.filter(r => {
                                     const v = (gc(r, colKey) || '').toString().trim();
-                                    return v === groupValue;
+                                    return v === groupValue && (!extraFilter || extraFilter(r));
                                 }).sort((a, b) => {
                                     const na = (gc(a, 'nombre') || '').toLowerCase();
                                     const nb = (gc(b, 'nombre') || '').toLowerCase();
                                     return na.localeCompare(nb, 'es');
                                 });
+                                _grupoModalOpts = opts || null;
+                                const suffix = (opts && opts.subtitulo) ? ` · ${opts.subtitulo}` : '';
                                 const title = document.getElementById('colab-grupo-modal-title');
-                                if (title) title.textContent = `${groupValue} (${_grupoModalRecords.length})`;
+                                if (title) title.textContent = `${groupValue} (${_grupoModalRecords.length})${suffix}`;
                                 const icon = document.getElementById('colab-grupo-modal-icon');
                                 if (icon) icon.className = (_grupoIconMap[colKey] || 'fas fa-users') + ' me-2';
                                 const inp = document.getElementById('colab-grupo-modal-inp');
@@ -8188,10 +8329,14 @@ FF
                                     const num    = val(gc(r, 'num'))    || '—';
                                     const nombre = val(gc(r, 'nombre')) || '(Sin nombre)';
                                     const puesto = val(gc(r, 'puesto')) || '';
+                                    const showAm = _grupoModalOpts && _grupoModalOpts.showAmonest;
+                                    const amCnt  = showAm ? (() => { const raw = gc(r,'amonestaciones'); return raw ? String(raw).split('\n').filter(l=>l.trim()).length : 0; })() : 0;
+                                    const amBadge = (showAm && amCnt > 0) ? `<span class="colab-grupo-item-amonest">${amCnt} amonest.</span>` : '';
                                     return `<div class="colab-grupo-item" onclick="colabAbrirDesdeGrupoModal(${i})">
                                         <span class="colab-grupo-item-num"># ${num}</span>
                                         <span class="colab-grupo-item-name">${nombre}</span>
                                         <span class="colab-grupo-item-puesto">${puesto}</span>
+                                        ${amBadge}
                                     </div>`;
                                 }).join('');
                                 list._records = records;
