@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -6,859 +6,454 @@
   <title>Guía a tu Puerta · AIFA</title>
   <style>
     :root {
-      --bg:      #05050f;
-      --surface: #09091a;
-      --border:  #1a2840;
-      --amber:   #f0b830;
-      --blue:    #2a68c0;
-      --green:   #1a9060;
-      --text:    #dce9f8;
-      --muted:   #4a6888;
+      --bg:       #04040c;
+      --surface:  #07091a;
+      --surface2: #0a0d22;
+      --border:   #182038;
+      --amber:    #f0b830;
+      --blue:     #3a78d8;
+      --green:    #28b870;
+      --text:     #d8e8f8;
+      --muted:    #486880;
+      --radius:   8px;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; overflow: hidden; }
-    body { background: var(--bg); color: var(--text);
-           font-family: 'Segoe UI', Arial, sans-serif;
-           display: flex; flex-direction: column; }
+    html, body { height: 100%; overflow: hidden; background: var(--bg); }
+    body { font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+           color: var(--text); display: flex; flex-direction: column; }
 
-    /* ── HEADER ─────────────────────────────────────── */
+    /* HEADER */
     #hdr {
-      display: flex; align-items: center; gap: .75rem;
-      padding: .5rem 1rem;
-      background: var(--surface);
-      border-bottom: 2px solid var(--border);
-      flex-shrink: 0;
+      display: flex; align-items: center; gap: .6rem;
+      padding: .45rem .9rem;
+      background: var(--surface); border-bottom: 2px solid var(--border);
+      flex-shrink: 0; min-height: 52px;
     }
-    #hdr img { height: 34px; object-fit: contain; }
-    #hdr-title { flex: 1; }
+    #hdr img { height: 32px; object-fit: contain; flex-shrink: 0; }
+    #hdr-title { flex: 1; min-width: 0; }
     #hdr-title h1 {
-      font-size: .78rem; font-weight: 800;
-      letter-spacing: .12em; text-transform: uppercase; color: var(--text);
+      font-size: .7rem; font-weight: 800; letter-spacing: .1em;
+      text-transform: uppercase; line-height: 1.2;
     }
-    #hdr-title p { font-size: .64rem; color: var(--muted); letter-spacing: .06em; }
+    #hdr-title p { font-size: .6rem; color: var(--muted); letter-spacing: .05em; margin-top: 1px; }
     #gate-badge {
       background: var(--amber); color: #000;
-      font-size: .85rem; font-weight: 900;
-      padding: .28rem .7rem; border-radius: 7px;
-      letter-spacing: .08em; text-align: center;
-      min-width: 72px; flex-shrink: 0;
+      font-size: .9rem; font-weight: 900;
+      padding: .3rem .65rem; border-radius: 7px;
+      letter-spacing: .06em; text-align: center;
+      flex-shrink: 0; min-width: 68px;
     }
     #gate-badge small {
-      display: block; font-size: .55rem; font-weight: 700;
-      letter-spacing: .12em; text-transform: uppercase;
+      display: block; font-size: .5rem; font-weight: 800;
+      letter-spacing: .14em; text-transform: uppercase; margin-bottom: 1px;
+    }
+    #gate-badge .vuelo-line {
+      font-size: .58rem; font-weight: 700; opacity: .75; display: block;
     }
 
-    /* ── MAIN LAYOUT ────────────────────────────────── */
+    /* LAYOUT */
     #main { display: flex; flex: 1; overflow: hidden; }
 
-    /* ── MAP ────────────────────────────────────────── */
+    /* MAP */
     #map-wrap {
       flex: 1; position: relative; overflow: hidden;
-      cursor: grab;
+      background: var(--bg);
     }
-    #map-wrap:active { cursor: grabbing; }
-    #asvg { width: 100%; height: 100%; display: block; }
+    #asvg { width: 100%; height: 100%; display: block; cursor: crosshair; }
 
-    /* ── INFO PANEL ─────────────────────────────────── */
+    /* Map tap hint */
+    #tap-hint {
+      position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+      background: rgba(4,8,20,.88); border: 1px solid var(--border);
+      color: var(--muted); font-size: .65rem; padding: .3rem .75rem;
+      border-radius: 20px; pointer-events: none; white-space: nowrap;
+      opacity: 1; transition: opacity .6s;
+    }
+    #tap-hint.fade { opacity: 0; }
+
+    /* GPS status pill */
+    #gps-status {
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(4,8,20,.88); border: 1px solid var(--border);
+      color: var(--muted); font-size: .62rem; padding: .25rem .6rem;
+      border-radius: 20px; cursor: pointer; user-select: none;
+      transition: border-color .2s, color .2s;
+    }
+    #gps-status:hover { border-color: var(--blue); color: var(--text); }
+    #gps-status.active { border-color: var(--green); color: var(--green); }
+    #gps-status.error  { border-color: #a04020; color: #e06030; }
+
+    /* PANEL */
     #panel {
-      width: 270px; flex-shrink: 0;
-      background: var(--surface);
-      border-left: 1px solid var(--border);
-      display: flex; flex-direction: column;
-      overflow-y: auto;
+      width: 280px; flex-shrink: 0;
+      background: var(--surface); border-left: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden;
     }
 
-    .panel-section {
-      padding: .75rem 1rem;
-      border-bottom: 1px solid var(--border);
+    /* Next-step banner */
+    #next-banner {
+      padding: .6rem .9rem; background: #0a1020;
+      border-bottom: 2px solid var(--amber); flex-shrink: 0;
+    }
+    #next-label {
+      font-size: .52rem; color: var(--muted);
+      letter-spacing: .14em; text-transform: uppercase; margin-bottom: .2rem;
+    }
+    #next-text {
+      font-size: .95rem; font-weight: 800; color: var(--amber); line-height: 1.25;
+    }
+    #next-sub { font-size: .65rem; color: #6a9aaa; margin-top: .15rem; }
+
+    /* Walk time */
+    #walk-row {
+      display: flex; align-items: center; gap: .7rem;
+      padding: .55rem .9rem; border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    #walk-icon { font-size: 1.6rem; line-height: 1; }
+    #walk-mins { font-size: 1.9rem; font-weight: 900; color: var(--amber); line-height: 1; }
+    #walk-unit { font-size: .58rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    #walk-dist { font-size: .7rem; color: var(--muted); margin-top: .1rem; }
+
+    /* From selector */
+    #from-wrap {
+      padding: .4rem .9rem; border-bottom: 1px solid var(--border); flex-shrink: 0;
     }
     .panel-label {
-      font-size: .62rem; color: var(--muted);
-      letter-spacing: .1em; text-transform: uppercase;
-      margin-bottom: .35rem;
+      font-size: .52rem; color: var(--muted);
+      letter-spacing: .12em; text-transform: uppercase; margin-bottom: .3rem;
     }
-
-    /* ── Walk time ── */
-    #walk-row { display: flex; align-items: center; gap: .75rem; }
-    #walk-icon { font-size: 1.8rem; line-height: 1; }
-    #walk-mins {
-      font-size: 2rem; font-weight: 900;
-      color: var(--amber); line-height: 1;
-    }
-    #walk-unit { font-size: .65rem; color: var(--muted);
-                 text-transform: uppercase; letter-spacing: .08em; }
-    #walk-dist { font-size: .75rem; color: var(--muted); margin-top: .15rem; }
-
-    /* ── Start selector ── */
     #from-sel {
-      width: 100%;
-      background: var(--bg); border: 1px solid var(--border);
-      color: var(--text); padding: .35rem .5rem;
-      border-radius: 4px; font-size: .78rem;
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); padding: .3rem .45rem; border-radius: 4px; font-size: .75rem;
     }
 
-    /* ── Directions ── */
-    #dir-list { display: flex; flex-direction: column; gap: 0; }
+    /* Directions list */
+    #dir-wrap { flex: 1; overflow-y: auto; padding: .5rem .9rem; }
+    #dir-wrap .panel-label { margin-bottom: .4rem; }
+    #dir-list { display: flex; flex-direction: column; }
     .dir-step {
       display: flex; align-items: flex-start; gap: .5rem;
-      padding: .5rem 0;
-      border-bottom: 1px solid var(--border);
+      padding: .5rem 0; border-bottom: 1px solid var(--border);
     }
     .dir-step:last-child { border-bottom: none; }
     .dir-n {
-      background: var(--blue); color: #fff;
-      border-radius: 50%; width: 20px; height: 20px;
+      width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
-      font-size: .65rem; font-weight: 700; flex-shrink: 0;
+      font-size: .65rem; font-weight: 800;
+      background: var(--surface2); color: var(--muted); border: 1px solid var(--border);
     }
-    .dir-step.highlight .dir-n { background: var(--amber); color: #000; }
-    .dir-body { font-size: .78rem; line-height: 1.45; }
-    .dir-sub  { font-size: .68rem; color: var(--muted); margin-top: .15rem; }
+    .dir-step.current .dir-n { background: var(--amber); color: #000; border-color: var(--amber); }
+    .dir-step.done .dir-n    { background: var(--green); color: #fff; border-color: var(--green); }
+    .dir-body { flex: 1; font-size: .76rem; line-height: 1.45; }
+    .dir-sub  { font-size: .65rem; color: var(--muted); margin-top: .15rem; }
+    .dir-step.current .dir-body { color: var(--text); }
+    .dir-step:not(.current):not(.done) .dir-body { color: #7090a8; }
 
-    /* ── GPS button ── */
-    #gps-btn {
-      width: 100%; padding: .4rem;
-      background: transparent; border: 1px solid var(--border);
-      color: var(--muted); border-radius: 4px;
-      cursor: pointer; font-size: .75rem;
-      display: flex; align-items: center; justify-content: center; gap: .4rem;
-      transition: border-color .15s, color .15s;
-    }
-    #gps-btn:hover { border-color: var(--blue); color: var(--text); }
-
-    /* ── QR code ── */
+    /* QR wrap (desktop only) */
     #qr-wrap {
-      display: flex; flex-direction: column;
-      align-items: center; gap: .4rem;
-      padding: .75rem 1rem;
+      padding: .65rem .9rem; border-top: 1px solid var(--border);
+      display: flex; flex-direction: column; align-items: center; gap: .35rem; flex-shrink: 0;
     }
-    #qr-wrap p { font-size: .62rem; color: var(--muted);
-                 letter-spacing: .06em; text-align: center; }
-    #qr-box { background: #fff; padding: 7px; border-radius: 6px; display: inline-block; }
+    #qr-wrap p { font-size: .6rem; color: var(--muted); letter-spacing: .05em; }
+    #qr-box { background: #fff; padding: 6px; border-radius: 6px; }
 
-    /* ── Empty / not-found state ── */
-    #state-msg {
-      padding: 1.5rem 1rem; font-size: .8rem;
-      color: var(--muted); line-height: 1.6;
-    }
-
-    /* ── Mobile: panel below map, vertical stack ── */
+    /* MOBILE */
     @media (max-width: 680px) {
       html, body { overflow: hidden; }
       #main { flex-direction: column; }
       #panel {
-        width: 100%; max-height: 46vh; flex-shrink: 0;
-        border-left: none; border-top: 2px solid var(--border);
-        flex-direction: column; overflow-y: auto;
+        width: 100%; max-height: 48vh; flex-shrink: 0;
+        border-left: none; border-top: 2px solid var(--border); overflow: hidden;
       }
-      /* compact walk-time row */
-      #walk-section { padding: .45rem .75rem; }
-      #walk-row { gap: .6rem; }
-      #walk-icon { font-size: 1.4rem; }
-      #walk-mins { font-size: 1.6rem; }
-      #walk-unit { font-size: .6rem; }
-      #walk-dist { font-size: .68rem; }
-      /* compact from selector */
-      #from-section { padding: .4rem .75rem; }
-      #from-sel { font-size: .72rem; padding: .28rem .4rem; }
-      /* directions scrollable */
-      #dir-section { padding: .4rem .75rem; flex: 1; overflow-y: auto; }
-      .dir-step { padding: .35rem 0; }
-      .dir-body { font-size: .72rem; }
-      .dir-sub  { font-size: .63rem; }
-      /* hide QR + GPS on phone (it's the phone) */
-      #qr-wrap, #gps-section { display: none; }
+      #next-banner { padding: .4rem .75rem; }
+      #next-text   { font-size: .82rem; }
+      #walk-row    { padding: .35rem .75rem; }
+      #walk-icon   { font-size: 1.3rem; }
+      #walk-mins   { font-size: 1.5rem; }
+      #from-wrap   { padding: .3rem .75rem; }
+      #from-sel    { font-size: .7rem; }
+      #dir-wrap    { padding: .35rem .75rem; }
+      .dir-body    { font-size: .72rem; }
+      .dir-sub     { font-size: .62rem; }
+      #qr-wrap     { display: none; }
     }
 
-    /* ── Pulse animation (SVG gate) ── */
-    @keyframes pulse-ring {
-      0%   { r: 16; opacity: .7; }
-      100% { r: 30; opacity: 0; }
-    }
-    .pulse-ring {
-      animation: pulse-ring 1.4s ease-out infinite;
-    }
+    /* ANIMATIONS */
+    @keyframes pulse { 0% { r:10; opacity:.7; } 100% { r:26; opacity:0; } }
+    .pulse-r { animation: pulse 1.6s ease-out infinite; }
   </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <header id="hdr">
-  <img src="images/aifa-logo.png" alt="AIFA"
-       onerror="this.src='images/aifa-logo.jpg'">
+  <img src="images/aifa-logo.png" alt="AIFA" onerror="this.src='images/aifa-logo.jpg'">
   <div id="hdr-title">
-    <h1>Aeropuerto Internacional Felipe Ángeles</h1>
-    <p>Mapa de navegación al embarque</p>
+    <h1>Aeropuerto Internacional Felipe Angeles</h1>
+    <p id="hdr-sub">Mapa de navegacion al embarque</p>
   </div>
   <div id="gate-badge">
     <small>PUERTA</small>
-    <span id="badge-gate">—</span>
+    <span id="badge-gate">-</span>
   </div>
 </header>
 
-<!-- MAIN -->
 <div id="main">
-
-  <!-- SVG MAP -->
   <div id="map-wrap">
-    <svg id="asvg" viewBox="0 0 1520 460"
-         preserveAspectRatio="xMidYMid meet"
-         xmlns="http://www.w3.org/2000/svg">
-      <!-- content built by JS -->
-    </svg>
+    <svg id="asvg" viewBox="0 0 1520 460" preserveAspectRatio="xMidYMid meet"
+         xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="tap-hint">Toca el pasillo para indicar tu posicion</div>
+    <div id="gps-status" onclick="triggerGPS()">GPS Detectar posicion</div>
   </div>
 
-  <!-- INFO PANEL -->
   <div id="panel">
-
-    <!-- Start location -->
-    <div class="panel-section" id="from-section">
-      <div class="panel-label">Punto de inicio</div>
+    <div id="next-banner" style="display:none">
+      <div id="next-label">Siguiente paso</div>
+      <div id="next-text"></div>
+      <div id="next-sub"></div>
+    </div>
+    <div id="walk-row">
+      <div id="walk-icon">🚶</div>
+      <div>
+        <div id="walk-mins">-</div>
+        <div id="walk-unit">minutos</div>
+        <div id="walk-dist"></div>
+      </div>
+    </div>
+    <div id="from-wrap">
+      <div class="panel-label">Desde donde sales</div>
       <select id="from-sel" onchange="applyRoute()">
-        <option value="security">▶ Salida de Seguridad (acceso principal)</option>
-        <option value="security-b">▶ Seguridad Internacional / Zona B</option>
-        <option value="corridor-mid">▶ Centro del pasillo</option>
+        <option value="security">Salida de Seguridad (acceso principal)</option>
+        <option value="security-b">Seguridad Internacional / Zona B</option>
+        <option value="corridor-mid">Centro del pasillo</option>
       </select>
     </div>
-
-    <!-- Walk time -->
-    <div class="panel-section" id="walk-section">
-      <div id="walk-row">
-        <div id="walk-icon">🚶</div>
-        <div>
-          <div id="walk-mins">—</div>
-          <div id="walk-unit">minutos</div>
-          <div id="walk-dist"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- GPS button -->
-    <div class="panel-section" id="gps-section">
-      <button id="gps-btn" onclick="tryGPS()">
-        📍 Usar mi ubicación actual
-      </button>
-    </div>
-
-    <!-- Directions -->
-    <div class="panel-section" id="dir-section" style="flex:1">
-      <div class="panel-label">Indicaciones</div>
+    <div id="dir-wrap">
+      <div class="panel-label">Indicaciones paso a paso</div>
       <div id="dir-list"></div>
-      <div id="state-msg" style="display:none"></div>
+      <div id="state-msg" style="display:none;padding:.75rem 0;font-size:.78rem;color:var(--muted);line-height:1.6"></div>
     </div>
-
-    <!-- QR code (to share/send to phone) -->
     <div id="qr-wrap">
-      <p>Escanea para abrir en tu teléfono</p>
+      <p>Escanea para abrir en tu telefono</p>
       <div id="qr-box"></div>
     </div>
+  </div>
+</div>
 
-  </div><!-- /panel -->
-</div><!-- /main -->
-
-<!-- QRCode library -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
-        crossorigin="anonymous"></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
 <script>
-(function () {
-  'use strict';
+(function(){
+'use strict';
+const CY=210,CH=46,CX0=88,CX1=1490;
+const PX2M=1080/(CX1-CX0),WSPEED=75;
+const ENTRIES={'security':{x:100,label:'Salida de Seguridad'},'security-b':{x:290,label:'Seguridad Internacional'},'corridor-mid':{x:700,label:'Centro del pasillo'}};
+const GDIM={bus:{boxw:13,boxh:20,stub:58,sw:1.5,fs:7},jetbridge:{boxw:22,boxh:19,stub:65,sw:3,fs:7.5},apron:{boxw:36,boxh:21,stub:60,sw:3,fs:9}};
+const GCOL={bus:{fill:'#050f08',stroke:'#186828',text:'#32b860',hl:'#50ff90'},jetbridge:{fill:'#04081a',stroke:'#1a4090',text:'#4878e8',hl:'#78aaff'},apron:{fill:'#120d04',stroke:'#583a10',text:'#d09030',hl:'#ffc84a'}};
 
-  /* ════════════════════════════════════════════════════════════
-     GATE DATA — AIFA Felipe Ángeles International Airport
-     Source: Wikipedia + operational data
-     Concourse: 1,080 m long, 34 gates
-       • 101-105  : Apron gates (south end)  — walk to aircraft
-       • 106-119  : Jetbridge gates (A/B)    — telescopic jetway
-       • 120-134  : Bus gates (north end)    — bus to aircraft
-  ════════════════════════════════════════════════════════════ */
+function buildGates(){
+  const d={};
+  for(let n=120;n<=134;n++) d[String(n)]={x:140+(n-120)*21,type:'bus',gy:CY+CH/2};
+  for(let n=106;n<=119;n++){const bx=510+(n-106)*52;d[n+'A']={x:bx,type:'jetbridge',gy:CY+CH/2};d[n+'B']={x:bx+20,type:'jetbridge',gy:CY+CH/2};}
+  for(let n=101;n<=105;n++) d[String(n)]={x:1270+(n-101)*45,type:'apron',gy:CY+CH/2};
+  d['1128']={...d['112B'],alias:true};
+  return d;
+}
+const GATES=buildGates();
 
-  // SVG coordinate system
-  const CY     = 220;    // concourse corridor centre Y
-  const CH     = 48;     // corridor height
-  const CX0    = 90;     // corridor start X (near terminal)
-  const CX1    = 1480;   // corridor end X
-  const STUB   = 80;     // gate stub length (down from corridor)
-  const BOXW   = 44;     // gate box width
-  const BOXH   = 24;     // gate box height
+function resolveGate(s){
+  if(!s)return null;
+  const u=s.toUpperCase().trim();
+  if(GATES[u]&&!GATES[u].alias)return{key:u,g:GATES[u]};
+  const alt=u.slice(0,-1);
+  if(GATES[alt])return{key:alt,g:GATES[alt]};
+  return null;
+}
 
-  // Walking speed 75 m/min; SVG px → metres scale
-  const PX2M   = 1080 / (CX1 - CX0);
-  const WSPEED = 75;
+const P=new URLSearchParams(location.search);
+const TGT=(P.get('gate')||P.get('puerta')||'').toUpperCase();
+const VUE=P.get('vuelo')||P.get('flight')||'';
+const FRM=P.get('from')||'security';
 
-  // Entry points (x along corridor)
-  const ENTRIES = {
-    'security':    { x: 100, label: 'Salida de Seguridad' },
-    'security-b':  { x: 280, label: 'Seguridad Internacional' },
-    'corridor-mid':{ x: 600, label: 'Centro del Pasillo' },
+const NS='http://www.w3.org/2000/svg';
+const svg=document.getElementById('asvg');
+function svgEl(tag,attr,txt){
+  const e=document.createElementNS(NS,tag);
+  for(const[k,v]of Object.entries(attr))e.setAttribute(k,String(v));
+  if(txt!==undefined)e.textContent=txt;
+  return e;
+}
+
+function buildMap(){
+  svg.appendChild(svgEl('rect',{x:0,y:0,width:1520,height:460,fill:'#04040c'}));
+  svg.appendChild(svgEl('rect',{x:CX0,y:CY+CH/2,width:CX1-CX0,height:220,fill:'#060610'}));
+  svg.appendChild(svgEl('text',{x:CX0+700,y:CY+CH/2+50,fill:'#0c1428','font-size':12,'font-family':'Segoe UI,Arial','text-anchor':'middle','letter-spacing':6},'PLATAFORMA  /  APRON'));
+  svg.appendChild(svgEl('rect',{x:0,y:50,width:92,height:360,fill:'#07091c',stroke:'#182038','stroke-width':1.5,rx:5}));
+  svg.appendChild(svgEl('text',{x:46,y:220,fill:'#1a2858','font-size':9,'font-family':'Segoe UI,Arial','text-anchor':'middle',transform:'rotate(-90,46,220)','letter-spacing':2},'TERMINAL  CHECK-IN'));
+  svg.appendChild(svgEl('rect',{x:76,y:CY-CH/2-52,width:30,height:52,fill:'#08102a',stroke:'#182038','stroke-width':1.5}));
+  svg.appendChild(svgEl('text',{x:91,y:CY-CH/2-58,fill:'#28a068','font-size':8,'font-family':'Segoe UI,Arial','text-anchor':'middle'},'SEGURIDAD'));
+  [455,492,1248,1265].forEach(x=>svg.appendChild(svgEl('line',{x1:x,y1:CY-CH/2-2,x2:x,y2:CY+CH/2+2,stroke:'#182038','stroke-width':1})));
+  const zy=CY-CH/2-12;
+  [[298,'120-134  AUTOBUSES'],[870,'106-119  PASARELAS (A/B)'],[1360,'101-105  ACCESO DIRECTO']].forEach(([x,t])=>svg.appendChild(svgEl('text',{x,y:zy,fill:'#1c3460','font-size':8.5,'font-family':'Segoe UI,Arial','text-anchor':'middle','letter-spacing':1.2},t)));
+  svg.appendChild(svgEl('rect',{x:CX0,y:CY-CH/2,width:CX1-CX0,height:CH,fill:'#0b1a30',stroke:'#203460','stroke-width':2,rx:4}));
+  for(let ax=200;ax<CX1-80;ax+=120)svg.appendChild(svgEl('text',{x:ax,y:CY+6,fill:'#18284a','font-size':14,'text-anchor':'middle'},'→'));
+  for(const[k,g]of Object.entries(GATES)){if(g.alias)continue;drawGate(k,g);}
+  svg.appendChild(svgEl('g',{id:'pg'}));
+}
+
+function drawGate(key,g){
+  const gx=g.x,gy0=g.gy;
+  const d=GDIM[g.type]||GDIM.jetbridge;
+  const c=GCOL[g.type]||GCOL.jetbridge;
+  const gy1=gy0+d.stub;
+  svg.appendChild(svgEl('line',{x1:gx,y1:gy0,x2:gx,y2:gy1,stroke:c.stroke,'stroke-width':d.sw}));
+  svg.appendChild(svgEl('rect',{id:'gb-'+key,x:gx-d.boxw/2,y:gy1,width:d.boxw,height:d.boxh,fill:c.fill,stroke:c.stroke,'stroke-width':1,rx:g.type==='bus'?2:3,cursor:'pointer'}));
+  const lbl=svgEl('text',{id:'gl-'+key,fill:c.text,'font-size':d.fs,'font-weight':700,'font-family':'Segoe UI,Arial','text-anchor':'middle',cursor:'pointer'},key);
+  if(g.type==='bus'){lbl.setAttribute('x',gx);lbl.setAttribute('y',gy1+d.boxh/2+d.fs*0.35);lbl.setAttribute('transform','rotate(-90,'+gx+','+(gy1+d.boxh/2)+')');}
+  else{lbl.setAttribute('x',gx);lbl.setAttribute('y',gy1+d.boxh/2+d.fs*0.38);}
+  svg.appendChild(lbl);
+  [document.getElementById('gb-'+key),lbl].forEach(el=>{if(el)el.addEventListener('click',()=>navigateTo(key));});
+}
+
+function containerSize(){const w=document.getElementById('map-wrap');return{cW:w.clientWidth||360,cH:w.clientHeight||300};}
+function adjustView(ex,gx,destY){const{cW,cH}=containerSize();const asp=cW/Math.max(cH,1);const pad=Math.max(55,cW*0.07);const vbW=Math.max(Math.abs(gx-ex)+pad*2,300);const vbH=Math.round(vbW/asp);const cx=(Math.min(ex,gx)+Math.max(ex,gx))/2;const cy=CY+30;svg.setAttribute('viewBox',(cx-vbW/2)+' '+(cy-vbH/2)+' '+vbW+' '+vbH);}
+function initViewBox(){const{cW,cH}=containerSize();const asp=cW/Math.max(cH,1);const vbW=1520;const vbH=Math.round(vbW/asp);svg.setAttribute('viewBox','0 '+(CY-vbH/2)+' '+vbW+' '+vbH);}
+
+let _rafs=[];
+function stopAnims(){_rafs.forEach(cancelAnimationFrame);_rafs=[];}
+function resetGateColors(){for(const[k,g]of Object.entries(GATES)){if(g.alias)continue;const c=GCOL[g.type]||GCOL.jetbridge;const box=document.getElementById('gb-'+k);const lbl=document.getElementById('gl-'+k);if(box){box.setAttribute('fill',c.fill);box.setAttribute('stroke',c.stroke);}if(lbl){lbl.setAttribute('fill',c.text);lbl.setAttribute('font-size',(GDIM[g.type]||GDIM.jetbridge).fs);lbl.setAttribute('font-weight',700);}}}
+
+function applyRoute(){
+  const fromKey=document.getElementById('from-sel').value;
+  const entry=ENTRIES[fromKey]||ENTRIES.security;
+  stopAnims();resetGateColors();
+  const pg=document.getElementById('pg');
+  while(pg.firstChild)pg.removeChild(pg.firstChild);
+  if(!TGT){initViewBox();document.getElementById('state-msg').textContent='Toca una puerta en el mapa o escanea el QR del tablero FIDS.';document.getElementById('state-msg').style.display='';document.getElementById('dir-list').innerHTML='';document.getElementById('next-banner').style.display='none';return;}
+  const res=resolveGate(TGT);
+  if(!res){initViewBox();document.getElementById('state-msg').textContent='Puerta especial - consulta con el personal del aeropuerto.';document.getElementById('state-msg').style.display='';document.getElementById('walk-mins').textContent='?';return;}
+  document.getElementById('state-msg').style.display='none';
+  const{key:gKey,g:gData}=res;
+  const gx=gData.x,ex=entry.x;
+  const d=GDIM[gData.type]||GDIM.jetbridge;
+  const destY=gData.gy+d.stub+d.boxh/2;
+  const tBox=document.getElementById('gb-'+gKey);const tLbl=document.getElementById('gl-'+gKey);
+  if(tBox){tBox.setAttribute('fill','#a07008');tBox.setAttribute('stroke','#f0b830');}
+  if(tLbl){tLbl.setAttribute('fill','#000');tLbl.setAttribute('font-size',9);tLbl.setAttribute('font-weight',900);}
+  const cy=CY;
+  const pathD='M '+ex+' '+cy+' L '+gx+' '+cy+' L '+gx+' '+destY;
+  pg.appendChild(svgEl('path',{d:pathD,stroke:'#f0b83020','stroke-width':14,fill:'none','stroke-linecap':'round'}));
+  const line=svgEl('path',{id:'nav-line',d:pathD,stroke:'#f0b830','stroke-width':3,fill:'none','stroke-linecap':'round','stroke-dasharray':'10 6','stroke-dashoffset':0});
+  pg.appendChild(line);
+  let doff=0;
+  const animDash=()=>{doff=(doff-1.4)%16;line.setAttribute('stroke-dashoffset',doff);_rafs.push(requestAnimationFrame(animDash));};
+  animDash();
+  const pRing=svgEl('circle',{cx:ex,cy:cy,r:10,fill:'none',stroke:'#28b870','stroke-width':2,opacity:.8,class:'pulse-r'});
+  pg.appendChild(pRing);
+  pg.appendChild(svgEl('circle',{cx:ex,cy:cy,r:8,fill:'#0d6040',stroke:'#28b870','stroke-width':2.5}));
+  pg.appendChild(svgEl('text',{x:ex,y:cy+4,fill:'#60ffb0','font-size':8,'text-anchor':'middle','pointer-events':'none','font-weight':900},'◉'));
+  const pCircle=svgEl('circle',{cx:ex,cy:cy,r:7,fill:'#2858c8',stroke:'#0a1840','stroke-width':2});
+  const pIcon=svgEl('text',{x:ex,y:cy+4,fill:'#fff','font-size':8,'text-anchor':'middle','pointer-events':'none'},'🚶');
+  pg.appendChild(pCircle);pg.appendChild(pIcon);
+  const corrLen=Math.abs(gx-ex),stubLen=Math.abs(destY-cy),total=corrLen+stubLen;
+  let t0=null;
+  const animWalk=ts=>{
+    if(!t0)t0=ts;
+    const prog=Math.min(((ts-t0)%3600)/3000,1);
+    const cFrac=corrLen/total;
+    let px,py;
+    if(prog<=cFrac){px=ex+(gx-ex)*(prog/cFrac);py=cy;}else{px=gx;py=cy+(destY-cy)*((prog-cFrac)/(1-cFrac));}
+    pCircle.setAttribute('cx',px);pCircle.setAttribute('cy',py);pIcon.setAttribute('x',px);pIcon.setAttribute('y',py+4);
+    _rafs.push(requestAnimationFrame(animWalk));
   };
-
-  // Gate x positions (calculated once)
-  function buildGateData() {
-    const d = {};
-
-    // ── Bus gates 120-134 (x = 140 … 445) ──
-    for (let n = 120; n <= 134; n++) {
-      d[String(n)] = {
-        x: 140 + (n - 120) * 21,
-        type: 'bus', gy: CY + CH / 2,
-      };
-    }
-
-    // ── Jetbridge gates 106-119 (paired A/B, x = 510 … 1220) ──
-    // Each gate number has an A and B position, 20 px apart; pairs 52 px apart
-    const JB0 = 510, JB_STEP = 52, AB = 20;
-    for (let n = 106; n <= 119; n++) {
-      const base = JB0 + (n - 106) * JB_STEP;
-      d[n + 'A'] = { x: base,        type: 'jetbridge', gy: CY + CH / 2 };
-      d[n + 'B'] = { x: base + AB,   type: 'jetbridge', gy: CY + CH / 2 };
-    }
-
-    // ── Apron gates 101-105 (x = 1270 … 1450) ──
-    for (let n = 101; n <= 105; n++) {
-      d[String(n)] = {
-        x: 1270 + (n - 101) * 45,
-        type: 'apron', gy: CY + CH / 2,
-      };
-    }
-
-    // ── Aliases / special codes ──
-    d['1128'] = { ...d['112B'], alias: '112B' };  // operational alias seen in FIDS
-
-    return d;
-  }
-
-  const GATES = buildGateData();
-
-  // Resolve a gate string: exact, then strip trailing letter, then base number
-  function resolveGate(s) {
-    if (!s) return null;
-    const up = s.toUpperCase().trim();
-    if (GATES[up]) return { key: up, g: GATES[up] };
-    // try stripping B→A variant
-    const alt = up.slice(0, -1);
-    if (GATES[alt]) return { key: alt, g: GATES[alt] };
-    return null;
-  }
-
-  /* ════════════════════════════════════════════════════════════
-     URL PARAMS
-  ════════════════════════════════════════════════════════════ */
-  const P   = new URLSearchParams(location.search);
-  const TGT = (P.get('gate') || P.get('puerta') || '').toUpperCase();
-  const VUE = P.get('vuelo') || P.get('flight') || '';
-  const FRM = P.get('from')  || 'security';
-
-  /* ════════════════════════════════════════════════════════════
-     SVG BUILD
-  ════════════════════════════════════════════════════════════ */
-  const SVG_NS = 'http://www.w3.org/2000/svg';
-  const svg = document.getElementById('asvg');
-
-  function el(tag, attrs, text) {
-    const e = document.createElementNS(SVG_NS, tag);
-    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, String(v));
-    if (text !== undefined) e.textContent = text;
-    return e;
-  }
-
-  function buildMap() {
-    // dark background
-    svg.appendChild(el('rect', { x:0, y:0, width:1520, height:460, fill:'#05050f' }));
-
-    // apron area (below corridor)
-    svg.appendChild(el('rect', {
-      x: CX0, y: CY + CH / 2, width: CX1 - CX0, height: 220,
-      fill: '#080810',
-    }));
-    svg.appendChild(el('text', {
-      x: CX0 + 600, y: CY + CH / 2 + 60,
-      fill: '#10182a', 'font-size': 13,
-      'font-family': 'Segoe UI,Arial',
-      'text-anchor': 'middle', 'letter-spacing': 5,
-    }, 'PLATAFORMA  /  APRON'));
-
-    // terminal building (left block)
-    svg.appendChild(el('rect', {
-      x: 0, y: 60, width: 95, height: 340,
-      fill: '#080818', stroke: '#1a2840', 'stroke-width': 1.5, rx: 5,
-    }));
-    svg.appendChild(el('text', {
-      x: 47, y: 200,
-      fill: '#2a4878', 'font-size': 9.5,
-      'font-family': 'Segoe UI,Arial', 'text-anchor': 'middle',
-      'writing-mode': 'tb', 'letter-spacing': 2,
-    }, 'TERMINAL'));
-    svg.appendChild(el('text', {
-      x: 47, y: 235,
-      fill: '#1a3050', 'font-size': 8.5,
-      'font-family': 'Segoe UI,Arial', 'text-anchor': 'middle',
-    }, 'Check-in'));
-
-    // connector
-    svg.appendChild(el('rect', {
-      x: 78, y: CY - CH / 2 - 55, width: 28, height: 55,
-      fill: '#0a1828', stroke: '#1a2840', 'stroke-width': 1.5,
-    }));
-    svg.appendChild(el('text', {
-      x: 92, y: CY - CH / 2 - 62,
-      fill: '#1a8050', 'font-size': 9,
-      'font-family': 'Segoe UI,Arial', 'text-anchor': 'middle', 'letter-spacing': .5,
-    }, '▼ SEGURIDAD'));
-
-    // zone separator lines
-    [[458, '#1a2840'], [490, '#1a2840'], [1240, '#1a2840'], [1255, '#1a2840']].forEach(([x, col]) => {
-      svg.appendChild(el('line', {
-        x1: x, y1: CY - CH / 2 - 4, x2: x, y2: CY + CH / 2 + 4,
-        stroke: col, 'stroke-width': 1,
-      }));
-    });
-
-    // zone labels (above corridor)
-    const ZY = CY - CH / 2 - 10;
-    [
-      [290,  '120 – 134  PUERTAS DE AUTOBÚS'],
-      [870,  '106 – 119  PUERTAS CON PASARELA (A / B)'],
-      [1360, '101 – 105  ACCESO DIRECTO'],
-    ].forEach(([x, t]) => {
-      svg.appendChild(el('text', {
-        x, y: ZY,
-        fill: '#1a3050', 'font-size': 9,
-        'font-family': 'Segoe UI,Arial',
-        'text-anchor': 'middle', 'letter-spacing': 1.5,
-      }, t));
-    });
-
-    // main corridor
-    svg.appendChild(el('rect', {
-      x: CX0, y: CY - CH / 2, width: CX1 - CX0, height: CH,
-      fill: '#0d1b30', stroke: '#1c3460', 'stroke-width': 2, rx: 4,
-    }));
-
-    // direction arrows in corridor
-    for (let ax = 180; ax < CX1 - 60; ax += 110) {
-      svg.appendChild(el('text', {
-        x: ax, y: CY + 6,
-        fill: '#1a2840', 'font-size': 16,
-        'text-anchor': 'middle',
-      }, '→'));
-    }
-
-    // draw all gates
-    for (const [key, g] of Object.entries(GATES)) {
-      if (g.alias) continue;             // skip aliases (1128 → 112B already drawn)
-      drawGate(key, g);
-    }
-
-    // path + markers group (will be cleared/redrawn)
-    svg.appendChild(el('g', { id: 'path-g' }));
-  }
-
-  const GATE_COLORS = {
-    bus:       { fill: '#06120a', stroke: '#0e2a16', text: '#1a5030' },
-    jetbridge: { fill: '#060c1c', stroke: '#0e2040', text: '#1a3878' },
-    apron:     { fill: '#121006', stroke: '#2a2010', text: '#4a3a10' },
-  };
-
-  function drawGate(key, g) {
-    const gx = g.x;
-    const gy0 = g.gy;                      // corridor bottom
-    const gy1 = gy0 + STUB;               // stub bottom
-    const c = GATE_COLORS[g.type] || GATE_COLORS.jetbridge;
-
-    // stub line
-    svg.appendChild(el('line', {
-      x1: gx, y1: gy0, x2: gx, y2: gy1,
-      stroke: c.stroke, 'stroke-width': g.type === 'jetbridge' ? 4 : 2.5,
-    }));
-
-    // gate box
-    svg.appendChild(el('rect', {
-      id: `g-box-${key}`,
-      x: gx - BOXW / 2, y: gy1,
-      width: BOXW, height: BOXH,
-      fill: c.fill, stroke: c.stroke, 'stroke-width': 1, rx: 4,
-      cursor: 'pointer',
-    }));
-
-    // gate label
-    svg.appendChild(el('text', {
-      id: `g-lbl-${key}`,
-      x: gx, y: gy1 + BOXH / 2 + 4.5,
-      fill: c.text,
-      'font-size': 9, 'font-weight': 600,
-      'font-family': 'Segoe UI,Arial',
-      'text-anchor': 'middle', 'letter-spacing': .3,
-      cursor: 'pointer',
-    }, key));
-
-    // click → navigate to this gate
-    const box = document.getElementById(`g-box-${key}`);
-    const lbl = document.getElementById(`g-lbl-${key}`);
-    if (box) box.addEventListener('click', () => navigateTo(key));
-    if (lbl) lbl.addEventListener('click', () => navigateTo(key));
-  }
-
-  /* ════════════════════════════════════════════════════════════
-     ROUTING
-  ════════════════════════════════════════════════════════════ */
-  let _currentRAFs = [];
-
-  function cancelAnims() {
-    _currentRAFs.forEach(id => cancelAnimationFrame(id));
-    _currentRAFs = [];
-  }
-
-  function applyRoute() {
-    const fromKey = document.getElementById('from-sel').value;
-    const entry   = ENTRIES[fromKey] || ENTRIES.security;
-
-    cancelAnims();
-
-    // reset gate highlight
-    for (const key of Object.keys(GATES)) {
-      const box = document.getElementById(`g-box-${key}`);
-      const lbl = document.getElementById(`g-lbl-${key}`);
-      if (!box) continue;
-      const g = GATES[key];
-      const c = GATE_COLORS[g.type] || GATE_COLORS.jetbridge;
-      box.setAttribute('fill', c.fill);
-      box.setAttribute('stroke', c.stroke);
-      if (lbl) { lbl.setAttribute('fill', c.text); lbl.setAttribute('font-weight', 600); }
-    }
-
-    // clear path group
-    const pg = document.getElementById('path-g');
-    while (pg.firstChild) pg.removeChild(pg.firstChild);
-
-    if (!TGT) {
-      initViewBox();
-      showMsg('Toca una puerta en el mapa para ver la ruta — o escanea el QR del tablero FIDS.', 'info');
-      return;
-    }
-
-    const resolved = resolveGate(TGT);
-    if (!resolved) {
-      showMsg(`La puerta "${TGT}" es una terminal de carga o posición especial. Consulta con el personal del aeropuerto.`, 'warn');
-      document.getElementById('walk-mins').textContent = '?';
-      return;
-    }
-
-    const { key: gKey, g: gData } = resolved;
-    const gx = gData.x;
-    const ex = entry.x;
-
-    // Highlight target gate
-    const tBox = document.getElementById(`g-box-${gKey}`);
-    const tLbl = document.getElementById(`g-lbl-${gKey}`);
-    if (tBox) { tBox.setAttribute('fill', '#c89010'); tBox.setAttribute('stroke', '#f0b830'); }
-    if (tLbl) { tLbl.setAttribute('fill', '#000'); tLbl.setAttribute('font-weight', 900); }
-
-    // Path geometry
-    const cy = CY;                            // walk along corridor Y
-    const destY = gData.gy + STUB + BOXH / 2; // centre of destination gate box
-
-    // Draw path: entry → along corridor → turn down to gate
-    const pathD = `M ${ex} ${cy} L ${gx} ${cy} L ${gx} ${destY}`;
-
-    // Shadow
-    pg.appendChild(el('path', {
-      d: pathD,
-      stroke: '#f0b83028', 'stroke-width': 14, fill: 'none', 'stroke-linecap': 'round',
-    }));
-
-    // Animated dashed path
-    const pathEl = el('path', {
-      id: 'nav-line',
-      d: pathD,
-      stroke: '#f0b830', 'stroke-width': 3.5, fill: 'none',
-      'stroke-linecap': 'round', 'stroke-dasharray': '10 6', 'stroke-dashoffset': 0,
-    });
-    pg.appendChild(pathEl);
-
-    // Animate dashes
-    let doff = 0;
-    function animDash() {
-      doff = (doff - 1.2) % 16;
-      pathEl.setAttribute('stroke-dashoffset', doff);
-      _currentRAFs.push(requestAnimationFrame(animDash));
-    }
-    animDash();
-
-    // Start marker
-    pg.appendChild(el('circle', { cx: ex, cy: cy, r: 7, fill: '#1a9060', stroke: '#0a3020', 'stroke-width': 2 }));
-    pg.appendChild(el('text', { x: ex, y: cy + 4, fill: '#fff', 'font-size': 8,
-                                'text-anchor': 'middle', 'pointer-events': 'none' }, '✦'));
-
-    // Walking person animation along path
-    const personCircle = el('circle', { cx: ex, cy: cy, r: 7, fill: '#3a88e8', stroke: '#0a2050', 'stroke-width': 2 });
-    pg.appendChild(personCircle);
-    pg.appendChild(el('text', { id: 'person-icon', x: ex, y: cy + 4, fill: '#fff', 'font-size': 9,
-                                'text-anchor': 'middle', 'pointer-events': 'none' }, '🚶'));
-    const personIcon = document.getElementById('person-icon');
-
-    const totalLen = Math.abs(gx - ex) + Math.abs(destY - cy);
-    const corridorLen = Math.abs(gx - ex);
-    const stubLen = Math.abs(destY - cy);
-    const TRIP_MS = 3200;
-
-    let t0 = null;
-    function animPerson(ts) {
-      if (!t0) t0 = ts;
-      const elapsed = (ts - t0) % (TRIP_MS + 600);
-      const progress = Math.min(elapsed / TRIP_MS, 1);
-
-      let px, py;
-      const corridorFrac = corridorLen / totalLen;
-      if (progress <= corridorFrac) {
-        const p2 = progress / corridorFrac;
-        px = ex + (gx - ex) * p2;
-        py = cy;
-      } else {
-        const p2 = (progress - corridorFrac) / (1 - corridorFrac);
-        px = gx;
-        py = cy + (destY - cy) * p2;
-      }
-
-      personCircle.setAttribute('cx', px);
-      personCircle.setAttribute('cy', py);
-      personIcon.setAttribute('x', px);
-      personIcon.setAttribute('y', py + 4);
-
-      _currentRAFs.push(requestAnimationFrame(animPerson));
-    }
-    _currentRAFs.push(requestAnimationFrame(animPerson));
-
-    // Destination gate pulse rings
-    const pRing1 = el('circle', { cx: gx, cy: destY, r: 16, fill: 'none',
-                                  stroke: '#f0b830', 'stroke-width': 2, opacity: 0, class: 'pulse-ring' });
-    const pRing2 = el('circle', { cx: gx, cy: destY, r: 16, fill: 'none',
-                                  stroke: '#f0b830', 'stroke-width': 1.5, opacity: 0, class: 'pulse-ring' });
-    pRing2.style.animationDelay = '.7s';
-    pg.appendChild(pRing1);
-    pg.appendChild(pRing2);
-
-    // Centre dot at destination
-    pg.appendChild(el('circle', { cx: gx, cy: destY, r: 5, fill: '#f0b830' }));
-
-    // Distance & walk time
-    const distPx = totalLen;
-    const distM  = Math.round(distPx * PX2M);
-    const mins   = Math.max(1, Math.round(distM / WSPEED));
-    document.getElementById('walk-mins').textContent = mins;
-    document.getElementById('walk-dist').textContent = `~${distM} m de recorrido`;
-
-    // Badge
-    document.getElementById('badge-gate').textContent = TGT;
-    if (VUE) {
-      const badge = document.getElementById('gate-badge');
-      badge.innerHTML = `<small>PUERTA / VUELO</small><span>${TGT}</span>
-        <span style="font-size:.6rem;font-weight:700;opacity:.7;display:block">${VUE}</span>`;
-    }
-
-    // Directions
-    buildDirections(entry, gKey, gData, distM, mins);
-
-    // Adjust SVG viewport to show the route
-    adjustView(ex, gx, destY);
-  }
-
-  // Fill the container by matching its aspect ratio in SVG units
-  function getContainerAspect() {
-    const wrap = document.getElementById('map-wrap');
-    const cW = wrap.clientWidth  || 360;
-    const cH = wrap.clientHeight || 300;
-    return { cW, cH, asp: cW / Math.max(cH, 1) };
-  }
-
-  function adjustView(ex, gx, destY) {
-    const { cW, asp } = getContainerAspect();
-    const pad  = Math.max(60, cW * 0.08);
-    const minX = Math.min(ex, gx) - pad;
-    const maxX = Math.max(ex, gx) + pad;
-    const vbW  = Math.max(maxX - minX, 280);
-    const vbH  = Math.round(vbW / asp);
-    const cx   = (minX + maxX) / 2;
-    const cy   = CY + STUB * 0.4;  // slightly below corridor to show gate labels
-    svg.setAttribute('viewBox', `${cx - vbW / 2} ${cy - vbH / 2} ${vbW} ${vbH}`);
-  }
-
-  function initViewBox() {
-    // Show full concourse scaled to fill the container (no gate selected)
-    const { asp } = getContainerAspect();
-    const vbW = 1520;
-    const vbH = Math.round(vbW / asp);
-    svg.setAttribute('viewBox', `0 ${CY - vbH / 2} ${vbW} ${vbH}`);
-  }
-
-  function navigateTo(key) {
-    // Update URL and reload to navigate to a clicked gate
-    const url = new URL(location.href);
-    url.searchParams.set('gate', key);
-    location.href = url.toString();
-  }
-
-  function buildDirections(entry, gKey, g, distM, mins) {
-    const dir = g.x > entry.x ? 'derecha ➡' : 'izquierda ⬅';
-    const zoneNames = {
-      bus:       'Zona de Autobuses (120-134)',
-      jetbridge: 'Zona de Pasarelas (106-119)',
-      apron:     'Acceso Directo a Aeronave (101-105)',
-    };
-    const boardHint = {
-      bus:       '🚌 Abordarás por autobús a la aeronave',
-      jetbridge: '🏗️ Abordarás por pasarela telescópica',
-      apron:     '🚶 Abordarás caminando directamente a la aeronave',
-    };
-
-    const steps = [
-      { icon: '🔓', text: `Sal de ${entry.label}` },
-      { icon: '↕️', text: `Gira a la <strong>${dir}</strong> y avanza por el pasillo principal`, sub: `Zona: ${zoneNames[g.type] || g.type}` },
-      { icon: '🏃', text: `Camina <strong>~${distM} m</strong>`, sub: `Tiempo estimado: ${mins} min` },
-      { icon: '🎯', text: `Llega a <strong>Puerta ${gKey}</strong><br>Busca el letrero amarillo`, highlight: true },
-      { icon: '✈️', text: boardHint[g.type] || 'Aborda tu vuelo' },
-    ];
-
-    document.getElementById('dir-list').innerHTML = steps.map((s, i) => `
-      <div class="dir-step${s.highlight ? ' highlight' : ''}">
-        <div class="dir-n">${i + 1}</div>
-        <div class="dir-body">
-          ${s.icon} ${s.text}
-          ${s.sub ? `<div class="dir-sub">${s.sub}</div>` : ''}
-        </div>
-      </div>
-    `).join('');
-
-    document.getElementById('state-msg').style.display = 'none';
-    document.getElementById('dir-list').style.display = '';
-  }
-
-  function showMsg(msg, type) {
-    const el2 = document.getElementById('state-msg');
-    el2.textContent = msg;
-    el2.style.color = type === 'warn' ? '#c07c18' : '#4a6888';
-    el2.style.display = '';
-    document.getElementById('dir-list').style.display = 'none';
-  }
-
-  /* ════════════════════════════════════════════════════════════
-     GPS (best-effort indoor)
-  ════════════════════════════════════════════════════════════ */
-  // AIFA terminal approximate center
-  const AIFA_LAT = 19.7594, AIFA_LNG = -99.0152;
-  // Rough mapping: each degree lat ≈ 111,000 m, lng ≈ 95,000 m at this lat
-  // Corridor runs roughly W-E. West (CX0) ≈ lng -99.0175, East (CX1) ≈ lng -99.0132
-  const LNG_WEST = -99.0180, LNG_EAST = -99.0125;
-
-  function tryGPS() {
-    const btn = document.getElementById('gps-btn');
-    btn.textContent = '⏳ Localizando…';
-    if (!navigator.geolocation) {
-      btn.textContent = '📍 GPS no disponible';
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(pos => {
-      const { latitude, longitude } = pos.coords;
-      const dist = Math.sqrt(
-        Math.pow((latitude  - AIFA_LAT) * 111000, 2) +
-        Math.pow((longitude - AIFA_LNG) * 95000,  2),
-      );
-      if (dist > 2000) {
-        btn.textContent = '📍 Fuera del aeropuerto';
-        return;
-      }
-      // Map longitude to corridor X
-      const frac = Math.max(0, Math.min(1, (longitude - LNG_WEST) / (LNG_EAST - LNG_WEST)));
-      const svgX = CX0 + frac * (CX1 - CX0);
-
-      // Find closest entry point
-      let closest = 'security', minD = Infinity;
-      for (const [k, ep] of Object.entries(ENTRIES)) {
-        const d = Math.abs(ep.x - svgX);
-        if (d < minD) { minD = d; closest = k; }
-      }
-
-      document.getElementById('from-sel').value = closest;
-      applyRoute();
-      btn.textContent = `✅ Posición detectada (±${Math.round(pos.coords.accuracy)}m)`;
-    }, err => {
-      btn.textContent = '📍 No se pudo obtener ubicación';
-    }, { enableHighAccuracy: true, timeout: 8000 });
-  }
-
-  /* ════════════════════════════════════════════════════════════
-     QR CODE — encode current page URL for phone sharing
-  ════════════════════════════════════════════════════════════ */
-  function buildQR() {
-    const box = document.getElementById('qr-box');
-    box.innerHTML = '';
-    try {
-      new QRCode(box, {
-        text: location.href,
-        width: 120, height: 120,
-        colorDark: '#000000', colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.M,
-      });
-    } catch (_) {}
-  }
-
-  /* ════════════════════════════════════════════════════════════
-     SVG DRAG / PAN (mouse only; touch handled by preserveAspectRatio)
-  ════════════════════════════════════════════════════════════ */
-  let dragging = false, dragStart = null, origVB = null;
-
-  svg.addEventListener('mousedown', e => {
-    dragging = true;
-    dragStart = { x: e.clientX, y: e.clientY };
-    const vb = svg.getAttribute('viewBox').split(' ').map(Number);
-    origVB = { x: vb[0], y: vb[1], w: vb[2], h: vb[3] };
-  });
-  window.addEventListener('mousemove', e => {
-    if (!dragging || !origVB) return;
-    const rect = svg.getBoundingClientRect();
-    const scaleX = origVB.w / rect.width;
-    const scaleY = origVB.h / rect.height;
-    const dx = (e.clientX - dragStart.x) * scaleX;
-    const dy = (e.clientY - dragStart.y) * scaleY;
-    svg.setAttribute('viewBox', `${origVB.x - dx} ${origVB.y - dy} ${origVB.w} ${origVB.h}`);
-  });
-  window.addEventListener('mouseup', () => { dragging = false; });
-
-  // Reset view button
-  document.getElementById('map-wrap').addEventListener('dblclick', () => {
-    svg.setAttribute('viewBox', '0 0 1520 460');
-    if (TGT) {
-      const r = resolveGate(TGT);
-      if (r) {
-        const entry = ENTRIES[document.getElementById('from-sel').value] || ENTRIES.security;
-        adjustView(entry.x, r.g.x, r.g.gy + STUB + BOXH / 2);
-      }
-    }
-  });
-
-  /* ════════════════════════════════════════════════════════════
-     INIT
-  ════════════════════════════════════════════════════════════ */
-  buildMap();
-
-  // Set from-select from URL param
-  const fs = document.getElementById('from-sel');
-  if (FRM && ENTRIES[FRM]) fs.value = FRM;
-
-  // Initial route
+  _rafs.push(requestAnimationFrame(animWalk));
+  [0,800].forEach(delay=>{const r=svgEl('circle',{cx:gx,cy:destY,r:12,fill:'none',stroke:'#f0b830','stroke-width':1.8,opacity:0,class:'pulse-r'});r.style.animationDelay=delay+'ms';pg.appendChild(r);});
+  pg.appendChild(svgEl('circle',{cx:gx,cy:destY,r:5,fill:'#f0b830'}));
+  const distM=Math.round(total*PX2M);
+  const mins=Math.max(1,Math.round(distM/WSPEED));
+  document.getElementById('walk-mins').textContent=mins;
+  document.getElementById('walk-dist').textContent='~'+distM+' m';
+  const badge=document.getElementById('gate-badge');
+  badge.innerHTML=VUE?'<small>PUERTA</small>'+gKey+'<span class="vuelo-line">'+VUE+'</span>':'<small>PUERTA</small>'+gKey;
+  buildDirections(entry,gKey,gData,distM,mins);
+  adjustView(ex,gx,destY);
+}
+
+function buildDirections(entry,gKey,g,distM,mins){
+  const dir=g.x>entry.x?'derecha':'izquierda';
+  const arw=g.x>entry.x?'→':'←';
+  const zone={bus:'Zona Autobuses',jetbridge:'Zona Pasarelas',apron:'Acceso Directo'};
+  const board={bus:'Autobus a la aeronave en plataforma',jetbridge:'Abordas por pasarela telescopica',apron:'Camina directamente hasta la aeronave'};
+  const steps=[
+    {icon:'🔓',txt:'Sal por <strong>'+entry.label+'</strong>',sub:null,state:'current'},
+    {icon:arw,txt:'Gira a la <strong>'+dir+'</strong> y avanza',sub:zone[g.type]||'',state:null},
+    {icon:'🚶',txt:'Camina <strong>~'+distM+' m</strong>',sub:'Aprox. '+mins+' minuto'+(mins>1?'s':''),state:null},
+    {icon:'🎯',txt:'Llega a <strong>Puerta '+gKey+'</strong>',sub:'Busca el letrero amarillo',state:'current'},
+    {icon:'✈️',txt:board[g.type]||'Aborda tu vuelo',sub:null,state:null},
+  ];
+  document.getElementById('dir-list').innerHTML=steps.map((s,i)=>'<div class="dir-step'+(s.state?' '+s.state:'')+'"><div class="dir-n">'+(i+1)+'</div><div class="dir-body">'+s.icon+' '+s.txt+(s.sub?'<div class="dir-sub">'+s.sub+'</div>':'')+'</div></div>').join('');
+  document.getElementById('next-banner').style.display='';
+  document.getElementById('next-text').textContent='Gira a la '+dir+' '+arw;
+  document.getElementById('next-sub').textContent=zone[g.type]+' · ~'+distM+' m · '+mins+' min';
+}
+
+const AIFA_LAT=19.7594,AIFA_LNG=-99.0152,LNG_W=-99.0178,LNG_E=-99.0128;
+function triggerGPS(){
+  const st=document.getElementById('gps-status');
+  st.textContent='Localizando...';st.className='';
+  if(!navigator.geolocation){st.textContent='GPS no disponible - toca el mapa';st.className='error';showTapHint();return;}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const{latitude:lat,longitude:lng,accuracy:acc}=pos.coords;
+    const dist=Math.hypot((lat-AIFA_LAT)*111000,(lng-AIFA_LNG)*95000);
+    if(dist>2500){st.textContent='Fuera del aeropuerto - toca el mapa';st.className='error';showTapHint();return;}
+    const frac=Math.max(0,Math.min(1,(lng-LNG_W)/(LNG_E-LNG_W)));
+    setUserPos(CX0+frac*(CX1-CX0));
+    st.textContent='GPS activo +/-'+Math.round(acc)+'m';st.className='active';hideTapHint();
+  },err=>{st.textContent='Sin GPS - toca el pasillo del mapa';st.className='error';showTapHint();},{enableHighAccuracy:true,timeout:10000,maximumAge:0});
+}
+
+function setUserPos(svgX){
+  const x=Math.max(CX0+5,Math.min(CX1-5,svgX));
+  ENTRIES['tap']={x,label:'Tu posicion'};
+  const sel=document.getElementById('from-sel');
+  let opt=document.getElementById('opt-tap');
+  if(!opt){opt=document.createElement('option');opt.id='opt-tap';opt.value='tap';sel.insertBefore(opt,sel.firstChild);}
+  opt.textContent='Tu posicion actual';
+  sel.value='tap';
   applyRoute();
+}
 
-  // QR code after map loads
-  if (typeof QRCode !== 'undefined') {
-    buildQR();
-  } else {
-    window.addEventListener('load', buildQR);
+function showTapHint(){document.getElementById('tap-hint').classList.remove('fade');}
+function hideTapHint(){document.getElementById('tap-hint').classList.add('fade');}
+
+let _dragMoved=false;
+svg.addEventListener('pointerdown',()=>{_dragMoved=false;});
+svg.addEventListener('pointermove',()=>{_dragMoved=true;});
+svg.addEventListener('pointerup',e=>{
+  if(_dragMoved)return;
+  const rect=svg.getBoundingClientRect();
+  const vb=svg.getAttribute('viewBox').split(' ').map(Number);
+  const px=vb[0]+(e.clientX-rect.left)/rect.width*vb[2];
+  const py=vb[1]+(e.clientY-rect.top)/rect.height*vb[3];
+  if(py>CY-CH/2-45&&py<CY+CH/2+45&&px>CX0&&px<CX1){
+    setUserPos(px);
+    document.getElementById('gps-status').textContent='Posicion marcada en mapa';
+    document.getElementById('gps-status').className='active';
+    hideTapHint();
   }
+});
 
-  // Expose for inline onclick
-  window.applyRoute = applyRoute;
-  window.tryGPS = tryGPS;
+function buildQR(){const box=document.getElementById('qr-box');box.innerHTML='';if(!window.QRCode)return;try{new QRCode(box,{text:location.href,width:110,height:110,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});}catch(_){}}
+function navigateTo(key){const url=new URL(location.href);url.searchParams.set('gate',key);location.href=url.toString();}
 
+buildMap();
+const fs=document.getElementById('from-sel');
+if(FRM&&ENTRIES[FRM])fs.value=FRM;
+applyRoute();
+setTimeout(buildQR,300);
+if(TGT){setTimeout(triggerGPS,600);}else{showTapHint();}
+setTimeout(hideTapHint,5000);
+window.applyRoute=applyRoute;
+window.triggerGPS=triggerGPS;
 })();
 </script>
 </body>
