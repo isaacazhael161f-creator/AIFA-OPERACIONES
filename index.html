@@ -4710,28 +4710,34 @@ FF
                             white-space: nowrap;
                         }
                         /* ── Ranking list (reemplaza canvas de amonest) ── */
-                        .am-rank-list { display:flex; flex-direction:column; gap:.22rem; padding:.4rem .25rem .5rem; }
+                        .am-rank-list { display:flex; flex-direction:column; gap:.12rem; padding:.3rem .2rem .4rem; }
                         .am-rank-item {
-                            display:grid;
-                            grid-template-columns: 1.6rem 1fr 90px 2.2rem 3rem;
-                            align-items:center;
-                            gap:.3rem .45rem;
-                            padding:.38rem .55rem;
+                            display:flex;
+                            align-items:flex-start;
+                            gap:.4rem;
+                            padding:.28rem .5rem;
                             border-radius:7px;
                             cursor:pointer;
                             transition:background .14s;
                         }
                         .am-rank-item:hover { background:rgba(99,102,241,.09); }
                         .am-rank-num {
-                            font-size:.68rem; font-weight:800; color:#94a3b8;
+                            font-size:.65rem; font-weight:800; color:#94a3b8;
                             text-align:center; line-height:1;
+                            min-width:1.2rem; flex-shrink:0; padding-top:.11rem;
+                        }
+                        .am-rank-body { flex:1; min-width:0; }
+                        .am-rank-top {
+                            display:flex; align-items:baseline; gap:.3rem;
+                            margin-bottom:.16rem;
                         }
                         .am-rank-label {
-                            font-size:.76rem; font-weight:500; color:#1e293b;
-                            line-height:1.25; word-break:break-word;
+                            flex:1; min-width:0;
+                            font-size:.74rem; font-weight:500; color:#1e293b;
+                            line-height:1.2;
                         }
                         .am-rank-bar-wrap {
-                            height:8px; background:#e2e8f0;
+                            height:5px; background:#e2e8f0;
                             border-radius:5px; overflow:hidden;
                         }
                         .am-rank-bar-fill {
@@ -4739,14 +4745,14 @@ FF
                             transition:width .5s cubic-bezier(.4,0,.2,1);
                         }
                         .am-rank-val {
-                            font-size:.76rem; font-weight:800; color:#1e293b;
-                            text-align:right; white-space:nowrap;
+                            font-size:.74rem; font-weight:800; color:#1e293b;
+                            white-space:nowrap; flex-shrink:0;
                         }
                         .am-rank-pct {
-                            font-size:.67rem; color:#64748b;
-                            white-space:nowrap; text-align:right;
+                            font-size:.65rem; color:#64748b;
+                            white-space:nowrap; flex-shrink:0;
                         }
-                        .am-chart-host { width:100%; padding:.15rem 0; }
+                        .am-chart-host { width:100%; padding:.1rem 0; }
 
                         .cd-bday-panel {
                             background: linear-gradient(135deg,#0d1a3a 0%,#0d2152 60%,#1a3a70 100%);
@@ -8309,10 +8315,14 @@ FF
                                         var col  = AM_PALETTE[i % AM_PALETTE.length];
                                         rows += '<div class="am-rank-item" data-grp="' + escHtml(d[0]) + '">' +
                                             '<span class="am-rank-num">' + (i+1) + '</span>' +
-                                            '<div class="am-rank-label">' + escHtml(d[0]) + '</div>' +
-                                            '<div class="am-rank-bar-wrap"><div class="am-rank-bar-fill" style="width:' + barW + '%;background:' + col + '"></div></div>' +
-                                            '<span class="am-rank-val">' + d[1] + '</span>' +
-                                            '<span class="am-rank-pct">(' + pct + '%)</span>' +
+                                            '<div class="am-rank-body">' +
+                                                '<div class="am-rank-top">' +
+                                                    '<span class="am-rank-label">' + escHtml(d[0]) + '</span>' +
+                                                    '<span class="am-rank-val">' + d[1] + '</span>' +
+                                                    '<span class="am-rank-pct">(' + pct + '%)</span>' +
+                                                '</div>' +
+                                                '<div class="am-rank-bar-wrap"><div class="am-rank-bar-fill" style="width:' + barW + '%;background:' + col + '"></div></div>' +
+                                            '</div>' +
                                             '</div>';
                                     });
                                     host.innerHTML = '<div class="am-rank-list">' + rows + '</div>';
