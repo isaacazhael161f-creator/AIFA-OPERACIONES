@@ -17807,6 +17807,127 @@ async function _conciSaveBulkEdits() {
 })();
 
 // ═══════════════════════════════════════════════════════════════════════════
+//  WhatsApp Alertas — admin de n\u00fameros para alertas de cursos por vencer
+// ═══════════════════════════════════════════════════════════════════════════
+(function () {
+    'use strict';
+
+    // Carga y renderiza la tabla de n\u00fameros
+    window.whaLoad = async function () {
+        const wrap = document.getElementById('wha-list-wrap');
+        if (!wrap) return;
+        wrap.innerHTML = '<div class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-1"></i>Cargando...</div>';
+        try {
+            const sb = await window.ensureSupabaseClient();
+            const { data, error } = await sb
+                .from('whatsapp_alertas')
+                .select('id, nombre, telefono, apikey, activo, created_at')
+                .order('id', { ascending: true });
+            if (error) throw error;
+            whaRender(data || []);
+        } catch (e) {
+            wrap.innerHTML = `<div class="alert alert-danger"><i class="fas fa-times-circle me-1"></i>${e.message}</div>`;
+        }
+    };
+
+    function whaRender(rows) {
+        const wrap = document.getElementById('wha-list-wrap');
+        if (!wrap) return;
+        if (!rows.length) {
+            wrap.innerHTML = '<div class="text-center text-muted py-5"><i class="fab fa-whatsapp fs-1 d-block mb-2"></i>Sin n\u00fameros registrados. Agrega el primero arriba.</div>';
+            return;
+        }
+        const tbody = rows.map(r => `
+            <tr>
+                <td class="align-middle fw-semibold">${r.nombre}</td>
+                <td class="align-middle"><code>${r.telefono}</code></td>
+                <td class="align-middle text-muted small"><code>${r.apikey}</code></td>
+                <td class="align-middle text-center">
+                    <div class="form-check form-switch d-flex justify-content-center mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch"
+                            ${r.activo ? 'checked' : ''}
+                            onchange="whaToggle(${r.id}, this.checked)">
+                    </div>
+                </td>
+                <td class="align-middle text-center">
+                    <button class="btn btn-sm btn-outline-danger" onclick="whaDelete(${r.id}, '${r.nombre.replace(/'/g, "\\'")}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>`).join('');
+        wrap.innerHTML = `
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Tel\u00e9fono</th>
+                        <th>API Key</th>
+                        <th class="text-center">Activo</th>
+                        <th class="text-center">Eliminar</th>
+                    </tr>
+                </thead>
+                <tbody>${tbody}</tbody>
+            </table>
+            <div class="text-muted small mt-1"><i class="fas fa-info-circle me-1"></i>${rows.length} n\u00famero${rows.length !== 1 ? 's' : ''} registrado${rows.length !== 1 ? 's' : ''}. Solo los activos reciben mensajes.</div>`;
+    }
+
+    window.whaAdd = async function () {
+        const nombre   = (document.getElementById('wha-reg-nombre')?.value   || '').trim();
+        const telefono = (document.getElementById('wha-reg-telefono')?.value || '').trim();
+        const apikey   = (document.getElementById('wha-reg-apikey')?.value   || '').trim();
+        const st       = document.getElementById('wha-add-status');
+
+        if (!nombre || !telefono || !apikey) {
+            if (st) st.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>Completa todos los campos.</span>';
+            return;
+        }
+        if (!/^\d{10,15}$/.test(telefono)) {
+            if (st) st.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>Tel\u00e9fono inv\u00e1lido. Usa solo d\u00edgitos, ej: 521XXXXXXXXXX.</span>';
+            return;
+        }
+        if (st) st.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando...';
+        try {
+            const sb = await window.ensureSupabaseClient();
+            const { error } = await sb.from('whatsapp_alertas').insert({ nombre, telefono, apikey });
+            if (error) throw error;
+            if (st) st.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>N\u00famero agregado.</span>';
+            document.getElementById('wha-reg-nombre').value   = '';
+            document.getElementById('wha-reg-telefono').value = '';
+            document.getElementById('wha-reg-apikey').value   = '';
+            const col = document.getElementById('wha-new-collapse');
+            if (col) bootstrap.Collapse.getInstance(col)?.hide();
+            await whaLoad();
+        } catch (e) {
+            if (st) st.innerHTML = `<span class="text-danger"><i class="fas fa-times-circle me-1"></i>${e.message}</span>`;
+        }
+    };
+
+    window.whaToggle = async function (id, activo) {
+        try {
+            const sb = await window.ensureSupabaseClient();
+            const { error } = await sb.from('whatsapp_alertas').update({ activo }).eq('id', id);
+            if (error) throw error;
+        } catch (e) {
+            alert('Error al actualizar: ' + e.message);
+            await whaLoad(); // revertir visualmente
+        }
+    };
+
+    window.whaDelete = async function (id, nombre) {
+        if (!confirm(`\u00bfEliminar el n\u00famero de "${nombre}"?`)) return;
+        try {
+            const sb = await window.ensureSupabaseClient();
+            const { error } = await sb.from('whatsapp_alertas').delete().eq('id', id);
+            if (error) throw error;
+            await whaLoad();
+        } catch (e) {
+            alert('Error al eliminar: ' + e.message);
+        }
+    };
+
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════
 //  Gestión de comités, reuniones, temas y acuerdos por área.
 //  RLS en Supabase garantiza que cada área solo pueda modificar lo propio.
 // ═══════════════════════════════════════════════════════════════════════════

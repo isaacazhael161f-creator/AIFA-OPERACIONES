@@ -1716,6 +1716,13 @@ FF
                                 <i class="fas fa-sitemap me-1"></i>Organigrama
                             </button>
                         </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="au-tab-whatsapp" data-bs-toggle="tab"
+                                data-bs-target="#au-pane-whatsapp" type="button" role="tab"
+                                onclick="whaLoad()">
+                                <i class="fab fa-whatsapp me-1"></i>Alertas WhatsApp
+                            </button>
+                        </li>
                     </ul>
 
                     <div class="tab-content" id="au-main-tabs-content">
@@ -1913,6 +1920,66 @@ FF
                         </div>
 
                     </div><!-- end #au-pane-organigrama -->
+
+                    <!-- ── Tab: Alertas WhatsApp ──────────────────────────── -->
+                    <div class="tab-pane fade" id="au-pane-whatsapp" role="tabpanel">
+
+                        <!-- Instrucciones de activaci\u00f3n -->
+                        <div class="alert alert-success border-0 d-flex gap-3 align-items-start mb-4" style="background:#d1fae5">
+                            <i class="fab fa-whatsapp fs-4 mt-1 text-success flex-shrink-0"></i>
+                            <div>
+                                <div class="fw-semibold text-success mb-1">C\u00f3mo activar un n\u00famero (una sola vez por persona)</div>
+                                <ol class="mb-0 small text-success-emphasis ps-3">
+                                    <li>Guarda el contacto <strong>+34 644 60 85 15</strong> en WhatsApp</li>
+                                    <li>Env\u00eda el mensaje: <code class="bg-white px-1 rounded">I allow callmebot to send me messages</code></li>
+                                    <li>CallMeBot responder\u00e1 con tu <strong>apikey</strong> personal</li>
+                                    <li>Ingresa aqu\u00ed el n\u00famero y esa apikey</li>
+                                </ol>
+                            </div>
+                        </div>
+
+                        <!-- Formulario agregar n\u00famero -->
+                        <div class="mb-4">
+                            <button class="btn btn-success fw-semibold d-flex align-items-center justify-content-between w-100 py-2 px-3 rounded-3"
+                                type="button" data-bs-toggle="collapse" data-bs-target="#wha-new-collapse" aria-expanded="false">
+                                <span><i class="fab fa-whatsapp me-2"></i>Agregar n\u00famero</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="collapse" id="wha-new-collapse">
+                                <div class="card border-0 bg-light p-3 rounded-bottom-3">
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-12 col-md-3">
+                                            <label class="form-label small fw-semibold mb-1">Nombre</label>
+                                            <input type="text" class="form-control form-control-sm" id="wha-reg-nombre" placeholder="Ej: Isaac Hern\u00e1ndez">
+                                        </div>
+                                        <div class="col-12 col-md-3">
+                                            <label class="form-label small fw-semibold mb-1">Tel\u00e9fono</label>
+                                            <input type="text" class="form-control form-control-sm" id="wha-reg-telefono" placeholder="521XXXXXXXXXX">
+                                            <div class="form-text">M\u00e9xico: 52 + 10 d\u00edgitos</div>
+                                        </div>
+                                        <div class="col-12 col-md-3">
+                                            <label class="form-label small fw-semibold mb-1">API Key (CallMeBot)</label>
+                                            <input type="text" class="form-control form-control-sm" id="wha-reg-apikey" placeholder="1234567">
+                                        </div>
+                                        <div class="col-12 col-md-3">
+                                            <button class="btn btn-success btn-sm w-100" onclick="whaAdd()">
+                                                <i class="fas fa-plus me-1"></i>Agregar
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="wha-add-status" class="mt-2 small"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tabla de n\u00fameros registrados -->
+                        <div id="wha-list-wrap">
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-spinner fa-spin me-1"></i>Cargando n\u00fameros...
+                            </div>
+                        </div>
+
+                    </div><!-- end #au-pane-whatsapp -->
 
                     </div><!-- end .tab-content -->
                 </div>
