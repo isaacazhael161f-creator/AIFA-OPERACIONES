@@ -6502,7 +6502,7 @@ function handleNavigation(e) {
         try {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
-            if (sidebar && overlay) { sidebar.classList.remove('visible'); overlay.classList.remove('active'); }
+            if (sidebar && overlay) { sidebar.classList.remove('visible'); overlay.classList.remove('active'); document.body.classList.remove('sidebar-open'); }
             const isMobile = window.innerWidth <= 991.98;
             if (!isMobile) { document.body.classList.add('sidebar-collapsed'); try { localStorage.setItem('sidebarState', 'collapsed'); } catch (_) { } }
         } catch (_) { }
