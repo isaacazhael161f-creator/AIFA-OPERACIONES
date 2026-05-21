@@ -140,7 +140,7 @@
     /* Column headers */
     .fgv-cols-hdr {
       display: grid;
-      grid-template-columns: 230px 1fr auto;
+      grid-template-columns: 220px 1fr 150px;
       background: #071228;
       border-bottom: 1px solid #1a3060;
       padding: 9px 32px;
@@ -167,7 +167,7 @@
     }
     .fgv-row {
       display: grid;
-      grid-template-columns: 230px 1fr auto;
+      grid-template-columns: 220px 1fr 150px;
       align-items: center;
       padding: 0 16px;
       flex: 1;
@@ -359,6 +359,13 @@
     //   Tiempos de caminata calculados con WSPEED = 75 m/min
     const GATE_GROUPS = [
       {
+        mins:    '1 \u2013 3 min',
+        gates:   '101 \u2013 105',
+        type:    'apron',
+        sublbl:  'MARS \u00B7 Posici\u00f3n remota \u00B7 Autobus',
+        qrGate:  '103',
+      },
+      {
         mins:    '4 \u2013 5 min',
         gates:   '106 \u2013 108',
         type:    'jetbridge',
@@ -373,32 +380,18 @@
         qrGate:  '110A',
       },
       {
-        mins:    '7 \u2013 9 min',
+        mins:    '7 \u2013 10 min',
         gates:   '113 \u2013 116',
         type:    'jetbridge',
         sublbl:  'Manga \u00B7 Embarque directo',
         qrGate:  '114A',
       },
       {
-        mins:    '10 \u2013 12 min',
-        gates:   '501 \u2013 503',
+        mins:    '12 \u2013 13 min',
+        gates:   '506 A / B',
         type:    'apron',
-        sublbl:  'Plataforma remota \u00B7 Autobus',
-        qrGate:  '502',
-      },
-      {
-        mins:    '12 \u2013 14 min',
-        gates:   '504 \u2013 506',
-        type:    'apron',
-        sublbl:  'Plataforma remota \u00B7 Autobus',
-        qrGate:  '505',
-      },
-      {
-        mins:    '8 \u2013 10 min',
-        gates:   '3 \u2013 8',
-        type:    'apron',
-        sublbl:  'Plataforma Este \u00B7 Acceso especial',
-        qrGate:  '5',
+        sublbl:  'MARS \u00B7 Posici\u00f3n remota \u00B7 Autobus',
+        qrGate:  '506A',
       },
     ];
 
@@ -515,22 +508,22 @@
 
     function demoFlights(tipo) {
       const L = [
-        { iata:'VB', num:'VB 7417', city:'Guadalajara',      hora:'06:00', puerta:'501',  estado:'Aterriz\u00f3'  },
-        { iata:'Y4', num:'Y4 3296', city:'Tijuana',           hora:'06:35', puerta:'505',  estado:'Aterriz\u00f3'  },
+        { iata:'VB', num:'VB 7417', city:'Guadalajara',      hora:'06:00', puerta:'101',  estado:'Aterriz\u00f3'  },
+        { iata:'Y4', num:'Y4 3296', city:'Tijuana',           hora:'06:35', puerta:'105',  estado:'Aterriz\u00f3'  },
         { iata:'AM', num:'AM 0234', city:'Canc\u00fan',       hora:'07:15', puerta:'107A', estado:'A tiempo'  },
         { iata:'VB', num:'VB 9497', city:'Los Cabos',         hora:'07:50', puerta:'110B', estado:'En puerta' },
         { iata:'AM', num:'AM 0456', city:'Monterrey',         hora:'08:20', puerta:'113A', estado:'En puerta' },
         { iata:'XN', num:'XN 1765', city:'M\u00e9rida',       hora:'08:55', puerta:'116A', estado:'A tiempo'  },
-        { iata:'Y4', num:'Y4 7171', city:'La Paz',            hora:'09:30', puerta:'503',  estado:'Demorado'  },
+        { iata:'Y4', num:'Y4 7171', city:'La Paz',            hora:'09:30', puerta:'103',  estado:'Demorado'  },
         { iata:'AM', num:'AM 0678', city:'Puerto Vallarta',   hora:'10:00', puerta:'109A', estado:'A tiempo'  },
         { iata:'VB', num:'VB 9313', city:'Zihuatanejo',       hora:'10:35', puerta:'506A', estado:'A tiempo'  },
-        { iata:'6R', num:'6R 7085', city:'Los \u00c1ngeles',  hora:'11:10', puerta:'5',    estado:'En vuelo'  },
-        { iata:'EK', num:'EK 9915', city:'Dub\u00e1i',        hora:'11:45', puerta:'7',    estado:'En vuelo'  },
-        { iata:'CX', num:'CX 0086', city:'Anchorage',         hora:'12:20', puerta:'8',    estado:'A tiempo'  },
+        { iata:'6R', num:'6R 7085', city:'Los \u00c1ngeles',  hora:'11:10', puerta:'506B', estado:'En vuelo'  },
+        { iata:'EK', num:'EK 9915', city:'Dub\u00e1i',        hora:'11:45', puerta:'116B', estado:'En vuelo'  },
+        { iata:'CX', num:'CX 0086', city:'Anchorage',         hora:'12:20', puerta:'115B', estado:'A tiempo'  },
       ];
       const S = [
-        { iata:'VB', num:'VB 7418', city:'Guadalajara',       hora:'06:30', puerta:'502',  estado:'Despeg\u00f3'   },
-        { iata:'Y4', num:'Y4 3297', city:'Tijuana',           hora:'07:05', puerta:'504',  estado:'Despeg\u00f3'   },
+        { iata:'VB', num:'VB 7418', city:'Guadalajara',       hora:'06:30', puerta:'102',  estado:'Despeg\u00f3'   },
+        { iata:'Y4', num:'Y4 3297', city:'Tijuana',           hora:'07:05', puerta:'104',  estado:'Despeg\u00f3'   },
         { iata:'AM', num:'AM 0235', city:'Canc\u00fan',       hora:'07:50', puerta:'108A', estado:'A tiempo'  },
         { iata:'VB', num:'VB 9520', city:'Los Cabos',         hora:'08:25', puerta:'111A', estado:'Abordando' },
         { iata:'AM', num:'AM 0457', city:'Monterrey',         hora:'09:00', puerta:'114A', estado:'En puerta' },
@@ -538,9 +531,9 @@
         { iata:'Y4', num:'Y4 3960', city:'Bogot\u00e1',       hora:'10:10', puerta:'506B', estado:'Demorado'  },
         { iata:'AM', num:'AM 0679', city:'Puerto Vallarta',   hora:'10:45', puerta:'112B', estado:'A tiempo'  },
         { iata:'VB', num:'VB 9462', city:'Chetumal',          hora:'11:20', puerta:'115A', estado:'A tiempo'  },
-        { iata:'6R', num:'6R 7084', city:'Los \u00c1ngeles',  hora:'12:00', puerta:'4',    estado:'A tiempo'  },
-        { iata:'EK', num:'EK 9916', city:'Dub\u00e1i',        hora:'12:30', puerta:'6',    estado:'A tiempo'  },
-        { iata:'M7', num:'M7 6810', city:'Los \u00c1ngeles',  hora:'13:00', puerta:'116B', estado:'En vuelo'  },
+        { iata:'6R', num:'6R 7084', city:'Los \u00c1ngeles',  hora:'12:00', puerta:'506A', estado:'A tiempo'  },
+        { iata:'EK', num:'EK 9916', city:'Dub\u00e1i',        hora:'12:30', puerta:'116B', estado:'A tiempo'  },
+        { iata:'M7', num:'M7 6810', city:'Los \u00c1ngeles',  hora:'13:00', puerta:'113B', estado:'En vuelo'  },
       ];
       return tipo === 'llegada' ? L : S;
     }
@@ -617,7 +610,7 @@
         const gate  = row.dataset.gate;
         const vuelo = row.dataset.vuelo;
         if (!gate || gate === '—') return;
-        showGateQR(gate, vuelo);
+        openMapOverlay(gateMapUrl(gate));
       };
     }
 
@@ -706,14 +699,15 @@
       const container = document.getElementById('fgv-rows');
       container.innerHTML = '';
 
-      // Calculate QR size based on available height
-      // 8 rows in the flex container; each row gets ~(vh-header-footer)/8 px
-      // Use a fixed QR size that fits on standard HD kiosk screens
-      const qrSize = Math.max(70, Math.min(100, Math.floor((window.innerHeight - 140) / 8) - 10));
+      // 5 rows → bigger QR size
+      const qrSize = Math.max(80, Math.min(130, Math.floor((window.innerHeight - 160) / 5) - 6));
 
       GATE_GROUPS.forEach(grp => {
         const row = document.createElement('div');
         row.className = `fgv-row type-${grp.type}`;
+        row.style.cursor = 'pointer';
+        row.title = 'Toca para abrir el mapa de la puerta';
+        row.addEventListener('click', () => openMapOverlay(gateMapUrl(grp.qrGate)));
 
         // Walk time cell
         const walkDiv = document.createElement('div');
@@ -782,6 +776,24 @@
       } catch (_) {}
     }
 
+    // ── Mapa en overlay (tap row → abre mapa inline) ────────────────
+    function openMapOverlay(url) {
+      const ov = document.getElementById('map-frame-overlay');
+      const fr = document.getElementById('map-iframe');
+      clearTimeout(_switchTmr);
+      const fill = document.getElementById('kiosk-progress-fill');
+      if (fill) { fill.style.transition = 'none'; fill.style.width = '0%'; }
+      fr.src = url;
+      ov.style.display = 'flex';
+    }
+    function closeMapOverlay() {
+      const ov = document.getElementById('map-frame-overlay');
+      document.getElementById('map-iframe').src = '';
+      ov.style.display = 'none';
+      scheduleSwitch(_tipo === 'puertas' ? GATES_SWITCH_MS : SWITCH_MS);
+    }
+    window.closeMapOverlay = closeMapOverlay;
+
     // ── Inicio ───────────────────────────────────────────────────────
     async function init() {
       await loadAirlines();
@@ -845,7 +857,7 @@
     <div class="fgv-cols-hdr">
       <div class="fgv-col-hdr">&#x2190; Tiempo de caminata</div>
       <div class="fgv-col-hdr">Puertas</div>
-      <div class="fgv-col-hdr right">Escanea QR</div>
+      <div class="fgv-col-hdr right">Toca para el mapa</div>
     </div>
 
     <!-- Gate rows (generated by JS) -->
@@ -857,6 +869,23 @@
       <span class="fgv-next-lbl" id="fgv-next-lbl">» LLEGADAS a continuación</span>
     </div>
 
+  </div>
+
+  <!-- ══ Mapa iframe overlay: toca cualquier puerta para abrir ══ -->
+  <div id="map-frame-overlay"
+       style="position:fixed;inset:0;background:#02030d;z-index:9999;
+              display:none;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;
+                padding:10px 28px;background:#040c20;border-bottom:2px solid #1a3870;flex-shrink:0">
+      <span style="color:#e2c870;font-size:.88rem;font-weight:800;letter-spacing:.14em;
+                   text-transform:uppercase">&#9992; AIFA &mdash; MAPA DE PUERTAS</span>
+      <button onclick="closeMapOverlay()"
+              style="background:#c82030;color:#fff;border:none;border-radius:6px;
+                     padding:9px 26px;font-size:.85rem;font-weight:800;
+                     letter-spacing:.08em;cursor:pointer;">&#x2715; CERRAR</button>
+    </div>
+    <iframe id="map-iframe" src="" allowfullscreen
+            style="flex:1;border:none;width:100%;background:#04040a;"></iframe>
   </div>
 
 </body>

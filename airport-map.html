@@ -252,15 +252,13 @@ const GCOL={jetbridge:{fill:'#04081a',stroke:'#1a4090',text:'#4878e8',hl:'#78aaf
 
 function buildGates(){
   const d={};
-  // MARS remote stands 501-505 (south side, closest to terminal)
-  for(let n=501;n<=505;n++) d[String(n)]={x:170+(n-501)*63,type:'apron',gy:CY+CH/2};
+  // MARS remote stands 101-105 (south side, closest to terminal)
+  for(let n=101;n<=105;n++) d[String(n)]={x:170+(n-101)*63,type:'apron',gy:CY+CH/2};
   // Jetbridge (Manga) gates 106-116, A/B sub-positions
   for(let n=106;n<=116;n++){const bx=512+(n-106)*67;d[n+'A']={x:bx,type:'jetbridge',gy:CY+CH/2};d[n+'B']={x:bx+27,type:'jetbridge',gy:CY+CH/2};}
   // MARS remote stand 506 A/B (south side, after gate 116)
   d['506A']={x:1285,type:'apron',gy:CY+CH/2};
   d['506B']={x:1332,type:'apron',gy:CY+CH/2};
-  // East apron positions 3-8 (north side, MARS)
-  [3,4,5,6,7,8].forEach((n,i)=>{ d[String(n)]={x:1270+(i*38),type:'remote',gy:CY-CH/2,side:'north'}; });
   return d;
 }
 const GATES=buildGates();
@@ -322,8 +320,7 @@ function buildMap(){
   [465,483].forEach(x=>svg.appendChild(svgEl('line',{x1:x,y1:CY-CH/2-2,x2:x,y2:CY+CH/2+2,stroke:'#182038','stroke-width':1})));
   [1250,1268].forEach(x=>svg.appendChild(svgEl('line',{x1:x,y1:CY-CH/2-2,x2:x,y2:CY+CH/2+2,stroke:'#182038','stroke-width':1})));
   const zy=CY-CH/2-12;
-  [[296,'501\u2013505  MARS'],[858,'106\u2013116  MANGAS (A/B)'],[1308,'506  MARS (A/B)']].forEach(([x,t])=>svg.appendChild(svgEl('text',{x,y:zy,fill:'#1c3460','font-size':8.5,'font-family':'Segoe UI,Arial','text-anchor':'middle','letter-spacing':1.2},t)));
-  svg.appendChild(svgEl('text',{x:1365,y:CY-CH/2-72,fill:'#186828','font-size':8.5,'font-family':'Segoe UI,Arial','text-anchor':'middle','letter-spacing':1.2},'3\u20138  PLATAFORMA ESTE'));
+  [[296,'101\u2013105  MARS'],[858,'106\u2013116  MANGAS (A/B)'],[1308,'506  MARS (A/B)']].forEach(([x,t])=>svg.appendChild(svgEl('text',{x,y:zy,fill:'#1c3460','font-size':8.5,'font-family':'Segoe UI,Arial','text-anchor':'middle','letter-spacing':1.2},t)));
   buildLandmarks();
   svg.appendChild(svgEl('rect',{x:CX0,y:CY-CH/2,width:CX1-CX0,height:CH,fill:'#0b1a30',stroke:'#203460','stroke-width':2,rx:4}));
   for(let ax=200;ax<CX1-80;ax+=120)svg.appendChild(svgEl('text',{x:ax,y:CY+6,fill:'#18284a','font-size':14,'text-anchor':'middle'},'→'));
