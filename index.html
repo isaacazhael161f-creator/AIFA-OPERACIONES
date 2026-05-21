@@ -4577,6 +4577,12 @@ FF
                             color: var(--col-muted);
                             font-weight: 600;
                         }
+                        .cd-kpi-pct {
+                            font-size: .72rem; font-weight: 700; line-height: 1;
+                            margin-top: .08rem; margin-bottom: .1rem;
+                        }
+                        .cd-kpi-masc .cd-kpi-pct { color: #1565c0; }
+                        .cd-kpi-fem  .cd-kpi-pct { color: #c2185b; }
 
                         /* Tablas de desglose */
                         .cd-tables-row {
@@ -6055,6 +6061,7 @@ FF
                                             <div class="cd-kpi-icon"><i class="fas fa-mars"></i></div>
                                             <div>
                                                 <div class="cd-kpi-val" id="cd-kpi-masc">—</div>
+                                                <div class="cd-kpi-pct" id="cd-kpi-masc-pct"></div>
                                                 <div class="cd-kpi-label">Hombres</div>
                                             </div>
                                         </div>
@@ -6062,6 +6069,7 @@ FF
                                             <div class="cd-kpi-icon"><i class="fas fa-venus"></i></div>
                                             <div>
                                                 <div class="cd-kpi-val" id="cd-kpi-fem">—</div>
+                                                <div class="cd-kpi-pct" id="cd-kpi-fem-pct"></div>
                                                 <div class="cd-kpi-label">Mujeres</div>
                                             </div>
                                         </div>
@@ -7905,8 +7913,12 @@ FF
                             };
                             var masc = data.filter(function(r) { return _sexNorm(gc(r,'sexo')) === 'H'; }).length;
                             var fem  = data.filter(function(r) { return _sexNorm(gc(r,'sexo')) === 'M'; }).length;
+                            var mascPct = total > 0 ? Math.round(masc / total * 100) : 0;
+                            var femPct  = total > 0 ? Math.round(fem  / total * 100) : 0;
                             setKpi('cd-kpi-masc', masc > 0 ? masc : '—');
                             setKpi('cd-kpi-fem',  fem  > 0 ? fem  : '—');
+                            setKpi('cd-kpi-masc-pct', masc > 0 ? mascPct + '% del total' : '');
+                            setKpi('cd-kpi-fem-pct',  fem  > 0 ? femPct + '% del total' : '');
 
                             setKpi('cd-kpi-dirs',    byDir.filter(([k]) => k !== '(Sin dato)').length);
                             setKpi('cd-kpi-subdirs', bySubDir.filter(([k]) => k !== '(Sin dato)').length);
