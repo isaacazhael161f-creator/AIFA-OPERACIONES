@@ -83,6 +83,10 @@
     #gps-status.active { border-color: var(--green); color: var(--green); }
     #gps-status.error  { border-color: #a04020; color: #e06030; }
 
+    /* Clickable POI pin hover glow */
+    #asvg [cursor="pointer"] rect { transition: filter .15s; }
+    #asvg [cursor="pointer"]:hover rect { filter: brightness(1.4) drop-shadow(0 0 4px currentColor); }
+
     /* You-are-here dot animation */
     @keyframes user-pulse {
       0%   { transform: scale(1);   opacity: .75; }
@@ -236,6 +240,11 @@
       <select id="from-sel" onchange="applyRoute()">
         <option value="security">Salida de Seguridad (acceso principal)</option>
         <option value="security-b">Seguridad Internacional / Zona B</option>
+        <option value="cafeteria_a">Cafe / Zona A  (Pastes Kikos)</option>
+        <option value="tiendas">Tiendas / Zona B</option>
+        <option value="duty_free">Duty Free</option>
+        <option value="cafeteria_b">Cafe / Zona C</option>
+        <option value="sala_vip">Sala VIP</option>
         <option value="corridor-mid">Centro del pasillo</option>
       </select>
     </div>
@@ -257,7 +266,26 @@
 'use strict';
 const CY=210,CH=46,CX0=88,CX1=1490;
 const PX2M=1080/(CX1-CX0),WSPEED=75;
-const ENTRIES={'security':{x:100,label:'Salida de Seguridad'},'security-b':{x:290,label:'Seguridad Internacional'},'corridor-mid':{x:700,label:'Centro del pasillo'}};
+// Named positions (x = SVG corridor coordinate)
+const ENTRIES={
+  'security'    :{x:100 ,label:'Salida de Seguridad'},
+  'security-b'  :{x:290 ,label:'Seguridad Internacional'},
+  'cafeteria_a' :{x:296 ,label:'Cafe / Zona A'},
+  'tiendas'     :{x:400 ,label:'Tiendas / Zona B'},
+  'corridor-mid':{x:700 ,label:'Centro del pasillo'},
+  'duty_free'   :{x:750 ,label:'Duty Free'},
+  'cafeteria_b' :{x:910 ,label:'Cafe / Zona C'},
+  'sala_vip'    :{x:1160,label:'Sala VIP'},
+};
+// URL alias map: common names / QR sticker IDs → ENTRIES key
+const LOC_MAP={
+  'pastes_kikos':'cafeteria_a','kikos':'cafeteria_a','cafe':'cafeteria_a','cafeteria':'cafeteria_a',
+  'tienda':'tiendas','shop':'tiendas','shops':'tiendas','comercial':'tiendas',
+  'fids':'security','fids_main':'security','fids_hall':'security','fids_gate':'security',
+  'dutyfree':'duty_free','dfs':'duty_free',
+  'vip':'sala_vip','cafe_b':'cafeteria_b',
+  'mid':'corridor-mid',
+};
 const GDIM={jetbridge:{boxw:22,boxh:18,stub:65,sw:3,fs:7.5},apron:{boxw:44,boxh:26,stub:55,sw:2.5,fs:9},remote:{boxw:36,boxh:22,stub:50,sw:2,fs:8.5}};
 const GCOL={jetbridge:{fill:'#04081a',stroke:'#1a4090',text:'#4878e8',hl:'#78aaff'},apron:{fill:'#120d04',stroke:'#583a10',text:'#d09030',hl:'#ffc84a'},remote:{fill:'#04100a',stroke:'#186828',text:'#32b860',hl:'#50ff90'}};
 
@@ -310,13 +338,22 @@ function buildLandmarks(){
     [1050, 'BA\u00d1OS',         '#3a72c8'],
     [1160, 'SALA VIP',           '#c84020'],
   ];
+  // IDs for clickable zones — null = bathroom/no action; string = ENTRIES key
+  const POI_IDS=[null,'cafeteria_a','tiendas',null,'duty_free','cafeteria_b',null,'sala_vip'];
   const ly=95;
-  POI.forEach(([x,lbl,col])=>{
-    const tw=lbl.length*5.0+14;
+  POI.forEach(([x,lbl,col],i)=>{
+    const id=POI_IDS[i];
+    const tw=(lbl.length+(id?2:0))*5.0+14;
     svg.appendChild(svgEl('line',{x1:x,y1:ly+12,x2:x,y2:CY-CH/2-1,stroke:col,'stroke-width':0.8,'stroke-dasharray':'3 2.5',opacity:'0.45'}));
     svg.appendChild(svgEl('circle',{cx:x,cy:CY-CH/2,r:3.5,fill:col,opacity:'0.8'}));
-    svg.appendChild(svgEl('rect',{x:x-tw/2,y:ly-11,width:tw,height:20,fill:'#060c1c',stroke:col,'stroke-width':1.3,rx:10}));
-    svg.appendChild(svgEl('text',{x,y:ly+4,fill:col,'font-size':7.5,'font-weight':700,'font-family':'Segoe UI,Arial','text-anchor':'middle'},lbl));
+    const grp=svgEl('g',id?{cursor:'pointer','aria-label':'Estoy aqui'}:{});
+    grp.appendChild(svgEl('rect',{x:x-tw/2,y:ly-11,width:tw,height:20,fill:'#060c1c',stroke:col,'stroke-width':id?2:1.3,rx:10}));
+    grp.appendChild(svgEl('text',{x,y:ly+4,fill:col,'font-size':7.5,'font-weight':700,'font-family':'Segoe UI,Arial','text-anchor':'middle'},lbl+(id?' +':'')));
+    if(id){
+      grp.addEventListener('click',()=>selectLocation(id));
+      grp.addEventListener('touchend',e=>{e.preventDefault();selectLocation(id);});
+    }
+    svg.appendChild(grp);
   });
 }
 
@@ -504,6 +541,31 @@ function setUserPos(svgX,acc){
   applyRoute();
 }
 
+// selectLocation: called when passenger taps a POI label or opens URL with ?from=LOCATION
+function selectLocation(id){
+  const key=LOC_MAP[id]||id;
+  const entry=ENTRIES[key];
+  if(!entry)return;
+  const sel=document.getElementById('from-sel');
+  if(!sel.querySelector('[value="'+key+'"]')){
+    const opt=document.createElement('option');
+    opt.value=key;opt.textContent=entry.label;sel.insertBefore(opt,sel.firstChild);
+  }
+  sel.value=key;
+  // Draw the 'you are here' marker at this exact location (no accuracy circle — position is known)
+  let g=document.getElementById('user-pos-g');
+  if(!g){g=svgEl('g',{id:'user-pos-g'});svg.appendChild(g);}
+  while(g.firstChild)g.removeChild(g.firstChild);
+  const x=entry.x;
+  g.appendChild(svgEl('circle',{cx:x,cy:CY,r:11,fill:'none',stroke:'#00e070','stroke-width':2,class:'user-ring'}));
+  g.appendChild(svgEl('circle',{cx:x,cy:CY,r:8,fill:'#ffffff',stroke:'#00e070','stroke-width':2.5}));
+  g.appendChild(svgEl('circle',{cx:x,cy:CY,r:3.5,fill:'#00e070'}));
+  g.appendChild(svgEl('text',{x,y:CY-16,fill:'#00e070','font-size':8,'font-weight':700,'font-family':'Segoe UI,Arial','text-anchor':'middle','paint-order':'stroke',stroke:'#000820','stroke-width':3},'ESTAS AQUI'));
+  const st=document.getElementById('gps-status');
+  st.textContent='[ '+entry.label+' ]';st.className='active';
+  hideTapHint();
+  applyRoute();
+}
 function showTapHint(){document.getElementById('tap-hint').classList.remove('fade');}
 function hideTapHint(){document.getElementById('tap-hint').classList.add('fade');}
 
@@ -528,14 +590,19 @@ function buildQR(){const box=document.getElementById('qr-box');box.innerHTML='';
 function navigateTo(key){const url=new URL(location.href);url.searchParams.set('gate',key);location.href=url.toString();}
 
 buildMap();
-const fs=document.getElementById('from-sel');
-if(FRM&&ENTRIES[FRM])fs.value=FRM;
-applyRoute();
+// Resolve 'from=' URL param through alias map
+const _frmKey=LOC_MAP[FRM]||FRM;
+if(P.has('from')&&_frmKey&&ENTRIES[_frmKey]){
+  // URL has an explicit 'from=' → set starting position immediately (0-error anchor)
+  selectLocation(_frmKey);
+}else{
+  applyRoute();
+}
 setTimeout(buildQR,300);
-// Auto-arrancar GPS si el mapa fue abierto desde un QR o tablero FIDS
+// Start GPS for real-time position refinement whenever a gate is targeted
 const _qp=new URLSearchParams(location.search);
-if(_qp.has('gate')||_qp.get('from')==='security'){
-  setTimeout(triggerGPS,700);
+if(_qp.has('gate')||_qp.has('from')){
+  setTimeout(triggerGPS,800);
 }else{
   showTapHint();
   setTimeout(hideTapHint,6000);
