@@ -83,6 +83,17 @@
     #gps-status.active { border-color: var(--green); color: var(--green); }
     #gps-status.error  { border-color: #a04020; color: #e06030; }
 
+    /* You-are-here dot animation */
+    @keyframes user-pulse {
+      0%   { transform: scale(1);   opacity: .75; }
+      100% { transform: scale(3);   opacity: 0;   }
+    }
+    .user-ring {
+      animation: user-pulse 2s ease-out infinite;
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+
     /* PANEL */
     #panel {
       width: 280px; flex-shrink: 0;
@@ -425,35 +436,71 @@ function buildDirections(entry,gKey,g,distM,mins){
   document.getElementById('next-sub').textContent=zone[g.type]+' · ~'+distM+' m · '+mins+' min';
 }
 
-const AIFA_LAT=19.7583,AIFA_LNG=-99.0155,LNG_W=-99.0195,LNG_E=-99.0100;
+// Coordenadas reales AIFA (Wikipedia: 19°45'24"N 099°00'55"W; concourse 1080m)
+const AIFA_LAT=19.7567, AIFA_LNG=-99.0153;
+// Extremo oeste = salida de seguridad; extremo este = puerta 506B
+const LNG_W=-99.0207, LNG_E=-99.0099;
+// 1 metro en SVG units (para el radio de precisión)
+const M_PER_LNG_DEG=95000; // metros por grado de longitud a esta latitud
+
+let _watchId=null;
+
 function triggerGPS(){
   const st=document.getElementById('gps-status');
-  st.textContent='Detectando posicion...';st.className='';
-  if(!navigator.geolocation){st.textContent='GPS no disponible';st.className='error';showTapHint();return;}
+  if(!navigator.geolocation){
+    st.textContent='GPS no disponible';st.className='error';showTapHint();return;
+  }
+  // Detener seguimiento previo
+  if(_watchId!==null){navigator.geolocation.clearWatch(_watchId);_watchId=null;}
+  st.textContent='\u{1F4CD} Solicitando ubicaci\u00f3n…';st.className='';
+
   const onPos=pos=>{
     const{latitude:lat,longitude:lng,accuracy:acc}=pos.coords;
-    const dist=Math.hypot((lat-AIFA_LAT)*111000,(lng-AIFA_LNG)*95000);
-    if(dist>4000){st.textContent='Fuera del aeropuerto';st.className='error';showTapHint();return;}
+    const dist=Math.hypot((lat-AIFA_LAT)*111000,(lng-AIFA_LNG)*M_PER_LNG_DEG);
+    if(dist>5000){st.textContent='Fuera del aeropuerto';st.className='error';showTapHint();return;}
     const frac=Math.max(0,Math.min(1,(lng-LNG_W)/(LNG_E-LNG_W)));
-    setUserPos(CX0+frac*(CX1-CX0));
-    st.textContent='\u2022 Posicion activa \u00b1'+Math.round(acc)+'m';st.className='active';hideTapHint();
+    setUserPos(CX0+frac*(CX1-CX0),acc);
+    const q=acc<20?'\u2705':acc<50?'\u26a0\ufe0f':'\u{1F4CD}';
+    st.textContent=q+' Tu posici\u00f3n \u00b1'+Math.round(acc)+'m';st.className='active';
+    hideTapHint();
   };
-  const onErr=()=>{
+  const onErrHigh=()=>{
+    // Fallback con baja precisión
     navigator.geolocation.getCurrentPosition(onPos,
-      ()=>{st.textContent='Toca el mapa para marcar tu posicion';st.className='error';showTapHint();},
-      {enableHighAccuracy:false,timeout:12000,maximumAge:60000});
+      ()=>{st.textContent='Toca el pasillo del mapa';st.className='error';showTapHint();},
+      {enableHighAccuracy:false,timeout:15000,maximumAge:60000});
   };
-  navigator.geolocation.getCurrentPosition(onPos,onErr,{enableHighAccuracy:false,timeout:15000,maximumAge:30000});
+  // watchPosition = actualización continua mientras el pasajero camina
+  _watchId=navigator.geolocation.watchPosition(onPos,onErrHigh,
+    {enableHighAccuracy:true,timeout:20000,maximumAge:4000});
 }
 
-function setUserPos(svgX){
+function setUserPos(svgX,acc){
   const x=Math.max(CX0+5,Math.min(CX1-5,svgX));
-  ENTRIES['tap']={x,label:'Tu posicion'};
+  ENTRIES['tap']={x,label:'Tu posici\u00f3n'};
   const sel=document.getElementById('from-sel');
   let opt=document.getElementById('opt-tap');
   if(!opt){opt=document.createElement('option');opt.id='opt-tap';opt.value='tap';sel.insertBefore(opt,sel.firstChild);}
-  opt.textContent='Tu posicion actual';
+  opt.textContent='Tu posici\u00f3n actual';
   sel.value='tap';
+  // ─ Marcador visual “estás aquí” en el SVG ─
+  let g=document.getElementById('user-pos-g');
+  if(!g){g=svgEl('g',{id:'user-pos-g'});svg.appendChild(g);}
+  while(g.firstChild)g.removeChild(g.firstChild);
+  // Círculo de precisión GPS
+  if(acc&&acc<500){
+    const svgPerM=(CX1-CX0)/((LNG_E-LNG_W)*M_PER_LNG_DEG);
+    const r=Math.min(Math.max(acc*svgPerM,8),280);
+    g.appendChild(svgEl('circle',{cx:x,cy:CY,r,fill:'#1a6aff','fill-opacity':'.09',stroke:'#3a8aff','stroke-width':1.5,'stroke-dasharray':'6 4'}));
+  }
+  // Anillo pulsante
+  g.appendChild(svgEl('circle',{cx:x,cy:CY,r:11,fill:'none',stroke:'#00e070','stroke-width':2,class:'user-ring'}));
+  // Punto exterior blanco
+  g.appendChild(svgEl('circle',{cx:x,cy:CY,r:8,fill:'#ffffff',stroke:'#00e070','stroke-width':2.5}));
+  // Punto verde central
+  g.appendChild(svgEl('circle',{cx:x,cy:CY,r:3.5,fill:'#00e070'}));
+  // Etiqueta
+  g.appendChild(svgEl('text',{x,y:CY-16,fill:'#00e070','font-size':8,'font-weight':700,'font-family':'Segoe UI,Arial','text-anchor':'middle','paint-order':'stroke',stroke:'#000820','stroke-width':3},'\u2022 T\u00da EST\u00c1S AQU\u00cd'));
   applyRoute();
 }
 
@@ -485,8 +532,14 @@ const fs=document.getElementById('from-sel');
 if(FRM&&ENTRIES[FRM])fs.value=FRM;
 applyRoute();
 setTimeout(buildQR,300);
-if(TGT){setTimeout(triggerGPS,600);}else{showTapHint();}
-setTimeout(hideTapHint,5000);
+// Auto-arrancar GPS si el mapa fue abierto desde un QR o tablero FIDS
+const _qp=new URLSearchParams(location.search);
+if(_qp.has('gate')||_qp.get('from')==='security'){
+  setTimeout(triggerGPS,700);
+}else{
+  showTapHint();
+  setTimeout(hideTapHint,6000);
+}
 window.applyRoute=applyRoute;
 window.triggerGPS=triggerGPS;
 })();
