@@ -4753,6 +4753,7 @@ body.dark-mode .section-icon {
    width: 200px;
    height: 200px;
    margin: 0 auto 1rem;
+   --orbit-r: 82px;
 }
 
 .plane-orbit .orbit-ring {
@@ -4774,9 +4775,11 @@ body.dark-mode .section-icon {
    position: absolute;
    left: 50%;
    top: 50%;
-   font-size: 42px;
-   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 6px rgba(255, 255, 255, 0.35));
-   animation: planeOrbit 5s linear infinite;
+   display: inline-block;
+   font-size: 22px;
+   color: rgba(255, 255, 255, 0.95);
+   filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 8px rgba(140, 200, 255, 0.65));
+   animation: planeOrbit 4s linear infinite;
 }
 
 /* AIFA logo dentro del loader */
@@ -4827,47 +4830,19 @@ body.dark-mode .section-icon {
 .section-loader .plane-orbit {
    width: 140px;
    height: 140px;
+   --orbit-r: 55px;
 }
 
 .section-loader .plane-orbit .plane-icon {
-   font-size: 34px;
+   font-size: 18px;
 }
 
 @keyframes planeOrbit {
-   0% {
-      transform: translate(-50%, -50%) rotate(0deg) translateX(86px) rotate(90deg) rotate(0deg);
+   from {
+      transform: translate(-50%, -50%) rotate(0deg) translateX(var(--orbit-r, 82px)) rotate(90deg);
    }
-
-   12.5% {
-      transform: translate(-50%, -50%) rotate(45deg) translateX(86px) rotate(90deg) rotate(-10deg);
-   }
-
-   25% {
-      transform: translate(-50%, -50%) rotate(90deg) translateX(86px) rotate(90deg) rotate(-16deg);
-   }
-
-   37.5% {
-      transform: translate(-50%, -50%) rotate(135deg) translateX(86px) rotate(90deg) rotate(-8deg);
-   }
-
-   50% {
-      transform: translate(-50%, -50%) rotate(180deg) translateX(86px) rotate(90deg) rotate(0deg);
-   }
-
-   62.5% {
-      transform: translate(-50%, -50%) rotate(225deg) translateX(86px) rotate(90deg) rotate(8deg);
-   }
-
-   75% {
-      transform: translate(-50%, -50%) rotate(270deg) translateX(86px) rotate(90deg) rotate(16deg);
-   }
-
-   87.5% {
-      transform: translate(-50%, -50%) rotate(315deg) translateX(86px) rotate(90deg) rotate(10deg);
-   }
-
-   100% {
-      transform: translate(-50%, -50%) rotate(360deg) translateX(86px) rotate(90deg) rotate(0deg);
+   to {
+      transform: translate(-50%, -50%) rotate(360deg) translateX(var(--orbit-r, 82px)) rotate(90deg);
    }
 }
 
