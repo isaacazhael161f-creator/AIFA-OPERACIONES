@@ -237,19 +237,21 @@
     .fgv-qr-cell {
       display: flex;
       align-items: center;
-      justify-content: flex-end;
-      padding-right: 4px;
+      justify-content: center;
+      padding: 0 4px;
+      overflow: hidden;
     }
     .fgv-qr-wrap {
       background: #fff;
       border-radius: 6px;
-      padding: 5px;
+      padding: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
     }
     .fgv-qr-wrap canvas,
-    .fgv-qr-wrap img { display: block !important; }
+    .fgv-qr-wrap img { display: block !important; max-width: none !important; }
 
     /* Footer */
     .fgv-footer {
@@ -542,9 +544,12 @@
     // Siempre apuntar a la URL pública (GitHub Pages) para que el QR funcione desde el teléfono,
     // incluso cuando el tablero se ejecuta en local (file:// o localhost).
     const _GH_PAGES = 'https://isaacazhael161f-creator.github.io/AIFA-OPERACIONES/airport-map.html';
-    const MAP_BASE  = (location.hostname === 'isaacazhael161f-creator.github.io')
-      ? location.href.replace(/\/[^/?#]*(\?.*)?$/, '/') + 'airport-map.html'
-      : _GH_PAGES;
+    const _isLocal   = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    const MAP_BASE  = _isLocal
+      ? './airport-map.html'
+      : (location.hostname === 'isaacazhael161f-creator.github.io'
+          ? location.href.replace(/\/[^/?#]*(\?.*)?$/, '/') + 'airport-map.html'
+          : _GH_PAGES);
 
     function showGateQR(gate, vuelo) {
       const url = `${MAP_BASE}?gate=${encodeURIComponent(gate)}&from=security${vuelo ? '&vuelo=' + encodeURIComponent(vuelo) : ''}`;
@@ -699,15 +704,14 @@
       const container = document.getElementById('fgv-rows');
       container.innerHTML = '';
 
-      // 5 rows → bigger QR size
-      const qrSize = Math.max(80, Math.min(130, Math.floor((window.innerHeight - 160) / 5) - 6));
+      // 5 rows → bigger QR size; cap at column width (150px col - 16px padding - 8px qr-wrap padding)
+      const _rowH   = Math.floor((window.innerHeight - 160) / 5) - 6;
+      const qrSize  = Math.max(72, Math.min(118, Math.min(_rowH - 8, 118)));
 
       GATE_GROUPS.forEach(grp => {
         const row = document.createElement('div');
         row.className = `fgv-row type-${grp.type}`;
-        row.style.cursor = 'pointer';
         row.title = 'Toca para abrir el mapa de la puerta';
-        row.addEventListener('click', () => openMapOverlay(gateMapUrl(grp.qrGate)));
 
         // Walk time cell
         const walkDiv = document.createElement('div');
@@ -726,24 +730,18 @@
           <span class="fgv-gate-label">${grp.gates}</span>
           <span class="fgv-gate-sublabel">${grp.sublbl}</span>`;
 
-        // QR cell
+        // QR cell — tap to open map
         const qrCell = document.createElement('div');
         qrCell.className = 'fgv-qr-cell';
+        qrCell.style.cursor = 'pointer';
+        qrCell.title = 'Toca para abrir el mapa';
+        qrCell.addEventListener('click', (e) => { e.stopPropagation(); openMapOverlay(gateMapUrl(grp.qrGate)); });
 
         const qrWrap = document.createElement('div');
         qrWrap.className = 'fgv-qr-wrap';
         const qrDiv = document.createElement('div');
         qrWrap.appendChild(qrDiv);
-
-        const hint = document.createElement('div');
-        hint.className = 'fgv-qr-hint';
-        hint.textContent = 'Mapa en tu celular';
-
-        const qrOuter = document.createElement('div');
-        qrOuter.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:3px;';
-        qrOuter.appendChild(qrWrap);
-        qrOuter.appendChild(hint);
-        qrCell.appendChild(qrOuter);
+        qrCell.appendChild(qrWrap);
 
         // Generate QR
         if (window.QRCode) {
