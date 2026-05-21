@@ -500,9 +500,9 @@
       } catch (e) {
         console.warn('[FIDS-Kiosk] Error cargando datos:', e.message);
       }
-      // Fallback a demo si no hay datos reales
-      if (!_llegadas.length) _llegadas = demoFlights('llegada');
-      if (!_salidas.length)  _salidas  = demoFlights('salida');
+      // Complementar con demo si hay pocos vuelos reales (tablero siempre lleno)
+      _llegadas = padFlights(_llegadas, 'llegada');
+      _salidas  = padFlights(_salidas,  'salida');
       renderBoard();
     }
 
@@ -550,7 +550,13 @@
       return tipo === 'llegada' ? L : S;
     }
 
-    // ── Mapa de puertas / QR overlay ────────────────────────────────
+    // Si hay pocos vuelos reales, rellena con demo hasta tener al menos 10
+    function padFlights(real, tipo) {
+      if (real.length >= 8) return real;
+      const demo  = demoFlights(tipo);
+      const extra = demo.filter(d => !real.some(r => r.num === d.num));
+      return [...real, ...extra].slice(0, 12);
+    }
 
     function showGateQR(gate, vuelo) {
       const url = `${MAP_BASE}?gate=${encodeURIComponent(gate)}&from=security${vuelo ? '&vuelo=' + encodeURIComponent(vuelo) : ''}`;
