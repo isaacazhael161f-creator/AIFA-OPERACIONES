@@ -8213,10 +8213,9 @@ FF
                                         }
                                     });
                                 })();
-                            })();
 
-                            /* ── Gráficas de Comportamiento Disciplinario ── */
-                            (function() {
+                                /* ── Gráficas de Comportamiento Disciplinario ── */
+                                (function() {
                                 function countAmonest(r) {
                                     const raw = gc(r, 'amonestaciones');
                                     if (!val(raw)) return 0;
@@ -8280,6 +8279,7 @@ FF
                                 makeAmChart('cd-chart-amonest-subdir', 'subdireccion', amBySubdir);
                                 makeAmChart('cd-chart-amonest-ger',    'gerencia',     amByGer);
                                 makeAmChart('cd-chart-amonest-coord',  'coordinacion', amByCoord);
+                                })();
                             })();
 
                             /* ── Modal drill-down genérico: colaboradores por cualquier grupo ── */
