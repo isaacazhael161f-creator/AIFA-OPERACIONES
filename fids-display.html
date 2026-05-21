@@ -113,6 +113,7 @@
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="js/supabase-client.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
 
   <script>
   (function () {
@@ -274,6 +275,21 @@
       return tipo === 'llegada' ? L : S;
     }
 
+    // ── Mapa de puertas / QR overlay ────────────────────────────────
+    const MAP_BASE = location.href.replace(/\/[^/?#]*(\?.*)?$/, '/') + 'airport-map.html';
+
+    function showGateQR(gate, vuelo) {
+      const url = `${MAP_BASE}?gate=${encodeURIComponent(gate)}&from=security${vuelo ? '&vuelo=' + encodeURIComponent(vuelo) : ''}`;
+      document.getElementById('fids-qr-gate').textContent  = gate;
+      document.getElementById('fids-qr-vuelo').textContent = vuelo ? `Vuelo ${vuelo}` : '';
+      const qrDiv = document.getElementById('fids-qr-code');
+      qrDiv.innerHTML = '';
+      if (window.QRCode) {
+        new QRCode(qrDiv, { text: url, width: 200, height: 200, colorDark: '#000', colorLight: '#fff' });
+      }
+      document.getElementById('fids-gate-overlay').style.display = 'flex';
+    }
+
     // ── Renderizado ──────────────────────────────────────────────────
     function renderBoard() {
       const vuelos = _tipo === 'llegada' ? _llegadas : _salidas;
@@ -307,7 +323,7 @@
              <span style="display:none">${(al.name||v.iata||'').toUpperCase().slice(0,12)}</span>`
           : `<span>${(al.name||v.iata||'').toUpperCase().slice(0,12)}</span>`;
 
-        return `<div class="${rowC}" style="--delay:${(i*0.06).toFixed(2)}s">
+        return `<div class="${rowC}" style="--delay:${(i*0.06).toFixed(2)}s" data-gate="${v.puerta||''}" data-vuelo="${v.num||''}">`
           <div class="fids-col-aerolinea">
             <span class="fids-airline-badge" style="background:${badgeBg};color:${al.text};">${logoInner}</span>
           </div>
@@ -318,6 +334,16 @@
           <div class="fids-col-estado"><span class="fids-estado-badge ${cls}">${est}</span></div>
         </div>`;
       }).join('');
+
+      // Tap any row → show QR with gate map link
+      rows.onclick = ev => {
+        const row = ev.target.closest('[data-gate]');
+        if (!row) return;
+        const gate  = row.dataset.gate;
+        const vuelo = row.dataset.vuelo;
+        if (!gate || gate === '—') return;
+        showGateQR(gate, vuelo);
+      };
     }
 
     // ── Reloj ────────────────────────────────────────────────────────
@@ -398,6 +424,23 @@
 
   })();
   </script>
+
+  <!-- Gate QR overlay: tap any FIDS row to open -->
+  <div id="fids-gate-overlay"
+       onclick="document.getElementById('fids-gate-overlay').style.display='none'"
+       style="position:fixed;inset:0;background:rgba(2,4,14,.96);z-index:9999;
+              display:none;align-items:center;justify-content:center;
+              flex-direction:column;gap:.85rem;cursor:pointer;user-select:none">
+    <div style="color:#4a7ab8;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase">
+      Escanea con tu teléfono para ver el mapa
+    </div>
+    <div id="fids-qr-gate" style="font-size:3.5rem;font-weight:900;color:#f0b830;letter-spacing:.1em"></div>
+    <div id="fids-qr-vuelo" style="font-size:1rem;color:#8aaac8;letter-spacing:.06em"></div>
+    <div style="background:#fff;padding:10px;border-radius:8px">
+      <div id="fids-qr-code"></div>
+    </div>
+    <div style="color:#4a6888;font-size:.72rem;margin-top:.4rem">Toca en cualquier lugar para cerrar</div>
+  </div>
 
 </body>
 </html>
