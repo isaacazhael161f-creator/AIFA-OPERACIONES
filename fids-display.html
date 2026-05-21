@@ -323,7 +323,7 @@
              <span style="display:none">${(al.name||v.iata||'').toUpperCase().slice(0,12)}</span>`
           : `<span>${(al.name||v.iata||'').toUpperCase().slice(0,12)}</span>`;
 
-        return `<div class="${rowC}" style="--delay:${(i*0.06).toFixed(2)}s" data-gate="${v.puerta||''}" data-vuelo="${v.num||''}">`
+        return `<div class="${rowC}" style="--delay:${(i*0.06).toFixed(2)}s" data-gate="${v.puerta||''}" data-vuelo="${v.num||''}">
           <div class="fids-col-aerolinea">
             <span class="fids-airline-badge" style="background:${badgeBg};color:${al.text};">${logoInner}</span>
           </div>
