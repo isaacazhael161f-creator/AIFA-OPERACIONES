@@ -247,20 +247,20 @@
 const CY=210,CH=46,CX0=88,CX1=1490;
 const PX2M=1080/(CX1-CX0),WSPEED=75;
 const ENTRIES={'security':{x:100,label:'Salida de Seguridad'},'security-b':{x:290,label:'Seguridad Internacional'},'corridor-mid':{x:700,label:'Centro del pasillo'}};
-const GDIM={jetbridge:{boxw:22,boxh:19,stub:65,sw:3,fs:7.5},apron:{boxw:36,boxh:21,stub:60,sw:3,fs:9},remote:{boxw:32,boxh:19,stub:55,sw:2.5,fs:8}};
+const GDIM={jetbridge:{boxw:22,boxh:18,stub:65,sw:3,fs:7.5},apron:{boxw:44,boxh:26,stub:55,sw:2.5,fs:9},remote:{boxw:36,boxh:22,stub:50,sw:2,fs:8.5}};
 const GCOL={jetbridge:{fill:'#04081a',stroke:'#1a4090',text:'#4878e8',hl:'#78aaff'},apron:{fill:'#120d04',stroke:'#583a10',text:'#d09030',hl:'#ffc84a'},remote:{fill:'#04100a',stroke:'#186828',text:'#32b860',hl:'#50ff90'}};
 
 function buildGates(){
   const d={};
-  // Jetbridge (Manga) gates 106-116, sub-positions A and B
-  for(let n=106;n<=116;n++){const bx=185+(n-106)*80;d[n+'A']={x:bx,type:'jetbridge',gy:CY+CH/2};d[n+'B']={x:bx+28,type:'jetbridge',gy:CY+CH/2};}
-  // Remote apron stands 501-505
-  for(let n=501;n<=505;n++) d[String(n)]={x:1048+(n-501)*60,type:'apron',gy:CY+CH/2};
-  // Remote 506 A/B
-  d['506A']={x:1348,type:'apron',gy:CY+CH/2};
-  d['506B']={x:1390,type:'apron',gy:CY+CH/2};
-  // East apron positions 3-8 (north side of corridor)
-  [3,4,5,6,7,8].forEach((n,i)=>{ d[String(n)]={x:1070+(i*55),type:'remote',gy:CY-CH/2,side:'north'}; });
+  // MARS remote stands 501-505 (south side, closest to terminal)
+  for(let n=501;n<=505;n++) d[String(n)]={x:170+(n-501)*63,type:'apron',gy:CY+CH/2};
+  // Jetbridge (Manga) gates 106-116, A/B sub-positions
+  for(let n=106;n<=116;n++){const bx=512+(n-106)*67;d[n+'A']={x:bx,type:'jetbridge',gy:CY+CH/2};d[n+'B']={x:bx+27,type:'jetbridge',gy:CY+CH/2};}
+  // MARS remote stand 506 A/B (south side, after gate 116)
+  d['506A']={x:1285,type:'apron',gy:CY+CH/2};
+  d['506B']={x:1332,type:'apron',gy:CY+CH/2};
+  // East apron positions 3-8 (north side, MARS)
+  [3,4,5,6,7,8].forEach((n,i)=>{ d[String(n)]={x:1270+(i*38),type:'remote',gy:CY-CH/2,side:'north'}; });
   return d;
 }
 const GATES=buildGates();
@@ -269,8 +269,9 @@ function resolveGate(s){
   if(!s)return null;
   const u=s.toUpperCase().trim();
   if(GATES[u]&&!GATES[u].alias)return{key:u,g:GATES[u]};
+  if(GATES[u+'A'])return{key:u+'A',g:GATES[u+'A']};
   const alt=u.slice(0,-1);
-  if(GATES[alt])return{key:alt,g:GATES[alt]};
+  if(GATES[alt]&&!GATES[alt].alias)return{key:alt,g:GATES[alt]};
   return null;
 }
 
@@ -288,6 +289,28 @@ function svgEl(tag,attr,txt){
   return e;
 }
 
+function buildLandmarks(){
+  // POI reference points along the terminal corridor
+  const POI=[
+    [150,  'BA\u00d1OS',         '#3a72c8'],
+    [296,  'CAFETER\u00cdA',     '#c87820'],
+    [400,  'TIENDAS',            '#9030a8'],
+    [600,  'BA\u00d1OS',         '#3a72c8'],
+    [750,  'DUTY FREE',          '#1a9858'],
+    [910,  'CAFETER\u00cdA',     '#c87820'],
+    [1050, 'BA\u00d1OS',         '#3a72c8'],
+    [1160, 'SALA VIP',           '#c84020'],
+  ];
+  const ly=95;
+  POI.forEach(([x,lbl,col])=>{
+    const tw=lbl.length*5.0+14;
+    svg.appendChild(svgEl('line',{x1:x,y1:ly+12,x2:x,y2:CY-CH/2-1,stroke:col,'stroke-width':0.8,'stroke-dasharray':'3 2.5',opacity:'0.45'}));
+    svg.appendChild(svgEl('circle',{cx:x,cy:CY-CH/2,r:3.5,fill:col,opacity:'0.8'}));
+    svg.appendChild(svgEl('rect',{x:x-tw/2,y:ly-11,width:tw,height:20,fill:'#060c1c',stroke:col,'stroke-width':1.3,rx:10}));
+    svg.appendChild(svgEl('text',{x,y:ly+4,fill:col,'font-size':7.5,'font-weight':700,'font-family':'Segoe UI,Arial','text-anchor':'middle'},lbl));
+  });
+}
+
 function buildMap(){
   svg.appendChild(svgEl('rect',{x:0,y:0,width:1520,height:460,fill:'#04040c'}));
   svg.appendChild(svgEl('rect',{x:CX0,y:CY+CH/2,width:CX1-CX0,height:220,fill:'#060610'}));
@@ -296,10 +319,12 @@ function buildMap(){
   svg.appendChild(svgEl('text',{x:46,y:220,fill:'#1a2858','font-size':9,'font-family':'Segoe UI,Arial','text-anchor':'middle',transform:'rotate(-90,46,220)','letter-spacing':2},'TERMINAL  CHECK-IN'));
   svg.appendChild(svgEl('rect',{x:76,y:CY-CH/2-52,width:30,height:52,fill:'#08102a',stroke:'#182038','stroke-width':1.5}));
   svg.appendChild(svgEl('text',{x:91,y:CY-CH/2-58,fill:'#28a068','font-size':8,'font-family':'Segoe UI,Arial','text-anchor':'middle'},'SEGURIDAD'));
-  [1025,1045].forEach(x=>svg.appendChild(svgEl('line',{x1:x,y1:CY-CH/2-2,x2:x,y2:CY+CH/2+2,stroke:'#182038','stroke-width':1})));
+  [465,483].forEach(x=>svg.appendChild(svgEl('line',{x1:x,y1:CY-CH/2-2,x2:x,y2:CY+CH/2+2,stroke:'#182038','stroke-width':1})));
+  [1250,1268].forEach(x=>svg.appendChild(svgEl('line',{x1:x,y1:CY-CH/2-2,x2:x,y2:CY+CH/2+2,stroke:'#182038','stroke-width':1})));
   const zy=CY-CH/2-12;
-  [[600,'106 \u2013 116  MANGAS (A/B)'],[1210,'501 \u2013 506  PLATAFORMA REMOTA']].forEach(([x,t])=>svg.appendChild(svgEl('text',{x,y:zy,fill:'#1c3460','font-size':8.5,'font-family':'Segoe UI,Arial','text-anchor':'middle','letter-spacing':1.2},t)));
-  svg.appendChild(svgEl('text',{x:1210,y:CY-CH/2-72,fill:'#186828','font-size':8.5,'font-family':'Segoe UI,Arial','text-anchor':'middle','letter-spacing':1.2},'3 \u2013 8  PLATAFORMA ESTE'));
+  [[296,'501\u2013505  MARS'],[858,'106\u2013116  MANGAS (A/B)'],[1308,'506  MARS (A/B)']].forEach(([x,t])=>svg.appendChild(svgEl('text',{x,y:zy,fill:'#1c3460','font-size':8.5,'font-family':'Segoe UI,Arial','text-anchor':'middle','letter-spacing':1.2},t)));
+  svg.appendChild(svgEl('text',{x:1365,y:CY-CH/2-72,fill:'#186828','font-size':8.5,'font-family':'Segoe UI,Arial','text-anchor':'middle','letter-spacing':1.2},'3\u20138  PLATAFORMA ESTE'));
+  buildLandmarks();
   svg.appendChild(svgEl('rect',{x:CX0,y:CY-CH/2,width:CX1-CX0,height:CH,fill:'#0b1a30',stroke:'#203460','stroke-width':2,rx:4}));
   for(let ax=200;ax<CX1-80;ax+=120)svg.appendChild(svgEl('text',{x:ax,y:CY+6,fill:'#18284a','font-size':14,'text-anchor':'middle'},'→'));
   for(const[k,g]of Object.entries(GATES)){if(g.alias)continue;drawGate(k,g);}
@@ -321,7 +346,7 @@ function drawGate(key,g){
 }
 
 function containerSize(){const w=document.getElementById('map-wrap');return{cW:w.clientWidth||360,cH:w.clientHeight||300};}
-function adjustView(ex,gx,destY){const{cW,cH}=containerSize();const asp=cW/Math.max(cH,1);const pad=Math.max(55,cW*0.07);const vbW=Math.max(Math.abs(gx-ex)+pad*2,300);const vbH=Math.round(vbW/asp);const cx=(Math.min(ex,gx)+Math.max(ex,gx))/2;const cy=CY+30;svg.setAttribute('viewBox',(cx-vbW/2)+' '+(cy-vbH/2)+' '+vbW+' '+vbH);}
+function adjustView(ex,gx,destY){const{cW,cH}=containerSize();const asp=cW/Math.max(cH,1);const pad=Math.max(55,cW*0.07);const vbW=Math.max(Math.abs(gx-ex)+pad*2,300);const vbH=Math.round(vbW/asp);const cx=(Math.min(ex,gx)+Math.max(ex,gx))/2;const cy=destY<CY?(CY+destY)/2:CY+30;svg.setAttribute('viewBox',(cx-vbW/2)+' '+(cy-vbH/2)+' '+vbW+' '+vbH);}
 function initViewBox(){const{cW,cH}=containerSize();const asp=cW/Math.max(cH,1);const vbW=1520;const vbH=Math.round(vbW/asp);svg.setAttribute('viewBox','0 '+(CY-vbH/2)+' '+vbW+' '+vbH);}
 
 let _rafs=[];
@@ -403,19 +428,25 @@ function buildDirections(entry,gKey,g,distM,mins){
   document.getElementById('next-sub').textContent=zone[g.type]+' · ~'+distM+' m · '+mins+' min';
 }
 
-const AIFA_LAT=19.7594,AIFA_LNG=-99.0152,LNG_W=-99.0178,LNG_E=-99.0128;
+const AIFA_LAT=19.7583,AIFA_LNG=-99.0155,LNG_W=-99.0195,LNG_E=-99.0100;
 function triggerGPS(){
   const st=document.getElementById('gps-status');
-  st.textContent='Localizando...';st.className='';
-  if(!navigator.geolocation){st.textContent='GPS no disponible - toca el mapa';st.className='error';showTapHint();return;}
-  navigator.geolocation.getCurrentPosition(pos=>{
+  st.textContent='Detectando posicion...';st.className='';
+  if(!navigator.geolocation){st.textContent='GPS no disponible';st.className='error';showTapHint();return;}
+  const onPos=pos=>{
     const{latitude:lat,longitude:lng,accuracy:acc}=pos.coords;
     const dist=Math.hypot((lat-AIFA_LAT)*111000,(lng-AIFA_LNG)*95000);
-    if(dist>2500){st.textContent='Fuera del aeropuerto - toca el mapa';st.className='error';showTapHint();return;}
+    if(dist>4000){st.textContent='Fuera del aeropuerto';st.className='error';showTapHint();return;}
     const frac=Math.max(0,Math.min(1,(lng-LNG_W)/(LNG_E-LNG_W)));
     setUserPos(CX0+frac*(CX1-CX0));
-    st.textContent='GPS activo +/-'+Math.round(acc)+'m';st.className='active';hideTapHint();
-  },err=>{st.textContent='Sin GPS - toca el pasillo del mapa';st.className='error';showTapHint();},{enableHighAccuracy:true,timeout:10000,maximumAge:0});
+    st.textContent='\u2022 Posicion activa \u00b1'+Math.round(acc)+'m';st.className='active';hideTapHint();
+  };
+  const onErr=()=>{
+    navigator.geolocation.getCurrentPosition(onPos,
+      ()=>{st.textContent='Toca el mapa para marcar tu posicion';st.className='error';showTapHint();},
+      {enableHighAccuracy:false,timeout:12000,maximumAge:60000});
+  };
+  navigator.geolocation.getCurrentPosition(onPos,onErr,{enableHighAccuracy:false,timeout:15000,maximumAge:30000});
 }
 
 function setUserPos(svgX){
