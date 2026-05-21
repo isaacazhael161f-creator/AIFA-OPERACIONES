@@ -520,42 +520,58 @@
 
     function demoFlights(tipo) {
       const L = [
-        { iata:'VB', num:'VB 7417', city:'Guadalajara',      hora:'06:00', puerta:'101',  estado:'Aterriz\u00f3'  },
+        { iata:'IB', num:'IB 6829', city:'Madrid',            hora:'05:50', puerta:'116A', estado:'Aterriz\u00f3'  },
+        { iata:'EK', num:'EK 9915', city:'Dub\u00e1i',        hora:'06:05', puerta:'116B', estado:'Aterriz\u00f3'  },
+        { iata:'VB', num:'VB 7417', city:'Guadalajara',       hora:'06:00', puerta:'101',  estado:'Aterriz\u00f3'  },
         { iata:'Y4', num:'Y4 3296', city:'Tijuana',           hora:'06:35', puerta:'105',  estado:'Aterriz\u00f3'  },
-        { iata:'AM', num:'AM 0234', city:'Canc\u00fan',       hora:'07:15', puerta:'107A', estado:'A tiempo'  },
-        { iata:'VB', num:'VB 9497', city:'Los Cabos',         hora:'07:50', puerta:'110B', estado:'En puerta' },
+        { iata:'KL', num:'KL 0685', city:'Amsterdam',         hora:'07:00', puerta:'115A', estado:'Aterriz\u00f3'  },
+        { iata:'AM', num:'AM 0234', city:'Canc\u00fan',       hora:'07:15', puerta:'107A', estado:'En puerta' },
+        { iata:'UA', num:'UA 1567', city:'Houston',           hora:'07:50', puerta:'108B', estado:'Aterriz\u00f3'  },
+        { iata:'VB', num:'VB 9497', city:'Los Cabos',         hora:'08:10', puerta:'110B', estado:'En puerta' },
         { iata:'AM', num:'AM 0456', city:'Monterrey',         hora:'08:20', puerta:'113A', estado:'En puerta' },
+        { iata:'AA', num:'AA 2046', city:'Dallas/Fort Worth', hora:'08:50', puerta:'114B', estado:'A tiempo'  },
         { iata:'XN', num:'XN 1765', city:'M\u00e9rida',       hora:'08:55', puerta:'116A', estado:'A tiempo'  },
         { iata:'Y4', num:'Y4 7171', city:'La Paz',            hora:'09:30', puerta:'103',  estado:'Demorado'  },
         { iata:'AM', num:'AM 0678', city:'Puerto Vallarta',   hora:'10:00', puerta:'109A', estado:'A tiempo'  },
         { iata:'VB', num:'VB 9313', city:'Zihuatanejo',       hora:'10:35', puerta:'506A', estado:'A tiempo'  },
+        { iata:'DL', num:'DL 0615', city:'Atlanta',           hora:'10:55', puerta:'113B', estado:'A tiempo'  },
         { iata:'6R', num:'6R 7085', city:'Los \u00c1ngeles',  hora:'11:10', puerta:'506B', estado:'En vuelo'  },
-        { iata:'EK', num:'EK 9915', city:'Dub\u00e1i',        hora:'11:45', puerta:'116B', estado:'En vuelo'  },
+        { iata:'AM', num:'AM 0890', city:'Oaxaca',            hora:'11:30', puerta:'109B', estado:'A tiempo'  },
         { iata:'CX', num:'CX 0086', city:'Anchorage',         hora:'12:20', puerta:'115B', estado:'A tiempo'  },
+        { iata:'Y4', num:'Y4 1083', city:'Hermosillo',        hora:'12:50', puerta:'104',  estado:'Demorado'  },
+        { iata:'CM', num:'CM 0233', city:'Panam\u00e1',       hora:'13:20', puerta:'112A', estado:'A tiempo'  },
       ];
       const S = [
         { iata:'VB', num:'VB 7418', city:'Guadalajara',       hora:'06:30', puerta:'102',  estado:'Despeg\u00f3'   },
         { iata:'Y4', num:'Y4 3297', city:'Tijuana',           hora:'07:05', puerta:'104',  estado:'Despeg\u00f3'   },
         { iata:'AM', num:'AM 0235', city:'Canc\u00fan',       hora:'07:50', puerta:'108A', estado:'A tiempo'  },
+        { iata:'UA', num:'UA 1568', city:'Houston',           hora:'08:10', puerta:'107B', estado:'Abordando' },
         { iata:'VB', num:'VB 9520', city:'Los Cabos',         hora:'08:25', puerta:'111A', estado:'Abordando' },
         { iata:'AM', num:'AM 0457', city:'Monterrey',         hora:'09:00', puerta:'114A', estado:'En puerta' },
         { iata:'XN', num:'XN 1204', city:'Tijuana',           hora:'09:35', puerta:'106A', estado:'A tiempo'  },
+        { iata:'AA', num:'AA 2047', city:'Dallas/Fort Worth', hora:'09:55', puerta:'115B', estado:'A tiempo'  },
         { iata:'Y4', num:'Y4 3960', city:'Bogot\u00e1',       hora:'10:10', puerta:'506B', estado:'Demorado'  },
         { iata:'AM', num:'AM 0679', city:'Puerto Vallarta',   hora:'10:45', puerta:'112B', estado:'A tiempo'  },
         { iata:'VB', num:'VB 9462', city:'Chetumal',          hora:'11:20', puerta:'115A', estado:'A tiempo'  },
+        { iata:'DL', num:'DL 0614', city:'Atlanta',           hora:'11:40', puerta:'113A', estado:'A tiempo'  },
         { iata:'6R', num:'6R 7084', city:'Los \u00c1ngeles',  hora:'12:00', puerta:'506A', estado:'A tiempo'  },
         { iata:'EK', num:'EK 9916', city:'Dub\u00e1i',        hora:'12:30', puerta:'116B', estado:'A tiempo'  },
+        { iata:'AM', num:'AM 0891', city:'Oaxaca',            hora:'12:55', puerta:'109A', estado:'En puerta' },
         { iata:'M7', num:'M7 6810', city:'Los \u00c1ngeles',  hora:'13:00', puerta:'113B', estado:'En vuelo'  },
+        { iata:'IB', num:'IB 6828', city:'Madrid',            hora:'13:30', puerta:'116A', estado:'A tiempo'  },
+        { iata:'VB', num:'VB 9301', city:'Culiac\u00e1n',     hora:'14:10', puerta:'101',  estado:'A tiempo'  },
+        { iata:'Y4', num:'Y4 1082', city:'Hermosillo',        hora:'14:45', puerta:'103',  estado:'A tiempo'  },
+        { iata:'CM', num:'CM 0234', city:'Panam\u00e1',       hora:'15:20', puerta:'112A', estado:'A tiempo'  },
       ];
       return tipo === 'llegada' ? L : S;
     }
 
-    // Si hay pocos vuelos reales, rellena con demo hasta tener al menos 10
+    // Rellena con demo hasta cubrir toda la pantalla (minimo 16, maximo 20)
     function padFlights(real, tipo) {
-      if (real.length >= 8) return real;
+      if (real.length >= 16) return real;
       const demo  = demoFlights(tipo);
       const extra = demo.filter(d => !real.some(r => r.num === d.num));
-      return [...real, ...extra].slice(0, 12);
+      return [...real, ...extra].slice(0, 20);
     }
 
     function showGateQR(gate, vuelo) {
