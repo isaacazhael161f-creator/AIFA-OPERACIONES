@@ -616,7 +616,7 @@
         const gate  = row.dataset.gate;
         const vuelo = row.dataset.vuelo;
         if (!gate || gate === '—') return;
-        openMapOverlay(gateMapUrl(gate));
+        openMapOverlay(gateOverlayUrl(gate));
       };
     }
 
@@ -686,9 +686,16 @@
     }
 
     // ── Vista de puertas ─────────────────────────────────────────────
-    const _MAP_GH   = 'https://isaacazhael161f-creator.github.io/AIFA-OPERACIONES/airport-map.html';
-    const _MAP_VER   = '20260521';   // bump this whenever airport-map.html changes
-    function gateMapUrl(gate) {
+    const _MAP_GH  = 'https://isaacazhael161f-creator.github.io/AIFA-OPERACIONES/airport-map.html';
+    const _MAP_VER = '20260521';   // bump this whenever airport-map.html changes
+
+    // URL para el CONTENIDO del QR → siempre pública (cualquier teléfono puede abrirla)
+    function gateQrUrl(gate) {
+      return `${_MAP_GH}?gate=${encodeURIComponent(gate)}&from=security&_v=${_MAP_VER}`;
+    }
+
+    // URL para el iframe OVERLAY dentro del kiosco → usa archivo local si está disponible
+    function gateOverlayUrl(gate) {
       const h = location.hostname;
       const base = (h === 'localhost' || h === '127.0.0.1' || location.protocol === 'file:')
         ? './airport-map.html'
@@ -739,7 +746,7 @@
         qrCell.className = 'fgv-qr-cell';
         qrCell.style.cursor = 'pointer';
         qrCell.title = 'Toca para abrir el mapa';
-        qrCell.addEventListener('click', (e) => { e.stopPropagation(); openMapOverlay(gateMapUrl(grp.qrGate)); });
+        qrCell.addEventListener('click', (e) => { e.stopPropagation(); openMapOverlay(gateOverlayUrl(grp.qrGate)); });
 
         const qrWrap = document.createElement('div');
         qrWrap.className = 'fgv-qr-wrap';
@@ -750,7 +757,7 @@
         // Generate QR
         if (window.QRCode) {
           new QRCode(qrDiv, {
-            text:       gateMapUrl(grp.qrGate),
+            text:       gateQrUrl(grp.qrGate),
             width:      qrSize,
             height:     qrSize,
             colorDark:  '#000000',
