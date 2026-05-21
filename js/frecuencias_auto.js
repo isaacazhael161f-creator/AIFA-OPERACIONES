@@ -936,7 +936,7 @@ ${uncovered.length ? `<div class="p-3 rounded-3" style="background:#f8fafc;borde
           // Interaction Logic
           if (detail && count > 0) {
               tdDay.style.cursor = 'pointer';
-              tdDay.title = 'Clic para ver horarios y números de vuelo';
+              tdDay.title = 'click para ver horarios y números de vuelo';
               // Add visual hint (small dotted underline)
               tdDay.style.textDecoration = 'underline dotted rgba(255,255,255,0.7)';
               

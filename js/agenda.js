@@ -412,7 +412,7 @@ function _agCalDraw() {
             const hora = r.hora_inicio ? r.hora_inicio.slice(0, 5) : '';
 
             row += `<span class="ag-chip${extraCls}"
-                title="${comite.nombre || ''}\n${r.numero_sesion || ''} | ${r.estatus}${hora ? ' · ' + hora + 'h' : ''}${r.observaciones ? '\n' + r.observaciones : ''}${comite.horario_fijo ? '\n⏰ Horario preestablecido' : ''}\n\n🔍 Haz clic para ver información normativa"
+                title="${comite.nombre || ''}\n${r.numero_sesion || ''} | ${r.estatus}${hora ? ' · ' + hora + 'h' : ''}${r.observaciones ? '\n' + r.observaciones : ''}${comite.horario_fijo ? '\n⏰ Horario preestablecido' : ''}\n\n🔍 Haz click para ver información normativa"
                 style="background:${ac.bg};color:${ac.color};border-left-color:${ac.border}"
                 onclick="_agShowComiteDetail('${r.comite_id}')">
                 ${statusIcon}<span style="background:${ac.bg};color:${ac.color};border:1px solid ${ac.border}60;font-size:.56rem;font-weight:700;
@@ -1913,7 +1913,7 @@ async function agOpenGoogleCalendar() {
             ${eventos.length ? `
             <div class="alert alert-light border mb-2 py-2 px-3" style="font-size:.76rem">
               <i class="fas fa-info-circle me-1 text-primary"></i>
-              Haz clic en <strong>Agregar</strong> en cada sesión que quieras añadir a tu calendario,
+              Haz click en <strong>Agregar</strong> en cada sesión que quieras añadir a tu calendario,
               o descarga el archivo <strong>.ics</strong> para importar todas de una vez.
             </div>` : ''}
             ${rows}

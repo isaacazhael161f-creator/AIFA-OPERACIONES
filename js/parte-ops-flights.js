@@ -602,7 +602,7 @@
             // Observations cell — locked by default, click to edit
             const obsText = escapeHtml(row._observaciones || '');
             const obsCell = `<td class="col-cvs-observaciones obs-td" style="min-width:190px;padding:4px 6px;background:#f0fff4;border-left:2px solid #b7dfca;">
-                <div class="obs-display" onclick="window.opsFlights.editObservacion(this,${dataIdx})" title="Clic para editar observación">
+                <div class="obs-display" onclick="window.opsFlights.editObservacion(this,${dataIdx})" title="click para editar observación">
                     ${obsText
                         ? `<span class="obs-text">${obsText}</span>`
                         : `<span class="obs-placeholder">Sin observación</span>`}
@@ -1117,11 +1117,11 @@
                     const label = v === '' ? '(Vac\u00edo)' : v;
                     return `<div class="csv-ef-item" data-value="${v.replace(/"/g, '&quot;')}">
                         <input class="form-check-input csv-ef-chk" type="checkbox" id="csv-ef-${i}" value="${v.replace(/"/g, '&quot;')}" ${checked ? 'checked' : ''}>
-                        <label class="csv-ef-label" data-value="${v.replace(/"/g, '&quot;')}" title="Clic: solo este valor">${label}</label>
+                        <label class="csv-ef-label" data-value="${v.replace(/"/g, '&quot;')}" title="click: solo este valor">${label}</label>
                     </div>`;
                 }).join('')}
             </div>
-            <div class="text-muted px-1 mb-2" style="font-size:.7rem;"><i class="fas fa-info-circle me-1"></i>Clic en el texto = solo ese valor &nbsp;·&nbsp; <i class="fas fa-check-square me-1"></i>= multi-selección</div>
+            <div class="text-muted px-1 mb-2" style="font-size:.7rem;"><i class="fas fa-info-circle me-1"></i>click en el texto = solo ese valor &nbsp;·&nbsp; <i class="fas fa-check-square me-1"></i>= multi-selección</div>
             <div style="display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #eee;padding-top:8px;">
                 <button class="btn btn-sm btn-light border" id="csv-ef-cancel">Cancelar</button>
                 <button class="btn btn-sm btn-primary" id="csv-ef-apply">Aceptar</button>

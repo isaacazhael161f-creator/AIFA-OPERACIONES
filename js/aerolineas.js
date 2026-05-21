@@ -1,4 +1,4 @@
-﻿let aeroDataCache = null;
+let aeroDataCache = null;
 let aeroDetailChart = null;
 let aeroSelectedRow = null;
 let aeroGroupFilter = 'all'; // 'all' | 'pax' | 'cargo'
@@ -21,7 +21,7 @@ function openAeroDetail(item) {
     if (!panel || !canvas) return;
 
     titleEl.innerHTML = '<i class="fas fa-chart-line me-2 text-primary"></i>' + item.nombre
-        + ' <span class="text-muted fw-normal fs-6 ms-2">— Evolución mensual de operaciones</span>';
+        + ' <span class="text-muted fw-normal fs-6 ms-2">� Evoluci�n mensual de operaciones</span>';
 
     // Group monthlyOps by year
     const byYear = {};
@@ -78,8 +78,8 @@ function openAeroDetail(item) {
                     borderColor: '#475569', borderWidth: 1, padding: 12, boxPadding: 6,
                     usePointStyle: true, cornerRadius: 8,
                     callbacks: {
-                        title: function(c){ return '📅 ' + c[0].label; },
-                        label: function(c){ return (c.dataset.label ? c.dataset.label + ': ' : '') + (c.parsed.y !== null ? '✈️ ' + new Intl.NumberFormat('es-MX').format(c.parsed.y) + ' ops' : '–'); }
+                        title: function(c){ return '?? ' + c[0].label; },
+                        label: function(c){ return (c.dataset.label ? c.dataset.label + ': ' : '') + (c.parsed.y !== null ? '?? ' + new Intl.NumberFormat('es-MX').format(c.parsed.y) + ' ops' : '�'); }
                     }
                 }
             },
@@ -105,7 +105,7 @@ function openAeroDetail(item) {
     const CELL_BORDER = 'border-bottom:1px solid #e4eaf0;';
     const COL_W = years.length <= 2 ? '200px' : years.length <= 3 ? '160px' : '140px';
 
-    // Header row — matches screenshot: gray bg, bold, "Periodo" left / years centered
+    // Header row � matches screenshot: gray bg, bold, "Periodo" left / years centered
     const hRow = document.createElement('tr');
     hRow.style.cssText = 'background:#dde3ea;';
     hRow.innerHTML = '<th style="width:110px;font-weight:700;color:#374151;padding:13px 18px;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.4px;'+CELL_BORDER+'">Periodo</th>'
@@ -121,30 +121,30 @@ function openAeroDetail(item) {
         return (v !== undefined && v !== null) ? v : null;
     }
 
-    // Variation badge — inline small ▲/▼ + %
+    // Variation badge � inline small ?/? + %
     function varBadge(val, pv) {
         if (pv === null) return '';
-        if (pv === 0 && val > 0) return ' <span style="font-size:0.73em;color:#16a34a;font-weight:700;">▲ nuevo</span>';
+        if (pv === 0 && val > 0) return ' <span style="font-size:0.73em;color:#16a34a;font-weight:700;">? nuevo</span>';
         if (pv === 0) return '';
         const g = ((val - pv) / pv) * 100;
         const pos = g >= 0;
         const color = pos ? '#16a34a' : '#dc2626';
-        const arrow = pos ? '▲' : '▼';
+        const arrow = pos ? '?' : '?';
         return ' <span style="font-size:0.73em;color:'+color+';font-weight:700;">'+arrow+' '+Math.abs(g).toFixed(1)+'%</span>';
     }
 
-    // One row per month — alternating colors matching screenshot
+    // One row per month � alternating colors matching screenshot
     AERO_MONTH_ORDER.forEach(function(mon, mIdx) {
         const tr = document.createElement('tr');
-        // Odd rows (0,2,4…) = light blue-tinted; even rows = white — same as screenshot
+        // Odd rows (0,2,4�) = light blue-tinted; even rows = white � same as screenshot
         const rowBg = (mIdx % 2 === 0) ? '#edf2f7' : '#ffffff';
         tr.style.cssText = 'background:'+rowBg+';';
         let html = '<td style="font-weight:600;color:#4b5563;padding:11px 18px;font-size:0.92rem;'+CELL_BORDER+'">'+AERO_MONTH_LABELS[mIdx]+'</td>';
         years.forEach(function(yr, idx) {
             const val = getVal(yr, mon);
-            // Treat null OR zero as "sin datos" — avoids showing ▼100% for months without records
+            // Treat null OR zero as "sin datos" � avoids showing ?100% for months without records
             if (val === null || val === 0) {
-                html += '<td style="text-align:center;color:#94a3b8;padding:11px 18px;font-size:0.93rem;'+CELL_BORDER+'">–</td>';
+                html += '<td style="text-align:center;color:#94a3b8;padding:11px 18px;font-size:0.93rem;'+CELL_BORDER+'">�</td>';
                 return;
             }
             let badge = '';
@@ -154,7 +154,7 @@ function openAeroDetail(item) {
                 if (prevVal !== null && prevVal > 0) {
                     badge = varBadge(val, prevVal);
                 } else if (prevVal === 0 || prevVal === null) {
-                    badge = ' <span style="font-size:0.73em;color:#16a34a;font-weight:700;">▲ nuevo</span>';
+                    badge = ' <span style="font-size:0.73em;color:#16a34a;font-weight:700;">? nuevo</span>';
                 }
             }
             html += '<td style="text-align:center;padding:11px 18px;font-size:0.93rem;color:#1e293b;'+CELL_BORDER+'">'+new Intl.NumberFormat('es-MX').format(val)+badge+'</td>';
@@ -163,7 +163,7 @@ function openAeroDetail(item) {
         tbody.appendChild(tr);
     });
 
-    // TOTAL row — comparable: only months where current year has data
+    // TOTAL row � comparable: only months where current year has data
     const tfRow = document.createElement('tr');
     tfRow.style.cssText = 'background:#dde3ea;border-top:2px solid #c5cdd6;';
     let totHtml = '<td style="font-weight:800;color:#111827;padding:13px 18px;font-size:0.93rem;text-transform:uppercase;letter-spacing:0.5px;">TOTAL</td>';
@@ -204,7 +204,7 @@ function openAeroDetail(item) {
 }
 
 async function loadAerolineasDashboard() {
-    console.log('[loadAerolineas] Iniciando carga de aerolíneas...');
+    console.log('[loadAerolineas] Iniciando carga de aerol�neas...');
 
     // UI elements
     const tblBody = document.getElementById('aero-table-body');
@@ -216,7 +216,7 @@ async function loadAerolineasDashboard() {
 
     try {
         // Use an anon-only client (no auth session) so RLS treats this as the
-        // 'anon' role.  The Aerolíneas table allows anon SELECT but blocks
+        // 'anon' role.  The Aerol�neas table allows anon SELECT but blocks
         // authenticated sessions that lack an explicit RLS policy.
         const _url = 'https://fgstncvuuhpgyzmjceyr.supabase.co';
         const _key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnc3RuY3Z1dWhwZ3l6bWpjZXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NzQ0NDQsImV4cCI6MjA4MTQ1MDQ0NH0.YEDIKuWt5iKUEI0BAvidINUz0aZBvQM0h6XRJ-uslB8';
@@ -233,7 +233,7 @@ async function loadAerolineasDashboard() {
         }
         if (!client) throw new Error('Cliente Supabase no disponible');
 
-        // Fetch using the new table 'Aerolíneas'
+        // Fetch using the new table 'Aerol�neas'
         const { data, error } = await client.from('Aerol\u00edneas').select('*');
         if (error) throw error;
 
@@ -244,14 +244,14 @@ async function loadAerolineasDashboard() {
             let rawNombre = row['AEROLINEA'] || row['AEROLINEA '] || 'Desconocida';
             
             // Agregar acentos faltantes a los nombres
-            rawNombre = rawNombre.replace(/\bAEROUNION\b/gi, 'AEROUNIÓN')
-                                 .replace(/\bAEROLINEAS\b/gi, 'AEROLÍNEAS')
-                                 .replace(/\bAEROLINEA\b/gi, 'AEROLÍNEA')
-                                 .replace(/\bAEREO\b/gi, 'AÉREO')
-                                 .replace(/\bMAS DE CARGA\b/gi, 'MÁS DE CARGA')
-                                 .replace(/\bCOMPANIA\b/gi, 'COMPAÑÍA')
-                                 .replace(/\bCOMPAÑIA\b/gi, 'COMPAÑÍA')
-                                 .replace(/\bMEXICO\b/gi, 'MÉXICO');
+            rawNombre = rawNombre.replace(/\bAEROUNION\b/gi, 'AEROUNI�N')
+                                 .replace(/\bAEROLINEAS\b/gi, 'AEROL�NEAS')
+                                 .replace(/\bAEROLINEA\b/gi, 'AEROL�NEA')
+                                 .replace(/\bAEREO\b/gi, 'A�REO')
+                                 .replace(/\bMAS DE CARGA\b/gi, 'M�S DE CARGA')
+                                 .replace(/\bCOMPANIA\b/gi, 'COMPA��A')
+                                 .replace(/\bCOMPA�IA\b/gi, 'COMPA��A')
+                                 .replace(/\bMEXICO\b/gi, 'M�XICO');
 
             const record = {
                 no: row['No.'] || row['NO.'] || '',
@@ -283,7 +283,7 @@ async function loadAerolineasDashboard() {
         applyAeroFilters();
 
     } catch (err) {
-        console.error('Error al cargar aerolíneas:', err);
+        console.error('Error al cargar aerol�neas:', err);
         const msg = err?.message || err?.error_description || String(err);
         tblBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Error al consultar base de datos.<br><small class="text-muted">${msg}</small></td></tr>`;
     }
@@ -392,9 +392,9 @@ function applyAeroFilters() {
     const opsTitle = document.getElementById('aero-ops-title');
     if(opsTitle) {
         if (selectedYear === 'all') {
-            opsTitle.textContent = '(Histórico)';
+            opsTitle.textContent = '(Hist�rico)';
         } else {
-            opsTitle.textContent = '(Año 20' + selectedYear + (selectedMonth !== 'all' ? ' - ' + monthSelect.options[monthSelect.selectedIndex].text : '') + ')';
+            opsTitle.textContent = '(A�o 20' + selectedYear + (selectedMonth !== 'all' ? ' - ' + monthSelect.options[monthSelect.selectedIndex].text : '') + ')';
         }
     }
 
@@ -421,7 +421,7 @@ function renderAirlinesTable(data) {
     if(!tblBody) return;
 
     if(!data || data.length === 0) {
-        tblBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted"><i class="fas fa-info-circle me-2"></i>No se encontraron aerolíneas para este periodo.</td></tr>';
+        tblBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted"><i class="fas fa-info-circle me-2"></i>No se encontraron aerol�neas para este periodo.</td></tr>';
         return;
     }
 
@@ -500,7 +500,7 @@ function renderAirlinesTable(data) {
                         : '<span class="text-primary opacity-50" style="font-size:0.8rem;"><i class="fas fa-chart-line"></i></span>'}
                 </td>`;
             tr.style.cursor = 'pointer';
-            tr.title = aeroCompareMode ? 'Seleccionar para comparar: ' + item.nombre : 'Clic para ver gráfica de ' + item.nombre;
+            tr.title = aeroCompareMode ? 'Seleccionar para comparar: ' + item.nombre : 'click para ver gr�fica de ' + item.nombre;
 
             tr.addEventListener('click', function() {
                 if (aeroCompareMode) {
@@ -546,21 +546,21 @@ function renderAirlinesTable(data) {
         });
     }
 
-    // Get the ops title text (e.g. "(Histórico)" or "(Año 2026)")
+    // Get the ops title text (e.g. "(Hist�rico)" or "(A�o 2026)")
     const opsTitle = document.getElementById('aero-ops-title')?.textContent || '';
     const showBoth = paxGroup.length > 0 && cargoGroup.length > 0;
 
-    // ── Pasajeros section ──────────────────────────────────────────────────
+    // -- Pasajeros section --------------------------------------------------
     if (paxGroup.length) {
         const paxTotal = paxGroup.reduce((s, d) => s + d.currentOps, 0);
-        if (showBoth) tblBody.appendChild(buildSectionHeader('Aerolíneas de Pasajeros', 'fas fa-user', 'bg-primary', paxTotal, opsTitle));
+        if (showBoth) tblBody.appendChild(buildSectionHeader('Aerol�neas de Pasajeros', 'fas fa-user', 'bg-primary', paxTotal, opsTitle));
         appendGroup(paxGroup, tblBody);
     }
 
-    // ── Carga section ──────────────────────────────────────────────────────
+    // -- Carga section ------------------------------------------------------
     if (cargoGroup.length) {
         const cargoTotal = cargoGroup.reduce((s, d) => s + d.currentOps, 0);
-        if (showBoth) tblBody.appendChild(buildSectionHeader('Aerolíneas de Carga', 'fas fa-box', 'bg-warning', cargoTotal, opsTitle));
+        if (showBoth) tblBody.appendChild(buildSectionHeader('Aerol�neas de Carga', 'fas fa-box', 'bg-warning', cargoTotal, opsTitle));
         appendGroup(cargoGroup, tblBody);
     }
 }
@@ -620,9 +620,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-/* ══════════════════════════════════════════════════════════════════════
-   COMPARACIÓN DE AEROLÍNEAS
-══════════════════════════════════════════════════════════════════════ */
+/* ----------------------------------------------------------------------
+   COMPARACI�N DE AEROL�NEAS
+---------------------------------------------------------------------- */
 let aeroCompareMode = false;
 let aeroCompareItems = []; // max 2
 let aeroCmpChart = null;
@@ -690,8 +690,8 @@ function _aeroYearTotal(byYear, yr) {
 }
 
 function _aeroBestMonth(byYear, yr) {
-    if (!byYear[yr]) return { label: '–', val: 0 };
-    let best = { label: '–', val: 0 };
+    if (!byYear[yr]) return { label: '�', val: 0 };
+    let best = { label: '�', val: 0 };
     AERO_MONTH_ORDER.forEach((m, i) => {
         const v = byYear[yr][m] || 0;
         if (v > best.val) best = { label: AERO_CMP_LABELS_ES[i], val: v };
@@ -713,16 +713,16 @@ function renderAeroCompare() {
     const allYrs = [...new Set([...Object.keys(byYearA), ...Object.keys(byYearB)])].sort();
     const displayYrs = selYr === 'all' ? allYrs : [selYr];
 
-    // ── Stats cards ──────────────────────────────────────────────────────────
+    // -- Stats cards ----------------------------------------------------------
     const statsEl = document.getElementById('aero-cmp-stats');
     function statVal(item, byr, label, color) {
         if (selYr === 'all') {
             const total = allYrs.reduce((s, y) => s + _aeroYearTotal(byr, y), 0);
-            return { label: 'Total histórico', val: total.toLocaleString('en-US'), color };
+            return { label: 'Total hist�rico', val: total.toLocaleString('en-US'), color };
         }
         const tot = _aeroYearTotal(byr, selYr);
         const best = _aeroBestMonth(byr, selYr);
-        // YoY vs prev year — only compare the months that have real data in the current year
+        // YoY vs prev year � only compare the months that have real data in the current year
         const prevYr = String(parseInt(selYr, 10) - 1).slice(-2);
         const activeMonths = AERO_MONTH_ORDER.filter(m => byr[selYr] && byr[selYr][m] > 0);
         const prevProportional = activeMonths.reduce((s, m) => {
@@ -735,7 +735,7 @@ function renderAeroCompare() {
             const label = activeMonths.length < 12
                 ? `${activeMonths.length} meses vs 20${prevYr}`
                 : `vs 20${prevYr}`;
-            yoy = `<span class="ms-2 fw-bold" style="color:${g>=0?'#16a34a':'#dc2626'};font-size:.78rem;">${g>=0?'▲':'▼'} ${Math.abs(g).toFixed(1)}% <span style="font-weight:400;opacity:.75;">${label}</span></span>`;
+            yoy = `<span class="ms-2 fw-bold" style="color:${g>=0?'#16a34a':'#dc2626'};font-size:.78rem;">${g>=0?'?':'?'} ${Math.abs(g).toFixed(1)}% <span style="font-weight:400;opacity:.75;">${label}</span></span>`;
         }
         return { total: tot.toLocaleString('en-US'), best, yoy, color };
     }
@@ -752,17 +752,17 @@ function renderAeroCompare() {
             </div></div>`;
         }
         return `<div class="col-md-6"><div class="card border-0 shadow-sm rounded-3 p-3" style="border-left:4px solid ${s.color}!important;">
-            <div class="small text-muted fw-semibold text-uppercase mb-1" style="font-size:.7rem;letter-spacing:.6px;">${item.nombre} — 20${selYr}</div>
+            <div class="small text-muted fw-semibold text-uppercase mb-1" style="font-size:.7rem;letter-spacing:.6px;">${item.nombre} � 20${selYr}</div>
             <div class="d-flex align-items-baseline gap-2 flex-wrap">
                 <span class="fw-black fs-3" style="color:${s.color};">${s.total}</span>
                 ${s.yoy}
             </div>
-            <div class="small text-muted mt-1">ops totales · mejor mes: <strong>${s.best.label} (${s.best.val.toLocaleString('en-US')})</strong></div>
+            <div class="small text-muted mt-1">ops totales � mejor mes: <strong>${s.best.label} (${s.best.val.toLocaleString('en-US')})</strong></div>
         </div></div>`;
     }
     statsEl.innerHTML = cardHtml(a, sA) + cardHtml(b, sB);
 
-    // ── Chart ────────────────────────────────────────────────────────────────
+    // -- Chart ----------------------------------------------------------------
     if (aeroCmpChart) { aeroCmpChart.destroy(); aeroCmpChart = null; }
     const canvas = document.getElementById('aero-cmp-chart');
 
@@ -780,7 +780,7 @@ function renderAeroCompare() {
             // Only add dataset if it has any data
             if (data.some(v => v !== null)) {
                 datasets.push({
-                    label: item.nombre + (displayYrs.length > 1 ? ' · 20' + yr : ''),
+                    label: item.nombre + (displayYrs.length > 1 ? ' � 20' + yr : ''),
                     data,
                     borderColor: col,
                     backgroundColor: col + '14',
@@ -813,8 +813,8 @@ function renderAeroCompare() {
                     borderColor: '#475569', borderWidth: 1, padding: 12, boxPadding: 5,
                     usePointStyle: true, cornerRadius: 8,
                     callbacks: {
-                        title: c => '📅 ' + c[0].label,
-                        label: c => (c.dataset.label || '') + ': ' + (c.parsed.y !== null ? '✈️ ' + c.parsed.y.toLocaleString('en-US') + ' ops' : '–')
+                        title: c => '?? ' + c[0].label,
+                        label: c => (c.dataset.label || '') + ': ' + (c.parsed.y !== null ? '?? ' + c.parsed.y.toLocaleString('en-US') + ' ops' : '�')
                     }
                 }
             },
@@ -826,7 +826,7 @@ function renderAeroCompare() {
         }
     });
 
-    // ── Month comparison table ───────────────────────────────────────────────
+    // -- Month comparison table -----------------------------------------------
     const thead = document.getElementById('aero-cmp-thead');
     const tbody = document.getElementById('aero-cmp-tbody');
 
@@ -841,7 +841,7 @@ function renderAeroCompare() {
     ).join('');
 
     thead.innerHTML = `<tr style="background:#f1f5f9;"><th style="padding:10px 12px;font-size:.82rem;font-weight:700;color:#374151;">Mes</th>${hdrs.join('')}</tr>
-        <tr style="background:#f8fafc;"><th style="padding:6px 12px;font-size:.72rem;color:#6b7280;">Período</th>${subHdrs}</tr>`;
+        <tr style="background:#f8fafc;"><th style="padding:6px 12px;font-size:.72rem;color:#6b7280;">Per�odo</th>${subHdrs}</tr>`;
 
     let html = '';
     let totA = {}, totB = {};
@@ -856,9 +856,9 @@ function renderAeroCompare() {
             const vB = (byYearB[yr] && byYearB[yr][mon] > 0) ? byYearB[yr][mon] : null;
             if (vA) totA[yr] += vA;
             if (vB) totB[yr] += vB;
-            const cellA = vA !== null ? `<span style="color:${AERO_CMP_COLORS[0]};font-weight:700;">${vA.toLocaleString('en-US')}</span>` : '<span style="color:#cbd5e1;">–</span>';
-            const cellB = vB !== null ? `<span style="color:${AERO_CMP_COLORS[1]};font-weight:700;">${vB.toLocaleString('en-US')}</span>` : '<span style="color:#cbd5e1;">–</span>';
-            let diff = '–', diffColor = '#6b7280';
+            const cellA = vA !== null ? `<span style="color:${AERO_CMP_COLORS[0]};font-weight:700;">${vA.toLocaleString('en-US')}</span>` : '<span style="color:#cbd5e1;">�</span>';
+            const cellB = vB !== null ? `<span style="color:${AERO_CMP_COLORS[1]};font-weight:700;">${vB.toLocaleString('en-US')}</span>` : '<span style="color:#cbd5e1;">�</span>';
+            let diff = '�', diffColor = '#6b7280';
             if (vA !== null && vB !== null) {
                 const d = vA - vB;
                 diff = (d >= 0 ? '+' : '') + d.toLocaleString('en-US');

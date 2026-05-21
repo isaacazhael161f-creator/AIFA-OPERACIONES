@@ -1,4 +1,4 @@
-ï»¿// -------------------------------------------------------------------
+// -------------------------------------------------------------------
 //  LISTA DE ASISTENCIA - COyH  |  js/coyh-asistencia.js  v5
 //  Mejoras: estilo tabla, edicion de directorio (admin/editor)
 // -------------------------------------------------------------------
@@ -291,7 +291,7 @@ function _coyhSuscribirRealtime(reunionId) {
                 /* Notificar si es una firma nueva */
                 if (row.firmado) {
                     var p = _coyhData.participantes.find(function(x){ return x.id === row.participante_id; });
-                    if (p) _coyhToast((p.nombre || 'Alguien') + ' firmÃ³ âœ“', 'success');
+                    if (p) _coyhToast((p.nombre || 'Alguien') + ' firmó ?', 'success');
                 }
             }
             _coyhRenderActivo();
@@ -314,13 +314,13 @@ function _coyhSuscribirRealtime(reunionId) {
             if (!dot) return;
             if (status === 'SUBSCRIBED') {
                 dot.style.background = '#16a34a';
-                dot.title = 'En tiempo real â€” conectado';
+                dot.title = 'En tiempo real — conectado';
             } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
                 dot.style.background = '#dc2626';
-                dot.title = 'Error de conexiÃ³n en tiempo real';
+                dot.title = 'Error de conexión en tiempo real';
             } else {
                 dot.style.background = '#f59e0b';
-                dot.title = 'Conectandoâ€¦';
+                dot.title = 'Conectando…';
             }
         });
 }
@@ -431,7 +431,7 @@ function _coyhRenderDirectorio() {
 
         var depList = Object.keys(grupos[cat]);
         // Ordenar: usar campo "orden" de los datos (guardado en Supabase) como fuente principal
-        // Fallback a localStorage si el campo orden no estÃ¡ disponible en los datos
+        // Fallback a localStorage si el campo orden no está disponible en los datos
         var _dOrd = _coyhLoadDepOrder();
         depList.sort(function(a, b) {
             var memberA = grupos[cat][a][0];
@@ -509,7 +509,7 @@ function _coyhRenderDirectorio() {
                 if (isFirst) {
                     html += '<td rowspan="'+rowspan+'" class="coyh-dep-cell" data-dep="'+escDepAttr+'"'
                         +' style="'+bg+';vertical-align:middle;padding:8px 10px"'
-                        +' onclick="_coyhResaltarDep(this.dataset.dep)" title="Clic para resaltar">'
+                        +' onclick="_coyhResaltarDep(this.dataset.dep)" title="click para resaltar">'
                         +'<span class="coyh-drag-handle" onclick="event.stopPropagation()" title="Arrastrar para reordenar"><i class="fas fa-grip-vertical" style="pointer-events:none"></i></span>'
                         +'<span class="coyh-dep-name" style="font-size:.77rem;line-height:1.4">'+_escHtml(dep)+'</span>'
                         +(isInvitado?'<br><span class="badge mt-1" style="font-size:.55rem;background:#fef3c7;color:#92400e">Invitado</span>':'')
@@ -693,13 +693,13 @@ function _coyhRenderLista() {
 
                 html += '<tr id="_coyh-row-'+p.id+'">';
 
-                // Columna # â€” solo en la primera fila del grupo, con rowspan
+                // Columna # — solo en la primera fila del grupo, con rowspan
                 if (i === 0) {
                     html += '<td rowspan="'+rowspan+'" style="'+bg+';text-align:center;color:#94a3b8;'
                         +'font-size:.69rem;font-weight:600;vertical-align:middle">'+depIdx+'</td>';
                 }
 
-                // Columna Empresa â€” solo en la primera fila del grupo, con rowspan
+                // Columna Empresa — solo en la primera fila del grupo, con rowspan
                 if (i === 0) {
                     html += '<td rowspan="'+rowspan+'" style="'+bg+';font-weight:600;font-size:.77rem;'
                         +'vertical-align:middle;padding:8px 10px">'+_escHtml(dep)+'</td>';
@@ -934,7 +934,7 @@ async function _coyhEliminarParticipante(participanteId) {
 }
 
 /* -------------------------------------------------------------------
-   DRAG & DROP â€” REORDENAR EMPRESAS
+   DRAG & DROP — REORDENAR EMPRESAS
 -------------------------------------------------------------------*/
 var _coyhDragDep = null;
 
@@ -949,8 +949,8 @@ function _coyhSaveDepOrder() {
     var tbl = document.querySelector('#_coyh-body table');
     if (!tbl) return;
 
-    // Recorrer TODOS los tbody en orden DOM para conocer la categorÃ­a visual
-    // de cada dep-group (la Ãºltima coyh-cat-hdr vista define la categorÃ­a actual)
+    // Recorrer TODOS los tbody en orden DOM para conocer la categoría visual
+    // de cada dep-group (la última coyh-cat-hdr vista define la categoría actual)
     var allTbodies  = tbl.querySelectorAll('tbody');
     var currentCat  = null;
     var order = [];   // [{ dep, cat }]
@@ -963,10 +963,10 @@ function _coyhSaveDepOrder() {
         }
     });
 
-    // Guardar en localStorage (fallback instantÃ¡neo)
+    // Guardar en localStorage (fallback instantáneo)
     try { localStorage.setItem('coyh_dep_order', JSON.stringify(order.map(function(o){ return o.dep; }))); } catch(e) {}
 
-    // Actualizar numeraciÃ³n visual inmediatamente
+    // Actualizar numeración visual inmediatamente
     _coyhActualizarNumeracion(order.map(function(o){ return o.dep; }));
 
     // Actualizar datos en memoria para re-renders posteriores
@@ -981,7 +981,7 @@ function _coyhSaveDepOrder() {
             if (ordenPorDep[p.dependencia] !== undefined) {
                 p.orden          = ordenPorDep[p.dependencia];
                 p.num_directorio = order.findIndex(function(o){ return o.dep === p.dependencia; }) + 1;
-                // Actualizar categorÃ­a si se moviÃ³ de secciÃ³n
+                // Actualizar categoría si se movió de sección
                 var newCat = catPorDep[p.dependencia];
                 if (newCat && newCat !== '__invitados') {
                     p.categoria = newCat;
@@ -993,13 +993,13 @@ function _coyhSaveDepOrder() {
         });
     }
 
-    // Persistir en Supabase de forma async â€” una promesa por dependencia
+    // Persistir en Supabase de forma async — una promesa por dependencia
     var sb = _coyhSB();
-    if (!sb) { _coyhToast('Sin conexiÃ³n â€” orden guardado solo localmente', 'warning'); return; }
+    if (!sb) { _coyhToast('Sin conexión — orden guardado solo localmente', 'warning'); return; }
 
     var promises = order.map(function(o, idx) {
         var updateFields = { orden: (idx + 1) * 10, num_directorio: idx + 1 };
-        // Si la categorÃ­a visual difiere de la stored, actualizarla tambiÃ©n
+        // Si la categoría visual difiere de la stored, actualizarla también
         if (o.cat && o.cat !== '__invitados') {
             updateFields.categoria  = o.cat;
             updateFields.tipo_lista = 'integrante';
@@ -1025,7 +1025,7 @@ function _coyhSaveDepOrder() {
     });
 }
 
-/** Actualiza los nÃºmeros visuales (#) de cada empresa sin re-renderizar */
+/** Actualiza los números visuales (#) de cada empresa sin re-renderizar */
 function _coyhActualizarNumeracion(order) {
     var tbl = document.querySelector('#_coyh-body table');
     if (!tbl) return;
@@ -1094,7 +1094,7 @@ function _coyhInitDragDrop() {
 }
 
 /* -------------------------------------------------------------------
-   RESALTAR EMPRESA AL HACER CLIC EN DEPENDENCIA
+   RESALTAR EMPRESA AL HACER click EN DEPENDENCIA
 -------------------------------------------------------------------*/
 window._coyhDepSeleccionada = null;
 
@@ -1282,7 +1282,7 @@ function _coyhImprimirLista(soloFirmados) {
     if (!confirmed.length) { _coyhToast('No hay asistentes confirmados para imprimir','warning'); return; }
     if (soloFirmados) {
         confirmed = confirmed.filter(function(p){ return asist[p.id] && asist[p.id].firmado; });
-        if (!confirmed.length) { _coyhToast('Nadie ha firmado aÃºn','warning'); return; }
+        if (!confirmed.length) { _coyhToast('Nadie ha firmado aún','warning'); return; }
     }
 
     var catOrder = ['autoridades','operadores_aereos','prestadores','permisionarios','otros','__invitados'];
@@ -1352,11 +1352,11 @@ function _coyhImprimirLista(soloFirmados) {
 }
 
 /* -------------------------------------------------------------------
-   EXPORTAR A WORD (DOCX) â€” formato Acta COyH
+   EXPORTAR A WORD (DOCX) — formato Acta COyH
 -------------------------------------------------------------------*/
 function _coyhExportarWord(mode) {
     // mode: 'blank'  = todos confirmados, columna firma en blanco (para firmar en papel)
-    //       'firmas' = todos confirmados, con imÃ¡genes de firma capturadas
+    //       'firmas' = todos confirmados, con imágenes de firma capturadas
     if (typeof docx === 'undefined') {
         var s = document.createElement('script');
         s.src = 'https://unpkg.com/docx@7.8.2/build/index.js';
@@ -1371,7 +1371,7 @@ function _coyhExportarWord(mode) {
     var lista = _coyhData.participantes.filter(function(p){ return conf[p.id] && conf[p.id].confirmado; });
     if (!lista.length) { _coyhToast('No hay asistentes confirmados','warning'); return; }
 
-    /* Construir mapa de firmas (base64 â†’ ArrayBuffer) de forma sÃ­ncrona */
+    /* Construir mapa de firmas (base64 ? ArrayBuffer) de forma síncrona */
     var sigMap = {};
     if (mode === 'firmas') {
         lista.forEach(function(p) {
@@ -1384,7 +1384,7 @@ function _coyhExportarWord(mode) {
                     var view = new Uint8Array(buf);
                     for (var i = 0; i < binary.length; i++) { view[i] = binary.charCodeAt(i); }
                     sigMap[p.id] = buf;
-                } catch(e) { /* ignora si falla la conversiÃ³n */ }
+                } catch(e) { /* ignora si falla la conversión */ }
             }
         });
     }
@@ -1398,7 +1398,7 @@ function _coyhExportarWord(mode) {
 function _coyhBuildWord(lista, asist, mode, logoData, sigMap) {
     var D = docx;
 
-    /* Info de sesiÃ³n */
+    /* Info de sesión */
     var mNum  = (_coyhData.sesionLabel||'').match(/\d+/);
     var sNum  = mNum ? mNum[0] : '';
     var anio  = new Date().getFullYear();
@@ -1412,7 +1412,7 @@ function _coyhBuildWord(lista, asist, mode, logoData, sigMap) {
     var noBorder   = { style: D.BorderStyle.NIL, size: 0, color: 'FFFFFF' };
     var noBorders  = { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder };
 
-    /* Anchuras de columna en DXA (carta - mÃ¡rgenes 1.9cm c/lado ~ 9300 DXA) */
+    /* Anchuras de columna en DXA (carta - márgenes 1.9cm c/lado ~ 9300 DXA) */
     var W = { dep:2325, rep:2790, car:2790, fir:1395 };
 
     /* Helpers */
@@ -1429,10 +1429,10 @@ function _coyhBuildWord(lista, asist, mode, logoData, sigMap) {
         return new D.TableCell({ width:{ size:w, type:D.WidthType.DXA }, borders:borders||fullBorder, verticalAlign:vAlign||D.VerticalAlign.CENTER, children:paras });
     }
 
-    /* Celda de firma segÃºn modo */
+    /* Celda de firma según modo */
     function firmaCell(p) {
         if (mode === 'blank') {
-            /* Celda vacÃ­a para firmar en papel */
+            /* Celda vacía para firmar en papel */
             return TC([new D.Paragraph({ children: [], spacing: { before: 320, after: 320 } })], W.fir);
         }
         /* mode === 'firmas' */
@@ -1465,7 +1465,7 @@ function _coyhBuildWord(lista, asist, mode, logoData, sigMap) {
 
     var mainTable = new D.Table({ width:{ size:9300, type:D.WidthType.DXA }, rows:[headerRow].concat(dataRows) });
 
-    /* Encabezado: tabla invisible [logo | tÃ­tulos | espacio] */
+    /* Encabezado: tabla invisible [logo | títulos | espacio] */
     var titleParas = [
         P([R(actaTit, {bold:true,size:22})], D.AlignmentType.CENTER, 40,  30),
         P([R(sesUp,   {bold:true,size:22})], D.AlignmentType.CENTER,  0,  30),
@@ -1493,7 +1493,7 @@ function _coyhBuildWord(lista, asist, mode, logoData, sigMap) {
         rows: [new D.TableRow({ children: hdrRowCells })]
     });
 
-    /* Pie de pÃ¡gina */
+    /* Pie de página */
     var footerPg = new D.Footer({ children:[
         new D.Paragraph({
             children: [R(sesUp + '    ' + fechUp + '    C.O. y H.', {size:16, color:'8B1515'})],
@@ -1575,7 +1575,7 @@ function _coyhExportarExcel(soloFirmados) {
     var sesion  = _coyhData.sesionLabel + ' \u2014 ' + _coyhData.fecha;
     var filtroTxt = soloFirmados ? 'Solo firmaron' : 'Todos los confirmados';
 
-    /* --- TÃ­tulo --- */
+    /* --- Título --- */
     var r1 = ws.addRow(['Comit\u00e9 de Operaci\u00f3n y Horarios (COyH) \u2014 Lista de Asistencia']);
     r1.getCell(1).font = fTitle; r1.height = 22;
     var r2 = ws.addRow([sesion]);
@@ -1598,7 +1598,7 @@ function _coyhExportarExcel(soloFirmados) {
         };
     });
 
-    /* --- Datos por categorÃ­a --- */
+    /* --- Datos por categoría --- */
     var rowNum = 1;
     catOrder.forEach(function(cat) {
         if (!grupos[cat] || !grupos[cat].length) return;

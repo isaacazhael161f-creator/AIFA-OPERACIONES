@@ -843,7 +843,7 @@
           
           if (detail && count > 0) {
               tdDay.style.cursor = 'pointer';
-              tdDay.title = 'Clic para ver horarios y números de vuelo';
+              tdDay.title = 'click para ver horarios y números de vuelo';
               tdDay.style.textDecoration = 'underline dotted rgba(255,255,255,0.7)';
               
               tdDay.addEventListener('click', (e) => {
