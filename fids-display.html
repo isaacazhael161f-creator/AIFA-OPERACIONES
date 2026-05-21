@@ -541,15 +541,6 @@
     }
 
     // ── Mapa de puertas / QR overlay ────────────────────────────────
-    // Siempre apuntar a la URL pública (GitHub Pages) para que el QR funcione desde el teléfono,
-    // incluso cuando el tablero se ejecuta en local (file:// o localhost).
-    const _GH_PAGES = 'https://isaacazhael161f-creator.github.io/AIFA-OPERACIONES/airport-map.html';
-    const _isLocal   = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    const MAP_BASE  = _isLocal
-      ? './airport-map.html'
-      : (location.hostname === 'isaacazhael161f-creator.github.io'
-          ? location.href.replace(/\/[^/?#]*(\?.*)?$/, '/') + 'airport-map.html'
-          : _GH_PAGES);
 
     function showGateQR(gate, vuelo) {
       const url = `${MAP_BASE}?gate=${encodeURIComponent(gate)}&from=security${vuelo ? '&vuelo=' + encodeURIComponent(vuelo) : ''}`;
@@ -685,12 +676,16 @@
     }
 
     // ── Vista de puertas ─────────────────────────────────────────────
-    const _MAP_GH = 'https://isaacazhael161f-creator.github.io/AIFA-OPERACIONES/airport-map.html';
+    const _MAP_GH   = 'https://isaacazhael161f-creator.github.io/AIFA-OPERACIONES/airport-map.html';
+    const _MAP_VER   = '20260521';   // bump this whenever airport-map.html changes
     function gateMapUrl(gate) {
-      const base = (location.hostname === 'isaacazhael161f-creator.github.io')
-        ? location.href.replace(/\/[^/?#]*(\?.*)?$/, '/') + 'airport-map.html'
-        : _MAP_GH;
-      return `${base}?gate=${encodeURIComponent(gate)}&from=security`;
+      const h = location.hostname;
+      const base = (h === 'localhost' || h === '127.0.0.1' || location.protocol === 'file:')
+        ? './airport-map.html'
+        : (h === 'isaacazhael161f-creator.github.io'
+            ? location.href.replace(/\/[^/?#]*(\?.*)?$/, '/') + 'airport-map.html'
+            : _MAP_GH);
+      return `${base}?gate=${encodeURIComponent(gate)}&from=security&_v=${_MAP_VER}`;
     }
 
     function renderGatesView() {
