@@ -175,6 +175,7 @@
       border-left: 4px solid transparent;
       transition: background .3s;
       min-height: 0;
+      overflow: hidden;
     }
     .fgv-row:nth-child(odd)  { background: rgba(8,20,48,.65); }
     .fgv-row:nth-child(even) { background: rgba(5,14,36,.55); }
@@ -240,6 +241,7 @@
       justify-content: center;
       padding: 0 4px;
       overflow: hidden;
+      min-height: 0;
     }
     .fgv-qr-wrap {
       background: #fff;
@@ -248,10 +250,18 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      flex-shrink: 0;
+      flex-shrink: 1;
+      overflow: hidden;
+      max-height: 100%;
     }
     .fgv-qr-wrap canvas,
-    .fgv-qr-wrap img { display: block !important; max-width: none !important; }
+    .fgv-qr-wrap img {
+      display: block !important;
+      max-width: 76px !important;
+      max-height: 76px !important;
+      width: auto !important;
+      height: auto !important;
+    }
 
     /* Footer */
     .fgv-footer {
@@ -699,9 +709,8 @@
       const container = document.getElementById('fgv-rows');
       container.innerHTML = '';
 
-      // 5 rows → bigger QR size; cap at column width (150px col - 16px padding - 8px qr-wrap padding)
-      const _rowH   = Math.floor((window.innerHeight - 160) / 5) - 6;
-      const qrSize  = Math.max(72, Math.min(118, Math.min(_rowH - 8, 118)));
+      // QR fixed at 76 px — fits any row without bleeding into adjacent rows
+      const qrSize = 76;
 
       GATE_GROUPS.forEach(grp => {
         const row = document.createElement('div');
