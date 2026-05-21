@@ -10529,6 +10529,54 @@ body.dark-mode #table-ops-flights tbody tr:nth-of-type(even) {
    BOTÓN FLOTANTE DE RETROALIMENTACIÓN (FAB)
    ════════════════════════════════════════════════════════════════════ */
 
+/* FAB wrapper — maneja posicionamiento y aloja el botón minimizar */
+#fb-fab-wrap {
+   position: fixed;
+   bottom: 1.6rem;
+   right: 1.6rem;
+   z-index: 1090;
+   display: flex;
+   align-items: center;
+   gap: .4rem;
+}
+
+/* Quitar position:fixed del botón cuando está dentro del wrapper */
+#fb-fab-wrap .fb-fab {
+   position: static;
+   bottom: auto;
+   right: auto;
+   z-index: auto;
+}
+
+/* Botón de minimizar — pequeño círculo a la izquierda del FAB */
+.fb-min-btn {
+   width: 20px;
+   height: 20px;
+   border-radius: 50%;
+   background: rgba(255,255,255,.18);
+   border: 1.5px solid rgba(255,255,255,.35);
+   color: rgba(255,255,255,.85);
+   font-size: .58rem;
+   cursor: pointer;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   flex-shrink: 0;
+   transition: background .15s, transform .15s;
+   order: -1;
+}
+.fb-min-btn:hover {
+   background: rgba(255,255,255,.32);
+   transform: scale(1.15);
+}
+
+/* Estado minimizado */
+#fb-fab-wrap.fb-minimized .fb-fab-label { display: none; }
+#fb-fab-wrap.fb-minimized .fb-fab {
+   padding: .75rem;
+   border-radius: 50%;
+}
+
 /* FAB */
 .fb-fab {
    position: fixed;

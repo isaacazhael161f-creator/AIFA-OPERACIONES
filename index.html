@@ -24469,11 +24469,16 @@ window.AeropuertosModule = (function () {
 <!-- ══════════════════════════════════════════════════════════════════ -->
 <!-- BOTÓN FLOTANTE DE RETROALIMENTACIÓN                               -->
 <!-- ══════════════════════════════════════════════════════════════════ -->
-<button id="fb-fab" class="fb-fab" title="Sugerencias y retroalimentación"
-        aria-label="Abrir formulario de sugerencias" onclick="fbOpenModal()">
-    <span class="fb-fab-icon"><i class="fas fa-comment-dots"></i></span>
-    <span class="fb-fab-label">Sugerencias</span>
-</button>
+<div id="fb-fab-wrap">
+  <button id="fb-fab" class="fb-fab" title="Sugerencias y retroalimentación"
+          aria-label="Abrir formulario de sugerencias" onclick="fbOpenModal()">
+      <span class="fb-fab-icon"><i class="fas fa-comment-dots"></i></span>
+      <span class="fb-fab-label">Sugerencias</span>
+  </button>
+  <button id="fb-min-btn" class="fb-min-btn" onclick="fbMinimize()" title="Minimizar">
+      <i class="fas fa-minus"></i>
+  </button>
+</div>
 
 <!-- MODAL DE RETROALIMENTACIÓN -->
 <div id="fb-overlay" class="fb-overlay" role="dialog" aria-modal="true"
@@ -24760,6 +24765,32 @@ window.AeropuertosModule = (function () {
             fbCloseModal();
         }
     });
+
+    // Minimizar / expandir FAB
+    window.fbMinimize = function () {
+        const wrap = document.getElementById('fb-fab-wrap');
+        const icon = document.querySelector('#fb-min-btn i');
+        const btn  = document.getElementById('fb-min-btn');
+        if (!wrap) return;
+        const isMin = wrap.classList.toggle('fb-minimized');
+        if (icon) icon.className = isMin ? 'fas fa-plus' : 'fas fa-minus';
+        if (btn)  btn.title      = isMin ? 'Expandir'   : 'Minimizar';
+        try { localStorage.setItem('fb_minimized', isMin ? '1' : '0'); } catch(_) {}
+    };
+
+    // Restaurar estado al cargar
+    (function () {
+        try {
+            if (localStorage.getItem('fb_minimized') === '1') {
+                const wrap = document.getElementById('fb-fab-wrap');
+                const icon = document.querySelector('#fb-min-btn i');
+                const btn  = document.getElementById('fb-min-btn');
+                if (wrap) wrap.classList.add('fb-minimized');
+                if (icon) icon.className = 'fas fa-plus';
+                if (btn)  btn.title      = 'Expandir';
+            }
+        } catch(_) {}
+    })();
 })();
 </script>
 </body>
