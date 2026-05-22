@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIFA – Generador de QR &bull; Estacionamiento</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+  <!-- QRCode library (browser build) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    :root{--gold:#F5A623;--gold-d:#D4891A;--dark:#0A1628;--card:#F8F9FA}
+    body{background:#f0f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+
+    /* Header */
+    .app-header{background:linear-gradient(135deg,#0A1628,#122040);border-bottom:3px solid var(--gold);padding:14px 24px;display:flex;align-items:center;gap:14px;color:#fff}
+    .app-header img{height:36px;object-fit:contain}
+    .app-header .ht{font-size:.7rem;color:#8DA0B8;text-transform:uppercase;letter-spacing:.5px}
+    .app-header .hs{font-size:1.05rem;font-weight:700;color:var(--gold)}
+
+    /* QR card for print */
+    .qr-card{background:#fff;border-radius:16px;padding:20px 16px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.09);border:1px solid #e0e7ef;position:relative;break-inside:avoid}
+    .qr-card .qr-img{margin:10px auto}
+    .qr-card .qr-section{font-size:3rem;font-weight:900;line-height:1;letter-spacing:-2px}
+    .qr-card .qr-col{font-size:2rem;font-weight:700;margin-top:-4px}
+    .qr-card .qr-level{font-size:.9rem;font-weight:600;color:#555;margin-top:2px}
+    .qr-card .qr-color-band{height:8px;border-radius:0 0 10px 10px;position:absolute;bottom:0;left:0;right:0}
+    .qr-card .qr-aifa{font-size:.65rem;color:#aaa;margin-top:8px;text-transform:uppercase;letter-spacing:.5px}
+
+    /* Color pill */
+    .cpill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700;text-transform:uppercase;margin-bottom:4px}
+
+    /* Section badge in list */
+    .sec-badge{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:900;flex-shrink:0}
+
+    /* Print styles */
+    @media print{
+      .no-print{display:none!important}
+      body{background:#fff}
+      .qr-card{box-shadow:none;border:1px solid #ccc;page-break-inside:avoid}
+      #print-grid{display:grid!important;grid-template-columns:repeat(3,1fr);gap:16px;padding:20px}
+      .app-header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="app-header no-print">
+  <img src="images/aifa-logo.png" onerror="this.style.display='none'" alt="AIFA">
+  <div style="flex:1">
+    <div class="ht">Aeropuerto Internacional Felipe &#xC1;ngeles</div>
+    <div class="hs"><i class="fas fa-qrcode me-2"></i>Generador de QR &mdash; Estacionamiento</div>
+  </div>
+  <a href="parking.html" target="_blank" class="btn btn-sm btn-outline-warning">
+    <i class="fas fa-mobile-alt me-1"></i>Ver p&#xE1;gina pasajero
+  </a>
+</header>
+
+<div class="container-fluid py-4">
+<div class="row g-4">
+
+  <!-- ─── Columna izquierda: Formulario ─── -->
+  <div class="col-lg-4 no-print">
+    <!-- Config URL base -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-header bg-dark text-white py-2">
+        <i class="fas fa-link me-2"></i><strong>URL Base (GitHub Pages)</strong>
+      </div>
+      <div class="card-body">
+        <input type="text" id="base-url" class="form-control form-control-sm"
+          value="https://isaacazhael161f-creator.github.io/AIFA-OPERACIONES/parking.html"
+          placeholder="https://...parking.html">
+        <div class="form-text">URL que quedar&#xE1; codificada en cada QR.</div>
+      </div>
+    </div>
+
+    <!-- Formulario agregar columna -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-header" style="background:var(--gold);color:#0A1628">
+        <i class="fas fa-plus-circle me-2"></i><strong>Agregar columna</strong>
+      </div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-4">
+            <label class="form-label small fw-bold mb-1">Secci&#xF3;n</label>
+            <input type="text" id="f-sec" class="form-control form-control-sm text-uppercase"
+              maxlength="3" placeholder="B" oninput="autoColor()">
+          </div>
+          <div class="col-4">
+            <label class="form-label small fw-bold mb-1">N&#xFA;mero</label>
+            <input type="text" id="f-num" class="form-control form-control-sm" maxlength="4" placeholder="23">
+          </div>
+          <div class="col-4">
+            <label class="form-label small fw-bold mb-1">Nivel</label>
+            <select id="f-nivel" class="form-select form-select-sm">
+              <option>N1</option><option>N2</option><option>N3</option>
+              <option>N4</option><option>N5</option><option>PB</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-bold mb-1">Color de zona</label>
+            <select id="f-color" class="form-select form-select-sm">
+              <option value="amarillo">&#x1F7E1; Amarillo</option>
+              <option value="azul">&#x1F535; Azul</option>
+              <option value="verde">&#x1F7E2; Verde</option>
+              <option value="rojo">&#x1F534; Rojo</option>
+              <option value="naranja">&#x1F7E0; Naranja</option>
+              <option value="morado">&#x1F7E3; Morado</option>
+              <option value="gris">&#x26AA; Gris</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-bold mb-1">Latitud</label>
+            <input type="number" id="f-lat" class="form-control form-control-sm"
+              step="0.000001" placeholder="19.754000">
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-bold mb-1">Longitud</label>
+            <input type="number" id="f-lng" class="form-control form-control-sm"
+              step="0.000001" placeholder="-99.076200">
+          </div>
+          <div class="col-6 d-flex align-items-end">
+            <button class="btn btn-outline-secondary btn-sm w-100" onclick="getGPS()" title="Capturar mi posici&#xF3;n GPS actual">
+              <i class="fas fa-location-crosshairs me-1"></i>Mi GPS
+            </button>
+          </div>
+        </div>
+
+        <!-- Advertencia GPS -->
+        <div id="gps-note" class="alert alert-warning py-2 px-3 mt-2 d-none" style="font-size:.8rem">
+          <i class="fas fa-triangle-exclamation me-1"></i>
+          Para GPS preciso: parado en la columna, presiona &ldquo;Mi GPS&rdquo; y acepta el permiso de ubicaci&#xF3;n.
+        </div>
+
+        <button class="btn w-100 mt-3 fw-bold" style="background:var(--gold);color:#0A1628" onclick="addColumn()">
+          <i class="fas fa-plus me-2"></i>Agregar y generar QR
+        </button>
+      </div>
+    </div>
+
+    <!-- Acciones -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-body py-2 d-flex flex-column gap-2">
+        <button class="btn btn-outline-primary btn-sm" onclick="bulkGenerate()">
+          <i class="fas fa-layer-group me-2"></i>Generar secci&#xF3;n completa (B1&#x2013;B50)
+        </button>
+        <button class="btn btn-outline-dark btn-sm" onclick="printQRs()">
+          <i class="fas fa-print me-2"></i>Imprimir todos los QR
+        </button>
+        <button class="btn btn-outline-danger btn-sm" onclick="clearAll()">
+          <i class="fas fa-trash me-2"></i>Borrar todos
+        </button>
+      </div>
+    </div>
+
+    <!-- Lista de columnas -->
+    <div class="card shadow-sm">
+      <div class="card-header bg-dark text-white py-2 d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-list me-2"></i>Columnas definidas</span>
+        <span class="badge bg-warning text-dark" id="col-count">0</span>
+      </div>
+      <div class="card-body p-0">
+        <div id="col-list" style="max-height:340px;overflow-y:auto">
+          <div class="text-center text-muted py-4 small" id="col-empty">
+            <i class="fas fa-inbox d-block mb-2" style="font-size:1.8rem"></i>
+            A&#xFA;n no hay columnas. Agrega una arriba.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Columna derecha: QR Preview ─── -->
+  <div class="col-lg-8">
+    <div class="no-print mb-3 d-flex justify-content-between align-items-center">
+      <h5 class="mb-0"><i class="fas fa-qrcode me-2" style="color:var(--gold)"></i>C&#xF3;digos QR generados</h5>
+      <div class="d-flex gap-2">
+        <select id="qr-size" class="form-select form-select-sm" style="width:auto" onchange="rerenderQRs()">
+          <option value="180">Peque&#xF1;o (180px)</option>
+          <option value="240" selected>Mediano (240px)</option>
+          <option value="300">Grande (300px)</option>
+        </select>
+        <button class="btn btn-sm btn-dark" onclick="printQRs()">
+          <i class="fas fa-print me-1"></i>Imprimir
+        </button>
+      </div>
+    </div>
+
+    <div id="print-grid" class="row g-3" id="qr-grid">
+      <div class="col-12 text-center text-muted py-5" id="qr-empty">
+        <i class="fas fa-qrcode d-block mb-2" style="font-size:3rem;opacity:.25"></i>
+        <p>Los QR aparecer&#xE1;n aqu&#xED; cuando agregues columnas</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /row -->
+</div><!-- /container -->
+
+<script>
+'use strict';
+
+var DB_KEY = 'aifa_parking_admin_v1';
+
+var COLORS = {
+  amarillo: { label:'Amarillo', bg:'#F5C518', tx:'#0A1628' },
+  azul:     { label:'Azul',     bg:'#1E6FD9', tx:'#ffffff' },
+  verde:    { label:'Verde',    bg:'#28C76F', tx:'#0A1628' },
+  rojo:     { label:'Rojo',     bg:'#EA5455', tx:'#ffffff' },
+  naranja:  { label:'Naranja',  bg:'#FF9F43', tx:'#0A1628' },
+  morado:   { label:'Morado',   bg:'#7C3AED', tx:'#ffffff' },
+  gris:     { label:'Gris',     bg:'#8DA0B8', tx:'#0A1628' }
+};
+
+/* Mapa autom&#xE1;tico secci&#xF3;n &#x2192; color sugerido */
+var SEC_COLOR = {A:'azul',B:'amarillo',C:'verde',D:'rojo',E:'naranja',F:'morado'};
+
+var columns = [];  // [{id, col, num, nivel, color, lat, lng}]
+var qrInstances = {};  // id -> QRCode instance
+
+/* ── Cargar datos guardados ── */
+(function load(){
+  try{ columns = JSON.parse(localStorage.getItem(DB_KEY)) || []; }catch(e){}
+  renderAll();
+})();
+
+function save(){ localStorage.setItem(DB_KEY, JSON.stringify(columns)); }
+
+function uid(){ return 'c'+Date.now()+Math.floor(Math.random()*1000); }
+
+function gc(name){ return COLORS[name] || COLORS.amarillo; }
+
+/* ── Auto-sugerir color seg&#xFA;n secci&#xF3;n ── */
+function autoColor(){
+  var sec = document.getElementById('f-sec').value.toUpperCase();
+  var suggested = SEC_COLOR[sec];
+  if(suggested){
+    document.getElementById('f-color').value = suggested;
+  }
+}
+
+/* ── Capturar GPS actual ── */
+function getGPS(){
+  if(!navigator.geolocation){
+    alert('Geolocalización no disponible en este navegador.');
+    return;
+  }
+  document.getElementById('gps-note').classList.remove('d-none');
+  navigator.geolocation.getCurrentPosition(function(pos){
+    document.getElementById('f-lat').value = pos.coords.latitude.toFixed(6);
+    document.getElementById('f-lng').value = pos.coords.longitude.toFixed(6);
+    document.getElementById('gps-note').classList.add('d-none');
+  }, function(err){
+    alert('No se pudo obtener GPS: ' + err.message + '\nAseg&#xFA;rate de dar permiso de ubicaci&#xF3;n.');
+    document.getElementById('gps-note').classList.add('d-none');
+  }, {enableHighAccuracy:true, timeout:10000});
+}
+
+/* ── Agregar columna ── */
+function addColumn(){
+  var sec  = document.getElementById('f-sec').value.trim().toUpperCase();
+  var num  = document.getElementById('f-num').value.trim();
+  var nivel= document.getElementById('f-nivel').value;
+  var color= document.getElementById('f-color').value;
+  var lat  = parseFloat(document.getElementById('f-lat').value) || null;
+  var lng  = parseFloat(document.getElementById('f-lng').value) || null;
+
+  if(!sec || !num){
+    alert('Ingresa la sección y el número de columna.');
+    return;
+  }
+
+  var entry = {id:uid(), col:sec, num:num, nivel:nivel, color:color, lat:lat, lng:lng};
+  columns.push(entry);
+  save();
+  renderAll();
+
+  // Limpiar número para la siguiente
+  document.getElementById('f-num').value = '';
+  document.getElementById('f-num').focus();
+}
+
+/* ── Generar sección completa ── */
+function bulkGenerate(){
+  var sec = prompt('¿Qué sección generar?\nEjemplo: B', 'B');
+  if(!sec) return;
+  sec = sec.trim().toUpperCase();
+  var from = parseInt(prompt('Desde número:', '1'), 10) || 1;
+  var to   = parseInt(prompt('Hasta número:', '50'), 10) || 50;
+  var nivel= document.getElementById('f-nivel').value;
+  var color= SEC_COLOR[sec] || document.getElementById('f-color').value;
+
+  for(var n=from; n<=to; n++){
+    columns.push({id:uid(), col:sec, num:String(n), nivel:nivel, color:color, lat:null, lng:null});
+  }
+  save();
+  renderAll();
+}
+
+/* ── Eliminar columna ── */
+function removeColumn(id){
+  if(!confirm('¿Eliminar esta columna?')) return;
+  columns = columns.filter(function(c){ return c.id !== id; });
+  save();
+  renderAll();
+}
+
+/* ── Construir URL del QR ── */
+function buildURL(entry){
+  var base = document.getElementById('base-url').value.trim();
+  if(!base) base = 'https://isaacazhael161f-creator.github.io/AIFA-OPERACIONES/parking.html';
+  var url = new URL(base);
+  url.searchParams.set('col', entry.col);
+  url.searchParams.set('num', entry.num);
+  url.searchParams.set('nivel', entry.nivel);
+  url.searchParams.set('color', entry.color);
+  if(entry.lat) url.searchParams.set('lat', entry.lat.toFixed(6));
+  if(entry.lng) url.searchParams.set('lng', entry.lng.toFixed(6));
+  return url.toString();
+}
+
+/* ── Renderizar QR en un div ── */
+function renderQR(entry, divId){
+  var size = parseInt(document.getElementById('qr-size').value) || 240;
+  var div  = document.getElementById(divId);
+  if(!div) return;
+  div.innerHTML = '';
+
+  var c = gc(entry.color);
+  try{
+    new QRCode(div, {
+      text:    buildURL(entry),
+      width:   size,
+      height:  size,
+      colorDark:   '#000000',
+      colorLight:  '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  }catch(e){
+    div.textContent = 'Error QR';
+  }
+}
+
+/* ── Renderizar toda la vista ── */
+function renderAll(){
+  var count = columns.length;
+  document.getElementById('col-count').textContent = count;
+
+  /* Lista lateral */
+  var list = document.getElementById('col-list');
+  var empty = document.getElementById('col-empty');
+  if(count===0){
+    list.innerHTML = '';
+    empty.style.display = '';
+  } else {
+    empty.style.display = 'none';
+    list.innerHTML = columns.map(function(e){
+      var c = gc(e.color);
+      var gpsStr = (e.lat && e.lng)
+        ? e.lat.toFixed(4)+', '+e.lng.toFixed(4)
+        : '<span class="text-danger">Sin GPS</span>';
+      return '<div class="d-flex align-items-center gap-2 border-bottom py-2 px-3">'+
+        '<div class="sec-badge" style="background:'+c.bg+'22;color:'+c.bg+';border:1px solid '+c.bg+'44">'+e.col+'</div>'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-size:.88rem;font-weight:600">Col. '+e.col+e.num+' &bull; '+e.nivel+'</div>'+
+          '<div style="font-size:.72rem;color:#888">GPS: '+gpsStr+'</div>'+
+        '</div>'+
+        '<button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="removeColumn(\''+e.id+'\')" title="Eliminar">'+
+          '<i class="fas fa-times"></i></button>'+
+      '</div>';
+    }).join('');
+  }
+
+  /* Grid de QRs */
+  var grid = document.getElementById('qr-grid');
+  var qrEmpty = document.getElementById('qr-empty');
+  if(count===0){
+    grid.innerHTML = '';
+    grid.appendChild(qrEmpty);
+    qrEmpty.style.display = '';
+  } else {
+    qrEmpty.style.display = 'none';
+    // Rebuild cards
+    grid.innerHTML = columns.map(function(e){
+      var c = gc(e.color);
+      return '<div class="col-md-4 col-sm-6">'+
+        '<div class="qr-card">'+
+          '<div style="background:'+c.bg+';border-radius:10px 10px 0 0;margin:-20px -16px 12px;padding:8px 14px;text-align:left;display:flex;align-items:center;gap:8px">'+
+            '<span style="font-size:1rem;font-weight:900;color:'+c.tx+'">'+e.col+e.num+'</span>'+
+            '<span style="font-size:.75rem;color:'+c.tx+';opacity:.8">'+e.nivel+'</span>'+
+            '<span style="flex:1;text-align:right;font-size:.65rem;color:'+c.tx+';opacity:.7;font-weight:700">AIFA</span>'+
+          '</div>'+
+          '<div id="qr-'+e.id+'" class="qr-img" style="display:flex;justify-content:center;align-items:center;min-height:180px"></div>'+
+          '<div class="mt-2">'+
+            '<div class="qr-section" style="color:'+c.bg+'">'+e.col+'</div>'+
+            '<div class="qr-col">Columna '+e.num+'</div>'+
+            '<div class="qr-level"><i class="fas fa-layer-group me-1"></i>'+e.nivel+'</div>'+
+          '</div>'+
+          '<div class="qr-aifa" style="margin-top:6px">'+
+            '<i class="fas fa-plane me-1"></i>Aeropuerto Internacional Felipe &#xC1;ngeles'+
+          '</div>'+
+          (e.lat && e.lng
+            ? '<div style="font-size:.65rem;color:#bbb;margin-top:3px"><i class="fas fa-location-dot me-1"></i>'+e.lat.toFixed(4)+', '+e.lng.toFixed(4)+'</div>'
+            : '<div style="font-size:.65rem;color:#f39c12;margin-top:3px"><i class="fas fa-triangle-exclamation me-1"></i>Sin GPS</div>')+
+          '<div class="qr-color-band" style="background:'+c.bg+'"></div>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+
+    // Render QR codes after DOM update
+    setTimeout(function(){
+      columns.forEach(function(e){
+        renderQR(e, 'qr-'+e.id);
+      });
+    }, 50);
+  }
+}
+
+/* ── Re-renderizar al cambiar tamaño ── */
+function rerenderQRs(){
+  columns.forEach(function(e){
+    var div = document.getElementById('qr-'+e.id);
+    if(!div) return;
+    div.innerHTML = '';
+    var size = parseInt(document.getElementById('qr-size').value) || 240;
+    var c = gc(e.color);
+    try{
+      new QRCode(div, {
+        text: buildURL(e), width:size, height:size,
+        colorDark:'#000', colorLight:'#fff',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    }catch(err){}
+  });
+}
+
+/* ── Imprimir ── */
+function printQRs(){
+  window.print();
+}
+
+/* ── Borrar todos ── */
+function clearAll(){
+  if(!confirm('¿Borrar TODAS las columnas definidas? Esta acción no se puede deshacer.')) return;
+  columns = [];
+  save();
+  renderAll();
+}
+
+/* Actualizar URLs cuando cambia el campo base */
+document.getElementById('base-url').addEventListener('change', rerenderQRs);
+</script>
+</body>
+</html>
