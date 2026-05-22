@@ -165,67 +165,63 @@
 <!-- ═══════════════ SECTION TITLE ═══════════════ -->
 <div class="sec-title">
   <h2>As&#xED; queda la columna <span class="gold">B&nbsp;23</span> con el QR</h2>
-  <p>El c&#xF3;digo QR se pega en la columna. El pasajero lo escanea con su c&#xE1;mara y la p&#xE1;gina se abre autom&#xE1;ticamente.</p>
+  <p>Carga la foto real del estacionamiento y el QR aparece sobre la columna tal como quedar&#xED;a en la pr&#xE1;ctica.</p>
 </div>
 
 <!-- ═══════════════ DEMO PRINCIPAL ═══════════════ -->
 <div class="demo-wrap">
 
-  <!-- LEFT: Columna con QR -->
-  <div style="display:flex;flex-direction:column;align-items:center;gap:16px">
-    <div style="font-size:.78rem;color:var(--muted);text-align:center;margin-bottom:4px">
-      <i class="fas fa-image me-1"></i>Columna <strong style="color:var(--gold)">B 23 &bull; Nivel 1</strong>
+  <!-- LEFT: Foto real + QR overlay -->
+  <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+
+    <!-- Zona de foto -->
+    <div id="photo-zone" style="position:relative;width:100%;max-width:340px;min-height:380px;background:#0d1117;border-radius:16px;overflow:hidden;border:2px dashed rgba(245,166,35,.4);display:flex;align-items:center;justify-content:center">
+
+      <!-- Placeholder (antes de cargar) -->
+      <div id="photo-placeholder" style="text-align:center;padding:36px 20px;cursor:pointer" onclick="document.getElementById('photo-input').click()">
+        <i class="fas fa-image" style="font-size:3rem;color:var(--muted);display:block;margin-bottom:14px"></i>
+        <div style="font-size:.92rem;color:var(--gold);font-weight:700"><i class="fas fa-upload me-2"></i>Cargar foto del estacionamiento</div>
+        <div style="font-size:.76rem;color:var(--muted);margin-top:6px;line-height:1.5">La imagen real del AIFA<br>que me compartiste</div>
+        <div style="margin-top:16px;padding:8px 16px;border:1.5px solid rgba(245,166,35,.4);border-radius:20px;font-size:.78rem;color:var(--gold)">Seleccionar imagen</div>
+        <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="loadPhoto(this)">
+      </div>
+
+      <!-- Foto real -->
+      <img id="parking-photo" style="width:100%;height:auto;display:none;border-radius:14px" alt="Estacionamiento AIFA">
+
+      <!-- QR overlay -->
+      <div id="qr-overlay" style="display:none;position:absolute;background:#fff;padding:7px 7px 4px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.6),0 0 0 2px rgba(0,0,0,.15);text-align:center;cursor:grab;user-select:none;z-index:10">
+        <div id="qr-column"></div>
+        <div style="font-size:.48rem;font-weight:700;color:#0A1628;text-transform:uppercase;letter-spacing:.4px;margin-top:3px">Guardar mi lugar &bull; AIFA</div>
+      </div>
+
+      <!-- Hint animado -->
+      <div id="scan-hint" style="display:none;position:absolute;bottom:12px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:.72rem;color:var(--gold);font-weight:600;background:rgba(10,22,40,.85);padding:5px 12px;border-radius:20px;animation:pulse 2s ease-in-out infinite">
+        <i class="fas fa-qrcode me-1"></i>Escanea con tu c&#xE1;mara
+      </div>
     </div>
 
-    <!-- Scene -->
-    <div class="column-scene" style="height:400px;width:280px;position:relative">
-      <!-- Techo / ambiente -->
-      <div style="position:absolute;top:0;left:0;right:0;height:60px;background:linear-gradient(to bottom,#888,#aaa);border-radius:4px 4px 0 0;overflow:hidden">
-        <div style="position:absolute;bottom:4px;left:20px;right:20px;height:6px;background:rgba(255,255,255,.15);border-radius:3px"></div>
-        <div style="position:absolute;top:0;left:30px;width:8px;height:100%;background:rgba(0,0,0,.1)"></div>
-        <div style="position:absolute;top:0;right:50px;width:6px;height:100%;background:rgba(0,0,0,.1)"></div>
+    <!-- Controles de posici&#xF3;n (visibles tras cargar foto) -->
+    <div id="pos-controls" style="display:none;width:100%;max-width:340px;background:var(--card);border-radius:12px;padding:12px 14px;border:1px solid rgba(255,255,255,.08)">
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px;font-weight:600">
+        <i class="fas fa-arrows-up-down-left-right me-1"></i>Ajustar posici&#xF3;n del QR
       </div>
-
-      <!-- Pilares laterales -->
-      <div style="position:absolute;left:10px;top:50px;bottom:0;width:20px;background:#b8b0a4;box-shadow:inset -2px 0 4px rgba(0,0,0,.2)"></div>
-      <div style="position:absolute;right:10px;top:50px;bottom:0;width:18px;background:#2a2a2a"></div>
-
-      <!-- Piso -->
-      <div style="position:absolute;bottom:0;left:0;right:0;height:20px;background:linear-gradient(to bottom,#555,#3a3530)">
-        <div style="position:absolute;left:0;right:0;top:5px;height:2px;background:rgba(245,198,24,.5)"></div>
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center">
+        <label style="font-size:.7rem;color:var(--muted)">&#x2194; Horizontal</label>
+        <input type="range" id="qr-x" min="5" max="90" value="58" oninput="posQR()" style="width:100%">
+        <label style="font-size:.7rem;color:var(--muted)">&#x2195; Vertical</label>
+        <input type="range" id="qr-y" min="5" max="90" value="30" oninput="posQR()" style="width:100%">
+        <label style="font-size:.7rem;color:var(--muted)">&#x26F6; Tama&#xF1;o QR</label>
+        <input type="range" id="qr-sz" min="60" max="160" value="90" oninput="resizeQR()" style="width:100%">
       </div>
-
-      <!-- Columna principal (pilar concreto) -->
-      <div class="parking-pillar" style="position:absolute;left:50%;transform:translateX(-50%);bottom:20px">
-
-        <!-- Sign amarilla B23 -->
-        <div class="column-sign">
-          <div class="cs-top">
-            <span class="nivel">N1</span>
-            <span class="pattern">&#x25C6;&#x25C7;&#x25C6;&#x25C7;&#x25C6;&#x25C7;&#x25C6;&#x25C7;&#x25C6;&#x25C7;</span>
-          </div>
-          <div class="cs-body">
-            <span class="cs-letter">B</span><span class="cs-number">23</span>
-          </div>
-        </div>
-
-        <!-- QR Sticker -->
-        <div class="qr-sticker" id="qr-column-wrap">
-          <div id="qr-column"></div>
-          <div class="qr-label">Escanear para guardar lugar</div>
-          <div class="qr-sub">AIFA &bull; Estacionamiento</div>
-        </div>
-
-        <!-- Scan hint -->
-        <div class="qr-scan-hint">
-          <i class="fas fa-qrcode me-1"></i>Escanea con tu c&#xE1;mara
-        </div>
-      </div>
+      <button onclick="document.getElementById('photo-input').click()" style="margin-top:10px;width:100%;background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:6px;font-size:.75rem;color:var(--muted);cursor:pointer">
+        <i class="fas fa-folder-open me-1"></i>Cambiar foto
+      </button>
     </div>
 
     <!-- URL del QR -->
-    <div style="max-width:280px;width:100%">
-      <div style="font-size:.72rem;color:var(--muted);margin-bottom:4px"><i class="fas fa-link me-1"></i>URL codificada en el QR:</div>
+    <div style="max-width:340px;width:100%">
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:4px"><i class="fas fa-link me-1"></i>URL codificada en el QR:</div>
       <div class="url-box" id="qr-url-display">Generando...</div>
     </div>
   </div>
@@ -410,25 +406,71 @@
 </div>
 
 <script>
-// ── Genera el QR real para B23/N1 ──
+// ── QR URL ──
 var BASE_URL = 'https://isaacazhael161f-creator.github.io/AIFA-OPERACIONES/parking.html';
-var params = '?col=B&num=23&nivel=N1&color=amarillo&lat=19.754000&lng=-99.076200';
-var fullURL = BASE_URL + params;
+var params   = '?col=B&num=23&nivel=N1&color=amarillo&lat=19.754000&lng=-99.076200';
+var fullURL  = BASE_URL + params;
+var qrGenerated = false;
 
 document.getElementById('qr-url-display').textContent = fullURL;
 document.getElementById('ps-time').textContent = new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
 
-try{
-  new QRCode(document.getElementById('qr-column'), {
-    text: fullURL,
-    width: 100,
-    height: 100,
-    colorDark: '#000000',
-    colorLight: '#ffffff',
-    correctLevel: QRCode.CorrectLevel.H
-  });
-}catch(e){
-  document.getElementById('qr-column').textContent='QR';
+function generateQR(containerId, size) {
+  var el = document.getElementById(containerId);
+  el.innerHTML = '';
+  try {
+    new QRCode(el, {
+      text: fullURL, width: size, height: size,
+      colorDark: '#000', colorLight: '#fff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  } catch(e) { el.textContent = 'QR'; }
+}
+
+// ── Cargar foto real ──
+function loadPhoto(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var photo = document.getElementById('parking-photo');
+    photo.src = e.target.result;
+    photo.style.display = 'block';
+    document.getElementById('photo-placeholder').style.display = 'none';
+
+    // Mostrar QR overlay
+    var overlay = document.getElementById('qr-overlay');
+    overlay.style.display = 'block';
+    document.getElementById('scan-hint').style.display = 'block';
+    document.getElementById('pos-controls').style.display = 'block';
+
+    // Posicionar sobre la columna B23 (ajuste por defecto para la foto del AIFA)
+    posQR();
+
+    // Generar QR solo la primera vez
+    if (!qrGenerated) {
+      var sz = parseInt(document.getElementById('qr-sz').value) || 90;
+      generateQR('qr-column', sz);
+      qrGenerated = true;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Posicionar QR ──
+function posQR() {
+  var x  = document.getElementById('qr-x').value;
+  var y  = document.getElementById('qr-y').value;
+  var ov = document.getElementById('qr-overlay');
+  ov.style.left      = x + '%';
+  ov.style.top       = y + '%';
+  ov.style.transform = 'translate(-50%, -50%)';
+}
+
+// ── Redimensionar QR ──
+function resizeQR() {
+  var sz = parseInt(document.getElementById('qr-sz').value) || 90;
+  generateQR('qr-column', sz);
 }
 
 // ── Tabs ──
