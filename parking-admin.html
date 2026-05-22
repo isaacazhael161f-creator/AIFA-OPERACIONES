@@ -38,7 +38,7 @@
       .no-print{display:none!important}
       body{background:#fff}
       .qr-card{box-shadow:none;border:1px solid #ccc;page-break-inside:avoid}
-      #print-grid{display:grid!important;grid-template-columns:repeat(3,1fr);gap:16px;padding:20px}
+      #qr-grid{display:grid!important;grid-template-columns:repeat(3,1fr);gap:16px;padding:20px}
       .app-header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     }
   </style>
@@ -187,7 +187,7 @@
       </div>
     </div>
 
-    <div id="print-grid" class="row g-3" id="qr-grid">
+    <div id="qr-grid" class="row g-3">
       <div class="col-12 text-center text-muted py-5" id="qr-empty">
         <i class="fas fa-qrcode d-block mb-2" style="font-size:3rem;opacity:.25"></i>
         <p>Los QR aparecer&#xE1;n aqu&#xED; cuando agregues columnas</p>
@@ -374,14 +374,14 @@ function renderAll(){
 
   /* Grid de QRs */
   var grid = document.getElementById('qr-grid');
-  var qrEmpty = document.getElementById('qr-empty');
   if(count===0){
-    grid.innerHTML = '';
-    grid.appendChild(qrEmpty);
-    qrEmpty.style.display = '';
-  } else {
-    qrEmpty.style.display = 'none';
-    // Rebuild cards
+    grid.innerHTML = '<div class="col-12 text-center text-muted py-5">'+
+      '<i class="fas fa-qrcode d-block mb-2" style="font-size:3rem;opacity:.25"></i>'+
+      '<p>Los QR aparecer&#xE1;n aqu&#xED; cuando agregues columnas</p></div>';
+    return;
+  }
+  // Rebuild cards
+  (function(){
     grid.innerHTML = columns.map(function(e){
       var c = gc(e.color);
       return '<div class="col-md-4 col-sm-6">'+
@@ -413,8 +413,8 @@ function renderAll(){
       columns.forEach(function(e){
         renderQR(e, 'qr-'+e.id);
       });
-    }, 50);
-  }
+    }, 80);
+  })();
 }
 
 /* ── Re-renderizar al cambiar tamaño ── */
