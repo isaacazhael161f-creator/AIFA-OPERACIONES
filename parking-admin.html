@@ -45,6 +45,16 @@
 </head>
 <body>
 
+<!-- Toast de notificaciones -->
+<div style="position:fixed;top:16px;right:16px;z-index:9999">
+  <div id="app-toast" class="toast align-items-center text-white border-0 bg-success" role="alert" style="min-width:240px">
+    <div class="d-flex">
+      <div class="toast-body fw-semibold" style="font-size:.85rem"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.closest('.toast').classList.remove('show')"></button>
+    </div>
+  </div>
+</div>
+
 <!-- Header -->
 <header class="app-header no-print">
   <img src="images/aifa-logo.png" onerror="this.style.display='none'" alt="AIFA">
@@ -201,7 +211,10 @@
 <script>
 'use strict';
 
-var DB_KEY = 'aifa_parking_admin_v1';
+var DB_KEY      = 'aifa_parking_admin_v1';
+var DB_VERSION  = 2; // incrementar si cambia el schema
+var CHUNK_SIZE  = 4; // QRs a renderizar por frame
+var rerenderTimer = null;
 
 var COLORS = {
   amarillo: { label:'Amarillo', bg:'#F5C518', tx:'#0A1628' },
@@ -213,51 +226,242 @@ var COLORS = {
   gris:     { label:'Gris',     bg:'#8DA0B8', tx:'#0A1628' }
 };
 
-/* Mapa autom&#xE1;tico secci&#xF3;n &#x2192; color sugerido */
 var SEC_COLOR = {A:'azul',B:'amarillo',C:'verde',D:'rojo',E:'naranja',F:'morado'};
 
-var columns = [];  // [{id, col, num, nivel, color, lat, lng}]
-var qrInstances = {};  // id -> QRCode instance
+var columns = []; // [{id,col,num,nivel,color,lat,lng}]
 
-/* ── Cargar datos guardados ── */
-(function load(){
-  try{ columns = JSON.parse(localStorage.getItem(DB_KEY)) || []; }catch(e){}
+/* ════════════════════════════════════
+   PERSISTENCIA — localStorage segura
+   ════════════════════════════════════ */
+function save(){
+  try{
+    localStorage.setItem(DB_KEY, JSON.stringify(columns));
+    localStorage.setItem(DB_KEY+'_v', DB_VERSION);
+    localStorage.setItem(DB_KEY+'_ts', Date.now());
+  } catch(e){
+    if(e && (e.name === 'QuotaExceededError' || e.code === 22)){
+      showToast('Almacenamiento lleno. Elimina columnas para continuar.','danger');
+    }
+  }
+}
+
+function loadData(){
+  try{
+    var raw = localStorage.getItem(DB_KEY);
+    if(!raw) return [];
+    var parsed = JSON.parse(raw);
+    if(!Array.isArray(parsed)) return [];
+    // Validar estructura mínima de cada elemento
+    return parsed.filter(function(e){
+      return e && typeof e.id==='string' && e.col && e.num;
+    });
+  } catch(e){
+    showToast('Datos corruptos detectados. Se reinici&#xF3; la lista.','warning');
+    return [];
+  }
+}
+
+function uid(){ return 'c'+Date.now()+Math.floor(Math.random()*9999); }
+function gc(name){ return COLORS[name] || COLORS.amarillo; }
+
+/* ════════════════════════════════════
+   TOAST de notificaciones (no-blocking)
+   ════════════════════════════════════ */
+function showToast(msg, type){
+  var t = document.getElementById('app-toast');
+  if(!t) return;
+  t.className = 'toast align-items-center text-white border-0 show bg-'+type;
+  t.querySelector('.toast-body').innerHTML = msg;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function(){ t.classList.remove('show'); }, 3500);
+}
+
+/* ════════════════════════════════════
+   VERIFICAR librería QR disponible
+   ════════════════════════════════════ */
+function qrLibOk(){
+  return typeof QRCode !== 'undefined';
+}
+
+/* ════════════════════════════════════
+   ARRANQUE
+   ════════════════════════════════════ */
+(function init(){
+  if(!qrLibOk()){
+    document.getElementById('qr-grid').innerHTML =
+      '<div class="col-12"><div class="alert alert-danger">'+
+      '<i class="fas fa-triangle-exclamation me-2"></i>'+
+      'La librer&#xED;a QR no pudo cargar. Verifica tu conexi&#xF3;n a internet y recarga la p&#xE1;gina.'+
+      '</div></div>';
+  }
+  columns = loadData();
   renderAll();
 })();
 
-function save(){ localStorage.setItem(DB_KEY, JSON.stringify(columns)); }
+/* ════════════════════════════════════
+   URL DEL QR
+   ════════════════════════════════════ */
+function buildURL(entry){
+  var base = (document.getElementById('base-url').value||'').trim();
+  if(!base) base = 'https://isaacazhael161f-creator.github.io/AIFA-OPERACIONES/parking.html';
+  try{
+    var url = new URL(base);
+    url.searchParams.set('col',   entry.col);
+    url.searchParams.set('num',   entry.num);
+    url.searchParams.set('nivel', entry.nivel);
+    url.searchParams.set('color', entry.color);
+    if(entry.lat) url.searchParams.set('lat', entry.lat.toFixed(6));
+    if(entry.lng) url.searchParams.set('lng', entry.lng.toFixed(6));
+    return url.toString();
+  }catch(e){ return base; }
+}
 
-function uid(){ return 'c'+Date.now()+Math.floor(Math.random()*1000); }
-
-function gc(name){ return COLORS[name] || COLORS.amarillo; }
-
-/* ── Auto-sugerir color seg&#xFA;n secci&#xF3;n ── */
-function autoColor(){
-  var sec = document.getElementById('f-sec').value.toUpperCase();
-  var suggested = SEC_COLOR[sec];
-  if(suggested){
-    document.getElementById('f-color').value = suggested;
+/* ════════════════════════════════════
+   RENDERIZAR UN SOLO QR
+   ════════════════════════════════════ */
+function renderQR(entry, divId){
+  if(!qrLibOk()) return;
+  var div = document.getElementById(divId);
+  if(!div) return;
+  div.innerHTML = '';
+  var size = parseInt((document.getElementById('qr-size')||{}).value) || 240;
+  try{
+    new QRCode(div, {
+      text: buildURL(entry), width:size, height:size,
+      colorDark:'#000000', colorLight:'#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+    // qrcodejs duplica canvas+img: ocultar img via CSS en la hoja de estilos es suficiente
+  }catch(e){
+    div.innerHTML = '<span style="color:#aaa;font-size:.75rem">Error QR</span>';
   }
 }
 
-/* ── Capturar GPS actual ── */
-function getGPS(){
-  if(!navigator.geolocation){
-    alert('Geolocalización no disponible en este navegador.');
+/* ════════════════════════════════════
+   RENDER POR LOTES — evita congelar
+   ════════════════════════════════════ */
+function renderChunk(entries, idx, onDone){
+  if(idx >= entries.length){ if(onDone) onDone(); return; }
+  var end = Math.min(idx + CHUNK_SIZE, entries.length);
+  for(var i=idx; i<end; i++){
+    renderQR(entries[i], 'qr-'+entries[i].id);
+  }
+  // Ceder control al navegador antes del siguiente lote
+  setTimeout(function(){ renderChunk(entries, end, onDone); }, 20);
+}
+
+/* ════════════════════════════════════
+   LAZY RENDER con IntersectionObserver
+   ════════════════════════════════════ */
+var lazyObserver = ('IntersectionObserver' in window)
+  ? new IntersectionObserver(function(entries){
+      entries.forEach(function(obs){
+        if(obs.isIntersecting){
+          var div = obs.target;
+          var eid = div.getAttribute('data-entry-id');
+          if(!eid) return;
+          var entry = columns.find(function(c){ return c.id === eid; });
+          if(entry) renderQR(entry, 'qr-'+eid);
+          lazyObserver.unobserve(div);
+        }
+      });
+    }, { rootMargin:'200px 0px' })
+  : null;
+
+/* ════════════════════════════════════
+   CONSTRUIR HTML DE UNA TARJETA
+   ════════════════════════════════════ */
+function cardHTML(e){
+  var c = gc(e.color);
+  var gpsRow = (e.lat && e.lng)
+    ? '<div style="font-size:.65rem;color:#bbb;margin-top:3px"><i class="fas fa-location-dot me-1"></i>'+e.lat.toFixed(4)+', '+e.lng.toFixed(4)+'</div>'
+    : '<div style="font-size:.65rem;color:#f39c12;margin-top:3px"><i class="fas fa-triangle-exclamation me-1"></i>Sin GPS</div>';
+  return '<div class="col-md-4 col-sm-6" id="card-wrap-'+e.id+'">'+
+    '<div class="qr-card">'+
+      '<div style="background:'+c.bg+';border-radius:10px 10px 0 0;margin:-20px -16px 12px;padding:8px 14px;display:flex;align-items:center;gap:8px">'+
+        '<span style="font-size:1rem;font-weight:900;color:'+c.tx+'">'+e.col+e.num+'</span>'+
+        '<span style="font-size:.75rem;color:'+c.tx+';opacity:.8">'+e.nivel+'</span>'+
+        '<span style="flex:1;text-align:right;font-size:.65rem;color:'+c.tx+';opacity:.7;font-weight:700">AIFA</span>'+
+      '</div>'+
+      '<div id="qr-'+e.id+'" class="qr-img" data-entry-id="'+e.id+'"'+
+           ' style="display:flex;justify-content:center;align-items:center;min-height:180px">'+
+        '<span style="color:#ccc;font-size:.8rem"><i class="fas fa-circle-notch fa-spin me-1"></i>Cargando...</span>'+
+      '</div>'+
+      '<div class="mt-2">'+
+        '<div class="qr-section" style="color:'+c.bg+'">'+e.col+'</div>'+
+        '<div class="qr-col">Columna '+e.num+'</div>'+
+        '<div class="qr-level"><i class="fas fa-layer-group me-1"></i>'+e.nivel+'</div>'+
+      '</div>'+
+      '<div class="qr-aifa" style="margin-top:6px">'+
+        '<i class="fas fa-plane me-1"></i>Aeropuerto Internacional Felipe &#xC1;ngeles'+
+      '</div>'+
+      gpsRow+
+      '<div class="qr-color-band" style="background:'+c.bg+'"></div>'+
+    '</div>'+
+  '</div>';
+}
+
+/* ════════════════════════════════════
+   RENDERIZAR LISTA LATERAL
+   ════════════════════════════════════ */
+function renderList(){
+  var count = columns.length;
+  document.getElementById('col-count').textContent = count;
+  var list  = document.getElementById('col-list');
+  var empty = document.getElementById('col-empty');
+  if(count===0){
+    list.innerHTML = '';
+    empty.style.display = '';
     return;
   }
-  document.getElementById('gps-note').classList.remove('d-none');
-  navigator.geolocation.getCurrentPosition(function(pos){
-    document.getElementById('f-lat').value = pos.coords.latitude.toFixed(6);
-    document.getElementById('f-lng').value = pos.coords.longitude.toFixed(6);
-    document.getElementById('gps-note').classList.add('d-none');
-  }, function(err){
-    alert('No se pudo obtener GPS: ' + err.message + '\nAseg&#xFA;rate de dar permiso de ubicaci&#xF3;n.');
-    document.getElementById('gps-note').classList.add('d-none');
-  }, {enableHighAccuracy:true, timeout:10000});
+  empty.style.display = 'none';
+  list.innerHTML = columns.map(function(e){
+    var c = gc(e.color);
+    var gps = (e.lat && e.lng)
+      ? e.lat.toFixed(4)+', '+e.lng.toFixed(4)
+      : '<span class="text-danger">Sin GPS</span>';
+    return '<div class="d-flex align-items-center gap-2 border-bottom py-2 px-3">'+
+      '<div class="sec-badge" style="background:'+c.bg+'22;color:'+c.bg+';border:1px solid '+c.bg+'44">'+e.col+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:.88rem;font-weight:600">Col. '+e.col+e.num+' &bull; '+e.nivel+'</div>'+
+        '<div style="font-size:.72rem;color:#888">GPS: '+gps+'</div>'+
+      '</div>'+
+      '<button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="removeColumn(\''+e.id+'\')" title="Eliminar">'+
+        '<i class="fas fa-times"></i></button>'+
+    '</div>';
+  }).join('');
 }
 
-/* ── Agregar columna ── */
+/* ════════════════════════════════════
+   RENDERIZAR TODO (reconstrucción completa)
+   ════════════════════════════════════ */
+function renderAll(){
+  renderList();
+  var grid  = document.getElementById('qr-grid');
+  var count = columns.length;
+  if(count===0){
+    grid.innerHTML = '<div class="col-12 text-center text-muted py-5">'+
+      '<i class="fas fa-qrcode d-block mb-2" style="font-size:3rem;opacity:.25"></i>'+
+      '<p>Los QR aparecer&#xE1;n aqu&#xED; cuando agregues columnas</p></div>';
+    return;
+  }
+  // Construir HTML de todas las tarjetas (sin QR todavía)
+  grid.innerHTML = columns.map(cardHTML).join('');
+
+  // Adjuntar lazy observer a cada div de QR
+  if(lazyObserver){
+    grid.querySelectorAll('.qr-img[data-entry-id]').forEach(function(div){
+      lazyObserver.observe(div);
+    });
+  } else {
+    // Fallback: render por lotes para navegadores sin IntersectionObserver
+    renderChunk(columns, 0, null);
+  }
+}
+
+/* ════════════════════════════════════
+   AGREGAR COLUMNA — incremental (no reconstruye todo)
+   ════════════════════════════════════ */
 function addColumn(){
   var sec  = document.getElementById('f-sec').value.trim().toUpperCase();
   var num  = document.getElementById('f-num').value.trim();
@@ -267,189 +471,168 @@ function addColumn(){
   var lng  = parseFloat(document.getElementById('f-lng').value) || null;
 
   if(!sec || !num){
-    alert('Ingresa la sección y el número de columna.');
+    showToast('Ingresa la secci&#xF3;n y el n&#xFA;mero de columna.','warning');
     return;
   }
 
   var entry = {id:uid(), col:sec, num:num, nivel:nivel, color:color, lat:lat, lng:lng};
   columns.push(entry);
   save();
-  renderAll();
 
-  // Limpiar número para la siguiente
+  // Actualizar contador
+  document.getElementById('col-count').textContent = columns.length;
+
+  // Agregar a la lista lateral sin reconstruir
+  var empty = document.getElementById('col-empty');
+  empty.style.display = 'none';
+  var c   = gc(entry.color);
+  var gps = (entry.lat && entry.lng)
+    ? entry.lat.toFixed(4)+', '+entry.lng.toFixed(4)
+    : '<span class="text-danger">Sin GPS</span>';
+  var item = document.createElement('div');
+  item.className = 'd-flex align-items-center gap-2 border-bottom py-2 px-3';
+  item.innerHTML =
+    '<div class="sec-badge" style="background:'+c.bg+'22;color:'+c.bg+';border:1px solid '+c.bg+'44">'+entry.col+'</div>'+
+    '<div style="flex:1;min-width:0">'+
+      '<div style="font-size:.88rem;font-weight:600">Col. '+entry.col+entry.num+' &bull; '+entry.nivel+'</div>'+
+      '<div style="font-size:.72rem;color:#888">GPS: '+gps+'</div>'+
+    '</div>'+
+    '<button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="removeColumn(\''+entry.id+'\')" title="Eliminar">'+
+      '<i class="fas fa-times"></i></button>';
+  document.getElementById('col-list').appendChild(item);
+
+  // Agregar tarjeta QR al grid sin reconstruir
+  var grid = document.getElementById('qr-grid');
+  // Quitar el placeholder vacío si existe
+  var emptyCard = grid.querySelector('.text-muted.py-5');
+  if(emptyCard) emptyCard.parentNode && (emptyCard.parentNode.outerHTML = '');
+
+  var wrap = document.createElement('div');
+  wrap.innerHTML = cardHTML(entry);
+  grid.appendChild(wrap.firstChild);
+
+  // Renderizar el QR de la nueva tarjeta
+  setTimeout(function(){ renderQR(entry, 'qr-'+entry.id); }, 30);
+
   document.getElementById('f-num').value = '';
   document.getElementById('f-num').focus();
+  showToast('Columna '+entry.col+entry.num+' agregada.','success');
 }
 
-/* ── Generar sección completa ── */
+/* ════════════════════════════════════
+   GENERACIÓN EN LOTE — no congela
+   ════════════════════════════════════ */
 function bulkGenerate(){
-  var sec = prompt('¿Qué sección generar?\nEjemplo: B', 'B');
+  var sec = prompt('&#xBF;Qu&#xE9; secci&#xF3;n generar?\nEjemplo: B', 'B');
   if(!sec) return;
   sec = sec.trim().toUpperCase();
-  var from = parseInt(prompt('Desde número:', '1'), 10) || 1;
-  var to   = parseInt(prompt('Hasta número:', '50'), 10) || 50;
+  var from = parseInt(prompt('Desde n&#xFA;mero:', '1'), 10) || 1;
+  var to   = parseInt(prompt('Hasta n&#xFA;mero:', '50'), 10) || 50;
+  if(to - from > 200){
+    showToast('M&#xE1;ximo 200 columnas por lote.','warning');
+    to = from + 200;
+  }
   var nivel= document.getElementById('f-nivel').value;
   var color= SEC_COLOR[sec] || document.getElementById('f-color').value;
 
+  var newEntries = [];
   for(var n=from; n<=to; n++){
-    columns.push({id:uid(), col:sec, num:String(n), nivel:nivel, color:color, lat:null, lng:null});
+    newEntries.push({id:uid(), col:sec, num:String(n), nivel:nivel, color:color, lat:null, lng:null});
   }
+  columns = columns.concat(newEntries);
   save();
+
+  // Mostrar progreso
+  showToast('Generando '+newEntries.length+' c&#xF3;digos QR...','primary');
+
+  // Reconstruir todo (los QR se cargan lazy)
   renderAll();
+
+  setTimeout(function(){
+    showToast(newEntries.length+' QR generados.','success');
+  }, 500);
 }
 
-/* ── Eliminar columna ── */
+/* ════════════════════════════════════
+   ELIMINAR COLUMNA
+   ════════════════════════════════════ */
 function removeColumn(id){
-  if(!confirm('¿Eliminar esta columna?')) return;
+  if(!confirm('&#xBF;Eliminar esta columna?')) return;
   columns = columns.filter(function(c){ return c.id !== id; });
   save();
   renderAll();
 }
 
-/* ── Construir URL del QR ── */
-function buildURL(entry){
-  var base = document.getElementById('base-url').value.trim();
-  if(!base) base = 'https://isaacazhael161f-creator.github.io/AIFA-OPERACIONES/parking.html';
-  var url = new URL(base);
-  url.searchParams.set('col', entry.col);
-  url.searchParams.set('num', entry.num);
-  url.searchParams.set('nivel', entry.nivel);
-  url.searchParams.set('color', entry.color);
-  if(entry.lat) url.searchParams.set('lat', entry.lat.toFixed(6));
-  if(entry.lng) url.searchParams.set('lng', entry.lng.toFixed(6));
-  return url.toString();
-}
-
-/* ── Renderizar QR en un div ── */
-function renderQR(entry, divId){
-  var size = parseInt(document.getElementById('qr-size').value) || 240;
-  var div  = document.getElementById(divId);
-  if(!div) return;
-  div.innerHTML = '';
-
-  var c = gc(entry.color);
-  try{
-    new QRCode(div, {
-      text:    buildURL(entry),
-      width:   size,
-      height:  size,
-      colorDark:   '#000000',
-      colorLight:  '#ffffff',
-      correctLevel: QRCode.CorrectLevel.H
-    });
-  }catch(e){
-    div.textContent = 'Error QR';
-  }
-}
-
-/* ── Renderizar toda la vista ── */
-function renderAll(){
-  var count = columns.length;
-  document.getElementById('col-count').textContent = count;
-
-  /* Lista lateral */
-  var list = document.getElementById('col-list');
-  var empty = document.getElementById('col-empty');
-  if(count===0){
-    list.innerHTML = '';
-    empty.style.display = '';
-  } else {
-    empty.style.display = 'none';
-    list.innerHTML = columns.map(function(e){
-      var c = gc(e.color);
-      var gpsStr = (e.lat && e.lng)
-        ? e.lat.toFixed(4)+', '+e.lng.toFixed(4)
-        : '<span class="text-danger">Sin GPS</span>';
-      return '<div class="d-flex align-items-center gap-2 border-bottom py-2 px-3">'+
-        '<div class="sec-badge" style="background:'+c.bg+'22;color:'+c.bg+';border:1px solid '+c.bg+'44">'+e.col+'</div>'+
-        '<div style="flex:1;min-width:0">'+
-          '<div style="font-size:.88rem;font-weight:600">Col. '+e.col+e.num+' &bull; '+e.nivel+'</div>'+
-          '<div style="font-size:.72rem;color:#888">GPS: '+gpsStr+'</div>'+
-        '</div>'+
-        '<button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="removeColumn(\''+e.id+'\')" title="Eliminar">'+
-          '<i class="fas fa-times"></i></button>'+
-      '</div>';
-    }).join('');
-  }
-
-  /* Grid de QRs */
-  var grid = document.getElementById('qr-grid');
-  if(count===0){
-    grid.innerHTML = '<div class="col-12 text-center text-muted py-5">'+
-      '<i class="fas fa-qrcode d-block mb-2" style="font-size:3rem;opacity:.25"></i>'+
-      '<p>Los QR aparecer&#xE1;n aqu&#xED; cuando agregues columnas</p></div>';
-    return;
-  }
-  // Rebuild cards
-  (function(){
-    grid.innerHTML = columns.map(function(e){
-      var c = gc(e.color);
-      return '<div class="col-md-4 col-sm-6">'+
-        '<div class="qr-card">'+
-          '<div style="background:'+c.bg+';border-radius:10px 10px 0 0;margin:-20px -16px 12px;padding:8px 14px;text-align:left;display:flex;align-items:center;gap:8px">'+
-            '<span style="font-size:1rem;font-weight:900;color:'+c.tx+'">'+e.col+e.num+'</span>'+
-            '<span style="font-size:.75rem;color:'+c.tx+';opacity:.8">'+e.nivel+'</span>'+
-            '<span style="flex:1;text-align:right;font-size:.65rem;color:'+c.tx+';opacity:.7;font-weight:700">AIFA</span>'+
-          '</div>'+
-          '<div id="qr-'+e.id+'" class="qr-img" style="display:flex;justify-content:center;align-items:center;min-height:180px"></div>'+
-          '<div class="mt-2">'+
-            '<div class="qr-section" style="color:'+c.bg+'">'+e.col+'</div>'+
-            '<div class="qr-col">Columna '+e.num+'</div>'+
-            '<div class="qr-level"><i class="fas fa-layer-group me-1"></i>'+e.nivel+'</div>'+
-          '</div>'+
-          '<div class="qr-aifa" style="margin-top:6px">'+
-            '<i class="fas fa-plane me-1"></i>Aeropuerto Internacional Felipe &#xC1;ngeles'+
-          '</div>'+
-          (e.lat && e.lng
-            ? '<div style="font-size:.65rem;color:#bbb;margin-top:3px"><i class="fas fa-location-dot me-1"></i>'+e.lat.toFixed(4)+', '+e.lng.toFixed(4)+'</div>'
-            : '<div style="font-size:.65rem;color:#f39c12;margin-top:3px"><i class="fas fa-triangle-exclamation me-1"></i>Sin GPS</div>')+
-          '<div class="qr-color-band" style="background:'+c.bg+'"></div>'+
-        '</div>'+
-      '</div>';
-    }).join('');
-
-    // Render QR codes after DOM update
-    setTimeout(function(){
-      columns.forEach(function(e){
-        renderQR(e, 'qr-'+e.id);
-      });
-    }, 80);
-  })();
-}
-
-/* ── Re-renderizar al cambiar tamaño ── */
+/* ════════════════════════════════════
+   RE-RENDERIZAR AL CAMBIAR TAMAÑO
+   Debounced: espera 400ms antes de ejecutar
+   ════════════════════════════════════ */
 function rerenderQRs(){
-  columns.forEach(function(e){
-    var div = document.getElementById('qr-'+e.id);
-    if(!div) return;
-    div.innerHTML = '';
-    var size = parseInt(document.getElementById('qr-size').value) || 240;
-    var c = gc(e.color);
-    try{
-      new QRCode(div, {
-        text: buildURL(e), width:size, height:size,
-        colorDark:'#000', colorLight:'#fff',
-        correctLevel: QRCode.CorrectLevel.H
+  clearTimeout(rerenderTimer);
+  rerenderTimer = setTimeout(function(){
+    if(lazyObserver){
+      // Resetear observadores y volver a observar
+      document.querySelectorAll('.qr-img[data-entry-id]').forEach(function(div){
+        div.innerHTML = '<span style="color:#ccc;font-size:.8rem"><i class="fas fa-circle-notch fa-spin me-1"></i></span>';
+        lazyObserver.observe(div);
       });
-    }catch(err){}
-  });
+    } else {
+      renderChunk(columns, 0, null);
+    }
+  }, 400);
 }
 
-/* ── Imprimir ── */
-function printQRs(){
-  window.print();
-}
+/* ════════════════════════════════════
+   IMPRIMIR / BORRAR TODOS
+   ════════════════════════════════════ */
+function printQRs(){ window.print(); }
 
-/* ── Borrar todos ── */
 function clearAll(){
-  if(!confirm('¿Borrar TODAS las columnas definidas? Esta acción no se puede deshacer.')) return;
+  if(!confirm('&#xBF;Borrar TODAS las columnas? Esta acci&#xF3;n no se puede deshacer.')) return;
   columns = [];
   save();
   renderAll();
+  showToast('Lista borrada.','secondary');
+}
+
+/* ════════════════════════════════════
+   AUTO-COLOR
+   ════════════════════════════════════ */
+function autoColor(){
+  var sec = document.getElementById('f-sec').value.toUpperCase();
+  var s = SEC_COLOR[sec];
+  if(s) document.getElementById('f-color').value = s;
+}
+
+/* ════════════════════════════════════
+   GPS
+   ════════════════════════════════════ */
+function getGPS(){
+  if(!navigator.geolocation){
+    showToast('Geolocalizaci&#xF3;n no disponible en este navegador.','warning');
+    return;
+  }
+  document.getElementById('gps-note').classList.remove('d-none');
+  navigator.geolocation.getCurrentPosition(function(pos){
+    document.getElementById('f-lat').value = pos.coords.latitude.toFixed(6);
+    document.getElementById('f-lng').value = pos.coords.longitude.toFixed(6);
+    document.getElementById('gps-note').classList.add('d-none');
+    showToast('GPS capturado.','success');
+  }, function(err){
+    showToast('No se pudo obtener GPS: '+err.message,'danger');
+    document.getElementById('gps-note').classList.add('d-none');
+  }, {enableHighAccuracy:true, timeout:10000});
 }
 
 /* Actualizar URLs cuando cambia el campo base */
 document.getElementById('base-url').addEventListener('change', rerenderQRs);
+
+/* CSS para ocultar la img duplicada de qrcodejs */
+(function(){
+  var s = document.createElement('style');
+  s.textContent = '.qr-img img{display:none!important}.qr-img canvas{display:block}';
+  document.head.appendChild(s);
+})();
 </script>
 </body>
 </html>
