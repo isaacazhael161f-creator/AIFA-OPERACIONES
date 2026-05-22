@@ -524,7 +524,19 @@ FF
         }
         #table-board-arrivals,
         #table-board-departures {
-            --board-head-row1-height: 32px;
+            --board-head-row1-height: 44px;
+        }
+        /* FIDS: letras y filas más grandes */
+        #table-board-arrivals td,
+        #table-board-arrivals th,
+        #table-board-departures td,
+        #table-board-departures th {
+            font-size: 1rem !important;
+            padding: 10px 10px !important;
+        }
+        #table-board-arrivals tbody tr,
+        #table-board-departures tbody tr {
+            line-height: 1.6;
         }
         #table-board-arrivals thead tr:first-child th,
         #table-board-departures thead tr:first-child th {
@@ -13891,9 +13903,9 @@ FF
                                                     </div>
                                                     <div class="card-body p-0">
                                                         <div class="table-responsive" style="max-height:600px;overflow-y:auto;">
-                                                            <table class="table table-hover table-bordered table-sm align-middle mb-0" id="table-board-arrivals">
+                                                            <table class="table table-hover table-bordered align-middle mb-0" id="table-board-arrivals">
                                                                 <thead class="table-light sticky-top">
-                                                                    <tr class="text-center small text-uppercase text-muted">
+                                                                    <tr class="text-center text-uppercase text-muted">
                                                                         <th data-bs-toggle="tooltip" data-bs-placement="bottom" title="Estado actual del vuelo" data-col-help="b-arr-status">Status <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></th>
                                                                         <th data-bs-toggle="tooltip" data-bs-placement="bottom" title="Designador del vuelo de llegada (ej: AM100)" data-col-help="b-arr-flight">Flight <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></th>
                                                                         <th data-bs-toggle="tooltip" data-bs-placement="bottom" title="SIBT: Scheduled In-Block Time - Hora programada de llegada a la posición" data-col-help="arr-sibt">SIBT <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></th>
@@ -13992,9 +14004,9 @@ FF
                                                     </div>
                                                     <div class="card-body p-0">
                                                         <div class="table-responsive" style="max-height:600px;overflow-y:auto;">
-                                                            <table class="table table-hover table-bordered table-sm align-middle mb-0" id="table-board-departures">
+                                                            <table class="table table-hover table-bordered align-middle mb-0" id="table-board-departures">
                                                                 <thead class="table-light sticky-top">
-                                                                    <tr class="text-center small text-uppercase text-muted">
+                                                                    <tr class="text-center text-uppercase text-muted">
                                                                         <th data-bs-toggle="tooltip" data-bs-placement="bottom" title="Estado actual del vuelo" data-col-help="b-arr-status">Status <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></th>
                                                                         <th data-bs-toggle="tooltip" data-bs-placement="bottom" title="Designador del vuelo de salida (ej: AM101)" data-col-help="b-dep-flight">Flight <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></th>
                                                                         <th data-bs-toggle="tooltip" data-bs-placement="bottom" title="SOBT: Scheduled Off-Block Time - Hora programada de salida de posición" data-col-help="dep-sobt">SOBT <i class="fas fa-circle-question" style="font-size:.6em;opacity:.4;vertical-align:middle"></i></th>
@@ -22178,7 +22190,7 @@ FF
             else if (s.includes('activated') || s.includes('active')) cls = 'bg-success';
             else if (s.includes('cancel'))                             cls = 'bg-danger';
             else if (s.includes('delay'))                              cls = 'bg-warning text-dark';
-            return `<span class="badge ${cls} text-wrap" style="min-width:80px;font-size:.75rem;">${status || ''}</span>`;
+            return `<span class="badge ${cls} text-wrap" style="min-width:90px;font-size:.9rem;padding:6px 8px">${status || ''}</span>`;
         }
         function esc(v) {
             return String(v || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -22198,7 +22210,7 @@ FF
                         onclick="selectBoardFlight(this,'arr')"
                         style="cursor:pointer;background:${rowBg(i)};transition:background .15s;">
                         <td>${statusBadge(r['Status'])}</td>
-                        <td class="fw-bold">${esc(r['[Arr] Flight Designator'])}</td>
+                        <td class="fw-bold" style="font-size:1.1rem;letter-spacing:.3px">${esc(r['[Arr] Flight Designator'])}</td>
                         <td>${esc(r['[Arr] SIBT'])}</td>
                         <td>${esc(r['[Arr] AIBT'])}</td>
                         <td>${esc(r['Routing'])}</td>
@@ -22221,7 +22233,7 @@ FF
                         onclick="selectBoardFlight(this,'dep')"
                         style="cursor:pointer;background:${rowBg(i)};transition:background .15s;">
                         <td>${statusBadge(r['Status'])}</td>
-                        <td class="fw-bold">${esc(r['[Dep] Flight Designator'])}</td>
+                        <td class="fw-bold" style="font-size:1.1rem;letter-spacing:.3px">${esc(r['[Dep] Flight Designator'])}</td>
                         <td>${esc(r['[Dep] SOBT'])}</td>
                         <td>${esc(r['[Dep] AOBT'])}</td>
                         <td>${esc(r['Routing'])}</td>
