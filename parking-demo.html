@@ -220,8 +220,8 @@
         <span id="val-y" style="font-size:.68rem;color:var(--gold);min-width:32px;text-align:right">30%</span>
 
         <label style="font-size:.7rem;color:var(--muted)">&#x26F6; Tama&#xF1;o</label>
-        <input type="range" id="qr-sz" min="40" max="130" step="2" value="70" oninput="resizeQR();document.getElementById('val-sz').textContent=this.value+'px'" style="width:100%">
-        <span id="val-sz" style="font-size:.68rem;color:var(--gold);min-width:32px;text-align:right">70px</span>
+        <input type="range" id="qr-sz" min="60" max="130" step="2" value="80" oninput="resizeQR();document.getElementById('val-sz').textContent=this.value+'px'" style="width:100%">
+        <span id="val-sz" style="font-size:.68rem;color:var(--gold);min-width:32px;text-align:right">80px</span>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px">
         <button onclick="resetQRPos()" style="flex:1;background:transparent;border:1px solid rgba(245,166,35,.35);border-radius:8px;padding:6px;font-size:.73rem;color:var(--gold);cursor:pointer">
@@ -533,13 +533,9 @@ function loadPhoto(input) {
     posQR();
 
     if (!qrGenerated) {
-      var sz = parseInt(document.getElementById('qr-sz').value) || 70;
+      var sz = parseInt(document.getElementById('qr-sz').value) || 80;
       generateQR('qr-column', sz);
       qrGenerated = true;
-      // re-attach drag after QR renders
-      var ov = document.getElementById('qr-overlay');
-      ov.addEventListener('mousedown',  onDownOv);
-      ov.addEventListener('touchstart', onDownOv, { passive: false });
     }
   };
   reader.readAsDataURL(file);
@@ -568,7 +564,7 @@ function resetQRPos() {
   var ss = document.getElementById('qr-sz');
   sx.value = 58; document.getElementById('val-x').textContent = '58%';
   sy.value = 30; document.getElementById('val-y').textContent = '30%';
-  ss.value = 70; document.getElementById('val-sz').textContent = '70px';
+  ss.value = 80; document.getElementById('val-sz').textContent = '80px';
   posQR();
   resizeQR();
 }
