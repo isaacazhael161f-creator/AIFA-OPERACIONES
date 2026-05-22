@@ -189,10 +189,15 @@
       <!-- Foto real -->
       <img id="parking-photo" style="width:100%;height:auto;display:none;border-radius:14px" alt="Estacionamiento AIFA">
 
-      <!-- QR overlay -->
-      <div id="qr-overlay" style="display:none;position:absolute;background:#fff;padding:7px 7px 4px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.6),0 0 0 2px rgba(0,0,0,.15);text-align:center;cursor:grab;user-select:none;z-index:10">
+      <!-- QR overlay (draggable) -->
+      <div id="qr-overlay" style="display:none;position:absolute;background:#fff;padding:7px 7px 4px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.6),0 0 0 2px rgba(0,0,0,.15);text-align:center;cursor:grab;user-select:none;z-index:10;touch-action:none">
         <div id="qr-column"></div>
         <div style="font-size:.48rem;font-weight:700;color:#0A1628;text-transform:uppercase;letter-spacing:.4px;margin-top:3px">Guardar mi lugar &bull; AIFA</div>
+      </div>
+
+      <!-- Cursor crosshair mientras arrastra -->
+      <div id="drag-hint" style="display:none;position:absolute;top:8px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:.68rem;color:#fff;font-weight:600;background:rgba(0,0,0,.65);padding:4px 10px;border-radius:14px;pointer-events:none;z-index:20">
+        <i class="fas fa-hand-pointer me-1"></i>Arrastra el QR hasta la columna
       </div>
 
       <!-- Hint animado -->
@@ -203,20 +208,30 @@
 
     <!-- Controles de posici&#xF3;n (visibles tras cargar foto) -->
     <div id="pos-controls" style="display:none;width:100%;max-width:340px;background:var(--card);border-radius:12px;padding:12px 14px;border:1px solid rgba(255,255,255,.08)">
-      <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px;font-weight:600">
-        <i class="fas fa-arrows-up-down-left-right me-1"></i>Ajustar posici&#xF3;n del QR
+      <div style="font-size:.72rem;color:var(--gold);margin-bottom:10px;font-weight:600">
+        <i class="fas fa-hand-pointer me-1"></i>Arrastra el QR sobre la foto &mdash; o usa los controles:
       </div>
-      <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center">
-        <label style="font-size:.7rem;color:var(--muted)">&#x2194; Horizontal</label>
-        <input type="range" id="qr-x" min="5" max="90" value="58" oninput="posQR()" style="width:100%">
-        <label style="font-size:.7rem;color:var(--muted)">&#x2195; Vertical</label>
-        <input type="range" id="qr-y" min="5" max="90" value="30" oninput="posQR()" style="width:100%">
-        <label style="font-size:.7rem;color:var(--muted)">&#x26F6; Tama&#xF1;o QR</label>
-        <input type="range" id="qr-sz" min="60" max="160" value="90" oninput="resizeQR()" style="width:100%">
+      <div style="display:grid;grid-template-columns:auto 1fr auto;gap:5px 10px;align-items:center">
+        <label style="font-size:.7rem;color:var(--muted)">&#x2194; X</label>
+        <input type="range" id="qr-x" min="0" max="100" step="0.5" value="58" oninput="posQR();document.getElementById('val-x').textContent=Math.round(this.value)+'%'" style="width:100%">
+        <span id="val-x" style="font-size:.68rem;color:var(--gold);min-width:32px;text-align:right">58%</span>
+
+        <label style="font-size:.7rem;color:var(--muted)">&#x2195; Y</label>
+        <input type="range" id="qr-y" min="0" max="100" step="0.5" value="30" oninput="posQR();document.getElementById('val-y').textContent=Math.round(this.value)+'%'" style="width:100%">
+        <span id="val-y" style="font-size:.68rem;color:var(--gold);min-width:32px;text-align:right">30%</span>
+
+        <label style="font-size:.7rem;color:var(--muted)">&#x26F6; Tama&#xF1;o</label>
+        <input type="range" id="qr-sz" min="40" max="130" step="2" value="70" oninput="resizeQR();document.getElementById('val-sz').textContent=this.value+'px'" style="width:100%">
+        <span id="val-sz" style="font-size:.68rem;color:var(--gold);min-width:32px;text-align:right">70px</span>
       </div>
-      <button onclick="document.getElementById('photo-input').click()" style="margin-top:10px;width:100%;background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:6px;font-size:.75rem;color:var(--muted);cursor:pointer">
-        <i class="fas fa-folder-open me-1"></i>Cambiar foto
-      </button>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button onclick="resetQRPos()" style="flex:1;background:transparent;border:1px solid rgba(245,166,35,.35);border-radius:8px;padding:6px;font-size:.73rem;color:var(--gold);cursor:pointer">
+          <i class="fas fa-undo me-1"></i>Reset
+        </button>
+        <button onclick="document.getElementById('photo-input').click()" style="flex:1;background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:6px;font-size:.73rem;color:var(--muted);cursor:pointer">
+          <i class="fas fa-folder-open me-1"></i>Cambiar foto
+        </button>
+      </div>
     </div>
 
     <!-- URL del QR -->
@@ -427,6 +442,67 @@ function generateQR(containerId, size) {
   } catch(e) { el.textContent = 'QR'; }
 }
 
+// ── Drag QR overlay ──
+(function() {
+  var dragging = false, startX, startY, startLeft, startTop;
+
+  function getZone() { return document.getElementById('photo-zone'); }
+  function getOv()   { return document.getElementById('qr-overlay'); }
+
+  function onDown(e) {
+    var ov = getOv();
+    if (ov.style.display === 'none') return;
+    dragging = true;
+    ov.style.cursor = 'grabbing';
+    var touch = e.touches ? e.touches[0] : e;
+    startX = touch.clientX;
+    startY = touch.clientY;
+    var zone = getZone().getBoundingClientRect();
+    startLeft = parseFloat(ov.style.left) / 100 * zone.width;
+    startTop  = parseFloat(ov.style.top)  / 100 * zone.height;
+    e.preventDefault();
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+    var touch  = e.touches ? e.touches[0] : e;
+    var dx = touch.clientX - startX;
+    var dy = touch.clientY - startY;
+    var zone = getZone().getBoundingClientRect();
+    var newLeft = Math.max(0, Math.min(100, (startLeft + dx) / zone.width  * 100));
+    var newTop  = Math.max(0, Math.min(100, (startTop  + dy) / zone.height * 100));
+    var ov = getOv();
+    ov.style.left = newLeft + '%';
+    ov.style.top  = newTop  + '%';
+    // sync sliders
+    var sx = document.getElementById('qr-x');
+    var sy = document.getElementById('qr-y');
+    if (sx) { sx.value = newLeft.toFixed(1); document.getElementById('val-x').textContent = Math.round(newLeft) + '%'; }
+    if (sy) { sy.value = newTop.toFixed(1);  document.getElementById('val-y').textContent = Math.round(newTop)  + '%'; }
+    e.preventDefault();
+  }
+
+  function onUp() {
+    dragging = false;
+    var ov = getOv();
+    if (ov) ov.style.cursor = 'grab';
+  }
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup',   onUp);
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('touchend',  onUp);
+
+  // Attach mousedown/touchstart once DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    var ov = document.getElementById('qr-overlay');
+    if (ov) {
+      ov.addEventListener('mousedown',  onDown);
+      ov.addEventListener('touchstart', onDown, { passive: false });
+    }
+  });
+})();
+
 // ── Cargar foto real ──
 function loadPhoto(input) {
   var file = input.files[0];
@@ -438,20 +514,25 @@ function loadPhoto(input) {
     photo.style.display = 'block';
     document.getElementById('photo-placeholder').style.display = 'none';
 
-    // Mostrar QR overlay
+    // Mostrar QR overlay y hint de arrastre
     var overlay = document.getElementById('qr-overlay');
     overlay.style.display = 'block';
     document.getElementById('scan-hint').style.display = 'block';
     document.getElementById('pos-controls').style.display = 'block';
+    var hint = document.getElementById('drag-hint');
+    hint.style.display = 'block';
+    setTimeout(function(){ hint.style.display = 'none'; }, 3500);
 
-    // Posicionar sobre la columna B23 (ajuste por defecto para la foto del AIFA)
     posQR();
 
-    // Generar QR solo la primera vez
     if (!qrGenerated) {
-      var sz = parseInt(document.getElementById('qr-sz').value) || 90;
+      var sz = parseInt(document.getElementById('qr-sz').value) || 70;
       generateQR('qr-column', sz);
       qrGenerated = true;
+      // re-attach drag after QR renders
+      var ov = document.getElementById('qr-overlay');
+      ov.addEventListener('mousedown',  onDownOv);
+      ov.addEventListener('touchstart', onDownOv, { passive: false });
     }
   };
   reader.readAsDataURL(file);
@@ -469,8 +550,20 @@ function posQR() {
 
 // ── Redimensionar QR ──
 function resizeQR() {
-  var sz = parseInt(document.getElementById('qr-sz').value) || 90;
+  var sz = parseInt(document.getElementById('qr-sz').value) || 70;
   generateQR('qr-column', sz);
+}
+
+// ── Reset posici&#xF3;n ──
+function resetQRPos() {
+  var sx = document.getElementById('qr-x');
+  var sy = document.getElementById('qr-y');
+  var ss = document.getElementById('qr-sz');
+  sx.value = 58; document.getElementById('val-x').textContent = '58%';
+  sy.value = 30; document.getElementById('val-y').textContent = '30%';
+  ss.value = 70; document.getElementById('val-sz').textContent = '70px';
+  posQR();
+  resizeQR();
 }
 
 // ── Tabs ──
