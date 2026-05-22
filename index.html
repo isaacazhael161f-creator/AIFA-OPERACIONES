@@ -1585,7 +1585,7 @@ FF
                                                     <h6 style="color:#b45309;"><i class="fas fa-comment me-1"></i>Frases de Cortesía Oficial</h6>
                                                     <div class="row g-2 small">
                                                         <div class="col-md-6">
-                                                            <p class="fw-semibold mb-1">Superior ? Subordinado:</p>
+                                                            <p class="fw-semibold mb-1">Superior &#x2192; Subordinado:</p>
                                                             <ul class="mb-0">
                                                                 <li>"Para su conocimiento…" / "En relación con…"</li>
                                                                 <li>"Agradeceré a usted…" / "Sírvase…"</li>
@@ -1593,7 +1593,7 @@ FF
                                                             </ul>
                                                         </div>
                                                         <div class="col-md-6">
-                                                            <p class="fw-semibold mb-1">Subordinado ? Superior:</p>
+                                                            <p class="fw-semibold mb-1">Subordinado &#x2192; Superior:</p>
                                                             <ul class="mb-0">
                                                                 <li>"Me permito informar a usted…"</li>
                                                                 <li>"Me permito solicitar…"</li>
@@ -1621,10 +1621,10 @@ FF
                                                         <div class="col-md-6">
                                                             <h6 class="text-danger"><i class="fas fa-ban me-1"></i>Causas de Penalización</h6>
                                                             <ul class="small">
-                                                                <li>Cumplimiento <strong>&lt; 80%</strong> en los últimos 2 meses ? slot a disponibilidad.</li>
-                                                                <li>Adeudos vencidos ? retiro de todos los slots autorizados de la temporada.</li>
-                                                                <li>Reincidencia ? <strong>suspensión temporal</strong>.</li>
-                                                                <li>Cesión o mal uso del slot ? <strong>cancelación inmediata</strong>.</li>
+                                                                <li>Cumplimiento <strong>&lt; 80%</strong> en los últimos 2 meses &#x2192; slot a disponibilidad.</li>
+                                                                <li>Adeudos vencidos &#x2192; retiro de todos los slots autorizados de la temporada.</li>
+                                                                <li>Reincidencia &#x2192; <strong>suspensión temporal</strong>.</li>
+                                                                <li>Cesión o mal uso del slot &#x2192; <strong>cancelación inmediata</strong>.</li>
                                                                 <li>CSD notifica por escrito y registra en expediente histórico.</li>
                                                             </ul>
                                                             <h6 class="text-danger mt-3"><i class="fas fa-gavel me-1"></i>Sanciones Legales</h6>
@@ -7357,7 +7357,7 @@ FF
                                 <div class="bday-card-gold-line"></div>
                                 <div class="bday-card-puesto" id="bday-modal-puesto">—</div>
                                 <div class="bday-card-msg" id="bday-modal-msg">
-                                    En este día especial, el equipo del <strong>Aeropuerto Internacional Felipe Ángeles</strong> te desea un maravilloso cumpleaños lleno de logros, bienestar y grandes vuelos por venir. Tu compromiso y dedicación son el motor de nuestra operación. ??<br><br><em>¿Que este nuevo año de vida estÁ lleno de cielos despejados y destinos maravillosos!</em>
+                                    En este día especial, el equipo del <strong>Aeropuerto Internacional Felipe Ángeles</strong> te desea un maravilloso cumpleaños lleno de logros, bienestar y grandes vuelos por venir. Tu compromiso y dedicación son el motor de nuestra operación. &#x2708;&#xFE0F;<br><br><em>¿Que este nuevo año de vida estÁ lleno de cielos despejados y destinos maravillosos!</em>
                                 </div>
                                 <!-- Firma con borde dorado -->
                                 <div class="bday-card-firma-block">
@@ -10230,7 +10230,7 @@ FF
                                 return;
                             }
 
-                            if (!confirm('Se enviar… la tarjeta de cumpleaños a:\n\n?? ' + nombre + '\n?? ' + correo + '\n\n¿Continuar?')) return;
+                            if (!confirm('Se enviar… la tarjeta de cumpleaños a:\n\n\uD83D\uDC64 ' + nombre + '\n\uD83D\uDCE7 ' + correo + '\n\n¿Continuar?')) return;
 
                             if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...'; }
 
@@ -11049,8 +11049,8 @@ FF
                             const { data: items } = await sb.from('colab_cursos').select('id').eq('num_empleado', String(numEmpl)).eq('categoria', cat);
                             const count = items?.length || 0;
                             let msg = `¿Eliminar la carpeta "${cat}"?`;
-                            if (count > 0) msg += `\n\nTiene ${count} curso${count!==1?'s':''}. ·QuÉ deseas hacer con ellos?\n\n Aceptar ? mover a "Sin carpeta"\n• Cancelar ? cancelar operación`;
-                            else msg += '\n\n Aceptar ? eliminar carpeta vacía\n• Cancelar ? cancelar';
+                            if (count > 0) msg += `\n\nTiene ${count} curso${count!==1?'s':''}. ·QuÉ deseas hacer con ellos?\n\n Aceptar \u2192 mover a "Sin carpeta"\n• Cancelar \u2192 cancelar operación`;
+                            else msg += '\n\n Aceptar \u2192 eliminar carpeta vacía\n• Cancelar \u2192 cancelar';
                             if (!confirm(msg)) return;
                             try {
                                 if (count > 0) {
@@ -14635,8 +14635,8 @@ FF
                             <div class="col-md-6">
                               <strong class="d-block mb-1">Bandeja de entrada:</strong>
                               <ol class="text-muted ps-3 mb-0" style="line-height:1.7">
-                                <li>Archivo ? <strong>Abrir y exportar ? Importar/Exportar</strong></li>
-                                <li>Exportar a un archivo ? <strong>Microsoft Excel 97-2003</strong></li>
+                                <li>Archivo &#x2192; <strong>Abrir y exportar &#x2192; Importar/Exportar</strong></li>
+                                <li>Exportar a un archivo &#x2192; <strong>Microsoft Excel 97-2003</strong></li>
                                 <li>Carpeta: <strong>Bandeja de entrada</strong></li>
                                 <li>Verificar que incluya: <em>De, Asunto, Recibido, Tamado</em></li>
                               </ol>
@@ -16736,14 +16736,14 @@ FF
                                                            box-shadow:0 8px 28px rgba(0,0,0,.18);
                                                            border:1px solid #e2e8f0;z-index:9999;padding:1rem 1.1rem;">
                                                     <div style="display:flex;align-items:flex-start;gap:.55rem;margin-bottom:.6rem;">
-                                                        <span style="font-size:1.1rem;line-height:1;">??</span>
+                                                        <span style="font-size:1.1rem;line-height:1;">&#x2139;&#xFE0F;</span>
                                                         <p style="margin:0;font-size:.8rem;color:#334155;line-height:1.55;">
                                                             Las cifras mostradas en esta vista son <strong>preliminares</strong> y pueden variar.
                                                         </p>
                                                     </div>
                                                     <div style="height:1px;background:#eef0f7;margin:.5rem 0;"></div>
                                                     <div style="display:flex;align-items:flex-start;gap:.55rem;">
-                                                        <span style="font-size:1.1rem;line-height:1;">?</span>
+                                                        <span style="font-size:1.1rem;line-height:1;">&#x2714;</span>
                                                         <p style="margin:0;font-size:.8rem;color:#334155;line-height:1.55;">
                                                             Las <a href="#" onclick="event.preventDefault();document.getElementById('ops-info-popover').style.display='none';document.getElementById('comparativa-yoy-tab').click();document.getElementById('comparativa-yoy-tab').scrollIntoView({behavior:'smooth',block:'center'});" style="color:#1558d6;font-weight:700;text-decoration:none;">cifras mensuales</a> ya son <strong>conciliadas</strong>.
                                                         </p>
@@ -17003,7 +17003,7 @@ FF
                                     </div>
 
                                     <h5 class="text-uppercase text-muted fw-bold mb-3" id="commercial-heading"><span
-                                            class="section-icon icon-commercial">?</span>Aviación Comercial</h5>
+                                            class="section-icon icon-commercial">&#x2708;</span>Aviación Comercial</h5>
                                     <div class="row g-3 mb-4" id="commercial-group">
                                         <div class="col-12">
                                             <div class="chart-container ops-chart"><canvas
@@ -17017,7 +17017,7 @@ FF
                                         </div>
                                     </div>
                                     <h5 class="text-uppercase text-muted fw-bold mb-3 mt-4" id="cargo-heading"><span
-                                            class="section-icon icon-cargo">?</span>Operaciones de Carga</h5>
+                                            class="section-icon icon-cargo">&#x2708;</span>Operaciones de Carga</h5>
                                     <div class="row g-3 mb-4" id="cargo-group">
                                         <div class="col-12">
                                             <div class="chart-container ops-chart"><canvas id="cargoOpsChart"></canvas>
@@ -17029,7 +17029,7 @@ FF
                                         </div>
                                     </div>
                                     <h5 class="text-uppercase text-muted fw-bold mb-3 mt-4" id="general-heading">
-                                        <span class="section-icon icon-general">??</span>Aviación General
+                                        <span class="section-icon icon-general">&#x1F6E9;</span>Aviación General
                                     </h5>
                                     <div class="row g-3 mb-4" id="general-group">
                                         <div class="col-12">
@@ -17518,7 +17518,7 @@ FF
                                             padding:.65rem 1rem; margin-bottom:1.25rem;
                                             font-size:.8rem; color:#1e40af; line-height:1.5;
                                             position:relative;">
-                                            <span style="font-size:1.15rem;flex-shrink:0;margin-top:.05rem;">??</span>
+                                            <span style="font-size:1.15rem;flex-shrink:0;margin-top:.05rem;">&#x1F4A1;</span>
                                             <div>
                                                 <strong>¿Sabías que puedes navegar entre tipos de aviación?</strong><br>
                                                 Usa las pestañas de arriba (<strong>Comercial</strong>, <strong>General</strong>, <strong>Carga</strong>) para ver la comparativa de cada segmento.<br>
@@ -17527,7 +17527,7 @@ FF
                                             <button onclick="yoyDismissHint()" title="Cerrar" style="
                                                 position:absolute;top:.4rem;right:.55rem;
                                                 background:none;border:none;font-size:.95rem;
-                                                color:#93c5fd;cursor:pointer;line-height:1;padding:0;">?</button>
+                                                color:#93c5fd;cursor:pointer;line-height:1;padding:0;">&#x2715;</button>
                                         </div>
                                         <script>
                                         function yoyDismissHint(){
@@ -17547,7 +17547,7 @@ FF
                                                                 <h6 class="text-uppercase text-muted fw-bold mb-3" style="letter-spacing: 0.5px;"><i class="fas fa-filter me-2 text-primary"></i>Filtros de Comparación</h6>
                                                                 <div class="mb-4">
                                                                     <label for="yoy-metric-select" class="form-label small fw-semibold mb-2 d-flex align-items-center gap-2" style="color: #334155;">
-                                                                        ?? Indicador
+                                                                        &#x1F4CA; Indicador
                                                                         <span id="yoy-metric-pulse" style="
                                                                             display:inline-flex;align-items:center;gap:.3rem;
                                                                             background:#dbeafe;color:#1d4ed8;
@@ -17555,7 +17555,7 @@ FF
                                                                             font-size:.65rem;font-weight:700;letter-spacing:.02em;
                                                                             animation:yoyPulse 1.8s ease-in-out 3;
                                                                             cursor:default;">
-                                                                            ? cÁmbialo
+                                                                            &#x21BB; cÁmbialo
                                                                         </span>
                                                                     </label>
                                                                     <style>
@@ -17570,11 +17570,11 @@ FF
                                                                     </select>
                                                                 </div>
                                                                 <div class="mb-3">
-                                                                    <label class="form-label small fw-semibold mb-2" style="color: #334155;">?? Años a Comparar</label>
+                                                                    <label class="form-label small fw-semibold mb-2" style="color: #334155;">&#x1F4C5; Años a Comparar</label>
                                                                     <div id="yoy-years-container" class="d-flex flex-column gap-2"></div>
                                                                 </div>
                                                                 <div class="mb-3">
-                                                                    <label class="form-label small fw-semibold mb-2" style="color:#334155;">??? Meses a incluir</label>
+                                                                    <label class="form-label small fw-semibold mb-2" style="color:#334155;">&#x1F5D3;&#xFE0F; Meses a incluir</label>
                                                                     <div class="d-flex flex-wrap gap-1 mb-2">
                                                                         <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="1"  onclick="comYoyToggleMonth(1,this)">Ene</button>
                                                                         <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="2"  onclick="comYoyToggleMonth(2,this)">Feb</button>
@@ -17597,7 +17597,7 @@ FF
                                                                     </div>
                                                                 </div>
                                                                 <hr class="my-3" />
-                                                                <p class="small mb-0" style="color: #64748b; line-height: 1.6;">? Esta vista superpone los 12 meses de cada año seleccionado para facilitar el análisis de tendencias y patrones estacionales.</p>
+                                                                <p class="small mb-0" style="color: #64748b; line-height: 1.6;">&#x2139; Esta vista superpone los 12 meses de cada año seleccionado para facilitar el análisis de tendencias y patrones estacionales.</p>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -17606,7 +17606,7 @@ FF
                                                             <div class="card-header bg-white border-bottom" style="border-color: #f0f4f8;">
                                                                 <div class="d-flex justify-content-between align-items-center">
                                                                     <div>
-                                                                        <h5 class="card-title fw-bold mb-0 text-primary" id="yoy-chart-title" style="font-size: 1.1rem; letter-spacing: -0.02em;">?? Comparativa Mensual de Operaciones Comerciales</h5>
+                                                                        <h5 class="card-title fw-bold mb-0 text-primary" id="yoy-chart-title" style="font-size: 1.1rem; letter-spacing: -0.02em;">&#x1F4C8; Comparativa Mensual de Operaciones Comerciales</h5>
                                                                         <small class="text-muted d-block mt-2">Análisis de tendencias año a año</small>
                                                                     </div>
                                                                     <button class="btn btn-sm btn-outline-secondary" id="yoy-export-btn" title="Exportar a CSV" aria-label="Exportar gráfica a CSV">
@@ -17626,7 +17626,7 @@ FF
                                                     <div class="col-12">
                                                         <div class="card shadow-sm border-0">
                                                             <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-color: #f0f4f8;">
-                                                                <h6 class="mb-0 fw-bold text-secondary" style="font-size: 0.95rem;">?? Detalles por Periodo</h6>
+                                                                <h6 class="mb-0 fw-bold text-secondary" style="font-size: 0.95rem;">&#x1F4CB; Detalles por Periodo</h6>
                                                                 <div class="btn-group btn-group-sm" role="group" id="yoy-granularity-group" aria-label="Granularidad">
                                                                     <input type="radio" class="btn-check" name="yoy-granularity" id="gran-mensual" value="mensual" autocomplete="off" checked>
                                                                     <label class="btn btn-outline-primary" for="gran-mensual">Mensual</label>
@@ -17659,18 +17659,18 @@ FF
                                                             <div class="card-body">
                                                                 <h6 class="text-uppercase text-muted fw-bold mb-3" style="letter-spacing:0.5px;"><i class="fas fa-filter me-2 text-success"></i>Filtros de Comparación</h6>
                                                                 <div class="mb-4">
-                                                                    <label for="gen-yoy-metric-select" class="form-label small fw-semibold mb-2" style="color:#334155;">?? Indicador</label>
+                                                                    <label for="gen-yoy-metric-select" class="form-label small fw-semibold mb-2" style="color:#334155;">&#x1F4CA; Indicador</label>
                                                                     <select id="gen-yoy-metric-select" class="form-select form-select-sm" style="border-color:#cbd5e1;border-radius:6px;">
                                                                         <option value="operaciones" selected>Operaciones</option>
                                                                         <option value="pasajeros">Pasajeros</option>
                                                                     </select>
                                                                 </div>
                                                                 <div class="mb-3">
-                                                                    <label class="form-label small fw-semibold mb-2" style="color:#334155;">?? Años a Comparar</label>
+                                                                    <label class="form-label small fw-semibold mb-2" style="color:#334155;">&#x1F4C5; Años a Comparar</label>
                                                                     <div id="gen-yoy-years" class="d-flex flex-column gap-2"></div>
                                                                 </div>
                                                                 <div class="mb-3">
-                                                                    <label class="form-label small fw-semibold mb-2" style="color:#334155;">??? Meses a incluir</label>
+                                                                    <label class="form-label small fw-semibold mb-2" style="color:#334155;">&#x1F5D3;&#xFE0F; Meses a incluir</label>
                                                                     <div class="d-flex flex-wrap gap-1 mb-2">
                                                                         <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="1" onclick="genYoyToggleMonth(1,this)">Ene</button>
                                                                         <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="2" onclick="genYoyToggleMonth(2,this)">Feb</button>
@@ -17693,7 +17693,7 @@ FF
                                                                     </div>
                                                                 </div>
                                                                 <hr class="my-3">
-                                                                <p class="small mb-0" style="color:#64748b;line-height:1.6;">? Esta vista superpone los datos de cada año seleccionado para facilitar el análisis de tendencias estacionales.</p>
+                                                                <p class="small mb-0" style="color:#64748b;line-height:1.6;">&#x2139; Esta vista superpone los datos de cada año seleccionado para facilitar el análisis de tendencias estacionales.</p>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -17716,7 +17716,7 @@ FF
                                                     <div class="col-12">
                                                         <div class="card shadow-sm border-0">
                                                             <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-color:#f0f4f8;">
-                                                                <h6 class="mb-0 fw-bold text-secondary" style="font-size:0.95rem;">?? Detalles por Periodo</h6>
+                                                                <h6 class="mb-0 fw-bold text-secondary" style="font-size:0.95rem;">&#x1F4CB; Detalles por Periodo</h6>
                                                                 <div class="btn-group btn-group-sm" role="group" aria-label="Granularidad">
                                                                     <input type="radio" class="btn-check" name="gen-yoy-granularity" id="gen-gran-mensual" value="mensual" autocomplete="off" checked>
                                                                     <label class="btn btn-outline-success" for="gen-gran-mensual">Mensual</label>
@@ -17749,18 +17749,18 @@ FF
                                                             <div class="card-body">
                                                                 <h6 class="text-uppercase text-muted fw-bold mb-3" style="letter-spacing:0.5px;"><i class="fas fa-filter me-2 text-warning"></i>Filtros de Comparación</h6>
                                                                 <div class="mb-4">
-                                                                    <label for="cargo-yoy-metric-select" class="form-label small fw-semibold mb-2" style="color:#334155;">?? Indicador</label>
+                                                                    <label for="cargo-yoy-metric-select" class="form-label small fw-semibold mb-2" style="color:#334155;">&#x1F4CA; Indicador</label>
                                                                     <select id="cargo-yoy-metric-select" class="form-select form-select-sm" style="border-color:#cbd5e1;border-radius:6px;">
                                                                         <option value="operaciones" selected>Operaciones</option>
                                                                         <option value="toneladas">Toneladas transportadas</option>
                                                                     </select>
                                                                 </div>
                                                                 <div class="mb-3">
-                                                                    <label class="form-label small fw-semibold mb-2" style="color:#334155;">?? Años a Comparar</label>
+                                                                    <label class="form-label small fw-semibold mb-2" style="color:#334155;">&#x1F4C5; Años a Comparar</label>
                                                                     <div id="cargo-yoy-years" class="d-flex flex-column gap-2"></div>
                                                                 </div>
                                                                 <div class="mb-3">
-                                                                    <label class="form-label small fw-semibold mb-2" style="color:#334155;">??? Meses a incluir</label>
+                                                                    <label class="form-label small fw-semibold mb-2" style="color:#334155;">&#x1F5D3;&#xFE0F; Meses a incluir</label>
                                                                     <div class="d-flex flex-wrap gap-1 mb-2">
                                                                         <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="1" onclick="cargoYoyToggleMonth(1,this)">Ene</button>
                                                                         <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="2" onclick="cargoYoyToggleMonth(2,this)">Feb</button>
@@ -17783,7 +17783,7 @@ FF
                                                                     </div>
                                                                 </div>
                                                                 <hr class="my-3">
-                                                                <p class="small mb-0" style="color:#64748b;line-height:1.6;">? Compara las operaciones y toneladas de carga año a año para identificar tendencias y variaciones estacionales.</p>
+                                                                <p class="small mb-0" style="color:#64748b;line-height:1.6;">&#x2139; Compara las operaciones y toneladas de carga año a año para identificar tendencias y variaciones estacionales.</p>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -17806,7 +17806,7 @@ FF
                                                     <div class="col-12">
                                                         <div class="card shadow-sm border-0">
                                                             <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-color:#f0f4f8;">
-                                                                <h6 class="mb-0 fw-bold text-secondary" style="font-size:0.95rem;">?? Detalles por Periodo</h6>
+                                                                <h6 class="mb-0 fw-bold text-secondary" style="font-size:0.95rem;">&#x1F4CB; Detalles por Periodo</h6>
                                                                 <div class="btn-group btn-group-sm" role="group" aria-label="Granularidad">
                                                                     <input type="radio" class="btn-check" name="cargo-yoy-granularity" id="cargo-gran-mensual" value="mensual" autocomplete="off" checked>
                                                                     <label class="btn btn-outline-warning" for="cargo-gran-mensual">Mensual</label>
@@ -18832,7 +18832,7 @@ FF
                                                                             <th class="py-3">Int</th>
                                                                             <th class="py-3">Carga</th>
                                                                             <th class="py-3 text-primary fw-bold">Total</th>
-                                                                            <th class="py-3 px-4 rounded-end">? vs ant.</th>
+                                                                            <th class="py-3 px-4 rounded-end">&#x2195; vs ant.</th>
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody id="tbody-freq-comparison" class="border-top-0"></tbody>
@@ -19997,7 +19997,7 @@ FF
                                                     <!-- Aerolínea -->
                                                     <div class="col-4 p-2 border-end" style="background:linear-gradient(180deg,#f0f6ff 0%,#fff 100%)">
                                                       <div class="d-flex justify-content-between align-items-center mb-1">
-                                                        <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#1456c8;letter-spacing:.05em">? Aerolínea — Conformidad</div>
+                                                        <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#1456c8;letter-spacing:.05em">&#x2708; Aerolínea — Conformidad</div>
                                                         <button type="button" class="btn btn-link p-0 sig-clear-btn" data-sig="ap-sig-aerolinea" style="font-size:.6rem;color:#aaa" title="Borrar"><i class="fas fa-eraser"></i></button>
                                                       </div>
                                                       <input type="text" class="form-control border-0 border-bottom p-0 fw-semibold mb-2 rounded-0" id="ap-obs-aerolinea-nombre" placeholder="Nombre" maxlength="80" autocomplete="off" style="font-size:.8rem;background:transparent">
@@ -20008,7 +20008,7 @@ FF
                                                     <!-- Operador -->
                                                     <div class="col-4 p-2 border-end" style="background:linear-gradient(180deg,#f5fff8 0%,#fff 100%)">
                                                       <div class="d-flex justify-content-between align-items-center mb-1">
-                                                        <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#166534;letter-spacing:.05em">?? Operador — Firma</div>
+                                                        <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#166534;letter-spacing:.05em">&#x270D;&#xFE0F; Operador — Firma</div>
                                                         <button type="button" class="btn btn-link p-0 sig-clear-btn" data-sig="ap-sig-operador" style="font-size:.6rem;color:#aaa" title="Borrar"><i class="fas fa-eraser"></i></button>
                                                       </div>
                                                       <input type="text" class="form-control border-0 border-bottom p-0 fw-semibold mb-2 rounded-0" id="ap-obs-operador-nombre" placeholder="Nombre del operador" maxlength="80" autocomplete="off" style="font-size:.8rem;background:transparent">
@@ -20019,7 +20019,7 @@ FF
                                                     <!-- Coordinador -->
                                                     <div class="col-4 p-2" style="background:linear-gradient(180deg,#fffbf0 0%,#fff 100%)">
                                                       <div class="d-flex justify-content-between align-items-center mb-1">
-                                                        <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#92400e;letter-spacing:.05em">? Coordinador Mecánico</div>
+                                                        <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#92400e;letter-spacing:.05em">&#x2699; Coordinador Mecánico</div>
                                                         <button type="button" class="btn btn-link p-0 sig-clear-btn" data-sig="ap-sig-coordinador" style="font-size:.6rem;color:#aaa" title="Borrar"><i class="fas fa-eraser"></i></button>
                                                       </div>
                                                       <input type="text" class="form-control border-0 border-bottom p-0 fw-semibold mb-2 rounded-0 bg-transparent" id="ap-coordinador" readonly placeholder="(sesión activa)" style="font-size:.8rem">
@@ -20334,10 +20334,10 @@ FF
                         <div class="col-md-5">
                             <label class="form-label fw-semibold">Estado</label>
                             <select id="review-status" class="form-select">
-                                <option value="pendiente">? Pendiente</option>
-                                <option value="en_revision">?? En revisión</option>
-                                <option value="aprobado">? Aprobado</option>
-                                <option value="rechazado">? Rechazado</option>
+                                <option value="pendiente">&#x23F3; Pendiente</option>
+                                <option value="en_revision">&#x1F504; En revisión</option>
+                                <option value="aprobado">&#x2714; Aprobado</option>
+                                <option value="rechazado">&#x2717; Rechazado</option>
                             </select>
                         </div>
                         <div class="col-md-7">
