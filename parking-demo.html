@@ -190,9 +190,8 @@
       <img id="parking-photo" style="width:100%;height:auto;display:none;border-radius:14px" alt="Estacionamiento AIFA">
 
       <!-- QR overlay (draggable) -->
-      <div id="qr-overlay" style="display:none;position:absolute;background:#fff;padding:7px 7px 4px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.6),0 0 0 2px rgba(0,0,0,.15);text-align:center;cursor:grab;user-select:none;z-index:10;touch-action:none">
-        <div id="qr-column"></div>
-        <div style="font-size:.48rem;font-weight:700;color:#0A1628;text-transform:uppercase;letter-spacing:.4px;margin-top:3px">Guardar mi lugar &bull; AIFA</div>
+      <div id="qr-overlay" style="display:none;position:absolute;background:#fff;padding:4px;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.6),0 0 0 2px rgba(0,0,0,.2);text-align:center;cursor:grab;user-select:none;z-index:10;touch-action:none;line-height:0;font-size:0">
+        <div id="qr-column" style="overflow:hidden;line-height:0;font-size:0"></div>
       </div>
 
       <!-- Cursor crosshair mientras arrastra -->
@@ -439,6 +438,14 @@ function generateQR(containerId, size) {
       colorDark: '#000', colorLight: '#fff',
       correctLevel: QRCode.CorrectLevel.H
     });
+    // qrcodejs renders both canvas + img stacked — keep only canvas
+    setTimeout(function() {
+      var imgs = el.querySelectorAll('img');
+      imgs.forEach(function(i) { i.style.display = 'none'; });
+      // sync overlay width to QR size
+      var ov = document.getElementById('qr-overlay');
+      if (ov) ov.style.width = (size + 8) + 'px';
+    }, 80);
   } catch(e) { el.textContent = 'QR'; }
 }
 
