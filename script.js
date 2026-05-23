@@ -6489,9 +6489,11 @@ function getActiveSectionKey() {
 function handleNavigation(e) {
     const a = e.target.closest('a.menu-item');
     if (!a) return;
-    e.preventDefault();
     const action = a.dataset.action;
     const section = a.dataset.section;
+    // External links (no data-section, no data-action) → let the browser open them normally
+    if (!action && !section && a.href && !a.href.startsWith('#') && !a.dataset.installAppInfo) return;
+    e.preventDefault();
     if (action === 'logout') { performLogout(); return; }
     if (section) {
         showSection(section, a);
