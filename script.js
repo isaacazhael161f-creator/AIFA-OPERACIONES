@@ -502,7 +502,6 @@ const LANDSCAPE_HINT_SECTIONS = new Set([
     'frecuencias-semana',
     'puntualidad-agosto',
     'demoras',
-    'comparativa',
     'biblioteca'
 ]);
 
@@ -515,7 +514,6 @@ const LANDSCAPE_HINT_MESSAGES = {
     'frecuencias-semana': 'Gira tu teléfono para comparar las frecuencias semanales cómodamente.',
     'puntualidad-agosto': 'La vista de puntualidad se muestra completa en horizontal.',
     'demoras': 'Gira tu dispositivo para ver todos los detalles de las demoras.',
-    'comparativa': 'El reporte comparativo se visualiza mejor en horizontal.',
     'biblioteca': 'La biblioteca digital se visualiza mejor en modo horizontal.'
 };
 
@@ -16996,7 +16994,6 @@ async function _conciSaveBulkEdits() {
         { key: 'conciliacion',         label: 'Conciliación',            icon: 'tasks',             group: 'Operaciones' },
         { key: 'puntualidad-agosto',   label: 'Puntualidad',             icon: 'clock',             group: 'Operaciones' },
         { key: 'demoras',              label: 'Demoras',                 icon: 'clock',             group: 'Operaciones' },
-        { key: 'comparativa',          label: 'Comparativa',             icon: 'chart-line',        group: 'Operaciones' },
         { key: 'aerolineas',           label: 'Aerolíneas',              icon: 'plane',             group: 'Módulos' },
         { key: 'portal-digitalizacion',label: 'Portal Digital',          icon: 'cloud-upload-alt',  group: 'Módulos' },
         { key: 'fauna',                label: 'GSO',                     icon: 'shield-alt',        group: 'Módulos' },
