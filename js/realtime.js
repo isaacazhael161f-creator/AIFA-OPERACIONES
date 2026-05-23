@@ -131,7 +131,6 @@
             'monthly_operations_2025',
             'annual_operations'
         ], function() {
-            _lazy('amRefresh')();
             _lazy('parteOpsReload')();
             // Forzar recarga en analisis-mensual y analisis-anual
             window._monthlyDataLoaded = false;
@@ -139,7 +138,7 @@
         });
 
         // ── Demoras ──────────────────────────────────────────────
-        rm.watch(['demoras', 'Demoras'], _lazy('amRefresh'));
+        rm.watch(['demoras', 'Demoras'], _lazy('renderDemoras'));
 
         // ── Manifiestos pasajeros ────────────────────────────────
         rm.watch([
