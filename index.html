@@ -5634,21 +5634,29 @@ FF
                             box-shadow: 0 3px 10px rgba(2,136,209,.3); transition: all .2s;
                         }
                         .btn-vac-global:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(2,136,209,.4); }
-                        .vac-cal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: .7rem; }
-                        .vac-cal-card {
-                            background: #fff; border: 1.5px solid #b3e5fc; border-radius: 10px;
-                            padding: .75rem 1rem; display: flex; align-items: center; gap: .75rem;
-                        }
-                        .vac-cal-avatar {
-                            width: 2.4rem; height: 2.4rem; background: linear-gradient(135deg,#0288d1,#26c6da);
-                            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-                            color: #fff; font-size: .8rem; font-weight: 700; flex-shrink: 0;
-                        }
-                        .vac-cal-info { flex: 1; min-width: 0; }
-                        .vac-cal-nombre { font-size: .85rem; font-weight: 700; color: #1a2540; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-                        .vac-cal-fecha  { font-size: .78rem; color: #0288d1; font-weight: 600; }
-                        .vac-cal-dias   { font-size: .74rem; color: #64748b; }
-                        .vac-cal-estado { font-size: .68rem; font-weight: 700; border-radius: 20px; padding: .15rem .5rem; margin-top: .2rem; display: inline-block; }
+                        /* ---- Calendario anual de vacaciones ---- */
+                        .vac-cal-grid { min-height: 100px; }
+                        .vac-legend { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; padding: .25rem 0 .8rem; font-size: .75rem; }
+                        .vac-leg { display: inline-flex; align-items: center; gap: .3rem; font-weight: 600; color: #546e7a; }
+                        .vac-leg::before { content: ''; display: inline-block; width: .7rem; height: .7rem; border-radius: 2px; flex-shrink: 0; }
+                        .vac-leg.programado::before { background: #4fc3f7; border: 1px solid #0288d1; }
+                        .vac-leg.disfrutado::before  { background: #81c784; border: 1px solid #388e3c; }
+                        .vac-leg.cancelado::before   { background: #ef9a9a; border: 1px solid #e53935; }
+                        .vac-months-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(195px, 1fr)); gap: .9rem; }
+                        .vac-month-block { background: #fff; border: 1.5px solid #b3e5fc; border-radius: 10px; padding: .6rem .55rem .55rem; }
+                        .vac-month-name { font-weight: 700; color: #0277bd; text-align: center; font-size: .8rem; padding-bottom: .35rem; border-bottom: 1px solid #e0f2fe; margin-bottom: .35rem; }
+                        .vac-dow-row { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: .62rem; font-weight: 700; color: #90a4ae; margin-bottom: .15rem; }
+                        .vac-dow-row .we { color: #cfd8dc; }
+                        .vac-days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
+                        .vac-day { text-align: center; font-size: .68rem; padding: .2rem .05rem; border-radius: 3px; min-height: 1.5rem; display: flex; align-items: center; justify-content: center; cursor: default; color: #37474f; }
+                        .vac-day.empty { background: transparent !important; }
+                        .vac-day.weekend { color: #cfd8dc; }
+                        .vac-day.today { font-weight: 900; color: #e91e63 !important; }
+                        .vac-day.has-vac.vac-programado { background: #4fc3f7; color: #01579b; font-weight: 700; }
+                        .vac-day.has-vac.vac-disfrutado { background: #81c784; color: #1b5e20; font-weight: 700; }
+                        .vac-day.has-vac.vac-cancelado  { background: #ef9a9a; color: #b71c1c; font-weight: 600; text-decoration: line-through; }
+                        .vac-day.has-vac.has-multi { background: linear-gradient(135deg, #4fc3f7 50%, #81c784 50%); color: #01579b; font-weight: 700; }
+                        .vac-day.has-vac:hover { opacity: .75; cursor: default; }
                         @media print {
                             .colab-vac-panel { display: none !important; }
                         }
@@ -10743,7 +10751,19 @@ FF
                             vacValidarFechas();
                         }
 
-                        /** Valida fechas y muestra días calculados + alerta de solapamiento */
+                        /** Cuenta días hábiles (L–V) entre dos fechas ISO inclusive */
+                        function _vacCountWorkDays(ini, fin) {
+                            const d1 = new Date(ini + 'T00:00:00');
+                            const d2 = new Date(fin + 'T00:00:00');
+                            let count = 0;
+                            for (let d = new Date(d1); d <= d2; d.setDate(d.getDate() + 1)) {
+                                const dow = d.getDay();
+                                if (dow !== 0 && dow !== 6) count++;
+                            }
+                            return count;
+                        }
+
+                        /** Valida fechas y muestra días hábiles calculados + alerta de solapamiento */
                         async function vacValidarFechas() {
                             const ini    = document.getElementById('vac-fecha-inicio').value;
                             const fin    = document.getElementById('vac-fecha-fin').value;
@@ -10757,12 +10777,12 @@ FF
                                 if (calcEl) calcEl.textContent = '⚠ La fecha fin debe ser posterior al inicio.';
                                 if (btn) btn.disabled = true; return;
                             }
-                            const dias = Math.floor((dFin - dIni) / 86400000) + 1;
+                            const dias = _vacCountWorkDays(ini, fin);
                             if (dias > 20) {
-                                if (calcEl) calcEl.textContent = `⚠ Máximo 20 días naturales por período (seleccionaste ${dias}).`;
+                                if (calcEl) calcEl.textContent = `⚠ Máximo 20 días hábiles (L–V). Seleccionaste ${dias}.`;
                                 if (btn) btn.disabled = true; return;
                             }
-                            if (calcEl) calcEl.textContent = `✔ Período de ${dias} día${dias>1?'s':''} naturales.`;
+                            if (calcEl) calcEl.textContent = `✔ ${dias} día${dias>1?'s':''} hábil${dias>1?'es':''} (lunes a viernes).`;
                             if (btn) btn.disabled = false;
                             await vacChequearSolapamiento(ini, fin, alertEl);
                         }
@@ -10810,8 +10830,8 @@ FF
                             const dIni = new Date(ini + 'T00:00:00');
                             const dFin = new Date(fin + 'T00:00:00');
                             if (dFin < dIni) { alert('La fecha fin debe ser posterior al inicio.'); return; }
-                            const dias = Math.floor((dFin - dIni) / 86400000) + 1;
-                            if (dias > 20) { alert(`Máximo 20 días naturales por período.`); return; }
+                            const dias = _vacCountWorkDays(ini, fin);
+                            if (dias > 20) { alert(`Máximo 20 días hábiles (L–V) por período.`); return; }
 
                             const anioSel = document.getElementById('vac-panel-anio');
                             const anio    = anioSel ? parseInt(anioSel.value) : dIni.getFullYear();
@@ -10901,10 +10921,11 @@ FF
                             }
                         }
 
-                        /** Filtra y renderiza el calendario global */
+                        /** Filtra y renderiza el calendario global como grilla de meses */
                         function vacCalFiltrar() {
                             const estado = document.getElementById('vac-cal-estado-filter')?.value || '';
                             const busq   = (document.getElementById('vac-cal-search')?.value || '').toLowerCase().trim();
+                            const anio   = parseInt(document.getElementById('vac-cal-anio-filter')?.value || new Date().getFullYear());
                             const grid   = document.getElementById('vac-cal-grid');
                             const count  = document.getElementById('vac-cal-count');
                             let lista = _vacAllCache;
@@ -10913,31 +10934,73 @@ FF
                                 (r._nom||'').toLowerCase().includes(busq) ||
                                 (r._num||'').toLowerCase().includes(busq)
                             );
-                            if (count) count.textContent = lista.length + ' registro' + (lista.length !== 1 ? 's' : '');
+                            const total = lista.filter(r => r.estado !== 'cancelado').length;
+                            if (count) count.textContent = total + ' período' + (total !== 1 ? 's' : '');
                             if (!grid) return;
-                            if (!lista.length) {
-                                grid.innerHTML = '<div class="text-center text-muted py-4"><i class="fas fa-umbrella-beach me-2"></i>Sin registros para los filtros seleccionados.</div>';
-                                return;
+                            grid.innerHTML = _vacBuildCalendar(lista, anio);
+                        }
+
+                        /** Construye el HTML del calendario anual de vacaciones */
+                        function _vacBuildCalendar(lista, anio) {
+                            // Mapa de días: 'YYYY-MM-DD' -> [{_nom, _num, estado}]
+                            const dayMap = {};
+                            lista.forEach(r => {
+                                if (!r.fecha_inicio || !r.fecha_fin) return;
+                                const ini = new Date(r.fecha_inicio + 'T00:00:00');
+                                const fin = new Date(r.fecha_fin + 'T00:00:00');
+                                for (let d = new Date(ini); d <= fin; d.setDate(d.getDate() + 1)) {
+                                    const key = d.toISOString().slice(0, 10);
+                                    if (!dayMap[key]) dayMap[key] = [];
+                                    dayMap[key].push(r);
+                                }
+                            });
+                            const todayStr = new Date().toISOString().slice(0, 10);
+                            const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+                            let html = `<div class="vac-legend">
+                                <span class="vac-leg programado">Programado</span>
+                                <span class="vac-leg disfrutado">Disfrutado</span>
+                                <span class="vac-leg cancelado">Cancelado</span>
+                                <span style="font-size:.72rem;color:#90a4ae;margin-left:.6rem"><i class="fas fa-info-circle me-1"></i>Días hábiles (L–V) cuentan hacia el límite de 20 días</span>
+                            </div><div class="vac-months-grid">`;
+                            for (let m = 0; m < 12; m++) {
+                                const lastDay  = new Date(anio, m + 1, 0).getDate();
+                                let startDow   = new Date(anio, m, 1).getDay();
+                                startDow = startDow === 0 ? 6 : startDow - 1; // L=0
+                                html += `<div class="vac-month-block"><div class="vac-month-name">${meses[m]}</div>`;
+                                html += '<div class="vac-dow-row"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span class="we">S</span><span class="we">D</span></div>';
+                                html += '<div class="vac-days-grid">';
+                                for (let i = 0; i < startDow; i++) html += '<div class="vac-day empty"></div>';
+                                for (let d = 1; d <= lastDay; d++) {
+                                    const date   = new Date(anio, m, d);
+                                    const key    = date.toISOString().slice(0, 10);
+                                    const dow    = date.getDay();
+                                    const isWE   = dow === 0 || dow === 6;
+                                    const isToday = key === todayStr;
+                                    const vacs   = dayMap[key] || [];
+                                    let cls = 'vac-day';
+                                    if (isWE) cls += ' weekend';
+                                    if (isToday) cls += ' today';
+                                    if (vacs.length > 0) {
+                                        const activos = vacs.filter(v => v.estado !== 'cancelado');
+                                        if (activos.length > 1) {
+                                            cls += ' has-vac has-multi';
+                                        } else if (activos.length === 1) {
+                                            cls += ` has-vac vac-${activos[0].estado || 'programado'}`;
+                                        } else {
+                                            cls += ' has-vac vac-cancelado';
+                                        }
+                                    }
+                                    let tip = '';
+                                    if (vacs.length > 0) {
+                                        const names = [...new Set(vacs.map(v => v._nom || v._num))].slice(0,4).join(', ');
+                                        tip = ` title="${names.replace(/"/g,'&quot;')}"`;
+                                    }
+                                    html += `<div class="${cls}"${tip}>${d}</div>`;
+                                }
+                                html += '</div></div>'; // vac-days-grid / vac-month-block
                             }
-                            const eLabels = { programado:'Programado', disfrutado:'Disfrutado', cancelado:'Cancelado' };
-                            const eColors = { programado:'background:#e0f2fe;color:#0277bd', disfrutado:'background:#e8f5e9;color:#2e7d32', cancelado:'background:#ffebee;color:#c62828' };
-                            grid.innerHTML = lista.map(r => {
-                                const ini  = _vacFmt(r.fecha_inicio);
-                                const fin  = _vacFmt(r.fecha_fin);
-                                const nom  = r._nom || r._num || '—';
-                                const ava  = nom.split(' ').slice(0,2).map(p=>p[0]||'').join('').toUpperCase();
-                                const est  = r.estado || 'programado';
-                                return `<div class="vac-cal-card">
-                                    <div class="vac-cal-avatar">${ava}</div>
-                                    <div class="vac-cal-info">
-                                        <div class="vac-cal-nombre" title="${_vacEsc(nom)}">${_vacEsc(nom)}</div>
-                                        <div class="vac-cal-fecha"><i class="fas fa-calendar-day me-1"></i>${ini} – ${fin}</div>
-                                        <div class="vac-cal-dias">${r.dias_totales||'?'} días · Período ${r.periodo_num||'?'} · Empl. ${r._num}</div>
-                                        <span class="vac-cal-estado" style="${eColors[est]}">${eLabels[est]||est}</span>
-                                        ${r.observaciones ? `<span style="font-size:.72rem;color:#78909c;margin-left:.4rem">${_vacEsc(r.observaciones)}</span>` : ''}
-                                    </div>
-                                </div>`;
-                            }).join('');
+                            html += '</div>'; // vac-months-grid
+                            return html;
                         }
 
                         /** Detecta solapamientos globales y muestra alerta */
