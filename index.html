@@ -11164,12 +11164,13 @@ FF
                             if (grid) grid.innerHTML = '<div class="text-center py-3"><i class="fas fa-circle-notch fa-spin text-primary"></i> Cargando…</div>';
                             try {
                                 let todos = await _vacFetchArray(_vacCurrentNumEmpl);
-                                // Reparar registros cuyo anio quedó como NaN (bug en versiones anteriores)
-                                const necesitaRepair = todos.some(r => !r.anio || isNaN(r.anio));
-                                if (necesitaRepair) {
+                                // Reparar registros cuyo anio quedó como NaN (bug de versiones anteriores)
+                                const hayNaN = todos.some(r => !r.anio || isNaN(r.anio));
+                                if (hayNaN) {
                                     todos = todos.map(r => ({
                                         ...r,
-                                        anio: (r.anio && !isNaN(r.anio)) ? r.anio : (r.fecha_inicio ? parseInt(r.fecha_inicio.slice(0, 4)) : new Date().getFullYear())
+                                        anio: (r.anio && !isNaN(r.anio)) ? r.anio
+                                            : (r.fecha_inicio ? parseInt(r.fecha_inicio.slice(0, 4)) : new Date().getFullYear())
                                     }));
                                     await _vacSaveArray(_vacCurrentNumEmpl, todos);
                                 }
@@ -24978,4 +24979,1832 @@ FF
           <tr><td class="text-center fw-bold"><span class="badge bg-warning text-dark">O</span></td><td>Fletamento</td><td>Manejo Especial</td><td>Manejo Especial (Migrantes / Inmigrantes)</td></tr>
           <tr><td class="text-center fw-bold"><span class="badge bg-secondary">P</span></td><td>Otros</td><td>Sin especificar</td><td>Sin ganancia — Posicionamiento / Ferry / Entrega / Demo</td></tr>
           <tr><td class="text-center fw-bold"><span class="badge bg-success">Q</span></td><td>Regular</td><td>Pasajeros, Carga</td><td>Pasajeros y Carga en Cabina (aviones mixtos)</td></tr>
-          <
+          <tr><td class="text-center fw-bold"><span class="badge bg-primary">R</span></td><td>Vuelos adicionales</td><td>Pasajeros, Carga</td><td>Pasajeros / Carga en Cabina (aviones mixtos)</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-success">S</span></td><td>Regular</td><td>Pasajeros</td><td>Modo Compartido</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">T</span></td><td>Otros</td><td>Sin especificar</td><td>Vuelos de Prueba</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-success">U</span></td><td>Regular</td><td>Pasajeros</td><td>Servicio operado por vehículo en plataforma</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-success">V</span></td><td>Regular</td><td>Carga, Correo</td><td>Servicio operado por vehículo en plataforma</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">W</span></td><td>Otros</td><td>Sin especificar</td><td>Militar</td></tr>
+          <tr><td class="text-center fw-bold"><span class="badge bg-secondary">X</span></td><td>Otros</td><td>Sin especificar</td><td>Escala Técnica</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div><!-- /col-help-svc-wrap -->
+    <p class="text-muted small mb-0 mt-1">&#x1F4A1; Fuente: catálogo IATA de tipos de servicio (flightservicetype).</p>
+  </div>
+
+  <div id="colhelp-aircraft">
+    <p>El modelo específico del avión. Define el tamaño, capacidad de pasajeros y características técnicas de la operación.</p>
+    <p><strong>Ejemplos comunes en AIFA:</strong></p>
+    <ul>
+      <li><strong>B737 / B738:</strong> Boeing 737-800 &mdash; avión de pasillo único para ~165 pasajeros. Muy común en rutas nacionales.</li>
+      <li><strong>A320 / A321:</strong> Airbus A320/321 &mdash; también de pasillo único, muy usado por Volaris y VivaAerobus.</li>
+      <li><strong>B787:</strong> Boeing 787 Dreamliner &mdash; dos pasillos, rutas internacionales de largo alcance.</li>
+    </ul>
+    <p class="text-muted small mb-0">&#x1F4A1; En términos simples: el "modelo de coche" del avión. Un B737 es como un auto familiar; un B787 sería como una camioneta grande de lujo.</p>
+  </div>
+
+  <div id="colhelp-registration">
+    <p>La <strong>matrícula</strong> es el identificador único de cada avión físico, equivalente a las placas de un automóvil.</p>
+    <p>En México inician con <strong>XA-</strong> (ej: <code>XA-AMX</code>). Otros países: <code>N</code> (EE.UU.), <code>EC</code> (España), <code>G</code> (Reino Unido).</p>
+    <p>La matrícula es clave para <strong>conciliar</strong> vuelos: si una llegada y una salida comparten matrícula, es el <em>mismo avión físico</em> haciendo turnaround en AIFA. En la Vista Board, al hacer click en un vuelo el enlazado con la misma matrícula se resalta en amarillo.</p>
+    <p class="text-muted small mb-0">&#x1F4A1; En términos simples: la "placa" del avión. Con ella se puede saber que el avión que llegó en AM100 es el mismo que sale en AM101.</p>
+  </div>
+
+  <div id="colhelp-dep-airline">
+    <p>El código IATA de dos letras de la aerolínea que opera el vuelo de salida desde AIFA.</p>
+    <p><strong>Ejemplos:</strong> <code>AM</code> = Aeroméxico &middot; <code>Y4</code> = Volaris &middot; <code>VB</code> = VivaAerobus</p>
+    <p>Puede diferir de la aerolínea de llegada si hay cambio de operador o acuerdo de código compartido (<em>codeshare</em>).</p>
+    <p class="text-muted small mb-0">&#x1F4A1; En términos simples: la aerolínea del vuelo que sale.</p>
+  </div>
+
+  <div id="colhelp-dep-flight">
+    <p>El designador completo del vuelo de salida: código de aerolínea + número de vuelo.</p>
+    <p><strong>Ejemplo:</strong> <code>AM101</code> = vuelo 101 de Aeroméxico saliendo de AIFA.</p>
+    <p class="text-muted small mb-0">&#x1F4A1; En términos simples: el número del vuelo en el tablero de salidas del aeropuerto, o el que aparece en tu pase de abordar.</p>
+  </div>
+
+  <div id="colhelp-dep-stand">
+    <p>La posición de estacionamiento donde el avión estuvo mientras se preparaba para salir: limpieza, combustible, carga de equipaje y embarque de pasajeros.</p>
+    <p class="text-muted small mb-0">&#x1F4A1; En términos simples: el cajón de estacionamiento del avión antes de salir &mdash; donde realizaron todos los preparativos para el siguiente vuelo.</p>
+  </div>
+
+  <div id="colhelp-dep-gates">
+    <p>El número de la puerta de la terminal por donde los pasajeros abordaron el avión antes de partir.</p>
+    <p>Es el lugar donde los pasajeros esperan y presentan su pase de abordar antes de subir al avión.</p>
+    <p class="text-muted small mb-0">&#x1F4A1; En términos simples: la puerta de embarque que aparece en tu pase de abordar como "Gate 5" o "Puerta B3".</p>
+  </div>
+
+  <div id="colhelp-dep-boarded">
+    <p>El número total de pasajeros que subieron al avión para el vuelo de salida.</p>
+    <p>Se puede comparar con la capacidad del avión para calcular el <em>factor de ocupación</em> (qué tan lleno iba el vuelo).</p>
+    <p class="text-muted small mb-0">&#x1F4A1; En términos simples: cuántas personas subieron al avión en la salida.</p>
+  </div>
+
+  <div id="colhelp-dep-sobt">
+    <p><strong>SOBT</strong> = <em>Scheduled Off-Block Time</em> &mdash; la hora <strong>programada</strong> de salida de posición: el momento en que estaba previsto que el avión comenzara a moverse.</p>
+    <p>La <strong>salida de posición</strong> ocurre cuando se retiran los <em>calzos</em> (cuñas de seguridad) de las ruedas del avión, marcando el inicio oficial del vuelo de salida. Después el avión rueda hasta la pista para despegar.</p>
+    <p>Esta es la hora de salida que aparece en los boletos y tableros de salidas.</p>
+    <p class="text-muted small mb-0">&#x1F4A1; En términos simples: la hora de salida que dice tu boleto &mdash; cuando el avión debía empezar a moverse de su posición.</p>
+  </div>
+
+  <div id="colhelp-dep-aobt">
+    <p><strong>AOBT</strong> = <em>Actual Off-Block Time</em> &mdash; la hora <strong>real</strong> de salida de posición: el momento exacto en que se retiraron los calzos y el avión comenzó a moverse.</p>
+    <p>Con esta hora se determina si el vuelo salió a tiempo:</p>
+    <p class="text-center fw-bold">Retraso de salida = AOBT &minus; SOBT</p>
+    <p class="text-muted small mb-0">&#x1F4A1; En términos simples: la hora en que el avión realmente se fue de la puerta. Si es más tarde que el SOBT, el vuelo salió tarde.</p>
+  </div>
+
+  <div id="colhelp-dep-atot">
+    <p><strong>ATOT</strong> = <em>Actual Take-Off Time</em> &mdash; la hora exacta en que el avión <strong>despegó</strong> de alguna de las pistas del AIFA.</p>
+    <p>Es el momento en que las ruedas se levantan del suelo (<em>wheels-up</em>). Es diferente al AOBT porque entre salir de la posición y despegar, el avión puede esperar en fila para entrar a la pista.</p>
+    <p class="text-muted small mb-0">&#x1F4A1; En términos simples: la hora exacta en que el avión levantó el vuelo &mdash; cuando sus ruedas dejaron alguna de las pistas del AIFA.</p>
+  </div>
+
+  <div id="colhelp-dep-attt">
+    <p><strong>ATTT</strong> = <em>Actual Turnaround Time</em> &mdash; el tiempo total que el avión estuvo en tierra en AIFA entre su llegada y su salida.</p>
+    <p>Se calcula como: <strong>ATTT = AOBT &minus; AIBT</strong></p>
+    <p>Durante este tiempo se realizan todos los servicios en tierra: limpieza de cabina, combustible, descarga y carga de equipaje, catering, revisión técnica y embarque de pasajeros.</p>
+    <p>Un turnaround corto (~30&ndash;45 min) refleja eficiencia operativa. Uno largo puede provocar que la salida también se retrase.</p>
+    <p class="text-muted small mb-0">&#x1F4A1; En términos simples: el tiempo que el avión estuvo siendo preparado en AIFA entre que llegó y volvió a salir &mdash; como el tiempo que tarda un taxi entre un pasajero y el siguiente.</p>
+  </div>
+
+  <div id="colhelp-b-arr-status">
+    <p>Estado actual del vuelo en el sistema operativo de AIFA. Indica si llegó/salió a tiempo, con retraso, fue cancelado u otras condiciones operativas.</p>
+    <p class="text-muted small mb-0">&#x1F4A1; En términos simples: el "semáforo" del vuelo.</p>
+  </div>
+
+  <div id="colhelp-b-arr-flight">
+    <p>El designador del vuelo de llegada: código de aerolínea + número (ej: <code>AM100</code>).</p>
+    <p class="text-muted small mb-0">&#x1F4A1; En términos simples: el nombre del vuelo en el tablero de llegadas del aeropuerto.</p>
+  </div>
+
+  <div id="colhelp-b-arr-routing">
+    <p>El aeropuerto desde el cual llegó el vuelo, identificado con su código IATA de 3 letras.</p>
+    <p><strong>Ejemplos:</strong> <code>CUN</code> = Cancún &middot; <code>GDL</code> = Guadalajara &middot; <code>JFK</code> = Nueva York</p>
+    <p class="text-muted small mb-0">&#x1F4A1; En términos simples: de dónde viene el avión.</p>
+  </div>
+
+  <div id="colhelp-b-dep-flight">
+    <p>El designador del vuelo de salida: código de aerolínea + número (ej: <code>AM101</code>).</p>
+    <p class="text-muted small mb-0">&#x1F4A1; En términos simples: el nombre del vuelo en el tablero de salidas del aeropuerto.</p>
+  </div>
+
+  <div id="colhelp-b-dep-routing">
+    <p>El aeropuerto hacia el cual se dirige el vuelo de salida, identificado con su código IATA de 3 letras.</p>
+    <p><strong>Ejemplos:</strong> <code>CUN</code> = Cancún &middot; <code>GDL</code> = Guadalajara &middot; <code>LAX</code> = Los ngeles</p>
+    <p class="text-muted small mb-0">&#x1F4A1; En términos simples: adónde va el avión.</p>
+  </div>
+
+</div><!-- /colhelp-templates -->
+
+<!--  Column Help Modal  -->
+<div class="modal fade" id="col-help-modal" tabindex="-1" aria-labelledby="col-help-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-light py-2">
+                <h6 class="modal-title mb-0 fw-bold" id="col-help-modal-title"></h6>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body" id="col-help-modal-body"></div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    th[data-col-help] { cursor: pointer; }
+    th[data-col-help]:hover { background-color: rgba(0,0,0,.05); }
+</style>
+
+<script>
+    // Nombres legibles por clave para el modal
+    var COL_HELP_TITLES = {
+        'status':        'Status \u2014 Estado del vuelo',
+        'arr-airline':   '[Arr] Airline \u2014 Aerolínea de Llegada',
+        'arr-flight':    '[Arr] Flight \u2014 N\u00famero de Vuelo de Llegada',
+        'arr-aldt':      '[Arr] ALDT \u2014 Actual Landing Time',
+        'arr-sibt':      '[Arr] SIBT \u2014 Scheduled In-Block Time',
+        'arr-aibt':      '[Arr] AIBT \u2014 Actual In-Block Time',
+        'arr-stand':     '[Arr] Stand \u2014 Posición de Estacionamiento (Llegada)',
+        'arr-gates':     '[Arr] Gates \u2014 Puerta de Desembarque',
+        'arr-boarded':   '[Arr] Boarded \u2014 Pasajeros del Vuelo de Llegada',
+        'arr-belts':     '[Arr] Belts \u2014 Banda de Equipaje',
+        'arr-type':      '[Arr] Type \u2014 Tipo de Servicio de Llegada',
+        'routing':       'Routing \u2014 Ruta del Vuelo',
+        'dep-type':      '[Dep] Type \u2014 Tipo de Servicio de Salida',
+        'aircraft':      'Aircraft Type \u2014 Modelo de Aeronave',
+        'registration':  'Registration \u2014 Matrícula de la Aeronave',
+        'dep-airline':   '[Dep] Airline \u2014 Aerolínea de Salida',
+        'dep-flight':    '[Dep] Flight \u2014 N\u00famero de Vuelo de Salida',
+        'dep-stand':     '[Dep] Stand \u2014 Posición de Estacionamiento (Salida)',
+        'dep-gates':     '[Dep] Gates \u2014 Puerta de Embarque',
+        'dep-boarded':   '[Dep] Boarded \u2014 Pasajeros Embarcados',
+        'dep-sobt':      '[Dep] SOBT \u2014 Hora Programada de Salida de Posici\u00f3n',
+        'dep-aobt':      '[Dep] AOBT \u2014 Hora Real de Salida de Posici\u00f3n',
+        'dep-atot':      '[Dep] ATOT \u2014 Actual Take-Off Time',
+        'dep-attt':      '[Dep] ATTT \u2014 Actual Turnaround Time',
+        'b-arr-status':  'Status \u2014 Estado del Vuelo',
+        'b-arr-flight':  'Flight \u2014 N\u00famero de Vuelo de Llegada',
+        'b-arr-routing': 'Routing \u2014 Aeropuerto de Origen',
+        'b-dep-flight':  'Flight \u2014 N\u00famero de Vuelo de Salida',
+        'b-dep-routing': 'Routing \u2014 Aeropuerto de Destino'
+    };
+
+    var COL_HELP_WIDE_KEYS = ['arr-type', 'dep-type'];
+
+    function _svcUpdateCount(wrap, visible, total) {
+        var el = wrap.querySelector('.svc-row-count');
+        if (el) el.textContent = visible === total ? total + ' tipos' : visible + ' de ' + total + ' tipos';
+    }
+
+    window.filterServiceTypeTable = function (input) {
+        var wrap = input.closest('.col-help-svc-wrap');
+        if (!wrap) return;
+        var q = input.value.trim().toLowerCase();
+        // clear category active state when typing
+        wrap.querySelectorAll('.svc-cat-btn').forEach(function(b){ b.classList.remove('active','opacity-100'); b.style.opacity=''; });
+        var rows = wrap.querySelectorAll('tbody tr');
+        var visible = 0;
+        rows.forEach(function (tr) {
+            var text = tr.textContent.toLowerCase();
+            var show = !q || text.includes(q);
+            tr.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        _svcUpdateCount(wrap, visible, rows.length);
+    };
+
+    window.filterServiceTypeCat = function (btn, cat) {
+        var wrap = btn.closest('.col-help-svc-wrap');
+        if (!wrap) return;
+        // clear text input
+        var input = wrap.querySelector('input[type="text"]');
+        if (input) input.value = '';
+        // highlight active button
+        wrap.querySelectorAll('.svc-cat-btn').forEach(function(b){ b.classList.remove('active'); b.style.opacity='.65'; });
+        btn.classList.add('active'); btn.style.opacity='';
+        var rows = wrap.querySelectorAll('tbody tr');
+        var visible = 0;
+        rows.forEach(function (tr) {
+            var catCell = tr.cells[1] ? tr.cells[1].textContent.trim() : '';
+            var show = !cat || catCell === cat;
+            tr.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        _svcUpdateCount(wrap, visible, rows.length);
+    };
+
+    function showColHelp(key) {
+        var titleEl  = document.getElementById('col-help-modal-title');
+        var bodyEl   = document.getElementById('col-help-modal-body');
+        var template = document.getElementById('colhelp-' + key);
+        if (!template || !titleEl || !bodyEl) return;
+        titleEl.textContent = COL_HELP_TITLES[key] || key;
+        bodyEl.innerHTML    = template.innerHTML;
+        // Widen modal for catalogs with tables
+        var dlg = document.querySelector('#col-help-modal .modal-dialog');
+        if (dlg) {
+            if (COL_HELP_WIDE_KEYS.indexOf(key) !== -1) {
+                dlg.classList.add('modal-lg');
+            } else {
+                dlg.classList.remove('modal-lg');
+            }
+        }
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('col-help-modal')).show();
+    }
+
+    // Inicializar tooltips + delegar clicks en encabezados
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+            new bootstrap.Tooltip(el, { trigger: 'hover', boundary: 'window' });
+        });
+        document.addEventListener('click', function (e) {
+            var th = e.target.closest('th[data-col-help]');
+            if (!th) return;
+            showColHelp(th.getAttribute('data-col-help'));
+        });
+    });
+</script>
+
+<!-- ====== Conciliación Admin Module ====== -->
+<script>
+window.opsFlightsAdmin = (function () {
+    'use strict';
+
+    var adminData = [];
+    var adminFilters = {};
+
+    function getEl(id) { return document.getElementById(id); }
+
+    function updateBadge() {
+        var badge = getEl('admin-flight-count-badge');
+        if (!badge) return;
+        badge.textContent = adminData.length + ' vuelo' + (adminData.length !== 1 ? 's' : '');
+        badge.style.display = adminData.length > 0 ? '' : 'none';
+    }
+
+    function showStatus(msg, type) {
+        var el = getEl('admin-status-msg');
+        if (!el) return;
+        el.className = 'alert alert-' + (type || 'info') + ' py-2 px-3 small mb-2';
+        el.textContent = msg;
+        el.classList.remove('d-none');
+        clearTimeout(el._hideTimer);
+        el._hideTimer = setTimeout(function () { el.classList.add('d-none'); }, 5000);
+    }
+
+    function updateDeleteBtn() {
+        var checkboxes = document.querySelectorAll('.admin-row-chk:checked');
+        var btn = getEl('btn-delete-admin-selected');
+        var countEl = getEl('admin-selected-count');
+        var count = checkboxes.length;
+        if (!btn || !countEl) return;
+        countEl.textContent = count;
+        btn.classList.toggle('d-none', count === 0);
+    }
+
+    function toggleSelectAll(checked) {
+        document.querySelectorAll('.admin-row-chk').forEach(function (chk) { chk.checked = checked; });
+        updateDeleteBtn();
+    }
+
+    function escHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function renderTable() {
+        var tbody = getEl('tbody-admin-flights-csv');
+        if (!tbody) return;
+
+        // Reset select-all checkbox
+        var selAll = getEl('admin-select-all');
+        if (selAll) selAll.checked = false;
+
+        if (adminData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="25" class="text-muted py-4">No se encontraron vuelos para el rango seleccionado.</td></tr>';
+            updateDeleteBtn();
+            return;
+        }
+
+        var rows = adminData.map(function (row) {
+            var id = row.id;
+            var v = function (field) { return escHtml(row[field]); };
+            return (
+                '<tr data-admin-id="' + id + '">' +
+                '<td style="background:#fff5f5"><input type="checkbox" class="form-check-input admin-row-chk" data-id="' + id + '" onchange="window.opsFlightsAdmin.updateDeleteBtn()"></td>' +
+                '<td>' + v('Status') + '</td>' +
+                '<td>' + v('[Arr] Airline code') + '</td>' +
+                '<td>' + v('[Arr] Flight Designator') + '</td>' +
+                '<td>' + v('[Arr] ALDT') + '</td>' +
+                '<td>' + v('[Arr] SIBT') + '</td>' +
+                '<td>' + v('[Arr] AIBT') + '</td>' +
+                '<td>' + v('[Arr] Stand') + '</td>' +
+                '<td>' + v('[Arr] Gates') + '</td>' +
+                '<td>' + v('[Arr] Boarded') + '</td>' +
+                '<td>' + v('[Arr] Service Type') + '</td>' +
+                '<td>' + v('Routing') + '</td>' +
+                '<td>' + v('[Dep] Service Type') + '</td>' +
+                '<td>' + v('Aircraft type') + '</td>' +
+                '<td>' + v('Registration') + '</td>' +
+                '<td>' + v('[Dep] Airline code') + '</td>' +
+                '<td>' + v('[Dep] Flight Designator') + '</td>' +
+                '<td>' + v('[Dep] Stand') + '</td>' +
+                '<td>' + v('[Dep] Gates') + '</td>' +
+                '<td>' + v('[Dep] Boarded') + '</td>' +
+                '<td>' + v('[Dep] SOBT') + '</td>' +
+                '<td>' + v('[Dep] AOBT') + '</td>' +
+                '<td>' + v('[Dep] ATOT') + '</td>' +
+                '<td>' + v('[Dep] ATTT') + '</td>' +
+                '<td style="background:#fff0f0;border-left:2px solid #f5c6c6">' +
+                '<button class="btn btn-danger btn-sm py-0 px-2" onclick="window.opsFlightsAdmin.deleteById(' + id + ')" aria-label="Eliminar vuelo" title="Eliminar vuelo"><i class="fas fa-trash-alt" aria-hidden="true"></i></button>' +
+                '</td>' +
+                '</tr>'
+            );
+        });
+        tbody.innerHTML = rows.join('');
+
+        // Attach inline filter listeners
+        document.querySelectorAll('#table-admin-flights-csv thead input[data-admin-field]').forEach(function (inp) {
+            inp.oninput = function () {
+                adminFilters[this.getAttribute('data-admin-field')] = this.value.trim().toLowerCase();
+                applyAdminFilters();
+            };
+        });
+
+        updateDeleteBtn();
+        updateBadge();
+        buildDaySummary();
+    }
+
+    function applyAdminFilters() {
+        var dateEl = getEl('admin-delete-date');
+        var dayPrefix = dateEl && dateEl.value ? isoToAirportDay(dateEl.value) : '';
+        var rows = document.querySelectorAll('#tbody-admin-flights-csv tr[data-admin-id]');
+        var visibleCount = 0;
+        rows.forEach(function (tr) {
+            var id = parseInt(tr.getAttribute('data-admin-id'), 10);
+            var row = adminData.find(function (r) { return r.id === id; });
+            if (!row) { tr.style.display = ''; return; }
+            // Text filter pass
+            var pass = Object.keys(adminFilters).every(function (field) {
+                var q = adminFilters[field];
+                if (!q) return true;
+                var val = row[field];
+                return val !== null && val !== undefined && String(val).toLowerCase().includes(q);
+            });
+            // Day filter pass
+            if (pass && dayPrefix) {
+                pass = rowMatchesDay(row, dayPrefix);
+            }
+            tr.style.display = pass ? '' : 'none';
+            if (pass) visibleCount++;
+        });
+        // Update badge with filtered count
+        var badge = getEl('admin-flight-count-badge');
+        if (badge) {
+            badge.textContent = visibleCount + ' vuelo' + (visibleCount !== 1 ? 's' : '') + (dayPrefix ? ' (' + dayPrefix + ')' : '');
+            badge.style.display = visibleCount > 0 ? '' : 'none';
+        }
+    }
+
+    function filterByDeleteDate() {
+        applyAdminFilters();
+        buildDaySummary();
+    }
+
+    // Convert airport day prefix "15FEB" ? ISO date string "2026-02-15"
+    function dayPrefixToISO(prefix) {
+        var MONTH_IDX = {JAN:1,FEB:2,MAR:3,APR:4,MAY:5,JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12};
+        var m = String(prefix).toUpperCase().match(/^(\d{2})([A-Z]{3})$/);
+        if (!m) return '';
+        var day = parseInt(m[1], 10);
+        var month = MONTH_IDX[m[2]];
+        if (!month) return '';
+        var year = new Date().getFullYear();
+        // If resulting date is more than 60 days in the future, use prior year
+        var candidate = new Date(year, month - 1, day);
+        if ((candidate - new Date()) > 60 * 86400000) year--;
+        return year + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+    }
+
+    function collectDayPrefixes() {
+        var FIELDS = ['[Arr] ALDT','[Arr] SIBT','[Arr] AIBT','[Dep] SOBT','[Dep] AOBT','[Dep] ATOT'];
+        var set = new Set();
+        adminData.forEach(function (row) {
+            FIELDS.forEach(function (f) {
+                var v = String(row[f] || '').trim().toUpperCase();
+                var match = v.match(/^(\d{2}[A-Z]{3})/);
+                if (match) set.add(match[1]);
+            });
+        });
+        return Array.from(set).sort(function (a, b) {
+            return (dayPrefixToISO(a) || a).localeCompare(dayPrefixToISO(b) || b);
+        });
+    }
+
+    function buildDaySummary() {
+        var grid = getEl('admin-days-grid');
+        if (!grid) return;
+        if (adminData.length === 0) {
+            grid.innerHTML = '<p class="text-muted small mb-0">No hay datos cargados.</p>';
+            return;
+        }
+        var days = collectDayPrefixes();
+        var activeDateEl = getEl('admin-delete-date');
+        var activeISO = activeDateEl ? activeDateEl.value : '';
+        var html = '<div class="d-flex flex-wrap gap-2 align-items-start">';
+        // "Todos" chip
+        html += '<button class="btn btn-sm ' + (activeISO ? 'btn-outline-secondary' : 'btn-primary') + ' py-1" '
+              + 'onclick="window.opsFlightsAdmin.clearDayFilter()" '
+              + 'style="min-width:80px;text-align:center;border-radius:10px">'
+              + '<div style="font-size:.68rem;opacity:.7;letter-spacing:.05em">TODOS</div>'
+              + '<div style="font-size:1.15rem;font-weight:800;line-height:1.1">' + adminData.length + '</div>'
+              + '<div style="font-size:.7rem">vuelos</div>'
+              + '</button>';
+        days.forEach(function (prefix) {
+            var iso  = dayPrefixToISO(prefix);
+            var isActive = iso && iso === activeISO;
+            var day  = prefix.slice(0, 2);
+            var mon  = prefix.slice(2);
+            var count = adminData.filter(function (r) { return rowMatchesDay(r, prefix); }).length;
+            html += '<button class="btn btn-sm ' + (isActive ? 'btn-primary shadow' : 'btn-outline-primary') + ' py-1" '
+                  + 'onclick="window.opsFlightsAdmin.filterToDay(\'' + prefix + '\')" '
+                  + 'style="min-width:90px;text-align:center;border-radius:10px" '
+                  + 'title="' + count + ' vuelos el ' + prefix + '">'
+                  + '<div style="font-size:.68rem;text-transform:uppercase;opacity:.7;letter-spacing:.05em">' + mon + '</div>'
+                  + '<div style="font-size:1.4rem;font-weight:800;line-height:1.1">' + day + '</div>'
+                  + '<div style="font-size:.75rem;font-weight:600">' + count + ' <i class=\'fas fa-plane\' style=\'font-size:.6rem\'></i></div>'
+                  + '</button>';
+        });
+        html += '</div>';
+        grid.innerHTML = html;
+    }
+
+    function filterToDay(prefix) {
+        var iso = dayPrefixToISO(prefix);
+        var dateEl = getEl('admin-delete-date');
+        if (dateEl && iso) dateEl.value = iso;
+        applyAdminFilters();
+        buildDaySummary();
+    }
+
+    function clearDayFilter() {
+        var dateEl = getEl('admin-delete-date');
+        if (dateEl) dateEl.value = '';
+        applyAdminFilters();
+        buildDaySummary();
+    }
+    function isoToAirportDay(iso) {
+        if (!iso) return '';
+        var MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+        var d = new Date(iso + 'T00:00:00');
+        return String(d.getDate()).padStart(2,'0') + MONTHS[d.getMonth()];
+    }
+
+    // Check if any time field in row contains dayPrefix (e.g. "15FEB")
+    function rowMatchesDay(row, dayPrefix) {
+        var fields = ['[Arr] ALDT','[Arr] SIBT','[Arr] AIBT','[Dep] SOBT','[Dep] AOBT','[Dep] ATOT'];
+        return fields.some(function (f) {
+            var v = row[f];
+            return v && String(v).toUpperCase().startsWith(dayPrefix);
+        });
+    }
+
+    async function loadData() {
+        var tbody = getEl('tbody-admin-flights-csv');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="25" class="text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Cargando…</td></tr>';
+
+        try {
+            var sb = window.supabaseClient;
+            if (!sb) throw new Error('Supabase no disponible');
+
+            var result = await sb.from('vuelos_parte_operaciones_csv').select('*').order('id', { ascending: true });
+            if (result.error) throw result.error;
+
+            adminData = result.data || [];
+            adminFilters = {};
+            document.querySelectorAll('#table-admin-flights-csv thead input[data-admin-field]').forEach(function (inp) { inp.value = ''; });
+
+            renderTable();
+            showStatus('Cargados ' + adminData.length + ' registro(s).', 'success');
+        } catch (e) {
+            adminData = [];
+            updateBadge();
+            if (tbody) tbody.innerHTML = '<tr><td colspan="25" class="text-danger py-3"><i class="fas fa-exclamation-triangle me-2"></i>Error al cargar: ' + escHtml(e.message || String(e)) + '</td></tr>';
+        }
+    }
+
+    async function deleteByDate() {
+        var dateEl = getEl('admin-delete-date');
+        var date = dateEl ? dateEl.value : '';
+        if (!date) {
+            showStatus('Elige una fecha en el campo "Eliminar día".', 'warning');
+            return;
+        }
+        var dayPrefix = isoToAirportDay(date); // e.g. "15FEB"
+        var vuelos = adminData.filter(function (r) { return rowMatchesDay(r, dayPrefix); });
+        if (vuelos.length === 0) {
+            showStatus('No se encontraron vuelos del día ' + date + ' (' + dayPrefix + ') en los datos cargados.', 'warning');
+            return;
+        }
+        var ids = vuelos.map(function (r) { return r.id; });
+        var ok = confirm('¿Eliminar TODOS los vuelos del día ' + date + ' (' + dayPrefix + ')?' +
+            '\n' + vuelos.length + ' registro(s) serán eliminados.' +
+            '\n\nEsta acción NO se puede deshacer.');
+        if (!ok) return;
+        try {
+            var sb = window.supabaseClient;
+            var result = await sb.from('vuelos_parte_operaciones_csv').delete().in('id', ids);
+            if (result.error) throw result.error;
+            showStatus('Vuelos del día ' + dayPrefix + ' eliminados correctamente (' + ids.length + ' registros).', 'success');
+            adminData = adminData.filter(function (r) { return !ids.includes(r.id); });
+            renderTable();
+        } catch (e) {
+            showStatus('Error al eliminar: ' + (e.message || e), 'danger');
+        }
+    }
+
+    // Returns all rows whose canonical date (first SOBT/SIBT value parsed) falls in [startISO, endISO]
+    function rowsInRange(startISO, endISO) {
+        var start = new Date(startISO + 'T00:00:00');
+        var end   = new Date(endISO   + 'T23:59:59');
+        var MONTHS = {JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11};
+        var TIME_FIELDS = ['[Dep] SOBT','[Arr] SIBT','[Arr] ALDT','[Arr] AIBT','[Dep] AOBT','[Dep] ATOT'];
+        var year = start.getFullYear();
+
+        function parseField(val) {
+            if (!val) return null;
+            var m = String(val).trim().toUpperCase().match(/(\d{2})([A-Z]{3})\s+(\d{2}):(\d{2})/);
+            if (!m) return null;
+            var mon = MONTHS[m[2]];
+            if (mon === undefined) return null;
+            return new Date(year, mon, parseInt(m[1],10), parseInt(m[3],10), parseInt(m[4],10));
+        }
+
+        return adminData.filter(function (row) {
+            // Include row if ANY time field falls within the range
+            return TIME_FIELDS.some(function (f) {
+                var dt = parseField(row[f]);
+                if (!dt) return false;
+                return dt >= start && dt <= end;
+            });
+        });
+    }
+
+    function previewRange() {
+        var s = getEl('admin-range-start');
+        var e = getEl('admin-range-end');
+        var badge = getEl('admin-range-preview');
+        if (!s || !e || !badge) return;
+        var startVal = s.value;
+        var endVal   = e.value;
+        if (!startVal || !endVal) {
+            badge.classList.add('d-none');
+            return;
+        }
+        if (endVal < startVal) {
+            badge.textContent = 'Fin anterior al inicio';
+            badge.className = 'badge bg-danger text-white';
+            return;
+        }
+        var count = rowsInRange(startVal, endVal).length;
+        badge.textContent = count + ' vuelo' + (count !== 1 ? 's' : '') + ' en rango';
+        badge.className = 'badge ' + (count > 0 ? 'bg-warning text-dark' : 'bg-secondary text-white');
+    }
+
+    async function deleteByRange() {
+        var startEl = getEl('admin-range-start');
+        var endEl   = getEl('admin-range-end');
+        var startVal = startEl ? startEl.value : '';
+        var endVal   = endEl   ? endEl.value   : '';
+        if (!startVal || !endVal) {
+            showStatus('Selecciona fecha de inicio y fin del rango.', 'warning');
+            return;
+        }
+        if (endVal < startVal) {
+            showStatus('La fecha de fin debe ser igual o posterior a la de inicio.', 'warning');
+            return;
+        }
+        var vuelos = rowsInRange(startVal, endVal);
+        if (vuelos.length === 0) {
+            showStatus('No se encontraron vuelos en el rango ' + startVal + ' — ' + endVal + '.', 'warning');
+            return;
+        }
+        var startPfx = isoToAirportDay(startVal);
+        var endPfx   = isoToAirportDay(endVal);
+        var ok = confirm('¿Eliminar TODOS los vuelos del ' + startPfx + ' al ' + endPfx + '?\n' +
+            vuelos.length + ' registro(s) serán eliminados.\n\nEsta acción NO se puede deshacer.');
+        if (!ok) return;
+        var ids = vuelos.map(function (r) { return r.id; });
+        try {
+            var sb = window.supabaseClient;
+            var result = await sb.from('vuelos_parte_operaciones_csv').delete().in('id', ids);
+            if (result.error) throw result.error;
+            showStatus('Eliminados ' + ids.length + ' vuelo(s) del rango ' + startPfx + ' — ' + endPfx + '.', 'success');
+            adminData = adminData.filter(function (r) { return !ids.includes(r.id); });
+            var badge = getEl('admin-range-preview');
+            if (badge) badge.classList.add('d-none');
+            renderTable();
+            buildDaySummary();
+        } catch (e) {
+            showStatus('Error al eliminar: ' + (e.message || e), 'danger');
+        }
+    }
+
+    async function deleteById(id) {
+        var ok = confirm('¿Eliminar este vuelo (ID: ' + id + ')?\n\nEsta acción NO se puede deshacer.');
+        if (!ok) return;
+        try {
+            var sb = window.supabaseClient;
+            var result = await sb.from('vuelos_parte_operaciones_csv').delete().eq('id', id);
+            if (result.error) throw result.error;
+            adminData = adminData.filter(function (r) { return r.id !== id; });
+            renderTable();
+            showStatus('Vuelo eliminado.', 'success');
+        } catch (e) {
+            showStatus('Error al eliminar: ' + (e.message || e), 'danger');
+        }
+    }
+
+    async function deleteSelected() {
+        var checkboxes = document.querySelectorAll('.admin-row-chk:checked');
+        if (checkboxes.length === 0) return;
+        var ids = Array.from(checkboxes).map(function (chk) { return parseInt(chk.getAttribute('data-id'), 10); });
+        var ok = confirm('¿Eliminar ' + ids.length + ' vuelo(s) seleccionado(s)?\n\nEsta acción NO se puede deshacer.');
+        if (!ok) return;
+        try {
+            var sb = window.supabaseClient;
+            var result = await sb.from('vuelos_parte_operaciones_csv').delete().in('id', ids);
+            if (result.error) throw result.error;
+            adminData = adminData.filter(function (r) { return !ids.includes(r.id); });
+            renderTable();
+            showStatus('Se eliminaron ' + ids.length + ' vuelo(s).', 'success');
+        } catch (e) {
+            showStatus('Error al eliminar: ' + (e.message || e), 'danger');
+        }
+    }
+
+    // Init: set default dates, wire tab activation
+    document.addEventListener('DOMContentLoaded', function () {
+        var today    = new Date();
+        var fmt = function (d) { return d.toISOString().slice(0, 10); };
+
+        var ddEl = getEl('admin-delete-date');
+        if (ddEl) ddEl.value = fmt(today);
+
+        // Load data automatically when tab is first activated
+        var tabBtn = getEl('tab-conciliacion-admin');
+        if (tabBtn) {
+            var loaded = false;
+            tabBtn.addEventListener('shown.bs.tab', function () {
+                if (!loaded) { loaded = true; loadData(); }
+            });
+        }
+    });
+
+    return {
+        loadData:           loadData,
+        deleteByDate:       deleteByDate,
+        deleteByRange:      deleteByRange,
+        previewRange:       previewRange,
+        deleteById:         deleteById,
+        deleteSelected:     deleteSelected,
+        toggleSelectAll:    toggleSelectAll,
+        updateDeleteBtn:    updateDeleteBtn,
+        filterToDay:        filterToDay,
+        clearDayFilter:     clearDayFilter
+    };
+})();
+</script>
+<script src="js/frecuencias-estadisticas.js"></script>
+
+<script>
+/* ============================================================
+   Módulo Aeropuertos – carga desde tabla "Aeropuertos" en Supabase
+   ============================================================ */
+window.AeropuertosModule = (function () {
+    var allData = [];
+
+    function esc(v) {
+        if (!v) return '';
+        return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function render(rows) {
+        var tbody = document.getElementById('tbody-aeropuertos');
+        var footer = document.getElementById('aeropuertos-footer');
+        if (!tbody) return;
+        if (!rows || rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-muted py-4 text-center">No se encontraron registros.</td></tr>';
+            if (footer) footer.textContent = '';
+            return;
+        }
+        tbody.innerHTML = rows.map(function (r) {
+            return '<tr>' +
+                '<td><span class="badge bg-secondary">' + esc(r.iata) + '</span></td>' +
+                '<td class="text-muted small">' + esc(r.icao) + '</td>' +
+                '<td>' + esc(r.nombre) + '</td>' +
+                '<td>' + esc(r.pais) + '</td>' +
+                '<td>' + esc(r.ciudad) + '</td>' +
+                '<td>' + (r.tipo ? '<span class="badge ' + (r.tipo === 'Domestic' ? 'bg-info text-dark' : 'bg-primary') + '">' + esc(r.tipo) + '</span>' : '') + '</td>' +
+                '</tr>';
+        }).join('');
+        if (footer) footer.textContent = rows.length + ' aeropuerto(s) mostrado(s)' + (rows.length < allData.length ? ' de ' + allData.length + ' en total' : '') + '.';
+    }
+
+    function filter() {
+        var q = (document.getElementById('aeropuertos-search') || {}).value || '';
+        q = q.toLowerCase().trim();
+        if (!q) { render(allData); return; }
+        var filtered = allData.filter(function (r) {
+            return ['iata','icao','nombre','pais','ciudad','tipo'].some(function (k) {
+                return r[k] && String(r[k]).toLowerCase().includes(q);
+            });
+        });
+        render(filtered);
+    }
+
+    async function load() {
+        var tbody = document.getElementById('tbody-aeropuertos');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-muted py-4 text-center"><i class="fas fa-spinner fa-spin me-2"></i>Cargando aeropuertos...</td></tr>';
+        try {
+            var sb = window.supabaseClient;
+            if (!sb) throw new Error('Supabase no disponible');
+            var result = await sb.from('aeropuertos').select('*').order('iata', { ascending: true });
+            if (result.error) throw result.error;
+            allData = result.data || [];
+            filter();
+        } catch (e) {
+            allData = [];
+            if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-danger py-3 text-center"><i class="fas fa-exclamation-triangle me-2"></i>Error al cargar: ' + esc(e.message || String(e)) + '</td></tr>';
+        }
+    }
+
+    // Auto-cargar cuando se activa la pestaña
+    document.addEventListener('DOMContentLoaded', function () {
+        var btn = document.getElementById('tab-aeropuertos');
+        if (btn) {
+            var loaded = false;
+            btn.addEventListener('shown.bs.tab', function () {
+                if (!loaded) { loaded = true; load(); }
+            });
+        }
+    });
+
+    return { load: load, filter: filter };
+})();
+</script>
+<script>
+(function () {
+    var criticalImageSelector = '#login-bg-img, .login-logo, .aifa-logo, .header-logo, .gob-logo';
+
+    function optimizeMediaLoading() {
+        var criticalImages = new Set(document.querySelectorAll(criticalImageSelector));
+
+        document.querySelectorAll('img').forEach(function (img) {
+            if (!img.hasAttribute('decoding')) {
+                img.setAttribute('decoding', 'async');
+            }
+
+            if (criticalImages.has(img)) {
+                if (!img.hasAttribute('loading')) {
+                    img.setAttribute('loading', 'eager');
+                }
+                return;
+            }
+
+            if (!img.hasAttribute('loading')) {
+                img.setAttribute('loading', 'lazy');
+            }
+        });
+
+        document.querySelectorAll('iframe').forEach(function (frame) {
+            if (!frame.hasAttribute('loading')) {
+                frame.setAttribute('loading', 'lazy');
+            }
+        });
+
+        document.querySelectorAll('video:not([autoplay])').forEach(function (video) {
+            if (!video.hasAttribute('preload')) {
+                video.setAttribute('preload', 'metadata');
+            }
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', optimizeMediaLoading, { once: true });
+    } else {
+        optimizeMediaLoading();
+    }
+})();
+</script>
+<script>
+(function () {
+    var VERSION_ENDPOINT = '/api/app-version';
+    var GITHUB_REPO_OWNER = 'isaacazhael161f-creator';
+    var GITHUB_REPO_NAME = 'AIFA-OPERACIONES';
+    var GITHUB_BRANCH = 'main';
+    var GITHUB_COMMIT_ENDPOINT = 'https://api.github.com/repos/' + GITHUB_REPO_OWNER + '/' + GITHUB_REPO_NAME + '/commits/' + GITHUB_BRANCH;
+    var STORAGE_KEY = 'aifa_app_version_token';
+    var CHECK_INTERVAL_MS = 60000;
+    var REMOTE_VERSION_THROTTLE_MS = 180000;
+    var isChecking = false;
+    var currentVersion = null;
+    var pendingVersion = null;
+    var apiUnavailableCount = 0;
+    var currentHtmlHash = null;
+    var switchedToNodeHost = false;
+    var lastRemoteVersionFetchAt = 0;
+
+    function readStoredVersion() {
+        try {
+            return localStorage.getItem(STORAGE_KEY);
+        } catch (err) {
+            return null;
+        }
+    }
+
+    function writeStoredVersion(value) {
+        try {
+            localStorage.setItem(STORAGE_KEY, value);
+        } catch (err) {
+            // Ignore storage errors (private mode/quota) and keep runtime fallback.
+        }
+    }
+
+    function isGitHubPagesHost() {
+        return /\.github\.io$/i.test(window.location.hostname || '');
+    }
+
+    function hashText(value) {
+        var hash = 0;
+        if (!value) return '0';
+        for (var i = 0; i < value.length; i += 1) {
+            hash = ((hash << 5) - hash) + value.charCodeAt(i);
+            hash |= 0;
+        }
+        return (hash >>> 0).toString(16);
+    }
+
+    function isUserEditing() {
+        var active = document.activeElement;
+        if (!active || !active.tagName) return false;
+        var tag = active.tagName.toLowerCase();
+        return tag === 'input' || tag === 'textarea' || tag === 'select';
+    }
+
+    function buildReloadUrl(versionToken) {
+        var url = new URL(window.location.href);
+        url.searchParams.set('appv', versionToken);
+        return url.toString();
+    }
+
+    function buildNoCacheUrl(urlLike, tokenName) {
+        var url = new URL(urlLike, window.location.href);
+        url.searchParams.set(tokenName || '_', Date.now().toString());
+        return url.toString();
+    }
+
+    function reloadToLatest(versionToken) {
+        writeStoredVersion(versionToken);
+        currentVersion = versionToken;
+        window.location.replace(buildReloadUrl(versionToken));
+    }
+
+    async function fetchLatestVersion() {
+        try {
+            var response = await fetch(buildNoCacheUrl(VERSION_ENDPOINT, '_'), {
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache' }
+            });
+            if (!response.ok) return null;
+
+            var payload = await response.json().catch(function () {
+                return null;
+            });
+            return payload && payload.version ? String(payload.version) : null;
+        } catch (err) {
+            return null;
+        }
+    }
+
+    async function fetchLatestGitHubVersion() {
+        if (!isGitHubPagesHost()) return null;
+
+        var now = Date.now();
+        if ((now - lastRemoteVersionFetchAt) < REMOTE_VERSION_THROTTLE_MS) {
+            return null;
+        }
+        lastRemoteVersionFetchAt = now;
+
+        try {
+            var response = await fetch(buildNoCacheUrl(GITHUB_COMMIT_ENDPOINT, '__ghv'), {
+                cache: 'no-store',
+                headers: {
+                    'Accept': 'application/vnd.github+json',
+                    'Cache-Control': 'no-cache'
+                }
+            });
+            if (!response.ok) return null;
+
+            var payload = await response.json().catch(function () {
+                return null;
+            });
+            if (!payload || !payload.sha) return null;
+
+            return String(payload.sha).slice(0, 16);
+        } catch (err) {
+            return null;
+        }
+    }
+
+    async function fetchCurrentIndexHash() {
+        try {
+            var pageUrl = new URL(window.location.href);
+            var response = await fetch(buildNoCacheUrl(pageUrl.toString(), '__indexv'), {
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache' }
+            });
+            if (!response.ok) return null;
+            var html = await response.text();
+            return hashText(html);
+        } catch (err) {
+            return null;
+        }
+    }
+
+    async function ensureIndexHashBaseline() {
+        if (currentHtmlHash) return;
+        currentHtmlHash = await fetchCurrentIndexHash();
+        if (!currentHtmlHash) {
+            currentHtmlHash = hashText(document.documentElement ? document.documentElement.outerHTML : '');
+        }
+    }
+
+    async function maybeSwitchToNodeServer() {
+        if (switchedToNodeHost) return false;
+        if (window.location.hostname !== 'localhost') return false;
+        if (window.location.port && window.location.port !== '3000') return false;
+
+        try {
+            var response = await fetch(buildNoCacheUrl('http://127.0.0.1:3000/api/app-version', '__switch'), {
+                cache: 'no-store',
+                mode: 'cors',
+                headers: { 'Cache-Control': 'no-cache' }
+            });
+            if (!response.ok) return false;
+
+            var payload = await response.json().catch(function () {
+                return null;
+            });
+            if (!payload || !payload.version) return false;
+
+            switchedToNodeHost = true;
+            var target = new URL(window.location.href);
+            target.hostname = '127.0.0.1';
+            target.port = '3000';
+            target.searchParams.set('appv', String(payload.version));
+            window.location.replace(target.toString());
+            return true;
+        } catch (err) {
+            return false;
+        }
+    }
+
+    async function checkForAppUpdates() {
+        if (isChecking) return;
+        isChecking = true;
+
+        try {
+            var latest = await fetchLatestVersion();
+            if (!latest) {
+                latest = await fetchLatestGitHubVersion();
+            }
+
+            if (latest) {
+                apiUnavailableCount = 0;
+
+                var baseline = currentVersion || readStoredVersion();
+                if (!baseline) {
+                    currentVersion = latest;
+                    writeStoredVersion(latest);
+                    return;
+                }
+
+                if (baseline !== latest) {
+                    pendingVersion = latest;
+
+                    if (document.visibilityState !== 'visible' || !isUserEditing()) {
+                        reloadToLatest(latest);
+                    }
+                }
+                return;
+            }
+
+            apiUnavailableCount += 1;
+            if (apiUnavailableCount >= 2) {
+                var switched = await maybeSwitchToNodeServer();
+                if (switched) return;
+            }
+
+            await ensureIndexHashBaseline();
+            var latestHash = await fetchCurrentIndexHash();
+            if (!latestHash || !currentHtmlHash) {
+                return;
+            }
+
+            if (latestHash !== currentHtmlHash) {
+                pendingVersion = latestHash;
+
+                if (document.visibilityState !== 'visible' || !isUserEditing()) {
+                    reloadToLatest(latestHash);
+                }
+            }
+        } catch (err) {
+            console.warn('App version check failed:', err);
+        } finally {
+            isChecking = false;
+        }
+    }
+
+    function flushPendingUpdate() {
+        if (!pendingVersion) return;
+        if (isUserEditing()) return;
+
+        var nextVersion = pendingVersion;
+        pendingVersion = null;
+        reloadToLatest(nextVersion);
+    }
+
+    checkForAppUpdates();
+    setInterval(checkForAppUpdates, CHECK_INTERVAL_MS);
+
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') {
+            checkForAppUpdates();
+            flushPendingUpdate();
+        }
+    });
+
+    window.addEventListener('focus', function () {
+        checkForAppUpdates();
+        flushPendingUpdate();
+    });
+})();
+</script>
+
+<!-- -- MODAL: IMPORTAR DEMORAS (body-level, fuera de todo contenedor) -- -->
+<div class="modal fade" id="demoras-upload-modal" tabindex="-1" aria-labelledby="du-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background:linear-gradient(135deg,#064e3b,#065f46);color:#fff">
+                <h5 class="modal-title fw-bold" id="du-modal-label">
+                    <i class="fas fa-file-upload me-2"></i>Importar Demoras Mensuales
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-3">
+                    Sube el archivo Excel mensual de Demoras. El sistema detectará automáticamente la hoja de datos,
+                    mapeará las columnas y actualizará la base de datos en Supabase.
+                    Si ya existen datos para ese mes/año, serán reemplazados.
+                </p>
+                <!-- Drop Zone -->
+                <div id="du-drop-zone"
+                    class="border border-2 border-dashed rounded-3 p-4 text-center"
+                    style="border-color:#a7f3d0!important;background:#f0fdf4;cursor:pointer;transition:background .2s">
+                    <i class="fas fa-cloud-upload-alt fa-2x text-success mb-2"></i>
+                    <div class="fw-semibold text-success">Arrastra aquí el archivo .xlsx</div>
+                    <div class="text-muted small mt-1">o haz click para seleccionar</div>
+                    <div class="text-muted small mt-2 fw-semibold" id="du-file-label">Ningún archivo seleccionado</div>
+                    <input type="file" id="du-file-input" accept=".xlsx,.xls" class="d-none">
+                </div>
+                <style>#du-drop-zone.drag-over{background:#d1fae5!important;border-color:#059669!important;}</style>
+                <!-- Status -->
+                <div id="du-status" class="mt-3"></div>
+                <!-- Preview -->
+                <div id="du-preview"></div>
+                <!-- Barra de progreso -->
+                <div id="du-progress-wrap" class="mt-3 d-none">
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span>Progreso de importación</span>
+                    </div>
+                    <div class="progress" style="height:22px;border-radius:8px">
+                        <div id="du-progress-bar"
+                            class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                            role="progressbar" style="width:0%;transition:width .3s;font-size:.75rem">
+                            0%
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top pt-3">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cerrar
+                </button>
+                <button type="button" id="du-btn-import" class="btn btn-success" disabled>
+                    <i class="fas fa-database me-1"></i>Importar a Supabase
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- /MODAL IMPORTAR DEMORAS -->
+
+<!-- -- MODAL: IMPORTAR MANIFIESTOS -- -->
+<div class="modal fade" id="manifiestos-upload-modal" tabindex="-1" aria-labelledby="mu-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background:linear-gradient(135deg,#1e3a8a,#1d4ed8);color:#fff">
+                <h5 class="modal-title fw-bold" id="mu-modal-label">
+                    <i class="fas fa-file-upload me-2"></i>Importar Manifiestos · Nuevo mes
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-3">
+                    Sube el archivo Excel mensual de Manifiestos. El sistema detectará automáticamente
+                    el mes y año desde la columna <strong>FECHA</strong>, eliminar… los registros previos
+                    de ese mes e insertar… los nuevos. Los datos de otros meses no se tocan.
+                </p>
+                <!-- Drop Zone -->
+                <div id="mu-drop-zone"
+                    class="border border-2 border-dashed rounded-3 p-4 text-center"
+                    style="border-color:#93c5fd!important;background:#eff6ff;cursor:pointer;transition:background .2s">
+                    <i class="fas fa-cloud-upload-alt fa-2x text-primary mb-2"></i>
+                    <div class="fw-semibold text-primary">Arrastra aquí el archivo .xlsx</div>
+                    <div class="text-muted small mt-1">o haz click para seleccionar</div>
+                    <div class="text-muted small mt-2 fw-semibold" id="mu-file-label">Ningún archivo seleccionado</div>
+                    <input type="file" id="mu-file-input" accept=".xlsx,.xls" class="d-none">
+                </div>
+                <style>#mu-drop-zone.drag-over{background:#dbeafe!important;border-color:#2563eb!important;}</style>
+
+                <!-- Status -->
+                <div id="mu-status" class="mt-3"></div>
+                <!-- Preview -->
+                <div id="mu-preview"></div>
+                <!-- Barra de progreso -->
+                <div id="mu-progress-wrap" class="mt-3 d-none">
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span>Progreso de importación</span>
+                    </div>
+                    <div class="progress" style="height:22px;border-radius:8px">
+                        <div id="mu-progress-bar"
+                            class="progress-bar progress-bar-striped progress-bar-animated"
+                            role="progressbar" style="width:0%;transition:width .3s;font-size:.75rem;background:#1d4ed8">
+                            0%
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top pt-3">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cerrar
+                </button>
+                <button type="button" id="mu-btn-import" class="btn btn-primary" disabled>
+                    <i class="fas fa-database me-1"></i>Importar a Supabase
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- /MODAL IMPORTAR MANIFIESTOS -->
+
+<!-- -- MODAL: IMPORTAR MANIFIESTOS CARGA -- -->
+<div class="modal fade" id="manifiestos-carga-upload-modal" tabindex="-1" aria-labelledby="mcu-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background:linear-gradient(135deg,#4a148c,#6f42c1);color:#fff">
+                <h5 class="modal-title fw-bold" id="mcu-modal-label">
+                    <i class="fas fa-file-upload me-2"></i>Importar Manifiestos de Carga · Nuevo mes
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-3">
+                    Sube el archivo Excel mensual de Manifiestos de Carga. El sistema detectará automáticamente
+                    el mes y año desde la columna <strong>FECHA</strong>, mapear… todas las columnas y cargar…
+                    los datos a Supabase. <strong>La tabla de destino debe existir previamente en Supabase.</strong>
+                </p>
+                <!-- Drop Zone -->
+                <div id="mcu-drop-zone"
+                    class="border border-2 border-dashed rounded-3 p-4 text-center"
+                    style="border-color:#ce93d8!important;background:#f9f0ff;cursor:pointer;transition:background .2s">
+                    <i class="fas fa-cloud-upload-alt fa-2x mb-2" style="color:#6f42c1"></i>
+                    <div class="fw-semibold" style="color:#6f42c1">Arrastra aquí el archivo .xlsx</div>
+                    <div class="text-muted small mt-1">o haz click para seleccionar</div>
+                    <div class="text-muted small mt-2 fw-semibold" id="mcu-file-label">Ningún archivo seleccionado</div>
+                    <input type="file" id="mcu-file-input" accept=".xlsx,.xls" class="d-none">
+                </div>
+                <style>#mcu-drop-zone.drag-over{background:#ede7f6!important;border-color:#6f42c1!important;}</style>
+
+                <!-- Nombre de tabla destino -->
+                <div class="mt-3">
+                    <label for="mcu-table-name" class="form-label small fw-semibold text-secondary">
+                        <i class="fas fa-database me-1" style="color:#6f42c1"></i>Tabla destino en Supabase
+                    </label>
+                    <input type="text" id="mcu-table-name" class="form-control form-control-sm"
+                        placeholder="Ej: Base de Manifiestos Carga Abril 2026"
+                        style="border-color:#ce93d8;">
+                    <div class="form-text">Se completa automáticamente si se detecta el mes/año desde la columna FECHA o el nombre de la hoja.</div>
+                </div>
+
+                <!-- Status -->
+                <div id="mcu-status" class="mt-3"></div>
+                <!-- Preview -->
+                <div id="mcu-preview"></div>
+                <!-- Barra de progreso -->
+                <div id="mcu-progress-wrap" class="mt-3 d-none">
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span>Progreso de importación</span>
+                    </div>
+                    <div class="progress" style="height:22px;border-radius:8px">
+                        <div id="mcu-progress-bar"
+                            class="progress-bar progress-bar-striped progress-bar-animated"
+                            role="progressbar" style="width:0%;transition:width .3s;font-size:.75rem;background:#6f42c1">
+                            0%
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top pt-3">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cerrar
+                </button>
+                <button type="button" id="mcu-btn-import" class="btn" disabled
+                    style="background:#6f42c1;color:#fff;border-color:#6f42c1;">
+                    <i class="fas fa-database me-1"></i>Importar a Supabase
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- /MODAL IMPORTAR MANIFIESTOS CARGA -->
+
+<!-- -- MODAL: BORRAR MES DEMORAS -- -->
+<div class="modal fade" id="demoras-delete-modal" tabindex="-1" aria-labelledby="dd-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background:linear-gradient(135deg,#7f1d1d,#991b1b);color:#fff">
+                <h5 class="modal-title fw-bold" id="dd-modal-label">
+                    <i class="fas fa-trash-alt me-2"></i>Borrar registros del mes
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-danger py-2 mb-3 small">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    Esta acción <strong>eliminar… permanentemente</strong> todos los registros del mes seleccionado de la base de datos. No se puede deshacer.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small">Mes a borrar</label>
+                    <div class="d-flex gap-2">
+                        <select id="dd-sel-mes" class="form-select form-select-sm" style="max-width:160px">
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                        <input type="number" id="dd-inp-anio" class="form-control form-control-sm" style="max-width:90px" min="2020" max="2099" placeholder="Año">
+                    </div>
+                </div>
+                <div id="dd-count-info" class="text-muted small mb-1"></div>
+                <div id="dd-status" class="mt-2"></div>
+            </div>
+            <div class="modal-footer border-top pt-3">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="button" id="dd-btn-confirm" class="btn btn-danger" disabled>
+                    <i class="fas fa-trash-alt me-1"></i>Confirmar Borrado
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- /MODAL BORRAR MES DEMORAS -->
+
+<script src="js/notifications.js?v=1"></script>
+<script src="js/fids.js?v=1"></script>
+<script>
+/* -- Pestañas Análisis y Estadísticas de Frecuencias: solo usuario autorizado -- */
+/* -- Push Notifications: registro del Service Worker (solo producción) -- */
+
+(function registerPushSW() {
+    const isLocalHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname) || location.protocol === 'file:';
+    if (isLocalHost || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .then(reg => {
+            console.info('[AIFA] Service Worker registrado:', reg.scope);
+            /* Inicializar notificaciones una vez el SW esté listo */
+            if (typeof window.agNotificationsInit === 'function') window.agNotificationsInit();
+        })
+        .catch(err => console.warn('[AIFA] Error al registrar SW:', err));
+})();
+
+(function _frecAnalisisAccess() {
+    const ALLOWED_EMAIL = 'isaac.lopez@aifa.operaciones';
+    function _show() {
+        const liA = document.getElementById('frec-li-analisis');
+        const liE = document.getElementById('frec-li-estadisticas');
+        if (liA) liA.style.display = '';
+        if (liE) liE.style.display = '';
+    }
+    function _check() {
+        try {
+            const raw = sessionStorage.getItem('user');
+            const email = raw ? JSON.parse(raw)?.email : null;
+            if (email === ALLOWED_EMAIL) _show();
+        } catch (_) {}
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', _check);
+    } else {
+        _check();
+    }
+    window.addEventListener('storage', function(e) { if (e.key === 'user') _check(); });
+    window.addEventListener('aifa:login', _check);
+})();
+</script>
+
+<!-- --------------------------------------------------------------
+     BARRA DE AGENDA: Hoy / Mañana  —  siempre visible, sin click
+     -------------------------------------------------------------- -->
+<script>
+(function () {
+    'use strict';
+
+    function _sb() { return window.supabaseClient || window._supabase || null; }
+    /* Usar fecha local, NO UTC — evita desfase de zona horaria (ej. UTC-6 en México) */
+    function _toISO(d) {
+        return d.getFullYear() + '-' +
+               String(d.getMonth() + 1).padStart(2, '0') + '-' +
+               String(d.getDate()).padStart(2, '0');
+    }
+    function _fmtHora(t) { return t ? String(t).slice(0, 5) : ''; }
+
+    const DIAS  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    function _fmtDate(d) { return DIAS[d.getDay()] + ' ' + d.getDate() + ' ' + MESES[d.getMonth()]; }
+
+    const _FB = { bg:'#f1f5f9', color:'#475569', border:'#94a3b8' };
+    function _style(area) {
+        const ac = (typeof AG_AREA !== 'undefined' && area && AG_AREA[area]) || _FB;
+        return 'background:' + ac.bg + ';color:' + ac.color + ';border-color:' + ac.border;
+    }
+
+    /* Navega a Agenda y abre la pestaña Calendario General */
+    function _goToAgenda() {
+        try {
+            const link = document.querySelector('.menu-item[data-section="agenda"]');
+            if (typeof showSection === 'function') {
+                showSection('agenda', link);
+            } else if (link) {
+                link.click();
+            }
+            /* Abrir pestaña Calendario General */
+            setTimeout(function() {
+                const tab = document.getElementById('ag-tab-calendario');
+                if (tab) tab.click();
+            }, 300);
+        } catch (_) {}
+    }
+
+    function _chip(r, comitesMap) {
+        const c        = comitesMap[r.comite_id] || {};
+        const area     = r.area || c.area || '';
+        const areaName = (typeof AG_AREA !== 'undefined' && area && AG_AREA[area]) ? AG_AREA[area].name : area;
+        const label    = c.acronimo || (c.nombre ? c.nombre.slice(0, 18) : '') || ('ID ' + r.comite_id);
+        const fullName = c.nombre || label;
+        const hora     = _fmtHora(r.hora_inicio);
+        const sesion   = r.numero_sesion ? 'Sesión ' + r.numero_sesion : '';
+        const dateStr  = r.fecha_sesion; /* YYYY-MM-DD */
+        /* Build tooltip HTML lines */
+        const tipLines = [
+            '<span class="ag-tip-title">' + fullName.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>',
+            (areaName ? '<span class="ag-tip-area"><i class="fas fa-building"></i> ' + areaName.replace(/</g,'&lt;') + '</span>' : ''),
+            (hora    ? '<span class="ag-tip-row"><i class="fas fa-clock"></i> ' + hora + '</span>' : ''),
+            (sesion  ? '<span class="ag-tip-row"><i class="fas fa-hashtag"></i> ' + sesion + '</span>' : ''),
+            '<span class="ag-tip-hint"><i class="fas fa-calendar-day"></i> Ver en calendario</span>'
+        ].filter(Boolean).join('');
+        return '<button class="ag-tb-chip" style="' + _style(area) + '" onclick="agNavToDate(\'' + dateStr + '\')">' +
+               (hora ? '<span class="ag-tb-chip-time">' + hora + '</span>' : '') +
+               (area ? '<span class="ag-tb-chip-area">' + area + '</span>' : '') +
+               label +
+               '<span class="ag-tb-chip-tooltip">' + tipLines + '</span>' +
+               '</button>';
+    }
+
+    function _render(events, comitesMap, targetId) {
+        const el = document.getElementById(targetId);
+        if (!el) return;
+        if (!events.length) {
+            el.innerHTML = '<span class="ag-tb-empty">Sin sesiones</span>';
+        } else {
+            el.innerHTML = events.map(function(r) { return _chip(r, comitesMap); }).join('');
+        }
+    }
+
+    async function _load() {
+        try {
+            if (typeof window.ensureSupabaseClient === 'function') {
+                try { await window.ensureSupabaseClient(); } catch (_) {}
+            }
+            const sb = _sb();
+            if (!sb) return;
+
+            const today    = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1);
+            const todayStr = _toISO(today);
+            const tomStr   = _toISO(tomorrow);
+
+            const dtToday = document.getElementById('ag-tb-date-today');
+            const dtTom   = document.getElementById('ag-tb-date-tom');
+            if (dtToday) dtToday.textContent = _fmtDate(today);
+            if (dtTom)   dtTom.textContent   = _fmtDate(tomorrow);
+
+            const [rR, rC] = await Promise.all([
+                sb.from('agenda_reuniones')
+                  .select('id,comite_id,area,numero_sesion,fecha_sesion,hora_inicio,estatus')
+                  .in('fecha_sesion', [todayStr, tomStr])
+                  .neq('estatus', 'Cancelada')
+                  .order('fecha_sesion').order('hora_inicio'),
+                sb.from('agenda_comites')
+                  .select('id,nombre,acronimo,area')
+                  .eq('activo', true),
+            ]);
+
+            const reuniones  = rR.data || [];
+            const comitesMap = {};
+            (rC.data || []).forEach(function(c) { comitesMap[c.id] = c; });
+
+            _render(reuniones.filter(function(r) { return r.fecha_sesion === todayStr; }), comitesMap, 'ag-tb-events-today');
+            _render(reuniones.filter(function(r) { return r.fecha_sesion === tomStr;   }), comitesMap, 'ag-tb-events-tom');
+
+        } catch (err) {
+            ['ag-tb-events-today','ag-tb-events-tom'].forEach(function(id) {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = '<span class="ag-tb-empty">—</span>';
+            });
+            console.warn('[AgendaBar]', err);
+        }
+    }
+
+    window.addEventListener('load', function() { setTimeout(_load, 3000); });
+    window.agBarRefresh = _load;
+    window._goToAgenda  = _goToAgenda;
+})();
+</script>
+
+<!-- ------------------------------------------------------------------ -->
+<!-- BOTÓN FLOTANTE DE RETROALIMENTACIÓN                               -->
+<!-- ------------------------------------------------------------------ -->
+<div id="fb-fab-wrap">
+  <button id="fb-fab" class="fb-fab" title="Sugerencias y retroalimentaciÓn"
+          aria-label="Abrir formulario de sugerencias" onclick="fbOpenModal()">
+      <span class="fb-fab-icon"><i class="fas fa-comment-dots"></i></span>
+      <span class="fb-fab-label">Sugerencias</span>
+  </button>
+  <button id="fb-min-btn" class="fb-min-btn" onclick="fbMinimize()" title="Minimizar">
+      <i class="fas fa-minus"></i>
+  </button>
+</div>
+
+<!-- MODAL DE RETROALIMENTACIÓN -->
+<div id="fb-overlay" class="fb-overlay" role="dialog" aria-modal="true"
+     aria-labelledby="fb-modal-title" onclick="if(event.target===this)fbCloseModal()">
+    <div class="fb-modal">
+        <!-- Cabecera -->
+        <div class="fb-modal-header">
+            <div class="fb-modal-header-left">
+                <div class="fb-modal-icon-wrap" aria-hidden="true">
+                    <i class="fas fa-paper-plane"></i>
+                </div>
+                <div>
+                    <p class="fb-modal-sup">AIFA Operaciones</p>
+                    <h2 class="fb-modal-title" id="fb-modal-title">¿Tienes alguna idea o comentario?</h2>
+                </div>
+            </div>
+            <button class="fb-modal-close" onclick="fbCloseModal()" aria-label="Cerrar">
+                <i class="fas fa-xmark"></i>
+            </button>
+        </div>
+        <!-- Selector de tipo -->
+        <div class="fb-tipo-grid" role="group" aria-label="Tipo de mensaje">
+            <button type="button" class="fb-tipo-btn active" data-tipo="idea">
+                <span class="fb-tipo-emoji">&#x1F4A1;</span>
+                <span>Idea de mejora</span>
+            </button>
+            <button type="button" class="fb-tipo-btn" data-tipo="opinion">
+                <span class="fb-tipo-emoji">&#x1F4AC;</span>
+                <span>Opinión</span>
+            </button>
+            <button type="button" class="fb-tipo-btn" data-tipo="ayuda">
+                <span class="fb-tipo-emoji">&#x1F64B;</span>
+                <span>Necesito ayuda</span>
+            </button>
+            <button type="button" class="fb-tipo-btn" data-tipo="reporte">
+                <span class="fb-tipo-emoji">&#x26A0;&#xFE0F;</span>
+                <span>Reportar problema</span>
+            </button>
+        </div>
+        <!-- Formulario -->
+        <form id="fb-form" class="fb-form" onsubmit="return false;" novalidate>
+            <div class="fb-form-row">
+                <div class="fb-field">
+                    <label class="fb-label" for="fb-nombre">Tu nombre <span class="fb-optional">(opcional)</span></label>
+                    <input id="fb-nombre" class="fb-input" type="text" placeholder="Ej. Ana García" autocomplete="name">
+                </div>
+                <div class="fb-field">
+                    <label class="fb-label" for="fb-area">Área / Dirección <span class="fb-optional">(opcional)</span></label>
+                    <input id="fb-area" class="fb-input" type="text" placeholder="Ej. Coordinación de Slots">
+                </div>
+            </div>
+            <div class="fb-field">
+                <label class="fb-label" for="fb-mensaje">Tu mensaje <span class="fb-required">*</span></label>
+                <textarea id="fb-mensaje" class="fb-textarea" rows="5"
+                          placeholder="Escribe tu sugerencia, comentario o solicitud de ayuda aquí"></textarea>
+                <div id="fb-char-count" class="fb-char-count">0 / 1000</div>
+            </div>
+            <!-- Zona de imágenes -->
+            <div class="fb-field">
+                <label class="fb-label">Imagen adjunta <span class="fb-optional">(captura de pantalla, opcional)</span></label>
+                <div id="fb-dropzone" class="fb-dropzone" tabindex="0"
+                     ondragover="fbDragOver(event)" ondragleave="fbDragLeave(event)" ondrop="fbDrop(event)"
+                     onclick="document.getElementById('fb-file-input').click()"
+                     onkeydown="if(event.key==='Enter'||event.key===' ')document.getElementById('fb-file-input').click()">
+                    <input type="file" id="fb-file-input" accept="image/*" multiple style="display:none"
+                           onchange="fbFileInputChange(event)">
+                    <div class="fb-dropzone-inner">
+                        <i class="fas fa-image fb-dropzone-icon" aria-hidden="true"></i>
+                        <span class="fb-dropzone-text">Arrastra una imagen, pÉgala con <kbd>Ctrl+V</kbd> o haz click aquí</span>
+                    </div>
+                    <div id="fb-img-preview" class="fb-img-preview"></div>
+                </div>
+            </div>
+            <!-- Estado / error -->
+            <div id="fb-status" class="fb-status d-none"></div>
+            <!-- BotÓn enviar -->
+            <button type="button" id="fb-submit-btn" class="fb-submit-btn" onclick="fbEnviar()">
+                <span id="fb-submit-text"><i class="fas fa-paper-plane me-2" aria-hidden="true"></i>Enviar mensaje</span>
+                <span id="fb-submit-spin" class="d-none"><span class="fb-spinner"></span>Enviando…</span>
+            </button>
+            <p class="fb-disclaimer">
+                <i class="fas fa-lock me-1" aria-hidden="true"></i>
+                Tu mensaje se envía directamente al equipo de administración. No se comparte con terceros.
+            </p>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    const FB_URL        = 'https://fgstncvuuhpgyzmjceyr.supabase.co/functions/v1/send-feedback';
+    const FB_ANON       = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnc3RuY3Z1dWhwZ3l6bWpjZXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NzQ0NDQsImV4cCI6MjA4MTQ1MDQ0NH0.YEDIKuWt5iKUEI0BAvidINUz0aZBvQM0h6XRJ-uslB8';
+    const FB_MAX_IMAGES = 3;
+    const FB_MAX_SIZE   = 5 * 1024 * 1024; // 5 MB
+    let _tipo = 'idea';
+    let _imagenes = []; // [{ dataUrl, filename }]
+
+    // Selector de tipo
+    document.querySelectorAll('.fb-tipo-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.fb-tipo-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            _tipo = btn.dataset.tipo;
+        });
+    });
+
+    // Contador de caracteres
+    const ta = document.getElementById('fb-mensaje');
+    const cc = document.getElementById('fb-char-count');
+    if (ta && cc) {
+        ta.addEventListener('input', () => {
+            const n = ta.value.length;
+            cc.textContent = `${n} / 1000`;
+            cc.classList.toggle('fb-char-warn', n > 900);
+            if (n > 1000) ta.value = ta.value.slice(0, 1000);
+        });
+    }
+
+    window.fbOpenModal = function () {
+        const overlay = document.getElementById('fb-overlay');
+        if (!overlay) return;
+        overlay.classList.add('open');
+        document.body.classList.add('fb-modal-open');
+        setTimeout(() => { const m = overlay.querySelector('.fb-modal'); if (m) m.focus(); }, 80);
+    };
+
+    window.fbCloseModal = function () {
+        const overlay = document.getElementById('fb-overlay');
+        if (!overlay) return;
+        overlay.classList.remove('open');
+        document.body.classList.remove('fb-modal-open');
+        fbResetForm();
+    };
+
+    function fbResetForm() {
+        const form = document.getElementById('fb-form');
+        if (!form) return;
+        document.getElementById('fb-nombre').value  = '';
+        document.getElementById('fb-area').value    = '';
+        document.getElementById('fb-mensaje').value = '';
+        if (cc) cc.textContent = '0 / 1000';
+        _imagenes = [];
+        fbRenderImages();
+        fbSetStatus('');
+        fbSetLoading(false);
+    }
+
+    // -- Gestión de imágenes ----------------------------------
+    function fbRenderImages() {
+        const preview = document.getElementById('fb-img-preview');
+        const dz      = document.getElementById('fb-dropzone');
+        if (!preview) return;
+        if (!_imagenes.length) {
+            preview.innerHTML = '';
+            if (dz) dz.classList.remove('fb-dz-has-imgs');
+            return;
+        }
+        if (dz) dz.classList.add('fb-dz-has-imgs');
+        preview.innerHTML = _imagenes.map((img, i) => `
+            <div class="fb-img-thumb" title="${img.filename}">
+                <img src="${img.dataUrl}" alt="Imagen adjunta ${i+1}">
+                <button type="button" class="fb-img-remove" onclick="fbRemoveImage(${i})" aria-label="Quitar imagen">
+                    <i class="fas fa-xmark"></i>
+                </button>
+                <span class="fb-img-name">${img.filename}</span>
+            </div>`).join('');
+    }
+
+    function fbAddImage(file) {
+        if (_imagenes.length >= FB_MAX_IMAGES) {
+            fbSetStatus(`<i class="fas fa-circle-exclamation me-1"></i>MÁximo ${FB_MAX_IMAGES} imágenes por mensaje.`, true);
+            return;
+        }
+        if (file.size > FB_MAX_SIZE) {
+            fbSetStatus('<i class="fas fa-circle-exclamation me-1"></i>La imagen es demasiado grande (mÁx. 5 MB).', true);
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            _imagenes.push({ dataUrl: e.target.result, filename: file.name || 'imagen.png' });
+            fbRenderImages();
+            fbSetStatus('');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    window.fbRemoveImage = function (idx) {
+        _imagenes.splice(idx, 1);
+        fbRenderImages();
+    };
+
+    // Drag & Drop
+    window.fbDragOver = function (e) {
+        e.preventDefault(); e.stopPropagation();
+        document.getElementById('fb-dropzone')?.classList.add('fb-dz-drag');
+    };
+    window.fbDragLeave = function (e) {
+        document.getElementById('fb-dropzone')?.classList.remove('fb-dz-drag');
+    };
+    window.fbDrop = function (e) {
+        e.preventDefault(); e.stopPropagation();
+        document.getElementById('fb-dropzone')?.classList.remove('fb-dz-drag');
+        const files = [...(e.dataTransfer?.files || [])].filter(f => f.type.startsWith('image/'));
+        files.forEach(fbAddImage);
+    };
+
+    // File input
+    window.fbFileInputChange = function (e) {
+        const files = [...(e.target.files || [])].filter(f => f.type.startsWith('image/'));
+        files.forEach(fbAddImage);
+        e.target.value = '';
+    };
+
+    // Pegar con Ctrl+V
+    document.getElementById('fb-overlay').addEventListener('paste', (e) => {
+        const items = [...(e.clipboardData?.items || [])].filter(it => it.type.startsWith('image/'));
+        items.forEach(it => { const f = it.getAsFile(); if (f) fbAddImage(f); });
+    });
+
+    function fbSetStatus(msg, isError) {
+        const el = document.getElementById('fb-status');
+        if (!el) return;
+        if (!msg) { el.className = 'fb-status d-none'; el.innerHTML = ''; return; }
+        el.className = 'fb-status ' + (isError ? 'fb-status-error' : 'fb-status-ok');
+        el.innerHTML = msg;
+    }
+
+    function fbSetLoading(on) {
+        const btn  = document.getElementById('fb-submit-btn');
+        const txt  = document.getElementById('fb-submit-text');
+        const spin = document.getElementById('fb-submit-spin');
+        if (!btn || !txt || !spin) return;
+        btn.disabled = on;
+        txt.classList.toggle('d-none', on);
+        spin.classList.toggle('d-none', !on);
+    }
+
+    window.fbEnviar = async function () {
+        const mensaje = (document.getElementById('fb-mensaje').value || '').trim();
+        if (!mensaje) {
+            fbSetStatus('<i class="fas fa-circle-exclamation me-1"></i>Por favor escribe tu mensaje antes de enviar.', true);
+            document.getElementById('fb-mensaje').focus();
+            return;
+        }
+        fbSetLoading(true);
+        fbSetStatus('');
+
+        // Las imágenes se envían como base64 al edge function que las sube al Storage
+        if (_imagenes.length) fbSetStatus('<i class="fas fa-spinner fa-spin me-1"></i>Enviando…');
+
+        const payload = {
+            tipo:       _tipo,
+            nombre:     (document.getElementById('fb-nombre').value || '').trim(),
+            area:       (document.getElementById('fb-area').value   || '').trim(),
+            mensaje,
+            fechaLocal: new Date().toLocaleString('es-MX'),
+            imagenes:   _imagenes.map(img => ({ dataUrl: img.dataUrl, filename: img.filename }))
+        };
+        try {
+            const res  = await fetch(FB_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${FB_ANON}` },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (!res.ok || data.error) throw new Error(data.error || 'Error al enviar');
+            fbSetStatus('<i class="fas fa-circle-check me-1"></i>¿Mensaje enviado! Gracias por tu retroalimentación. Lo revisaremos a la brevedad.', false);
+            document.getElementById('fb-nombre').value  = '';
+            document.getElementById('fb-area').value    = '';
+            document.getElementById('fb-mensaje').value = '';
+            if (cc) cc.textContent = '0 / 1000';
+            setTimeout(fbCloseModal, 3500);
+        } catch (err) {
+            fbSetStatus('<i class="fas fa-circle-exclamation me-1"></i>No se pudo enviar el mensaje. Por favor intenta de nuevo mÁs tarde.', true);
+            console.error('[feedback]', err);
+        } finally {
+            fbSetLoading(false);
+        }
+    };
+
+    // Cerrar con Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.getElementById('fb-overlay')?.classList.contains('open')) {
+            fbCloseModal();
+        }
+    });
+
+    // Minimizar / expandir FAB
+    window.fbMinimize = function () {
+        const wrap = document.getElementById('fb-fab-wrap');
+        const icon = document.querySelector('#fb-min-btn i');
+        const btn  = document.getElementById('fb-min-btn');
+        if (!wrap) return;
+        const isMin = wrap.classList.toggle('fb-minimized');
+        if (icon) icon.className = isMin ? 'fas fa-plus' : 'fas fa-minus';
+        if (btn)  btn.title      = isMin ? 'Expandir'   : 'Minimizar';
+        try { localStorage.setItem('fb_minimized', isMin ? '1' : '0'); } catch(_) {}
+    };
+
+    // Restaurar estado al cargar
+    (function () {
+        try {
+            if (localStorage.getItem('fb_minimized') === '1') {
+                const wrap = document.getElementById('fb-fab-wrap');
+                const icon = document.querySelector('#fb-min-btn i');
+                const btn  = document.getElementById('fb-min-btn');
+                if (wrap) wrap.classList.add('fb-minimized');
+                if (icon) icon.className = 'fas fa-plus';
+                if (btn)  btn.title      = 'Expandir';
+            }
+        } catch(_) {}
+    })();
+})();
+</script>
+</body>
+</html>
+
+
+
+
+
+
